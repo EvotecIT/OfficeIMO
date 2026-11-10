@@ -328,17 +328,17 @@ namespace OfficeIMO.Excel {
                 internal int Allocate(int fieldCount, bool decodeValues, bool recordStarts) {
                     int rows = EstimatedRows;
                     int cells = checked(rows * fieldCount);
-                    RowIndexes = ArrayPool<int>.Shared.Rent(rows);
-                    if (recordStarts) RowContentStarts = ArrayPool<int>.Shared.Rent(rows);
-                    RowContentEnds = ArrayPool<int>.Shared.Rent(rows);
-                    RowFirstColumns = ArrayPool<int>.Shared.Rent(rows);
-                    RowLastColumns = ArrayPool<int>.Shared.Rent(rows);
-                    ValueStarts = ArrayPool<int>.Shared.Rent(cells);
-                    ValueLengths = ArrayPool<int>.Shared.Rent(cells);
-                    CellKinds = ArrayPool<byte>.Shared.Rent(cells);
+                    RowIndexes = ExcelArrayPool.RentInts(rows);
+                    if (recordStarts) RowContentStarts = ExcelArrayPool.RentInts(rows);
+                    RowContentEnds = ExcelArrayPool.RentInts(rows);
+                    RowFirstColumns = ExcelArrayPool.RentInts(rows);
+                    RowLastColumns = ExcelArrayPool.RentInts(rows);
+                    ValueStarts = ExcelArrayPool.RentInts(cells);
+                    ValueLengths = ExcelArrayPool.RentInts(cells);
+                    CellKinds = ExcelArrayPool.RentBytes(cells);
                     if (decodeValues) {
-                        DecodedValues = ArrayPool<long>.Shared.Rent(cells);
-                        DecodedTags = ArrayPool<byte>.Shared.Rent(cells);
+                        DecodedValues = ExcelArrayPool.RentLongs(cells);
+                        DecodedTags = ExcelArrayPool.RentBytes(cells);
                     }
                     return rows;
                 }
@@ -353,15 +353,15 @@ namespace OfficeIMO.Excel {
                     Return(ref ValueLengths);
                     Return(ref FormulaStarts);
                     Return(ref FormulaLengths);
-                    if (CellKinds != null) ArrayPool<byte>.Shared.Return(CellKinds);
-                    if (DecodedValues != null) ArrayPool<long>.Shared.Return(DecodedValues);
-                    if (DecodedTags != null) ArrayPool<byte>.Shared.Return(DecodedTags);
+                    if (CellKinds != null) ExcelArrayPool.Return(CellKinds);
+                    if (DecodedValues != null) ExcelArrayPool.Return(DecodedValues);
+                    if (DecodedTags != null) ExcelArrayPool.Return(DecodedTags);
                     CellKinds = DecodedTags = null;
                     DecodedValues = null;
                 }
 
                 private static void Return(ref int[]? values) {
-                    if (values != null) ArrayPool<int>.Shared.Return(values);
+                    if (values != null) ExcelArrayPool.Return(values);
                     values = null;
                 }
             }

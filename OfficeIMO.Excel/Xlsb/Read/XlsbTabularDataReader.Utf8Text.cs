@@ -143,9 +143,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 // may be returned even when other ordinals already have live spans.
                 ReturnUtf8FieldBuffer(ref buffer);
                 if (length > MaximumUtf8TextBytes - _activeUtf8FieldBytes) return false;
-                bytes = ArrayPool<byte>.Shared.Rent(length);
+                bytes = ExcelArrayPool.RentBytes(length);
                 if (bytes.Length > MaximumUtf8TextBytes - _activeUtf8FieldBytes) {
-                    ArrayPool<byte>.Shared.Return(bytes, clearArray: true);
+                    ExcelArrayPool.Return(bytes, clearArray: true);
                     return false;
                 }
                 buffer.Bytes = bytes;
@@ -172,7 +172,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 }
                 buffer = default;
                 // Clear the whole rental, including a longer value left by an earlier row.
-                ArrayPool<byte>.Shared.Return(bytes, clearArray: true);
+                ExcelArrayPool.Return(bytes, clearArray: true);
             } else {
                 buffer = default;
             }

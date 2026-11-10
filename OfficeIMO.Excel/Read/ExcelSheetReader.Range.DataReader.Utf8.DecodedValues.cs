@@ -167,8 +167,8 @@ namespace OfficeIMO.Excel {
             private void EnsureDecodedValues() {
                 if (_decodedTags != null) return;
                 int capacity = _valueStarts!.Length;
-                _decodedValues = ArrayPool<long>.Shared.Rent(capacity);
-                _decodedTags = ArrayPool<byte>.Shared.Rent(capacity);
+                _decodedValues = ExcelArrayPool.RentLongs(capacity);
+                _decodedTags = ExcelArrayPool.RentBytes(capacity);
                 _decodedThroughCell = 0;
             }
 
@@ -181,19 +181,19 @@ namespace OfficeIMO.Excel {
 
             private void GrowDecodedValues(int capacity, int count) {
                 if (_decodedTags == null) return;
-                long[] values = ArrayPool<long>.Shared.Rent(capacity);
-                byte[] tags = ArrayPool<byte>.Shared.Rent(capacity);
+                long[] values = ExcelArrayPool.RentLongs(capacity);
+                byte[] tags = ExcelArrayPool.RentBytes(capacity);
                 Array.Copy(_decodedValues!, values, count);
                 Array.Copy(_decodedTags, tags, count);
-                ArrayPool<long>.Shared.Return(_decodedValues!);
-                ArrayPool<byte>.Shared.Return(_decodedTags);
+                ExcelArrayPool.Return(_decodedValues!);
+                ExcelArrayPool.Return(_decodedTags);
                 _decodedValues = values;
                 _decodedTags = tags;
             }
 
             private void ReturnDecodedValues() {
-                if (_decodedValues != null) ArrayPool<long>.Shared.Return(_decodedValues);
-                if (_decodedTags != null) ArrayPool<byte>.Shared.Return(_decodedTags);
+                if (_decodedValues != null) ExcelArrayPool.Return(_decodedValues);
+                if (_decodedTags != null) ExcelArrayPool.Return(_decodedTags);
                 _decodedValues = null;
                 _decodedTags = null;
                 _decodedThroughCell = 0;

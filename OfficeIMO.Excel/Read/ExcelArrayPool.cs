@@ -14,6 +14,8 @@ namespace OfficeIMO.Excel {
             new ExcelReleasingArrayStore<int>(MaximumPerLength, MaximumRetainedBytes / sizeof(int));
         private static readonly ExcelReleasingArrayStore<byte> LargeBytes =
             new ExcelReleasingArrayStore<byte>(MaximumPerLength, MaximumRetainedBytes);
+        private static readonly ExcelReleasingArrayStore<long> LargeLongs =
+            new ExcelReleasingArrayStore<long>(MaximumPerLength, MaximumRetainedBytes / sizeof(long));
 
         internal static int[] RentInts(int minimumLength) {
             if (minimumLength <= MaximumSharedBytes / sizeof(int)) return ArrayPool<int>.Shared.Rent(minimumLength);
@@ -27,14 +29,32 @@ namespace OfficeIMO.Excel {
             return LargeBytes.TryTake(length) ?? new byte[length];
         }
 
+        internal static long[] RentLongs(int minimumLength) {
+            if (minimumLength <= MaximumSharedBytes / sizeof(long)) return ArrayPool<long>.Shared.Rent(minimumLength);
+            int length = RoundUpToPowerOfTwo(minimumLength);
+            return LargeLongs.TryTake(length) ?? new long[length];
+        }
+
         internal static void Return(int[] array) {
             if (array.Length <= MaximumSharedBytes / sizeof(int)) ArrayPool<int>.Shared.Return(array);
             else LargeInts.TryAdd(array);
         }
 
-        internal static void Return(byte[] array) {
-            if (array.Length <= MaximumSharedBytes) ArrayPool<byte>.Shared.Return(array);
-            else LargeBytes.TryAdd(array);
+        internal static void Return(byte[] array) => Return(array, clearArray: false);
+
+        /// <summary>Returns bytes, clearing them first when they held workbook content.</summary>
+        internal static void Return(byte[] array, bool clearArray) {
+            if (array.Length <= MaximumSharedBytes) {
+                ArrayPool<byte>.Shared.Return(array, clearArray);
+                return;
+            }
+            if (clearArray) Array.Clear(array, 0, array.Length);
+            LargeBytes.TryAdd(array);
+        }
+
+        internal static void Return(long[] array) {
+            if (array.Length <= MaximumSharedBytes / sizeof(long)) ArrayPool<long>.Shared.Return(array);
+            else LargeLongs.TryAdd(array);
         }
 
         private static int RoundUpToPowerOfTwo(int value) {
