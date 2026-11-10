@@ -112,7 +112,7 @@ internal sealed class ToUnicodeCMap {
                 string fromHex = RemoveHexWhitespace(m.Groups["from"].Value);
                 uint from = Convert.ToUInt32(fromHex, 16);
                 uint to = Convert.ToUInt32(RemoveHexWhitespace(m.Groups["to"].Value), 16);
-                uint dst = Convert.ToUInt32(RemoveHexWhitespace(m.Groups["dst"].Value), 16);
+                string dstHex = RemoveHexWhitespace(m.Groups["dst"].Value);
                 ulong rangeLength = to >= from ? (ulong)to - from + 1 : 0;
                 if (rangeLength == 0 || rangeLength > MaxRangeMappings || rangeLength > (ulong)(MaxMappings - _processedMappings)) {
                     continue;
@@ -122,10 +122,8 @@ internal sealed class ToUnicodeCMap {
                 // Bound iterations by the validated count, including a range ending at FFFFFFFF.
                 for (int index = 0; index < (int)rangeLength; index++) {
                     uint code = from + (uint)index;
-                    uint u = unchecked(dst + (uint)index);
                     string srcHex = code.ToString("X", System.Globalization.CultureInfo.InvariantCulture).PadLeft(keyBytes * 2, '0');
-                    string dstHex = u.ToString("X", System.Globalization.CultureInfo.InvariantCulture);
-                    AddMap(srcHex, dstHex);
+                    AddMap(srcHex, OffsetRangeDestination(dstHex, (uint)index));
                 }
             }
 
@@ -245,6 +243,20 @@ internal sealed class ToUnicodeCMap {
             yield return body.Substring(start + 1, end - start - 1);
             index = end + 1;
         }
+    }
+
+    // ISO 32000-1, 9.10.3: a bfrange destination advances by incrementing its last byte. A multi-character
+    // destination such as <005b00310035005d> ("[15]") is wider than 32 bits, so only its final UTF-16 unit advances.
+    private static string OffsetRangeDestination(string dstHex, uint offset) {
+        if (dstHex.Length <= 8) {
+            uint first = dstHex.Length == 0 ? 0U : Convert.ToUInt32(dstHex, 16);
+            return unchecked(first + offset).ToString("X", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        if (offset == 0U) return dstHex;
+        int lastUnit = dstHex.Length - 4;
+        uint unit = unchecked(Convert.ToUInt32(dstHex.Substring(lastUnit), 16) + offset) & 0xFFFFU;
+        return dstHex.Remove(lastUnit) + unit.ToString("X4", System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private static string HexToString(string hex) {

@@ -392,7 +392,10 @@ public sealed partial class PdfReadPage {
             Additions.TryGetValue(scalar, out glyph) || _program.UnicodeGlyphs.TryGetValue(scalar, out glyph);
     }
 
-    private void RegisterEmbeddedFonts(OfficeDrawing drawing, PdfDictionary? resources, HashSet<PdfStream> activeForms, int depth,
+    // visitedForms is never unwound: a form's fonts are registered once, however many resource dictionaries list it.
+    // Some producers share one XObject dictionary across every form, so unwinding the set walked
+    // the same forms along every path, exponentially.
+    private void RegisterEmbeddedFonts(OfficeDrawing drawing, PdfDictionary? resources, HashSet<PdfStream> visitedForms, int depth,
         Dictionary<(string Family, OfficeFontStyle Style), PdfFontResource>? registeredFonts = null,
         bool preserveExistingFaces = false, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -407,13 +410,9 @@ public sealed partial class PdfReadPage {
         foreach (PdfObject value in xObjects.Items.Values) {
             if (ResolveObject(value) is not PdfStream form ||
                 !string.Equals(form.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal) ||
-                !activeForms.Add(form)) continue;
-            try {
-                PdfDictionary? formResources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceValue) ? formResourceValue : null) ?? resources;
-                RegisterEmbeddedFonts(drawing, formResources, activeForms, depth + 1, registeredFonts, preserveExistingFaces, cancellationToken);
-            } finally {
-                activeForms.Remove(form);
-            }
+                !visitedForms.Add(form)) continue;
+            PdfDictionary? formResources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceValue) ? formResourceValue : null) ?? resources;
+            RegisterEmbeddedFonts(drawing, formResources, visitedForms, depth + 1, registeredFonts, preserveExistingFaces, cancellationToken);
         }
     }
 
@@ -781,8 +780,8 @@ public sealed partial class PdfReadPage {
         double top = Math.Max(first.Y, second.Y);
         double right = Math.Min(first.X + first.Width, second.X + second.Width);
         double bottom = Math.Min(first.Y + first.Height, second.Y + second.Height);
-        double width = right - left;
-        double height = bottom - top;
+        double width = ExtentEndingAt(left, right);
+        double height = ExtentEndingAt(top, bottom);
         if (width <= 0D || height <= 0D) {
             intersection = default;
             return false;
@@ -790,6 +789,16 @@ public sealed partial class PdfReadPage {
 
         intersection = PdfPageClipPath.Rectangle(left, top, width, height);
         return true;
+    }
+
+    // right - left can round so that left + extent exceeds right by one ulp, which would place a clip fitted to the
+    // drawing just outside its bounds. Shrink the extent until it ends at or before right.
+    private static double ExtentEndingAt(double start, double end) {
+        double extent = end - start;
+        for (int attempt = 0; attempt < 8 && extent > 0D && start + extent > end; attempt++) {
+            extent -= Math.Max(start + extent - end, Math.Abs(end) * 1E-16);
+        }
+        return extent;
     }
 
     private static bool TryAddClippedShape(

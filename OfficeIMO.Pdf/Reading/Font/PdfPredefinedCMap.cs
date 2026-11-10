@@ -1,15 +1,33 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Pdf {
 
     /// <summary>Offline Adobe mappings for the four horizontal UCS-2 CJK encodings.</summary>
-    /// <remarks>Only pinned assembly resources are parsed. Document-supplied CMaps do not enter this reader.</remarks>
+    /// <remarks>CID-to-Unicode data comes only from pinned assembly resources. A document-supplied encoding CMap
+    /// contributes two-byte code-to-CID ranges alone, parsed within the fixed 65,536-code table.</remarks>
     internal sealed class PdfPredefinedCMap {
         private static readonly char[] Separators = { ' ', '\t' };
         private static readonly Lazy<PdfPredefinedCMap> Japanese = new(() => Load("UniJIS-UCS2-H", "Japan1"));
         private static readonly Lazy<PdfPredefinedCMap> SimplifiedChinese = new(() => Load("UniGB-UCS2-H", "GB1"));
         private static readonly Lazy<PdfPredefinedCMap> TraditionalChinese = new(() => Load("UniCNS-UCS2-H", "CNS1"));
         private static readonly Lazy<PdfPredefinedCMap> Korean = new(() => Load("UniKS-UCS2-H", "Korea1"));
+        private static readonly Dictionary<string, Lazy<ToUnicodeCMap>> CollectionUnicode = new(StringComparer.Ordinal) {
+            ["Japan1"] = new(() => LoadCollectionUnicode("Japan1")),
+            ["GB1"] = new(() => LoadCollectionUnicode("GB1")),
+            ["CNS1"] = new(() => LoadCollectionUnicode("CNS1")),
+            ["Korea1"] = new(() => LoadCollectionUnicode("Korea1"))
+        };
+        private static readonly Regex CodespaceSectionRegex = new(@"begincodespacerange([\s\S]*?)endcodespacerange", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
+        private static readonly Regex CidRangeSectionRegex = new(@"begincidrange([\s\S]*?)endcidrange", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
+        private static readonly Regex CidCharSectionRegex = new(@"begincidchar([\s\S]*?)endcidchar", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
+        private static readonly Regex HexCodeRegex = new(@"<\s*([0-9A-Fa-f]{1,8})\s*>", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
+        private static readonly Regex CidRangeEntryRegex = new(@"<\s*([0-9A-Fa-f]{4})\s*>\s*<\s*([0-9A-Fa-f]{4})\s*>\s*(\d{1,5})", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
+        private static readonly Regex CidCharEntryRegex = new(@"<\s*([0-9A-Fa-f]{4})\s*>\s*(\d{1,5})", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
+        private const long MaximumEmbeddedCMapAssignments = 1_000_000L;
+
+        /// <summary>A map that decodes nothing, used when an embedded CMap cannot be read.</summary>
+        internal static PdfPredefinedCMap Empty { get; } = new(new ushort[65536], new ToUnicodeCMap());
         private readonly ushort[] _cids;
         private readonly ToUnicodeCMap _unicode;
 
@@ -28,6 +46,49 @@ namespace OfficeIMO.Pdf {
                 ("UniKS-UCS2-H", "Korea1") => Korean,
                 _ => null
             };
+        }
+
+        /// <summary>True when the bundled resources map this character collection's CIDs to Unicode.</summary>
+        internal static bool HasUnicodeCollection(string registry, string ordering) =>
+            string.Equals(registry, "Adobe", StringComparison.Ordinal) && CollectionUnicode.ContainsKey(ordering);
+
+        /// <summary>
+        /// Reads the two-byte code-to-CID ranges of an embedded encoding CMap. Returns <see cref="Empty"/> when the
+        /// CMap uses other code lengths, a usecmap parent, or malformed ranges, so text keeps the unmapped diagnostic.
+        /// </summary>
+        internal static PdfPredefinedCMap FromEmbeddedCMap(byte[] data, string ordering) {
+            if (!CollectionUnicode.TryGetValue(ordering, out Lazy<ToUnicodeCMap>? unicode)) return Empty;
+            string text = Encoding.ASCII.GetString(data);
+            if (text.Contains("usecmap")) return Empty;
+            MatchCollection codespaces = CodespaceSectionRegex.Matches(text);
+            if (codespaces.Count == 0) return Empty;
+            foreach (Match section in codespaces) {
+                foreach (Match code in HexCodeRegex.Matches(section.Groups[1].Value)) {
+                    if (code.Groups[1].Value.Length != 4) return Empty;
+                }
+            }
+
+            var cids = new ushort[65536];
+            long assignments = 0L;
+            foreach (Match section in CidRangeSectionRegex.Matches(text)) {
+                foreach (Match entry in CidRangeEntryRegex.Matches(section.Groups[1].Value)) {
+                    int first = Convert.ToInt32(entry.Groups[1].Value, 16);
+                    int last = Convert.ToInt32(entry.Groups[2].Value, 16);
+                    int cid = int.Parse(entry.Groups[3].Value, CultureInfo.InvariantCulture);
+                    if (first > last || (long)cid + (last - first) > ushort.MaxValue) return Empty;
+                    assignments += last - first + 1;
+                    if (assignments > MaximumEmbeddedCMapAssignments) return Empty;
+                    for (int code = first; code <= last; code++) cids[code] = (ushort)(cid + code - first);
+                }
+            }
+            foreach (Match section in CidCharSectionRegex.Matches(text)) {
+                foreach (Match entry in CidCharEntryRegex.Matches(section.Groups[1].Value)) {
+                    int cid = int.Parse(entry.Groups[2].Value, CultureInfo.InvariantCulture);
+                    if (cid > ushort.MaxValue || ++assignments > MaximumEmbeddedCMapAssignments) return Empty;
+                    cids[Convert.ToInt32(entry.Groups[1].Value, 16)] = (ushort)cid;
+                }
+            }
+            return new PdfPredefinedCMap(cids, unicode.Value);
         }
 
         /// <summary>Maps a complete two-byte code to its CID; prefixes and undefined codes have no mapping.</summary>
@@ -87,13 +148,17 @@ namespace OfficeIMO.Pdf {
                     }
                 }
             }
+            return new PdfPredefinedCMap(cids, CollectionUnicode[ordering].Value);
+        }
+
+        private static ToUnicodeCMap LoadCollectionUnicode(string ordering) {
             using Stream unicodeData = OpenResource("Adobe-" + ordering + "-UCS2");
             using MemoryStream output = new MemoryStream();
             unicodeData.CopyTo(output);
             if (!ToUnicodeCMap.TryParse(output.ToArray(), out ToUnicodeCMap? unicode) || unicode == null || unicode.MappingCount == 0) {
                 throw new InvalidDataException("Invalid embedded Adobe Unicode mapping.");
             }
-            return new PdfPredefinedCMap(cids, unicode);
+            return unicode;
         }
 
         private static int ParseHexCode(string value) {

@@ -3509,7 +3509,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Pdf
 
 <details>
-<summary>308 changes</summary>
+<summary>309 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -3759,6 +3759,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Visibility | `OfficeIMO.Pdf.PdfTextPreflight` | Internal | &mdash; | Use the documented document, options and result APIs. |
 | behavior | `OfficeIMO.Pdf.PdfDocumentRedactions.Apply(IEnumerable<PdfRedactionArea>)` | Changed | `OfficeIMO.Pdf.PdfDocumentRedactions.Apply(IEnumerable<PdfRedactionArea>)` | Area-based removal now throws InvalidOperationException when logical content or its inspection plan cannot be read safely, instead of proceeding without complete image and annotation matches. Keep the source and handle the refusal; no partially redacted result is returned. |
 | behavior | `OfficeIMO.Pdf.PdfDocumentRedactions.Search(PdfRedactionSearchOptions)` | Changed | `OfficeIMO.Pdf.PdfDocumentRedactions.Search(PdfRedactionSearchOptions)` | Whole-block search refuses edits that would remove an unselected glyph. A matching form field name also refuses the plan with redaction-search-field-name-unsupported. Inspect IsReviewable and Findings before applying; a successful search does not guarantee an applicable plan. |
+| behavior | `OfficeIMO.Pdf.PdfDocumentRenderer.Pages(PdfPageSelection, PdfPageRenderOptions, CancellationToken)` | Changed | `OfficeIMO.Pdf.PdfDocumentRenderer.Pages(PdfPageSelection, PdfPageRenderOptions, CancellationToken)` | PNG rendering of a user-password document no longer requires content-copy permission, matching DisplayPage and PDF viewers. SVG output, a custom ImageCodec, a TextShapingProvider, or a font in Fonts loaded through a FontProgramProvider still require extraction permission because they expose text or source images. Check permissions yourself if your application relied on the old refusal. |
 | behavior | `OfficeIMO.Pdf.PdfRedactionMatch.Text` | Changed | `OfficeIMO.Pdf.PdfRedactionMatch.Text` | Search-driven TextBlock matches now return null instead of retaining text containing the searched value. Use the plan geometry, search criteria and verification report; FormField matches expose the field name, never its value. |
 | behavior | `OfficeIMO.Pdf.PdfRedactionMatchKind` | Changed | `OfficeIMO.Pdf.PdfRedactionMatchKind` | FormField = 4 identifies form-value redaction. Update exhaustive match-kind switches; filling values, alternate field labels, widget contents, metadata and historical revisions must not retain the searched text in a verified output. |
 | cancellation | `OfficeIMO.Pdf.PdfAnnotationCreateOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
