@@ -108,6 +108,9 @@ namespace OfficeIMO.Excel {
 
         private StylesCache Styles => _stylesCache ??= _styles.GetValue(_opt.CancellationToken);
 
+        // Background indexing helpers may only read styles that this reader already resolved.
+        private bool StylesLoaded => Volatile.Read(ref _stylesCache) != null;
+
         private static object BoxBoolean(bool value) => value ? BoxedTrue : BoxedFalse;
 
         private string? GetSharedString(int index) => _sst.Get(index);
@@ -125,8 +128,18 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IEnumerable<ExcelCellValueInfo> EnumerateCells(CancellationToken ct = default) {
             return CanUseEnumerateCellsXmlReader()
-                ? EnumerateCellsXmlFast(ct)
+                ? EnumerateCellsStreamed(ct)
                 : EnumerateCellsDom(ct);
+        }
+
+        private IEnumerable<ExcelCellValueInfo> EnumerateCellsStreamed(CancellationToken ct) {
+            IEnumerable<ExcelCellValueInfo> cells = TryCreateEnumerateCellsUtf8Source(ct, out ExcelUtf8RangeRowSource? source,
+                    out int firstRow, out int lastRow, out int firstOrdinal, out int lastOrdinal, out int declaredFirstColumn)
+                ? EnumerateCellsUtf8(source!, firstRow, lastRow, firstOrdinal, lastOrdinal, declaredFirstColumn, ct)
+                : EnumerateCellsXmlFast(ct);
+            foreach (ExcelCellValueInfo cell in cells) {
+                yield return cell;
+            }
         }
 
         private IEnumerable<ExcelCellValueInfo> EnumerateCellsDom(CancellationToken ct) {

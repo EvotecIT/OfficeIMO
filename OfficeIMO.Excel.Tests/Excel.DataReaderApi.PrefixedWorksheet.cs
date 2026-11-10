@@ -53,6 +53,86 @@ public partial class Excel {
         }
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("x")]
+    public void EnumerateCells_QualifiedWorkbookReturnsFormulaTextCachedValuesDatesAndSharedStrings(string prefix) {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.EnumerateQualified.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue(new DateTime(2024, 3, 1));
+                document.Save();
+            }
+            string generated = Encoding.UTF8.GetString(ReadZipEntry(path, "xl/worksheets/sheet1.xml"));
+            string dateStyle = System.Text.RegularExpressions.Regex.Match(generated, "<c r=\"B1\" s=\"(\\d+)\"").Groups[1].Value;
+            Assert.NotEqual(string.Empty, dateStyle);
+
+            string p = prefix.Length == 0 ? string.Empty : prefix + ":";
+            string ns = prefix.Length == 0 ? "xmlns" : "xmlns:" + prefix;
+            const string main = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+            string worksheet = $"<?xml version=\"1.0\" encoding=\"utf-8\"?><{p}worksheet {ns}=\"{main}\"><{p}sheetData>"
+                + $"<{p}row r=\"1\"><{p}c r=\"A1\" t=\"s\"><{p}v>0</{p}v></{p}c><{p}c r=\"B1\" s=\"{dateStyle}\"><{p}v>45352</{p}v></{p}c>"
+                + $"<{p}c r=\"C1\"><{p}f>A2*2</{p}f></{p}c><{p}c r=\"D1\"><{p}f>1+1</{p}f><{p}v>2</{p}v></{p}c></{p}row>"
+                + $"</{p}sheetData></{p}worksheet>";
+            string sharedStrings = $"<?xml version=\"1.0\" encoding=\"utf-8\"?><{p}sst {ns}=\"{main}\"><{p}si><{p}t>Name</{p}t></{p}si></{p}sst>";
+            ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(worksheet));
+            ReplaceZipEntry(path, "xl/sharedStrings.xml", Encoding.UTF8.GetBytes(sharedStrings));
+
+            using var loaded = ExcelDocument.Load(new MemoryStream(File.ReadAllBytes(path)));
+            ExcelCellValueInfo[] cells = loaded.Sheets[0].EnumerateCells().ToArray();
+            Assert.Equal(new[] { 1, 2, 3, 4 }, cells.Select(cell => cell.Column));
+            Assert.All(cells, cell => Assert.Equal(1, cell.Row));
+            Assert.Equal("Name", cells[0].Value);
+            Assert.Equal(new DateTime(2024, 3, 1), cells[1].Value);
+            Assert.Equal("A2*2", cells[2].Value);
+            Assert.Equal(2d, cells[3].Value);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData("self-bound-formula")]
+    [InlineData("undeclared-range-widens")]
+    [InlineData("inline-string-formula-cache")]
+    public void EnumerateCells_ReturnsEveryCellForWriterShapesOutsideTheCompactLayout(string shape) {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.EnumerateShapes.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                document.AddSheet("Data").Cell(1, 1).SetValue(1);
+                document.Save();
+            }
+            const string main = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+            string rows = shape switch {
+                // The Open XML SDK writes a formula created in code this way under a default-namespace root.
+                "self-bound-formula" => $"<row r=\"1\"><c r=\"A1\"><v>2</v></c><c r=\"B1\" t=\"n\"><x:f ca=\"0\" xmlns:x=\"{main}\">A1*3</x:f><v>6</v></c></row>",
+                // No dimension, and the second row starts left of the first.
+                "undeclared-range-widens" => "<row r=\"1\"><c r=\"B1\"><v>2</v></c><c r=\"C1\"><v>3</v></c></row><row r=\"2\"><c r=\"A2\"><v>1</v></c><c r=\"C2\"><v>4</v></c></row>",
+                // LibreOffice writes an external-link text result as an inline-string cell with only a cached value.
+                _ => "<row r=\"1\"><c r=\"A1\" t=\"inlineStr\"><f aca=\"false\">B1</f><v t=\"inlineStr\">POI rocks!</v></c></row>"
+            };
+            string worksheet = $"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><worksheet xmlns=\"{main}\"><sheetData>{rows}</sheetData></worksheet>";
+            ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(worksheet));
+
+            using var loaded = ExcelDocument.Load(new MemoryStream(File.ReadAllBytes(path)));
+            string[] Read(bool cachedFormulaResults) => loaded.Sheets[0]
+                .EnumerateCells(new ExcelReaderOptions { UseCachedFormulaResult = cachedFormulaResults })
+                .Select(cell => $"{ExcelA1.CellReference(cell.Row, cell.Column)}={cell.Value}").ToArray();
+            if (shape == "self-bound-formula") {
+                Assert.Equal(new[] { "A1=2", "B1=6" }, Read(cachedFormulaResults: true));
+                Assert.Equal(new[] { "A1=2", "B1=A1*3" }, Read(cachedFormulaResults: false));
+            } else if (shape == "undeclared-range-widens") {
+                Assert.Equal(new[] { "B1=2", "C1=3", "A2=1", "C2=4" }, Read(cachedFormulaResults: true));
+            } else {
+                Assert.Equal(new[] { "A1=POI rocks!" }, Read(cachedFormulaResults: true));
+            }
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     [Fact]
     public void DataReader_PrefixedWorksheetRetainsFallbackForMixedElementPrefixes() {
         string path = CreateCompactFastPathWorkbook();

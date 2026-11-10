@@ -25,7 +25,10 @@ namespace OfficeIMO.Excel {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private bool TryReadIndexedLogicalRow(CancellationToken cancellationToken, out object?[] row) {
                 row = Array.Empty<object?>();
-                if (_nextLogicalRow > _lastRow) return false;
+                if (_nextLogicalRow > _lastRow) {
+                    _utf8Source!.CompleteStreaming(cancellationToken);
+                    return false;
+                }
                 bool hasPhysicalRow = _utf8Source!.SelectRow(_nextLogicalRow, _ct, cancellationToken);
                 ReleaseCurrentValueReferences();
                 row = hasPhysicalRow ? _currentValues : _blankRow;

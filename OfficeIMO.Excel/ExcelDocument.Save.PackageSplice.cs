@@ -43,7 +43,6 @@ namespace OfficeIMO.Excel {
             if (source == null
                 || options?.DisableFastPackageWriter == true
                 || _spreadSheetDocument.DigitalSignatureOriginPart != null
-                || _spreadSheetDocument.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null
                 || CollectLoadedCarriageReturnParts(WorkbookPartRoot).Count > 0) {
                 return null;
             }
@@ -60,6 +59,9 @@ namespace OfficeIMO.Excel {
         }
 
         private void SpliceLivePackage(ExcelPackageEntrySplicer splicer) {
+            if (ExtendedPropertiesMayCarrySignature(splicer)) {
+                throw new InvalidOperationException("Signed extended properties take the full save.");
+            }
             var relationshipSets = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
             var parts = new Dictionary<string, OpenXmlPart>(StringComparer.OrdinalIgnoreCase);
             CollectLiveRelationships(_spreadSheetDocument, string.Empty, relationshipSets, parts);

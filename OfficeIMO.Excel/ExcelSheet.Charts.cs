@@ -324,6 +324,7 @@ namespace OfficeIMO.Excel {
 
                 _excelDocument.EnsureWorkbookThemeAndStyles();
 
+                ExcelChartAxisIdGenerator.EnsureInitialized(_worksheetPart.OpenXmlPackage);
                 ChartPart chartPart = drawingPart!.AddNewPart<ChartPart>();
                 ExcelChartUtils.PopulateChartFromSeriesRanges(chartPart, type, Name, ranges, title);
                 if (_excelDocument.DefaultChartStylePreset == null)
@@ -415,6 +416,7 @@ namespace OfficeIMO.Excel {
                 ReportChartTiming(stageWatch, "AddChartInternal.EnsureThemeAndStyles");
 
                 stageWatch?.Restart();
+                ExcelChartAxisIdGenerator.EnsureInitialized(_worksheetPart.OpenXmlPackage);
                 ChartPart chartPart = drawingPart!.AddNewPart<ChartPart>();
                 ReportChartTiming(stageWatch, "AddChartInternal.AddChartPart");
 
