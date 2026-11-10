@@ -14,6 +14,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string HeaderFooterPaintBoundsUnmeasured = "header-footer-paint-bounds-unmeasured";
     /// <summary>Stable code: <c>header-footer-zone-overlap</c>.</summary>
     public const string HeaderFooterZoneOverlap = "header-footer-zone-overlap";
+    /// <summary>Stable code: <c>header-path-ambiguous</c>.</summary>
+    public const string HeaderPathAmbiguous = "header-path-ambiguous";
     /// <summary>Stable code: <c>headers-footers-omitted</c>.</summary>
     public const string HeadersFootersOmitted = "headers-footers-omitted";
     /// <summary>Stable code: <c>heading-font-tier</c>.</summary>
@@ -146,6 +148,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string InvisibleImagePlacementSuppressed = "invisible-image-placement-suppressed";
     /// <summary>Stable code: <c>invisible-outline</c>.</summary>
     public const string InvisibleOutline = "invisible-outline";
+    /// <summary>Stable code: <c>key-type-changed</c>.</summary>
+    public const string KeyTypeChanged = "key-type-changed";
     /// <summary>Stable code: <c>large-image-stream</c>.</summary>
     public const string LargeImageStream = "large-image-stream";
     /// <summary>Stable code: <c>large-stream</c>.</summary>
@@ -386,8 +390,14 @@ public static partial class OfficeDiagnosticCodes {
     public const string NoIndirectObjects = "no-indirect-objects";
     /// <summary>Stable code: <c>no-signatures</c>.</summary>
     public const string NoSignatures = "no-signatures";
+    /// <summary>Stable code: <c>non-finite-number</c>.</summary>
+    public const string NonFiniteNumber = "non-finite-number";
     /// <summary>Stable code: <c>non-visible-image-placement-suppressed</c>.</summary>
     public const string NonVisibleImagePlacementSuppressed = "non-visible-image-placement-suppressed";
+    /// <summary>Stable code: <c>null-as-empty</c>.</summary>
+    public const string NullAsEmpty = "null-as-empty";
+    /// <summary>Stable code: <c>number-precision</c>.</summary>
+    public const string NumberPrecision = "number-precision";
     /// <summary>Stable code: <c>object-graph-parse-failed</c>.</summary>
     public const string ObjectGraphParseFailed = "object-graph-parse-failed";
     /// <summary>Stable code: <c>occluded-outline</c>.</summary>

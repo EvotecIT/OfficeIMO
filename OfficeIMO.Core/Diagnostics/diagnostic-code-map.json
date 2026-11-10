@@ -10997,6 +10997,190 @@
       "origins": [
         "OfficeIMO.Core/Raster/OfficeRasterImageCodecs.cs"
       ]
+    },
+    {
+      "oldCode": "yaml-alias-expanded",
+      "catalogCode": "yaml-alias-expanded",
+      "member": "YamlAliasExpanded",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Yaml/YamlEventReader.cs"
+      ]
+    },
+    {
+      "oldCode": "yaml-tag-dropped",
+      "catalogCode": "yaml-tag-dropped",
+      "member": "YamlTagDropped",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Yaml/YamlScalarClassifier.cs"
+      ]
+    },
+    {
+      "oldCode": "yaml-complex-key",
+      "catalogCode": "yaml-complex-key",
+      "member": "YamlComplexKey",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Yaml/YamlEventReader.cs"
+      ]
+    },
+    {
+      "oldCode": "yaml-documents-combined",
+      "catalogCode": "yaml-documents-combined",
+      "member": "YamlDocumentsCombined",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Json/JsonEventWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "key-type-changed",
+      "catalogCode": "key-type-changed",
+      "member": "KeyTypeChanged",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Yaml/YamlScalarClassifier.cs"
+      ]
+    },
+    {
+      "oldCode": "duplicate-key",
+      "catalogCode": "duplicate-key",
+      "member": "DuplicateKey",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Yaml/YamlModelEventReader.cs"
+      ]
+    },
+    {
+      "oldCode": "non-finite-number",
+      "catalogCode": "non-finite-number",
+      "member": "NonFiniteNumber",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Json/JsonEventWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "datetime-as-string",
+      "catalogCode": "datetime-as-string",
+      "member": "DatetimeAsString",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Json/JsonEventWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "datetime-offset-dropped",
+      "catalogCode": "datetime-offset-dropped",
+      "member": "DatetimeOffsetDropped",
+      "origins": [
+        "OfficeIMO.Data.Conversions.Excel/ExcelTableWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "datetime-precision",
+      "catalogCode": "datetime-precision",
+      "member": "DatetimePrecision",
+      "origins": [
+        "OfficeIMO.Data.Conversions.Excel/ExcelTableWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "number-precision",
+      "catalogCode": "number-precision",
+      "member": "NumberPrecision",
+      "origins": [
+        "OfficeIMO.Data.Conversions.Excel/ExcelTableWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "scalar-type-dropped",
+      "catalogCode": "scalar-type-dropped",
+      "member": "ScalarTypeDropped",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Xml/XmlEventWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "null-as-empty",
+      "catalogCode": "null-as-empty",
+      "member": "NullAsEmpty",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Tables/TreeTableReader.cs"
+      ]
+    },
+    {
+      "oldCode": "array-joined",
+      "catalogCode": "array-joined",
+      "member": "ArrayJoined",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Tables/TreeTableReader.cs"
+      ]
+    },
+    {
+      "oldCode": "header-path-ambiguous",
+      "catalogCode": "header-path-ambiguous",
+      "member": "HeaderPathAmbiguous",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Tables/TreeTableReader.cs"
+      ]
+    },
+    {
+      "oldCode": "root-wrapped",
+      "catalogCode": "root-wrapped",
+      "member": "RootWrapped",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Xml/XmlEventWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "xml-sibling-order-changed",
+      "catalogCode": "xml-sibling-order-changed",
+      "member": "XmlSiblingOrderChanged",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Xml/XmlEventReader.cs"
+      ]
+    },
+    {
+      "oldCode": "xml-mixed-content",
+      "catalogCode": "xml-mixed-content",
+      "member": "XmlMixedContent",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Xml/XmlEventReader.cs"
+      ]
+    },
+    {
+      "oldCode": "xml-processing-instruction-dropped",
+      "catalogCode": "xml-processing-instruction-dropped",
+      "member": "XmlProcessingInstructionDropped",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Xml/XmlEventReader.cs"
+      ]
+    },
+    {
+      "oldCode": "xml-array-shape",
+      "catalogCode": "xml-array-shape",
+      "member": "XmlArrayShape",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Xml/XmlEventWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "empty-collection-dropped",
+      "catalogCode": "empty-collection-dropped",
+      "member": "EmptyCollectionDropped",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Tables/TableColumns.cs"
+      ]
+    },
+    {
+      "oldCode": "xml-character-replaced",
+      "catalogCode": "xml-character-replaced",
+      "member": "XmlCharacterReplaced",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Xml/XmlEventWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "xml-name-changed",
+      "catalogCode": "xml-name-changed",
+      "member": "XmlNameChanged",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Xml/XmlEventWriter.cs"
+      ]
     }
   ],
   "dynamicPatterns": [

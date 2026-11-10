@@ -1,0 +1,2 @@
+# JSONTestSuite cases are upstream bytes; some are deliberately invalid UTF-8 or contain bare CR.
+* -text -whitespace

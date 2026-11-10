@@ -142,3 +142,26 @@ OfficeIMO.OfficeValidationReport.OfficeValidationReport(System.Collections.Gener
 OfficeIMO.OfficeValidationReport.ThrowIfFailed() -> void
 OfficeIMO.OfficeValidationReport.ToMarkdown() -> string!
 OfficeIMO.OfficeFormatEncoding.StandaloneXml = 3 -> OfficeIMO.OfficeFormatEncoding
+const OfficeIMO.OfficeDiagnosticCodes.YamlAliasExpanded = "yaml-alias-expanded" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.YamlTagDropped = "yaml-tag-dropped" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.YamlComplexKey = "yaml-complex-key" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.YamlDocumentsCombined = "yaml-documents-combined" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.KeyTypeChanged = "key-type-changed" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.DuplicateKey = "duplicate-key" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.NonFiniteNumber = "non-finite-number" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.DatetimeAsString = "datetime-as-string" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.DatetimeOffsetDropped = "datetime-offset-dropped" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.DatetimePrecision = "datetime-precision" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.NumberPrecision = "number-precision" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.ScalarTypeDropped = "scalar-type-dropped" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.NullAsEmpty = "null-as-empty" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.ArrayJoined = "array-joined" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.HeaderPathAmbiguous = "header-path-ambiguous" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.RootWrapped = "root-wrapped" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.XmlSiblingOrderChanged = "xml-sibling-order-changed" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.XmlMixedContent = "xml-mixed-content" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.XmlProcessingInstructionDropped = "xml-processing-instruction-dropped" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.XmlArrayShape = "xml-array-shape" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.EmptyCollectionDropped = "empty-collection-dropped" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.XmlCharacterReplaced = "xml-character-replaced" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.XmlNameChanged = "xml-name-changed" -> string!

@@ -52,7 +52,8 @@ Each buffer is bounded by a limit and reported in the README:
 | XML repeated siblings | Adjacent same-name siblings stream with one-sibling lookahead. Non-adjacent repeats (`a, b, a`) buffer that parent to group them | One record, or one parent |
 | YAML aliases expanded for non-YAML targets | The anchored subtree | `MaxAliasExpansion` from `YamlReaderOptions` |
 | TOML sink | Within a table, scalars must precede sub-tables, so object members are held until the table's scalars are written | One table's subtree; TOML files are small configuration |
-| Tree → table column discovery | Pass 1 scans events for column paths and type evidence; pass 2 writes rows | The column set only. The input is re-read; `OfficeConverter` already captures input to re-readable bounded storage, and an explicit `Columns` list skips pass 1 |
+| XML root children | A first pass reads only the root's child names; interleaved names (`a, b, a`) buffer the root to group them, otherwise records stream | One record, or the root when its children interleave |
+| Tree → table column discovery | Pass 1 scans events for column paths and type evidence; pass 2 writes rows | The column set only. The input is re-read; `OfficeConverter` already captures input to re-readable bounded storage. An explicit `Columns` list fixes the columns, but pass 1 still decides the shape |
 | CSV/TSV type inference | Pass 1 decides each column's type | Per-column state only |
 
 ### Performance rules
@@ -127,7 +128,8 @@ Workbooks map back symmetrically. A workbook with one sheet (or a chosen `Sheet`
 - Booleans are `true`/`false`, date-times are ISO 8601 and `null` is an empty field.
 - Into Excel, numbers become numeric cells when the value survives a double round-trip. Otherwise they become text cells with `number-precision`, which protects 16+ digit IDs from becoming `1.23457E+15`.
 - Date kinds become date-formatted cells; an offset is dropped with `datetime-offset-dropped`, keeping the wall-clock time.
-- A string column holding both `null` and `""` collapses both to an empty field. That is reported only when it actually occurs.
+- A null in a text column becomes an empty field, which reads back as `""`; that is reported (`null-as-empty`) when it occurs.
+- An empty array or object inside a row has no cells, so it becomes an empty cell and is reported (`empty-collection-dropped`). An empty trailing array item reads back as absent.
 
 ## XML ⇄ JSON, YAML and TOML
 
@@ -161,7 +163,7 @@ A typed, order-exact representation (W3C XPath 3.1 `json-to-xml`, or JsonML) is 
 
 ## Type fidelity and loss
 
-Each case has one behavior. Codes are added to `OfficeIMO.Core/Diagnostics/diagnostic-code-map.json` and generated into `OfficeDiagnosticCodes`. Loss kinds: **A** is Approximation, **O** is Omission, **–** is no loss (Information severity). Each finding is aggregated per code with a count and up to ten locations. Locations are tree paths (`spec.containers[0].image`), `Sheet!C12` cells or CSV `line 12, column price`.
+Each case has one behavior. Codes are added to `OfficeIMO.Core/Diagnostics/diagnostic-code-map.json` and generated into `OfficeDiagnosticCodes`. Loss kinds: **A** is Approximation, **O** is Omission, **–** is no loss (Information severity). Each finding is aggregated per code with a count and up to ten locations. Locations are source positions: `line 12, column 5` for YAML and XML, `byte 1834` for JSON and `row 12` for tables, or a header path for column findings. Tracking a path for every value would cost an allocation per key.
 
 | Case | Behavior | Code | Loss |
 |---|---|---|---|
@@ -174,7 +176,7 @@ Each case has one behavior. Codes are added to `OfficeIMO.Core/Diagnostics/diagn
 | YAML custom tags (`!Ref`, `!Sub`) | Value kept, tag dropped | `yaml-tag-dropped` | A |
 | YAML complex keys (a mapping or sequence as a key) | Key written as its flow-YAML text | `yaml-complex-key` | A |
 | Non-string keys (`1:`, `true:`) into JSON, TOML or XML | Written as strings | `key-type-changed` | A |
-| YAML plain scalars shaped like timestamps | Date-times when the target has a date type (TOML, Excel). Quoted scalars stay strings | – | – |
+| YAML plain scalars shaped like timestamps | Follow the schema: strings under the 1.2 Core schema; date-times under the 1.1 schema (a `%YAML 1.1` directive or a forced schema) or an explicit `!!timestamp` tag | – | – |
 | Multi-document YAML into JSON | An array of the documents | `yaml-documents-combined` | A |
 | Duplicate keys | Error by default, as YAML and TOML require. A source's `LastWins`/`FirstWins` policy reports each dropped value | `duplicate-key` | O |
 | Big or high-precision numbers | Exact text into JSON and YAML | – | – |
@@ -195,7 +197,11 @@ Each case has one behavior. Codes are added to `OfficeIMO.Core/Diagnostics/diagn
 | Zero- or one-item arrays into XML | Repeated or absent elements | `xml-array-shape` | A |
 | Arrays joined into one cell | `ArrayColumns = Join` | `array-joined` | A |
 | Keys containing `.`, `[` or `]` into a table | Literal header | `header-path-ambiguous` | A |
-| Excel formulas | Cached values | `formula-value-only` | O |
+| Excel formulas | Cached values; the worksheet reader does not expose whether a cell held a formula, so this is not reported | – | – |
+| Characters XML 1.0 cannot hold (NUL, most C0 controls, U+FFFE, U+FFFF) | Replaced with U+FFFD | `xml-character-replaced` | A |
+| Empty keys into XML | `<_>` elements | `xml-name-changed` | A |
+| Empty arrays and objects inside table rows | Empty cells | `empty-collection-dropped` | O |
+| Nulls in text columns into CSV | Empty fields | `null-as-empty` | A |
 
 `FailOnLoss` (in `DataConversionOptions` and `OfficeConversionOptions`) throws `OfficeConversionException` carrying the report before the output is published. Conversion is streaming, so this means `SaveAs*` writes to a temporary target and publishes only on success, as `OfficeConverter` already does. An `Information` finding never trips it.
 
@@ -228,7 +234,14 @@ book["Q3"].SaveAsYaml("q3.yaml");
 YamlDocument q3 = book["Q3"].ToYaml(out OfficeConversionReport loss);
 ```
 
-- Every `To{Target}` has the `out OfficeConversionReport` overload. The async forms return `OfficeConversionResult<T>`, as the API design requires.
+- Every `To{Target}` has the `out OfficeConversionReport` overload. Async forms are not in the first release: the pipeline is synchronous and CPU-bound, and an async wrapper would only move it to another thread.
+- `StructuredDataReader` is public: the rows of JSON, JSON Lines, YAML or XML as a `DbDataReader`, for `SqlBulkCopy`, `OfficeIMO.Data.Arrow`, `DataTable.Load` or `ExcelSheet.InsertDataReader`.
+
+```csharp
+using StructuredDataReader rows = StructuredDataReader.Open("orders.json", new DataConversionOptions { Select = "data.items" });
+using var bulk = new SqlBulkCopy(connection) { DestinationTableName = "Orders" };
+bulk.WriteToServer(rows);   // columns such as id, customer.name and lines[0].sku
+```
 - `To{Target}` returns the target's model: `JsonNode` (the BCL's mutable JSON model), `YamlDocument`, `TomlDocument`, `XDocument`, `CsvDocument` or `ExcelDocument`. This keeps the API design's rule without adding a second `ToHtml`-style string exception. Large data goes through `SaveAs{Target}(stream)`, which streams.
 - **Breaking:** `ExcelSheet.ToJson`, `TableToJson` and `FromJson` are removed from `OfficeIMO.Excel`. They returned strings through `DataTable`, and `FromJson` breaks the no-`From…` rule. Their replacements are `sheet.ToJson()`/`SaveAsJson` and `JsonNode.SaveAsExcel`/`ToExcel` in the Excel adapter. `MIGRATION.md` gets the mapping. `OfficeIMO.Excel` keeps `System.Text.Json`, which it uses elsewhere.
 
@@ -238,7 +251,7 @@ Files and batches:
 OfficeConverter.Convert("a.yaml", "a.json");
 OfficeConverter.Convert("export.json", "export.xlsx", new OfficeConversionOptions {
     FailOnLoss = true,
-    RegisteredSettings = new DataConversionOptions { Select = "data.items" }
+    Data = new DataConversionOptions { Select = "data.items" }
 });
 
 OfficeBatchReport batch = await OfficeConverter.ConvertAsync(
@@ -253,20 +266,22 @@ OfficeBatchReport batch = await OfficeConverter.ConvertAsync(
 
 One type, because the routes share one mapping. Each property exists for a named scenario:
 
-`DataConversionOptions` implements `IOfficeConversionSettings`, so the same object configures the model API and `OfficeConverter` routes.
+`OfficeConversionOptions.Data` carries the same object to `OfficeConverter` routes, as the other built-in routes carry theirs.
 
 | Property | Scenario |
 |---|---|
 | `FailOnLoss` | Pipelines that must not lose data |
 | `Select` | API responses and nested documents whose rows sit below the root |
 | `Sheet` | One worksheet out of a workbook |
-| `Columns` | A fixed column order or subset; also makes table writes single-pass |
+| `Columns` | A fixed column order or subset |
+| `Range` | Part of a worksheet, such as an Excel table's range |
 | `ArrayColumns` (`Indexed`, `Join`), `ArraySeparator` | Human-readable sheets of tags and lists |
 | `InferTypes` | Keep CSV as strings, or type XML values |
 | `NestedHeaders` | Turn off unflattening for CSVs with dotted headers that aren't paths (`Ver. 1.2`) |
 | `Culture` | European CSV (`1,5`), matching PowerShell's `-Culture` |
 | `RootName` | XML root element, and the wrapping key for TOML |
-| `Json`, `Yaml`, `Toml`, `Csv`, `Excel`, `Xml` | Each format's own reader and writer options, passed through: indentation, encoder, delimiter, limits. They default to each format's `UntrustedDefaults` limits |
+| `JsonLines` | JSON Lines output; a `.jsonl` or `.ndjson` path selects it too |
+| `JsonReader`, `JsonWriter`, `YamlReader`, `CsvReader`, `CsvSave`, `XmlReader`, `XmlWriter` | Each format's own reader and writer options, passed through: comments, indentation, encoder, delimiter, limits. DTD processing stays prohibited |
 
 - Writer defaults: JSON is indented with 2 spaces and uses the relaxed encoder, so non-ASCII text stays readable. The output is a JSON file, not HTML. YAML, TOML and CSV use their engines' defaults, including YAML's 1.1-safe quoting.
 - Key order is always preserved.
@@ -337,7 +352,6 @@ Windows, Linux and macOS evidence, as for the YAML engine.
 **Out of scope:**
 
 - JSON5 and HJSON;
-- JSON Lines (a candidate; see below);
 - INI, `.properties` and plist;
 - BSON, MessagePack and CBOR;
 - JSON Schema validation or inference;
@@ -347,10 +361,12 @@ Windows, Linux and macOS evidence, as for the YAML engine.
 - carrying Excel styles or formulas;
 - ODS (reachable later through `OfficeIMO.Excel.OpenDocument`).
 
-## Open questions
+## Decisions after review
 
-1. **Package names.** The proposal is `OfficeIMO.Data.Conversions` + `OfficeIMO.Data.Conversions.Excel`, alongside `OfficeIMO.Data.Arrow`. A shorter alternative is `OfficeIMO.Data` + `OfficeIMO.Excel.Data`, but Core already uses the `OfficeIMO.Data` namespace.
-2. **Front door.** Should `OfficeIMO` reference the hub, adding the YAML and TOML engines to every front-door install so `OfficeConverter` handles these routes by default, or only `OfficeIMO.Workflows`?
-3. **YAML timestamps.** Plain unquoted timestamp-shaped scalars become date-times for TOML and Excel targets, as PyYAML and Go's yaml.v3 read them, although the YAML 1.2 Core schema calls them strings. Is that the right default?
-4. **JSON Lines** (`.jsonl`/`.ndjson`). It is the natural streaming partner of CSV and of multi-document YAML, and it would remove the `yaml-documents-combined` loss. Add it as a JSON variant in D1, or keep it out until asked?
-5. **A public `DbDataReader` bridge** over JSON/YAML/TOML/XML rows (for `SqlBulkCopy`, `OfficeIMO.Data.Arrow` or DbaClientX). It falls out of D2 internally. Should it be public once a consumer is named?
+Decided on 2026-11-10 under the direction to follow best practices:
+
+1. **Package names:** `OfficeIMO.Data.Conversions` and `OfficeIMO.Data.Conversions.Excel`, next to `OfficeIMO.Data.Arrow`. The exception to pairwise adapters is recorded in the [API design](officeimo.api-design.md#packages).
+2. **Front door:** the `OfficeIMO` package references both and runs the routes as built-ins.
+3. **YAML timestamps:** follow the schema, with no conversion-specific override (see the loss table).
+4. **JSON Lines:** supported as a JSON variant (`.jsonl`, `.ndjson`) in D1 and D2. Several documents written as JSON Lines are one line each, and a single array document is one line per item.
+5. **`StructuredDataReader`** is public, for DbaClientX bulk copy and `OfficeIMO.Data.Arrow`.
