@@ -35,22 +35,32 @@ internal static class YamlScalarFormat {
         if (value.Length >= 3 && ((first == '-' && value[1] == '-' && value[2] == '-') || (first == '.' && value[1] == '.' && value[2] == '.'))
             && (value.Length == 3 || value[3] == ' ' || value[3] == '\t')) return false;
 #if NET8_0_OR_GREATER
-        // Printable ASCII without ':', '#' and the flow indicators is plain in any context; only text with those runs
-        // the character-by-character rules below.
-        if (value.IndexOfAnyExcept(s_plainEverywhere) < 0) return true;
-#endif
-        for (int i = 0; i < value.Length; i++) {
-            char c = value[i];
-            if (!IsPrintableInline(c)) return false;
-            if (c == ':') {
-                if (i + 1 < value.Length && (value[i + 1] == ' ' || value[i + 1] == '\t' || (flow && YamlChars.IsFlowIndicator(value[i + 1])))) return false;
-            } else if (c == '#') {
-                if (value[i - 1] == ' ' || value[i - 1] == '\t') return false;
-            } else if (flow && YamlChars.IsFlowIndicator(c)) {
-                return false;
-            }
+        // Printable ASCII without ':', '#' and the flow indicators is plain in any context, so only the other
+        // characters (a ':' in an image reference, a '#' in a fragment) go through the rules below.
+        int i = value.IndexOfAnyExcept(s_plainEverywhere);
+        while (i >= 0) {
+            if (!IsPlainCharacter(value, i, flow)) return false;
+            int next = value.Slice(i + 1).IndexOfAnyExcept(s_plainEverywhere);
+            if (next < 0) break;
+            i += next + 1;
         }
+#else
+        for (int i = 0; i < value.Length; i++) {
+            if (!IsPlainCharacter(value, i, flow)) return false;
+        }
+#endif
         return true;
+    }
+
+    /// <summary>Whether the character at <paramref name="i"/> (not the first) keeps a single-line plain scalar plain.</summary>
+    private static bool IsPlainCharacter(ReadOnlySpan<char> value, int i, bool flow) {
+        char c = value[i];
+        if (!IsPrintableInline(c)) return false;
+        if (c == ':') {
+            return !(i + 1 < value.Length && (value[i + 1] == ' ' || value[i + 1] == '\t' || (flow && YamlChars.IsFlowIndicator(value[i + 1]))));
+        }
+        if (c == '#') return !(value[i - 1] == ' ' || value[i - 1] == '\t');
+        return !(flow && YamlChars.IsFlowIndicator(c));
     }
 
     /// <summary>
