@@ -4,9 +4,45 @@ namespace OfficeIMO.CSV;
 
 internal static partial class CsvWriter
 {
+    /// <summary>Internal quote mode for <see cref="CsvQuoteMode.Never"/> with <see cref="CsvEscapeMode.Backslash"/>.</summary>
+    internal const CsvQuoteMode BackslashEscapedQuoteMode = (CsvQuoteMode)3;
+
+    /// <summary>Internal quote mode for PSWriteOffice's literal <see cref="CsvQuoteMode.Never"/> parity.</summary>
+    internal const CsvQuoteMode LiteralUnquotedQuoteMode = (CsvQuoteMode)4;
+    private const string BackslashEscapedCharacters = "\\\t\r\n";
+
+    // Unquoted output cannot represent a delimiter or line break inside a field: escape it or fail.
+    private static string PrepareUnquoted(string text, char delimiter, CsvQuoteMode quoteMode)
+    {
+        if (quoteMode == LiteralUnquotedQuoteMode) return text;
+        if (quoteMode == BackslashEscapedQuoteMode) text = CsvBackslashEscapes.Encode(text);
+        if (text.IndexOf(delimiter) >= 0 || text.IndexOf('\r') >= 0 || text.IndexOf('\n') >= 0)
+            throw CreateUnrepresentableFieldException(quoteMode);
+        return text;
+    }
+
+    private static string PrepareUnquoted(string text, string delimiter, CsvQuoteMode quoteMode)
+    {
+        if (quoteMode == LiteralUnquotedQuoteMode) return text;
+        if (quoteMode == BackslashEscapedQuoteMode) text = CsvBackslashEscapes.Encode(text);
+        if (text.IndexOf(delimiter, StringComparison.Ordinal) >= 0 || text.IndexOf('\r') >= 0 || text.IndexOf('\n') >= 0)
+            throw CreateUnrepresentableFieldException(quoteMode);
+        return text;
+    }
+
+    private static CsvException CreateUnrepresentableFieldException(CsvQuoteMode quoteMode) => new(quoteMode == BackslashEscapedQuoteMode
+        ? "A field contains the delimiter, which backslash escaping does not encode. Use a tab delimiter or a quoting mode."
+        : "A field contains the delimiter or a line break, which unquoted output cannot represent. Use CsvEscapeMode.Backslash or a quoting mode.");
+
     private static void WriteEscaped(TextWriter writer, string text, char delimiter, CsvQuoteMode quoteMode, bool forceQuote)
     {
-        if (quoteMode == CsvQuoteMode.Never || !(quoteMode == CsvQuoteMode.Always || forceQuote || NeedsQuotes(text, delimiter)))
+        if (quoteMode >= CsvQuoteMode.Never)
+        {
+            writer.Write(PrepareUnquoted(text, delimiter, quoteMode));
+            return;
+        }
+
+        if (!(quoteMode == CsvQuoteMode.Always || forceQuote || NeedsQuotes(text, delimiter)))
         {
             writer.Write(text);
             return;
@@ -18,7 +54,13 @@ internal static partial class CsvWriter
 
     private static void WriteEscaped(TextWriter writer, string text, string delimiter, CsvQuoteMode quoteMode, bool forceQuote)
     {
-        if (quoteMode == CsvQuoteMode.Never || !(quoteMode == CsvQuoteMode.Always || forceQuote || NeedsQuotes(text, delimiter)))
+        if (quoteMode >= CsvQuoteMode.Never)
+        {
+            writer.Write(PrepareUnquoted(text, delimiter, quoteMode));
+            return;
+        }
+
+        if (!(quoteMode == CsvQuoteMode.Always || forceQuote || NeedsQuotes(text, delimiter)))
         {
             writer.Write(text);
             return;
@@ -30,7 +72,13 @@ internal static partial class CsvWriter
 
     private static void WriteEscaped(StringBuilder writer, string text, char delimiter, CsvQuoteMode quoteMode, bool forceQuote)
     {
-        if (quoteMode == CsvQuoteMode.Never || !(quoteMode == CsvQuoteMode.Always || forceQuote || NeedsQuotes(text, delimiter)))
+        if (quoteMode >= CsvQuoteMode.Never)
+        {
+            writer.Append(PrepareUnquoted(text, delimiter, quoteMode));
+            return;
+        }
+
+        if (!(quoteMode == CsvQuoteMode.Always || forceQuote || NeedsQuotes(text, delimiter)))
         {
             writer.Append(text);
             return;
@@ -42,7 +90,13 @@ internal static partial class CsvWriter
 
     private static void WriteEscaped(StringBuilder writer, string text, string delimiter, CsvQuoteMode quoteMode, bool forceQuote)
     {
-        if (quoteMode == CsvQuoteMode.Never || !(quoteMode == CsvQuoteMode.Always || forceQuote || NeedsQuotes(text, delimiter)))
+        if (quoteMode >= CsvQuoteMode.Never)
+        {
+            writer.Append(PrepareUnquoted(text, delimiter, quoteMode));
+            return;
+        }
+
+        if (!(quoteMode == CsvQuoteMode.Always || forceQuote || NeedsQuotes(text, delimiter)))
         {
             writer.Append(text);
             return;
@@ -326,7 +380,20 @@ internal static partial class CsvWriter
 #if NET6_0_OR_GREATER
     private static void AppendEscapedSpan(StringBuilder writer, ReadOnlySpan<char> text, char delimiter, bool prefixApostrophe, CsvQuoteMode quoteMode, bool forceQuote)
     {
-        if (quoteMode == CsvQuoteMode.Never || !(quoteMode == CsvQuoteMode.Always || forceQuote || NeedsQuotes(text, delimiter)))
+        if (quoteMode >= CsvQuoteMode.Never)
+        {
+            if (prefixApostrophe) writer.Append('\'');
+            if (quoteMode != BackslashEscapedQuoteMode || text.IndexOfAny(BackslashEscapedCharacters.AsSpan()) < 0)
+            {
+                if (quoteMode != LiteralUnquotedQuoteMode && (text.IndexOfAny('\r', '\n') >= 0 || text.IndexOf(delimiter) >= 0))
+                    throw CreateUnrepresentableFieldException(quoteMode);
+                writer.Append(text);
+            }
+            else writer.Append(PrepareUnquoted(text.ToString(), delimiter, quoteMode));
+            return;
+        }
+
+        if (!(quoteMode == CsvQuoteMode.Always || forceQuote || NeedsQuotes(text, delimiter)))
         {
             if (prefixApostrophe) writer.Append('\'');
             writer.Append(text);
@@ -340,7 +407,20 @@ internal static partial class CsvWriter
 
     private static void AppendEscapedSpan(StringBuilder writer, ReadOnlySpan<char> text, string delimiter, bool prefixApostrophe, CsvQuoteMode quoteMode, bool forceQuote)
     {
-        if (quoteMode == CsvQuoteMode.Never || !(quoteMode == CsvQuoteMode.Always || forceQuote || NeedsQuotes(text, delimiter)))
+        if (quoteMode >= CsvQuoteMode.Never)
+        {
+            if (prefixApostrophe) writer.Append('\'');
+            if (quoteMode != BackslashEscapedQuoteMode || text.IndexOfAny(BackslashEscapedCharacters.AsSpan()) < 0)
+            {
+                if (quoteMode != LiteralUnquotedQuoteMode && (text.IndexOfAny('\r', '\n') >= 0 || text.IndexOf(delimiter.AsSpan()) >= 0))
+                    throw CreateUnrepresentableFieldException(quoteMode);
+                writer.Append(text);
+            }
+            else writer.Append(PrepareUnquoted(text.ToString(), delimiter, quoteMode));
+            return;
+        }
+
+        if (!(quoteMode == CsvQuoteMode.Always || forceQuote || NeedsQuotes(text, delimiter)))
         {
             if (prefixApostrophe) writer.Append('\'');
             writer.Append(text);

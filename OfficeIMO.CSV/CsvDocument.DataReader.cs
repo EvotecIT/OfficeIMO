@@ -20,7 +20,7 @@ public sealed partial class CsvDocument
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        options = options?.Clone() ?? new CsvReaderOptions();
+        options = options?.Clone() ?? CsvProfiles.CreateDefaultReaderOptions(path);
         // OpenReader is the forward-only entry point. Reader routing remains
         // internal so callers cannot accidentally request streaming through Load.
         options.Mode = CsvLoadMode.Stream;
@@ -445,7 +445,8 @@ public sealed partial class CsvDocument
         && options.MaxQuotedFieldLength is null
         // Canonical interning reports progress after yielding the current record.
         && (!options.InternStrings || options.ProgressCallback is null || options.ProgressReportInterval <= 0)
-        && !options.NormalizeQuotes;
+        && !options.NormalizeQuotes
+        && !options.Parsing.DecodesBackslashEscapes;
 
     private static bool CanUseUtf8StreamDataReader(CsvReaderOptions options)
     {

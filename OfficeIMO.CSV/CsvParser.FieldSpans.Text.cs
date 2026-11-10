@@ -19,7 +19,7 @@ internal static partial class CsvParser
         bool? textMayContainQuote = null)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
-        if (HasFieldLengthLimits(options))
+        if (RequiresFieldMaterialization(options))
         {
             using var reader = new StringReader(text.ToString());
             ReadFieldSpansMaterialized(reader, options, recordsToSkip, ref fieldVisitor);
@@ -57,7 +57,8 @@ internal static partial class CsvParser
         var emittedRecordCount = 0;
         var lineNumber = 1;
         var useAvx2UnquotedFastPath = true;
-        var mayContainQuote = textMayContainQuote ?? (text.Length < TextQuoteFreeProbeMinimumLength || text.IndexOf('"') >= 0);
+        var mayContainQuote = !options.QuotesAreData &&
+            (textMayContainQuote ?? (text.Length < TextQuoteFreeProbeMinimumLength || text.IndexOf('"') >= 0));
         var unquotedDelimiterIndexCapacity = 16;
         var projectedFieldVisitor = fieldVisitor as ICsvProjectedFieldSpanVisitor;
         char[]? scratch = null;

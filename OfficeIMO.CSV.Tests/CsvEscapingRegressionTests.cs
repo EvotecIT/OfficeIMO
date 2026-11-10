@@ -11,7 +11,7 @@ public class CsvEscapingRegressionTests {
     [InlineData("||", CsvQuoteMode.AsNeeded)]
     [InlineData(",", CsvQuoteMode.Always)]
     [InlineData("||", CsvQuoteMode.Always)]
-    [InlineData(",", CsvQuoteMode.Never)]
+    [InlineData("\t", CsvQuoteMode.Never)]
     public void TextAndObjectWritersPreserveEscapingAcrossLongSegments(string delimiter, CsvQuoteMode mode) {
         string[] values = Values().ToArray();
         var options = new CsvSaveOptions {
@@ -19,6 +19,8 @@ public class CsvEscapingRegressionTests {
             IncludeHeader = false,
             NewLine = "\n",
             QuoteMode = mode,
+            // Unquoted output must encode the corpus' tabs and line breaks.
+            EscapeMode = mode == CsvQuoteMode.Never ? CsvEscapeMode.Backslash : CsvEscapeMode.None,
             FormulaInjectionPolicy = CsvFormulaInjectionPolicy.Escape
         };
         var document = CsvDocument.Create().WithHeader("Notes");
@@ -62,6 +64,8 @@ public class CsvEscapingRegressionTests {
         // The corpus has one formula-leading value; its escaped text remains quoted
         // according to the same public mode as every other value.
         if (value.StartsWith("  =", StringComparison.Ordinal)) value = "'" + value;
+        if (mode == CsvQuoteMode.Never)
+            return value.Replace("\\", "\\\\").Replace("\t", "\\t").Replace("\r", "\\r").Replace("\n", "\\n");
         bool quoted = mode == CsvQuoteMode.Always || mode == CsvQuoteMode.AsNeeded &&
             (value.Contains(delimiter) || value.IndexOfAny(new[] { '"', '\r', '\n' }) >= 0);
         return quoted ? "\"" + value.Replace("\"", "\"\"") + "\"" : value;

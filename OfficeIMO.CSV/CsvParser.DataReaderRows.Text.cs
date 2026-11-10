@@ -423,7 +423,7 @@ internal static partial class CsvParser
 
     internal static bool CanReadDataReaderRowsFromText(string text, CsvParsingSettings options)
     {
-        return !HasFieldLengthLimits(options) &&
+        return !RequiresFieldMaterialization(options) &&
             !UsesTextDelimiter(options) &&
             !(NeedsLogicalCommentSkipping(options) && HasPotentialTextCommentRecord(text, options.CommentCharacter)) &&
             options.ParseErrorAction != CsvParseErrorAction.SkipRow &&
@@ -605,7 +605,8 @@ internal static partial class CsvParser
         {
             RecordsToSkip = recordsToSkip,
             UseAvx2UnquotedFastPath = true,
-            TextMayContainQuote = text.Length < TextQuoteFreeProbeMinimumLength || text.IndexOf('"') >= 0,
+            TextMayContainQuote = !options.QuotesAreData &&
+                (text.Length < TextQuoteFreeProbeMinimumLength || text.IndexOf('"') >= 0),
             UnquotedDelimiterIndexCapacity = 16,
             DelimiterVector = delimiterVector,
             LineNumber = 1
