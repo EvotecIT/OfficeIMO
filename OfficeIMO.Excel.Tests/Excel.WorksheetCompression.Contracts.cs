@@ -47,13 +47,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
-        [InlineData(4095, ExcelExecutionMode.Automatic, null, false)]
-        [InlineData(4096, ExcelExecutionMode.Automatic, null, false)]
-        [InlineData(4096, ExcelExecutionMode.Sequential, null, false)]
-        [InlineData(4096, ExcelExecutionMode.Automatic, 1, false)]
-        [InlineData(4096, ExcelExecutionMode.Automatic, null, true)]
-        public void Xlsb_BufferedSave_PreservesCapturedSelectorsAndValuesAcrossPolicies(
-            int rowCount, ExcelExecutionMode mode, int? degree, bool diagnostics) {
+        [InlineData(ExcelFileFormat.Xlsb, 4095, ExcelExecutionMode.Automatic, null, false)]
+        [InlineData(ExcelFileFormat.Xlsb, 4096, ExcelExecutionMode.Automatic, null, false)]
+        [InlineData(ExcelFileFormat.Xlsb, 4096, ExcelExecutionMode.Sequential, null, false)]
+        [InlineData(ExcelFileFormat.Xlsb, 4096, ExcelExecutionMode.Automatic, 1, false)]
+        [InlineData(ExcelFileFormat.Xlsb, 4096, ExcelExecutionMode.Automatic, null, true)]
+        [InlineData(ExcelFileFormat.Xlsx, 16384, ExcelExecutionMode.Automatic, null, false)]
+        [InlineData(ExcelFileFormat.Xlsx, 16384, ExcelExecutionMode.Sequential, null, false)]
+        [InlineData(ExcelFileFormat.Xlsx, 16384, ExcelExecutionMode.Automatic, 1, false)]
+        [InlineData(ExcelFileFormat.Xlsx, 16384, ExcelExecutionMode.Automatic, null, true)]
+        public void BufferedSave_PreservesCapturedSelectorsAndValuesAcrossPolicies(
+            ExcelFileFormat format, int rowCount, ExcelExecutionMode mode, int? degree, bool diagnostics) {
             int caller = Thread.CurrentThread.ManagedThreadId;
             int selectorCalls = 0;
             using ExcelDocument document = ExcelDocument.Create();
@@ -74,9 +78,23 @@ namespace OfficeIMO.Tests {
                 ("Date", row => Observe(row, 2, new DateTime(2024, 1, 1).AddDays(row % 365))),
                 ("Amount", row => Observe(row, 3, row * 1.25)));
             Assert.Equal(rowCount * 4, selectorCalls);
-            byte[] bytes = document.ToBytes(ExcelFileFormat.Xlsb);
+            byte[] bytes;
+            if (format == ExcelFileFormat.Xlsb) {
+                bytes = document.ToBytes(format);
+            } else {
+                using var destination = new BufferedSaveWriteTrackingStream();
+                document.Save(destination, new ExcelSaveOptions { Format = format });
+                int[] writingThreads = destination.WritingThreads;
+                Assert.NotEmpty(writingThreads);
+                if (mode == ExcelExecutionMode.Sequential || degree == 1 || diagnostics) {
+                    Assert.All(writingThreads, thread => Assert.Equal(caller, thread));
+                }
+                bytes = destination.ToArray();
+            }
             Assert.Equal(rowCount * 4, selectorCalls);
-            Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
+            Assert.Equal(format == ExcelFileFormat.Xlsb
+                ? ExcelSavePackageWriter.NativeBinaryDirectPackage
+                : ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
             using var reader = ExcelDocument.OpenReader(bytes);
             Assert.Equal(4, reader.FieldCount);
             for (int row = 0; row < rowCount; row++) {
@@ -88,6 +106,30 @@ namespace OfficeIMO.Tests {
             }
             Assert.False(reader.Read());
             Assert.False(reader.NextResult());
+        }
+
+        private sealed class BufferedSaveWriteTrackingStream : MemoryStream {
+            private readonly HashSet<int> _writingThreads = new();
+            internal int[] WritingThreads {
+                get { lock (_writingThreads) return _writingThreads.ToArray(); }
+            }
+            private void RecordWrite() {
+                lock (_writingThreads) _writingThreads.Add(Thread.CurrentThread.ManagedThreadId);
+            }
+            public override void Write(byte[] buffer, int offset, int count) {
+                RecordWrite();
+                base.Write(buffer, offset, count);
+            }
+#if NET8_0_OR_GREATER
+            public override void Write(ReadOnlySpan<byte> buffer) {
+                RecordWrite();
+                base.Write(buffer);
+            }
+#endif
+            public override void WriteByte(byte value) {
+                RecordWrite();
+                base.WriteByte(value);
+            }
         }
 
         private sealed class GatedCompressionFailureStream : MemoryStream {

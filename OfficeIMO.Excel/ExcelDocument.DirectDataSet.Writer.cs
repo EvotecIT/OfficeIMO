@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel {
             private static readonly string?[] SharedStringCellCache = new string?[CachedSharedStringCellLimit];
             private static readonly string[][] CellReferencePrefixCache = CreateCellReferencePrefixCache();
 
-            internal static void Write(Stream stream, DirectDataSetWorkbookModel model, CancellationToken ct, string? themeXml, bool disableSharedStrings = false, bool collectSharedStrings = false, OfficeTheme? theme = null) {
+            internal static void Write(Stream stream, DirectDataSetWorkbookModel model, CancellationToken ct, string? themeXml, bool disableSharedStrings = false, bool collectSharedStrings = false, OfficeTheme? theme = null, bool allowBackgroundCompression = false) {
                 DirectStylePlan stylePlan = DirectStylePlan.Create(model);
                 DirectColumnWritePlan[] columnWritePlans = CreateColumnWritePlans(model, stylePlan, ct);
                 var sharedStrings = disableSharedStrings ? null
@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     var sheet = model.Sheets[i];
-                    WriteWorksheet(archive, sheet, model.DateTimeOffsetWriteStrategy, model.DateSystem, sharedStrings, stylePlan, columnWritePlans[i], ct);
+                    WriteWorksheet(archive, sheet, model.DateTimeOffsetWriteStrategy, model.DateSystem, sharedStrings, stylePlan, columnWritePlans[i], ct, allowBackgroundCompression: allowBackgroundCompression);
                     if (sheet.HasTable) {
                         string sheetIndexText = InvariantNumberText.Get(sheet.Index);
                         WriteTextEntry(archive, "xl/worksheets/_rels/sheet" + sheetIndexText + ".xml.rels",
@@ -125,7 +125,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            internal static void WriteExtendedWorksheet(ZipArchive archive, ExtendedDirectWritePlan plan, DirectDataSetSheetModel sheet, string worksheetPath, string? tableRelationshipId, CancellationToken ct) {
+            internal static void WriteExtendedWorksheet(ZipArchive archive, ExtendedDirectWritePlan plan, DirectDataSetSheetModel sheet, string worksheetPath, string? tableRelationshipId, CancellationToken ct, bool allowBackgroundCompression = false) {
                 int sheetIndex = -1;
                 for (int i = 0; i < plan.Model.Sheets.Count; i++) {
                     if (ReferenceEquals(plan.Model.Sheets[i], sheet)) {
@@ -138,7 +138,7 @@ namespace OfficeIMO.Excel {
                     throw new InvalidOperationException("The direct worksheet is not part of the extended direct write plan.");
                 }
 
-                WriteWorksheet(archive, sheet, plan.Model.DateTimeOffsetWriteStrategy, plan.Model.DateSystem, plan.SharedStrings, plan.StylePlan, plan.ColumnWritePlans[sheetIndex], ct, worksheetPath, tableRelationshipId);
+                WriteWorksheet(archive, sheet, plan.Model.DateTimeOffsetWriteStrategy, plan.Model.DateSystem, plan.SharedStrings, plan.StylePlan, plan.ColumnWritePlans[sheetIndex], ct, worksheetPath, tableRelationshipId, allowBackgroundCompression);
             }
 
             private static void WriteContentTypes(ZipArchive archive, IReadOnlyList<DirectDataSetSheetModel> sheets, bool includeSharedStrings, bool includeTheme = false) {
