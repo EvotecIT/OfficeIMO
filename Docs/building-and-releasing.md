@@ -45,7 +45,8 @@ and NuGet configuration.
 
 ## README examples
 
-The Word, Excel and PDF README examples are generated from the executable programs under `Build/DocumentationExamples`. Edit those source files, then refresh the marked
+The Word, Excel and PDF README examples, and the PDF guide's opening examples, are
+generated from the executable programs under `Build/DocumentationExamples`. Edit those source files, then refresh the marked
 README blocks with PowerForge:
 
 The standalone CLI comes from the `PowerForge.Build` .NET tool, separately from
@@ -79,6 +80,44 @@ Build/DocumentationExamples/Word/Word.csproj -c Release -f net8.0` or the matchi
 Excel or PDF project. The programs write their documents into the current
 directory; the PDF program reopens each saved file and fails when the content an
 example promises is missing. From a scratch working directory, pass an absolute project path.
+
+## PDF validation
+
+The repository keeps the public contract, target frameworks, package dependency
+shape, performance budgets, compliance proof, and rendered output under
+separate gates:
+
+```powershell
+dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj -c Release -f net8.0
+dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj -c Release -f net10.0
+dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release -f net8.0 -- --verify-budgets
+dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release -f net10.0 -- --verify-budgets
+dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release -f net10.0 -- --verify-timing-budgets
+Build/Test-PdfQualityCorpus.ps1 -Configuration Release -Framework net8.0
+Build/Test-RealWorldCorpusContract.ps1
+Build/Export-PdfComplianceProof.ps1 -Configuration Release -Framework net8.0
+Build/Export-PdfVisualReviewGallery.ps1 -Configuration Release -Framework net8.0
+```
+
+The strict PDF quality scorecard runs every public inspection and semantic stage,
+the complete mutation portfolio, managed rendering, and declared
+compliance claim gating against hash-pinned Open Preservation Foundation and
+veraPDF fixtures. The real-world corpus lane applies the same deep PDF stages to
+a deterministic sample of a checksum-pinned public GovDocs archive in isolated
+processes. The opt-in PDF Performance Evidence workflow
+uses a deterministic 60-page mixed corpus and checks cold and cached analysis,
+SVG rendering, PNG rendering, output integrity, absolute allocation and heap
+budgets, generous elapsed-time ceilings, and cached allocation savings. Relative
+cached speedup is opt-in through `--verify-timing-budgets` for controlled
+benchmark hosts. Ordinary correctness CI runs the PDF tests without these
+host-dependent performance budgets. The budget runner stays outside the normal
+solution and can also be run directly with the commands above.
+
+Pixel baselines are strict when the installed Poppler major/minor version
+matches the recorded renderer. A different renderer version still runs semantic
+and page-count checks in ordinary local runs. Required-rasterizer and CI visual
+gates fail on a version mismatch; release investigations can deliberately opt
+into a cross-version comparison.
 
 ## Coordinated publication
 
