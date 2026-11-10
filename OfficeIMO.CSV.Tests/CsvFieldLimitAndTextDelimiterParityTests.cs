@@ -17,6 +17,11 @@ public sealed class CsvFieldLimitAndTextDelimiterParityTests {
     [InlineData(",", CsvQuoteParsingMode.Lenient, CsvParseErrorAction.SkipRow)]
     [InlineData(",", CsvQuoteParsingMode.Strict, CsvParseErrorAction.SkipRow)]
     [InlineData(",", CsvQuoteParsingMode.Lenient, CsvParseErrorAction.Throw)]
+    [InlineData("||", CsvQuoteParsingMode.Lenient, CsvParseErrorAction.SkipRow)]
+    [InlineData("||", CsvQuoteParsingMode.Strict, CsvParseErrorAction.SkipRow)]
+    [InlineData("||", CsvQuoteParsingMode.Strict, CsvParseErrorAction.Throw)]
+    [InlineData("<->", CsvQuoteParsingMode.Lenient, CsvParseErrorAction.SkipRow)]
+    [InlineData(" ;", CsvQuoteParsingMode.Strict, CsvParseErrorAction.SkipRow)]
     public void StreamedRecordsMatchCanonicalParser(string delimiter, CsvQuoteParsingMode quoting, CsvParseErrorAction errors) {
         var random = new Random(delimiter.Length * 1000 + (int)quoting * 10 + (int)errors);
         string[] pieces = Pieces.Concat(new[] { delimiter, delimiter, delimiter.Substring(0, 1), "\"" + delimiter + "\"" }).ToArray();
@@ -53,6 +58,7 @@ public sealed class CsvFieldLimitAndTextDelimiterParityTests {
 
     [Theory]
     [InlineData(",")]
+    [InlineData("||")]
     public void LongRecordsCrossingBufferRefillsMatchCanonicalParser(string delimiter) {
         var text = new StringBuilder();
         for (int row = 0; row < 9_000; row++) {

@@ -65,6 +65,7 @@ internal static partial class CsvParser
             _encoding = encoding;
             _delimiter = checked((byte)GetDelimiterChar(options));
             _commentCharacter = checked((byte)options.CommentCharacter);
+            _delimiterText = UsesTextDelimiter(options) ? Encoding.ASCII.GetBytes(options.DelimiterText!) : null;
             _specialBytes = SearchValues.Create(new[] { _delimiter, (byte)'"', (byte)'\r', (byte)'\n' });
             _allowEmpty = options.AllowEmptyLines;
             _strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
@@ -173,6 +174,11 @@ internal static partial class CsvParser
 
             _currentPhysicalLineNumber = null;
             _currentPhysicalEndLineNumber = null;
+            if (_delimiterText is not null)
+            {
+                return ReadTextDelimitedRecord(cancellationToken);
+            }
+
             bool checkCancellation = false;
             while (true)
             {
