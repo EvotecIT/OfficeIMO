@@ -236,7 +236,26 @@ namespace OfficeIMO.Word {
 
         private void AddImage(WordDocument document, WordParagraph paragraph, Stream imageStream, string fileName, double? width, double? height, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description, WordImageTextWrapping wrapImage) {
             _document = document;
-            var imageLocation = AddImageToLocation(document, paragraph, imageStream, fileName, width, height);
+            string? svgRelationshipId = null;
+            WordImageLocation imageLocation;
+            if (OfficeImageReader.FromExtension(fileName) == OfficeImageFormat.Svg &&
+                TryCreateSvgPngFallback(imageStream, out byte[] svgBytes, out byte[] fallbackPng, out double svgWidth, out double svgHeight)) {
+                if (width == null && height == null) {
+                    width = svgWidth;
+                    height = svgHeight;
+                } else if (width == null) {
+                    width = svgWidth * height!.Value / svgHeight;
+                } else if (height == null) {
+                    height = svgHeight * width.Value / svgWidth;
+                }
+
+                using var pngStream = new MemoryStream(fallbackPng, writable: false);
+                imageLocation = AddImageToLocation(document, paragraph, pngStream, System.IO.Path.ChangeExtension(fileName, ".png"), width, height);
+                using var svgStream = new MemoryStream(svgBytes, writable: false);
+                svgRelationshipId = AddImageToLocation(document, paragraph, svgStream, fileName, width, height).RelationshipId;
+            } else {
+                imageLocation = AddImageToLocation(document, paragraph, imageStream, fileName, width, height);
+            }
 
             this._imagePart = imageLocation.ImagePart;
 
@@ -250,15 +269,41 @@ namespace OfficeIMO.Word {
             uint picturePropertiesId = firstDrawingId + 1U;
 
             if (wrapImage == WordImageTextWrapping.InLineWithText) {
-                var inline = GetInline(emuWidth, emuHeight, docPropertiesId, picturePropertiesId, imageLocation.ImageName, fileName, imageLocation.RelationshipId, shape, compressionQuality, description);
+                var inline = GetInline(emuWidth, emuHeight, docPropertiesId, picturePropertiesId, imageLocation.ImageName, fileName, imageLocation.RelationshipId, shape, compressionQuality, description, svgRelationshipId: svgRelationshipId);
                 drawing.Append(inline);
             } else {
-                var graphic = GetGraphic(emuWidth, emuHeight, picturePropertiesId, fileName, imageLocation.RelationshipId, shape, compressionQuality, description);
+                var graphic = GetGraphic(emuWidth, emuHeight, picturePropertiesId, fileName, imageLocation.RelationshipId, shape, compressionQuality, description, svgRelationshipId: svgRelationshipId);
                 var anchor = GetAnchor(emuWidth, emuHeight, docPropertiesId, graphic, imageLocation.ImageName, description, wrapImage);
                 drawing.Append(anchor);
             }
             this._Image = drawing;
         }
+
+        // Renders the PNG fallback blip that Word expects alongside an SVG picture. When the SVG cannot be drawn
+        // completely, the picture keeps the SVG as its only blip.
+        private static bool TryCreateSvgPngFallback(Stream imageStream, out byte[] svg, out byte[] png, out double width, out double height) {
+            png = Array.Empty<byte>();
+            width = height = 0D;
+            using (var buffer = new MemoryStream()) {
+                imageStream.CopyTo(buffer);
+                svg = buffer.ToArray();
+            }
+
+            imageStream.Position = 0;
+            try {
+                // A lossy import would make a misleading fallback, so such SVGs keep their single blip.
+                if (!OfficeSvgDrawingReader.TryRead(svg, out OfficeDrawing? drawing, out int unsupportedFeatures) || unsupportedFeatures > 0 ||
+                    drawing == null || drawing.Width <= 0D || drawing.Height <= 0D) return false;
+                width = drawing.Width;
+                height = drawing.Height;
+                png = OfficeDrawingRasterRenderer.ToPng(drawing, SvgFallbackRasterScale);
+                return png.Length > 0;
+            } catch (Exception ex) when (ex is NotSupportedException or InvalidOperationException or ArgumentException or InvalidDataException) {
+                return false;
+            }
+        }
+
+        private const double SvgFallbackRasterScale = 2D;
 
         internal static WordImageLocation AddImageToLocation(
             WordDocument document,
