@@ -9667,3 +9667,7 @@ PDF and image conversions no longer throw `HtmlConversionException` when no avai
 ## HTML-to-Excel error values
 
 A `data-officeimo-value` error value is written as an error cell only when it is one of `#NULL!`, `#DIV/0!`, `#VALUE!`, `#REF!`, `#NAME?`, `#NUM!` or `#N/A`. Any other text, including `#CALC!` and `#SPILL!`, is imported as the visible cell text and reported with `HtmlConversionDiagnosticCodes.SemanticValueInvalid`. Before, such text became an invalid error cell and XLSB saves threw.
+
+## Excel non-finite numbers
+
+`NaN`, `PositiveInfinity` and `NegativeInfinity` written as cell values (`double` or `float`, through `SetValue`, `WriteData`, tabular imports or `CreateWriter`) are stored as the `#NUM!` error in XLSX, XLSB and XLS, which is what Excel shows for a number it cannot represent. Reading such a cell back returns the `#NUM!` error, not a number. Before, XLSX saves wrote an invalid number that Excel refused to open, XLSB saves stored `#NULL!`, and the XLS and XLSB `CreateWriter` streaming writers threw `ArgumentException`. Check the value before writing it if you need a blank cell or text instead.

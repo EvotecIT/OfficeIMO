@@ -72,7 +72,16 @@ internal static partial class LegacyXlsWriter {
             _block.CommitDirectWrite(position + textBytes);
         }
         internal override void WriteNumber(double value) {
-            ValidateNumber(value);
+            if (double.IsNaN(value) || double.IsInfinity(value)) {
+                // BIFF8 has no NaN or infinite number; Excel shows #NUM! (error 0x24) for such a result.
+                _rkRunStart = -1;
+                int errorPosition = PrepareCell(18);
+                WriteCellHeader(ref errorPosition, 0x0205, 8);
+                _block.Buffer[errorPosition++] = 0x24;
+                _block.Buffer[errorPosition++] = 1;
+                _block.CommitDirectWrite(errorPosition);
+                return;
+            }
             int position = PrepareCell(18);
             if (BiffRkNumberReader.TryEncodeRkNumber(value, out uint rk)) {
                 WriteRkCell(ref position, rk);
