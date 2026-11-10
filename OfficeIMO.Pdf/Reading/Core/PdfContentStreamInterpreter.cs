@@ -90,7 +90,6 @@ internal static class PdfContentStreamInterpreter {
         private bool _hasInvalidOperand;
         private string?[]? _rawNames;
         private string?[]? _decodedNames;
-        private object?[]? _boxedNumbers;
         private List<object>?[]? _arrayScratch;
 
         internal Reader(
@@ -288,16 +287,21 @@ internal static class PdfContentStreamInterpreter {
             return decoded;
         }
 
-        // Boxed doubles are immutable, so repeated operand values can share one box.
-        private object BoxNumber(double value) {
+        // Boxed doubles are immutable, so repeated operand values can share one box. Coordinates and
+        // kerning values recur across the content streams of a document, so the cache outlives one reader.
+        [ThreadStatic]
+        private static object?[]? t_boxedNumbers;
+        private const int BoxedNumberSlots = 1024;
+
+        private static object BoxNumber(double value) {
             long bits = BitConverter.DoubleToInt64Bits(value);
-            int slot = (int)((ulong)(bits ^ (bits >> 29)) % CacheSlots);
-            _boxedNumbers ??= new object?[CacheSlots];
-            if (_boxedNumbers[slot] is double cached && BitConverter.DoubleToInt64Bits(cached) == bits) {
-                return _boxedNumbers[slot]!;
+            int slot = (int)((ulong)(bits ^ (bits >> 29) ^ (bits >> 47)) % BoxedNumberSlots);
+            object?[] boxedNumbers = t_boxedNumbers ??= new object?[BoxedNumberSlots];
+            if (boxedNumbers[slot] is double cached && BitConverter.DoubleToInt64Bits(cached) == bits) {
+                return boxedNumbers[slot]!;
             }
             object boxed = value;
-            _boxedNumbers[slot] = boxed;
+            boxedNumbers[slot] = boxed;
             return boxed;
         }
 
