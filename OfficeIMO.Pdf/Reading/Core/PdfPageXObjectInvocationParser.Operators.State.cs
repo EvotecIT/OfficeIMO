@@ -8,6 +8,7 @@ internal static partial class PdfPageXObjectInvocationParser {
             switch (op) {
                 case "q":
                     _stack.Push(_state);
+                    _workspace.ObserveSaveDepth(_stack.Count);
                     _inexactDashStack.Push(_hasInexactDash);
                     _graphicsEffectStack.Push(_graphicsEffectState);
                     _patternStack.Push(_patternState);
