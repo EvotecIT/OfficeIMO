@@ -149,7 +149,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            object?[]? values = null;
+            ExcelTabularCellValues? values = null;
             if (!hasBlankDisplayHeader
                 && !HasDuplicateObjectExportHeaders(headers)
                 && CanRegisterDirectTabularSaveCandidate(startRow, 1, headers.Length)) {
@@ -158,7 +158,7 @@ namespace OfficeIMO.Excel {
                 try {
                     var columnTypes = CompleteObjectExportColumnTypes(inferredColumnTypes);
                     string directSaveRange = BuildObjectExportRange(startRow, headers.Length, rows.Count, includeHeaders);
-                    if (TryInsertCellValuesAsDeferredDirectSave(Name, headers, columnTypes, values, headers.Length, rows.Count, startRow, includeHeaders, directSaveRange)) {
+                    if (TryInsertCellValuesAsDeferredDirectSave(Name, headers, columnTypes, values, startRow, includeHeaders, directSaveRange)) {
                         return;
                     }
                 } catch {
@@ -182,7 +182,7 @@ namespace OfficeIMO.Excel {
                 for (int r = 0; r < rows.Count; r++) {
                     int rowOffset = r * headers.Length;
                     for (int c = 0; c < headers.Length; c++) {
-                        cells[cellIndex++] = (row, c + 1, values[rowOffset + c]!);
+                        cells[cellIndex++] = (row, c + 1, values.GetValue(rowOffset + c)!);
                     }
 
                     row++;
@@ -287,28 +287,22 @@ namespace OfficeIMO.Excel {
 
         private static object? NullObjectSelector<T>(T row) => null;
 
-        internal static object?[] CreateExplicitObjectExportCellValues<T>(
+        internal static ExcelTabularCellValues CreateExplicitObjectExportCellValues<T>(
             IReadOnlyList<T> rows,
             IReadOnlyList<Func<T, object?>> selectors,
             out Type?[] inferredColumnTypes) {
-            var values = new object?[checked(rows.Count * selectors.Count)];
+            var values = new ExcelTabularCellValues(selectors.Count, rows.Count);
             inferredColumnTypes = new Type?[selectors.Count];
             if (rows is ObjectExportRowSnapshot<T> snapshot && selectors is Func<T, object?>[] selectorArray) {
                 FillOwnedObjectExportValues(snapshot, selectorArray, values, inferredColumnTypes);
                 return values;
             }
-#if NET8_0_OR_GREATER
-            Span<object?> valueBuffer = values;
-#endif
+
+            int index = 0;
             for (int r = 0; r < rows.Count; r++) {
-                int rowOffset = r * selectors.Count;
                 for (int c = 0; c < selectors.Count; c++) {
                     object? value = selectors[c](rows[r]);
-#if NET8_0_OR_GREATER
-                    valueBuffer[rowOffset + c] = value;
-#else
-                    values[rowOffset + c] = value;
-#endif
+                    values.Set(index++, value);
                     UpdateObjectExportColumnType(inferredColumnTypes, c, value);
                 }
             }

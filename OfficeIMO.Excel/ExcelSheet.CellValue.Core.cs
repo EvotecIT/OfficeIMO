@@ -17,6 +17,9 @@ namespace OfficeIMO.Excel {
             internal bool ContainsLineBreak { get; }
         }
 
+        /// <summary>The error Excel shows for a number it cannot represent, used for NaN and infinities.</summary>
+        internal const string NonFiniteNumberErrorText = "#NUM!";
+
         private void CellValueCoreNoMaterialize(int row, int column, object? value) {
             // Materialization replays physical cells already admitted to the buffer.
             if (!_materializingPendingCellValueDirectSaveBuffer && !_excelDocument.IsMaterializingDeferredDataSetImport
@@ -191,6 +194,17 @@ namespace OfficeIMO.Excel {
         }
 
         private void CellDoubleValueCore(int row, int column, double value) {
+            if (double.IsNaN(value) || double.IsInfinity(value)) {
+                // Excel has no NaN or infinite cell value; it shows #NUM! for such a result.
+                var errorCell = GetWritableValueCell(row, column);
+                ClearCellValueMetadata(errorCell);
+                ExcelWorksheetScan.SetValueText(errorCell, NonFiniteNumberErrorText);
+                errorCell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Error;
+                ExcelWorksheetScan.RemoveInlineString(errorCell);
+                CompleteCellValueMutation(row, column);
+                return;
+            }
+
             string text = InvariantNumberText.Get(value);
             if (TryStoreNumberText(row, column, text)) return;
             var cell = GetWritableValueCell(row, column);
