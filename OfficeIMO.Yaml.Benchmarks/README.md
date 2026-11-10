@@ -59,6 +59,14 @@ Generated inputs are built at run time and never committed. Setup validates each
 
 Compare rows within one class and workload. Ratios use YamlDotNet as the baseline; allocation columns come from the memory diagnoser. Runs depend on the host, so keep them as opt-in evidence rather than pull-request gates.
 
+## Merge
+
+```sh
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Yaml.Benchmarks -- --filter "*YamlMergeBenchmarks*" --job short
+```
+
+`YamlMergeBenchmarks` merges a staging overlay into an umbrella chart's values file and saves the result. The base nests the committed Bitnami nginx values under eight subchart keys (about 400 KB) and the overlay repeats the committed staging overlay under each. The YamlDotNet baseline loads both files into `YamlStream` trees, merges them by Helm's rules (maps recursively, everything else replaces) and serializes the result; the OfficeIMO.Yaml lane loads both, calls `YamlDocument.Merge` and saves. Setup checks that both outputs load in YamlDotNet to the data an independent Helm-rules merge computes. The OfficeIMO.Yaml output is also a minimal diff of the base, which YamlDotNet's serializer does not attempt.
+
 ## Large real-world corpus
 
 The committed corpus is small enough for every test run. A larger corpus of about 13,000 files from CI systems, Kubernetes and Helm, Compose, OpenAPI, Ansible, CloudFormation and SAM, Home Assistant, documentation front matter and application configuration is pinned in [`sources.json`](../OfficeIMO.TestAssets/Yaml/LargeCorpus/sources.json) and fetched into a local cache:

@@ -118,6 +118,7 @@ internal static class YamlEdit {
         RequireDetached(node);
         CheckRemovable(old);
         bool hadRegion = old._start >= 0 && collection.HasSourceSpan;
+        bool replacesBlock = hadRegion && old is YamlMapping or YamlSequence && old._style == YamlStyle.Block;
         int start = old._start, end = old._end;
         if (old.HasSourceSpan) Materialize(old);
         // The replacement takes over the old value's line, and with it the comment at its end.
@@ -136,7 +137,7 @@ internal static class YamlEdit {
         if (hadRegion) {
             node._start = start;
             node._end = end;
-            MarkChanged(node, YamlNodeState.Dirty);
+            MarkChanged(node, replacesBlock ? YamlNodeState.Dirty | YamlNodeState.ReplacedBlock : YamlNodeState.Dirty);
         } else {
             MarkChanged(collection, YamlNodeState.None);
         }
@@ -430,20 +431,26 @@ internal static class YamlEdit {
         }
     }
 
-    private static void CaptureComments(YamlNode node) {
-        if (ReferenceEquals(YamlTrivia.Owner(node), node) && !YamlTrivia.InFlow(node)) {
-            string? before = YamlTrivia.GetCommentBefore(node);
-            bool space = YamlTrivia.GetSpaceBefore(node);
+    private static void CaptureComments(YamlNode node) => CopyComments(node, node);
+
+    /// <summary>
+    /// Gives <paramref name="target"/> the comments <paramref name="source"/> owns: the comment lines and blank line above
+    /// its entry and the comment at the end of its line. A merge uses it to carry an overlay node's comments to its copy.
+    /// </summary>
+    public static void CopyComments(YamlNode source, YamlNode target) {
+        if (ReferenceEquals(YamlTrivia.Owner(source), source) && !YamlTrivia.InFlow(source)) {
+            string? before = YamlTrivia.GetCommentBefore(source);
+            bool space = YamlTrivia.GetSpaceBefore(source);
             if (before is not null || space) {
-                YamlNodeProperties properties = node._properties ??= new YamlNodeProperties();
+                YamlNodeProperties properties = target._properties ??= new YamlNodeProperties();
                 properties.CommentBeforeSet = true;
                 properties.CommentBefore = before;
                 properties.SpaceBeforeSet = true;
                 properties.SpaceBefore = space;
             }
         }
-        if (ReferenceEquals(YamlTrivia.TrailingTarget(node), node) && YamlTrivia.GetComment(node) is { } comment) {
-            YamlNodeProperties properties = node._properties ??= new YamlNodeProperties();
+        if (ReferenceEquals(YamlTrivia.TrailingTarget(source), source) && YamlTrivia.GetComment(source) is { } comment) {
+            YamlNodeProperties properties = target._properties ??= new YamlNodeProperties();
             properties.CommentSet = true;
             properties.Comment = comment;
         }

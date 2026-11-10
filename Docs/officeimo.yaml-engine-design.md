@@ -163,7 +163,12 @@ baseDoc.Save("values.merged.yaml");
   - By default a null is an ordinary value that replaces.
 - **Kind conflicts:** when one side is a mapping and the other a scalar, or similar, the overlay wins, and the conflict is reported.
 - **Aliases and anchors:** overlay values that land on an alias edit the anchored node, as any edit through an alias does, and are reported. Anchors and aliases from the overlay are copied with their names, and a name that collides with a base anchor is renamed and reported.
-- **`YamlMergeReport`** lists every added, replaced and removed path, plus diagnostics for conflicts and alias edits. `Merge-OfficeDocument` writes it to the pipeline.
+- **Placeholders:** an empty `{}` or `[]` in block context takes the overlay's block layout, because Helm charts use them as placeholders for values an overlay fills in.
+- **Merge keys:** the overlay is read through its typed view, so the entries its `<<` keys provide count as its own. In the base, a key only a merge provides gets an entry of its own; merged mappings are never edited or flattened.
+- **Aliases that cannot follow their anchor:** an overlay alias whose anchored node merged into an existing base node, or that would come before its anchor in the base, is written as a copy of the anchored node and reported (`yaml-merge-alias-expanded`), because the merged base node no longer holds the overlay's value.
+- **Empty overlay documents** change nothing. With `NullRemovesKey`, a null for a key the base lacks adds nothing. A key that a null cannot remove (a merge provides it, or aliases refer into it) stays and is reported (`yaml-merge-key-not-removed`).
+- **`YamlMergeReport`** lists every added, replaced and removed path, plus diagnostics for conflicts (`yaml-merge-kind-conflict`), alias edits (`yaml-aliased-node-edited`) and renamed anchors (`yaml-merge-anchor-renamed`). `Merge-OfficeDocument` writes it to the pipeline.
+- **Qualification:** committed base and overlay pairs (`OfficeIMO.TestAssets/Yaml/Merge`) must change only the lines the report accounts for, load in YamlDotNet to the result of an independent Helm-rules merge of YamlDotNet-loaded data, load alike in SharpYaml, and merge to the same bytes every time.
 
 ### Writer
 

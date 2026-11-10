@@ -117,6 +117,34 @@ public sealed partial class YamlDocument : IDisposable {
     /// <exception cref="InvalidOperationException">The path goes through a scalar, or aliases refer to an anchor inside the removed node.</exception>
     public bool Remove(string path) => YamlPath.Remove(this, path);
 
+    /// <summary>
+    /// Deep-merges an overlay document into this one, document part by part in order, the way Helm combines values files.
+    /// Mappings merge key by key; overlay scalars are assigned, so an equal value keeps this document's spelling;
+    /// sequences follow <see cref="YamlMergeOptions.Sequences"/>; new keys are appended with the overlay's comments in this
+    /// document's layout. When a value changes kind (a mapping over a scalar, for example) the overlay wins and the
+    /// conflict is reported. The overlay is not changed, and saving writes only what the merge touched.
+    /// </summary>
+    /// <remarks>
+    /// <para>An overlay value that lands on an alias edits the anchored node, as any edit through an alias does, and is
+    /// reported. Overlay anchors and aliases are copied with their names; a name the document already uses is renamed and
+    /// reported. <c>&lt;&lt;</c> merge keys follow the typed view: the overlay's merged entries count as its entries, and a
+    /// key this document gets only from a merge receives an entry of its own; merge keys are never flattened.</para>
+    /// <para>Overlay parts beyond this document's are added. An empty overlay part changes nothing. A merge is not
+    /// transactional: when an edit fails, the edits before it stay.</para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// using var values = YamlDocument.Load("values.yaml");
+    /// using var production = YamlDocument.Load("values.prod.yaml");
+    /// YamlMergeReport report = values.Merge(production, new YamlMergeOptions { NullRemovesKey = true });
+    /// values.Save("values.merged.yaml");
+    /// </code>
+    /// </example>
+    /// <returns>The added, replaced and removed paths and the findings of the merge.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="overlay"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="overlay"/> is this document.</exception>
+    public YamlMergeReport Merge(YamlDocument overlay, YamlMergeOptions? options = null) => YamlMerge.Merge(this, overlay, options);
+
     /// <summary>Adds a document with the given root at the end of the stream, after a <c>---</c> marker when it is not the first.</summary>
     /// <returns>The new document part.</returns>
     public YamlDocumentPart AddDocument(YamlNode root) {

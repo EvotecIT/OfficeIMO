@@ -52,6 +52,40 @@ Saving copies every untouched part of the source and writes only what changed, s
 - **New documents**: `YamlDocument.Create()` starts an empty stream; set `Root`, use path `Set`, or `AddDocument` for multi-document streams.
 - **Reformatting**: `Save(path, new YamlSaveOptions { Reformat = true })` writes the whole document anew through the emitter to normalize its layout, keeping values, anchors, tags and comments.
 
+## Merge overlays
+
+```csharp
+using var values = YamlDocument.Load("values.yaml");
+using var production = YamlDocument.Load("values.prod.yaml");
+YamlMergeReport report = values.Merge(production, new YamlMergeOptions { NullRemovesKey = true });
+values.Save("values.merged.yaml");
+
+foreach (string path in report.Replaced) Console.WriteLine("changed " + path);   // image.tag, resources, ...
+```
+
+With this overlay:
+
+```yaml
+image:
+  tag: 1.29.2
+resources:
+  limits:
+    memory: 256Mi
+podAnnotations: null   # remove the chart default
+```
+
+the merged file differs from `values.yaml` only in `tag`, in `resources` (a `resources: {}` placeholder becomes a block mapping) and in the removed `podAnnotations` entry. Every other comment, blank line and spelling stays as it was.
+
+- **Mappings** merge key by key, recursively. Keys the base lacks are appended with the overlay's comments, in the base's indentation and quoting.
+- **Scalars** are assigned, so a value equal under the schema keeps the base text: `TRUE` stays `TRUE` when the overlay says `true`.
+- **Sequences** follow `YamlMergeOptions.Sequences`: `YamlSequenceMerge.Replace` (the default, as in Helm), `Append`, or `MergeByKey("name")`, which merges items with the same `name` and appends the rest. A replaced sequence changes only the items that differ.
+- **Nulls** replace by default. With `NullRemovesKey`, Helm's convention, an overlay null removes the base key.
+- **Kind conflicts**, such as a mapping replacing a scalar, let the overlay win and are reported.
+- **Anchors and aliases**: an overlay value that lands on an alias edits the anchored node, which every alias shares, and is reported. Overlay anchors are copied with their names; a name the base already uses is renamed and reported. `<<` merge keys follow the typed view and are never flattened.
+- `YamlMapping.Merge` merges into a subtree, such as `values.Select("ingress")!.AsMapping().Merge(overlay)`.
+
+`YamlMergeReport` lists the added, replaced and removed paths in the grammar `Select` reads, and its `Diagnostics` hold the conflicts, alias edits and renamed anchors, which are also added to the base document's `Diagnostics`.
+
 ## Writing YAML
 
 ```csharp

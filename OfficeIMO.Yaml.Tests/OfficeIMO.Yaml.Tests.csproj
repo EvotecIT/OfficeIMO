@@ -32,6 +32,19 @@
     <ProjectReference Include="..\OfficeIMO.Yaml\OfficeIMO.Yaml.csproj" />
   </ItemGroup>
 
+  <!-- Independent readers for the merge qualification: test-only, never referenced by OfficeIMO runtime projects. -->
+  <ItemGroup>
+    <PackageReference Include="SharpYaml" Version="3.17.0" />
+    <PackageReference Include="YamlDotNet" Version="18.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\OfficeIMO.Yaml.Benchmarks\Adapters\YamlDotNetConformanceEngine.cs" Link="Adapters\YamlDotNetConformanceEngine.cs" />
+    <Compile Include="..\OfficeIMO.Yaml.Benchmarks\Adapters\SharpYamlConformanceEngine.cs" Link="Adapters\SharpYamlConformanceEngine.cs" />
+    <Compile Include="..\OfficeIMO.Yaml.Benchmarks\Adapters\YamlCoreSchema.cs" Link="Adapters\YamlCoreSchema.cs" />
+    <Compile Include="..\OfficeIMO.Yaml.Benchmarks\Adapters\YamlTextEncoding.cs" Link="Adapters\YamlTextEncoding.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <!-- The suite and corpus are read from the source checkout so their bytes stay manifest-bound. -->
     <Compile Include="..\OfficeIMO.TestAssets\RepositoryTestPaths.cs" Link="Shared\RepositoryTestPaths.cs" />

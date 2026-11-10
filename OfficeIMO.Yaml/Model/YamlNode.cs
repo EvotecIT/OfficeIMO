@@ -19,7 +19,9 @@ internal enum YamlNodeState : ushort {
     /// <summary>A comment or blank line owned by the node changed.</summary>
     CommentsDirty = 64,
     /// <summary>Entries or items were inserted or removed; the collection keeps a snapshot of its loaded children.</summary>
-    Restructured = 128
+    Restructured = 128,
+    /// <summary>The node took the region of a block collection, so it starts on the key's line rather than below it.</summary>
+    ReplacedBlock = 256
 }
 
 /// <summary>

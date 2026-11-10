@@ -146,3 +146,7 @@ const OfficeIMO.OfficeDiagnosticCodes.YamlAliasedNodeEdited = "yaml-aliased-node
 const OfficeIMO.OfficeDiagnosticCodes.YamlDuplicateKey = "yaml-duplicate-key" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.YamlLenientIndentation = "yaml-lenient-indentation" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.YamlMergeKeyWithoutDirective = "yaml-merge-key-without-directive" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.YamlMergeAliasExpanded = "yaml-merge-alias-expanded" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.YamlMergeAnchorRenamed = "yaml-merge-anchor-renamed" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.YamlMergeKeyNotRemoved = "yaml-merge-key-not-removed" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.YamlMergeKindConflict = "yaml-merge-kind-conflict" -> string!

@@ -173,6 +173,16 @@ public sealed class YamlMapping : YamlNode, IReadOnlyList<YamlMappingEntry> {
         return scalar;
     }
 
+    /// <summary>
+    /// Deep-merges an overlay mapping into this one with the rules of <see cref="YamlDocument.Merge"/>, for a subtree
+    /// such as the result of <see cref="YamlNode.Select"/>. The overlay can come from another document or be a new mapping.
+    /// Reported paths start at this document's root.
+    /// </summary>
+    /// <returns>The added, replaced and removed paths and the findings of the merge.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="overlay"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="overlay"/> is this mapping, or is inside or around it.</exception>
+    public YamlMergeReport Merge(YamlMapping overlay, YamlMergeOptions? options = null) => YamlMerge.Merge(this, overlay, options);
+
     /// <summary>Returns the position of the mapping's own entry with the key text, or -1. Merged keys are not counted.</summary>
     public int IndexOf(string key) {
         if (key is null) throw new ArgumentNullException(nameof(key));
