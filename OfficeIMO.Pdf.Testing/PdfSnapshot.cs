@@ -74,6 +74,11 @@ public static class PdfSnapshot {
         if (PdfSnapshotDiff.Normalize(approvedStructure) != capture.Structure) {
             problems.Append("Structure differs (").Append(Path.GetFileName(files.Structure(received: false))).Append("):\n")
                 .Append(PdfSnapshotDiff.Describe(approvedStructure, capture.Structure));
+            if (PdfSnapshotCapture.FontSection(approvedStructure) != PdfSnapshotCapture.FontSection(capture.Structure)) {
+                problems.Append("Embedded fonts differ from the approved snapshot. A PDF that embeds fonts installed on the machine, ")
+                    .Append("as OfficeIMO.Pdf does by default, renders differently elsewhere; register font files with ")
+                    .Append("PdfCreateOptions.RegisterFontFamily so every machine produces the same PDF.\n");
+            }
         }
         PdfVisualComparisonReport visual = PdfVisualComparer.CompareImages(files.ReadApprovedPages(), capture.Pages, effective.Visual);
         DescribeVisual(visual, problems);

@@ -26,6 +26,10 @@
       ]
     }
   ],
+  "fonts": [
+    "OfficeIMOBaselineSans-Bold",
+    "OfficeIMOBaselineSans-Regular"
+  ],
   "outline": [],
   "formFields": []
 }

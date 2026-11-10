@@ -4,6 +4,8 @@ namespace OfficeIMO.Pdf.Testing;
 
 /// <summary>What one snapshot stores for a PDF: a line-oriented structure file and one PNG per page.</summary>
 internal sealed class PdfSnapshotCapture {
+    private const string FontsHeader = "  \"fonts\": [";
+
     private PdfSnapshotCapture(string structure, IReadOnlyList<byte[]> pages) {
         Structure = structure;
         Pages = pages;
@@ -15,7 +17,8 @@ internal sealed class PdfSnapshotCapture {
     public static PdfSnapshotCapture Create(byte[] pdf, string name, PdfSnapshotOptions options) {
         using var input = new MemoryStream(pdf, writable: false);
         using PdfDocument document = PdfDocument.Load(input);
-        if (!options.AllowHostFonts) EnsurePortableFonts(document, name);
+        IReadOnlyList<PdfFontDiagnostic> fonts = document.Diagnostics().Fonts;
+        if (!options.AllowHostFonts) EnsurePortableFonts(fonts, name);
 
         var renderOptions = new PdfPageRenderOptions {
             Scale = options.Visual.Scale,
@@ -32,11 +35,29 @@ internal sealed class PdfSnapshotCapture {
         }
 
         PdfDocumentReadResult read = document.Read();
-        return new PdfSnapshotCapture(BuildStructure(read, rendered), pages);
+        return new PdfSnapshotCapture(BuildStructure(read, rendered, fonts), pages);
     }
 
-    private static void EnsurePortableFonts(PdfDocument document, string name) {
-        string[] hostFonts = document.Diagnostics().Fonts
+    /// <summary>Returns the font lines of a structure file, so callers can explain a font change separately.</summary>
+    public static string FontSection(string structure) {
+        string normalized = PdfSnapshotDiff.Normalize(structure);
+        int start = normalized.IndexOf(FontsHeader, StringComparison.Ordinal);
+        if (start < 0) return string.Empty;
+        int end = normalized.IndexOf("\n  \"", start + FontsHeader.Length, StringComparison.Ordinal);
+        return end < 0 ? normalized.Substring(start) : normalized.Substring(start, end - start);
+    }
+
+    private static IEnumerable<string> DescribeFonts(IReadOnlyList<PdfFontDiagnostic> fonts) =>
+        fonts.Select(static font => {
+            string name = font.BaseFont ?? "(" + (font.Subtype ?? "unnamed") + " font)";
+            // Subset tags such as ABCDEF+ change with the glyphs used, not with the font.
+            if (name.Length > 7 && name[6] == '+') name = name.Substring(7);
+            bool selfContained = font.HasEmbeddedFontFile || string.Equals(font.Subtype, "Type3", StringComparison.Ordinal);
+            return selfContained ? name : name + " (not embedded)";
+        }).Distinct(StringComparer.Ordinal).OrderBy(static name => name, StringComparer.Ordinal);
+
+    private static void EnsurePortableFonts(IReadOnlyList<PdfFontDiagnostic> fonts, string name) {
+        string[] hostFonts = fonts
             .Where(static font => !font.HasEmbeddedFontFile && !string.Equals(font.Subtype, "Type3", StringComparison.Ordinal))
             .Select(static font => font.BaseFont ?? "(unnamed font)")
             .Distinct(StringComparer.Ordinal)
@@ -45,12 +66,11 @@ internal sealed class PdfSnapshotCapture {
         if (hostFonts.Length == 0) return;
         throw new InvalidOperationException(
             "PDF snapshot '" + name + "' would depend on fonts installed on this machine, because these fonts are not embedded: "
-            + string.Join(", ", hostFonts) + ". Embed the fonts (OfficeIMO.Pdf embeds its default fonts unless "
-            + "PdfCreateOptions.EmbedDefaultFonts is false, and converters stay portable with PdfResourcePolicy.CreatePortableDeterministic()), "
+            + string.Join(", ", hostFonts) + ". Register font files with PdfCreateOptions.RegisterFontFamily so the PDF carries them, "
             + "or set PdfSnapshotOptions.AllowHostFonts = true when the test always runs on the same machine image.");
     }
 
-    private static string BuildStructure(PdfDocumentReadResult read, IReadOnlyList<PdfPageRenderResult> rendered) {
+    private static string BuildStructure(PdfDocumentReadResult read, IReadOnlyList<PdfPageRenderResult> rendered, IReadOnlyList<PdfFontDiagnostic> fonts) {
         var json = new StringBuilder();
         json.Append("{\n");
         json.Append("  \"format\": \"officeimo.pdf.snapshot/1\",\n");
@@ -71,6 +91,7 @@ internal sealed class PdfSnapshotCapture {
             json.Append("    }");
         }
         json.Append(read.Pages.Count == 0 ? "],\n" : "\n  ],\n");
+        AppendArray(json, "  ", "fonts", DescribeFonts(fonts), trailingComma: true);
         var outline = new List<string>();
         AppendOutline(outline, read.Outlines, depth: 0);
         AppendArray(json, "  ", "outline", outline, trailingComma: true);

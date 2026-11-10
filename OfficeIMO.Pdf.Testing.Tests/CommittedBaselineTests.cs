@@ -2,8 +2,8 @@ namespace OfficeIMO.Pdf.Testing.Tests;
 
 public sealed class CommittedBaselineTests {
     /// <summary>
-    /// The baseline in __pdfsnapshots__ was approved on macOS arm64. Running it on Linux and Windows checks that the
-    /// default tolerances absorb raster differences between platforms while the structure file stays exact.
+    /// The baseline in __pdfsnapshots__ was approved on macOS arm64 from a PDF that embeds the repository's own fonts.
+    /// Running it on Linux and Windows x64 checks that the same PDF renders the same pixels on every platform.
     /// </summary>
     [Fact]
     public void BaselineApprovedOnAnotherPlatformStillMatches() {

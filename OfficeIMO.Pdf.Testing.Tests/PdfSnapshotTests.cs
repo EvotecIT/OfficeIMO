@@ -34,7 +34,7 @@ public sealed class PdfSnapshotTests : IDisposable {
         PdfSnapshot.Verify(changedBadge, "badge", ignoringBadge);
 
         PdfSnapshotOptions ignoringElsewhere = Options();
-        ignoringElsewhere.Visual.IgnoredRegions.Add(new PdfPixelRegion(0, SampleReport.BadgeRegion.Y + SampleReport.BadgeRegion.Height, 900, 600));
+        ignoringElsewhere.Visual.IgnoredRegions.Add(new PdfPixelRegion(0, SampleReport.BadgeRegion.Y + SampleReport.BadgeRegion.Height, 1224, 800));
         Assert.Throws<PdfSnapshotMismatchException>(() => PdfSnapshot.Verify(changedBadge, "badge", ignoringElsewhere));
     }
 
@@ -85,6 +85,18 @@ public sealed class PdfSnapshotTests : IDisposable {
 
         Assert.StartsWith("PDF bytes differ", failure.Message.Split('\n')[1], StringComparison.Ordinal);
         Assert.DoesNotContain("Structure differs", failure.Message);
+    }
+
+    [Fact]
+    public void ADifferentEmbeddedFontIsReportedAsAFontChange() {
+        Approve("font", SampleReport.Create("10"));
+
+        PdfSnapshotMismatchException failure = Assert.Throws<PdfSnapshotMismatchException>(
+            () => PdfSnapshot.Verify(SampleReport.Create("10", font: SampleReport.OpenSans), "font", Options()));
+
+        AssertDiffLine(failure.Message, "- ", "OfficeIMOBaselineSans-Regular");
+        AssertDiffLine(failure.Message, "+ ", "OpenSans");
+        Assert.Contains("Embedded fonts differ", failure.Message);
     }
 
     [Fact]

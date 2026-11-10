@@ -22,6 +22,10 @@
     <ProjectReference Include="..\OfficeIMO.Pdf.Testing\OfficeIMO.Pdf.Testing.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\OfficeIMO.TestAssets\Fonts\OfficeIMOBaselineSans-*.ttf" Link="Fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\OpenSans-Bold.ttf" Link="Fonts\OpenSans-Bold.ttf" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <Using Include="OfficeIMO" />
     <Using Include="OfficeIMO.Pdf" />
     <Using Include="OfficeIMO.Pdf.Testing" />
