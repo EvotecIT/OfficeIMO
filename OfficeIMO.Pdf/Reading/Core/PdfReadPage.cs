@@ -1043,6 +1043,42 @@ public sealed partial class PdfReadPage {
             colorSpaceBudget);
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStates =
             GetGraphicsStateResources(resources, pageContentBudget, decoders, widthProviders, fonts);
+        // A missing Do token rules out forms. Otherwise the form-invocation state machine shares
+        // the text pass's tokenizer instead of scanning the content a second time.
+        TextContentParser.FormInvocationCollector? formInvocations = content.IndexOf("Do", StringComparison.Ordinal) < 0
+            ? null
+            : TextContentParser.CreateFormInvocationCollector(
+                includeHiddenOptionalContent ? null : optionalContentVisibility,
+                paintOrderBase,
+                paintOrderScale,
+                paintOrderOffset,
+                graphicsStates,
+                colorSpaceResources,
+                pageHeight,
+                initialFillColor,
+                initialFillColorSpace,
+                initialStrokeColor,
+                initialStrokeColorSpace,
+                initialFillOpacity,
+                initialStrokeOpacity,
+                initialTextRenderingMode,
+                initialClipPath,
+                initialUnsupportedTextEffect,
+                mcidForProperty: ResolveMarkedContentMcid,
+                maxOperations: _limits.MaxContentOperations,
+                maxNestingDepth: _limits.MaxContentNestingDepth,
+                maxOperands: _limits.MaxContentOperands,
+                textClippingBudget: textClippingBudget,
+                initialRenderingIntent: initialRenderingIntent,
+                initialFillColorSelection: initialFillColorSelection,
+                initialStrokeColorSelection: initialStrokeColorSelection,
+                outputIntentColorTransform: EffectiveOutputIntentColorTransform,
+                inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
+                inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
+                cancellationCheck: cancellationCheck,
+                initialTextState: initialTextState,
+                initialStrokeWidth: initialStrokeWidth, initialStrokeLineCap: initialStrokeLineCap, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit,
+                initialFillColorResolved: initialFillColorResolved, initialStrokeColorResolved: initialStrokeColorResolved, initialStrokeDashIdentity: initialStrokeDashIdentity);
         var actualTextForms = new Dictionary<int, TextContentParser.MarkedContentState>();
         spans.AddRange(TextContentParser.Parse(
             content,
@@ -1112,46 +1148,12 @@ public sealed partial class PdfReadPage {
             onActualTextForm: (offset, state) => actualTextForms[offset] = state,
             onCompletedDrawingActualText: onCompletedDrawingActualText,
             twoByteFontForResource: ResolveTwoByteFont,
-            retainEditingEvidence: retainEditingEvidence));
+            retainEditingEvidence: retainEditingEvidence,
+            formInvocations: formInvocations));
 
-        // Text interpretation has already validated the stream and its limits.
-        // A missing Do token rules out forms; strings containing Do simply keep
-        // the conservative second scan.
-        if (content.IndexOf("Do", StringComparison.Ordinal) < 0) return;
+        if (formInvocations is null) return;
 
-        foreach (var invocation in TextContentParser.ExtractFormInvocations(
-                     content,
-                     includeHiddenOptionalContent ? null : optionalContentVisibility,
-                     paintOrderBase,
-                     paintOrderScale,
-                     paintOrderOffset,
-                     graphicsStates,
-                     colorSpaceResources,
-                     pageHeight,
-                     initialFillColor,
-                     initialFillColorSpace,
-                     initialStrokeColor,
-                     initialStrokeColorSpace,
-                     initialFillOpacity,
-                     initialStrokeOpacity,
-                     initialTextRenderingMode,
-                     initialClipPath,
-                     initialUnsupportedTextEffect,
-                     mcidForProperty: ResolveMarkedContentMcid,
-                     maxOperations: _limits.MaxContentOperations,
-                     maxNestingDepth: _limits.MaxContentNestingDepth,
-                     maxOperands: _limits.MaxContentOperands,
-                     textClippingBudget: textClippingBudget,
-                     initialRenderingIntent: initialRenderingIntent,
-                     initialFillColorSelection: initialFillColorSelection,
-                     initialStrokeColorSelection: initialStrokeColorSelection,
-                     outputIntentColorTransform: EffectiveOutputIntentColorTransform,
-                     inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
-                     inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
-                     cancellationCheck: cancellationCheck,
-                     initialTextState: initialTextState,
-                     initialStrokeWidth: initialStrokeWidth, initialStrokeLineCap: initialStrokeLineCap, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit,
-                     initialFillColorResolved: initialFillColorResolved, initialStrokeColorResolved: initialStrokeColorResolved, initialStrokeDashIdentity: initialStrokeDashIdentity)) {
+        foreach (var invocation in formInvocations.Invocations) {
             if (!TryGetFormStream(resources, invocation.Name, out int? formObjectNumber, out var formStream)) {
                 continue;
             }

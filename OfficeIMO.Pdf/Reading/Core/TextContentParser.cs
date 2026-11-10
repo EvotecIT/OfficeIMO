@@ -219,6 +219,37 @@ internal static partial class TextContentParser {
         }
     }
 
+    /// <summary>Collects form XObject invocations from operations supplied by a caller-owned tokenizer pass.</summary>
+    internal sealed class FormInvocationCollector {
+        private readonly Action<PdfContentOperation> _visit;
+
+        internal FormInvocationCollector(List<FormInvocation> invocations, List<object> operands, Action<PdfContentOperation> visit) {
+            Invocations = invocations;
+            Operands = operands;
+            _visit = visit;
+        }
+
+        internal List<FormInvocation> Invocations { get; }
+
+        /// <summary>Operand buffer the state machine reads; a tokenizer may lend it directly.</summary>
+        internal List<object> Operands { get; }
+
+        /// <summary>Visits an operation whose operands are already in <see cref="Operands"/>.</summary>
+        internal void VisitBorrowed(PdfContentOperation operation) => _visit(operation);
+
+        /// <summary>Visits an operation from another visitor's pass, copying its operands first.</summary>
+        internal void Visit(PdfContentOperation operation) {
+            Operands.Clear();
+            for (int index = 0; index < operation.Operands.Count; index++) Operands.Add(operation.Operands[index]);
+            try {
+                _visit(new PdfContentOperation(operation.Name, Operands, operation.OperatorOffset,
+                    operation.InlineImage, operation.HasInvalidOperands));
+            } finally {
+                Operands.Clear();
+            }
+        }
+    }
+
     internal readonly struct FormInvocation {
         public string Name { get; }
         public Matrix2D Transform { get; }
@@ -361,7 +392,8 @@ internal static partial class TextContentParser {
         Func<string, PdfFontResource?>? twoByteFontForResource = null,
         int initialStrokeLineCap = 0,
         Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null,
-        bool retainEditingEvidence = true) {
+        bool retainEditingEvidence = true,
+        FormInvocationCollector? formInvocations = null) {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
 
@@ -468,6 +500,8 @@ internal static partial class TextContentParser {
         int? currentContentStreamObjectNumber = contentStreamObjectNumber;
         PdfContentStreamInterpreter.Interpret(content, maxOperations, operation => {
             cancellationCheck?.Invoke();
+            // The form collector reads this operation's operands before the text visitor consumes them.
+            formInvocations?.Visit(operation);
             currentContentStreamObjectNumber = contentStreamObjectNumberAtOffset?.Invoke(operation.OperatorOffset)
                 ?? contentStreamObjectNumber;
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
@@ -1956,6 +1990,85 @@ internal static partial class TextContentParser {
         PdfTextStateSnapshot? initialTextState = null,
         double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D,
         bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0", int initialStrokeLineCap = 0) {
+        FormInvocationCollector collector = CreateFormInvocationCollector(
+            optionalContentVisibility: optionalContentVisibility,
+            paintOrderBase: paintOrderBase,
+            paintOrderScale: paintOrderScale,
+            paintOrderOffset: paintOrderOffset,
+            graphicsStates: graphicsStates,
+            colorSpaces: colorSpaces,
+            pageHeight: pageHeight,
+            initialFillColor: initialFillColor,
+            initialFillColorSpace: initialFillColorSpace,
+            initialStrokeColor: initialStrokeColor,
+            initialStrokeColorSpace: initialStrokeColorSpace,
+            initialFillOpacity: initialFillOpacity,
+            initialStrokeOpacity: initialStrokeOpacity,
+            initialTextRenderingMode: initialTextRenderingMode,
+            initialClipPath: initialClipPath,
+            initialUnsupportedEffect: initialUnsupportedEffect,
+            mcidForProperty: mcidForProperty,
+            maxOperations: maxOperations,
+            maxNestingDepth: maxNestingDepth,
+            maxOperands: maxOperands,
+            textClippingBudget: textClippingBudget,
+            initialRenderingIntent: initialRenderingIntent,
+            initialFillColorSelection: initialFillColorSelection,
+            initialStrokeColorSelection: initialStrokeColorSelection,
+            outputIntentColorTransform: outputIntentColorTransform,
+            inlineImageComponentCount: inlineImageComponentCount,
+            inlineImageArrayComponentCount: inlineImageArrayComponentCount,
+            cancellationCheck: cancellationCheck,
+            initialTextState: initialTextState,
+            initialStrokeWidth: initialStrokeWidth,
+            initialStrokeLineJoin: initialStrokeLineJoin,
+            initialMiterLimit: initialMiterLimit,
+            initialFillColorResolved: initialFillColorResolved,
+            initialStrokeColorResolved: initialStrokeColorResolved,
+            initialStrokeDashIdentity: initialStrokeDashIdentity,
+            initialStrokeLineCap: initialStrokeLineCap);
+        PdfContentStreamInterpreter.Interpret(content, maxOperations, collector.VisitBorrowed,
+            inlineImageComponentCount: inlineImageComponentCount, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands,
+            inlineImageArrayComponentCount: inlineImageArrayComponentCount, operandBuffer: collector.Operands);
+        return collector.Invocations;
+    }
+
+    /// <summary>
+    /// Creates the form-invocation state machine without driving a tokenizer, so text interpretation
+    /// can feed it the operations of its own pass instead of tokenizing the content a second time.
+    /// </summary>
+    internal static FormInvocationCollector CreateFormInvocationCollector(
+        PdfPageOptionalContentVisibility? optionalContentVisibility = null,
+        double paintOrderBase = 0D,
+        double paintOrderScale = 1D,
+        double paintOrderOffset = 0D,
+        IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates = null,
+        IReadOnlyDictionary<string, PdfPageColorSpace>? colorSpaces = null,
+        double pageHeight = 0D,
+        OfficeColor? initialFillColor = null,
+        PdfPageColorSpace initialFillColorSpace = default,
+        OfficeColor? initialStrokeColor = null,
+        PdfPageColorSpace initialStrokeColorSpace = default,
+        double? initialFillOpacity = null,
+        double? initialStrokeOpacity = null,
+        int initialTextRenderingMode = 0,
+        PdfPageClipPath? initialClipPath = null,
+        bool initialUnsupportedEffect = false,
+        System.Func<string, int?>? mcidForProperty = null,
+        int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
+        int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
+        int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
+        PdfTextClippingBudget? textClippingBudget = null,
+        OfficeIccRenderingIntent initialRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
+        PdfPaintColorSelection? initialFillColorSelection = null,
+        PdfPaintColorSelection? initialStrokeColorSelection = null,
+        PdfOutputIntentColorTransform? outputIntentColorTransform = null,
+        Func<string, int>? inlineImageComponentCount = null,
+        Func<PdfArray, int>? inlineImageArrayComponentCount = null,
+        Action? cancellationCheck = null,
+        PdfTextStateSnapshot? initialTextState = null,
+        double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D,
+        bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0", int initialStrokeLineCap = 0) {
         textClippingBudget ??= new PdfTextClippingBudget();
         var invocations = new List<FormInvocation>();
         Matrix2D ctm = Matrix2D.Identity;
@@ -2017,7 +2130,7 @@ internal static partial class TextContentParser {
         var artifactContentStack = new Stack<bool>();
         var args = new List<object>(8);
 
-        PdfContentStreamInterpreter.Interpret(content, maxOperations, operation => {
+        Action<PdfContentOperation> visit = operation => {
             cancellationCheck?.Invoke();
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
             string op = operation.Name;
@@ -2404,9 +2517,9 @@ internal static partial class TextContentParser {
                     args.Clear();
                     break;
             }
-        }, inlineImageComponentCount: inlineImageComponentCount, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands, inlineImageArrayComponentCount: inlineImageArrayComponentCount, operandBuffer: args);
+        };
 
-        return invocations;
+        return new FormInvocationCollector(invocations, args, visit);
 
         double GetPaintOrder(int operatorIndex) => paintOrderBase + ((operatorIndex + paintOrderOffset) * paintOrderScale);
 
