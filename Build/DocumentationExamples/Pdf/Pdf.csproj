@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <IsPackable>false</IsPackable>
+    <OfficeIMODocumentationPackageVersion Condition="'$(OfficeIMODocumentationPackageVersion)' == ''">3.6.0</OfficeIMODocumentationPackageVersion>
+    <OfficeIMODocumentationSourceRoot Condition="'$(OfficeIMODocumentationSourceRoot)' == ''">$(MSBuildThisFileDirectory)../../..</OfficeIMODocumentationSourceRoot>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(OfficeIMODocumentationUsePublishedPackages)' == 'true'">
+    <PackageReference Include="OfficeIMO.Pdf" Version="[$(OfficeIMODocumentationPackageVersion)]" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(OfficeIMODocumentationUsePublishedPackages)' != 'true'">
+    <ProjectReference Include="$(OfficeIMODocumentationSourceRoot)/OfficeIMO.Pdf/OfficeIMO.Pdf.csproj" />
+  </ItemGroup>
+</Project>

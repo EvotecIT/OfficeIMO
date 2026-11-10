@@ -4,6 +4,7 @@
   "files": [
     "README.md",
     "OfficeIMO.Word/README.md",
-    "OfficeIMO.Excel/README.md"
+    "OfficeIMO.Excel/README.md",
+    "OfficeIMO.Pdf/README.md"
   ]
 }

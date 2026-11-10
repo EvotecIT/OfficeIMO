@@ -45,8 +45,7 @@ and NuGet configuration.
 
 ## README examples
 
-The Word and Excel quick starts are generated from the executable programs under
-`Build/DocumentationExamples`. Edit those source files, then refresh the marked
+The Word, Excel and PDF README examples are generated from the executable programs under `Build/DocumentationExamples`. Edit those source files, then refresh the marked
 README blocks with PowerForge:
 
 The standalone CLI comes from the `PowerForge.Build` .NET tool, separately from
@@ -69,7 +68,7 @@ powerforge docs sync --config Build/docs-sync.json
 ```
 
 The check command returns a nonzero exit code when a block is stale. The
-documentation examples workflow runs the same check and executes both programs
+documentation examples workflow runs the same check and executes the programs
 against their pinned published NuGet packages. Update
 `OfficeIMODocumentationPackageVersion` in the example projects when qualifying a
 new public version. Source synchronization and published-package compatibility
@@ -77,8 +76,9 @@ are checked separately.
 
 To run an example locally from the repository root, use `dotnet run --project
 Build/DocumentationExamples/Word/Word.csproj -c Release -f net8.0` or the matching
-Excel project. The programs write `report.docx` and `report.xlsx` into the current
-directory. From a scratch working directory, pass an absolute project path.
+Excel or PDF project. The programs write their documents into the current
+directory; the PDF program reopens each saved file and fails when the content an
+example promises is missing. From a scratch working directory, pass an absolute project path.
 
 ## Coordinated publication
 
