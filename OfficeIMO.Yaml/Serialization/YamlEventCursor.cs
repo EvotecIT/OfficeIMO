@@ -340,6 +340,8 @@ internal sealed class YamlEventCursor {
     private bool LiveIsMergeKey() {
         YamlReader reader = _reader!;
         if (reader.TokenType != YamlTokenType.Scalar) return false;
+        // Most keys are untagged text of another shape, which needs neither the tag nor the decoded text.
+        if (reader.IsUntaggedNonMergeText) return false;
         string? tag = reader.Tag;
         if (tag is not null) return tag == YamlSchemaResolver.TagPrefix + "merge";
         if (reader.Style != YamlStyle.Plain) return false;

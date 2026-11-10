@@ -85,6 +85,13 @@ public sealed partial class YamlReader {
     internal ReadOnlySpan<char> ScalarValueSpan => ScalarText();
 
     /// <summary>
+    /// Gets whether the current scalar is untagged and cannot be the plain text <c>&lt;&lt;</c>: it is not plain, or its
+    /// source is not two characters long. A plain scalar's value is its source on one line, and a value folded from
+    /// several lines contains a space, so a merge key's source is exactly <c>&lt;&lt;</c>.
+    /// </summary>
+    internal bool IsUntaggedNonMergeText => !_event.HasTag && (_event.Style != YamlStyle.Plain || _event.ValueEnd - _event.ValueStart != 2);
+
+    /// <summary>
     /// Returns what <see cref="IsNull"/> returns for the current scalar, checking an untagged scalar's text directly
     /// instead of resolving its kind: only plain <c>null</c> spellings and empty nodes are null without a tag.
     /// </summary>
