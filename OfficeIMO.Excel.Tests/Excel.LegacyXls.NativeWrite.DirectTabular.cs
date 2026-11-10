@@ -339,21 +339,30 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, destination.Length);
         }
 
+        /// <summary>Saves a smaller workbook with blanks after a larger one; reused cell caches must not carry values over.</summary>
         [Fact]
-        public void LegacyXls_DirectTabularSave_ClearsPooledCellCachesBeforeReturningThem() {
-            var kindPool = new RetainingArrayPool<byte>();
-            var payloadPool = new RetainingArrayPool<ulong>();
-            byte[] kinds = kindPool.Rent(4);
-            ulong[] payloads = payloadPool.Rent(4);
-            for (int index = 0; index < kinds.Length; index++) kinds[index] = 0xa5;
-            for (int index = 0; index < payloads.Length; index++) payloads[index] = 0xa5a5a5a5a5a5a5a5UL;
+        public void LegacyXls_DirectTabularSave_DoesNotCarryCellsIntoTheNextSave() {
+            byte[] Save(int rows, Func<int, int, object?> value) {
+                using var document = ExcelDocument.Create();
+                document.AddSheet("Data").WriteData(Enumerable.Range(0, rows),
+                    ("A", row => value(row, 0)), ("B", row => value(row, 1)), ("C", row => value(row, 2)));
+                using var output = new MemoryStream();
+                document.Save(output, new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
+                return output.ToArray();
+            }
 
-            LegacyXlsWriter.ClearAndReturnDirectCellCaches(kinds, payloads, kindPool, payloadPool);
+            Save(5_000, (row, column) => "earlier " + row + "," + column);
+            byte[] later = Save(3, (row, column) => (row + column) % 2 == 0 ? null : row * 10 + column);
 
-            Assert.All(kinds, value => Assert.Equal((byte)0, value));
-            Assert.All(payloads, value => Assert.Equal(0UL, value));
-            Assert.Same(kinds, kindPool.Returned.Single());
-            Assert.Same(payloads, payloadPool.Returned.Single());
+            using var reader = ExcelDocument.OpenReader(later);
+            for (int row = 0; row < 3; row++) {
+                Assert.True(reader.Read());
+                for (int column = 0; column < 3; column++) {
+                    if ((row + column) % 2 == 0) Assert.True(reader.IsDBNull(column), $"R{row}C{column}");
+                    else Assert.Equal(row * 10 + column, reader.GetDouble(column));
+                }
+            }
+            Assert.False(reader.Read());
         }
 
         [Fact]
