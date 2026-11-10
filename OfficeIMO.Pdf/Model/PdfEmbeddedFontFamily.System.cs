@@ -114,8 +114,13 @@ public sealed partial class PdfEmbeddedFontFamily {
         }
         string[] acceptedFileNamePrefixes = BuildAcceptedFileNamePrefixes(normalizedFamily);
 
-        SystemFontFaceCandidate?[] faces = SelectSystemFontFaces(fontFiles, normalizedFamily, acceptedFileNamePrefixes, deferFileReads: true)
-            ?? SelectSystemFontFaces(fontFiles, normalizedFamily, acceptedFileNamePrefixes, deferFileReads: false)!;
+        // A disagreement repeats the selection, so a one-pass sequence is buffered first.
+        System.Collections.Generic.IEnumerable<string> files =
+            fontFiles is System.Collections.Generic.IReadOnlyCollection<string> || fontFiles is System.Collections.Generic.ICollection<string>
+                ? fontFiles
+                : fontFiles.Take(MaxSystemFontFilesToInspect + 1).ToList();
+        SystemFontFaceCandidate?[] faces = SelectSystemFontFaces(files, normalizedFamily, acceptedFileNamePrefixes, deferFileReads: true)
+            ?? SelectSystemFontFaces(files, normalizedFamily, acceptedFileNamePrefixes, deferFileReads: false)!;
         SystemFontFaceCandidate? regularFace = faces[(int)FontFaceKind.Regular];
         if (regularFace == null) {
             fontFamily = null;
