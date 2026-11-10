@@ -6,35 +6,51 @@ layout: docs
 
 `OfficeIMO.Pdf` can operate on existing PDFs as well as author new ones. The read path exposes preflight and diagnostic reports so an application can distinguish a readable file from one that required recovery or cannot be safely rewritten.
 
-## Start with preflight
+## Start with a check
 
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocumentPreflight preflight = PdfDocument.Preflight("incoming.pdf");
-if (!preflight.CanRead) {
+PdfDocument pdf = PdfDocument.Load("incoming.pdf");
+PdfAnalysisReport analysis = pdf.Analyze();
+if (!analysis.CanRead) {
     throw new InvalidDataException("The PDF cannot be read safely.");
 }
 ```
 
-Use `Diagnostics` when you need fonts, streams, structure, repair, security, and optimization evidence. Treat `CanRead` and `CanRewrite` separately: extraction may be possible even when a safe mutation is not.
+`Analyze()` combines health, diagnostics, repair, optimization and signature evidence. Treat `CanRead` and `CanRewrite` separately: extraction may be possible even when a safe mutation is not. `AssessMutations()` lists which page, form, metadata and signing operations are allowed for this file.
 
 ## Extract content and assets
 
-- `PdfTextExtractor` returns text by document, page, or page range and can project logical Markdown.
-- `PdfImageExtractor` returns image bytes and placement metadata.
-- `PdfAttachmentExtractor` enumerates and extracts embedded files.
-- Reader adapters normalize PDF content with other document families for ingestion pipelines.
+```csharp
+PdfDocumentReadResult result = PdfDocument.Load("Service-review.pdf").Read();
+foreach (PdfLogicalPage page in result.Pages) {
+    Console.WriteLine($"Page {page.PageNumber}: {page.Paragraphs.Count} paragraphs, {page.Tables.Count} tables");
+}
+Console.WriteLine(result.ExtractMarkdown());
+```
+
+`Read()` returns paragraphs, headings, lists, tables, links, form fields and attachment metadata per page. `pdf.Images.Extract()` and `pdf.Attachments.Extract()` return image and embedded-file bytes, and Reader adapters normalize PDF content with other document families for ingestion pipelines.
 
 ## Compose existing documents
 
-`PdfDocument.Merge` combines PDFs directly, while `PdfDocument.MergeResult` returns readback evidence under an explicit structure policy. Page extraction and production splitting live on the opened document: `pdf.Pages.Split(...)` returns documents, `pdf.Pages.SplitForProduction(...)` returns generated parts, and `pdf.Pages.SplitForProductionResult(...)` adds bounded-probe evidence.
+```csharp
+PdfDocument.Load("Service-review.pdf")
+    .MergeWith("Appendix.pdf")
+    .Pages.Rotate(90, "2")
+    .Save("Review-pack.pdf");
 
-Stamp and watermark operations support text and images. Annotation editors, page operations, metadata changes, and optimization produce mutation evidence where signatures or structural constraints matter.
+IReadOnlyList<PdfDocument> parts = PdfDocument.Load("Review-pack.pdf").Pages.Split();
+for (int i = 0; i < parts.Count; i++) parts[i].Save($"Review-pack-{i + 1}.pdf");
+```
+
+Page operations return a new document and do not overwrite the source; save the result to a different path to keep the original. `PdfDocument.Merge(documents, options, out PdfMergeReport report)` combines several loaded documents under an explicit structure policy, and `pdf.Pages.SplitForProduction(...)` splits by page count, boundary text or target size.
+
+Stamp and watermark operations support text, images and imported pages. Annotation editors, page operations, metadata changes, and optimization produce mutation evidence where signatures or structural constraints matter.
 
 ## Redaction is removal, not decoration
 
-Use the redaction planner and applier to remove targeted content, then run `PdfRedactionVerification` against the resulting bytes. Drawing a black rectangle over text is not redaction; the original content may remain extractable.
+Use `pdf.Redactions.Search(...)` to build a reviewable plan, then `ApplyWithEvidence(plan)` to remove the content and verify the saved bytes. Call `ThrowIfUnverified()` on the result before saving or sharing it: evidence can report residual or inconclusive matches. Drawing a black rectangle over text is not redaction; the original content may remain extractable.
 
 ## Operational policy
 

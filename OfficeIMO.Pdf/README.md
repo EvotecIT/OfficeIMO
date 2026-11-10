@@ -3,7 +3,20 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Pdf)](https://www.nuget.org/packages/OfficeIMO.Pdf)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Pdf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Pdf)
 
-Create, read, edit and combine PDF files in .NET. `OfficeIMO.Pdf` is OfficeIMO's own PDF engine, with no third-party PDF library, browser or Office installation. It also fills forms, stamps and redacts pages, protects files with passwords and checks PDF/A and PDF/UA output.
+Create, read and change PDF files in .NET with OfficeIMO's own PDF engine — no third-party PDF library, browser or Office installation.
+
+## What it does
+
+- **Create** reports, invoices and forms from headings, paragraphs, tables, lists, images, drawings, headers and footers, with embedded fonts.
+- **Read** text, tables, images, links, attachments and form values, or export the content as Markdown or JSON.
+- **Merge, split and organize** pages: extract, reorder, rotate, crop, duplicate, delete, stamp and watermark.
+- **Fill forms** and keep them editable, or flatten the values into the page.
+- **Protect** files with AES-256 passwords and permissions, or remove protection with the owner password.
+- **Sign** with certificate-based signatures (PAdES B-B and B-T) and validate existing signatures.
+- **Redact** text and areas permanently, with a verification report for every removed match.
+- **Produce standard output**: PDF/A, PDF/UA, PDF/X, Factur-X and ZUGFeRD, checked against the saved bytes.
+- **Render** pages to PNG, JPEG, TIFF, WebP or SVG, and compare two PDFs page by page.
+- **Convert** Word, Excel, PowerPoint, HTML and Markdown to PDF, and PDF back to Word, Excel, PowerPoint, HTML or Markdown.
 
 ## Install
 
@@ -11,133 +24,76 @@ Create, read, edit and combine PDF files in .NET. `OfficeIMO.Pdf` is OfficeIMO's
 dotnet add package OfficeIMO.Pdf
 ```
 
-Optional packages:
+`OfficeIMO.Pdf` depends only on `OfficeIMO.Core`. It targets `netstandard2.0`, `net8.0` and `net10.0`, plus `net472` on Windows. Add an optional package only when you need its workflow:
 
-```sh
-dotnet add package OfficeIMO.Security       # certificate signatures
-dotnet add package OfficeIMO.Pdf.Ocr        # searchable scans, with an OCR provider
-dotnet add package OfficeIMO.Pdf.Word       # PDF to Word; also .Pdf.Excel and .Pdf.PowerPoint
-```
+| To | Add |
+| --- | --- |
+| Sign with certificates or validate CMS signatures | `OfficeIMO.Security` |
+| Save Word, Excel or PowerPoint as PDF | `OfficeIMO.Word.Pdf`, `OfficeIMO.Excel.Pdf`, `OfficeIMO.PowerPoint.Pdf` |
+| Convert HTML to PDF, or PDF to HTML | `OfficeIMO.Html.Pdf` |
+| Save Markdown as PDF | `OfficeIMO.Markdown.Pdf` |
+| Convert PDF to Word, Excel or PowerPoint | `OfficeIMO.Pdf.Word`, `OfficeIMO.Pdf.Excel`, `OfficeIMO.Pdf.PowerPoint` |
+| Read scanned pages with an OCR provider | `OfficeIMO.Pdf.Ocr` |
+| Render an invoice with its Factur-X XML | `OfficeIMO.Invoicing.Pdf` |
+| Full OpenType shaping for complex scripts | `OfficeIMO.Drawing.HarfBuzz` |
 
-To turn Word, Excel, PowerPoint or Markdown into PDF, install the source format's adapter (`OfficeIMO.Word.Pdf`, `OfficeIMO.Excel.Pdf`, `OfficeIMO.PowerPoint.Pdf`, `OfficeIMO.Markdown.Pdf`) and call `SaveAsPdf` on that document.
+## Examples
 
-Targets `netstandard2.0`, `net8.0` and `net10.0`, plus `net472` on Windows.
+Each example uses `using OfficeIMO.Pdf;`, and page numbers and ranges are 1-based. Page, merge and form operations return a new document; save it to a different path to keep the source file.
 
-## Create a report
+### Create a report
 
+<!-- powerforge:code source="Build/DocumentationExamples/Pdf/Program.cs" region="Create" -->
 ```csharp
 using OfficeIMO.Pdf;
 
 PdfDocument.Create(pdf => pdf.Content(content => content
         .H1("Service review")
-        .AddParagraph(p => {
-            p.AddText("All scheduled checks passed. ");
-            p.AddText("Two follow-ups remain open.").SetBold();
-        })
+        .AddParagraph("All scheduled checks passed. Two follow-ups remain open.")
         .AddTable(new[] {
             new[] { "Task", "Owner", "Due" },
-            new[] { "Rotate certificates", "Platform", "4 Nov" },
-            new[] { "Review backups", "Operations", "11 Nov" }
-        })))
+            new[] { "Rotate certificates", "Platform", "4 Nov" } })))
     .Meta(title: "Service review", author: "Operations")
     .Save("Service-review.pdf");
 ```
+<!-- /powerforge:code -->
 
-Page margins follow the `Modern` theme unless `PdfCreateOptions.Theme` names another. `PdfCreateOptions` also sets the page size, fonts, tagging and compliance profile.
+### Read text and tables
 
-A single flow spacer is limited to 1,000 page or column traversal steps and cannot exceed 1,000 configured page heights. Larger spacing fails with `InvalidDataException`. Set `MaxGeneratedPages` when the total output page count also needs a limit.
-
-## Read text and tables
-
+<!-- powerforge:code source="Build/DocumentationExamples/Pdf/Program.cs" region="Read" -->
 ```csharp
-using OfficeIMO.Pdf;
-
-PdfDocument pdf = PdfDocument.Load("Service-review.pdf");
-PdfDocumentReadResult result = pdf.Read();
-
+PdfDocumentReadResult result = PdfDocument.Load("Service-review.pdf").Read();
 foreach (PdfLogicalPage page in result.Pages) {
     Console.WriteLine($"Page {page.PageNumber}: {page.Paragraphs.Count} paragraphs, {page.Tables.Count} tables");
 }
 Console.WriteLine(result.ExtractMarkdown());
-
-foreach (PdfFontInspectionDiagnostic warning in result.TextDecodingDiagnostics) {
-    Console.Error.WriteLine($"Page {warning.PageNumber}, {warning.ResourcePath}: {warning.Code} — {warning.Message}");
-}
 ```
+<!-- /powerforge:code -->
 
-`Read()` omits an entire native text run when its font resource is missing or its
-character codes cannot be mapped to Unicode. The omitted run does not enter
-`Text`, Markdown or tables. `TextDecodingDiagnostics` reports `MissingFontResource`
-or `UnmappableText` with the source page and font path. Check this collection when
-complete text extraction matters. Supported font encodings and valid `/ActualText`
-replacements remain readable; a missing ToUnicode map alone does not imply failure.
-OCR-merged results retain warnings about omitted native text.
+`Read()` returns paragraphs, headings, lists and tables per page. The [reading guide](../Docs/officeimo.pdf-guide.md#load-once-and-build-one-semantic-read-result) covers decoding diagnostics, form values and scanned pages; set [read limits](../Docs/officeimo.pdf-guide.md#deploy) for files from outside your organization.
 
-To include interactive form values in Markdown, enable the widget section:
+### Merge, rotate and split
 
+This example combines the report with an `Appendix.pdf` of your own.
+
+<!-- powerforge:code source="Build/DocumentationExamples/Pdf/Program.cs" region="Combine" -->
 ```csharp
-string markdown = result.ExtractMarkdown(new PdfLogicalMarkdownOptions {
-    IncludeFormWidgets = true
-});
-```
-
-The Markdown widget section is separate from `result.Text`, which reads the
-page content. To include text marked as an artifact, such as running headers,
-footers, or chart labels, pass `new PdfLoadOptions { IncludeArtifactText = true }`
-to `PdfDocument.Load` before calling `Read()`.
-
-`Read()` can throw `PdfUnsupportedTextMappingException` for an unsupported font
-mapping. Opt in to recover other readable text on the same page during
-inspection:
-
-```csharp
-PdfInspectionReadResult inspection = pdf.ReadForInspection(new PdfLoadOptions {
-    RecoverDecodableTextForInspection = true
-});
-Console.WriteLine(inspection.Document.Text);
-```
-
-Check `PageOutcomes` and `Document.TextDecodingDiagnostics` before relying on the
-result. A partially read page with an unsupported font mapping reports
-`UnmappableText` and retains the mapping failure. When a page content filter such
-as FlateDecode reports damaged data, inspection can recover text from leading
-streams and reports `DamagedContentStream`. In either case,
-`CompletedAllSelectedPages` is false.
-
-For files from outside your organization, pass `PdfLoadOptions` with read limits, as shown in the [guide](../Docs/officeimo.pdf-guide.md).
-
-## Combine, split and reorder pages
-
-```csharp
-using OfficeIMO.Pdf;
-
 PdfDocument.Load("Service-review.pdf")
-    .MergeWith("Service-review.pdf")
+    .MergeWith("Appendix.pdf")
     .Pages.Rotate(90, "2")
-    .UpdateMetadata(title: "Review pack")
     .Save("Review-pack.pdf");
 
-PdfDocument pack = PdfDocument.Load("Review-pack.pdf");
-pack.Pages.Extract("1").Save("Cover.pdf");
-IReadOnlyList<PdfDocument> pages = pack.Pages.Split();
-for (int i = 0; i < pages.Count; i++) pages[i].Save($"Review-pack-{i + 1}.pdf");
+IReadOnlyList<PdfDocument> parts = PdfDocument.Load("Review-pack.pdf").Pages.Split();
+for (int i = 0; i < parts.Count; i++) parts[i].Save($"Review-pack-{i + 1}.pdf");
 ```
+<!-- /powerforge:code -->
 
-Page operations return a new document; the source file is never changed in place. Page numbers and ranges are 1-based.
+### Fill a form
 
-`Pages.Insert`, `Pages.Append` and `Pages.Prepend` retain ordinary AcroForm fields. Incoming name collisions use suffixes such as `Shared_source2`; hierarchical fields keep their parent and sibling relationships. General merge keeps only the primary form by default; choose `Forms = PdfMergeStructureMode.Combine` to retain incoming fields. See the [page composition guide](../Docs/officeimo.pdf-guide.md#merge-reorder-delete-duplicate-move-and-rotate) for form, action and signature restrictions.
+This example fills `Application.pdf`, a form with `Applicant.Name` and `Approval.Status` text fields. The [forms guide](../Docs/officeimo.pdf-guide.md#forms) shows how to create one.
 
-## Fill a form
-
+<!-- powerforge:code source="Build/DocumentationExamples/Pdf/Program.cs" region="FillForm" -->
 ```csharp
-using OfficeIMO.Pdf;
-
-PdfDocument.Create(pdf => pdf.Content(content => content
-        .H1("Application")
-        .TextField("Applicant.Name")
-        .TextField("Approval.Status")))
-    .Save("Application.pdf");
-
 PdfDocument.Load("Application.pdf")
     .Forms.FillAndFlatten(new Dictionary<string, string> {
         ["Applicant.Name"] = "Adele Vance",
@@ -145,43 +101,40 @@ PdfDocument.Load("Application.pdf")
     })
     .Save("Application-filled.pdf");
 ```
+<!-- /powerforge:code -->
 
-`Forms.Fill` keeps the fields editable; `FillAndFlatten` makes the values part of the page.
+Use `Forms.Fill` to keep the fields editable.
 
-## Protect with a password
+### Protect with a password
 
+<!-- powerforge:code source="Build/DocumentationExamples/Pdf/Program.cs" region="Protect" -->
 ```csharp
-using OfficeIMO.Pdf;
-
-PdfDocument.Create(pdf => pdf.Content(content => content
-        .H1("Salaries 2027")
-        .AddParagraph(p => p.AddText("Confidential."))),
-        new PdfCreateOptions().SetEncryption("open-password", ownerPassword: "owner-password"))
-    .Save("Salaries.pdf");
+PdfSecurityMutationResult protectedPdf = PdfDocument.Load("Service-review.pdf")
+    .Security.Encrypt(new PdfStandardEncryptionOptions("open-password") {
+        OwnerPassword = "owner-password"
+    });
+File.WriteAllBytes("Service-review-protected.pdf", protectedPdf.Pdf);
 ```
+<!-- /powerforge:code -->
 
-## Convert a PDF back to Word
+### Render a page to PNG
 
+<!-- powerforge:code source="Build/DocumentationExamples/Pdf/Program.cs" region="Render" -->
 ```csharp
-using OfficeIMO;
-using OfficeIMO.Pdf;
-using OfficeIMO.Pdf.Word;
-
-PdfDocument pdf = PdfDocument.Load("Service-review.pdf");
-OfficeConversionReport report = pdf.SaveAsWord("Service-review.docx");
-Console.WriteLine($"Loss: {report.HasLoss}");
+PdfPageRenderResult preview = PdfDocument.Load("Service-review.pdf")
+    .Render.Pages("1", new PdfPageRenderOptions { Dpi = 144 })[0];
+File.WriteAllBytes("Service-review-page-1.png", preview.Bytes!);
 ```
-
-Reconstruction from a fixed-layout PDF is semantic: paragraphs, headings, lists and tables come back as editable Word content, and the report lists what could not be recovered.
+<!-- /powerforge:code -->
 
 ## More
 
-- [PDF guide](../Docs/officeimo.pdf-guide.md): page layout and typography, fonts, headers and footers, images, stamps and watermarks, redaction, annotations, signatures, attachments, tagged output, PDF/A and PDF/X, page images, invoices and inspection.
-- [PDF current state](../Docs/officeimo.pdf.current-state.md), [PDF conversion support](../Docs/officeimo.pdf-conversion-support-matrix.md) and the [generated operation contract](../Docs/Compatibility/generated/package-operations.md).
-- [Examples](../OfficeIMO.Examples/Pdf) and the [migration guide](../MIGRATION.md).
-- PowerShell: [PSWriteOffice](../PowerShell/PSWriteOffice/README.MD) (`New-OfficePdf`, `Open-OfficePdf`).
+- [PDF guide](../Docs/officeimo.pdf-guide.md): every workflow with examples, from page layout and fonts to signatures, redaction, PDF/A and deployment.
+- [PDF current state](../Docs/officeimo.pdf.current-state.md): what each workflow covers and where its limits are.
+- [PDF conversion support](../Docs/officeimo.pdf-conversion-support-matrix.md) and the [generated operation contract](../Docs/Compatibility/generated/package-operations.md).
+- [Examples](../OfficeIMO.Examples/Pdf), the [migration guide](../MIGRATION.md) and [PSWriteOffice](../PowerShell/PSWriteOffice/README.MD) for PowerShell (`New-OfficePdf`, `Open-OfficePdf`).
 
-Dependencies: `OfficeIMO.Core` only; the PDF parser, writer, renderer and password encryption are OfficeIMO code. MIT licensed.
+MIT licensed.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary
