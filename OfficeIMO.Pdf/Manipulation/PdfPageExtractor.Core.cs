@@ -113,8 +113,7 @@ internal static partial class PdfPageExtractor {
                     objectBytesLimit - serializedObjectBytes - (ReferenceEquals(sizeCheckValue, sourceObject.Value) ? 0L : 64L));
             }
             PdfSerializedObject serializedObject = sourceObject.Value is PdfDictionary dictionary && collector.PageObjectIds.Contains(sourceId)
-                ? PdfSerializedObject.FromBytes(PdfObjectBytes.WrapIndirectObjectCancellable(
-                    newId, SerializePageDictionary(dictionary, sourceId, context), cancellationToken))
+                ? SerializeIndirectPageDictionary(newId, dictionary, sourceId, context)
                 : SerializeIndirectObjectForAssembly(newId, sourceObject.Value, context);
 
             AddBoundedObject(objects, serializedObject, objectBytesLimit, ref serializedObjectBytes);
@@ -167,9 +166,8 @@ internal static partial class PdfPageExtractor {
                     clonedPage.OutputPageObjectNumber,
                     objectBytesLimit - serializedObjectBytes - 64L);
             }
-            PdfSerializedObject serializedPage = PdfSerializedObject.FromBytes(PdfObjectBytes.WrapIndirectObjectCancellable(
-                clonedPage.OutputPageObjectNumber,
-                SerializePageDictionary(dictionary, clonedPage.SourcePageObjectNumber, clonedContext), cancellationToken));
+            PdfSerializedObject serializedPage = SerializeIndirectPageDictionary(
+                clonedPage.OutputPageObjectNumber, dictionary, clonedPage.SourcePageObjectNumber, clonedContext);
             AddBoundedObject(objects, serializedPage, objectBytesLimit, ref serializedObjectBytes);
     
             foreach (var annotation in clonedPage.AnnotationObjectMap) {

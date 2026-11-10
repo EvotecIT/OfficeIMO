@@ -648,8 +648,7 @@ internal static partial class PdfMerger {
 
                 int newId = plan.NumberMap[sourceId];
                 PdfSerializedObject serializedObject = sourceObject.Value is PdfDictionary dictionary && source.Collector.PageObjectIds.Contains(sourceId)
-                    ? PdfSerializedObject.FromBytes(PdfObjectBytes.WrapIndirectObjectCancellable(
-                        newId, PdfPageExtractor.SerializePageDictionary(dictionary, sourceId, context), cancellationToken))
+                    ? PdfPageExtractor.SerializeIndirectPageDictionary(newId, dictionary, sourceId, context)
                     : PdfPageExtractor.SerializeIndirectObjectForAssembly(newId, sourceObject.Value, context);
 
                 objects.Add(serializedObject);
