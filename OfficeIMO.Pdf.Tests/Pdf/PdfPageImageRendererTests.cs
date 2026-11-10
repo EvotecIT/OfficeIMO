@@ -3198,8 +3198,8 @@ public partial class PdfPageImageRendererTests {
 
         var image = Assert.Single(drawing.Images);
         Assert.Equal("image/png", image.ContentType);
-        Assert.Equal(2, PdfPngTestImages.ReadPngColorType(image.Bytes));
-        Assert.Equal(new byte[] { 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 255, 0 }, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes));
+        Assert.Equal(3, PdfPngTestImages.ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 255, 0 }, PdfPngTestImages.DecodeRgb(image.Bytes));
     }
 
     [Fact]
@@ -3218,8 +3218,8 @@ public partial class PdfPageImageRendererTests {
 
         var image = Assert.Single(drawing.Images);
         Assert.Equal("image/png", image.ContentType);
-        Assert.Equal(2, PdfPngTestImages.ReadPngColorType(image.Bytes));
-        Assert.Equal(new byte[] { 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 255, 0 }, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes));
+        Assert.Equal(3, PdfPngTestImages.ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 255, 0 }, PdfPngTestImages.DecodeRgb(image.Bytes));
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == "render.resource.colorspace-unsupported");
     }
 
@@ -3384,7 +3384,7 @@ public partial class PdfPageImageRendererTests {
 
         var image = Assert.Single(drawing.Images);
         Assert.Equal("image/png", image.ContentType);
-        Assert.Equal(new byte[] { 0, 0, 0, 255, 0, 255, 0, 255, 0, 0 }, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes));
+        Assert.Equal(new byte[] { 0, 0, 255, 0, 255, 0, 255, 0, 0 }, PdfPngTestImages.DecodeRgb(image.Bytes));
     }
 
     [Fact]
