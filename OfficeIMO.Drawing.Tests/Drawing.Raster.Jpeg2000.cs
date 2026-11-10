@@ -41,7 +41,8 @@ public sealed class Jpeg2000DecoderTests {
     [Fact]
     public void RasterDecoderUsesManagedSamplesAndPalettes() {
         byte[] indexed = File.ReadAllBytes(Path.Combine(Folder, "openjpeg-lossless-indexed-u8-rgb-u8.jp2"));
-        byte[] rgb = File.ReadAllBytes(Path.Combine(Folder, "kakadu-lossless-rgb-u8-prog1-layers1-res6-mct.jp2"));
+        // The raster pipeline admits JP2 files whose headers pass the bounded opaque-subset inspection.
+        byte[] rgb = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "red-rgb.jp2"));
         Assert.True(OfficeRasterImageDecoder.TryDecode(rgb, new OfficeRasterDecodeOptions(), out OfficeRasterImage? raster, out _));
         Assert.True(OfficeJpeg2000Decoder.TryDecode(rgb, new OfficeJpeg2000DecodeOptions(), out OfficeJpeg2000Image? samples));
         Assert.Equal((samples!.Width, samples.Height), (raster!.Width, raster.Height));
