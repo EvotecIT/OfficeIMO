@@ -100,8 +100,12 @@ internal static class YamlSchemaResolver {
         _ => IsNullCore(s)
     };
 
-    private static bool IsNullCore(ReadOnlySpan<char> s) =>
-        s.Length == 0 || Is(s, "~") || Is(s, "null") || Is(s, "Null") || Is(s, "NULL");
+    private static bool IsNullCore(ReadOnlySpan<char> s) => s.Length switch {
+        0 => true,
+        1 => s[0] == '~',
+        4 => s[0] is 'n' or 'N' && (Is(s, "null") || Is(s, "Null") || Is(s, "NULL")),
+        _ => false
+    };
 
     private static bool IsNull11(ReadOnlySpan<char> s) => IsNullCore(s);
 
@@ -124,8 +128,15 @@ internal static class YamlSchemaResolver {
 
     private static bool TryBooleanCore(ReadOnlySpan<char> s, out bool value) {
         value = false;
-        if (Is(s, "true") || Is(s, "True") || Is(s, "TRUE")) { value = true; return true; }
-        return Is(s, "false") || Is(s, "False") || Is(s, "FALSE");
+        switch (s.Length) {
+            case 4:
+                value = s[0] is 't' or 'T' && (Is(s, "true") || Is(s, "True") || Is(s, "TRUE"));
+                return value;
+            case 5:
+                return s[0] is 'f' or 'F' && (Is(s, "false") || Is(s, "False") || Is(s, "FALSE"));
+            default:
+                return false;
+        }
     }
 
     private static bool TryBoolean11(ReadOnlySpan<char> s, out bool value) {
