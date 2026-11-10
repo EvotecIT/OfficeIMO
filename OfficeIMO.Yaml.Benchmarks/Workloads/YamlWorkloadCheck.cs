@@ -28,6 +28,10 @@ internal static class YamlWorkloadCheck {
             failures += Check(officeImo.Name + " edit-and-save", () => YamlWorkloadValidation.ValidateEditAndSave(officeImo, workload, inputs));
         }
 
+        foreach (string workload in new[] { "SmallConfig", "LargeRecords", "KubernetesNested" }) {
+            failures += Check("Serializers " + workload, () => YamlSerializerWorkloads.Validate(YamlSerializerWorkloads.Create(workload)));
+        }
+
         return failures == 0 ? 0 : 1;
     }
 

@@ -292,6 +292,54 @@ internal sealed class YamlByteArrayConverter : YamlConverter<byte[]> {
     }
 }
 
+#if !NET6_0_OR_GREATER
+/// <summary>
+/// <c>DateOnly</c> and <c>TimeOnly</c> for the .NET Standard and .NET Framework builds, which cannot name those types
+/// but run on .NET 6 or later when an application targets an older framework than this package's .NET 8 build. The
+/// formats match the .NET 8 converters; the parse method is found by reflection, which those builds do not trim.
+/// </summary>
+internal sealed class YamlFormattedValueConverter<T> : YamlConverter<T> where T : IFormattable {
+    private readonly string _format;
+    private readonly bool _plain;
+    private readonly System.Reflection.MethodInfo _parse;
+
+    public YamlFormattedValueConverter(string format, bool plain) {
+        _format = format;
+        _plain = plain;
+        _parse = typeof(T).GetMethod("ParseExact", new[] { typeof(string), typeof(string), typeof(IFormatProvider), typeof(DateTimeStyles) })
+            ?? throw new NotSupportedException("The type " + typeof(T).Name + " has no ParseExact method.");
+    }
+
+    /// <summary>Creates the converter's metadata for <c>DateOnly</c> or <c>TimeOnly</c>, or returns null for other types.</summary>
+    public static YamlTypeInfo? TryCreate(Type type, YamlSerializerOptions options) {
+        string? name = type.FullName;
+        if (name != "System.DateOnly" && name != "System.TimeOnly") return null;
+        bool date = name == "System.DateOnly";
+        object converter = Activator.CreateInstance(typeof(YamlFormattedValueConverter<>).MakeGenericType(type), date ? "yyyy-MM-dd" : "HH':'mm':'ss.FFFFFFF", date)!;
+        return (YamlTypeInfo)Activator.CreateInstance(typeof(YamlTypeInfo<>).MakeGenericType(type),
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic, null, new object?[] { options, converter, null }, null)!;
+    }
+
+    public override T Read(YamlEventCursor cursor, YamlReadState state) {
+        string text = YamlScalarText.Read(cursor, state, typeof(T)).ToString();
+        string[] formats = _plain ? new[] { _format } : new[] { _format, "HH':'mm':'ss", "HH':'mm" };
+        foreach (string format in formats) {
+            try {
+                return (T)_parse.Invoke(null, new object[] { text, format, CultureInfo.InvariantCulture, DateTimeStyles.None })!;
+            } catch (System.Reflection.TargetInvocationException exception) when (exception.InnerException is FormatException) {
+            }
+        }
+        throw YamlSerializationErrors.TypeMismatch(cursor, state, typeof(T));
+    }
+
+    public override void Write(YamlWriter writer, T value, YamlWriteState state) {
+        string text = value.ToString(_format, CultureInfo.InvariantCulture);
+        if (_plain) writer.WritePlainValue(text.AsSpan());
+        else writer.WriteScalar(text.TrimEnd('.'));
+    }
+}
+#endif
+
 #if NET6_0_OR_GREATER
 /// <summary><see cref="DateOnly"/> as an ISO 8601 date, plain like a YAML timestamp: <c>2024-05-01</c>.</summary>
 internal sealed class YamlDateOnlyConverter : YamlConverter<DateOnly> {

@@ -34,7 +34,7 @@ dotnet run -c Release -f net10.0 --project ./OfficeIMO.Yaml.Benchmarks -- --vali
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.Yaml.Benchmarks -- --filter "*YamlParseEventsBenchmarks*"
 ```
 
-Four benchmark classes cover the operations, each with YamlDotNet as the baseline:
+Four benchmark classes cover the document operations, each with YamlDotNet as the baseline:
 
 - `YamlParseEventsBenchmarks`: parse to events without building a tree. The OfficeIMO.Yaml lane reads every scalar value, alias name, anchor and tag as a string, matching the reference parsers' events, which carry them.
 - `YamlLoadTreeBenchmarks`: load the representation tree. OfficeIMO.Yaml decodes scalar values on first use, so its tree lane leaves them undecoded; the `OfficeIMOYamlWithValues` lane also reads every scalar value as a string, which the reference trees do while loading.
@@ -58,6 +58,28 @@ Every class runs these workloads:
 Generated inputs are built at run time and never committed. Setup validates each operation before timing, with the conformance adapters as an independent view: parsed events agree with the other library, loaded values agree with the other library, saved output loads to the same values, and emitted output parses back to the same events. A validation failure stops that benchmark instead of measuring broken work. `--validate-workloads` runs the same checks without timing.
 
 Compare rows within one class and workload. Ratios use YamlDotNet as the baseline; allocation columns come from the memory diagnoser. Runs depend on the host, so keep them as opt-in evidence rather than pull-request gates.
+
+## Serializer
+
+```sh
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Yaml.Benchmarks -- --filter "*YamlSerializeBenchmarks*" "*YamlDeserializeBenchmarks*" --job short
+```
+
+`YamlSerializeBenchmarks` and `YamlDeserializeBenchmarks` convert objects to and from YAML with each library, with YamlDotNet's reflection serializer as the baseline. OfficeIMO.Yaml runs twice: with its generated context and with reflection metadata. SharpYaml uses its generated context, and VYaml its generated formatters. All lanes share one model set with camelCase keys. VYaml writes and reads UTF-8 bytes, and the other libraries use strings.
+
+| Workload | Input |
+| --- | --- |
+| `SmallConfig` | one configuration object with scalars, a list, a dictionary and a nested object |
+| `LargeRecords` | 10,000 flat order records |
+| `KubernetesNested` | 200 Deployment-shaped objects nesting metadata, label dictionaries, containers, ports, environment and resources |
+
+Setup checks every lane before timing:
+
+- each library's output reads back with OfficeIMO.Yaml into the workload's objects;
+- each library reads OfficeIMO.Yaml's output into the same objects;
+- objects are compared through OfficeIMO.Yaml's deterministic output.
+
+`--validate-workloads` runs the same checks.
 
 ## Merge
 

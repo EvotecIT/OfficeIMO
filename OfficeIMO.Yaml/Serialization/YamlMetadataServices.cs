@@ -96,7 +96,13 @@ public static class YamlMetadataServices {
                 : underlying == typeof(DateOnly) ? CreateNullableInfo<DateOnly>(options)
                 : underlying == typeof(TimeOnly) ? CreateNullableInfo<TimeOnly>(options)
 #endif
+#if NET6_0_OR_GREATER
                 : (YamlTypeInfo?)null;
+#else
+                : YamlFormattedValueConverter<DateTime>.TryCreate(underlying, options) is null ? null
+                : (YamlTypeInfo)Activator.CreateInstance(typeof(YamlTypeInfo<>).MakeGenericType(type), System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                    null, new object?[] { options, Activator.CreateInstance(typeof(YamlNullableConverter<>).MakeGenericType(underlying)), null }, null)!;
+#endif
         }
         if (type == typeof(bool)) return new YamlTypeInfo<bool>(options, YamlBooleanConverter.Instance);
         if (type == typeof(int)) return new YamlTypeInfo<int>(options, YamlInt32Converter.Instance);
@@ -119,8 +125,10 @@ public static class YamlMetadataServices {
 #if NET6_0_OR_GREATER
         if (type == typeof(DateOnly)) return new YamlTypeInfo<DateOnly>(options, YamlDateOnlyConverter.Instance);
         if (type == typeof(TimeOnly)) return new YamlTypeInfo<TimeOnly>(options, YamlTimeOnlyConverter.Instance);
-#endif
         return null;
+#else
+        return YamlFormattedValueConverter<DateTime>.TryCreate(type, options);
+#endif
     }
 }
 
