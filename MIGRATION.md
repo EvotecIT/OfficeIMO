@@ -5232,6 +5232,74 @@ Handle `PdfRedactionMatchKind.BookmarkTitle` when switching on match kinds; its 
 Search redaction output for accepted object-stream and cross-reference-stream PDFs is always classic. If your code inspects saved structure, expect no object-stream or cross-reference-stream objects, no `/Prev` trailer entry, and null in place of references to free or missing objects.
 
 
+## PSWriteOffice 3.6 parameter aliases
+
+PSWriteOffice 3.6 dropped parameter aliases along with the parameter renames in the reference tables above. A script that uses a dropped alias fails with "A parameter cannot be found that matches parameter name".
+
+These aliases are available again, so scripts written for 3.0 to 3.5 keep working:
+
+- `-FilePath` for `-Path` on `Export-OfficeExcel`, `Import-OfficeExcel`, `Copy-OfficeExcelSheet`, `Edit-OfficeExcelRow`, `Find-OfficeExcel`, `Update-OfficeExcelText`, the `Get-OfficeExcel*` query commands that read a workbook path, and every `New-Office{Format}` command.
+- `-WorksheetName` for `-Sheet` on `Export-OfficeExcel`, `Import-OfficeExcel`, `Copy-OfficeExcelSheet`, `Edit-OfficeExcelRow`, `Find-OfficeExcel`, `Update-OfficeExcelText`, `Add-OfficeExcelPageBreak`, `Add-OfficeExcelTableRow`, `Move-OfficeExcelSheet` and the `Get-OfficeExcel*` query commands that take `-Sheet`.
+
+`-AutoFit` and `-Force` are not restored on `Export-OfficeExcel`. Fitted columns are the default, and `-NoAutoFit` turns them off. `Export-OfficeExcel` never had `-Force`; it replaces an existing file unless you add `-NoClobber`.
+
+These parameter aliases stay removed. Command aliases such as `ExcelExport` are listed in the [PowerShell reference](#powershell-reference).
+
+| Alias | Use instead | Commands |
+|---|---|---|
+| `-AutoSize` | Nothing; fitted columns are the default (`-NoAutoFit` turns them off) | `Export-OfficeExcel` |
+| `-Bookmark` | `-Anchor` | `Get-OfficeWordHyperlink` |
+| `-CatalogName` | `-Catalog` | `Add-OfficeVisioStencilShape` |
+| `-Cell` | `-Address` | `Add-OfficeExcelImage` |
+| `-CellFill` | The replacement for `-FillColor` in the reference tables | `New-OfficePdfTableCell`, `New-OfficeWordTableCell` |
+| `-CheckBoxes` | The replacement for `-CheckBox` in the reference tables | `New-OfficePdfTableCell` |
+| `-Column` | `-StartColumn` | `Set-OfficeExcelColumnGroup` |
+| `-ColumnLetter` | The replacement for `-StartColumnName` in the reference tables | `Set-OfficeExcelColumnGroup` |
+| `-ColumnName` | `-Header` | `Set-OfficeExcelAutoFilter` |
+| `-ColumnName` | The replacement for `-StartColumnName` in the reference tables | `Set-OfficeExcelColumnGroup` |
+| `-Data` | `-InputObject` | `Add-OfficeExcelReportTable`, `Add-OfficeExcelTable`, `Add-OfficeExcelTableRow`, `Add-OfficePowerPointChart`, `Add-OfficePowerPointTable` |
+| `-Data` | `-Value` | `Add-OfficePowerPointTableRow` |
+| `-Data` | The replacement for `-Values` in the reference tables | `Add-OfficeWordTableRow` |
+| `-DataTable` | `-InputObject` | `Add-OfficeExcelTable` |
+| `-DestinationSheet` | The replacement for `-NewName` in the reference tables | `Copy-OfficeExcelSheet` |
+| `-EndColumnLetter` | The replacement for `-EndColumnName` in the reference tables | `Set-OfficeExcelColumnGroup` |
+| `-Extensions` | `-Extension` | `Search-OfficeDocument` |
+| `-FilePath` | The replacement for `-Path` in the reference tables | `Add-OfficeExcelPageBreak`, `Add-OfficeExcelSlicer`, `Add-OfficeExcelTableOfContents`, `Add-OfficeExcelTableRow`, `Close-OfficePowerPoint`, `Compare-OfficeExcelRange`, `Invoke-OfficeExcelTemplate`, `Move-OfficeExcelSheet`, `Set-OfficeExcelRefreshOnOpen`, `Set-OfficeExcelTheme`, `Update-OfficeExcelComment` |
+| `-FilePath` | `-Path` | `Add-OfficePdfImage`, `Add-OfficePdfStamp`, `Copy-OfficePdfPage`, `Get-OfficeMarkdownFrontMatter`, `Get-OfficeMarkdownHeading`, `Get-OfficeMarkdownNode`, `Get-OfficeMarkdownTable`, `Get-OfficePdfAnnotation`, `Get-OfficePdfAttachment`, `Get-OfficePdfCompliance`, `Get-OfficePdfDiagnostic`, `Get-OfficePdfFont`, `Get-OfficePdfFormField`, `Get-OfficePdfImage`, `Get-OfficePdfRedactionPlan`, `Get-OfficePdfSignature`, `Get-OfficeWordBookmark`, `Get-OfficeWordContentControl`, `Get-OfficeWordDocumentProperty`, `Get-OfficeWordEndnote`, `Get-OfficeWordField`, `Get-OfficeWordFootnote`, `Get-OfficeWordHyperlink`, `Get-OfficeWordImage`, `Get-OfficeWordList`, `Get-OfficeWordParagraph`, `Get-OfficeWordSection`, `Get-OfficeWordShape`, `Get-OfficeWordTable`, `Get-OfficeWordTableOfContents`, `Get-OfficeWordText`, `Import-OfficeCsv`, `Move-OfficePdfPage`, `New-OfficePdfSignature`, `New-OfficeRtf`, `Remove-OfficePdfAnnotation`, `Remove-OfficePdfPage`, `Save-OfficeMarkdown`, `Save-OfficePdf`, `Save-OfficePowerPoint`, `Save-OfficeWord`, `Search-OfficeDocument`, `Set-OfficePdfAnnotation`, `Set-OfficePdfMetadata`, `Set-OfficePdfPage`, `Set-OfficePdfSignature` |
+| `-FontColor` | The replacement for `-TextColor` in the reference tables | `New-OfficePdfTableCell`, `New-OfficeWordTableCell` |
+| `-FontFamily` | The replacement for `-FontName` in the reference tables | `Add-OfficeWordText` |
+| `-FormFields` | The replacement for `-FormField` in the reference tables | `New-OfficePdfTableCell` |
+| `-HeaderName` | `-Header` | `Set-OfficeExcelAutoFilter` |
+| `-Headers` | The replacement for `-Header` in the reference tables | `Add-OfficePowerPointTable` |
+| `-Headers` | `-Header` | `Add-OfficeExcelReportLegend` |
+| `-Images` | The replacement for `-Image` in the reference tables | `New-OfficePdfTableCell` |
+| `-InputPath` | The replacement for `-Path` in the reference tables | `Add-OfficeExcelPageBreak`, `Add-OfficeExcelSlicer`, `Add-OfficeExcelTableOfContents`, `Add-OfficeExcelTableRow`, `Compare-OfficeExcelRange`, `Invoke-OfficeExcelTemplate`, `Move-OfficeExcelSheet`, `Set-OfficeExcelRefreshOnOpen`, `Set-OfficeExcelTheme`, `Update-OfficeExcelComment` |
+| `-InputPath` | `-Path` | `Copy-OfficeExcelSheet`, `Edit-OfficeExcelRow`, `Find-OfficeExcel`, `Get-OfficeExcelComment`, `Get-OfficeExcelDataModel`, `Get-OfficeExcelDocumentProperty`, `Get-OfficeExcelNamedRange`, `Get-OfficeExcelPageBreak`, `Get-OfficeExcelPivotTable`, `Get-OfficeExcelRichText`, `Get-OfficeExcelTable`, `Get-OfficeExcelTemplateMarker`, `Get-OfficeMarkdownFrontMatter`, `Get-OfficeMarkdownHeading`, `Get-OfficeMarkdownNode`, `Get-OfficeMarkdownTable`, `Get-OfficeWordBookmark`, `Get-OfficeWordContentControl`, `Get-OfficeWordDocumentProperty`, `Get-OfficeWordEndnote`, `Get-OfficeWordField`, `Get-OfficeWordFootnote`, `Get-OfficeWordHyperlink`, `Get-OfficeWordImage`, `Get-OfficeWordList`, `Get-OfficeWordParagraph`, `Get-OfficeWordSection`, `Get-OfficeWordShape`, `Get-OfficeWordTable`, `Get-OfficeWordTableOfContents`, `Get-OfficeWordText`, `Import-OfficeExcel`, `Update-OfficeExcelText` |
+| `-Left` | `-X` | `Add-OfficePdfCanvasText` |
+| `-LeftPath` | The replacement for `-Path` in the reference tables | `Compare-OfficeExcelRange` |
+| `-Letter` | The replacement for `-StartColumnName` in the reference tables | `Set-OfficeExcelColumnGroup` |
+| `-LP` | `-LiteralPath` | `Import-OfficeCsv` |
+| `-MaxResultsPerDocument` | `-MaximumResults` | `Search-OfficeDocument` |
+| `-Name` | The replacement for `-TableName` in the reference tables | `Add-OfficeExcelTableRow` |
+| `-OutputPath` | `-Path` | `New-OfficeMarkdown`, `New-OfficeRtf`, `New-OfficeWord` |
+| `-Permissions` | `-Permission` | `New-OfficePdf`, `Save-OfficePdf` |
+| `-ReaderOptions` | `-Options` | `Get-OfficeMarkdownFrontMatter`, `Get-OfficeMarkdownHeading`, `Get-OfficeMarkdownNode`, `Get-OfficeMarkdownTable` |
+| `-Rows` | `-InputObject` | `Add-OfficeExcelReportLegend` |
+| `-Runs` | The replacement for `-Run` in the reference tables | `Add-OfficePdfCanvasText`, `Add-OfficePdfText`, `Add-OfficePowerPointTextBox`, `Add-OfficeWordParagraph`, `Add-OfficeWordTableCell`, `Add-OfficeWordText`, `New-OfficePdfTableCell`, `New-OfficeWordTableCell`, `Set-OfficePowerPointShapeText`, `Set-OfficePowerPointTableCell`, `Update-OfficeExcelComment` |
+| `-SheetNames` | The replacement for `-SheetName` in the reference tables | `New-OfficeExcelPdfOptions` |
+| `-SheetObject` | The replacement for `-Worksheet` in the reference tables | `Add-OfficeExcelTable`, `Set-OfficeExcelCell` |
+| `-Show` | The replacement for `-Open` in the reference tables | `Close-OfficeExcel`, `Close-OfficePowerPoint` |
+| `-StartColumnLetter` | The replacement for `-StartColumnName` in the reference tables | `Set-OfficeExcelColumnGroup` |
+| `-TargetIndex` | The replacement for `-Index` in the reference tables | `Move-OfficeExcelSheet` |
+| `-Top` | `-Y` | `Add-OfficePdfCanvasText` |
+| `-Type` | `-Style` | `Add-OfficeWordList` |
+| `-Typeface` | The replacement for `-FontName` in the reference tables | `Add-OfficeWordText` |
+| `-Uri` | `-Url` | `Get-OfficeWordHyperlink` |
+| `-Url` | `-Uri` | `Get-OfficeExcelNamedRange`, `Get-OfficeExcelTable`, `Import-OfficeExcel` |
+| `-UserPassword` | `-Password` | `New-OfficePdf`, `Save-OfficePdf` |
+| `-Values` | `-InputObject` | `Add-OfficeExcelTableRow` |
+| `-Values` | `-Value` | `Add-OfficePowerPointTableRow`, `Get-OfficeExcelTemplateMarker`, `Invoke-OfficeExcelTemplate`, `Set-OfficeExcelAutoFilter` |
+
 ## PDF reads omit undecodable native text
 
 `PdfDocument.Read()` previously allowed missing font resources, raw Identity CIDs,
