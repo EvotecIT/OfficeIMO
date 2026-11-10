@@ -87,6 +87,10 @@ internal static partial class MarkdownReader {
                 IsPotentialInlineStart(value, options.InlineHtml, allowLinks, allowImages)) {
                 return true;
             }
+
+            if (value == '$' && options.Math) {
+                return true;
+            }
         }
 
         return allowLinks && ContainsPotentialBareAutolinkSyntax(text, options);

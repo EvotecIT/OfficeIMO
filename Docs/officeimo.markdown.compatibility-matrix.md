@@ -83,8 +83,8 @@ These entries explain what works today and what remains outside each `Partial` c
 
 #### Diagrams
 
-- **Current behavior:** Semantic fenced blocks and visual renderer hooks exist; named diagram-language mapping and a complete renderer handoff contract remain open.
-- **Limit:** Named diagram-language parsing and a complete renderer handoff are not available.
+- **Current behavior:** Semantic fenced blocks and visual renderer hooks exist. The optional ChartForgeX adapter renders Mermaid fences as embedded PNG or SVG images for HTML, Word and PDF; PDF draws SVG as vector content, and unsupported or invalid diagrams keep their source fence with diagnostics.
+- **Limit:** The Markdown core does not parse diagram languages. Mermaid rendering requires the optional adapter, and other diagram languages keep their source fences.
 
 #### Figures
 
@@ -103,8 +103,8 @@ These entries explain what works today and what remains outside each `Partial` c
 
 #### Mathematics
 
-- **Current behavior:** Math-oriented semantic and rendering hooks exist, but inline and block delimiter parsing does not yet have a complete AST, source, writer, and renderer contract.
-- **Limit:** Built-in inline and block math delimiter parsing, source metadata, Markdown writing, and renderer handoff are not available as one complete contract.
+- **Current behavior:** Opt-in MarkdownLoadOptions.Math parses `$...$` and `$$...$$` inline math, `$$` display blocks and `math` fences into MathInline, MathBlock and math semantic fences with syntax-tree source spans and Markdown writing that reparses to the same math. PDF and Word converters lay the TeX out through the shared math engine, and HTML keeps `\(...\)` and `\[...\]` delimiters for client-side renderers.
+- **Limit:** Math is not a parser default. Native editor source fields and comparison fixtures for math delimiters remain open, and TeX outside the shared math engine's subset is shown as source with a warning.
 
 #### Media links
 
