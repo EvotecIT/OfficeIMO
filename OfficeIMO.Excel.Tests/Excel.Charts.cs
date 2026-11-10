@@ -193,12 +193,13 @@ namespace OfficeIMO.Tests
                 document.Save();
             }
 
-            // Move the saved chart's axes just above the ids this process hands out next.
+            // Move the saved chart's axes far above any id this process has handed out, so the new chart
+            // avoids them only through the load-time scan.
             var existing = new HashSet<uint>();
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, true))
             {
                 var chartSpace = GetWorksheetPartWithCharts(spreadsheet).DrawingsPart!.ChartParts.Single().ChartSpace!;
-                uint highest = chartSpace.Descendants<C.AxisId>().Max(axis => axis.Val!.Value);
+                uint highest = Math.Max(chartSpace.Descendants<C.AxisId>().Max(axis => axis.Val!.Value), uint.MaxValue / 2);
                 var remapped = new Dictionary<uint, uint>();
                 foreach (OpenXmlLeafElement axisReference in chartSpace.Descendants<C.AxisId>().Cast<OpenXmlLeafElement>()
                     .Concat(chartSpace.Descendants<C.CrossingAxis>()))

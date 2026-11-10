@@ -747,13 +747,14 @@ validated. A malformed cell later in the sheet raises the same exception as the 
 reader, but only when `Read` reaches it, after the rows before it have been returned; issues
 found by the final check of the worksheet are raised by the last `Read`. Use it when the caller
 can handle a failure part-way through, such as a stream into a staging table that is discarded
-on error. It applies on .NET 8 and later, when the execution policy allows background work, to
-worksheets of 1 MB or more: XLSX worksheets that declare their dimension, and XLSB worksheets read
-with a header row and no cell value converter. An XLSB reader takes its columns from the header
-row, so a later cell outside them raises `NotSupportedException` at that row, because the default
-reader would return a wider table. On .NET Framework and .NET Standard, with a sequential
-execution policy, for other worksheets and in the XLS reader, the reader always validates before
-the first row.
+on error. It applies on .NET 8 and later to worksheets of 1 MB or more, when no diagnostics or
+diagnostic callbacks are requested, parallelism is not capped at one and the execution policy
+allows background work: XLSX worksheets that declare their dimension, with `A1Range` and
+`CellValueConverter` unset, and XLSB worksheets read with a header row and no cell value
+converter. An XLSB reader takes its columns from the header row, so a later cell outside them
+raises `NotSupportedException` at that row, because the default reader would return a wider
+table. On .NET Framework and .NET Standard, with a sequential execution policy, for other
+worksheets and in the XLS reader, the reader always validates before the first row.
 
 ### Choose automatic or ordered parallel reads
 

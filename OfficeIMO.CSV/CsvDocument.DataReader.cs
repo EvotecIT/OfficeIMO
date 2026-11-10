@@ -559,6 +559,10 @@ public sealed partial class CsvDocument
         CsvReaderOptions sampling = options.Clone();
         sampling.InferSchema = false;
         sampling.ParallelProcessing = null;
+        // The final read parses the same records again; only it reports progress and parse errors.
+        sampling.ProgressCallback = null;
+        sampling.CollectParseErrors = false;
+        sampling.ParseErrors = null;
         var columns = new List<InferredColumn>();
         int sampledRows = 0;
         using (CsvDataReader reader = open(sampling))

@@ -37,6 +37,36 @@ public sealed class CsvSchemaStreamingParityTests {
         Assert.Equal(Observe(reader: null, sampleRows, nullValue), Observe(reader: Input, sampleRows, nullValue));
     }
 
+    // Inference samples the leading records and the reader then parses them again; the caller sees
+    // each parse error and progress report once.
+    [Fact]
+    public void InferredSchemaReportsSampledErrorsAndProgressOnce() {
+        (string Errors, string Progress) inferred = ReadReportingErrorsAndProgress(inferSchema: true);
+        Assert.Equal("3", inferred.Errors);
+        Assert.Equal(ReadReportingErrorsAndProgress(inferSchema: false), inferred);
+    }
+
+    private static (string Errors, string Progress) ReadReportingErrorsAndProgress(bool inferSchema) {
+        var errors = new List<CsvParseError>();
+        var progress = new List<long>();
+        var options = new CsvReaderOptions {
+            InferSchema = inferSchema,
+            QuoteParsingMode = CsvQuoteParsingMode.Strict,
+            ParseErrorAction = CsvParseErrorAction.SkipRow,
+            CollectParseErrors = true,
+            ParseErrors = errors,
+            MaxParseErrors = 1,
+            ProgressReportInterval = 1,
+            ProgressCallback = report => progress.Add(report.RecordsRead)
+        };
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Id,Name\n1,a\n2,\"b\"x\n3,c\n"));
+        using (var reader = CsvDocument.OpenReader(stream, options: options)) {
+            while (reader.Read()) { }
+        }
+
+        return (string.Join(" ", errors.Select(error => error.LineNumber)), string.Join(" ", progress));
+    }
+
     // Numbers parse from UTF-8 bytes on the stream and from characters on a text reader; culture
     // symbols outside ASCII (group spaces, U+2212 minus, Arabic signs) must parse alike.
     [Theory]
