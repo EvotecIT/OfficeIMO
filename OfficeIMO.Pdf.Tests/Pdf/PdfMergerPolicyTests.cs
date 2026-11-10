@@ -415,6 +415,24 @@ public class PdfMergerPolicyTests {
     }
 
     [Fact]
+    public void Merge_TreatsNamelessTypedWidgetKidsAsWidgetsOfTheirField() {
+        // LibreOffice repeats the parent /FT on each radio widget; those kids are not separate fields.
+        byte[] source = BuildRawPdf(
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R /Annots [7 0 R 8 0 R] >>",
+            "<< /Length 0 >>\nstream\n\nendstream",
+            "<< /Fields [6 0 R] >>",
+            "<< /FT /Btn /Ff 49152 /T (Choice) /V /A /Kids [7 0 R 8 0 R] >>",
+            "<< /Type /Annot /Subtype /Widget /FT /Btn /Parent 6 0 R /Rect [10 70 30 90] /AS /A >>",
+            "<< /Type /Annot /Subtype /Widget /FT /Btn /Parent 6 0 R /Rect [10 30 30 50] /AS /Off >>");
+
+        PdfFormField field = Assert.Single(PdfReadDocument.Open(PdfMerger.Merge(source, source)).FormFields);
+
+        Assert.Equal("Choice", field.Name);
+    }
+
+    [Fact]
     public void Merge_MaterializesSourceAcroFormDefaultsOnImportedFields() {
         byte[] primary = PdfDocument.Create().TextField("Primary", value: "one").ToBytes();
         byte[] incoming = BuildFormWithAcroFormDefaultsPdf();
