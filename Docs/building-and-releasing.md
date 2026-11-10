@@ -95,7 +95,7 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c
 dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release -f net10.0 -- --verify-timing-budgets
 Build/Test-PdfQualityCorpus.ps1 -Configuration Release -Framework net8.0
 Build/Test-RealWorldCorpusContract.ps1
-Build/Export-PdfComplianceProof.ps1 -Configuration Release -Framework net8.0 -RequireValidators -VeraPdfPath <path-to-verapdf>
+Build/Export-PdfComplianceProof.ps1 -Configuration Release -Framework net8.0 -RequireValidators -VeraPdfPath <path-to-verapdf> -PdfUaValidatorPath <path-to-pdfua-validator> -MustangPath <path-to-mustang> -PdfXValidatorPath <path-to-pdfx-validator>
 Build/Export-PdfVisualReviewGallery.ps1 -Configuration Release -Framework net8.0
 ```
 
