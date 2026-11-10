@@ -20,8 +20,11 @@ internal static partial class PdfPageImageRenderer {
         Func<int, int[]> resolvePages,
         PdfPageRenderOptions? options,
         CancellationToken cancellationToken) {
-        PdfPageRenderOptions effectiveOptions = options ?? new PdfPageRenderOptions();
+        // One detached snapshot decides extraction permission and produces the output, so changes the caller makes to
+        // its options during the render cannot select SVG, a codec, a shaping provider, or another font afterwards.
+        PdfPageRenderOptions effectiveOptions = (options ?? new PdfPageRenderOptions()).CreateEffectiveImageExportOptions<PdfPageRenderOptions>();
         effectiveOptions.Validate();
+        bool pixelsOnly = ProducesPixelsOnly(effectiveOptions);
         using OfficeImageExportExecutionScope execution = OfficeImageExportExecutionScope.Start(
             effectiveOptions.RenderTimeout,
             cancellationToken);
@@ -40,7 +43,7 @@ internal static partial class PdfPageImageRenderer {
             long totalOutputBytes = 0;
             for (int i = 0; i < pages.Length; i++) {
                 execution.Token.ThrowIfCancellationRequested();
-                PdfPageRenderResult result = RenderPage(document, pages[i], effectiveOptions, execution.Token, ProducesPixelsOnly(effectiveOptions));
+                PdfPageRenderResult result = RenderPage(document, pages[i], effectiveOptions, execution.Token, pixelsOnly);
                 totalOutputBytes = checked(totalOutputBytes + result.OutputByteLength);
                 if (totalOutputBytes > effectiveOptions.MaxTotalOutputBytes) {
                     throw PdfReadLimitException.Create(PdfReadLimitKind.RenderBytes, effectiveOptions.MaxTotalOutputBytes, totalOutputBytes);
@@ -119,11 +122,13 @@ internal static partial class PdfPageImageRenderer {
     }
 
     // Raster output exposes only pixels, which viewing permits without content-copy permission. SVG carries text and source
-    // images, and caller codecs and shaping providers receive source content, so those still require extraction permission.
+    // images, and caller codecs, shaping providers, and provider-loaded font programs receive source content, so those
+    // still require extraction permission.
     private static bool ProducesPixelsOnly(PdfPageRenderOptions options) =>
         options.Format == global::OfficeIMO.Drawing.OfficeImageExportFormat.Png &&
         options.ImageCodec is null &&
-        options.TextShapingProvider is null;
+        options.TextShapingProvider is null &&
+        options.Fonts.Faces.All(face => face.HasBuiltInProgram);
 
     internal static PdfPageRenderResult RenderPage(PdfReadDocument document, int pageNumber, PdfPageRenderOptions options, CancellationToken cancellationToken, bool forDisplay = false) {
         var timer = Stopwatch.StartNew();
