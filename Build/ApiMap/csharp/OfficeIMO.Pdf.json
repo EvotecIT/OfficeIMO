@@ -4286,6 +4286,15 @@
       "reason": "The same ordered, one-based selector is shared by image adapters through OfficeImageExportOptions.PageSelector. PDF manipulation retains ResolveSelection through a PDF extension method.",
       "file": "OfficeIMO.Core/Documents/OfficePageSelector.cs",
       "category": "selection"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfLoadOptions.ParsingMode",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfLoadOptions.ParsingMode",
+      "reason": "Opening a PDF no longer reads every document-level feature. With Lenient parsing, outlines, named destinations, XMP metadata, the attachment inventory, AcroForm fields, tagged structure and portfolio data are read when first used, so a damaged or over-limit feature throws on first use (and on every later use) instead of failing Load. Strict parsing still reads them while loading and fails there.",
+      "file": "OfficeIMO.Pdf/Reading/Core/PdfReadDocument.Features.cs",
+      "category": "reading"
     }
   ],
   "packageMoves": [
