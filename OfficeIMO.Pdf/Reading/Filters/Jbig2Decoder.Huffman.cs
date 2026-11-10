@@ -94,12 +94,15 @@ internal static partial class Jbig2Decoder {
                 for (int index = 0; index < _lines.Length; index++) {
                     HuffmanLine line = _lines[index];
                     if (line.PrefixLength != length || _codes[index] != code) continue;
-                    switch (line.Kind) {
-                        case 3: return null;
-                        case 1: return checked(line.RangeLow - (int)reader.ReadBits(32));
-                        case 2: return checked(line.RangeLow + (int)reader.ReadBits(32));
-                        default: return checked(line.RangeLow + (int)reader.ReadBits(line.RangeLength));
-                    }
+                    long value = line.Kind switch {
+                        3 => 0,
+                        1 => (long)line.RangeLow - reader.ReadBits(32),
+                        2 => (long)line.RangeLow + reader.ReadBits(32),
+                        _ => (long)line.RangeLow + reader.ReadBits(line.RangeLength)
+                    };
+                    if (line.Kind == 3) return null;
+                    if (value < int.MinValue || value > int.MaxValue) throw new InvalidDataException("JBIG2 Huffman value overflows.");
+                    return (int)value;
                 }
             }
             throw new InvalidDataException("Invalid JBIG2 Huffman code.");

@@ -82,16 +82,16 @@ public sealed class PdfRendererQualityGateTests {
     [InlineData(true)]
     public void UnsupportedJbig2SegmentsReportTheOmittedImage(bool asciiHexPrefix) {
         var jbig2 = new MemoryStream();
-        // Page information (type 48), then a halftone region (type 22), which the decoder does not implement.
+        // Page information (type 48), then reserved segment type 41, which T.88 does not define.
         WriteBytes(jbig2, new byte[] { 0, 0, 0, 0, 48, 0, 1, 0, 0, 0, 19, 0, 0, 0, 8, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
-        WriteBytes(jbig2, new byte[] { 0, 0, 0, 1, 22, 0, 1, 0, 0, 0, 0 });
+        WriteBytes(jbig2, new byte[] { 0, 0, 0, 1, 41, 0, 1, 0, 0, 0, 0 });
         byte[] data = jbig2.ToArray();
         if (asciiHexPrefix) data = Encoding.ASCII.GetBytes(BitConverter.ToString(data).Replace("-", string.Empty) + ">");
         byte[] pdf = BuildImagePdf(data, asciiHexPrefix ? "/Filter [/ASCIIHexDecode /JBIG2Decode]" : "/Filter /JBIG2Decode");
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
         Assert.Contains(result.CapabilityDiagnostics, static diagnostic =>
-            diagnostic.Code == PdfRenderCapabilities.UnsupportedImageId && diagnostic.Subject == "Im1:JBIG2-halftone");
+            diagnostic.Code == PdfRenderCapabilities.UnsupportedImageId && diagnostic.Subject == "Im1:JBIG2-segment-41");
     }
 
     private static IEnumerable<PdfStream> Jbig2Images(PdfReadDocument document) =>

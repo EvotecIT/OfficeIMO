@@ -202,7 +202,7 @@ internal static partial class Jbig2Decoder {
             int left = 0;
             foreach (int symbolWidth in widths) {
                 Bitmap symbol = CreateBitmap(symbolWidth, height);
-                symbol.Compose(collective, -left, 0, 4);
+                symbol.CopyFrom(collective, left, 0);
                 symbols.Add(symbol);
                 left += symbolWidth;
             }
@@ -304,18 +304,9 @@ internal static partial class Jbig2Decoder {
             while (count < instances) {
                 _cancellationToken.ThrowIfCancellationRequested();
                 stripT += (long)coding.Required("IADT", coding.DeltaT, "strip delta") * strips;
-                bool first = true;
-                long currentS = 0;
-                while (count < instances) {
-                    if (first) {
-                        firstS += coding.Required("IAFS", coding.FirstS, "first S");
-                        currentS = firstS;
-                        first = false;
-                    } else {
-                        int? deltaS = coding.Integer("IADS", coding.DeltaS);
-                        if (deltaS == null) break;
-                        currentS += deltaS.Value + dsOffset;
-                    }
+                firstS += coding.Required("IAFS", coding.FirstS, "first S");
+                long currentS = firstS;
+                while (true) {
                     int currentT = strips == 1 ? 0 : coding.Huffman ? (int)coding.Reader!.ReadBits(stripLog) : coding.Integer("IAIT", null) ?? 0;
                     long t = stripT + currentT;
                     int id = coding.Id();
@@ -340,9 +331,21 @@ internal static partial class Jbig2Decoder {
                     if (!transposed && referenceCorner < 2) currentS += symbolWidth - 1;
                     else if (transposed && (referenceCorner & 1) == 1) currentS += symbolHeight - 1;
                     count++;
+                    // Every strip ends with an out-of-band IADS, also after the final instance (6.4.5 step 3c). Reading
+                    // it keeps a shared decoder aligned when an aggregate symbol is decoded inside a dictionary.
+                    int? deltaS = ReadFinalDeltaS(coding, count >= instances);
+                    if (deltaS == null || count >= instances) break;
+                    currentS += deltaS.Value + dsOffset;
                 }
             }
             return region;
+        }
+
+        private static int? ReadFinalDeltaS(TextCoding coding, bool last) {
+            if (!last || !coding.Huffman) return coding.Integer("IADS", coding.DeltaS);
+            // A Huffman text region may end without the final out-of-band code; nothing follows it in the segment.
+            try { return coding.Integer("IADS", coding.DeltaS); }
+            catch (InvalidDataException) { return null; }
         }
 
         // Refined symbol instance (6.4.11.3).

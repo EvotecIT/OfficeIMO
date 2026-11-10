@@ -30,7 +30,7 @@ internal static partial class Jbig2Decoder {
             List<Bitmap> patterns = CreateSymbolList(count);
             for (int index = 0; index < count; index++) {
                 Bitmap pattern = CreateBitmap(patternWidth, patternHeight);
-                pattern.Compose(collective, -index * patternWidth, 0, 4);
+                pattern.CopyFrom(collective, index * patternWidth, 0);
                 patterns.Add(pattern);
             }
             _patterns[segment.Number] = patterns;
