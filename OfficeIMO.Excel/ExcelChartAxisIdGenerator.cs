@@ -22,6 +22,21 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>
+        /// Reads the relationships the load-time axis scan used to read, without parsing any chart, so a malformed
+        /// relationship part still fails the load itself. Loading a chart root reads every part's relationships,
+        /// which is why a workbook with charts reads them all here too.
+        /// </summary>
+        internal static void ReadChartRelationships(SpreadsheetDocument document) {
+            if (document.WorkbookPart == null) return;
+            foreach (WorksheetPart worksheetPart in document.WorkbookPart.WorksheetParts) {
+                if (worksheetPart.DrawingsPart?.ChartParts.Any() == true) {
+                    _ = document.StrictRelationshipFound;
+                    return;
+                }
+            }
+        }
+
         private static void Initialize(SpreadsheetDocument document) {
             if (document.WorkbookPart == null) {
                 return;
