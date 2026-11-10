@@ -29,6 +29,7 @@ internal ref partial struct YamlScanner {
     // ---------------------------------------------------------------- token queue
 
     /// <summary>Returns the next token, scanning ahead as far as implicit keys require.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref YamlToken Peek() {
         YamlScanContext c = _c;
         // The common case answers NeedMoreTokens inline: a queued token in block context that the one implicit-key
@@ -40,6 +41,12 @@ internal ref partial struct YamlScanner {
                 return ref c.Tokens[c.TokenHead];
             }
         }
+        return ref PeekAhead();
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private ref YamlToken PeekAhead() {
+        YamlScanContext c = _c;
         while (NeedMoreTokens()) FetchNextToken();
         return ref c.Tokens[c.TokenHead];
     }
