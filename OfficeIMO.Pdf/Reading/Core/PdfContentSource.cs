@@ -61,6 +61,13 @@ internal interface IPdfContentText {
     bool TryParseDouble(int start, int length, out double value);
     bool TryParseDouble(int start, int length, NumberStyles styles, out double value);
     bool TryParseInt32(int start, int length, out int value);
+    /// <summary>First ordinal match of an ASCII <paramref name="value"/> lying wholly inside [start, start + count), or -1.</summary>
+    int IndexOf(string value, int start, int count);
+    /// <summary>
+    /// Last match of an ASCII <paramref name="value"/> lying wholly inside [start, start + count), or -1.
+    /// Ignoring case folds ASCII letters only, which is what ordinal ignore-case does for Latin-1 text.
+    /// </summary>
+    int LastIndexOf(string value, int start, int count, bool ignoreCase);
 }
 
 internal readonly struct PdfStringContentText : IPdfContentText {
@@ -74,6 +81,13 @@ internal readonly struct PdfStringContentText : IPdfContentText {
     public string Substring(int start, int length, System.Threading.CancellationToken cancellationToken) =>
         PdfEncoding.StringSliceCancellable(_text, start, length, cancellationToken);
     public object Source => _text;
+
+    public int IndexOf(string value, int start, int count) => _text.IndexOf(value, start, count, StringComparison.Ordinal);
+
+    public int LastIndexOf(string value, int start, int count, bool ignoreCase) =>
+        count < value.Length
+            ? -1
+            : _text.LastIndexOf(value, start + count - 1, count, ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
 
     public bool TryParseDouble(int start, int length, out double value) =>
         TryParseDouble(start, length, NumberStyles.Float, out value);
@@ -116,6 +130,55 @@ internal readonly struct PdfByteContentText : IPdfContentText {
 
     public char this[int index] => (char)_bytes[index];
     public object Source => _bytes;
+
+    public int IndexOf(string value, int start, int count) {
+        if (start < 0 || count < 0 || start > _bytes.Length - count) throw new ArgumentOutOfRangeException(nameof(start));
+        if (count < value.Length) return -1;
+#if NET8_0_OR_GREATER
+        if (value.Length <= 64) {
+            Span<byte> needle = stackalloc byte[value.Length];
+            for (int index = 0; index < value.Length; index++) needle[index] = (byte)value[index];
+            int relative = _bytes.AsSpan(start, count).IndexOf(needle);
+            return relative < 0 ? -1 : start + relative;
+        }
+#endif
+        int lastStart = start + count - value.Length;
+        byte first = (byte)value[0];
+        for (int index = start; index <= lastStart; index++) {
+            index = Array.IndexOf(_bytes, first, index, lastStart - index + 1);
+            if (index < 0) return -1;
+            int matched = 1;
+            while (matched < value.Length && _bytes[index + matched] == value[matched]) matched++;
+            if (matched == value.Length) return index;
+        }
+        return -1;
+    }
+
+    public int LastIndexOf(string value, int start, int count, bool ignoreCase) {
+        if (start < 0 || count < 0 || start > _bytes.Length - count) throw new ArgumentOutOfRangeException(nameof(start));
+        if (count < value.Length) return -1;
+#if NET8_0_OR_GREATER
+        if (!ignoreCase && value.Length <= 64) {
+            Span<byte> needle = stackalloc byte[value.Length];
+            for (int index = 0; index < value.Length; index++) needle[index] = (byte)value[index];
+            int relative = _bytes.AsSpan(start, count).LastIndexOf(needle);
+            return relative < 0 ? -1 : start + relative;
+        }
+#endif
+        for (int index = start + count - value.Length; index >= start; index--) {
+            int matched = 0;
+            while (matched < value.Length && SameCharacter(_bytes[index + matched], value[matched], ignoreCase)) matched++;
+            if (matched == value.Length) return index;
+        }
+        return -1;
+    }
+
+    private static bool SameCharacter(byte actual, char expected, bool ignoreCase) {
+        if (actual == expected) return true;
+        if (!ignoreCase) return false;
+        char folded = (char)(actual | 0x20);
+        return folded == (expected | 0x20) && folded >= 'a' && folded <= 'z';
+    }
 
     public string Substring(int start, int length) {
         if (start < 0 || length < 0 || start > _bytes.Length - length) throw new ArgumentOutOfRangeException(nameof(start));
