@@ -94,7 +94,8 @@ internal sealed class YamlUntypedConverter : YamlConverter<object> {
     // one step, as generated metadata writes them.
     private void WriteMapping(YamlWriter writer, Dictionary<string, object?> mapping, YamlWriteState state) {
         if (!state.Begin(writer, mapping, typeof(object))) return;
-        writer.WriteStartMapping();
+        if (mapping.Count > 0) writer.WriteStartNonEmpty(mapping: true);
+        else writer.WriteStartMapping();
         foreach (KeyValuePair<string, object?> entry in mapping) {
             if (TryWritePlainEntry(writer, entry.Key, entry.Value)) continue;
             writer.WriteKey(entry.Key);

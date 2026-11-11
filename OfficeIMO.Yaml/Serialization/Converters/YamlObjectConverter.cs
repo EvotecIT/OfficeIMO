@@ -35,6 +35,8 @@ internal sealed class YamlObjectConverter<T> : YamlConverter<T>, IYamlObjectConv
     private Dictionary<string, int>.AlternateLookup<ReadOnlySpan<char>> _bySpan;
 #endif
     private bool _hasRequired;
+    // Whether some property is written whatever its value, so every instance writes at least one entry.
+    private bool _alwaysWrites;
 
     public YamlObjectConverter(YamlObjectInfoValues<T> values) {
         _create = values.ObjectCreator;
@@ -90,6 +92,7 @@ internal sealed class YamlObjectConverter<T> : YamlConverter<T>, IYamlObjectConv
 
         _properties = properties;
         _written = Array.FindAll(properties, static property => property.CanRead);
+        _alwaysWrites = Array.Exists(_written, static property => property.WriteCondition is not (YamlIgnoreCondition.WhenWritingNull or YamlIgnoreCondition.WhenWritingDefault));
         _parameters = parameters;
         _byName = byName;
 #if NET9_0_OR_GREATER
@@ -101,7 +104,8 @@ internal sealed class YamlObjectConverter<T> : YamlConverter<T>, IYamlObjectConv
 
     public override void Write(YamlWriter writer, T value, YamlWriteState state) {
         object owner = value!;
-        writer.WriteStartMapping();
+        if (_alwaysWrites || state.DiscriminatorKey is not null) writer.WriteStartNonEmpty(mapping: true);
+        else writer.WriteStartMapping();
         if (state.DiscriminatorKey is string key) {
             string discriminator = state.DiscriminatorValue!;
             state.DiscriminatorKey = null;

@@ -430,6 +430,33 @@ internal sealed class YamlEmitter {
         EndInline();
     }
 
+    /// <summary>
+    /// Starts a block collection the caller knows will get at least one entry. Where its first entry would lay it out
+    /// through the usual nesting (the value of a simple key or a sequence item, without properties) the layout is
+    /// decided now, with the same text and state, so no pending collection waits for the entry.
+    /// </summary>
+    public void StartNonEmptyCollection(bool mapping) {
+        if (_depth > 0 && _anchor is null && _tag is null && _trailingComment is null) {
+            ref Frame parent = ref _frames[_depth - 1];
+            if (!parent.Pending) {
+                if (parent.Kind == FrameKind.BlockMapping && parent.AtValue && !parent.ExplicitKey) {
+                    parent.AtValue = false;
+                    parent.Count++;
+                    Push(new Frame { Kind = mapping ? FrameKind.BlockMapping : FrameKind.BlockSequence, Indent = parent.Indent + (mapping ? _mappingIndent : _dashOffset), Padding = -1 });
+                    return;
+                }
+                if (parent.Kind == FrameKind.BlockSequence) {
+                    StartEntry(ref parent);
+                    Write('-');
+                    parent.Count++;
+                    Push(new Frame { Kind = mapping ? FrameKind.BlockMapping : FrameKind.BlockSequence, Indent = _column + _itemPadding, Padding = _itemPadding });
+                    return;
+                }
+            }
+        }
+        StartCollection(mapping, YamlStyle.Block);
+    }
+
     public void StartCollection(bool mapping, YamlStyle style) {
         if (style == YamlStyle.Flow || InFlow) {
             BeginNode(Shape.Inline, empty: false, simpleKey: false, aliasKey: false, sequence: !mapping, out _, out _);

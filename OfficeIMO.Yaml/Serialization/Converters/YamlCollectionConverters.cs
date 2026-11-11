@@ -220,7 +220,9 @@ internal sealed class YamlDictionaryConverter<TDictionary, TKey, TValue> : YamlC
     public override void Write(YamlWriter writer, TDictionary value, YamlWriteState state) {
         YamlTypeInfo<TKey> keyInfo = _key!;
         YamlTypeInfo<TValue> valueInfo = _value!;
-        writer.WriteStartMapping();
+        // A dictionary with entries has its layout decided at once.
+        if (value is ICollection<KeyValuePair<TKey, TValue>> { Count: > 0 }) writer.WriteStartNonEmpty(mapping: true);
+        else writer.WriteStartMapping();
         if (_stringValues && value is Dictionary<string, string> strings) {
             // String entries go out in one step, as WriteEntry would write them; the exact dictionary type keeps shared
             // generic code out of the loop.

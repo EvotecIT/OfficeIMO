@@ -109,6 +109,13 @@ public sealed class YamlWriter : IDisposable {
         else _emitter.StartCollection(mapping: true, CollectionStyle(style));
     }
 
+    /// <summary>Starts a block mapping (or sequence) the caller knows will get at least one entry; see <see cref="YamlEmitter.StartNonEmptyCollection"/>.</summary>
+    internal void WriteStartNonEmpty(bool mapping) {
+        CheckDisposed();
+        if (_builder is not null) _builder.StartCollection(mapping, YamlStyle.Block);
+        else _emitter.StartNonEmptyCollection(mapping);
+    }
+
     /// <summary>Ends the innermost mapping.</summary>
     /// <exception cref="InvalidOperationException">The innermost open collection is not a mapping, or its last key has no value.</exception>
     public void WriteEndMapping() {
