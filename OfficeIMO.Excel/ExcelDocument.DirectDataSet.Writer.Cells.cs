@@ -649,7 +649,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                writer.Write(cache[value]);
+                writer.Write(cache[value] ?? CacheRawNonNegativeIntegerCell(cache, value));
                 return true;
             }
 
@@ -659,7 +659,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                writer.Write(cache[(int)value]);
+                writer.Write(cache[(int)value] ?? CacheRawNonNegativeIntegerCell(cache, (int)value));
                 return true;
             }
 
@@ -669,18 +669,14 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                writer.Write(cache[(int)value]);
+                writer.Write(cache[(int)value] ?? CacheRawNonNegativeIntegerCell(cache, (int)value));
                 return true;
             }
 
-            private static string[] CreateRawNonNegativeIntegerCellCache() {
-                var cache = new string[CachedRawIntegerCellLimit];
-                for (int i = 0; i < cache.Length; i++) {
-                    cache[i] = "><v>" + InvariantNumberText.Get(i) + "</v></c>";
-                }
-
-                return cache;
-            }
+            // Entries are built on first use: filling all 65,536 up front cost a first small write several milliseconds.
+            // Concurrent writers may build the same entry twice; both strings are identical.
+            private static string CacheRawNonNegativeIntegerCell(string?[] cache, int value) =>
+                cache[value] = "><v>" + InvariantNumberText.Get(value) + "</v></c>";
 
             private static void WriteInvariant(TextWriter writer, double value) {
 #if NET6_0_OR_GREATER

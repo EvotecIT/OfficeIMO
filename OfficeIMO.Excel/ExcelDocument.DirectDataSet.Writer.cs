@@ -42,7 +42,7 @@ namespace OfficeIMO.Excel {
                 100_000_000_000_000_000UL
             ];
 #endif
-            private static readonly string[] RawNonNegativeIntegerCellCache = CreateRawNonNegativeIntegerCellCache();
+            private static readonly string?[] RawNonNegativeIntegerCellCache = new string?[CachedRawIntegerCellLimit];
             private static readonly string?[] SharedStringCellCache = new string?[CachedSharedStringCellLimit];
             private static readonly string[][] CellReferencePrefixCache = CreateCellReferencePrefixCache();
 
