@@ -1,8 +1,7 @@
 param(
-    [ValidateSet('Xlsx65K', 'Xlsb65K', 'ExcelGenerated', 'ExcelWriters', 'XLBenchReadAll', 'XLBenchSheets',
-        'CsvPackageAssets', 'CsvSpacesQuotes', 'Csv65K', 'CsvGenerated')]
+    # Lane names; a comma-separated list also works from pwsh -File.
     [string[]] $Lane = @('Xlsx65K', 'Xlsb65K', 'ExcelGenerated', 'ExcelWriters', 'XLBenchReadAll', 'XLBenchSheets',
-        'CsvPackageAssets', 'CsvSpacesQuotes', 'Csv65K', 'CsvGenerated'),
+        'CsvPackageAssets', 'CsvSpacesQuotes', 'Csv65K', 'CsvGenerated', 'CsvWrite', 'CsvWriteModern', 'CsvPackageAssetsModern', 'Csv65KModern'),
     [string] $OutputRoot,
     [string] $FixtureRoot,
     [string] $XLBenchRoot = $env:OFFICEIMO_XLBENCH_ROOT,
@@ -10,6 +9,7 @@ param(
     [ValidateRange(1, 100)] [int] $WarmupCount = 3,
     [ValidateRange(3, 200)] [int] $IterationCount = 12,
     [string] $AffinityMask,
+    [switch] $LatestCompetitors,
     [switch] $SkipBuild,
     [switch] $Plan
 )
@@ -29,6 +29,8 @@ $FixtureRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFrom
 
 $excelProject = Join-Path $repositoryRoot 'OfficeIMO.Excel.Benchmarks/OfficeIMO.Excel.Benchmarks.csproj'
 $csvProject = Join-Path $repositoryRoot 'OfficeIMO.CSV.Benchmarks/OfficeIMO.CSV.Benchmarks.csproj'
+# CsvHelper 34 replaced the APIs of the main CSV project, so its lanes run in the Modern project.
+$csvModernProject = Join-Path $repositoryRoot 'OfficeIMO.CSV.Benchmarks.Modern/OfficeIMO.CSV.Benchmarks.Modern.csproj'
 $lanes = [ordered]@{
     # 65K sales workbook: OfficeIMO default and single-pass reading against each library's primary reader.
     Xlsx65K = @{ Project = 'Excel'; Filters = @('OfficeIMO', 'OfficeIMO_SinglePass', 'ExcelReaderNet', 'Sylvan', 'ExcelDataReader',
@@ -44,6 +46,11 @@ $lanes = [ordered]@{
     CsvSpacesQuotes = @{ Project = 'CSV'; Filters = @('*.PackageAssetsSpacesQuotesCsvBenchmarks.*') }
     Csv65K = @{ Project = 'CSV'; Filters = @('*.MarkPflug65KCsvBenchmarks.*') }
     CsvGenerated = @{ Project = 'CSV'; Filters = @('*.CsvExcelReaderGeneratedBenchmarks.*') }
+    # Typed objects, DataTable and IDataReader to UTF-8 streams and TextWriters, byte-identical across libraries.
+    CsvWrite = @{ Project = 'CSV'; Filters = @('*.CsvWriteComparisonBenchmarks.*') }
+    CsvWriteModern = @{ Project = 'CSV.Modern'; Filters = @('*.CsvWriteModernBenchmarks.*') }
+    CsvPackageAssetsModern = @{ Project = 'CSV.Modern'; Filters = @('*.PackageAssetsModernCsvBenchmarks.*') }
+    Csv65KModern = @{ Project = 'CSV.Modern'; Filters = @('*.MarkPflug65KModernCsvBenchmarks.*') }
 }
 
 # EPPlus 8 refuses to run without a license declaration; the run includes it only when the caller made one.
@@ -93,10 +100,15 @@ function Get-HostDescription {
         WorkingTreeClean = -not (& git -C $repositoryRoot status --porcelain --untracked-files=no)
         WarmupCount = $WarmupCount
         IterationCount = $IterationCount
+        CompetitorMode = if ($LatestCompetitors) { 'latest' } else { 'pinned' }
+        CompetitorVersions = $competitorVersions
     }
 }
 
-$selected = @($Lane | Where-Object { $lanes.Contains($_) })
+$Lane = @($Lane | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+$unknown = @($Lane | Where-Object { -not $lanes.Contains($_) })
+if ($unknown.Count -gt 0) { throw "Unknown lane(s): $($unknown -join ', '). Lanes: $($lanes.Keys -join ', ')." }
+$selected = @($Lane)
 $xlbenchProject = if ($XLBenchRoot) { Join-Path $XLBenchRoot 'src/XLBench/XLBench.csproj' }
 $xlbenchAvailable = $xlbenchProject -and (Test-Path $xlbenchProject)
 if ($Plan) {
@@ -124,7 +136,13 @@ $env:OFFICEIMO_BENCHMARK_DATA = $FixtureRoot
 $env:TEMP = $temporaryRoot; $env:TMP = $temporaryRoot; $env:TMPDIR = $temporaryRoot
 
 $binaries = @{}
-$projects = @{ Excel = $excelProject; CSV = $csvProject }
+$assetFiles = @{}
+$projects = @{ Excel = $excelProject; CSV = $csvProject; 'CSV.Modern' = $csvModernProject }
+# The competitor watch restores the newest stable competitor packages into its own package and build folders,
+# so the shared NuGet cache and the ordinary pinned build stay as they are.
+$latestRoot = Join-Path $scratchRoot 'latest-competitors'
+$latestArguments = @('-p:OfficeImoLatestCompetitors=true', "-p:RestorePackagesPath=$(Join-Path $latestRoot 'packages')",
+    '--artifacts-path', (Join-Path $latestRoot 'artifacts'))
 foreach ($kind in @($selected | ForEach-Object { $lanes[$_].Project } | Sort-Object -Unique)) {
     if ($kind -eq 'XLBench') {
         if (-not $xlbenchAvailable) { continue }
@@ -132,15 +150,41 @@ foreach ($kind in @($selected | ForEach-Object { $lanes[$_].Project } | Sort-Obj
         $buildArguments = @('build', $xlbenchProject, '-c', 'Release', "-p:OfficeImoSource=$(Join-Path $repositoryRoot 'OfficeIMO.Excel/OfficeIMO.Excel.csproj')")
         $binaryDirectory = Join-Path $XLBenchRoot "src/XLBench/bin/Release/$Framework"
         $binaries[$kind] = Join-Path $binaryDirectory 'XLBench.dll'
+    } elseif ($LatestCompetitors) {
+        $projectName = [IO.Path]::GetFileNameWithoutExtension($projects[$kind])
+        if (-not $SkipBuild) {
+            # Floating versions resolve against the feed, not the HTTP cache, on every watch run.
+            & dotnet restore $projects[$kind] -p:TargetFrameworks=$Framework --force --no-http-cache @latestArguments -nologo -v q | Out-Host
+            if ($LASTEXITCODE -ne 0) { throw "Restoring the latest competitors for the $kind benchmarks failed." }
+        }
+        $buildArguments = @('build', $projects[$kind], '-c', 'Release', '-f', $Framework, '--no-restore', "-p:TargetFrameworks=$Framework") + $latestArguments
+        $binaries[$kind] = Join-Path $latestRoot "artifacts/bin/$projectName/release_$Framework/$projectName.dll"
+        $assetFiles[$kind] = Join-Path $latestRoot "artifacts/obj/$projectName/project.assets.json"
     } else {
         $buildArguments = @('build', $projects[$kind], '-c', 'Release', '-f', $Framework)
-        $binaries[$kind] = Join-Path (Split-Path $projects[$kind]) "bin/Release/$Framework/OfficeIMO.$kind.Benchmarks.dll"
+        $binaries[$kind] = Join-Path (Split-Path $projects[$kind]) "bin/Release/$Framework/$([IO.Path]::GetFileNameWithoutExtension($projects[$kind])).dll"
+        $assetFiles[$kind] = Join-Path (Split-Path $projects[$kind]) 'obj/project.assets.json'
     }
     if (-not $SkipBuild) {
         & dotnet @buildArguments -nologo -v q | Out-Host
         if ($LASTEXITCODE -ne 0) { throw "Building the $kind benchmarks failed." }
     }
     if (-not (Test-Path $binaries[$kind])) { throw "Missing benchmark binary: $($binaries[$kind])" }
+}
+
+# Resolved versions of the watched competitors, read from the restore that built each project.
+$watched = @('ExcelReader.NET', 'Sep', 'Sylvan.Data.Csv', 'Sylvan.Data.Excel', 'CsvHelper')
+$competitorVersions = [ordered]@{}
+foreach ($kind in $assetFiles.Keys) {
+    if (-not (Test-Path $assetFiles[$kind])) { continue }
+    $libraries = (Get-Content $assetFiles[$kind] -Raw | ConvertFrom-Json).libraries.PSObject.Properties.Name
+    foreach ($id in $watched) {
+        $match = $libraries | Where-Object { $_ -like "$id/*" } | Select-Object -First 1
+        if ($match) {
+            if (-not $competitorVersions.Contains($kind)) { $competitorVersions[$kind] = [ordered]@{} }
+            $competitorVersions[$kind][$id] = $match.Split('/')[1]
+        }
+    }
 }
 
 $environment = Get-HostDescription
@@ -223,7 +267,13 @@ $markdown = [Text.StringBuilder]::new()
 [void] $markdown.AppendLine('# OfficeIMO Excel and CSV comparison').AppendLine()
 foreach ($key in $environment.Keys) {
     $value = $environment[$key]
-    if ($value -is [Collections.IDictionary]) { $value = ($value.GetEnumerator() | ForEach-Object { "$($_.Key) $($_.Value)" }) -join '; ' }
+    if ($value -is [Collections.IDictionary]) {
+        $value = ($value.GetEnumerator() | ForEach-Object {
+                $item = $_.Value
+                if ($item -is [Collections.IDictionary]) { $item = ($item.GetEnumerator() | ForEach-Object { "$($_.Key) $($_.Value)" }) -join ', ' }
+                "$($_.Key): $item"
+            }) -join '; '
+    }
     [void] $markdown.AppendLine("- ${key}: $value")
 }
 [void] $markdown.AppendLine().AppendLine('| Lane | Status | Note |').AppendLine('|---|---|---|')
@@ -237,6 +287,35 @@ foreach ($row in $rows) {
     [void] $markdown.AppendLine("| $($row.Lane) | $label | $($row.Parameters) | $(& $format $row.MeanMs 2) | $(& $format $row.MedianMs 2) | $(& $format $row.StdErrMs 2) | $(& $format $row.AllocatedMB 1) | $(& $format $row.VsOfficeIMO 2) |")
 }
 $markdown.ToString() | Set-Content (Join-Path $OutputRoot 'results.md') -Encoding utf8
+
+# Competitor ledger: one entry per watched library case and run, kept under the scratch root across runs.
+$packageOf = @{ ExcelReaderNet = 'ExcelReader.NET'; Sep = 'Sep'; CsvHelper = 'CsvHelper' }
+$ledgerPath = Join-Path $scratchRoot 'competitor-ledger.json'
+$ledger = [Collections.Generic.List[object]]::new()
+if (Test-Path $ledgerPath) { foreach ($entry in @(Get-Content $ledgerPath -Raw | ConvertFrom-Json)) { $ledger.Add($entry) } }
+$date = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm', [Globalization.CultureInfo]::InvariantCulture)
+foreach ($row in $rows | Where-Object { $_.Lane -notlike 'XLBench*' -and $null -ne $_.VsOfficeIMO }) {
+    $library = ($row.Method -split '_', 2)[0]
+    $project = $lanes[$row.Lane].Project
+    $package = if ($library -eq 'Sylvan') { if ($project -like 'CSV*') { 'Sylvan.Data.Csv' } else { 'Sylvan.Data.Excel' } } else { $packageOf[$library] }
+    if (-not $package) { continue }
+    $ledger.Add([pscustomobject]@{
+        Date = $date; Commit = $environment.Commit.Substring(0, 10); Mode = $environment.CompetitorMode; Host = $environment.Processor
+        Lane = $row.Lane; Benchmark = "$($row.Type).$($row.Method)"; Parameters = $row.Parameters
+        Package = $package; Version = $(if ($competitorVersions.Contains($project)) { $competitorVersions[$project][$package] }); MeanMs = [Math]::Round($row.MeanMs, 3); Ratio = [Math]::Round($row.VsOfficeIMO, 3)
+    })
+}
+ConvertTo-Json @($ledger) -Depth 3 | Set-Content $ledgerPath -Encoding utf8
+$ledgerMarkdown = [Text.StringBuilder]::new()
+[void] $ledgerMarkdown.AppendLine('# Competitor ledger').AppendLine()
+[void] $ledgerMarkdown.AppendLine('Ratio is the competitor''s mean divided by OfficeIMO''s matching lane; above 1 means OfficeIMO is faster.').AppendLine()
+[void] $ledgerMarkdown.AppendLine('| Date (UTC) | Commit | Mode | Lane | Benchmark | Parameters | Package | Version | Mean ms | Ratio |')
+[void] $ledgerMarkdown.AppendLine('|---|---|---|---|---|---|---|---|---:|---:|')
+foreach ($entry in $ledger | Sort-Object Date -Descending -Stable) {
+    [void] $ledgerMarkdown.AppendLine("| $($entry.Date) | $($entry.Commit) | $($entry.Mode) | $($entry.Lane) | $($entry.Benchmark) | $($entry.Parameters) | $($entry.Package) | $($entry.Version) | $($entry.MeanMs) | $($entry.Ratio) |")
+}
+$ledgerMarkdown.ToString() | Set-Content (Join-Path $scratchRoot 'competitor-ledger.md') -Encoding utf8
+Write-Host "Ledger: $(Join-Path $scratchRoot 'competitor-ledger.md')"
 Remove-Item $temporaryRoot -Recurse -Force -ErrorAction SilentlyContinue
 Write-Host "Results: $(Join-Path $OutputRoot 'results.md')"
 if (@($laneResults | Where-Object Status -in 'Failed', 'Partial').Count -gt 0) { exit 1 }
