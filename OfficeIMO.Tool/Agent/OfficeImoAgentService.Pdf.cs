@@ -45,6 +45,42 @@ internal sealed partial class OfficeImoAgentService {
             result.Diagnostics, maxOutputCharacters);
     }
 
+    internal async Task<AgentPdfWorkflowResult> ConvertToPdfAAsync(string path, string outputPath, PdfAWorkflowSettings pdfA,
+        PdfWorkflowSettings settings, int maxOutputCharacters = 4000, CancellationToken cancellationToken = default) {
+        settings.Validate(); pdfA.Validate(); maxOutputCharacters = ValidateOutputBudget(maxOutputCharacters);
+        if (settings.Pages is not null) throw new AgentUsageException("PDF/A conversion converts the whole document.");
+        string input = ResolvePdfInput(path);
+        string[] sources = [input, .. pdfA.InputFiles().Select(_pathPolicy.ResolveInput)];
+        string destination = PreparePdfOutput(outputPath, sources, isDirectory: false, settings.Overwrite, "convert-to-pdfa", maxOutputCharacters);
+        PdfAConversionOptions options;
+        try { options = pdfA.ToOptions(_pathPolicy.ResolveInput); }
+        catch (Exception exception) when (exception is ArgumentException or InvalidDataException or NotSupportedException) {
+            throw new AgentUsageException("A supplied font or ICC profile cannot be used: " + AgentJson.Limit(exception.Message, 240), exception);
+        }
+        var request = new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.ConvertToPdfA, InputPath = input, InputStream = PdfInput(input), OutputPath = destination,
+            PdfPassword = PdfPassword(settings), PdfAConversion = options,
+            ConflictPolicy = settings.ConflictPolicy, Limits = settings.Limits(), PublicationGuard = new PdfRootPublicationGuard(_pathPolicy, sources)
+        };
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(request, cancellationToken: cancellationToken).ConfigureAwait(false);
+        return PdfResult("convert-to-pdfa", result.Status, result.FailureKind, result.OutputPath, result.OutputBytes,
+            result.OutputPath is null ? [] : [new AgentPdfArtifact { Path = result.OutputPath, SizeBytes = result.OutputBytes }],
+            result.Diagnostics, maxOutputCharacters, pdfA: PdfAReport(result));
+    }
+
+    private static AgentPdfAReport? PdfAReport(OfficeWorkflowResult result) {
+        if (result.ConversionEvidence?.Facts.TryGetValue("profile", out string? profile) != true) return null;
+        static AgentPdfAEntry Entry(OfficeWorkflowDiagnostic item) => new() {
+            Code = AgentJson.Limit(item.Code["PdfA.".Length..], 80), Message = AgentJson.Limit(item.Message, 240),
+            Location = item.Details.TryGetValue("location", out string? location) ? AgentJson.Limit(location, 160) : null,
+            ObjectNumber = item.Details.TryGetValue("objectNumber", out string? number) ? int.Parse(number, System.Globalization.CultureInfo.InvariantCulture) : null
+        };
+        var entries = result.Diagnostics.Where(item => item.Code.StartsWith("PdfA.", StringComparison.Ordinal)).ToList();
+        var changes = entries.Where(item => item.Severity != OfficeWorkflowDiagnosticSeverity.Error).Select(Entry).ToList();
+        var violations = entries.Where(item => item.Severity == OfficeWorkflowDiagnosticSeverity.Error).Select(Entry).ToList();
+        return new AgentPdfAReport { Profile = profile!, ChangeCount = changes.Count, ViolationCount = violations.Count, Changes = changes, Violations = violations };
+    }
+
     internal async Task<AgentPdfWorkflowResult> SplitPdfAsync(string path, string outputDirectory, int pagesPerDocument,
         PdfWorkflowSettings settings, int maxOutputCharacters = 4000, CancellationToken cancellationToken = default) {
         settings.Validate(); maxOutputCharacters = ValidateOutputBudget(maxOutputCharacters);
@@ -146,7 +182,8 @@ internal sealed partial class OfficeImoAgentService {
 
     private static AgentPdfWorkflowResult PdfResult(string operation, OfficeWorkflowStatus status,
         OfficeWorkflowFailureKind failureKind, string? outputPath, long bytes, IReadOnlyList<AgentPdfArtifact> artifacts,
-        IReadOnlyList<OfficeWorkflowDiagnostic> diagnostics, int maximumCharacters, int words = 0, string? summary = null) {
+        IReadOnlyList<OfficeWorkflowDiagnostic> diagnostics, int maximumCharacters, int words = 0, string? summary = null,
+        AgentPdfAReport? pdfA = null) {
         var sampledArtifacts = artifacts.Take(25).ToList();
         var sampledDiagnostics = diagnostics.Take(10).Select(item => new AgentPdfDiagnostic {
             Code = AgentJson.Limit(item.Code, 80), Severity = item.Severity.ToString()
@@ -157,11 +194,16 @@ internal sealed partial class OfficeImoAgentService {
             FailureKind = status == OfficeWorkflowStatus.Failed && failureKind == OfficeWorkflowFailureKind.None ? "OperationFailed" : failureKind.ToString(),
             OutputPath = outputPath, OutputBytes = bytes, ArtifactCount = artifacts.Count, AddedWordCount = words,
             DiagnosticCount = diagnostics.Count, Artifacts = sampledArtifacts, Diagnostics = sampledDiagnostics,
-            Truncated = sampledArtifacts.Count < artifacts.Count || sampledDiagnostics.Count < diagnostics.Count
+            Truncated = sampledArtifacts.Count < artifacts.Count || sampledDiagnostics.Count < diagnostics.Count, PdfA = pdfA
         };
+        var pdfAChanges = pdfA?.Changes as List<AgentPdfAEntry>;
+        var pdfAViolations = pdfA?.Violations as List<AgentPdfAEntry>;
         while (AgentJson.Measure(result) > maximumCharacters) {
             result.Truncated = true;
-            if (sampledArtifacts.Count > 0) sampledArtifacts.RemoveAt(sampledArtifacts.Count - 1);
+            // Counts stay exact; the change sample goes first, then the violation sample.
+            if (pdfAChanges is { Count: > 0 }) pdfAChanges.RemoveAt(pdfAChanges.Count - 1);
+            else if (pdfAViolations is { Count: > 0 }) pdfAViolations.RemoveAt(pdfAViolations.Count - 1);
+            else if (sampledArtifacts.Count > 0) sampledArtifacts.RemoveAt(sampledArtifacts.Count - 1);
             else if (sampledDiagnostics.Count > 0) sampledDiagnostics.RemoveAt(sampledDiagnostics.Count - 1);
             else if (result.Summary is not null) result.Summary = null;
             else throw new AgentUsageException("Increase maxOutputCharacters for this workflow report.");
