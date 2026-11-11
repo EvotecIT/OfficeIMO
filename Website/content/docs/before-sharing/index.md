@@ -60,10 +60,31 @@ Two items are reported but always kept, because removing them would break the fi
 
 Every finding has an `Outcome`: `Found` after inspection, then `Removed`, `Anonymized`, `Accepted`, `Rejected` or `Retained`. A retained finding carries a `Note` that says why.
 
-## Without writing code
+## In the browser
 
-- **Browser:** [Remove hidden data before sharing](/browser/remove-hidden-data/) checks a Word, Excel or PowerPoint file and saves a cleaned copy. [Check file origin](/browser/file-origin/) handles Content Credentials and AI labels in images, PDFs and Office files. Files stay in your browser.
-- **Command line:** install [OfficeIMO.Tool](/tool/) and run `officeimo hidden-data inspect proposal.docx`. The [hidden data page](/docs/before-sharing/hidden-data/#command-line) lists the options.
+[Clean a file before sharing](/browser/clean-before-sharing/) is the same check without code. Drop a file and it lists everything that would leave with it, grouped by category:
+
+- **Personal and hidden data:** properties, names, comments, tracked changes, hidden content, speaker notes, photo details and the rest of the categories above, with the defaults above already ticked.
+- **Content Credentials and AI labels:** what each record claims, such as the app and AI model that made a picture, and who the certificate names. Unticked unless you choose to remove them.
+- **Accessibility**, for Word and PowerPoint: what a screen reader user would miss. Marking table header rows is offered as a fix; everything else needs a person.
+
+One button saves a clean copy. The tool checks the copy again and lists what was removed, what was kept and why. The file stays in your browser and the original is never changed.
+
+Word, Excel and PowerPoint files get the full report. For PDFs and JPEG, PNG and WebP images the check covers Content Credentials and AI labels only; PDF document properties and camera or GPS details in a standalone picture are not checked.
+
+## Command line
+
+```powershell
+officeimo hidden-data inspect proposal.docx
+officeimo hidden-data remove proposal.docx --kinds default,provenance
+officeimo provenance inspect photo.jpg --format text
+```
+
+Install [OfficeIMO.Tool](/tool/) first. The [hidden data page](/docs/before-sharing/hidden-data/#command-line) lists every option.
+
+## Hidden characters in text
+
+Text can carry invisible characters too: zero-width spaces, direction overrides that make part of a line read backwards, such as a file name that hides its real extension, and Unicode tags. [Find hidden characters in text](/browser/hidden-characters/) checks pasted text or a UTF-8 file, or a UTF-16/32 file with a byte-order mark, up to 1 MiB and 512 findings. Nothing is selected for you, because language joiners, emoji selectors and typographic spaces are often intentional, and no finding proves AI authorship. The copy keeps the original encoding, byte-order mark and line endings. Reports use the `officeimo.text-integrity.result.v1` schema; in .NET, use `OfficeTextIntegrityInspector` and `OfficeTextIntegrityCleaner`.
 
 ## Reference
 

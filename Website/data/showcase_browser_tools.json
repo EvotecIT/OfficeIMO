@@ -6,8 +6,8 @@
       "artifact": "/downloads/showcase/workflows/word-project-charter/example.docx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/word-project-charter/example.docx"
     }
   ],
@@ -18,8 +18,8 @@
       "artifact": "/downloads/showcase/workflows/excel-budget-scenarios/example.xlsx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/excel-budget-scenarios/example.xlsx"
     }
   ],
@@ -30,8 +30,8 @@
       "artifact": "/downloads/showcase/workflows/powerpoint-project-roadmap/example.pptx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/powerpoint-project-roadmap/example.pptx"
     }
   ],
@@ -67,6 +67,11 @@
       "artifact": "/downloads/showcase/workflows/pdf-workshop-pack/example.pdf"
     },
     {
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
+      "artifact": "/downloads/showcase/workflows/pdf-workshop-pack/example.pdf"
+    },
+    {
       "title": "Compress PDF",
       "url": "/browser/compress-pdf/",
       "artifact": "/downloads/showcase/workflows/pdf-workshop-pack/example.pdf"
@@ -79,11 +84,6 @@
     {
       "title": "Extract pages",
       "url": "/browser/extract-pages/",
-      "artifact": "/downloads/showcase/workflows/pdf-workshop-pack/example.pdf"
-    },
-    {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
       "artifact": "/downloads/showcase/workflows/pdf-workshop-pack/example.pdf"
     },
     {
@@ -141,8 +141,8 @@
       "artifact": "/downloads/showcase/workflows/word-meeting-minutes/example.docx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/word-meeting-minutes/example.docx"
     }
   ],
@@ -153,8 +153,8 @@
       "artifact": "/downloads/showcase/workflows/word-onboarding-checklist/example.docx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/word-onboarding-checklist/example.docx"
     }
   ],
@@ -165,8 +165,8 @@
       "artifact": "/downloads/showcase/workflows/word-policy-brief/example.docx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/word-policy-brief/example.docx"
     }
   ],
@@ -177,8 +177,8 @@
       "artifact": "/downloads/showcase/workflows/word-decision-record/example.docx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/word-decision-record/example.docx"
     }
   ],
@@ -189,8 +189,8 @@
       "artifact": "/downloads/showcase/workflows/excel-named-range-pricing/example.xlsx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/excel-named-range-pricing/example.xlsx"
     }
   ],
@@ -201,8 +201,8 @@
       "artifact": "/downloads/showcase/workflows/excel-project-workbook/example.xlsx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/excel-project-workbook/example.xlsx"
     }
   ],
@@ -213,8 +213,8 @@
       "artifact": "/downloads/showcase/workflows/excel-expense-register/example.xlsx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/excel-expense-register/example.xlsx"
     }
   ],
@@ -225,8 +225,8 @@
       "artifact": "/downloads/showcase/workflows/excel-object-export/example.xlsx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/excel-object-export/example.xlsx"
     }
   ],
@@ -262,6 +262,11 @@
       "artifact": "/downloads/showcase/workflows/pdf-branded-invoice/example.pdf"
     },
     {
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
+      "artifact": "/downloads/showcase/workflows/pdf-branded-invoice/example.pdf"
+    },
+    {
       "title": "Compress PDF",
       "url": "/browser/compress-pdf/",
       "artifact": "/downloads/showcase/workflows/pdf-branded-invoice/example.pdf"
@@ -274,11 +279,6 @@
     {
       "title": "Extract pages",
       "url": "/browser/extract-pages/",
-      "artifact": "/downloads/showcase/workflows/pdf-branded-invoice/example.pdf"
-    },
-    {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
       "artifact": "/downloads/showcase/workflows/pdf-branded-invoice/example.pdf"
     },
     {
@@ -344,6 +344,11 @@
       "artifact": "/downloads/showcase/workflows/pdf-dispatch-note/example.pdf"
     },
     {
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
+      "artifact": "/downloads/showcase/workflows/pdf-dispatch-note/example.pdf"
+    },
+    {
       "title": "Compress PDF",
       "url": "/browser/compress-pdf/",
       "artifact": "/downloads/showcase/workflows/pdf-dispatch-note/example.pdf"
@@ -356,11 +361,6 @@
     {
       "title": "Extract pages",
       "url": "/browser/extract-pages/",
-      "artifact": "/downloads/showcase/workflows/pdf-dispatch-note/example.pdf"
-    },
-    {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
       "artifact": "/downloads/showcase/workflows/pdf-dispatch-note/example.pdf"
     },
     {
@@ -426,6 +426,11 @@
       "artifact": "/downloads/showcase/workflows/pdf-service-catalog/example.pdf"
     },
     {
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
+      "artifact": "/downloads/showcase/workflows/pdf-service-catalog/example.pdf"
+    },
+    {
       "title": "Compress PDF",
       "url": "/browser/compress-pdf/",
       "artifact": "/downloads/showcase/workflows/pdf-service-catalog/example.pdf"
@@ -438,11 +443,6 @@
     {
       "title": "Extract pages",
       "url": "/browser/extract-pages/",
-      "artifact": "/downloads/showcase/workflows/pdf-service-catalog/example.pdf"
-    },
-    {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
       "artifact": "/downloads/showcase/workflows/pdf-service-catalog/example.pdf"
     },
     {
@@ -508,6 +508,11 @@
       "artifact": "/downloads/showcase/workflows/pdf-weekly-brief/example.pdf"
     },
     {
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
+      "artifact": "/downloads/showcase/workflows/pdf-weekly-brief/example.pdf"
+    },
+    {
       "title": "Compress PDF",
       "url": "/browser/compress-pdf/",
       "artifact": "/downloads/showcase/workflows/pdf-weekly-brief/example.pdf"
@@ -520,11 +525,6 @@
     {
       "title": "Extract pages",
       "url": "/browser/extract-pages/",
-      "artifact": "/downloads/showcase/workflows/pdf-weekly-brief/example.pdf"
-    },
-    {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
       "artifact": "/downloads/showcase/workflows/pdf-weekly-brief/example.pdf"
     },
     {
@@ -565,8 +565,8 @@
       "artifact": "/downloads/showcase/workflows/powerpoint-training-quiz/example.pptx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/powerpoint-training-quiz/example.pptx"
     }
   ],
@@ -577,8 +577,8 @@
       "artifact": "/downloads/showcase/workflows/powerpoint-service-overview/example.pptx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/powerpoint-service-overview/example.pptx"
     }
   ],
@@ -623,8 +623,8 @@
       "artifact": "/downloads/showcase/pswriteoffice/patch-compliance-report.docx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/pswriteoffice/patch-compliance-report.docx"
     }
   ],
@@ -635,8 +635,8 @@
       "artifact": "/downloads/showcase/pswriteoffice/project-delivery-pack.docx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/pswriteoffice/project-delivery-pack.docx"
     }
   ],
@@ -647,8 +647,8 @@
       "artifact": "/downloads/showcase/pswriteoffice/budget-forecast-review.xlsx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/pswriteoffice/budget-forecast-review.xlsx"
     }
   ],
@@ -659,8 +659,8 @@
       "artifact": "/downloads/showcase/workflows/word-research-brief/example.docx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/word-research-brief/example.docx"
     }
   ],
@@ -671,8 +671,8 @@
       "artifact": "/downloads/showcase/workflows/word-service-intake/example.docx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/word-service-intake/example.docx"
     }
   ],
@@ -683,8 +683,8 @@
       "artifact": "/downloads/showcase/workflows/word-mixed-orientation-report/example.docx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/word-mixed-orientation-report/example.docx"
     }
   ],
@@ -695,8 +695,8 @@
       "artifact": "/downloads/showcase/workflows/excel-inventory-reorder/example.xlsx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/excel-inventory-reorder/example.xlsx"
     }
   ],
@@ -707,8 +707,8 @@
       "artifact": "/downloads/showcase/workflows/excel-training-matrix/example.xlsx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/excel-training-matrix/example.xlsx"
     }
   ],
@@ -719,8 +719,8 @@
       "artifact": "/downloads/showcase/workflows/excel-operational-trends/example.xlsx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/excel-operational-trends/example.xlsx"
     }
   ],
@@ -756,6 +756,11 @@
       "artifact": "/downloads/showcase/workflows/pdf-equipment-inspection/example.pdf"
     },
     {
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
+      "artifact": "/downloads/showcase/workflows/pdf-equipment-inspection/example.pdf"
+    },
+    {
       "title": "Compress PDF",
       "url": "/browser/compress-pdf/",
       "artifact": "/downloads/showcase/workflows/pdf-equipment-inspection/example.pdf"
@@ -768,11 +773,6 @@
     {
       "title": "Extract pages",
       "url": "/browser/extract-pages/",
-      "artifact": "/downloads/showcase/workflows/pdf-equipment-inspection/example.pdf"
-    },
-    {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
       "artifact": "/downloads/showcase/workflows/pdf-equipment-inspection/example.pdf"
     },
     {
@@ -838,6 +838,11 @@
       "artifact": "/downloads/showcase/workflows/pdf-linked-resource-guide/example.pdf"
     },
     {
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
+      "artifact": "/downloads/showcase/workflows/pdf-linked-resource-guide/example.pdf"
+    },
+    {
       "title": "Compress PDF",
       "url": "/browser/compress-pdf/",
       "artifact": "/downloads/showcase/workflows/pdf-linked-resource-guide/example.pdf"
@@ -850,11 +855,6 @@
     {
       "title": "Extract pages",
       "url": "/browser/extract-pages/",
-      "artifact": "/downloads/showcase/workflows/pdf-linked-resource-guide/example.pdf"
-    },
-    {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
       "artifact": "/downloads/showcase/workflows/pdf-linked-resource-guide/example.pdf"
     },
     {
@@ -920,6 +920,11 @@
       "artifact": "/downloads/showcase/workflows/pdf-navigable-handbook/example.pdf"
     },
     {
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
+      "artifact": "/downloads/showcase/workflows/pdf-navigable-handbook/example.pdf"
+    },
+    {
       "title": "Compress PDF",
       "url": "/browser/compress-pdf/",
       "artifact": "/downloads/showcase/workflows/pdf-navigable-handbook/example.pdf"
@@ -932,11 +937,6 @@
     {
       "title": "Extract pages",
       "url": "/browser/extract-pages/",
-      "artifact": "/downloads/showcase/workflows/pdf-navigable-handbook/example.pdf"
-    },
-    {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
       "artifact": "/downloads/showcase/workflows/pdf-navigable-handbook/example.pdf"
     },
     {
@@ -977,8 +977,8 @@
       "artifact": "/downloads/showcase/workflows/powerpoint-results-briefing/example.pptx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/powerpoint-results-briefing/example.pptx"
     }
   ],
@@ -989,8 +989,8 @@
       "artifact": "/downloads/showcase/workflows/powerpoint-branching-playbook/example.pptx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/powerpoint-branching-playbook/example.pptx"
     }
   ],
@@ -1090,8 +1090,8 @@
       "artifact": "/downloads/showcase/workflows/word-business-case/example.docx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/word-business-case/example.docx"
     }
   ],
@@ -1102,8 +1102,8 @@
       "artifact": "/downloads/showcase/workflows/word-renewal-proposal/example.docx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/word-renewal-proposal/example.docx"
     }
   ],
@@ -1114,8 +1114,8 @@
       "artifact": "/downloads/showcase/workflows/word-post-incident-review/example.docx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/word-post-incident-review/example.docx"
     }
   ],
@@ -1126,8 +1126,8 @@
       "artifact": "/downloads/showcase/workflows/word-statement-of-work/example.docx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/word-statement-of-work/example.docx"
     }
   ],
@@ -1138,8 +1138,8 @@
       "artifact": "/downloads/showcase/workflows/excel-cash-flow-forecast/example.xlsx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/excel-cash-flow-forecast/example.xlsx"
     }
   ],
@@ -1150,8 +1150,8 @@
       "artifact": "/downloads/showcase/workflows/excel-asset-depreciation/example.xlsx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/excel-asset-depreciation/example.xlsx"
     }
   ],
@@ -1162,8 +1162,8 @@
       "artifact": "/downloads/showcase/workflows/excel-vendor-comparison/example.xlsx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/excel-vendor-comparison/example.xlsx"
     }
   ],
@@ -1174,8 +1174,8 @@
       "artifact": "/downloads/showcase/workflows/excel-workforce-rota/example.xlsx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/excel-workforce-rota/example.xlsx"
     }
   ],
@@ -1211,6 +1211,11 @@
       "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
     },
     {
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
+      "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
+    },
+    {
       "title": "Compress PDF",
       "url": "/browser/compress-pdf/",
       "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
@@ -1223,11 +1228,6 @@
     {
       "title": "Extract pages",
       "url": "/browser/extract-pages/",
-      "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
-    },
-    {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
       "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
     },
     {
@@ -1293,6 +1293,11 @@
       "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
     },
     {
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
+      "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
+    },
+    {
       "title": "Compress PDF",
       "url": "/browser/compress-pdf/",
       "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
@@ -1305,11 +1310,6 @@
     {
       "title": "Extract pages",
       "url": "/browser/extract-pages/",
-      "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
-    },
-    {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
       "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
     },
     {
@@ -1375,6 +1375,11 @@
       "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
     },
     {
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
+      "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
+    },
+    {
       "title": "Compress PDF",
       "url": "/browser/compress-pdf/",
       "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
@@ -1387,11 +1392,6 @@
     {
       "title": "Extract pages",
       "url": "/browser/extract-pages/",
-      "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
-    },
-    {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
       "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
     },
     {
@@ -1457,6 +1457,11 @@
       "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
     },
     {
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
+      "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
+    },
+    {
       "title": "Compress PDF",
       "url": "/browser/compress-pdf/",
       "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
@@ -1469,11 +1474,6 @@
     {
       "title": "Extract pages",
       "url": "/browser/extract-pages/",
-      "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
-    },
-    {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
       "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
     },
     {
@@ -1514,8 +1514,8 @@
       "artifact": "/downloads/showcase/workflows/powerpoint-board-decision/example.pptx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/powerpoint-board-decision/example.pptx"
     }
   ],
@@ -1526,8 +1526,8 @@
       "artifact": "/downloads/showcase/workflows/powerpoint-sales-pipeline/example.pptx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/powerpoint-sales-pipeline/example.pptx"
     }
   ],
@@ -1538,8 +1538,8 @@
       "artifact": "/downloads/showcase/workflows/powerpoint-retrospective/example.pptx"
     },
     {
-      "title": "Check and remove file origin data",
-      "url": "/browser/file-origin/",
+      "title": "Clean a file before sharing",
+      "url": "/browser/clean-before-sharing/",
       "artifact": "/downloads/showcase/workflows/powerpoint-retrospective/example.pptx"
     }
   ],

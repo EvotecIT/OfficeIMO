@@ -7,8 +7,12 @@ using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Web.Converter.Engine;
 
-/// <summary>Finds Content Credentials and AI source labels, and writes a copy without the records the visitor selects.</summary>
+/// <summary>
+/// The clean-before-sharing route for images and PDFs: finds Content Credentials and AI source labels, and writes a copy without
+/// the records the visitor selects. Office documents take <see cref="ShareTool"/>'s hidden-data route instead.
+/// </summary>
 internal static class OriginTool {
+    internal const string Group = "Origin records";
     internal const string Manifests = "manifests";
     internal const string References = "references";
     internal const string Declarations = "declarations";
@@ -32,6 +36,7 @@ internal static class OriginTool {
             category.Title,
             category.Detail,
             ToolState.Found,
+            Group,
             Selectable: category.Selectable,
             Selected: category.Selectable)).ToList();
         OfficeC2paManifestSummary[] manifests = ManifestSummaries(report);
@@ -57,13 +62,14 @@ internal static class OriginTool {
         return new ToolResultDocument(true, verdict, facts.ToArray(), items.ToArray(), artifacts, null, 0);
     }
 
-    private static OfficeC2paManifestSummary[] ManifestSummaries(OfficeProvenanceReport report) =>
+    internal static OfficeC2paManifestSummary[] ManifestSummaries(OfficeProvenanceReport report) =>
         report.Evidence.Select(static evidence => evidence.Manifest).OfType<OfficeC2paManifestSummary>().Take(3).ToArray();
 
     /// <summary>Spells out what one Content Credentials record says, as written in the file.</summary>
-    private static IEnumerable<ToolItem> Explain(OfficeC2paManifestSummary manifest, int index, int count, OfficeProvenanceEvidence evidence) {
+    internal static IEnumerable<ToolItem> Explain(OfficeC2paManifestSummary manifest, int index, int count, OfficeProvenanceEvidence evidence,
+        Func<OfficeProvenanceEvidence, string?>? assetOf = null) {
         string group = count > 1 ? $"What Content Credentials record {index + 1} says" : "What the Content Credentials say";
-        if (EmbeddedAsset(evidence) is { } asset) group += $" · embedded asset {asset}";
+        if ((assetOf ?? EmbeddedAsset)(evidence) is { } asset) group += $" · embedded asset {asset}";
         string prefix = "m" + index.ToString(CultureInfo.InvariantCulture) + "-";
         if (manifest.DeclaresGenerativeAi) yield return new ToolItem(prefix + "ai", "Generative AI declared",
             "This credential declares AI-generated content, including actions beyond the displayed timeline. The declaration is unverified.", ToolState.Detail, group);
@@ -146,10 +152,10 @@ internal static class OriginTool {
     };
 
     /// <summary>c2pa.watermarked, c2pa.watermarked.bound and c2pa.watermarked.unbound: a mark woven into the pixels or text, not into the metadata.</summary>
-    private static bool Watermarked(string action) =>
+    internal static bool Watermarked(string action) =>
         action == "c2pa.watermarked" || action.StartsWith("c2pa.watermarked.", StringComparison.Ordinal);
 
-    private const string WatermarkNote = "The record says a watermark was also added to the content itself. Removing the record does not remove that watermark, and detection tools may still recognise the file.";
+    internal const string WatermarkNote = "The record says a watermark was also added to the content itself. Removing the record does not remove that watermark, and detection tools may still recognise the file.";
 
     private static string Capitalize(string text) => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text.Substring(1);
 
@@ -283,18 +289,20 @@ internal static class OriginTool {
         };
     }
 
-    private static string Summary(OfficeProvenanceReport report, OfficeC2paManifestSummary[] manifests) {
+    /// <param name="assetOf">Names the embedded asset a record belongs to; defaults to reading it from a ZIP-scan location.</param>
+    internal static string Summary(OfficeProvenanceReport report, OfficeC2paManifestSummary[] manifests, Func<OfficeProvenanceEvidence, string?>? assetOf = null) {
+        assetOf ??= EmbeddedAsset;
         var parts = new List<string>();
         OfficeC2paManifestSummary? first = manifests.FirstOrDefault();
         string? generator = first == null ? null : Generator(first);
         if (report.HasGenerativeAiDeclaration) {
             OfficeProvenanceEvidence? aiRecord = report.Evidence.FirstOrDefault(static evidence => evidence.Manifest?.DeclaresGenerativeAi == true);
             string? aiGenerator = aiRecord?.Manifest is { } aiManifest ? AiGenerator(aiManifest) : null;
-            string subject = aiRecord != null && EmbeddedAsset(aiRecord) is { } aiAsset ? $"An embedded asset ({aiAsset})" : "An origin record";
+            string subject = aiRecord != null && assetOf(aiRecord) is { } aiAsset ? $"An embedded asset ({aiAsset})" : "An origin record";
             parts.Add(aiGenerator != null ? $"{subject} says it was made by a generative AI tool: {aiGenerator}." : "An origin record declares generative AI.");
         } else if (generator != null) {
             OfficeProvenanceEvidence firstRecord = report.Evidence.First(static evidence => evidence.Manifest != null);
-            string subject = EmbeddedAsset(firstRecord) is { } asset ? $"An embedded asset ({asset})" : "A Content Credentials record";
+            string subject = assetOf(firstRecord) is { } asset ? $"An embedded asset ({asset})" : "A Content Credentials record";
             parts.Add($"{subject} says it was made with {generator}.");
         }
         if (report.HasC2paManifest) {

@@ -144,4 +144,4 @@ officeimo hidden-data remove .\proposal.docx --output .\shared.docx --force --ki
 
 ## In the browser
 
-[Remove hidden data before sharing](/browser/remove-hidden-data/) runs the same engine in your browser. It lists what it found, preselects the default categories, and saves a cleaned copy after checking it again. The file is not uploaded.
+[Clean a file before sharing](/browser/clean-before-sharing/) runs `InspectHiddenData` and `RemoveHiddenData` in your browser. It lists each category it found with the `Default` categories ticked, and saves a clean copy after checking it again. The file is not uploaded.

@@ -133,10 +133,10 @@ public sealed class EngineToolTests {
     }
 
     [Fact]
-    public void FileOrigin_UnsignedCredentialDoesNotEstablishCertificateIdentity() {
+    public void CleanBeforeSharing_ImageUnsignedCredentialDoesNotEstablishCertificateIdentity() {
         var session = new ToolSession();
         session.Stage(0, Sample("unsigned-credential-12-actions.png"), "unsigned.png");
-        ToolResultDocument result = OriginTool.Run(session, "inspect", Options());
+        ToolResultDocument result = ShareTool.Run(session, "inspect", Options());
         Assert.Contains(result.Facts, fact => fact.Label == "Certificate subject" && fact.Value.Contains("unverified", StringComparison.OrdinalIgnoreCase));
         Assert.Contains("unverified", result.Verdict.Detail, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("signed by", result.Verdict.Detail, StringComparison.OrdinalIgnoreCase);
@@ -144,11 +144,11 @@ public sealed class EngineToolTests {
     }
 
     [Fact]
-    public void FileOrigin_InspectNamesTheRecordAndRemoveReportsWhatChanged() {
+    public void CleanBeforeSharing_ImageInspectNamesTheRecordAndRemoveReportsWhatChanged() {
         var session = new ToolSession();
         session.Stage(0, Sample("provenance-demo.png"), "demo.png");
 
-        ToolResultDocument inspect = OriginTool.Run(session, "inspect", Options());
+        ToolResultDocument inspect = ShareTool.Run(session, "inspect", Options());
         Assert.True(inspect.Ok);
         Assert.Equal("Found 1 origin record", inspect.Verdict.Title);
         ToolItem label = Assert.Single(inspect.Items, static item => item.Selectable);
@@ -156,7 +156,7 @@ public sealed class EngineToolTests {
         Assert.Contains("generative AI", label.Detail, StringComparison.Ordinal);
         Assert.DoesNotContain("iTXt", label.Detail, StringComparison.Ordinal);
 
-        ToolResultDocument removed = OriginTool.Run(session, "remove", Options(("remove", OriginTool.Declarations)));
+        ToolResultDocument removed = ShareTool.Run(session, "remove", Options(("remove", OriginTool.Declarations)));
         Assert.True(removed.Ok);
         Assert.Equal("good", removed.Verdict.Tone);
         Assert.StartsWith("Clean copy ready", removed.Verdict.Title, StringComparison.Ordinal);
@@ -166,33 +166,34 @@ public sealed class EngineToolTests {
     }
 
     [Fact]
-    public void FileOrigin_KeepingARecordIsReportedAsTheVisitorsChoice() {
+    public void CleanBeforeSharing_ImageKeepingARecordIsReportedAsTheVisitorsChoice() {
         var session = new ToolSession();
         session.Stage(0, Sample("provenance-demo.png"), "demo.png");
-        Assert.Throws<InvalidOperationException>(() => OriginTool.Run(session, "remove", Options()));
-        ToolResultDocument result = OriginTool.Run(session, "remove", Options(("remove", OriginTool.Manifests)));
+        Assert.Throws<InvalidOperationException>(() => ShareTool.Run(session, "remove", Options()));
+        ToolResultDocument result = ShareTool.Run(session, "remove", Options(("remove", OriginTool.Manifests)));
         Assert.Contains(result.Items, static item => item.Id == OriginTool.Declarations && item.State == ToolState.Kept);
         Assert.Equal("Nothing was removed", result.Verdict.Title);
     }
 
     [Fact]
-    public void HiddenData_DefaultSelectionRemovesPersonalDataAndKeepsOriginRecordsAndVisibleContent() {
+    public void CleanBeforeSharing_OfficeDefaultsRemovePersonalDataAndKeepOriginRecordsAndVisibleContent() {
         var session = new ToolSession();
         session.Stage(0, Sample("share-ready-sample.docx"), "proposal.docx");
 
-        ToolResultDocument inspect = HiddenDataTool.Run(session, "inspect", Options());
+        ToolResultDocument inspect = ShareTool.Run(session, "inspect", Options());
         Assert.True(inspect.Ok);
         Assert.Contains(inspect.Items, static item => item.Id == "comments" && item.Selectable && item.Selected);
         Assert.Contains(inspect.Items, static item => item.Id == "image-metadata" && item.Selected);
         // Changing what readers see, or what the file discloses about its origin, is never preselected.
         Assert.Contains(inspect.Items, static item => item.Id == "tracked-changes" && item.Selectable && !item.Selected);
         Assert.Contains(inspect.Items, static item => item.Id == "hidden-content" && !item.Selected);
-        Assert.Contains(inspect.Items, static item => item.Id == "provenance" && !item.Selected);
+        Assert.Contains(inspect.Items, static item => item.Id == "provenance" && !item.Selected && item.Group == OriginTool.Group);
+        Assert.Contains(inspect.Items, static item => item.Group == ShareTool.AccessibilityGroup);
 
         string preselected = string.Join(",", inspect.Items.Where(static item => item.Selected).Select(static item => item.Id));
-        ToolResultDocument removed = HiddenDataTool.Run(session, "remove", Options(("remove", preselected)));
+        ToolResultDocument removed = ShareTool.Run(session, "remove", Options(("remove", preselected)));
         Assert.True(removed.Ok, removed.Verdict.Detail);
-        Assert.Equal("good", removed.Verdict.Tone);
+        Assert.True(removed.Verdict.Tone == "good", removed.Verdict.Title + ": " + removed.Verdict.Detail);
         Assert.Contains(removed.Items, static item => item.Id == "comments" && item.State == ToolState.Removed);
         Assert.Contains(removed.Items, static item => item.Id == "provenance-kept" && item.State == ToolState.Kept);
 

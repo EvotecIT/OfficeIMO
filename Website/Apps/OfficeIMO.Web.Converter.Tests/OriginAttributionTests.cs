@@ -1,6 +1,6 @@
 using System.Buffers.Binary;
 using System.Text;
-using System.IO.Compression;
+using System.IO.Packaging;
 using OfficeIMO.Web.Converter.Engine;
 using Xunit;
 
@@ -13,7 +13,7 @@ public sealed class OriginAttributionTests {
     public void AiDeclarationNamesOnlyItsOwnCredentialGenerator(bool separateAiCredential) {
         var session = new ToolSession();
         session.Stage(0, CreateInput(separateAiCredential), separateAiCredential ? "mixed.docx" : "mixed.png");
-        var result = OriginTool.Run(session, "inspect", new ToolOptions(new()));
+        var result = ShareTool.Run(session, "inspect", new ToolOptions(new()));
         Assert.Contains("generative AI", result.Verdict.Detail);
         Assert.DoesNotContain("generative AI tool: Photoshop", result.Verdict.Detail);
         if (separateAiCredential) {
@@ -27,17 +27,9 @@ public sealed class OriginAttributionTests {
 
     [Fact]
     public void EmbeddedAssetPathRetainsDirectoriesNamedLikeFormatMarkers() {
-        using var input = new MemoryStream(); input.Write(CreateInput(true));
-        using (var package = new ZipArchive(input, ZipArchiveMode.Update, leaveOpen: true)) {
-            var original = package.GetEntry("word/media/ai.png")!;
-            using var image = new MemoryStream();
-            using (var stream = original.Open()) stream.CopyTo(image);
-            original.Delete();
-            using var replacement = package.CreateEntry("word/media/PNG/ai.png").Open();
-            replacement.Write(image.ToArray());
-        }
-        var session = new ToolSession(); session.Stage(0, input.ToArray(), "nested.docx");
-        var result = OriginTool.Run(session, "inspect", new ToolOptions(new()));
+        byte[] ai = RewriteCredential(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "samples", "unsigned-credential-12-actions.png")), ("Generator", "AI Studio"));
+        var session = new ToolSession(); session.Stage(0, WithImages(("word/media/PNG/ai.png", ai)), "nested.docx");
+        var result = ShareTool.Run(session, "inspect", new ToolOptions(new()));
         Assert.Contains("embedded asset (word/media/PNG/ai.png)", result.Verdict.Detail);
         Assert.Contains(result.Items, item => (item.Group ?? "").Contains("word/media/PNG/ai.png"));
     }
@@ -52,12 +44,12 @@ public sealed class OriginAttributionTests {
     public void OrdinarySourceLabelsRemainInformationalWhenAiLabelsAreRemoved(string ordinary, bool includeAi) {
         var session = new ToolSession();
         session.Stage(0, SourceLabelInput(ordinary, includeAi), "sources.png");
-        var inspection = OriginTool.Run(session, "inspect", new ToolOptions(new()));
+        var inspection = ShareTool.Run(session, "inspect", new ToolOptions(new()));
         Assert.Equal(includeAi ? 1 : 0, inspection.Items.Count(item => item.Selectable));
         Assert.Contains(inspection.Items, item => !item.Selectable && item.Detail.Contains("camera", StringComparison.OrdinalIgnoreCase) ||
             !item.Selectable && item.Detail.Contains("software", StringComparison.OrdinalIgnoreCase) ||
             !item.Selectable && item.Detail.Contains("captured", StringComparison.OrdinalIgnoreCase));
-        var removal = OriginTool.Run(session, "remove", new ToolOptions(new() { ["remove"] = "declarations" }));
+        var removal = ShareTool.Run(session, "remove", new ToolOptions(new() { ["remove"] = "declarations" }));
         Assert.DoesNotContain(removal.Items, item => item.State == ToolState.Bad);
         Assert.Contains(removal.Items, item => item.State == ToolState.Kept && item.Title.Contains("source label", StringComparison.OrdinalIgnoreCase));
         Assert.Equal(includeAi ? "1" : "0", removal.Facts.Single(fact => fact.Label == "Removed").Value);
@@ -68,7 +60,7 @@ public sealed class OriginAttributionTests {
     public void RemovalPreservesWatermarkWarningBeyondDisplayedCredentials() {
         var session = new ToolSession();
         session.Stage(0, WatermarkInput(), "four-credentials.docx");
-        var removal = OriginTool.Run(session, "remove", new ToolOptions(new() { ["remove"] = "manifests" }));
+        var removal = ShareTool.Run(session, "remove", new ToolOptions(new() { ["remove"] = "provenance" }));
         Assert.Contains(removal.Items, item => item.Id == "watermark" && item.State == ToolState.Warning);
         Assert.Contains("watermark", removal.Verdict.Detail);
     }
@@ -76,12 +68,19 @@ public sealed class OriginAttributionTests {
     private static byte[] WatermarkInput() {
         byte[] original = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "samples", "unsigned-credential-12-actions.png"));
         byte[] plain = RewriteCredential(original, ("c2pa.watermarked.bound", "c2pa.edited".PadRight("c2pa.watermarked.bound".Length)));
+        return WithImages(Enumerable.Range(0, 4).Select(index => ($"word/media/credential-{index}.png", index == 3 ? original : plain)).ToArray());
+    }
+
+    /// <summary>The business-summary sample with each picture added as an image part related to the main document, as Word stores it.</summary>
+    private static byte[] WithImages(params (string Path, byte[] Png)[] images) {
         using var output = new MemoryStream();
         output.Write(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "samples", "business-summary.docx")));
-        using (var package = new ZipArchive(output, ZipArchiveMode.Update, leaveOpen: true)) {
-            for (int index = 0; index < 4; index++) {
-                using var entry = package.CreateEntry($"word/media/credential-{index}.png").Open();
-                entry.Write(index == 3 ? original : plain);
+        using (Package package = Package.Open(output, FileMode.Open, FileAccess.ReadWrite)) {
+            PackagePart main = package.GetPart(new Uri("/word/document.xml", UriKind.Relative));
+            foreach ((string path, byte[] png) in images) {
+                var uri = new Uri("/" + path, UriKind.Relative);
+                using (Stream stream = package.CreatePart(uri, "image/png").GetStream()) stream.Write(png);
+                main.CreateRelationship(uri, TargetMode.Internal, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image");
             }
         }
         return output.ToArray();
@@ -126,11 +125,7 @@ public sealed class OriginAttributionTests {
             : File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "samples", "provenance-demo.png"));
         using var output = new MemoryStream();
         if (separateAiCredential) {
-            output.Write(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "samples", "business-summary.docx")));
-            using (var package = new ZipArchive(output, ZipArchiveMode.Update, leaveOpen: true)) {
-                using (var entry = package.CreateEntry("word/media/ordinary.png").Open()) entry.Write(ordinary);
-                using (var entry = package.CreateEntry("word/media/ai.png").Open()) entry.Write(ai);
-            }
+            return WithImages(("word/media/ordinary.png", ordinary), ("word/media/ai.png", ai));
         } else {
             output.Write(ordinary, 0, ordinary.Length - 12); // Before IEND; XMP may follow image data.
             foreach (byte[] chunk in Chunks(ai).Where(chunk => Encoding.ASCII.GetString(chunk, 4, 4) == "iTXt")) output.Write(chunk);

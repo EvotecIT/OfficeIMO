@@ -98,6 +98,16 @@ The commands cover the same formats as the libraries plus images, PDF, HTML and 
 
 ## In the browser
 
-[Check file origin](/browser/file-origin/) inspects images, PDFs and Office files in your browser, explains what each Content Credentials record claims, and saves a copy without the records you select. The [provenance page](/provenance/) explains what the tool reads and what it cannot prove.
+[Clean a file before sharing](/browser/clean-before-sharing/) shows Content Credentials and AI labels in the same report as the rest of the hidden data, for Word, Excel, PowerPoint, PDF, JPEG, PNG and WebP files up to 25 MB. For each Content Credentials record it explains what the record claims:
+
+- **Made with:** the app that wrote the record, and the AI model named for each step when one is recorded.
+- **AI-generated:** whether a step declares a generative AI source (the IPTC "trained algorithmic media" type) or a mix of AI and other content.
+- **Steps:** what the record says happened, such as created, edited, converted or cropped.
+- **Based on:** other files the record lists as ingredients.
+- **Certificate subject:** the organization named in the signing certificate, and who issued it.
+
+These are the record's own statements. The tool reads the certificate names but does not verify the signature, so it cannot tell whether the record was changed after it was written. Origin records are unticked by default. For an image or PDF you can choose embedded Content Credentials, links to external credentials and AI labels separately; in an Office file they are one choice, because they are one category of the hidden-data report.
+
+Removing a record does not remove a visible or invisible watermark in the content itself; when a record says one was added, the result says so. The tool does not fetch external credentials, prove that a file is authentic, or decide whether a person or an AI made it. A file with no records found is just that; the absence is not proof of origin.
 
 The [provenance support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.provenance-support-matrix.md) lists every carrier, format and limit.

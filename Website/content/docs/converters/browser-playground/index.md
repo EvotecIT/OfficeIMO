@@ -89,13 +89,13 @@ dotnet test .\Website\Apps\OfficeIMO.Web.Converter.Tests\OfficeIMO.Web.Converter
 
 After an operation, choose a compatible tool under **Continue with**. It opens in a new tab and receives the result through an in-memory transfer. Read-only inspections carry the selected input instead. The current tab keeps its input and result; choose a new input on that page to start again. Closing the tab releases its session, while downloaded files remain on your device. Archive bundles and reports are downloads rather than inputs for another tool.
 
-## Inspect and remove provenance
+## Clean a file before sharing
 
-Open [Inspect file origin](/browser/file-origin/) from the browser directory. JPEG, PNG, WebP, PDF, DOCX, XLSX, and PPTX files can be inspected locally. The sample image includes a deliberately added AI source declaration for trying the workflow.
+Open [Clean a file before sharing](/browser/clean-before-sharing/) from the browser directory. It reports everything that would leave with a DOCX, XLSX, PPTX, PDF, JPEG, PNG or WebP file, grouped by category, and saves a copy without what you tick. The sample is a short proposal with invented names, a comment, a tracked change, hidden text and a picture carrying a location and an AI label.
 
-1. Choose a file and inspect its supported provenance carriers.
-2. Select embedded Content Credentials, external credential references, or AI-specific IPTC source declarations. Ordinary camera and software labels are informational and are kept.
-3. Create a separate cleaned copy. Review remaining findings and diagnostics from re-inspection.
-4. Download the copy and report, or carry the cleaned copy into a compatible tool under **Continue with**.
+1. Choose a file. The check starts straight away and nothing is uploaded.
+2. Review the groups: personal and hidden data, Content Credentials and AI labels, and for Word and PowerPoint, accessibility.
+3. Untick anything you want to keep. Tracked changes, hidden content and origin records start unticked.
+4. Download the clean copy. The tool checks the copy again and lists what was removed, what was kept and why.
 
-This is structural inspection, not cryptographic authenticity verification or a verdict about AI authorship. External references are not fetched. Cleanup does not remove visible marks or reconstruct image pixels, and it is not a general personal-metadata scrubber. Ambiguous carriers remain preserved; mutations that would invalidate document signatures are blocked. Input and output are capped at 25 MiB, with additional limits on expanded package data and embedded assets.
+[Prepare a document for sharing](/docs/before-sharing/) explains the defaults. Input and output are capped at 25 MiB; signed documents are not changed.
