@@ -10,16 +10,18 @@ public class YamlReaderLimitTests {
         while (reader.Read()) { }
     }
 
+    // Twenty nested collections need MaxDepth 20 whether they are written in block or flow style.
     [Theory]
     [InlineData("[", "]")]
     [InlineData("{a: ", "}")]
-    [InlineData("- ", "")]
+    [InlineData("-", "")]
+    [InlineData("a:", "")]
     public void DepthBeyondTheLimitThrowsWithItsPosition(string open, string close) {
-        string yaml = open == "- "
-            ? string.Concat(Enumerable.Range(0, 20).Select(i => new string(' ', i * 2) + "-\n")) + new string(' ', 40) + "x\n"
+        string yaml = close.Length == 0
+            ? string.Concat(Enumerable.Range(0, 20).Select(i => new string(' ', i * 2) + open + "\n")) + new string(' ', 40) + "x\n"
             : string.Concat(Enumerable.Repeat(open, 20)) + "x" + string.Concat(Enumerable.Repeat(close, 20));
-        ReadAll(new YamlReader(yaml, new YamlReaderOptions { MaxDepth = 25 }));
-        YamlLimitExceededException error = Assert.Throws<YamlLimitExceededException>(() => ReadAll(new YamlReader(yaml, new YamlReaderOptions { MaxDepth = 10 })));
+        ReadAll(new YamlReader(yaml, new YamlReaderOptions { MaxDepth = 20 }));
+        YamlLimitExceededException error = Assert.Throws<YamlLimitExceededException>(() => ReadAll(new YamlReader(yaml, new YamlReaderOptions { MaxDepth = 19 })));
         Assert.Equal(nameof(YamlReaderOptions.MaxDepth), error.LimitName);
         Assert.Equal(YamlErrorCodes.LimitExceeded, error.Code);
         Assert.True(error.Line >= 1);

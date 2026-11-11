@@ -50,7 +50,10 @@ public sealed class YamlReaderOptions {
     /// </summary>
     public bool IncludeComments { get; set; }
 
-    /// <summary>Gets or sets the maximum nesting of collections and flow brackets. Defaults to 256.</summary>
+    /// <summary>
+    /// Gets or sets the maximum nesting of collections. Block and flow collections count the same, so <c>a: {b: 1}</c>
+    /// and a block mapping inside a block mapping both nest two deep. Defaults to 256.
+    /// </summary>
     public int MaxDepth {
         get => _maxDepth;
         set => _maxDepth = RequirePositive(value, nameof(MaxDepth));

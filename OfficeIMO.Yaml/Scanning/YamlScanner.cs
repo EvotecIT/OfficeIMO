@@ -559,7 +559,7 @@ internal ref partial struct YamlScanner {
     private bool RollIndent(int column, int tokenNumber, YamlTokenKind kind, int offset, int line) {
         YamlScanContext c = _c;
         if (c.FlowLevel > 0 || c.Indent >= column) return false;
-        if (c.FlowLevel + c.IndentCount + 1 >= c.MaxDepth) ThrowDepth();
+        if (c.FlowLevel + c.IndentCount >= c.MaxDepth) ThrowDepth();
         if (c.IndentCount >= c.Indents.Length) c.Indents = YamlScanContext.Grow(c.Indents, c.IndentCount);
         c.Indents[c.IndentCount++] = c.Indent;
         c.Indent = column;

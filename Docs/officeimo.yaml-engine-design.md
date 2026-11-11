@@ -263,7 +263,7 @@ a: 3`: PyYAML 6.0.3, go-yaml v2.4.0 and the YamlDotNet 18 deserializer return `a
 
 | Limit | Default | Purpose |
 |---|---|---|
-| `MaxDepth` | 256 | Bounds parser stacks |
+| `MaxDepth` | 256 | Bounds parser stacks; counts nested collections, the same in block and flow style |
 | `MaxNodes` | 1,000,000 | Bounds model size |
 | `MaxAliasExpansion` | 100,000 visited nodes | Stops "billion laughs" alias bombs in resolved views and the serializer |
 | `MaxScalarLength` | 16 MiB | Bounds a single value |

@@ -91,7 +91,10 @@ public sealed class YamlLoadOptions {
     /// <summary>The policy the load applies: <see cref="DuplicateKeys"/>, or the default that <see cref="Strict"/> selects.</summary>
     internal YamlDuplicateKeyPolicy EffectiveDuplicateKeys => DuplicateKeys ?? (Strict ? YamlDuplicateKeyPolicy.Error : YamlDuplicateKeyPolicy.LastWins);
 
-    /// <summary>Gets or sets the maximum nesting of collections and flow brackets. Defaults to 256.</summary>
+    /// <summary>
+    /// Gets or sets the maximum nesting of collections. Block and flow collections count the same, so <c>a: {b: 1}</c>
+    /// and a block mapping inside a block mapping both nest two deep. Defaults to 256.
+    /// </summary>
     public int MaxDepth {
         get => _reader.MaxDepth;
         set => _reader.MaxDepth = value;

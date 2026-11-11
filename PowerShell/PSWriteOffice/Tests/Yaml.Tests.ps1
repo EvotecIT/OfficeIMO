@@ -156,6 +156,9 @@ Describe 'YAML data conversion' {
         { $json | ConvertFrom-Json -Depth 2 } | Should -Throw
         { $json | ConvertFrom-OfficeYaml -Depth 2 } | Should -Throw -ErrorId 'Yaml.Limit.Exceeded*'
         ($json | ConvertFrom-OfficeYaml -Depth 3).a.b.c | Should -Be 1
+        $block = "a:`n  b:`n    c: 1"
+        { $block | ConvertFrom-OfficeYaml -Depth 2 } | Should -Throw -ErrorId 'Yaml.Limit.Exceeded*'
+        ($block | ConvertFrom-OfficeYaml -Depth 3).a.b.c | Should -Be 1
     }
 
     It 'enumerates a root sequence unless NoEnumerate and reads multi-document streams only with AllDocuments' {
