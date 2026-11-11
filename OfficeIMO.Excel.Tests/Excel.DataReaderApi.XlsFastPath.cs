@@ -208,5 +208,49 @@ namespace OfficeIMO.Tests {
             Assert.True(reader.Read());
             Assert.Throws<InvalidDataException>(() => reader.Read());
         }
+
+        /// <summary>
+        /// A reader of one XLS worksheet loads only the workbook globals and that worksheet, and returns
+        /// what the reader of every worksheet returns for it.
+        /// </summary>
+        [Fact]
+        public void OpenDataReader_XlsSelectedSheetMatchesTheSameSheetReadWithTheWholeWorkbook() {
+            using var output = new MemoryStream();
+            using (var writer = ExcelDocument.CreateWriter(ExcelFileFormat.Xls, output,
+                       new ExcelWriterOptions { UseSharedStrings = true }, leaveOpen: true)) {
+                for (int sheet = 0; sheet < 3; sheet++) {
+                    int rows = 200 + sheet * 1500;
+                    writer.WriteTable("Data" + (sheet + 1), Enumerable.Range(0, rows), new[] { "Name", "Id", "Amount" },
+                        (row, index) => row.Write("Item " + index % 37).Write(sheet * 10_000 + index).Write(index * 0.25));
+                }
+            }
+            byte[] workbook = output.ToArray();
+
+            var expected = new List<List<object>>();
+            using (DbDataReader all = ExcelDocument.OpenReader(workbook)) {
+                do {
+                    var values = new List<object>();
+                    while (all.Read()) {
+                        for (int column = 0; column < all.FieldCount; column++) values.Add(all.GetValue(column));
+                    }
+                    expected.Add(values);
+                } while (all.NextResult());
+            }
+
+            Assert.Equal(3, expected.Count);
+            for (int sheet = 0; sheet < 3; sheet++) {
+                foreach (var options in new[] {
+                             new ExcelReaderOptions { SheetIndex = sheet },
+                             new ExcelReaderOptions { SheetName = "Data" + (sheet + 1) } }) {
+                    using DbDataReader single = ExcelDocument.OpenReader(workbook, options);
+                    var values = new List<object>();
+                    while (single.Read()) {
+                        for (int column = 0; column < single.FieldCount; column++) values.Add(single.GetValue(column));
+                    }
+                    Assert.Equal(expected[sheet], values);
+                    Assert.False(single.NextResult());
+                }
+            }
+        }
     }
 }

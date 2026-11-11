@@ -141,8 +141,10 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 uint rawDbCellOffset = ReadBufferedUInt32(
                     bytes,
                     index.PayloadOffset + 16 + (blockIndex * sizeof(uint)));
-                if (rawDbCellOffset > int.MaxValue) return false;
-                int dbCellOffset = (int)rawDbCellOffset;
+                // INDEX holds workbook stream offsets; a worksheet slice starts at _streamOffsetBase.
+                long relativeDbCellOffset = (long)rawDbCellOffset - _streamOffsetBase;
+                if (relativeDbCellOffset < 0 || relativeDbCellOffset > int.MaxValue) return false;
+                int dbCellOffset = (int)relativeDbCellOffset;
                 if (dbCellOffset < cellTableStartOffset
                     || dbCellOffset >= sheetEndOffset
                     || dbCellOffset <= lastDbCellEnd) {
