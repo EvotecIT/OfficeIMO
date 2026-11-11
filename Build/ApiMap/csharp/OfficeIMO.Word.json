@@ -7591,6 +7591,54 @@
       "category": "authoring",
       "phase": "B",
       "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSaveOptions.SignedDocumentPolicy",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordSaveOptions.SignatureMutationPolicy : OfficeIMO.OfficeSignatureMutationPolicy",
+      "replacement": "Block becomes BlockSave and AllowSignatureInvalidation becomes PreserveSignatureMarkup. RemoveInvalidatedSignatures deletes the signature origin part and the application DigSig flag before saving, and removes _signatures/_xmlsignatures when rewriting an imported DOC.",
+      "reason": "Word, Excel and PowerPoint use one signed-document save option: SignatureMutationPolicy of OfficeIMO.OfficeSignatureMutationPolicy, defaulting to BlockSave.",
+      "file": "OfficeIMO.Word/WordSaveOptions.cs",
+      "category": "options",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSignedDocumentSavePolicy",
+      "kind": "enum",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeSignatureMutationPolicy",
+      "replacement": "Block -> BlockSave; AllowSignatureInvalidation -> PreserveSignatureMarkup.",
+      "reason": "Word, Excel and PowerPoint use one signed-document save option: SignatureMutationPolicy of OfficeIMO.OfficeSignatureMutationPolicy, defaulting to BlockSave.",
+      "file": "OfficeIMO.Word/WordSaveOptions.cs",
+      "category": "options",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordImageOptimizationOptions.SignedDocumentPolicy",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordImageOptimizationOptions.SignatureMutationPolicy : OfficeIMO.OfficeSignatureMutationPolicy",
+      "replacement": "Any policy other than BlockSave permits optimizing a signed document; pass the same policy on WordSaveOptions to persist it.",
+      "reason": "Word, Excel and PowerPoint use one signed-document save option: SignatureMutationPolicy of OfficeIMO.OfficeSignatureMutationPolicy, defaulting to BlockSave.",
+      "file": "OfficeIMO.Word/WordImageOptimizationOptions.cs",
+      "category": "options",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordMacroProjectSigningOptions.ExistingPackageSignaturePolicy",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordMacroProjectSigningOptions.SignatureMutationPolicy : OfficeIMO.OfficeSignatureMutationPolicy",
+      "replacement": "AllowSignatureInvalidation becomes PreserveSignatureMarkup; RemoveInvalidatedSignatures removes existing OPC package signatures from the staged package before VBA signing.",
+      "reason": "Word, Excel and PowerPoint use one signed-document save option: SignatureMutationPolicy of OfficeIMO.OfficeSignatureMutationPolicy, defaulting to BlockSave.",
+      "file": "OfficeIMO.Word/WordMacroProjectSigning.cs",
+      "category": "options",
+      "phase": "B",
+      "applied": "applied"
     }
   ],
   "packageMoves": [

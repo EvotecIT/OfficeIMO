@@ -13808,6 +13808,18 @@
       "new": "OfficeIMO.PowerPoint.PowerPointSlide.ToImage(...) : OfficeImageExportResult",
       "reason": "Use ToImage for one encoded surface and ToImages for a batch. Read Bytes for the payload, inspect CreateReport() for diagnostics, and use SaveAsImage or SaveAsImages to persist results. ExportImage and ExportImages aliases are removed.",
       "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDocument.SignatureMutationPolicy",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.PowerPoint.PowerPointSaveOptions.SignatureMutationPolicy : OfficeIMO.OfficeSignatureMutationPolicy",
+      "replacement": "Pass the policy with each save through PowerPointSaveOptions; saves without options block signed presentations. Conversion keeps PowerPointDocumentConversionOptions.SignatureMutationPolicy.",
+      "reason": "Word, Excel and PowerPoint use one signed-document save option: SignatureMutationPolicy of OfficeIMO.OfficeSignatureMutationPolicy, defaulting to BlockSave.",
+      "file": "OfficeIMO.PowerPoint/PowerPointSaveOptions.cs",
+      "category": "options",
+      "phase": "B",
+      "applied": "applied"
     }
   ],
   "packageMoves": [

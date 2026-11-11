@@ -721,3 +721,18 @@ OfficeIMO.Word.WordRange.Replace(System.Action<OfficeIMO.Word.WordParagraph!>! c
 OfficeIMO.Word.WordRange.Replace(string! text) -> OfficeIMO.Word.WordRange!
 OfficeIMO.Word.WordRange.Text.get -> string!
 OfficeIMO.Word.WordSearchResult.Ranges.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordRange!>!
+*REMOVED*OfficeIMO.Word.WordImageOptimizationOptions.SignedDocumentPolicy.get -> OfficeIMO.Word.WordSignedDocumentSavePolicy
+*REMOVED*OfficeIMO.Word.WordImageOptimizationOptions.SignedDocumentPolicy.set -> void
+*REMOVED*OfficeIMO.Word.WordMacroProjectSigningOptions.ExistingPackageSignaturePolicy.get -> OfficeIMO.Word.WordSignedDocumentSavePolicy
+*REMOVED*OfficeIMO.Word.WordMacroProjectSigningOptions.ExistingPackageSignaturePolicy.set -> void
+*REMOVED*OfficeIMO.Word.WordSaveOptions.SignedDocumentPolicy.get -> OfficeIMO.Word.WordSignedDocumentSavePolicy
+*REMOVED*OfficeIMO.Word.WordSaveOptions.SignedDocumentPolicy.set -> void
+*REMOVED*OfficeIMO.Word.WordSignedDocumentSavePolicy
+*REMOVED*OfficeIMO.Word.WordSignedDocumentSavePolicy.AllowSignatureInvalidation = 1 -> OfficeIMO.Word.WordSignedDocumentSavePolicy
+*REMOVED*OfficeIMO.Word.WordSignedDocumentSavePolicy.Block = 0 -> OfficeIMO.Word.WordSignedDocumentSavePolicy
+OfficeIMO.Word.WordImageOptimizationOptions.SignatureMutationPolicy.get -> OfficeIMO.OfficeSignatureMutationPolicy
+OfficeIMO.Word.WordImageOptimizationOptions.SignatureMutationPolicy.set -> void
+OfficeIMO.Word.WordMacroProjectSigningOptions.SignatureMutationPolicy.get -> OfficeIMO.OfficeSignatureMutationPolicy
+OfficeIMO.Word.WordMacroProjectSigningOptions.SignatureMutationPolicy.set -> void
+OfficeIMO.Word.WordSaveOptions.SignatureMutationPolicy.get -> OfficeIMO.OfficeSignatureMutationPolicy
+OfficeIMO.Word.WordSaveOptions.SignatureMutationPolicy.set -> void

@@ -37,9 +37,10 @@ namespace OfficeIMO.Tests {
             Assert.True(blocked.Report.HasLegacyBinarySignatureStream);
             Assert.True(blocked.Report.HasLegacyXmlSignatureStorage);
 
-            presentation.SignatureMutationPolicy =
-                OfficeSignatureMutationPolicy.PreserveSignatureMarkup;
-            byte[] preservedBytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
+            byte[] preservedBytes = presentation.ToBytes(new PowerPointSaveOptions {
+                Format = PowerPointFileFormat.Ppt,
+                SignatureMutationPolicy = OfficeSignatureMutationPolicy.PreserveSignatureMarkup
+            });
 
             LegacyPptDocument preserved = LegacyPptDocument.Load(preservedBytes);
             IReadOnlyDictionary<string, byte[]> streams = preserved.Package.CopyCompoundStreams();
@@ -57,10 +58,11 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Load(input);
             Assert.Single(presentation.Slides[0].TextBoxes,
                 textBox => textBox.Text == "Signed deck").Text = "Unsigned edited deck";
-            presentation.SignatureMutationPolicy =
-                OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures;
 
-            byte[] unsignedBytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
+            byte[] unsignedBytes = presentation.ToBytes(new PowerPointSaveOptions {
+                Format = PowerPointFileFormat.Ppt,
+                SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+            });
 
             LegacyPptDocument unsigned = LegacyPptDocument.Load(unsignedBytes);
             Assert.DoesNotContain(unsigned.Package.CopyCompoundStreams().Keys, path =>

@@ -645,3 +645,7 @@ OfficeIMO.PowerPoint.PowerPointSlideMaster.GetLayout(string! name, bool ignoreCa
 OfficeIMO.PowerPoint.PowerPointSlideMaster.Index.get -> int
 OfficeIMO.PowerPoint.PowerPointSlideMaster.Layouts.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointSlideLayout!>!
 OfficeIMO.PowerPoint.PowerPointSlideMaster.Remove() -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDocument.SignatureMutationPolicy.get -> OfficeIMO.OfficeSignatureMutationPolicy
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDocument.SignatureMutationPolicy.set -> void
+OfficeIMO.PowerPoint.PowerPointSaveOptions.SignatureMutationPolicy.get -> OfficeIMO.OfficeSignatureMutationPolicy
+OfficeIMO.PowerPoint.PowerPointSaveOptions.SignatureMutationPolicy.set -> void
