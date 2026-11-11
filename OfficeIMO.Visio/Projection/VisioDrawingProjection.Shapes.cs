@@ -87,28 +87,12 @@ internal sealed partial class VisioDrawingProjection {
 
     private FillPaint ResolveFill(VisioShape shape, Func<double, double, OfficePoint> map, string location) {
         if (VisioFillGradient.TryResolve(shape, out VisioFillGradient? gradient, out bool unreadable)) {
-            double width = shape.WidthInches, height = shape.HeightInches;
-            if (gradient!.IsLinear) {
-                // FillGradientAngle follows the Office convention: clockwise from left-to-right as displayed,
-                // so the local y-up direction negates the sine. The line spans the frame's projected extent.
-                double dx = Math.Cos(gradient.Angle), dy = -Math.Sin(gradient.Angle);
-                double half = (Math.Abs(width * dx) + Math.Abs(height * dy)) / 2D;
-                OfficePoint start = map(width / 2D - dx * half, height / 2D - dy * half);
-                OfficePoint end = map(width / 2D + dx * half, height / 2D + dy * half);
-                if (start.X != end.X || start.Y != end.Y)
+            if (gradient!.TryPlace(shape, map, out OfficePoint start, out OfficePoint end, out OfficeTransform frame)) {
+                if (gradient.IsLinear)
                     return new FillPaint(null, OfficeLinearGradient.CreateImported(start.X, start.Y, end.X, end.Y, gradient.Stops), null, default);
-            } else {
-                // The unit circle of the gradient frame reaches the corners of the shape's local frame.
-                double reach = Math.Sqrt(2D);
-                OfficePoint origin = map(width / 2D - reach * width / 2D, height / 2D + reach * height / 2D);
-                OfficePoint unitX = map(width / 2D + reach * width / 2D, height / 2D + reach * height / 2D);
-                OfficePoint unitY = map(width / 2D - reach * width / 2D, height / 2D - reach * height / 2D);
-                var frame = new OfficeTransform(unitX.X - origin.X, unitX.Y - origin.Y, unitY.X - origin.X, unitY.Y - origin.Y, origin.X, origin.Y);
-                if (frame.TryInvert(out _)) {
-                    if (gradient.Direction != 1)
-                        _report.Add("VISIO_DRAWING_FILL_GRADIENT", "The " + VisioFillGradient.Describe(gradient.Direction) + " gradient is drawn as a centred radial gradient.", OfficeConversionLossKind.Approximation, location);
-                    return new FillPaint(null, null, new OfficeRadialGradient(0.5, 0.5, 0, 0.5, 0.5, 0.5, gradient.Stops), frame);
-                }
+                if (gradient.Direction != 1)
+                    _report.Add("VISIO_DRAWING_FILL_GRADIENT", "The " + VisioFillGradient.Describe(gradient.Direction) + " gradient is drawn as a centred radial gradient.", OfficeConversionLossKind.Approximation, location);
+                return new FillPaint(null, null, new OfficeRadialGradient(0.5, 0.5, 0, 0.5, 0.5, 0.5, gradient.Stops), frame);
             }
         } else if (unreadable) {
             _report.Add("VISIO_DRAWING_FILL_GRADIENT", "The cached foreground color replaces a gradient whose stops are not cached literal colors.", OfficeConversionLossKind.Approximation, location);

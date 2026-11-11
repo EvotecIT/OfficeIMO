@@ -53,6 +53,18 @@ public sealed class VisioDrawingPdfFidelityTests {
     }
 
     [Fact]
+    public void SvgPreviewPaintsTheSameCachedGradientStopsAsTheDiagramScene() {
+        VisioDocument document = VisioDocument.Load(Path.Combine(OfficeIMO.Tests.RepositoryTestPaths.Find(), "Assets", "VisioTemplates", "DrawingWithJenkinsDiagram.vsdx"));
+
+        string svg = document.ToSvg();
+
+        // The master-inherited stops reach the preview as a gradient paint, not the black foreground color.
+        Assert.Contains("<linearGradient", svg, StringComparison.Ordinal);
+        Assert.Contains("0078d4", svg, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("fill=\"url(#visio-fill-", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TextBackgroundFromTheTextStyleSheetIsPaintedAndAnUnsetOneStaysTransparent() {
         string root = OfficeIMO.Tests.RepositoryTestPaths.Find();
         // The Jenkins dynamic connector master uses the Connector style sheet, whose TextBkgnd is white.

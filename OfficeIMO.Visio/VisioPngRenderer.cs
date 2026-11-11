@@ -97,6 +97,7 @@ namespace OfficeIMO.Visio {
                 }
 
                 Color fill = shape.FillPattern == 0 ? Color.Transparent : shape.FillColor;
+                Func<double, double, Color>? gradientFill = fill.A > 0 ? ResolveGradientFill(page, shape, transform, canvas.Projection) : null;
                 Color stroke = HasVisibleLine(shape) ? shape.LineColor : Color.Transparent;
                 double strokeWidth = Math.Max(shape.LineWeight * canvas.Projection.PhysicalDensity, canvas.Supersampling);
                 for (int i = 0; i < renderedPaths.Count;) {
@@ -113,7 +114,8 @@ namespace OfficeIMO.Visio {
                         if (renderedPaths[pathIndex].Path.CanFill) contours.Add(renderedPaths[pathIndex].Points);
                     }
                     // Fill closes each eligible contour implicitly; stroke closure stays native.
-                    if (fill.A > 0 && contours.Count > 0) canvas.FillPolygonsEvenOdd(contours, fill);
+                    if (gradientFill != null && contours.Count > 0) canvas.FillPolygonsEvenOdd(contours, gradientFill);
+                    else if (fill.A > 0 && contours.Count > 0) canvas.FillPolygonsEvenOdd(contours, fill);
                     for (int pathIndex = i; pathIndex < end; pathIndex++) {
                         StrokeRenderedPreservedPath(canvas, renderedPaths[pathIndex], stroke, strokeWidth, OfficeStrokeDashStyleMapper.FromVisioLinePattern(shape.LinePattern));
                     }
@@ -254,6 +256,16 @@ namespace OfficeIMO.Visio {
             canvas.DrawEllipse(bottomX, bottomY, radiusX, radiusY, Color.Transparent, stroke, strokeWidth, dashStyle, rasterRotation, bottomX, bottomY);
             canvas.DrawEllipse(topX, topY, radiusX, radiusY, Color.Transparent, stroke, strokeWidth, dashStyle, rasterRotation, topX, topY);
         }
+
+        // Cached FillGradient stops shared with the SVG and Drawing projections.
+        private static Func<double, double, Color>? ResolveGradientFill(VisioPage page, VisioShape shape, VisioNativeShapeTransform transform, VisioRenderProjection projection) =>
+            VisioFillGradient.TryResolve(shape, out VisioFillGradient? gradient, out _)
+                ? gradient!.CreatePaint(shape, (x, y) => {
+                    OfficePoint point = transform.PagePoint(x, y);
+                    (double rx, double ry) = ToRaster(page, point.X, point.Y, projection);
+                    return new OfficePoint(rx, ry);
+                })
+                : null;
 
         private static void DrawConnector(RasterCanvas canvas, VisioPage page, VisioConnector connector, VisioPngSaveOptions options, VisioRenderLabelLayout? labelLayout, VisioNativeTextStyleResolver textStyles) {
             List<(double X, double Y)> pagePoints = GetConnectorPoints(connector);

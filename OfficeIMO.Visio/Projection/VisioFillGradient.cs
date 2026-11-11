@@ -58,6 +58,50 @@ internal sealed class VisioFillGradient {
         return true;
     }
 
+    /// <summary>
+    /// Places the gradient in a renderer's coordinates. <paramref name="map"/> takes local shape inches.
+    /// A linear gradient yields its start and end points; FillGradientAngle follows the Office convention,
+    /// clockwise from left-to-right as displayed, and the line spans the frame's projected extent. Other
+    /// directions yield a frame whose unit square maps the gradient circle (centre 0.5, radius 0.5) onto an
+    /// ellipse reaching the corners of the shape's local frame.
+    /// </summary>
+    internal bool TryPlace(VisioShape shape, Func<double, double, OfficePoint> map,
+        out OfficePoint start, out OfficePoint end, out OfficeTransform radialFrame) {
+        double width = shape.WidthInches, height = shape.HeightInches;
+        start = end = default; radialFrame = OfficeTransform.Identity;
+        if (IsLinear) {
+            double dx = Math.Cos(Angle), dy = -Math.Sin(Angle);
+            double half = (Math.Abs(width * dx) + Math.Abs(height * dy)) / 2D;
+            start = map(width / 2D - dx * half, height / 2D - dy * half);
+            end = map(width / 2D + dx * half, height / 2D + dy * half);
+            return start.X != end.X || start.Y != end.Y;
+        }
+        double reach = Math.Sqrt(2D);
+        OfficePoint origin = map(width / 2D - reach * width / 2D, height / 2D + reach * height / 2D);
+        OfficePoint unitX = map(width / 2D + reach * width / 2D, height / 2D + reach * height / 2D);
+        OfficePoint unitY = map(width / 2D - reach * width / 2D, height / 2D - reach * height / 2D);
+        radialFrame = new OfficeTransform(unitX.X - origin.X, unitX.Y - origin.Y, unitY.X - origin.X, unitY.Y - origin.Y, origin.X, origin.Y);
+        return radialFrame.TryInvert(out _);
+    }
+
+    /// <summary>Creates a per-pixel color function for raster fills in the same coordinates as <paramref name="map"/>.</summary>
+    internal Func<double, double, OfficeColor>? CreatePaint(VisioShape shape, Func<double, double, OfficePoint> map) {
+        if (!TryPlace(shape, map, out OfficePoint start, out OfficePoint end, out OfficeTransform frame)) return null;
+        IReadOnlyList<OfficeGradientStop> stops = Stops;
+        if (IsLinear) {
+            double dx = end.X - start.X, dy = end.Y - start.Y, length = dx * dx + dy * dy;
+            return (x, y) => OfficeRasterCanvas.InterpolateGradientStops(stops, Clamp(((x - start.X) * dx + (y - start.Y) * dy) / length));
+        }
+        OfficeTransform inverse = frame.Invert();
+        return (x, y) => {
+            OfficePoint unit = inverse.TransformPoint(new OfficePoint(x, y));
+            double ux = unit.X - 0.5D, uy = unit.Y - 0.5D;
+            return OfficeRasterCanvas.InterpolateGradientStops(stops, Clamp(Math.Sqrt(ux * ux + uy * uy) / 0.5D));
+        };
+    }
+
+    private static double Clamp(double value) => double.IsNaN(value) ? 0D : Math.Max(0D, Math.Min(1D, value));
+
     private static IEnumerable<VisioShape> Chain(VisioShape shape) {
         VisioShape? current = shape;
         for (int depth = 0; current != null && depth < 8; depth++) {

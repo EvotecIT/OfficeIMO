@@ -10,6 +10,7 @@ namespace OfficeIMO.Visio {
         private static void WriteShapeGeometry(XmlWriter writer, VisioPage page, VisioShape shape, VisioRenderProjection projection) {
             double scale = projection.GeometryDensity;
             string kind = VisioShapeGeometry.ResolveRenderKind(shape);
+            string? fillPaint = WriteFillGradient(writer, page, shape, projection);
             if (VisioShapeGeometry.TryGetRenderClosedPaths(shape, out List<VisioShapeGeometryPath> preservedPaths)) {
                 for (int i = 0; i < preservedPaths.Count;) {
                     VisioShapeGeometryPath preservedPath = preservedPaths[i];
@@ -25,10 +26,10 @@ namespace OfficeIMO.Visio {
                     List<VisioShapeGeometryPath> fillContours = contours.FindAll(contour => contour.CanFill);
                     if (contours.Count == 1 || fillContours.Count == 0 || shape.FillPattern == 0 || shape.FillColor.A == 0) {
                         foreach (VisioShapeGeometryPath contour in contours) {
-                            WritePreservedGeometryContour(writer, page, shape, contour, projection);
+                            WritePreservedGeometryContour(writer, page, shape, contour, projection, fillPaint);
                         }
                     } else {
-                        WritePreservedGeometryFillPath(writer, page, shape, fillContours, projection);
+                        WritePreservedGeometryFillPath(writer, page, shape, fillContours, projection, fillPaint);
                         WritePreservedGeometryStrokePaths(writer, page, shape, contours, projection);
                     }
 
@@ -52,7 +53,7 @@ namespace OfficeIMO.Visio {
                     writer.WriteRotateTransformAttribute(RadiansToDegrees(-angle), cx, cy);
                 }
 
-                WriteShapeStyle(writer, shape, projection.PhysicalDensity);
+                WriteShapeStyle(writer, shape, projection.PhysicalDensity, fillPaint: fillPaint);
                 writer.WriteEndElement();
                 return;
             }
@@ -66,7 +67,7 @@ namespace OfficeIMO.Visio {
 
             writer.WriteStartElement("path", SvgNamespace);
             writer.WriteAttributeString("d", BuildPath(page, shape, points, projection, isClosed: true));
-            WriteShapeStyle(writer, shape, projection.PhysicalDensity);
+            WriteShapeStyle(writer, shape, projection.PhysicalDensity, fillPaint: fillPaint);
             writer.WriteEndElement();
         }
 
@@ -229,9 +230,11 @@ namespace OfficeIMO.Visio {
             return true;
         }
 
-        private static void WriteShapeStyle(XmlWriter writer, VisioShape shape, double scale, bool noFill = false, bool noLine = false) {
+        private static void WriteShapeStyle(XmlWriter writer, VisioShape shape, double scale, bool noFill = false, bool noLine = false, string? fillPaint = null) {
             if (noFill || shape.FillPattern == 0 || shape.FillColor.A == 0) {
                 writer.WriteAttributeString("fill", "none");
+            } else if (fillPaint != null) {
+                writer.WriteAttributeString("fill", fillPaint);
             } else {
                 OfficeSvgFormatting.WriteColorAttribute(writer, "fill", shape.FillColor);
             }
@@ -259,15 +262,15 @@ namespace OfficeIMO.Visio {
             return builder.ToString();
         }
 
-        private static void WritePreservedGeometryContour(XmlWriter writer, VisioPage page, VisioShape shape, VisioShapeGeometryPath contour, VisioRenderProjection projection) {
+        private static void WritePreservedGeometryContour(XmlWriter writer, VisioPage page, VisioShape shape, VisioShapeGeometryPath contour, VisioRenderProjection projection, string? fillPaint = null) {
             writer.WriteStartElement("path", SvgNamespace);
             writer.WriteAttributeString("d", BuildPath(page, shape, contour.Points, projection, contour.IsClosed));
             writer.WriteAttributeString("data-officeimo-preserved-geometry", "true");
-            WriteShapeStyle(writer, shape, projection.PhysicalDensity, noFill: !contour.CanFill, noLine: contour.NoLine);
+            WriteShapeStyle(writer, shape, projection.PhysicalDensity, noFill: !contour.CanFill, noLine: contour.NoLine, fillPaint: fillPaint);
             writer.WriteEndElement();
         }
 
-        private static void WritePreservedGeometryFillPath(XmlWriter writer, VisioPage page, VisioShape shape, IReadOnlyList<VisioShapeGeometryPath> contours, VisioRenderProjection projection) {
+        private static void WritePreservedGeometryFillPath(XmlWriter writer, VisioPage page, VisioShape shape, IReadOnlyList<VisioShapeGeometryPath> contours, VisioRenderProjection projection, string? fillPaint = null) {
             writer.WriteStartElement("path", SvgNamespace);
             writer.WriteAttributeString("d", BuildPreservedGeometryPath(page, shape, contours, projection));
             writer.WriteAttributeString("data-officeimo-preserved-geometry", "true");
@@ -276,7 +279,7 @@ namespace OfficeIMO.Visio {
                 writer.WriteAttributeString("clip-rule", "evenodd");
             }
 
-            WriteShapeStyle(writer, shape, projection.PhysicalDensity, noFill: false, noLine: true);
+            WriteShapeStyle(writer, shape, projection.PhysicalDensity, noFill: false, noLine: true, fillPaint: fillPaint);
             writer.WriteEndElement();
         }
 

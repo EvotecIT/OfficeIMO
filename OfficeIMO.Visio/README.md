@@ -94,7 +94,8 @@ OfficeConversionReport pdfReport = imported.Value.SaveAsPdf("floorplan.pdf");
 Cached paint styles and transparency feed the shared model. Geometryless native
 master children remain text-only in previews. Non-solid fill patterns use a
 foreground-color approximation in managed SVG and PDF; the modern package retains
-the cached pattern cells. Exact native appearance remains unqualified.
+the cached pattern cells. Cached `FillGradient` stops, resolved through the master, paint linear and radial gradients in SVG, PNG and PDF alike. Text backgrounds inherited from text style sheets (`TextBkgnd`, `TextBkgndTrans`) are painted; when no cell or style sheet sets one, text stays transparent as in Visio, while SVG and PNG previews keep their translucent connector-label box.
+Exact native appearance remains unqualified.
 
 This is a lossy conversion. Native page/master/shape names use stable fallback
 names. Formulas, recalculation, unresolved or numeric fields, custom data,
