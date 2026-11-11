@@ -83,6 +83,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         CffTableLength = source.CffTableLength;
         _shortMeasurements = source._shortMeasurements;
         SharedIdentity = source.SharedIdentity;
+        SubsettingForbidden = source.SubsettingForbidden;
     }
 
     internal PdfOpenTypeCffFontProgram ForkForDocument() => new(this);
@@ -98,6 +99,9 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
     public double ItalicAngle { get; }
     public int Flags { get; }
     public int StemV { get; }
+
+    /// <summary>True when the font's fsType forbids subsetting, so every embedding writes the whole program.</summary>
+    internal bool SubsettingForbidden { get; private init; }
     public int GlyphCount => _advanceWidths1000.Length;
     public int CffTableLength { get; }
     public int FontDataLength => _data.Length;
@@ -150,12 +154,14 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
 
         int capHeight = ascent;
         int weightClass = 400;
-        if (os2.HasValue) {
-            ushort fsType = ReadUInt16(data, os2.Value.Offset + 8);
-            if (PdfTrueTypeFontProgram.IsEmbeddingRestricted(fsType)) {
-                throw new NotSupportedException("OpenType/CFF font embedding is restricted by the font fsType license flags.");
-            }
+        OfficeFontEmbeddingPermissions permissions = os2.HasValue
+            ? OfficeFontEmbeddingPermissions.FromOs2Table(data, os2.Value.Offset, os2.Value.Length)
+            : OfficeFontEmbeddingPermissions.Undeclared;
+        if (permissions.OutlineEmbeddingRefusal is string refusal) {
+            throw new NotSupportedException("OpenType/CFF font cannot be embedded: " + refusal + ".");
+        }
 
+        if (os2.HasValue) {
             weightClass = ReadUInt16(data, os2.Value.Offset + 4);
             if (os2.Value.Length >= 90 && ReadUInt16(data, os2.Value.Offset) >= 2) {
                 capHeight = ReadInt16(data, os2.Value.Offset + 88);
@@ -192,7 +198,9 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
             widths,
             CopyUnicodeCMap(info.UnicodeCMap),
             tables,
-            cff.Length);
+            cff.Length) {
+            SubsettingForbidden = permissions.NoSubsetting
+        };
     }
 
     public bool TryGetGlyphId(int unicodeScalar, out int glyphId) =>

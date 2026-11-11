@@ -44,6 +44,7 @@ internal sealed partial class PdfAConverter {
                 program = PdfTrueTypeFontProgram.Parse(face);
             } catch (Exception exception) when (exception is NotSupportedException or InvalidDataException or ArgumentException or IndexOutOfRangeException) {
                 failure = "the installed " + family + " face cannot be embedded: " + exception.Message;
+                reason = PdfAConversionRefusalReason.FontNotEmbeddable;
                 continue;
             }
             byte[] faceData = program.FontDataForInspection;
@@ -119,7 +120,8 @@ internal sealed partial class PdfAConverter {
     private void WriteSymbolicSubstitute(PdfDictionary font, PdfDictionary? descriptor, string plainName, PdfTrueTypeFontProgram program,
         string?[] glyphNames, SortedDictionary<int, int> glyphs, bool dingbats) {
         byte[] subset = program.BuildGlyphRetainingSubset(glyphs.Values.Append(0), PdfTrueTypeUnicodeCmap.BuildSymbolCmap(glyphs));
-        string taggedName = PdfSubsetTag.Apply(SanitizeFontName(plainName), glyphs.Values.Distinct().OrderBy(static glyph => glyph), subset);
+        string taggedName = program.SubsettingForbidden ? SanitizeFontName(plainName)
+            : PdfSubsetTag.Apply(SanitizeFontName(plainName), glyphs.Values.Distinct().OrderBy(static glyph => glyph), subset);
 
         var fileDictionary = new PdfDictionary();
         fileDictionary.Items["Length1"] = new PdfNumber(subset.Length);

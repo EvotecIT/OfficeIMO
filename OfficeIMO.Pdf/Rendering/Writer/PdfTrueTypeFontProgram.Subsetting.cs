@@ -4,6 +4,14 @@ internal sealed partial class PdfTrueTypeFontProgram {
     private const uint TrueTypeChecksumMagic = 0xB1B0AFBA;
     private byte[] BuildSubsetFontFileUncached(int[] usedGlyphIds, bool compact, out int[]? glyphOrder, byte[]? replacementCmap = null) {
         glyphOrder = null;
+        if (SubsettingForbidden) {
+            // The licence requires the whole program: keep every glyph under its original id, replacing only a cmap that a
+            // symbolic font needs to be addressed by code.
+            if (replacementCmap is null) return _data.ToArray();
+            usedGlyphIds = Enumerable.Range(0, GlyphCount).ToArray();
+            compact = false;
+        }
+
         var glyphs = new SortedSet<int>(usedGlyphIds);
         if (!_tables.TryGetValue("glyf", out TableRecord originalGlyf) ||
             !_tables.TryGetValue("loca", out TableRecord originalLoca)) {

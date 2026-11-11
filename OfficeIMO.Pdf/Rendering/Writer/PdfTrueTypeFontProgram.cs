@@ -75,6 +75,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         _shortMeasurements = source._shortMeasurements;
         _scalarCoverageProofs = source._scalarCoverageProofs;
         SharedIdentity = source.SharedIdentity;
+        SubsettingForbidden = source.SubsettingForbidden;
     }
 
     internal PdfTrueTypeFontProgram ForkForDocument() => new(this);
@@ -90,6 +91,9 @@ internal sealed partial class PdfTrueTypeFontProgram {
     public double ItalicAngle { get; }
     public int Flags { get; }
     public int StemV { get; }
+
+    /// <summary>True when the font's fsType forbids subsetting, so every embedding writes the whole program.</summary>
+    internal bool SubsettingForbidden { get; private init; }
 
     public double MeasureWinAnsiTextWidth(string? text, double fontSize) {
         if (string.IsNullOrEmpty(text)) {
@@ -341,13 +345,6 @@ internal sealed partial class PdfTrueTypeFontProgram {
         return string.CompareOrdinal(candidate, existing) < 0;
     }
 
-    /// <summary>
-    /// True when the OS/2 fsType forbids embedding. Restricted License (bit 1) applies only on its own: when Preview &amp; Print
-    /// (bit 2) or Editable (bit 3) is also set, the least restrictive permission takes precedence, as the OpenType
-    /// specification requires.
-    /// </summary>
-    internal static bool IsEmbeddingRestricted(ushort fsType) => (fsType & 0x0002) != 0 && (fsType & 0x000C) == 0;
-
     public static PdfTrueTypeFontProgram Parse(byte[] data, string? fontNameOverride = null) {
         Guard.NotNull(data, nameof(data));
         if (data.Length < 12) {
@@ -393,12 +390,14 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
         int capHeight = ascent;
         int weightClass = 400;
-        if (os2.HasValue) {
-            ushort fsType = ReadUInt16(data, os2.Value.Offset + 8);
-            if (PdfTrueTypeFontProgram.IsEmbeddingRestricted(fsType)) {
-                throw new NotSupportedException("TrueType font embedding is restricted by the font fsType license flags.");
-            }
+        OfficeFontEmbeddingPermissions permissions = os2.HasValue
+            ? OfficeFontEmbeddingPermissions.FromOs2Table(data, os2.Value.Offset, os2.Value.Length)
+            : OfficeFontEmbeddingPermissions.Undeclared;
+        if (permissions.OutlineEmbeddingRefusal is string refusal) {
+            throw new NotSupportedException("TrueType font cannot be embedded: " + refusal + ".");
+        }
 
+        if (os2.HasValue) {
             weightClass = ReadUInt16(data, os2.Value.Offset + 4);
             if (os2.Value.Length >= 90 && ReadUInt16(data, os2.Value.Offset) >= 2) {
                 capHeight = ReadInt16(data, os2.Value.Offset + 88);
@@ -420,7 +419,9 @@ internal sealed partial class PdfTrueTypeFontProgram {
         if ((macStyle & 0x02) != 0 || Math.Abs(italicAngle) > 0.01D) flags |= 64;
         int stemV = Math.Max(50, Math.Min(220, 80 + ((weightClass - 400) / 10)));
 
-        return new PdfTrueTypeFontProgram(data, tables, fontName, unitsPerEm, xMin, yMin, xMax, yMax, ascent, descent, capHeight, italicAngle, flags, stemV, widths, charMap);
+        return new PdfTrueTypeFontProgram(data, tables, fontName, unitsPerEm, xMin, yMin, xMax, yMax, ascent, descent, capHeight, italicAngle, flags, stemV, widths, charMap) {
+            SubsettingForbidden = permissions.NoSubsetting
+        };
     }
 
     public int[] BuildWinAnsiWidths() {
