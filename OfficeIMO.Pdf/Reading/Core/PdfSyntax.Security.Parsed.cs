@@ -159,6 +159,7 @@ internal static partial class PdfSyntax {
 
         foreach (var entry in orderedObjects) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (IsUnbuiltWithoutSignatureData(entry.Value)) continue;
             if (!hasParsedSignatureMarker || !hasParsedByteRangeMarker) {
                 CollectParsedSignatureMarkers(
                     entry.Value.Value,
@@ -196,6 +197,7 @@ internal static partial class PdfSyntax {
 
         foreach (var entry in orderedObjects) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (IsUnbuiltWithoutSignatureData(entry.Value)) continue;
             PdfDictionary? dictionary = entry.Value.Value switch {
                 PdfDictionary directDictionary => directDictionary,
                 PdfStream stream => stream.Dictionary,
@@ -286,6 +288,11 @@ internal static partial class PdfSyntax {
             fallback.HasXrefStreams,
             fallback.HasObjectStreams);
     }
+
+    // An object that has not been built and holds no signature names or indirect /FT or /Type
+    // cannot be a signature field or value, so the signature passes leave it unparsed.
+    private static bool IsUnbuiltWithoutSignatureData(PdfIndirectObject indirect) =>
+        indirect.TryGetUnbuiltSummary(out PdfDeferredObjectSummary summary) && !summary.MayCarrySignatureData;
 
     private static void CollectParsedSignatureMarkers(
         PdfObject value,

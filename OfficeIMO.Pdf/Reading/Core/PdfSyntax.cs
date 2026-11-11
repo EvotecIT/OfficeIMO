@@ -344,6 +344,7 @@ internal static partial class PdfSyntax {
         }
         foreach (var entry in map.Values) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (!entry.IsValueBuilt) continue; // Deferred objects passed the complete-syntax scan.
             bool incomplete = entry.Value.HasIncompleteSyntax ||
                 (entry.Value is PdfStream stream && stream.Dictionary.HasIncompleteSyntax);
             if (incomplete && unreadableObjects.Add(entry.ObjectNumber))

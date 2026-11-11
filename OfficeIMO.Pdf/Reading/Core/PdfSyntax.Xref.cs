@@ -462,6 +462,7 @@ internal static partial class PdfSyntax {
         bool applied = false;
         if (activeEntries.Count == 0) return false;
         var headerMemo = new ObjectStreamHeaderMemo();
+        var deferredScan = new DeferredObjectScan();
         foreach (XrefStreamEntry entry in activeEntries.Values) {
             cancellationToken.ThrowIfCancellationRequested();
             if (entry.Field1 < 0 ||
@@ -474,8 +475,9 @@ internal static partial class PdfSyntax {
 
             int objectStreamNumber = (int)entry.Field1;
             int objectStreamIndex = (int)entry.Field2;
-            if (TryParseObjectFromObjectStream(map, parsedOffsets, objectStreamNumber, objectStreamIndex, entry.ObjectNumber, limits, decodedStreamBudget, out PdfIndirectObject parsed, out int objectStreamOffset, headerMemo, cancellationToken)) {
-                if (parsed.Value.HasIncompleteSyntax) reportUnreadable(entry.ObjectNumber);
+            if (TryParseObjectFromObjectStream(map, parsedOffsets, objectStreamNumber, objectStreamIndex, entry.ObjectNumber, limits, decodedStreamBudget, out PdfIndirectObject parsed, out int objectStreamOffset, headerMemo, deferredScan, cancellationToken)) {
+                // A deferred object passed the complete-syntax scan, so only eagerly parsed objects can be incomplete.
+                if (parsed.IsValueBuilt && parsed.Value.HasIncompleteSyntax) reportUnreadable(entry.ObjectNumber);
                 map[entry.ObjectNumber] = parsed;
                 parsedOffsets[entry.ObjectNumber] = objectStreamOffset;
                 applied = true;
@@ -805,6 +807,7 @@ internal static partial class PdfSyntax {
         out PdfIndirectObject parsed,
         out int objectStreamOffset,
         ObjectStreamHeaderMemo? headerMemo = null,
+        DeferredObjectScan? deferredScan = null,
         System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         parsed = null!;
@@ -838,6 +841,13 @@ internal static partial class PdfSyntax {
             return false;
         }
 
+        objectStreamOffset = parsedOffsets.TryGetValue(objectStreamNumber, out int streamOffset) ? streamOffset : int.MaxValue;
+        if (deferredScan is not null &&
+            TryScanDeferrableObject(data, start, end - start, limits, deferredScan, out PdfDeferredObjectSummary summary, cancellationToken)) {
+            parsed = new PdfIndirectObject(expectedObjectNumber, 0, headerMemo?.GetDeferredSource(objectStream, data, limits) ?? new PdfDeferredObjectSource(data, limits), summary);
+            return true;
+        }
+
         var parsedObject = ParseTopLevelObject(
             data,
             start,
@@ -846,11 +856,11 @@ internal static partial class PdfSyntax {
             trackEncodedStringSourceSpans: false,
             cancellationToken);
         if (parsedObject is null) {
+            objectStreamOffset = int.MaxValue;
             return false;
         }
 
         parsed = new PdfIndirectObject(expectedObjectNumber, 0, parsedObject);
-        objectStreamOffset = parsedOffsets.TryGetValue(objectStreamNumber, out int offset) ? offset : int.MaxValue;
         return true;
     }
 
@@ -869,6 +879,17 @@ internal static partial class PdfSyntax {
 
         internal void Add(PdfStream stream, byte[] data, int objectCount, int firstObjectOffset, List<(int Obj, int Off)> pairs) =>
             _headers[stream] = (data, objectCount, firstObjectOffset, pairs);
+
+        private readonly Dictionary<PdfStream, PdfDeferredObjectSource> _deferredSources = new();
+
+        // Deferred objects of one object stream share its decoded bytes through a single source.
+        internal PdfDeferredObjectSource GetDeferredSource(PdfStream stream, byte[] data, PdfReadLimits limits) {
+            if (!_deferredSources.TryGetValue(stream, out PdfDeferredObjectSource? source) || !source.Holds(data)) {
+                source = new PdfDeferredObjectSource(data, limits);
+                _deferredSources[stream] = source;
+            }
+            return source;
+        }
     }
 
     // A declared /Size sizes entry collections up front; hostile values fall back to growth.
