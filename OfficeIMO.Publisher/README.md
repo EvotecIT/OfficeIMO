@@ -944,7 +944,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Create | 0 | 0 | 0 | 0 | 1 | 0 |
+| Create | 1 | 0 | 0 | 0 | 1 | 0 |
 | Read | 0 | 1 | 0 | 0 | 0 | 0 |
 | Edit | 0 | 1 | 0 | 0 | 0 | 0 |
 | Preserve | 0 | 1 | 0 | 0 | 0 | 0 |

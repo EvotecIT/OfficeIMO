@@ -199,6 +199,11 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Create | 1 | 0 | 0 | 0 | 0 | 0 |
+| Read | 1 | 0 | 0 | 0 | 0 | 0 |
+| Edit | 1 | 0 | 0 | 0 | 0 | 0 |
+| Preserve | 0 | 1 | 0 | 0 | 0 | 0 |
+| Inspect | 1 | 0 | 0 | 0 | 0 | 0 |
 | Export | 0 | 5 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Xps` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

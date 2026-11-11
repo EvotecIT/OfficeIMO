@@ -16,7 +16,7 @@
     "formatCount": 28,
     "capabilityCount": 137,
     "packageCount": 82,
-    "operationCount": 1488
+    "operationCount": 1494
   },
   "fidelityStates": [
     {
@@ -3168,9 +3168,9 @@
           "id": "Convert",
           "states": [
             {
-              "id": "Partial",
-              "label": "Partial",
-              "description": "A bounded subset is implemented with explicit limits.",
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
               "count": 2
             }
           ]
@@ -3179,9 +3179,9 @@
           "id": "Export",
           "states": [
             {
-              "id": "Partial",
-              "label": "Partial",
-              "description": "A bounded subset is implemented with explicit limits.",
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
               "count": 5
             }
           ]
@@ -4338,10 +4338,16 @@
           "id": "Convert",
           "states": [
             {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
+            {
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 2
+              "count": 1
             }
           ]
         }
@@ -5107,11 +5113,12 @@
     {
       "id": "OfficeIMO.Publisher",
       "slug": "publisher",
-      "capabilityCount": 9,
+      "capabilityCount": 10,
       "formats": [
         "JPEG",
         "PNG",
         "Publisher",
+        "Publisher.Model",
         "Publisher.Native",
         "SVG",
         "TIFF",
@@ -5125,6 +5132,12 @@
         {
           "id": "Create",
           "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
             {
               "id": "Unsupported",
               "label": "Unsupported",
@@ -6114,19 +6127,43 @@
     {
       "id": "OfficeIMO.Xps",
       "slug": "xps",
-      "capabilityCount": 5,
+      "capabilityCount": 10,
       "formats": [
         "JPEG",
         "PNG",
         "SVG",
         "TIFF",
         "WebP",
+        "Xps.Native",
         "XPS/OpenXPS"
       ],
       "sourceCatalogs": [
-        "OfficeConversionCapabilityCatalog"
+        "OfficeConversionCapabilityCatalog",
+        "OfficeIMO.NativeLifecycle"
       ],
       "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
         {
           "id": "Export",
           "states": [
@@ -6135,6 +6172,39 @@
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
               "count": 5
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
             }
           ]
         }
