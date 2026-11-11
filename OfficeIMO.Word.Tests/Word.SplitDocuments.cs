@@ -116,8 +116,11 @@ namespace OfficeIMO.Tests {
             }
         }
 
-        [Fact]
-        public void Test_SplitByHeadingReadsReadOnlySourceAndKeepsImportedPreamble() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Test_SplitReadsProtectedSourceAndKeepsImportedPreamble(bool encrypted) {
+            const string password = "split-fixture";
             byte[] package;
             using (WordDocument document = WordDocument.Create()) {
                 MainDocumentPart main = document._wordprocessingDocument.MainDocumentPart!;
@@ -125,20 +128,29 @@ namespace OfficeIMO.Tests {
                 using (var html = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("<html><body><p>Imported</p></body></html>"))) chunk.FeedData(html);
                 Body(document).PrependChild(new AltChunk { Id = main.GetIdOfPart(chunk) });
                 document.AddParagraph("Chapter").Style = WordParagraphStyles.Heading1;
-                package = document.ToBytes();
+                package = document.ToBytes(encrypted ? new WordSaveOptions { Password = password } : null);
             }
 
             using var stream = new MemoryStream(package, writable: false);
-            using WordDocument source = WordDocument.Load(stream, new WordLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+            using WordDocument source = WordDocument.Load(stream, new WordLoadOptions {
+                AccessMode = DocumentAccessMode.ReadOnly,
+                Password = encrypted ? password : null
+            });
+            IReadOnlyList<WordDocument> sections = source.SplitBySection();
             IReadOnlyList<WordDocument> pieces = source.SplitByHeading();
             try {
+                Assert.Equal(new[] { "Chapter" }, Texts(Assert.Single(sections)));
+                Assert.Single(Body(sections[0]).Elements<AltChunk>());
                 Assert.Equal(2, pieces.Count);
                 MainDocumentPart preamble = pieces[0]._wordprocessingDocument.MainDocumentPart!;
                 AltChunk kept = Assert.Single(Body(pieces[0]).Elements<AltChunk>());
                 Assert.IsType<AlternativeFormatImportPart>(preamble.GetPartById(kept.Id!.Value!));
                 Assert.Empty(pieces[1]._wordprocessingDocument.MainDocumentPart!.AlternativeFormatImportParts);
+                // The pieces are plain packages that save and reopen without the source password.
+                using var reopened = WordDocument.Load(new MemoryStream(pieces[1].ToBytes(), writable: false));
+                Assert.Equal(new[] { "Chapter" }, Texts(reopened));
             } finally {
-                foreach (WordDocument piece in pieces) piece.Dispose();
+                foreach (WordDocument piece in sections.Concat(pieces)) piece.Dispose();
             }
         }
 
