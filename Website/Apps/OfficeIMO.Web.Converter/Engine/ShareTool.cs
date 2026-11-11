@@ -106,13 +106,9 @@ internal static class ShareTool {
     private static bool DeclaresAi(OfficeHiddenDataFinding finding) => finding.Provenance?.DigitalSourceKind is
         OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia or OfficeProvenanceDigitalSourceKind.CompositeWithTrainedAlgorithmicMedia;
 
-    private static OfficeHiddenDataReport InspectHiddenData(string name, byte[] bytes) {
-        using var stream = new MemoryStream(bytes, writable: false);
-        return OfficeDocument.Inspect(stream, name, new OfficeInspectOptions { IncludeContent = false, IncludeHiddenData = true }).HiddenData!;
-    }
 
     private static ToolResultDocument Inspect(ToolSession session, SelectedDocument file) {
-        OfficeHiddenDataReport report = InspectHiddenData(file.Name, file.Bytes);
+        OfficeHiddenDataReport report = OfficeDocument.InspectHiddenData(file.Bytes, file.Name);
         OfficeAccessibilityReport? accessibility = InspectAccessibility(file.Extension, file.Bytes);
         session.LastReview = report;
         ToolArtifact[] artifacts = session.ReplaceArtifacts((JsonReport(file, report, outputName: null), "report"));
@@ -121,7 +117,7 @@ internal static class ShareTool {
         foreach (Category category in Categories) {
             OfficeHiddenDataFinding[] findings = report.Findings.Where(category.Covers).ToArray();
             if (findings.Length == 0) continue;
-            string detail = (category.Explanation + " " + Describe(category, findings)).Trim();
+            string detail = (category.Explanation + " " + Describe(category, findings, IsImage(file.Extension))).Trim();
             items.Add(new ToolItem(category.Id, Title(category, findings.Length), detail, ToolState.Found, category.Group,
                 Selectable: category.Selectable, Selected: category.Selectable && category.Preselected));
         }
@@ -139,7 +135,9 @@ internal static class ShareTool {
         if (accessibility != null) items.AddRange(AccessibilityItems(file.Extension, accessibility));
 
         var facts = new List<ToolFact> { new("Format", FormatName(file.Extension)) };
-        string? author = report.GetFindings(OfficeHiddenDataKind.DocumentProperties).Concat(report.GetFindings(OfficeHiddenDataKind.PersonalIdentities))
+        string? author = report.GetFindings(OfficeHiddenDataKind.DocumentProperties)
+            .Where(static finding => finding.Description.Contains("Author", StringComparison.OrdinalIgnoreCase) || finding.Description.Contains("modified by", StringComparison.OrdinalIgnoreCase))
+            .Concat(report.GetFindings(OfficeHiddenDataKind.PersonalIdentities))
             .Select(static finding => finding.Value).FirstOrDefault(static value => !string.IsNullOrWhiteSpace(value));
         if (author != null) facts.Add(new ToolFact("Name in the file", Clip(author)!, ToolTone.Warn));
         if (report.GetFindings(OfficeHiddenDataKind.ImageMetadata).Any(static finding => finding.Description.Contains("GPS", StringComparison.OrdinalIgnoreCase))) {
@@ -234,7 +232,7 @@ internal static class ShareTool {
         byte[] output = result.ToArray();
         int headersMarked = 0;
         if (fixHeaders) (output, headersMarked) = MarkTableHeaderRows(output);
-        OfficeHiddenDataReport after = InspectHiddenData(file.Name, output);
+        OfficeHiddenDataReport after = OfficeDocument.InspectHiddenData(output, file.Name);
 
         string outputName = Path.GetFileNameWithoutExtension(file.Name) + "-cleaned" + file.Extension;
         ToolArtifact[] artifacts = session.ReplaceArtifacts(
@@ -334,7 +332,8 @@ internal static class ShareTool {
         return evidence => assets.TryGetValue(evidence, out string? asset) ? asset : null;
     }
 
-    private static string Place(OfficeHiddenDataFinding finding) => finding.Scope switch {
+    private static string Place(OfficeHiddenDataFinding finding, bool standaloneImage) => finding.Scope switch {
+        OfficeHiddenDataScope.EmbeddedImage when standaloneImage => "the image's metadata",
         OfficeHiddenDataScope.EmbeddedImage when finding.Part is { Length: > 0 } part => "picture " + part.TrimStart('/'),
         OfficeHiddenDataScope.Package => "the whole file",
         _ => finding.Provenance?.Carrier == OfficeProvenanceCarrierKind.C2paManifest ? "an embedded Content Credentials store"
@@ -342,12 +341,12 @@ internal static class ShareTool {
     };
 
     /// <summary>What was found: a short sample of names or properties, or for origin records, where they sit.</summary>
-    private static string Describe(Category category, OfficeHiddenDataFinding[] findings) {
+    private static string Describe(Category category, OfficeHiddenDataFinding[] findings, bool standaloneImage) {
         if (category.Group != ProvenanceText.Group) return Examples(findings);
         string what = category.Id is ProvenanceText.Declarations or SourceLabels
             ? ProvenanceText.SourceTypeText(findings.Select(static finding => finding.Provenance).OfType<OfficeProvenanceEvidence>().ToArray()) + " "
             : category.Id == ProvenanceText.References && Clip(findings[0].Value) is { } uri ? $"({uri}) " : string.Empty;
-        string[] places = findings.Select(Place).Distinct(StringComparer.Ordinal).ToArray();
+        string[] places = findings.Select(finding => Place(finding, standaloneImage)).Distinct(StringComparer.Ordinal).ToArray();
         string where = string.Join("; ", places.Take(3)) + (places.Length > 3 ? $"; and {places.Length - 3} more places" : string.Empty);
         string validity = findings.All(static finding => finding.Provenance?.IsStructurallyValid != false) ? string.Empty : " Some look malformed and will be left in place.";
         return $"{what}Found in {where}.{validity}";

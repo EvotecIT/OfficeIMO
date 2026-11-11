@@ -456,7 +456,7 @@
       "seoDescription": "Check a Word, Excel, PowerPoint, PDF or image file for author names, comments, tracked changes, hidden content, GPS data, Content Credentials and AI labels, then save a clean copy in your browser.",
       "input": { "kind": "file", "accept": ".docx,.jpeg,.jpg,.pdf,.png,.pptx,.webp,.xlsx", "label": "Office document, PDF or image", "sample": "samples/share-ready-sample.docx", "sampleName": "share-ready-sample.docx", "sampleNote": "A short proposal with invented names, a comment, a tracked change, hidden text and a picture with a location and an AI label.", "auto": true },
       "options": [],
-      "engine": { "kind": "share", "action": "inspect", "commit": "remove", "assemblies": ["OfficeIMO.Word.wasm", "OfficeIMO.Excel.wasm", "OfficeIMO.PowerPoint.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm"] },
+      "engine": { "kind": "share", "action": "inspect", "commit": "remove", "assemblies": ["OfficeIMO.Word.wasm", "OfficeIMO.Excel.wasm", "OfficeIMO.PowerPoint.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Visio.wasm", "OfficeIMO.OpenDocument.wasm", "OfficeIMO.Epub.wasm"] },
       "run": { "label": "Check again", "confirmLabel": "Remove selected and download a clean copy", "busy": ["Opening the file", "Looking for hidden data and origin records"] },
       "expect": "Visible text, layout, pictures and watermarks stay as they are unless you choose to remove hidden content or attachments, or accept tracked changes. Signed files are not changed, and the check can't prove whether a file was made by AI.",
       "next": [],

@@ -34,16 +34,18 @@ File.WriteAllBytes("photo-shared.jpg", result.ToArray());
 Console.WriteLine($"Changed: {result.Report.Changed}, {result.Length} bytes");
 ```
 
-`OfficeDocument.SupportsHiddenData(path)` tells you whether a file name has a supported extension. To only look, inspect:
+To only look, inspect. `OfficeDocument.InspectHiddenData` takes a path, or bytes and a file name, and changes nothing:
 
 ```csharp
 using OfficeIMO;
 
-OfficeDocumentInfo info = OfficeDocument.Inspect("Contract.docx", new OfficeInspectOptions { IncludeHiddenData = true });
-foreach (OfficeHiddenDataFinding finding in info.HiddenData!.Findings) {
+OfficeHiddenDataReport found = OfficeDocument.InspectHiddenData("Contract.docx");
+foreach (OfficeHiddenDataFinding finding in found.Findings) {
     Console.WriteLine($"{finding.Kind}: {finding.Description} {finding.Value}");
 }
 ```
+
+`OfficeDocument.SupportsHiddenData(path)` tells you whether a file name has a supported extension. `OfficeDocument.Inspect` with `IncludeHiddenData = true` adds the same report to a full inspection.
 
 ## On a loaded document
 
@@ -154,18 +156,13 @@ Removing hidden data changes the file, which breaks a digital signature. Saving 
 ## Command line
 
 ```powershell
-# Report everything without changing the file
 officeimo hidden-data inspect .\proposal.docx
-
-# Write proposal.cleaned.docx with the default categories
 officeimo hidden-data remove .\proposal.docx
-
-# Also remove origin records and accept tracked changes, into a named file
 officeimo hidden-data remove .\proposal.docx --output .\shared.docx --force --kinds default,provenance --tracked-changes accept
-
-# Drop only the AI label and keep the Content Credentials
 officeimo hidden-data remove .\poster.pdf --kinds default,provenance --keep-provenance c2pa
 ```
+
+The first command reports everything without changing the file. The second writes `proposal.cleaned.docx` with the default categories. The third also removes origin records and accepts tracked changes, into a named file. The last removes only the AI label and keeps the Content Credentials.
 
 `remove` never changes the input. It writes `<name>.cleaned<ext>` unless you pass `--output`, and refuses to replace an existing file without `--force`. `--kinds` takes `default`, `all` or category names such as `hidden-content`, `image-metadata`, `attachments`, `active-content`, `bookmarks` and `provenance`. `--keep-provenance` keeps some kinds of record when `provenance` is selected: `c2pa`, `external` or `ai-source`. `--anonymous-author` sets the replacement name, and `--remove-invalidated-signatures` allows cleaning a signed package. Output is JSON in the `officeimo.hidden-data.result.v1` schema, one entry per finding with its outcome; `--format text` prints a readable list instead.
 
