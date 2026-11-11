@@ -4,6 +4,14 @@ OfficeIMO's own YAML 1.2 engine. It has no runtime dependencies beyond `OfficeIM
 
 The package provides `YamlDocument`, a lossless document model you can edit, `YamlReader`, a forward-only pull reader, `YamlWriter`, a forward-only emitter, and `YamlSerializer`, which converts objects with generated or reflection metadata.
 
+## Install
+
+```powershell
+dotnet add package OfficeIMO.Yaml
+```
+
+The serializer's source generator ships inside the package, so no second package is needed for trimmed or NativeAOT applications.
+
 ## Loading a document
 
 ```csharp
@@ -273,6 +281,19 @@ A `%YAML 1.1` directive selects `Yaml11` for that document. `YamlReaderOptions.S
 ## Comments
 
 Set `YamlReaderOptions.IncludeComments` to receive `YamlTokenType.Comment` events in source order. Comments cost nothing when the option is off.
+
+## Options
+
+| Options | Used by | Settings |
+| --- | --- | --- |
+| `YamlLoadOptions` | `YamlDocument.Load`, `LoadAsync`, `Parse` | `Schema`, `Strict`, `DuplicateKeys` and the limits below; `UntrustedDefaults` |
+| `YamlReaderOptions` | `YamlReader`, `YamlSerializerOptions.ReaderOptions` | `Schema`, `Strict`, `IncludeComments` and the limits below; `UntrustedDefaults` |
+| `YamlSaveOptions` | `Save`, `SaveAsync` | `Reformat`, `WriterOptions` |
+| `YamlWriterOptions` | `YamlWriter`, `YamlSerializerOptions.WriterOptions` | `MappingIndent`, `SequenceIndent`, `SequenceDashOffset`, `NewLine` |
+| `YamlMergeOptions` | `YamlDocument.Merge`, `YamlMapping.Merge` | `Sequences`, `NullRemovesKey` |
+| `YamlSerializerOptions` | `YamlSerializer`, `YamlSerializerContext` | `PropertyNamingPolicy`, `DefaultIgnoreCondition`, `ReferenceHandling`, `ReaderOptions`, `WriterOptions`, `TypeInfoResolver` |
+
+`UntrustedDefaults` returns a new instance with lower limits for files from outside: 16 MiB of input, depth 64, 200,000 nodes, 10,000 alias-expanded nodes and 1 MiB scalars. `Strict` and `DuplicateKeys` are described in [YAML as real files use it](#yaml-as-real-files-use-it) and under [Duplicate keys](#loading-a-document).
 
 ## Errors and limits
 

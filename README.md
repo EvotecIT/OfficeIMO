@@ -133,6 +133,7 @@ Install a format package for that format alone. Conversion adapters are named `O
 | OpenDocument `.odt`, `.ods`, `.odp` | [OfficeIMO.OpenDocument](OfficeIMO.OpenDocument/README.md) | | `.OpenDocument.Odt.Pdf`, `.Ods.Pdf`, `.Odp.Pdf` |
 | EPUB | [OfficeIMO.Epub](OfficeIMO.Epub/README.md) | `EpubDocument` | `.Epub.Image` |
 | CSV | [OfficeIMO.CSV](OfficeIMO.CSV/README.md) | | `.Excel.Csv` |
+| YAML | [OfficeIMO.Yaml](OfficeIMO.Yaml/README.md) | `YamlDocument` | |
 | Apple Pages, Numbers, Keynote | [OfficeIMO.IWork](OfficeIMO.IWork/README.md) | | `.Word.IWork`, `.Excel.IWork`, `.PowerPoint.IWork` |
 | AsciiDoc, LaTeX | [OfficeIMO.AsciiDoc](OfficeIMO.AsciiDoc/README.md), [OfficeIMO.Latex](OfficeIMO.Latex/README.md) | | `.Markdown`, `.Pdf` |
 | Publisher, XPS, DjVu, CHM, DocBook, OPML | [OfficeIMO.Publisher](OfficeIMO.Publisher/README.md), [OfficeIMO.Xps](OfficeIMO.Xps/README.md), [OfficeIMO.DjVu](OfficeIMO.DjVu/README.md), [OfficeIMO.Chm](OfficeIMO.Chm/README.md), [OfficeIMO.DocBook](OfficeIMO.DocBook/README.md), [OfficeIMO.Opml](OfficeIMO.Opml/README.md) | | `.Pdf` where listed |

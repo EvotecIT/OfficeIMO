@@ -1,6 +1,6 @@
 # YAML engine design
 
-`OfficeIMO.Yaml` is OfficeIMO's own YAML engine. It reads, edits, and writes YAML without changing anything the caller didn't change. The package has no runtime dependencies beyond `OfficeIMO.Core`, like `OfficeIMO.CSV`. This document owns the architecture. The package README will own the supported API, and open work belongs in the [roadmap](ROADMAP.md#yaml-engine).
+`OfficeIMO.Yaml` is OfficeIMO's own YAML engine. It reads, edits, and writes YAML without changing anything the caller didn't change. The package has no runtime dependencies beyond `OfficeIMO.Core`, like `OfficeIMO.CSV`. This document owns the architecture and the qualification contract. The [package README](../OfficeIMO.Yaml/README.md) owns the supported API, and open work belongs in the [roadmap](ROADMAP.md#yaml-engine).
 
 ## Goals
 
@@ -8,9 +8,9 @@
 2. **Complete YAML 1.2.2 syntax.** The [yaml-test-suite](https://github.com/yaml/yaml-test-suite) is the oracle. Every case with a known exception is listed in a checked-in exception file with its reason. That list only shrinks.
 3. **Performance from the first commit.** Low allocation and a single pass over the input. The pull reader allocates nothing per event, and each layer can be used without paying for the layers above it.
 4. **Safe on hostile input.** The engine has bounded depth, node counts, alias expansion and scalar sizes, plus cancellation. Tags never activate .NET types.
-5. **One OfficeIMO vocabulary.** The package follows the [unified API design](officeimo.api-design.md) from its first release; see [Public API](#public-api). The package is new, so its API is shaped for that contract now. Earlier YAML behavior in `OfficeIMO.Reader.Yaml` changes where the new design is better, and `MIGRATION.md` records the upgrade actions.
+5. **One OfficeIMO vocabulary.** The package follows the [unified API design](officeimo.api-design.md); see [Public API](#public-api).
 
-Replacing YamlDotNet in `OfficeIMO.Reader.Yaml` is an outcome of this design, not a constraint on it. The Reader adapter adapts to the engine, never the other way round.
+Consumers adapt to the engine, never the other way round. Where `OfficeIMO.Reader.Yaml` and Markdown front matter behave differently from their earlier YamlDotNet-based and flat readers, [`MIGRATION.md`](../MIGRATION.md) records the upgrade actions.
 
 ## Public API
 
@@ -33,14 +33,14 @@ The C# rules and PowerShell rules in the [API design](officeimo.api-design.md) a
   - `Add*` and `Insert*` methods return the node they create.
   - Mutators that configure a node return that node, so calls chain naturally: `mapping.Add("image", "nginx").SetComment("pinned by CI")`.
 
-  A separate fluent builder is a thin wrapper over these same names, never a second model.
-- **Conversion grammar:** when routes are added, they follow the shared `To{Target}`/`SaveAs{Target}` forms. Examples are `ToJson()` and the JSON-to-YAML route on the JSON side, plus the Markdown front matter integration. YAML has no format-engine dependencies of its own.
+  Any fluent builder is a thin wrapper over these same names, never a second model.
+- **Conversion grammar:** the engine exposes no conversion routes. The structured-data routes in the [roadmap](ROADMAP.md#yaml-engine) use the shared `To{Target}`/`SaveAs{Target}` forms. Markdown front matter reads and writes through `YamlDocument`. YAML has no format-engine dependencies of its own.
 - **Diagnostics:** recoverable findings are `OfficeDiagnostic` values whose codes come from the Core diagnostic catalog. Exceptions keep their stable `YamlErrorCodes` for syntax and limit failures.
 - **Positions:** C# indexes are 0-based like every .NET collection; PowerShell positions are 1-based like every PSWriteOffice command.
-- **Visibility:** public only what the README and examples use. The package adopts the public API analyzer baseline (`Build/ApiMap/PublicApi.targets`) before its first release, so later surface changes are deliberate.
+- **Visibility:** public only what the README and examples use. The public API analyzer baseline (`PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt` through `Build/ApiMap/PublicApi.targets`) makes every surface change deliberate.
 - **AOT:** `IsAotCompatible` and the trimming analyzers are on for net8.0 and net10.0.
 
-PSWriteOffice gets YAML commands built on the same public API, with `Yaml` as the format name:
+PSWriteOffice's YAML commands are built on the same public API, with `Yaml` as the format name:
 
 | Command | Job |
 |---|---|
@@ -72,11 +72,11 @@ The PowerShell commands follow the C# API. Any capability they need that the lib
 Each layer depends only on the layers below it. A caller that needs only events never builds a tree, and a caller that needs a tree never pays for serialization.
 
 ```
-YamlSerializer (+ source generator)     objects ⇄ YAML                       [Y4]
-YamlDocument / YamlNode                 lossless editable model              [Y2, Y3]
-YamlReader / YamlWriter                 forward-only pull events / emitter   [Y1, Y3]
-Scanner (internal)                      tokens with positions + trivia flags [Y1]
-Source text (internal)                  decoded once, kept for lossless save [Y1]
+YamlSerializer (+ source generator)     objects ⇄ YAML
+YamlDocument / YamlNode                 lossless editable model
+YamlReader / YamlWriter                 forward-only pull events / emitter
+Scanner (internal)                      tokens with positions + trivia flags
+Source text (internal)                  decoded once, kept for lossless save
 ```
 
 ### Source text
@@ -277,7 +277,7 @@ Exceeding a limit throws `YamlLimitExceededException` with the limit's name and 
 | Package | Depends on | Owns |
 |---|---|---|
 | `OfficeIMO.Yaml` | `OfficeIMO.Core` (diagnostics, shared IO) | Scanner, reader, writer, model, schemas, serializer, generator (built from `OfficeIMO.Yaml.SourceGeneration`, packed as an analyzer) |
-| `OfficeIMO.Reader.Yaml` | `OfficeIMO.Reader.Core`, `OfficeIMO.Yaml` | Chunking and Markdown projection only; YamlDotNet removed |
+| `OfficeIMO.Reader.Yaml` | `OfficeIMO.Reader.Core`, `OfficeIMO.Yaml` | Chunking and Markdown projection only |
 | `OfficeIMO.Markdown` | `OfficeIMO.Core`, `OfficeIMO.Yaml` | Front matter parsed and written through `YamlDocument` |
 
 - Targets: netstandard2.0, net8.0, net10.0 and net472, matching `OfficeIMO.CSV`. On netstandard2.0/net472 the only polyfill package is `System.Buffers`/`System.Memory`.
@@ -285,7 +285,7 @@ Exceeding a limit throws `YamlLimitExceededException` with the limit's name and 
 
 ## Performance
 
-- The benchmark project exists before the engine (Y0). It covers small configuration files, a ~10 MB multi-document Kubernetes stream, deep nesting, big block scalars, flow-heavy input, anchor-heavy compose files and many small files.
+- `OfficeIMO.Yaml.Benchmarks` covers small configuration files, a ~10 MB multi-document Kubernetes stream, deep nesting, big block scalars, flow-heavy input, anchor-heavy compose files and many small files.
 - Measured operations:
   - parse-to-events;
   - load-to-model;
@@ -304,6 +304,12 @@ Exceeding a limit throws `YamlLimitExceededException` with the limit's name and 
   - The model allocates nothing for trivia.
   - Shortcuts past the general path (the quoting decision by text shape, one-step serializer entries, short decimals, the plain-stop search) each have a test that compares them with the general path.
 
+### Measured results
+
+<!-- yaml-benchmark-results: comparison tables for the workloads above, with machine, OS, runtime and library versions -->
+
+The [benchmark README](../OfficeIMO.Yaml.Benchmarks/README.md) explains how to run each suite and how its output is validated. Results recorded here name the machine, operating system, runtime and the YamlDotNet and SharpYaml versions they were measured against.
+
 ## Qualification
 
 - **yaml-test-suite:**
@@ -316,16 +322,6 @@ Exceeding a limit throws `YamlLimitExceededException` with the limit's name and 
   - every file round-trips byte for byte;
   - scripted edits change only the edited lines (diff-checked);
   - output from OfficeIMO parses to the same data in YamlDotNet and SharpYaml, plus PyYAML/ruamel.yaml in an opt-in run, because independent readers accept what we write.
-- **Hostile input:** limit tests at the parser boundary, plus an opt-in mutation run that must finish without crashes or hangs.
+- **Large corpus** (opt-in): about 13,000 real-world files from CI systems, Kubernetes and Helm, Compose, OpenAPI, Ansible, CloudFormation and SAM, Home Assistant, front matter and application configuration, pinned in `OfficeIMO.TestAssets/Yaml/LargeCorpus/sources.json` and fetched into a local cache that is never committed. Every file goes through the parse, value-equivalence, byte-exact round-trip and default-versus-`Strict` checks, and every Helm values file through the merge checks. The [benchmark README](../OfficeIMO.Yaml.Benchmarks/README.md#large-real-world-corpus) has the commands.
+- **Hostile input:** limit tests at the parser boundary, plus an opt-in, seeded mutation run over the large corpus in which only `YamlException`, `YamlLimitExceededException` or `OperationCanceledException` may escape, nothing may hang and allocation stays within budget.
 - **Targets:** net472/net8.0/net10.0 test lanes, an AotSmoke consumer for the reader, model and generated serializer, and a package consumer for the final package.
-
-## Delivery order
-
-1. **Y0:** test data, harness and comparison runners.
-2. **Y1:** scanner, parser and `YamlReader`.
-3. **Y2:** `YamlDocument` model, schemas and lossless save.
-4. **Y5a:** `OfficeIMO.Reader.Yaml` on the engine. The first real consumer validates the read API early, and YamlDotNet is removed.
-5. **Y3:** editing, `YamlWriter`, new-document emission, then Markdown front matter through the engine.
-6. **Y4:** serializer and source generator.
-
-Each milestone lands on `feature/yaml-engine` with its tests and benchmarks. The ready-for-review PR goes out when a usable milestone set (at least Y0–Y2 and Y5a) is complete.

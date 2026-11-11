@@ -843,23 +843,16 @@ Acceptance: every adopted baseline criterion has decisive evidence, no validated
 
 ## YAML engine
 
-Build `OfficeIMO.Yaml` as an owned, dependency-free YAML 1.2 engine with lossless read, edit and write, following the [YAML engine design](officeimo.yaml-engine-design.md). Third-party YAML libraries stay in tests and benchmarks.
+`OfficeIMO.Yaml` is the owned YAML 1.2 engine; the [YAML engine design](officeimo.yaml-engine-design.md) and the [package README](../OfficeIMO.Yaml/README.md) own its current contract. Open work:
 
-- [ ] Y0: pin yaml-test-suite data and a provenance-recorded real-world corpus; add the engine-neutral conformance harness and the opt-in benchmark and comparison runners with YamlDotNet and SharpYaml baselines.
-- [ ] Y0b: add an opt-in, pinned large corpus of real-world YAML: thousands of files across CI systems, Kubernetes and Helm, compose, OpenAPI, Ansible, CloudFormation and SAM, front matter, Home Assistant and application configuration. Fetch it at pinned commits into a local cache instead of committing it. Run the parse, JSON-equivalence, byte-exact round-trip and scripted-edit checks over every file, and add mutation-based hostile-input runs. Keep the committed corpus small and representative.
-- [ ] Y1: scanner, parser and `YamlReader` covering YAML 1.2.2 syntax with zero per-event allocation, resource limits, cancellation and positioned errors. Match `test.event` for every valid suite case and reject every error case, apart from documented exceptions.
-- [ ] Y2: `YamlDocument` model with Failsafe, JSON, Core and 1.1 schemas, anchors, aliases, merge keys, tags, multi-document streams and duplicate-key policy. Match `in.json` across the suite and save every suite and corpus input byte for byte.
-- [ ] Y5a: rebuild `OfficeIMO.Reader.Yaml` on the engine, preserve its chunk/path contract and remove YamlDotNet.
-- [ ] Y3: minimal-diff editing, sibling-style inference, `YamlWriter` and new-document emission with YAML 1.1-safe quoting; independent readers accept our output.
-- [ ] Y3b: deep merge of an overlay into a base document or subtree with replace, append and merge-by-key sequence rules, Helm-style null removal and a `YamlMergeReport`. Qualify on Helm values and per-environment configuration overlays: the merged file must be a minimal diff of the base, and its data must match the same merge done on the loaded data.
-- [ ] Read and write Hugo-style TOML front matter between `+++` fences in `OfficeIMO.Markdown` through the TOML engine, with the same lossless save and invalid-input diagnostics as YAML front matter.
+- [ ] Move `OfficeIMO.Markup` front matter onto the engine. Its parser still reads `key: value` lines between `---` fences into a flat string dictionary, so nested values, lists, single-quoted or escaped strings and trailing comments are not read as YAML, and malformed front matter gives no diagnostic. Read it through `OfficeIMO.Markdown`'s `FrontMatterBlock`, keep profile selection and source line positions, and report invalid YAML.
+- [ ] Read and write Hugo-style TOML front matter between `+++` fences in `OfficeIMO.Markdown` through a TOML engine, with the same lossless save and invalid-input diagnostics as YAML front matter.
 - [ ] Structured-data conversion routes between JSON, YAML, TOML, XML, CSV/TSV and Excel worksheets, using the shared `To{Target}`/`SaveAs{Target}` grammar and `Convert-OfficeDocument`. Decide one documented XML⇄JSON mapping (attributes, repeated elements, mixed content) and report every lossy mapping, such as comments, anchors and YAML tags, through `OfficeConversionReport`.
-- [ ] Y4: `YamlSerializer` with a packaged source generator for trimming and NativeAOT and a reflection fallback.
-- [ ] Lead YamlDotNet and SharpYaml on parse-to-events and load-to-model elapsed time and allocation across the benchmark workloads, with Windows, Linux and macOS evidence.
+- [ ] Publish the comparison results for parse-to-events, load-to-model and the serializer against YamlDotNet and SharpYaml, with Windows, Linux and macOS runs, in the design's [performance section](officeimo.yaml-engine-design.md#performance).
 
 ## Managed complex-script shaping
 
-Extend the managed shaping provider in `OfficeIMO.Core` so complex scripts and vertical text no longer depend on the optional HarfBuzz adapter. HarfBuzzSharp ships native assets only for Windows, Linux, macOS and WebAssembly, so iOS, Android, trimmed and NativeAOT hosts currently fall back for these scripts. A single managed provider also gives identical glyph output on every platform. `OfficeIMO.Drawing.HarfBuzz` remains the optional provider for AAT and Graphite fonts. This work starts after the [YAML engine](#yaml-engine) milestones.
+Extend the managed shaping provider in `OfficeIMO.Core` so complex scripts and vertical text no longer depend on the optional HarfBuzz adapter. HarfBuzzSharp ships native assets only for Windows, Linux, macOS and WebAssembly, so iOS, Android, trimmed and NativeAOT hosts currently fall back for these scripts. A single managed provider also gives identical glyph output on every platform. `OfficeIMO.Drawing.HarfBuzz` remains the optional provider for AAT and Graphite fonts.
 
 - [ ] Support all GSUB/GPOS lookup flags, including ignore-marks and mark-filtering sets, plus complete mark-to-base, mark-to-ligature and mark-to-mark positioning.
 - [ ] Shape Hebrew, Thai and Lao, then add the Indic shaper, the Universal Shaping Engine, Myanmar and Khmer.
