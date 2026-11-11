@@ -204,7 +204,8 @@ internal static class MimeTextCodec {
                 var analysis = new OfficeBase64.MimeAnalysis();
                 analysis.Append(bytes, offset, count);
                 base64Analysis = analysis;
-                long base64Length = analysis.IsValid ? analysis.DecodedLength : count;
+                long base64Length = OfficeBase64.GetMimeDecodedLength(bytes, offset, count,
+                    out _, out _, analysis);
                 if (diagnostics != null && !analysis.IsValid) {
                     diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_INVALID",
                         "The invalid Base64 payload was preserved without decoding.",
