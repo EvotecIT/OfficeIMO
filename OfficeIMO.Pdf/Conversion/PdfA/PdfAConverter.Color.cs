@@ -314,7 +314,8 @@ internal sealed partial class PdfAConverter {
         }
 
         int components;
-        if (_options.OutputIntentProfile is byte[] suppliedProfile && !_verifyOnly) {
+        if (_options.OutputIntent is PdfOutputIntent supplied && !_verifyOnly) {
+            byte[] suppliedProfile = supplied.IccProfileSnapshot;
             if (profiles.Count > 0) {
                 AddViolation(PdfAConversionRefusalReason.ConflictingOutputIntents, "catalog output intents",
                     "The PDF already has an output intent profile; PDF/A requires every output intent to use the same profile as the supplied one.", intentArray);
@@ -324,7 +325,7 @@ internal sealed partial class PdfAConverter {
             components = header.Components;
             Change(PdfAConversionChangeKind.OutputIntentAdded, "catalog", "Added a PDF/A output intent with the supplied ICC profile.", catalog);
             AddOutputIntent(catalog, intentArray, suppliedProfile, header.Components,
-                string.IsNullOrWhiteSpace(_options.OutputConditionIdentifier) ? "Custom" : _options.OutputConditionIdentifier!, null);
+                supplied.OutputConditionIdentifier, supplied.OutputCondition, supplied.RegistryName, supplied.Info);
         } else if (profiles.Count > 1) {
             AddViolation(PdfAConversionRefusalReason.ConflictingOutputIntents, "catalog output intents",
                 "The PDF has " + profiles.Count.ToString(CultureInfo.InvariantCulture) +
@@ -359,7 +360,7 @@ internal sealed partial class PdfAConverter {
             components = 3;
             if (Change(PdfAConversionChangeKind.OutputIntentAdded, "catalog", "Added the sRGB IEC61966-2.1 PDF/A output intent.", catalog)) {
                 AddOutputIntent(catalog, intentArray, PdfIccProfiles.SrgbIec6196621, 3,
-                    PdfIccProfiles.SrgbIec6196621OutputConditionIdentifier, "sRGB IEC61966-2.1");
+                    PdfIccProfiles.SrgbIec6196621OutputConditionIdentifier, null, "http://www.color.org", "sRGB IEC61966-2.1");
             }
         }
 
@@ -381,7 +382,7 @@ internal sealed partial class PdfAConverter {
             AddViolation(PdfAConversionRefusalReason.DeviceColorNotCharacterized, use.Location,
                 use.Family + " colour is painted here, but the output intent is " + DescribeComponents(available) +
                 ". PDF/A requires device colour to match the output intent" +
-                (use.Family == "DeviceCMYK" ? "; supply a CMYK profile in PdfAConversionOptions.OutputIntentProfile." : "."),
+                (use.Family == "DeviceCMYK" ? "; supply a CMYK output intent in PdfAConversionOptions.OutputIntent." : "."),
                 use.Owner);
         }
     }
@@ -438,7 +439,7 @@ internal sealed partial class PdfAConverter {
     /// <summary>PDF/A-4 (6.2.4.2) forbids an ICCBased CMYK space whose profile is the CMYK output intent profile itself.</summary>
     private void CheckCmykProfilesDifferFromOutputIntent(List<PdfObject> documentProfiles) {
         var outputProfiles = new List<(PdfObject? Profile, byte[]? Data)>();
-        if (_options.OutputIntentProfile is byte[] supplied) outputProfiles.Add((null, supplied));
+        if (_options.OutputIntent is PdfOutputIntent supplied) outputProfiles.Add((null, supplied.IccProfileSnapshot));
         IEnumerable<PdfObject> candidates = documentProfiles.Concat(_document.Pages
             .Select(page => Resolve(page.PageDictionary.Items.TryGetValue("OutputIntents", out PdfObject? value) ? value : null) as PdfArray)
             .Where(static array => array is not null)
@@ -465,7 +466,8 @@ internal sealed partial class PdfAConverter {
         _ => components.ToString(CultureInfo.InvariantCulture) + "-component"
     };
 
-    private void AddOutputIntent(PdfDictionary catalog, PdfArray? intentArray, byte[] profile, int components, string identifier, string? info) {
+    private void AddOutputIntent(PdfDictionary catalog, PdfArray? intentArray, byte[] profile, int components, string identifier,
+        string? condition, string? registryName, string? info) {
         var profileDictionary = new PdfDictionary();
         profileDictionary.Items["N"] = new PdfNumber(components);
         profileDictionary.Items["Filter"] = new PdfName("FlateDecode");
@@ -474,10 +476,9 @@ internal sealed partial class PdfAConverter {
         intent.Items["Type"] = new PdfName("OutputIntent");
         intent.Items["S"] = new PdfName("GTS_PDFA1");
         intent.Items["OutputConditionIdentifier"] = new PdfStringObj(identifier);
-        if (info is not null) {
-            intent.Items["RegistryName"] = new PdfStringObj("http://www.color.org");
-            intent.Items["Info"] = new PdfStringObj(info);
-        }
+        if (condition is not null) intent.Items["OutputCondition"] = new PdfStringObj(condition);
+        if (registryName is not null) intent.Items["RegistryName"] = new PdfStringObj(registryName);
+        if (info is not null) intent.Items["Info"] = new PdfStringObj(info);
         intent.Items["DestOutputProfile"] = profileReference;
         if (intentArray is null) {
             intentArray = new PdfArray();

@@ -228,9 +228,9 @@ internal sealed partial class PdfAConverter {
         if (_part == 2 || (_part == 4 && !_attachmentsProfile)) {
             foreach ((PdfDictionary fileSpec, string location) in _fileSpecifications) {
                 string fileName = DescribeFileSpecification(fileSpec);
-                if (!_options.RemoveEmbeddedFiles) {
+                if (_options.Attachments == PdfAAttachmentPolicy.Refuse) {
                     AddViolation(PdfAConversionRefusalReason.EmbeddedFileNotAllowed, location,
-                        "The embedded file " + fileName + " cannot be kept in " + partName + ", and RemoveEmbeddedFiles is false.", fileSpec);
+                        "The embedded file " + fileName + " cannot be kept in " + partName + ", and the attachment policy is Refuse.", fileSpec);
                     continue;
                 }
                 if (Change(PdfAConversionChangeKind.EmbeddedFileRemoved, location,
@@ -240,11 +240,11 @@ internal sealed partial class PdfAConverter {
                     fileSpec.Items.Remove("RF");
                 }
             }
-            if (_options.RemoveEmbeddedFiles && names is not null && names.Items.ContainsKey("EmbeddedFiles") &&
+            if (_options.Attachments == PdfAAttachmentPolicy.Remove && names is not null && names.Items.ContainsKey("EmbeddedFiles") &&
                 Change(PdfAConversionChangeKind.EmbeddedFileRemoved, "catalog names", "Removed the embedded-files name tree.", names, OfficeConversionLossKind.Omission)) {
                 names.Items.Remove("EmbeddedFiles");
             }
-            if (_options.RemoveEmbeddedFiles && catalog.Items.ContainsKey("Collection") &&
+            if (_options.Attachments == PdfAAttachmentPolicy.Remove && catalog.Items.ContainsKey("Collection") &&
                 Change(PdfAConversionChangeKind.StructureUpdated, "catalog", "Removed the portfolio (Collection) view of the removed attachments.", catalog, OfficeConversionLossKind.Omission)) {
                 catalog.Items.Remove("Collection");
             }

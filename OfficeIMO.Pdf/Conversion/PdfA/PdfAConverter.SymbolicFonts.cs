@@ -13,7 +13,7 @@ internal sealed partial class PdfAConverter {
     }
 
     /// <summary>
-    /// Embeds an installed Symbol or ZapfDingbats face for the non-embedded standard font. Each code selects a glyph name
+    /// Embeds a supplied or installed Symbol or ZapfDingbats face for the non-embedded standard font. Each code selects a glyph name
     /// through the font's built-in encoding or Differences; the face must have that glyph with the width the page positions it
     /// by (the Widths entry, or the Adobe metrics of the standard font), within one unit.
     /// </summary>
@@ -37,13 +37,13 @@ internal sealed partial class PdfAConverter {
         string? failure = null;
         PdfAConversionRefusalReason reason = PdfAConversionRefusalReason.FontNotEmbeddable;
         string[] families = dingbats ? DingbatsFamilies : SymbolFamilies;
-        foreach (string family in families) {
-            if (!PdfEmbeddedFontFamily.TryFromSystem(family, out PdfEmbeddedFontFamily? installed) || installed?.RegularSnapshot is not byte[] face) continue;
+        foreach ((string family, string origin, PdfEmbeddedFontFamily substitute) in _options.FontSubstitution.Resolve(families)) {
+            byte[] face = substitute.RegularSnapshot;
             PdfTrueTypeFontProgram program;
             try {
                 program = PdfTrueTypeFontProgram.Parse(face);
             } catch (Exception exception) when (exception is NotSupportedException or InvalidDataException or ArgumentException or IndexOutOfRangeException) {
-                failure = "the installed " + family + " face cannot be embedded: " + exception.Message;
+                failure = "the " + origin + " " + family + " face cannot be embedded: " + exception.Message;
                 reason = PdfAConversionRefusalReason.FontNotEmbeddable;
                 continue;
             }
@@ -71,17 +71,17 @@ internal sealed partial class PdfAConverter {
                 }
             }
             if (missing.Count > 0) {
-                failure = "the installed " + family + " face has no glyph for code(s) " + FormatCodes(missing);
+                failure = "the " + origin + " " + family + " face has no glyph for code(s) " + FormatCodes(missing);
                 reason = PdfAConversionRefusalReason.FontGlyphMissing;
                 continue;
             }
             if (mismatched.Count > 0) {
-                failure = "the installed " + family + " face has different glyph widths (" + string.Join(", ", mismatched) + ")";
+                failure = "the " + origin + " " + family + " face has different glyph widths (" + string.Join(", ", mismatched) + ")";
                 reason = PdfAConversionRefusalReason.FontMetricsMismatch;
                 continue;
             }
             if (Change(PdfAConversionChangeKind.FontEmbedded, location,
-                    "Embedded the installed " + family + " face (" + program.FontName + ") for the non-embedded font " + plainName +
+                    "Embedded the " + origin + " " + family + " face (" + program.FontName + ") for the non-embedded font " + plainName +
                     "; every code selects the glyph its " + plainName + " glyph name names, with the advance width the page already positions it by.",
                     font, OfficeConversionLossKind.Approximation)) {
                 WriteSymbolicSubstitute(font, descriptor, plainName, program, glyphNames, glyphs, dingbats);
@@ -89,7 +89,7 @@ internal sealed partial class PdfAConverter {
             return;
         }
         AddViolation(reason, location, failure is null
-            ? "The " + plainName + " font is not embedded and no installed substitute (" + string.Join(", ", families) + ") was found."
+            ? "The " + plainName + " font is not embedded and no " + SubstituteSources + " substitute (" + string.Join(", ", families) + ") was found."
             : "The " + plainName + " font is not embedded and cannot be substituted without changing the page: " + failure + ".", font);
     }
 

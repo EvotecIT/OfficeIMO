@@ -114,7 +114,7 @@ public class PdfAConversionTests {
             .Encrypt(PdfStandardEncryptionOptions.ForPermissions("owner", PdfStandardPermissions.Print)).Pdf;
 
         PdfAConversionResult refused = PdfDocument.Load(new MemoryStream(encrypted)).ConvertToPdfA();
-        PdfAConversionResult converted = PdfDocument.Load(new MemoryStream(encrypted)).ConvertToPdfA(new PdfAConversionOptions { Password = "owner" });
+        PdfAConversionResult converted = PdfDocument.Load(new MemoryStream(encrypted), new PdfLoadOptions { Password = "owner" }).ConvertToPdfA();
 
         Assert.Equal(PdfAConversionRefusalReason.EncryptionNotAuthorized, Assert.Single(refused.Report.Violations).Reason);
         Assert.True(converted.Succeeded, string.Join(Environment.NewLine, converted.Report.Violations));
@@ -375,7 +375,10 @@ public class PdfAConversionTests {
     [Theory]
     [MemberData(nameof(RefusalCases))]
     public void ConvertToPdfA_RefusesWithEveryReasonAndWritesNothing(string name, PdfAConversionRefusalReason reason, PdfComplianceProfile profile) {
-        PdfAConversionOptions options = new() { Profile = profile, RemoveEmbeddedFiles = name != "embedded file" };
+        PdfAConversionOptions options = new() {
+            Profile = profile,
+            Attachments = name == "embedded file" ? PdfAAttachmentPolicy.Refuse : PdfAAttachmentPolicy.Remove
+        };
         byte[] source = CreateRefusalSource(name);
         PdfDocument document = PdfDocument.Load(new MemoryStream(source));
 
@@ -391,6 +394,68 @@ public class PdfAConversionTests {
         PdfAConversionException exception = Assert.Throws<PdfAConversionException>(() => document.SaveAsPdfA(path, options));
         Assert.False(File.Exists(path));
         Assert.Contains(exception.Report.Violations, violation => violation.Reason == reason);
+        using var stream = new MemoryStream();
+        Assert.Throws<PdfAConversionException>(() => document.SaveAsPdfA(stream, options));
+        Assert.Equal(0, stream.Length);
+    }
+
+    [Fact]
+    public void SaveAsPdfA_WritesTheConvertedFileToAStream() {
+        byte[] source = RawPdf.Build("0 g 20 20 50 50 re f\n");
+        using var stream = new MemoryStream();
+
+        PdfAConversionReport report = PdfDocument.Load(new MemoryStream(source)).SaveAsPdfA(stream,
+            new PdfAConversionOptions { Profile = PdfComplianceProfile.PdfA3B });
+
+        Assert.Empty(report.Violations);
+        Assert.Equal(PdfComplianceProfile.PdfA3B, report.Profile);
+        Assert.Contains(report.Changes, change => change.Kind == PdfAConversionChangeKind.OutputIntentAdded);
+        AssertVeraPdfPasses(stream.ToArray(), "3b");
+    }
+
+    [Fact]
+    public void ConvertToPdfA_EmbedsSuppliedFontsWithTheSameChecksAsInstalledOnes() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledTrueTypeFont();
+        Assert.NotNull(fontPath);
+        byte[] font = File.ReadAllBytes(fontPath!);
+        PdfTrueTypeFontProgram program = PdfTrueTypeFontProgram.Parse(font);
+        string widths = string.Join(" ", "AB".Select(character => {
+            Assert.True(program.TryGetGlyphId(character, out int glyph));
+            return program.GetExactGlyphWidth1000(glyph).ToString("0.###", CultureInfo.InvariantCulture);
+        }));
+        // A family no machine installs, so only the supplied face can stand in for it.
+        byte[] source = RawPdf.Build("BT /F1 24 Tf 20 120 Td (AB) Tj ET\n", resources: "/Font << /F1 5 0 R >>",
+            extraObjects: new[] { "<< /Type /Font /Subtype /TrueType /BaseFont /OfficeIMOArchiveSans /FirstChar 65 /LastChar 66 /Widths [" + widths + "] /Encoding /WinAnsiEncoding >>" });
+        PdfAConversionResult Convert(PdfAFontSubstitution substitution) => PdfDocument.Load(new MemoryStream(source))
+            .ConvertToPdfA(new PdfAConversionOptions { FontSubstitution = substitution });
+
+        PdfAConversionResult supplied = Convert(PdfAFontSubstitution.Supplied(new PdfEmbeddedFontFamily("OfficeIMOArchiveSans", font)));
+        PdfAConversionResult installedOnly = Convert(PdfAFontSubstitution.InstalledFonts);
+        byte[] restricted = (byte[])font.Clone();
+        WriteFsType(restricted, 0x0002);
+        PdfAConversionResult licensed = Convert(PdfAFontSubstitution.Supplied(new PdfEmbeddedFontFamily("OfficeIMOArchiveSans", restricted)).ThenInstalledFonts());
+
+        Assert.True(supplied.Succeeded, string.Join(Environment.NewLine, supplied.Report.Violations));
+        Assert.Contains(supplied.Report.Changes, change => change.Kind == PdfAConversionChangeKind.FontEmbedded &&
+            change.Message.Contains("supplied OfficeIMOArchiveSans face", StringComparison.Ordinal));
+        AssertVeraPdfPasses(supplied.ToBytes(), "2b");
+        Assert.Equal(PdfAConversionRefusalReason.FontNotEmbeddable, Assert.Single(installedOnly.Report.Violations).Reason);
+        PdfAConversionViolation refusal = Assert.Single(licensed.Report.Violations);
+        Assert.Equal(PdfAConversionRefusalReason.FontNotEmbeddable, refusal.Reason);
+        Assert.Contains("fsType", refusal.Message, StringComparison.Ordinal);
+    }
+
+    private static void WriteFsType(byte[] font, ushort fsType) {
+        int count = (font[4] << 8) | font[5];
+        for (int index = 0; index < count; index++) {
+            int record = 12 + index * 16;
+            if (Encoding.ASCII.GetString(font, record, 4) != "OS/2") continue;
+            int offset = (font[record + 8] << 24) | (font[record + 9] << 16) | (font[record + 10] << 8) | font[record + 11];
+            font[offset + 8] = (byte)(fsType >> 8);
+            font[offset + 9] = (byte)fsType;
+            return;
+        }
+        throw new InvalidOperationException("The test font has no OS/2 table.");
     }
 
     public static TheoryData<string, PdfAConversionRefusalReason, PdfComplianceProfile> RefusalCases() => new() {

@@ -45,25 +45,38 @@ internal sealed partial class PdfAConverter {
     internal static PdfAConversionResult Convert(byte[] source, PdfLoadOptions? readOptions, PdfAConversionOptions options, CancellationToken cancellationToken) {
         Guard.NotNull(source, nameof(source));
         Guard.NotNull(options, nameof(options));
+        // The caller can keep editing its options object; convert with a private copy.
+        options = new PdfAConversionOptions {
+            Profile = options.Profile,
+            OutputIntent = options.OutputIntent?.Clone(),
+            Attachments = options.Attachments,
+            FontSubstitution = options.FontSubstitution
+        };
         if (options.Profile == PdfComplianceProfile.PdfA4E) {
             throw new ArgumentException("PDF/A-4e conversion is not supported: it permits 3D and rich-media content that this converter does not check. Use PdfA4 or PdfA4F.", nameof(options));
         }
         if (!IsSupportedProfile(options.Profile)) {
             throw new ArgumentException("PDF/A conversion supports PdfA2B, PdfA2U, PdfA3B, PdfA3U, PdfA4 and PdfA4F.", nameof(options));
         }
-        if (options.OutputIntentProfile is { } profile && !PdfAIccProfile.TryRead(profile, out _, out string? profileError)) {
-            throw new ArgumentException("The output intent profile is not a usable ICC profile: " + profileError, nameof(options));
+        if (options.Attachments is not (PdfAAttachmentPolicy.Remove or PdfAAttachmentPolicy.Refuse)) {
+            throw new ArgumentException("The attachment policy is not a defined PdfAAttachmentPolicy value.", nameof(options));
+        }
+        if (options.OutputIntent is { } outputIntent) {
+            if (outputIntent.Subtype != PdfOutputIntentSubtype.GtsPdfA1) {
+                throw new ArgumentException("PDF/A conversion writes a GTS_PDFA1 output intent; the supplied output intent has subtype " + outputIntent.Subtype + ".", nameof(options));
+            }
+            if (!PdfAIccProfile.TryRead(outputIntent.IccProfileSnapshot, out _, out string? profileError)) {
+                throw new ArgumentException("The output intent profile is not a usable ICC profile: " + profileError, nameof(options));
+            }
         }
 
-        PdfLoadOptions effectiveReadOptions = options.Password is null
-            ? PdfLoadOptions.Resolve(readOptions)
-            : PdfLoadOptions.WithPassword(readOptions, options.Password);
+        PdfLoadOptions effectiveReadOptions = PdfLoadOptions.Resolve(readOptions);
         PdfReadDocument document;
         try {
             PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(source, effectiveReadOptions, cancellationToken: cancellationToken);
             if (security.HasEncryption && !security.HasOwnerAuthorization) {
                 return Refuse(options.Profile, PdfAConversionRefusalReason.EncryptionNotAuthorized, "document",
-                    "The PDF is encrypted. PDF/A forbids encryption, and removing it requires the owner password in PdfAConversionOptions.Password.",
+                    "The PDF is encrypted. PDF/A forbids encryption, and removing it requires the owner password: load the PDF with it in PdfLoadOptions.Password.",
                     security.EncryptObjectNumber);
             }
             document = PdfReadDocument.Open(source, effectiveReadOptions, cancellationToken);
