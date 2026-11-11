@@ -41,7 +41,7 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 | Transform | Merge, split, extract, reorder, rotate, stamp, watermark, overlay, and metadata changes |
 | Secure | CMS-backed signatures, timestamps, certificate validation, and revision-aware inspection through `OfficeIMO.Security` |
 | Render | Page images and format adapters used by Word, Excel, PowerPoint, HTML, RTF, and OpenDocument packages |
-| Print | Installed Windows, macOS, and Linux printers with page ranges, 1 to 9 pages per sheet, scaling, duplex, paper source, and a preview of the exact sheets, through `OfficeIMO.Workflows` or `officeimo workflow print` |
+| Print | Installed Windows, macOS, and Linux printers with page ranges, 1, 2, 4, 6, or 9 pages per sheet, scaling, duplex, and paper source, through `OfficeIMO.Workflows` or `officeimo workflow print`. The .NET workflow can also preview the exact rendered sheets before sending them |
 
 Complex source formats do not map perfectly to PDF in every case. Conversion results expose diagnostics so applications can decide whether an approximation is acceptable.
 

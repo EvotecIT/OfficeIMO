@@ -50,7 +50,7 @@ Stamp and watermark operations support text, images and imported pages. Annotati
 
 ## Print to an installed printer
 
-`OfficeIMO.Workflows` prints through the operating system's own queues: GDI on Windows and CUPS on macOS and Linux. It plans the sheets first, renders them once, and sends exactly the sheets you previewed.
+`OfficeIMO.Workflows` prints through the operating system's own queues: GDI on Windows and CUPS on macOS and Linux. It plans and renders the sheets once, so a preview shows the same pixels the printer receives. Submission sends every prepared sheet, not only the ones you previewed.
 
 ```csharp
 using OfficeIMO.Pdf;
