@@ -123,6 +123,12 @@ $familyDefinitions = @(
         match = { param($name) $name -match 'OfficeCsv' }
     }
     [ordered]@{
+        id = 'toml'; title = 'TOML'; description = 'Read and write TOML configuration and lock files as PowerShell objects.'
+        docs = 'open-text-formats'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Data'
+        samples = @('ConvertFrom-OfficeToml', 'Import-OfficeToml', 'Export-OfficeToml')
+        match = { param($name) $name -match 'OfficeToml' }
+    }
+    [ordered]@{
         id = 'open-document'; title = 'OpenDocument'; description = 'Compose, read, convert, and save ODT, ODS, and ODP workflows.'
         docs = 'open-text-formats'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples'
         samples = @('New-OfficeOpenDocument', 'Add-OfficeOpenDocumentParagraph', 'Set-OfficeOpenDocumentCell', 'Save-OfficeOpenDocument')
