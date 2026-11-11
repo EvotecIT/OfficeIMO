@@ -359,7 +359,7 @@ namespace OfficeIMO.Excel {
             return Uri.UnescapeDataString(sourceUri.MakeRelativeUri(targetUri).ToString());
         }
 
-        private static void WriteExtendedContentTypesEntry(ZipArchive archive, IReadOnlyList<ExtendedPartModel> parts, bool includeDirectStyles, bool includeDirectSharedStrings) {
+        private static void WriteExtendedContentTypesEntry(ExcelPackageArchive archive, IReadOnlyList<ExtendedPartModel> parts, bool includeDirectStyles, bool includeDirectSharedStrings) {
             var builder = new System.Text.StringBuilder(768 + parts.Count * 180);
             builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
             builder.Append("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">");
@@ -387,7 +387,7 @@ namespace OfficeIMO.Excel {
             WriteTextEntry(archive, "[Content_Types].xml", builder.ToString());
         }
 
-        private static void WriteExtendedRelationshipsEntry(ZipArchive archive, string path, IReadOnlyList<ExtendedRelationshipModel> relationships) {
+        private static void WriteExtendedRelationshipsEntry(ExcelPackageArchive archive, string path, IReadOnlyList<ExtendedRelationshipModel> relationships) {
             var builder = new System.Text.StringBuilder(160 + relationships.Count * 220);
             builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
             builder.Append("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">");

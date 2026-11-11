@@ -4,7 +4,7 @@ using DocumentFormat.OpenXml;
 namespace OfficeIMO.Excel {
     /// <summary>A reusable write target for one package part at a time, so comparing parts on save leaves no garbage.</summary>
     internal sealed class ExcelPartBuffer : Stream {
-        private byte[] _buffer = ArrayPool<byte>.Shared.Rent(64 * 1024);
+        private byte[] _buffer = ExcelArrayPool.RentBytes(64 * 1024);
         private int _length;
 
         internal byte[] Buffer => _buffer;
@@ -40,9 +40,9 @@ namespace OfficeIMO.Excel {
         }
 
         private void Grow(int required) {
-            byte[] larger = ArrayPool<byte>.Shared.Rent(Math.Max(required, _buffer.Length * 2));
+            byte[] larger = ExcelArrayPool.RentBytes(Math.Max(required, _buffer.Length * 2));
             System.Buffer.BlockCopy(_buffer, 0, larger, 0, _length);
-            ArrayPool<byte>.Shared.Return(_buffer);
+            ExcelArrayPool.Return(_buffer);
             _buffer = larger;
         }
 
@@ -63,7 +63,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Returns the storage. <see cref="OpenXmlPartRootElement.Save(Stream)"/> closes its stream, so disposal cannot be the release.</summary>
         internal void Release() {
             if (_buffer.Length == 0) return;
-            ArrayPool<byte>.Shared.Return(_buffer);
+            ExcelArrayPool.Return(_buffer);
             _buffer = Array.Empty<byte>();
         }
     }

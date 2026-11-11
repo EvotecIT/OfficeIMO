@@ -312,6 +312,8 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
             Culture = Culture ?? CultureInfo.InvariantCulture,
             FormulaInjectionPolicy = FormulaInjectionPolicy,
             QuoteMode = UseQuotes,
+            // PowerShell's -UseQuotes Never writes fields unchanged; the engine rejects ambiguous fields by default.
+            WriteUnquotedFieldsLiterally = UseQuotes == CsvQuoteMode.Never,
             QuoteFields = QuoteFields
         };
 

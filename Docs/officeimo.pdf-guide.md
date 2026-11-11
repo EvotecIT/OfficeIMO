@@ -16,6 +16,7 @@ This guide shows every `OfficeIMO.Pdf` workflow with an example. Installation an
 | Protect, unlock or sign a PDF | [Security and signatures](#security-and-signatures) |
 | Remove sensitive content | [Redaction](#redaction), [sanitize before sharing](#inspect-and-sanitize-before-sharing) |
 | Render pages or compare two PDFs | [Render and compare](#render-and-compare) |
+| Snapshot-test PDFs your code generates | [Snapshot-test generated PDFs](#snapshot-test-generated-pdfs) |
 | Produce PDF/A, PDF/UA, PDF/X or Factur-X | [Compliance](#compliance) |
 | Convert to or from Word, Excel, PowerPoint or HTML | [Convert](#convert) |
 | Run in a service, browser or container | [Deploy](#deploy) |
@@ -2052,6 +2053,16 @@ string html = report.ToHtmlGallery("Section review", 96L * 1024 * 1024,
 Selectors retain caller order and repeated pages. Their first entries form the first pair, their second entries form the second pair, and any remaining entries are unmatched. Null selects every page on that side. `ExpectedPageCount` and `ActualPageCount` are document totals; `ExpectedPageNumbers` and `ActualPageNumbers` contain the selected source pages. Each paired result retains both original page numbers. `UnmatchedExpectedPageNumbers` and `UnmatchedActualPageNumbers` describe selected entries without a partner.
 
 The standalone HTML gallery includes selected scope, totals, pair links, render limitations and SHA-256 identities of the compared snapshots. This comparison checks rendered appearances in the supplied order. It does not infer semantic changes or moved-page alignment; use the separate review APIs above when that analysis is needed. Selected-page, pixel, retained-image and HTML byte limits remain enforced. The legacy shared `selection` argument cannot be combined with independent selectors.
+
+### Snapshot-test generated PDFs
+
+`OfficeIMO.Pdf.Testing` turns rendering and reading into snapshot tests for xUnit, NUnit or MSTest:
+
+```csharp
+PdfSnapshot.Verify(invoice, "invoice");
+```
+
+The first run writes received page images and a structure file next to the test. Approve them by rerunning with `OFFICEIMO_PDF_SNAPSHOT_ACCEPT=1` or by calling `PdfSnapshot.Accept(directory)`. Later runs fail with a structure diff and an HTML review gallery when text, layout or pixels change. Use `PdfVisualComparer.CompareImages` to compare saved page images directly. The [package README](../OfficeIMO.Pdf.Testing/README.md) covers options and portable fonts.
 
 ## Compliance
 

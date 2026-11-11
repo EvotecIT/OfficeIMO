@@ -4,7 +4,7 @@ namespace OfficeIMO.CSV;
 
 internal static partial class CsvParser
 {
-    private static bool UsesTextDelimiter(CsvParsingSettings options) =>
+    internal static bool UsesTextDelimiter(CsvParsingSettings options) =>
         !string.IsNullOrEmpty(options.DelimiterText) && options.DelimiterText!.Length > 1;
 
     internal static char GetDelimiterChar(CsvParsingSettings options) =>
@@ -86,7 +86,7 @@ internal static partial class CsvParser
                 continue;
             }
 
-            if (TrySplitUnquotedRecord(line, delimiter, trim, out var record))
+            if (TrySplitUnquotedRecord(line, delimiter, trim, options.QuotesAreData, out var record))
             {
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount) &&
                     ShouldEmitRecord(record, allowEmpty))
@@ -161,10 +161,10 @@ internal static partial class CsvParser
         }
     }
 
-    private static bool TrySplitUnquotedRecord(string line, string delimiter, bool trim, out string[] fields)
+    private static bool TrySplitUnquotedRecord(string line, string delimiter, bool trim, bool quotesAreData, out string[] fields)
     {
         fields = Array.Empty<string>();
-        if (line.IndexOf('"') >= 0)
+        if (!quotesAreData && line.IndexOf('"') >= 0)
         {
             return false;
         }
@@ -310,7 +310,8 @@ internal static partial class CsvParser
             return false;
         }
 
-        if (firstLine.IndexOf('"') < 0 ||
+        if (options.QuotesAreData ||
+            firstLine.IndexOf('"') < 0 ||
             !LooksLikeDelimitedRawComment(firstLine, delimiter) ||
             TryParseQuotedRecord(firstLine, delimiter, trim, strictQuotes: false, lineNumber, out _))
         {

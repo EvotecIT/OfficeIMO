@@ -36,8 +36,8 @@ namespace OfficeIMO.Excel {
                 int maximumCellColumn = _maximumCellColumn;
                 try {
                     if (TryIndexCanonicalImplicitDenseRowCore(ref position, rowIndex, rowOffset, ct)) return true;
-                } catch (InvalidDataException) {
-                    // Resolve the row before reporting a provisional style or string error.
+                } catch (Exception exception) when (exception is InvalidDataException or NotSupportedException) {
+                    // Resolve the row before reporting a provisional style, string or formula error.
                     // The ordinary parser validates the same cells again after rollback.
                 }
 
@@ -58,6 +58,7 @@ namespace OfficeIMO.Excel {
                 int cellsUntilCancellationCheck = 0;
                 Utf8ImplicitCellTagCacheEntry[]? tagCache = _implicitCellTagCache;
                 while (position < _length) {
+                    SkipWhitespaceInsideRow(ref position);
                     if (position <= _length - 6
                         && _buffer![position + 1] == (byte)'/'
                         && TryConsumeCompactRowEnd(ref position)) {
@@ -111,32 +112,53 @@ namespace OfficeIMO.Excel {
                     int tagLength = position - cellStart;
 
                     int cellIndex = rowOffset + ordinal;
+                    bool sharedFormulaFollower = false;
+                    bool indexedFormula = false;
+                    bool generalCell = false;
                     bool hasCachedValue = false;
                     int valueStart = -1;
                     int valueLength = -1;
-                    if (!isEmpty
-                        && !TryIndexCompactValueCell(
-                            ref position, cellIndex, kind,
-                            out hasCachedValue, out valueStart, out valueLength)) {
-                        return false;
+                    if (!isEmpty) {
+                        int contentPosition = position;
+                        if (!TryIndexCompactValueCell(
+                                ref position, cellIndex, kind,
+                                out hasCachedValue, out valueStart, out valueLength)) {
+                            // Formulas use the general cell indexer and keep the full XML check.
+                            _sheetDataSupportsFastValidation = false;
+                            position = contentPosition;
+                            // The general indexer writes only the parts the cell contains.
+                            _valueStarts![cellIndex] = 0;
+                            _valueLengths![cellIndex] = -1;
+                            if (_formulaStarts != null) {
+                                _formulaStarts[cellIndex] = 0;
+                                _formulaLengths![cellIndex] = -1;
+                            }
+                            if (!TryIndexCell(ref position, cellIndex, kind,
+                                    out sharedFormulaFollower, out hasCachedValue, out valueStart, out valueLength)) {
+                                return false;
+                            }
+                            indexedFormula = _formulaLengths != null && _formulaLengths[cellIndex] >= 0;
+                            generalCell = true;
+                        }
                     }
 
                     // Exact cached tags already proved their style against this
                     // reader's immutable StylesCache. Shared-string indexes belong
                     // to each value and must still be validated on every cell.
-                    int sharedStringIndex = repeatedTag && kind != Utf8CellKind.SharedString
+                    int sharedStringIndex = repeatedTag && kind != Utf8CellKind.SharedString && !sharedFormulaFollower
                         ? -1
                         : ValidateIndexedCell(
                             rowIndex, columnIndex, kind, styleIndex,
-                            sharedFormulaFollower: false, hasCachedValue, valueStart, valueLength);
+                            sharedFormulaFollower, hasCachedValue, valueStart, valueLength);
                     if (sharedStringIndex >= 0) {
                         _valueStarts![cellIndex] = sharedStringIndex;
                         _valueLengths![cellIndex] = SharedStringIndexValueLength;
-                    } else if (valueLength < 0) {
+                    } else if (valueLength < 0 && !generalCell) {
+                        // The general cell indexer stores inline text itself; only compact cells are reset here.
                         _valueStarts![cellIndex] = 0;
                         _valueLengths![cellIndex] = -1;
                     }
-                    if (_formulaStarts != null) {
+                    if (_formulaStarts != null && !indexedFormula) {
                         _formulaStarts[cellIndex] = 0;
                         _formulaLengths![cellIndex] = -1;
                     }

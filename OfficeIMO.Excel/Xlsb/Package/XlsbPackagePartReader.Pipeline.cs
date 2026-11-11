@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
                 || entry.CompressedLength >= entry.Length) return false;
 
             int length = checked((int)entry.Length);
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(length);
+            byte[] buffer = ExcelArrayPool.RentBytes(length);
             var owned = new XlsbPooledPartStream(buffer, length);
             var progress = new WorksheetInflationProgress(initiallyWritten: 0);
             Task<T>? consumer = null;

@@ -87,12 +87,12 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             }
 
             int length = checked((int)entry.Length);
-            byte[] output = ArrayPool<byte>.Shared.Rent(Math.Max(1, length));
+            byte[] output = ExcelArrayPool.RentBytes(Math.Max(1, length));
             try {
                 ReadSeekablePartContents(entry, normalized, output, length, cancellationToken);
                 return new XlsbPooledPartStream(output, length);
             } catch {
-                ArrayPool<byte>.Shared.Return(output, clearArray: true);
+                ExcelArrayPool.Return(output, clearArray: true);
                 throw;
             }
         }

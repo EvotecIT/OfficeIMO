@@ -490,7 +490,6 @@ namespace OfficeIMO.Excel {
         private void ReinitializePackageBoundHelpers() {
             CustomProperties.SetChangeHandler(MarkCustomDocumentPropertiesChanged);
             LoadCustomDocumentProperties();
-            ExcelChartAxisIdGenerator.Initialize(_spreadSheetDocument);
         }
 
         private static byte[] NormalizePackageBytes(byte[] packageBytes, ExcelSaveOptions? options) {

@@ -47,7 +47,7 @@ public sealed partial class CsvDocument
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(reader);
-        options ??= new CsvSaveOptions();
+        options ??= CsvProfiles.CreateDefaultSaveOptions(path);
         cancellationToken.ThrowIfCancellationRequested();
         WritePath(
             path,

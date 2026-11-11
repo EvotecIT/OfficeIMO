@@ -156,6 +156,15 @@
       "OfficeIMO.Pdf",
       "OfficeIMO.Word.Pdf"
     ],
+    "pdf-testing-package-consumers": [
+      "OfficeIMO.Core",
+      "OfficeIMO.Pdf",
+      "OfficeIMO.Pdf.Testing",
+      "OfficeIMO.Pdf.Testing.PackageSmoke.MSTest",
+      "OfficeIMO.Pdf.Testing.PackageSmoke.NUnit",
+      "OfficeIMO.Pdf.Testing.PackageSmoke.Xunit",
+      "OfficeIMO.Pdf.Testing.Tests"
+    ],
     "email-package-consumers": [
       "OfficeIMO.Core",
       "OfficeIMO.Email",

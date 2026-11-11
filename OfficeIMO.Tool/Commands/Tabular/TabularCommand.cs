@@ -161,11 +161,11 @@ Sheet and schema names escape backslashes and controls as \\, \t, \r, \n, or \uX
                 inferSchema: inputIsCsv && !outputIsCsv,
                 cancellationToken);
             if (outputIsCsv) {
-                var saveOptions = new CsvSaveOptions {
-                    Delimiter = ResolveDelimiter(temporaryPath, options.OutputDelimiter),
-                    IncludeHeader = options.HasHeaderRow,
-                    NoClobber = true
-                };
+                CsvSaveOptions saveOptions = IsTsvPath(temporaryPath, options.OutputDelimiter)
+                    ? CsvProfiles.CreateSaveOptions(CsvProfile.Tsv)
+                    : new CsvSaveOptions { Delimiter = ResolveDelimiter(temporaryPath, options.OutputDelimiter) };
+                saveOptions.IncludeHeader = options.HasHeaderRow;
+                saveOptions.NoClobber = true;
                 CsvDocument.WriteDataReader(temporaryPath, reader, saveOptions, cancellationToken);
                 return;
             }
@@ -244,13 +244,15 @@ Sheet and schema names escape backslashes and controls as \\, \t, \r, \n, or \uX
         bool inferSchema,
         CancellationToken cancellationToken) {
         if (IsCsvPath(options.InputPath)) {
-            var loadOptions = new CsvReaderOptions {
-                InferSchema = inferSchema,
-                HasHeaderRow = options.HasHeaderRow,
-                DetectDelimiter = ShouldDetectDelimiter(options),
-                Delimiter = ResolveDelimiter(options.InputPath, options.InputDelimiter),
-                CancellationToken = cancellationToken
-            };
+            CsvReaderOptions loadOptions = IsTsvPath(options.InputPath, options.InputDelimiter)
+                ? CsvProfiles.CreateReaderOptions(CsvProfile.Tsv)
+                : new CsvReaderOptions {
+                    DetectDelimiter = ShouldDetectDelimiter(options),
+                    Delimiter = ResolveDelimiter(options.InputPath, options.InputDelimiter)
+                };
+            loadOptions.InferSchema = inferSchema;
+            loadOptions.HasHeaderRow = options.HasHeaderRow;
+            loadOptions.CancellationToken = cancellationToken;
             return CsvDocument.OpenReader(
                 options.InputPath,
                 loadOptions);
@@ -267,6 +269,10 @@ Sheet and schema names escape backslashes and controls as \\, \t, \r, \n, or \uX
                 CancellationToken = cancellationToken
             });
     }
+
+    // .tsv without an explicit delimiter is IANA TSV: no quoting, quotes are data.
+    private static bool IsTsvPath(string path, char? delimiter) =>
+        delimiter is null && string.Equals(Path.GetExtension(path), ".tsv", StringComparison.OrdinalIgnoreCase);
 
     private static char ResolveDelimiter(string path, char? delimiter) => delimiter ??
         (string.Equals(Path.GetExtension(path), ".tsv", StringComparison.OrdinalIgnoreCase) ? '\t' : ',');

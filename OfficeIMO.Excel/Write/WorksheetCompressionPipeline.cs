@@ -5,16 +5,18 @@ using System.Runtime.ExceptionServices;
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Overlaps one private worksheet entry's compression with caller-side serialization.
-    /// Two owned buffers bound the handoff. Completion publishes all bytes; disposal
+    /// Four owned buffers bound the handoff. Completion publishes all bytes; disposal
     /// after a failed producer aborts and joins before clearing pooled storage.
     /// </summary>
     internal sealed class WorksheetCompressionPipeline : Stream {
-        private const int ChunkSize = 64 * 1024;
+        // Large chunks keep thread hand-offs rare; a busy host can take milliseconds to wake the consumer.
+        internal const int ChunkSize = 256 * 1024;
+        private const int BufferCount = 4;
         private readonly Stream _destination;
-        private readonly BlockingCollection<byte[]> _available = new(2);
+        private readonly BlockingCollection<byte[]> _available = new(BufferCount);
         private readonly BlockingCollection<Chunk> _ready = new(1);
         private readonly CancellationTokenSource _stop = new();
-        private readonly byte[][] _owned = new byte[2][];
+        private readonly byte[][] _owned = new byte[BufferCount][];
         private readonly Task _worker;
         private byte[]? _current;
         private int _count;

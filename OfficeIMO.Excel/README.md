@@ -199,6 +199,13 @@ and factory mapping, with `ExcelReaderOptions` and cancellation. Their
 `cancellationToken` and preserve source order. `OpenReaderAsync` returns
 `Task<ExcelWorkbookDataReader>` on .NET 8 and later.
 
+The reader validates the whole worksheet before returning its first row. For large XLSX
+worksheets, `new ExcelReaderOptions { EnableSinglePassReading = true }` returns rows while
+the rest of the sheet is still being read. An invalid cell then raises the same error, naming
+the same cell, but only after the rows before it have been returned, so use it where a
+part-way failure can be discarded. The option applies on .NET 8 and later; on .NET Framework
+and .NET Standard, and for XLS and XLSB, the reader always validates first.
+
 XML Spreadsheet import also limits defined names (10,000 by default). Set `ExcelSpreadsheetXmlOptions.MaxNames` for a larger trusted workbook.
 
 ## Large exports
@@ -230,7 +237,7 @@ using (var writer = ExcelDocument.CreateWriter(ExcelFileFormat.Xlsb, "Events.xls
 }
 ```
 
-Use `ExcelFileFormat.Xls` for BIFF8 output, within its limit of 65,536 rows (including headers) and 256 columns. XLS stages native records and its required shared-string table; `RequireStreaming=true` rejects that format. Binary row writers create plain worksheets and reject tables, AutoFit, freeze panes and declared styles. Existing `CreateWriter(path)` and `CreateWriter(stream)` calls select XLSX. `WriteData` retains its selector and buffering behavior.
+Use `ExcelFileFormat.Xls` for BIFF8 output, within its limit of 65,536 rows (including headers) and 256 columns. XLS stages native records in memory, so `RequireStreaming=true` rejects that format. With `UseSharedStrings=false` (the binary default) text up to 255 characters is written as inline BIFF8 labels; longer text, or `UseSharedStrings=true`, uses the shared-string table. Binary row writers create plain worksheets and reject tables, AutoFit, freeze panes and declared styles. Existing `CreateWriter(path)` and `CreateWriter(stream)` calls select XLSX. `WriteData` retains its selector and buffering behavior.
 
 XLS and XLSB numeric cells use IEEE-754 double precision, including when a callback supplies a `decimal`, `long` or `ulong`. Large integers and high-precision decimals may lose digits. Write identifiers or exact decimal text as strings when every digit matters.
 

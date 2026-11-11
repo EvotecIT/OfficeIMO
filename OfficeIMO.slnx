@@ -250,6 +250,8 @@
   <Project Path="OfficeIMO.Pdf.Excel/OfficeIMO.Pdf.Excel.csproj" />
   <Project Path="OfficeIMO.Pdf.Ocr/OfficeIMO.Pdf.Ocr.csproj" />
   <Project Path="OfficeIMO.Pdf.PowerPoint/OfficeIMO.Pdf.PowerPoint.csproj" />
+  <Project Path="OfficeIMO.Pdf.Testing.Tests/OfficeIMO.Pdf.Testing.Tests.csproj" />
+  <Project Path="OfficeIMO.Pdf.Testing/OfficeIMO.Pdf.Testing.csproj" />
   <Project Path="OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj" />
   <Project Path="OfficeIMO.Pdf.Word/OfficeIMO.Pdf.Word.csproj" />
   <Project Path="OfficeIMO.Pdf/OfficeIMO.Pdf.csproj" />

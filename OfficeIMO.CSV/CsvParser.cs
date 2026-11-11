@@ -123,7 +123,7 @@ internal static partial class CsvParser
             throw new ArgumentOutOfRangeException(nameof(recordsToSkip), "SkipInitialRecords cannot be negative.");
         }
 
-        if (HasFieldLengthLimits(options))
+        if (RequiresFieldMaterialization(options))
         {
             ReadFieldSpansMaterialized(reader, options, recordsToSkip, ref fieldVisitor);
             return;
@@ -138,8 +138,9 @@ internal static partial class CsvParser
         ReadFieldSpansLineOrQuoted(reader, options, recordsToSkip, ref fieldVisitor);
     }
 
-    private static bool HasFieldLengthLimits(CsvParsingSettings options) =>
-        options.MaxFieldLength.HasValue || options.MaxQuotedFieldLength.HasValue;
+    // Span visitors receive source text directly; limits and escape decoding need materialized fields.
+    private static bool RequiresFieldMaterialization(CsvParsingSettings options) =>
+        options.MaxFieldLength.HasValue || options.MaxQuotedFieldLength.HasValue || options.DecodesBackslashEscapes;
 
     private static bool NeedsLogicalCommentSkipping(CsvParsingSettings options) =>
         options.SkipCommentRows ||
@@ -188,7 +189,7 @@ internal static partial class CsvParser
                 continue;
             }
 
-            if (TrySplitUnquotedRecord(line, delimiter, trim, out var record))
+            if (TrySplitUnquotedRecord(line, delimiter, trim, options.QuotesAreData, out var record))
             {
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount) &&
                     ShouldEmitRecord(record, allowEmpty))
@@ -275,7 +276,7 @@ internal static partial class CsvParser
                 continue;
             }
 
-            if (TrySplitUnquotedRecord(line, delimiter, trim, out var record))
+            if (TrySplitUnquotedRecord(line, delimiter, trim, options.QuotesAreData, out var record))
             {
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount) &&
                     ShouldEmitRecord(record, allowEmpty))
@@ -398,7 +399,7 @@ internal static partial class CsvParser
                 continue;
             }
 
-            if (TrySplitUnquotedRecord(line, delimiter, trim, reusableRecord))
+            if (TrySplitUnquotedRecord(line, delimiter, trim, options.QuotesAreData, reusableRecord))
             {
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount) &&
                     ShouldEmitRecord(reusableRecord, allowEmpty))
@@ -520,7 +521,7 @@ internal static partial class CsvParser
                 continue;
             }
 
-            if (TrySplitUnquotedRecord(line, delimiter, trim, reusableRecord))
+            if (TrySplitUnquotedRecord(line, delimiter, trim, options.QuotesAreData, reusableRecord))
             {
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount) &&
                     ShouldEmitRecord(reusableRecord, allowEmpty))
@@ -597,6 +598,14 @@ internal static partial class CsvParser
             CsvLineReadResult readResult;
             if (pendingLines.Count == 0)
             {
+                // Separators inside quoted fields are consumed by the line reader itself.
+                lineNumber = lineReader.PhysicalLineSeparatorsConsumed + 1;
+            }
+
+            // Progress reports the physical line on which the record starts.
+            int recordStartLineNumber = pendingLines.Count > 0 ? pendingLines.Peek().PhysicalLineNumber : lineNumber;
+            if (pendingLines.Count == 0)
+            {
                 readResult = lineReader.ReadUnquotedFieldSpansOrLine(
                     delimiter,
                     trim,
@@ -658,7 +667,7 @@ internal static partial class CsvParser
                 continue;
             }
 
-            if (line.IndexOf('"') < 0 && TrySplitUnquotedRecord(line, delimiter, trim, out var record))
+            if ((options.QuotesAreData || line.IndexOf('"') < 0) && TrySplitUnquotedRecord(line, delimiter, trim, options.QuotesAreData, out var record))
             {
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount) &&
                     ShouldEmitRecord(record, allowEmpty))
@@ -719,7 +728,7 @@ internal static partial class CsvParser
                     }
 
                     emittedRecordCount++;
-                    ReportProgress(options, emittedRecordCount, lineNumber);
+                    ReportProgress(options, emittedRecordCount, recordStartLineNumber);
                 }
             }
 
@@ -744,13 +753,13 @@ internal static partial class CsvParser
     }
 #endif
 
-    private static bool TrySplitUnquotedRecord(string line, char delimiter, bool trim, out string[] fields)
+    private static bool TrySplitUnquotedRecord(string line, char delimiter, bool trim, bool quotesAreData, out string[] fields)
     {
         var fieldCount = 1;
         for (var i = 0; i < line.Length; i++)
         {
             var value = line[i];
-            if (value == '"')
+            if (value == '"' && !quotesAreData)
             {
                 fields = Array.Empty<string>();
                 return false;
@@ -781,14 +790,14 @@ internal static partial class CsvParser
         return true;
     }
 
-    private static bool TrySplitUnquotedRecord(string line, char delimiter, bool trim, List<string> fields)
+    private static bool TrySplitUnquotedRecord(string line, char delimiter, bool trim, bool quotesAreData, List<string> fields)
     {
         fields.Clear();
         var start = 0;
         for (var i = 0; i < line.Length; i++)
         {
             var value = line[i];
-            if (value == '"')
+            if (value == '"' && !quotesAreData)
             {
                 fields.Clear();
                 return false;
@@ -856,7 +865,7 @@ internal static partial class CsvParser
         }
 
         var delimiter = GetDelimiterChar(options);
-        if (TryParseQuotedRecordLenient(firstLine, delimiter, options.TrimWhitespace, out _))
+        if (options.QuotesAreData || TryParseQuotedRecordLenient(firstLine, delimiter, options.TrimWhitespace, out _))
         {
             return true;
         }
@@ -1017,6 +1026,29 @@ internal static partial class CsvParser
         throw exception;
     }
 
+    /// <summary>
+    /// Skips the record or throws <paramref name="exception"/> as the parser's
+    /// <c>catch … when (HandleParseError(…))</c> filters do: past the error limit the original error
+    /// is thrown, still collected.
+    /// </summary>
+    private static void SkipOrThrowParseError(CsvParsingSettings options, CsvParseException exception, int lineNumber)
+    {
+        bool skip;
+        try
+        {
+            skip = HandleParseError(options, exception, lineNumber);
+        }
+        catch (CsvParseException)
+        {
+            skip = false;
+        }
+
+        if (!skip)
+        {
+            throw exception;
+        }
+    }
+
     private static void PrepareParsedRecord(string[] fields, CsvParsingSettings options, int lineNumber, bool quotedRecord, CsvStringCache? stringCache)
     {
         for (var i = 0; i < fields.Length; i++)
@@ -1059,16 +1091,36 @@ internal static partial class CsvParser
         }
     }
 
+    private static bool HasFieldLengthLimits(CsvParsingSettings options) =>
+        options.MaxFieldLength.HasValue || options.MaxQuotedFieldLength.HasValue;
+
+    /// <summary>
+    /// The longest field text a record may hold. Every field of a record whose text contains a quote
+    /// is also held to <see cref="CsvParsingSettings.MaxQuotedFieldLength"/>.
+    /// </summary>
+    private static int GetFieldLengthLimit(CsvParsingSettings options, bool quotedRecord) =>
+        Math.Min(
+            options.MaxFieldLength ?? int.MaxValue,
+            quotedRecord ? options.MaxQuotedFieldLength ?? int.MaxValue : int.MaxValue);
+
+    /// <summary>Describes a field longer than <see cref="GetFieldLengthLimit"/> allows.</summary>
+    private static CsvParseException CreateFieldLengthException(CsvParsingSettings options, int length, int lineNumber) =>
+        options.MaxFieldLength is { } maxFieldLength && length > maxFieldLength
+            ? new CsvParseException($"CSV field length {length} exceeds the configured maximum of {maxFieldLength}.", lineNumber)
+            : new CsvParseException(
+                $"CSV quoted field length {length} exceeds the configured maximum of {options.MaxQuotedFieldLength}.",
+                lineNumber);
+
     private static string PrepareParsedField(string value, CsvParsingSettings options, int lineNumber, bool quotedField, CsvStringCache? stringCache)
     {
-        if (options.MaxFieldLength is { } maxFieldLength && value.Length > maxFieldLength)
+        if (options.DecodesBackslashEscapes)
         {
-            throw new CsvParseException($"CSV field length {value.Length} exceeds the configured maximum of {maxFieldLength}.", lineNumber);
+            value = CsvBackslashEscapes.Decode(value);
         }
 
-        if (quotedField && options.MaxQuotedFieldLength is { } maxQuotedFieldLength && value.Length > maxQuotedFieldLength)
+        if (HasFieldLengthLimits(options) && value.Length > GetFieldLengthLimit(options, quotedField))
         {
-            throw new CsvParseException($"CSV quoted field length {value.Length} exceeds the configured maximum of {maxQuotedFieldLength}.", lineNumber);
+            throw CreateFieldLengthException(options, value.Length, lineNumber);
         }
 
         if (options.NormalizeQuotes)

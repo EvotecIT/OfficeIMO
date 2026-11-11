@@ -83,14 +83,14 @@ internal static class OfficeRasterStroker {
         var outY = outgoing.X * side;
         var piece = new List<OfficePoint> { vertex, new OfficePoint(vertex.X + inX * half, vertex.Y + inY * half) };
         if (join == OfficeStrokeLineJoin.Round) {
-            var start = Math.Atan2(inY, inX);
-            var sweep = Math.Atan2(outY, outX) - start;
+            var start = OfficeDeterministicTrig.Atan2(inY, inX);
+            var sweep = OfficeDeterministicTrig.Atan2(outY, outX) - start;
             if (sweep > Math.PI) sweep -= Math.PI * 2;
             else if (sweep < -Math.PI) sweep += Math.PI * 2;
             var steps = OfficeCurveFlattening.ArcSegments(half * pixelsPerUnit, sweep);
             for (var i = 1; i < steps; i++) {
                 var angle = start + sweep * i / steps;
-                piece.Add(new OfficePoint(vertex.X + Math.Cos(angle) * half, vertex.Y + Math.Sin(angle) * half));
+                piece.Add(new OfficePoint(vertex.X + OfficeDeterministicTrig.Cos(angle) * half, vertex.Y + OfficeDeterministicTrig.Sin(angle) * half));
             }
         } else if (join == OfficeStrokeLineJoin.Miter) {
             var cosHalf = Math.Sqrt(Math.Max(0, (1 + dot) / 2));
@@ -134,12 +134,12 @@ internal static class OfficeRasterStroker {
         }
 
         // The normal turned a quarter turn backwards is the outward direction, so the half disc sweeps that way.
-        var start = Math.Atan2(ny, nx);
+        var start = OfficeDeterministicTrig.Atan2(ny, nx);
         var steps = Math.Max(2, OfficeCurveFlattening.ArcSegments(half * pixelsPerUnit, Math.PI));
         var piece = new List<OfficePoint>(steps + 1);
         for (var i = 0; i <= steps; i++) {
             var angle = start - Math.PI * i / steps;
-            piece.Add(new OfficePoint(end.X + Math.Cos(angle) * half, end.Y + Math.Sin(angle) * half));
+            piece.Add(new OfficePoint(end.X + OfficeDeterministicTrig.Cos(angle) * half, end.Y + OfficeDeterministicTrig.Sin(angle) * half));
         }
 
         AddPiece(output, piece, style);

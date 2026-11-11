@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private static partial class DirectDataSetWorkbookWriter {
             private static void WriteTable(
-                ZipArchive archive,
+                ExcelPackageArchive archive,
                 DirectDataSetSheetModel sheet,
                 string? range = null) {
                 int columnCount = sheet.Table.ColumnCount;

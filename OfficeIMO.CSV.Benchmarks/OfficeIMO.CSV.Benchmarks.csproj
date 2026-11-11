@@ -32,6 +32,7 @@
     <Compile Include="..\Benchmarks\MarkPflug65KFixture.cs" Link="Shared\MarkPflug65KFixture.cs" />
     <Compile Include="..\Benchmarks\CsvReadObservation.cs" Link="Shared\CsvReadObservation.cs" />
     <Compile Include="..\Benchmarks\CsvBenchmarkData.cs" Link="Shared\CsvBenchmarkData.cs" />
+    <Compile Include="..\Benchmarks\PackageAssetsCsvFixture.cs" Link="Shared\PackageAssetsCsvFixture.cs" />
   </ItemGroup>
 
   <Target Name="RemoveIncompatibleExcelReaderGenerator" BeforeTargets="CoreCompile">

@@ -9,7 +9,7 @@ using System.Xml;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
 
-        private static void WriteContentTypesEntry(ZipArchive archive, string workbookContentType, bool hasStyles, bool hasSharedStrings, bool hasCustomProperties, int worksheetCount, int tableCount) {
+        private static void WriteContentTypesEntry(ExcelPackageArchive archive, string workbookContentType, bool hasStyles, bool hasSharedStrings, bool hasCustomProperties, int worksheetCount, int tableCount) {
             var builder = new System.Text.StringBuilder(512 + worksheetCount * 160 + tableCount * 160);
             builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
             builder.Append("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">");
@@ -48,10 +48,10 @@ namespace OfficeIMO.Excel {
             WriteTextEntry(archive, "[Content_Types].xml", builder.ToString());
         }
 
-        private static void WriteWorkbookEntry(ZipArchive archive, FastWorkbookPackageModel model) {
-            var entry = archive.CreateEntry("xl/workbook.xml", CompressionLevel.Fastest);
+        private static void WriteWorkbookEntry(ExcelPackageArchive archive, FastWorkbookPackageModel model) {
+            string partEntryName = "xl/workbook.xml";
             var worksheets = model.Worksheets;
-            using var stream = entry.Open();
+            using var stream = archive.OpenEntry(partEntryName, CompressionLevel.Fastest);
             using var writer = CreateFastXmlWriter(stream);
             writer.WriteStartDocument();
             writer.WriteStartElement("workbook", "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
@@ -101,7 +101,7 @@ namespace OfficeIMO.Excel {
             writer.WriteEndElement();
         }
 
-        private static void WriteWorkbookRelationshipsEntry(ZipArchive archive, IReadOnlyList<FastWorksheetPackageModel> worksheets, bool hasStyles, bool hasSharedStrings) {
+        private static void WriteWorkbookRelationshipsEntry(ExcelPackageArchive archive, IReadOnlyList<FastWorksheetPackageModel> worksheets, bool hasStyles, bool hasSharedStrings) {
             var builder = new System.Text.StringBuilder(384 + worksheets.Count * 180);
             builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
             builder.Append("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">");
@@ -129,7 +129,7 @@ namespace OfficeIMO.Excel {
             WriteTextEntry(archive, "xl/_rels/workbook.xml.rels", builder.ToString());
         }
 
-        private static void WriteCorePropertiesEntry(ZipArchive archive) {
+        private static void WriteCorePropertiesEntry(ExcelPackageArchive archive) {
             WriteTextEntry(archive, "docProps/core.xml", CreateCorePropertiesXml());
         }
 
@@ -172,7 +172,7 @@ namespace OfficeIMO.Excel {
             return builder.ToString();
         }
 
-        private static void WriteAppPropertiesEntry(ZipArchive archive) {
+        private static void WriteAppPropertiesEntry(ExcelPackageArchive archive) {
             WriteTextEntry(archive, "docProps/app.xml", CreateAppPropertiesXml());
         }
 
@@ -216,38 +216,38 @@ namespace OfficeIMO.Excel {
             builder.Append('>');
         }
 
-        private static void WriteSharedStringsEntry(ZipArchive archive, SharedStringTable sharedStrings) {
+        private static void WriteSharedStringsEntry(ExcelPackageArchive archive, SharedStringTable sharedStrings) {
             WriteOpenXmlElementEntry(archive, "xl/sharedStrings.xml", sharedStrings, preserveLineEndings: true);
         }
 
-        private static void WriteOpenXmlElementEntry(ZipArchive archive, string path, OpenXmlElement element, bool preserveLineEndings = false) {
-            var entry = archive.CreateEntry(path, CompressionLevel.Fastest);
-            using var stream = entry.Open();
+        private static void WriteOpenXmlElementEntry(ExcelPackageArchive archive, string path, OpenXmlElement element, bool preserveLineEndings = false) {
+            string partEntryName = path;
+            using var stream = archive.OpenEntry(partEntryName, CompressionLevel.Fastest);
             using var writer = CreateFastXmlWriter(stream, preserveLineEndings);
             writer.WriteStartDocument();
             element.WriteTo(writer);
         }
 
-        private static void WriteBinaryEntry(ZipArchive archive, string path, byte[] bytes) {
-            var entry = archive.CreateEntry(path, CompressionLevel.Fastest);
-            using var stream = entry.Open();
+        private static void WriteBinaryEntry(ExcelPackageArchive archive, string path, byte[] bytes) {
+            string partEntryName = path;
+            using var stream = archive.OpenEntry(partEntryName, CompressionLevel.Fastest);
             stream.Write(bytes, 0, bytes.Length);
         }
 
-        private static void WriteRawPartEntry(ZipArchive archive, string path, byte[] bytes) {
-            var entry = archive.CreateEntry(path, CompressionLevel.Fastest);
-            using var stream = entry.Open();
+        private static void WriteRawPartEntry(ExcelPackageArchive archive, string path, byte[] bytes) {
+            string partEntryName = path;
+            using var stream = archive.OpenEntry(partEntryName, CompressionLevel.Fastest);
             stream.Write(bytes, 0, bytes.Length);
         }
 
-        private static void WriteRawPartEntry(ZipArchive archive, string path, OpenXmlPart part) {
-            var entry = archive.CreateEntry(path, CompressionLevel.Fastest);
-            using var destination = entry.Open();
+        private static void WriteRawPartEntry(ExcelPackageArchive archive, string path, OpenXmlPart part) {
+            string partEntryName = path;
+            using var destination = archive.OpenEntry(partEntryName, CompressionLevel.Fastest);
             using var source = part.GetStream(FileMode.Open, FileAccess.Read);
             source.CopyTo(destination);
         }
 
-        private static void WriteWorksheetRelationshipsEntry(ZipArchive archive, FastWorksheetPackageModel worksheet) {
+        private static void WriteWorksheetRelationshipsEntry(ExcelPackageArchive archive, FastWorksheetPackageModel worksheet) {
             var builder = new System.Text.StringBuilder(160 + worksheet.TablePartPaths.Count * 180 + worksheet.HyperlinkRelationships.Count * 220);
             builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
             builder.Append("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">");
