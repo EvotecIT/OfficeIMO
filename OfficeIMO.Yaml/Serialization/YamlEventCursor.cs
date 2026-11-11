@@ -51,6 +51,12 @@ internal sealed class YamlRecording {
     /// kept (<see cref="YamlEventCursor.StopLogging"/>), and then nothing may replay it.
     /// </summary>
     public bool Logged { get; set; } = true;
+
+    /// <summary>The untyped value read for the anchored node, which the aliases to it return; see <see cref="YamlReadState.Share"/>.</summary>
+    public object? Shared;
+
+    /// <summary>Whether <see cref="Shared"/> holds the value read for the anchored node.</summary>
+    public bool HasShared;
 }
 
 /// <summary>
@@ -91,7 +97,9 @@ internal sealed class YamlEventCursor {
     private YamlRecording? _liveDefined;
 
     // Anchors of the current document, and the log their events are recorded in.
-    private Dictionary<string, YamlRecording>? _anchors;
+    private YamlAnchorMap? _anchors;
+    // The recording the current live alias refers to, found once when the reader reaches it.
+    private YamlRecording? _aliasTarget;
     private List<YamlRecordedEvent>? _log;
     private List<YamlRecording>? _open;
     private List<YamlRecording>? _captures;
@@ -123,7 +131,9 @@ internal sealed class YamlEventCursor {
         _recordedWeight = 0;
         _logging = 0;
         _liveDefined = null;
-        _anchors?.Clear();
+        _aliasTarget = null;
+        if (_anchors is { Count: > MaxKeptLog }) _anchors = null;
+        else _anchors?.Clear();
         if (_log is { Capacity: > MaxKeptLog }) _log = null;
         else _log?.Clear();
         _open?.Clear();
@@ -251,7 +261,7 @@ internal sealed class YamlEventCursor {
     public YamlRecording? AliasTarget {
         get {
             if (!_live) return _current.Type == YamlTokenType.Alias ? _current.Recording : null;
-            return _anchors is not null && _anchors.TryGetValue(_reader!.GetString(), out YamlRecording? target) ? target : null;
+            return _reader!.TokenType == YamlTokenType.Alias ? _aliasTarget : null;
         }
     }
 
@@ -308,16 +318,38 @@ internal sealed class YamlEventCursor {
             type = reader.TokenType;
             if (type != YamlTokenType.Comment) break;
         }
-        // Most events define no anchor and arrive while nothing records: only the depth changes.
-        if (type != YamlTokenType.DocumentStart && !reader.HasAnchor && _open is not { Count: > 0 } && _captures is not { Count: > 0 }) {
+        // Most events define no anchor and arrive while nothing is captured or logged: only the depth changes, and
+        // inside anchored nodes whose events are not kept, their weights.
+        if (type != YamlTokenType.DocumentStart && _logging == 0 && !reader.HasAnchor && _captures is not { Count: > 0 }) {
             _currentLogIndex = -1;
-            if (type is YamlTokenType.MappingStart or YamlTokenType.SequenceStart) _depth++;
-            else if (type is YamlTokenType.MappingEnd or YamlTokenType.SequenceEnd) _depth--;
+            bool open = _open is { Count: > 0 };
+            switch (type) {
+                case YamlTokenType.MappingStart:
+                case YamlTokenType.SequenceStart:
+                    _depth++;
+                    if (open) _recordedWeight++;
+                    break;
+                case YamlTokenType.MappingEnd:
+                case YamlTokenType.SequenceEnd:
+                    _depth--;
+                    if (open) CloseRecordings();
+                    break;
+                case YamlTokenType.Scalar:
+                    if (open) _recordedWeight++;
+                    break;
+                case YamlTokenType.Alias:
+                    YamlRecording? target = _aliasTarget = FindAlias(reader);
+                    if (open) _recordedWeight += 1 + (target?.Weight ?? 0);
+                    break;
+            }
             return true;
         }
         OnLiveEvent();
         return true;
     }
+
+    /// <summary>Finds the recording the reader's current alias refers to, by the name's span.</summary>
+    private YamlRecording? FindAlias(YamlReader reader) => _anchors?.Find(reader.ValueSpan);
 
     /// <summary>Skips the current node, leaving the cursor on its last event. Aliases are not expanded.</summary>
     public void Skip() {
@@ -346,9 +378,9 @@ internal sealed class YamlEventCursor {
     public void ExpandAlias() {
         YamlRecording? target;
         if (_live) {
-            string name = _reader!.GetString();
-            if (_anchors is null || !_anchors.TryGetValue(name, out target)) {
-                throw new YamlException(YamlErrorCodes.UndefinedAlias, "The alias '*" + name + "' refers to no anchor defined before it in the document.", Position);
+            target = _aliasTarget;
+            if (target is null) {
+                throw new YamlException(YamlErrorCodes.UndefinedAlias, "The alias '*" + _reader!.GetString() + "' refers to no anchor defined before it in the document.", Position);
             }
         } else {
             target = (_current.Type == YamlTokenType.Alias ? _current.Recording : null) ?? throw new YamlException(YamlErrorCodes.UndefinedAlias, "The alias '*" + _current.Value + "' refers to no anchor defined before it in the document.", Position);
@@ -413,6 +445,7 @@ internal sealed class YamlEventCursor {
         YamlReader reader = _reader!;
         YamlTokenType type = reader.TokenType;
         _currentLogIndex = -1;
+        if (type == YamlTokenType.Alias) _aliasTarget = FindAlias(reader);
         switch (type) {
             case YamlTokenType.DocumentStart:
                 // Anchors are scoped to their document.
@@ -435,7 +468,7 @@ internal sealed class YamlEventCursor {
             _log ??= new List<YamlRecordedEvent>();
             defined = new YamlRecording(_log, _log.Count) { Depth = _depth, WeightStart = _recordedWeight };
             (_open ??= new List<YamlRecording>()).Add(defined);
-            (_anchors ??= new Dictionary<string, YamlRecording>(StringComparer.Ordinal))[reader.Anchor!] = defined;
+            (_anchors ??= new YamlAnchorMap()).Set(reader.Anchor!, defined);
             _liveDefined = defined;
             _logging++;
             open = true;
@@ -448,7 +481,7 @@ internal sealed class YamlEventCursor {
             if (node) _recordedWeight += type == YamlTokenType.Alias ? 1 + (recorded.Recording?.Weight ?? 0) : 1;
             _log.Add(recorded);
         } else if (open && node) {
-            _recordedWeight += type == YamlTokenType.Alias && _anchors!.TryGetValue(reader.GetString(), out YamlRecording? target) ? 1 + target.Weight : 1;
+            _recordedWeight += type == YamlTokenType.Alias ? 1 + (_aliasTarget?.Weight ?? 0) : 1;
         }
         if (_captures is { Count: > 0 }) {
             YamlRecordedEvent snapshot = logging ? _log![_currentLogIndex] : Snapshot();
@@ -515,9 +548,8 @@ internal sealed class YamlEventCursor {
                 snapshot.Tag = reader.Tag;
                 break;
             case YamlTokenType.Alias:
-                string name = reader.GetString();
-                snapshot.Value = name;
-                if (_anchors is not null && _anchors.TryGetValue(name, out YamlRecording? target)) snapshot.Recording = target;
+                snapshot.Value = reader.GetString();
+                snapshot.Recording = _aliasTarget;
                 break;
         }
         return snapshot;
