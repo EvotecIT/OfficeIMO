@@ -402,6 +402,14 @@ internal static partial class TextContentParser {
 
         // Plain string extraction never exposes encoded glyphs or paint identities.
         bool retainGlyphAndPaintEvidence = retainEditingEvidence || !useLogicalTextFilters;
+        byte[]?[]? kernedRunBytes = null;
+        double[]?[]? kernedRunKerning = null;
+        // Runs without glyph evidence never add to these lists, so one empty set serves every run.
+        List<double>? noEvidenceAdvances = retainGlyphAndPaintEvidence ? null : new List<double>(0);
+        List<int>? noEvidenceCharacterLengths = retainGlyphAndPaintEvidence ? null : new List<int>(0);
+        List<byte[]>? noEvidenceGlyphBytes = retainGlyphAndPaintEvidence ? null : new List<byte[]>(0);
+        List<double>? noEvidencePaintedAdvances = retainGlyphAndPaintEvidence ? null : new List<double>(0);
+        List<string>? noEvidenceLogicalTexts = retainGlyphAndPaintEvidence ? null : new List<string>(0);
         var spans = new List<PdfTextSpan>();
         PdfTextStateSnapshot startingTextState = initialTextState ?? PdfTextStateSnapshot.Default;
         // Text state
@@ -1084,12 +1092,18 @@ internal static partial class TextContentParser {
                 // text operand has an unknown advance even if its prefix is decodable.
                 throw new PdfUnsupportedTextMappingException(twoByteFont);
             }
+            byte[]? reusableSingleByteCode = null;
+            byte[]? reusableTwoByteCode = null;
             if (!twoByte && bytes.Length >= 2) {
-                string one = DecodeRun(new byte[] { bytes[0] }, probe: true);
-                string two = DecodeRun(new byte[] { bytes[0], bytes[1] }, probe: true);
-                double firstByteWidth = sumWidth1000ForFont(font, new byte[] { bytes[0] });
-                double secondByteWidth = sumWidth1000ForFont(font, new byte[] { bytes[1] });
-                double pairWidth = sumWidth1000ForFont(font, new byte[] { bytes[0], bytes[1] });
+                // Decoders and width providers read probe codes without retaining them.
+                byte[] firstCode = reusableSingleByteCode = new byte[] { bytes[0] };
+                byte[] pairCode = reusableTwoByteCode = new byte[] { bytes[0], bytes[1] };
+                string one = DecodeRun(firstCode, probe: true);
+                string two = DecodeRun(pairCode, probe: true);
+                double firstByteWidth = sumWidth1000ForFont(font, firstCode);
+                firstCode[0] = bytes[1];
+                double secondByteWidth = sumWidth1000ForFont(font, firstCode);
+                double pairWidth = sumWidth1000ForFont(font, pairCode);
                 twoByte = (IsNullOrEmptyDecodedGlyph(one) && !IsNullOrEmptyDecodedGlyph(two)) ||
                     (firstByteWidth <= 0 && secondByteWidth <= 0 && pairWidth > 0);
             }
@@ -1097,13 +1111,11 @@ internal static partial class TextContentParser {
             // Per-glyph evidence feeds spans that expose glyphs, paint or visual trimming. Plain
             // logical text reads none of it, so those runs skip the lists and reuse code buffers.
             int glyphCapacity = retainGlyphAndPaintEvidence ? (twoByte ? (bytes.Length + 1) / 2 : bytes.Length) : 0;
-            var decodedAdvances = new List<double>(glyphCapacity);
-            var decodedGlyphCharacterLengths = new List<int>(glyphCapacity);
-            var decodedGlyphBytes = new List<byte[]>(glyphCapacity);
-            var decodedGlyphPaintedAdvances = new List<double>(glyphCapacity);
-            var decodedGlyphLogicalTexts = new List<string>(glyphCapacity);
-            byte[]? reusableSingleByteCode = null;
-            byte[]? reusableTwoByteCode = null;
+            List<double> decodedAdvances = noEvidenceAdvances ?? new List<double>(glyphCapacity);
+            List<int> decodedGlyphCharacterLengths = noEvidenceCharacterLengths ?? new List<int>(glyphCapacity);
+            List<byte[]> decodedGlyphBytes = noEvidenceGlyphBytes ?? new List<byte[]>(glyphCapacity);
+            List<double> decodedGlyphPaintedAdvances = noEvidencePaintedAdvances ?? new List<double>(glyphCapacity);
+            List<string> decodedGlyphLogicalTexts = noEvidenceLogicalTexts ?? new List<string>(glyphCapacity);
             bool hasUndecodableGlyph = false;
             double advTotal = 0;
             string wholeDecoded = NormalizeDecodedGlyphText(DecodeRun(bytes) ?? string.Empty);
@@ -1161,7 +1173,7 @@ internal static partial class TextContentParser {
                     + (kerningAfterByte != null ? kerningAfterByte[idx + step - 1] : 0D)) * hScale;
                 if (ch != '\0') {
                     decodedGlyphCount++;
-                    eachDecodedGlyphIsOneTextElement &= t.Length == 1 || OfficeTextElements.Enumerate(t).Count() == 1;
+                    eachDecodedGlyphIsOneTextElement &= t.Length == 1 || OfficeTextElements.Count(t) == 1;
                     sbOut.Append(t);
                     if (retainGlyphAndPaintEvidence) {
                         decodedGlyphCharacterLengths.Add(t.Length);
@@ -1240,10 +1252,10 @@ internal static partial class TextContentParser {
                 !forceCannotRestamp;
             double restampFontSize = size * unitYLength;
             IReadOnlyList<double>? transformedCharacterAdvances = retainGlyphAndPaintEvidence && !hasUndecodableGlyph && decodedAdvances.Count == textOut.Length
-                ? decodedAdvances.Select(advance => advance * unitXLength).ToArray()
+                ? ScaleAdvances(decodedAdvances, unitXLength)
                 : null;
             double[]? transformedGlyphPaintedAdvances = retainGlyphAndPaintEvidence && decodedGlyphPaintedAdvances.Count == decodedGlyphCharacterLengths.Count
-                ? decodedGlyphPaintedAdvances.Select(advance => advance * unitXLength).ToArray()
+                ? ScaleAdvances(decodedGlyphPaintedAdvances, unitXLength)
                 : null;
             bool useStrokePaint = !usesVisibleFill && usesVisibleStroke;
             OfficeColor paintColor = useStrokePaint ? strokeColor : fillColor;
@@ -1409,8 +1421,8 @@ internal static partial class TextContentParser {
                         spanGlyphBytes.Count == spanGlyphCharacterLengths.Count
                         ? spanGlyphBytes
                         : null,
-                    !hasUndecodableGlyph && spanGlyphCharacterLengths.Sum() == paintedText.Length &&
-                        spanGlyphPaintedAdvances?.Length == spanGlyphCharacterLengths.Count
+                    spanGlyphPaintedAdvances?.Length == spanGlyphCharacterLengths.Count &&
+                        !hasUndecodableGlyph && spanGlyphCharacterLengths.Sum() == paintedText.Length
                         ? spanGlyphPaintedAdvances
                         : null,
                     characterAdvanceDirection,
@@ -1420,7 +1432,7 @@ internal static partial class TextContentParser {
                         !usedWholeDecodedText &&
                         spanGlyphCount >= 2 &&
                         eachDecodedGlyphIsOneTextElement &&
-                        spanGlyphCount == OfficeTextElements.Enumerate(spanText).Count() &&
+                        spanGlyphCount == OfficeTextElements.Count(spanText) &&
                         spanEndX - spanX > Math.Max(0.000001D, Math.Abs(spanEndY - spanY)),
                     isArtifactContent: hasActiveArtifact,
                     fontWeight: fontWeightForResource?.Invoke(font),
@@ -1608,7 +1620,10 @@ internal static partial class TextContentParser {
                 list = numericItems.Cast<object>().ToList();
             }
             if (list == null) return;
-            bool hasPositioningAdjustment = list.Any(static item => item is double value && Math.Abs(value) > 0.000001D);
+            bool hasPositioningAdjustment = false;
+            for (int index = 0; index < list.Count && !hasPositioningAdjustment; index++) {
+                hasPositioningAdjustment = list[index] is double value && Math.Abs(value) > 0.000001D;
+            }
             // Glyph-exact reads (redaction and editing evidence) keep one run per encoded string.
             if (hasPositioningAdjustment && mergeKernedTextArrays && useLogicalTextFilters && adjustKerningFromTJ &&
                 !requireMappedText && !preserveGlyphText && TryShowKernedTextArray(list, paintOrder)) return;
@@ -1659,8 +1674,19 @@ internal static partial class TextContentParser {
                 }
             }
             if (strings < 2) return false;
-            var bytes = new byte[totalBytes];
-            var kerning = new double[totalBytes];
+            // The joined run is read only while it is shown, so arrays of one length are reused.
+            byte[] bytes;
+            double[] kerning;
+            if (totalBytes < KernedRunScratchLengths) {
+                kernedRunBytes ??= new byte[KernedRunScratchLengths][];
+                kernedRunKerning ??= new double[KernedRunScratchLengths][];
+                bytes = kernedRunBytes[totalBytes] ??= new byte[totalBytes];
+                kerning = kernedRunKerning[totalBytes] ??= new double[totalBytes];
+                Array.Clear(kerning, 0, kerning.Length);
+            } else {
+                bytes = new byte[totalBytes];
+                kerning = new double[totalBytes];
+            }
             int offset = 0;
             double pending = 0D;
             for (int index = first; index <= last; index++) {
@@ -1813,6 +1839,13 @@ internal static partial class TextContentParser {
             return Math.Abs(angle) <= 0.000001D ? 0D : angle;
         }
 
+        // A capturing lambda here would move every local of a text run into a heap closure.
+        static double[] ScaleAdvances(List<double> advances, double scale) {
+            var scaled = new double[advances.Count];
+            for (int index = 0; index < scaled.Length; index++) scaled[index] = advances[index] * scale;
+            return scaled;
+        }
+
         static string NormalizeDecodedGlyphText(string text) =>
             text.Length == 0
                 ? text
@@ -1954,8 +1987,15 @@ internal static partial class TextContentParser {
         }
     }
 
-    private static bool IsNullOrEmptyDecodedGlyph(string? value) =>
-        string.IsNullOrEmpty(value) || value.All(static character => character == '\0');
+    private const int KernedRunScratchLengths = 512;
+
+    private static bool IsNullOrEmptyDecodedGlyph(string? value) {
+        if (string.IsNullOrEmpty(value)) return true;
+        for (int index = 0; index < value!.Length; index++) {
+            if (value[index] != '\0') return false;
+        }
+        return true;
+    }
 
     public static List<FormInvocation> ExtractFormInvocations(
         string content,

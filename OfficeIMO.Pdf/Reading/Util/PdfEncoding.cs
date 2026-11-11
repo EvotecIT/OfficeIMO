@@ -45,6 +45,61 @@ internal static class PdfEncoding {
 #endif
     }
 
+    /// <summary>Decodes byte segments as Latin-1 into one string, inserting <paramref name="separator"/> between segments.</summary>
+    internal static string Latin1JoinSegments(IReadOnlyList<byte[]> segments, char separator) {
+        long total = 0;
+        for (int index = 0; index < segments.Count; index++) {
+            if (index > 0) total++;
+            total += segments[index].Length;
+        }
+        if (total == 0) return string.Empty;
+        int length = checked((int)total);
+#if NET8_0_OR_GREATER
+        return string.Create(length, (Segments: segments, Separator: separator), static (destination, state) => {
+            int offset = 0;
+            for (int index = 0; index < state.Segments.Count; index++) {
+                if (index > 0) destination[offset++] = state.Separator;
+                byte[] segment = state.Segments[index];
+                offset += Encoding.Latin1.GetChars(segment, destination.Slice(offset));
+            }
+        });
+#else
+        string result = new string('\0', length);
+        unsafe {
+            fixed (char* destination = result) {
+                int offset = 0;
+                for (int index = 0; index < segments.Count; index++) {
+                    if (index > 0) destination[offset++] = separator;
+                    byte[] segment = segments[index];
+                    for (int i = 0; i < segment.Length; i++) destination[offset++] = (char)segment[i];
+                }
+            }
+        }
+        return result;
+#endif
+    }
+
+#if NET8_0_OR_GREATER
+    /// <summary>Concatenates the per-code strings of <paramref name="codes"/> whose total length is already known.</summary>
+    internal static string ConcatCodeStrings(string[] map, byte[] codes, int length) {
+        if (length == 0) return string.Empty;
+        return string.Create(length, (Map: map, Codes: codes), static (destination, state) => {
+            int offset = 0;
+            foreach (byte code in state.Codes) {
+                string value = state.Map[code];
+                value.AsSpan().CopyTo(destination.Slice(offset));
+                offset += value.Length;
+            }
+        });
+    }
+#endif
+
+    internal static string[] CreateSingleCharacterStrings(char[] map) {
+        var strings = new string[map.Length];
+        for (int index = 0; index < map.Length; index++) strings[index] = map[index].ToString();
+        return strings;
+    }
+
     // Preserve the one-byte-to-one-character mapping on older target frameworks.
     public static string Latin1GetString(byte[] bytes) {
 #if NET8_0_OR_GREATER

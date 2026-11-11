@@ -53,6 +53,9 @@ internal static class PdfTextDirectionAnalysis {
         string text,
         bool glyphSequenceProgressesLeftToRight) {
         if (!glyphSequenceProgressesLeftToRight || text.Length < 2) return text;
+        // The first element is never interior, so a run can reverse only when it starts right-to-left.
+        int firstScalar = char.IsSurrogatePair(text, 0) ? char.ConvertToUtf32(text, 0) : text[0];
+        if (OfficeUnicodeTextData.GetBidiClass(firstScalar) is not (OfficeBidiClass.R or OfficeBidiClass.AL)) return text;
 
         IReadOnlyList<string> elements = OfficeTextElements.Split(text);
         if (elements.Count < 2) return text;

@@ -2359,19 +2359,22 @@ public sealed partial class PdfReadPage {
             sequence = new PageContentStreamSequence(PdfEncoding.Latin1GetString(decoded),
                 new[] { new PageContentStreamOffset(0, entry.ObjectNumber) }, decodedStreams);
         } else {
-            var builder = new System.Text.StringBuilder();
-            var entries = new List<PageContentStreamOffset>();
+            var entries = new PageContentStreamOffset[streams.Count];
+            var segments = new byte[streams.Count][];
+            int offset = 0;
             for (int index = 0; index < streams.Count; index++) {
                 PageContentStreamEntry entry = streams[index];
                 // ISO 32000-2 Table 31 separates content-array streams with whitespace. Keep
                 // operator identities in the same logical sequence used by content mutation.
-                if (entries.Count > 0) builder.Append(PdfContentStreamSequenceDecoder.Separator);
-                entries.Add(new PageContentStreamOffset(builder.Length, entry.ObjectNumber));
+                if (index > 0) offset = checked(offset + 1);
+                entries[index] = new PageContentStreamOffset(offset, entry.ObjectNumber);
                 byte[] decoded = pageContentBudget.Decode(entry.Stream);
                 decodedStreams[index] = new KeyValuePair<PdfStream, byte[]>(entry.Stream, decoded);
-                builder.Append(PdfEncoding.Latin1GetString(decoded));
+                segments[index] = decoded;
+                offset = checked(offset + decoded.Length);
             }
-            sequence = new PageContentStreamSequence(builder.ToString(), entries.ToArray(), decodedStreams);
+            sequence = new PageContentStreamSequence(
+                PdfEncoding.Latin1JoinSegments(segments, PdfContentStreamSequenceDecoder.Separator), entries, decodedStreams);
         }
 
         if (freshBudget) OfferReusableContentSequence(sequence);
