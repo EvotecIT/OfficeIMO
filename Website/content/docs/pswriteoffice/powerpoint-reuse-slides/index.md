@@ -34,4 +34,4 @@ New-OfficePowerPoint -Path $targetPath {
 
 Inspect imported theme and layout behavior when the source and target use different design systems. Reopen the saved deck and review slide summaries, placeholders, and notes.
 
-The [reuse-slides recipe](https://github.com/EvotecIT/OfficeIMO/blob/b5f365579aaa35c90c6ca30cd8bcb7427ea83eaf/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-ReuseSlides.ps1) imports one slide, copies another, creates a section, and saves the combined deck.
+The [reuse-slides recipe](https://github.com/EvotecIT/OfficeIMO/blob/dabcb2bca9659e43df58f75f75f593b7b1e3c6b8/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-ReuseSlides.ps1) imports one slide, copies another, creates a section, and saves the combined deck.

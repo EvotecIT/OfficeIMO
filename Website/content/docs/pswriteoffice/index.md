@@ -57,5 +57,5 @@ PSWriteOffice is the PowerShell surface for OfficeIMO. Use these guides to choos
 ## Notes
 
 - The [command reference](/api/powershell/) is generated from the module manifest and external help.
-- The [scenario-driven example library](https://github.com/EvotecIT/OfficeIMO/blob/b5f365579aaa35c90c6ca30cd8bcb7427ea83eaf/PowerShell/PSWriteOffice/Examples/README.md) maps practical recipes and larger showcases to each format.
+- The [scenario-driven example library](https://github.com/EvotecIT/OfficeIMO/blob/dabcb2bca9659e43df58f75f75f593b7b1e3c6b8/PowerShell/PSWriteOffice/Examples/README.md) maps practical recipes and larger showcases to each format.
 - The family totals shown on the site come from `PSWriteOffice.psd1`; documentation validation fails if an exported command is left uncategorized.
