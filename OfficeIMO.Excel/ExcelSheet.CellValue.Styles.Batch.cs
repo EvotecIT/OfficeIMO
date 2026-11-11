@@ -75,8 +75,11 @@ namespace OfficeIMO.Excel {
         private static readonly ConditionalWeakTable<OpenXmlPackage, object> ExposedPackages = new();
         private static readonly object PendingStylesheetSave = new();
 
+        /// <summary>Whether a caller holds this package through <see cref="ExcelDocument.OpenXmlDocument"/> and may edit it directly.</summary>
+        internal static bool IsPackageExposed(OpenXmlPackage package) => ExposedPackages.TryGetValue(package, out _);
+
         private static void DeferStylesheetSave(WorkbookStylesPart stylesPart) {
-            if (ExposedPackages.TryGetValue(stylesPart.OpenXmlPackage, out _)) {
+            if (IsPackageExposed(stylesPart.OpenXmlPackage)) {
                 stylesPart.Stylesheet?.Save();
                 return;
             }
