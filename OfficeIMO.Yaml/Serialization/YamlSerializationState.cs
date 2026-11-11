@@ -177,7 +177,7 @@ internal sealed class YamlWriteState {
     private int _depth;
     // See Enter: a write whose output is discarded on failure checks for cycles by one comparison per level.
     private bool _quick;
-    private const int QuickDepthLimit = 1024;
+    private const int QuickDepthLimit = 256;
     private Dictionary<object, string>? _anchors;
     private HashSet<object>? _shared;
     private int _nextAnchor;

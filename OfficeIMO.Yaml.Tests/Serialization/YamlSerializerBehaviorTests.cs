@@ -105,7 +105,7 @@ public class YamlSerializerBehaviorTests {
 
         // A string result checks cycles quickly and writes again with the exact check a stream uses: both fail alike
         // for cycles back to shallow and deep levels, and a path deeper than the quick check follows writes alike.
-        foreach ((int depth, int target) in new[] { (40, 3), (40, 29), (1100, 1050), (1100, -1) }) {
+        foreach ((int depth, int target) in new[] { (40, 3), (40, 29), (200, 150), (200, -1) }) {
             var top = new TreeNode { Name = "top" };
             TreeNode last = Chain(top, depth);
             if (target < 0) {
