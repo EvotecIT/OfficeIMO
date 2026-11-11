@@ -103,6 +103,26 @@ public class YamlSerializerBehaviorTests {
         exception = Assert.Throws<YamlException>(() => YamlSerializer.Serialize(tree, Context.TreeNode));
         Assert.Equal(YamlErrorCodes.ReferenceCycle, exception.Code);
 
+        // A string result checks cycles quickly and writes again with the exact check a stream uses: both fail alike
+        // for cycles back to shallow and deep levels, and a path deeper than the quick check follows writes alike.
+        foreach ((int depth, int target) in new[] { (40, 3), (40, 29), (200, 150), (200, -1) }) {
+            var top = new TreeNode { Name = "top" };
+            TreeNode last = Chain(top, depth);
+            if (target < 0) {
+                var stream = new MemoryStream();
+                YamlSerializer.Serialize(stream, top, Context.TreeNode);
+                Assert.Equal(System.Text.Encoding.UTF8.GetString(stream.ToArray()), YamlSerializer.Serialize(top, Context.TreeNode));
+                continue;
+            }
+            TreeNode back = top;
+            for (int i = 0; i < target; i++) back = back.Children[0];
+            last.Children.Add(back);
+            var quick = Assert.Throws<YamlException>(() => YamlSerializer.Serialize(top, Context.TreeNode));
+            var exact = Assert.Throws<YamlException>(() => YamlSerializer.Serialize(new MemoryStream(), top, Context.TreeNode));
+            Assert.Equal(YamlErrorCodes.ReferenceCycle, quick.Code);
+            Assert.Equal(exact.Message, quick.Message);
+        }
+
         static TreeNode Chain(TreeNode parent, int length) {
             for (int i = 0; i < length; i++) {
                 var next = new TreeNode { Name = "level" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) };

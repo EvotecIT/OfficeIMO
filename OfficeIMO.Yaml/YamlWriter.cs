@@ -21,13 +21,17 @@ public sealed class YamlWriter : IDisposable {
     private const int StreamBufferSize = 16384;
     private static readonly UTF8Encoding Utf8 = new UTF8Encoding(false);
 
+    // One writer over a string buffer per thread is reused by the serializer's string and byte results; see RentBuffered.
+    [ThreadStatic] private static YamlWriter? t_buffered;
+    // And one over a stream buffer, for the serializer's stream output; see RentStreamed.
+    [ThreadStatic] private static YamlWriter? t_streamed;
+
     private readonly TextWriter _text;
     private readonly bool _ownsText;
     private readonly YamlEmitter _emitter;
+    /// <summary>A pooled writer's serialization state, reused with it.</summary>
+    internal YamlWriteState? SpareState;
     private readonly YamlNodeBuilder? _builder;
-    // Scratch for formatting a number before it is copied out, shared by the writers of a thread: nothing runs between
-    // formatting into it and copying from it.
-    [ThreadStatic] private static char[]? t_number;
     private bool _disposed;
 
     /// <summary>Creates a writer that encodes UTF-8 without a byte-order mark into a stream.</summary>
@@ -47,6 +51,60 @@ public sealed class YamlWriter : IDisposable {
     public YamlWriter(TextWriter writer, YamlWriterOptions? options = null) {
         _text = writer ?? throw new ArgumentNullException(nameof(writer));
         _emitter = new YamlEmitter(_text, options ?? YamlWriterOptions.Default);
+    }
+
+    /// <summary>
+    /// Gets a writer over a string buffer sized for about <paramref name="lengthHint"/> characters: this thread's
+    /// returned one, or a new one. Pair it with <see cref="CompleteBuffered"/> and <see cref="ReturnBuffered"/>; a writer
+    /// whose write throws is left to the garbage collector.
+    /// </summary>
+    internal static YamlWriter RentBuffered(YamlWriterOptions options, int lengthHint) {
+        YamlWriter? writer = t_buffered;
+        if (writer is null) return new YamlWriter(new YamlCharBuffer(lengthHint), options);
+        t_buffered = null;
+        ((YamlCharBuffer)writer._text).Reset(lengthHint);
+        writer._emitter.Reset(options);
+        writer._disposed = false;
+        return writer;
+    }
+
+    /// <summary>
+    /// Gets a writer that encodes UTF-8 into <paramref name="stream"/> in blocks sized for about
+    /// <paramref name="lengthHint"/> characters: this thread's returned one, or a new one. Pair it with
+    /// <see cref="CompleteBuffered"/>, <see cref="YamlCharBuffer.Flush"/> and <see cref="ReturnBuffered"/>.
+    /// </summary>
+    internal static YamlWriter RentStreamed(Stream stream, YamlWriterOptions options, int lengthHint) {
+        YamlWriter? writer = t_streamed;
+        if (writer is null) return new YamlWriter(new YamlCharBuffer(stream, lengthHint), options);
+        t_streamed = null;
+        ((YamlCharBuffer)writer._text).Reset(stream, lengthHint);
+        writer._emitter.Reset(options);
+        writer._disposed = false;
+        return writer;
+    }
+
+    /// <summary>Ends the last line, as <see cref="Dispose"/> does, and returns the buffer holding the text.</summary>
+    internal YamlCharBuffer CompleteBuffered() {
+        _disposed = true;
+        if (_emitter.Documents > 0 && _emitter.IsComplete) _emitter.Finish();
+        _emitter.Release(keep: true);
+        return (YamlCharBuffer)_text;
+    }
+
+    /// <summary>Drops what a stopped write left and keeps the writer for this thread's next <see cref="RentBuffered"/>.</summary>
+    internal void AbandonBuffered() {
+        _disposed = true;
+        _emitter.Release(keep: true);
+        ReturnBuffered();
+    }
+
+    /// <summary>Returns the buffer's array to the pool and keeps the writer for this thread's next <see cref="RentBuffered"/>.</summary>
+    internal void ReturnBuffered() {
+        var buffer = (YamlCharBuffer)_text;
+        bool stream = buffer.IsStream;
+        buffer.ReturnArray();
+        if (stream) t_streamed = this;
+        else t_buffered = this;
     }
 
     /// <summary>Creates a writer that builds a detached node tree instead of text, for the serializer's node output.</summary>
@@ -78,6 +136,13 @@ public sealed class YamlWriter : IDisposable {
         CheckDisposed();
         if (_builder is not null) _builder.StartCollection(mapping: true, CollectionStyle(style));
         else _emitter.StartCollection(mapping: true, CollectionStyle(style));
+    }
+
+    /// <summary>Starts a block mapping (or sequence) the caller knows will get at least one entry; see <see cref="YamlEmitter.StartNonEmptyCollection"/>.</summary>
+    internal void WriteStartNonEmpty(bool mapping) {
+        CheckDisposed();
+        if (_builder is not null) _builder.StartCollection(mapping, YamlStyle.Block);
+        else _emitter.StartNonEmptyCollection(mapping);
     }
 
     /// <summary>Ends the innermost mapping.</summary>
@@ -115,7 +180,7 @@ public sealed class YamlWriter : IDisposable {
             return;
         }
         if (!_emitter.AtKey) throw new InvalidOperationException("WriteKey is valid only where a mapping expects a key.");
-        WriteChosen(key, _emitter.InFlow ? _emitter.ChooseStyle(key, YamlStyle.None) : YamlKeyStyles.Block(key), YamlStyle.None);
+        WriteChosen(key, _emitter.InFlow ? _emitter.ChooseStyle(key, YamlStyle.None) : _emitter.BlockKeyStyle(key), YamlStyle.None);
     }
 
     /// <summary>
@@ -171,7 +236,7 @@ public sealed class YamlWriter : IDisposable {
             _builder.Scalar(new YamlScalar(value));
             return;
         }
-        char[] number = t_number ??= new char[48];
+        char[] number = _emitter.NumberBuffer;
         int length = YamlScalarFormat.Format(value, number);
         _emitter.WritePlain(number.AsSpan(0, length));
     }
@@ -187,7 +252,7 @@ public sealed class YamlWriter : IDisposable {
             return;
         }
 #if NET8_0_OR_GREATER
-        char[] number = t_number ??= new char[48];
+        char[] number = _emitter.NumberBuffer;
         int length = YamlScalarFormat.Format(value, number);
         _emitter.WritePlain(number.AsSpan(0, length));
 #else
@@ -247,7 +312,7 @@ public sealed class YamlWriter : IDisposable {
     }
 
     /// <summary>Whether a block mapping key gets the default style plain on one line, as an implicit key.</summary>
-    internal static bool IsPlainKey(string key) => YamlKeyStyles.IsPlain(key);
+    internal bool IsPlainKey(string key) => key.Length <= YamlScalarFormat.MaxImplicitKeyLength && _emitter.BlockKeyStyle(key) == YamlStyle.Plain;
 
     /// <summary>
     /// Writes a block sequence item for a string in its default style, as <see cref="WriteScalar(string?, YamlStyle)"/>
@@ -270,7 +335,7 @@ public sealed class YamlWriter : IDisposable {
     internal bool TryWritePlainEntry(string key, long value) {
         CheckDisposed();
         if (_builder is not null || !_emitter.AtBlockKey) return false;
-        char[] number = t_number ??= new char[48];
+        char[] number = _emitter.NumberBuffer;
         int length = YamlScalarFormat.Format(value, number);
         _emitter.WriteEntry(key, number.AsSpan(0, length));
         return true;
@@ -281,7 +346,7 @@ public sealed class YamlWriter : IDisposable {
         CheckDisposed();
         if (_builder is not null || !_emitter.AtBlockKey) return false;
 #if NET8_0_OR_GREATER
-        char[] number = t_number ??= new char[48];
+        char[] number = _emitter.NumberBuffer;
         int length = YamlScalarFormat.Format(value, number);
         _emitter.WriteEntry(key, number.AsSpan(0, length));
 #else
@@ -299,7 +364,7 @@ public sealed class YamlWriter : IDisposable {
         if (_builder is not null || !_emitter.AtBlockKey) return false;
 #if NET8_0_OR_GREATER
         // A decimal has at most 29 digits, a sign and a point, which the number buffer holds.
-        char[] number = t_number ??= new char[48];
+        char[] number = _emitter.NumberBuffer;
         int length = YamlScalarFormat.Format(value, number);
         _emitter.WriteEntry(key, number.AsSpan(0, length));
 #else
@@ -331,7 +396,7 @@ public sealed class YamlWriter : IDisposable {
     internal bool TryWritePlainItem(long value) {
         CheckDisposed();
         if (_builder is not null || !_emitter.AtBlockItem) return false;
-        char[] number = t_number ??= new char[48];
+        char[] number = _emitter.NumberBuffer;
         _emitter.WriteItem(number.AsSpan(0, YamlScalarFormat.Format(value, number)));
         return true;
     }
@@ -341,7 +406,7 @@ public sealed class YamlWriter : IDisposable {
         CheckDisposed();
         if (_builder is not null || !_emitter.AtBlockItem) return false;
 #if NET8_0_OR_GREATER
-        char[] number = t_number ??= new char[48];
+        char[] number = _emitter.NumberBuffer;
         _emitter.WriteItem(number.AsSpan(0, YamlScalarFormat.Format(value, number)));
 #else
         _emitter.WriteItem(YamlScalarFormat.Format(value).AsSpan());

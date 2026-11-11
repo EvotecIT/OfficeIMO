@@ -676,6 +676,7 @@ internal sealed class YamlSaveWalk {
             if (node is YamlMapping or YamlSequence && node._style == YamlStyle.Block && ChildCount(node) > 0) { } else emitter.SetTrailingComment(comment);
         }
         emitter.EndFragment(endLine);
+        emitter.Release();
         string text = _text.ToString();
         _text.GetStringBuilder().Clear();
         if (comment is not null && node is YamlMapping or YamlSequence && node._style == YamlStyle.Block && ChildCount(node) > 0) {

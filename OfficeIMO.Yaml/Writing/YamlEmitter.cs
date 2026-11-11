@@ -24,6 +24,8 @@ internal sealed class YamlEmitter {
 
     private enum Shape : byte { Inline, Block, BlockScalar }
 
+    // A frame holds no references, so pushing and copying one needs no GC write barriers; the properties of a pending
+    // collection, rare, wait in the scratch's side arrays at the frame's index.
     private struct Frame {
         public FrameKind Kind;
         public YamlSlot Slot;
@@ -38,8 +40,8 @@ internal sealed class YamlEmitter {
         public int Padding;
         /// <summary>A block collection whose layout is not decided until its first entry or its end.</summary>
         public bool Pending;
-        public string? Anchor;
-        public string? Tag;
+        /// <summary>A pending collection's anchor or tag waits in the scratch's side arrays.</summary>
+        public bool HasProperties;
         /// <summary>Document: <c>---</c> was written. Slot: its node was written.</summary>
         public bool Marker;
         public bool HasRoot;
@@ -48,16 +50,41 @@ internal sealed class YamlEmitter {
     private readonly TextWriter _out;
     /// <summary>The output when it is a <see cref="YamlCharBuffer"/>, which is written without virtual calls.</summary>
     private readonly YamlCharBuffer? _buffer;
-    private readonly YamlWriterOptions _options;
-    private readonly string _newLine;
-    private const int LineStartCacheSize = 64;
+    private YamlWriterOptions _options = null!;
+    private string _newLine = null!;
+    // The options' numbers, read once per emitter instead of once per node.
+    private int _mappingIndent;
+    private int _dashOffset;
+    private int _itemPadding;
+    private const int LineStartCacheSize = 256;
+
+    // A struct element, so filling the cache needs no covariance check.
+    private struct LineStartEntry {
+        public string? Text;
+    }
+
     // Line break plus indentation per indentation, shared by every emitter with the same line break.
-    private static readonly string?[] s_lfLineStarts = new string?[LineStartCacheSize];
-    private static readonly string?[] s_crlfLineStarts = new string?[LineStartCacheSize];
-    // One frame stack per thread is reused by the next emitter after Release, so a call allocates none.
-    [ThreadStatic] private static Frame[]? t_frames;
+    private static readonly LineStartEntry[] s_lfLineStarts = new LineStartEntry[LineStartCacheSize];
+    private static readonly LineStartEntry[] s_crlfLineStarts = new LineStartEntry[LineStartCacheSize];
+    private LineStartEntry[] _lineStarts = null!;
+    /// <summary>
+    /// What an emitter reuses from the previous one on its thread: the frame stack, the side arrays for pending
+    /// collection properties, the number formatting buffer and the key style table. One per thread is handed from
+    /// emitter to emitter through <see cref="Release"/>, so a call allocates none of it and reaches thread-local storage once.
+    /// </summary>
+    private sealed class Scratch {
+        internal Frame[] Frames = new Frame[8];
+        internal string?[]? Anchors;
+        internal string?[]? Tags;
+        /// <summary>Room to format a number before it is copied out; nothing runs between formatting into it and copying from it.</summary>
+        internal readonly char[] Number = new char[48];
+        internal YamlKeyStyles.Entry[]? KeyStyles;
+    }
+
+    [ThreadStatic] private static Scratch? t_scratch;
     private const int MaxReusedFrames = 1024;
-    private Frame[] _frames;
+    private Scratch? _scratch;
+    private Frame[] _frames = null!;
     // The deepest the stack has been, so releasing it clears only the frames used.
     private int _maxDepth;
     private int _depth;
@@ -70,28 +97,90 @@ internal sealed class YamlEmitter {
     private string? _lastTagText;
     private bool _lastTagRedefined;
 #if !NET8_0_OR_GREATER
-    private char[]? _scratch;
+    private char[]? _copyScratch;
 #endif
 
     public YamlEmitter(TextWriter output, YamlWriterOptions options) {
         _out = output;
         _buffer = output as YamlCharBuffer;
-        _options = options;
-        _newLine = options.NewLine;
-        options.Validate();
-        _frames = t_frames ?? new Frame[8];
-        t_frames = null;
+        Configure(options);
     }
 
-    /// <summary>Hands the frame stack to the next emitter on this thread. The emitter cannot be used afterwards.</summary>
-    public void Release() {
-        Frame[] frames = _frames;
-        if (frames.Length == 0) return;
-        _frames = Array.Empty<Frame>();
+    /// <summary>Prepares the emitter for a new stream with <paramref name="options"/>, taking this thread's reusable state.</summary>
+    private void Configure(YamlWriterOptions options) {
+        options.Validate();
+        _options = options;
+        _newLine = options.NewLine;
+        _mappingIndent = options.MappingIndent;
+        _dashOffset = options.SequenceDashOffset;
+        _itemPadding = options.ItemPadding;
+        // The options allow only "\n" and "\r\n".
+        _lineStarts = _newLine.Length == 1 ? s_lfLineStarts : s_crlfLineStarts;
+        Scratch? scratch = _scratch;
+        if (scratch is null) {
+            scratch = t_scratch ?? new Scratch();
+            t_scratch = null;
+            _scratch = scratch;
+        }
+        _frames = scratch.Frames;
+    }
+
+    /// <summary>Starts a new stream into the same output, after <see cref="Release"/>, as a new emitter would.</summary>
+    public void Reset(YamlWriterOptions options) {
         _depth = 0;
-        if (frames.Length > MaxReusedFrames) return;
-        Array.Clear(frames, 0, Math.Min(_maxDepth, frames.Length));
-        t_frames = frames;
+        _maxDepth = 0;
+        _column = 0;
+        _documents = 0;
+        _anchor = null;
+        _tag = null;
+        _trailingComment = null;
+        _lastTag = null;
+        _lastTagText = null;
+        _lastTagRedefined = false;
+        Configure(options);
+    }
+
+    /// <summary>
+    /// Hands the reusable state to the next emitter on this thread, or, with <paramref name="keep"/>, keeps it for this
+    /// emitter's next <see cref="Reset"/>. Only a reset emitter can be used afterwards.
+    /// </summary>
+    public void Release(bool keep = false) {
+        Scratch? scratch = _scratch;
+        if (scratch is null) return;
+        Frame[] frames = _frames;
+        _depth = 0;
+        if (frames.Length > MaxReusedFrames) {
+            _scratch = null;
+            _frames = Array.Empty<Frame>();
+            return;
+        }
+        int used = Math.Min(_maxDepth, frames.Length);
+        Array.Clear(frames, 0, used);
+        if (scratch.Anchors is not null) {
+            Array.Clear(scratch.Anchors, 0, Math.Min(used, scratch.Anchors.Length));
+            Array.Clear(scratch.Tags!, 0, Math.Min(used, scratch.Tags!.Length));
+        }
+        scratch.Frames = frames;
+        if (keep) return;
+        _scratch = null;
+        _frames = Array.Empty<Frame>();
+        t_scratch = scratch;
+    }
+
+    /// <summary>A buffer to format a number into before writing it.</summary>
+    public char[] NumberBuffer => GetScratch().Number;
+
+    /// <summary>The default style of <paramref name="key"/> as a block mapping key; see <see cref="YamlKeyStyles"/>.</summary>
+    public YamlStyle BlockKeyStyle(string key) => YamlKeyStyles.Block(key, ref GetScratch().KeyStyles);
+
+    /// <summary>The emitter's reusable state; after <see cref="Release"/>, a new one.</summary>
+    private Scratch GetScratch() {
+        Scratch? scratch = _scratch;
+        if (scratch is null) {
+            scratch = new Scratch();
+            _scratch = scratch;
+        }
+        return scratch;
     }
 
     public YamlWriterOptions Options => _options;
@@ -313,7 +402,12 @@ internal sealed class YamlEmitter {
     private bool TryWriteBlockKey(string key) {
         if (_depth == 0 || _buffer is null || _anchor is not null || _tag is not null || _trailingComment is not null) return false;
         ref Frame top = ref _frames[_depth - 1];
-        if (top.Kind != FrameKind.BlockMapping || top.AtValue || top.Pending) return false;
+        if (top.Kind != FrameKind.BlockMapping || top.AtValue) return false;
+        if (top.Pending) {
+            // The first key of a mapping just started lays the mapping out first, as BeginNode would.
+            ResolvePending(empty: false);
+            top = ref _frames[_depth - 1];
+        }
         if (top.Padding < 0) {
             if (_column == 0 || (uint)top.Indent >= LineStartCacheSize) return false;
             _buffer.AppendKey(LineStart(top.Indent).AsSpan(), key);
@@ -347,6 +441,33 @@ internal sealed class YamlEmitter {
         EndInline();
     }
 
+    /// <summary>
+    /// Starts a block collection the caller knows will get at least one entry. Where its first entry would lay it out
+    /// through the usual nesting (the value of a simple key or a sequence item, without properties) the layout is
+    /// decided now, with the same text and state, so no pending collection waits for the entry.
+    /// </summary>
+    public void StartNonEmptyCollection(bool mapping) {
+        if (_depth > 0 && _anchor is null && _tag is null && _trailingComment is null) {
+            ref Frame parent = ref _frames[_depth - 1];
+            if (!parent.Pending) {
+                if (parent.Kind == FrameKind.BlockMapping && parent.AtValue && !parent.ExplicitKey) {
+                    parent.AtValue = false;
+                    parent.Count++;
+                    Push(new Frame { Kind = mapping ? FrameKind.BlockMapping : FrameKind.BlockSequence, Indent = parent.Indent + (mapping ? _mappingIndent : _dashOffset), Padding = -1 });
+                    return;
+                }
+                if (parent.Kind == FrameKind.BlockSequence) {
+                    StartEntry(ref parent);
+                    Write('-');
+                    parent.Count++;
+                    Push(new Frame { Kind = mapping ? FrameKind.BlockMapping : FrameKind.BlockSequence, Indent = _column + _itemPadding, Padding = _itemPadding });
+                    return;
+                }
+            }
+        }
+        StartCollection(mapping, YamlStyle.Block);
+    }
+
     public void StartCollection(bool mapping, YamlStyle style) {
         if (style == YamlStyle.Flow || InFlow) {
             BeginNode(Shape.Inline, empty: false, simpleKey: false, aliasKey: false, sequence: !mapping, out _, out _);
@@ -356,9 +477,24 @@ internal sealed class YamlEmitter {
         }
         if (_depth == 0) StartDocument(explicitMarker: false);
         else if (_frames[_depth - 1].Pending) ResolvePending(empty: false);
-        Push(new Frame { Kind = mapping ? FrameKind.BlockMapping : FrameKind.BlockSequence, Pending = true, Anchor = _anchor, Tag = _tag, Padding = -1 });
-        _anchor = null;
-        _tag = null;
+        bool properties = _anchor is not null || _tag is not null;
+        if (properties) {
+            SetFrameProperties(_depth, _anchor, _tag);
+            _anchor = null;
+            _tag = null;
+        }
+        Push(new Frame { Kind = mapping ? FrameKind.BlockMapping : FrameKind.BlockSequence, Pending = true, HasProperties = properties, Padding = -1 });
+    }
+
+    private void SetFrameProperties(int index, string? anchor, string? tag) {
+        Scratch scratch = GetScratch();
+        if (scratch.Anchors is null || index >= scratch.Anchors.Length) {
+            int size = Math.Max(8, (index + 1) * 2);
+            Array.Resize(ref scratch.Anchors, size);
+            Array.Resize(ref scratch.Tags, size);
+        }
+        scratch.Anchors[index] = anchor;
+        scratch.Tags![index] = tag;
     }
 
     public void EndCollection(bool mapping) {
@@ -479,15 +615,24 @@ internal sealed class YamlEmitter {
             ResolvePending(empty: false);
             top = ref _frames[_depth - 1];
         }
-        int padding = _options.ItemPadding;
-        if (top.Padding < 0 && _buffer is not null && value.Length > 0 && _column > 0 && _trailingComment is null
-            && (uint)top.Indent < LineStartCacheSize && padding <= Spaces.Length) {
-            // The usual item on a line of its own goes into the char buffer in one step, as StartEntry and the pieces
-            // below would write it.
-            _buffer.AppendItem(LineStart(top.Indent).AsSpan(), Spaces.AsSpan(0, padding), value);
-            _column = top.Indent + 1 + padding + value.Length;
-            top.Count++;
-            return;
+        int padding = _itemPadding;
+        if (_buffer is not null && value.Length > 0 && _trailingComment is null && padding <= Spaces.Length) {
+            // The usual item, on a line of its own or continuing the line of an enclosing item, goes into the char
+            // buffer in one step, as StartEntry and the pieces below would write it.
+            if (top.Padding < 0) {
+                if (_column > 0 && (uint)top.Indent < LineStartCacheSize) {
+                    _buffer.AppendItem(LineStart(top.Indent).AsSpan(), Spaces.AsSpan(0, padding), value);
+                    _column = top.Indent + 1 + padding + value.Length;
+                    top.Count++;
+                    return;
+                }
+            } else if (top.Padding <= Spaces.Length) {
+                _buffer.AppendItem(Spaces.AsSpan(0, top.Padding), Spaces.AsSpan(0, padding), value);
+                _column += top.Padding + 1 + padding + value.Length;
+                top.Padding = -1;
+                top.Count++;
+                return;
+            }
         }
         StartEntry(ref top);
         Write('-');
@@ -518,7 +663,7 @@ internal sealed class YamlEmitter {
                 if (!top.ExplicitKey) {
                     top.AtValue = false;
                     top.Count++;
-                    childIndent = top.Indent + _options.MappingIndent;
+                    childIndent = top.Indent + _mappingIndent;
                     if (!empty) Write(' ');
                     return top.Indent;
                 }
@@ -539,7 +684,7 @@ internal sealed class YamlEmitter {
         _anchor = null;
         _tag = null;
         bool props = anchor is not null || tag is not null;
-        int itemPadding = _options.ItemPadding;
+        int itemPadding = _itemPadding;
         switch (top.Kind) {
             case FrameKind.Document:
                 if (top.HasRoot) throw Invalid("The document already has a root node; start a new document first.");
@@ -556,7 +701,7 @@ internal sealed class YamlEmitter {
                     top.Marker = true;
                 }
                 WriteProperties(anchor, tag, trailingSpace: !empty || shape == Shape.BlockScalar);
-                if (shape == Shape.BlockScalar) childIndent = _options.MappingIndent;
+                if (shape == Shape.BlockScalar) childIndent = _mappingIndent;
                 return 0;
             case FrameKind.BlockSequence: {
                 StartEntry(ref top);
@@ -631,7 +776,7 @@ internal sealed class YamlEmitter {
                         }
                         int nodeColumn = _column;
                         WriteProperties(anchor, tag, trailingSpace: !empty || shape == Shape.BlockScalar);
-                        childIndent = nodeColumn > top.Indent ? nodeColumn : top.Indent + _options.MappingIndent;
+                        childIndent = nodeColumn > top.Indent ? nodeColumn : top.Indent + _mappingIndent;
                         return top.Indent;
                 }
         }
@@ -665,7 +810,7 @@ internal sealed class YamlEmitter {
 
     /// <summary>Layout after a simple key's colon: inline nodes follow a space, block collections start on the next line.</summary>
     private int AfterColon(Shape shape, bool empty, string? anchor, string? tag, bool props, int keyIndent, bool sequence, out int childIndent) {
-        childIndent = keyIndent + _options.MappingIndent;
+        childIndent = keyIndent + _mappingIndent;
         switch (shape) {
             case Shape.Block:
                 if (props) {
@@ -673,7 +818,7 @@ internal sealed class YamlEmitter {
                     WriteProperties(anchor, tag, trailingSpace: false);
                 }
                 // A sequence with properties on the key line is indented, so its dash is not read as part of the key.
-                if (sequence) childIndent = keyIndent + (props && _options.SequenceDashOffset == 0 ? _options.MappingIndent : _options.SequenceDashOffset);
+                if (sequence) childIndent = keyIndent + (props && _dashOffset == 0 ? _mappingIndent : _dashOffset);
                 return keyIndent;
             case Shape.BlockScalar:
                 Write(' ');
@@ -709,7 +854,7 @@ internal sealed class YamlEmitter {
 
     /// <summary>Decides the layout of a pending block collection, at its first entry or, when empty, at its end.</summary>
     private void ResolvePending(bool empty) {
-        if (!empty && _depth >= 2 && _frames[_depth - 1].Anchor is null && _frames[_depth - 1].Tag is null && _trailingComment is null) {
+        if (!empty && _depth >= 2 && !_frames[_depth - 1].HasProperties && _trailingComment is null) {
             // The usual nesting, a collection without properties as the value of a simple key or as a sequence item,
             // lays out as BeginNode would below, without the general layout.
             ref Frame pending = ref _frames[_depth - 1];
@@ -717,7 +862,7 @@ internal sealed class YamlEmitter {
             if (parent.Kind == FrameKind.BlockMapping && parent.AtValue && !parent.ExplicitKey) {
                 parent.AtValue = false;
                 parent.Count++;
-                pending.Indent = parent.Indent + (pending.Kind == FrameKind.BlockSequence ? _options.SequenceDashOffset : _options.MappingIndent);
+                pending.Indent = parent.Indent + (pending.Kind == FrameKind.BlockSequence ? _dashOffset : _mappingIndent);
                 pending.Padding = -1;
                 pending.Pending = false;
                 return;
@@ -726,7 +871,7 @@ internal sealed class YamlEmitter {
                 StartEntry(ref parent);
                 Write('-');
                 parent.Count++;
-                int itemPadding = _options.ItemPadding;
+                int itemPadding = _itemPadding;
                 pending.Indent = _column + itemPadding;
                 pending.Padding = itemPadding;
                 pending.Pending = false;
@@ -737,8 +882,15 @@ internal sealed class YamlEmitter {
         _depth--;
         // The first entry's own anchor and tag may already be pending; the collection's go first.
         string? entryAnchor = _anchor, entryTag = _tag;
-        _anchor = frame.Anchor;
-        _tag = frame.Tag;
+        _anchor = null;
+        _tag = null;
+        if (frame.HasProperties) {
+            Scratch scratch = _scratch!;
+            _anchor = scratch.Anchors![_depth];
+            _tag = scratch.Tags![_depth];
+            scratch.Anchors[_depth] = null;
+            scratch.Tags[_depth] = null;
+        }
         bool mapping = frame.Kind == FrameKind.BlockMapping;
         if (empty) {
             BeginNode(Shape.Inline, empty: false, simpleKey: false, aliasKey: false, sequence: !mapping, out _, out _);
@@ -752,8 +904,7 @@ internal sealed class YamlEmitter {
         _anchor = entryAnchor;
         _tag = entryTag;
         frame.Pending = false;
-        frame.Anchor = null;
-        frame.Tag = null;
+        frame.HasProperties = false;
         frame.Indent = childIndent;
         frame.Padding = padding;
         if (padding >= 0) frame.Indent = _column + padding;
@@ -811,7 +962,7 @@ internal sealed class YamlEmitter {
     /// turns a single break into a space; continuation lines are indented past the enclosing block level.
     /// </summary>
     private void WritePlainLines(string value) {
-        int indent = BlockLevel() + _options.MappingIndent;
+        int indent = BlockLevel() + _mappingIndent;
         int start = 0;
         bool first = true;
         while (true) {
@@ -944,9 +1095,8 @@ internal sealed class YamlEmitter {
 
     /// <summary>The line break and indentation as one string, cached per indentation below <see cref="LineStartCacheSize"/>.</summary>
     private string LineStart(int indent) {
-        // The options allow only "\n" and "\r\n".
-        string?[] cache = _newLine.Length == 1 ? s_lfLineStarts : s_crlfLineStarts;
-        return cache[indent] ??= _newLine + new string(' ', indent);
+        ref LineStartEntry entry = ref _lineStarts[indent];
+        return entry.Text ??= _newLine + new string(' ', indent);
     }
 
     private void NewLine() {
@@ -997,7 +1147,7 @@ internal sealed class YamlEmitter {
 #if NET8_0_OR_GREATER
         _out.Write(text.AsSpan(start, length));
 #else
-        char[] scratch = _scratch ??= new char[256];
+        char[] scratch = _copyScratch ??= new char[256];
         int offset = 0;
         while (offset < length) {
             int n = Math.Min(scratch.Length, length - offset);
@@ -1019,7 +1169,7 @@ internal sealed class YamlEmitter {
 #if NET8_0_OR_GREATER
         _out.Write(text);
 #else
-        char[] scratch = _scratch ??= new char[256];
+        char[] scratch = _copyScratch ??= new char[256];
         int offset = 0;
         while (offset < text.Length) {
             int n = Math.Min(scratch.Length, text.Length - offset);

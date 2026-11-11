@@ -15,10 +15,10 @@ internal sealed class YamlCharBuffer : TextWriter {
 #endif
     private static readonly UTF8Encoding Utf8 = new UTF8Encoding(false);
 
-    private readonly Stream? _stream;
+    private Stream? _stream;
     private readonly Encoder? _encoder;
     // Characters buffered before a stream write; a string buffer never drains.
-    private readonly int _block = int.MaxValue;
+    private int _block = int.MaxValue;
     private byte[]? _bytes;
     private char[] _buffer;
     private int _length;
@@ -26,6 +26,37 @@ internal sealed class YamlCharBuffer : TextWriter {
 
     public YamlCharBuffer(int capacity = 4096) {
         _buffer = ArrayPool<char>.Shared.Rent(Math.Max(capacity, 4096));
+    }
+
+    // A reused buffer keeps arrays up to these sizes between calls instead of returning them to the pool.
+    private const int KeptChars = 16 * 1024;
+    private const int KeptBytes = 48 * 1024;
+
+    /// <summary>Starts a string buffer again after <see cref="ReturnArray"/>, as a new one of this capacity would.</summary>
+    public void Reset(int capacity) {
+        capacity = Math.Max(capacity, 4096);
+        if (_buffer.Length < capacity) {
+            if (_buffer.Length > 0) ArrayPool<char>.Shared.Return(_buffer);
+            _buffer = ArrayPool<char>.Shared.Rent(capacity);
+        }
+        _length = 0;
+    }
+
+    /// <summary>
+    /// Lets go of a stream and returns large arrays to the pool, keeping the object, and small arrays, for a reset.
+    /// </summary>
+    public void ReturnArray() {
+        char[] buffer = _buffer;
+        _length = 0;
+        if (buffer.Length > KeptChars) {
+            _buffer = Array.Empty<char>();
+            ArrayPool<char>.Shared.Return(buffer);
+        }
+        if (_bytes is not null && _bytes.Length > KeptBytes) {
+            ArrayPool<byte>.Shared.Return(_bytes);
+            _bytes = null;
+        }
+        if (_stream is not null) _stream = Stream.Null;
     }
 
     /// <summary>Gets the number of characters written, including those already encoded to a stream.</summary>
@@ -39,9 +70,27 @@ internal sealed class YamlCharBuffer : TextWriter {
     public YamlCharBuffer(Stream stream, int lengthHint) {
         _stream = stream;
         _encoder = Utf8.GetEncoder();
-        _block = Math.Min(Math.Max(lengthHint + lengthHint / 8, MinStreamBlock), MaxStreamBlock);
+        _block = BlockFor(lengthHint);
         _buffer = ArrayPool<char>.Shared.Rent(_block + 1024);
     }
+
+    private static int BlockFor(int lengthHint) => Math.Min(Math.Max(lengthHint + lengthHint / 8, MinStreamBlock), MaxStreamBlock);
+
+    /// <summary>Starts a stream buffer again after <see cref="ReturnArray"/>, as a new one over <paramref name="stream"/> would.</summary>
+    public void Reset(Stream stream, int lengthHint) {
+        _stream = stream;
+        _encoder!.Reset();
+        _block = BlockFor(lengthHint);
+        if (_buffer.Length < _block + 1024) {
+            if (_buffer.Length > 0) ArrayPool<char>.Shared.Return(_buffer);
+            _buffer = ArrayPool<char>.Shared.Rent(_block + 1024);
+        }
+        _length = 0;
+        _flushed = 0;
+    }
+
+    /// <summary>Whether the buffer writes to a stream.</summary>
+    public bool IsStream => _stream is not null;
 
     public override Encoding Encoding => Encoding.Unicode;
 
@@ -147,10 +196,27 @@ internal sealed class YamlCharBuffer : TextWriter {
 
     /// <summary>Encodes the characters written to a string buffer as UTF-8 into an array of exactly their length.</summary>
     public byte[] ToUtf8Bytes() {
+        if (_length <= SinglePassLimit) {
+            // Encoding once into pooled room and copying is cheaper than counting first when the text is not ASCII,
+            // and costs a copy of a small array when it is.
+            int needed = Utf8.GetMaxByteCount(_length);
+            byte[]? room = _bytes;
+            if (room is null || room.Length < needed) {
+                if (room is not null) ArrayPool<byte>.Shared.Return(room);
+                _bytes = room = ArrayPool<byte>.Shared.Rent(needed);
+            }
+            int count = Utf8.GetBytes(_buffer, 0, _length, room, 0);
+            var exact = new byte[count];
+            Buffer.BlockCopy(room, 0, exact, 0, count);
+            return exact;
+        }
         var bytes = new byte[Utf8.GetByteCount(_buffer, 0, _length)];
         Utf8.GetBytes(_buffer, 0, _length, bytes, 0);
         return bytes;
     }
+
+    // Up to this many characters, ToUtf8Bytes encodes once into pooled room of three bytes per character.
+    private const int SinglePassLimit = 64 * 1024;
 
     /// <summary>Encodes everything buffered to the stream; for a string buffer it does nothing.</summary>
     public override void Flush() {

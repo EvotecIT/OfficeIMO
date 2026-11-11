@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Runtime.CompilerServices;
 using System.Numerics;
 
 namespace OfficeIMO.Yaml;
@@ -71,32 +72,59 @@ internal sealed class YamlUntypedConverter : YamlConverter<object> {
         return cursor.GetString();
     }
 
-    public override void Write(YamlWriter writer, object value, YamlWriteState state) {
+    public override void Write(YamlWriter writer, object value, YamlWriteState state) => WriteNode(writer, value, state);
+
+    /// <summary>
+    /// Writes a value. The shapes reading produces are matched by their exact type and written by small methods, so
+    /// the recursion through a deep tree runs through small frames; everything else, including types derived from
+    /// them, goes through <see cref="WriteOther"/>, which matches as before.
+    /// </summary>
+    private void WriteNode(YamlWriter writer, object value, YamlWriteState state) {
+        if (value is string text) {
+            writer.WriteScalar(text);
+            return;
+        }
+        Type type = value.GetType();
+        if (type == typeof(Dictionary<string, object?>)) WriteMapping(writer, Unsafe.As<Dictionary<string, object?>>(value), state);
+        else if (type == typeof(List<object?>)) WriteSequence(writer, Unsafe.As<List<object?>>(value), state);
+        else WriteOther(writer, value, state);
+    }
+
+    // The shapes reading produces are enumerated without boxing their enumerators; plain entries and items go out in
+    // one step, as generated metadata writes them.
+    private void WriteMapping(YamlWriter writer, Dictionary<string, object?> mapping, YamlWriteState state) {
+        if (!state.Begin(writer, mapping, typeof(object))) return;
+        if (mapping.Count > 0) writer.WriteStartNonEmpty(mapping: true);
+        else writer.WriteStartMapping();
+        foreach (KeyValuePair<string, object?> entry in mapping) {
+            if (TryWritePlainEntry(writer, entry.Key, entry.Value)) continue;
+            writer.WriteKey(entry.Key);
+            WriteValue(writer, entry.Value, state);
+        }
+        writer.WriteEndMapping();
+        state.End();
+    }
+
+    private void WriteSequence(YamlWriter writer, List<object?> list, YamlWriteState state) {
+        if (!state.Begin(writer, list, typeof(object))) return;
+        writer.WriteStartSequence();
+        for (int i = 0; i < list.Count; i++) {
+            object? item = list[i];
+            if (TryWritePlainItem(writer, item)) continue;
+            WriteValue(writer, item, state);
+        }
+        writer.WriteEndSequence();
+        state.End();
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void WriteOther(YamlWriter writer, object value, YamlWriteState state) {
         switch (value) {
-            case string text: writer.WriteScalar(text); return;
-            // The shapes reading produces come first, enumerated without boxing their enumerators; plain entries and
-            // items go out in one step, as generated metadata writes them.
             case Dictionary<string, object?> mapping:
-                if (!state.Begin(writer, value, typeof(object))) return;
-                writer.WriteStartMapping();
-                foreach (KeyValuePair<string, object?> entry in mapping) {
-                    if (TryWritePlainEntry(writer, entry.Key, entry.Value)) continue;
-                    writer.WriteKey(entry.Key);
-                    WriteValue(writer, entry.Value, state);
-                }
-                writer.WriteEndMapping();
-                state.End();
+                WriteMapping(writer, mapping, state);
                 return;
             case List<object?> list:
-                if (!state.Begin(writer, value, typeof(object))) return;
-                writer.WriteStartSequence();
-                for (int i = 0; i < list.Count; i++) {
-                    object? item = list[i];
-                    if (TryWritePlainItem(writer, item)) continue;
-                    WriteValue(writer, item, state);
-                }
-                writer.WriteEndSequence();
-                state.End();
+                WriteSequence(writer, list, state);
                 return;
             case bool flag: writer.WriteScalar(flag); return;
             case int number: writer.WriteScalar(number); return;
@@ -157,10 +185,10 @@ internal sealed class YamlUntypedConverter : YamlConverter<object> {
 
     private static bool TryWritePlainEntry(YamlWriter writer, string key, object? value) => value switch {
         string text => writer.TryWriteStringEntry(key, text, checkKey: true),
-        long number => YamlWriter.IsPlainKey(key) && writer.TryWritePlainEntry(key, number),
-        bool flag => YamlWriter.IsPlainKey(key) && writer.TryWritePlainEntry(key, flag),
-        double number => YamlWriter.IsPlainKey(key) && writer.TryWritePlainEntry(key, number),
-        null => YamlWriter.IsPlainKey(key) && writer.TryWriteNullEntry(key),
+        long number => writer.IsPlainKey(key) && writer.TryWritePlainEntry(key, number),
+        bool flag => writer.IsPlainKey(key) && writer.TryWritePlainEntry(key, flag),
+        double number => writer.IsPlainKey(key) && writer.TryWritePlainEntry(key, number),
+        null => writer.IsPlainKey(key) && writer.TryWriteNullEntry(key),
         _ => false
     };
 
@@ -175,7 +203,7 @@ internal sealed class YamlUntypedConverter : YamlConverter<object> {
 
     private void WriteValue(YamlWriter writer, object? value, YamlWriteState state) {
         if (value is null) writer.WriteNull();
-        else Write(writer, value, state);
+        else WriteNode(writer, value, state);
     }
 
     public override void Collect(object value, YamlReferenceCollector collector) {
