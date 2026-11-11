@@ -35,8 +35,8 @@ public sealed partial class YamlReader {
     }
 
     /// <summary>
-    /// Makes a scalar event of a scalar token the scanner handed over without the queue, as <see cref="ParseNode"/>
-    /// makes one of a queued scalar without properties, and records it as consumed.
+    /// Makes a scalar or alias event of a token the scanner handed over without the queue, as <see cref="ParseNode"/>
+    /// makes one of a queued scalar without properties or alias, and records it as consumed.
     /// </summary>
     private void TakeScalar(ref YamlEvent ev, in YamlToken token) {
         if (token.End >= _lastEnd) {
@@ -45,6 +45,13 @@ public sealed partial class YamlReader {
             _lastEndColumn = token.EndColumn;
         }
         if (_c.RetainMark < 0) _c.RetainMark = token.Start;
+        if (token.Kind == YamlTokenKind.Alias) {
+            ev.Type = YamlTokenType.Alias;
+            ev.AnchorStart = token.ValueStart;
+            ev.AnchorEnd = token.ValueEnd;
+            SetSpan(ref ev, in token);
+            return;
+        }
         ev.Type = YamlTokenType.Scalar;
         ev.Style = token.Style;
         ev.Flags = token.Flags;

@@ -441,6 +441,10 @@ internal ref partial struct YamlScanner {
             c.InDocument = true;
             scalar = ScanFlowScalar(single: ch == '\'');
             c.AdjacentValue = true;
+        } else if (ch == '*') {
+            c.InDocument = true;
+            c.AdjacentValue = false;
+            scalar = ScanAnchor(YamlTokenKind.Alias);
         } else if (StartsBlockPlain()) {
             c.InDocument = true;
             c.AdjacentValue = false;
@@ -470,7 +474,8 @@ internal ref partial struct YamlScanner {
         }
         char first = At(c.Pos);
         bool quoted = first is '\'' or '"';
-        if (!quoted && !StartsBlockPlain()) {
+        bool alias = first == '*';
+        if (!quoted && !alias && !StartsBlockPlain()) {
             DispatchToken();
             return false;
         }
@@ -481,6 +486,9 @@ internal ref partial struct YamlScanner {
         if (quoted) {
             token = ScanFlowScalar(single: first == '\'');
             c.AdjacentValue = true;
+        } else if (alias) {
+            c.AdjacentValue = false;
+            token = ScanAnchor(YamlTokenKind.Alias);
         } else {
             c.AdjacentValue = false;
             token = ScanPlainScalar();
@@ -497,8 +505,8 @@ internal ref partial struct YamlScanner {
                 scalar = token;
                 return true;
             }
-            // A quoted candidate waits for its ':' through the queue, as fetching it there does.
-            if (!quoted && SettleBlockKey(ref token)) return false;
+            // A quoted or alias candidate waits for its ':' through the queue, as fetching it there does.
+            if (!quoted && !alias && SettleBlockKey(ref token)) return false;
         }
         Finish(ref token);
         return false;
@@ -882,6 +890,13 @@ internal ref partial struct YamlScanner {
         SaveSimpleKey();
         c.SimpleKeyAllowed = false;
         c.AdjacentValue = false;
+        YamlToken token = ScanAnchor(kind);
+        Finish(ref token);
+    }
+
+    /// <summary>Scans an anchor or alias at the current '&amp;' or '*' into a token with its name as the value.</summary>
+    private YamlToken ScanAnchor(YamlTokenKind kind) {
+        YamlScanContext c = _c;
         int start = c.Pos, line = c.Line, column = c.Column;
         Advance(1);
         int nameStart = c.Pos;
@@ -896,7 +911,7 @@ internal ref partial struct YamlScanner {
         YamlToken token = NewToken(kind, start, line, column);
         token.ValueStart = Absolute(nameStart);
         token.ValueEnd = Absolute(c.Pos);
-        Finish(ref token);
+        return token;
     }
 
     private void FetchTag() {
