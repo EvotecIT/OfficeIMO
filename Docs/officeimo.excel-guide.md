@@ -745,14 +745,16 @@ row, so a malformed workbook fails before any data is consumed.
 worksheet is still being decompressed and checked. Every returned row is fully parsed and
 validated. A malformed cell later in the sheet raises the same exception as the default
 reader, but only when `Read` reaches it, after the rows before it have been returned; issues
-found by the final XML check are raised by the last `Read`. Use it when the caller can handle a
-failure part-way through, such as a stream into a staging table that is discarded on error.
-It applies on .NET 8 and later to XLSX worksheets of 1 MB or more that declare their dimension,
-when `A1Range` and `CellValueConverter` are unset and the execution policy allows background
-work: no diagnostics or diagnostic callbacks are requested and parallelism is not capped at
-one. On .NET Framework and .NET Standard,
-with a sequential execution policy, for other worksheets and in the XLS and XLSB readers, the
-reader always validates before the first row.
+found by the final check of the worksheet are raised by the last `Read`. Use it when the caller
+can handle a failure part-way through, such as a stream into a staging table that is discarded
+on error. It applies on .NET 8 and later to worksheets of 1 MB or more, when no diagnostics or
+diagnostic callbacks are requested, parallelism is not capped at one and the execution policy
+allows background work, with `A1Range` and `CellValueConverter` unset: XLSX worksheets that
+declare their dimension, up to 256 MB, and XLSB worksheets read with a header row, up to 64 MB;
+larger worksheets use the default mode. An XLSB reader takes its columns from the header row, so a later cell outside them
+raises `NotSupportedException` at that row, because the default reader would return a wider
+table. On .NET Framework and .NET Standard, with a sequential execution policy, for other
+worksheets and in the XLS reader, the reader always validates before the first row.
 
 ### Choose automatic or ordered parallel reads
 

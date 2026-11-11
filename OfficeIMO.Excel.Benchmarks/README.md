@@ -39,7 +39,10 @@ dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --fil
 packages from OfficeIMO, ExcelReader.NET and SpreadCheetah.
 `ExcelReaderGeneratedWriteBenchmarks` covers XLSB and XLS. I retain both the typed
 `CreateWriter(format, ...)` callback and the existing `WriteData` plus `Save` route
-as separate OfficeIMO lanes. Generation is included
+as separate OfficeIMO lanes. The typed lane writes XLSX without cell references
+and XLS text inline, so it does less work than `WriteData` plus `Save`;
+`OfficeIMO_MatchingWriteData` runs the typed writer with references and the XLS
+shared-string table, which is the lane to compare `WriteData` against. Generation is included
 for each writer, while preflight validation is outside timing: I reopen each
 output with ExcelDataReader and the strict OfficeIMO reader. The XLS lane also
 requires the BIFF8 Index/DBCell structure. A failed preflight stays visible as

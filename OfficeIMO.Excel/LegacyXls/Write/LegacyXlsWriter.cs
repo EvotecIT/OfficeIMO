@@ -2028,6 +2028,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static void WriteNumberCellRecord(Stream stream, byte[] buffer, ushort row, ushort column, double value, ushort styleIndex) {
+            if (double.IsNaN(value) || double.IsInfinity(value)) {
+                // BIFF8 has no NaN or infinite number; Excel shows #NUM! (error 0x24) for such a result.
+                WriteBoolErrorCellRecord(stream, buffer, row, column, 0x24, isError: true, styleIndex);
+                return;
+            }
             // A number with an exact RK form uses the shorter RK record, as Excel does.
             if (BiffRkNumberReader.TryEncodeRkNumber(value, out uint rk)) {
                 WriteFixedCellRecordHeader(buffer, 0x027e, payloadLength: 10, row, column, styleIndex);

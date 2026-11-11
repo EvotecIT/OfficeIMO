@@ -26,6 +26,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Load(new MemoryStream(original))) {
                 document.Properties.Title = "New title";
                 document.Properties.Category = "New category";
+                document.Properties.Revision = "7";
                 document.Save(output);
                 Assert.Equal("New title", document.Properties.Title);
             }
@@ -35,6 +36,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(new OpenXmlValidator().Validate(package));
                 Assert.Equal("New title", package.PackageProperties.Title);
                 Assert.Equal("New category", package.PackageProperties.Category);
+                Assert.Equal("7", package.PackageProperties.Revision);
                 Assert.Equal("Kept", package.PackageProperties.Subject);
                 Assert.Equal("Draft", package.PackageProperties.ContentStatus);
             }

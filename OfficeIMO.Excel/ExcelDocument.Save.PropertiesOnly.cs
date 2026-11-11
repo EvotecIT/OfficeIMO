@@ -66,6 +66,7 @@ namespace OfficeIMO.Excel {
             SetCoreText(root, CoreNamespace + "category", properties.Category);
             SetCoreText(root, DublinCoreNamespace + "description", properties.Description);
             SetCoreText(root, CoreNamespace + "keywords", properties.Keywords);
+            SetCoreText(root, CoreNamespace + "revision", properties.Revision);
             SetCoreText(root, CoreNamespace + "lastModifiedBy", properties.LastModifiedBy);
             SetCoreText(root, CoreNamespace + "version", properties.Version);
             SetCoreDate(root, DublinTermsNamespace + "created", properties.Created, typed: true);

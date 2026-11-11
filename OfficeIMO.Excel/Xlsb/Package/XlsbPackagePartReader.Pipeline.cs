@@ -40,6 +40,46 @@ namespace OfficeIMO.Excel.Xlsb.Package {
                 if (!transferred) owned.Dispose();
             }
         }
+
+        /// <summary>
+        /// Starts inflating a worksheet on a background task and returns at once, for single-pass reading.
+        /// The caller owns the part and must join <paramref name="producer"/> before disposing it or reading
+        /// another part, since the producer reads the shared archive and decompression budget.
+        /// </summary>
+        internal bool TryStartStreamedRead(string partName, CancellationToken cancellationToken,
+            out XlsbPooledPartStream? part, out WorksheetInflationProgress? progress, out Task? producer,
+            out Func<Exception?>? producerFault) {
+            part = null;
+            progress = null;
+            producer = null;
+            producerFault = null;
+            cancellationToken.ThrowIfCancellationRequested();
+            string normalized = NormalizePartName(partName);
+            if (!_entries.TryGetValue(normalized, out var entry)
+                || entry.Length < 1_048_576 || entry.Length > Math.Min(_options.MaxPartBytes, 64 * 1024 * 1024)
+                || entry.CompressedLength >= entry.Length) return false;
+
+            int length = checked((int)entry.Length);
+            byte[] buffer = ExcelArrayPool.RentBytes(length);
+            var owned = new XlsbPooledPartStream(buffer, length);
+            var published = new WorksheetInflationProgress(initiallyWritten: 0);
+            Exception? fault = null;
+            producer = Task.Run(() => {
+                try {
+                    ReadSeekablePartContents(entry, normalized, buffer, length, cancellationToken, published.PublishBytes);
+                    published.Complete(length);
+                } catch (Exception exception) {
+                    fault = exception;
+                } finally {
+                    // Validation waiting on bytes that will never arrive stops with an end-of-stream error.
+                    published.Abort();
+                }
+            }, CancellationToken.None);
+            part = owned;
+            progress = published;
+            producerFault = () => Volatile.Read(ref fault);
+            return true;
+        }
     }
 }
 #endif

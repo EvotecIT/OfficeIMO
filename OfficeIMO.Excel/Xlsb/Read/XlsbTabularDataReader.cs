@@ -47,7 +47,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private readonly string?[] _strings;
         private readonly object?[] _customValues;
         private readonly int _firstColumn;
-        private readonly int _lastDataRow;
+        // Grows while a single-pass reader learns of later data rows.
+        private int _lastDataRow;
         private readonly CancellationToken _cancellationToken;
         private CancellationToken _activeReadCancellationToken;
         private readonly XlsbLogicalRowReadBudget _logicalRowBudget;
@@ -99,7 +100,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             XlsbCellReadBudget cellBudget,
             XlsbLogicalRowReadBudget logicalRowBudget,
             CancellationToken cancellationToken,
-            XlsbWorksheetDiscovery? prevalidated = null) {
+            XlsbWorksheetDiscovery? prevalidated = null,
+            XlsbSinglePassGate? singlePass = null) {
             _sharedStrings = sharedStrings ?? throw new ArgumentNullException(nameof(sharedStrings));
             _dateStyles = dateStyles ?? throw new ArgumentNullException(nameof(dateStyles));
             _uses1904DateSystem = uses1904DateSystem;
@@ -118,7 +120,16 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             int actualLastDataRow = -1;
             try {
                 AcquireSharedStringReference();
-                if (prevalidated is XlsbWorksheetDiscovery discovery) {
+                if (singlePass != null) {
+                    // Validation continues; rows are returned once it has proved them. The header row
+                    // fixed the columns, so the schema equals the default reader's unless a later cell
+                    // falls outside it, which the reader reports when it reaches that row.
+                    _gate = singlePass;
+                    actualFirstColumn = singlePass.HeaderFirstColumn;
+                    actualLastColumn = singlePass.HeaderLastColumn;
+                    actualFirstDataRow = singlePass.FirstDataRow;
+                    actualLastDataRow = singlePass.LastDataRow;
+                } else if (prevalidated is XlsbWorksheetDiscovery discovery) {
                     actualFirstColumn = discovery.FirstColumn;
                     actualLastColumn = discovery.LastColumn;
                     actualFirstDataRow = discovery.FirstDataRow;
@@ -140,6 +151,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     out actualLastDataRow,
                     out _validatedRowPlan);
             } catch {
+                singlePass?.StopAndJoin();
                 worksheetPart.Dispose();
                 ReleaseSharedStringReference();
                 throw;
@@ -147,11 +159,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             // Discovery validates the complete immutable worksheet before the reader is exposed.
             // The delivery pass can therefore decode it without repeating those same checks.
+            // A single-pass reader decodes only the prefix validation has proved so far.
             var records = new XlsbRecordSliceReader(
                 worksheetPart.Buffer,
                 limits.MaxRecordBytes,
                 recordBudget ?? throw new ArgumentNullException(nameof(recordBudget)),
-                worksheetPart.DataLength,
+                singlePass?.ValidatedLength ?? worksheetPart.DataLength,
                 consumeRecordBudget: false);
             _records = records;
             _worksheetPart = worksheetPart;
@@ -235,6 +248,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     ? BufferSchemaRows()
                     : null;
             } catch {
+                singlePass?.StopAndJoin();
                 worksheetPart.Dispose();
                 ReleaseSharedStringReference();
                 throw;
@@ -292,6 +306,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             ResetUtf8TextState();
             if (!_hasPendingRow) {
                 if (_reachedEndSheetData) {
+                    // Checks after the last row, such as the closing sheet records, finish here.
+                    _gate?.WaitForCompletion(_activeReadCancellationToken);
                     return false;
                 }
 
@@ -299,6 +315,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     "The XLSB worksheet ended before the required BrtEndSheetData record.");
             }
 
+            // Single-pass reading proves the pending row before it or the blank rows ahead of it are returned.
+            if (_gate != null) PrepareStreamedRow(_pendingRowIndex);
             // Typed span clears avoid the general Array.Clear dispatch on every row.
             _kinds.AsSpan().Clear();
             _strings.AsSpan().Clear();
@@ -343,6 +361,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             _closed = true;
             ReleaseUtf8TextState();
+            // Background validation and inflation still use the worksheet buffer until joined.
+            _gate?.StopAndJoin();
             _worksheetPart.Dispose();
             ReleaseSharedStringReference();
             _schemaRows?.Clear();
@@ -364,7 +384,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             lastColumn = -1;
             bool inSheetData = false;
             bool sawDimension = false;
-            while (_records.TryReadValidated(out XlsbRecordSlice record)) {
+            while (TryReadRecord(out XlsbRecordSlice record)) {
                 CheckCancellation();
                 if (record.Type == BrtWsDim) {
                     if (sawDimension) {
@@ -401,7 +421,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private Dictionary<int, string?> ReadHeaderRow() {
             var values = new Dictionary<int, string?>();
             _hasPendingRow = false;
-            while (_records.TryReadValidated(out XlsbRecordSlice record)) {
+            while (TryReadRecord(out XlsbRecordSlice record)) {
                 CheckCancellation();
                 if (record.Type == BrtRowHdr) {
                     if (TrySetPendingRow(record)) {
@@ -640,7 +660,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         private bool TrySetPendingRow(XlsbRecordSlice record) {
             int rowIndex = ReadValidatedRowIndex(record);
-            if (rowIndex > _lastDataRow) {
+            if (rowIndex > _lastDataRow && !IncludesStreamedRow(rowIndex)) {
                 return false;
             }
 
