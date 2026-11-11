@@ -149,9 +149,10 @@ OfficeIMO.OfficeHiddenDataFinding.Kind.get -> OfficeIMO.OfficeHiddenDataKind
 OfficeIMO.OfficeHiddenDataFinding.Location.get -> string!
 OfficeIMO.OfficeHiddenDataFinding.Note.get -> string?
 OfficeIMO.OfficeHiddenDataFinding.Outcome.get -> OfficeIMO.OfficeHiddenDataOutcome
+OfficeIMO.OfficeHiddenDataFinding.Provenance.get -> OfficeIMO.Provenance.OfficeProvenanceEvidence?
 OfficeIMO.OfficeHiddenDataFinding.Value.get -> string?
 OfficeIMO.OfficeHiddenDataKind
-OfficeIMO.OfficeHiddenDataKind.All = OfficeIMO.OfficeHiddenDataKind.TrackedChanges | OfficeIMO.OfficeHiddenDataKind.HiddenContent | OfficeIMO.OfficeHiddenDataKind.Default -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.All = OfficeIMO.OfficeHiddenDataKind.TrackedChanges | OfficeIMO.OfficeHiddenDataKind.HiddenContent | OfficeIMO.OfficeHiddenDataKind.Default | OfficeIMO.OfficeHiddenDataKind.Provenance -> OfficeIMO.OfficeHiddenDataKind
 OfficeIMO.OfficeHiddenDataKind.Comments = 4 -> OfficeIMO.OfficeHiddenDataKind
 OfficeIMO.OfficeHiddenDataKind.CustomProperties = 2 -> OfficeIMO.OfficeHiddenDataKind
 OfficeIMO.OfficeHiddenDataKind.CustomXml = 256 -> OfficeIMO.OfficeHiddenDataKind
@@ -164,6 +165,7 @@ OfficeIMO.OfficeHiddenDataKind.ImageMetadata = 512 -> OfficeIMO.OfficeHiddenData
 OfficeIMO.OfficeHiddenDataKind.None = 0 -> OfficeIMO.OfficeHiddenDataKind
 OfficeIMO.OfficeHiddenDataKind.PersonalIdentities = 16 -> OfficeIMO.OfficeHiddenDataKind
 OfficeIMO.OfficeHiddenDataKind.PrinterSettings = 1024 -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.Provenance = 16384 -> OfficeIMO.OfficeHiddenDataKind
 OfficeIMO.OfficeHiddenDataKind.RevisionIdentifiers = 8192 -> OfficeIMO.OfficeHiddenDataKind
 OfficeIMO.OfficeHiddenDataKind.SpeakerNotes = 64 -> OfficeIMO.OfficeHiddenDataKind
 OfficeIMO.OfficeHiddenDataKind.Thumbnail = 128 -> OfficeIMO.OfficeHiddenDataKind

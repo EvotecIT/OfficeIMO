@@ -1,3 +1,5 @@
+using OfficeIMO.Provenance;
+
 namespace OfficeIMO.Core.Internal;
 
 /// <summary>Collects hidden-data findings and applies the selected removals as the format walks its document.</summary>
@@ -37,8 +39,21 @@ internal sealed class OfficeHiddenDataCollector {
 
     /// <summary>Records a finding whose outcome the format decided itself.</summary>
     internal void Record(OfficeHiddenDataKind kind, string location, string description, string? value,
-        OfficeHiddenDataOutcome outcome, string? note) =>
-        _findings.Add(new OfficeHiddenDataFinding(kind, location, description, value, outcome, note));
+        OfficeHiddenDataOutcome outcome, string? note, OfficeProvenanceEvidence? provenance = null) =>
+        _findings.Add(new OfficeHiddenDataFinding(kind, location, description, value, outcome, note, provenance));
+
+    /// <summary>The outcome for a finding the format removes itself: found when inspecting, retained when its category is not selected, otherwise <paramref name="removed"/>.</summary>
+    internal OfficeHiddenDataOutcome Resolve(OfficeHiddenDataKind kind, bool removed, string? retainedNote, out string? note) {
+        note = null;
+        if (Removal == null) return OfficeHiddenDataOutcome.Found;
+        if (!Removal.Removes(kind)) {
+            note = NotSelectedNote;
+            return OfficeHiddenDataOutcome.Retained;
+        }
+        if (removed) return OfficeHiddenDataOutcome.Removed;
+        note = retainedNote;
+        return OfficeHiddenDataOutcome.Retained;
+    }
 
     internal OfficeHiddenDataReport Build() => new(Format, _findings.ToList());
 }
