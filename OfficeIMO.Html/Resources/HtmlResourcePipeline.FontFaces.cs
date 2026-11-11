@@ -167,37 +167,23 @@ public static partial class HtmlResourcePipeline {
 
     private static readonly FontFaceSheetCache FontFaceSheets = new();
 
-    /// <summary>Thread-safe, least-recently-used parsed sheets, bounded by the text they retain.</summary>
+    /// <summary>
+    /// Parsed sheets bounded by the text they retain, least recently used first. The older half
+    /// is dropped under high memory load; a conversion holding a sheet keeps using it.
+    /// </summary>
     private sealed class FontFaceSheetCache {
         // Small sheets parse quickly; only sheets that carry font or image payloads are worth keeping.
         private const int MinimumLength = 64 * 1024;
         private const long MaximumRetainedCharacters = 32L * 1024 * 1024;
-        private readonly Dictionary<string, LinkedListNode<(string Css, FontFaceSheet Sheet)>> _entries = new(StringComparer.Ordinal);
-        private readonly LinkedList<(string Css, FontFaceSheet Sheet)> _order = new();
-        private long _retainedCharacters;
+        private readonly OfficeIMO.Drawing.OfficeSizedLruCache<string, FontFaceSheet> _sheets =
+            new(MaximumRetainedCharacters, static (css, _) => css.Length, StringComparer.Ordinal);
 
         internal FontFaceSheet GetOrParse(string css, HtmlConversionLimits? limits) {
             if (css.Length < MinimumLength || css.Length > MaximumRetainedCharacters) return FontFaceSheet.Parse(css, limits);
-            lock (_entries) {
-                if (_entries.TryGetValue(css, out LinkedListNode<(string Css, FontFaceSheet Sheet)>? node)) {
-                    _order.Remove(node);
-                    _order.AddFirst(node);
-                    return node.Value.Sheet;
-                }
-            }
+            if (_sheets.TryGet(css, out FontFaceSheet known)) return known;
             // A scan that exceeds this operation's limits throws here and remembers nothing.
             FontFaceSheet sheet = FontFaceSheet.Parse(css, limits);
-            lock (_entries) {
-                if (_entries.ContainsKey(css)) return sheet;
-                while (_retainedCharacters + css.Length > MaximumRetainedCharacters && _order.Last != null) {
-                    LinkedListNode<(string Css, FontFaceSheet Sheet)> oldest = _order.Last;
-                    _order.RemoveLast();
-                    _entries.Remove(oldest.Value.Css);
-                    _retainedCharacters -= oldest.Value.Css.Length;
-                }
-                _entries.Add(css, _order.AddFirst((css, sheet)));
-                _retainedCharacters += css.Length;
-            }
+            _sheets.Add(css, sheet);
             return sheet;
         }
     }

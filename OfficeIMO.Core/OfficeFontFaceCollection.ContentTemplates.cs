@@ -27,7 +27,7 @@ public sealed partial class OfficeFontFaceCollection {
             ? normalizedFamily
             : CreateResourceFamilyName(normalizedFamily, descriptor, ranges);
         ContentKey key = ContentKey.Create(data);
-        if (ContentTemplates.TryGet(key, out FaceTemplate? template) && template!.DecodedBytes <= maximumDecodedBytes) {
+        if (ContentTemplates.TryGet(key, out FaceTemplate template) && template.DecodedBytes <= maximumDecodedBytes) {
             OfficeFontFace source = template.Face;
             // Only static programs are remembered, so the descriptor never selects an instance.
             ReplaceOrAddFace(new OfficeFontFace(normalizedFamily, resourceFamily, source.DataSnapshot,
@@ -73,7 +73,9 @@ public sealed partial class OfficeFontFaceCollection {
     }
 
     private const long MaximumContentTemplateBytes = 64L * 1024 * 1024;
-    private static readonly ContentTemplateCache ContentTemplates = new(MaximumContentTemplateBytes);
+    // Least recently used faces go first, and the older half is dropped under high memory load.
+    private static readonly OfficeSizedLruCache<ContentKey, FaceTemplate> ContentTemplates =
+        new(MaximumContentTemplateBytes, static (_, template) => template.DecodedBytes);
 
     private readonly struct ContentKey : IEquatable<ContentKey> {
         private readonly string _digest;
@@ -93,44 +95,5 @@ public sealed partial class OfficeFontFaceCollection {
             _length == other._length && string.Equals(_digest, other._digest, StringComparison.Ordinal);
         public override bool Equals(object? obj) => obj is ContentKey other && Equals(other);
         public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(_digest) ^ _length;
-    }
-
-    /// <summary>Thread-safe, least-recently-used set of face templates bounded by their retained bytes.</summary>
-    private sealed class ContentTemplateCache {
-        private readonly long _maximumBytes;
-        private readonly Dictionary<ContentKey, LinkedListNode<(ContentKey Key, FaceTemplate Template)>> _entries = new();
-        private readonly LinkedList<(ContentKey Key, FaceTemplate Template)> _order = new();
-        private long _retainedBytes;
-
-        internal ContentTemplateCache(long maximumBytes) => _maximumBytes = maximumBytes;
-
-        internal bool TryGet(ContentKey key, out FaceTemplate? template) {
-            lock (_entries) {
-                if (!_entries.TryGetValue(key, out LinkedListNode<(ContentKey Key, FaceTemplate Template)>? node)) {
-                    template = null;
-                    return false;
-                }
-                _order.Remove(node);
-                _order.AddFirst(node);
-                template = node.Value.Template;
-                return true;
-            }
-        }
-
-        internal void Add(ContentKey key, FaceTemplate template) {
-            long size = template.DecodedBytes;
-            if (size > _maximumBytes) return;
-            lock (_entries) {
-                if (_entries.ContainsKey(key)) return;
-                while (_retainedBytes + size > _maximumBytes && _order.Last != null) {
-                    LinkedListNode<(ContentKey Key, FaceTemplate Template)> oldest = _order.Last;
-                    _order.RemoveLast();
-                    _entries.Remove(oldest.Value.Key);
-                    _retainedBytes -= oldest.Value.Template.DecodedBytes;
-                }
-                _entries.Add(key, _order.AddFirst((key, template)));
-                _retainedBytes += size;
-            }
-        }
     }
 }
