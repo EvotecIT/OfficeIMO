@@ -557,7 +557,7 @@ Every slice must protect both the established behavior and its new claim. Run th
 
 Breaking cleanup remains allowed, but batch it around durable owned contracts and record user action in `MIGRATION.md`. Once a named profile is published as stable, ordinary additions must preserve its qualified behavior. Observable standards changes, removed fallbacks and incompatible default changes use a new profile version or a documented breaking release rather than quietly changing an old manifest.
 
-Static engine work develops on the default branch through focused, reviewable changes merged through the normal OfficeIMO path. The earlier engine branch now only holds the parked scripted runtime and its provider forks; it is not kept current and is never merged wholesale. When the runtime route is decided, its code is ported to a fresh branch from the default branch as its own change. Do not wait for parser or interpreter replacement.
+Static engine work develops on the default branch through focused, reviewable changes merged through the normal OfficeIMO path. The earlier engine branch now only holds the parked scripted runtime and its provider forks; it is not kept current and is never merged wholesale. If the retained worker and forks are chosen, their code is ported to a fresh branch from the default branch as its own change; if upstream Jint's browser host is chosen, the runtime is built on the default branch and the parked code is retired. Do not wait for parser or interpreter replacement.
 
 ## Provider ownership and maintenance
 
