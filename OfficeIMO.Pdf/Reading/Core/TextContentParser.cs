@@ -155,6 +155,51 @@ internal static partial class TextContentParser {
 
         public string DecodeActualText(TextOutputBudget budget) =>
             _actualText?.Decode(budget) ?? string.Empty;
+
+        // Replacement layout and drawing evidence is tracked only by scopes that use it; most
+        // marked content (MCID and artifact scopes) never touches it, so it lives in a side object.
+        private ActualTextLayoutState? _layout;
+        private ActualTextLayoutState L => _layout ??= new ActualTextLayoutState();
+
+        private sealed class ActualTextLayoutState {
+            internal List<PdfTextSpan>? _invisibleAnchorOwner;
+            internal int _invisibleAnchorIndex;
+            internal List<PdfTextSpan>? _logicalLayoutOwner;
+            internal int _logicalLayoutIndex;
+            internal string? _logicalLayoutText;
+            internal int _logicalPaintCharacters;
+            internal bool _logicalPaintRejected;
+            internal bool _hasLogicalPaint;
+            internal string? _logicalPaintFont;
+            internal double _logicalPaintSize;
+            internal int? _logicalPaintStream;
+            internal Matrix2D _logicalPaintTransform;
+            internal PdfPageClipPath? _logicalPaintClip;
+            internal double _logicalPaintX, _logicalPaintY, _logicalPaintAlongX, _logicalPaintAlongY;
+            internal double _logicalPaintLastOrigin, _logicalPaintExtent;
+
+            internal List<PdfTextSpan>? _logicalBaselineOwner;
+            internal int _logicalBaselineIndex;
+            internal bool _logicalBaselineRejected, _logicalBaselineStarted, _logicalBaselineHasBase;
+            internal int? _logicalBaselineStream;
+            internal string? _logicalBaselineFont;
+            internal double _logicalBaselineSize, _logicalBaselineX, _logicalBaselineY;
+            internal double _logicalBaselineAlongX, _logicalBaselineAlongY;
+            internal double _logicalBaselineBaseNormal, _logicalBaselineLastBaseOrigin;
+            internal Matrix2D _logicalBaselineTransform;
+            internal PdfPageClipPath? _logicalBaselineClip;
+
+            internal string? _decodedActualText;
+            internal bool _actualTextCharged;
+            internal PdfContentOrderKey? _drawingStart;
+            internal MarkedContentState? _drawingParent;
+            internal bool _drawingHidden;
+            internal bool _hasDrawingPaint;
+            internal bool _hasDrawingAnchor;
+            internal bool HasVisibleDrawingText;
+            internal double DrawingAnchorX;
+            internal double DrawingAnchorY;
+        }
     }
 
     internal sealed class TextOutputBudget {
