@@ -471,7 +471,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             bool AffectsBlankCell(string? styleName) =>
                 HasVisibleBlankCellStyle(source, styleName, blankStyleCache);
             var paintedBlankStyleCache = new Dictionary<string, bool>(StringComparer.Ordinal);
-            // Excel and LibreOffice pad each used row to the sheet edge with one styled blank run.
+            // Office suites pad each used row to the sheet edge with one styled blank run.
             // Expanding that padding creates thousands of empty cells and printed pages.
             bool IsInertBlankTail(IReadOnlyList<OdsCellRun> runs, int index) {
                 OdsCellRun run = runs[index];
