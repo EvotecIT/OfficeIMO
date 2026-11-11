@@ -187,6 +187,18 @@ namespace OfficeIMO.Word {
             foreach (BookmarkStart item in bookmarkStarts) if (item.Id?.Value is not string id || !endIds.Contains(id)) item.Remove();
             foreach (BookmarkEnd item in bookmarkEnds) if (item.Id?.Value is not string id || !startIds.Contains(id)) item.Remove();
 
+            // A link to a bookmark that is now in another piece keeps its text but stops being a link.
+            var bookmarkNames = new HashSet<string>(body.Descendants<BookmarkStart>().Select(item => item.Name?.Value).OfType<string>(), StringComparer.Ordinal);
+            foreach (Hyperlink link in body.Descendants<Hyperlink>().ToList()) {
+                if (link.Id == null && link.Anchor?.Value is string anchor && !bookmarkNames.Contains(anchor)) {
+                    foreach (OpenXmlElement child in link.ChildElements.ToList()) {
+                        child.Remove();
+                        link.InsertBeforeSelf(child);
+                    }
+                    link.Remove();
+                }
+            }
+
             var rangeStarts = body.Descendants<CommentRangeStart>().ToList();
             var rangeEnds = body.Descendants<CommentRangeEnd>().ToList();
             var commentStartIds = new HashSet<string>(rangeStarts.Select(item => item.Id?.Value).OfType<string>(), StringComparer.Ordinal);
@@ -236,7 +248,33 @@ namespace OfficeIMO.Word {
             PruneNotes(main.FootnotesPart, main.FootnotesPart?.Footnotes, document.Descendants<FootnoteReference>().Select(item => item.Id?.Value));
             PruneNotes(main.EndnotesPart, main.EndnotesPart?.Endnotes, document.Descendants<EndnoteReference>().Select(item => item.Id?.Value));
             PruneComments(main, document);
+            PrunePeople(main, document);
             PruneStylesAndNumbering(main, document);
+        }
+
+        /// <summary>
+        /// Removes the people records (people.xml) of authors whose comments and tracked changes are no longer in the
+        /// piece, so a piece does not name reviewers of the parts it left out.
+        /// </summary>
+        private static void PrunePeople(MainDocumentPart main, Document document) {
+            WordprocessingPeoplePart? part = main.WordprocessingPeoplePart;
+            OpenXmlElement? people = part?.RootElement;
+            if (part == null || people == null) return;
+
+            var stories = new List<OpenXmlElement> { document };
+            foreach (OpenXmlPart story in StoryParts(main)) if (story.RootElement != null) stories.Add(story.RootElement);
+            if (main.WordprocessingCommentsPart?.Comments is Comments comments) stories.Add(comments);
+            var authors = new HashSet<string>(StringComparer.Ordinal);
+            foreach (OpenXmlElement story in stories) {
+                foreach (OpenXmlElement element in story.Descendants()) {
+                    if (GetAttribute(element, "author") is string author) authors.Add(author);
+                }
+            }
+
+            foreach (OpenXmlElement person in people.ChildElements.ToList()) {
+                if (GetAttribute(person, "author") is not string author || !authors.Contains(author)) person.Remove();
+            }
+            if (!people.HasChildren) main.DeletePart(part);
         }
 
         /// <summary>
@@ -395,10 +433,13 @@ namespace OfficeIMO.Word {
                         if (StyleReferenceElements.Contains(element.LocalName) && GetAttribute(element, "val") is { Length: > 0 } styleId) {
                             pendingStyles.Enqueue(styleId);
                         } else if (element is NumberingId numberingId && numberingId.Val?.Value is int numberId && numberId > 0 && usedNumbers.Add(numberId) &&
-                                   instances.TryGetValue(numberId, out NumberingInstance? instance) &&
-                                   instance.AbstractNumId?.Val?.Value is int abstractId && usedAbstracts.Add(abstractId) &&
-                                   abstracts.TryGetValue(abstractId, out AbstractNum? definition)) {
-                            pendingElements.Enqueue(definition);
+                                   instances.TryGetValue(numberId, out NumberingInstance? instance)) {
+                            // Level overrides on the instance can name styles too.
+                            pendingElements.Enqueue(instance);
+                            if (instance.AbstractNumId?.Val?.Value is int abstractId && usedAbstracts.Add(abstractId) &&
+                                abstracts.TryGetValue(abstractId, out AbstractNum? definition)) {
+                                pendingElements.Enqueue(definition);
+                            }
                         }
                     }
                 }

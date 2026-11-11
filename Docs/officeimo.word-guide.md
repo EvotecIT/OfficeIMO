@@ -586,7 +586,7 @@ for (int i = 0; i < chapters.Count; i++) {
     using WordDocument chapter = chapters[i];
     // A piece before the first heading may hold only a table or a picture.
     string title = chapter.Paragraphs.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p.Text))?.Text ?? $"Part {i + 1}";
-    chapter.Save(Path.Combine("chapters", title + ".docx"));
+    chapter.Save(Path.Combine("chapters", $"{i + 1:D2} {title}.docx"));
 }
 ```
 

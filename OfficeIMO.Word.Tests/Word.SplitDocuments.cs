@@ -154,6 +154,64 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_SplitBySectionDropsReferencesIntoOtherPieces() {
+            using var input = new MemoryStream();
+            using (WordprocessingDocument package = WordprocessingDocument.Create(input, WordprocessingDocumentType.Document, true)) {
+                MainDocumentPart main = package.AddMainDocumentPart();
+                main.AddNewPart<StyleDefinitionsPart>().Styles = new Styles(
+                    new Style(new StyleName { Val = "Normal" }) { Type = StyleValues.Paragraph, StyleId = "Normal", Default = true },
+                    new Style(new StyleName { Val = "Override level" }) { Type = StyleValues.Paragraph, StyleId = "OverrideLevel" });
+                main.AddNewPart<NumberingDefinitionsPart>().Numbering = new Numbering(
+                    new AbstractNum(new Level(new NumberingFormat { Val = NumberFormatValues.Decimal }, new LevelText { Val = "%1." }) { LevelIndex = 0 }) { AbstractNumberId = 1 },
+                    new NumberingInstance(
+                        new AbstractNumId { Val = 1 },
+                        new LevelOverride(new Level(new ParagraphStyleIdInLevel { Val = "OverrideLevel" }) { LevelIndex = 0 }) { LevelIndex = 0 }) { NumberID = 1 });
+                main.AddNewPart<WordprocessingCommentsPart>().Comments = new Comments(
+                    new Comment(new Paragraph(new Run(new Text("First note")))) { Id = "1", Author = "Alice" },
+                    new Comment(new Paragraph(new Run(new Text("Second note")))) { Id = "2", Author = "Bob" });
+                main.AddNewPart<WordprocessingPeoplePart>().People = new DocumentFormat.OpenXml.Office2013.Word.People(
+                    new DocumentFormat.OpenXml.Office2013.Word.Person { Author = "Alice" },
+                    new DocumentFormat.OpenXml.Office2013.Word.Person { Author = "Bob" });
+                main.Document = new Document(new Body(
+                    new Paragraph(new BookmarkStart { Id = "1", Name = "Target" }, new Run(new Text("One")), new BookmarkEnd { Id = "1" },
+                        new Run(new CommentReference { Id = "1" })),
+                    new Paragraph(new ParagraphProperties(new SectionProperties())),
+                    new Paragraph(new ParagraphProperties(new NumberingProperties(new NumberingLevelReference { Val = 0 }, new NumberingId { Val = 1 })),
+                        new Run(new Text("Two "))),
+                    new Paragraph(new Hyperlink(new Run(new Text("Back to one"))) { Anchor = "Target" }, new Run(new CommentReference { Id = "2" })),
+                    new SectionProperties()));
+            }
+
+            input.Position = 0;
+            using WordDocument source = WordDocument.Load(input);
+            IReadOnlyList<WordDocument> pieces = source.SplitBySection();
+            try {
+                Assert.Equal(2, pieces.Count);
+                MainDocumentPart first = pieces[0]._wordprocessingDocument.MainDocumentPart!;
+                MainDocumentPart second = pieces[1]._wordprocessingDocument.MainDocumentPart!;
+
+                // The link's target is in the first piece, so the second keeps the text without the link.
+                Assert.Empty(Body(pieces[1]).Descendants<Hyperlink>());
+                Assert.Contains("Back to one", Body(pieces[1]).InnerText);
+
+                // Each piece names only the reviewer whose comment it kept.
+                string Authors(MainDocumentPart main) => string.Join(",", main.WordprocessingPeoplePart!.People!
+                    .Elements<DocumentFormat.OpenXml.Office2013.Word.Person>().Select(person => person.Author!.Value));
+                Assert.Equal("Alice", Authors(first));
+                Assert.Equal("Bob", Authors(second));
+
+                // A style named only by a list's level override stays with the list.
+                Assert.Contains(second.StyleDefinitionsPart!.Styles!.Elements<Style>(), style => style.StyleId == "OverrideLevel");
+                Assert.DoesNotContain(first.StyleDefinitionsPart!.Styles!.Elements<Style>(), style => style.StyleId == "OverrideLevel");
+
+                AssertMergedDocumentIsValid(pieces[0]);
+                AssertMergedDocumentIsValid(pieces[1]);
+            } finally {
+                foreach (WordDocument piece in pieces) piece.Dispose();
+            }
+        }
+
         private static MainDocumentPart Reload(WordDocument piece, out WordDocument reloaded) {
             using var stream = new MemoryStream(piece.ToBytes(), writable: false);
             reloaded = WordDocument.Load(stream);
