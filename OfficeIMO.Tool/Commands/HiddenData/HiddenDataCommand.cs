@@ -1,8 +1,5 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using OfficeIMO.Excel;
-using OfficeIMO.PowerPoint;
-using OfficeIMO.Word;
+using OfficeIMO.Tool.Agent;
+using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Tool.Commands.HiddenData;
 
@@ -14,15 +11,20 @@ Usage:
   officeimo hidden-data inspect <input> [--format json|text]
   officeimo hidden-data remove <input> [--output <path>] [--force]
              [--kinds <kind>[,<kind>...]] [--tracked-changes keep|accept|reject]
-             [--anonymous-author <name>] [--format json|text]
+             [--keep-provenance c2pa,external,ai-source] [--anonymous-author <name>]
+             [--remove-invalidated-signatures] [--format json|text]
 
-Inputs are Word, Excel and PowerPoint Open XML files.
-Kinds: default, all, or names such as provenance, hidden-content, tracked-changes, image-metadata.
-The default kinds keep tracked changes, hidden content and provenance (Content Credentials and
-digital source type declarations); add provenance to remove them. Package-level Content Credentials
-are always removed because a changed document cannot keep them valid.
+Inputs are Word, Excel, PowerPoint, Visio, OpenDocument, EPUB, PDF, JPEG, PNG, WebP, GIF and TIFF files.
+Kinds: default, all, or names such as provenance, hidden-content, tracked-changes, image-metadata,
+attachments, active-content, bookmarks.
+The default kinds remove scripts and other active content but keep tracked changes, hidden content,
+attachments, bookmarks and provenance (Content Credentials and digital source type declarations);
+add provenance to remove them, and --keep-provenance to keep some carriers, for example
+--keep-provenance c2pa to drop only AI-generated declarations. Package-level Content Credentials
+and Content Credentials embedded in a PDF are always removed because a changed document cannot keep them valid.
 Removal writes <input>.cleaned<ext> unless --output is given, refuses an existing output unless
---force is supplied, and never changes the input. Signed documents are refused.
+--force is supplied, and never changes the input. Saving blocks when it would invalidate package
+signatures unless --remove-invalidated-signatures is explicit. Signed PDFs are always refused.
 JSON is the default output and carries a versioned schema identifier.
 """;
 
@@ -46,9 +48,8 @@ JSON is the default output and carries a versioned schema identifier.
             await standardError.WriteLineAsync("Input file was not found: " + input).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.InputNotFound;
         }
-        HiddenDataFormat? format = DetectFormat(input);
-        if (format == null) {
-            await standardError.WriteLineAsync("Hidden-data inspection supports Word, Excel and PowerPoint Open XML files.").ConfigureAwait(false);
+        if (!OfficeDocument.SupportsHiddenData(input)) {
+            await standardError.WriteLineAsync("Hidden-data inspection supports Office, Visio, OpenDocument, EPUB, PDF and JPEG, PNG, WebP, GIF and TIFF image files.").ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.UnsupportedInput;
         }
 
@@ -69,7 +70,9 @@ JSON is the default output and carries a versioned schema identifier.
         cancellationToken.ThrowIfCancellationRequested();
         OfficeHiddenDataReport report;
         try {
-            report = output == null ? Inspect(input, format.Value) : Remove(input, output, format.Value, parsed.Options);
+            report = output == null
+                ? OfficeDocument.Inspect(input, new OfficeInspectOptions { IncludeContent = false, IncludeHiddenData = true }, cancellationToken).HiddenData!
+                : OfficeDocument.RemoveHiddenData(input, output, parsed.Options, parsed.SignatureMutationPolicy);
         } catch (OperationCanceledException) {
             await standardError.WriteLineAsync("Hidden-data workflow cancelled.").ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.Cancelled;
@@ -82,56 +85,9 @@ JSON is the default output and carries a versioned schema identifier.
         return (int)OfficeImoToolExitCode.Success;
     }
 
-    private enum HiddenDataFormat { Word, Excel, PowerPoint }
-
-    private static HiddenDataFormat? DetectFormat(string path) => Path.GetExtension(path).ToLowerInvariant() switch {
-        ".docx" or ".docm" or ".dotx" or ".dotm" => HiddenDataFormat.Word,
-        ".xlsx" or ".xlsm" or ".xltx" or ".xltm" => HiddenDataFormat.Excel,
-        ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" => HiddenDataFormat.PowerPoint,
-        _ => null
-    };
-
-    private static OfficeHiddenDataReport Inspect(string input, HiddenDataFormat format) {
-        switch (format) {
-            case HiddenDataFormat.Word:
-                using (WordDocument document = WordDocument.Load(input)) return document.InspectHiddenData();
-            case HiddenDataFormat.Excel:
-                using (ExcelDocument document = ExcelDocument.Load(input)) return document.InspectHiddenData();
-            default:
-                using (PowerPointDocument document = PowerPointDocument.Load(input)) return document.InspectHiddenData();
-        }
-    }
-
-    /// <summary>Cleans a private copy next to the output and moves it into place only after a successful save.</summary>
-    private static OfficeHiddenDataReport Remove(string input, string output, HiddenDataFormat format, OfficeHiddenDataOptions options) {
-        string staging = Path.Combine(Path.GetDirectoryName(output)!, "." + Guid.NewGuid().ToString("N") + Path.GetExtension(output));
-        try {
-            File.Copy(input, staging);
-            OfficeHiddenDataReport report;
-            switch (format) {
-                case HiddenDataFormat.Word:
-                    using (WordDocument document = WordDocument.Load(staging)) { report = document.RemoveHiddenData(options); document.Save(); }
-                    break;
-                case HiddenDataFormat.Excel:
-                    using (ExcelDocument document = ExcelDocument.Load(staging)) { report = document.RemoveHiddenData(options); document.Save(); }
-                    break;
-                default:
-                    using (PowerPointDocument document = PowerPointDocument.Load(staging)) { report = document.RemoveHiddenData(options); document.Save(); }
-                    break;
-            }
-            if (File.Exists(output)) File.Delete(output);
-            File.Move(staging, output);
-            return report;
-        } finally {
-            if (File.Exists(staging)) File.Delete(staging);
-        }
-    }
-
     private static async Task WriteAsync(TextWriter writer, OfficeHiddenDataReport report, string input, string? output, bool json) {
         if (json) {
-            var dto = new HiddenDataResultDto("officeimo.hidden-data.result.v1", output == null ? "inspect" : "remove", report.Format,
-                input, output, report.Changed, report.Findings.Select(ToDto).ToArray());
-            await writer.WriteLineAsync(JsonSerializer.Serialize(dto, HiddenDataJsonContext.Default.HiddenDataResultDto)).ConfigureAwait(false);
+            await writer.WriteLineAsync(OfficeHiddenDataReportSerializer.Serialize(report, input, output)).ConfigureAwait(false);
             return;
         }
         await writer.WriteLineAsync(report.Format + " | " + report.Findings.Count + " finding(s)" + (output == null ? string.Empty : " | output: " + output)).ConfigureAwait(false);
@@ -140,10 +96,6 @@ JSON is the default output and carries a versioned schema identifier.
                 (finding.Value == null ? string.Empty : " = " + finding.Value) + (finding.Note == null ? string.Empty : " (" + finding.Note + ")")).ConfigureAwait(false);
         }
     }
-
-    private static HiddenDataFindingDto ToDto(OfficeHiddenDataFinding finding) => new(
-        finding.Kind.ToString(), finding.Outcome.ToString(), finding.Location, finding.Description, finding.Value, finding.Note,
-        finding.Provenance?.Carrier.ToString(), finding.Provenance?.DigitalSourceKind.ToString());
 }
 
 internal sealed class HiddenDataArguments {
@@ -154,6 +106,7 @@ internal sealed class HiddenDataArguments {
     internal bool Force { get; private set; }
     internal bool Json { get; private set; } = true;
     internal OfficeHiddenDataOptions Options { get; } = new();
+    internal OfficeSignatureMutationPolicy SignatureMutationPolicy { get; private set; } = OfficeSignatureMutationPolicy.BlockSave;
 
     internal static HiddenDataArguments Parse(string[] args) {
         var parsed = new HiddenDataArguments();
@@ -183,15 +136,16 @@ internal sealed class HiddenDataArguments {
                     parsed.Force = true;
                     break;
                 case "--kinds" when parsed.Remove:
-                    parsed.Options.Kinds = ParseKinds(Read(args, ref index, token));
+                    parsed.Options.Kinds = HiddenDataArgumentParser.ParseKinds(Read(args, ref index, token).Split(','));
                     break;
                 case "--tracked-changes" when parsed.Remove:
-                    parsed.Options.TrackedChanges = Read(args, ref index, token) switch {
-                        "keep" => OfficeTrackedChangesAction.Keep,
-                        "accept" => OfficeTrackedChangesAction.AcceptAll,
-                        "reject" => OfficeTrackedChangesAction.RejectAll,
-                        string value => throw new ArgumentException("Unknown tracked-changes action '" + value + "'.")
-                    };
+                    parsed.Options.TrackedChanges = HiddenDataArgumentParser.ParseTrackedChanges(Read(args, ref index, token));
+                    break;
+                case "--remove-invalidated-signatures" when parsed.Remove:
+                    parsed.SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures;
+                    break;
+                case "--keep-provenance" when parsed.Remove:
+                    HiddenDataArgumentParser.ApplyKeptProvenance(parsed.Options, Read(args, ref index, token).Split(','));
                     break;
                 case "--anonymous-author" when parsed.Remove:
                     parsed.Options.AnonymousAuthor = Read(args, ref index, token);
@@ -206,31 +160,8 @@ internal sealed class HiddenDataArguments {
         return parsed;
     }
 
-    private static OfficeHiddenDataKind ParseKinds(string value) {
-        OfficeHiddenDataKind kinds = OfficeHiddenDataKind.None;
-        foreach (string name in value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)) {
-            string normalized = name.Replace("-", string.Empty, StringComparison.Ordinal);
-            if (!Enum.TryParse(normalized, ignoreCase: true, out OfficeHiddenDataKind kind) || kind == OfficeHiddenDataKind.None) {
-                throw new ArgumentException("Unknown hidden-data kind '" + name + "'.");
-            }
-            kinds |= kind;
-        }
-        if (kinds == OfficeHiddenDataKind.None) throw new ArgumentException("--kinds requires at least one kind.");
-        return kinds;
-    }
-
     private static string Read(string[] args, ref int index, string option) {
         if (index + 1 >= args.Length) throw new ArgumentException(option + " requires a value.");
         return args[++index];
     }
 }
-
-internal sealed record HiddenDataResultDto(string Schema, string Operation, string Format, string Input, string? Output, bool Changed,
-    IReadOnlyList<HiddenDataFindingDto> Findings);
-
-internal sealed record HiddenDataFindingDto(string Kind, string Outcome, string Location, string Description, string? Value, string? Note,
-    string? ProvenanceCarrier, string? DigitalSourceKind);
-
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
-[JsonSerializable(typeof(HiddenDataResultDto))]
-internal sealed partial class HiddenDataJsonContext : JsonSerializerContext;

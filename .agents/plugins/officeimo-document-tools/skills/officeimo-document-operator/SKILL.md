@@ -16,6 +16,7 @@ Use the plugin's declared `officeimo_*` MCP tools. They return compact structure
 3. Call `officeimo_fetch` only for selected result ids. Follow `nextCursor` only when more of that result is needed.
 4. Call `officeimo_convert` only when the user wants a file written. Choose a new output path unless overwrite was explicitly requested.
 5. Call `officeimo_capabilities` only when format support is uncertain; filter by extension.
+6. Before a document is shared, call `officeimo_inspect_hidden_data`, then `officeimo_remove_hidden_data` to a new output path. Keep the default kinds unless the user chooses otherwise; add `provenance` only when the user wants Content Credentials and AI-generated declarations removed, and `hidden-content` or `tracked-changes` only when they accept changes to visible content.
 
 `officeimo_convert` writes Markdown or Reader JSON, or runs a catalog conversion route chosen by the source extension and `format`, such as `pdf` from DOCX, ODT, Markdown, HTML, EML, MSG, EPUB or Visio, `docx` from Markdown, HTML, RTF or ODT, and `odt`, `ods` or `odp` from Office files. Email PDF renders the message with its header, body, inline images and attachment list. If a pair is rejected, call `officeimo_capabilities` with `operation: "convert"` for the source extension instead of guessing another format.
 
