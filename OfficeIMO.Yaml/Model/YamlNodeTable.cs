@@ -15,9 +15,12 @@ internal struct YamlNodeRecord {
     /// <summary>Start of the node, at its first property (anchor or tag) when it has one.</summary>
     public int Start;
     public int End;
-    /// <summary>Scalars: start of the raw value. Collections: where the content starts, after the properties and any opening bracket.</summary>
+    /// <summary>
+    /// Scalars: start of the raw value. Collections: where the content starts, after the properties and any opening
+    /// bracket. Aliases: start of the anchor name after <c>*</c>.
+    /// </summary>
     public int ValueStart;
-    /// <summary>Scalars: end of the raw value.</summary>
+    /// <summary>Scalars: end of the raw value. Aliases: end of the anchor name.</summary>
     public int ValueEnd;
     /// <summary>Records in the subtree, the node itself included.</summary>
     public int Size;
@@ -25,8 +28,6 @@ internal struct YamlNodeRecord {
     public int Count;
     /// <summary>The row of <see cref="YamlNodeTable.Properties"/> holding the anchor and tag, or -1.</summary>
     public int Props;
-    /// <summary>The row of <see cref="YamlNodeTable.Texts"/> holding an alias's name, or -1.</summary>
-    public int Text;
     public YamlRecordKind Kind;
     public YamlStyle Style;
     public YamlTokenFlags Flags;
@@ -35,7 +36,9 @@ internal struct YamlNodeRecord {
 
 /// <summary>Anchor, tag and alias facts of a loaded node; only nodes with an anchor or tag have a row.</summary>
 internal struct YamlRecordProperties {
-    public string? Anchor;
+    /// <summary>Start of the anchor name after <c>&amp;</c> in the source, or -1; the name is read from the source when a node is created.</summary>
+    public int AnchorStart;
+    public int AnchorLength;
     public string? Tag;
     /// <summary>Nodes the anchored node stands for when every alias inside it is resolved, saturating.</summary>
     public long ExpandedSize;
@@ -61,8 +64,6 @@ internal sealed class YamlNodeTable {
     public int Count;
     public YamlRecordProperties[] Properties;
     public int PropertyCount;
-    public string[] Texts;
-    public int TextCount;
     private readonly string _source;
     /// <summary>Anchored nodes that aliases refer to, by record, once created; aliases find their targets here.</summary>
     private Dictionary<int, YamlNode>? _anchored;
@@ -75,7 +76,6 @@ internal sealed class YamlNodeTable {
         _source = source;
         Records = ArrayPool<YamlNodeRecord>.Shared.Rent(Math.Max(16, source.Length / 12));
         Properties = ArrayPool<YamlRecordProperties>.Shared.Rent(8);
-        Texts = ArrayPool<string>.Shared.Rent(8);
     }
 
     public int Add() {
@@ -89,26 +89,17 @@ internal sealed class YamlNodeTable {
         return PropertyCount++;
     }
 
-    public int AddText(string text) {
-        if (TextCount == Texts.Length) Texts = Grow(Texts, TextCount, clear: true);
-        Texts[TextCount] = text;
-        return TextCount++;
-    }
-
     /// <summary>Returns the pooled arrays when no node object was created from them.</summary>
     public void Release() {
         lock (this) {
             if (_handedOut || _released) return;
             _released = true;
-            Array.Clear(Texts, 0, TextCount);
             Array.Clear(Properties, 0, PropertyCount);
-            ArrayPool<string>.Shared.Return(Texts);
             ArrayPool<YamlRecordProperties>.Shared.Return(Properties);
             ArrayPool<YamlNodeRecord>.Shared.Return(Records);
-            Texts = Array.Empty<string>();
             Properties = Array.Empty<YamlRecordProperties>();
             Records = Array.Empty<YamlNodeRecord>();
-            Count = PropertyCount = TextCount = 0;
+            Count = PropertyCount = 0;
         }
     }
 
@@ -340,7 +331,7 @@ internal sealed class YamlNodeTable {
                 node = new YamlSequence(part, r.Style, r.Start, r.End, r.ValueStart, r.Count);
                 break;
             default:
-                node = new YamlAlias(part, r.Start, r.End, Texts[r.Text], r.Count);
+                node = new YamlAlias(part, r.Start, r.End, _source.Substring(r.ValueStart, r.ValueEnd - r.ValueStart), r.Count);
                 break;
         }
         node._record = record;
@@ -348,7 +339,7 @@ internal sealed class YamlNodeTable {
         node._index = position;
         if (r.Props >= 0) {
             ref YamlRecordProperties p = ref Properties[r.Props];
-            node._properties = new YamlNodeProperties { Anchor = p.Anchor, Tag = p.Tag };
+            node._properties = new YamlNodeProperties { Anchor = p.AnchorStart < 0 ? null : _source.Substring(p.AnchorStart, p.AnchorLength), Tag = p.Tag };
             if (p.Aliased) {
                 node._state |= YamlNodeState.Aliased;
                 (_anchored ??= new Dictionary<int, YamlNode>())[record] = node;

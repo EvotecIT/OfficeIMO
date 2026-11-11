@@ -20,18 +20,28 @@ internal sealed class YamlTreeBuilder {
     private readonly string _source;
     private Frame[] _frames = ArrayPool<Frame>.Shared.Rent(16);
     private int _frameCount;
-    private Dictionary<string, int>? _anchors;
+    /// <summary>The anchors defined so far in the current document, by name, in open addressing over their source spans.</summary>
+    private AnchorSlot[] _anchors = Array.Empty<AnchorSlot>();
+    private int _anchorCount;
     private YamlDocumentPart? _part;
     private int _partRoot;
     private int _documentNodes;
     private long _expansion;
     /// <summary>The identities of the keys of the open mappings, innermost last; each frame's keys start at its <see cref="Frame.KeyBase"/>.</summary>
-    private KeyIdentity[] _keys = new KeyIdentity[16];
+    private KeyIdentity[] _keys = ArrayPool<KeyIdentity>.Shared.Rent(16);
     private int _keyCount;
     private int[] _buckets = ArrayPool<int>.Shared.Rent(16);
     private int _findingsTaken;
     /// <summary>Whether the current part's merge keys still need their one note: they merge under the core schema only because the load is not strict.</summary>
     private bool _noteMergeKeys;
+
+    private struct AnchorSlot {
+        public bool Used;
+        public int Hash;
+        public int Start;
+        public int Length;
+        public int Record;
+    }
 
     private struct Frame {
         public int Record;
@@ -57,6 +67,9 @@ internal sealed class YamlTreeBuilder {
             Build(reader);
         } finally {
             ArrayPool<Frame>.Shared.Return(_frames);
+            // Closed mappings clear their identities; after a failure the open ones are cleared here.
+            Array.Clear(_keys, 0, _keyCount);
+            ArrayPool<KeyIdentity>.Shared.Return(_keys);
             ArrayPool<int>.Shared.Return(_buckets);
         }
     }
@@ -68,7 +81,10 @@ internal sealed class YamlTreeBuilder {
             switch (ev.Type) {
                 case YamlTokenType.DocumentStart:
                     _part = new YamlDocumentPart(_document, reader.DocumentSchema, reader.DocumentVersion, reader.CopyTagDirectives(), !ev.Implicit, ev.Start, ev.End);
-                    _anchors?.Clear();
+                    if (_anchorCount > 0) {
+                        Array.Clear(_anchors, 0, _anchors.Length);
+                        _anchorCount = 0;
+                    }
                     _noteMergeKeys = _part.Schema == YamlSchema.Core && _part.MergeKeys;
                     _expansion = 0;
                     _documentNodes = 0;
@@ -95,7 +111,6 @@ internal sealed class YamlTreeBuilder {
                     r.Count = ev.Indent;
                     r.Size = 1;
                     r.Props = -1;
-                    r.Text = -1;
                     SetProperties(record, reader, in ev, open: false);
                     Count(in ev);
                     // A merge key is '<<' or tagged; other keys skip the check.
@@ -107,7 +122,7 @@ internal sealed class YamlTreeBuilder {
                     break;
                 }
                 case YamlTokenType.Alias:
-                    AddAlias(reader, in ev);
+                    AddAlias(in ev);
                     break;
                 case YamlTokenType.MappingStart:
                     Open(YamlRecordKind.Mapping, reader, in ev);
@@ -137,7 +152,6 @@ internal sealed class YamlTreeBuilder {
         r.Count = 0;
         r.Size = 1;
         r.Props = -1;
-        r.Text = -1;
         SetProperties(record, reader, in ev, open: true);
         Count(in ev);
         if (_frameCount == _frames.Length) _frames = Grow(_frames, _frameCount, _frameCount * 2);
@@ -170,21 +184,22 @@ internal sealed class YamlTreeBuilder {
         AddToParent(frame.Record, frame.Expanded);
     }
 
-    private void AddAlias(YamlReader reader, in YamlEvent ev) {
-        string name = reader.Anchor!;
-        YamlPosition position = Position(in ev);
-        if (_anchors is null || !_anchors.TryGetValue(name, out int target)) {
-            throw new YamlException(YamlErrorCodes.UndefinedAlias, "The alias *" + name + " has no anchor before it in its document.", position);
+    private void AddAlias(in YamlEvent ev) {
+        int nameStart = ev.AnchorStart, nameLength = ev.AnchorEnd - ev.AnchorStart;
+        int target = FindAnchor(nameStart, nameLength);
+        if (target < 0) {
+            throw new YamlException(YamlErrorCodes.UndefinedAlias, "The alias *" + _source.Substring(nameStart, nameLength) + " has no anchor before it in its document.", Position(in ev));
         }
         int limit = _options.MaxAliasExpansion;
         ref YamlRecordProperties properties = ref _table.Properties[_table.Records[target].Props];
         // An alias inside the collection it refers to makes the resolved graph infinite.
         if (properties.Open) {
-            throw new YamlException(YamlErrorCodes.RecursiveAlias, "The alias *" + name + " is inside the collection its anchor names, which would make the document infinite.", position);
+            throw new YamlException(YamlErrorCodes.RecursiveAlias, "The alias *" + _source.Substring(nameStart, nameLength)
+                + " is inside the collection its anchor names, which would make the document infinite.", Position(in ev));
         }
         long size = properties.ExpandedSize;
         _expansion = Saturate(_expansion + size);
-        if (_expansion > limit) throw new YamlLimitExceededException(nameof(YamlLoadOptions.MaxAliasExpansion), limit, position);
+        if (_expansion > limit) throw new YamlLimitExceededException(nameof(YamlLoadOptions.MaxAliasExpansion), limit, Position(in ev));
         Count(in ev);
         properties.Aliased = true;
         int record = _table.Add();
@@ -195,12 +210,11 @@ internal sealed class YamlTreeBuilder {
         r.Chomping = 0;
         r.Start = ev.Start;
         r.End = ev.End;
-        r.ValueStart = ev.Start;
-        r.ValueEnd = ev.End;
+        r.ValueStart = nameStart;
+        r.ValueEnd = ev.AnchorEnd;
         r.Count = target;
         r.Size = 1;
         r.Props = -1;
-        r.Text = _table.AddText(name);
         AddToParent(record, size);
     }
 
@@ -211,11 +225,55 @@ internal sealed class YamlTreeBuilder {
         ref YamlRecordProperties properties = ref _table.Properties[row];
         properties.Tag = reader.Tag;
         properties.ExpandedSize = 1;
+        properties.AnchorStart = -1;
         if (ev.AnchorStart < 0) return;
-        string anchor = reader.Anchor!;
-        properties.Anchor = anchor;
+        properties.AnchorStart = ev.AnchorStart;
+        properties.AnchorLength = ev.AnchorEnd - ev.AnchorStart;
         properties.Open = open;
-        (_anchors ??= new Dictionary<string, int>(StringComparer.Ordinal))[anchor] = record;
+        DefineAnchor(ev.AnchorStart, ev.AnchorEnd - ev.AnchorStart, record);
+    }
+
+    /// <summary>Makes an anchor name refer to a record; a later anchor with the same name replaces the earlier one.</summary>
+    private void DefineAnchor(int start, int length, int record) {
+        if ((_anchorCount + 1) * 2 > _anchors.Length) GrowAnchors();
+        int hash = YamlNodeTable.HashText(_source.AsSpan(start, length));
+        int mask = _anchors.Length - 1;
+        for (int slot = hash & mask; ; slot = (slot + 1) & mask) {
+            ref AnchorSlot anchor = ref _anchors[slot];
+            if (!anchor.Used) {
+                anchor = new AnchorSlot { Used = true, Hash = hash, Start = start, Length = length, Record = record };
+                _anchorCount++;
+                return;
+            }
+            if (anchor.Hash == hash && _source.AsSpan(anchor.Start, anchor.Length).SequenceEqual(_source.AsSpan(start, length))) {
+                anchor.Record = record;
+                return;
+            }
+        }
+    }
+
+    /// <summary>Returns the record the anchor name at a source span refers to, or -1.</summary>
+    private int FindAnchor(int start, int length) {
+        if (_anchorCount == 0) return -1;
+        int hash = YamlNodeTable.HashText(_source.AsSpan(start, length));
+        int mask = _anchors.Length - 1;
+        for (int slot = hash & mask; _anchors[slot].Used; slot = (slot + 1) & mask) {
+            ref AnchorSlot anchor = ref _anchors[slot];
+            if (anchor.Hash == hash && _source.AsSpan(anchor.Start, anchor.Length).SequenceEqual(_source.AsSpan(start, length))) return anchor.Record;
+        }
+        return -1;
+    }
+
+    private void GrowAnchors() {
+        AnchorSlot[] old = _anchors;
+        _anchors = new AnchorSlot[Math.Max(16, old.Length * 2)];
+        int mask = _anchors.Length - 1;
+        foreach (AnchorSlot anchor in old) {
+            if (!anchor.Used) continue;
+            int slot = anchor.Hash & mask;
+            while (_anchors[slot].Used) slot = (slot + 1) & mask;
+            _anchors[slot] = anchor;
+        }
     }
 
     private void Count(in YamlEvent ev) {
@@ -232,10 +290,9 @@ internal sealed class YamlTreeBuilder {
         if (_frameCount == 0) return;
         ref Frame parent = ref _frames[_frameCount - 1];
         if (parent.Mapping && (parent.Children & 1) == 0) {
-            if (_keyCount == _keys.Length) Array.Resize(ref _keys, _keys.Length * 2);
+            if (_keyCount == _keys.Length) _keys = Grow(_keys, _keyCount, _keyCount * 2, clear: true);
             ref KeyIdentity identity = ref _keys[_keyCount++];
             identity = Identify(record);
-            identity.Hash = Hash(in identity);
             identity.Record = record;
         }
         parent.Children++;
@@ -243,10 +300,10 @@ internal sealed class YamlTreeBuilder {
     }
 
     /// <summary>Replaces a pooled scratch array with a larger one, keeping its first <paramref name="keep"/> elements.</summary>
-    private static T[] Grow<T>(T[] array, int keep, int size) {
+    private static T[] Grow<T>(T[] array, int keep, int size, bool clear = false) {
         T[] larger = ArrayPool<T>.Shared.Rent(size);
         Array.Copy(array, larger, keep);
-        ArrayPool<T>.Shared.Return(array);
+        ArrayPool<T>.Shared.Return(array, clear);
         return larger;
     }
 
@@ -279,6 +336,7 @@ internal sealed class YamlTreeBuilder {
         int[] buckets = _buckets;
         Array.Clear(buckets, 0, size);
         int mask = size - 1;
+        for (int i = 0; i < count; i++) keys[first + i].Hash = Hash(in keys[first + i]);
         for (int i = 0; i < count; i++) {
             ref KeyIdentity key = ref keys[first + i];
             int slot = key.Hash & mask;
@@ -324,7 +382,7 @@ internal sealed class YamlTreeBuilder {
 
     /// <summary>Compares hashed identities, the hashes first.</summary>
     private bool Same(in KeyIdentity a, in KeyIdentity b) =>
-        a.Class == b.Class && a.Hash == b.Hash && (a.Class == CollectionKey || Span(in a).SequenceEqual(Span(in b)));
+        a.Length == b.Length && a.Class == b.Class && (a.Class == CollectionKey || Span(in a).SequenceEqual(Span(in b)));
 
     private int Hash(in KeyIdentity identity) => YamlNodeTable.HashText(Span(in identity)) ^ (identity.Class * 0x45D9F3B);
 
@@ -371,7 +429,7 @@ internal sealed class YamlTreeBuilder {
         }
         return Other(Marker + _table.Value(record));
 
-        static KeyIdentity Other(string text) => new KeyIdentity { Class = OtherKey, Text = text };
+        static KeyIdentity Other(string text) => new KeyIdentity { Class = OtherKey, Text = text, Length = text.Length };
     }
 
     private KeyIdentity StringIdentity(int record) {
@@ -379,7 +437,8 @@ internal sealed class YamlTreeBuilder {
         if (YamlScalarDecoder.IsVerbatim(r.Style, r.Flags)) {
             return new KeyIdentity { Class = StringKey, Start = r.ValueStart, Length = r.ValueEnd - r.ValueStart };
         }
-        return new KeyIdentity { Class = StringKey, Text = _table.Value(record) };
+        string value = _table.Value(record);
+        return new KeyIdentity { Class = StringKey, Text = value, Length = value.Length };
     }
 
     /// <summary>
