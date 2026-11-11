@@ -170,6 +170,10 @@ namespace OfficeIMO.Tests {
                 main.AddNewPart<WordprocessingCommentsPart>().Comments = new Comments(
                     new Comment(new Paragraph(new Run(new Text("First note")))) { Id = "1", Author = "Alice" },
                     new Comment(new Paragraph(new Run(new Text("Second note")))) { Id = "2", Author = "Bob" });
+                main.AddNewPart<FootnotesPart>().Footnotes = new Footnotes(
+                    new Footnote(new Paragraph(new Run(new SeparatorMark()))) { Type = FootnoteEndnoteValues.Separator, Id = -1 },
+                    new Footnote(new Paragraph(new Run(new ContinuationSeparatorMark()))) { Type = FootnoteEndnoteValues.ContinuationSeparator, Id = 0 },
+                    new Footnote(new Paragraph(new BookmarkStart { Id = "2", Name = "InNote" }, new Run(new Text("Source note")), new BookmarkEnd { Id = "2" })) { Id = 1 });
                 main.AddNewPart<WordprocessingPeoplePart>().People = new DocumentFormat.OpenXml.Office2013.Word.People(
                     new DocumentFormat.OpenXml.Office2013.Word.Person { Author = "Alice" },
                     new DocumentFormat.OpenXml.Office2013.Word.Person { Author = "Bob" });
@@ -180,6 +184,7 @@ namespace OfficeIMO.Tests {
                     new Paragraph(new ParagraphProperties(new NumberingProperties(new NumberingLevelReference { Val = 0 }, new NumberingId { Val = 1 })),
                         new Run(new Text("Two "))),
                     new Paragraph(new Hyperlink(new Run(new Text("Back to one"))) { Anchor = "Target" }, new Run(new CommentReference { Id = "2" })),
+                    new Paragraph(new Run(new FootnoteReference { Id = 1 }), new Hyperlink(new Run(new Text("See the note"))) { Anchor = "InNote" }),
                     new SectionProperties()));
             }
 
@@ -191,8 +196,9 @@ namespace OfficeIMO.Tests {
                 MainDocumentPart first = pieces[0]._wordprocessingDocument.MainDocumentPart!;
                 MainDocumentPart second = pieces[1]._wordprocessingDocument.MainDocumentPart!;
 
-                // The link's target is in the first piece, so the second keeps the text without the link.
-                Assert.Empty(Body(pieces[1]).Descendants<Hyperlink>());
+                // The first link's target is in the first piece, so the second keeps its text without the link; the second
+                // link's target is in a footnote the second piece keeps.
+                Assert.Equal("InNote", Assert.Single(Body(pieces[1]).Descendants<Hyperlink>()).Anchor!.Value);
                 Assert.Contains("Back to one", Body(pieces[1]).InnerText);
 
                 // Each piece names only the reviewer whose comment it kept.

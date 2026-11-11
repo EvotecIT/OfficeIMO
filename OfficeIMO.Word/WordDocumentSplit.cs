@@ -187,18 +187,6 @@ namespace OfficeIMO.Word {
             foreach (BookmarkStart item in bookmarkStarts) if (item.Id?.Value is not string id || !endIds.Contains(id)) item.Remove();
             foreach (BookmarkEnd item in bookmarkEnds) if (item.Id?.Value is not string id || !startIds.Contains(id)) item.Remove();
 
-            // A link to a bookmark that is now in another piece keeps its text but stops being a link.
-            var bookmarkNames = new HashSet<string>(body.Descendants<BookmarkStart>().Select(item => item.Name?.Value).OfType<string>(), StringComparer.Ordinal);
-            foreach (Hyperlink link in body.Descendants<Hyperlink>().ToList()) {
-                if (link.Id == null && link.Anchor?.Value is string anchor && !bookmarkNames.Contains(anchor)) {
-                    foreach (OpenXmlElement child in link.ChildElements.ToList()) {
-                        child.Remove();
-                        link.InsertBeforeSelf(child);
-                    }
-                    link.Remove();
-                }
-            }
-
             var rangeStarts = body.Descendants<CommentRangeStart>().ToList();
             var rangeEnds = body.Descendants<CommentRangeEnd>().ToList();
             var commentStartIds = new HashSet<string>(rangeStarts.Select(item => item.Id?.Value).OfType<string>(), StringComparer.Ordinal);
@@ -248,8 +236,32 @@ namespace OfficeIMO.Word {
             PruneNotes(main.FootnotesPart, main.FootnotesPart?.Footnotes, document.Descendants<FootnoteReference>().Select(item => item.Id?.Value));
             PruneNotes(main.EndnotesPart, main.EndnotesPart?.Endnotes, document.Descendants<EndnoteReference>().Select(item => item.Id?.Value));
             PruneComments(main, document);
+            UnwrapBrokenLinks(main, document);
             PrunePeople(main, document);
             PruneStylesAndNumbering(main, document);
+        }
+
+        /// <summary>
+        /// A link to a bookmark that is now in another piece keeps its text but stops being a link. Bookmarks are looked
+        /// up in every story the piece kept, since notes and comments can hold link targets too.
+        /// </summary>
+        private static void UnwrapBrokenLinks(MainDocumentPart main, Document document) {
+            var stories = new List<OpenXmlElement> { document };
+            foreach (OpenXmlPart story in StoryParts(main)) if (story.RootElement != null) stories.Add(story.RootElement);
+            if (main.WordprocessingCommentsPart?.Comments is Comments comments) stories.Add(comments);
+
+            var bookmarkNames = new HashSet<string>(
+                stories.SelectMany(story => story.Descendants<BookmarkStart>()).Select(item => item.Name?.Value).OfType<string>(),
+                StringComparer.Ordinal);
+            foreach (Hyperlink link in stories.SelectMany(story => story.Descendants<Hyperlink>()).ToList()) {
+                if (link.Id == null && link.Anchor?.Value is string anchor && !bookmarkNames.Contains(anchor)) {
+                    foreach (OpenXmlElement child in link.ChildElements.ToList()) {
+                        child.Remove();
+                        link.InsertBeforeSelf(child);
+                    }
+                    link.Remove();
+                }
+            }
         }
 
         /// <summary>
