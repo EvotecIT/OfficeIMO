@@ -368,7 +368,7 @@ public class PdfAConversionTests {
         PdfAConversionResult result = PdfDocument.Load(new MemoryStream(source)).ConvertToPdfA();
 
         Assert.False(result.Succeeded);
-        Assert.Equal(HasSymbolicSubstitutes() ? PdfAConversionRefusalReason.FontMetricsMismatch : PdfAConversionRefusalReason.FontNotEmbeddable,
+        Assert.Equal(PdfEmbeddedFontFamily.TryFromSystem("Symbol", out _) ? PdfAConversionRefusalReason.FontMetricsMismatch : PdfAConversionRefusalReason.FontNotEmbeddable,
             Assert.Single(result.Report.Violations).Reason);
     }
 
