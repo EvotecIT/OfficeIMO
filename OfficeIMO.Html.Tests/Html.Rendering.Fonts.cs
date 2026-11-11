@@ -681,6 +681,24 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_ChargesARepeatedDataUriFaceAgainstEachConversionsBudget() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFont('A');
+        string html = "<style>@font-face{font-family:Repeated;src:url('data:font/ttf;base64,"
+            + Convert.ToBase64String(font) + "')}</style><p style='font-family:Repeated'>A</p>";
+        HtmlRenderDocument Render(long totalBytes) => HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions { MaxResourceBytes = font.Length, MaxTotalResourceBytes = totalBytes });
+
+        // A face already loaded by an earlier conversion is still charged its decoded size.
+        Assert.Single(Render(font.Length * 4L).Fonts.Faces);
+        HtmlRenderDocument limited = Render(font.Length * 2L);
+        Assert.Empty(limited.Fonts.Faces);
+        Assert.Contains(limited.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded);
+        Assert.Single(Render(font.Length * 4L).Fonts.Faces);
+    }
+
+    [Fact]
     public void HtmlPdf_DirectRenderer_EmbedsWebFontUsedByRepeatedSvgBackgroundText() {
         OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? fontPath);
         if (font == null
