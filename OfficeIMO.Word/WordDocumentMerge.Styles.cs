@@ -66,6 +66,7 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
+            var overwritten = new HashSet<Style>();
             var equivalence = new Dictionary<string, bool>(StringComparer.Ordinal);
             var comparing = new HashSet<string>(StringComparer.Ordinal);
 
@@ -134,8 +135,11 @@ namespace OfficeIMO.Word {
                     }
 
                     if (mode == WordStyleConflictMode.Overwrite) {
+                        // Two source styles can match one destination style (one by name, one by id); the first replaces it.
                         _styleMap[sourceId] = match.StyleId!.Value!;
-                        _styleCopies.Add((style, match.StyleId!.Value!, null, match));
+                        if (overwritten.Add(match)) {
+                            _styleCopies.Add((style, match.StyleId!.Value!, null, match));
+                        }
                         continue;
                     }
                 } else if (!IsNameTaken(style, usedNames) && usedIds.Add(sourceId)) {
@@ -179,8 +183,9 @@ namespace OfficeIMO.Word {
 
                 StyleValues? type = clone.Type?.Value;
                 if (replaces != null) {
-                    // The destination decides which style is its default; an overwritten definition does not move that choice.
+                    // The destination keeps its identity: its default choice and its name, which another style may share with the source.
                     clone.Default = replaces.Default?.Value;
+                    clone.StyleName = (StyleName?)replaces.StyleName?.CloneNode(true);
                 } else if (clone.Default?.Value == true && (type == null || !defaultTypes.Add(type.Value))) {
                     clone.Default = null;
                 }
@@ -203,8 +208,7 @@ namespace OfficeIMO.Word {
 
                 RemapNumberingReferences(clone);
                 if (replaces != null) {
-                    replaces.InsertAfterSelf(clone);
-                    replaces.Remove();
+                    ReplaceDefinition(replaces, clone);
                 } else {
                     _destinationStyles.Append(clone);
                 }
@@ -212,6 +216,29 @@ namespace OfficeIMO.Word {
 
             // OfficeIMO reads the saved style part when it checks the style catalog, so flush the changes.
             _destinationStyles.Save();
+        }
+
+        /// <summary>
+        /// Moves the overwriting definition into the destination's own style element, so <see cref="WordStyle"/>
+        /// objects obtained before the merge keep working and read the new definition.
+        /// </summary>
+        private static void ReplaceDefinition(Style target, Style definition) {
+            foreach (KeyValuePair<string, string> declaration in definition.NamespaceDeclarations) {
+                if (target.LookupNamespace(declaration.Key) == null) {
+                    target.AddNamespaceDeclaration(declaration.Key, declaration.Value);
+                }
+            }
+
+            target.ClearAllAttributes();
+            target.RemoveAllChildren();
+            foreach (OpenXmlAttribute attribute in definition.GetAttributes()) {
+                target.SetAttribute(attribute);
+            }
+
+            foreach (OpenXmlElement child in definition.ChildElements.ToList()) {
+                child.Remove();
+                target.AppendChild(child);
+            }
         }
 
         private string MapStyleId(string sourceId) {
@@ -440,12 +467,13 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
-            return (style.Type?.Value.ToString() ?? string.Empty) + "|" + name!.Trim();
+            // StyleValues is a struct whose ToString() does not name the type, so key on the attribute text.
+            return (style.Type?.InnerText ?? string.Empty) + "|" + name!.Trim();
         }
 
         private static string CanonicalizeStyle(Style style) {
             var builder = new StringBuilder();
-            builder.Append(style.Type?.Value.ToString());
+            builder.Append(style.Type?.InnerText);
             foreach (OpenXmlElement child in style.ChildElements) {
                 if (!PresentationStyleChildren.Contains(child.LocalName)) {
                     AppendCanonical(builder, child, ignoreNumberingIds: true);

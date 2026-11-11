@@ -64,4 +64,45 @@ public partial class Word {
         }
         Assert.Empty(new OpenXmlValidator().Validate(saved));
     }
+
+    [Fact]
+    public void MergeOverwriteReplacesEachDestinationStyleOnceInPlace() {
+        static WordDocument Create(Style[] styles, params (string Text, string StyleId)[] paragraphs) {
+            WordDocument document = WordDocument.Create();
+            MainDocumentPart main = document._wordprocessingDocument.MainDocumentPart!;
+            foreach (Style style in styles) main.StyleDefinitionsPart!.Styles!.Append(style);
+            foreach ((string text, string styleId) in paragraphs) {
+                main.Document!.Body!.Append(new Paragraph(new ParagraphProperties(new ParagraphStyleId { Val = styleId }), new Run(new Text(text))));
+            }
+            return document;
+        }
+        static Style Paragraph(string id, string name, string color) =>
+            new(new StyleName { Val = name }, new StyleRunProperties(new Color { Val = color })) { Type = StyleValues.Paragraph, StyleId = id };
+
+        using WordDocument destination = Create(new[] {
+            Paragraph("Body", "Body", "111111"),
+            new Style(new StyleName { Val = "Label" }) { Type = StyleValues.Character, StyleId = "Label" }
+        }, ("Destination", "Body"));
+        WordStyle handle = destination.Styles["Body"];
+
+        // One source style matches "Body" by id (and is named like the destination's character style), the other by name.
+        using WordDocument source = Create(new[] { Paragraph("Body", "Label", "222222"), Paragraph("Other", "Body", "333333") },
+            ("By id", "Body"), ("By name", "Other"));
+
+        destination.AppendDocument(source, new WordDocumentMergeOptions { StyleConflictMode = WordStyleConflictMode.Overwrite });
+
+        Style[] styles = destination._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Elements<Style>().ToArray();
+        Style body = Assert.Single(styles, style => style.StyleId == "Body");
+        string color = body.StyleRunProperties!.Color!.Val!.Value!;
+        Assert.Contains(color, new[] { "222222", "333333" });
+        Assert.Equal("Body", body.StyleName!.Val!.Value);
+        Assert.Equal(styles.Length, styles.Select(style => style.StyleName?.Val?.Value).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Body merged = destination._wordprocessingDocument.MainDocumentPart!.Document!.Body!;
+        Assert.All(merged.Descendants<Paragraph>().Where(paragraph => paragraph.InnerText.Length > 0),
+            paragraph => Assert.Equal("Body", paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value));
+
+        Assert.Equal(OfficeColor.Parse("#" + color), handle.Color);
+        handle.Bold = true;
+        Assert.NotNull(body.StyleRunProperties.Bold);
+    }
 }
