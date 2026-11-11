@@ -42,6 +42,11 @@ public static class YamlSerializer {
     [RequiresDynamicCode(YamlReflectionResolver.DynamicCodeMessage)]
     public static string Serialize<T>(T value, YamlSerializerOptions? options = null) => Serialize(value, GetTypeInfo<T>(options));
 
+    /// <summary>Writes <paramref name="value"/> as a YAML document and returns its UTF-8 bytes, without a byte-order mark.</summary>
+    [RequiresUnreferencedCode(YamlReflectionResolver.UnreferencedCodeMessage)]
+    [RequiresDynamicCode(YamlReflectionResolver.DynamicCodeMessage)]
+    public static byte[] SerializeToUtf8Bytes<T>(T value, YamlSerializerOptions? options = null) => SerializeToUtf8Bytes(value, GetTypeInfo<T>(options));
+
     /// <summary>Writes <paramref name="value"/> as a UTF-8 YAML document to <paramref name="utf8Yaml"/>, which stays open.</summary>
     [RequiresUnreferencedCode(YamlReflectionResolver.UnreferencedCodeMessage)]
     [RequiresDynamicCode(YamlReflectionResolver.DynamicCodeMessage)]
@@ -64,6 +69,11 @@ public static class YamlSerializer {
     [RequiresUnreferencedCode(YamlReflectionResolver.UnreferencedCodeMessage)]
     [RequiresDynamicCode(YamlReflectionResolver.DynamicCodeMessage)]
     public static string Serialize(object? value, Type inputType, YamlSerializerOptions? options = null) => SerializeBoxed(value, GetTypeInfo(inputType, options, value));
+
+    /// <summary>Writes <paramref name="value"/> as <paramref name="inputType"/> and returns its UTF-8 bytes.</summary>
+    [RequiresUnreferencedCode(YamlReflectionResolver.UnreferencedCodeMessage)]
+    [RequiresDynamicCode(YamlReflectionResolver.DynamicCodeMessage)]
+    public static byte[] SerializeToUtf8Bytes(object? value, Type inputType, YamlSerializerOptions? options = null) => SerializeBoxedToUtf8Bytes(value, GetTypeInfo(inputType, options, value));
 
     /// <summary>Writes <paramref name="value"/> as <paramref name="inputType"/> to a UTF-8 stream, which stays open.</summary>
     [RequiresUnreferencedCode(YamlReflectionResolver.UnreferencedCodeMessage)]
@@ -158,6 +168,14 @@ public static class YamlSerializer {
         return Finish(output, typeInfo);
     }
 
+    /// <summary>Writes <paramref name="value"/> with generated metadata and returns its UTF-8 bytes, without a byte-order mark.</summary>
+    public static byte[] SerializeToUtf8Bytes<T>(T value, YamlTypeInfo<T> typeInfo) {
+        if (typeInfo is null) throw new ArgumentNullException(nameof(typeInfo));
+        using var output = new YamlCharBuffer(typeInfo.OutputLengthHint);
+        using (var writer = new YamlWriter(output, typeInfo.Options.EffectiveWriterOptions)) Write(writer, value, typeInfo);
+        return FinishUtf8(output, typeInfo);
+    }
+
     /// <summary>Writes <paramref name="value"/> with generated metadata to a UTF-8 stream, which stays open.</summary>
     public static void Serialize<T>(Stream utf8Yaml, T value, YamlTypeInfo<T> typeInfo) {
         if (utf8Yaml is null) throw new ArgumentNullException(nameof(utf8Yaml));
@@ -235,6 +253,9 @@ public static class YamlSerializer {
 
     /// <summary>Writes <paramref name="value"/> as <paramref name="inputType"/> with the context's metadata and returns the text.</summary>
     public static string Serialize(object? value, Type inputType, YamlSerializerContext context) => SerializeBoxed(value, GetTypeInfo(inputType, context, value));
+
+    /// <summary>Writes <paramref name="value"/> as <paramref name="inputType"/> with the context's metadata and returns its UTF-8 bytes.</summary>
+    public static byte[] SerializeToUtf8Bytes(object? value, Type inputType, YamlSerializerContext context) => SerializeBoxedToUtf8Bytes(value, GetTypeInfo(inputType, context, value));
 
     /// <summary>Writes <paramref name="value"/> as <paramref name="inputType"/> with the context's metadata to a UTF-8 stream, which stays open.</summary>
     public static void Serialize(Stream utf8Yaml, object? value, Type inputType, YamlSerializerContext context) => SerializeBoxed(utf8Yaml, value, GetTypeInfo(inputType, context, value));
@@ -323,6 +344,17 @@ public static class YamlSerializer {
     private static string Finish(YamlCharBuffer output, YamlTypeInfo typeInfo) {
         typeInfo.OutputLengthHint = Math.Min(output.Length, YamlTypeInfo.MaxOutputLengthHint);
         return output.ToString();
+    }
+
+    private static byte[] SerializeBoxedToUtf8Bytes(object? value, YamlTypeInfo typeInfo) {
+        using var output = new YamlCharBuffer(typeInfo.OutputLengthHint);
+        using (var writer = new YamlWriter(output, typeInfo.Options.EffectiveWriterOptions)) WriteBoxed(writer, value, typeInfo);
+        return FinishUtf8(output, typeInfo);
+    }
+
+    private static byte[] FinishUtf8(YamlCharBuffer output, YamlTypeInfo typeInfo) {
+        typeInfo.OutputLengthHint = Math.Min(output.Length, YamlTypeInfo.MaxOutputLengthHint);
+        return output.ToUtf8Bytes();
     }
 
     private static void SerializeBoxed(Stream utf8Yaml, object? value, YamlTypeInfo typeInfo) {

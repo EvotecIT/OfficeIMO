@@ -179,6 +179,10 @@ static OfficeIMO.Yaml.YamlSerializer.SerializeToNode(object? value, System.Type!
 static OfficeIMO.Yaml.YamlSerializer.SerializeToNode(object? value, System.Type! inputType, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> OfficeIMO.Yaml.YamlNode!
 static OfficeIMO.Yaml.YamlSerializer.SerializeToNode<T>(T value, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> OfficeIMO.Yaml.YamlNode!
 static OfficeIMO.Yaml.YamlSerializer.SerializeToNode<T>(T value, OfficeIMO.Yaml.YamlTypeInfo<T>! typeInfo) -> OfficeIMO.Yaml.YamlNode!
+static OfficeIMO.Yaml.YamlSerializer.SerializeToUtf8Bytes(object? value, System.Type! inputType, OfficeIMO.Yaml.YamlSerializerContext! context) -> byte[]!
+static OfficeIMO.Yaml.YamlSerializer.SerializeToUtf8Bytes(object? value, System.Type! inputType, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> byte[]!
+static OfficeIMO.Yaml.YamlSerializer.SerializeToUtf8Bytes<T>(T value, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> byte[]!
+static OfficeIMO.Yaml.YamlSerializer.SerializeToUtf8Bytes<T>(T value, OfficeIMO.Yaml.YamlTypeInfo<T>! typeInfo) -> byte[]!
 static OfficeIMO.Yaml.YamlSerializerOptions.Default.get -> OfficeIMO.Yaml.YamlSerializerOptions!
 *REMOVED*OfficeIMO.Yaml.YamlLoadOptions.DuplicateKeys.get -> OfficeIMO.Yaml.YamlDuplicateKeyPolicy
 OfficeIMO.Yaml.YamlLoadOptions.DuplicateKeys.get -> OfficeIMO.Yaml.YamlDuplicateKeyPolicy?

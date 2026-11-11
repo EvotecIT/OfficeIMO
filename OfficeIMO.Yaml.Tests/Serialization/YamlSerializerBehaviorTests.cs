@@ -268,12 +268,13 @@ public class YamlSerializerBehaviorTests {
 
     [Fact]
     public void StreamTextAndReaderOverloadsAgree() {
-        var config = new AppConfig { Name = "app", Tags = { "a" } };
+        var config = new AppConfig { Name = "app", Tags = { "a", "café" } };
         string expected = YamlSerializer.Serialize(config, Context.AppConfig);
 
         using var stream = new MemoryStream();
         YamlSerializer.Serialize(stream, config, Context.AppConfig);
-        Assert.Equal(expected, System.Text.Encoding.UTF8.GetString(stream.ToArray()));
+        Assert.Equal(System.Text.Encoding.UTF8.GetBytes(expected), stream.ToArray());
+        Assert.Equal(stream.ToArray(), YamlSerializer.SerializeToUtf8Bytes(config, Context.AppConfig));
         stream.Position = 0;
         Assert.Equal(expected, YamlSerializer.Serialize(YamlSerializer.Deserialize(stream, Context.AppConfig), Context.AppConfig));
         Assert.Equal(expected, YamlSerializer.Serialize(YamlSerializer.Deserialize(new StringReader(expected), Context.AppConfig), Context.AppConfig));

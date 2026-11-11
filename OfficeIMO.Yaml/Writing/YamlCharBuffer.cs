@@ -124,6 +124,13 @@ internal sealed class YamlCharBuffer : TextWriter {
 
     public override string ToString() => new string(_buffer, 0, _length);
 
+    /// <summary>Encodes the characters written to a string buffer as UTF-8 into an array of exactly their length.</summary>
+    public byte[] ToUtf8Bytes() {
+        var bytes = new byte[Utf8.GetByteCount(_buffer, 0, _length)];
+        Utf8.GetBytes(_buffer, 0, _length, bytes, 0);
+        return bytes;
+    }
+
     /// <summary>Encodes everything buffered to the stream; for a string buffer it does nothing.</summary>
     public override void Flush() {
         if (_stream is null) return;

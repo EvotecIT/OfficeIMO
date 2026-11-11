@@ -205,6 +205,10 @@ public class YamlSerializeBenchmarks : YamlSerializerBenchmarkBase {
         YamlSerializer.Serialize(stream, Value, Value.GetType(), Context);
         return stream.Length;
     }
+
+    /// <summary>UTF-8 output as a new array, the form of <see cref="OneYamlGeneratedUtf8"/>.</summary>
+    [Benchmark]
+    public int OfficeIMOGeneratedUtf8Bytes() => YamlSerializer.SerializeToUtf8Bytes(Value, Value.GetType(), Context).Length;
 }
 
 [MemoryDiagnoser]
