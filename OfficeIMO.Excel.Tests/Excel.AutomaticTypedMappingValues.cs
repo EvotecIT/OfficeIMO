@@ -545,19 +545,13 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
             "<row r=\"4\"><c r=\"A4\"><v>3</v></c></row><row r=\"5\"><c r=\"A5\"><v>4</v></c></row>", new[] { "Id" }, 5);
         try {
             using var cancellation = new CancellationTokenSource();
-            using var secondBatch = new ManualResetEventSlim();
             using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions {
                 CancellationToken = cancellation.Token, InferSchema = inferSchema
             });
+            // The first row of the second batch cancels from caller code on a worker. Nothing here
+            // waits for another worker: the bounded degree of parallelism is not a concurrency promise.
             int MapId(int value) {
-                if (cancelWhileMapping) {
-                    if (value == 3) secondBatch.Set();
-                    else if (value == 1) {
-                        if (!secondBatch.Wait(TimeSpan.FromSeconds(10)))
-                            throw new TimeoutException("The second mapping batch did not start.");
-                        cancellation.Cancel();
-                    }
-                }
+                if (cancelWhileMapping && value == 3) cancellation.Cancel();
                 return value;
             }
             var options = new ParallelRowMappingOptions {
@@ -575,7 +569,13 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
                 Assert.Equal(1, rows.Current.Id);
                 cancellation.Cancel();
             }
-            OperationCanceledException error = Assert.ThrowsAny<OperationCanceledException>(() => rows.MoveNext());
+            var delivered = new List<int>();
+            OperationCanceledException error = Assert.ThrowsAny<OperationCanceledException>(() => {
+                while (rows.MoveNext()) delivered.Add(rows.Current.Id);
+            });
+            // Rows mapped before the request may still be delivered; the cancelling row and later rows never are.
+            Assert.Equal(Enumerable.Range(1, delivered.Count), delivered);
+            Assert.True(delivered.Count <= (cancelWhileMapping ? 2 : 0), string.Join(",", delivered));
             Assert.Equal(cancellation.Token, error.CancellationToken);
             Assert.False(reader.IsClosed);
         } finally { File.Delete(path); }
