@@ -8,8 +8,9 @@ internal sealed partial class OfficeImoAgentService {
     internal Task<HiddenDataResultDto> InspectHiddenDataAsync(string path, CancellationToken cancellationToken = default) {
         string input = _pathPolicy.ResolveInput(path);
         EnsureHiddenDataSource(input);
-        OfficeDocumentInfo info = OfficeDocument.Inspect(input, new OfficeInspectOptions { IncludeContent = false, IncludeHiddenData = true }, cancellationToken);
-        return Task.FromResult(OfficeHiddenDataReportSerializer.Create(info.HiddenData!, input));
+        cancellationToken.ThrowIfCancellationRequested();
+        OfficeHiddenDataReport report = OfficeDocument.InspectHiddenData(input);
+        return Task.FromResult(OfficeHiddenDataReportSerializer.Create(report, input));
     }
 
     internal Task<HiddenDataResultDto> RemoveHiddenDataAsync(string path, string outputPath, IReadOnlyList<string>? kinds = null,

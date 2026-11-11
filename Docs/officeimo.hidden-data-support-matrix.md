@@ -7,7 +7,9 @@
 | You have | To see what leaves with it | To clean it |
 | --- | --- | --- |
 | A loaded document | `document.InspectHiddenData()` | `document.RemoveHiddenData(options)`, then save; for a PDF, write `result.ToArray()` |
-| A file | `OfficeDocument.Inspect(path, new OfficeInspectOptions { IncludeHiddenData = true })` | `OfficeDocument.RemoveHiddenData(inputPath, outputPath, options)` |
+| A file | `OfficeDocument.InspectHiddenData(path)` | `OfficeDocument.RemoveHiddenData(inputPath, outputPath, options)` |
+| Bytes, such as an upload in a browser | `OfficeDocument.InspectHiddenData(data, fileName)` | `OfficeDocument.RemoveHiddenData(data, fileName, options)` |
+| A file, with content and summaries too | `OfficeDocument.Inspect(path, new OfficeInspectOptions { IncludeHiddenData = true })` | |
 | A file, provenance only, without loading it | `OfficeDocument.Inspect(path, new OfficeInspectOptions { Provenance = new() })` | The format's static `RemoveProvenance(inputPath, outputPath)` |
 | A shell or an agent | `officeimo hidden-data inspect` or the `officeimo_inspect_hidden_data` MCP tool | `officeimo hidden-data remove` or `officeimo_remove_hidden_data` |
 

@@ -71,7 +71,7 @@ JSON is the default output and carries a versioned schema identifier.
         OfficeHiddenDataReport report;
         try {
             report = output == null
-                ? OfficeDocument.Inspect(input, new OfficeInspectOptions { IncludeContent = false, IncludeHiddenData = true }, cancellationToken).HiddenData!
+                ? OfficeDocument.InspectHiddenData(input)
                 : OfficeDocument.RemoveHiddenData(input, output, parsed.Options, parsed.SignatureMutationPolicy);
         } catch (OperationCanceledException) {
             await standardError.WriteLineAsync("Hidden-data workflow cancelled.").ConfigureAwait(false);

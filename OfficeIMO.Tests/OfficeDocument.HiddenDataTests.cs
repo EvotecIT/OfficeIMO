@@ -1,5 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
+using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
 
@@ -31,6 +32,45 @@ public sealed class OfficeDocumentHiddenDataTests {
             Assert.DoesNotContain(after.Findings, finding => finding.Kind == expected);
         } finally {
             Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData("shared.docx", OfficeHiddenDataKind.DocumentProperties)]
+    [InlineData("shared.pdf", OfficeHiddenDataKind.DocumentProperties)]
+    [InlineData("shared.png", OfficeHiddenDataKind.ImageMetadata)]
+    public void BytesInspectionRoutesToTheFormatOwner(string name, OfficeHiddenDataKind expected) {
+        byte[] data = CreateBytes(name);
+
+        OfficeHiddenDataReport report = OfficeDocument.InspectHiddenData(data, name);
+
+        Assert.Contains(report.Findings, finding => finding.Kind == expected && finding.Outcome == OfficeHiddenDataOutcome.Found);
+        OfficeHiddenDataResult removed = OfficeDocument.RemoveHiddenData(data, name);
+        Assert.DoesNotContain(OfficeDocument.InspectHiddenData(removed.ToArray(), name).Findings, finding => finding.Kind == expected);
+    }
+
+    private static byte[] CreateBytes(string name) {
+        switch (Path.GetExtension(name)) {
+            case ".docx":
+                using (var stream = new MemoryStream()) {
+                    using (WordDocument document = WordDocument.Create(stream)) {
+                        document.Properties.Creator = "Private Author";
+                        document.AddParagraph("Shared text");
+                        document.Save();
+                    }
+                    return stream.ToArray();
+                }
+            case ".pdf":
+                using (PdfDocument pdf = PdfDocument.Create()) {
+                    pdf.Compose(builder => builder.Content(content => content.AddParagraph("Shared text")));
+                    using PdfDocument authored = pdf.ReplaceProperties(new PdfDocumentProperties { Author = "Private Author" });
+                    return authored.ToBytes();
+                }
+            default:
+                byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+                OfficeImageMetadata metadata = OfficeImageMetadata.Read(png);
+                metadata.SetExifValue(OfficeExifTag.GPSLatitudeRef, "N");
+                return OfficeImageMetadata.Apply(png, metadata);
         }
     }
 
