@@ -12,6 +12,8 @@ public sealed partial class PdfReadPage {
         var textOutputBudget = CreateTextOutputBudget();
         var visibilityBudget = new VisualGeometryBudget();
         var patternPaintCache = new Dictionary<PdfPageTilingPatternResource, bool>();
+        // Table boundaries depend only on the table and the page mapping; read them once per table, not per primitive.
+        var tableBoundaries = new (double[] Vertical, double[] Horizontal)?[detectedTables.Count];
         var tilingPatternResourceCache = new TilingPatternResourceCache();
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
@@ -35,7 +37,7 @@ public sealed partial class PdfReadPage {
                             visibilityBudget,
                             patternPaintCache)) {
                         totalCount++;
-                        bool inferredBorder = IsRepresentedByDetectedTableBorder(primitive, detectedTables);
+                        bool inferredBorder = IsRepresentedByDetectedTableBorder(primitive, detectedTables, tableBoundaries);
                         if (!inferredBorder) {
                             unrepresentedCount++;
                         }
@@ -64,7 +66,8 @@ public sealed partial class PdfReadPage {
 
     private bool IsRepresentedByDetectedTableBorder(
         PdfPageVisualPrimitive primitive,
-        IReadOnlyList<PdfStructuredTable> detectedTables) {
+        IReadOnlyList<PdfStructuredTable> detectedTables,
+        (double[] Vertical, double[] Horizontal)?[] tableBoundaries) {
         bool hasFill = primitive.FillColor.HasValue ||
             primitive.FillGradient != null ||
             primitive.FillRadialGradient != null ||
@@ -90,7 +93,12 @@ public sealed partial class PdfReadPage {
                 static column => column.VisualBounds, rotationDegrees is 0 or 180);
             double minimumVerticalPadding = axesSwapped ? 32D : 12D;
             double maximumVerticalPadding = axesSwapped ? 48D : 24D;
-            GetVisualTableBoundaries(table, out double[] verticalBoundaries, out double[] horizontalBoundaries);
+            if (tableBoundaries[tableIndex] is not { } boundaries) {
+                GetVisualTableBoundaries(table, out double[] vertical, out double[] horizontal);
+                tableBoundaries[tableIndex] = boundaries = (vertical, horizontal);
+            }
+            double[] verticalBoundaries = boundaries.Vertical;
+            double[] horizontalBoundaries = boundaries.Horizontal;
             if (verticalBoundaries.Length < 2 || horizontalBoundaries.Length < 2) continue;
             double tableLeft = verticalBoundaries[0];
             double tableRight = verticalBoundaries[verticalBoundaries.Length - 1];
