@@ -83,5 +83,29 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(document.InspectAccessibility().Findings, finding => finding.Code == OfficeDiagnosticCodes.AccessibilityMissingLanguage);
             Assert.Empty(document.ValidateDocument());
         }
+
+        [Fact]
+        public void Test_InspectAccessibility_UsesStyleBoldForTheLargeTextThreshold() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph label = document.AddParagraph("Section label").SetColor(OfficeColor.Parse("#888888")).SetFontSize(OfficeLength.Points(14));
+            var styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new DocumentFormat.OpenXml.Wordprocessing.Style(
+                new DocumentFormat.OpenXml.Wordprocessing.StyleName { Val = "Strong label" },
+                new DocumentFormat.OpenXml.Wordprocessing.StyleRunProperties(new DocumentFormat.OpenXml.Wordprocessing.Bold())) {
+                Type = DocumentFormat.OpenXml.Wordprocessing.StyleValues.Character, StyleId = "StrongLabel"
+            });
+            label._run!.RunProperties!.RunStyle = new DocumentFormat.OpenXml.Wordprocessing.RunStyle { Val = "StrongLabel" };
+
+            Assert.DoesNotContain(document.InspectAccessibility().Findings, finding => finding.Code == OfficeDiagnosticCodes.AccessibilityLowContrast);
+        }
+
+        [Fact]
+        public void Test_InspectAccessibility_UsesWordHighlightPaletteForContrast() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph("Highlighted").SetColor(OfficeColor.Parse("#FFFFFF")).SetHighlight(WordHighlightColor.Green);
+
+            WordAccessibilityFinding contrast = Assert.Single(document.InspectAccessibility().Findings, finding => finding.Code == OfficeDiagnosticCodes.AccessibilityLowContrast);
+            Assert.True(contrast.MeasuredValue < 1.5D);
+        }
     }
 }

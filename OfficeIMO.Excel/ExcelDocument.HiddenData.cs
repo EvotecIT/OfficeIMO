@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -66,9 +67,7 @@ namespace OfficeIMO.Excel {
             var hiddenSheetNames = new HashSet<string>(snapshot.Worksheets.Where(sheet => sheet.Hidden).Select(sheet => sheet.Name), StringComparer.OrdinalIgnoreCase);
 
             foreach (ExcelNamedRangeInfo name in ListNamedRanges(includeBuiltIn: false, includeHidden: true)) {
-                bool pointsAtHiddenSheet = hiddenSheetNames.Any(sheetName =>
-                    name.Reference.IndexOf(sheetName + "!", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    name.Reference.IndexOf("'" + sheetName + "'!", StringComparison.OrdinalIgnoreCase) >= 0);
+                bool pointsAtHiddenSheet = hiddenSheetNames.Any(sheetName => ReferencesSheet(name.Reference, sheetName));
                 if (!name.Hidden && !pointsAtHiddenSheet) continue;
                 string description = name.Hidden ? "Hidden defined name '" + name.Name + "'" : "Defined name '" + name.Name + "' pointing to a hidden sheet";
                 ExcelSheet? scope = name.SheetName == null ? null : Sheets.FirstOrDefault(sheet => string.Equals(sheet.Name, name.SheetName, StringComparison.OrdinalIgnoreCase));
@@ -102,6 +101,12 @@ namespace OfficeIMO.Excel {
                     worksheet.VisibilityState == "veryHidden" ? "Very hidden worksheet" : "Hidden worksheet", null, () => RemoveWorksheet(name));
             }
         }
+
+        // Matches the sheet as a whole reference token, so a hidden "Data" doesn't match "RawData!" or "[1]Data!".
+        private static bool ReferencesSheet(string reference, string sheetName) =>
+            Regex.IsMatch(reference,
+                @"(?<![\w.'\]])(?:" + Regex.Escape(sheetName) + "|'" + Regex.Escape(sheetName.Replace("'", "''")) + "')!",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static string ColumnRange(int first, int last) =>
             ExcelA1.ColumnIndexToLetters(first) + ":" + ExcelA1.ColumnIndexToLetters(last);

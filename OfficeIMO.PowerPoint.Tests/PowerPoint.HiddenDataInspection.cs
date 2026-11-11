@@ -64,5 +64,46 @@ namespace OfficeIMO.Tests {
                 File.Delete(filePath);
             }
         }
+
+        [Fact]
+        public void InspectHiddenDataKeepsPlaceholdersThatTakeTheirBoundsFromTheLayout() {
+            using var stream = new MemoryStream();
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            PowerPointSlideLayout layout = presentation.SlideMasters[0].AddLayout("Titled");
+            layout.AddPlaceholder(PowerPointPlaceholderType.Title,
+                new PowerPointLayoutBox(OfficeLength.Points(20), OfficeLength.Points(20), OfficeLength.Points(600), OfficeLength.Points(40)));
+            PowerPointSlide slide = presentation.AddSlide(layout);
+            slide.AddTextBox("Quarterly results").BindToPlaceholder(PowerPointPlaceholderType.Title);
+
+            Assert.Empty(presentation.InspectHiddenData().GetFindings(OfficeHiddenDataKind.HiddenContent));
+        }
+
+        [Fact]
+        public void RemoveHiddenDataRemovesCommentAuthorsNoCommentRefersTo() {
+            using var stream = new MemoryStream();
+            using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                var reviewer = new PowerPointCommentAuthor("Former Reviewer", "FR");
+                presentation.AddClassicComment(slide, reviewer, "Classic note.");
+                presentation.AddModernComment(slide, reviewer, "Modern note.");
+                // Another tool deleted the comments but left the author lists behind.
+                slide.SlidePart.SlideCommentsPart!.CommentList!.RemoveAllChildren();
+                foreach (PowerPointCommentPart part in slide.SlidePart.Parts.Select(pair => pair.OpenXmlPart).OfType<PowerPointCommentPart>()) {
+                    part.CommentList!.RemoveAllChildren();
+                }
+
+                OfficeHiddenDataReport removed = presentation.RemoveHiddenData();
+                Assert.Equal(2, removed.GetFindings(OfficeHiddenDataKind.PersonalIdentities).Count(finding =>
+                    finding.Value == "Former Reviewer" && finding.Outcome == OfficeHiddenDataOutcome.Removed));
+                presentation.Save();
+            }
+
+            stream.Position = 0;
+            using PresentationDocument package = PresentationDocument.Open(stream, false);
+            string authors = string.Concat(package.PresentationPart!.Parts.Select(pair => pair.OpenXmlPart)
+                .Where(part => part.Uri.ToString().IndexOf("author", StringComparison.OrdinalIgnoreCase) >= 0)
+                .Select(part => part.RootElement?.OuterXml));
+            Assert.DoesNotContain("Former Reviewer", authors);
+        }
     }
 }

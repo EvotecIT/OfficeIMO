@@ -205,8 +205,7 @@ public partial class WordDocument {
             OfficeColor background = TryParseHighlight(run.RunProperties?.Highlight?.Val?.InnerText)
                 ?? TryParseWordColor(style.Background) ?? context.PageBackground;
             double size = style.FontSizePoints ?? 10D;
-            bool bold = run.RunProperties?.Bold != null && run.RunProperties.Bold.Val?.Value != false;
-            bool large = size >= 18D || bold && size >= 14D;
+            bool large = size >= 18D || style.Bold && size >= 14D;
             double required = large ? context.Options.MinimumLargeTextContrastRatio : context.Options.MinimumTextContrastRatio;
             double measured = OfficeColorContrast.ContrastRatio(foreground.Value, background);
             if (measured + 0.000001D >= required) continue;
@@ -335,11 +334,24 @@ public partial class WordDocument {
         return OfficeColor.TryParseHex("#" + value, out OfficeColor color) ? color : null;
     }
 
+    // ST_HighlightColor names Word's fixed palette; several names (green, darkBlue, darkMagenta...) differ from CSS.
     private static OfficeColor? TryParseHighlight(string? value) => value switch {
-        null or "none" => null,
+        "black" => OfficeColor.FromRgb(0, 0, 0),
+        "blue" => OfficeColor.FromRgb(0, 0, 255),
+        "cyan" => OfficeColor.FromRgb(0, 255, 255),
+        "green" => OfficeColor.FromRgb(0, 255, 0),
+        "magenta" => OfficeColor.FromRgb(255, 0, 255),
+        "red" => OfficeColor.FromRgb(255, 0, 0),
+        "yellow" => OfficeColor.FromRgb(255, 255, 0),
+        "white" => OfficeColor.FromRgb(255, 255, 255),
+        "darkBlue" => OfficeColor.FromRgb(0, 0, 128),
+        "darkCyan" => OfficeColor.FromRgb(0, 128, 128),
+        "darkGreen" => OfficeColor.FromRgb(0, 128, 0),
+        "darkMagenta" => OfficeColor.FromRgb(128, 0, 128),
+        "darkRed" => OfficeColor.FromRgb(128, 0, 0),
         "darkYellow" => OfficeColor.FromRgb(128, 128, 0),
         "darkGray" => OfficeColor.FromRgb(128, 128, 128),
         "lightGray" => OfficeColor.FromRgb(192, 192, 192),
-        _ => OfficeColor.TryParseCss(value, out OfficeColor color) ? color : null
+        _ => null
     };
 }

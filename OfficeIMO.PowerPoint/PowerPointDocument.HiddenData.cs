@@ -2,6 +2,8 @@ using System.Globalization;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.OpenXml.Internal;
+using P = DocumentFormat.OpenXml.Presentation;
+using P188 = DocumentFormat.OpenXml.Office2021.PowerPoint.Comment;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
@@ -49,8 +51,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private void CollectPowerPointHiddenContent(OfficeHiddenDataCollector collector) {
-            long slideWidth = SlideSize.Width.ToEmus();
-            long slideHeight = SlideSize.Height.ToEmus();
+            double slideWidth = SlideSize.Width.ToPoints();
+            double slideHeight = SlideSize.Height.ToPoints();
             foreach (PowerPointSlide slide in _slides.ToList()) {
                 string location = SlideLocation(slide);
                 if (slide.Hidden) {
@@ -64,9 +66,10 @@ namespace OfficeIMO.PowerPoint {
                         collector.Add(OfficeHiddenDataKind.HiddenContent, shapeLocation, "Hidden shape", null, shape.Remove);
                         continue;
                     }
-                    long left = shape.Left.ToEmus();
-                    long top = shape.Top.ToEmus();
-                    bool offSlide = left + shape.Width.ToEmus() <= 0 || top + shape.Height.ToEmus() <= 0 || left >= slideWidth || top >= slideHeight;
+                    // Placeholders without their own transform take their bounds from the layout; a shape whose
+                    // bounds can't be resolved isn't known to be off the slide, so it stays out of the report.
+                    if (!shape.TryGetExportBoundsPoints(out double left, out double top, out double width, out double height)) continue;
+                    bool offSlide = left + width < 0D || top + height < 0D || left > slideWidth || top > slideHeight;
                     if (offSlide) {
                         collector.Add(OfficeHiddenDataKind.HiddenContent, shapeLocation, "Shape placed off the slide", null, shape.Remove);
                     }
@@ -104,6 +107,38 @@ namespace OfficeIMO.PowerPoint {
                         var anonymous = new PowerPointCommentAuthor(collector.Removal!.AnonymousAuthor, collector.Removal.AnonymousInitials);
                         foreach ((_, _, Action<PowerPointCommentAuthor> setAuthor) in group) setAuthor(anonymous);
                     }, removedOutcome: OfficeHiddenDataOutcome.Anonymized);
+            }
+
+            CollectUnreferencedCommentAuthors(collector);
+        }
+
+        // Author lists can name people no comment refers to, for example after comments were deleted by another tool.
+        private void CollectUnreferencedCommentAuthors(OfficeHiddenDataCollector collector) {
+            PresentationPart presentationPart = _document!.PresentationPart!;
+            var classicIds = new HashSet<uint>(_slides.SelectMany(slide =>
+                    slide.SlidePart.SlideCommentsPart?.CommentList?.Elements<P.Comment>() ?? Enumerable.Empty<P.Comment>())
+                .Where(comment => comment.AuthorId?.Value != null)
+                .Select(comment => comment.AuthorId!.Value));
+            CommentAuthorsPart? classicPart = presentationPart.CommentAuthorsPart;
+            foreach (P.CommentAuthor author in classicPart?.CommentAuthorList?.Elements<P.CommentAuthor>().ToList() ?? new List<P.CommentAuthor>()) {
+                uint? id = author.Id?.Value;
+                if (id.HasValue && classicIds.Contains(id.Value)) continue;
+                collector.Add(OfficeHiddenDataKind.PersonalIdentities, classicPart!.Uri.ToString(), "Comment author no comment refers to", author.Name?.Value,
+                    () => { if (id.HasValue) RemoveClassicCommentAuthorIfUnused(id); else author.Remove(); });
+            }
+
+            var modernIds = new HashSet<string>(_slides.SelectMany(slide => slide.SlidePart.Parts
+                    .Select(pair => pair.OpenXmlPart).OfType<PowerPointCommentPart>())
+                .SelectMany(part => part.CommentList?.Descendants().Where(element => element is P188.Comment or P188.CommentReply) ?? Enumerable.Empty<DocumentFormat.OpenXml.OpenXmlElement>())
+                .Select(element => element is P188.Comment comment ? comment.AuthorId?.Value : ((P188.CommentReply)element).AuthorId?.Value)
+                .Where(id => id != null)!, StringComparer.OrdinalIgnoreCase);
+            foreach (PowerPointAuthorsPart part in presentationPart.Parts.Select(pair => pair.OpenXmlPart).OfType<PowerPointAuthorsPart>().ToList()) {
+                foreach (P188.Author author in part.AuthorList?.Elements<P188.Author>().ToList() ?? new List<P188.Author>()) {
+                    string? id = author.Id?.Value;
+                    if (id != null && modernIds.Contains(id)) continue;
+                    collector.Add(OfficeHiddenDataKind.PersonalIdentities, part.Uri.ToString(), "Comment author no comment refers to", author.Name?.Value,
+                        () => { if (id != null) RemoveModernCommentAuthorIfUnused(id); else author.Remove(); });
+                }
             }
         }
 

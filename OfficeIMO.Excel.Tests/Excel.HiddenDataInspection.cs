@@ -57,5 +57,21 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Kept", kept);
             }
         }
+
+        [Fact]
+        public void Test_InspectHiddenData_MatchesHiddenSheetNamesAsWholeReferences() {
+            using ExcelDocument document = ExcelDocument.Create(Path.Combine(_directoryWithFiles, "HiddenData.SheetNames.xlsx"));
+            document.AddSheet("RawData").Cell(1, 1).SetValue(1);
+            ExcelSheet hidden = document.AddSheet("Data");
+            hidden.Cell(1, 1).SetValue(2);
+            hidden.SetHidden(true);
+            document.SetNamedRange("VisibleTotal", "RawData!$A$1", save: false);
+            document.SetNamedRange("HiddenTotal", "Data!$A$1", save: false);
+
+            var names = document.InspectHiddenData().GetFindings(OfficeHiddenDataKind.HiddenContent).Select(finding => finding.Description).ToList();
+
+            Assert.Contains(names, description => description.Contains("'HiddenTotal'"));
+            Assert.DoesNotContain(names, description => description.Contains("'VisibleTotal'"));
+        }
     }
 }
