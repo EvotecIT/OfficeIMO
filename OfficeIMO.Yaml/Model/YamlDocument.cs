@@ -218,6 +218,29 @@ public sealed partial class YamlDocument : IDisposable {
         return new YamlPosition(offset, low + 1, offset - lines[low] + 1);
     }
 
+    /// <summary>
+    /// Returns what <see cref="GetPosition"/> returns without building the line table, by counting the line breaks
+    /// before the offset: for a single position needed while loading, such as a note's, which the table would cost a
+    /// pass over the whole source for.
+    /// </summary>
+    internal YamlPosition FindPosition(int offset) {
+        if (_lineStarts is not null) return GetPosition(offset);
+        string text = _source;
+        ReadOnlySpan<char> before = text.AsSpan(0, offset);
+        int line = 0, lineStart = 0;
+        for (int i = 0; ;) {
+            int index = before.Slice(i).IndexOfAny('\n', '\r');
+            if (index < 0) break;
+            i += index;
+            if (text[i] == '\n' || i + 1 == text.Length || text[i + 1] != '\n') {
+                line++;
+                lineStart = i + 1;
+            }
+            i++;
+        }
+        return new YamlPosition(offset, line + 1, offset - lineStart + 1);
+    }
+
     private static int[] BuildLineStarts(string text) {
         int count = 1;
         for (int i = 0; i < text.Length; i++) {

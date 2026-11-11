@@ -108,9 +108,19 @@ internal static class YamlScalarDecoder {
                 keep = w;
                 continue;
             }
-            o[w++] = ch;
-            if (ch != ' ' && ch != '\t') keep = w;
-            i++;
+            // Copy the run up to the next character that needs a decision in one step.
+            int run = doubleQuoted ? raw.Slice(i).IndexOfAny('\\', '\r', '\n')
+                : singleQuoted ? raw.Slice(i).IndexOfAny('\'', '\r', '\n')
+                : raw.Slice(i).IndexOfAny('\r', '\n');
+            if (run == 0) run = 1;
+            else if (run < 0) run = n - i;
+            ReadOnlySpan<char> text = raw.Slice(i, run);
+            text.CopyTo(o.Slice(w));
+            int last = text.Length - 1;
+            while (last >= 0 && (text[last] == ' ' || text[last] == '\t')) last--;
+            if (last >= 0) keep = w + last + 1;
+            w += run;
+            i += run;
         }
         return w;
     }
@@ -160,10 +170,17 @@ internal static class YamlScalarDecoder {
             leadingBreak = false;
             leadingBlank = trailingBlank;
             first = false;
+            int end = raw.Slice(i).IndexOfAny('\r', '\n');
+            ReadOnlySpan<char> line = end < 0 ? raw.Slice(i) : raw.Slice(i, end);
+            line.CopyTo(o.Slice(w));
+            w += line.Length;
+            i += line.Length;
             bool blankLine = true;
-            while (i < n && raw[i] != '\r' && raw[i] != '\n') {
-                if (raw[i] != ' ' && raw[i] != '\t') blankLine = false;
-                o[w++] = raw[i++];
+            foreach (char c in line) {
+                if (c != ' ' && c != '\t') {
+                    blankLine = false;
+                    break;
+                }
             }
             // A last content line that ends at the end of input has no line break to keep (YAML 1.2.2 section 8.1.1.2);
             // a last line of only white space still counts as ended, as the reference parsers read it (suite L24T).

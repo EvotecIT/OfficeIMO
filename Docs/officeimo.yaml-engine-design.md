@@ -94,6 +94,7 @@ Source text (internal)                  decoded once, kept for lossless save
 - Whitespace, comments and line breaks are not separate token objects. They are the gaps between token spans, recoverable from the source on demand. Flags mark tokens whose scalar needs decoding (escapes, folding, multi-line plain scalars) so the common case skips decoding entirely.
 - Hot loops use `IndexOfAny`/`SearchValues` on net8.0+ (vectorized) and a scalar fallback on netstandard2.0/net472, the same split as the CSV parser. No regular expressions, no LINQ and no closures in the scanner or parser.
 - Indentation tracking, simple-key candidates (with the specification's 1024-character limit) and flow-level state live in small pooled stacks.
+- The token queue serves the general case. The block lines that dominate real files skip it: a one-line key at the open mapping's indentation, a scalar value on its `:` line and a scalar sequence item go from the scanner to the parser directly, and a block implicit-key candidate is settled from the rest of its line instead of by scanning the next one. These paths leave the scanner exactly as queuing and consuming the tokens would, so events, positions and errors do not depend on them.
 
 ### Parser and `YamlReader`
 

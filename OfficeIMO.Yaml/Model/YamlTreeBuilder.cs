@@ -13,15 +13,19 @@ internal sealed class YamlTreeBuilder {
     private const string NullIdentity = "\u0001null";
     private const string TrueIdentity = "\u0001true";
     private const string FalseIdentity = "\u0001false";
+    private const string MergeIdentity = "\u0001<<";
 
     private readonly YamlDocument _document;
     private readonly YamlLoadOptions _options;
     private readonly YamlNodeTable _table;
     private readonly string _source;
+    private readonly int _maxNodes;
     private Frame[] _frames = ArrayPool<Frame>.Shared.Rent(16);
     private int _frameCount;
     /// <summary>The anchors defined so far in the current document, by name, in open addressing over their source spans.</summary>
     private AnchorSlot[] _anchors = Array.Empty<AnchorSlot>();
+    /// <summary>The slots of <see cref="_anchors"/> in use, a power of two; the pooled array may be longer.</summary>
+    private int _anchorSlots;
     private int _anchorCount;
     private YamlDocumentPart? _part;
     private int _partRoot;
@@ -59,6 +63,7 @@ internal sealed class YamlTreeBuilder {
         _options = options;
         _table = table;
         _source = document._source;
+        _maxNodes = options.MaxNodes;
     }
 
     /// <summary>Reads every event into the table, then returns the builder's pooled scratch arrays.</summary>
@@ -71,6 +76,7 @@ internal sealed class YamlTreeBuilder {
             Array.Clear(_keys, 0, _keyCount);
             ArrayPool<KeyIdentity>.Shared.Return(_keys);
             ArrayPool<int>.Shared.Return(_buckets);
+            if (_anchorSlots > 0) ArrayPool<AnchorSlot>.Shared.Return(_anchors);
         }
     }
 
@@ -82,7 +88,7 @@ internal sealed class YamlTreeBuilder {
                 case YamlTokenType.DocumentStart:
                     _part = new YamlDocumentPart(_document, reader.DocumentSchema, reader.DocumentVersion, reader.CopyTagDirectives(), !ev.Implicit, ev.Start, ev.End);
                     if (_anchorCount > 0) {
-                        Array.Clear(_anchors, 0, _anchors.Length);
+                        Array.Clear(_anchors, 0, _anchorSlots);
                         _anchorCount = 0;
                     }
                     _noteMergeKeys = _part.Schema == YamlSchema.Core && _part.MergeKeys;
@@ -111,14 +117,23 @@ internal sealed class YamlTreeBuilder {
                     r.Count = ev.Indent;
                     r.Size = 1;
                     r.Props = -1;
-                    SetProperties(record, reader, in ev, open: false);
-                    Count(in ev);
+                    bool properties = ev.AnchorStart >= 0 || ev.HasTag;
+                    if (properties) SetProperties(record, reader, in ev, open: false);
+                    if (++_documentNodes > _maxNodes) ThrowNodes(in ev);
                     // A merge key is '<<' or tagged; other keys skip the check.
                     if (ev.IsKey && _noteMergeKeys && _frameCount > 0 && (ev.HasTag || (ev.ValueEnd - ev.ValueStart == 2 && _source[ev.ValueStart] == '<'))
                         && IsMergeKey(record)) {
                         _frames[_frameCount - 1].MergeKey = true;
                     }
-                    AddToParent(record, 1);
+                    // A key without properties whose text is its value and reads as a string under every schema is
+                    // identified by its source text here, without reading its record again.
+                    if (!properties && _frameCount > 0 && _frames[_frameCount - 1].Mapping && (_frames[_frameCount - 1].Children & 1) == 0
+                        && YamlScalarDecoder.IsVerbatim(ev.Style, ev.Flags)
+                        && (ev.Style != YamlStyle.Plain || IsAlwaysString(_source.AsSpan(ev.ValueStart, ev.ValueEnd - ev.ValueStart)))) {
+                        AddKeyToParent(new KeyIdentity { Class = StringKey, Start = ev.ValueStart, Length = ev.ValueEnd - ev.ValueStart, Record = record });
+                    } else {
+                        AddToParent(record, 1);
+                    }
                     break;
                 }
                 case YamlTokenType.Alias:
@@ -235,9 +250,9 @@ internal sealed class YamlTreeBuilder {
 
     /// <summary>Makes an anchor name refer to a record; a later anchor with the same name replaces the earlier one.</summary>
     private void DefineAnchor(int start, int length, int record) {
-        if ((_anchorCount + 1) * 2 > _anchors.Length) GrowAnchors();
+        if ((_anchorCount + 1) * 2 > _anchorSlots) GrowAnchors();
         int hash = YamlNodeTable.HashText(_source.AsSpan(start, length));
-        int mask = _anchors.Length - 1;
+        int mask = _anchorSlots - 1;
         for (int slot = hash & mask; ; slot = (slot + 1) & mask) {
             ref AnchorSlot anchor = ref _anchors[slot];
             if (!anchor.Used) {
@@ -256,7 +271,7 @@ internal sealed class YamlTreeBuilder {
     private int FindAnchor(int start, int length) {
         if (_anchorCount == 0) return -1;
         int hash = YamlNodeTable.HashText(_source.AsSpan(start, length));
-        int mask = _anchors.Length - 1;
+        int mask = _anchorSlots - 1;
         for (int slot = hash & mask; _anchors[slot].Used; slot = (slot + 1) & mask) {
             ref AnchorSlot anchor = ref _anchors[slot];
             if (anchor.Hash == hash && _source.AsSpan(anchor.Start, anchor.Length).SequenceEqual(_source.AsSpan(start, length))) return anchor.Record;
@@ -266,20 +281,37 @@ internal sealed class YamlTreeBuilder {
 
     private void GrowAnchors() {
         AnchorSlot[] old = _anchors;
-        _anchors = new AnchorSlot[Math.Max(16, old.Length * 2)];
-        int mask = _anchors.Length - 1;
-        foreach (AnchorSlot anchor in old) {
+        int oldSlots = _anchorSlots;
+        _anchorSlots = Math.Max(16, oldSlots * 2);
+        _anchors = ArrayPool<AnchorSlot>.Shared.Rent(_anchorSlots);
+        Array.Clear(_anchors, 0, _anchorSlots);
+        int mask = _anchorSlots - 1;
+        for (int i = 0; i < oldSlots; i++) {
+            AnchorSlot anchor = old[i];
             if (!anchor.Used) continue;
             int slot = anchor.Hash & mask;
             while (_anchors[slot].Used) slot = (slot + 1) & mask;
             _anchors[slot] = anchor;
         }
+        if (oldSlots > 0) ArrayPool<AnchorSlot>.Shared.Return(old);
     }
 
     private void Count(in YamlEvent ev) {
-        if (++_documentNodes > _options.MaxNodes) {
-            throw new YamlLimitExceededException(nameof(YamlLoadOptions.MaxNodes), _options.MaxNodes, Position(in ev));
-        }
+        if (++_documentNodes > _maxNodes) ThrowNodes(in ev);
+    }
+
+    private void ThrowNodes(in YamlEvent ev) =>
+        throw new YamlLimitExceededException(nameof(YamlLoadOptions.MaxNodes), _maxNodes, Position(in ev));
+
+    /// <summary>Counts a scalar key already identified as a child of the innermost open mapping, as <see cref="AddToParent"/> does.</summary>
+    private void AddKeyToParent(in KeyIdentity identity) {
+        ref Frame parent = ref _frames[_frameCount - 1];
+        if (_keyCount == _keys.Length) _keys = Grow(_keys, _keyCount, _keyCount * 2, clear: true);
+        ref KeyIdentity key = ref _keys[_keyCount++];
+        key = identity;
+        key.Signature = Signature(_source.AsSpan(identity.Start, identity.Length));
+        parent.Children++;
+        parent.Expanded = Saturate(parent.Expanded + 1);
     }
 
     /// <summary>
@@ -294,6 +326,7 @@ internal sealed class YamlTreeBuilder {
             ref KeyIdentity identity = ref _keys[_keyCount++];
             identity = Identify(record);
             identity.Record = record;
+            identity.Signature = Signature(Span(in identity));
         }
         parent.Children++;
         parent.Expanded = Saturate(parent.Expanded + expanded);
@@ -375,6 +408,8 @@ internal sealed class YamlTreeBuilder {
         public int Length;
         /// <summary>A hash of the class and text, compared before the text.</summary>
         public int Hash;
+        /// <summary>The text's first and last characters, compared before the text.</summary>
+        public int Signature;
         public int Record;
     }
 
@@ -382,7 +417,9 @@ internal sealed class YamlTreeBuilder {
 
     /// <summary>Compares hashed identities, the hashes first.</summary>
     private bool Same(in KeyIdentity a, in KeyIdentity b) =>
-        a.Length == b.Length && a.Class == b.Class && (a.Class == CollectionKey || Span(in a).SequenceEqual(Span(in b)));
+        a.Length == b.Length && a.Signature == b.Signature && a.Class == b.Class && (a.Class == CollectionKey || Span(in a).SequenceEqual(Span(in b)));
+
+    private static int Signature(ReadOnlySpan<char> text) => text.Length == 0 ? 0 : (text[0] << 16) | text[text.Length - 1];
 
     private int Hash(in KeyIdentity identity) => YamlNodeTable.HashText(Span(in identity)) ^ (identity.Class * 0x45D9F3B);
 
@@ -426,6 +463,9 @@ internal sealed class YamlTreeBuilder {
                 break;
             case YamlScalarKind.String:
                 return StringIdentity(record);
+            case YamlScalarKind.Merge:
+                // Merge keys are never duplicates of each other (see Equal), so they share one identity.
+                return Other(MergeIdentity);
         }
         return Other(Marker + _table.Value(record));
 
@@ -450,6 +490,8 @@ internal sealed class YamlTreeBuilder {
         if (text.Length == 0) return false;
         char first = text[0];
         if (!(first is >= 'a' and <= 'z' or >= 'A' and <= 'Z')) return first is not ((>= '0' and <= '9') or '+' or '-' or '.' or '~' or '<' or '=');
+        // The words start with these letters and are at most five characters long.
+        if (text.Length > 5 || (first | 0x20) is not ('n' or 'o' or 'y' or 't' or 'f')) return true;
         return text.Length switch {
             1 => (first | 0x20) is not ('y' or 'n'),
             2 => !Is(text, "no") && !Is(text, "on"),
@@ -459,7 +501,13 @@ internal sealed class YamlTreeBuilder {
             _ => true
         };
 
-        static bool Is(ReadOnlySpan<char> text, string word) => text.Equals(word.AsSpan(), StringComparison.OrdinalIgnoreCase);
+        // ASCII case folding: only a letter's two cases fold to a lowercase letter, and the words are lowercase.
+        static bool Is(ReadOnlySpan<char> text, string word) {
+            for (int i = 0; i < word.Length; i++) {
+                if ((text[i] | 0x20) != word[i]) return false;
+            }
+            return true;
+        }
     }
 
     /// <summary>Compares two key records as values, as <see cref="YamlKeyEquality.Equal"/> compares nodes.</summary>
@@ -502,7 +550,7 @@ internal sealed class YamlTreeBuilder {
             int key = _keys[first + i].Record;
             if (_table.Records[key].Kind != YamlRecordKind.Scalar || !IsMergeKey(key)) continue;
             _noteMergeKeys = false;
-            YamlPosition position = _document.GetPosition(_table.Records[key].Start);
+            YamlPosition position = _document.FindPosition(_table.Records[key].Start);
             _document.AddDiagnostic(new OfficeDiagnostic(OfficeDiagnosticCodes.YamlMergeKeyWithoutDirective, OfficeDiagnosticSeverity.Information,
                 "The document uses '<<' merge keys, such as the one at " + position + ", without a %YAML 1.1 directive; they were resolved as YAML 1.1 and common tools resolve them. Load with Strict to read '<<' as an ordinary key.",
                 position.ToString(), "YAML"));

@@ -214,6 +214,23 @@ internal sealed class YamlEventCursor {
         return true;
     }
 
+    /// <summary>
+    /// Gets the current live event's style, text and document schema when it is an untagged scalar, so an untyped read
+    /// resolves it with one look at the reader instead of through <see cref="ResolveKind"/> and <see cref="ScalarSpan"/>.
+    /// </summary>
+    public bool TryGetLiveUntagged(out YamlStyle style, out ReadOnlySpan<char> text, out YamlSchema schema) {
+        style = YamlStyle.None;
+        text = default;
+        schema = YamlSchema.Core;
+        if (!_live) return false;
+        YamlReader reader = _reader!;
+        if (reader.TokenType != YamlTokenType.Scalar || reader.Tag is not null) return false;
+        style = reader.Style;
+        schema = reader.DocumentSchema;
+        if (style == YamlStyle.Plain) text = reader.ScalarValueSpan;
+        return true;
+    }
+
     public bool IsNullScalar => _live ? _reader!.IsNullScalar() : _current.Type == YamlTokenType.Scalar && _current.IsNull;
 
     /// <summary>Gets whether the current scalar is the merge key <c>&lt;&lt;</c> where merge keys apply.</summary>
