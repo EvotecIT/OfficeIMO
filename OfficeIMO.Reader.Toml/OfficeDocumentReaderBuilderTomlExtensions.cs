@@ -35,6 +35,9 @@ public static class OfficeDocumentReaderBuilderTomlExtensions {
         return new TomlReadOptions {
             ChunkRows = options.ChunkRows,
             IncludeMarkdown = options.IncludeMarkdown,
+            MaxDepth = options.MaxDepth,
+            MaxNodes = options.MaxNodes,
+            MaxScalarLength = options.MaxScalarLength,
             LoadOptions = TomlReaderAdapter.CopyLoadOptions(options.LoadOptions)
         };
     }

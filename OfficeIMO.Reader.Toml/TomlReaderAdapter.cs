@@ -40,6 +40,7 @@ internal static class TomlReaderAdapter {
         int chunkRows = Math.Max(1, tomlOptions?.ChunkRows ?? new TomlReadOptions().ChunkRows);
         bool includeMarkdown = tomlOptions?.IncludeMarkdown ?? true;
         bool computeHashes = effectiveReaderOptions.ComputeHashes;
+        TomlLoadOptions loadOptions = BuildLoadOptions(tomlOptions, effectiveReaderOptions.MaxInputBytes);
 
         TomlDocument? document = null;
         string? parseError = null;
@@ -51,7 +52,9 @@ internal static class TomlReaderAdapter {
         try {
             UpdateSourceMetadataFromSeekableStream(source, parseStream, computeHashes);
             cancellationToken.ThrowIfCancellationRequested();
-            document = TomlDocument.Load(parseStream, BuildLoadOptions(tomlOptions?.LoadOptions, effectiveReaderOptions.MaxInputBytes));
+            document = TomlDocument.Load(parseStream, loadOptions);
+        } catch (TomlLimitExceededException ex) {
+            throw new ReaderResourceLimitException(ReaderLimitName(ex.LimitName), ex.Limit, ex);
         } catch (TomlException ex) {
             parseError = "TOML parse error (" + ex.Code + "): " + ex.Message;
         } finally {
@@ -145,14 +148,28 @@ internal static class TomlReaderAdapter {
         return path + "[\"" + EscapePathString(keyText) + "\"]";
     }
 
-    private static TomlLoadOptions BuildLoadOptions(TomlLoadOptions? configured, long? maxInputBytes) {
-        var options = CopyLoadOptions(configured) ?? TomlLoadOptions.UntrustedDefaults;
+    private static TomlLoadOptions BuildLoadOptions(TomlReadOptions? readOptions, long? maxInputBytes) {
+        var options = CopyLoadOptions(readOptions?.LoadOptions) ?? TomlLoadOptions.UntrustedDefaults;
+        if (readOptions != null) {
+            if (readOptions.MaxDepth < 1 || readOptions.MaxNodes < 1 || readOptions.MaxScalarLength < 1) {
+                throw new ArgumentOutOfRangeException(nameof(readOptions), "TOML parser limits must be positive.");
+            }
+
+            if (readOptions.MaxDepth is int maxDepth) options.MaxDepth = maxDepth;
+            if (readOptions.MaxNodes is int maxNodes) options.MaxNodes = maxNodes;
+            if (readOptions.MaxScalarLength is int maxScalarLength) options.MaxStringLength = maxScalarLength;
+        }
+
         if (maxInputBytes is > 0 && (options.MaxInputBytes is null || options.MaxInputBytes > maxInputBytes)) {
             options.MaxInputBytes = maxInputBytes;
         }
 
         return options;
     }
+
+    // The engine names its string limit MaxStringLength; Reader callers configure it as MaxScalarLength.
+    private static string ReaderLimitName(string engineLimitName) =>
+        engineLimitName == nameof(TomlLoadOptions.MaxStringLength) ? nameof(TomlReadOptions.MaxScalarLength) : engineLimitName;
 
     internal static TomlLoadOptions? CopyLoadOptions(TomlLoadOptions? options) {
         if (options == null) return null;
