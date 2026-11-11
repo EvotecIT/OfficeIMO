@@ -29,6 +29,11 @@ if (args.Length > 0 && string.Equals(args[0], "--serializer-timings", StringComp
     return;
 }
 
+if (args.Length > 0 && string.Equals(args[0], "--kit-timings", StringComparison.OrdinalIgnoreCase)) {
+    Environment.ExitCode = OfficeIMO.Yaml.Benchmarks.Kit.YamlKitTimings.Run(args.Skip(1).ToArray());
+    return;
+}
+
 if (args.Length > 0 && string.Equals(args[0], "--validate-workloads", StringComparison.OrdinalIgnoreCase)) {
     Environment.ExitCode = YamlWorkloadCheck.Run();
     return;
