@@ -242,7 +242,7 @@ a: 3`: PyYAML 6.0.3, go-yaml v2.4.0 and the YamlDotNet 18 deserializer return `a
   - `SerializeToNode` builds a detached tree through an internal node-building mode of `YamlWriter`, so the same converters produce text and nodes.
 - **Anchors and aliases**:
   - Reading records the events of an anchored node only while that node is read, so input without anchors costs nothing extra.
-  - An alias replays the recorded events. Replayed nodes count against `MaxAliasExpansion`, and an alias inside its own anchor fails with `RecursiveAlias`.
+  - An alias read as `object` returns the value read for its anchor, as PyYAML and OneYaml do, unless `CopyAliases` is set. A typed alias replays the recorded events. A shared alias is charged the nodes a replay would visit, so `MaxAliasExpansion` bounds what writing or walking the result costs. An alias inside its own anchor fails with `RecursiveAlias`.
   - Merge keys fill only the members a mapping does not set.
   - Writing has no reference handling by default and fails on a cycle. With `Preserve`, a pre-pass finds the objects reached more than once. Only those get anchors (`&id001`), and later references become aliases. Reading maps each alias back to the anchored instance, and objects register before their members are read, so cycles resolve.
 - **Polymorphism** goes only through `[YamlDerivedType]` registrations on the base type:

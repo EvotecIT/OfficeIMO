@@ -21,15 +21,28 @@ internal sealed class YamlReadState {
     private PathStep[] _path = new PathStep[4];
     private int _depth;
     private Dictionary<string, object?>? _references;
+    private Dictionary<YamlRecording, object?>? _shared;
 
     public YamlReadState(YamlSerializerOptions options) {
         Options = options;
         Preserve = options.ReferenceHandling == YamlReferenceHandling.Preserve;
+        SharesAliases = !Preserve && !options.CopyAliases;
     }
 
     public YamlSerializerOptions Options { get; }
 
     public bool Preserve { get; }
+
+    /// <summary>Whether an alias read as <see cref="object"/> returns the value read for its anchor; see <see cref="YamlSerializerOptions.CopyAliases"/>.</summary>
+    public bool SharesAliases { get; }
+
+    /// <summary>Keeps the value read for an anchored node, for the aliases to it read later.</summary>
+    public void Share(YamlRecording anchor, object? value) => (_shared ??= new Dictionary<YamlRecording, object?>())[anchor] = value;
+
+    public bool TryGetShared(YamlRecording anchor, out object? value) {
+        value = null;
+        return _shared is not null && _shared.TryGetValue(anchor, out value);
+    }
 
     /// <summary>The anchor of the node being read, until the converter that creates its instance takes it.</summary>
     public string? PendingAnchor { get; set; }

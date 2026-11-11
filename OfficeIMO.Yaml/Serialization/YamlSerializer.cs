@@ -13,8 +13,9 @@ namespace OfficeIMO.Yaml;
 /// NativeAOT applications.
 /// </summary>
 /// <remarks>
-/// <para>Reading resolves aliases by replaying their anchored node, within
-/// <see cref="YamlReaderOptions.MaxAliasExpansion"/>, and applies <c>&lt;&lt;</c> merge keys. Values that do not fit
+/// <para>Reading resolves aliases within <see cref="YamlReaderOptions.MaxAliasExpansion"/>: an alias read as
+/// <see cref="object"/> returns the value read for its anchor (see <see cref="YamlSerializerOptions.CopyAliases"/>), and
+/// a typed alias is read again from its anchored node. <c>&lt;&lt;</c> merge keys apply. Values that do not fit
 /// their type fail with a <see cref="YamlException"/> whose <see cref="YamlException.Code"/> is
 /// <see cref="YamlErrorCodes.TypeMismatch"/> and whose position points at the node. Tags never select a .NET type:
 /// only discriminators registered with <see cref="YamlDerivedTypeAttribute"/> do.</para>

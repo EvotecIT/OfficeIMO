@@ -17,6 +17,8 @@ internal struct YamlRecordedEvent {
     public YamlNode? Node;
     /// <summary>For an alias, the recording it expands to.</summary>
     public YamlRecording? Target;
+    /// <summary>For an anchored node, the recording its anchor names.</summary>
+    public YamlRecording? Defines;
 }
 
 /// <summary>A range of recorded events: one node, or the events captured while scanning a mapping.</summary>
@@ -36,13 +38,23 @@ internal sealed class YamlRecording {
 
     /// <summary>The live nesting depth before the node's first event, which its last event returns to.</summary>
     public int Depth { get; set; }
+
+    /// <summary>
+    /// The nodes an alias to this node stands for, counted as replaying it counts them: every node event, and for each
+    /// alias inside, its own target's weight. Set when the recording closes.
+    /// </summary>
+    public long Weight { get; set; }
+
+    /// <summary>The cursor's running weight when the node started, from which <see cref="Weight"/> is taken.</summary>
+    public long WeightStart { get; set; }
 }
 
 /// <summary>
 /// The event source the serializer reads: a <see cref="YamlReader"/> with aliases resolved, or the recorded events of a
 /// <see cref="YamlNode"/> tree. Anchored nodes are recorded only while they are read, so input without anchors costs
 /// nothing extra. An alias is expanded by replaying its anchored node's events; replayed nodes count against
-/// <see cref="YamlReaderOptions.MaxAliasExpansion"/>.
+/// <see cref="YamlReaderOptions.MaxAliasExpansion"/>. A reader that reuses the value read for the anchor instead charges
+/// the same count through <see cref="ChargeAlias"/>.
 /// </summary>
 internal sealed class YamlEventCursor {
     private struct Frame {
@@ -63,6 +75,10 @@ internal sealed class YamlEventCursor {
     private bool _live;
     private long _expanded;
     private int _depth;
+    // The weight of the node events recorded so far, from which each recording's weight is taken.
+    private long _recordedWeight;
+    // The recording the current live event's anchor names; read only while the reader reports an anchor.
+    private YamlRecording? _liveDefined;
 
     // Anchors of the current document, and the log their events are recorded in.
     private Dictionary<string, YamlRecording>? _anchors;
@@ -158,6 +174,42 @@ internal sealed class YamlEventCursor {
 
     /// <summary>Gets whether the current scalar is the merge key <c>&lt;&lt;</c> where merge keys apply.</summary>
     public bool IsMergeKey => _live ? LiveIsMergeKey() : _current.IsMergeKey;
+
+    /// <summary>
+    /// Gets the recording the current node's anchor names when the node is read for the first time, or null: for a node
+    /// without an anchor and for every node replayed by an alias, whose value is not the anchor's own.
+    /// </summary>
+    public YamlRecording? DefinedAnchor {
+        get {
+            if (_live) return _reader!.HasAnchor ? _liveDefined : null;
+            return _current.Anchor is not null && !InExpansion() ? _current.Defines : null;
+        }
+    }
+
+    /// <summary>Gets the recording the current alias refers to, or null when it refers to no anchor defined before it.</summary>
+    public YamlRecording? AliasTarget {
+        get {
+            if (!_live) return _current.Target;
+            return _anchors is not null && _anchors.TryGetValue(_reader!.GetString(), out YamlRecording? target) ? target : null;
+        }
+    }
+
+    /// <summary>
+    /// Counts the nodes an alias stands for against <see cref="YamlReaderOptions.MaxAliasExpansion"/> without replaying
+    /// them, for a reader that reuses the value read for the anchor. A shared value stands for the same nodes wherever
+    /// it is later walked, written or copied, so it costs what expanding it would.
+    /// </summary>
+    public void ChargeAlias(YamlRecording target) {
+        _expanded += target.Weight;
+        if (_expanded > _maxExpansion) throw new YamlLimitExceededException(nameof(YamlReaderOptions.MaxAliasExpansion), _maxExpansion, Position);
+    }
+
+    private bool InExpansion() {
+        for (int i = 0; i < _frameCount; i++) {
+            if (_frames[i].CountsExpansion) return true;
+        }
+        return false;
+    }
 
     /// <summary>Gets the decoded value of the current scalar, or the name of the current alias.</summary>
     public string GetString() => _live ? _reader!.GetString() : _current.Value ?? string.Empty;
@@ -310,16 +362,21 @@ internal sealed class YamlEventCursor {
 
         bool recording = _open is { Count: > 0 };
         bool node = type is YamlTokenType.Scalar or YamlTokenType.Alias or YamlTokenType.MappingStart or YamlTokenType.SequenceStart;
+        YamlRecording? defined = null;
         if (node && reader.HasAnchor) {
             _log ??= new List<YamlRecordedEvent>();
-            var recordingOfNode = new YamlRecording(_log, _log.Count) { Depth = _depth };
-            (_open ??= new List<YamlRecording>()).Add(recordingOfNode);
-            (_anchors ??= new Dictionary<string, YamlRecording>(StringComparer.Ordinal))[reader.Anchor!] = recordingOfNode;
+            defined = new YamlRecording(_log, _log.Count) { Depth = _depth, WeightStart = _recordedWeight };
+            (_open ??= new List<YamlRecording>()).Add(defined);
+            (_anchors ??= new Dictionary<string, YamlRecording>(StringComparer.Ordinal))[reader.Anchor!] = defined;
+            _liveDefined = defined;
             recording = true;
         }
         if (recording) {
             _currentLogIndex = _log!.Count;
-            _log.Add(Snapshot());
+            YamlRecordedEvent recorded = Snapshot();
+            recorded.Defines = defined;
+            if (node) _recordedWeight += type == YamlTokenType.Alias ? 1 + (recorded.Target?.Weight ?? 0) : 1;
+            _log.Add(recorded);
         }
         if (_captures is { Count: > 0 }) {
             YamlRecordedEvent snapshot = recording ? _log![_currentLogIndex] : Snapshot();
@@ -339,6 +396,7 @@ internal sealed class YamlEventCursor {
             YamlRecording recording = open[i];
             if (_depth > recording.Depth) break;
             recording.End = _log!.Count;
+            recording.Weight = _recordedWeight - recording.WeightStart;
             open.RemoveAt(i);
         }
     }
@@ -348,6 +406,7 @@ internal sealed class YamlEventCursor {
         if (!_live) {
             YamlRecordedEvent copy = _current;
             copy.Anchor = null;
+            copy.Defines = null;
             return copy;
         }
         YamlReader reader = _reader!;
@@ -397,17 +456,19 @@ internal sealed class YamlEventCursor {
     public static List<YamlRecordedEvent> Record(YamlNode node) {
         var log = new List<YamlRecordedEvent>();
         var anchors = new Dictionary<YamlNode, YamlRecording>();
-        RecordNode(node, log, anchors);
+        long weight = 0;
+        RecordNode(node, log, anchors, ref weight);
         return log;
     }
 
-    private static void RecordNode(YamlNode node, List<YamlRecordedEvent> log, Dictionary<YamlNode, YamlRecording> anchors) {
+    private static void RecordNode(YamlNode node, List<YamlRecordedEvent> log, Dictionary<YamlNode, YamlRecording> anchors, ref long weight) {
         YamlRecording? recording = null;
         if (node.Anchor is not null && node is not YamlAlias) {
-            recording = new YamlRecording(log, log.Count);
+            recording = new YamlRecording(log, log.Count) { WeightStart = weight };
             anchors[node] = recording;
         }
-        var ev = new YamlRecordedEvent { Style = node.Style, Tag = node.Tag, Anchor = node.Anchor, Node = node.HasSourceSpan ? node : null, Schema = node.Schema };
+        weight++;
+        var ev = new YamlRecordedEvent { Style = node.Style, Tag = node.Tag, Anchor = node.Anchor, Node = node.HasSourceSpan ? node : null, Schema = node.Schema, Defines = recording };
         switch (node) {
             case YamlScalar scalar:
                 ev.Type = YamlTokenType.Scalar;
@@ -425,28 +486,33 @@ internal sealed class YamlEventCursor {
                 if (!anchors.TryGetValue(alias.Target, out YamlRecording? target)) {
                     // An alias written before its anchor by editing: record the anchored node on its own.
                     var own = new List<YamlRecordedEvent>();
-                    RecordNode(alias.Target, own, anchors);
+                    long ownWeight = 0;
+                    RecordNode(alias.Target, own, anchors, ref ownWeight);
                     target = anchors[alias.Target];
                 }
                 ev.Target = target;
+                weight += target.Weight;
                 log.Add(ev);
                 break;
             case YamlMapping mapping:
                 ev.Type = YamlTokenType.MappingStart;
                 log.Add(ev);
                 foreach (YamlMappingEntry entry in mapping) {
-                    RecordNode(entry.Key, log, anchors);
-                    RecordNode(entry.Value, log, anchors);
+                    RecordNode(entry.Key, log, anchors, ref weight);
+                    RecordNode(entry.Value, log, anchors, ref weight);
                 }
                 log.Add(new YamlRecordedEvent { Type = YamlTokenType.MappingEnd, Schema = ev.Schema });
                 break;
             case YamlSequence sequence:
                 ev.Type = YamlTokenType.SequenceStart;
                 log.Add(ev);
-                foreach (YamlNode item in sequence) RecordNode(item, log, anchors);
+                foreach (YamlNode item in sequence) RecordNode(item, log, anchors, ref weight);
                 log.Add(new YamlRecordedEvent { Type = YamlTokenType.SequenceEnd, Schema = ev.Schema });
                 break;
         }
-        if (recording is not null) recording.End = log.Count;
+        if (recording is not null) {
+            recording.End = log.Count;
+            recording.Weight = weight - recording.WeightStart;
+        }
     }
 }

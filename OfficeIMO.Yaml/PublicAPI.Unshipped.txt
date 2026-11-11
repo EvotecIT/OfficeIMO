@@ -101,6 +101,8 @@ OfficeIMO.Yaml.YamlSerializerContext.GetTypeInfo(System.Type! type) -> OfficeIMO
 OfficeIMO.Yaml.YamlSerializerContext.Options.get -> OfficeIMO.Yaml.YamlSerializerOptions!
 OfficeIMO.Yaml.YamlSerializerContext.YamlSerializerContext(OfficeIMO.Yaml.YamlSerializerOptions? options) -> void
 OfficeIMO.Yaml.YamlSerializerOptions
+OfficeIMO.Yaml.YamlSerializerOptions.CopyAliases.get -> bool
+OfficeIMO.Yaml.YamlSerializerOptions.CopyAliases.set -> void
 OfficeIMO.Yaml.YamlSerializerOptions.DefaultIgnoreCondition.get -> OfficeIMO.Yaml.YamlIgnoreCondition
 OfficeIMO.Yaml.YamlSerializerOptions.DefaultIgnoreCondition.set -> void
 OfficeIMO.Yaml.YamlSerializerOptions.GetTypeInfo(System.Type! type) -> OfficeIMO.Yaml.YamlTypeInfo!

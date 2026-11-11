@@ -23,6 +23,27 @@ public class YamlSerializerBehaviorTests {
         Assert.Equal((9090L, "shared", true), ((long)untyped["Port"]!, (string)untyped["Name"]!, (bool)untyped["Enabled"]!));
     }
 
+    // An untyped alias returns the value read for its anchor, from text and from a loaded node alike; a redefined
+    // anchor names its latest node, and CopyAliases gives every alias its own copy.
+    [Fact]
+    public void UntypedAliasesShareTheAnchoredValueUnlessCopied() {
+        const string yaml = "first: &a {port: 80}\nsame: *a\nlist: [*a]\nredefined: &a [1]\nlatest: *a\n";
+        foreach (Func<YamlSerializerOptions, object?> read in new Func<YamlSerializerOptions, object?>[] {
+            options => YamlSerializer.Deserialize(yaml, typeof(object), new TestYamlContext(options)),
+            options => YamlSerializer.Deserialize(YamlDocument.Parse(yaml).Root!, typeof(object), new TestYamlContext(options))
+        }) {
+            var shared = (Dictionary<string, object?>)read(new YamlSerializerOptions())!;
+            Assert.Same(shared["first"], shared["same"]);
+            Assert.Same(shared["first"], ((List<object?>)shared["list"]!)[0]);
+            Assert.Same(shared["redefined"], shared["latest"]);
+
+            var copied = (Dictionary<string, object?>)read(new YamlSerializerOptions { CopyAliases = true })!;
+            Assert.NotSame(copied["first"], copied["same"]);
+            Assert.Equal(80L, ((Dictionary<string, object?>)copied["same"]!)["port"]);
+            Assert.Equal(new object?[] { 1L }, (List<object?>)copied["latest"]!);
+        }
+    }
+
     // A "billion laughs" input stops at MaxAliasExpansion instead of exhausting memory.
     [Fact]
     public void AliasExpansionStopsAtTheReaderLimit() {

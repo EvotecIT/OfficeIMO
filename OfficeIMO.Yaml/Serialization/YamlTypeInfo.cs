@@ -79,6 +79,8 @@ public sealed class YamlTypeInfo<T> : YamlTypeInfo {
     // Read once: these are asked for every value written.
     private readonly bool _tracksReferences;
     private readonly bool _handlesNull;
+    // Untyped values share the value read for an anchor among its aliases; typed values are read again.
+    private readonly bool _sharesAliases;
 
     internal YamlTypeInfo(YamlSerializerOptions options, YamlConverter<T> converter, YamlTypeInfo? nonPolymorphic = null)
         : base(typeof(T), options) {
@@ -86,6 +88,7 @@ public sealed class YamlTypeInfo<T> : YamlTypeInfo {
         _nonPolymorphic = nonPolymorphic;
         _tracksReferences = IsReferenceType && converter.IsContainer;
         _handlesNull = converter.HandlesNull;
+        _sharesAliases = converter is YamlUntypedConverter;
         BuiltInScalar = _handlesNull ? YamlBuiltInScalar.None : converter switch {
             YamlStringConverter => YamlBuiltInScalar.String,
             YamlInt32Converter => YamlBuiltInScalar.Int32,
@@ -110,19 +113,32 @@ public sealed class YamlTypeInfo<T> : YamlTypeInfo {
 
     /// <summary>
     /// Reads the node at the cursor and leaves the cursor on the node's last event. Aliases are expanded, or with
-    /// <see cref="YamlReferenceHandling.Preserve"/> mapped to the instance read for their anchor.
+    /// <see cref="YamlReferenceHandling.Preserve"/> mapped to the instance read for their anchor. An untyped value
+    /// (<see cref="object"/>) read for an anchor is kept, and an untyped alias to it returns that value, charging the
+    /// nodes it stands for, unless <see cref="YamlSerializerOptions.CopyAliases"/> asks for copies.
     /// </summary>
     internal T Read(YamlEventCursor cursor, YamlReadState state) {
         EnsureConfigured();
         if (cursor.TokenType == YamlTokenType.Alias) {
             if (state.Preserve && state.TryGetReference(cursor.GetString(), out object? existing) && existing is T reference) return reference;
+            if (_sharesAliases && state.SharesAliases && cursor.AliasTarget is YamlRecording target && state.TryGetShared(target, out object? shared)) {
+                cursor.ChargeAlias(target);
+                return (T)shared!;
+            }
             cursor.ExpandAlias();
         }
         if (!_handlesNull && cursor.IsNullScalar) {
             if (CanBeNull) return default!;
             throw YamlSerializationErrors.TypeMismatch(cursor, state, typeof(T));
         }
-        if (!state.Preserve) return _converter.Read(cursor, state);
+        if (!state.Preserve) {
+            if (_sharesAliases && state.SharesAliases && cursor.DefinedAnchor is YamlRecording defined) {
+                T anchored = _converter.Read(cursor, state);
+                state.Share(defined, anchored);
+                return anchored;
+            }
+            return _converter.Read(cursor, state);
+        }
         string? anchor = cursor.Anchor;
         state.PendingAnchor = anchor;
         T value = _converter.Read(cursor, state);
