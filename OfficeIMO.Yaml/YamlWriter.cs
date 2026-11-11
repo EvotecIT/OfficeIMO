@@ -72,6 +72,13 @@ public sealed class YamlWriter : IDisposable {
         return (YamlCharBuffer)_text;
     }
 
+    /// <summary>Drops what a stopped write left and keeps the writer for this thread's next <see cref="RentBuffered"/>.</summary>
+    internal void AbandonBuffered() {
+        _disposed = true;
+        _emitter.Release();
+        ReturnBuffered();
+    }
+
     /// <summary>Returns the buffer's array to the pool and keeps the writer for this thread's next <see cref="RentBuffered"/>.</summary>
     internal void ReturnBuffered() {
         ((YamlCharBuffer)_text).ReturnArray();

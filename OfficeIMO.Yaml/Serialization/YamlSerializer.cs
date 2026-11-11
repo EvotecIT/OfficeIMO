@@ -163,8 +163,7 @@ public static class YamlSerializer {
     /// <summary>Writes <paramref name="value"/> with generated metadata and returns the text.</summary>
     public static string Serialize<T>(T value, YamlTypeInfo<T> typeInfo) {
         if (typeInfo is null) throw new ArgumentNullException(nameof(typeInfo));
-        YamlWriter writer = YamlWriter.RentBuffered(typeInfo.Options.EffectiveWriterOptions, typeInfo.OutputLengthHint);
-        Write(writer, value, typeInfo);
+        YamlWriter writer = WriteBuffered(value, typeInfo);
         string text = Finish(writer.CompleteBuffered(), typeInfo);
         writer.ReturnBuffered();
         return text;
@@ -173,8 +172,7 @@ public static class YamlSerializer {
     /// <summary>Writes <paramref name="value"/> with generated metadata and returns its UTF-8 bytes, without a byte-order mark.</summary>
     public static byte[] SerializeToUtf8Bytes<T>(T value, YamlTypeInfo<T> typeInfo) {
         if (typeInfo is null) throw new ArgumentNullException(nameof(typeInfo));
-        YamlWriter writer = YamlWriter.RentBuffered(typeInfo.Options.EffectiveWriterOptions, typeInfo.OutputLengthHint);
-        Write(writer, value, typeInfo);
+        YamlWriter writer = WriteBuffered(value, typeInfo);
         byte[] bytes = FinishUtf8(writer.CompleteBuffered(), typeInfo);
         writer.ReturnBuffered();
         return bytes;
@@ -328,6 +326,56 @@ public static class YamlSerializer {
         state.Return();
     }
 
+    /// <summary>
+    /// Writes the value into this thread's buffered writer, whose output nobody sees if the write fails, so cycles are
+    /// first checked quickly (see <see cref="YamlWriteState.Enter"/>). A write the quick check stops is written again
+    /// with the exact check, which gives the exact result or error.
+    /// </summary>
+    private static YamlWriter WriteBuffered<T>(T value, YamlTypeInfo<T> typeInfo) {
+        YamlWriter writer = YamlWriter.RentBuffered(typeInfo.Options.EffectiveWriterOptions, typeInfo.OutputLengthHint);
+        YamlWriteState state = YamlWriteState.Rent(typeInfo.Options, quickCycleCheck: true);
+        try {
+            if (state.Preserve) {
+                var collector = new YamlReferenceCollector(typeInfo.Options);
+                typeInfo.Collect(value, collector);
+                state.SetShared(collector.Shared);
+            }
+            typeInfo.Write(writer, value, state);
+        } catch (YamlCycleSuspectedException) {
+        }
+        if (!state.CycleSuspected) {
+            state.Return();
+            return writer;
+        }
+        writer.AbandonBuffered();
+        writer = YamlWriter.RentBuffered(typeInfo.Options.EffectiveWriterOptions, typeInfo.OutputLengthHint);
+        Write(writer, value, typeInfo);
+        return writer;
+    }
+
+    /// <inheritdoc cref="WriteBuffered{T}"/>
+    private static YamlWriter WriteBufferedBoxed(object? value, YamlTypeInfo typeInfo) {
+        YamlWriter writer = YamlWriter.RentBuffered(typeInfo.Options.EffectiveWriterOptions, typeInfo.OutputLengthHint);
+        YamlWriteState state = YamlWriteState.Rent(typeInfo.Options, quickCycleCheck: true);
+        try {
+            if (state.Preserve) {
+                var collector = new YamlReferenceCollector(typeInfo.Options);
+                typeInfo.CollectBoxed(value, collector);
+                state.SetShared(collector.Shared);
+            }
+            typeInfo.WriteBoxed(writer, value, state);
+        } catch (YamlCycleSuspectedException) {
+        }
+        if (!state.CycleSuspected) {
+            state.Return();
+            return writer;
+        }
+        writer.AbandonBuffered();
+        writer = YamlWriter.RentBuffered(typeInfo.Options.EffectiveWriterOptions, typeInfo.OutputLengthHint);
+        WriteBoxed(writer, value, typeInfo);
+        return writer;
+    }
+
     private static void WriteBoxed(YamlWriter writer, object? value, YamlTypeInfo typeInfo) {
         YamlWriteState state = YamlWriteState.Rent(typeInfo.Options);
         if (state.Preserve) {
@@ -340,8 +388,7 @@ public static class YamlSerializer {
     }
 
     private static string SerializeBoxed(object? value, YamlTypeInfo typeInfo) {
-        YamlWriter writer = YamlWriter.RentBuffered(typeInfo.Options.EffectiveWriterOptions, typeInfo.OutputLengthHint);
-        WriteBoxed(writer, value, typeInfo);
+        YamlWriter writer = WriteBufferedBoxed(value, typeInfo);
         string text = Finish(writer.CompleteBuffered(), typeInfo);
         writer.ReturnBuffered();
         return text;
@@ -357,8 +404,7 @@ public static class YamlSerializer {
         typeInfo.OutputLengthHint = Math.Min(output.Length, YamlTypeInfo.MaxOutputLengthHint);
 
     private static byte[] SerializeBoxedToUtf8Bytes(object? value, YamlTypeInfo typeInfo) {
-        YamlWriter writer = YamlWriter.RentBuffered(typeInfo.Options.EffectiveWriterOptions, typeInfo.OutputLengthHint);
-        WriteBoxed(writer, value, typeInfo);
+        YamlWriter writer = WriteBufferedBoxed(value, typeInfo);
         byte[] bytes = FinishUtf8(writer.CompleteBuffered(), typeInfo);
         writer.ReturnBuffered();
         return bytes;

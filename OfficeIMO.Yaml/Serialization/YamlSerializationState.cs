@@ -175,6 +175,9 @@ internal sealed class YamlWriteState {
     private Ancestor[] _deepTable = Array.Empty<Ancestor>();
     private int[] _deepSlots = Array.Empty<int>();
     private int _depth;
+    // See Enter: a write whose output is discarded on failure checks for cycles by one comparison per level.
+    private bool _quick;
+    private const int QuickDepthLimit = 1024;
     private Dictionary<object, string>? _anchors;
     private HashSet<object>? _shared;
     private int _nextAnchor;
@@ -189,14 +192,24 @@ internal sealed class YamlWriteState {
     }
 
     /// <summary>Gets a state for one write with the options; pair it with <see cref="Return"/> when the write completes.</summary>
-    public static YamlWriteState Rent(YamlSerializerOptions options) {
+    /// <remarks>
+    /// With <paramref name="quickCycleCheck"/>, set only when the output of a write that fails is discarded, cycles are
+    /// suspected by one comparison per level (see <see cref="Enter"/>); the caller writes again with the exact check
+    /// when <see cref="CycleSuspected"/> is set, so the result or error is the exact check's.
+    /// </remarks>
+    public static YamlWriteState Rent(YamlSerializerOptions options, bool quickCycleCheck = false) {
         YamlWriteState? state = t_cached;
-        if (state is null) return new YamlWriteState(options);
-        t_cached = null;
+        if (state is null) state = new YamlWriteState(options);
+        else t_cached = null;
         state.Options = options;
         state.Preserve = options.ReferenceHandling == YamlReferenceHandling.Preserve;
+        state._quick = quickCycleCheck;
+        state.CycleSuspected = false;
         return state;
     }
+
+    /// <summary>Whether the quick check stopped the write at a possible cycle; the write must be repeated with the exact check.</summary>
+    public bool CycleSuspected { get; private set; }
 
     /// <summary>Clears the state of a completed write and keeps it for the next write on this thread.</summary>
     public void Return() {
@@ -265,9 +278,29 @@ internal sealed class YamlWriteState {
     /// compared one by one; deeper ones are also kept in an identity table, so deep nesting costs a lookup per level
     /// instead of a scan of the whole path.
     /// </summary>
+    /// <remarks>
+    /// The quick check compares each value only with the ancestor at the highest power of two below its depth. A cycle
+    /// repeats its path with a fixed period, so a level of it matches that ancestor before the path is about four times
+    /// as deep as the cycle's start and length; a match, or a path as deep as <see cref="QuickDepthLimit"/>, stops the
+    /// write with <see cref="YamlCycleSuspectedException"/>.
+    /// </remarks>
     public void Enter(object value, Type type) {
         int depth = _depth;
         Ancestor[] ancestors = _ancestors;
+        if (_quick) {
+            if (depth > 0 && (ReferenceEquals(ancestors[HighestPowerOfTwoBelow(depth)].Value, value) || depth >= QuickDepthLimit)) {
+                CycleSuspected = true;
+                throw new YamlCycleSuspectedException();
+            }
+            if (depth == ancestors.Length) {
+                Array.Resize(ref _ancestors, depth * 2);
+                ancestors = _ancestors;
+            }
+            ancestors[depth].Value = value;
+            _depth = depth + 1;
+            if (depth >= _maxDepth) _maxDepth = depth + 1;
+            return;
+        }
         int scanned = Math.Min(depth, ScannedAncestors);
         int i = 0;
         // Four at a time with one branch: a deep tree compares many ancestors per level.
@@ -289,8 +322,25 @@ internal sealed class YamlWriteState {
     }
 
     public void Exit() {
+        if (_quick) {
+            _depth--;
+            return;
+        }
         int depth = --_depth;
         if (depth >= ScannedAncestors) _deepTable[_deepSlots[depth - ScannedAncestors]].Value = null!;
+    }
+
+    /// <summary>The highest power of two below <paramref name="depth"/>, which is at least 1: 0 for 1, 1 for 2, 2 for 3 and 4.</summary>
+    private static int HighestPowerOfTwoBelow(int depth) {
+        int below = depth - 1;
+        if (below == 0) return 0;
+#if NET8_0_OR_GREATER
+        return 1 << System.Numerics.BitOperations.Log2((uint)below);
+#else
+        int power = 1;
+        while (power * 2 <= below) power *= 2;
+        return power;
+#endif
     }
 
     /// <summary>Adds a deep ancestor as the table's entry number <paramref name="count"/>; false when it is already there.</summary>
@@ -322,6 +372,10 @@ internal sealed class YamlWriteState {
         }
         _deepTable = table;
     }
+}
+
+/// <summary>Stops a write whose quick cycle check found a possible cycle; the serializer writes again with the exact check.</summary>
+internal sealed class YamlCycleSuspectedException : Exception {
 }
 
 /// <summary>Walks an object graph before writing with <see cref="YamlReferenceHandling.Preserve"/> to find shared references.</summary>
