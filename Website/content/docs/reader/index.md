@@ -26,6 +26,65 @@ dotnet add package OfficeIMO.Reader.All
 format-engine dependencies. Word, Excel, PowerPoint, Markdown, Email, PDF, and the other formats are separate adapters
 over their owning OfficeIMO engines.
 
+## Supported formats
+
+Each row is a separate package with its own `Add...Handler()` registration. `AddAllOfficeIMOHandlers()` from `OfficeIMO.Reader.All` registers every row marked **All**, in one isolated builder:
+
+```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.All;
+
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddAllOfficeIMOHandlers(new ReaderAllOptions {
+        IncludeLegacyWord = false,
+        IncludeLegacySpreadsheet = false
+    })
+    .Build();
+```
+
+| Format family | Package | Extensions | Registration | All |
+|---|---|---|---|---|
+| Plain text | `OfficeIMO.Reader.Core` | `.txt`, `.log`, plus a last-resort handler for detected unknown payloads | `AddPlainTextHandlers()` | All |
+| Word | `OfficeIMO.Reader.Word` | `.docx`, `.docm`, `.dotx`, `.dotm`, `.doc`, `.dot` | `AddWordHandler()` | All |
+| Legacy word processors | `OfficeIMO.Reader.Word` | `.wp`, `.wp5`, `.wp6`, `.wpd`, `.ws`, `.ws3`-`.ws7`, `.sam`, `.lwp`, `.wps`, `.wri` | `AddLegacyWordHandler()` | All (`IncludeLegacyWord`, on by default) |
+| Excel | `OfficeIMO.Reader.Excel` | `.xlsx`, `.xlsm`, `.xltx`, `.xltm`, `.xlam`, `.xlsb`, `.xls`, `.xlt`, `.xla`, `.xlm`, `.xlw` | `AddExcelHandler()` | All |
+| Legacy spreadsheets | `OfficeIMO.Reader.Excel` | `.wk1`-`.wk4`, `.123`, `.wq1`, `.wq2`, `.wb1`-`.wb3`, `.qpw`, `.mp`, `.mp1`-`.mp3`, `.wks`, `.xlr`, `.slk`, `.dif` | `AddLegacySpreadsheetHandler()` | All (`IncludeLegacySpreadsheet`, on by default) |
+| PowerPoint | `OfficeIMO.Reader.PowerPoint` | `.pptx`, `.pptm`, `.potx`, `.potm`, `.ppsx`, `.ppsm`, `.ppam`, `.ppt`, `.pot`, `.pps`, `.ppa` | `AddPowerPointHandler()` | All |
+| PDF | `OfficeIMO.Reader.Pdf` | `.pdf` | `AddPdfHandler()` | All |
+| OpenDocument | `OfficeIMO.Reader.OpenDocument` | `.odt`, `.ods`, `.odp`, `.odg`, `.fodt`, `.fods`, `.fodp`, `.fodg` | `AddOpenDocumentHandler()` | All |
+| Apple iWork | `OfficeIMO.Reader.IWork` | `.pages`, `.numbers`, `.key` | `AddIWorkHandler()` | All |
+| OneNote | `OfficeIMO.Reader.OneNote` | `.one`, `.onetoc2`, `.onepkg` | `AddOneNoteHandler()` | All (sibling-section reads from a `.onetoc2` are off by default) |
+| Visio | `OfficeIMO.Reader.Visio` | `.vsdx`, `.vstx`, `.vssx`, `.vsdm`, `.vstm`, `.vssm`, `.vdx`, `.vsx`, `.vtx`, `.vsd`, `.vss`, `.vst` | `AddVisioHandler()` | All |
+| Publisher | `OfficeIMO.Reader.Publisher` | `.pub` | `AddPublisherHandler()` | All |
+| XPS | `OfficeIMO.Reader.Xps` | `.xps`, `.oxps` | `AddXpsHandler()` | All |
+| DjVu | `OfficeIMO.Reader.DjVu` | `.djvu`, `.djv` | `AddDjVuHandler()` | All |
+| Email messages | `OfficeIMO.Reader.Email` | `.eml`, `.msg`, `.oft`, `.tnef`, `.mbox`, `.mbx` | `AddEmailHandlers()` | All |
+| Calendars and contacts | `OfficeIMO.Reader.Email` | `.ics`, `.ical`, `.ifb`, `.vcs`, `.vcf`, `.vcard` | `AddEmailHandlers()` | All |
+| Mailbox stores | `OfficeIMO.Reader.Email` | `.pst`, `.ost`, `.olm`, `.emlx`, `.dbx`, `.oab` | `AddEmailHandlers()` | All |
+| MHTML | `OfficeIMO.Reader.Email` | `.mht`, `.mhtml` | `AddEmailHandlers()` or `AddMhtmlHandler()` | All |
+| HTML | `OfficeIMO.Reader.Html` | `.html`, `.htm`, `.xhtml` | `AddHtmlHandler()` | All |
+| EPUB | `OfficeIMO.Reader.Epub` | `.epub` | `AddEpubHandler()` | All |
+| Compiled HTML Help | `OfficeIMO.Reader.Chm` | `.chm` | `AddChmHandler()` | All |
+| RTF | `OfficeIMO.Reader.Rtf` | `.rtf` | `AddRtfHandler()` | All |
+| Markdown | `OfficeIMO.Reader.Markdown` | `.md`, `.markdown`, `.mdown`, `.mkd`, `.mdx` | `AddMarkdownHandler()` | All |
+| AsciiDoc | `OfficeIMO.Reader.AsciiDoc` | `.adoc`, `.asciidoc`, `.asc` | `AddAsciiDocHandler()` | All |
+| LaTeX | `OfficeIMO.Reader.Latex` | `.tex` | `AddLatexHandler()` | All |
+| DocBook | `OfficeIMO.Reader.DocBook` | `.dbk`, `.docbook` | `AddDocBookHandler()` | All |
+| OPML | `OfficeIMO.Reader.Opml` | `.opml` | `AddOpmlHandler()` | All |
+| Jupyter notebooks | `OfficeIMO.Reader.Notebook` | `.ipynb` | `AddNotebookHandler()` | All |
+| Subtitles | `OfficeIMO.Reader.Subtitles` | `.srt`, `.vtt` | `AddSubtitleHandler()` | All |
+| CSV and TSV | `OfficeIMO.Reader.Csv` | `.csv`, `.tsv` | `AddCsvHandler()` | All |
+| dBASE / xBase | `OfficeIMO.Reader.Dbf` | `.dbf` | `AddDbfHandler()` | All |
+| JSON | `OfficeIMO.Reader.Json` | `.json` | `AddJsonHandler()` | All |
+| XML | `OfficeIMO.Reader.Xml` | `.xml` | `AddXmlHandler()` | All |
+| TOML | `OfficeIMO.Reader.Toml` | `.toml` | `AddTomlHandler()` | All |
+| Images | `OfficeIMO.Reader.Image` | `.png`, `.jpg`, `.jpeg`, `.gif`, `.bmp`, `.tif`, `.tiff`, `.svg`, `.emf`, `.wmf`, `.ico`, `.pcx`, `.webp` | `AddImageHandler()` | All |
+| ZIP archives | `OfficeIMO.Reader.Zip` | `.zip` (entries are routed to the other registered handlers) | `AddZipHandler()` | All |
+| OCR enrichment | `OfficeIMO.Reader.Ocr` | Adds recognized text to candidates from other handlers | See [Optional OCR](#optional-ocr) | Not included |
+| HTTP input | `OfficeIMO.Reader.Web` | Downloads with a caller-owned `HttpClient`, then reads through the registered handlers | `reader.CreateWebReader(...)` | Not included |
+
+`OfficeIMO.Reader.All` deliberately leaves out OCR engines, process adapters, network clients and hosted providers. Detection still uses content signatures, so a known format with a wrong extension can be routed when the host enables content-first detection.
+
 ## Choose the result you need
 
 Use `Enumerate(...)` for indexing-friendly chunks:
