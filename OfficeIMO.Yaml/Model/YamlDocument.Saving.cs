@@ -132,7 +132,21 @@ public sealed partial class YamlDocument {
         return new List<YamlTextSegment>(1) { new YamlTextSegment(output, 0, output.Length) };
     }
 
+    /// <summary>Returns the input bytes when the output is the unchanged source of a document loaded from UTF-8 bytes.</summary>
+    private byte[]? UnchangedInput(List<YamlTextSegment> segments) {
+        byte[]? input = _utf8;
+        if (input is null) return null;
+        bool whole = segments.Count == 0
+            ? _source.Length == 0
+            : segments.Count == 1 && ReferenceEquals(segments[0].Text, _source) && segments[0].Start == 0 && segments[0].Length == _source.Length;
+        return whole ? input : null;
+    }
+
     private void Write(Stream stream, List<YamlTextSegment> segments) {
+        if (UnchangedInput(segments) is { } input) {
+            stream.Write(input, 0, _utf8Length);
+            return;
+        }
 #if NET8_0_OR_GREATER
         byte[] output = Encode(segments, out int length);
         try {
@@ -166,6 +180,10 @@ public sealed partial class YamlDocument {
     }
 
     private async Task WriteAsync(Stream stream, List<YamlTextSegment> segments, CancellationToken cancellationToken) {
+        if (UnchangedInput(segments) is { } input) {
+            await stream.WriteAsync(input, 0, _utf8Length, cancellationToken).ConfigureAwait(false);
+            return;
+        }
 #if NET8_0_OR_GREATER
         byte[] output = Encode(segments, out int length);
         try {
@@ -207,8 +225,14 @@ public sealed partial class YamlDocument {
     private byte[] Encode(List<YamlTextSegment> segments, out int length) {
         Encoding encoding = YamlEncodingDetector.CreateEncoding(_encoding);
         byte[]? mark = _byteOrderMark ? YamlEncodingDetector.GetByteOrderMark(_encoding) : null;
-        long total = mark?.Length ?? 0;
-        for (int i = 0; i < segments.Count; i++) total += encoding.GetByteCount(segments[i].Text.AsSpan(segments[i].Start, segments[i].Length));
+        int markLength = mark?.Length ?? 0;
+        // ASCII input: each character of the source is its byte, so untouched ranges are copied from the input.
+        byte[]? ascii = _utf8 is { } input && _utf8Length - markLength == _source.Length ? input : null;
+        long total = markLength;
+        for (int i = 0; i < segments.Count; i++) {
+            YamlTextSegment segment = segments[i];
+            total += ascii is not null && ReferenceEquals(segment.Text, _source) ? segment.Length : encoding.GetByteCount(segment.Text.AsSpan(segment.Start, segment.Length));
+        }
         if (total > Array.MaxLength) throw new InvalidOperationException("The document is too large to encode.");
         byte[] output = ArrayPool<byte>.Shared.Rent((int)Math.Max(total, 1));
         try {
@@ -218,7 +242,13 @@ public sealed partial class YamlDocument {
                 offset = mark.Length;
             }
             for (int i = 0; i < segments.Count; i++) {
-                offset += encoding.GetBytes(segments[i].Text.AsSpan(segments[i].Start, segments[i].Length), output.AsSpan(offset));
+                YamlTextSegment segment = segments[i];
+                if (ascii is not null && ReferenceEquals(segment.Text, _source)) {
+                    Buffer.BlockCopy(ascii, markLength + segment.Start, output, offset, segment.Length);
+                    offset += segment.Length;
+                } else {
+                    offset += encoding.GetBytes(segment.Text.AsSpan(segment.Start, segment.Length), output.AsSpan(offset));
+                }
             }
             length = offset;
             return output;

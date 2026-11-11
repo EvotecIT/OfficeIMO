@@ -54,6 +54,24 @@ public class YamlDocumentEncodingTests {
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task EditedUtf8SavesKeepTheByteOrderMarkAndTheUntouchedText(bool byteOrderMark) {
+        // ASCII input saves its untouched ranges from the loaded bytes; the edited range is encoded anew.
+        byte[] preamble = byteOrderMark ? Encoding.UTF8.GetPreamble() : Array.Empty<byte>();
+        byte[] input = preamble.Concat(Encoding.UTF8.GetBytes("# head\nkey: old # note\nlist: [1, 2]\n")).ToArray();
+        byte[] expected = preamble.Concat(Encoding.UTF8.GetBytes("# head\nkey: wert € # note\nlist: [1, 2]\n")).ToArray();
+        YamlDocument document = YamlDocument.Load(new MemoryStream(input));
+        document.Set("key", "wert €");
+        var output = new MemoryStream();
+        document.Save(output);
+        Assert.Equal(expected, output.ToArray());
+        var asynchronous = new MemoryStream();
+        await document.SaveAsync(asynchronous);
+        Assert.Equal(expected, asynchronous.ToArray());
+    }
+
+    [Theory]
     [MemberData(nameof(Encodings))]
     public async Task FileAndAsyncSavesReproduceTheInput(string encodingName, bool byteOrderMark) {
         byte[] input = Encode(encodingName, byteOrderMark);

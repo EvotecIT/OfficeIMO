@@ -26,6 +26,9 @@ public sealed partial class YamlDocument : IDisposable {
     private string? _path;
     /// <summary>The loaded nodes; null for a document created in memory.</summary>
     internal YamlNodeTable? _table;
+    /// <summary>The pooled UTF-8 input, byte-order mark included, of a document loaded from bytes; null otherwise.</summary>
+    internal byte[]? _utf8;
+    internal int _utf8Length;
 
     private YamlDocument(string source, YamlTextEncoding encoding, bool byteOrderMark, YamlDuplicateKeyPolicy duplicateKeys, bool strict) {
         _source = source;
@@ -181,11 +184,13 @@ public sealed partial class YamlDocument : IDisposable {
     }
 
     /// <summary>
-    /// Returns the pooled storage of the loaded nodes when no node was read; the document holds only managed memory.
-    /// Do not use the document after disposing it: nodes not reached before are no longer available.
+    /// Returns the document's pooled storage: the input bytes of a document loaded from a file or stream, and the loaded
+    /// nodes when none was read. The document holds only managed memory. Do not use the document after disposing it:
+    /// nodes not reached before are no longer available.
     /// </summary>
     public void Dispose() {
         _table?.Release();
+        if (Interlocked.Exchange(ref _utf8, null) is { } bytes) ArrayPool<byte>.Shared.Return(bytes);
     }
 
     /// <summary>The layout conventions new nodes follow, read from the source on first use.</summary>
