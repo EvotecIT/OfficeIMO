@@ -419,7 +419,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         int invalidValues = 0, normalizedDateTimeOffsets = 0, validations = 0, convertedValidations = 0, unsupportedValidationAssignments = 0, sortedValidationLists = 0, unsupportedHyperlinks = 0, unsupportedMeasurements = 0, unsupportedDataStyleFormats = 0, skippedStyles = 0, renamedSheets = 0, worksheetCount = 0;
         int approximatedFontFamilyLists = 0, unsupportedFontFamilies = 0;
         int approximatedTextDecorations = 0, unsupportedCapitalization = 0, unsupportedCellLayout = 0;
-        int unsupportedInheritedBlankStyles = 0;
+        int unsupportedInheritedBlankStyles = 0, unmaterializedBlankTailRows = 0;
+        int printRanges = 0, unsupportedPrintRanges = 0;
         int unsupportedRowGroups = 0, unsupportedColumnGroups = 0;
         int filteredRows = 0, filteredColumns = 0;
         int forcedVisibleWorksheets = 0;
@@ -469,6 +470,19 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             var blankStyleCache = new Dictionary<string, bool>(StringComparer.Ordinal);
             bool AffectsBlankCell(string? styleName) =>
                 HasVisibleBlankCellStyle(source, styleName, blankStyleCache);
+            var paintedBlankStyleCache = new Dictionary<string, bool>(StringComparer.Ordinal);
+            // Excel and LibreOffice pad each used row to the sheet edge with one styled blank run.
+            // Expanding that padding creates thousands of empty cells and printed pages.
+            bool IsInertBlankTail(IReadOnlyList<OdsCellRun> runs, int index) {
+                OdsCellRun run = runs[index];
+                return index == runs.Count - 1 && !run.IsCovered && run.StyleName != null &&
+                    run.Value.Kind == OdsCellValueKind.Empty && run.Formula == null && run.ValidationName == null &&
+                    run.HyperlinkHref == null && run.Annotations.Count == 0 && run.RowSpan <= 1 && run.ColumnSpan <= 1 &&
+                    SaturatingAdd(run.StartColumn, run.RepeatCount) >= MinimumProducerSheetColumns &&
+                    !PaintsBlankCell(source, run.StyleName, paintedBlankStyleCache);
+            }
+            // Pivot conversion needs the cells of every DataPilot source and output range on this sheet.
+            long retainedTailColumns = GetDataPilotColumnExtent(source, odsSheet.Name);
             var visibleBlankColumnStyles = new List<(long Start, long End)>();
             foreach (OdsColumnRun column in columnRuns) {
                 if (column.StartColumn >= effective.MaximumColumns) break;
@@ -526,8 +540,11 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 OdfLength? rowHeight = rowRun.Height;
                 // Producer ODS files commonly encode the unused tail as one very large empty row run.
                 // No worksheet output depends on expanding that run.
+                bool inertTail = cellRuns.Count > 0 && IsInertBlankTail(cellRuns, cellRuns.Count - 1);
+                bool ignorableTail = inertTail && cellRuns[cellRuns.Count - 1].StartColumn >= retainedTailColumns;
                 bool emptyRun = !hiddenRowRun
-                    && cellRuns.All(cellRun => cellRun.IsCovered || !IsSignificant(cellRun));
+                    && cellRuns.Where((cellRun, index) => !(ignorableTail && index == cellRuns.Count - 1))
+                        .All(cellRun => cellRun.IsCovered || !IsSignificant(cellRun));
                 if (emptyRun && (!rowHeight.HasValue || uniformDefaultRowHeight.HasValue)) {
                     long count = Math.Min(SaturatingAdd(rowRun.StartRow, rowRun.RepeatCount), effective.MaximumRows)
                         - rowRun.StartRow;
@@ -537,6 +554,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                          HasInheritedStyleOnUnserializedTail(rowRun, cellRuns, visibleBlankColumnStyles,
                              hasDefaultCellStyle, effective.MaximumColumns, AffectsBlankCell)))
                         unsupportedInheritedBlankStyles = (int)Math.Min(int.MaxValue, (long)unsupportedInheritedBlankStyles + count);
+                    if (inertTail && count > 0)
+                        unmaterializedBlankTailRows = (int)Math.Min(int.MaxValue, (long)unmaterializedBlankTailRows + count);
                     if (uniformDefaultRowHeight.HasValue && count > 0)
                         rowLayouts = (int)Math.Min(int.MaxValue, (long)rowLayouts + count);
                     if (SaturatingAdd(rowRun.StartRow, rowRun.RepeatCount) > effective.MaximumRows) truncated = true;
@@ -546,7 +565,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 long lastRowExclusive = Math.Min(rowEnd, effective.MaximumRows);
                 if (rowEnd > effective.MaximumRows) truncated = true;
                 bool emptyLayoutRun = (hiddenRowRun || rowHeight.HasValue) &&
-                    cellRuns.All(cellRun => cellRun.IsCovered || !IsSignificant(cellRun));
+                    cellRuns.Where((cellRun, index) => !(ignorableTail && index == cellRuns.Count - 1))
+                        .All(cellRun => cellRun.IsCovered || !IsSignificant(cellRun));
                 if (emptyLayoutRun) {
                     long layoutEnd = Math.Min(lastRowExclusive,
                         SaturatingAdd(rowRun.StartRow,
@@ -590,6 +610,13 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                         long lastColumnExclusive = Math.Min(cellColumnEnd, effective.MaximumColumns);
                         if (cellColumnEnd > effective.MaximumColumns) truncated = true;
                         if (cellRun.IsCovered) continue;
+                        if (inertTail && cellIndex == cellRuns.Count - 1) {
+                            long retainedEnd = Math.Min(lastColumnExclusive, retainedTailColumns);
+                            if (retainedEnd < lastColumnExclusive && unmaterializedBlankTailRows < int.MaxValue)
+                                unmaterializedBlankTailRows++;
+                            lastColumnExclusive = retainedEnd;
+                            if (cellRun.StartColumn >= lastColumnExclusive) continue;
+                        }
                         if (!IsSignificant(cellRun)) {
                             if (unsupportedInheritedBlankStyles < int.MaxValue && cellRun.StartColumn < effective.MaximumColumns &&
                                 (inheritedBlankStyles?[cellIndex] ?? HasInheritedStyleOnBlankRun(rowRun, cellRun,
@@ -709,6 +736,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 if (expandedCells >= effective.MaximumExpandedCells) break;
             }
 
+            ApplyOdsPrintRanges(odsSheet, sheet, effective, ref printRanges, ref unsupportedPrintRanges);
+
             foreach (KeyValuePair<string, List<string>> entry in validationTargets) {
                 string references = string.Join(" ", entry.Value.Distinct(StringComparer.Ordinal));
                 if (!sourceValidations.TryGetValue(entry.Key, out OdsValidation? validation)
@@ -816,6 +845,11 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             "ODF cell alignment or wrapping outside the mapped subset was not transferred to Excel.");
         AddUnsupported(report, "blank-cell-styles", unsupportedInheritedBlankStyles,
             "Blank ODF cells styled only through row, column, or family defaults were not materialized in Excel.");
+        AddConverted(report, "print-ranges", printRanges);
+        AddUnsupported(report, "print-ranges", unsupportedPrintRanges,
+            "ODF print ranges that reference another sheet, are not cell ranges, or fall outside the configured row and column limits were not applied to the Excel print area.");
+        AddUnsupported(report, "blank-cell-tail-styles", unmaterializedBlankTailRows,
+            "Blank cells that pad a row to the sheet edge with a style that paints no fill, border, diagonal or shadow were not materialized in Excel; their text formatting would apply only to text typed later.");
         AddUnsupported(report, "cell-format-details", unsupportedDataStyleFormats,
             $"ODF data styles with locale-sensitive or unsupported components, or that exceed Excel's {OdsDataStyle.MaximumExcelNumberFormatCodeLength}-character custom number-format limit, were omitted.");
         if (truncated) report.Add("expansion-limits", OdfConversionMappingStatus.Skipped, 1,
@@ -858,6 +892,96 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             else high = middle;
         }
         return low < columns.Count && columns[low].Start < end;
+    }
+
+    private const int MinimumProducerSheetColumns = 1_024;
+
+    private static long GetDataPilotColumnExtent(OdsDocument source, string sheetName) {
+        long extent = 0;
+        foreach (OdsDataPilotTable pivot in source.DataPilotTables) {
+            foreach (string? address in new[] { pivot.SourceRangeAddress, pivot.TargetRangeAddress }) {
+                if (!SpreadsheetRangeReference.TryParse(address, SpreadsheetAddressDialect.OpenDocument,
+                        out SpreadsheetRangeReference? range) || range == null) continue;
+                foreach (SpreadsheetCellReference endpoint in new[] { range.Start, range.End ?? range.Start }) {
+                    if (!string.Equals(endpoint.SheetName ?? range.Start.SheetName, sheetName, StringComparison.Ordinal)) continue;
+                    // A whole-row reference spans every column.
+                    extent = Math.Max(extent, endpoint.Column ?? int.MaxValue);
+                }
+            }
+        }
+        return extent;
+    }
+
+    private static void ApplyOdsPrintRanges(OdsSheet source, ExcelSheet target,
+        ExcelOpenDocumentConversionOptions options, ref int converted, ref int unsupported) {
+        string? ranges = source.PrintRanges;
+        if (string.IsNullOrWhiteSpace(ranges)) return;
+        var areas = new List<string>();
+        foreach (string token in SplitOdfAddressList(ranges!)) {
+            if (SpreadsheetRangeReference.TryParse(token, SpreadsheetAddressDialect.OpenDocument,
+                    out SpreadsheetRangeReference? range) && range != null &&
+                (range.Start.SheetName == null || string.Equals(range.Start.SheetName, source.Name, StringComparison.Ordinal)) &&
+                (range.End?.SheetName == null || string.Equals(range.End.SheetName, source.Name, StringComparison.Ordinal)) &&
+                TryGetPrintCell(range.Start, options, out int startRow, out int startColumn) &&
+                TryGetPrintCell(range.End ?? range.Start, options, out int endRow, out int endColumn)) {
+                areas.Add(SpreadsheetAddressConverter.ToA1(Math.Min(startRow, endRow), Math.Min(startColumn, endColumn)) + ":" +
+                    SpreadsheetAddressConverter.ToA1(Math.Max(startRow, endRow), Math.Max(startColumn, endColumn)));
+            } else {
+                unsupported++;
+            }
+        }
+        if (areas.Count == 0) return;
+        target.PageSetup.PrintArea = string.Join(",", areas);
+        converted += areas.Count;
+    }
+
+    private static bool TryGetPrintCell(SpreadsheetCellReference cell, ExcelOpenDocumentConversionOptions options,
+        out int row, out int column) {
+        row = column = 0;
+        if (!cell.IsCell || cell.Row!.Value > options.MaximumRows || cell.Column!.Value > options.MaximumColumns) return false;
+        row = (int)cell.Row.Value;
+        column = cell.Column.Value;
+        return true;
+    }
+
+    // ODF address lists separate entries with spaces; quoted sheet names may contain spaces.
+    private static IEnumerable<string> SplitOdfAddressList(string value) {
+        var current = new System.Text.StringBuilder();
+        bool quoted = false;
+        foreach (char character in value) {
+            if (character == '\'') quoted = !quoted;
+            if (!quoted && char.IsWhiteSpace(character)) {
+                if (current.Length > 0) yield return current.ToString();
+                current.Clear();
+                continue;
+            }
+            current.Append(character);
+        }
+        if (current.Length > 0) yield return current.ToString();
+    }
+
+    private static bool PaintsBlankCell(OdsDocument source, string? styleName, IDictionary<string, bool> cache) {
+        if (string.IsNullOrWhiteSpace(styleName)) return false;
+        if (cache.TryGetValue(styleName!, out bool paints)) return paints;
+        OdfStyle? style = source.Styles.FindInPart(OdfStyleFamily.TableCell, styleName!, "content.xml");
+        paints = style == null || source.Styles.Resolve(style).Any(candidate => {
+            // Conditional maps can paint once a value is typed, and the converter maps them per cell.
+            if (candidate.Element.Elements(OdfNamespaces.Style + "map").Any()) return true;
+            XElement? properties = candidate.Element.Element(OdfNamespaces.Style + "table-cell-properties");
+            if (properties == null) return false;
+            if (properties.HasElements) return true;
+            return properties.Attributes().Any(attribute => {
+                string name = attribute.Name.LocalName;
+                string value = attribute.Value.Trim();
+                if (name == "background-color") return !string.Equals(value, "transparent", StringComparison.OrdinalIgnoreCase);
+                if (name.StartsWith("border", StringComparison.Ordinal) || name.StartsWith("diagonal", StringComparison.Ordinal) ||
+                    name == "shadow")
+                    return value.Length > 0 && !string.Equals(value, "none", StringComparison.OrdinalIgnoreCase);
+                return false;
+            });
+        });
+        cache[styleName!] = paints;
+        return paints;
     }
 
     private static bool HasVisibleBlankCellStyle(OdsDocument source, string? styleName,
