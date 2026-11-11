@@ -93,6 +93,22 @@ public sealed class VisioDrawingPdfFidelityTests {
         Assert.True(Flatten(projected.Value).Count(shape => shape.FillColor != null && shape.PathCommands.Count > 500) >= 2);
     }
 
+    [Fact]
+    public void DiagonalConnectorLinksStayAlongTheRouteInsteadOfItsBoundingBox() {
+        VisioDocument document = VisioDocument.Create(); document.UseMastersByDefault = false;
+        VisioPage page = document.AddPage("Diagonal", OfficeLength.Inches(8), OfficeLength.Inches(8));
+        VisioShape from = page.AddRectangle(OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(0.5), OfficeLength.Inches(0.5), "From");
+        VisioShape to = page.AddRectangle(OfficeLength.Inches(7), OfficeLength.Inches(7), OfficeLength.Inches(0.5), OfficeLength.Inches(0.5), "To");
+        page.AddConnector("diagonal", from, to, ConnectorKind.Straight).AddHyperlink("https://example.com/route");
+
+        List<OfficeDrawingLink> links = document.ToDrawings().Value[0].Elements.OfType<OfficeDrawingLink>()
+            .Where(link => link.Uri == "https://example.com/route").ToList();
+
+        // A single bounding rectangle would cover about 36 square inches of blank page.
+        Assert.True(links.Count > 1);
+        Assert.All(links, link => Assert.True(link.Width * link.Height < 72D * 72D));
+    }
+
     private static IEnumerable<OfficeColor> LabelBackings(OfficeDrawing scene, string label) =>
         scene.Elements.OfType<OfficeDrawingEffectGroup>()
             .Select(group => group.Drawing)

@@ -35,10 +35,9 @@ internal sealed partial class VisioDrawingProjection {
             ? "Native outlines are projected separately; cached endpoints provide the route for labels and arrows where multiple outlines do not identify a unique route."
             : "Cached connector routes and label anchors are projected without ShapeSheet recalculation or collision adjustment.",
             ambiguousNativeRoute ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.None, location);
-        // The route's padded bounds are the link target; a thin line alone would be hard to activate.
+        // Padded pieces along the route are the link target; a thin line alone would be hard to activate.
         double reach = Math.Max(weight * 2D, 3D);
-        ProjectLinks(drawing, connector.Hyperlinks, points.SelectMany(point => new[] {
-            new OfficePoint(point.X - reach, point.Y - reach), new OfficePoint(point.X + reach, point.Y + reach) }).ToList(), location);
+        if (connector.Hyperlinks.Count > 0) ProjectLinks(drawing, connector.Hyperlinks, RouteLinkAreas(points, reach), location);
         ReportShapeData(connector.ShapeData.Count + connector.Data.Count, location);
         if (connector.PreservedShapeChildren.Any(entry => entry.RawElement != null))
             _report.Add("VISIO_DRAWING_CONNECTOR_CONTENT", "Opaque connector children are retained in the source but are not projected.", OfficeConversionLossKind.Omission, location);
