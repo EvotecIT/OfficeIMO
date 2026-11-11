@@ -9,13 +9,20 @@ internal static partial class CsvWriter
     private const int ShortDecimalMaximumLength = 24;
 
     /// <summary>
-    /// Formats with the invariant culture and default format. Doubles that are short exact decimals are written
-    /// by <see cref="TryFormatShortDecimal"/>, which gives the same text without the general shortest-digit search.
+    /// Formats with the invariant culture and default format. Doubles that are short exact decimals and decimals
+    /// with a 64-bit coefficient are written by <see cref="TryFormatShortDecimal"/> and
+    /// <see cref="TryFormatSmallDecimal"/>, which give the same text with less work.
     /// </summary>
     internal static bool TryFormatInvariant<T>(T value, Span<char> destination, out int written)
         where T : ISpanFormattable
     {
-        if (typeof(T) == typeof(double) && TryFormatShortDecimal((double)(object)value, destination, out written))
+        if (typeof(T) == typeof(double) && (TryFormatShortDecimal((double)(object)value, destination, out written)
+            || CsvShortestDouble.TryFormat((double)(object)value, destination, out written)))
+        {
+            return true;
+        }
+
+        if (typeof(T) == typeof(decimal) && TryFormatSmallDecimal((decimal)(object)value, destination, out written))
         {
             return true;
         }
@@ -56,6 +63,56 @@ internal static partial class CsvWriter
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Writes the invariant text of a non-zero decimal whose 96-bit coefficient fits in 64 bits: the coefficient's
+    /// digits with the point placed by the scale, trailing zeros kept, as the runtime writes it. Returns false
+    /// for zero and larger coefficients, which the caller formats as usual.
+    /// </summary>
+    internal static bool TryFormatSmallDecimal(decimal value, Span<char> destination, out int written)
+    {
+        written = 0;
+        Span<int> bits = stackalloc int[4];
+        decimal.GetBits(value, bits);
+        ulong coefficient = ((ulong)(uint)bits[1] << 32) | (uint)bits[0];
+        if (bits[2] != 0 || coefficient == 0 || destination.Length < ShortDecimalMaximumLength + 8)
+        {
+            return false;
+        }
+
+        int scale = (bits[3] >> 16) & 0xFF;
+        int position = 0;
+        if (bits[3] < 0)
+        {
+            destination[position++] = '-';
+        }
+
+        // The coefficient's digits are written in place, then the fraction moves right for the point.
+        coefficient.TryFormat(destination[position..], out int digitCount, default, CultureInfo.InvariantCulture);
+        int integerDigits = digitCount - scale;
+        if (scale == 0)
+        {
+            written = position + digitCount;
+        }
+        else if (integerDigits > 0)
+        {
+            int point = position + integerDigits;
+            destination.Slice(point, scale).CopyTo(destination[(point + 1)..]);
+            destination[point] = '.';
+            written = position + digitCount + 1;
+        }
+        else
+        {
+            int shift = 2 - integerDigits;
+            destination.Slice(position, digitCount).CopyTo(destination[(position + shift)..]);
+            destination[position] = '0';
+            destination[position + 1] = '.';
+            destination.Slice(position + 2, -integerDigits).Fill('0');
+            written = position + shift + digitCount;
+        }
+
+        return true;
     }
 
     /// <summary>Writes digits * 10^-scale; the smallest scale leaves no trailing fraction zeros.</summary>
