@@ -9477,7 +9477,7 @@
       "action": "merge",
       "new": "OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.LargeBoldTextThreshold : OfficeLength",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
-      "file": "OfficeIMO.PowerPoint/PowerPointAccessibilityPolicy.cs",
+      "file": "OfficeIMO.PowerPoint/PowerPointAccessibilityOptions.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
@@ -9493,7 +9493,7 @@
       "action": "merge",
       "new": "OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.LargeTextThreshold : OfficeLength",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
-      "file": "OfficeIMO.PowerPoint/PowerPointAccessibilityPolicy.cs",
+      "file": "OfficeIMO.PowerPoint/PowerPointAccessibilityOptions.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
@@ -13808,6 +13808,66 @@
       "new": "OfficeIMO.PowerPoint.PowerPointSlide.ToImage(...) : OfficeImageExportResult",
       "reason": "Use ToImage for one encoded surface and ToImages for a batch. Read Bytes for the payload, inspect CreateReport() for diagnostics, and use SaveAsImage or SaveAsImages to persist results. ExportImage and ExportImages aliases are removed.",
       "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointAccessibilityReport",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeAccessibilityReport",
+      "category": "accessibility",
+      "replacement": "InspectAccessibility, PowerPointInspectionReport.Accessibility and PowerPointVisualProofReport.Accessibility return OfficeAccessibilityReport. Findings, counts, IsSuccessful, Profile, EnsureCompliant, ToJson and SaveJson are unchanged; the JSON is schema version 2 with format, location, locationIndex, objectId, objectName and isHeuristic, and no slideCount. Slides moved to PowerPointDocument.InspectReadingOrder(options).",
+      "reason": "Word and PowerPoint accessibility checks return one Core report so the CLI, MCP and other hosts show one list and one JSON shape.",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointAccessibilityReport.Slides",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.InspectReadingOrder(PowerPointAccessibilityOptions options = null) : IReadOnlyList<PowerPointAccessibilitySlideInfo>",
+      "category": "accessibility",
+      "replacement": "Call presentation.InspectReadingOrder(options) for the per-slide titles and shape reading order. IncludeHiddenSlides and the shape-tree limits apply as before.",
+      "reason": "Word and PowerPoint accessibility checks return one Core report so the CLI, MCP and other hosts show one list and one JSON shape.",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointAccessibilityFinding",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeAccessibilityFinding",
+      "category": "accessibility",
+      "replacement": "Severity, Code, Message, MeasuredValue and RequiredValue keep their names. SlideIndex is LocationIndex, ShapeId is ObjectId and ShapeName is ObjectName; Location reads \"Slide N\" or \"Document\".",
+      "reason": "Word and PowerPoint accessibility checks return one Core report so the CLI, MCP and other hosts show one list and one JSON shape.",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointAccessibilitySeverity",
+      "kind": "enum",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeAccessibilitySeverity",
+      "category": "accessibility",
+      "replacement": "Same members (Info, Warning, Error) and values.",
+      "reason": "Word and PowerPoint accessibility checks return one Core report so the CLI, MCP and other hosts show one list and one JSON shape.",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointAccessibilityPolicyProfile",
+      "kind": "enum",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeAccessibilityPolicyProfile",
+      "category": "accessibility",
+      "replacement": "Same members (Default, Strict). PowerPointAccessibilityOptions.Profile and ForProfile take the Core enum.",
+      "reason": "Word and PowerPoint accessibility checks return one Core report so the CLI, MCP and other hosts show one list and one JSON shape.",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointAccessibilityException",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeAccessibilityException",
+      "category": "accessibility",
+      "replacement": "Catch OfficeAccessibilityException; Report and IncludedWarnings are unchanged.",
+      "reason": "Word and PowerPoint accessibility checks return one Core report so the CLI, MCP and other hosts show one list and one JSON shape.",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointDocument.SignatureMutationPolicy",

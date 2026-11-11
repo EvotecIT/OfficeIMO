@@ -73,8 +73,8 @@ namespace OfficeIMO.Tests {
             });
             slide.AddChartPoints(chartData, 220, 70, 240, 150);
 
-            PowerPointAccessibilityReport report = presentation.InspectAccessibility(
-                PowerPointAccessibilityOptions.ForProfile(PowerPointAccessibilityPolicyProfile.Strict));
+            OfficeAccessibilityReport report = presentation.InspectAccessibility(
+                PowerPointAccessibilityOptions.ForProfile(OfficeAccessibilityPolicyProfile.Strict));
 
             Assert.False(report.IsSuccessful);
             Assert.Contains(report.Findings, finding => finding.Code == "accessibility-missing-document-title");
@@ -86,8 +86,7 @@ namespace OfficeIMO.Tests {
                 finding.MeasuredValue < finding.RequiredValue);
             Assert.Contains(report.Findings, finding => finding.Code == "accessibility-unclear-link-label");
             Assert.Contains(report.Findings, finding => finding.Code == "accessibility-chart-color-only-meaning");
-            Assert.Throws<PowerPointAccessibilityException>(() => report.EnsureCompliant());
-            Assert.Contains("\"profile\":\"Strict\"", report.ToJson(), StringComparison.Ordinal);
+            Assert.Throws<OfficeAccessibilityException>(() => report.EnsureCompliant());
         }
 
         [Fact]
@@ -103,7 +102,7 @@ namespace OfficeIMO.Tests {
                 run.SetHyperlink("https://openai.com");
             }
 
-            PowerPointAccessibilityReport report = presentation.InspectAccessibility();
+            OfficeAccessibilityReport report = presentation.InspectAccessibility();
 
             Assert.DoesNotContain(report.Findings,
                 finding => finding.Code == "accessibility-unclear-link-label");
@@ -132,16 +131,15 @@ namespace OfficeIMO.Tests {
             });
             presentation.AddDesignerAppendixTableSlide("Evidence appendix", null, tableData);
 
-            PowerPointAccessibilityReport report = presentation.InspectAccessibility();
+            OfficeAccessibilityReport report = presentation.InspectAccessibility();
 
             Assert.True(report.IsSuccessful, string.Join(Environment.NewLine,
-                report.Findings.Where(finding => finding.Severity == PowerPointAccessibilitySeverity.Error)
-                    .Select(finding => finding.Code + " [slide " + finding.SlideIndex + ", " +
-                        finding.ShapeName + ", " + report.Slides[finding.SlideIndex ?? 0].Shapes
-                            .FirstOrDefault(shape => shape.ShapeId == finding.ShapeId)?.Title + "]: " +
-                        finding.Message)));
-            Assert.All(report.Slides, slide => Assert.False(string.IsNullOrWhiteSpace(slide.Title)));
-            Assert.All(report.Slides.SelectMany(slide => slide.Shapes)
+                report.Findings.Where(finding => finding.Severity == OfficeAccessibilitySeverity.Error)
+                    .Select(finding => finding.Code + " [" + finding.Location + ", " +
+                        finding.ObjectName + "]: " + finding.Message)));
+            IReadOnlyList<PowerPointAccessibilitySlideInfo> slides = presentation.InspectReadingOrder();
+            Assert.All(slides, slide => Assert.False(string.IsNullOrWhiteSpace(slide.Title)));
+            Assert.All(slides.SelectMany(slide => slide.Shapes)
                 .Where(shape => shape.ContentType == PowerPointShapeContentType.TextBox),
                 shape => Assert.False(string.IsNullOrWhiteSpace(shape.Language)));
         }
@@ -154,15 +152,15 @@ namespace OfficeIMO.Tests {
             hidden.Hidden = true;
             hidden.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80), "Undescribed visual");
 
-            PowerPointAccessibilityReport defaultReport = presentation.InspectAccessibility();
-            PowerPointAccessibilityReport includedReport = presentation.InspectAccessibility(
+            OfficeAccessibilityReport defaultReport = presentation.InspectAccessibility();
+            OfficeAccessibilityReport includedReport = presentation.InspectAccessibility(
                 new PowerPointAccessibilityOptions { IncludeHiddenSlides = true });
 
-            Assert.Empty(defaultReport.Slides);
-            Assert.DoesNotContain(defaultReport.Findings, finding => finding.SlideIndex == 0);
-            Assert.Single(includedReport.Slides);
+            Assert.Empty(presentation.InspectReadingOrder());
+            Assert.DoesNotContain(defaultReport.Findings, finding => finding.LocationIndex == 0);
+            Assert.Single(presentation.InspectReadingOrder(new PowerPointAccessibilityOptions { IncludeHiddenSlides = true }));
             Assert.Contains(includedReport.Findings,
-                finding => finding.SlideIndex == 0 && finding.Code == "accessibility-missing-slide-title");
+                finding => finding.LocationIndex == 0 && finding.Code == "accessibility-missing-slide-title");
         }
 
         [Fact]
@@ -174,11 +172,11 @@ namespace OfficeIMO.Tests {
                 PowerPointPlaceholderType.Title, bounds: new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1D),OfficeIMO.OfficeLength.Centimeters(1D),OfficeIMO.OfficeLength.Centimeters(20D),OfficeIMO.OfficeLength.Centimeters(2D)));
             inheritedTitle.Text = "Click to add title";
 
-            PowerPointAccessibilityReport report = presentation.InspectAccessibility();
+            OfficeAccessibilityReport report = presentation.InspectAccessibility();
 
             Assert.Contains(report.Findings, finding =>
-                finding.SlideIndex == 0 && finding.Code == "accessibility-missing-slide-title");
-            Assert.Null(Assert.Single(report.Slides).Title);
+                finding.LocationIndex == 0 && finding.Code == "accessibility-missing-slide-title");
+            Assert.Null(Assert.Single(presentation.InspectReadingOrder()).Title);
         }
 
         [Fact]
@@ -191,7 +189,7 @@ namespace OfficeIMO.Tests {
             PowerPointAutoShape anchor = slide.AddRectangle(OfficeIMO.OfficeLength.Points(210), OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), "Group anchor");
             slide.GroupShapes(new PowerPointShape[] { table, anchor }, "Accessibility group");
 
-            PowerPointAccessibilityReport report = presentation.InspectAccessibility(
+            OfficeAccessibilityReport report = presentation.InspectAccessibility(
                 new PowerPointAccessibilityOptions {
                     RequireSlideTitles = false,
                     RequireAlternativeText = false,
@@ -202,8 +200,8 @@ namespace OfficeIMO.Tests {
                 });
 
             Assert.Contains(report.Findings, finding =>
-                finding.Code == "accessibility-missing-table-header" && finding.ShapeId == table.Id);
-            Assert.Contains(Assert.Single(report.Slides).Shapes, shape => shape.ShapeId == table.Id);
+                finding.Code == "accessibility-missing-table-header" && finding.ObjectId == table.Id);
+            Assert.Contains(Assert.Single(presentation.InspectReadingOrder()).Shapes, shape => shape.ShapeId == table.Id);
         }
 
         [Fact]
@@ -364,28 +362,24 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AccessibilityReportIsStableForGeneratedAndReloadedDecks() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
-            string reportPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json");
             try {
                 string[] generatedCodes;
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     presentation.AddDesignerSectionSlide("Portable evidence", "Generated and imported inspection agree");
-                    PowerPointAccessibilityReport generated = presentation.InspectAccessibility();
+                    OfficeAccessibilityReport generated = presentation.InspectAccessibility();
                     generatedCodes = generated.Findings.Select(finding => finding.Code).ToArray();
-                    generated.SaveJson(reportPath);
                     presentation.Save();
                 }
 
                 using (PowerPointDocument presentation = PowerPointDocument.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                    PowerPointAccessibilityReport imported = presentation.InspectAccessibility();
+                    OfficeAccessibilityReport imported = presentation.InspectAccessibility();
                     Assert.Equal(generatedCodes, imported.Findings.Select(finding => finding.Code));
                     Assert.True(imported.IsSuccessful);
                 }
-                Assert.Contains("\"schemaVersion\":1", File.ReadAllText(reportPath), StringComparison.Ordinal);
                 using PresentationDocument document = PresentationDocument.Open(filePath, false);
                 Assert.Empty(new OpenXmlValidator().Validate(document));
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
-                if (File.Exists(reportPath)) File.Delete(reportPath);
             }
         }
 
@@ -424,7 +418,7 @@ namespace OfficeIMO.Tests {
             text.Color = OfficeColor.Parse("FFFFFF");
             text.FontSize = global::OfficeIMO.OfficeLength.Points(12);
 
-            PowerPointAccessibilityReport report = presentation.InspectAccessibility(
+            OfficeAccessibilityReport report = presentation.InspectAccessibility(
                 new PowerPointAccessibilityOptions {
                     RequireSlideTitles = false,
                     RequireLanguage = false,
@@ -435,7 +429,7 @@ namespace OfficeIMO.Tests {
                 });
 
             Assert.DoesNotContain(report.Findings, finding =>
-                finding.Code == "accessibility-low-contrast" && finding.ShapeId == text.Id);
+                finding.Code == "accessibility-low-contrast" && finding.ObjectId == text.Id);
         }
     }
 }

@@ -1,4 +1,37 @@
 #nullable enable
+OfficeIMO.OfficeAccessibilityException
+OfficeIMO.OfficeAccessibilityException.IncludedWarnings.get -> bool
+OfficeIMO.OfficeAccessibilityException.Report.get -> OfficeIMO.OfficeAccessibilityReport!
+OfficeIMO.OfficeAccessibilityFinding
+OfficeIMO.OfficeAccessibilityFinding.Code.get -> string!
+OfficeIMO.OfficeAccessibilityFinding.IsHeuristic.get -> bool
+OfficeIMO.OfficeAccessibilityFinding.Location.get -> string!
+OfficeIMO.OfficeAccessibilityFinding.LocationIndex.get -> int?
+OfficeIMO.OfficeAccessibilityFinding.MeasuredValue.get -> double?
+OfficeIMO.OfficeAccessibilityFinding.Message.get -> string!
+OfficeIMO.OfficeAccessibilityFinding.ObjectId.get -> uint?
+OfficeIMO.OfficeAccessibilityFinding.ObjectName.get -> string?
+OfficeIMO.OfficeAccessibilityFinding.RequiredValue.get -> double?
+OfficeIMO.OfficeAccessibilityFinding.Severity.get -> OfficeIMO.OfficeAccessibilitySeverity
+OfficeIMO.OfficeAccessibilityPolicyProfile
+OfficeIMO.OfficeAccessibilityPolicyProfile.Default = 0 -> OfficeIMO.OfficeAccessibilityPolicyProfile
+OfficeIMO.OfficeAccessibilityPolicyProfile.Strict = 1 -> OfficeIMO.OfficeAccessibilityPolicyProfile
+OfficeIMO.OfficeAccessibilityReport
+OfficeIMO.OfficeAccessibilityReport.EnsureCompliant(bool includeWarnings = false) -> OfficeIMO.OfficeAccessibilityReport!
+OfficeIMO.OfficeAccessibilityReport.ErrorCount.get -> int
+OfficeIMO.OfficeAccessibilityReport.Findings.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeAccessibilityFinding!>!
+OfficeIMO.OfficeAccessibilityReport.Format.get -> string!
+OfficeIMO.OfficeAccessibilityReport.IsSuccessful.get -> bool
+OfficeIMO.OfficeAccessibilityReport.Profile.get -> OfficeIMO.OfficeAccessibilityPolicyProfile
+OfficeIMO.OfficeAccessibilityReport.SaveJson(string! path, bool indented = true) -> void
+OfficeIMO.OfficeAccessibilityReport.SchemaVersion.get -> int
+OfficeIMO.OfficeAccessibilityReport.ToJson(bool indented = true) -> string!
+OfficeIMO.OfficeAccessibilityReport.WarningCount.get -> int
+OfficeIMO.OfficeAccessibilitySeverity
+OfficeIMO.OfficeAccessibilitySeverity.Error = 2 -> OfficeIMO.OfficeAccessibilitySeverity
+OfficeIMO.OfficeAccessibilitySeverity.Info = 0 -> OfficeIMO.OfficeAccessibilitySeverity
+OfficeIMO.OfficeAccessibilitySeverity.Warning = 1 -> OfficeIMO.OfficeAccessibilitySeverity
+override OfficeIMO.OfficeAccessibilityFinding.ToString() -> string!
 OfficeIMO.Drawing.OfficeChartTrendline
 OfficeIMO.Drawing.OfficeChartTrendline.Color.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Drawing.OfficeChartTrendline.DisplayEquation.get -> bool

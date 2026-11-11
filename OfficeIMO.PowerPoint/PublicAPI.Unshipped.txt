@@ -645,6 +645,47 @@ OfficeIMO.PowerPoint.PowerPointSlideMaster.GetLayout(string! name, bool ignoreCa
 OfficeIMO.PowerPoint.PowerPointSlideMaster.Index.get -> int
 OfficeIMO.PowerPoint.PowerPointSlideMaster.Layouts.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointSlideLayout!>!
 OfficeIMO.PowerPoint.PowerPointSlideMaster.Remove() -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityException
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityException.IncludedWarnings.get -> bool
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityException.Report.get -> OfficeIMO.PowerPoint.PowerPointAccessibilityReport!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityFinding
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityFinding.Code.get -> string!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityFinding.MeasuredValue.get -> double?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityFinding.Message.get -> string!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityFinding.RequiredValue.get -> double?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityFinding.Severity.get -> OfficeIMO.PowerPoint.PowerPointAccessibilitySeverity
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityFinding.ShapeId.get -> uint?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityFinding.ShapeName.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityFinding.SlideIndex.get -> int?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.Profile.get -> OfficeIMO.PowerPoint.PowerPointAccessibilityPolicyProfile
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityPolicyProfile
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityPolicyProfile.Default = 0 -> OfficeIMO.PowerPoint.PowerPointAccessibilityPolicyProfile
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityPolicyProfile.Strict = 1 -> OfficeIMO.PowerPoint.PowerPointAccessibilityPolicyProfile
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityReport
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityReport.EnsureCompliant(bool includeWarnings = false) -> OfficeIMO.PowerPoint.PowerPointAccessibilityReport!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityReport.ErrorCount.get -> int
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityReport.Findings.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointAccessibilityFinding!>!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityReport.IsSuccessful.get -> bool
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityReport.Profile.get -> OfficeIMO.PowerPoint.PowerPointAccessibilityPolicyProfile
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityReport.SaveJson(string! path, bool indented = true) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityReport.SchemaVersion.get -> int
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityReport.Slides.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointAccessibilitySlideInfo!>!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityReport.ToJson(bool indented = true) -> string!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilityReport.WarningCount.get -> int
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilitySeverity
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilitySeverity.Error = 2 -> OfficeIMO.PowerPoint.PowerPointAccessibilitySeverity
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilitySeverity.Info = 0 -> OfficeIMO.PowerPoint.PowerPointAccessibilitySeverity
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAccessibilitySeverity.Warning = 1 -> OfficeIMO.PowerPoint.PowerPointAccessibilitySeverity
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDocument.InspectAccessibility(OfficeIMO.PowerPoint.PowerPointAccessibilityOptions? options = null) -> OfficeIMO.PowerPoint.PowerPointAccessibilityReport!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointInspectionReport.Accessibility.get -> OfficeIMO.PowerPoint.PowerPointAccessibilityReport?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointVisualProofReport.Accessibility.get -> OfficeIMO.PowerPoint.PowerPointAccessibilityReport!
+*REMOVED*static OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.ForProfile(OfficeIMO.PowerPoint.PowerPointAccessibilityPolicyProfile profile) -> OfficeIMO.PowerPoint.PowerPointAccessibilityOptions!
+OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.Profile.get -> OfficeIMO.OfficeAccessibilityPolicyProfile
+OfficeIMO.PowerPoint.PowerPointDocument.InspectAccessibility(OfficeIMO.PowerPoint.PowerPointAccessibilityOptions? options = null) -> OfficeIMO.OfficeAccessibilityReport!
+OfficeIMO.PowerPoint.PowerPointDocument.InspectReadingOrder(OfficeIMO.PowerPoint.PowerPointAccessibilityOptions? options = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointAccessibilitySlideInfo!>!
+OfficeIMO.PowerPoint.PowerPointInspectionReport.Accessibility.get -> OfficeIMO.OfficeAccessibilityReport?
+OfficeIMO.PowerPoint.PowerPointVisualProofReport.Accessibility.get -> OfficeIMO.OfficeAccessibilityReport!
+static OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.ForProfile(OfficeIMO.OfficeAccessibilityPolicyProfile profile) -> OfficeIMO.PowerPoint.PowerPointAccessibilityOptions!
 *REMOVED*OfficeIMO.PowerPoint.PowerPointDocument.SignatureMutationPolicy.get -> OfficeIMO.OfficeSignatureMutationPolicy
 *REMOVED*OfficeIMO.PowerPoint.PowerPointDocument.SignatureMutationPolicy.set -> void
 OfficeIMO.PowerPoint.PowerPointSaveOptions.SignatureMutationPolicy.get -> OfficeIMO.OfficeSignatureMutationPolicy

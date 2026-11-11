@@ -26,12 +26,12 @@ namespace OfficeIMO.Examples.Word {
                 });
                 Console.WriteLine($"    removed or anonymized {removed.Findings.Count(finding => finding.Outcome != OfficeHiddenDataOutcome.Retained)} items");
 
-                WordAccessibilityReport accessibility = document.FixAccessibility(new WordAccessibilityFixOptions {
+                OfficeAccessibilityReport accessibility = document.FixAccessibility(new WordAccessibilityFixOptions {
                     Title = "Settlement summary",
                     Language = "en-US",
                     MarkTableHeaderRows = true
                 });
-                foreach (WordAccessibilityFinding finding in accessibility.Findings) {
+                foreach (OfficeAccessibilityFinding finding in accessibility.Findings) {
                     Console.WriteLine($"    {finding.Severity} {finding.Code} at {finding.Location}");
                 }
 

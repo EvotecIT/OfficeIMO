@@ -7593,6 +7593,56 @@
       "applied": "applied"
     },
     {
+      "old": "OfficeIMO.Word.WordAccessibilityReport",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeAccessibilityReport",
+      "category": "accessibility",
+      "replacement": "InspectAccessibility and FixAccessibility return OfficeAccessibilityReport. Findings, ErrorCount, WarningCount, IsSuccessful, Profile and EnsureCompliant are unchanged; Format is \"Word\" and ToJson/SaveJson are new.",
+      "reason": "Word and PowerPoint accessibility checks return one Core report so the CLI, MCP and other hosts show one list and one JSON shape.",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordAccessibilityFinding",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeAccessibilityFinding",
+      "category": "accessibility",
+      "replacement": "Severity, Code, Message, Location, ObjectName, IsHeuristic, MeasuredValue and RequiredValue keep their names. ParagraphIndex is LocationIndex; ObjectId carries the drawing's docPr id.",
+      "reason": "Word and PowerPoint accessibility checks return one Core report so the CLI, MCP and other hosts show one list and one JSON shape.",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordAccessibilitySeverity",
+      "kind": "enum",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeAccessibilitySeverity",
+      "category": "accessibility",
+      "replacement": "Same members (Info, Warning, Error) and values.",
+      "reason": "Word and PowerPoint accessibility checks return one Core report so the CLI, MCP and other hosts show one list and one JSON shape.",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordAccessibilityPolicyProfile",
+      "kind": "enum",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeAccessibilityPolicyProfile",
+      "category": "accessibility",
+      "replacement": "Same members (Default, Strict). WordAccessibilityOptions.Profile takes the Core enum.",
+      "reason": "Word and PowerPoint accessibility checks return one Core report so the CLI, MCP and other hosts show one list and one JSON shape.",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordAccessibilityException",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeAccessibilityException",
+      "category": "accessibility",
+      "replacement": "Catch OfficeAccessibilityException; Report and IncludedWarnings are unchanged.",
+      "reason": "Word and PowerPoint accessibility checks return one Core report so the CLI, MCP and other hosts show one list and one JSON shape.",
+      "applied": "applied"
+    },
+    {
       "old": "OfficeIMO.Word.WordSaveOptions.SignedDocumentPolicy",
       "kind": "property",
       "action": "rename",
