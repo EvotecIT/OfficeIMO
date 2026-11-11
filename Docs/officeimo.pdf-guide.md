@@ -586,6 +586,8 @@ Text set in a standard font slot (`Helvetica`, `Times` or `Courier`) uses an ins
 
 Set `PdfCreateOptions.EmbedDefaultFonts = false` to write the non-embedded standard PDF fonts instead. When no font file from the fallback list is installed, the document still saves with the standard font and reports a `font-not-embedded` warning without loss, because only the appearance depends on the viewer. Slots reserved by a text fallback set stay free for the fallback fonts. Office converters follow their `ResourcePolicy`: when installed fonts are not allowed, they write the standard fonts.
 
+Each embedded font follows the licence in its OS/2 `fsType` field. When a font sets more than one of Restricted License, Preview & Print and Editable, the least restrictive permission applies, so a Restricted font that also allows Preview & Print is embedded. A font that allows no embedding, or only bitmap embedding, is never embedded: writing a document that uses it as a registered font family throws `NotSupportedException` with the reason, `PdfFontDiagnostics.AnalyzeEmbeddedFont` reports it, and an installed fallback face like that is skipped for the next candidate. A font that forbids subsetting is embedded whole and without a subset tag. A font with no OS/2 table declares no restriction. PDF/A conversion applies the same rule to installed substitutes and reports a refused one as `FontNotEmbeddable`.
+
 #### Embedded-font Latin ligatures
 
 Generated PDFs use `PdfTextShapingMode.OpenTypeLigatures` by default for embedded TrueType and OpenType/CFF fonts. Measurement and painting use the same glyph run; Unicode mappings retain the source text for extraction, search, and redaction.

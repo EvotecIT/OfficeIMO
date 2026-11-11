@@ -5520,6 +5520,30 @@ or letterforms. Set `PdfTextEditOptions.Font` to choose a standard face explicit
 Unsupported shaping and text outside both encodings still fail before returning
 an edited document; the source remains unchanged.
 
+## Font embedding permissions
+
+Every OfficeIMO component that embeds a font program reads the font's OS/2 `fsType`
+licence the same way. When a font sets more than one of Restricted License, Preview & Print
+and Editable, the least restrictive one applies. A font with no OS/2 table declares no restriction.
+
+- **Word.** `WordDocument.EmbedFont` now throws `ArgumentException` for a font whose licence
+  forbids embedding (Restricted License alone) or allows only bitmap embedding. It used to embed
+  any file. Preview & Print and Editable fonts are still embedded; for a collection, every face
+  must allow it.
+- **XPS.** `XpsDocument.AddFont` applies the same check and throws `ArgumentException` with
+  `ParamName` `fontBytes`.
+- **PDF.** Fonts that combine Restricted License with Preview & Print or Editable, such as the
+  macOS ZapfDingbats face, are now embedded instead of being replaced by a fallback. Bitmap-only
+  fonts are now refused like Restricted ones: writing a document that uses one as a registered
+  font family throws `NotSupportedException`, and an installed fallback face like that is skipped. A font that
+  forbids subsetting is embedded whole, without a subset tag, so the output grows by the size of
+  the font.
+- **SVG.** Drawing SVG export leaves out the `@font-face` rule for a face whose licence forbids
+  embedding, so the text names its family and a viewer uses an installed copy.
+
+Data that is not a readable OpenType font or collection carries no licence to check and is
+handled as before.
+
 ## PDF adapter package direction
 
 `OfficeIMO.Word.Pdf` now exports Word to PDF, and `OfficeIMO.PowerPoint.Pdf`
