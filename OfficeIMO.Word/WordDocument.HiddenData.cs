@@ -35,7 +35,7 @@ public partial class WordDocument {
         CollectWordExternalReferences(collector);
         OfficeOpenXmlHiddenData.InspectCustomXml(main, main.CustomXmlParts, collector, part => GetRetainedCustomXmlReason(main, part));
         OfficeOpenXmlHiddenData.InspectThumbnail(_wordprocessingDocument, collector);
-        OfficeOpenXmlHiddenData.InspectImageMetadata(_wordprocessingDocument, collector);
+        OfficeOpenXmlHiddenData.InspectImagesAndProvenance(_wordprocessingDocument, collector);
         OfficeOpenXmlHiddenData.InspectPrinterSettings(_wordprocessingDocument, collector);
         return collector.Build();
     }

@@ -23,7 +23,7 @@ public enum OfficeHiddenDataKind {
     Thumbnail = 1 << 7,
     /// <summary>Custom XML data parts.</summary>
     CustomXml = 1 << 8,
-    /// <summary>Exif, GPS, XMP and IPTC metadata inside embedded images.</summary>
+    /// <summary>Exif, GPS, XMP and IPTC metadata inside embedded images. Provenance carried in the same containers is governed by <see cref="Provenance"/>.</summary>
     ImageMetadata = 1 << 9,
     /// <summary>Embedded printer settings.</summary>
     PrinterSettings = 1 << 10,
@@ -33,11 +33,18 @@ public enum OfficeHiddenDataKind {
     DocumentVariables = 1 << 12,
     /// <summary>Word revision save identifiers (RSIDs).</summary>
     RevisionIdentifiers = 1 << 13,
-    /// <summary>Every category except <see cref="TrackedChanges"/> and <see cref="HiddenContent"/>, which change visible content and are opt-in.</summary>
+    /// <summary>
+    /// Content Credentials (C2PA manifests and references to them) and IPTC digital source type declarations in the package and its images.
+    /// They disclose how content was made, including AI generation, so they are opt-in. While they are kept, image metadata cleanup leaves
+    /// an image's digital source type in place and does not touch images whose Content Credentials it would invalidate. Content Credentials
+    /// that cover the whole package are always removed, because no change to a loaded document can keep them valid.
+    /// </summary>
+    Provenance = 1 << 14,
+    /// <summary>Every category except <see cref="TrackedChanges"/>, <see cref="HiddenContent"/> and <see cref="Provenance"/>, which change visible content or disclosures and are opt-in.</summary>
     Default = DocumentProperties | CustomProperties | Comments | PersonalIdentities | SpeakerNotes | Thumbnail |
         CustomXml | ImageMetadata | PrinterSettings | ExternalReferences | DocumentVariables | RevisionIdentifiers,
-    /// <summary>Every category.</summary>
-    All = Default | TrackedChanges | HiddenContent
+    /// <summary>Every category, including provenance.</summary>
+    All = Default | TrackedChanges | HiddenContent | Provenance
 }
 
 /// <summary>What removal does with tracked changes.</summary>

@@ -5,7 +5,7 @@ public sealed class OfficeHiddenDataOptions {
     private OfficeHiddenDataKind _kinds = OfficeHiddenDataKind.Default;
     private string _anonymousAuthor = "Author";
 
-    /// <summary>Categories to remove. Defaults to <see cref="OfficeHiddenDataKind.Default"/>; hidden content is opt-in.</summary>
+    /// <summary>Categories to remove. Defaults to <see cref="OfficeHiddenDataKind.Default"/>; tracked changes, hidden content and provenance are opt-in.</summary>
     public OfficeHiddenDataKind Kinds {
         get => _kinds;
         set {

@@ -44,7 +44,7 @@ namespace OfficeIMO.Excel {
                     ? "Power Query stores the workbook's queries here; delete the queries in Excel to remove it."
                     : null);
             OfficeOpenXmlHiddenData.InspectThumbnail(package, collector);
-            OfficeOpenXmlHiddenData.InspectImageMetadata(package, collector);
+            OfficeOpenXmlHiddenData.InspectImagesAndProvenance(package, collector);
             OfficeOpenXmlHiddenData.InspectPrinterSettings(package, collector);
             return collector.Build();
         }

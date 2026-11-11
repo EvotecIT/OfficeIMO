@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using OfficeIMO.Provenance;
 
 namespace OfficeIMO;
 
@@ -7,13 +8,14 @@ public sealed class OfficeHiddenDataFinding {
     internal const int MaxValueLength = 160;
 
     internal OfficeHiddenDataFinding(OfficeHiddenDataKind kind, string location, string description, string? value,
-        OfficeHiddenDataOutcome outcome, string? note) {
+        OfficeHiddenDataOutcome outcome, string? note, OfficeProvenanceEvidence? provenance = null) {
         Kind = kind;
         Location = location;
         Description = description;
         Value = Truncate(value);
         Outcome = outcome;
         Note = note;
+        Provenance = provenance;
     }
 
     /// <summary>The category.</summary>
@@ -28,6 +30,8 @@ public sealed class OfficeHiddenDataFinding {
     public OfficeHiddenDataOutcome Outcome { get; }
     /// <summary>Why a finding was retained, or other detail about the outcome.</summary>
     public string? Note { get; }
+    /// <summary>The provenance carrier behind a <see cref="OfficeHiddenDataKind.Provenance"/> finding, as the provenance inspector reports it.</summary>
+    public OfficeProvenanceEvidence? Provenance { get; }
 
     /// <inheritdoc />
     public override string ToString() => Kind + " " + Location + ": " + Description + " (" + Outcome + ")";
@@ -38,7 +42,7 @@ public sealed class OfficeHiddenDataFinding {
     }
 }
 
-/// <summary>Metadata and hidden data found in a Word, Excel or PowerPoint document, and what removal did with each item.</summary>
+/// <summary>Metadata, hidden data and provenance found in a Word, Excel or PowerPoint document, and what removal did with each item.</summary>
 public sealed class OfficeHiddenDataReport {
     internal OfficeHiddenDataReport(string format, IList<OfficeHiddenDataFinding> findings) {
         Format = format;
