@@ -21,6 +21,7 @@ using OfficeIMO.Reader.PowerPoint;
 using OfficeIMO.Reader.Publisher;
 using OfficeIMO.Reader.Rtf;
 using OfficeIMO.Reader.Subtitles;
+using OfficeIMO.Reader.Toml;
 using OfficeIMO.Reader.Visio;
 using OfficeIMO.Reader.Xps;
 using OfficeIMO.Reader.DjVu;
@@ -82,6 +83,7 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
             .AddPublisherHandler(configured.Publisher)
             .AddRtfHandler(configured.Rtf)
             .AddSubtitleHandler(configured.Subtitles)
+            .AddTomlHandler(configured.Toml)
             .AddVisioHandler(configured.Visio)
             .AddXpsHandler(configured.Xps)
             .AddWordHandlerWithLegacyRouting(configured.Word, configured.LegacyWord, configured.IncludeLegacyWord);

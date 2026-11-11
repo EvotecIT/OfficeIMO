@@ -40,6 +40,7 @@ public sealed class ReaderAllPresetTests {
         "officeimo.reader.rtf",
         "officeimo.reader.subtitles",
         "officeimo.reader.text",
+        "officeimo.reader.toml",
         "officeimo.reader.unknown",
         "officeimo.reader.vcard",
         "officeimo.reader.visio",

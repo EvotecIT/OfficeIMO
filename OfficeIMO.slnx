@@ -300,6 +300,7 @@
   <Project Path="OfficeIMO.Reader.Rtf/OfficeIMO.Reader.Rtf.csproj" />
   <Project Path="OfficeIMO.Reader.Subtitles/OfficeIMO.Reader.Subtitles.csproj" />
   <Project Path="OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj" />
+  <Project Path="OfficeIMO.Reader.Toml/OfficeIMO.Reader.Toml.csproj" />
   <Project Path="OfficeIMO.Reader.Visio/OfficeIMO.Reader.Visio.csproj" />
   <Project Path="OfficeIMO.Reader.Web/OfficeIMO.Reader.Web.csproj" />
   <Project Path="OfficeIMO.Reader.Word/OfficeIMO.Reader.Word.csproj" />
@@ -321,6 +322,8 @@
   <Project Path="OfficeIMO.Studio.Tests/OfficeIMO.Studio.Tests.csproj" />
   <Project Path="OfficeIMO.Studio/OfficeIMO.Studio.csproj" />
   <Project Path="OfficeIMO.Tests/OfficeIMO.Tests.csproj" />
+  <Project Path="OfficeIMO.Toml.Tests/OfficeIMO.Toml.Tests.csproj" />
+  <Project Path="OfficeIMO.Toml/OfficeIMO.Toml.csproj" />
   <Project Path="OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj" />
   <Project Path="OfficeIMO.Tool/OfficeIMO.Tool.csproj" />
   <Project Path="OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj" />
