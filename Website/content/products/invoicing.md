@@ -25,7 +25,7 @@ meta.software.price_currency: "USD"
 using OfficeIMO.Invoicing;
 
 var parsed = InvoiceParser.Read(File.ReadAllBytes("invoice.xml"));
-if (parsed.HasCompleteMapping) {
+if (parsed.HasCompleteMapping && parsed.Invoice.Lines.Count > 0) {
     parsed.Invoice.Lines[0].Quantity = 2m;
     InvoiceCalculator.UpdateDeclaredAmounts(parsed.Invoice);
     File.WriteAllBytes("invoice-ubl.xml", parsed.Write(new InvoiceXmlOptions(

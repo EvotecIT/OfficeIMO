@@ -19,7 +19,11 @@ meta.software.price_currency: "USD"
 
 ## Fixed-page documents on every platform
 
-`OfficeIMO.Xps` handles Microsoft XPS and ECMA-388 OpenXPS packages with managed code. It reads multiple fixed documents, creates pages with paths, embedded fonts, text and images, edits page order and native page XML, and saves in the original dialect. `OfficeIMO.Xps.Pdf` converts the result to vector PDF.
+`OfficeIMO.Xps` handles Microsoft XPS and ECMA-388 OpenXPS packages with managed code. It reads multiple fixed documents, creates pages with paths, embedded fonts, text and images, edits page order and native page XML, and saves in the original dialect. `OfficeIMO.Xps.Pdf` converts the result to vector PDF; the example below needs both packages:
+
+```bash
+dotnet add package OfficeIMO.Xps.Pdf
+```
 
 ```csharp
 using OfficeIMO;

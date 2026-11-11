@@ -50,7 +50,6 @@ Raw HTML recognition, raw HTML output, URL policy, image/resource policy, escapi
 
 ## Known limits
 
-- One CommonMark raw-HTML inventory case remains open.
 - Complete trivia/delimiter coverage and original-to-normalized mapping are not available for every node and transform.
 - General byte-preserving output after arbitrary multi-node or generated-node edits is not claimed.
 - Optional grid tables, math, media, figures, and diagram languages are not default grammar.

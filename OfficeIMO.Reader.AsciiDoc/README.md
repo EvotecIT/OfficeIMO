@@ -25,7 +25,7 @@ The handler emits deterministic block-aware chunks with source lines, heading pa
 | Reader kind | `ReaderInputKind.AsciiDoc` |
 | Input limit | `ReaderOptions.MaxInputBytes` when set, plus the parser's `MaxInputLength` |
 
-`AddAsciiDocHandler(options, replaceExisting: true)` snapshots the options at registration. `AsciiDocReaderAdapter.Read(...)` is also public for path, stream, or already parsed `AsciiDocDocument` input without building a reader.
+`AddAsciiDocHandler(options, replaceExisting: true)` snapshots the options at registration.
 
 ## Options
 
@@ -55,7 +55,7 @@ Exceeding a parser limit fails the read rather than silently returning partial c
 
 - **Chunk ids:** `asciidoc-<block>` in block mode (`asciidoc-0`, `asciidoc-2`, ...); a block split by `MaxChars` continues as `asciidoc-4-part-2`.
 - **Location:** `StartLine`/`EndLine` from the lossless source spans, `HeadingPath` such as `Guide > Install`, `BlockAnchor` `asciidoc-block-<n>`, and `SourceBlockKind`: `heading`, `paragraph`, `ordered-list`, `unordered-list`, `callout-list`, `description-list`, `admonition`, `table`, `delimited-<kind>` (for example `delimited-listing`) or `block-macro`.
-- **Text and Markdown:** `Text` is plain text with attributes resolved; `Markdown` is the typed `OfficeIMO.AsciiDoc.Markdown` projection.
+- **Text and Markdown:** `Text` is plain text with attributes resolved; `Markdown` is the typed `OfficeIMO.AsciiDoc.Markdown` projection, except for a block split by `MaxChars`: each part then carries its plain text as `Markdown`, so structure such as listing fences is not kept.
 - **Warnings:** diagnostics that fall inside the block's span, plus `AsciiDoc content was split due to ReaderOptions.MaxChars.` for split blocks.
 
 ## Example output

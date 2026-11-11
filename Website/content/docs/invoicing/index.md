@@ -69,7 +69,7 @@ var parsed = InvoiceParser.Read(File.ReadAllBytes("invoice.xml"));
 foreach (var item in parsed.UnmappedData)
     Console.WriteLine($"{item.Location}: {item.Message}");
 
-if (parsed.HasCompleteMapping) {
+if (parsed.HasCompleteMapping && parsed.Invoice.Lines.Count > 0) {
     parsed.Invoice.Lines[0].Quantity = 2m;
     InvoiceCalculator.UpdateDeclaredAmounts(parsed.Invoice);
     File.WriteAllBytes("edited.xml", parsed.Write(new InvoiceXmlOptions(

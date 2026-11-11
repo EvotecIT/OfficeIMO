@@ -20,6 +20,7 @@ Two companion packages build on the same model:
 ```shell
 dotnet add package OfficeIMO.Publisher
 dotnet add package OfficeIMO.Publisher.Pdf
+dotnet add package OfficeIMO.Reader.Publisher
 ```
 
 ## Read a publication

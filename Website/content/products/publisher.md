@@ -19,7 +19,11 @@ meta.software.price_currency: "USD"
 
 ## Open Publisher files on any platform
 
-`OfficeIMO.Publisher` decodes Publisher 2002-and-later publications into positioned pages, master pages, styled text stories, native tables and embedded images. Every load carries a recovery report that names approximations, omissions and unassessed content.
+`OfficeIMO.Publisher` decodes Publisher 2002-and-later publications into positioned pages, master pages, styled text stories, native tables and embedded images. Every load carries a recovery report that names approximations, omissions and unassessed content. The PDF export in this example comes from OfficeIMO.Publisher.Pdf:
+
+```bash
+dotnet add package OfficeIMO.Publisher.Pdf
+```
 
 ```csharp
 using OfficeIMO;

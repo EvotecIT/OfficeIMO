@@ -19,7 +19,11 @@ meta.software.price_currency: "USD"
 
 ## Apple documents without an Apple application
 
-`OfficeIMO.IWork` reads modern Pages, Numbers, and Keynote packages, including ZIP files, directory bundles, and packages with a nested `Index.zip`, plus a read-only iWork ’09 XML profile. It decodes the native IWA archives with first-party readers and depends only on `OfficeIMO.Core`. Conversion to Office formats is opt-in: add `OfficeIMO.Word.IWork` for Pages, `OfficeIMO.Excel.IWork` for Numbers, or `OfficeIMO.PowerPoint.IWork` for Keynote. `OfficeIMO.Reader.IWork` adds the same sources to Reader ingestion.
+`OfficeIMO.IWork` reads modern Pages, Numbers, and Keynote packages, including ZIP files, directory bundles, and packages with a nested `Index.zip`, plus a read-only iWork ’09 XML profile. It decodes the native IWA archives with first-party readers and depends only on `OfficeIMO.Core`. Conversion to Office formats is opt-in: add `OfficeIMO.Word.IWork` for Pages, `OfficeIMO.Excel.IWork` for Numbers, or `OfficeIMO.PowerPoint.IWork` for Keynote. `OfficeIMO.Reader.IWork` adds the same sources to Reader ingestion. The Numbers example below uses the Excel adapter:
+
+```bash
+dotnet add package OfficeIMO.Excel.IWork
+```
 
 ```csharp
 using OfficeIMO.Excel.IWork;
