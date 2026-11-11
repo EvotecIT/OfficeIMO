@@ -1,3 +1,7 @@
+#if NET8_0_OR_GREATER
+using System.Numerics;
+#endif
+
 namespace OfficeIMO.Drawing;
 
 internal static partial class OfficeJpeg2000Decoder {
@@ -250,8 +254,10 @@ internal static partial class OfficeJpeg2000Decoder {
         private readonly BandSource _hl, _lh, _hh;
         private readonly int _x0, _y0;
         private readonly int _margin;
-        private int[]? _intWindow, _intLine;
-        private float[]? _floatWindow, _floatLine;
+        private int[]? _intWindow, _intLine, _intCarry;
+        private float[]? _floatWindow, _floatLine, _floatCarry;
+        // Horizontally synthesized rows at the end of the last window, which start the next one.
+        private int _carryStart, _carryCount;
 
         internal LevelSource(RowSource lower, BandSource hl, BandSource lh, BandSource hh, Resolution resolution, bool reversible)
             : base(resolution.Width, resolution.Height, reversible) {
@@ -276,8 +282,9 @@ internal static partial class OfficeJpeg2000Decoder {
             int first = End;
             int end = Math.Min(Height, Math.Max(last + 1, first + MinimumLevelRows));
             int low = Height == 1 ? 0 : first - _margin, high = Height == 1 ? 1 : end + _margin;
+            int carried = _carryCount > 0 && _carryStart == low ? _carryCount : 0;
             int minimumLow = int.MaxValue, maximumLow = -1, minimumHigh = int.MaxValue, maximumHigh = -1;
-            for (int position = low; position < high; position++) {
+            for (int position = low + carried; position < high; position++) {
                 int index = Height == 1 ? 0 : Reflect(position, Height);
                 if (IsLow(index)) {
                     int row = LowIndex(index);
@@ -299,6 +306,7 @@ internal static partial class OfficeJpeg2000Decoder {
             }
 
             int width = Width, rows = high - low;
+            int carry = end < Height ? Math.Min(2 * _margin, rows) : 0;
             long windowLength = (long)rows * width;
             if (windowLength > int.MaxValue) throw new Jpeg2000Exception("The JPEG 2000 tile-component is too wide.");
             SamplePool pool = workspace.Pool;
@@ -311,6 +319,7 @@ internal static partial class OfficeJpeg2000Decoder {
                     pool.Return(_intLine);
                     _intLine = pool.RentIntegers(width + 8);
                 }
+                if (carry > 0 && _intCarry == null) _intCarry = pool.RentIntegers(2 * _margin * width);
             } else {
                 if (_floatWindow == null || _floatWindow.Length < windowLength) {
                     pool.Return(_floatWindow);
@@ -320,11 +329,15 @@ internal static partial class OfficeJpeg2000Decoder {
                     pool.Return(_floatLine);
                     _floatLine = pool.RentFloats(width + 8);
                 }
+                if (carry > 0 && _floatCarry == null) _floatCarry = pool.RentFloats(2 * _margin * width);
             }
 
-            // HOR_SR on every window row.
-            int lowWidth = _lower.Width;
-            for (int position = low; position < high; position++) {
+            // HOR_SR on every window row not carried over from the previous window.
+            if (carried > 0) {
+                if (Reversible) Array.Copy(_intCarry!, 0, _intWindow!, 0, carried * width);
+                else Array.Copy(_floatCarry!, 0, _floatWindow!, 0, carried * width);
+            }
+            for (int position = low + carried; position < high; position++) {
                 int index = Height == 1 ? 0 : Reflect(position, Height);
                 int target = (position - low) * width;
                 bool lowRow = IsLow(index);
@@ -344,6 +357,13 @@ internal static partial class OfficeJpeg2000Decoder {
                 }
             }
 
+            _carryCount = carry;
+            _carryStart = high - carry;
+            if (carry > 0) {
+                if (Reversible) Array.Copy(_intWindow!, (rows - carry) * width, _intCarry!, 0, carry * width);
+                else Array.Copy(_floatWindow!, (rows - carry) * width, _floatCarry!, 0, carry * width);
+            }
+
             // VER_SR on the window, then keep the rows that have their full filter support.
             if (Reversible) SynthesizeRows53(_intWindow!, width, low, high, Height, _y0);
             else SynthesizeRows97(_floatWindow!, width, low, high, Height, _y0);
@@ -358,10 +378,13 @@ internal static partial class OfficeJpeg2000Decoder {
             base.Return(pool);
             pool.Return(_intWindow);
             pool.Return(_intLine);
+            pool.Return(_intCarry);
             pool.Return(_floatWindow);
             pool.Return(_floatLine);
-            _intWindow = _intLine = null;
-            _floatWindow = _floatLine = null;
+            pool.Return(_floatCarry);
+            _intWindow = _intLine = _intCarry = null;
+            _floatWindow = _floatLine = _floatCarry = null;
+            _carryCount = 0;
             _lower.Return(pool);
             _hl.Return(pool);
             _lh.Return(pool);
@@ -443,13 +466,32 @@ internal static partial class OfficeJpeg2000Decoder {
         int stop = Math.Min(count + 1, high - 1);
         for (int j = Align(Math.Max(first, low + 1), first); j < stop; j += 2) {
             int center = (j - low) * width, above = center - width, below = center + width;
-            for (int x = 0; x < width; x++) rows[center + x] -= (rows[above + x] + rows[below + x] + 2) >> 2;
+            int x = 0;
+#if NET8_0_OR_GREATER
+            if (Vector.IsHardwareAccelerated) {
+                var two = new Vector<int>(2);
+                for (int lanes = Vector<int>.Count; x <= width - lanes; x += lanes) {
+                    var sum = new Vector<int>(rows, above + x) + new Vector<int>(rows, below + x) + two;
+                    (new Vector<int>(rows, center + x) - Vector.ShiftRightArithmetic(sum, 2)).CopyTo(rows, center + x);
+                }
+            }
+#endif
+            for (; x < width; x++) rows[center + x] -= (rows[above + x] + rows[below + x] + 2) >> 2;
         }
         first = (origin & 1) != 0 ? 0 : 1;
         stop = Math.Min(count, high - 1);
         for (int j = Align(Math.Max(first, low + 1), first); j < stop; j += 2) {
             int center = (j - low) * width, above = center - width, below = center + width;
-            for (int x = 0; x < width; x++) rows[center + x] += (rows[above + x] + rows[below + x]) >> 1;
+            int x = 0;
+#if NET8_0_OR_GREATER
+            if (Vector.IsHardwareAccelerated) {
+                for (int lanes = Vector<int>.Count; x <= width - lanes; x += lanes) {
+                    var sum = new Vector<int>(rows, above + x) + new Vector<int>(rows, below + x);
+                    (new Vector<int>(rows, center + x) + Vector.ShiftRightArithmetic(sum, 1)).CopyTo(rows, center + x);
+                }
+            }
+#endif
+            for (; x < width; x++) rows[center + x] += (rows[above + x] + rows[below + x]) >> 1;
         }
     }
 
@@ -476,7 +518,14 @@ internal static partial class OfficeJpeg2000Decoder {
         stop = Math.Min(stop, high);
         for (int j = Align(Math.Max(start, low), start); j < stop; j += 2) {
             int center = (j - low) * width;
-            for (int x = 0; x < width; x++) rows[center + x] *= factor;
+            int x = 0;
+#if NET8_0_OR_GREATER
+            if (Vector.IsHardwareAccelerated) {
+                var scale = new Vector<float>(factor);
+                for (int lanes = Vector<float>.Count; x <= width - lanes; x += lanes) (new Vector<float>(rows, center + x) * scale).CopyTo(rows, center + x);
+            }
+#endif
+            for (; x < width; x++) rows[center + x] *= factor;
         }
     }
 
@@ -484,7 +533,18 @@ internal static partial class OfficeJpeg2000Decoder {
         stop = Math.Min(stop, high - 1);
         for (int j = Align(Math.Max(start, low + 1), start); j < stop; j += 2) {
             int center = (j - low) * width, above = center - width, below = center + width;
-            for (int x = 0; x < width; x++) rows[center + x] -= factor * (rows[above + x] + rows[below + x]);
+            int x = 0;
+#if NET8_0_OR_GREATER
+            // Lane-wise single-precision add, multiply and subtract: the same rounding as the scalar loop.
+            if (Vector.IsHardwareAccelerated) {
+                var weight = new Vector<float>(factor);
+                for (int lanes = Vector<float>.Count; x <= width - lanes; x += lanes) {
+                    var sum = new Vector<float>(rows, above + x) + new Vector<float>(rows, below + x);
+                    (new Vector<float>(rows, center + x) - weight * sum).CopyTo(rows, center + x);
+                }
+            }
+#endif
+            for (; x < width; x++) rows[center + x] -= factor * (rows[above + x] + rows[below + x]);
         }
     }
 }

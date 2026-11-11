@@ -1,3 +1,7 @@
+#if NET8_0_OR_GREATER
+using System.Numerics;
+#endif
+
 namespace OfficeIMO.Drawing;
 
 internal static partial class OfficeJpeg2000Decoder {
@@ -135,7 +139,21 @@ internal static partial class OfficeJpeg2000Decoder {
                 int o0 = s0.Offset(line), o1 = s1.Offset(line), o2 = s2.Offset(line);
                 if (s0.Ints != null) {
                     int[] c0 = s0.Ints, c1 = s1.Ints!, c2 = s2.Ints!;
-                    for (int x = 0; x < width; x++) {
+                    int x = 0;
+#if NET8_0_OR_GREATER
+                    if (Vector.IsHardwareAccelerated) {
+                        for (int lanes = Vector<int>.Count; x <= width - lanes; x += lanes) {
+                            var y0 = new Vector<int>(c0, o0 + x);
+                            var y1 = new Vector<int>(c1, o1 + x);
+                            var y2 = new Vector<int>(c2, o2 + x);
+                            var green = y0 - Vector.ShiftRightArithmetic(y1 + y2, 2);
+                            (y2 + green).CopyTo(c0, o0 + x);
+                            green.CopyTo(c1, o1 + x);
+                            (y1 + green).CopyTo(c2, o2 + x);
+                        }
+                    }
+#endif
+                    for (; x < width; x++) {
                         int green = c0[o0 + x] - ((c1[o1 + x] + c2[o2 + x]) >> 2);
                         int red = c2[o2 + x] + green;
                         int blue = c1[o1 + x] + green;
@@ -145,7 +163,24 @@ internal static partial class OfficeJpeg2000Decoder {
                     }
                 } else {
                     float[] c0 = s0.Floats!, c1 = s1.Floats!, c2 = s2.Floats!;
-                    for (int x = 0; x < width; x++) {
+                    int x = 0;
+#if NET8_0_OR_GREATER
+                    if (Vector.IsHardwareAccelerated) {
+                        var redFromCr = new Vector<float>(1.402F);
+                        var greenFromCb = new Vector<float>(0.34413F);
+                        var greenFromCr = new Vector<float>(0.71414F);
+                        var blueFromCb = new Vector<float>(1.772F);
+                        for (int lanes = Vector<float>.Count; x <= width - lanes; x += lanes) {
+                            var luma = new Vector<float>(c0, o0 + x);
+                            var blueDifference = new Vector<float>(c1, o1 + x);
+                            var redDifference = new Vector<float>(c2, o2 + x);
+                            (luma + redFromCr * redDifference).CopyTo(c0, o0 + x);
+                            (luma - greenFromCb * blueDifference - greenFromCr * redDifference).CopyTo(c1, o1 + x);
+                            (luma + blueFromCb * blueDifference).CopyTo(c2, o2 + x);
+                        }
+                    }
+#endif
+                    for (; x < width; x++) {
                         float luma = c0[o0 + x], blueDifference = c1[o1 + x], redDifference = c2[o2 + x];
                         c0[o0 + x] = luma + 1.402F * redDifference;
                         c1[o1 + x] = luma - 0.34413F * blueDifference - 0.71414F * redDifference;
