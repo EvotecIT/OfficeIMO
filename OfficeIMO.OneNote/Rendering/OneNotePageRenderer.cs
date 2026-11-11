@@ -37,7 +37,7 @@ public static partial class OneNotePageRenderer {
         if (effective.IncludeTitle && !string.IsNullOrWhiteSpace(page.Title)) {
             double titleHeight = Math.Min(42D, Math.Max(22D, height - flowY));
             drawing.AddText(
-                page.Title,
+                OneNoteTextNormalizer.Normalize(page.Title),
                 Clamp(marginLeft, 0D, Math.Max(0D, width - 1D)),
                 Clamp(flowY, 0D, Math.Max(0D, height - 1D)),
                 Math.Max(1D, Math.Min(bodyWidth, width - marginLeft)),

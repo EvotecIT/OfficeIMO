@@ -570,7 +570,7 @@ public static partial class OneNotePageRenderer {
             double height = Math.Min(24D, Math.Max(1D, _drawing.Height - y));
             if (availableHeight > 0D) height = Math.Min(height, availableHeight);
             double width = Math.Max(1D, Math.Min(availableWidth, _drawing.Width - x));
-            _drawing.AddText(expression.ToPlainText(), x, y, width, height, font ?? _options.Math.Font, color ?? _options.Math.Color, wrapText: false);
+            _drawing.AddText(OneNoteTextNormalizer.Normalize(expression.ToPlainText()), x, y, width, height, font ?? _options.Math.Font, color ?? _options.Math.Color, wrapText: false);
             return height;
         }
 
@@ -584,7 +584,7 @@ public static partial class OneNotePageRenderer {
             frame.StrokeWidth = 0.8D;
             _drawing.AddShape(frame, x, y);
             string label = binary is OneNoteMedia ? "▶ " : "📎 ";
-            _drawing.AddText(label + (binary.FileName ?? binary.Kind.ToString()), x + 8D, y + 6D, Math.Max(1D, frameWidth - 16D), Math.Max(1D, height - 12D),
+            _drawing.AddText(label + OneNoteTextNormalizer.Normalize(binary.FileName ?? binary.Kind.ToString()), x + 8D, y + 6D, Math.Max(1D, frameWidth - 16D), Math.Max(1D, height - 12D),
                 _options.DefaultFont, OfficeColor.FromRgb(45, 55, 72), wrapText: false);
             return height;
         }
@@ -598,7 +598,7 @@ public static partial class OneNotePageRenderer {
             frame.StrokeColor = OfficeColor.FromRgb(176, 176, 176);
             frame.StrokeDashStyle = OfficeStrokeDashStyle.Dash;
             _drawing.AddShape(frame, x, y);
-            _drawing.AddText(image.AltText ?? image.FileName ?? "Image", x + 6D, y + 6D, Math.Max(1D, renderWidth - 12D), Math.Max(1D, height - 12D),
+            _drawing.AddText(OneNoteTextNormalizer.Normalize(image.AltText ?? image.FileName ?? "Image"), x + 6D, y + 6D, Math.Max(1D, renderWidth - 12D), Math.Max(1D, height - 12D),
                 _options.DefaultFont, OfficeColor.DimGray, OfficeTextAlignment.Center, verticalAlignment: OfficeTextVerticalAlignment.Center, wrapText: true);
             return height;
         }
@@ -655,7 +655,7 @@ public static partial class OneNotePageRenderer {
         }
 
         private OfficeRichTextRun CreateRichTextRun(OneNoteTextRun run, string text) => new OfficeRichTextRun(
-            text,
+            OneNoteTextNormalizer.Normalize(text),
             run.Style.FontSize ?? _options.DefaultFont.Size,
             ResolveColor(run.Style.ColorArgb),
             run.Style.Bold == true,
