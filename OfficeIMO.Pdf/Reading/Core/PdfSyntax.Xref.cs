@@ -461,6 +461,11 @@ internal static partial class PdfSyntax {
 
         bool applied = false;
         if (activeEntries.Count == 0) return false;
+#if NET8_0_OR_GREATER
+        // Compressed objects usually outnumber the top-level ones the scan found; grow the maps once.
+        map.EnsureCapacity(map.Count + activeEntries.Count);
+        parsedOffsets.EnsureCapacity(parsedOffsets.Count + activeEntries.Count);
+#endif
         var headerMemo = new ObjectStreamHeaderMemo();
         var deferredScan = new DeferredObjectScan();
         foreach (XrefStreamEntry entry in activeEntries.Values) {
@@ -495,6 +500,10 @@ internal static partial class PdfSyntax {
         Action reportIncompleteXref,
         System.Threading.CancellationToken cancellationToken) {
         byte[] data = decodedStreamBudget.Decode(xrefStream, map, int.MaxValue, cancellationToken);
+#if NET8_0_OR_GREATER
+        // The decoded rows bound the entries this stream can add, so the table grows once rather than by doubling.
+        activeEntries.EnsureCapacity(activeEntries.Count + GetXrefRowCount(xrefStream.Dictionary, data.Length));
+#endif
         foreach (XrefStreamEntry entry in ReadXrefStreamEntries(xrefStream.Dictionary, data, reportIncompleteXref, cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (entry.Type == 2) {
@@ -826,8 +835,7 @@ internal static partial class PdfSyntax {
 
         List<(int Obj, int Off)>? pairs = headerMemo?.TryGet(objectStream, data, n, first);
         if (pairs is null) {
-            string header = PdfEncoding.Latin1GetStringCancellable(data, 0, first, cancellationToken);
-            pairs = ParsePairs(header, n, out bool completeHeader, cancellationToken);
+            pairs = ParsePairs(data, first, n, out bool completeHeader, cancellationToken);
             if (!completeHeader) return false;
             headerMemo?.Add(objectStream, data, n, first, pairs);
         }
