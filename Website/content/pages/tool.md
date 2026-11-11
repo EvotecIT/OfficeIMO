@@ -48,7 +48,7 @@ officeimo hidden-data remove proposal.docx
 officeimo provenance inspect proposal.docx --format text
 ```
 
-`hidden-data` reports and removes author names, comments, tracked changes, hidden content, speaker notes and photo locations in Word, Excel and PowerPoint files. It writes a separate cleaned copy and keeps Content Credentials and AI labels unless you add `--kinds default,provenance`. [Prepare a document for sharing](/docs/before-sharing/) explains what is kept and why.
+`hidden-data` reports and removes author names, comments, tracked changes, hidden content, speaker notes, scripts and photo locations in Office, Visio, OpenDocument, EPUB, PDF and image files. It writes a separate cleaned copy and keeps Content Credentials and AI labels unless you add `--kinds default,provenance`; `--keep-provenance c2pa` keeps the credentials and drops only AI labels. The `officeimo_inspect_hidden_data` and `officeimo_remove_hidden_data` MCP tools do the same for agents. [Prepare a document for sharing](/docs/before-sharing/) explains what is kept and why.
 
 ## More than conversion
 

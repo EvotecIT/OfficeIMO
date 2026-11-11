@@ -18,7 +18,7 @@ public sealed class OriginAttributionTests {
         Assert.DoesNotContain("generative AI tool: Photoshop", result.Verdict.Detail);
         if (separateAiCredential) {
             Assert.Contains("generative AI tool: AI Studio", result.Verdict.Detail);
-            Assert.Contains("embedded asset", result.Verdict.Detail);
+            Assert.Contains("A picture (word/media/ai.png)", result.Verdict.Detail);
             Assert.DoesNotContain("The file says it was made", result.Verdict.Detail);
             Assert.Contains(result.Items, item => (item.Group ?? "").Contains("word/media/ai.png"));
         }
@@ -30,7 +30,7 @@ public sealed class OriginAttributionTests {
         byte[] ai = RewriteCredential(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "samples", "unsigned-credential-12-actions.png")), ("Generator", "AI Studio"));
         var session = new ToolSession(); session.Stage(0, WithImages(("word/media/PNG/ai.png", ai)), "nested.docx");
         var result = ShareTool.Run(session, "inspect", new ToolOptions(new()));
-        Assert.Contains("embedded asset (word/media/PNG/ai.png)", result.Verdict.Detail);
+        Assert.Contains("A picture (word/media/PNG/ai.png)", result.Verdict.Detail);
         Assert.Contains(result.Items, item => (item.Group ?? "").Contains("word/media/PNG/ai.png"));
     }
 
@@ -45,7 +45,7 @@ public sealed class OriginAttributionTests {
         var session = new ToolSession();
         session.Stage(0, SourceLabelInput(ordinary, includeAi), "sources.png");
         var inspection = ShareTool.Run(session, "inspect", new ToolOptions(new()));
-        Assert.Equal(includeAi ? 1 : 0, inspection.Items.Count(item => item.Selectable));
+        Assert.Equal(includeAi ? 1 : 0, inspection.Items.Count(item => item.Selectable && item.Group == ProvenanceText.Group));
         ToolItem label = Assert.Single(inspection.Items, item => item.Id == "source-labels");
         Assert.False(label.Selectable);
         Assert.True(label.Detail.Contains("camera", StringComparison.OrdinalIgnoreCase) || label.Detail.Contains("software", StringComparison.OrdinalIgnoreCase) ||
@@ -54,14 +54,14 @@ public sealed class OriginAttributionTests {
         Assert.DoesNotContain(removal.Items, item => item.State == ToolState.Bad);
         Assert.Contains(removal.Items, item => item.State == ToolState.Kept && item.Title.Contains("source label", StringComparison.OrdinalIgnoreCase));
         Assert.Equal(includeAi ? "1" : "0", removal.Facts.Single(fact => fact.Label == "Removed").Value);
-        Assert.Equal("1", removal.Facts.Single(fact => fact.Label == "Still present").Value);
+        Assert.Contains(removal.Items, item => item.Id == "source-labels-kept");
     }
 
     [Fact]
     public void RemovalPreservesWatermarkWarningBeyondDisplayedCredentials() {
         var session = new ToolSession();
         session.Stage(0, WatermarkInput(), "four-credentials.docx");
-        var removal = ShareTool.Run(session, "remove", new ToolOptions(new() { ["remove"] = "provenance" }));
+        var removal = ShareTool.Run(session, "remove", new ToolOptions(new() { ["remove"] = "manifests" }));
         Assert.Contains(removal.Items, item => item.Id == "watermark" && item.State == ToolState.Warning);
         Assert.Contains("watermark", removal.Verdict.Detail);
     }

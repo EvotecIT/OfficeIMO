@@ -1,37 +1,53 @@
 ---
 title: "Remove hidden data and metadata"
-description: "Inspect and remove document properties, comments, tracked changes, hidden content, speaker notes, custom XML and image GPS data from Word, Excel and PowerPoint files with OfficeIMO."
+description: "Inspect and remove document properties, comments, tracked changes, hidden content, speaker notes, attachments, scripts, custom XML and photo GPS data from Office, PDF, OpenDocument, EPUB and image files with OfficeIMO."
 layout: docs
 ---
 
-`InspectHiddenData()` lists the metadata and hidden data in a loaded Word, Excel or PowerPoint document and changes nothing. `RemoveHiddenData(options)` removes the selected categories in memory and returns the same report, with an outcome on every finding. Save the document to keep the result. The categories match what Office's Document Inspector checks.
+`InspectHiddenData()` lists the metadata and hidden data in a document and changes nothing. `RemoveHiddenData(options)` removes the selected categories and returns the same report, with an outcome on every finding. The categories follow what Office's Document Inspector checks, and the same report covers Word, Excel, PowerPoint, Visio, OpenDocument, EPUB, PDF and JPEG, PNG, WebP, GIF and TIFF images.
 
-## Word
+## Clean a file
 
 ```csharp
 using OfficeIMO;
-using OfficeIMO.Word;
 
-using var document = WordDocument.Load("Contract.docx");
+OfficeHiddenDataReport report = OfficeDocument.RemoveHiddenData("Contract.docx", "Contract-shared.docx",
+    new OfficeHiddenDataOptions {
+        Kinds = OfficeHiddenDataKind.Default | OfficeHiddenDataKind.HiddenContent,
+        TrackedChanges = OfficeTrackedChangesAction.AcceptAll,
+        AnonymousAuthor = "Reviewer"
+    });
 
-OfficeHiddenDataReport found = document.InspectHiddenData();
-Console.WriteLine($"Categories found: {found.Kinds}");
-
-OfficeHiddenDataReport removed = document.RemoveHiddenData(new OfficeHiddenDataOptions {
-    Kinds = OfficeHiddenDataKind.Default | OfficeHiddenDataKind.HiddenContent,
-    TrackedChanges = OfficeTrackedChangesAction.AcceptAll,
-    AnonymousAuthor = "Reviewer"
-});
-foreach (OfficeHiddenDataFinding finding in removed.Findings) {
+foreach (OfficeHiddenDataFinding finding in report.Findings) {
     Console.WriteLine($"{finding.Outcome} {finding.Kind} at {finding.Location}: {finding.Description}");
 }
-
-document.Save("Contract-shared.docx");
 ```
 
-Word reports properties, comments, tracked changes, reviewer names, hidden text, document variables, custom XML, revision save IDs (RSIDs), the attached template and image metadata. Comments and revisions that stay in the document keep an author, because Word requires one; `PersonalIdentities` replaces the name with `AnonymousAuthor` (`Author` by default). Bibliography sources and custom XML bound to content controls are kept.
+`OfficeDocument.RemoveHiddenData` in the `OfficeIMO` package picks the format from the file extension, writes the cleaned copy atomically and never changes the input. The output must keep the input's extension. To work in memory, pass the bytes and a file name instead; the result holds the report and the cleaned bytes:
 
-## Excel
+```csharp
+using OfficeIMO;
+
+byte[] original = File.ReadAllBytes("photo.jpg");
+OfficeHiddenDataResult result = OfficeDocument.RemoveHiddenData(original, "photo.jpg");
+File.WriteAllBytes("photo-shared.jpg", result.ToArray());
+Console.WriteLine($"Changed: {result.Report.Changed}, {result.Length} bytes");
+```
+
+`OfficeDocument.SupportsHiddenData(path)` tells you whether a file name has a supported extension. To only look, inspect:
+
+```csharp
+using OfficeIMO;
+
+OfficeDocumentInfo info = OfficeDocument.Inspect("Contract.docx", new OfficeInspectOptions { IncludeHiddenData = true });
+foreach (OfficeHiddenDataFinding finding in info.HiddenData!.Findings) {
+    Console.WriteLine($"{finding.Kind}: {finding.Description} {finding.Value}");
+}
+```
+
+## On a loaded document
+
+A document you already have open has the same two methods. Save it to keep the result.
 
 ```csharp
 using OfficeIMO;
@@ -47,37 +63,39 @@ foreach (OfficeHiddenDataFinding finding in report.GetFindings(OfficeHiddenDataK
 workbook.Save("Budget-shared.xlsx");
 ```
 
-Excel reports notes, threaded comments and their authors, hidden sheets, rows, columns and names, external links, pivot cache source paths, custom XML, image metadata and printer settings. Cached values from external workbooks are removed, but the links themselves are reported and kept, because formulas and refreshes need them. Power Query data is kept and reported with a note.
-
-Hidden sheets, rows and columns are removed only when you add `OfficeHiddenDataKind.HiddenContent`. Deleting them shifts or breaks formulas that refer to them, exactly as deleting them in Excel does.
-
-## PowerPoint
+`WordDocument`, `ExcelDocument`, `PowerPointDocument`, `VisioDocument`, `OdfDocument` and `EpubPublication` have `InspectHiddenData()` and `RemoveHiddenData(options)`. `PdfDocument`'s versions take a `CancellationToken`, and its `RemoveHiddenData` returns an `OfficeHiddenDataResult` with the rewritten bytes, because a PDF is cleaned in one verified rewrite:
 
 ```csharp
 using OfficeIMO;
-using OfficeIMO.PowerPoint;
+using OfficeIMO.Pdf;
 
-using var presentation = PowerPointDocument.Load("Pitch.pptx");
-
-OfficeHiddenDataReport report = presentation.RemoveHiddenData(new OfficeHiddenDataOptions {
-    Kinds = OfficeHiddenDataKind.Default & ~OfficeHiddenDataKind.SpeakerNotes
+using PdfDocument pdf = PdfDocument.Load("Report.pdf");
+OfficeHiddenDataResult result = pdf.RemoveHiddenData(new OfficeHiddenDataOptions {
+    Kinds = OfficeHiddenDataKind.Default | OfficeHiddenDataKind.Attachments
 });
-Console.WriteLine($"Changed: {report.Changed}");
-
-presentation.Save("Pitch-shared.pptx");
+File.WriteAllBytes("Report-shared.pdf", result.ToArray());
 ```
 
-PowerPoint reports properties, classic and modern comments, speaker notes, the thumbnail, custom XML and image metadata. Hidden slides, hidden shapes and shapes placed entirely off the slide are removed only with `OfficeHiddenDataKind.HiddenContent`. The example keeps speaker notes by taking them out of `Default`.
+## What each format reports
+
+- **Word:** properties, comments, tracked changes, reviewer names, hidden text, document variables, custom XML, revision save IDs (RSIDs), the attached template and picture metadata. Comments and revisions that stay keep an author, because Word requires one; `PersonalIdentities` replaces the name with `AnonymousAuthor` (`Author` by default). Bibliography sources and custom XML bound to content controls are kept.
+- **Excel:** notes, threaded comments and their authors, hidden sheets, rows, columns and names, external links, pivot cache source paths, custom XML, picture metadata and printer settings. Cached values from external workbooks are removed, but the links themselves are kept, because formulas and refreshes need them. Power Query data is kept and reported with a note. Deleting hidden sheets, rows and columns shifts or breaks formulas that refer to them, exactly as deleting them in Excel does.
+- **PowerPoint:** properties, classic and modern comments, speaker notes, the thumbnail, custom XML and picture metadata. Hidden slides, hidden shapes and shapes placed entirely off the slide count as hidden content.
+- **PDF:** document properties and XMP metadata, comments and markup, attachments, JavaScript and other actions, bookmarks, optional-content layers and Content Credentials. Signed PDFs are refused.
+- **Images:** Exif, GPS, XMP and IPTC metadata, Content Credentials and AI source labels. Pixels are not re-encoded.
+- **Visio, OpenDocument and EPUB:** properties, comments, pictures and their metadata, and provenance, as far as each format carries them.
+
+The [hidden data support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.hidden-data-support-matrix.md) lists exactly what each category covers in each format.
 
 ## Choose categories
 
-`OfficeHiddenDataOptions.Kinds` is a flags value. `Default` selects every category that leaves visible content alone; `All` adds tracked changes, hidden content and provenance.
+`OfficeHiddenDataOptions.Kinds` is a flags value. `Default` selects every category that leaves visible content alone; `All` adds the rest.
 
 | Category | In `Default` | Covers |
 | --- | --- | --- |
 | `DocumentProperties` | Yes | Author, last modified by, last printed, revision number, company, manager, template, editing time |
 | `CustomProperties` | Yes | Custom document properties |
-| `Comments` | Yes | Comments, replies, notes and threaded comments |
+| `Comments` | Yes | Comments, replies, notes, threaded comments and PDF markup |
 | `PersonalIdentities` | Yes | People parts, and authors on retained comments and revisions |
 | `SpeakerNotes` | Yes | PowerPoint notes slides |
 | `Thumbnail` | Yes | The package preview picture |
@@ -87,45 +105,51 @@ PowerPoint reports properties, classic and modern comments, speaker notes, the t
 | `ExternalReferences` | Yes | Attached templates and cached external values; links that content depends on are kept |
 | `DocumentVariables` | Yes | Word document variables |
 | `RevisionIdentifiers` | Yes | Word RSIDs |
+| `ActiveContent` | Yes | Scripts and actions that run or open something, such as PDF JavaScript |
 | `TrackedChanges` | No | Reported; changed only through `TrackedChanges` |
-| `HiddenContent` | No | Hidden text, sheets, rows, columns, names, slides and shapes |
+| `HiddenContent` | No | Hidden text, sheets, rows, columns, names, slides, shapes and PDF layers |
+| `Attachments` | No | Files embedded in the document |
+| `Bookmarks` | No | PDF bookmarks, whose titles can show draft headings |
 | `Provenance` | No | Content Credentials and AI source labels; see [provenance](/docs/before-sharing/provenance/) |
-
-The [hidden data support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.hidden-data-support-matrix.md) lists exactly what each category covers in Word, Excel and PowerPoint.
 
 ## Pictures and provenance
 
-Image metadata cleanup and provenance overlap: an AI-generated picture often says so in its XMP metadata, and Content Credentials are bound to the exact bytes of the image. While `Provenance` is not selected, `ImageMetadata` reduces a picture's XMP to its digital source type declaration instead of deleting it, and leaves pictures that carry Content Credentials untouched, reported as `Retained`. Add `OfficeHiddenDataKind.Provenance` to remove those records too.
+Picture metadata cleanup and provenance overlap: an AI-generated picture often says so in its XMP metadata, and Content Credentials are bound to the exact bytes of the image. While `Provenance` is not selected, `ImageMetadata` keeps a picture's digital source type declaration and removes the rest, and leaves pictures that carry Content Credentials untouched. Those findings say so through `Reason`. Add `OfficeHiddenDataKind.Provenance` to remove the records too, and use `options.Provenance` to choose which kinds of record go.
+
+A picture stored in a package that nothing in the document shows is reported with `Reason` `UnusedImage`; cleaning removes the whole picture.
 
 ## Read the report
 
 ```csharp
 using OfficeIMO;
-using OfficeIMO.Word;
 
-using var document = WordDocument.Load("Contract.docx");
-OfficeHiddenDataReport report = document.RemoveHiddenData();
+OfficeHiddenDataReport report = OfficeDocument.RemoveHiddenData("Contract.docx", "Contract-shared.docx");
 
 foreach (OfficeHiddenDataFinding finding in report.Findings.Where(f => f.Outcome == OfficeHiddenDataOutcome.Retained)) {
-    Console.WriteLine($"Kept {finding.Kind} at {finding.Location}: {finding.Note}");
+    Console.WriteLine($"Kept {finding.Kind} at {finding.Location} ({finding.Reason}): {finding.Note}");
 }
 ```
 
 | Property | Meaning |
 | --- | --- |
 | `Kind` | The category |
-| `Location` | Package part, sheet cell, slide or document story |
+| `Outcome` | `Found`, `Removed`, `Anonymized`, `Accepted`, `Rejected` or `Retained` |
+| `Location` | Package part, sheet cell, slide, page or document story |
 | `Description` | What was found |
 | `Value` | A short preview, such as an author name or path |
-| `Outcome` | `Found`, `Removed`, `Anonymized`, `Accepted`, `Rejected` or `Retained` |
-| `Note` | Why a finding was retained, or other detail about the outcome |
+| `Scope` | `Document`, `EmbeddedImage` for a picture inside it, or `Package` for the file as a whole |
+| `Part` | The package part or entry the finding belongs to, such as `/word/media/image1.png` |
+| `Reason` | Why the finding ended as it did, such as `NotSelected`, `NeededByDocument` or `ProtectsContentCredentials` |
+| `Note` | The same reason as a sentence |
 | `Provenance` | For provenance findings, the same evidence the provenance inspector returns |
 
-`HasHiddenData` tells you whether anything was found, `Kinds` which categories were found, and `Changed` whether removal changed the document.
+`HasHiddenData` tells you whether anything was found, `Kinds` which categories were found, `Changed` whether removal changed the document, and `Format` which format reported it. Match on `Reason` rather than the `Note` text when your code needs to act on why something stayed.
+
+To save the report as JSON, `OfficeHiddenDataReportSerializer.Serialize(report, sourceName, outputName)` in `OfficeIMO.Workflows` writes the `officeimo.hidden-data.result.v1` schema that the command line, the MCP tools and the browser tool also use.
 
 ## Signed documents
 
-Removing hidden data changes the package, which breaks a digital signature. Saving a signed document is blocked by default in Word, Excel and PowerPoint. Clean the document first and sign it afterwards.
+Removing hidden data changes the file, which breaks a digital signature. Saving a signed Word, Excel or PowerPoint document is blocked by default. Clean the document first and sign it afterwards. To clean a signed package anyway, pass `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures` to `OfficeDocument.RemoveHiddenData`, or set `SignatureMutationPolicy` on `WordSaveOptions`, `ExcelSaveOptions` or `PowerPointSaveOptions`; the signatures the change would break are removed. Signed PDFs are always refused.
 
 ## Command line
 
@@ -138,9 +162,19 @@ officeimo hidden-data remove .\proposal.docx
 
 # Also remove origin records and accept tracked changes, into a named file
 officeimo hidden-data remove .\proposal.docx --output .\shared.docx --force --kinds default,provenance --tracked-changes accept
+
+# Drop only the AI label and keep the Content Credentials
+officeimo hidden-data remove .\poster.pdf --kinds default,provenance --keep-provenance c2pa
 ```
 
-`remove` never changes the input. It writes `<name>.cleaned<ext>` unless you pass `--output`, and refuses to replace an existing file without `--force`. `--kinds` takes `default`, `all` or category names such as `hidden-content`, `image-metadata` and `provenance`; `--anonymous-author` sets the replacement name. Output is JSON in the `officeimo.hidden-data.result.v1` schema, one entry per finding with its outcome; `--format text` prints a readable list instead. Signed documents are refused.
+`remove` never changes the input. It writes `<name>.cleaned<ext>` unless you pass `--output`, and refuses to replace an existing file without `--force`. `--kinds` takes `default`, `all` or category names such as `hidden-content`, `image-metadata`, `attachments`, `active-content`, `bookmarks` and `provenance`. `--keep-provenance` keeps some kinds of record when `provenance` is selected: `c2pa`, `external` or `ai-source`. `--anonymous-author` sets the replacement name, and `--remove-invalidated-signatures` allows cleaning a signed package. Output is JSON in the `officeimo.hidden-data.result.v1` schema, one entry per finding with its outcome; `--format text` prints a readable list instead.
+
+## For AI agents
+
+The [OfficeIMO MCP server](/agents/) has the same two operations:
+
+- `officeimo_inspect_hidden_data` reports what would leave with a file and changes nothing.
+- `officeimo_remove_hidden_data` writes a cleaned copy to `outputPath`. It takes `kinds`, `trackedChanges` (`keep`, `accept` or `reject`), `keepProvenance`, `anonymousAuthor`, `removeInvalidatedSignatures` and `overwrite`, with the same meanings as the command-line options.
 
 ## In the browser
 

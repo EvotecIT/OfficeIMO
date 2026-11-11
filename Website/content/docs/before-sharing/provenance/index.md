@@ -28,7 +28,7 @@ foreach (OfficeProvenanceEvidence evidence in provenance.Evidence) {
 Console.WriteLine($"Generative AI declared: {provenance.HasGenerativeAiDeclaration}");
 ```
 
-`OfficeDocument.Inspect` comes with the `OfficeIMO` package and covers Word, Excel and PowerPoint files. `VisioDocument.InspectProvenance`, `OdfDocument.InspectProvenance` and `EpubDocument.InspectProvenance` inspect Visio, OpenDocument and EPUB files.
+`OfficeDocument.Inspect` comes with the `OfficeIMO` package and covers Word, Excel, PowerPoint, Visio, OpenDocument, EPUB and PDF files.
 
 `Manifest` summarises what a Content Credentials record claims: the app that wrote it, its steps, the AI model named for a step, its ingredients and the certificate subject. These are the record's own statements. Inspection checks the structure; it does not verify the signature or the signer. Use `OfficeIMO.Provenance.C2pa` with a `c2patool` you trust for verification.
 
@@ -61,29 +61,32 @@ Only AI-specific source labels are removed by `RemoveAiSourceMetadata`; a label 
 
 ## With hidden data
 
-`RemoveHiddenData` reports provenance as `OfficeHiddenDataKind.Provenance` findings and keeps them unless you select that kind:
+`RemoveHiddenData` reports provenance as `OfficeHiddenDataKind.Provenance` findings and keeps them unless you select that kind. `options.Provenance` chooses which kinds of record go; this example removes the AI label and keeps the Content Credentials:
 
 ```csharp
 using OfficeIMO;
-using OfficeIMO.Word;
 
-using var document = WordDocument.Load("Report.docx");
-OfficeHiddenDataReport report = document.RemoveHiddenData(new OfficeHiddenDataOptions {
+var options = new OfficeHiddenDataOptions {
     Kinds = OfficeHiddenDataKind.Default | OfficeHiddenDataKind.Provenance
-});
+};
+options.Provenance.RemoveC2paManifests = false;
+options.Provenance.RemoveExternalC2paReferences = false;
+options.Provenance.RemoveAiSourceMetadata = true;
+
+OfficeHiddenDataReport report = OfficeDocument.RemoveHiddenData("Report.docx", "Report-shared.docx", options);
 foreach (OfficeHiddenDataFinding finding in report.GetFindings(OfficeHiddenDataKind.Provenance)) {
-    Console.WriteLine($"{finding.Outcome}: {finding.Description} {finding.Note}");
+    Console.WriteLine($"{finding.Outcome} in {finding.Part ?? "the file"} ({finding.Reason}): {finding.Description}");
 }
-document.Save("Report-shared.docx");
 ```
 
 | You want to | Use |
 | --- | --- |
 | Remove personal data and keep origin records | `RemoveHiddenData()` |
 | Remove personal data and origin records | `RemoveHiddenData` with `Default | Provenance` |
+| Remove personal data and only some origin records | `Default | Provenance` and the `Provenance` options |
 | Remove origin records and change nothing else | `RemoveProvenance(input, output)` |
 
-While provenance is kept, picture metadata cleanup keeps each picture's digital source type and leaves pictures with Content Credentials untouched, because changing their bytes would invalidate the credential. Content Credentials for the whole package are the exception: they cover every byte, so `RemoveHiddenData` always removes them and says so in the finding's `Note`. If you need them intact, don't change the document.
+Each provenance finding says where it sits: `Scope` is `EmbeddedImage` for a picture inside the document, with the picture's path in `Part`, or `Package` for a record that covers the whole file. While provenance is kept, picture metadata cleanup keeps each picture's digital source type and leaves pictures with Content Credentials untouched, because changing their bytes would invalidate the credential; those findings carry `Reason` `SourceTypeKept` or `ProtectsContentCredentials`. Content Credentials for the whole package are the exception: they cover every byte, so `RemoveHiddenData` always removes them, with `Reason` `WholeFileCredentialsCannotSurvive`. The same holds for Content Credentials embedded in a PDF. If you need them intact, don't change the document.
 
 ## Command line
 
@@ -94,7 +97,7 @@ officeimo provenance batch remove .\one.docx .\two.pdf --output-directory .\clea
 officeimo provenance audit .\documents --format sarif > provenance.sarif
 ```
 
-The commands cover the same formats as the libraries plus images, PDF, HTML and Markdown. Results use the `officeimo.provenance.result.v2` schema, shared with Studio and the browser tool. The [command guide](https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Tool#provenance-workflows) lists every option, including verification with `c2patool`.
+The commands cover the same formats as the libraries plus images, PDF, HTML and Markdown. Results use the `officeimo.provenance.result.v2` schema, shared with Studio. The [command guide](https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Tool#provenance-workflows) lists every option, including verification with `c2patool`.
 
 ## In the browser
 
@@ -106,7 +109,7 @@ The commands cover the same formats as the libraries plus images, PDF, HTML and 
 - **Based on:** other files the record lists as ingredients.
 - **Certificate subject:** the organization named in the signing certificate, and who issued it.
 
-These are the record's own statements. The tool reads the certificate names but does not verify the signature, so it cannot tell whether the record was changed after it was written. Origin records are unticked by default. For an image or PDF you can choose embedded Content Credentials, links to external credentials and AI labels separately; in an Office file they are one choice, because they are one category of the hidden-data report.
+These are the record's own statements. The tool reads the certificate names but does not verify the signature, so it cannot tell whether the record was changed after it was written. Origin records are unticked by default, and Content Credentials, links to external credentials and AI labels are separate choices, so you can keep a credential and drop an AI label. Labels that say content was captured by a camera are shown but never removed.
 
 Removing a record does not remove a visible or invisible watermark in the content itself; when a record says one was added, the result says so. The tool does not fetch external credentials, prove that a file is authentic, or decide whether a person or an AI made it. A file with no records found is just that; the absence is not proof of origin.
 
