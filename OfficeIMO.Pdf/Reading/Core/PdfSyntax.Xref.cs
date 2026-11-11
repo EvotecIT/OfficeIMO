@@ -428,7 +428,10 @@ internal static partial class PdfSyntax {
         cancellationToken.ThrowIfCancellationRequested();
         SortXrefStreams(xrefStreams, cancellationToken);
         var activeChainOffsets = GetXrefStreamChainOffsets(xrefStreams, activeXrefOffset, cancellationToken);
-        var activeEntries = new Dictionary<int, XrefStreamEntry>();
+        int entryCapacity = 0;
+        foreach (var xrefStream in xrefStreams) entryCapacity = Math.Max(entryCapacity, GetXrefEntryCapacity(xrefStream.Stream.Dictionary, limits, maximumRows: UndecodedXrefPresizeLimit));
+        // Dictionary enumeration follows insertion and removal order, never capacity, so presizing keeps entry order.
+        var activeEntries = new Dictionary<int, XrefStreamEntry>(entryCapacity);
         var classicTables = activeChainOffsets.Count == 0
             ? GetClassicXrefTableChain(text, activeXrefOffset, cancellationToken)
             : GetClassicPredecessorTablesForXrefStreamChain(text, xrefStreams, activeXrefOffset, cancellationToken);
@@ -545,7 +548,8 @@ internal static partial class PdfSyntax {
         Action reportIncompleteXref,
         System.Threading.CancellationToken cancellationToken) {
         byte[] data = decodedStreamBudget.Decode(xrefStream, map, int.MaxValue, cancellationToken);
-        var entries = ReadXrefStreamEntries(xrefStream.Dictionary, data, reportIncompleteXref, cancellationToken).ToList();
+        var entries = new List<XrefStreamEntry>(GetXrefEntryCapacity(xrefStream.Dictionary, limits, GetXrefRowCount(xrefStream.Dictionary, data.Length)));
+        entries.AddRange(ReadXrefStreamEntries(xrefStream.Dictionary, data, reportIncompleteXref, cancellationToken));
         var parsedObjectsByOffset = new Dictionary<int, PdfIndirectObject?>();
         foreach (var entry in entries) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -834,12 +838,13 @@ internal static partial class PdfSyntax {
             return false;
         }
 
-        var slice = PdfEncoding.Latin1GetStringCancellable(data, start, end - start, cancellationToken);
         var parsedObject = ParseTopLevelObject(
-            slice,
+            data,
+            start,
+            end - start,
             limits,
             trackEncodedStringSourceSpans: false,
-            cancellationToken: cancellationToken);
+            cancellationToken);
         if (parsedObject is null) {
             return false;
         }
@@ -864,6 +869,27 @@ internal static partial class PdfSyntax {
 
         internal void Add(PdfStream stream, byte[] data, int objectCount, int firstObjectOffset, List<(int Obj, int Off)> pairs) =>
             _headers[stream] = (data, objectCount, firstObjectOffset, pairs);
+    }
+
+    // A declared /Size sizes entry collections up front; hostile values fall back to growth.
+    // Presizing before the stream is decoded is capped so a declared /Size cannot force a large allocation.
+    private const int UndecodedXrefPresizeLimit = 4096;
+
+    private static int GetXrefEntryCapacity(PdfDictionary dictionary, PdfReadLimits limits, int maximumRows) {
+        const int MaximumPresizedEntries = 1 << 20;
+        double size = dictionary.Get<PdfNumber>("Size")?.Value ?? 0D;
+        if (!(size > 0D && size <= Math.Min(limits.MaxIndirectObjects, MaximumPresizedEntries))) return 0;
+        return Math.Min((int)size, Math.Max(0, maximumRows));
+    }
+
+    private static int GetXrefRowCount(PdfDictionary dictionary, int decodedLength) {
+        if (dictionary.Get<PdfArray>("W") is not { } widths) return 0;
+        long rowWidth = 0;
+        foreach (var item in widths.Items) {
+            if (item is not PdfNumber width || width.Value < 0 || width.Value > 8) return 0;
+            rowWidth += (long)width.Value;
+        }
+        return rowWidth <= 0 ? 0 : (int)Math.Min(int.MaxValue, decodedLength / rowWidth);
     }
 
     private readonly struct XrefStreamEntry {

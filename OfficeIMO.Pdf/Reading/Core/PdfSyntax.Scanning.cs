@@ -490,7 +490,7 @@ internal static partial class PdfSyntax {
                 continue;
             }
 
-            PooledTokenBuffer tokens;
+            PooledTokenBuffer<PdfStringContentText> tokens;
             try {
                 tokens = Tokenize(text, bodyStart, bodyLength, cancellationToken: cancellationToken);
             } catch (Exception exception) when (exception is not OutOfMemoryException and not OperationCanceledException) {

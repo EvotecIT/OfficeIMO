@@ -6,7 +6,11 @@ internal static class PdfStringParser {
         ParseLiteralToBytes(inner, 0, inner.Length);
 
     internal static byte[] ParseLiteralToBytes(string source, int start, int length,
-        System.Threading.CancellationToken cancellationToken = default) {
+        System.Threading.CancellationToken cancellationToken = default) =>
+        ParseLiteralToBytes(new PdfStringContentText(source), start, length, cancellationToken);
+
+    internal static byte[] ParseLiteralToBytes<TText>(TText source, int start, int length,
+        System.Threading.CancellationToken cancellationToken) where TText : struct, IPdfContentText {
         cancellationToken.ThrowIfCancellationRequested();
         if (length == 0) return Array.Empty<byte>();
         if (start < 0 || length < 0 || start > source.Length - length) throw new ArgumentOutOfRangeException(nameof(start));

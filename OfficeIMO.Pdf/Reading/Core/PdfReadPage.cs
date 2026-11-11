@@ -227,8 +227,8 @@ public sealed partial class PdfReadPage {
         bool recoverDecodableText = false) {
         if (_includeArtifactText) return 0;
         var pageContentBudget = new PageContentBudget(this, cancellationToken);
-        string content = GetContentStreamSequence(pageContentBudget).Content;
-        if (content.IndexOf("/Artifact", StringComparison.Ordinal) < 0) return 0;
+        PdfContentSource content = GetContentStreamSequence(pageContentBudget).Source;
+        if (content.IndexOf("/Artifact") < 0) return 0;
         // These passes count spans only. Inspection already recorded failures on its logical pass.
         Action<PdfUnsupportedTextMappingException, int?>? ignoreUnmappableText = recoverDecodableText ? static (_, _) => { } : null;
         int withArtifacts = GetTextSpans(includeArtifactText: true, cancellationToken,
@@ -262,7 +262,7 @@ public sealed partial class PdfReadPage {
         var pageContentBudget = new PageContentBudget(this, cancellationToken);
 
         PageContentStreamSequence contentSequence = GetContentStreamSequence(pageContentBudget);
-        string content = contentSequence.Content;
+        PdfContentSource content = contentSequence.Source;
         if (content.Length > 0) {
             CollectTextAndForms(
                 content,
@@ -903,7 +903,7 @@ public sealed partial class PdfReadPage {
     }
 
     private void CollectTextAndForms(
-        string content,
+        PdfContentSource content,
         PdfDictionary? resources,
         Dictionary<string, Func<byte[], int, string>> decoders,
         Dictionary<string, Func<byte[], double>> widthProviders,
@@ -1049,7 +1049,7 @@ public sealed partial class PdfReadPage {
             GetGraphicsStateResources(resources, pageContentBudget, decoders, widthProviders, fonts);
         // A missing Do token rules out forms. Otherwise the form-invocation state machine shares
         // the text pass's tokenizer instead of scanning the content a second time.
-        TextContentParser.FormInvocationCollector? formInvocations = content.IndexOf("Do", StringComparison.Ordinal) < 0
+        TextContentParser.FormInvocationCollector? formInvocations = content.IndexOf("Do") < 0
             ? null
             : TextContentParser.CreateFormInvocationCollector(
                 includeHiddenOptionalContent ? null : optionalContentVisibility,
@@ -2356,7 +2356,7 @@ public sealed partial class PdfReadPage {
             PageContentStreamEntry entry = streams[0];
             byte[] decoded = pageContentBudget.Decode(entry.Stream);
             decodedStreams[0] = new KeyValuePair<PdfStream, byte[]>(entry.Stream, decoded);
-            sequence = new PageContentStreamSequence(PdfEncoding.Latin1GetString(decoded),
+            sequence = new PageContentStreamSequence(decoded,
                 new[] { new PageContentStreamOffset(0, entry.ObjectNumber) }, decodedStreams);
         } else {
             var entries = new PageContentStreamOffset[streams.Count];
@@ -2374,7 +2374,7 @@ public sealed partial class PdfReadPage {
                 offset = checked(offset + decoded.Length);
             }
             sequence = new PageContentStreamSequence(
-                PdfEncoding.Latin1JoinSegments(segments, PdfContentStreamSequenceDecoder.Separator), entries, decodedStreams);
+                PdfEncoding.JoinSegments(segments, (byte)PdfContentStreamSequenceDecoder.Separator), entries, decodedStreams);
         }
 
         if (freshBudget) OfferReusableContentSequence(sequence);
@@ -2487,14 +2487,23 @@ public sealed partial class PdfReadPage {
     private sealed class PageContentStreamSequence {
         private readonly PageContentStreamOffset[] _offsets;
 
-        internal PageContentStreamSequence(string content, PageContentStreamOffset[] offsets,
+        private readonly byte[] _contentBytes;
+        private string? _content;
+
+        internal PageContentStreamSequence(byte[] contentBytes, PageContentStreamOffset[] offsets,
             KeyValuePair<PdfStream, byte[]>[] decodedStreams) {
-            Content = content;
+            _contentBytes = contentBytes;
             _offsets = offsets;
             DecodedStreams = decodedStreams;
         }
 
-        internal string Content { get; }
+        /// <summary>The decoded content bytes, read by the tokenizer without a string copy.</summary>
+        internal PdfContentSource Source => PdfContentSource.FromBytes(_contentBytes);
+
+        /// <summary>The same content as a Latin-1 string, built once for passes that still read strings.</summary>
+        internal string Content => Volatile.Read(ref _content) ??
+            Interlocked.CompareExchange(ref _content, PdfEncoding.Latin1GetString(_contentBytes), null) ??
+            _content!;
 
         /// <summary>The page streams in processing order with their decoded bytes.</summary>
         internal KeyValuePair<PdfStream, byte[]>[] DecodedStreams { get; }

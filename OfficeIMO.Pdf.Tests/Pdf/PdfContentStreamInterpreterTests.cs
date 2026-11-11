@@ -7,10 +7,10 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PdfContentStreamInterpreterTests {
     [Fact]
     public void Interpreter_ReusableOperandsKeepInvalidAndFollowingOperationsIsolated() {
-        var buffer = new List<object>();
+        var buffer = new PdfContentOperands();
         var observed = new List<(string Name, object[] Operands)>();
         PdfContentStreamInterpreter.Interpret("1 2 m 1e309 Q 3 4 l q", 10, operation => {
-            observed.Add((operation.Name, buffer.ToArray()));
+            observed.Add((operation.Name, buffer.ToObjectArray()));
             // Existing synchronous visitors may clear their operands after consuming them.
             buffer.Clear();
         }, operandBuffer: buffer);
@@ -25,10 +25,41 @@ public sealed class PdfContentStreamInterpreterTests {
 
     [Fact]
     public void Interpreter_ReleasesBorrowedOperandReferencesWhenVisitorFails() {
-        var buffer = new List<object>();
+        var buffer = new PdfContentOperands();
         Assert.Throws<OperationCanceledException>(() => PdfContentStreamInterpreter.Interpret(
             "(sensitive text) Tj", 10, operation => throw new OperationCanceledException(), operandBuffer: buffer));
         Assert.Empty(buffer);
+    }
+
+    [Fact]
+    public void Interpreter_ReadsDecodedBytesLikeTheirLatin1String() {
+        const string content = "/P <</MCID 3>> BDC [(A\\050b) -120 <41 42>] TJ 1.5 -.25 Td (\xe9) Tj EMC BI /W 1 /H 1 /CS /G /BPC 8 ID \xff EI";
+        static List<string> Read(PdfContentSource source, bool borrowed) {
+            var operations = new List<string>();
+            PdfContentOperands? buffer = borrowed ? new PdfContentOperands() : null;
+            PdfContentStreamInterpreter.Interpret(source, 100, operation => {
+                var text = new System.Text.StringBuilder(operation.Name).Append(':').Append(operation.OperatorOffset);
+                foreach (object operand in operation.Operands) Append(text.Append(' '), operand);
+                if (operation.InlineImage is PdfContentInlineImage image) text.Append(" image ").Append(image.Data.Length);
+                operations.Add(text.ToString());
+            }, operandBuffer: buffer);
+            return operations;
+        }
+        static void Append(System.Text.StringBuilder text, object operand) {
+            switch (operand) {
+                case byte[] bytes: text.Append("bytes(").Append(Convert.ToBase64String(bytes)).Append(')'); break;
+                case double number: text.Append("n(").Append(number.ToString("R", System.Globalization.CultureInfo.InvariantCulture)).Append(')'); break;
+                case double[] numbers: text.Append("numbers(").Append(string.Join(",", numbers)).Append(')'); break;
+                case PdfContentDictionary dictionary: text.Append("dict(").Append(string.Join(",", dictionary.Items.Keys)).Append(')'); break;
+                case IEnumerable<object> items: text.Append('['); foreach (object item in items) Append(text.Append(' '), item); text.Append(']'); break;
+                default: text.Append(operand); break;
+            }
+        }
+
+        List<string> expected = Read(content, borrowed: false);
+        byte[] bytes = PdfEncoding.Latin1GetBytes(content);
+        Assert.Equal(expected, Read(PdfContentSource.FromBytes(bytes), borrowed: false));
+        Assert.Equal(expected, Read(PdfContentSource.FromBytes(bytes), borrowed: true));
     }
 
     [Fact]

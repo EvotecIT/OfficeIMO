@@ -155,6 +155,51 @@ internal static partial class TextContentParser {
 
         public string DecodeActualText(TextOutputBudget budget) =>
             _actualText?.Decode(budget) ?? string.Empty;
+
+        // Replacement layout and drawing evidence is tracked only by scopes that use it; most
+        // marked content (MCID and artifact scopes) never touches it, so it lives in a side object.
+        private ActualTextLayoutState? _layout;
+        private ActualTextLayoutState L => _layout ??= new ActualTextLayoutState();
+
+        private sealed class ActualTextLayoutState {
+            internal List<PdfTextSpan>? _invisibleAnchorOwner;
+            internal int _invisibleAnchorIndex;
+            internal List<PdfTextSpan>? _logicalLayoutOwner;
+            internal int _logicalLayoutIndex;
+            internal string? _logicalLayoutText;
+            internal int _logicalPaintCharacters;
+            internal bool _logicalPaintRejected;
+            internal bool _hasLogicalPaint;
+            internal string? _logicalPaintFont;
+            internal double _logicalPaintSize;
+            internal int? _logicalPaintStream;
+            internal Matrix2D _logicalPaintTransform;
+            internal PdfPageClipPath? _logicalPaintClip;
+            internal double _logicalPaintX, _logicalPaintY, _logicalPaintAlongX, _logicalPaintAlongY;
+            internal double _logicalPaintLastOrigin, _logicalPaintExtent;
+
+            internal List<PdfTextSpan>? _logicalBaselineOwner;
+            internal int _logicalBaselineIndex;
+            internal bool _logicalBaselineRejected, _logicalBaselineStarted, _logicalBaselineHasBase;
+            internal int? _logicalBaselineStream;
+            internal string? _logicalBaselineFont;
+            internal double _logicalBaselineSize, _logicalBaselineX, _logicalBaselineY;
+            internal double _logicalBaselineAlongX, _logicalBaselineAlongY;
+            internal double _logicalBaselineBaseNormal, _logicalBaselineLastBaseOrigin;
+            internal Matrix2D _logicalBaselineTransform;
+            internal PdfPageClipPath? _logicalBaselineClip;
+
+            internal string? _decodedActualText;
+            internal bool _actualTextCharged;
+            internal PdfContentOrderKey? _drawingStart;
+            internal MarkedContentState? _drawingParent;
+            internal bool _drawingHidden;
+            internal bool _hasDrawingPaint;
+            internal bool _hasDrawingAnchor;
+            internal bool HasVisibleDrawingText;
+            internal double DrawingAnchorX;
+            internal double DrawingAnchorY;
+        }
     }
 
     internal sealed class TextOutputBudget {
@@ -223,7 +268,7 @@ internal static partial class TextContentParser {
     internal sealed class FormInvocationCollector {
         private readonly Action<PdfContentOperation> _visit;
 
-        internal FormInvocationCollector(List<FormInvocation> invocations, List<object> operands, Action<PdfContentOperation> visit) {
+        internal FormInvocationCollector(List<FormInvocation> invocations, PdfContentOperands operands, Action<PdfContentOperation> visit) {
             Invocations = invocations;
             Operands = operands;
             _visit = visit;
@@ -232,7 +277,7 @@ internal static partial class TextContentParser {
         internal List<FormInvocation> Invocations { get; }
 
         /// <summary>Operand buffer the state machine reads; a tokenizer may lend it directly.</summary>
-        internal List<object> Operands { get; }
+        internal PdfContentOperands Operands { get; }
 
         /// <summary>Visits an operation whose operands are already in <see cref="Operands"/>.</summary>
         internal void VisitBorrowed(PdfContentOperation operation) => _visit(operation);
@@ -240,7 +285,7 @@ internal static partial class TextContentParser {
         /// <summary>Visits an operation from another visitor's pass, copying its operands first.</summary>
         internal void Visit(PdfContentOperation operation) {
             Operands.Clear();
-            for (int index = 0; index < operation.Operands.Count; index++) Operands.Add(operation.Operands[index]);
+            Operands.AddRange(operation.Operands);
             try {
                 _visit(new PdfContentOperation(operation.Name, Operands, operation.OperatorOffset,
                     operation.InlineImage, operation.HasInvalidOperands));
@@ -326,7 +371,7 @@ internal static partial class TextContentParser {
     }
 
     public static List<PdfTextSpan> Parse(
-        string content,
+        PdfContentSource content,
         System.Func<string, byte[], string> decodeWithFont,
         System.Func<string, byte[], double> sumWidth1000ForFont,
         bool adjustKerningFromTJ = true,
@@ -482,7 +527,8 @@ internal static partial class TextContentParser {
         // Graphics state (CTM) and stack
         Matrix2D ctm = Matrix2D.Identity; var gstack = new System.Collections.Generic.Stack<TextGraphicsState>();
         // Operand buffer for the current operator.
-        var args = new List<object>(8);
+        var args = new PdfContentOperands();
+        PdfContentOperands? numericTextArray = null;
         // Kerning state between text runs in TJ arrays (points) and rolling output buffer for gap checks
         double pendingGapPt = 0;
         int pendingLineBreaks = 0;
@@ -537,17 +583,17 @@ internal static partial class TextContentParser {
             switch (op) {
                 case "BT": ApplyPendingTextClippingPath(); inText = true; textMatrix = Matrix2D.Identity; lineMatrix = Matrix2D.Identity; unknownTextPosition = null; pendingGapPt = 0; pendingLineBreaks = 0; emittedTextInTextObject = false; args.Clear(); break;
                 case "ET": ApplyPendingTextClippingPath(); QueueCurrentTextObjectPersistentState(); inText = false; pendingGapPt = 0; pendingLineBreaks = 0; emittedTextInTextObject = false; args.Clear(); break;
-                case "Tf": if (args.Count >= 2) { size = ToDouble(args[args.Count - 1]); font = ToName(args[args.Count - 2]); args.Clear(); } break;
+                case "Tf": if (args.Count >= 2) { size = args.NumberOrZero(args.Count - 1); font = ToName(args[args.Count - 2]); args.Clear(); } break;
                 case "Tm": if (args.Count >= 6) { SetTextMatrix(args); args.Clear(); } break;
-                case "Td": if (args.Count >= 2) { MoveTextLine(ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1])); args.Clear(); } break;
-                case "TD": if (args.Count >= 2) { double tx = ToDouble(args[args.Count - 2]); double ty = ToDouble(args[args.Count - 1]); leading = -ty; MoveTextLine(tx, ty); args.Clear(); } break;
-                case "TL": if (args.Count >= 1) { leading = ToDouble(args[args.Count - 1]); args.Clear(); } break;
+                case "Td": if (args.Count >= 2) { MoveTextLine(args.NumberOrZero(args.Count - 2), args.NumberOrZero(args.Count - 1)); args.Clear(); } break;
+                case "TD": if (args.Count >= 2) { double tx = args.NumberOrZero(args.Count - 2); double ty = args.NumberOrZero(args.Count - 1); leading = -ty; MoveTextLine(tx, ty); args.Clear(); } break;
+                case "TL": if (args.Count >= 1) { leading = args.NumberOrZero(args.Count - 1); args.Clear(); } break;
                 case "T*": MoveToNextTextLine(); args.Clear(); break;
-                case "Tc": if (args.Count >= 1) { charSpacing = ToDouble(args[args.Count - 1]); args.Clear(); } break;
-                case "Tw": if (args.Count >= 1) { wordSpacing = ToDouble(args[args.Count - 1]); args.Clear(); } break;
-                case "Tz": if (args.Count >= 1) { hScale = ToDouble(args[args.Count - 1]) / 100.0; args.Clear(); } break;
-                case "Ts": if (args.Count >= 1) { textRise = ToDouble(args[args.Count - 1]); args.Clear(); } break;
-                case "Tr": if (args.Count >= 1) { textRenderingMode = ReadTextRenderingMode(ToDouble(args[args.Count - 1])); args.Clear(); } break;
+                case "Tc": if (args.Count >= 1) { charSpacing = args.NumberOrZero(args.Count - 1); args.Clear(); } break;
+                case "Tw": if (args.Count >= 1) { wordSpacing = args.NumberOrZero(args.Count - 1); args.Clear(); } break;
+                case "Tz": if (args.Count >= 1) { hScale = args.NumberOrZero(args.Count - 1) / 100.0; args.Clear(); } break;
+                case "Ts": if (args.Count >= 1) { textRise = args.NumberOrZero(args.Count - 1); args.Clear(); } break;
+                case "Tr": if (args.Count >= 1) { textRenderingMode = ReadTextRenderingMode(args.NumberOrZero(args.Count - 1)); args.Clear(); } break;
                 case "q":
                     gstack.Push(new TextGraphicsState(ctm, font, size, leading, charSpacing, wordSpacing, hScale, textRise, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, blendMode, hasSoftMask, hasUnsupportedEffect, fillColorResolved, renderingIntent, fillColorSelection, strokeColorSelection, strokeWidth, strokeLineCap, strokeLineJoin, miterLimit, strokeDashIdentity, strokeColorResolved));
                     args.Clear();
@@ -610,34 +656,34 @@ internal static partial class TextContentParser {
                     }
                     args.Clear();
                     break;
-                case "cm": if (args.Count >= 6) { var m2 = new Matrix2D(ToDouble(args[args.Count - 6]), ToDouble(args[args.Count - 5]), ToDouble(args[args.Count - 4]), ToDouble(args[args.Count - 3]), ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1])); ctm = Matrix2D.Multiply(ctm, m2); args.Clear(); } break;
-                case "w": if (args.Count >= 1) strokeWidth = ToDouble(args[args.Count - 1]); args.Clear(); break;
-                case "J": if (args.Count >= 1) strokeLineCap = (int)ToDouble(args[args.Count - 1]); args.Clear(); break;
-                case "j": if (args.Count >= 1) strokeLineJoin = (int)ToDouble(args[args.Count - 1]); args.Clear(); break;
-                case "M": if (args.Count >= 1) miterLimit = ToDouble(args[args.Count - 1]); args.Clear(); break;
+                case "cm": if (args.Count >= 6) { var m2 = new Matrix2D(args.NumberOrZero(args.Count - 6), args.NumberOrZero(args.Count - 5), args.NumberOrZero(args.Count - 4), args.NumberOrZero(args.Count - 3), args.NumberOrZero(args.Count - 2), args.NumberOrZero(args.Count - 1)); ctm = Matrix2D.Multiply(ctm, m2); args.Clear(); } break;
+                case "w": if (args.Count >= 1) strokeWidth = args.NumberOrZero(args.Count - 1); args.Clear(); break;
+                case "J": if (args.Count >= 1) strokeLineCap = (int)args.NumberOrZero(args.Count - 1); args.Clear(); break;
+                case "j": if (args.Count >= 1) strokeLineJoin = (int)args.NumberOrZero(args.Count - 1); args.Clear(); break;
+                case "M": if (args.Count >= 1) miterLimit = args.NumberOrZero(args.Count - 1); args.Clear(); break;
                 case "d": strokeDashIdentity = BuildStrokeDashIdentity(args); args.Clear(); break;
                 case "re":
                     if (args.Count >= 4) {
                         clipPathBuilder.AddRectanglePath(
                             ctm,
-                            ToDouble(args[args.Count - 4]),
-                            ToDouble(args[args.Count - 3]),
-                            ToDouble(args[args.Count - 2]),
-                            ToDouble(args[args.Count - 1]));
+                            args.NumberOrZero(args.Count - 4),
+                            args.NumberOrZero(args.Count - 3),
+                            args.NumberOrZero(args.Count - 2),
+                            args.NumberOrZero(args.Count - 1));
                     }
 
                     args.Clear();
                     break;
                 case "m":
                     if (args.Count >= 2) {
-                        clipPathBuilder.MoveTo(ctm, ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1]));
+                        clipPathBuilder.MoveTo(ctm, args.NumberOrZero(args.Count - 2), args.NumberOrZero(args.Count - 1));
                     }
 
                     args.Clear();
                     break;
                 case "l":
                     if (args.Count >= 2) {
-                        clipPathBuilder.LineTo(ctm, ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1]));
+                        clipPathBuilder.LineTo(ctm, args.NumberOrZero(args.Count - 2), args.NumberOrZero(args.Count - 1));
                     }
 
                     args.Clear();
@@ -646,12 +692,12 @@ internal static partial class TextContentParser {
                     if (args.Count >= 6) {
                         clipPathBuilder.CubicTo(
                             ctm,
-                            ToDouble(args[args.Count - 6]),
-                            ToDouble(args[args.Count - 5]),
-                            ToDouble(args[args.Count - 4]),
-                            ToDouble(args[args.Count - 3]),
-                            ToDouble(args[args.Count - 2]),
-                            ToDouble(args[args.Count - 1]));
+                            args.NumberOrZero(args.Count - 6),
+                            args.NumberOrZero(args.Count - 5),
+                            args.NumberOrZero(args.Count - 4),
+                            args.NumberOrZero(args.Count - 3),
+                            args.NumberOrZero(args.Count - 2),
+                            args.NumberOrZero(args.Count - 1));
                     }
 
                     args.Clear();
@@ -660,10 +706,10 @@ internal static partial class TextContentParser {
                     if (args.Count >= 4) {
                         clipPathBuilder.CubicToWithCurrentFirstControl(
                             ctm,
-                            ToDouble(args[args.Count - 4]),
-                            ToDouble(args[args.Count - 3]),
-                            ToDouble(args[args.Count - 2]),
-                            ToDouble(args[args.Count - 1]));
+                            args.NumberOrZero(args.Count - 4),
+                            args.NumberOrZero(args.Count - 3),
+                            args.NumberOrZero(args.Count - 2),
+                            args.NumberOrZero(args.Count - 1));
                     }
 
                     args.Clear();
@@ -672,10 +718,10 @@ internal static partial class TextContentParser {
                     if (args.Count >= 4) {
                         clipPathBuilder.CubicToWithEndSecondControl(
                             ctm,
-                            ToDouble(args[args.Count - 4]),
-                            ToDouble(args[args.Count - 3]),
-                            ToDouble(args[args.Count - 2]),
-                            ToDouble(args[args.Count - 1]));
+                            args.NumberOrZero(args.Count - 4),
+                            args.NumberOrZero(args.Count - 3),
+                            args.NumberOrZero(args.Count - 2),
+                            args.NumberOrZero(args.Count - 1));
                     }
 
                     args.Clear();
@@ -842,7 +888,7 @@ internal static partial class TextContentParser {
                     args.Clear();
                     break;
                 case "\"": // set spacing and show text
-                    if (args.Count >= 3) { wordSpacing = ToDouble(args[args.Count - 3]); charSpacing = ToDouble(args[args.Count - 2]); MoveToNextTextLine(); ShowTextRun(ToBytes(args[args.Count - 1]), paintOrder, forceCannotRestamp: false); pendingGapPt = 0; }
+                    if (args.Count >= 3) { wordSpacing = args.NumberOrZero(args.Count - 3); charSpacing = args.NumberOrZero(args.Count - 2); MoveToNextTextLine(); ShowTextRun(ToBytes(args[args.Count - 1]), paintOrder, forceCannotRestamp: false); pendingGapPt = 0; }
                     args.Clear();
                     break;
                 case "Tj": if (args.Count >= 1) { ShowTextRun(ToBytes(args[args.Count - 1]), paintOrder, forceCannotRestamp: false); pendingGapPt = 0; args.Clear(); } break;
@@ -978,14 +1024,14 @@ internal static partial class TextContentParser {
             _ => false
         };
 
-        void SetTextMatrix(List<object> operands) {
+        void SetTextMatrix(PdfContentOperands operands) {
             lineMatrix = new Matrix2D(
-                ToDouble(operands[operands.Count - 6]),
-                ToDouble(operands[operands.Count - 5]),
-                ToDouble(operands[operands.Count - 4]),
-                ToDouble(operands[operands.Count - 3]),
-                ToDouble(operands[operands.Count - 2]),
-                ToDouble(operands[operands.Count - 1]));
+                operands.NumberOrZero(operands.Count - 6),
+                operands.NumberOrZero(operands.Count - 5),
+                operands.NumberOrZero(operands.Count - 4),
+                operands.NumberOrZero(operands.Count - 3),
+                operands.NumberOrZero(operands.Count - 2),
+                operands.NumberOrZero(operands.Count - 1));
             textMatrix = lineMatrix;
             unknownTextPosition = null;
             pendingGapPt = 0;
@@ -1615,22 +1661,30 @@ internal static partial class TextContentParser {
 
         void ShowTextArray(object arrObj, double paintOrder) {
             if (!inText || arrObj == null) return;
-            List<object>? list = arrObj as List<object>;
-            if (list == null && arrObj is double[] numericItems) {
-                list = numericItems.Cast<object>().ToList();
+            // The tokenizer lends mixed TJ arrays as typed operands; numeric arrays arrive as double[].
+            PdfContentOperands? list = arrObj as PdfContentOperands;
+            if (list == null) {
+                if (arrObj is double[] numericItems) {
+                    list = numericTextArray ??= new PdfContentOperands();
+                    list.Clear();
+                    foreach (double item in numericItems) list.AddNumber(item);
+                } else if (arrObj is List<object> items) {
+                    list = numericTextArray ??= new PdfContentOperands();
+                    list.Clear();
+                    list.AddRange(items);
+                }
             }
             if (list == null) return;
             bool hasPositioningAdjustment = false;
             for (int index = 0; index < list.Count && !hasPositioningAdjustment; index++) {
-                hasPositioningAdjustment = list[index] is double value && Math.Abs(value) > 0.000001D;
+                hasPositioningAdjustment = list.TryGetNumber(index, out double value) && Math.Abs(value) > 0.000001D;
             }
             // Glyph-exact reads (redaction and editing evidence) keep one run per encoded string.
             if (hasPositioningAdjustment && mergeKernedTextArrays && useLogicalTextFilters && adjustKerningFromTJ &&
                 !requireMappedText && !preserveGlyphText && TryShowKernedTextArray(list, paintOrder)) return;
             for (int j = 0; j < list.Count; j++) {
-                var it = list[j];
-                if (it is byte[] b) { ShowTextRun(b, paintOrder, hasPositioningAdjustment); }
-                else if (adjustKerningFromTJ && it is double num) {
+                if (list.IsString(j)) { ShowTextRun((byte[])list[j], paintOrder, hasPositioningAdjustment); }
+                else if (adjustKerningFromTJ && list.TryGetNumber(j, out double num)) {
                     double delta = -num / 1000.0 * size * hScale;
                     textMatrix = Matrix2D.Multiply(textMatrix, Matrix2D.Translation(delta, 0));
                     // Only positive visual gap should suggest a space
@@ -1643,7 +1697,7 @@ internal static partial class TextContentParser {
         // extraction keeps such an array as one run, folding each adjustment into the advance
         // of the glyph before it, so words are not split at kerning pairs. Larger moves
         // (tab-like gaps) keep the per-string runs and space detection.
-        bool TryShowKernedTextArray(List<object> list, double paintOrder) {
+        bool TryShowKernedTextArray(PdfContentOperands list, double paintOrder) {
             const double MaximumKerning1000 = 300D;
             // Producers such as pdfTeX encode word gaps as TJ moves without space glyphs.
             // Only tightening or a loosening well below a word space can join strings.
@@ -1656,16 +1710,17 @@ internal static partial class TextContentParser {
             bool requireCompleteOperands = onUnmappableText is not null && twoByteFontForResource?.Invoke(font) is not null;
             int strings = 0, totalBytes = 0, first = -1, last = -1;
             for (int index = 0; index < list.Count; index++) {
-                if (list[index] is byte[] b) {
-                    if (b.Length == 0) continue;
+                if (list.IsString(index)) {
+                    int length = list.StringLength(index);
+                    if (length == 0) continue;
                     // Keep incomplete codes in their own operands instead of
                     // manufacturing a code from bytes of two adjacent strings.
-                    if (requireCompleteOperands && (b.Length & 1) != 0) return false;
+                    if (requireCompleteOperands && (length & 1) != 0) return false;
                     strings++;
-                    totalBytes = checked(totalBytes + b.Length);
+                    totalBytes = checked(totalBytes + length);
                     if (first < 0) first = index;
                     last = index;
-                } else if (list[index] is double number) {
+                } else if (list.TryGetNumber(index, out double number)) {
                     if (double.IsNaN(number) || double.IsInfinity(number) || number > MaximumKerning1000 ||
                         -number > MaximumLoosening1000) return false;
                     if (number > MaximumRestampTightening1000 || -number > MaximumRestampLoosening1000) restampable = false;
@@ -1690,13 +1745,14 @@ internal static partial class TextContentParser {
             int offset = 0;
             double pending = 0D;
             for (int index = first; index <= last; index++) {
-                if (list[index] is byte[] b) {
-                    if (b.Length == 0) continue;
+                if (list.IsString(index)) {
+                    int length = list.StringLength(index);
+                    if (length == 0) continue;
                     if (offset > 0) kerning[offset - 1] += pending;
                     pending = 0D;
-                    Buffer.BlockCopy(b, 0, bytes, offset, b.Length);
-                    offset += b.Length;
-                } else if (list[index] is double number) {
+                    list.CopyStringTo(index, bytes, offset);
+                    offset += length;
+                } else if (list.TryGetNumber(index, out double number)) {
                     pending += -number / 1000.0 * size;
                 }
             }
@@ -1704,7 +1760,7 @@ internal static partial class TextContentParser {
             double previousPendingGap = pendingGapPt;
             int previousTextLength = sbOutGlobal.Length;
             for (int index = 0; index < first; index++) {
-                if (list[index] is double number) MoveByTextArrayAdjustment(number);
+                if (list.TryGetNumber(index, out double number)) MoveByTextArrayAdjustment(number);
             }
             if (!ShowTextRun(bytes, paintOrder, forceCannotRestamp: !restampable || first > 0 || last < list.Count - 1,
                 kerningAfterByte: kerning, retryAsOperands: true)) {
@@ -1715,7 +1771,7 @@ internal static partial class TextContentParser {
                 return false;
             }
             for (int index = last + 1; index < list.Count; index++) {
-                if (list[index] is double number) MoveByTextArrayAdjustment(number);
+                if (list.TryGetNumber(index, out double number)) MoveByTextArrayAdjustment(number);
             }
             return true;
         }
@@ -1726,7 +1782,6 @@ internal static partial class TextContentParser {
             if (delta > 0) pendingGapPt += delta; else pendingGapPt = 0;
         }
 
-        static double ToDouble(object o) { return o is double d ? d : 0.0; }
         static string ToName(object o) { return o as string ?? string.Empty; }
         static byte[] ToBytes(object o) { return o as byte[] ?? Array.Empty<byte>(); }
         void ApplyGraphicsStateResource(string name) {
@@ -1998,7 +2053,7 @@ internal static partial class TextContentParser {
     }
 
     public static List<FormInvocation> ExtractFormInvocations(
-        string content,
+        PdfContentSource content,
         PdfPageOptionalContentVisibility? optionalContentVisibility = null,
         double paintOrderBase = 0D,
         double paintOrderScale = 1D,
@@ -2168,7 +2223,7 @@ internal static partial class TextContentParser {
         var hiddenContentStack = new Stack<bool>();
         var unsupportedRestampContentStack = new Stack<bool>();
         var artifactContentStack = new Stack<bool>();
-        var args = new List<object>(8);
+        var args = new PdfContentOperands();
 
         Action<PdfContentOperation> visit = operation => {
             cancellationCheck?.Invoke();
@@ -2233,48 +2288,48 @@ internal static partial class TextContentParser {
                 case "Tf" when args.Count >= 2:
                     textState = textState.WithFont(
                         ToName(args[args.Count - 2]),
-                        ToDouble(args[args.Count - 1]));
+                        args.NumberOrZero(args.Count - 1));
                     args.Clear();
                     break;
                 case "Tc" when args.Count >= 1:
-                    textState = textState.WithCharacterSpacing(ToDouble(args[args.Count - 1]));
+                    textState = textState.WithCharacterSpacing(args.NumberOrZero(args.Count - 1));
                     args.Clear();
                     break;
                 case "Tw" when args.Count >= 1:
-                    textState = textState.WithWordSpacing(ToDouble(args[args.Count - 1]));
+                    textState = textState.WithWordSpacing(args.NumberOrZero(args.Count - 1));
                     args.Clear();
                     break;
                 case "Tz" when args.Count >= 1:
-                    textState = textState.WithHorizontalScaling(ToDouble(args[args.Count - 1]) / 100D);
+                    textState = textState.WithHorizontalScaling(args.NumberOrZero(args.Count - 1) / 100D);
                     args.Clear();
                     break;
                 case "TL" when args.Count >= 1:
-                    textState = textState.WithLeading(ToDouble(args[args.Count - 1]));
+                    textState = textState.WithLeading(args.NumberOrZero(args.Count - 1));
                     args.Clear();
                     break;
                 case "TD" when args.Count >= 2:
-                    textState = textState.WithLeading(-ToDouble(args[args.Count - 1]));
+                    textState = textState.WithLeading(-args.NumberOrZero(args.Count - 1));
                     args.Clear();
                     break;
                 case "Ts" when args.Count >= 1:
-                    textState = textState.WithTextRise(ToDouble(args[args.Count - 1]));
+                    textState = textState.WithTextRise(args.NumberOrZero(args.Count - 1));
                     args.Clear();
                     break;
                 case "\"" when args.Count >= 3:
                     textState = textState
-                        .WithWordSpacing(ToDouble(args[args.Count - 3]))
-                        .WithCharacterSpacing(ToDouble(args[args.Count - 2]));
+                        .WithWordSpacing(args.NumberOrZero(args.Count - 3))
+                        .WithCharacterSpacing(args.NumberOrZero(args.Count - 2));
                     args.Clear();
                     break;
                 case "cm":
                     if (args.Count >= 6) {
                         var m2 = new Matrix2D(
-                            ToDouble(args[args.Count - 6]),
-                            ToDouble(args[args.Count - 5]),
-                            ToDouble(args[args.Count - 4]),
-                            ToDouble(args[args.Count - 3]),
-                            ToDouble(args[args.Count - 2]),
-                            ToDouble(args[args.Count - 1]));
+                            args.NumberOrZero(args.Count - 6),
+                            args.NumberOrZero(args.Count - 5),
+                            args.NumberOrZero(args.Count - 4),
+                            args.NumberOrZero(args.Count - 3),
+                            args.NumberOrZero(args.Count - 2),
+                            args.NumberOrZero(args.Count - 1));
                         ctm = Matrix2D.Multiply(ctm, m2);
                     }
                     args.Clear();
@@ -2283,24 +2338,24 @@ internal static partial class TextContentParser {
                     if (args.Count >= 4) {
                         clipPathBuilder.AddRectanglePath(
                             ctm,
-                            ToDouble(args[args.Count - 4]),
-                            ToDouble(args[args.Count - 3]),
-                            ToDouble(args[args.Count - 2]),
-                            ToDouble(args[args.Count - 1]));
+                            args.NumberOrZero(args.Count - 4),
+                            args.NumberOrZero(args.Count - 3),
+                            args.NumberOrZero(args.Count - 2),
+                            args.NumberOrZero(args.Count - 1));
                     }
 
                     args.Clear();
                     break;
                 case "m":
                     if (args.Count >= 2) {
-                        clipPathBuilder.MoveTo(ctm, ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1]));
+                        clipPathBuilder.MoveTo(ctm, args.NumberOrZero(args.Count - 2), args.NumberOrZero(args.Count - 1));
                     }
 
                     args.Clear();
                     break;
                 case "l":
                     if (args.Count >= 2) {
-                        clipPathBuilder.LineTo(ctm, ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1]));
+                        clipPathBuilder.LineTo(ctm, args.NumberOrZero(args.Count - 2), args.NumberOrZero(args.Count - 1));
                     }
 
                     args.Clear();
@@ -2309,12 +2364,12 @@ internal static partial class TextContentParser {
                     if (args.Count >= 6) {
                         clipPathBuilder.CubicTo(
                             ctm,
-                            ToDouble(args[args.Count - 6]),
-                            ToDouble(args[args.Count - 5]),
-                            ToDouble(args[args.Count - 4]),
-                            ToDouble(args[args.Count - 3]),
-                            ToDouble(args[args.Count - 2]),
-                            ToDouble(args[args.Count - 1]));
+                            args.NumberOrZero(args.Count - 6),
+                            args.NumberOrZero(args.Count - 5),
+                            args.NumberOrZero(args.Count - 4),
+                            args.NumberOrZero(args.Count - 3),
+                            args.NumberOrZero(args.Count - 2),
+                            args.NumberOrZero(args.Count - 1));
                     }
 
                     args.Clear();
@@ -2323,10 +2378,10 @@ internal static partial class TextContentParser {
                     if (args.Count >= 4) {
                         clipPathBuilder.CubicToWithCurrentFirstControl(
                             ctm,
-                            ToDouble(args[args.Count - 4]),
-                            ToDouble(args[args.Count - 3]),
-                            ToDouble(args[args.Count - 2]),
-                            ToDouble(args[args.Count - 1]));
+                            args.NumberOrZero(args.Count - 4),
+                            args.NumberOrZero(args.Count - 3),
+                            args.NumberOrZero(args.Count - 2),
+                            args.NumberOrZero(args.Count - 1));
                     }
 
                     args.Clear();
@@ -2335,10 +2390,10 @@ internal static partial class TextContentParser {
                     if (args.Count >= 4) {
                         clipPathBuilder.CubicToWithEndSecondControl(
                             ctm,
-                            ToDouble(args[args.Count - 4]),
-                            ToDouble(args[args.Count - 3]),
-                            ToDouble(args[args.Count - 2]),
-                            ToDouble(args[args.Count - 1]));
+                            args.NumberOrZero(args.Count - 4),
+                            args.NumberOrZero(args.Count - 3),
+                            args.NumberOrZero(args.Count - 2),
+                            args.NumberOrZero(args.Count - 1));
                     }
 
                     args.Clear();
@@ -2379,10 +2434,10 @@ internal static partial class TextContentParser {
                     args.Clear();
                     break;
                 case "d": strokeDashIdentity = BuildStrokeDashIdentity(args); args.Clear(); break;
-                case "w": if (args.Count >= 1) strokeWidth = ToDouble(args[args.Count - 1]); args.Clear(); break;
-                case "J": if (args.Count >= 1) strokeLineCap = (int)ToDouble(args[args.Count - 1]); args.Clear(); break;
-                case "j": if (args.Count >= 1) strokeLineJoin = (int)ToDouble(args[args.Count - 1]); args.Clear(); break;
-                case "M": if (args.Count >= 1) miterLimit = ToDouble(args[args.Count - 1]); args.Clear(); break;
+                case "w": if (args.Count >= 1) strokeWidth = args.NumberOrZero(args.Count - 1); args.Clear(); break;
+                case "J": if (args.Count >= 1) strokeLineCap = (int)args.NumberOrZero(args.Count - 1); args.Clear(); break;
+                case "j": if (args.Count >= 1) strokeLineJoin = (int)args.NumberOrZero(args.Count - 1); args.Clear(); break;
+                case "M": if (args.Count >= 1) miterLimit = args.NumberOrZero(args.Count - 1); args.Clear(); break;
                 case "gs":
                     if (args.Count >= 1) {
                         ApplyGraphicsStateResource(ToName(args[args.Count - 1]));
@@ -2487,7 +2542,7 @@ internal static partial class TextContentParser {
                     break;
                 case "Tr":
                     if (args.Count >= 1) {
-                        textRenderingMode = ReadTextRenderingMode(ToDouble(args[args.Count - 1]));
+                        textRenderingMode = ReadTextRenderingMode(args.NumberOrZero(args.Count - 1));
                         textState = textState.WithTextRenderingMode(textRenderingMode);
                     }
 
@@ -2701,7 +2756,6 @@ internal static partial class TextContentParser {
             return mode < 0 || mode > 7 ? 0 : mode;
         }
 
-        static double ToDouble(object o) => o is double d ? d : 0.0;
         static string ToName(object o) => o as string ?? string.Empty;
     }
 

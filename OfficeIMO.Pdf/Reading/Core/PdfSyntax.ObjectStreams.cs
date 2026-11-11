@@ -69,12 +69,13 @@ internal static partial class PdfSyntax {
                     reportUnreadable(id);
                     continue;
                 }
-                var slice = PdfEncoding.Latin1GetStringCancellable(data, start, end - start, cancellationToken);
                 var parsed = ParseTopLevelObject(
-                    slice,
+                    data,
+                    start,
+                    end - start,
                     limits,
                     trackEncodedStringSourceSpans: false,
-                    cancellationToken: cancellationToken);
+                    cancellationToken);
                 if (parsed is not null) {
                     if (parsed.HasIncompleteSyntax) reportUnreadable(objNum);
                     map[objNum] = new PdfIndirectObject(objNum, 0, parsed) { SourceOffset = objectStreamOffset };

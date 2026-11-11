@@ -15,57 +15,51 @@ internal static partial class TextContentParser {
     }
 
     internal sealed partial class MarkedContentState {
-        private string? _decodedActualText;
-        private bool _actualTextCharged;
-        private PdfContentOrderKey? _drawingStart;
-        private MarkedContentState? _drawingParent;
-        private bool _drawingHidden;
-        private bool _hasDrawingPaint;
-        private bool _hasDrawingAnchor;
 
-        internal bool HasVisibleDrawingText { get; private set; }
-        internal double DrawingAnchorX { get; private set; }
-        internal double DrawingAnchorY { get; private set; }
+        internal bool HasVisibleDrawingText => _layout?.HasVisibleDrawingText ?? false;
+        internal double DrawingAnchorX => _layout?.DrawingAnchorX ?? 0D;
+        internal double DrawingAnchorY => _layout?.DrawingAnchorY ?? 0D;
 
         /// <summary>Shares one decoded replacement and charge between logical emission and drawing metadata.</summary>
         internal string ReadAndChargeActualText(TextOutputBudget budget) {
-            _decodedActualText ??= DecodeActualText(budget);
-            if (!_actualTextCharged) {
-                budget.ChargeActualText(_decodedActualText.Length);
-                _actualTextCharged = true;
+            L._decodedActualText ??= DecodeActualText(budget);
+            if (!L._actualTextCharged) {
+                budget.ChargeActualText(L._decodedActualText.Length);
+                L._actualTextCharged = true;
             }
-            return _decodedActualText;
+            return L._decodedActualText;
         }
 
         internal void BeginDrawingScope(PdfContentOrderKey? start, MarkedContentState? parent,
             bool hidden, double anchorX, double anchorY) {
-            _drawingStart = start; _drawingParent = parent;
-            _drawingHidden = hidden || parent?._drawingHidden == true;
-            DrawingAnchorX = anchorX; DrawingAnchorY = anchorY;
+            L._drawingStart = start; L._drawingParent = parent;
+            L._drawingHidden = hidden || parent?.L._drawingHidden == true;
+            L.DrawingAnchorX = anchorX; L.DrawingAnchorY = anchorY;
         }
 
         internal void ObserveDrawingPaint() {
-            for (MarkedContentState? owner = this; owner != null; owner = owner._drawingParent)
-                owner._hasDrawingPaint = true;
+            for (MarkedContentState? owner = this; owner != null; owner = owner.L._drawingParent)
+                owner.L._hasDrawingPaint = true;
         }
 
         internal void ObserveDrawingText(bool visible, bool semanticAnchor, double x, double y) {
-            for (MarkedContentState? owner = this; owner != null; owner = owner._drawingParent) {
-                owner.HasVisibleDrawingText |= visible;
-                if (semanticAnchor && !owner._hasDrawingAnchor) {
-                    owner._hasDrawingAnchor = true;
-                    owner.DrawingAnchorX = x; owner.DrawingAnchorY = y;
+            for (MarkedContentState? owner = this; owner != null; owner = owner.L._drawingParent) {
+                owner.L.HasVisibleDrawingText |= visible;
+                if (semanticAnchor && !owner.L._hasDrawingAnchor) {
+                    owner.L._hasDrawingAnchor = true;
+                    owner.L.DrawingAnchorX = x; owner.L.DrawingAnchorY = y;
                 }
             }
         }
 
         internal void CompleteDrawingScope(PdfContentOrderKey? end, TextOutputBudget budget,
             Action<DrawingActualTextScope>? completed) {
-            if (completed == null || !HasActualText || _drawingHidden || !_hasDrawingPaint ||
-                HasVisibleDrawingText || _drawingStart == null || end == null) return;
+            if (_layout is null) return;
+            if (completed == null || !HasActualText || L._drawingHidden || !L._hasDrawingPaint ||
+                HasVisibleDrawingText || L._drawingStart == null || end == null) return;
             string text = ReadAndChargeActualText(budget);
             // Every retained scope consumes at least one character of the operation's existing budget.
-            if (text.Length > 0) completed(new DrawingActualTextScope(this, text, _drawingStart, end));
+            if (text.Length > 0) completed(new DrawingActualTextScope(this, text, L._drawingStart, end));
         }
     }
 

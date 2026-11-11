@@ -2510,7 +2510,7 @@ public sealed partial class PdfReadPage {
     }
 
     private PdfPageInvokedResourceNames GetInvokedResourceNames(
-        string content,
+        PdfContentSource content,
         PdfDictionary? resources,
         Action? operationCheck = null) {
         var names = new PdfPageInvokedResourceNames();
@@ -2545,7 +2545,7 @@ public sealed partial class PdfReadPage {
     }
 
     private PdfPageInvokedResourceNames GetRootInvokedResourceNames(
-        string content,
+        PdfContentSource content,
         PdfDictionary? resources,
         Action? operationCheck = null) {
         lock (_rootInvokedResourceNamesSync) {
