@@ -186,8 +186,17 @@ internal static partial class CsvParser
             {
                 rows = IndexBlocksCompressed(ends, rowEnds, blocks);
             }
+            else if (Avx512F.IsSupported && Vector512.IsHardwareAccelerated)
+            {
+                rows = IndexBlocksDwordCompressed(ends, rowEnds, blocks);
+            }
             else
 #endif
+            if (Avx2.IsSupported && Vector256.IsHardwareAccelerated)
+            {
+                rows = IndexBlocksByTable(ends, rowEnds, blocks);
+            }
+            else
             {
                 rows = IndexBlocks(ends, rowEnds, blocks);
             }
@@ -324,7 +333,10 @@ internal static partial class CsvParser
         }
 #endif
 
-        /// <summary>Index with bit iteration; eight positions are written per block without a data-dependent branch.</summary>
+        /// <summary>
+        /// Index with bit iteration, for processors without AVX2 (including Arm64); eight positions are
+        /// written per block without a data-dependent branch.
+        /// </summary>
         private int IndexBlocks(int[] ends, int[] rowEnds, int blocks)
         {
             ref byte data = ref MemoryMarshal.GetArrayDataReference(_buffer);
