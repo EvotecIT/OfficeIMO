@@ -101,7 +101,7 @@ Source text (internal)                  decoded once, kept for lossless save [Y1
   - Typed accessors resolve through the active schema: `TryGetInt64`, `TryGetDouble`, `TryGetBoolean`, `TryGetDecimal`, `IsNull`.
   - It allocates nothing per event unless the caller asks for a string.
 - `YamlReaderOptions` holds the schema, limits, `Strict` and `IncludeComments` (comment events are off by default and cost nothing when off). The duplicate-key policy is a load option, because only the model compares keys.
-- Errors throw `YamlException` with a stable code, line, column and offset. Recoverable findings are `OfficeDiagnostic` values: `YamlReader.Diagnostics` returns a shared empty list until the scanner records one, so a clean read allocates nothing for it, and `YamlDocument.Diagnostics` collects the reader's findings with the model's own.
+- Errors throw `YamlException` with a stable code, line, column and offset. `YamlException.ToDiagnostic()` gives consumers (the Reader adapter, Markdown front matter, PowerShell) the failure as an error `OfficeDiagnostic`: its code follows the catalog's `Yaml.{area}.{rule}` → `yaml-{area}-{rule}` pattern, except that a strict duplicate key keeps `yaml-duplicate-key`, the code of the non-strict warning. Recoverable findings are `OfficeDiagnostic` values: `YamlReader.Diagnostics` returns a shared empty list until the scanner records one, so a clean read allocates nothing for it, and `YamlDocument.Diagnostics` collects the reader's findings with the model's own.
 
 ### Document model
 

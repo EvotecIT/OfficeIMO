@@ -5,10 +5,13 @@ namespace OfficeIMO.Yaml;
 /// identifies the rule that failed; the message is for people and may change.
 /// </summary>
 public class YamlException : Exception {
+    private readonly string _reason;
+
     internal YamlException(string code, string message, YamlPosition position, Exception? innerException = null)
         : base(FormatMessage(message, position), innerException) {
         Code = code;
         Position = position;
+        _reason = message;
     }
 
     /// <summary>Gets the stable error code, one of the <see cref="YamlErrorCodes"/> values.</summary>
@@ -30,6 +33,41 @@ public class YamlException : Exception {
     /// available (input given as a string, memory or file loaded by <see cref="YamlDocument"/>).
     /// </summary>
     public override string Message => _excerpt is null ? base.Message : base.Message + _excerpt;
+
+    /// <summary>
+    /// Returns the failure as an error <see cref="OfficeDiagnostic"/>, the form <see cref="YamlDocument.Diagnostics"/>
+    /// uses, so a caller can report a file that does not load next to the findings of files that do.
+    /// </summary>
+    /// <remarks>
+    /// <para>The code is the catalog form of <see cref="Code"/>: <c>Yaml.Syntax.InvalidIndentation</c> becomes
+    /// <c>yaml-syntax-invalid-indentation</c>, and <see cref="YamlErrorCodes.DuplicateKey"/> becomes
+    /// <see cref="OfficeDiagnosticCodes.YamlDuplicateKey"/>, the code a non-strict load reports as a warning.</para>
+    /// <para>The location is <c>line:column</c> as in <see cref="YamlDocument.Diagnostics"/>, or <see langword="null"/>
+    /// when the failure has no position. The message leaves the position out and ends with the source excerpt when the
+    /// source text was available. A host file that embeds the YAML, such as Markdown front matter, adds its own line
+    /// offset to <see cref="Line"/>.</para>
+    /// </remarks>
+    public OfficeDiagnostic ToDiagnostic() =>
+        new OfficeDiagnostic(DiagnosticCode(Code), OfficeDiagnosticSeverity.Error, _excerpt is null ? _reason : _reason + _excerpt,
+            Position.Line > 0 ? Position.ToString() : null, "YAML");
+
+    /// <summary>Converts a <see cref="YamlErrorCodes"/> value to its catalog code (the <c>Yaml.{area}.{rule}</c> pattern).</summary>
+    internal static string DiagnosticCode(string code) {
+        if (code == YamlErrorCodes.DuplicateKey) return OfficeDiagnosticCodes.YamlDuplicateKey;
+        var text = new StringBuilder(code.Length + 8);
+        for (int i = 0; i < code.Length; i++) {
+            char ch = code[i];
+            if (ch == '.') {
+                text.Append('-');
+            } else if (char.IsUpper(ch)) {
+                if (i > 0 && char.IsLower(code[i - 1])) text.Append('-');
+                text.Append(char.ToLowerInvariant(ch));
+            } else {
+                text.Append(ch);
+            }
+        }
+        return text.ToString();
+    }
 
     /// <summary>Adds the source excerpt; returns false so it can run in an exception filter without catching.</summary>
     internal bool AttachSource(string source) {

@@ -265,4 +265,15 @@ Set `YamlReaderOptions.IncludeComments` to receive `YamlTokenType.Comment` event
 
 ## Errors and limits
 
-Malformed input throws `YamlException` with a stable `Code` (see `YamlErrorCodes`), line, column and offset; when the source text is at hand, the message ends with the offending line and a caret under the column. `YamlReaderOptions` and `YamlLoadOptions` bound nesting depth (`MaxDepth`, 256), scalar length (`MaxScalarLength`, 16 MiB of characters) and optionally the whole input (`MaxInputBytes`). `YamlLoadOptions` also bounds the nodes of each document (`MaxNodes`, 1,000,000) and the nodes each document's aliases stand for when resolved (`MaxAliasExpansion`, 100,000). The load measures expansion without expanding anything, so a "billion laughs" input fails quickly, and an alias inside its own anchor fails with `YamlErrorCodes.RecursiveAlias`. Exceeding a limit throws `YamlLimitExceededException` with the limit's name. A `CancellationToken` passed to the reader constructor or `LoadAsync` is checked at bounded intervals.
+Malformed input throws `YamlException` with a stable `Code` (see `YamlErrorCodes`), line, column and offset; when the source text is at hand, the message ends with the offending line and a caret under the column. `ToDiagnostic()` returns the failure as an error `OfficeDiagnostic` with the catalog code (`Yaml.Syntax.InvalidIndentation` becomes `yaml-syntax-invalid-indentation`, a strict duplicate key `yaml-duplicate-key`) and a `line:column` location, so a tool can report files that fail next to the warnings of files that load:
+
+```csharp
+IReadOnlyList<OfficeDiagnostic> diagnostics;
+try {
+    diagnostics = YamlDocument.Load(path).Diagnostics;
+} catch (YamlException exception) {
+    diagnostics = new[] { exception.ToDiagnostic() };
+}
+```
+
+`YamlReaderOptions` and `YamlLoadOptions` bound nesting depth (`MaxDepth`, 256), scalar length (`MaxScalarLength`, 16 MiB of characters) and optionally the whole input (`MaxInputBytes`). `YamlLoadOptions` also bounds the nodes of each document (`MaxNodes`, 1,000,000) and the nodes each document's aliases stand for when resolved (`MaxAliasExpansion`, 100,000). The load measures expansion without expanding anything, so a "billion laughs" input fails quickly, and an alias inside its own anchor fails with `YamlErrorCodes.RecursiveAlias`. Exceeding a limit throws `YamlLimitExceededException` with the limit's name. A `CancellationToken` passed to the reader constructor or `LoadAsync` is checked at bounded intervals.

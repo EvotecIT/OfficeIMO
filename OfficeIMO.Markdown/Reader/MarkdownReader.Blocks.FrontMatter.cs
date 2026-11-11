@@ -41,11 +41,13 @@ internal static partial class MarkdownReader {
         try {
             yaml = YamlDocument.Parse(rawYaml, CreateFrontMatterLoadOptions());
         } catch (YamlException exception) {
+            // The YAML diagnostic's message leaves out its YAML-relative position; the location is given in Markdown lines.
+            OfficeDiagnostic yamlDiagnostic = exception.ToDiagnostic();
             int line = bodyLine + Math.Max(1, exception.Line) - 1;
             int column = Math.Max(1, exception.Column);
             string location = "line " + line.ToString(CultureInfo.InvariantCulture) + ", column " + column.ToString(CultureInfo.InvariantCulture);
             var diagnostic = new OfficeDiagnostic(OfficeDiagnosticCodes.MarkdownFrontMatterInvalidYaml, OfficeDiagnosticSeverity.Error,
-                "The front matter is not valid YAML and is kept as text (" + exception.Code + "): " + exception.Message,
+                "The front matter is not valid YAML and is kept as text (" + yamlDiagnostic.Code + "): " + yamlDiagnostic.Message,
                 location, "Markdown");
             return FrontMatterBlock.FromInvalid(rawYaml, bodySpan, diagnostic, lines[0], lines[closingIndex]);
         }
