@@ -49,7 +49,7 @@ internal sealed class YamlKitLane {
 /// <list type="bullet">
 /// <item><c>OfficeIMO</c>: string in and out, the library's text API; typed loads use its generated context.</item>
 /// <item><c>OfficeIMO reflection</c>: typed loads through reflection metadata.</item>
-/// <item><c>OfficeIMO UTF-8</c>: UTF-8 bytes in (a stream over the input) and out (a stream), as the kit hands every library bytes.</item>
+/// <item><c>OfficeIMO UTF-8</c>: UTF-8 bytes in (a stream over the input) and out (a stream, or for a dump the byte array OneYaml's dump returns), as the kit hands every library bytes.</item>
 /// <item><c>OneYaml</c>: the kit's <c>oneyaml-csharp</c> row: reflection, UTF-8 bytes in and out, <see cref="One.YamlDocument"/> for documents.</item>
 /// <item><c>OneYaml generated</c>: the kit's <c>oneyaml-csharp-gen</c> row: a generated context for typed and untyped values.</item>
 /// <item><c>OneYaml string</c>: string in and out, the form the <c>OfficeIMO</c> column uses.</item>
@@ -125,11 +125,8 @@ internal static class YamlKitLanes {
         // Dump: the library's own untyped tree, read before timing.
         lanes.Add(new YamlKitLane("OfficeIMO", YamlKitTask.Dump, single, w => YamlSerializer.Deserialize<object>(w.Text)!,
             s => YamlSerializer.Serialize<object>(s), CheckDump));
-        lanes.Add(new YamlKitLane("OfficeIMO UTF-8", YamlKitTask.Dump, single, w => YamlSerializer.Deserialize<object>(w.Text)!, s => {
-            var stream = new MemoryStream();
-            YamlSerializer.Serialize<object>(stream, s);
-            return stream;
-        }, CheckDump));
+        lanes.Add(new YamlKitLane("OfficeIMO UTF-8", YamlKitTask.Dump, single, w => YamlSerializer.Deserialize<object>(w.Text)!,
+            s => YamlSerializer.SerializeToUtf8Bytes<object>(s), CheckDump));
         lanes.Add(new YamlKitLane("OneYaml", YamlKitTask.Dump, single, w => One.YamlSerializer.Deserialize<object>(w.Bytes)!,
             s => One.YamlSerializer.SerializeToUtf8Bytes<object>(s), CheckDump));
         lanes.Add(new YamlKitLane("OneYaml generated", YamlKitTask.Dump, single, w => One.YamlSerializer.Deserialize(w.Bytes, OneContext.Object)!,

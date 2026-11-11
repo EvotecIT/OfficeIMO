@@ -52,6 +52,7 @@ internal static class YamlSerializerTimings {
                     YamlSerializer.Serialize(stream, value, type, context);
                     return stream;
                 }),
+                ("Serialize", "OfficeIMO generated UTF-8 bytes", () => YamlSerializer.SerializeToUtf8Bytes(value, type, context)),
                 ("Serialize", "OneYaml generated", () => One.YamlSerializer.Serialize(value, one.GetTypeInfo(type)!)),
                 ("Serialize", "OneYaml reflection", () => One.YamlSerializer.Serialize(value, type)),
                 ("Serialize", "OneYaml generated UTF-8", () => value switch {

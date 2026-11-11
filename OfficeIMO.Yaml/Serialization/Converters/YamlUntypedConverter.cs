@@ -81,7 +81,7 @@ internal sealed class YamlUntypedConverter : YamlConverter<object> {
                 writer.WriteStartSequence();
                 for (int i = 0; i < list.Count; i++) {
                     object? item = list[i];
-                    if (item is string itemText && writer.TryWritePlainItem(itemText)) continue;
+                    if (TryWritePlainItem(writer, item)) continue;
                     WriteValue(writer, item, state);
                 }
                 writer.WriteEndSequence();
@@ -145,10 +145,20 @@ internal sealed class YamlUntypedConverter : YamlConverter<object> {
     }
 
     private static bool TryWritePlainEntry(YamlWriter writer, string key, object? value) => value switch {
-        string text => writer.TryWritePlainEntry(key, text, checkKey: true),
+        string text => writer.TryWriteStringEntry(key, text, checkKey: true),
         long number => YamlWriter.IsPlainKey(key) && writer.TryWritePlainEntry(key, number),
         bool flag => YamlWriter.IsPlainKey(key) && writer.TryWritePlainEntry(key, flag),
         double number => YamlWriter.IsPlainKey(key) && writer.TryWritePlainEntry(key, number),
+        null => YamlWriter.IsPlainKey(key) && writer.TryWriteNullEntry(key),
+        _ => false
+    };
+
+    private static bool TryWritePlainItem(YamlWriter writer, object? item) => item switch {
+        string text => writer.TryWriteStringItem(text),
+        long number => writer.TryWritePlainItem(number),
+        bool flag => writer.TryWritePlainItem(flag),
+        double number => writer.TryWritePlainItem(number),
+        null => writer.TryWriteNullItem(),
         _ => false
     };
 

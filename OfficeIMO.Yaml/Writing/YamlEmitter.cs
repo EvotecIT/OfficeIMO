@@ -54,7 +54,12 @@ internal sealed class YamlEmitter {
     // Line break plus indentation per indentation, shared by every emitter with the same line break.
     private static readonly string?[] s_lfLineStarts = new string?[LineStartCacheSize];
     private static readonly string?[] s_crlfLineStarts = new string?[LineStartCacheSize];
-    private Frame[] _frames = new Frame[8];
+    // One frame stack per thread is reused by the next emitter after Release, so a call allocates none.
+    [ThreadStatic] private static Frame[]? t_frames;
+    private const int MaxReusedFrames = 1024;
+    private Frame[] _frames;
+    // The deepest the stack has been, so releasing it clears only the frames used.
+    private int _maxDepth;
     private int _depth;
     private int _column;
     private int _documents;
@@ -74,6 +79,19 @@ internal sealed class YamlEmitter {
         _options = options;
         _newLine = options.NewLine;
         options.Validate();
+        _frames = t_frames ?? new Frame[8];
+        t_frames = null;
+    }
+
+    /// <summary>Hands the frame stack to the next emitter on this thread. The emitter cannot be used afterwards.</summary>
+    public void Release() {
+        Frame[] frames = _frames;
+        if (frames.Length == 0) return;
+        _frames = Array.Empty<Frame>();
+        _depth = 0;
+        if (frames.Length > MaxReusedFrames) return;
+        Array.Clear(frames, 0, Math.Min(_maxDepth, frames.Length));
+        t_frames = frames;
     }
 
     public YamlWriterOptions Options => _options;
@@ -280,10 +298,37 @@ internal sealed class YamlEmitter {
     /// <see cref="WriteScalar"/> would, without scanning it for breaks.
     /// </summary>
     public void WriteSingleLine(string value, YamlStyle style) {
+        if (style == YamlStyle.Plain && value.Length > 0 && TryWriteBlockKey(value)) return;
         BeginNode(Shape.Inline, empty: value.Length == 0 && style == YamlStyle.Plain, simpleKey: true, aliasKey: false, sequence: false, out _, out _);
         if (style == YamlStyle.Plain) WriteRun(value, 0, value.Length);
         else WriteSingleQuoted(value);
         EndInline();
+    }
+
+    /// <summary>
+    /// Writes a non-empty plain key of a block mapping, with no anchor or tag, its line start and colon into the char
+    /// buffer in one step, leaving the text and the mapping's state that <see cref="BeginNode"/>, the key and
+    /// <see cref="EndInline"/> leave. Returns false, having written nothing, anywhere else.
+    /// </summary>
+    private bool TryWriteBlockKey(string key) {
+        if (_depth == 0 || _buffer is null || _anchor is not null || _tag is not null || _trailingComment is not null) return false;
+        ref Frame top = ref _frames[_depth - 1];
+        if (top.Kind != FrameKind.BlockMapping || top.AtValue || top.Pending) return false;
+        if (top.Padding < 0) {
+            if (_column == 0 || (uint)top.Indent >= LineStartCacheSize) return false;
+            _buffer.AppendKey(LineStart(top.Indent).AsSpan(), key);
+            _column = top.Indent + key.Length + 1;
+        } else {
+            if (top.Padding > Spaces.Length) return false;
+            _buffer.AppendKey(Spaces.AsSpan(0, top.Padding), key);
+            _column += top.Padding + key.Length + 1;
+            top.Padding = -1;
+        }
+        top.AtValue = true;
+        top.ExplicitKey = false;
+        top.PendingColon = false;
+        top.AliasKey = false;
+        return true;
     }
 
     /// <summary>Writes a plain scalar from a span without allocating, for typed values already in canonical form.</summary>
@@ -371,15 +416,27 @@ internal sealed class YamlEmitter {
             ResolvePending(empty: false);
             top = ref _frames[_depth - 1];
         }
-        if (top.Padding < 0 && _buffer is not null && value.Length > 0 && _column > 0 && _trailingComment is null && (uint)top.Indent < LineStartCacheSize) {
-            // The usual entry on a line of its own goes into the char buffer in one step, as StartLine and the pieces
-            // below would write it.
-            _buffer.AppendEntry(LineStart(top.Indent), key, value);
-            _column = top.Indent + key.Length + 2 + value.Length;
-            top.ExplicitKey = false;
-            top.AliasKey = false;
-            top.Count++;
-            return;
+        if (_buffer is not null && value.Length > 0 && _trailingComment is null) {
+            // The usual entry, on a line of its own or continuing a sequence item's line, goes into the char buffer in
+            // one step, as StartLine or the padding and the pieces below would write it.
+            if (top.Padding < 0) {
+                if (_column > 0 && (uint)top.Indent < LineStartCacheSize) {
+                    _buffer.AppendEntry(LineStart(top.Indent).AsSpan(), key, value);
+                    _column = top.Indent + key.Length + 2 + value.Length;
+                    top.ExplicitKey = false;
+                    top.AliasKey = false;
+                    top.Count++;
+                    return;
+                }
+            } else if (top.Padding <= Spaces.Length) {
+                _buffer.AppendEntry(Spaces.AsSpan(0, top.Padding), key, value);
+                _column += top.Padding + key.Length + 2 + value.Length;
+                top.Padding = -1;
+                top.ExplicitKey = false;
+                top.AliasKey = false;
+                top.Count++;
+                return;
+            }
         }
         if (top.Padding >= 0) {
             WriteSpaces(top.Padding);
@@ -422,11 +479,21 @@ internal sealed class YamlEmitter {
             ResolvePending(empty: false);
             top = ref _frames[_depth - 1];
         }
+        int padding = _options.ItemPadding;
+        if (top.Padding < 0 && _buffer is not null && value.Length > 0 && _column > 0 && _trailingComment is null
+            && (uint)top.Indent < LineStartCacheSize && padding <= Spaces.Length) {
+            // The usual item on a line of its own goes into the char buffer in one step, as StartEntry and the pieces
+            // below would write it.
+            _buffer.AppendItem(LineStart(top.Indent).AsSpan(), Spaces.AsSpan(0, padding), value);
+            _column = top.Indent + 1 + padding + value.Length;
+            top.Count++;
+            return;
+        }
         StartEntry(ref top);
         Write('-');
         top.Count++;
         if (value.Length > 0) {
-            WriteSpaces(_options.ItemPadding);
+            WriteSpaces(padding);
             WriteSpan(value);
         }
     }
@@ -642,6 +709,30 @@ internal sealed class YamlEmitter {
 
     /// <summary>Decides the layout of a pending block collection, at its first entry or, when empty, at its end.</summary>
     private void ResolvePending(bool empty) {
+        if (!empty && _depth >= 2 && _frames[_depth - 1].Anchor is null && _frames[_depth - 1].Tag is null && _trailingComment is null) {
+            // The usual nesting, a collection without properties as the value of a simple key or as a sequence item,
+            // lays out as BeginNode would below, without the general layout.
+            ref Frame pending = ref _frames[_depth - 1];
+            ref Frame parent = ref _frames[_depth - 2];
+            if (parent.Kind == FrameKind.BlockMapping && parent.AtValue && !parent.ExplicitKey) {
+                parent.AtValue = false;
+                parent.Count++;
+                pending.Indent = parent.Indent + (pending.Kind == FrameKind.BlockSequence ? _options.SequenceDashOffset : _options.MappingIndent);
+                pending.Padding = -1;
+                pending.Pending = false;
+                return;
+            }
+            if (parent.Kind == FrameKind.BlockSequence) {
+                StartEntry(ref parent);
+                Write('-');
+                parent.Count++;
+                int itemPadding = _options.ItemPadding;
+                pending.Indent = _column + itemPadding;
+                pending.Padding = itemPadding;
+                pending.Pending = false;
+                return;
+            }
+        }
         Frame frame = _frames[_depth - 1];
         _depth--;
         // The first entry's own anchor and tag may already be pending; the collection's go first.
@@ -756,11 +847,12 @@ internal sealed class YamlEmitter {
     private void WriteSingleQuoted(string value) {
         Write('\'');
         int start = 0;
-        for (int i = 0; i < value.Length; i++) {
-            if (value[i] != '\'') continue;
-            WriteRun(value, start, i - start + 1);
+        int quote;
+        // Each quote is doubled: write through it, then one more.
+        while ((quote = value.IndexOf('\'', start)) >= 0) {
+            WriteRun(value, start, quote - start + 1);
             Write('\'');
-            start = i + 1;
+            start = quote + 1;
         }
         WriteRun(value, start, value.Length - start);
         Write('\'');
@@ -875,6 +967,11 @@ internal sealed class YamlEmitter {
     }
 
     private void WriteSpaces(int count) {
+        if (_buffer is not null && count > Spaces.Length) {
+            _buffer.AppendSpaces(count);
+            _column += count;
+            return;
+        }
         while (count > 0) {
             int n = Math.Min(count, Spaces.Length);
             WriteRun(Spaces, 0, n);
@@ -935,8 +1032,9 @@ internal sealed class YamlEmitter {
     }
 
     private void Push(Frame frame) {
-        if (_depth == _frames.Length) Array.Resize(ref _frames, _frames.Length * 2);
+        if (_depth == _frames.Length) Array.Resize(ref _frames, Math.Max(8, _frames.Length * 2));
         _frames[_depth++] = frame;
+        if (_depth > _maxDepth) _maxDepth = _depth;
     }
 
     private static InvalidOperationException Invalid(string message) => new InvalidOperationException(message);

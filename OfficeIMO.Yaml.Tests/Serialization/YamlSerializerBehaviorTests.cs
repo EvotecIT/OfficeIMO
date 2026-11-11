@@ -92,6 +92,25 @@ public class YamlSerializerBehaviorTests {
         root.Children.Add(root);
         var exception = Assert.Throws<YamlException>(() => YamlSerializer.Serialize(root, Context.TreeNode));
         Assert.Equal(YamlErrorCodes.ReferenceCycle, exception.Code);
+
+        // Deep paths: two branches 40 levels deep write without a false cycle, and a cycle back to level 29 fails.
+        var tree = new TreeNode { Name = "tree" };
+        TreeNode[] branch = { Chain(tree, 40), Chain(tree, 40) };
+        Assert.Contains("Name: level39", YamlSerializer.Serialize(tree, Context.TreeNode), StringComparison.Ordinal);
+        TreeNode level29 = tree.Children[0];
+        for (int i = 0; i < 29; i++) level29 = level29.Children[0];
+        branch[0].Children.Add(level29);
+        exception = Assert.Throws<YamlException>(() => YamlSerializer.Serialize(tree, Context.TreeNode));
+        Assert.Equal(YamlErrorCodes.ReferenceCycle, exception.Code);
+
+        static TreeNode Chain(TreeNode parent, int length) {
+            for (int i = 0; i < length; i++) {
+                var next = new TreeNode { Name = "level" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) };
+                parent.Children.Add(next);
+                parent = next;
+            }
+            return parent;
+        }
     }
 
     // Input that does not fit the model fails at the node, with its line, column and path.
@@ -268,12 +287,13 @@ public class YamlSerializerBehaviorTests {
 
     [Fact]
     public void StreamTextAndReaderOverloadsAgree() {
-        var config = new AppConfig { Name = "app", Tags = { "a" } };
+        var config = new AppConfig { Name = "app", Tags = { "a", "café" } };
         string expected = YamlSerializer.Serialize(config, Context.AppConfig);
 
         using var stream = new MemoryStream();
         YamlSerializer.Serialize(stream, config, Context.AppConfig);
-        Assert.Equal(expected, System.Text.Encoding.UTF8.GetString(stream.ToArray()));
+        Assert.Equal(System.Text.Encoding.UTF8.GetBytes(expected), stream.ToArray());
+        Assert.Equal(stream.ToArray(), YamlSerializer.SerializeToUtf8Bytes(config, Context.AppConfig));
         stream.Position = 0;
         Assert.Equal(expected, YamlSerializer.Serialize(YamlSerializer.Deserialize(stream, Context.AppConfig), Context.AppConfig));
         Assert.Equal(expected, YamlSerializer.Serialize(YamlSerializer.Deserialize(new StringReader(expected), Context.AppConfig), Context.AppConfig));

@@ -40,9 +40,16 @@ internal static class YamlScalarFormat {
         int i = value.IndexOfAnyExcept(s_plainEverywhere);
         while (i >= 0) {
             if (!IsPlainCharacter(value, i, flow)) return false;
-            int next = value.Slice(i + 1).IndexOfAnyExcept(s_plainEverywhere);
+            i++;
+            // Runs of non-ASCII letters go one by one rather than one search per character.
+            while (i < value.Length && value[i] >= 0x80) {
+                if (!IsPlainCharacter(value, i, flow)) return false;
+                i++;
+            }
+            if (i == value.Length) break;
+            int next = value.Slice(i).IndexOfAnyExcept(s_plainEverywhere);
             if (next < 0) break;
-            i += next + 1;
+            i += next;
         }
 #else
         for (int i = 0; i < value.Length; i++) {
@@ -159,8 +166,11 @@ internal static class YamlScalarFormat {
         // go-yaml v2 drops underscores before parsing 1.1 numbers, so '+_1.' is a float there.
         if (first is '-' or '+') return value.Length > 1 && !IsDigit(value[1]) && value[1] is not ('.' or '_');
         char c = (char)(first | 0x20);
-        if (c < 'a' || c > 'z') return false;
-        return value.Length > 5 || c is not ('n' or 'y' or 'o' or 't' or 'f') || !IsNullOrBooleanWord(value);
+        if (c >= 'a' && c <= 'z') return value.Length > 5 || c is not ('n' or 'y' or 'o' or 't' or 'f') || !IsNullOrBooleanWord(value);
+        // Numbers, timestamps, infinities, NaN, '~', '<<' and '=' start with a digit or one of these (go-yaml v2 drops
+        // underscores, so '_.5' is a float there); text that starts with anything else (a '/', a '$', a non-ASCII
+        // letter) is a string in every schema.
+        return !IsDigit(first) && first is not ('.' or '_' or '~' or '<' or '=');
     }
 
     private static bool IsDigit(char c) => c >= '0' && c <= '9';
@@ -188,18 +198,29 @@ internal static class YamlScalarFormat {
     }
 
     /// <summary>Returns whether the value fits single quotes on one line: printable text without line breaks.</summary>
-    public static bool CanBeSingleQuoted(ReadOnlySpan<char> value) {
-        for (int i = 0; i < value.Length; i++) {
-            if (!IsPrintableInline(value[i])) return false;
-        }
-        return true;
-    }
+    public static bool CanBeSingleQuoted(ReadOnlySpan<char> value) => IsPrintable(value, lineFeeds: false);
 
     /// <summary>Returns whether the value can be a literal or folded block scalar: printable text whose only breaks are <c>\n</c>.</summary>
-    public static bool CanBeBlock(ReadOnlySpan<char> value) {
-        for (int i = 0; i < value.Length; i++) {
-            char c = value[i];
-            if (c != '\n' && !IsPrintableInline(c)) return false;
+    public static bool CanBeBlock(ReadOnlySpan<char> value) => IsPrintable(value, lineFeeds: true);
+
+    /// <summary>
+    /// Whether every character is <see cref="IsPrintableInline"/>, or a line feed when <paramref name="lineFeeds"/> is
+    /// set. Runs of printable ASCII, most of any text, are skipped with a vectorized search.
+    /// </summary>
+    private static bool IsPrintable(ReadOnlySpan<char> value, bool lineFeeds) {
+        int i = 0;
+        while (i < value.Length) {
+#if NET8_0_OR_GREATER
+            int next = value.Slice(i).IndexOfAnyExceptInRange(' ', '~');
+            if (next < 0) return true;
+            i += next;
+#endif
+            // Check characters one by one up to the next printable ASCII character.
+            do {
+                char c = value[i];
+                if (!IsPrintableInline(c) && !(lineFeeds && c == '\n')) return false;
+                i++;
+            } while (i < value.Length && (uint)(value[i] - ' ') > '~' - ' ');
         }
         return true;
     }
@@ -227,9 +248,18 @@ internal static class YamlScalarFormat {
                 break;
             default:
                 if (CanBePlain(text, flow, key) && !IsSchemaAmbiguous(text)) return YamlStyle.Plain;
-                if (!flow && !key && text.IndexOf('\n') >= 0 && CanBeBlock(text)) return YamlStyle.Literal;
-                break;
+                return ChooseNotPlain(text, flow, key, quote);
         }
+        if (quote == YamlStyle.SingleQuoted && CanBeSingleQuoted(text)) return YamlStyle.SingleQuoted;
+        return YamlStyle.DoubleQuoted;
+    }
+
+    /// <summary>
+    /// The default style <see cref="Choose"/> picks for text it cannot write plain: a literal block for multi-line text
+    /// in block context, otherwise <paramref name="quote"/> quotes, or double quotes when the text needs escapes.
+    /// </summary>
+    public static YamlStyle ChooseNotPlain(ReadOnlySpan<char> text, bool flow, bool key, YamlStyle quote) {
+        if (!flow && !key && text.IndexOf('\n') >= 0 && CanBeBlock(text)) return YamlStyle.Literal;
         if (quote == YamlStyle.SingleQuoted && CanBeSingleQuoted(text)) return YamlStyle.SingleQuoted;
         return YamlStyle.DoubleQuoted;
     }
@@ -300,6 +330,8 @@ internal static class YamlScalarFormat {
 #if NET8_0_OR_GREATER
     /// <summary>Formats a double as <see cref="Format(double)"/> does, into a buffer of at least 40 characters, without allocating.</summary>
     public static int Format(double value, Span<char> destination) {
+        int written = FormatShortDecimal(value, destination);
+        if (written > 0) return written;
         if (!double.IsFinite(value)) {
             string special = Format(value);
             special.AsSpan().CopyTo(destination);
@@ -320,6 +352,95 @@ internal static class YamlScalarFormat {
         }
         value.TryFormat(destination, out int length, default, CultureInfo.InvariantCulture);
         return ShapeInPlace(destination, length);
+    }
+
+    private static readonly double[] s_powersOf10 = { 1, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9 };
+    private static readonly long[] s_integerPowersOf10 = { 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000 };
+
+    /// <summary>
+    /// Formats a double whose shortest round-trip spelling is a decimal with at most nine fraction digits, in the range
+    /// .NET writes without an exponent, as <see cref="Format(double, Span{char})"/> does, without the general shortest
+    /// digit search; returns 0 for any other value. A decimal <c>m / 10^k</c> reads back as the double exactly when the
+    /// correctly rounded division gives it, and below 2^50 at most one such <c>m</c> exists per <c>k</c>, so the
+    /// smallest <c>k</c> that reads back is the shortest spelling.
+    /// </summary>
+    private static int FormatShortDecimal(double value, Span<char> destination) {
+        if (value == 0) {
+            if (BitConverter.DoubleToInt64Bits(value) < 0) {
+                "-0.0".AsSpan().CopyTo(destination);
+                return 4;
+            }
+            "0.0".AsSpan().CopyTo(destination);
+            return 3;
+        }
+        double magnitude = Math.Abs(value);
+        if (!(magnitude >= 1e-4 && magnitude < 1e15)) return 0;
+        double[] powers = s_powersOf10;
+        for (int k = 0; k < powers.Length; k++) {
+            double scaled = magnitude * powers[k];
+            if (scaled >= 1L << 50) return 0;
+            double rounded = Math.Round(scaled);
+            if (rounded / powers[k] != magnitude) continue;
+            long digits = (long)rounded;
+            long unit = s_integerPowersOf10[k];
+            int position = 0;
+            if (value < 0) destination[position++] = '-';
+            long whole = digits / unit;
+            position += FormatDigits((ulong)whole, destination.Slice(position));
+            destination[position++] = '.';
+            if (k == 0) {
+                destination[position++] = '0';
+                return position;
+            }
+            long fraction = digits - whole * unit;
+            for (int i = position + k - 1; i >= position; i--) {
+                destination[i] = (char)('0' + (int)(fraction % 10));
+                fraction /= 10;
+            }
+            return position + k;
+        }
+        return 0;
+    }
+
+    /// <summary>Writes the decimal digits of a number and returns their count.</summary>
+    private static int FormatDigits(ulong value, Span<char> destination) {
+        int count = 1;
+        for (ulong rest = value; rest >= 10; rest /= 10) count++;
+        for (int i = count - 1; i >= 0; i--) {
+            destination[i] = (char)('0' + (int)(value % 10));
+            value /= 10;
+        }
+        return count;
+    }
+
+    /// <summary>
+    /// Formats a decimal in its invariant spelling (every digit of its scale, as <c>1.250</c>) into a buffer of at least
+    /// 32 characters, without the culture-aware formatter for the values whose digits fit 64 bits.
+    /// </summary>
+    public static int Format(decimal value, Span<char> destination) {
+        Span<int> bits = stackalloc int[4];
+        decimal.GetBits(value, bits);
+        int scale = (bits[3] >> 16) & 0xFF;
+        bool negative = bits[3] < 0;
+        ulong digits = ((ulong)(uint)bits[1] << 32) | (uint)bits[0];
+        if (bits[2] != 0 || (negative && digits == 0)) {
+            value.TryFormat(destination, out int written, default, CultureInfo.InvariantCulture);
+            return written;
+        }
+        int position = 0;
+        if (negative) destination[position++] = '-';
+        int count = 1;
+        for (ulong rest = digits; rest >= 10; rest /= 10) count++;
+        // At least one digit before the point: 0.05 has scale 2 and the digits 5.
+        if (count <= scale) count = scale + 1;
+        int end = position + count + (scale > 0 ? 1 : 0);
+        int at = end - 1;
+        for (int i = 0; i < count; i++) {
+            if (i == scale && scale > 0) destination[at--] = '.';
+            destination[at--] = (char)('0' + (int)(digits % 10));
+            digits /= 10;
+        }
+        return end;
     }
 
     /// <summary>Applies the shape of <see cref="Shape"/> to formatted digits in place.</summary>

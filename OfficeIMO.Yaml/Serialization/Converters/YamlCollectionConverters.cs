@@ -20,6 +20,8 @@ internal sealed class YamlCollectionConverter<TCollection, TElement> : YamlConve
 
     public override bool IsContainer => true;
 
+    public override bool HoldsOnlyScalars => _element!.IsScalar;
+
     public override void Configure(YamlSerializerOptions options) => _element = (YamlTypeInfo<TElement>)options.GetTypeInfo(typeof(TElement));
 
     public override TCollection Read(YamlEventCursor cursor, YamlReadState state) {
@@ -42,19 +44,18 @@ internal sealed class YamlCollectionConverter<TCollection, TElement> : YamlConve
     public override void Write(YamlWriter writer, TCollection value, YamlWriteState state) {
         YamlTypeInfo<TElement> element = _element!;
         writer.WriteStartSequence();
-        if (value is TElement[] array) {
+        if (_stringElements && value is List<string?> strings) {
+            // String items that need no quotes go out in one step, as the element metadata would write them; the exact
+            // list type keeps shared generic code out of the loop.
+            for (int i = 0; i < strings.Count; i++) {
+                string? text = strings[i];
+                if (text is not null && writer.TryWriteStringItem(text)) continue;
+                element.Write(writer, Unsafe.As<string?, TElement>(ref text), state);
+            }
+        } else if (value is TElement[] array) {
             for (int i = 0; i < array.Length; i++) element.Write(writer, array[i], state);
         } else if (value is List<TElement> list) {
-            if (_stringElements) {
-                // String items that need no quotes go out in one step, as the element metadata would write them.
-                for (int i = 0; i < list.Count; i++) {
-                    TElement item = list[i];
-                    if (Unsafe.As<TElement, string?>(ref item) is string text && writer.TryWritePlainItem(text)) continue;
-                    element.Write(writer, item, state);
-                }
-            } else {
-                for (int i = 0; i < list.Count; i++) element.Write(writer, list[i], state);
-            }
+            for (int i = 0; i < list.Count; i++) element.Write(writer, list[i], state);
         } else {
             foreach (TElement item in value) element.Write(writer, item, state);
         }
@@ -88,6 +89,8 @@ internal sealed class YamlDictionaryConverter<TDictionary, TKey, TValue> : YamlC
     }
 
     public override bool IsContainer => true;
+
+    public override bool HoldsOnlyScalars => _key!.IsScalar && _value!.IsScalar;
 
     public override void Configure(YamlSerializerOptions options) {
         _key = (YamlTypeInfo<TKey>)options.GetTypeInfo(typeof(TKey));
@@ -218,12 +221,19 @@ internal sealed class YamlDictionaryConverter<TDictionary, TKey, TValue> : YamlC
         YamlTypeInfo<TKey> keyInfo = _key!;
         YamlTypeInfo<TValue> valueInfo = _value!;
         writer.WriteStartMapping();
-        if (value is Dictionary<TKey, TValue> dictionary) {
+        if (_stringValues && value is Dictionary<string, string> strings) {
+            // String entries go out in one step, as WriteEntry would write them; the exact dictionary type keeps shared
+            // generic code out of the loop.
+            foreach (KeyValuePair<string, string> entry in strings) {
+                if (entry.Value is not null && writer.TryWriteStringEntry(entry.Key, entry.Value, checkKey: true)) continue;
+                KeyValuePair<string, string> pair = entry;
+                WriteEntry(writer, keyInfo, valueInfo, Unsafe.As<KeyValuePair<string, string>, KeyValuePair<TKey, TValue>>(ref pair), state);
+            }
+        } else if (value is Dictionary<TKey, TValue> dictionary) {
             if (_stringValues) {
-                // String entries that need no quotes go out in one step, as WriteEntry would write them.
                 foreach (KeyValuePair<TKey, TValue> entry in dictionary) {
                     TValue item = entry.Value;
-                    if (entry.Key is string key && Unsafe.As<TValue, string?>(ref item) is string text && writer.TryWritePlainEntry(key, text, checkKey: true)) continue;
+                    if (entry.Key is string key && Unsafe.As<TValue, string?>(ref item) is string text && writer.TryWriteStringEntry(key, text, checkKey: true)) continue;
                     WriteEntry(writer, keyInfo, valueInfo, entry, state);
                 }
             } else {

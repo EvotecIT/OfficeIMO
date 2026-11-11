@@ -161,20 +161,52 @@ internal sealed class YamlReadState {
 
 /// <summary>Per-call state of one serialization: anchors for shared references and the stack for cycle detection.</summary>
 internal sealed class YamlWriteState {
+    private const int ScannedAncestors = 16;
     private object[] _ancestors = new object[8];
+    // Ancestors past the scanned ones also sit in an open-addressed identity table, with the slot each took. They
+    // leave in reverse order of entering, so leaving clears the slot: every entry still present was placed earlier,
+    // so no probe sequence of one runs through a slot taken later.
+    private object?[] _deepTable = Array.Empty<object?>();
+    private int[] _deepSlots = Array.Empty<int>();
     private int _depth;
     private Dictionary<object, string>? _anchors;
     private HashSet<object>? _shared;
     private int _nextAnchor;
 
-    public YamlWriteState(YamlSerializerOptions options) {
+    // One state per thread is reused by the next call after a completed write; a call that throws, or a nested call
+    // while one is in use, creates its own.
+    [ThreadStatic] private static YamlWriteState? t_cached;
+
+    private YamlWriteState(YamlSerializerOptions options) {
         Options = options;
         Preserve = options.ReferenceHandling == YamlReferenceHandling.Preserve;
     }
 
-    public YamlSerializerOptions Options { get; }
+    /// <summary>Gets a state for one write with the options; pair it with <see cref="Return"/> when the write completes.</summary>
+    public static YamlWriteState Rent(YamlSerializerOptions options) {
+        YamlWriteState? state = t_cached;
+        if (state is null) return new YamlWriteState(options);
+        t_cached = null;
+        state.Options = options;
+        state.Preserve = options.ReferenceHandling == YamlReferenceHandling.Preserve;
+        return state;
+    }
 
-    public bool Preserve { get; }
+    /// <summary>Clears the state of a completed write and keeps it for the next write on this thread.</summary>
+    public void Return() {
+        // A completed write has left every object it entered; the arrays hold no references.
+        _anchors = null;
+        _shared = null;
+        _nextAnchor = 0;
+        DiscriminatorKey = null;
+        DiscriminatorValue = null;
+        Options = null!;
+        if (_depth == 0) t_cached = this;
+    }
+
+    public YamlSerializerOptions Options { get; private set; }
+
+    public bool Preserve { get; private set; }
 
     /// <summary>The discriminator key and value the next object mapping writes first, for property discriminators.</summary>
     public string? DiscriminatorKey { get; set; }
@@ -220,16 +252,55 @@ internal sealed class YamlWriteState {
         if (!Preserve) Exit();
     }
 
-    /// <summary>Enters an object or collection, failing on a cycle.</summary>
+    /// <summary>
+    /// Enters an object or collection, failing on a cycle. The first <see cref="ScannedAncestors"/> ancestors are
+    /// compared one by one; deeper ones are also kept in an identity table, so deep nesting costs a lookup per level
+    /// instead of a scan of the whole path.
+    /// </summary>
     public void Enter(object value, Type type) {
-        for (int i = 0; i < _depth; i++) {
+        int scanned = Math.Min(_depth, ScannedAncestors);
+        for (int i = 0; i < scanned; i++) {
             if (ReferenceEquals(_ancestors[i], value)) throw YamlSerializationErrors.Cycle(type);
         }
+        if (_depth >= ScannedAncestors && !AddDeep(value, _depth - ScannedAncestors)) throw YamlSerializationErrors.Cycle(type);
         if (_depth == _ancestors.Length) Array.Resize(ref _ancestors, _depth * 2);
         _ancestors[_depth++] = value;
     }
 
-    public void Exit() => _ancestors[--_depth] = null!;
+    public void Exit() {
+        _ancestors[--_depth] = null!;
+        if (_depth >= ScannedAncestors) _deepTable[_deepSlots[_depth - ScannedAncestors]] = null;
+    }
+
+    /// <summary>Adds a deep ancestor as the table's entry number <paramref name="count"/>; false when it is already there.</summary>
+    private bool AddDeep(object value, int count) {
+        if ((count + 1) * 2 > _deepTable.Length) GrowDeep(count);
+        object?[] table = _deepTable;
+        int mask = table.Length - 1;
+        int slot = RuntimeHelpers.GetHashCode(value) & mask;
+        while (table[slot] is object present) {
+            if (ReferenceEquals(present, value)) return false;
+            slot = (slot + 1) & mask;
+        }
+        table[slot] = value;
+        if (count == _deepSlots.Length) Array.Resize(ref _deepSlots, Math.Max(16, count * 2));
+        _deepSlots[count] = slot;
+        return true;
+    }
+
+    /// <summary>Doubles the table and places the present entries again, in the order they entered.</summary>
+    private void GrowDeep(int count) {
+        var table = new object?[Math.Max(64, _deepTable.Length * 2)];
+        int mask = table.Length - 1;
+        for (int i = 0; i < count; i++) {
+            object value = _ancestors[ScannedAncestors + i];
+            int slot = RuntimeHelpers.GetHashCode(value) & mask;
+            while (table[slot] is not null) slot = (slot + 1) & mask;
+            table[slot] = value;
+            _deepSlots[i] = slot;
+        }
+        _deepTable = table;
+    }
 }
 
 /// <summary>Walks an object graph before writing with <see cref="YamlReferenceHandling.Preserve"/> to find shared references.</summary>
