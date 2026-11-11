@@ -75,7 +75,7 @@ internal sealed class YamlNodeTable {
         _source = source;
         Records = ArrayPool<YamlNodeRecord>.Shared.Rent(Math.Max(16, source.Length / 12));
         Properties = ArrayPool<YamlRecordProperties>.Shared.Rent(8);
-        Texts = ArrayPool<string>.Shared.Rent(Math.Max(16, source.Length / 32));
+        Texts = ArrayPool<string>.Shared.Rent(8);
     }
 
     public int Add() {
@@ -122,10 +122,9 @@ internal sealed class YamlNodeTable {
 
     public string? Tag(int record) => Records[record].Props < 0 ? null : Properties[Records[record].Props].Tag;
 
-    /// <summary>The scalar's decoded value as a span: the cached key text, the raw source when it is the value, or a decoded copy.</summary>
+    /// <summary>The scalar's decoded value as a span: the raw source when it is the value, otherwise a decoded copy.</summary>
     public ReadOnlySpan<char> ValueSpan(int record) {
         ref YamlNodeRecord r = ref Records[record];
-        if (r.Text >= 0) return Texts[r.Text].AsSpan();
         if (YamlScalarDecoder.IsVerbatim(r.Style, r.Flags)) return _source.AsSpan(r.ValueStart, r.ValueEnd - r.ValueStart);
         return Value(record).AsSpan();
     }
@@ -133,7 +132,6 @@ internal sealed class YamlNodeTable {
     /// <summary>The scalar's decoded value.</summary>
     public string Value(int record) {
         ref YamlNodeRecord r = ref Records[record];
-        if (r.Text >= 0) return Texts[r.Text];
         return YamlScalar.DecodeValue(_source, r.ValueStart, r.ValueEnd, r.Style, r.Flags, r.Chomping, r.Count);
     }
 

@@ -376,7 +376,7 @@ internal sealed class YamlTreeBuilder {
 
     private KeyIdentity StringIdentity(int record) {
         ref YamlNodeRecord r = ref _table.Records[record];
-        if (r.Text < 0 && YamlScalarDecoder.IsVerbatim(r.Style, r.Flags)) {
+        if (YamlScalarDecoder.IsVerbatim(r.Style, r.Flags)) {
             return new KeyIdentity { Class = StringKey, Start = r.ValueStart, Length = r.ValueEnd - r.ValueStart };
         }
         return new KeyIdentity { Class = StringKey, Text = _table.Value(record) };
