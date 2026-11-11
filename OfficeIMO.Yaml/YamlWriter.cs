@@ -113,7 +113,22 @@ public sealed class YamlWriter : IDisposable {
             return;
         }
         if (!_emitter.AtKey) throw new InvalidOperationException("WriteKey is valid only where a mapping expects a key.");
-        WriteChosen(key, _emitter.ChooseStyle(key, YamlStyle.None), YamlStyle.None);
+        WriteChosen(key, _emitter.InFlow ? _emitter.ChooseStyle(key, YamlStyle.None) : YamlKeyStyles.Block(key), YamlStyle.None);
+    }
+
+    /// <summary>
+    /// Writes a string mapping key as <see cref="WriteKey(string)"/> does, with its block-mapping style chosen in advance
+    /// by <see cref="YamlKeyStyles.Block"/>; in a flow mapping the style is chosen again.
+    /// </summary>
+    internal void WriteKey(string key, YamlStyle blockStyle) {
+        CheckDisposed();
+        if (_builder is not null) {
+            if (!_builder.AtKey) throw new InvalidOperationException("WriteKey is valid only where a mapping expects a key.");
+            _builder.Scalar(new YamlScalar(key));
+            return;
+        }
+        if (!_emitter.AtKey) throw new InvalidOperationException("WriteKey is valid only where a mapping expects a key.");
+        WriteChosen(key, _emitter.InFlow ? _emitter.ChooseStyle(key, YamlStyle.None) : blockStyle, YamlStyle.None);
     }
 
     /// <summary>
@@ -209,7 +224,7 @@ public sealed class YamlWriter : IDisposable {
     /// <summary>
     /// Writes a block mapping entry whose key is safe as a plain scalar everywhere (or, with <paramref name="checkKey"/>,
     /// whose key is checked for the default style) and whose string value gets its default style, as
-    /// <see cref="WritePlainKey"/> or <see cref="WriteKey"/> and <see cref="WriteScalar(string?, YamlStyle)"/> would, in
+    /// <see cref="WritePlainKey"/> or <see cref="WriteKey(string)"/> and <see cref="WriteScalar(string?, YamlStyle)"/> would, in
     /// one step. Returns false, having written nothing, when the position, the key or the value needs the general path.
     /// </summary>
     internal bool TryWritePlainEntry(string key, string value, bool checkKey = false) {
@@ -223,10 +238,7 @@ public sealed class YamlWriter : IDisposable {
     }
 
     /// <summary>Whether a block mapping key gets the default style plain on one line, as an implicit key.</summary>
-    internal static bool IsPlainKey(string key) {
-        ReadOnlySpan<char> name = key.AsSpan();
-        return name.Length <= YamlScalarFormat.MaxImplicitKeyLength && YamlScalarFormat.CanBePlain(name, flow: false, key: true) && !YamlScalarFormat.IsSchemaAmbiguous(name);
-    }
+    internal static bool IsPlainKey(string key) => YamlKeyStyles.IsPlain(key);
 
     /// <summary>
     /// Writes a block sequence item for a string in its default style, as <see cref="WriteScalar(string?, YamlStyle)"/>
@@ -247,6 +259,36 @@ public sealed class YamlWriter : IDisposable {
         if (_builder is not null || !_emitter.AtBlockKey) return false;
         int length = YamlScalarFormat.Format(value, _number);
         _emitter.WriteEntry(key, _number.AsSpan(0, length));
+        return true;
+    }
+
+    /// <summary>Writes a block mapping entry with a plain-safe key and a floating-point value in one step; see <see cref="TryWritePlainEntry(string, string, bool)"/>.</summary>
+    internal bool TryWritePlainEntry(string key, double value) {
+        CheckDisposed();
+        if (_builder is not null || !_emitter.AtBlockKey) return false;
+#if NET8_0_OR_GREATER
+        int length = YamlScalarFormat.Format(value, _number);
+        _emitter.WriteEntry(key, _number.AsSpan(0, length));
+#else
+        _emitter.WriteEntry(key, YamlScalarFormat.Format(value).AsSpan());
+#endif
+        return true;
+    }
+
+    /// <summary>
+    /// Writes a block mapping entry with a plain-safe key and a decimal value in its invariant spelling, as the decimal
+    /// converter writes it, in one step; see <see cref="TryWritePlainEntry(string, string, bool)"/>.
+    /// </summary>
+    internal bool TryWritePlainEntry(string key, decimal value) {
+        CheckDisposed();
+        if (_builder is not null || !_emitter.AtBlockKey) return false;
+#if NET8_0_OR_GREATER
+        // A decimal has at most 29 digits, a sign and a point, which the number buffer holds.
+        value.TryFormat(_number, out int length, default, CultureInfo.InvariantCulture);
+        _emitter.WriteEntry(key, _number.AsSpan(0, length));
+#else
+        _emitter.WriteEntry(key, value.ToString(CultureInfo.InvariantCulture).AsSpan());
+#endif
         return true;
     }
 

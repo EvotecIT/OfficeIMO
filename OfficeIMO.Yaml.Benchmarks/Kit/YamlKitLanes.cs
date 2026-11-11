@@ -68,8 +68,8 @@ internal static class YamlKitLanes {
     private static readonly YamlLoadOptions Unbounded = new() { MaxNodes = int.MaxValue };
 
     /// <summary>
-    /// The OfficeIMO.Yaml document options: the defaults, which cap a document at 1,000,000 nodes, unless
-    /// <c>--raise-limits</c> lifts the cap for the 8 MiB records workload. The kit runs every library with its defaults.
+    /// The OfficeIMO.Yaml document options: the defaults, which cap a document at 10,000,000 nodes, unless
+    /// <c>--raise-limits</c> lifts the cap. The kit runs every library with its defaults.
     /// </summary>
     public static YamlLoadOptions? OfficeLoad { get; set; }
 

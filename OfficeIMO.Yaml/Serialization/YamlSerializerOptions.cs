@@ -17,6 +17,7 @@ public sealed class YamlSerializerOptions {
     private YamlNamingPolicy? _namingPolicy;
     private YamlIgnoreCondition _defaultIgnoreCondition;
     private YamlReferenceHandling _referenceHandling;
+    private bool _copyAliases;
     private YamlReaderOptions? _readerOptions;
     private YamlWriterOptions? _writerOptions;
     private IYamlTypeInfoResolver? _resolver;
@@ -33,6 +34,7 @@ public sealed class YamlSerializerOptions {
         _namingPolicy = options._namingPolicy;
         _defaultIgnoreCondition = options._defaultIgnoreCondition;
         _referenceHandling = options._referenceHandling;
+        _copyAliases = options._copyAliases;
         _readerOptions = options._readerOptions;
         _writerOptions = options._writerOptions;
         _resolver = options._resolver;
@@ -74,6 +76,23 @@ public sealed class YamlSerializerOptions {
         set {
             CheckWritable();
             _referenceHandling = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets whether every alias read as <see cref="object"/> gets its own copy of its anchored node. Off by
+    /// default: an alias read as <see cref="object"/> returns the dictionary, list or scalar already read for its
+    /// anchor, as PyYAML does, so changing one changes every place that shares it. Typed values (properties, collections
+    /// and dictionaries of a declared type) are read again from the anchored node for each alias either way; use
+    /// <see cref="YamlReferenceHandling.Preserve"/> to map those aliases to one instance too. A shared value still counts
+    /// every node it stands for against <see cref="YamlReaderOptions.MaxAliasExpansion"/>, because writing or walking
+    /// it later visits them all.
+    /// </summary>
+    public bool CopyAliases {
+        get => _copyAliases;
+        set {
+            CheckWritable();
+            _copyAliases = value;
         }
     }
 

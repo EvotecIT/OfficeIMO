@@ -65,6 +65,33 @@ internal sealed class YamlCharBuffer : TextWriter {
         _length += text.Length;
     }
 
+    /// <summary>
+    /// Appends a block mapping entry on a new line, the line start (line break and indentation), the key, <c>": "</c>
+    /// and the value, with one capacity check instead of one per piece.
+    /// </summary>
+    public void AppendEntry(string lineStart, string key, ReadOnlySpan<char> value) {
+        int total = lineStart.Length + key.Length + 2 + value.Length;
+        if (_stream is not null && _length + total > StreamBlock) Drain(final: false);
+        if (_buffer.Length - _length < total) Grow(total);
+        char[] buffer = _buffer;
+        int position = _length;
+        Copy(lineStart.AsSpan(), buffer, ref position);
+        Copy(key.AsSpan(), buffer, ref position);
+        buffer[position++] = ':';
+        buffer[position++] = ' ';
+        Copy(value, buffer, ref position);
+        _length = position;
+    }
+
+    private static void Copy(ReadOnlySpan<char> text, char[] buffer, ref int position) {
+        if (text.Length <= 16) {
+            for (int i = 0; i < text.Length; i++) buffer[position + i] = text[i];
+        } else {
+            text.CopyTo(buffer.AsSpan(position));
+        }
+        position += text.Length;
+    }
+
     public override string ToString() => new string(_buffer, 0, _length);
 
     /// <summary>Encodes everything buffered to the stream; for a string buffer it does nothing.</summary>

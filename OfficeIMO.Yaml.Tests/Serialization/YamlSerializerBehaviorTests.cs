@@ -23,6 +23,32 @@ public class YamlSerializerBehaviorTests {
         Assert.Equal((9090L, "shared", true), ((long)untyped["Port"]!, (string)untyped["Name"]!, (bool)untyped["Enabled"]!));
     }
 
+    // An untyped alias returns the value read for its anchor, from text and from a loaded node alike; merge keys take
+    // the entries of a shared mapping or sequence of mappings, a redefined anchor names its latest node, and
+    // CopyAliases gives every alias its own copy.
+    [Fact]
+    public void UntypedAliasesShareTheAnchoredValueUnlessCopied() {
+        const string yaml = "first: &a {port: 80}\nsame: *a\nlist: [*a]\nmaps: &m [{x: 1}, {y: 2}]\n"
+            + "merged: {<<: *a, extra: 1}\nmergedList: {<<: *m, x: 3}\nredefined: &a [1]\nlatest: *a\n";
+        foreach (Func<YamlSerializerOptions, object?> read in new Func<YamlSerializerOptions, object?>[] {
+            options => YamlSerializer.Deserialize(yaml, typeof(object), new TestYamlContext(options)),
+            options => YamlSerializer.Deserialize(YamlDocument.Parse(yaml).Root!, typeof(object), new TestYamlContext(options))
+        }) {
+            var shared = (Dictionary<string, object?>)read(new YamlSerializerOptions())!;
+            Assert.Same(shared["first"], shared["same"]);
+            Assert.Same(shared["first"], ((List<object?>)shared["list"]!)[0]);
+            Assert.Same(shared["redefined"], shared["latest"]);
+            Assert.Equal(new Dictionary<string, object?> { ["port"] = 80L, ["extra"] = 1L }, (Dictionary<string, object?>)shared["merged"]!);
+            Assert.Equal(new Dictionary<string, object?> { ["x"] = 3L, ["y"] = 2L }, (Dictionary<string, object?>)shared["mergedList"]!);
+
+            var copied = (Dictionary<string, object?>)read(new YamlSerializerOptions { CopyAliases = true })!;
+            Assert.NotSame(copied["first"], copied["same"]);
+            Assert.Equal(80L, ((Dictionary<string, object?>)copied["same"]!)["port"]);
+            Assert.Equal(new object?[] { 1L }, (List<object?>)copied["latest"]!);
+            Assert.Equal(new Dictionary<string, object?> { ["x"] = 3L, ["y"] = 2L }, (Dictionary<string, object?>)copied["mergedList"]!);
+        }
+    }
+
     // A "billion laughs" input stops at MaxAliasExpansion instead of exhausting memory.
     [Fact]
     public void AliasExpansionStopsAtTheReaderLimit() {

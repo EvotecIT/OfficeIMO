@@ -14,6 +14,10 @@ namespace OfficeIMO.Yaml;
 internal sealed class YamlUntypedConverter : YamlConverter<object> {
     public static YamlUntypedConverter Instance { get; } = new YamlUntypedConverter();
 
+    // Booleans are read as one of two boxes instead of a new box per value.
+    private static readonly object True = true;
+    private static readonly object False = false;
+
     private YamlTypeInfo<Dictionary<string, object?>>? _mapping;
     private YamlTypeInfo<List<object?>>? _sequence;
 
@@ -42,7 +46,7 @@ internal sealed class YamlUntypedConverter : YamlConverter<object> {
             case YamlScalarKind.Null:
                 return null;
             case YamlScalarKind.Boolean:
-                if (YamlSchemaResolver.TryParseBoolean(text, schema, out bool flag)) return flag;
+                if (YamlSchemaResolver.TryParseBoolean(text, schema, out bool flag)) return flag ? True : False;
                 break;
             case YamlScalarKind.Integer:
                 if (YamlSchemaResolver.TryParseInt64(text, schema, out long integer)) return integer;
@@ -144,6 +148,7 @@ internal sealed class YamlUntypedConverter : YamlConverter<object> {
         string text => writer.TryWritePlainEntry(key, text, checkKey: true),
         long number => YamlWriter.IsPlainKey(key) && writer.TryWritePlainEntry(key, number),
         bool flag => YamlWriter.IsPlainKey(key) && writer.TryWritePlainEntry(key, flag),
+        double number => YamlWriter.IsPlainKey(key) && writer.TryWritePlainEntry(key, number),
         _ => false
     };
 

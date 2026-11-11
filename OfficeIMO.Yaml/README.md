@@ -201,7 +201,7 @@ Serialization reads from `YamlReader` and writes to `YamlWriter` directly, witho
 
 ### Anchors, aliases and merge keys
 
-Reading expands an alias by replaying its anchored node, within `MaxAliasExpansion` of the reader options. `YamlReaderOptions.UntrustedDefaults` lowers every limit for input from outside. `<<` merge keys fill only the members a mapping does not set itself.
+Reading an alias as `object` returns the dictionary, list or scalar already read for its anchor, as PyYAML does, so changing it changes every place that shares it; set `CopyAliases` for a copy per alias. A typed value is read again from the anchored node for each alias. Either way every alias counts the nodes it stands for against `MaxAliasExpansion` of the reader options, because writing or walking a shared value visits them all. `YamlReaderOptions.UntrustedDefaults` lowers every limit for input from outside. `<<` merge keys fill only the members a mapping does not set itself.
 
 Writing has no reference handling by default, and a cycle throws `YamlErrorCodes.ReferenceCycle`. With `ReferenceHandling = YamlReferenceHandling.Preserve`, an object reached again is written as an alias (`*id001`) to an anchor on its first occurrence. Reading then maps each alias back to the same instance, so shared references and cycles round-trip.
 
@@ -308,4 +308,4 @@ try {
 }
 ```
 
-`YamlReaderOptions` and `YamlLoadOptions` bound nesting depth (`MaxDepth`, 256), scalar length (`MaxScalarLength`, 16 MiB of characters) and optionally the whole input (`MaxInputBytes`). `YamlLoadOptions` also bounds the nodes of each document (`MaxNodes`, 1,000,000) and the nodes each document's aliases stand for when resolved (`MaxAliasExpansion`, 100,000). The load measures expansion without expanding anything, so a "billion laughs" input fails quickly, and an alias inside its own anchor fails with `YamlErrorCodes.RecursiveAlias`. Exceeding a limit throws `YamlLimitExceededException` with the limit's name. A `CancellationToken` passed to the reader constructor or `LoadAsync` is checked at bounded intervals.
+`YamlReaderOptions` and `YamlLoadOptions` bound nesting depth (`MaxDepth`, 256), scalar length (`MaxScalarLength`, 16 MiB of characters) and optionally the whole input (`MaxInputBytes`). `YamlLoadOptions` also bounds the nodes of each document (`MaxNodes`, 10,000,000; 200,000 in `UntrustedDefaults`) and the nodes each document's aliases stand for when resolved (`MaxAliasExpansion`, 100,000). The load measures expansion without expanding anything, so a "billion laughs" input fails quickly, and an alias inside its own anchor fails with `YamlErrorCodes.RecursiveAlias`. Exceeding a limit throws `YamlLimitExceededException` with the limit's name. A `CancellationToken` passed to the reader constructor or `LoadAsync` is checked at bounded intervals.

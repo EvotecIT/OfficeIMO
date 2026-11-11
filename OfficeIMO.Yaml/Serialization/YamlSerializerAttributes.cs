@@ -116,8 +116,9 @@ public enum YamlIgnoreCondition : byte {
 /// <summary>How the serializer treats an object that is reached more than once.</summary>
 public enum YamlReferenceHandling : byte {
     /// <summary>
-    /// Each reference is written in full, and a cycle fails with <see cref="YamlErrorCodes.ReferenceCycle"/>. Aliases in
-    /// the input are read as copies of their anchored node. This is the default.
+    /// Each reference is written in full, and a cycle fails with <see cref="YamlErrorCodes.ReferenceCycle"/>. An alias in
+    /// the input read as a typed value is read again from its anchored node; one read as <see cref="object"/> returns
+    /// the value read for its anchor, unless <see cref="YamlSerializerOptions.CopyAliases"/> is set. This is the default.
     /// </summary>
     None = 0,
     /// <summary>

@@ -249,8 +249,12 @@ internal static class YamlScalarFormat {
         return c != '\u2028' && c != '\u2029' && c != '\uFEFF' && c <= '\uFFFD';
     }
 
-    /// <summary>Formats a 64-bit integer.</summary>
+    /// <summary>Formats a 64-bit integer into a buffer of at least 20 characters.</summary>
     public static int Format(long value, Span<char> destination) {
+#if NET8_0_OR_GREATER
+        value.TryFormat(destination, out int written, default, CultureInfo.InvariantCulture);
+        return written;
+#else
         ulong magnitude = value < 0 ? (ulong)(-(value + 1)) + 1 : (ulong)value;
         int length = 0;
         do {
@@ -260,6 +264,7 @@ internal static class YamlScalarFormat {
         if (value < 0) destination[length++] = '-';
         destination.Slice(0, length).Reverse();
         return length;
+#endif
     }
 
     /// <summary>

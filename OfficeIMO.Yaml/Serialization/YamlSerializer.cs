@@ -13,8 +13,9 @@ namespace OfficeIMO.Yaml;
 /// NativeAOT applications.
 /// </summary>
 /// <remarks>
-/// <para>Reading resolves aliases by replaying their anchored node, within
-/// <see cref="YamlReaderOptions.MaxAliasExpansion"/>, and applies <c>&lt;&lt;</c> merge keys. Values that do not fit
+/// <para>Reading resolves aliases within <see cref="YamlReaderOptions.MaxAliasExpansion"/>: an alias read as
+/// <see cref="object"/> returns the value read for its anchor (see <see cref="YamlSerializerOptions.CopyAliases"/>), and
+/// a typed alias is read again from its anchored node. <c>&lt;&lt;</c> merge keys apply. Values that do not fit
 /// their type fail with a <see cref="YamlException"/> whose <see cref="YamlException.Code"/> is
 /// <see cref="YamlErrorCodes.TypeMismatch"/> and whose position points at the node. Tags never select a .NET type:
 /// only discriminators registered with <see cref="YamlDerivedTypeAttribute"/> do.</para>
@@ -227,7 +228,7 @@ public static class YamlSerializer {
         if (typeInfo is null) throw new ArgumentNullException(nameof(typeInfo));
         int maxExpansion = typeInfo.Options.EffectiveReaderOptions.MaxAliasExpansion;
         var cursor = new YamlEventCursor(YamlEventCursor.Record(node), maxExpansion, typeInfo.Options.EffectiveReaderOptions.Strict);
-        return typeInfo.Read(cursor, new YamlReadState(typeInfo.Options));
+        return typeInfo.Read(cursor, new YamlReadState(typeInfo.Options, typeInfo.IsUntyped));
     }
 
     // ------------------------------------------------------------------ generated metadata: context and Type
@@ -367,7 +368,7 @@ public static class YamlSerializer {
     private static object? DeserializeBoxed(YamlReader reader, YamlTypeInfo typeInfo) {
         if (reader is null) throw new ArgumentNullException(nameof(reader));
         if (!MoveToValue(reader, out bool document)) return null;
-        object? value = typeInfo.ReadBoxed(Begin(reader), new YamlReadState(typeInfo.Options));
+        object? value = ReadValueBoxed(reader, typeInfo);
         if (document) ReadDocumentEnd(reader);
         return value;
     }
@@ -376,12 +377,12 @@ public static class YamlSerializer {
         if (node is null) throw new ArgumentNullException(nameof(node));
         int maxExpansion = typeInfo.Options.EffectiveReaderOptions.MaxAliasExpansion;
         var cursor = new YamlEventCursor(YamlEventCursor.Record(node), maxExpansion, typeInfo.Options.EffectiveReaderOptions.Strict);
-        return typeInfo.ReadBoxed(cursor, new YamlReadState(typeInfo.Options));
+        return typeInfo.ReadBoxed(cursor, new YamlReadState(typeInfo.Options, typeInfo.IsUntyped));
     }
 
     private static T? ReadDocument<T>(YamlReader reader, YamlTypeInfo<T> typeInfo) {
         if (!MoveToValue(reader, out _)) return ReadEmpty(typeInfo);
-        T value = typeInfo.Read(Begin(reader), new YamlReadState(typeInfo.Options));
+        T value = ReadValue(reader, typeInfo);
         ReadDocumentEnd(reader);
         RequireStreamEnd(reader);
         return value;
@@ -389,7 +390,7 @@ public static class YamlSerializer {
 
     private static object? ReadDocumentBoxed(YamlReader reader, YamlTypeInfo typeInfo) {
         if (!MoveToValue(reader, out _)) return null;
-        object? value = typeInfo.ReadBoxed(Begin(reader), new YamlReadState(typeInfo.Options));
+        object? value = ReadValueBoxed(reader, typeInfo);
         ReadDocumentEnd(reader);
         RequireStreamEnd(reader);
         return value;
@@ -397,7 +398,7 @@ public static class YamlSerializer {
 
     private static T? ReadNext<T>(YamlReader reader, YamlTypeInfo<T> typeInfo) {
         if (!MoveToValue(reader, out bool document)) return ReadEmpty(typeInfo);
-        T value = typeInfo.Read(Begin(reader), new YamlReadState(typeInfo.Options));
+        T value = ReadValue(reader, typeInfo);
         if (document) ReadDocumentEnd(reader);
         return value;
     }
@@ -410,10 +411,28 @@ public static class YamlSerializer {
         return default;
     }
 
-    private static YamlEventCursor Begin(YamlReader reader) {
-        var cursor = new YamlEventCursor(reader);
+    /// <summary>
+    /// Reads the node the reader is on. The cursor and state are reused per thread, so a stream of many small documents
+    /// reads each without creating them; a read that throws leaves them to the garbage collector.
+    /// </summary>
+    private static T ReadValue<T>(YamlReader reader, YamlTypeInfo<T> typeInfo) {
+        YamlEventCursor cursor = YamlEventCursor.Rent(reader);
         cursor.Begin();
-        return cursor;
+        YamlReadState state = YamlReadState.Rent(typeInfo.Options, typeInfo.IsUntyped);
+        T value = typeInfo.Read(cursor, state);
+        state.Return();
+        cursor.Return();
+        return value;
+    }
+
+    private static object? ReadValueBoxed(YamlReader reader, YamlTypeInfo typeInfo) {
+        YamlEventCursor cursor = YamlEventCursor.Rent(reader);
+        cursor.Begin();
+        YamlReadState state = YamlReadState.Rent(typeInfo.Options, typeInfo.IsUntyped);
+        object? value = typeInfo.ReadBoxed(cursor, state);
+        state.Return();
+        cursor.Return();
+        return value;
     }
 
     /// <summary>

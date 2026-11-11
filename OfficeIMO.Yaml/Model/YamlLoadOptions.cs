@@ -102,8 +102,8 @@ public sealed class YamlLoadOptions {
 
     /// <summary>
     /// Gets or sets the maximum number of nodes (scalars, collections and aliases) in one document of the stream. Defaults
-    /// to 1,000,000. A multi-document stream such as a large Kubernetes manifest list is bounded per document; bound the
-    /// whole input with <see cref="MaxInputBytes"/>.
+    /// to 10,000,000; <see cref="UntrustedDefaults"/> lowers it to 200,000. A multi-document stream such as a large
+    /// Kubernetes manifest list is bounded per document; bound the whole input with <see cref="MaxInputBytes"/>.
     /// </summary>
     public int MaxNodes {
         get => _reader.MaxNodes;

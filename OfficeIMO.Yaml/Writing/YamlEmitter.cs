@@ -54,7 +54,7 @@ internal sealed class YamlEmitter {
     // Line break plus indentation per indentation, shared by every emitter with the same line break.
     private static readonly string?[] s_lfLineStarts = new string?[LineStartCacheSize];
     private static readonly string?[] s_crlfLineStarts = new string?[LineStartCacheSize];
-    private Frame[] _frames = new Frame[16];
+    private Frame[] _frames = new Frame[8];
     private int _depth;
     private int _column;
     private int _documents;
@@ -370,6 +370,16 @@ internal sealed class YamlEmitter {
         if (top.Pending) {
             ResolvePending(empty: false);
             top = ref _frames[_depth - 1];
+        }
+        if (top.Padding < 0 && _buffer is not null && value.Length > 0 && _column > 0 && _trailingComment is null && (uint)top.Indent < LineStartCacheSize) {
+            // The usual entry on a line of its own goes into the char buffer in one step, as StartLine and the pieces
+            // below would write it.
+            _buffer.AppendEntry(LineStart(top.Indent), key, value);
+            _column = top.Indent + key.Length + 2 + value.Length;
+            top.ExplicitKey = false;
+            top.AliasKey = false;
+            top.Count++;
+            return;
         }
         if (top.Padding >= 0) {
             WriteSpaces(top.Padding);
@@ -832,15 +842,19 @@ internal sealed class YamlEmitter {
     /// </summary>
     private void StartLine(int indent) {
         if (_column > 0 && _trailingComment is null && _buffer is not null && (uint)indent < LineStartCacheSize) {
-            // The options allow only "\n" and "\r\n".
-            string?[] cache = _newLine.Length == 1 ? s_lfLineStarts : s_crlfLineStarts;
-            string text = cache[indent] ??= _newLine + new string(' ', indent);
-            _buffer.Append(text.AsSpan());
+            _buffer.Append(LineStart(indent).AsSpan());
             _column = indent;
             return;
         }
         EnsureLineStart();
         WriteSpaces(indent);
+    }
+
+    /// <summary>The line break and indentation as one string, cached per indentation below <see cref="LineStartCacheSize"/>.</summary>
+    private string LineStart(int indent) {
+        // The options allow only "\n" and "\r\n".
+        string?[] cache = _newLine.Length == 1 ? s_lfLineStarts : s_crlfLineStarts;
+        return cache[indent] ??= _newLine + new string(' ', indent);
     }
 
     private void NewLine() {
