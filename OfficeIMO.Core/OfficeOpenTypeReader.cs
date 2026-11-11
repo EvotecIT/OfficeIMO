@@ -62,17 +62,43 @@ internal sealed class OfficeOpenTypeReader {
 
     internal static OfficeOpenTypeReader? TryCreate(byte[] data) {
         ArgumentNullException.ThrowIfNull(data);
+        return TryCreateAt(data, 0);
+    }
+
+    /// <summary>
+    /// Reads one face in place. A collection face's table offsets are relative to the start of the collection, so the shared
+    /// tables stay in the original buffer and nothing is copied.
+    /// </summary>
+    internal static OfficeOpenTypeReader? TryCreateFace(byte[] data, int faceIndex) {
+        ArgumentNullException.ThrowIfNull(data);
+        if (!OfficeTrueTypeCollection.IsTrueTypeCollection(data)) return faceIndex == 0 ? TryCreateAt(data, 0) : null;
+        int count = GetCollectionFaceCount(data);
+        if (faceIndex < 0 || faceIndex >= count) return null;
+        uint directory = ReadUInt32(data, 12 + faceIndex * 4);
+        return directory > int.MaxValue ? null : TryCreateAt(data, (int)directory);
+    }
+
+    /// <summary>The number of faces in a collection, 1 for a single font, or 0 when a collection header is invalid.</summary>
+    internal static int GetCollectionFaceCount(byte[] data) {
+        ArgumentNullException.ThrowIfNull(data);
+        if (!OfficeTrueTypeCollection.IsTrueTypeCollection(data)) return 1;
+        if (data.Length < 12) return 0;
+        uint count = ReadUInt32(data, 8);
+        return count == 0 || count > OfficeTrueTypeCollection.MaxTrueTypeCollectionFontsToInspect || data.Length < 12 + count * 4 ? 0 : (int)count;
+    }
+
+    private static OfficeOpenTypeReader? TryCreateAt(byte[] data, int directoryOffset) {
         try {
-            if (data.Length < 12) return null;
-            uint flavor = ReadUInt32(data, 0);
+            if (directoryOffset < 0 || directoryOffset > data.Length - 12) return null;
+            uint flavor = ReadUInt32(data, directoryOffset);
             if (flavor != 0x00010000 && flavor != 0x74727565 && flavor != 0x4F54544F) return null;
-            int tableCount = ReadUInt16(data, 4);
-            if (tableCount <= 0 || tableCount > MaximumTables || data.Length < 12 + tableCount * 16) return null;
-            int directoryEnd = checked(12 + tableCount * 16);
+            int tableCount = ReadUInt16(data, directoryOffset + 4);
+            if (tableCount <= 0 || tableCount > MaximumTables || data.Length - directoryOffset < 12 + tableCount * 16) return null;
+            int directoryEnd = checked(directoryOffset + 12 + tableCount * 16);
             var tables = new Dictionary<uint, TableRecord>(tableCount);
             var ranges = new List<TableRecord>(tableCount);
             for (int index = 0; index < tableCount; index++) {
-                int recordOffset = 12 + index * 16;
+                int recordOffset = directoryOffset + 12 + index * 16;
                 uint tag = ReadUInt32(data, recordOffset);
                 uint offsetValue = ReadUInt32(data, recordOffset + 8);
                 uint lengthValue = ReadUInt32(data, recordOffset + 12);
@@ -80,7 +106,7 @@ internal sealed class OfficeOpenTypeReader {
                 int offset = (int)offsetValue;
                 int length = (int)lengthValue;
                 if (offset < 0 || length < 0 || offset > data.Length - length || tables.ContainsKey(tag) ||
-                    (offset & 3) != 0 || length > 0 && offset < directoryEnd) return null;
+                    (offset & 3) != 0 || length > 0 && offset < directoryEnd && offset + length > directoryOffset) return null;
                 var record = new TableRecord(offset, length);
                 if (length > 0) {
                     foreach (TableRecord range in ranges) {

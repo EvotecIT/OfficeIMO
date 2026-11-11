@@ -67,6 +67,24 @@ public sealed partial class OfficeFontFace {
 
     internal byte[] DataSnapshot => _data;
 
+    // 0 = not read, 1 = embeddable, 2 = refused by the face's OS/2 fsType.
+    private int _outlineEmbedding;
+
+    /// <summary>
+    /// False when the face's OS/2 fsType forbids embedding its outlines in an output document. Bytes that are not a
+    /// readable OpenType font carry no licence to check.
+    /// </summary>
+    internal bool AllowsOutlineEmbedding {
+        get {
+            int state = _outlineEmbedding;
+            if (state == 0) {
+                state = OfficeFontEmbeddingPermissions.TryReadFile(_data)?.AllowsOutlineEmbedding == false ? 2 : 1;
+                _outlineEmbedding = state;
+            }
+            return state == 1;
+        }
+    }
+
     internal IOfficeFontProgram ParsedFont { get; }
 
     // True when the dependency-free engine decoded this face. A provider-supplied program is caller code that
