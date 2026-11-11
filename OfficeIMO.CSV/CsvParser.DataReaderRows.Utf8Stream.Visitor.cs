@@ -59,9 +59,30 @@ internal static partial class CsvParser
             SourceColumnCount = 0;
         }
 
-        internal int FieldCount { get; private set; }
+        private int _fieldCount;
+        private int _sourceColumnCount;
+        /// <summary>The ordinal bound <see cref="ValidateOrdinal"/> checks, kept with the two counts it depends on.</summary>
+        private int _ordinalLimit;
 
-        internal int SourceColumnCount { get; private set; }
+        internal int FieldCount
+        {
+            readonly get => _fieldCount;
+            private set
+            {
+                _fieldCount = value;
+                _ordinalLimit = _sourceColumnCount > 0 ? _sourceColumnCount : value;
+            }
+        }
+
+        internal int SourceColumnCount
+        {
+            readonly get => _sourceColumnCount;
+            private set
+            {
+                _sourceColumnCount = value;
+                _ordinalLimit = value > 0 ? value : _fieldCount;
+            }
+        }
 
         internal void SetSourceColumnCount(int sourceColumnCount)
         {
@@ -314,6 +335,23 @@ internal static partial class CsvParser
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private readonly string GetFieldString(int ordinal)
         {
+#if NET8_0_OR_GREATER
+            // Batch-indexed ASCII text of two or more bytes that is not a quoted field, the common case,
+            // goes straight from the index to a new string; everything else takes the general path below.
+            if (_indexed && _allFieldsAscii && BitConverter.IsLittleEndian && Vector128.IsHardwareAccelerated)
+            {
+                ref int end = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_indexEnds!), _indexFirst + ordinal);
+                int fieldStart = Unsafe.Add(ref end, -1) + 1;
+                int fieldLength = end - fieldStart;
+                if (fieldLength >= 2)
+                {
+                    if (_buffer[fieldStart] != (byte)'"' || _quotesAreData)
+                    {
+                        return CreateAsciiString(_buffer, fieldStart, fieldLength);
+                    }
+                }
+            }
+#endif
             GetRange(ordinal, out int start, out int length, out string? materialized);
             // Raw text becomes a new string on every call. Only interned and already decoded values
             // are stored, so ordinary reads write no string references back into the field table.
@@ -447,9 +485,9 @@ internal static partial class CsvParser
             return value;
         }
 
-        // Only validated ASCII reaches this method. A string allocated with '\0' is not filled
-        // before it is returned to us, and the first and last widening steps overlap so every
-        // load stays inside the source span and every store inside the new string.
+        // Only validated ASCII reaches this method. string.Create hands us the new string's characters
+        // before it is shared, and the first and last widening steps overlap so every load stays inside
+        // the source span and every store inside the new string.
         private static string CreateAsciiString(byte[] buffer, int start, int length)
         {
 #if !NET8_0_OR_GREATER
@@ -460,9 +498,16 @@ internal static partial class CsvParser
                 return Encoding.Latin1.GetString(buffer.AsSpan(start, length));
             }
 
-            string value = new string('\0', length);
-            ref byte source = ref buffer[start];
-            ref byte destination = ref Unsafe.As<char, byte>(ref MemoryMarshal.GetReference(value.AsSpan()));
+            return string.Create(length, (buffer, start), static (characters, state) => WidenAscii(
+                ref state.buffer[state.start], ref Unsafe.As<char, byte>(ref MemoryMarshal.GetReference(characters)), characters.Length));
+#endif
+        }
+
+#if NET8_0_OR_GREATER
+        /// <summary>Widens two or more validated ASCII bytes into <paramref name="destination"/>.</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void WidenAscii(ref byte source, ref byte destination, int length)
+        {
             if (length < 16)
             {
                 WidenShortAscii(ref source, ref destination, length);
@@ -485,10 +530,8 @@ internal static partial class CsvParser
 
                 WidenThirtyTwo(ref Unsafe.Add(ref source, length - 32), ref Unsafe.Add(ref destination, (length - 32) * 2));
             }
-
-            return value;
-#endif
         }
+#endif
 
 #if NET8_0_OR_GREATER
 
@@ -629,8 +672,7 @@ internal static partial class CsvParser
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private readonly void ValidateOrdinal(int ordinal)
         {
-            int maximum = SourceColumnCount > 0 ? SourceColumnCount : FieldCount;
-            if ((uint)ordinal >= (uint)maximum)
+            if ((uint)ordinal >= (uint)_ordinalLimit)
             {
                 throw new IndexOutOfRangeException();
             }
