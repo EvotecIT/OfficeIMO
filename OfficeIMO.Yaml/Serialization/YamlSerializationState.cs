@@ -46,6 +46,24 @@ internal sealed class YamlReadState {
 
     public void SetIndex(int index) => _path[_depth - 1].Index = index;
 
+    // The sizes of the last mapping and sequence read at each depth. Collections at one depth usually repeat a shape, so
+    // the next one starts at that size instead of growing to it step by step.
+    private int[]? _sizes;
+    private const int SizeHintLimit = 256;
+
+    /// <summary>The size to create the next collection at the current depth with: the last one's, up to a limit.</summary>
+    public int SizeHint(bool mapping) {
+        int slot = 2 * _depth + (mapping ? 0 : 1);
+        return _sizes is { } sizes && slot < sizes.Length ? sizes[slot] : 0;
+    }
+
+    /// <summary>Records the size of a collection just read at the current depth.</summary>
+    public void NoteSize(bool mapping, int count) {
+        int slot = 2 * _depth + (mapping ? 0 : 1);
+        if (_sizes is null || slot >= _sizes.Length) Array.Resize(ref _sizes, Math.Max(16, slot * 2 + 2));
+        _sizes[slot] = Math.Min(count, SizeHintLimit);
+    }
+
     public void Pop() => _depth--;
 
     /// <summary>Registers the instance created for the pending anchor, before its children are read, so cycles resolve.</summary>
