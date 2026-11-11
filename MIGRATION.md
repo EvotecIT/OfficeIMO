@@ -3,7 +3,7 @@
 <!-- officeimo-api-map:begin -->
 ## OfficeIMO and PSWriteOffice 3.6
 
-OfficeIMO 3.6 and PSWriteOffice 3.6 change the public API in both languages and are released together. Nothing keeps a compatibility wrapper, so update scripts and code with the rules and tables below. PSWriteOffice goes from 594 commands and 383 aliases to 482 commands and 176 aliases; every job that worked before still works, usually through fewer commands. The [API design](Docs/officeimo.api-design.md) explains the rules.
+OfficeIMO 3.6 and PSWriteOffice 3.6 change the public API in both languages and are released together. Nothing keeps a compatibility wrapper, so update scripts and code with the rules and tables below. PSWriteOffice goes from 594 commands and 383 aliases to 486 commands and 176 aliases; every job that worked before still works, usually through fewer commands. The [API design](Docs/officeimo.api-design.md) explains the rules.
 
 ### What changed
 
@@ -6397,6 +6397,7 @@ Reader results use `ReaderInputKind.Toml` (`31`), which requires document transp
 Update exhaustive input-kind switches and transport bindings. Schemas 5 through 14 remain readable but cannot carry TOML input kinds.
 Without the handler, `.toml` files are detected as `application/toml` and read as plain text.
 Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the current artifact.
+In the neutral document model (`OfficeDocumentReadResultPdfExtensions`), TOML results map to `OfficeDocumentFormat.Toml` instead of `Unknown`.
 
 ## Publisher Reader identity and transport
 
@@ -9799,3 +9800,13 @@ A `data-officeimo-value` error value is written as an error cell only when it is
 ## Excel non-finite numbers
 
 `NaN`, `PositiveInfinity` and `NegativeInfinity` written as cell values (`double` or `float`, through `SetValue`, `WriteData`, tabular imports or `CreateWriter`) are stored as the `#NUM!` error in XLSX, XLSB and XLS, which is what Excel shows for a number it cannot represent. Reading such a cell back returns the `#NUM!` error, not a number. Before, XLSX saves wrote an invalid number that Excel refused to open, XLSB saves stored `#NULL!`, and the XLS and XLSB `CreateWriter` streaming writers threw `ArgumentException`. Check the value before writing it if you need a blank cell or text instead.
+
+## Structured-data conversions
+
+JSON, JSON Lines, YAML, TOML, XML, CSV, TSV and worksheet data convert through `OfficeIMO.Data.Conversions` and `OfficeIMO.Data.Conversions.Excel`. See the [structured-data conversion design](Docs/officeimo.data-conversions-design.md).
+
+- **Excel JSON methods.** `ExcelSheet.ToJson`, `ExcelSheet.TableToJson` and `ExcelSheet.FromJson` are removed from `OfficeIMO.Excel`. Reference `OfficeIMO.Data.Conversions.Excel` and call `sheet.ToJson(options)` or `sheet.SaveAsJson(path)`; choose cells with `DataConversionOptions.Range` (`"A1:F200"`). To fill a workbook from JSON, call `node.SaveAsExcel(path)` or `node.ToExcel()`. Typed columns and nested paths (`address.city`) follow the conversion design rather than `JsonSerializerOptions`.
+- **New format value.** `OfficeDocumentFormat.Toml` (`30`) is added. Exhaustive switches over `OfficeDocumentFormat` need a case for it. `OfficeConverter` now recognizes `.toml`, `.yaml`, `.yml`, `.jsonl` and `.ndjson` files.
+- **Conversion settings.** `OfficeConversionOptions.Data` takes a `DataConversionOptions` for the data routes (`Select`, `RootName`, `Columns`, `SampleRows`, `JsonLines` and the per-format reader and writer settings). In PowerShell, pass it to `Convert-OfficeDocument -Options`, for example `-Options @{ Select = 'package' }`.
+- **Loss reporting.** Data routes report what the target cannot hold, such as TOML nulls, YAML tags or XML attributes, as diagnostics on `OfficeConversionReport`. Set `FailOnLoss` (or `-FailOnLoss`) to stop instead.
+- **PowerShell TOML commands.** `ConvertFrom-OfficeToml`, `ConvertTo-OfficeToml`, `Import-OfficeToml` and `Export-OfficeToml` read and write TOML as PowerShell objects, as the JSON commands do.
