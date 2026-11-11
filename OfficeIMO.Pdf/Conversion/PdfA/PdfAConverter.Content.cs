@@ -72,8 +72,8 @@ internal sealed partial class PdfAConverter {
 
     // True for PDF/A-4 files where a page carries its own output intent, so device colour is checked per page.
     private bool _pageOutputIntents;
-    private readonly List<List<DeviceColorUse>> _deviceColorCaptures = new();
-    private readonly Dictionary<(PdfObject Content, PdfObject? Resources), List<DeviceColorUse>> _contentDeviceColors = new(new ContentKeyComparer());
+    private readonly List<DeviceColorCapture> _deviceColorCaptures = new();
+    private readonly Dictionary<(PdfObject Content, PdfObject? Resources), DeviceColorCapture> _contentDeviceColors = new(new ContentKeyComparer());
 
     private void AnalyzeContent() {
         IReadOnlyList<PdfReadPage> pages = _document.Pages;
@@ -130,13 +130,13 @@ internal sealed partial class PdfAConverter {
         if (!_visitedContent.Add((key, resources))) {
             // Content shared by pages is checked once, but under PDF/A-4 page output intents each page that paints it needs its
             // own device colour record, including the colour of forms nested in it.
-            if (_pageOutputIntents && _contentDeviceColors.TryGetValue((key, resources), out List<DeviceColorUse>? painted)) {
+            if (_pageOutputIntents && _contentDeviceColors.TryGetValue((key, resources), out DeviceColorCapture? painted)) {
                 string page = "page " + (_currentPageIndex + 1).ToString(CultureInfo.InvariantCulture);
-                foreach (DeviceColorUse use in painted) RecordDeviceColor(use.Family, page + ", shared with " + use.Location, use.Owner, use.Resources);
+                foreach (DeviceColorUse use in painted.Uses) RecordDeviceColor(use.Family, page + ", shared with " + use.Location, use.Owner, use.Resources);
             }
             return;
         }
-        var captured = new List<DeviceColorUse>();
+        var captured = new DeviceColorCapture();
         _deviceColorCaptures.Add(captured);
         try {
             WalkContentOnce(streams, resources, location, owner, depth);
@@ -349,7 +349,7 @@ internal sealed partial class PdfAConverter {
 
     private void RecordDeviceColor(string family, string location, PdfObject? owner, PdfDictionary? resources) {
         var use = new DeviceColorUse(family, location, owner, resources, _currentPageIndex);
-        foreach (List<DeviceColorUse> capture in _deviceColorCaptures) capture.Add(use);
+        foreach (DeviceColorCapture capture in _deviceColorCaptures) capture.Add(use);
         foreach (DeviceColorUse existing in _deviceColors) {
             if (existing.Family == family && ReferenceEquals(existing.Owner, owner) && ReferenceEquals(existing.Resources, resources) &&
                 (!_pageOutputIntents || existing.PageIndex == _currentPageIndex)) return;
@@ -442,6 +442,29 @@ internal sealed partial class PdfAConverter {
         if (double.IsNaN(number) || double.IsInfinity(number)) return true;
         if (Math.Abs(number) > 3.403e38) return true;
         return number == Math.Floor(number) && (number > int.MaxValue || number < int.MinValue);
+    }
+
+    /// <summary>
+    /// The distinct device colour uses one content stream paints, including those of nested forms. Keeping each use once
+    /// bounds the record when forms draw the same nested form many times.
+    /// </summary>
+    private sealed class DeviceColorCapture {
+        private readonly HashSet<(string Family, PdfObject? Owner, PdfDictionary? Resources)> _seen = new(new UseKeyComparer());
+
+        internal List<DeviceColorUse> Uses { get; } = new();
+
+        internal void Add(DeviceColorUse use) {
+            if (_seen.Add((use.Family, use.Owner, use.Resources))) Uses.Add(use);
+        }
+
+        private sealed class UseKeyComparer : IEqualityComparer<(string Family, PdfObject? Owner, PdfDictionary? Resources)> {
+            public bool Equals((string Family, PdfObject? Owner, PdfDictionary? Resources) x, (string Family, PdfObject? Owner, PdfDictionary? Resources) y) =>
+                x.Family == y.Family && ReferenceEquals(x.Owner, y.Owner) && ReferenceEquals(x.Resources, y.Resources);
+
+            public int GetHashCode((string Family, PdfObject? Owner, PdfDictionary? Resources) obj) =>
+                (obj.Family.GetHashCode() * 31 + (obj.Owner is null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj.Owner))) * 31 +
+                (obj.Resources is null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj.Resources));
+        }
     }
 
     private sealed class ContentKeyComparer : IEqualityComparer<(PdfObject Content, PdfObject? Resources)> {

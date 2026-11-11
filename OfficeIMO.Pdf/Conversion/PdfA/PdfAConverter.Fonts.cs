@@ -104,10 +104,17 @@ internal sealed partial class PdfAConverter {
         int flags = descriptor is not null && Resolve(descriptor.Items.TryGetValue("Flags", out PdfObject? flagValue) ? flagValue : null) is PdfNumber flagNumber
             ? (int)flagNumber.Value : 32;
         string plainBaseFont = StripSubsetTag(baseFont);
-        // Symbol and ZapfDingbats, under any of their names, select glyphs through their own encodings, which the symbolic
-        // substitute checks.
-        if (!IsStandardSymbolicName(plainBaseFont, out _) &&
-            (((flags & 4) == 0 && !IsSymbolicName(plainBaseFont)) || PdfWriter.TryGetStandardFontByBaseFontName(plainBaseFont, out _))) {
+        // Symbol and ZapfDingbats, under any of their names, select glyphs through their own encodings. PDF/A forbids
+        // referencing .notdef in invisible text too, so drawn codes are checked here, before invisible text returns.
+        if (IsStandardSymbolicName(plainBaseFont, out bool dingbats)) {
+            string?[] symbolicNames = BuildSymbolicEncoding(use.Font, PdfFontEncodingNames.Get(dingbats ? "ZapfDingbatsEncoding" : "SymbolEncoding")!);
+            var unnamed = use.Codes.Where(code => code >= symbolicNames.Length || symbolicNames[code] is null or ".notdef").ToList();
+            if (unnamed.Count > 0) {
+                AddViolation(PdfAConversionRefusalReason.FontGlyphMissing, location,
+                    "Code(s) " + FormatCodes(unnamed) + " select no glyph in the " + plainBaseFont + " encoding, so they draw .notdef, which PDF/A forbids even for invisible text.", use.Font);
+                return;
+            }
+        } else if (((flags & 4) == 0 && !IsSymbolicName(plainBaseFont)) || PdfWriter.TryGetStandardFontByBaseFontName(plainBaseFont, out _)) {
             string?[] names = BuildSimpleEncoding(use.Font);
             var notdef = use.Codes.Where(code => code >= names.Length || names[code] is null || names[code] == ".notdef").ToList();
             if (notdef.Count > 0) {

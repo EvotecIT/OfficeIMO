@@ -477,6 +477,39 @@ public class PdfAConversionTests {
         Assert.StartsWith("page 2", violation.Location, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ConvertToPdfA_RecordsColourOfDeepRepeatedFormsOncePerPage() {
+        // Each form draws the one below it twice, 60 levels deep: 2^60 paths through a handful of objects.
+        const int depth = 60;
+        var objects = new List<string> {
+            "<< /Type /OutputIntent /S /GTS_PDFA1 /OutputConditionIdentifier (sRGB) /DestOutputProfile 6 0 R >>",
+            RawPdf.Stream("/N 3", RawPdf.Latin1(PdfIccProfiles.SrgbIec6196621)),
+            RawPdf.Stream("/Type /XObject /Subtype /Form /BBox [0 0 1 1] /Resources << >>", "1 0 0 rg 0 0 1 1 re f\n")
+        };
+        for (int level = 1; level < depth; level++) {
+            int below = 7 + level - 1;
+            objects.Add(RawPdf.Stream("/Type /XObject /Subtype /Form /BBox [0 0 1 1] /Resources << /XObject << /F " +
+                below.ToString(CultureInfo.InvariantCulture) + " 0 R >> >>", "/F Do /F Do\n"));
+        }
+        byte[] source = RawPdf.Build("/F Do\n", resources: "/XObject << /F " + (7 + depth - 1).ToString(CultureInfo.InvariantCulture) + " 0 R >>",
+            pageEntries: "/OutputIntents [5 0 R]", extraObjects: objects.ToArray());
+
+        PdfAConversionResult result = PdfDocument.Load(new MemoryStream(source)).ConvertToPdfA(new PdfAConversionOptions { Profile = PdfComplianceProfile.PdfA4 });
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Report.Violations));
+    }
+
+    [Fact]
+    public void ConvertToPdfA_RefusesInvisibleSymbolTextThatDrawsNotdef() {
+        // Code 0x80 has no glyph in the Symbol encoding; rendering mode 3 hides the text but it still references .notdef.
+        byte[] source = RawPdf.Build("BT /F1 24 Tf 3 Tr 20 120 Td <80> Tj ET\n", resources: "/Font << /F1 5 0 R >>",
+            extraObjects: new[] { "<< /Type /Font /Subtype /Type1 /BaseFont /Symbol >>" });
+
+        PdfAConversionResult result = PdfDocument.Load(new MemoryStream(source)).ConvertToPdfA();
+
+        Assert.Equal(PdfAConversionRefusalReason.FontGlyphMissing, Assert.Single(result.Report.Violations).Reason);
+    }
+
     [Theory]
     [InlineData("Dingbats")]
     [InlineData("ITCZapfDingbats")]
@@ -489,6 +522,78 @@ public class PdfAConversionTests {
             .ConvertToPdfA(new PdfAConversionOptions { FontSubstitution = PdfAFontSubstitution.None });
 
         Assert.Equal(PdfAConversionRefusalReason.FontNotEmbeddable, Assert.Single(result.Report.Violations).Reason);
+    }
+
+    [Fact]
+    public void TryAddWindowsUnicodeRecord_PointsEveryRecordOfAFormat12OnlyCmapAtItsSubtable() {
+        string? path = PdfComplianceTestFonts.FindBundledTrueTypeFont();
+        Assert.NotNull(path);
+        byte[] carlito = File.ReadAllBytes(path!);
+        Assert.True(PdfTrueTypeFontProgram.Parse(carlito).TryGetGlyphId('A', out int glyphA));
+        // One (0,4) record for a format-12 subtable mapping 'A' and 'B'.
+        var cmap = new List<byte>();
+        void U16(int value) { cmap.Add((byte)(value >> 8)); cmap.Add((byte)value); }
+        void U32(uint value) { U16((int)(value >> 16)); U16((int)(value & 0xFFFF)); }
+        U16(0); U16(1); U16(0); U16(4); U32(12);
+        U16(12); U16(0); U32(28); U32(0); U32(1); U32('A'); U32('B'); U32((uint)glyphA);
+        byte[] font = ReplaceTable(carlito, "cmap", cmap.ToArray());
+
+        byte[] patched = PdfTrueTypeUnicodeCmap.TryAddWindowsUnicodeRecord(font)!;
+
+        Assert.NotNull(patched);
+        int table = FindTable(patched, "cmap", out _);
+        int count = (patched[table + 2] << 8) | patched[table + 3];
+        var encodings = new List<(int, int)>();
+        for (int index = 0; index < count; index++) {
+            int record = table + 4 + index * 8;
+            encodings.Add(((patched[record] << 8) | patched[record + 1], (patched[record + 2] << 8) | patched[record + 3]));
+            int subtable = table + ReadUInt32(patched, record + 4);
+            Assert.Equal(12, (patched[subtable] << 8) | patched[subtable + 1]);
+            Assert.Equal((int)'A', ReadUInt32(patched, subtable + 16));
+            Assert.Equal(glyphA, ReadUInt32(patched, subtable + 24));
+        }
+        Assert.Equal(new[] { (0, 4), (3, 1), (3, 10) }, encodings);
+        Assert.True(PdfTrueTypeFontProgram.Parse(patched).TryGetGlyphId('B', out int glyphB));
+        Assert.Equal(glyphA + 1, glyphB);
+        Assert.Null(PdfTrueTypeUnicodeCmap.TryAddWindowsUnicodeRecord(patched));
+    }
+
+    private static int ReadUInt32(byte[] data, int offset) =>
+        (data[offset] << 24) | (data[offset + 1] << 16) | (data[offset + 2] << 8) | data[offset + 3];
+
+    private static int FindTable(byte[] font, string tag, out int length) {
+        int count = (font[4] << 8) | font[5];
+        for (int index = 0; index < count; index++) {
+            int record = 12 + index * 16;
+            if (Encoding.ASCII.GetString(font, record, 4) != tag) continue;
+            length = ReadUInt32(font, record + 12);
+            return ReadUInt32(font, record + 8);
+        }
+        throw new InvalidOperationException("Missing " + tag + " table.");
+    }
+
+    /// <summary>Rebuilds an sfnt with one table replaced; table checksums are not recomputed because no reader here checks them.</summary>
+    private static byte[] ReplaceTable(byte[] font, string tag, byte[] replacement) {
+        int count = (font[4] << 8) | font[5];
+        var bodies = new List<(byte[] Record, byte[] Body)>();
+        for (int index = 0; index < count; index++) {
+            int record = 12 + index * 16;
+            byte[] entry = font.Skip(record).Take(16).ToArray();
+            byte[] body = Encoding.ASCII.GetString(font, record, 4) == tag
+                ? replacement
+                : font.Skip(ReadUInt32(font, record + 8)).Take(ReadUInt32(font, record + 12)).ToArray();
+            bodies.Add((entry, body));
+        }
+        var output = new List<byte>(font.Take(12 + count * 16));
+        for (int index = 0; index < count; index++) {
+            while (output.Count % 4 != 0) output.Add(0);
+            int offset = output.Count, length = bodies[index].Body.Length, record = 12 + index * 16;
+            output[record + 8] = (byte)(offset >> 24); output[record + 9] = (byte)(offset >> 16); output[record + 10] = (byte)(offset >> 8); output[record + 11] = (byte)offset;
+            output[record + 12] = (byte)(length >> 24); output[record + 13] = (byte)(length >> 16); output[record + 14] = (byte)(length >> 8); output[record + 15] = (byte)length;
+            output.AddRange(bodies[index].Body);
+        }
+        while (output.Count % 4 != 0) output.Add(0);
+        return output.ToArray();
     }
 
     private static void WriteFsType(byte[] font, ushort fsType) {

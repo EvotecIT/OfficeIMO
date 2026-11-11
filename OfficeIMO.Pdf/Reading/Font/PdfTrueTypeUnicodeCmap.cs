@@ -415,12 +415,15 @@ internal static partial class PdfTrueTypeUnicodeCmap {
         var records = new List<(int Platform, int Encoding, uint Offset)>();
         for (int index = 0; index < count; index++) {
             int record = cmap + 4 + index * 8;
-            records.Add((ReadUInt16(program, record), ReadUInt16(program, record + 2), ReadUInt32(program, record + 4) + 8U));
+            records.Add((ReadUInt16(program, record), ReadUInt16(program, record + 2), ReadUInt32(program, record + 4)));
         }
         // PDF/A-4 requires a (3,1) record. A font with only a format-12 subtable gets (3,1) and (3,10) records for it, so
         // the result is recognised on the next pass instead of being patched again.
-        records.Add((3, 1, unicodeOffset.Value + 8U));
-        if (unicodeFormat == 12 && !records.Any(static record => record.Platform == 3 && record.Encoding == 10)) records.Add((3, 10, unicodeOffset.Value + 8U));
+        records.Add((3, 1, unicodeOffset.Value));
+        if (unicodeFormat == 12 && !records.Any(static record => record.Platform == 3 && record.Encoding == 10)) records.Add((3, 10, unicodeOffset.Value));
+        // Every added 8-byte record moves the subtable data that follows the directory.
+        uint shift = (uint)((records.Count - count) * 8);
+        for (int index = 0; index < records.Count; index++) records[index] = (records[index].Platform, records[index].Encoding, records[index].Offset + shift);
         records.Sort(static (left, right) => left.Platform != right.Platform ? left.Platform.CompareTo(right.Platform) : left.Encoding.CompareTo(right.Encoding));
         using var body = new MemoryStream();
         WriteUInt16(body, 0);
