@@ -429,7 +429,7 @@ internal static partial class PdfSyntax {
         SortXrefStreams(xrefStreams, cancellationToken);
         var activeChainOffsets = GetXrefStreamChainOffsets(xrefStreams, activeXrefOffset, cancellationToken);
         int entryCapacity = 0;
-        foreach (var xrefStream in xrefStreams) entryCapacity = Math.Max(entryCapacity, GetXrefEntryCapacity(xrefStream.Stream.Dictionary, limits));
+        foreach (var xrefStream in xrefStreams) entryCapacity = Math.Max(entryCapacity, GetXrefEntryCapacity(xrefStream.Stream.Dictionary, limits, maximumRows: UndecodedXrefPresizeLimit));
         // Dictionary enumeration follows insertion and removal order, never capacity, so presizing keeps entry order.
         var activeEntries = new Dictionary<int, XrefStreamEntry>(entryCapacity);
         var classicTables = activeChainOffsets.Count == 0
@@ -548,7 +548,7 @@ internal static partial class PdfSyntax {
         Action reportIncompleteXref,
         System.Threading.CancellationToken cancellationToken) {
         byte[] data = decodedStreamBudget.Decode(xrefStream, map, int.MaxValue, cancellationToken);
-        var entries = new List<XrefStreamEntry>(GetXrefEntryCapacity(xrefStream.Dictionary, limits));
+        var entries = new List<XrefStreamEntry>(GetXrefEntryCapacity(xrefStream.Dictionary, limits, GetXrefRowCount(xrefStream.Dictionary, data.Length)));
         entries.AddRange(ReadXrefStreamEntries(xrefStream.Dictionary, data, reportIncompleteXref, cancellationToken));
         var parsedObjectsByOffset = new Dictionary<int, PdfIndirectObject?>();
         foreach (var entry in entries) {
@@ -872,10 +872,24 @@ internal static partial class PdfSyntax {
     }
 
     // A declared /Size sizes entry collections up front; hostile values fall back to growth.
-    private static int GetXrefEntryCapacity(PdfDictionary dictionary, PdfReadLimits limits) {
+    // Presizing before the stream is decoded is capped so a declared /Size cannot force a large allocation.
+    private const int UndecodedXrefPresizeLimit = 4096;
+
+    private static int GetXrefEntryCapacity(PdfDictionary dictionary, PdfReadLimits limits, int maximumRows) {
         const int MaximumPresizedEntries = 1 << 20;
         double size = dictionary.Get<PdfNumber>("Size")?.Value ?? 0D;
-        return size > 0D && size <= Math.Min(limits.MaxIndirectObjects, MaximumPresizedEntries) ? (int)size : 0;
+        if (!(size > 0D && size <= Math.Min(limits.MaxIndirectObjects, MaximumPresizedEntries))) return 0;
+        return Math.Min((int)size, Math.Max(0, maximumRows));
+    }
+
+    private static int GetXrefRowCount(PdfDictionary dictionary, int decodedLength) {
+        if (dictionary.Get<PdfArray>("W") is not { } widths) return 0;
+        long rowWidth = 0;
+        foreach (var item in widths.Items) {
+            if (item is not PdfNumber width || width.Value < 0 || width.Value > 8) return 0;
+            rowWidth += (long)width.Value;
+        }
+        return rowWidth <= 0 ? 0 : (int)Math.Min(int.MaxValue, decodedLength / rowWidth);
     }
 
     private readonly struct XrefStreamEntry {
