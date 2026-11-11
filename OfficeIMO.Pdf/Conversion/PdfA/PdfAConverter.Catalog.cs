@@ -27,9 +27,16 @@ internal sealed partial class PdfAConverter {
             Change(PdfAConversionChangeKind.StructureUpdated, "catalog", "Removed the viewer requirements (Requirements), which PDF/A forbids.", catalog, OfficeConversionLossKind.Omission)) {
             catalog.Items.Remove("Requirements");
         }
-        if (Resolve(catalog.Items.TryGetValue("NeedsRendering", out PdfObject? needsRenderingValue) ? needsRenderingValue : null) is PdfBoolean { Value: false } &&
-            Change(PdfAConversionChangeKind.StructureUpdated, "catalog", "Removed the NeedsRendering entry, which PDF/A forbids; its value was false, so viewers draw the same pages.", catalog)) {
-            catalog.Items.Remove("NeedsRendering");
+        // NeedsRendering asks viewers to render XFA. With a false value, or with no XFA form to render, it changes nothing;
+        // true with an XFA form is refused as a dynamic form when the AcroForm is processed.
+        if (catalog.Items.TryGetValue("NeedsRendering", out PdfObject? needsRenderingValue)) {
+            bool hasXfa = ResolveDictionary(catalog.Items.TryGetValue("AcroForm", out PdfObject? formValue) ? formValue : null)?.Items.ContainsKey("XFA") == true;
+            bool isFalse = Resolve(needsRenderingValue) is PdfBoolean { Value: false };
+            if ((isFalse || !hasXfa) &&
+                Change(PdfAConversionChangeKind.StructureUpdated, "catalog", "Removed the NeedsRendering entry, which PDF/A forbids; " +
+                    (isFalse ? "its value was false" : "the file has no XFA form to render") + ", so viewers draw the same pages.", catalog)) {
+                catalog.Items.Remove("NeedsRendering");
+            }
         }
         if (catalog.Items.TryGetValue("OpenAction", out PdfObject? openAction) && ResolveDictionary(openAction) is not null) {
             PdfObject? kept = SanitizeAction(openAction, "catalog open action", 0);

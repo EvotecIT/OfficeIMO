@@ -103,7 +103,11 @@ internal sealed partial class PdfAConverter {
         }
         int flags = descriptor is not null && Resolve(descriptor.Items.TryGetValue("Flags", out PdfObject? flagValue) ? flagValue : null) is PdfNumber flagNumber
             ? (int)flagNumber.Value : 32;
-        if (((flags & 4) == 0 && !IsSymbolicName(StripSubsetTag(baseFont))) || PdfWriter.TryGetStandardFontByBaseFontName(StripSubsetTag(baseFont), out _)) {
+        string plainBaseFont = StripSubsetTag(baseFont);
+        // Symbol and ZapfDingbats, under any of their names, select glyphs through their own encodings, which the symbolic
+        // substitute checks.
+        if (!IsStandardSymbolicName(plainBaseFont, out _) &&
+            (((flags & 4) == 0 && !IsSymbolicName(plainBaseFont)) || PdfWriter.TryGetStandardFontByBaseFontName(plainBaseFont, out _))) {
             string?[] names = BuildSimpleEncoding(use.Font);
             var notdef = use.Codes.Where(code => code >= names.Length || names[code] is null || names[code] == ".notdef").ToList();
             if (notdef.Count > 0) {

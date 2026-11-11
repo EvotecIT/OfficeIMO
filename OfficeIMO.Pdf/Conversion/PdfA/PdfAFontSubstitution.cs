@@ -48,7 +48,6 @@ public sealed class PdfAFontSubstitution {
             foreach (PdfEmbeddedFontFamily family in Families) {
                 if (string.Equals(PdfEmbeddedFontFamily.NormalizeFamilyKey(family.FamilyName), key, StringComparison.Ordinal)) {
                     yield return (family.FamilyName, "supplied", family);
-                    break;
                 }
             }
         }

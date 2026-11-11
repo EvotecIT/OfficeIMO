@@ -70,8 +70,14 @@ internal sealed partial class PdfAConverter {
 
     private int _currentPageIndex = -1;
 
+    // True for PDF/A-4 files where a page carries its own output intent, so device colour is checked per page.
+    private bool _pageOutputIntents;
+    private readonly List<List<DeviceColorUse>> _deviceColorCaptures = new();
+    private readonly Dictionary<(PdfObject Content, PdfObject? Resources), List<DeviceColorUse>> _contentDeviceColors = new(new ContentKeyComparer());
+
     private void AnalyzeContent() {
         IReadOnlyList<PdfReadPage> pages = _document.Pages;
+        _pageOutputIntents = _part == 4 && pages.Any(page => page.PageDictionary.Items.ContainsKey("OutputIntents"));
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             _cancellationToken.ThrowIfCancellationRequested();
             _currentPageIndex = pageIndex;
@@ -121,7 +127,26 @@ internal sealed partial class PdfAConverter {
     private void WalkContent(IReadOnlyList<PdfStream> streams, PdfDictionary? resources, string location, PdfObject owner, int depth) {
         if (depth > MaximumFormDepth) return;
         PdfObject key = streams.Count == 1 ? streams[0] : owner;
-        if (!_visitedContent.Add((key, resources))) return;
+        if (!_visitedContent.Add((key, resources))) {
+            // Content shared by pages is checked once, but under PDF/A-4 page output intents each page that paints it needs its
+            // own device colour record, including the colour of forms nested in it.
+            if (_pageOutputIntents && _contentDeviceColors.TryGetValue((key, resources), out List<DeviceColorUse>? painted)) {
+                string page = "page " + (_currentPageIndex + 1).ToString(CultureInfo.InvariantCulture);
+                foreach (DeviceColorUse use in painted) RecordDeviceColor(use.Family, page + ", shared with " + use.Location, use.Owner, use.Resources);
+            }
+            return;
+        }
+        var captured = new List<DeviceColorUse>();
+        _deviceColorCaptures.Add(captured);
+        try {
+            WalkContentOnce(streams, resources, location, owner, depth);
+        } finally {
+            _deviceColorCaptures.RemoveAt(_deviceColorCaptures.Count - 1);
+        }
+        if (_pageOutputIntents) _contentDeviceColors[(key, resources)] = captured;
+    }
+
+    private void WalkContentOnce(IReadOnlyList<PdfStream> streams, PdfDictionary? resources, string location, PdfObject owner, int depth) {
         _cancellationToken.ThrowIfCancellationRequested();
         if (resources is not null) CheckResources(resources, location, depth);
 
@@ -323,10 +348,13 @@ internal sealed partial class PdfAConverter {
     }
 
     private void RecordDeviceColor(string family, string location, PdfObject? owner, PdfDictionary? resources) {
+        var use = new DeviceColorUse(family, location, owner, resources, _currentPageIndex);
+        foreach (List<DeviceColorUse> capture in _deviceColorCaptures) capture.Add(use);
         foreach (DeviceColorUse existing in _deviceColors) {
-            if (existing.Family == family && ReferenceEquals(existing.Owner, owner) && ReferenceEquals(existing.Resources, resources)) return;
+            if (existing.Family == family && ReferenceEquals(existing.Owner, owner) && ReferenceEquals(existing.Resources, resources) &&
+                (!_pageOutputIntents || existing.PageIndex == _currentPageIndex)) return;
         }
-        _deviceColors.Add(new DeviceColorUse(family, location, owner, resources, _currentPageIndex));
+        _deviceColors.Add(use);
     }
 
     private PdfDictionary? ResolveResource(PdfDictionary? resources, string category, string name) =>

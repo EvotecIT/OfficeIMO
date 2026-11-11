@@ -383,7 +383,7 @@ internal static partial class PdfTrueTypeUnicodeCmap {
     }
 
     /// <summary>
-    /// Returns the program with a (3,1) or (3,10) cmap record pointing at its existing Unicode-platform (0,x) subtable, for
+    /// Returns the program with a (3,1) cmap record, and a (3,10) record for a format-12 subtable, pointing at its existing Unicode-platform (0,x) subtable, for
     /// programs whose only Unicode cmap uses the Unicode platform. Glyph selection is unchanged; returns null when the
     /// program already has a (3,1) or (1,0) subtable or has no usable Unicode subtable.
     /// </summary>
@@ -394,7 +394,7 @@ internal static partial class PdfTrueTypeUnicodeCmap {
         (_, int cmap, int length) = tables[cmapIndex];
         if (length < 4) return null;
         int count = ReadUInt16(program, cmap + 2);
-        if (count == 0 || count >= OfficeOpenTypeCmap.MaximumSubtables || 4 + count * 8 > length) return null;
+        if (count == 0 || count + 2 > OfficeOpenTypeCmap.MaximumSubtables || 4 + count * 8 > length) return null;
         uint? unicodeOffset = null;
         int unicodeFormat = 0;
         for (int index = 0; index < count; index++) {
@@ -405,7 +405,8 @@ internal static partial class PdfTrueTypeUnicodeCmap {
             uint offset = ReadUInt32(program, record + 4);
             if (platform != 0 || offset > (uint)(length - 4)) continue;
             int format = ReadUInt16(program, cmap + (int)offset);
-            if ((format == 4 || format == 12) && (unicodeOffset is null || format > unicodeFormat)) {
+            // Prefer the BMP format-4 subtable, the one a (3,1) record conventionally lists.
+            if ((format == 4 || format == 12) && (unicodeOffset is null || format == 4 && unicodeFormat != 4)) {
                 unicodeOffset = offset;
                 unicodeFormat = format;
             }
@@ -416,7 +417,10 @@ internal static partial class PdfTrueTypeUnicodeCmap {
             int record = cmap + 4 + index * 8;
             records.Add((ReadUInt16(program, record), ReadUInt16(program, record + 2), ReadUInt32(program, record + 4) + 8U));
         }
-        records.Add((3, unicodeFormat == 12 ? 10 : 1, unicodeOffset.Value + 8U));
+        // PDF/A-4 requires a (3,1) record. A font with only a format-12 subtable gets (3,1) and (3,10) records for it, so
+        // the result is recognised on the next pass instead of being patched again.
+        records.Add((3, 1, unicodeOffset.Value + 8U));
+        if (unicodeFormat == 12 && !records.Any(static record => record.Platform == 3 && record.Encoding == 10)) records.Add((3, 10, unicodeOffset.Value + 8U));
         records.Sort(static (left, right) => left.Platform != right.Platform ? left.Platform.CompareTo(right.Platform) : left.Encoding.CompareTo(right.Encoding));
         using var body = new MemoryStream();
         WriteUInt16(body, 0);
