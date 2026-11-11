@@ -257,7 +257,10 @@ internal sealed class YamlTreeBuilder {
         int[] keys = _keys;
         if (_identities.Length < count) _identities = Grow(_identities, 0, Math.Max(count, _identities.Length * 2));
         KeyIdentity[] identities = _identities;
-        for (int i = 0; i < count; i++) identities[i] = Identify(keys[i]);
+        for (int i = 0; i < count; i++) {
+            identities[i] = Identify(keys[i]);
+            identities[i].Hash = Hash(in identities[i]);
+        }
         try {
             if (count <= LinearDuplicateLimit) {
                 for (int i = 1; i < count; i++) {
@@ -276,7 +279,7 @@ internal sealed class YamlTreeBuilder {
                 Array.Clear(buckets, 0, size);
                 int mask = size - 1;
                 for (int i = 0; i < count; i++) {
-                    int slot = Hash(in identities[i]) & mask;
+                    int slot = identities[i].Hash & mask;
                     bool seen = false;
                     for (int known; (known = buckets[slot]) != 0; slot = (slot + 1) & mask) {
                         if (Same(in identities[known - 1], in identities[i])) {
@@ -315,11 +318,15 @@ internal sealed class YamlTreeBuilder {
         public string? Text;
         public int Start;
         public int Length;
+        /// <summary>A hash of the class and text, compared before the text.</summary>
+        public int Hash;
     }
 
     private ReadOnlySpan<char> Span(in KeyIdentity identity) => identity.Text is { } text ? text.AsSpan() : _source.AsSpan(identity.Start, identity.Length);
 
-    private bool Same(in KeyIdentity a, in KeyIdentity b) => a.Class == b.Class && (a.Class == CollectionKey || Span(in a).SequenceEqual(Span(in b)));
+    /// <summary>Compares hashed identities, the hashes first.</summary>
+    private bool Same(in KeyIdentity a, in KeyIdentity b) =>
+        a.Class == b.Class && a.Hash == b.Hash && (a.Class == CollectionKey || Span(in a).SequenceEqual(Span(in b)));
 
     private int Hash(in KeyIdentity identity) {
         uint hash = 2166136261 ^ identity.Class;
@@ -389,25 +396,23 @@ internal sealed class YamlTreeBuilder {
 
     /// <summary>
     /// Returns whether a plain scalar reads as a string under every schema. Numbers, timestamps, <c>~</c> and the YAML
-    /// 1.1 <c>&lt;&lt;</c> and <c>=</c> keys start with a digit, sign, dot or symbol; nulls and booleans that start
-    /// with a letter are words of at most five letters (<c>null</c>, <c>false</c>, <c>yes</c>, <c>off</c>, <c>y</c>).
-    /// Anything else needs the schema.
+    /// 1.1 <c>&lt;&lt;</c> and <c>=</c> keys start with a digit, sign, dot or symbol, and the nulls and booleans that
+    /// start with a letter are the words checked here in any letter case, a superset of the spellings schemas accept.
     /// </summary>
     private static bool IsAlwaysString(ReadOnlySpan<char> text) {
         if (text.Length == 0) return false;
         char first = text[0];
         if (!(first is >= 'a' and <= 'z' or >= 'A' and <= 'Z')) return first is not ((>= '0' and <= '9') or '+' or '-' or '.' or '~' or '<' or '=');
-        if (text.Length > 5) return true;
-        switch (first | 0x20) {
-            case 'n':
-            case 't':
-            case 'f':
-            case 'y':
-            case 'o':
-                return false;
-            default:
-                return true;
-        }
+        return text.Length switch {
+            1 => (first | 0x20) is not ('y' or 'n'),
+            2 => !Is(text, "no") && !Is(text, "on"),
+            3 => !Is(text, "yes") && !Is(text, "off"),
+            4 => !Is(text, "null") && !Is(text, "true"),
+            5 => !Is(text, "false"),
+            _ => true
+        };
+
+        static bool Is(ReadOnlySpan<char> text, string word) => text.Equals(word.AsSpan(), StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Compares two key records as values, as <see cref="YamlKeyEquality.Equal"/> compares nodes.</summary>
@@ -426,7 +431,7 @@ internal sealed class YamlTreeBuilder {
                 if (kindA != kindB || kindA == YamlScalarKind.Merge) return false;
                 // Integers and floats share the "\u0001" prefix; an equal identity with different kinds is not a duplicate.
                 KeyIdentity ia = Identify(a), ib = Identify(b);
-                return Same(in ia, in ib);
+                return ia.Class == ib.Class && Span(in ia).SequenceEqual(Span(in ib));
             case YamlRecordKind.Mapping:
             case YamlRecordKind.Sequence:
                 int children = ra.Kind == YamlRecordKind.Mapping ? ra.Count * 2 : ra.Count;
