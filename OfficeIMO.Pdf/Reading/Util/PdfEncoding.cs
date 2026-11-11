@@ -45,6 +45,25 @@ internal static class PdfEncoding {
 #endif
     }
 
+    /// <summary>Joins byte segments into one buffer, inserting <paramref name="separator"/> between segments.</summary>
+    internal static byte[] JoinSegments(IReadOnlyList<byte[]> segments, byte separator) {
+        long total = 0;
+        for (int index = 0; index < segments.Count; index++) {
+            if (index > 0) total++;
+            total += segments[index].Length;
+        }
+        if (total == 0) return Array.Empty<byte>();
+        var result = new byte[checked((int)total)];
+        int offset = 0;
+        for (int index = 0; index < segments.Count; index++) {
+            if (index > 0) result[offset++] = separator;
+            byte[] segment = segments[index];
+            Buffer.BlockCopy(segment, 0, result, offset, segment.Length);
+            offset += segment.Length;
+        }
+        return result;
+    }
+
     /// <summary>Decodes byte segments as Latin-1 into one string, inserting <paramref name="separator"/> between segments.</summary>
     internal static string Latin1JoinSegments(IReadOnlyList<byte[]> segments, char separator) {
         long total = 0;

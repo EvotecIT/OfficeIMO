@@ -95,7 +95,7 @@ internal static partial class PdfPageXObjectInvocationParser {
                 case "d":
                     if (_args.Count >= 2 &&
                         TryGetNumberArray(_args[_args.Count - 2], out double[] dashArray) &&
-                        _args[_args.Count - 1] is double dashPhase) {
+                        _args.TryGetNumber(_args.Count - 1, out double dashPhase)) {
                         var dashPattern = new PdfStrokeDashPattern(dashArray, dashPhase);
                         if (PdfPageContentVisualParser.TryReadExactDashStyle(dashArray, dashPhase, out OfficeStrokeDashStyle exactStyle)) {
                             _state = _state.WithStrokeDash(exactStyle, dashPattern);
