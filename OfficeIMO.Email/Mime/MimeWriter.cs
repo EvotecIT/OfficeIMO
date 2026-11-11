@@ -12,6 +12,8 @@ internal static partial class MimeWriter {
         internal bool HasRelatedResources { get; set; }
         internal bool HasUnrelatedAttachments { get; set; }
         internal ulong? BoundaryContentHash { get; set; }
+        internal byte[]? TextUtf8 { get; set; }
+        internal byte[]? HtmlUtf8 { get; set; }
     }
 
     private static readonly HashSet<string> ManagedHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
@@ -218,11 +220,11 @@ internal static partial class MimeWriter {
             WriteLine(output, string.Empty);
             if (includeTextBody) {
                 WriteLine(output, string.Concat("--", boundary));
-                WriteTextPart(output, "text/plain", document.Body.Text!, state.Options.Base64LineLength);
+                WriteTextPart(output, "text/plain", document.Body.Text!, state.Options.Base64LineLength, plan);
             }
             if (document.Body.Html != null) {
                 WriteLine(output, string.Concat("--", boundary));
-                WriteTextPart(output, "text/html", document.Body.Html, state.Options.Base64LineLength,
+                WriteTextPart(output, "text/html", document.Body.Html, state.Options.Base64LineLength, plan,
                     document.Body.HtmlContentId, document.Body.HtmlContentLocation,
                     document.Body.PreserveHtmlMimeHeadersOnWrite ? document.Body.HtmlCharset : null,
                     document.Body.PreserveHtmlMimeHeadersOnWrite ? document.Body.HtmlTransferEncoding : null,
@@ -244,7 +246,7 @@ internal static partial class MimeWriter {
         } else if (contactBodyPart != null) {
             WriteAttachment(output, contactBodyPart, state, depth + 1, 0);
         } else if (document.Body.Html != null) {
-            WriteTextPart(output, "text/html", document.Body.Html, state.Options.Base64LineLength,
+            WriteTextPart(output, "text/html", document.Body.Html, state.Options.Base64LineLength, plan,
                 document.Body.HtmlContentId, document.Body.HtmlContentLocation,
                 document.Body.PreserveHtmlMimeHeadersOnWrite ? document.Body.HtmlCharset : null,
                 document.Body.PreserveHtmlMimeHeadersOnWrite ? document.Body.HtmlTransferEncoding : null,
@@ -254,7 +256,7 @@ internal static partial class MimeWriter {
         } else if (document.Body.Rtf != null) {
             WriteRtfPart(output, document.Body.Rtf, state, "body/rtf");
         } else {
-            WriteTextPart(output, "text/plain", document.Body.Text ?? string.Empty, state.Options.Base64LineLength);
+            WriteTextPart(output, "text/plain", document.Body.Text ?? string.Empty, state.Options.Base64LineLength, plan);
         }
     }
 
@@ -316,7 +318,7 @@ internal static partial class MimeWriter {
     }
 
     private static void WriteTextPart(Stream output, string mediaType, string text, int base64LineLength,
-        string? contentId = null, string? contentLocation = null, string? charset = null,
+        MimeContentPlan plan, string? contentId = null, string? contentLocation = null, string? charset = null,
         string? transferEncoding = null, ICollection<EmailHeader>? preservedHeaders = null,
         Encoding? encodingOverride = null, byte[]? encodingPreamble = null) {
         if (preservedHeaders != null && preservedHeaders.Count > 0) {
@@ -351,7 +353,8 @@ internal static partial class MimeWriter {
             WriteLine(output, string.Concat("Content-Location: ", EncodeHeaderText(contentLocation!)));
         }
         WriteLine(output, string.Empty);
-        WriteBase64(output, Encoding.UTF8.GetBytes(text), base64LineLength);
+        byte[]? preparedUtf8 = mediaType == "text/plain" ? plan.TextUtf8 : plan.HtmlUtf8;
+        WriteBase64(output, preparedUtf8 ?? Encoding.UTF8.GetBytes(text), base64LineLength);
     }
 
     private static void WriteRtfPart(Stream output, string rtf, MimeWriterState state, string location) {
@@ -532,8 +535,11 @@ internal static partial class MimeWriter {
             hash = 14695981039346656037UL;
             Hash(ref hash, document.Subject);
             Hash(ref hash, document.MessageId);
-            Hash(ref hash, document.Body.Text);
-            Hash(ref hash, document.Body.Html);
+            // The same UTF-8 bytes seed the boundary and the default transfer-encoded bodies.
+            plan.TextUtf8 = document.Body.Text == null ? null : Encoding.UTF8.GetBytes(document.Body.Text);
+            plan.HtmlUtf8 = document.Body.Html == null ? null : Encoding.UTF8.GetBytes(document.Body.Html);
+            HashBytes(ref hash, plan.TextUtf8);
+            HashBytes(ref hash, plan.HtmlUtf8);
             Hash(ref hash, document.Body.Rtf);
             Hash(ref hash, plan.RegularAttachments.Length.ToString(CultureInfo.InvariantCulture));
             plan.BoundaryContentHash = hash;
@@ -713,7 +719,11 @@ internal static partial class MimeWriter {
 
     private static void Hash(ref ulong hash, string? value) {
         if (value == null) return;
-        byte[] bytes = Encoding.UTF8.GetBytes(value);
+        HashBytes(ref hash, Encoding.UTF8.GetBytes(value));
+    }
+
+    private static void HashBytes(ref ulong hash, byte[]? bytes) {
+        if (bytes == null) return;
         for (int i = 0; i < bytes.Length; i++) {
             hash ^= bytes[i];
             hash *= 1099511628211UL;
