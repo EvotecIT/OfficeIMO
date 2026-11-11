@@ -214,9 +214,10 @@ namespace OfficeIMO.Excel {
             /// CDATA terminator. Eight bytes are examined at a time; only bytes that could break the
             /// proof (non-ASCII, control characters, '&amp;' and ']') are looked at one by one.
             /// </summary>
-            private bool IsCanonicalTextValidDownLevel(CancellationToken ct) {
-                byte[] buffer = _buffer!;
-                int length = _length;
+            private bool IsCanonicalTextValidDownLevel(CancellationToken ct) =>
+                IsCanonicalTextValidDownLevel(_buffer!, _length, ct);
+
+            internal static bool IsCanonicalTextValidDownLevel(byte[] buffer, int length, CancellationToken ct) {
                 bool utf8Validated = false;
                 int index = 0;
                 int nextCancellationCheck = 0;
