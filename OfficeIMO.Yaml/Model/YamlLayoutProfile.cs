@@ -1,7 +1,7 @@
 namespace OfficeIMO.Yaml;
 
 /// <summary>
-/// The layout conventions of a loaded document, read once when the first edit needs them: mapping indent, sequence
+/// The layout conventions of a loaded document, read from its node table once when the first edit needs them: mapping indent, sequence
 /// indent and dash offset (the three numbers <see cref="YamlWriterOptions"/> uses), the dominant line break and the
 /// preferred quote. New nodes follow them so an edit looks like the rest of the file.
 /// </summary>
@@ -28,29 +28,37 @@ internal sealed class YamlLayoutProfile {
         profile.NewLine = DominantLineBreak(source);
         int mappingVote = 0, offsetVote = -1, sequenceVote = 0, singles = 0, doubles = 0, seen = 0;
         foreach (YamlDocumentPart part in document.Documents) {
-            if (part._root is null) continue;
-            foreach (YamlNode node in part._root.Descendants()) {
+            // The loaded nodes are read from the node table, so inferring the layout creates no node objects.
+            if (part._table is not { } table || part._rootRecord < 0) continue;
+            YamlNodeRecord[] records = table.Records;
+            int end = part._rootRecord + records[part._rootRecord].Size;
+            for (int node = part._rootRecord; node < end; node++) {
                 if (seen > SampleLimit * 8) break;
                 seen++;
-                if (node is YamlScalar { HasSourceSpan: true } scalar) {
-                    if (scalar._style == YamlStyle.SingleQuoted) singles++;
-                    else if (scalar._style == YamlStyle.DoubleQuoted) doubles++;
+                ref YamlNodeRecord record = ref records[node];
+                if (record.Kind == YamlRecordKind.Scalar) {
+                    if (record.Style == YamlStyle.SingleQuoted) singles++;
+                    else if (record.Style == YamlStyle.DoubleQuoted) doubles++;
                     continue;
                 }
                 // The first vote of each kind decides it; once both are in, the rest of the sample only counts quotes.
                 if (mappingVote > 0 && offsetVote >= 0) continue;
-                if (node is not YamlMapping { _style: YamlStyle.Block, HasSourceSpan: true } mapping || mapping._count == 0) continue;
-                int keyColumn = Column(source, mapping._entries[0].Key._start);
-                for (int i = 0; i < mapping._count && (mappingVote == 0 || offsetVote < 0); i++) {
-                    YamlNode value = mapping._entries[i].Value;
-                    if (!value.HasSourceSpan || value._style != YamlStyle.Block) continue;
-                    if (value is YamlMapping { _count: > 0 } child && mappingVote == 0) {
-                        int indent = Column(source, child._entries[0].Key._start) - keyColumn;
-                        if (indent > 0 && indent <= 9 && YamlTrivia.OnlyBlanksOrIndicators(source, YamlTrivia.LineStart(source, child._entries[0].Key._start), child._entries[0].Key._start)) mappingVote = indent;
-                    } else if (value is YamlSequence { _count: > 0 } sequence && offsetVote < 0) {
-                        int dash = YamlTrivia.DashPosition(source, sequence._items[0]._start);
+                if (record.Kind != YamlRecordKind.Mapping || record.Style != YamlStyle.Block || record.Count == 0) continue;
+                int key = node + 1;
+                int keyColumn = Column(source, records[key].Start);
+                for (int i = 0; i < record.Count && (mappingVote == 0 || offsetVote < 0); i++, key = table.Next(table.Next(key))) {
+                    int value = table.Next(key);
+                    ref YamlNodeRecord child = ref records[value];
+                    if (child.Style != YamlStyle.Block || child.Count == 0) continue;
+                    if (child.Kind == YamlRecordKind.Mapping && mappingVote == 0) {
+                        int childKey = records[value + 1].Start;
+                        int indent = Column(source, childKey) - keyColumn;
+                        if (indent > 0 && indent <= 9 && YamlTrivia.OnlyBlanksOrIndicators(source, YamlTrivia.LineStart(source, childKey), childKey)) mappingVote = indent;
+                    } else if (child.Kind == YamlRecordKind.Sequence && offsetVote < 0) {
+                        int item = records[value + 1].Start;
+                        int dash = YamlTrivia.DashPosition(source, item);
                         int offset = Column(source, dash) - keyColumn;
-                        int content = Column(source, sequence._items[0]._start) - keyColumn;
+                        int content = Column(source, item) - keyColumn;
                         if (offset >= 0 && offset <= 8 && content >= offset + 2 && content <= 10) {
                             offsetVote = offset;
                             sequenceVote = content;

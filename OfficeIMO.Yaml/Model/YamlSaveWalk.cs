@@ -47,7 +47,7 @@ internal sealed class YamlSaveWalk {
             }
             if (part._commentBeforeSet) EmitPartComments(part, header: true);
             if (part._commentSet) EmitMarkerComment(part);
-            if (part._root is not null) Visit(part._root);
+            if (part.RootNode is not null) Visit(part.RootNode);
             if (part._commentAfterSet) EmitPartComments(part, header: false);
         }
         Copy(_source.Length);
@@ -79,16 +79,21 @@ internal sealed class YamlSaveWalk {
                 Restructured(mapping);
                 return;
             }
+            // Entries without objects are untouched source; the copy covers them.
             for (int i = 0; i < mapping._count; i++) {
-                Visit(mapping._entries[i].Key);
-                Visit(mapping._entries[i].Value);
+                if (!mapping.IsLoaded(i)) continue;
+                YamlMappingEntry entry = mapping.EntryAt(i);
+                Visit(entry.Key);
+                Visit(entry.Value);
             }
         } else if (node is YamlSequence sequence) {
             if (sequence._original is not null) {
                 Restructured(sequence);
                 return;
             }
-            for (int i = 0; i < sequence._count; i++) Visit(sequence._items[i]);
+            for (int i = 0; i < sequence._count; i++) {
+                if (sequence.IsLoaded(i)) Visit(sequence.ItemAt(i));
+            }
         }
     }
 
@@ -259,12 +264,12 @@ internal sealed class YamlSaveWalk {
 
     private string RenderFlowChild(YamlNode collection, int index) {
         if (collection is YamlMapping mapping) {
-            YamlNode key = mapping._entries[index].Key, value = mapping._entries[index].Value;
+            YamlNode key = mapping.EntryAt(index).Key, value = mapping.EntryAt(index).Value;
             string keyText = RenderSlot(key, YamlSlot.Flow, 0, 0);
             if (value is YamlScalar { _style: YamlStyle.Plain } scalar && scalar.Value.Length == 0 && scalar._properties is null) return keyText;
             return keyText + (key is YamlAlias ? " : " : ": ") + RenderSlot(value, YamlSlot.Flow, 0, 0);
         }
-        return RenderSlot(((YamlSequence)collection)._items[index], YamlSlot.Flow, 0, 0);
+        return RenderSlot(((YamlSequence)collection).ItemAt(index), YamlSlot.Flow, 0, 0);
     }
 
     // ------------------------------------------------------------------ replacements
@@ -284,7 +289,7 @@ internal sealed class YamlSaveWalk {
                 Replace(start, end, keyText);
                 return false;
             }
-            YamlNode key = mapping._entries[index].Key;
+            YamlNode key = mapping.EntryAt(index).Key;
             int colonEnd = ColonEnd(key._end);
             bool hasColon = colonEnd > key._end;
             if (parent._style == YamlStyle.Flow) {
@@ -424,7 +429,7 @@ internal sealed class YamlSaveWalk {
         }
         if (node._parent is YamlMapping mapping) {
             int index = mapping.IndexOfNode(node, out _);
-            Insert(ColonEnd(mapping._entries[index].Key._end), " " + properties);
+            Insert(ColonEnd(mapping.EntryAt(index).Key._end), " " + properties);
             return;
         }
         Insert(start, properties + _newLine + new string(' ', Column(start)));
@@ -577,22 +582,22 @@ internal sealed class YamlSaveWalk {
     private static int ChildCount(YamlNode collection) => collection is YamlMapping m ? m._count : ((YamlSequence)collection)._count;
 
     private static int ChildStart(YamlNode collection, int index) =>
-        collection is YamlMapping m ? (m._entries[index].Key._start >= 0 && m._entries[index].Key._part is not null ? m._entries[index].Key._start : -1)
-        : ((YamlSequence)collection)._items[index]._start;
+        collection is YamlMapping m ? m.KeyStart(index) : ((YamlSequence)collection).ItemStart(index);
 
     private void VisitChild(YamlNode collection, int index) {
         if (collection is YamlMapping mapping) {
-            Visit(mapping._entries[index].Key);
-            Visit(mapping._entries[index].Value);
-        } else {
-            Visit(((YamlSequence)collection)._items[index]);
+            if (!mapping.IsLoaded(index)) return;
+            Visit(mapping.EntryAt(index).Key);
+            Visit(mapping.EntryAt(index).Value);
+        } else if (((YamlSequence)collection).IsLoaded(index)) {
+            Visit(((YamlSequence)collection).ItemAt(index));
         }
     }
 
     private static void WriteChildren(YamlEmitter emitter, YamlNode collection, int from, int to) {
         for (int i = from; i < to; i++) {
             if (collection is YamlMapping mapping) {
-                YamlNode key = mapping._entries[i].Key, value = mapping._entries[i].Value;
+                YamlNode key = mapping.EntryAt(i).Key, value = mapping.EntryAt(i).Value;
                 YamlModelWriter.CommentLines(emitter, key);
                 YamlModelWriter.WriteNode(emitter, key, ownComments: false);
                 if (value is YamlMapping { _count: > 0, _style: YamlStyle.Block } || value is YamlSequence { _count: > 0, _style: YamlStyle.Block }) {
@@ -600,7 +605,7 @@ internal sealed class YamlSaveWalk {
                 }
                 YamlModelWriter.WriteNode(emitter, value, ownComments: true);
             } else {
-                YamlNode item = ((YamlSequence)collection)._items[i];
+                YamlNode item = ((YamlSequence)collection).ItemAt(i);
                 YamlModelWriter.CommentLines(emitter, item);
                 YamlModelWriter.WriteNode(emitter, item, ownComments: true);
             }

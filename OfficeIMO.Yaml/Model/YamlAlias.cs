@@ -6,10 +6,13 @@ namespace OfficeIMO.Yaml;
 /// </summary>
 public sealed class YamlAlias : YamlNode {
     private readonly string _name;
+    private YamlNode? _target;
+    /// <summary>The anchored node's record for a loaded alias, found on first use.</summary>
+    private readonly int _targetRecord = -1;
 
-    internal YamlAlias(YamlDocumentPart part, int start, int end, string name, YamlNode target) : base(part, YamlStyle.None, start, end) {
+    internal YamlAlias(YamlDocumentPart part, int start, int end, string name, int targetRecord) : base(part, YamlStyle.None, start, end) {
         _name = name;
-        Target = target;
+        _targetRecord = targetRecord;
     }
 
     /// <summary>
@@ -21,7 +24,7 @@ public sealed class YamlAlias : YamlNode {
         if (anchored is null) throw new ArgumentNullException(nameof(anchored));
         if (anchored is YamlAlias) throw new ArgumentException("An alias refers to an anchored node, not to another alias.", nameof(anchored));
         _name = anchored.Anchor ?? throw new ArgumentException("The node has no anchor; set one with SetAnchor first.", nameof(anchored));
-        Target = anchored;
+        _target = anchored;
     }
 
     /// <summary>Gets the anchor name the alias refers to, without <c>*</c>. It follows renames of the anchor.</summary>
@@ -31,5 +34,11 @@ public sealed class YamlAlias : YamlNode {
     /// Gets the anchored node: the most recent node before the alias in the same document whose anchor is
     /// <see cref="Name"/>. It is never itself an alias.
     /// </summary>
-    public YamlNode Target { get; }
+    public YamlNode Target => Volatile.Read(ref _target) ?? ResolveTarget();
+
+    private YamlNode ResolveTarget() {
+        YamlNode target = _part!._document._table!.NodeAt(_part, _targetRecord);
+        Volatile.Write(ref _target, target);
+        return target;
+    }
 }

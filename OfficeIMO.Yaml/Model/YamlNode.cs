@@ -8,8 +8,6 @@ internal enum YamlNodeState : ushort {
     Dirty = 1,
     /// <summary>A descendant has an edit: saving walks into the node instead of copying its span whole.</summary>
     ContainsDirty = 2,
-    /// <summary>The collection is still being loaded; an alias to it would make the graph cyclic.</summary>
-    Open = 4,
     /// <summary>At least one alias refers to the node.</summary>
     Aliased = 8,
     /// <summary>The node's content comes from the model, not the source: created, re-valued or moved by editing.</summary>
@@ -25,13 +23,11 @@ internal enum YamlNodeState : ushort {
 }
 
 /// <summary>
-/// Anchor, tag, alias-expansion size and comment edits of a node. Most nodes have none of these, so they share no object.
+/// Anchor, tag and comment edits of a node. Most nodes have none of these, so they share no object.
 /// </summary>
 internal sealed class YamlNodeProperties {
     public string? Anchor;
     public string? Tag;
-    /// <summary>Nodes the anchored node stands for when every alias inside it is resolved, saturating.</summary>
-    public long ExpandedSize;
     public bool CommentBeforeSet;
     public string? CommentBefore;
     public bool CommentSet;
@@ -63,6 +59,8 @@ public abstract class YamlNode {
     internal int _end;
     /// <summary>The node's position in its parent, a hint that makes finding its entry constant time.</summary>
     internal int _index;
+    /// <summary>The node's row in the document's <see cref="YamlNodeTable"/>, or -1 for a node created by editing.</summary>
+    internal int _record = -1;
     internal YamlStyle _style;
     internal YamlNodeState _state;
 

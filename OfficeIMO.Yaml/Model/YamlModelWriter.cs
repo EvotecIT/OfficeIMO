@@ -66,7 +66,7 @@ internal static class YamlModelWriter {
                 emitter.StartCollection(mapping: true, mapping._style);
                 bool flow = mapping._style == YamlStyle.Flow || emitter.InFlow;
                 for (int i = 0; i < mapping._count; i++) {
-                    YamlNode key = mapping._entries[i].Key, value = mapping._entries[i].Value;
+                    YamlNode key = mapping.Entries[i].Key, value = mapping.Entries[i].Value;
                     if (!flow) CommentLines(emitter, key);
                     WriteNode(emitter, key, ownComments: false);
                     // A key's comment sits on its line when the value starts below it.
@@ -83,7 +83,7 @@ internal static class YamlModelWriter {
                 emitter.StartCollection(mapping: false, sequence._style);
                 bool flow = sequence._style == YamlStyle.Flow || emitter.InFlow;
                 for (int i = 0; i < sequence._count; i++) {
-                    YamlNode item = sequence._items[i];
+                    YamlNode item = sequence.Items[i];
                     if (!flow) CommentLines(emitter, item);
                     WriteNode(emitter, item, ownComments: !flow);
                 }
@@ -115,9 +115,9 @@ internal static class YamlModelWriter {
         }
         emitter.StartDocument(marker);
         if (marker && part.Comment is { } comment) emitter.SetTrailingComment(comment);
-        if (part._root is not null) {
-            CommentLines(emitter, part._root);
-            WriteNode(emitter, part._root, ownComments: true);
+        if (part.RootNode is not null) {
+            CommentLines(emitter, part.RootNode);
+            WriteNode(emitter, part.RootNode, ownComments: true);
         }
         if (part.CommentAfter is { } footer) emitter.WriteCommentLines(footer);
         if (part.HasEndMarker) emitter.EndDocument();

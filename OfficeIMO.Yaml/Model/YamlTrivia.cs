@@ -42,7 +42,7 @@ internal static class YamlTrivia {
         if (!ReferenceEquals(target, node) && node._properties is { CommentSet: true } own) return own.Comment;
         if (target._parent is YamlMapping { _style: YamlStyle.Block } mapping) {
             int index = mapping.IndexOfNode(target, out bool isKey);
-            YamlNode value = mapping._entries[index].Value;
+            YamlNode value = mapping.EntryAt(index).Value;
             if (isKey && value is YamlMapping or YamlSequence && value._style == YamlStyle.Block && value._properties is { CommentSet: true } valueEdits) return valueEdits.Comment;
         }
         if (!target.HasSourceSpan) return null;
@@ -60,8 +60,8 @@ internal static class YamlTrivia {
         owner.IsTransparentBlock && owner.HasSourceSpan && FirstChild(owner) is { _start: < 0 };
 
     private static YamlNode? FirstChild(YamlNode collection) => collection switch {
-        YamlMapping { _count: > 0 } m => m._entries[0].Key,
-        YamlSequence { _count: > 0 } q => q._items[0],
+        YamlMapping { _count: > 0 } m => m.EntryAt(0).Key,
+        YamlSequence { _count: > 0 } q => q.ItemAt(0),
         _ => null
     };
 
@@ -74,13 +74,13 @@ internal static class YamlTrivia {
                 int index = map.IndexOfNode(current, out bool isKey);
                 if (!isKey) {
                     // A mapping value's lines are its key's.
-                    current = map._entries[index].Key;
+                    current = map.EntryAt(index).Key;
                     continue;
                 }
             }
             if (parent is null || !parent.IsTransparentBlock || !IsFirstChild(parent, current)) return current;
             // The first entry of a transparent sequence item or root shares the line with that collection.
-            if (parent._parent is YamlSequence || (parent._parent is null && parent._part is not null && ReferenceEquals(parent._part._root, parent))) {
+            if (parent._parent is YamlSequence || (parent._parent is null && parent._part is not null && ReferenceEquals(parent._part.RootNode, parent))) {
                 current = parent;
                 continue;
             }
@@ -93,11 +93,11 @@ internal static class YamlTrivia {
         if (node is YamlScalar && node.HasSourceSpan && node._parent is YamlMapping { _style: YamlStyle.Block } owner) {
             // An omitted value without its ':' has no line of its own; its key's line is the entry's.
             int index = owner.IndexOfNode(node, out bool isKey);
-            if (!isKey && OmittedWithoutColon(node.Document!._source, owner._entries[index].Key, node)) return owner._entries[index].Key;
+            if (!isKey && OmittedWithoutColon(node.Document!._source, owner.EntryAt(index).Key, node)) return owner.EntryAt(index).Key;
         }
         if (node is YamlMapping or YamlSequence && node._style == YamlStyle.Block && node._parent is YamlMapping map) {
             int index = map.IndexOfNode(node, out bool isKey);
-            if (!isKey) return map._entries[index].Key;
+            if (!isKey) return map.EntryAt(index).Key;
         }
         return node;
     }
@@ -107,8 +107,8 @@ internal static class YamlTrivia {
 
     private static bool IsFirstChild(YamlNode parent, YamlNode child) {
         return parent switch {
-            YamlMapping m => m._count > 0 && ReferenceEquals(m._entries[0].Key, child),
-            YamlSequence s => s._count > 0 && ReferenceEquals(s._items[0], child),
+            YamlMapping m => m._count > 0 && m.IsLoaded(0) && ReferenceEquals(m.EntryAt(0).Key, child),
+            YamlSequence s => s._count > 0 && s.IsLoaded(0) && ReferenceEquals(s.ItemAt(0), child),
             _ => false
         };
     }
@@ -197,7 +197,7 @@ internal static class YamlTrivia {
         switch (node._parent) {
             case YamlMapping mapping: {
                 int index = mapping.IndexOfNode(node, out bool isKey);
-                if (!isKey) return ColonEnd(node.Document!._source, mapping._entries[index].Key._end);
+                if (!isKey) return ColonEnd(node.Document!._source, mapping.EntryAt(index).Key._end);
                 int original = OriginalIndex(mapping, node);
                 if (original > 0) return OriginalEnd(mapping, original - 1);
                 return CollectionGapStart(mapping, out documentStart);
@@ -247,7 +247,7 @@ internal static class YamlTrivia {
     public static int OriginalEnd(YamlNode collection, int index) {
         int[]? spans = Spans(collection);
         if (spans is not null) return spans[index * 2 + 1];
-        return collection is YamlMapping m ? m._entries[index].Value._end : ((YamlSequence)collection)._items[index]._end;
+        return collection is YamlMapping m ? m.ValueEnd(index) : ((YamlSequence)collection).ItemEnd(index);
     }
 
     /// <summary>The snapshot of loaded child spans as (start, end) pairs, or null while nothing was inserted or removed.</summary>
@@ -311,13 +311,13 @@ internal static class YamlTrivia {
             if (isKey) {
                 // A key owns the comment on its line only when its value is a block collection, starts on a later line,
                 // or is omitted together with its ':' (an explicit `? key # comment`).
-                YamlNode value = mapping._entries[index].Value;
+                YamlNode value = mapping.EntryAt(index).Value;
                 int end = LineContentEnd(source, node._end);
                 if (value._start <= end && !(value is YamlMapping or YamlSequence && value._style == YamlStyle.Block) && !OmittedWithoutColon(source, node, value)) return -1;
                 lineEnd = end;
                 return FindHash(source, node._end, end);
             }
-            if (OmittedWithoutColon(source, mapping._entries[index].Key, node)) return -1;
+            if (OmittedWithoutColon(source, mapping.EntryAt(index).Key, node)) return -1;
         }
         int i = node._end;
         while (i < source.Length) {
@@ -380,7 +380,7 @@ internal static class YamlTrivia {
     public static bool TryHeaderRegion(YamlDocumentPart part, out int start, out int end) {
         string source = part._document._source;
         start = end = 0;
-        if (part._root is null || !part._root.HasSourceSpan) return false;
+        if (part.RootNode is null || !part.RootNode.HasSourceSpan) return false;
         if (part.HasStartMarker) {
             int index = PartIndex(part);
             YamlDocumentPart? previous = index > 0 ? part._document.Documents[index - 1] : null;
@@ -388,7 +388,7 @@ internal static class YamlTrivia {
             end = LineStart(source, part._start);
             return start <= end;
         }
-        YamlNode owner = Owner(part._root);
+        YamlNode owner = Owner(part.RootNode);
         if (!owner.HasSourceSpan) return false;
         int gap = DocumentContentStart(part);
         start = AtLineStart(source, gap) ? gap : NextLineStart(source, gap);
@@ -401,8 +401,8 @@ internal static class YamlTrivia {
     public static bool TryFooterRegion(YamlDocumentPart part, out int start, out int end) {
         string source = part._document._source;
         start = end = 0;
-        if (part._root is null || !part._root.HasSourceSpan) return false;
-        int rootEnd = part._root._end;
+        if (part.RootNode is null || !part.RootNode.HasSourceSpan) return false;
+        int rootEnd = part.RootNode._end;
         start = AtLineStart(source, rootEnd) && rootEnd > 0 ? rootEnd : NextLineStart(source, rootEnd);
         int index = PartIndex(part);
         IReadOnlyList<YamlDocumentPart> parts = part._document.Documents;

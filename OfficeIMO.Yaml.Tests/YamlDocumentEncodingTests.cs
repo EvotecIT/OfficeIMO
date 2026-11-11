@@ -54,6 +54,24 @@ public class YamlDocumentEncodingTests {
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task EditedUtf8SavesKeepTheByteOrderMarkAndTheUntouchedText(bool byteOrderMark) {
+        // ASCII input saves its untouched ranges from the loaded bytes; the edited range is encoded anew.
+        byte[] preamble = byteOrderMark ? Encoding.UTF8.GetPreamble() : Array.Empty<byte>();
+        byte[] input = preamble.Concat(Encoding.UTF8.GetBytes("# head\nkey: old # note\nlist: [1, 2]\n")).ToArray();
+        byte[] expected = preamble.Concat(Encoding.UTF8.GetBytes("# head\nkey: wert € # note\nlist: [1, 2]\n")).ToArray();
+        YamlDocument document = YamlDocument.Load(new MemoryStream(input));
+        document.Set("key", "wert €");
+        var output = new MemoryStream();
+        document.Save(output);
+        Assert.Equal(expected, output.ToArray());
+        var asynchronous = new MemoryStream();
+        await document.SaveAsync(asynchronous);
+        Assert.Equal(expected, asynchronous.ToArray());
+    }
+
+    [Theory]
     [MemberData(nameof(Encodings))]
     public async Task FileAndAsyncSavesReproduceTheInput(string encodingName, bool byteOrderMark) {
         byte[] input = Encode(encodingName, byteOrderMark);
@@ -100,6 +118,22 @@ public class YamlDocumentEncodingTests {
         } finally {
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }
+    }
+
+    [Fact]
+    public void ADisposedDocumentRefusesNodesItHasNotCreated() {
+        // Disposal returns the pooled node storage, so a node not read before fails instead of reading reused memory.
+        YamlDocument unread = YamlDocument.Parse("a: [1, 2]\n");
+        unread.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => unread.Root);
+
+        YamlDocument read = YamlDocument.Parse("a: [1, 2]\nb: c\n");
+        YamlMapping root = read.Root!.AsMapping();
+        YamlNode a = root["a"];
+        read.Dispose();
+        Assert.Equal("a", root[0].Key.AsString());
+        Assert.Throws<ObjectDisposedException>(() => root["b"]);
+        Assert.Throws<ObjectDisposedException>(() => a.AsSequence()[0]);
     }
 
     [Fact]

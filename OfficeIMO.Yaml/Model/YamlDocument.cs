@@ -24,6 +24,11 @@ public sealed partial class YamlDocument : IDisposable {
     /// <summary>Set by any edit; an unedited document saves as one copy of its source.</summary>
     internal bool _partsDirty;
     private string? _path;
+    /// <summary>The loaded nodes; null for a document created in memory.</summary>
+    internal YamlNodeTable? _table;
+    /// <summary>The pooled UTF-8 input, byte-order mark included, of a document loaded from bytes; null otherwise.</summary>
+    internal byte[]? _utf8;
+    internal int _utf8Length;
 
     private YamlDocument(string source, YamlTextEncoding encoding, bool byteOrderMark, YamlDuplicateKeyPolicy duplicateKeys, bool strict) {
         _source = source;
@@ -178,8 +183,14 @@ public sealed partial class YamlDocument : IDisposable {
         return part;
     }
 
-    /// <summary>Releases nothing: the document holds only managed memory. It is disposable so <c>using</c> works as for every OfficeIMO document.</summary>
+    /// <summary>
+    /// Returns the document's pooled storage: its node table and, for a document loaded from a file or stream, its input
+    /// bytes. The document holds only managed memory. Do not use the document after disposing it: nodes reached before
+    /// keep their values, and reaching any other node throws <see cref="ObjectDisposedException"/>.
+    /// </summary>
     public void Dispose() {
+        _table?.Release();
+        if (Interlocked.Exchange(ref _utf8, null) is { } bytes) ArrayPool<byte>.Shared.Return(bytes);
     }
 
     /// <summary>The layout conventions new nodes follow, read from the source on first use.</summary>
