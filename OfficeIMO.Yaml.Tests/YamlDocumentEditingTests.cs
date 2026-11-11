@@ -72,6 +72,35 @@ public class YamlDocumentEditingTests {
         Assert.Equal("affinity: {}\n#   nodeAffinity:\n#     required: true\n\n# Extra labels\npodLabels: {}\n", document.ToString());
     }
 
+    // Removing the last entry of a text without a final line break leaves the text ending at the previous entry's
+    // break; whatever is written after it starts on that line instead of below a blank one.
+    [Theory]
+    [InlineData("a: 1\nb: 2", "a: 1\nc: 3\n", "a: 1\n")]
+    [InlineData("a: 1\nb: 2\n", "a: 1\nc: 3\n", "a: 1\n")]
+    [InlineData("a: 1\r\nb: 2", "a: 1\r\nc: 3\r\n", "a: 1\r\n")]
+    [InlineData("x: 0\n---\na: 1\nb: 2", "x: 0\n---\na: 1\nc: 3\n", "x: 0\n---\na: 1\n")]
+    public void RemovingTheLastEntryBeforeTheEndOfTheTextLeavesNoBlankLine(string yaml, string replaced, string removed) {
+        YamlDocument document = YamlDocument.Parse(yaml);
+        Assert.Equal(yaml, document.ToString());
+        YamlMapping root = document.Documents[document.Documents.Count - 1].Root!.AsMapping();
+        root.Remove("b");
+        Assert.Equal(removed, document.ToString());
+        root.Add("c", 3);
+        Assert.Equal(replaced, document.ToString());
+
+        document = YamlDocument.Parse(yaml);
+        document.Documents[document.Documents.Count - 1].Root!.AsMapping().Remove("b");
+        document.Documents[document.Documents.Count - 1].SetCommentAfter("end");
+        document.AddDocument(new YamlSequence { 1 });
+        string nl = yaml.Contains("\r\n") ? "\r\n" : "\n";
+        Assert.Equal(removed + "# end" + nl + "---" + nl + "- 1" + nl, document.ToString());
+
+        YamlDocument nested = YamlDocument.Parse("x:\n  - 1\n  - 2");
+        nested.Remove("x[1]");
+        nested.Add("x", 3);
+        Assert.Equal("x:\n  - 1\n  - 3\n", nested.ToString());
+    }
+
     [Fact]
     public void PathSetCreatesMissingMappingsAndAddAppendsToSequences() {
         using YamlDocument document = YamlDocument.Create();

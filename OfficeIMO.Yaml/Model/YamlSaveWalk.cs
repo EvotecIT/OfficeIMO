@@ -200,7 +200,7 @@ internal sealed class YamlSaveWalk {
 
     private void InsertBlockChildren(YamlNode collection, int from, int to, int point, int indent, bool inline) {
         Copy(point);
-        bool needBreak = point > 0 && !YamlTrivia.AtLineStart(_source, point) && !inline;
+        bool needBreak = !inline && !OutputAtLineStart();
         YamlEmitter emitter = Emitter();
         if (needBreak) _text.Write(_newLine);
         emitter.BeginEntries(collection is YamlMapping, indent, inline ? indent : 0);
@@ -500,9 +500,9 @@ internal sealed class YamlSaveWalk {
         string footer = CommentLines(text, 0);
         if (first < 0) {
             if (text is null) return;
-            int point = Math.Max(from, _cursor);
-            if (point > 0 && !YamlTrivia.AtLineStart(_source, point)) footer = _newLine + footer;
-            Insert(point, footer);
+            Copy(Math.Max(from, _cursor));
+            if (!OutputAtLineStart()) footer = _newLine + footer;
+            Write(footer);
             return;
         }
         Replace(Math.Max(first, _cursor), LastCommentLineEnd(first, to), footer);
@@ -570,7 +570,7 @@ internal sealed class YamlSaveWalk {
     private void WriteNewPart(YamlDocumentPart part, int index) {
         Copy(_source.Length);
         YamlEmitter emitter = Emitter();
-        if (_source.Length > 0 && !YamlTrivia.AtLineStart(_source, _source.Length) && _segments.Count > 0) _text.Write(_newLine);
+        if (!OutputAtLineStart()) _text.Write(_newLine);
         bool marker = part.HasStartMarker || index > 0;
         YamlModelWriter.WritePart(emitter, part, marker && (index > 0 || part.HasStartMarker));
         emitter.Finish();
@@ -705,6 +705,20 @@ internal sealed class YamlSaveWalk {
         string text = _text.ToString();
         _text.GetStringBuilder().Clear();
         if (text.Length > 0) _segments.Add(new YamlTextSegment(text, 0, text.Length));
+    }
+
+    /// <summary>
+    /// Whether the text written so far ends a line. Removed source can have taken the text up to a break that the
+    /// source position alone does not show, as when the last entry of a text without a final line break goes.
+    /// </summary>
+    private bool OutputAtLineStart() {
+        StringBuilder pending = _text.GetStringBuilder();
+        if (pending.Length > 0) return YamlTrivia.IsBreak(pending[pending.Length - 1]);
+        for (int i = _segments.Count - 1; i >= 0; i--) {
+            YamlTextSegment segment = _segments[i];
+            if (segment.Length > 0) return YamlTrivia.IsBreak(segment.Text[segment.Start + segment.Length - 1]);
+        }
+        return true;
     }
 
     private void Copy(int to) {
