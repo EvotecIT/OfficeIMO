@@ -18,7 +18,17 @@ foreach (OfficeHiddenDataFinding finding in report.Findings) {
 document.Save("Contract-shared.docx");
 ```
 
-`OfficeHiddenDataKind.Default` selects every category except tracked changes and hidden content, which change what readers see. Tracked changes are reported and kept unless `TrackedChanges` is `AcceptAll` or `RejectAll`. Authors on comments and revisions that stay in the document are replaced with `AnonymousAuthor` (default `Author`) rather than deleted, because Office requires an author name on them.
+`OfficeHiddenDataKind.Default` selects every category except tracked changes and hidden content, which change what readers see, and provenance, which discloses how content was made. Tracked changes are reported and kept unless `TrackedChanges` is `AcceptAll` or `RejectAll`. Authors on comments and revisions that stay in the document are replaced with `AnonymousAuthor` (default `Author`) rather than deleted, because Office requires an author name on them.
+
+## Provenance
+
+The report also answers what provenance leaves with the file. Content Credentials (C2PA manifests and references to them) and IPTC digital source type declarations, such as an image marked as AI-generated, appear as `Provenance` findings whose `Provenance` property carries the same evidence that `InspectProvenance` returns.
+
+Provenance is kept unless you add `OfficeHiddenDataKind.Provenance`. While it is kept, `ImageMetadata` cleanup reduces an image's XMP to its digital source type declaration instead of deleting it, and leaves images that carry Content Credentials untouched, because changing their bytes would invalidate the credential; those images are reported as `Retained`. Selecting `Provenance` removes the carriers through the same engine as `RemoveProvenance`, and then image metadata is stripped as usual.
+
+Content Credentials stored for the whole package (`META-INF/content_credential.c2pa`) cover every byte of the file, so any change to a loaded document invalidates them. `RemoveHiddenData` always removes them and says so in the finding's `Note`. To remove only provenance from a file and leave every other byte alone, use the static `RemoveProvenance(inputPath, outputPath)` instead; it also handles package signatures through `SignatureMutationPolicy`.
+
+## Outcomes
 
 Each finding's `Outcome` is `Found` when inspecting, and `Removed`, `Anonymized`, `Accepted`, `Rejected` or `Retained` after removal. `Retained` findings carry a `Note`: the category was not selected, or removing the item would break the document.
 
@@ -35,7 +45,8 @@ Each finding's `Outcome` is `Found` when inspecting, and `Removed`, `Anonymized`
 | `SpeakerNotes` | Not applicable | Not applicable | Notes slides removed |
 | `Thumbnail` | Package thumbnail removed | Same | Same |
 | `CustomXml` | Removed, except bibliography sources and parts bound to content controls | Removed | Removed |
-| `ImageMetadata` | Exif, GPS, XMP and IPTC removed from JPEG, PNG, WebP, TIFF, BMP and GIF images without re-encoding pixels; ICC colour, density and orientation are kept. Other image formats are retained | Same | Same |
+| `ImageMetadata` | Exif, GPS, XMP and IPTC removed from JPEG, PNG, WebP, TIFF, BMP and GIF images without re-encoding pixels; ICC colour, density and orientation are kept. Other image formats are retained. While provenance is kept, a digital source type declaration stays and images with Content Credentials are retained | Same | Same |
+| `Provenance` (opt-in) | C2PA manifests, external manifest references and IPTC digital source type declarations in JPEG, PNG, WebP, GIF, TIFF and SVG images, removed through the provenance engine. Package-level Content Credentials are always removed | Same | Same |
 | `PrinterSettings` | Printer settings parts and the elements that reference them | Same | Same |
 | `ExternalReferences` | Attached template removed. Other linked content, such as linked images and OLE links, is reported and retained | Cached values from external workbooks removed. External workbook paths and pivot cache source workbooks are reported and retained, because formulas and refreshes depend on them | Not applicable |
 | `DocumentVariables` | Removed | Not applicable | Not applicable |
