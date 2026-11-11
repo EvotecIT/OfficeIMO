@@ -2041,6 +2041,37 @@ separate HTML destination.
 
 Every workflow request runs with explicit input and output limits, cancellation, staged output validation, and a caller-selected collision policy. Single-artifact `OfficeWorkflowResult.OutputBytes` and `OutputSha256`, when available, describe the captured published bytes without reopening the final destination. Passwords remain request-only values and are not copied into diagnostics or results. PDF comparison accepts a separate `ComparisonPdfPassword` when the two inputs use different credentials.
 
+Applications that keep documents open can set `PublicationGuard` on `OfficeWorkflowRequest`, `PdfAssemblyRequest`, and `PdfPageImageExportRequest`. Implement `IOfficeWorkflowPublicationGuard.CanPublishAsync` to check live ownership of the supplied absolute destination. For directory outputs, check whether publication would replace a directory containing an owned document. The runner calls the guard after validating the staged artifact and checks every numbered candidate: a denied destination fails `Fail` or `Replace`, while `Rename` tries the next name. Cancellation and guard errors prevent publication. Calls can originate on worker threads, so UI hosts must dispatch ownership inspection to their UI thread. This is an application ownership check at publication time; it does not lock paths against concurrent external filesystem changes.
+
+## Print a PDF
+
+Plan the sheets, render them once for review, and send those same sheets to an installed printer:
+
+```csharp
+using OfficeIMO.Pdf;
+using OfficeIMO.Workflows;
+
+var printers = new PdfPrinterService();
+foreach (PdfPrinterInfo queue in await printers.GetPrintersAsync()) {
+    Console.WriteLine(queue.IsDefault ? queue.Name + " (default)" : queue.Name);
+}
+
+PdfDocument document = await PdfDocument.LoadAsync("report.pdf");
+PdfPreparedPrintDocument prepared = PdfPrintRenderer.Prepare(document, new PdfPrintPlanRequest {
+    InputPath = "report.pdf",
+    Pages = "1-8",
+    PagesPerSheet = 2
+});
+File.WriteAllBytes("sheet-1.png", prepared.Sheets[0].GetPng());
+
+PdfPrintSubmission job = await printers.SubmitAsync(prepared, new PdfPrintDeliveryOptions {
+    PrinterName = "Office printer",
+    Copies = 2,
+    Duplex = PdfPrintDuplex.LongEdge
+});
+Console.WriteLine($"Queued job {job.JobId}: {job.SheetCount} sheets");
+```
+
 `PdfPrintRenderer.Prepare(document, request)` turns an authenticated `PdfDocument` snapshot and its `PdfPrintPlanRequest` into immutable PNG sheets. Display `prepared.Sheets[i].GetPng()` for review, then pass that same `PdfPreparedPrintDocument` to `IPdfPrinterService.SubmitAsync` with `PdfPrintDeliveryOptions`. Delivery does not reopen the source. `PdfPrinterService.GetPrintersAsync` lists installed queues; Windows uses GDI and macOS/Linux use the installed CUPS `lpstat`, `lpoptions`, and `lp` tools. Copies are collated, and duplex defaults to the printer's setting.
 
 `PdfPrintPlanRequest.PagesPerSheet` accepts 1, 2, 4, 6, or 9 pages in row-major order. Six-up uses two columns on portrait paper and three on landscape paper; nine-up uses three columns and rows. `PageSubset` filters odd or even original source-page numbers after `Pages` is resolved, retaining that selection's order. `Margin` sets the default edge margin in points; nullable `MarginLeft`, `MarginTop`, `MarginRight`, and `MarginBottom` override individual edges. Margins must leave a positive sheet area.
@@ -2051,7 +2082,7 @@ Every workflow request runs with explicit input and output limits, cancellation,
 
 Print preparation enforces PDF printing permissions, page and raster limits, cancellation, and a retained-output byte budget. Rendering above 150 DPI also requires high-quality print permission when restrictions apply. The output reflects the managed renderer's diagnostics and printer margins. `PdfPrintSubmission` is a queue acceptance receipt, not confirmation of physical delivery; `PdfPrintDeliveryException` means submission began and retrying could duplicate pages. Windows file-printer paths must be new local paths and are checked before submission; the driver controls the eventual write.
 
-Applications that keep documents open can set `PublicationGuard` on `OfficeWorkflowRequest`, `PdfAssemblyRequest`, and `PdfPageImageExportRequest`. Implement `IOfficeWorkflowPublicationGuard.CanPublishAsync` to check live ownership of the supplied absolute destination. For directory outputs, check whether publication would replace a directory containing an owned document. The runner calls the guard after validating the staged artifact and checks every numbered candidate: a denied destination fails `Fail` or `Replace`, while `Rename` tries the next name. Cancellation and guard errors prevent publication. Calls can originate on worker threads, so UI hosts must dispatch ownership inspection to their UI thread. This is an application ownership check at publication time; it does not lock paths against concurrent external filesystem changes.
+To check placement without a printer driver, call `PdfPrintPlanner.Create` and read `PdfPrintPlan.Sheets`. The [command line](../OfficeIMO.Tool/README.md#file-batches-and-printing) exposes the same steps as `officeimo workflow printers`, `print-plan` and `print`.
 
 ## Save protected or unencrypted PDF copies
 

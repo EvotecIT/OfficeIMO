@@ -41,6 +41,7 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 | Transform | Merge, split, extract, reorder, rotate, stamp, watermark, overlay, and metadata changes |
 | Secure | CMS-backed signatures, timestamps, certificate validation, and revision-aware inspection through `OfficeIMO.Security` |
 | Render | Page images and format adapters used by Word, Excel, PowerPoint, HTML, RTF, and OpenDocument packages |
+| Print | Installed Windows, macOS, and Linux printers with page ranges, 1 to 9 pages per sheet, scaling, duplex, paper source, and a preview of the exact sheets, through `OfficeIMO.Workflows` or `officeimo workflow print` |
 
 Complex source formats do not map perfectly to PDF in every case. Conversion results expose diagnostics so applications can decide whether an approximation is acceptable.
 
@@ -84,3 +85,4 @@ foreach (OfficeDiagnostic diagnostic in result.Diagnostics) {
 - OCR and searchable-PDF generation use `OfficeIMO.Pdf.Ocr` with an explicitly configured OCR provider. They are separate .NET workflows and are not included in these browser PDF tools. See the [PDF OCR API](/api/pdf-ocr/).
 - Password protection is not a digital signature. CMS-backed signing, timestamping, trust validation, and revision inspection remain .NET workflows through `OfficeIMO.Pdf` and `OfficeIMO.Security`.
 - Filling a visual signature field is also different from applying a cryptographic signature. Applications should present those actions separately.
+- Printing is a .NET and command-line workflow. The browser tools leave printing to the browser. A returned job identifier confirms that the queue accepted the job, not that paper came out.

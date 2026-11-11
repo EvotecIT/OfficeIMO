@@ -48,6 +48,37 @@ Page operations return a new document and do not overwrite the source; save the 
 
 Stamp and watermark operations support text, images and imported pages. Annotation editors, page operations, metadata changes, and optimization produce mutation evidence where signatures or structural constraints matter.
 
+## Print to an installed printer
+
+`OfficeIMO.Workflows` prints through the operating system's own queues: GDI on Windows and CUPS on macOS and Linux. It plans the sheets first, renders them once, and sends exactly the sheets you previewed.
+
+```csharp
+using OfficeIMO.Pdf;
+using OfficeIMO.Workflows;
+
+var printers = new PdfPrinterService();
+PdfDocument document = await PdfDocument.LoadAsync("report.pdf");
+PdfPreparedPrintDocument prepared = PdfPrintRenderer.Prepare(document, new PdfPrintPlanRequest {
+    InputPath = "report.pdf",
+    Pages = "1-8",
+    PagesPerSheet = 2
+});
+File.WriteAllBytes("sheet-1.png", prepared.Sheets[0].GetPng());
+
+PdfPrintSubmission job = await printers.SubmitAsync(prepared, new PdfPrintDeliveryOptions {
+    PrinterName = "Office printer",
+    Copies = 2,
+    Duplex = PdfPrintDuplex.LongEdge
+});
+```
+
+- **Layout:** 1, 2, 4, 6 or 9 pages per sheet, odd or even pages, fit, actual size, fill or a custom percentage, per-edge margins, alignment, and grayscale.
+- **Printer:** list queues with `GetPrintersAsync` and their trays with `GetPaperSourcesAsync`, then choose copies, duplex and paper source.
+- **Permissions and limits:** PDF print restrictions are enforced, and page, pixel and output budgets bound the work.
+- **Receipt:** the job identifier confirms that the queue accepted the job, not that paper came out. After an interrupted submission, check the queue before retrying.
+
+From the command line, use `officeimo workflow printers` and `officeimo workflow print report.pdf --printer "Office printer"`.
+
 ## Redaction is removal, not decoration
 
 Use `pdf.Redactions.Search(...)` to build a reviewable plan, then `ApplyWithEvidence(plan)` to remove the content and verify the saved bytes. Call `ThrowIfUnverified()` on the result before saving or sharing it: evidence can report residual or inconclusive matches. Drawing a black rectangle over text is not redaction; the original content may remain extractable.
