@@ -181,3 +181,4 @@ static OfficeIMO.Yaml.YamlSerializerOptions.Default.get -> OfficeIMO.Yaml.YamlSe
 *REMOVED*OfficeIMO.Yaml.YamlLoadOptions.DuplicateKeys.get -> OfficeIMO.Yaml.YamlDuplicateKeyPolicy
 OfficeIMO.Yaml.YamlLoadOptions.DuplicateKeys.get -> OfficeIMO.Yaml.YamlDuplicateKeyPolicy?
 OfficeIMO.Yaml.YamlException.ToDiagnostic() -> OfficeIMO.OfficeDiagnostic!
+OfficeIMO.Yaml.YamlNode.IsModified.get -> bool

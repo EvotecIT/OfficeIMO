@@ -120,6 +120,7 @@ doc.Save("deployment.yaml");
   - `YamlScalar` holds raw text, style and a lazily decoded, cached value.
   - `YamlAlias` points to its anchor. Aliases stay aliases in the model; resolution is a view.
 - Nodes store spans into the retained source. Trivia (comments, blank lines, indentation) stay in the source gaps and aren't materialized unless asked for: `node.CommentBefore`, `node.Comment` and `node.SpaceBefore` read the gaps lazily, and `YamlDocumentPart.CommentBefore`/`CommentAfter` hold a document's header and footer. The model allocates about one object per node, with nothing for trivia.
+- **Source positions:** `node.Start`/`End` turn the stored offsets into line and column through one line table the document builds on first use, so loading allocates nothing for positions. `node.IsModified` reads the edit flags: whether the node or anything inside it changed since load, so a consumer knows whether the position still describes the text that saving writes. Nodes whose content comes from editing have no position.
 - Typed reads go through the schema: `scalar.GetValue<T>()`, `TryGetValue<T>`, `AsString()`. Reading never changes raw text.
 - **Assigning a value:**
   - If the new value equals the old one under the active schema, the raw text is kept, so assigning `true` to a scalar spelled `TRUE` changes nothing.

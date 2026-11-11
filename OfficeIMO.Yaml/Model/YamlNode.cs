@@ -101,9 +101,15 @@ public abstract class YamlNode {
     public YamlNode? Parent => _parent;
 
     /// <summary>
-    /// Gets where the node starts in the loaded source: its first property (anchor or tag) when present, otherwise its
-    /// content. Nodes created by editing have no source position and return the default value.
+    /// Gets where the node starts in the loaded source, with its offset and one-based line and column: its first property
+    /// (anchor or tag) when present, otherwise its content. Nodes whose content comes from editing (created, re-valued
+    /// or moved) have no source position and return the default value, whose <see cref="YamlPosition.Line"/> is 0.
     /// </summary>
+    /// <remarks>
+    /// Positions refer to the text as loaded; edits elsewhere never shift them. The first position read builds the
+    /// document's line table once; nodes store only offsets. <see cref="IsModified"/> tells whether the node's text in
+    /// a save would still be the text at this position.
+    /// </remarks>
     public YamlPosition Start => HasSourceSpan ? _part!._document.GetPosition(_start) : default;
 
     /// <summary>
@@ -111,6 +117,15 @@ public abstract class YamlNode {
     /// is zero-width at the point where the omitted node would be. Nodes created by editing return the default value.
     /// </summary>
     public YamlPosition End => HasSourceSpan ? _part!._document.GetPosition(_end) : default;
+
+    /// <summary>
+    /// Gets whether editing changed the node or anything inside it since the document was loaded: its value, anchor,
+    /// tag or comments, or a descendant's, or entries or items added or removed. It is <see langword="true"/> for nodes
+    /// created by editing, and <see langword="false"/> for an untouched loaded node, whose source text between
+    /// <see cref="Start"/> and <see cref="End"/> is what saving writes for it.
+    /// </summary>
+    public bool IsModified => !HasSourceSpan || (_state & (YamlNodeState.Dirty | YamlNodeState.ContainsDirty | YamlNodeState.PropertiesDirty
+        | YamlNodeState.CommentsDirty | YamlNodeState.Restructured)) != 0;
 
     /// <summary>
     /// Gets whether the node resolves to null under its document's schema: an untagged plain scalar such as <c>null</c>,
