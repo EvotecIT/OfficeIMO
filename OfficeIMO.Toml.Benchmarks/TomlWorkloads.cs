@@ -27,7 +27,7 @@ public static class TomlWorkloads {
                 inputs = workload switch {
                     TomlWorkload.SmallConfig => new[] { Read("Python/sampleproject-pyproject.toml") },
                     TomlWorkload.CargoWorkspace => new[] { Read("Cargo/uv-Cargo.toml") },
-                    TomlWorkload.LockFile => new[] { Read("Uv/uv.lock") },
+                    TomlWorkload.LockFile => new[] { Read("Uv/uv-uv.lock") },
                     _ => Directory.GetFiles(CorpusRoot, "*.*", SearchOption.AllDirectories)
                         .Where(path => path.EndsWith(".toml", StringComparison.Ordinal) || path.EndsWith(".lock", StringComparison.Ordinal))
                         .Where(path => !path.EndsWith("uv-ruff.toml", StringComparison.Ordinal))

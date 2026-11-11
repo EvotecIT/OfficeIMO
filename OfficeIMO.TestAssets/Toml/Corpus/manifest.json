@@ -86,7 +86,7 @@
       "why": "uv's pyproject with [tool.uv] settings."
     },
     {
-      "path": "Uv/uv.lock",
+      "path": "Uv/uv-uv.lock",
       "category": "Uv",
       "repository": "https://github.com/astral-sh/uv",
       "commit": "419068541b7452193b72a240d345595595cca3e3",
