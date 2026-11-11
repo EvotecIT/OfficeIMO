@@ -455,7 +455,13 @@ public static partial class OneNotePageRenderer {
             if (renderWidth <= 0D || renderHeight <= 0D) return 0D;
             try {
                 var projection = new OfficeImageProjection(new OfficeImagePlacement(x, y, renderWidth, renderHeight));
-                _drawing.AddImage(bytes, image.MediaType ?? info?.MimeType, projection, image.AltText);
+                string? contentType = image.MediaType ?? info?.MimeType;
+                if (_options.ImageSubstitution != null &&
+                    _options.ImageSubstitution(bytes, contentType, out byte[] substitute, out string substituteContentType)) {
+                    bytes = substitute;
+                    contentType = substituteContentType;
+                }
+                _drawing.AddImage(bytes, contentType, projection, image.AltText);
             } catch (Exception exception) when (exception is ArgumentException || exception is NotSupportedException || exception is InvalidOperationException) {
                 AddDiagnostic("ONENOTE_RENDER_IMAGE_UNSUPPORTED", exception.Message, image.FileName);
                 return RenderImagePlaceholder(image, x, y, renderWidth);

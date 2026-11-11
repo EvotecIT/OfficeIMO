@@ -5307,6 +5307,19 @@ These parameter aliases stay removed. Command aliases such as `ExcelExport` are 
 | `-Values` | `-InputObject` | `Add-OfficeExcelTableRow` |
 | `-Values` | `-Value` | `Add-OfficePowerPointTableRow`, `Get-OfficeExcelTemplateMarker`, `Invoke-OfficeExcelTemplate`, `Set-OfficeExcelAutoFilter` |
 
+## OneNote visual PDF pages are vector
+
+`ToVisualPdf`, `SaveAsVisualPdf` and their async forms now write each OneNote page as
+vector content with real, searchable text instead of one full-page PNG. Page sizes are
+unchanged. `OneNoteVisualPdfExportOptions.RasterScale` and `MaximumRasterPixels` no
+longer affect output and are marked obsolete; remove them, and stop handling
+`ONENOTE_PDF_RASTER_SCALE_LIMITED`, which is no longer reported. Invalid
+`PageRendering` settings are now rejected before any page is rendered.
+
+Installed fonts named by the page text are embedded as subsets. A picture with no native
+PDF image form is decoded through `PageRendering.ImageCodec` and embedded as PNG for that
+picture alone, reported as `ONENOTE_PDF_IMAGE_RASTERIZED`.
+
 ## PDF reads omit undecodable native text
 
 `PdfDocument.Read()` previously allowed missing font resources, raw Identity CIDs,

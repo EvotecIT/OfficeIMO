@@ -2,6 +2,9 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.OneNote;
 
+/// <summary>Returns replacement bytes for one embedded picture, or false to keep the source bytes.</summary>
+internal delegate bool OneNoteImageSubstitution(byte[] bytes, string? contentType, out byte[] substitute, out string substituteContentType);
+
 /// <summary>Controls dependency-free OneNote page layout, rendering, and image export.</summary>
 public class OneNotePageRenderingOptions : OfficeImageExportOptions {
     /// <summary>Default maximum logical width or height contributed by one embedded image.</summary>
@@ -49,6 +52,12 @@ public class OneNotePageRenderingOptions : OfficeImageExportOptions {
     /// <summary>Reusable mathematical-rendering settings.</summary>
     public OfficeMathRenderOptions Math { get; set; } = new OfficeMathRenderOptions();
 
+    /// <summary>
+    /// Lets an output adapter replace embedded picture bytes its writer cannot carry natively,
+    /// such as the visual PDF route converting a codec-only format to PNG for that picture alone.
+    /// </summary>
+    internal OneNoteImageSubstitution? ImageSubstitution { get; set; }
+
     /// <summary>Creates a detached copy.</summary>
     public OneNotePageRenderingOptions Clone() => CopyTo(new OneNotePageRenderingOptions());
 
@@ -67,6 +76,7 @@ public class OneNotePageRenderingOptions : OfficeImageExportOptions {
         clone.DefaultFont = DefaultFont;
         clone.Ink = Ink?.Clone() ?? new OfficeInkRenderOptions();
         clone.Math = Math?.Clone() ?? new OfficeMathRenderOptions();
+        clone.ImageSubstitution = ImageSubstitution;
         return clone;
     }
 
