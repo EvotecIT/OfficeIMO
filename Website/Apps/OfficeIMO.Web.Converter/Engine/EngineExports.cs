@@ -23,7 +23,7 @@ public static partial class EngineExports {
     [JSExport]
     internal static void ClearInputs() => Session.ClearInputs();
 
-    /// <summary>Runs one tool action. <paramref name="kind"/> is convert, pdf, origin, or text.</summary>
+    /// <summary>Runs one tool action. <paramref name="kind"/> is convert, pdf, origin, hidden-data, or text.</summary>
     [JSExport]
     internal static string Run(string kind, string target, string action, string optionsJson) {
         var stopwatch = Stopwatch.StartNew();
@@ -34,6 +34,7 @@ public static partial class EngineExports {
                 "convert" => ConvertTool.Run(Session, target, action, options),
                 "pdf" => PdfTool.Run(Session, target, action, options),
                 "origin" => OriginTool.Run(Session, action, options),
+                "hidden-data" => HiddenDataTool.Run(Session, action, options),
                 "text" => TextTool.Run(Session, action, options),
                 _ => throw new NotSupportedException($"Unknown tool kind '{kind}'.")
             };

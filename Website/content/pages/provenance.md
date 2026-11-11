@@ -11,8 +11,8 @@ meta.package_url: "https://www.nuget.org/packages/OfficeIMO.Workflows"
 meta.runtime: "Browser-local WebAssembly or .NET"
 meta.primary_label: "Check a file in the browser"
 meta.primary_url: "/browser/file-origin/"
-meta.secondary_label: "Read the provenance support matrix"
-meta.secondary_url: "https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.provenance-support-matrix.md"
+meta.secondary_label: "Use it from .NET or the command line"
+meta.secondary_url: "/docs/before-sharing/provenance/"
 meta.summary_title: "Inspection summary"
 meta.limit: "One supported file up to 25 MB. Structural inspection does not prove origin, authenticity, or signer trust."
 meta.related_label: "Browse all browser tools"
@@ -45,7 +45,7 @@ When a file carries Content Credentials (C2PA), the tool reads the active record
 
 These are the record's own statements. The tool reads the certificate names but does not verify the signature, so it cannot tell whether the record was changed after it was written. Some records also say a watermark was added to the content itself; removing the record does not remove that watermark, and the result says so.
 
-In .NET, the same summary is available as `OfficeProvenanceEvidence.Manifest` on each Content Credentials record returned by the provenance inspection API.
+In .NET, the same summary is available as `OfficeProvenanceEvidence.Manifest` on each Content Credentials record. [Content Credentials and AI labels](/docs/before-sharing/provenance/) shows the inspection and removal APIs and the `officeimo provenance` commands.
 
 ## Find hidden characters in text
 
@@ -65,6 +65,6 @@ Removing these records can break an existing signature or credential chain. The 
 
 ## What it does not do
 
-This tool does not remove visible or invisible watermarks, logos, text printed on a page, image pixels, or unrelated personal metadata. It does not fetch external credential data, validate signer trust, prove that a file is authentic, or decide whether a human or AI created it. A file with no detected Content Credentials is simply a file with no supported record found; that absence is not proof of origin.
+This tool does not remove visible or invisible watermarks, logos, text printed on a page, image pixels, or personal metadata. To remove author names, comments, tracked changes and photo locations from a Word, Excel or PowerPoint file, use [Remove hidden data before sharing](/browser/remove-hidden-data/); it keeps origin records unless you select them. It does not fetch external credential data, validate signer trust, prove that a file is authentic, or decide whether a human or AI created it. A file with no detected Content Credentials is simply a file with no supported record found; that absence is not proof of origin.
 
 Use the [provenance support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.provenance-support-matrix.md) when you need exact format and carrier coverage.

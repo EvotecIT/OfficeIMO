@@ -4,7 +4,7 @@
   "groups": [
     { "id": "convert", "title": "Convert documents", "summary": "Turn Office files, PDFs, HTML and Markdown into other formats. You see what changed before you download." },
     { "id": "pdf", "title": "Work with PDFs", "summary": "Inspect, organize, compress and secure PDFs. Every tool saves a new file and leaves your original alone." },
-    { "id": "inspect", "title": "Inspect and clean", "summary": "Find hidden origin labels and invisible characters, and save a copy without them." }
+    { "id": "inspect", "title": "Inspect and clean", "summary": "Find hidden data, origin labels and invisible characters, and save a copy without them." }
   ],
   "tools": [
     {
@@ -449,6 +449,21 @@
       "guide": "/pdf/redact/", "package": "OfficeIMO.Pdf"
     },
     {
+      "id": "remove-hidden-data", "group": "inspect", "category": "Hidden data",
+      "title": "Remove hidden data before sharing",
+      "summary": "Find author names, comments, tracked changes, hidden text and photo locations in a Word, Excel or PowerPoint file, and save a copy without them.",
+      "seoTitle": "Remove hidden data and metadata from Office files | OfficeIMO",
+      "seoDescription": "Check a Word, Excel or PowerPoint file for author names, comments, tracked changes, hidden content and photo GPS data, then save a cleaned copy in your browser.",
+      "input": { "kind": "file", "accept": ".docx,.pptx,.xlsx", "label": "Word, Excel or PowerPoint file", "sample": "samples/share-ready-sample.docx", "sampleName": "share-ready-sample.docx", "sampleNote": "A short proposal with invented names, a comment, a tracked change, hidden text and a picture with a location.", "auto": true },
+      "options": [],
+      "engine": { "kind": "hidden-data", "action": "inspect", "commit": "remove", "assemblies": ["OfficeIMO.Word.wasm", "OfficeIMO.Excel.wasm", "OfficeIMO.PowerPoint.wasm", "DocumentFormat.OpenXml.wasm"] },
+      "run": { "label": "Check again", "confirmLabel": "Remove selected and save a copy", "busy": ["Opening the document", "Looking for hidden data"] },
+      "expect": "Visible text, layout and pictures stay as they are unless you choose to remove hidden content or accept tracked changes. Signed files are not changed.",
+      "next": ["file-origin"],
+      "legacy": [],
+      "guide": "/docs/before-sharing/", "package": "OfficeIMO"
+    },
+    {
       "id": "file-origin", "group": "inspect", "category": "File origin",
       "title": "Check and remove file origin data",
       "summary": "Find Content Credentials and AI source labels hidden in an image, PDF or Office file, and save a copy without them.",
@@ -459,7 +474,7 @@
       "engine": { "kind": "origin", "action": "inspect", "commit": "remove", "assemblies": ["OfficeIMO.Word.wasm", "OfficeIMO.Excel.wasm", "OfficeIMO.PowerPoint.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm"] },
       "run": { "label": "Check again", "confirmLabel": "Remove selected and save a copy", "busy": ["Reading the file", "Looking for origin records"] },
       "expect": "Visible watermarks, image pixels and other metadata such as camera details stay as they are. The check can't prove whether a file was made by AI.",
-      "next": ["file-origin"],
+      "next": ["remove-hidden-data"],
       "legacy": ["workspace=provenance"],
       "guide": "/provenance/", "package": "OfficeIMO.Workflows"
     },

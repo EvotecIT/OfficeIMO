@@ -59,6 +59,31 @@
     ]
   },
   {
+    "title": "Before Sharing",
+    "items": [
+      {
+        "title": "Prepare a Document for Sharing",
+        "path": "before-sharing/index.md",
+        "href": "/docs/before-sharing/"
+      },
+      {
+        "title": "Hidden Data and Metadata",
+        "path": "before-sharing/hidden-data/index.md",
+        "href": "/docs/before-sharing/hidden-data/"
+      },
+      {
+        "title": "Content Credentials and AI Labels",
+        "path": "before-sharing/provenance/index.md",
+        "href": "/docs/before-sharing/provenance/"
+      },
+      {
+        "title": "Accessibility Checks",
+        "path": "before-sharing/accessibility/index.md",
+        "href": "/docs/before-sharing/accessibility/"
+      }
+    ]
+  },
+  {
     "title": "Report Integrations",
     "items": [
       {

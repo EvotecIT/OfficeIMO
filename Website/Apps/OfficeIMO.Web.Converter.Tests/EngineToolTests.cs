@@ -176,6 +176,36 @@ public sealed class EngineToolTests {
     }
 
     [Fact]
+    public void HiddenData_DefaultSelectionRemovesPersonalDataAndKeepsOriginRecordsAndVisibleContent() {
+        var session = new ToolSession();
+        session.Stage(0, Sample("share-ready-sample.docx"), "proposal.docx");
+
+        ToolResultDocument inspect = HiddenDataTool.Run(session, "inspect", Options());
+        Assert.True(inspect.Ok);
+        Assert.Contains(inspect.Items, static item => item.Id == "comments" && item.Selectable && item.Selected);
+        Assert.Contains(inspect.Items, static item => item.Id == "image-metadata" && item.Selected);
+        // Changing what readers see, or what the file discloses about its origin, is never preselected.
+        Assert.Contains(inspect.Items, static item => item.Id == "tracked-changes" && item.Selectable && !item.Selected);
+        Assert.Contains(inspect.Items, static item => item.Id == "hidden-content" && !item.Selected);
+        Assert.Contains(inspect.Items, static item => item.Id == "provenance" && !item.Selected);
+
+        string preselected = string.Join(",", inspect.Items.Where(static item => item.Selected).Select(static item => item.Id));
+        ToolResultDocument removed = HiddenDataTool.Run(session, "remove", Options(("remove", preselected)));
+        Assert.True(removed.Ok, removed.Verdict.Detail);
+        Assert.Equal("good", removed.Verdict.Tone);
+        Assert.Contains(removed.Items, static item => item.Id == "comments" && item.State == ToolState.Removed);
+        Assert.Contains(removed.Items, static item => item.Id == "provenance-kept" && item.State == ToolState.Kept);
+
+        byte[] cleaned = session.Artifact(removed.Artifacts.Single(static artifact => artifact.Role == "primary").Index);
+        using var reopened = OfficeIMO.Word.WordDocument.Load(new MemoryStream(cleaned));
+        OfficeIMO.OfficeHiddenDataReport after = reopened.InspectHiddenData();
+        Assert.Empty(after.GetFindings(OfficeIMO.OfficeHiddenDataKind.Comments));
+        Assert.Empty(after.GetFindings(OfficeIMO.OfficeHiddenDataKind.DocumentProperties));
+        Assert.NotEmpty(after.GetFindings(OfficeIMO.OfficeHiddenDataKind.Provenance));
+        Assert.NotEmpty(after.GetFindings(OfficeIMO.OfficeHiddenDataKind.TrackedChanges));
+    }
+
+    [Fact]
     public void HiddenCharacters_FindsDirectionOverridesWithOffsetsAndRemovesOnlySelected() {
         var session = new ToolSession();
         string text = "Invoice‮123‬ and a‍b";
