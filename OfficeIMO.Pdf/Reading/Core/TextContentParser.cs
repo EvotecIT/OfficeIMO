@@ -5,6 +5,15 @@ using System.Text;
 namespace OfficeIMO.Pdf;
 
 internal static partial class TextContentParser {
+    // Retained glyph codes are read-only evidence, so every one-byte code shares one array.
+    private static readonly byte[][] SingleByteGlyphCodes = CreateSingleByteGlyphCodes();
+
+    private static byte[][] CreateSingleByteGlyphCodes() {
+        var codes = new byte[256][];
+        for (int code = 0; code < codes.Length; code++) codes[code] = new[] { (byte)code };
+        return codes;
+    }
+
     [Flags]
     private enum PersistentGraphicsStateFlags {
         None = 0,
@@ -1179,7 +1188,7 @@ internal static partial class TextContentParser {
                 int step = twoByte ? (idx + 1 < bytes.Length ? 2 : 1) : 1;
                 byte[] g;
                 if (retainGlyphAndPaintEvidence) {
-                    g = step == 1 ? new byte[] { bytes[idx] } : new byte[] { bytes[idx], bytes[idx + 1] };
+                    g = step == 1 ? SingleByteGlyphCodes[bytes[idx]] : new byte[] { bytes[idx], bytes[idx + 1] };
                 } else if (step == 1) {
                     g = reusableSingleByteCode ??= new byte[1];
                     g[0] = bytes[idx];
