@@ -64,6 +64,7 @@ internal sealed class YamlObjectConverter<T> : YamlConverter<T>, IYamlObjectConv
             }
             property.Name = name;
             property.NameIsPlain = YamlScalarFormat.CanBePlain(name.AsSpan(), flow: true, key: true) && !YamlScalarFormat.IsSchemaAmbiguous(name.AsSpan());
+            property.NameStyle = YamlScalarFormat.Choose(name, YamlStyle.None, flow: false, key: true, YamlStyle.SingleQuoted);
             property.WriteCondition = property.IgnoreCondition ?? options.DefaultIgnoreCondition;
             byName.Add(name, i);
             if (property.IsRequired) _hasRequired = true;

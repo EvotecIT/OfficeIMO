@@ -144,6 +144,7 @@ internal sealed class YamlUntypedConverter : YamlConverter<object> {
         string text => writer.TryWritePlainEntry(key, text, checkKey: true),
         long number => YamlWriter.IsPlainKey(key) && writer.TryWritePlainEntry(key, number),
         bool flag => YamlWriter.IsPlainKey(key) && writer.TryWritePlainEntry(key, flag),
+        double number => YamlWriter.IsPlainKey(key) && writer.TryWritePlainEntry(key, number),
         _ => false
     };
 

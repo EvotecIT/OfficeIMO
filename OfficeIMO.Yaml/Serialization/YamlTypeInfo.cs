@@ -278,6 +278,9 @@ public abstract class YamlPropertyInfo {
     /// <summary>Whether <see cref="Name"/> can be written plain in every context, which skips the writer's style choice.</summary>
     internal bool NameIsPlain { get; set; }
 
+    /// <summary>The style <see cref="Name"/> takes as a key of a block mapping, chosen once with the name.</summary>
+    internal YamlStyle NameStyle { get; set; }
+
     internal bool IsRequired { get; }
 
     internal YamlIgnoreCondition? IgnoreCondition { get; }
@@ -352,13 +355,17 @@ internal sealed class YamlPropertyInfo<T> : YamlPropertyInfo {
                 if (writer.TryWritePlainEntry(Name, (long)(object)value!)) return;
             } else if (typeof(T) == typeof(bool)) {
                 if (writer.TryWritePlainEntry(Name, (bool)(object)value!)) return;
+            } else if (typeof(T) == typeof(double)) {
+                if (writer.TryWritePlainEntry(Name, (double)(object)value!)) return;
+            } else if (typeof(T) == typeof(decimal)) {
+                if (writer.TryWritePlainEntry(Name, (decimal)(object)value!)) return;
             } else if (_isString) {
                 string? text = Unsafe.As<T, string?>(ref value);
                 if (text is not null && writer.TryWritePlainEntry(Name, text)) return;
             }
             writer.WritePlainKey(Name);
         } else {
-            writer.WriteKey(Name);
+            writer.WriteKey(Name, NameStyle);
         }
         TypeInfo.Write(writer, value, state);
     }
