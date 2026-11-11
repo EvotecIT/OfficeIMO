@@ -34,5 +34,8 @@
     <Compile Include="..\OfficeIMO.Yaml.Tests\Conformance\YamlJsonReader.cs" Link="Shared\Yaml\YamlJsonReader.cs" />
     <Compile Include="..\OfficeIMO.Yaml.Tests\Conformance\YamlConformanceNode.cs" Link="Shared\Yaml\YamlConformanceNode.cs" />
     <Compile Include="..\OfficeIMO.Yaml.Tests\Conformance\YamlJsonEquivalence.cs" Link="Shared\Yaml\YamlJsonEquivalence.cs" />
+    <!-- toml-test and its tagged-JSON comparer are shared with OfficeIMO.Toml.Tests. -->
+    <Compile Include="..\OfficeIMO.Toml.Tests\Conformance\TomlTestAssets.cs" Link="Shared\Toml\TomlTestAssets.cs" />
+    <Compile Include="..\OfficeIMO.Toml.Tests\Conformance\TomlJson.cs" Link="Shared\Toml\TomlJson.cs" />
   </ItemGroup>
 </Project>

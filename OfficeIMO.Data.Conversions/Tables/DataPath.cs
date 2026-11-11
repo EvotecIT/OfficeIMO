@@ -85,5 +85,22 @@ internal static class DataPath {
     /// <summary>Whether a property name can be written as a plain header step without changing what it means.</summary>
     public static bool IsPlainName(string name) => name.Length > 0 && name.IndexOfAny(Reserved) < 0;
 
+    /// <summary>Appends a key to a path in this grammar: <c>.name</c>, or <c>["name"]</c> when the key is not plain.</summary>
+    public static void AppendKey(StringBuilder path, string key) {
+        if (IsPlainName(key)) {
+            if (path.Length > 0) path.Append('.');
+            path.Append(key);
+            return;
+        }
+
+        path.Append("[\"");
+        foreach (char c in key) {
+            if (c is '"' or '\\') path.Append('\\');
+            path.Append(c);
+        }
+
+        path.Append("\"]");
+    }
+
     private static readonly char[] Reserved = { '.', '[', ']' };
 }

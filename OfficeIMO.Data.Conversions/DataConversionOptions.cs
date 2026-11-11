@@ -3,7 +3,7 @@ using System.Xml;
 namespace OfficeIMO.Data.Conversions;
 
 /// <summary>
-/// Settings for structured-data conversions between JSON, JSON Lines, YAML, XML, CSV and Excel. One type serves every
+/// Settings for structured-data conversions between JSON, JSON Lines, YAML, TOML, XML, CSV, TSV and Excel. One type serves every
 /// route, because the routes share one mapping. Format options pass through to each format's own reader and writer.
 /// </summary>
 public sealed class DataConversionOptions {
@@ -99,10 +99,22 @@ public sealed class DataConversionOptions {
     /// <summary>YAML output layout (indentation, sequence style, line endings). Null uses the YAML writer's defaults.</summary>
     public OfficeIMO.Yaml.YamlWriterOptions? YamlWriter { get; set; }
 
-    /// <summary>CSV parsing settings. Null uses the strict profile with a header row.</summary>
+    /// <summary>TOML loading settings, including the limits. Null uses the TOML engine's defaults.</summary>
+    public OfficeIMO.Toml.TomlLoadOptions? TomlLoad { get; set; }
+
+    /// <summary>TOML output settings (line endings). Null writes LF line endings.</summary>
+    public OfficeIMO.Toml.TomlWriterOptions? TomlWriter { get; set; }
+
+    /// <summary>
+    /// CSV and TSV parsing settings, used as given for both. Null uses the strict profile with a header row for CSV and
+    /// the TSV profile (<c>CsvProfile.Tsv</c>) for TSV.
+    /// </summary>
     public OfficeIMO.CSV.CsvReaderOptions? CsvReader { get; set; }
 
-    /// <summary>CSV output settings. Null writes comma-separated UTF-8 with a header row and LF line endings.</summary>
+    /// <summary>
+    /// CSV and TSV output settings, used as given for both. Null writes comma-separated UTF-8 with a header row and LF line
+    /// endings for CSV, and the TSV profile (tab-separated, no quoting, LF) for TSV.
+    /// </summary>
     public OfficeIMO.CSV.CsvSaveOptions? CsvSave { get; set; }
 
     /// <summary>XML parsing settings. DTD processing stays prohibited whatever this sets.</summary>

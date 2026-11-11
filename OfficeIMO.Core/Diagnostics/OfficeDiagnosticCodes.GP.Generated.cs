@@ -148,6 +148,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string InvisibleImagePlacementSuppressed = "invisible-image-placement-suppressed";
     /// <summary>Stable code: <c>invisible-outline</c>.</summary>
     public const string InvisibleOutline = "invisible-outline";
+    /// <summary>Stable code: <c>key-order-changed</c>.</summary>
+    public const string KeyOrderChanged = "key-order-changed";
     /// <summary>Stable code: <c>key-type-changed</c>.</summary>
     public const string KeyTypeChanged = "key-type-changed";
     /// <summary>Stable code: <c>large-image-stream</c>.</summary>
@@ -396,6 +398,10 @@ public static partial class OfficeDiagnosticCodes {
     public const string NonVisibleImagePlacementSuppressed = "non-visible-image-placement-suppressed";
     /// <summary>Stable code: <c>null-as-empty</c>.</summary>
     public const string NullAsEmpty = "null-as-empty";
+    /// <summary>Stable code: <c>null-dropped</c>.</summary>
+    public const string NullDropped = "null-dropped";
+    /// <summary>Stable code: <c>number-out-of-range</c>.</summary>
+    public const string NumberOutOfRange = "number-out-of-range";
     /// <summary>Stable code: <c>number-precision</c>.</summary>
     public const string NumberPrecision = "number-precision";
     /// <summary>Stable code: <c>object-graph-parse-failed</c>.</summary>

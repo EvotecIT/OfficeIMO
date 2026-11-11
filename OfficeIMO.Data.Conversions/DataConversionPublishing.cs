@@ -20,23 +20,31 @@ internal static class DataConversionPublishing {
         string path, DataConversionOptions? options) =>
         DataConversionEngine.SaveToPath(path, stream => Save(open, documents, source, target, stream, options));
 
-    /// <summary>Writes the rows of a model as CSV. The model is walked twice: once for the columns, once for the rows.</summary>
-    public static OfficeConversionReport SaveCsv(ReaderFactory open, long? documents, DataFormat source, Stream output, DataConversionOptions? options) {
+    /// <summary>Writes the rows of a model as CSV or TSV. The model is walked twice: once for the columns, once for the rows.</summary>
+    public static OfficeConversionReport SaveCsv(ReaderFactory open, long? documents, DataFormat source, Stream output, DataConversionOptions? options, bool tsv) {
         if (output == null) throw new ArgumentNullException(nameof(output));
         var context = new DataConversionContext(options ?? DataConversionOptions.Default);
         using var rows = new StructuredDataReader(open, documents, context, text: true, owned: null);
-        return CsvTableOutput.Write(rows, output, DataFormats.Name(source));
+        return CsvTableOutput.Write(rows, output, DataFormats.Name(source), tsv);
     }
 
-    public static OfficeConversionReport SaveCsv(ReaderFactory open, long? documents, DataFormat source, string path, DataConversionOptions? options) =>
-        DataConversionEngine.SaveToPath(path, stream => SaveCsv(open, documents, source, stream, options));
+    public static OfficeConversionReport SaveCsv(ReaderFactory open, long? documents, DataFormat source, string path, DataConversionOptions? options, bool tsv) =>
+        DataConversionEngine.SaveToPath(path, stream => SaveCsv(open, documents, source, stream, options, tsv));
 
     public static OfficeIMO.CSV.CsvDocument ToCsv(ReaderFactory open, long? documents, DataFormat source, DataConversionOptions? options,
         out OfficeConversionReport report) {
         using var buffer = new MemoryStream();
-        report = SaveCsv(open, documents, source, buffer, options);
+        report = SaveCsv(open, documents, source, buffer, options, tsv: false);
         buffer.Position = 0;
         return OfficeIMO.CSV.CsvDocument.Load(buffer);
+    }
+
+    public static OfficeIMO.Toml.TomlDocument ToToml(ReaderFactory open, long? documents, DataFormat source, DataConversionOptions? options,
+        out OfficeConversionReport report) {
+        using var buffer = new MemoryStream();
+        report = Save(open, documents, source, DataFormat.Toml, buffer, options);
+        buffer.Position = 0;
+        return OfficeIMO.Toml.TomlDocument.Load(buffer);
     }
 
     public static JsonNode? ToJson(ReaderFactory open, long? documents, DataFormat source, DataConversionOptions? options,
@@ -74,14 +82,19 @@ internal static class DataConversionPublishing {
         return OfficeIMO.Yaml.YamlDocument.Load(buffer);
     }
 
-    /// <summary>Writes a source to a target file, routing tables through the CSV writer.</summary>
+    /// <summary>
+    /// Writes a source to a target file, routing tables through the CSV writer. The path refines the target: <c>.jsonl</c>
+    /// selects JSON Lines and <c>.tsv</c> or <c>.tab</c> selects TSV.
+    /// </summary>
     public static OfficeConversionReport SaveAs(ReaderFactory open, long? documents, DataFormat source, DataFormat target, string path, DataConversionOptions? options) {
-        if (target == DataFormat.Json && DataFormats.FromExtension(path) == DataFormat.JsonLines) target = DataFormat.JsonLines;
-        return target == DataFormat.Csv ? SaveCsv(open, documents, source, path, options) : Save(open, documents, source, target, path, options);
+        DataFormat? byPath = DataFormats.FromExtension(path);
+        if (target == DataFormat.Json && byPath == DataFormat.JsonLines) target = DataFormat.JsonLines;
+        if (target == DataFormat.Csv && byPath == DataFormat.Tsv) target = DataFormat.Tsv;
+        return DataFormats.IsTable(target) ? SaveCsv(open, documents, source, path, options, target == DataFormat.Tsv) : Save(open, documents, source, target, path, options);
     }
 
     public static OfficeConversionReport SaveAs(ReaderFactory open, long? documents, DataFormat source, DataFormat target, Stream stream, DataConversionOptions? options) =>
-        target == DataFormat.Csv ? SaveCsv(open, documents, source, stream, options) : Save(open, documents, source, target, stream, options);
+        DataFormats.IsTable(target) ? SaveCsv(open, documents, source, stream, options, target == DataFormat.Tsv) : Save(open, documents, source, target, stream, options);
 
     /// <summary>Serializes a JSON node to UTF-8 so it streams through the JSON reader like a file.</summary>
     public static MemoryStream Serialize(JsonNode? node) {

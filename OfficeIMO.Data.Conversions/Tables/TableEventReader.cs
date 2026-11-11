@@ -64,9 +64,9 @@ internal sealed class TableEventReader : DataEventReader {
         _reader = open();
     }
 
-    /// <summary>Opens CSV with the strict profile (or the caller's reader options) and per-column inference.</summary>
-    public static TableEventReader OpenCsv(Stream input, DataConversionContext context) {
-        CsvReaderOptions options = context.Options.CsvReader?.Clone() ?? CsvProfiles.CreateReaderOptions(CsvProfile.Strict);
+    /// <summary>Opens CSV with the strict profile, or TSV with the TSV profile (or the caller's reader options), and per-column inference.</summary>
+    public static TableEventReader OpenCsv(Stream input, DataConversionContext context, bool tsv) {
+        CsvReaderOptions options = context.Options.CsvReader?.Clone() ?? CsvProfiles.CreateReaderOptions(tsv ? CsvProfile.Tsv : CsvProfile.Strict);
         if (context.Options.Culture != null) options.Culture = context.Options.Culture;
         bool infer = context.Options.InferTypes ?? true;
         if (infer && !input.CanSeek) throw new ArgumentException("Inferring CSV column types needs a seekable stream.", nameof(input));

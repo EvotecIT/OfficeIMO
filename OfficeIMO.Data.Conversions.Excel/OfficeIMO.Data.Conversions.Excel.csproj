@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Excel worksheets in OfficeIMO structured-data conversions: worksheets and workbooks to JSON, JSON Lines and XML, and JSON, YAML and XML rows to workbooks.</Description>
+    <Description>Excel worksheets in OfficeIMO structured-data conversions: worksheets and workbooks to JSON, JSON Lines, YAML, TOML and XML, and JSON, YAML, TOML and XML rows to workbooks.</Description>
     <VersionPrefix>3.6.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>

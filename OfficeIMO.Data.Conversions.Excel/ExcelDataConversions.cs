@@ -1,13 +1,14 @@
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
 using OfficeIMO.Excel;
+using OfficeIMO.Toml;
 using OfficeIMO.Yaml;
 
 namespace OfficeIMO.Data.Conversions;
 
 /// <summary>
-/// Converts worksheets and workbooks to JSON, JSON Lines and XML, and the rows of JSON, YAML and XML data to workbooks.
-/// A worksheet is an array of row objects read with first-row headers; a workbook with several sheets is an object of
+/// Converts worksheets and workbooks to JSON, JSON Lines, YAML, TOML and XML, and the rows of JSON, YAML, TOML and XML
+/// data to workbooks. A worksheet is an array of row objects read with first-row headers; a workbook with several sheets is an object of
 /// such arrays, keyed by sheet name. Formulas contribute their cached values.
 /// </summary>
 public static class ExcelDataConversions {
@@ -74,6 +75,45 @@ public static class ExcelDataConversions {
     public static OfficeConversionReport SaveAsYaml(this ExcelDocument document, string path, DataConversionOptions? options = null) =>
         Excel(DataConversionPublishing.SaveAs(Open(document, options), 1, DataFormat.Csv, DataFormat.Yaml, path, options));
 
+    /// <summary>Returns the worksheet's rows as a TOML document: an array of tables under <see cref="DataConversionOptions.RootName"/>.</summary>
+    public static TomlDocument ToToml(this ExcelSheet sheet, DataConversionOptions? options = null) => ToToml(sheet, options, out _);
+
+    /// <summary>Returns the worksheet's rows as a TOML document, with the conversion report.</summary>
+    public static TomlDocument ToToml(this ExcelSheet sheet, DataConversionOptions? options, out OfficeConversionReport report) {
+        TomlDocument document = DataConversionPublishing.ToToml(Open(sheet), 1, DataFormat.Csv, options, out report);
+        report = Excel(report);
+        return document;
+    }
+
+    /// <summary>Writes the worksheet's rows as TOML.</summary>
+    public static OfficeConversionReport SaveAsToml(this ExcelSheet sheet, string path, DataConversionOptions? options = null) =>
+        Excel(DataConversionPublishing.SaveAs(Open(sheet), 1, DataFormat.Csv, DataFormat.Toml, path, options));
+
+    /// <summary>Writes the worksheet's rows as UTF-8 TOML to a stream, which stays open.</summary>
+    public static OfficeConversionReport SaveAsToml(this ExcelSheet sheet, Stream stream, DataConversionOptions? options = null) =>
+        Excel(DataConversionPublishing.SaveAs(Open(sheet), 1, DataFormat.Csv, DataFormat.Toml, stream, options));
+
+    /// <summary>
+    /// Returns the workbook as TOML: an array of tables under <see cref="DataConversionOptions.RootName"/> for one sheet,
+    /// or one array of tables per sheet, keyed by sheet name.
+    /// </summary>
+    public static TomlDocument ToToml(this ExcelDocument document, DataConversionOptions? options = null) => ToToml(document, options, out _);
+
+    /// <summary>Returns the workbook as TOML, with the conversion report.</summary>
+    public static TomlDocument ToToml(this ExcelDocument document, DataConversionOptions? options, out OfficeConversionReport report) {
+        TomlDocument toml = DataConversionPublishing.ToToml(Open(document, options), 1, DataFormat.Csv, options, out report);
+        report = Excel(report);
+        return toml;
+    }
+
+    /// <summary>Writes the workbook as TOML.</summary>
+    public static OfficeConversionReport SaveAsToml(this ExcelDocument document, string path, DataConversionOptions? options = null) =>
+        Excel(DataConversionPublishing.SaveAs(Open(document, options), 1, DataFormat.Csv, DataFormat.Toml, path, options));
+
+    /// <summary>Writes the workbook as UTF-8 TOML to a stream, which stays open.</summary>
+    public static OfficeConversionReport SaveAsToml(this ExcelDocument document, Stream stream, DataConversionOptions? options = null) =>
+        Excel(DataConversionPublishing.SaveAs(Open(document, options), 1, DataFormat.Csv, DataFormat.Toml, stream, options));
+
     // ------------------------------------------------------------------ data to workbooks
 
     /// <summary>Returns the rows of a JSON value as a workbook: one sheet, or one per member when every root member is an array.</summary>
@@ -120,6 +160,21 @@ public static class ExcelDataConversions {
     /// <summary>Writes the rows of an XML document as an XLSX workbook to a stream, which stays open.</summary>
     public static OfficeConversionReport SaveAsExcel(this XDocument document, Stream stream, DataConversionOptions? options = null) =>
         Write(XmlDataConversions.Open(document), 1, DataFormat.Xml, stream, options);
+
+    /// <summary>Returns the rows of a TOML document as a workbook, such as the tables of an <c>[[array]]</c> chosen with <see cref="DataConversionOptions.Select"/>.</summary>
+    public static ExcelDocument ToExcel(this TomlDocument document, DataConversionOptions? options = null) => ToExcel(document, options, out _);
+
+    /// <summary>Returns the rows of a TOML document as a workbook, with the conversion report.</summary>
+    public static ExcelDocument ToExcel(this TomlDocument document, DataConversionOptions? options, out OfficeConversionReport report) =>
+        LoadWorkbook(stream => Write(TomlDataConversions.Open(document), 1, DataFormat.Toml, stream, options), out report);
+
+    /// <summary>Writes the rows of a TOML document as an XLSX workbook.</summary>
+    public static OfficeConversionReport SaveAsExcel(this TomlDocument document, string path, DataConversionOptions? options = null) =>
+        DataConversionEngine.SaveToPath(path, stream => Write(TomlDataConversions.Open(document), 1, DataFormat.Toml, stream, options));
+
+    /// <summary>Writes the rows of a TOML document as an XLSX workbook to a stream, which stays open.</summary>
+    public static OfficeConversionReport SaveAsExcel(this TomlDocument document, Stream stream, DataConversionOptions? options = null) =>
+        Write(TomlDataConversions.Open(document), 1, DataFormat.Toml, stream, options);
 
     // ------------------------------------------------------------------ plumbing
 

@@ -6,7 +6,9 @@ internal enum DataFormat {
     JsonLines,
     Yaml,
     Xml,
-    Csv
+    Csv,
+    Tsv,
+    Toml
 }
 
 internal static class DataFormats {
@@ -16,6 +18,8 @@ internal static class DataFormats {
         DataFormat.Yaml => "YAML",
         DataFormat.Xml => "XML",
         DataFormat.Csv => "CSV",
+        DataFormat.Tsv => "TSV",
+        DataFormat.Toml => "TOML",
         _ => format.ToString()
     };
 
@@ -24,9 +28,11 @@ internal static class DataFormats {
         ".jsonl" or ".ndjson" => DataFormat.JsonLines,
         ".yaml" or ".yml" => DataFormat.Yaml,
         ".xml" => DataFormat.Xml,
-        ".csv" or ".tsv" => DataFormat.Csv,
+        ".csv" => DataFormat.Csv,
+        ".tsv" or ".tab" => DataFormat.Tsv,
+        ".toml" => DataFormat.Toml,
         _ => null
     };
 
-    public static bool IsTable(DataFormat format) => format == DataFormat.Csv;
+    public static bool IsTable(DataFormat format) => format is DataFormat.Csv or DataFormat.Tsv;
 }

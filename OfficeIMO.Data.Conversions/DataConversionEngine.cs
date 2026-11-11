@@ -11,17 +11,21 @@ internal static class DataConversionEngine {
         var context = new DataConversionContext(effective, cancellationToken);
         Stream? spooled = null;
         try {
-            if (target == DataFormat.Csv || source is DataFormat.Csv or DataFormat.Xml) {
+            if (DataFormats.IsTable(target) && DataFormats.IsTable(source)) {
+                throw new NotSupportedException(DataFormats.Name(source) + " to " + DataFormats.Name(target)
+                    + " is not a data conversion; load the file with CsvDocument and save it with the target's CsvSaveOptions.");
+            }
+
+            if (DataFormats.IsTable(target) || DataFormats.IsTable(source) || source == DataFormat.Xml) {
                 if (!input.CanSeek) {
                     spooled = Spool(input, cancellationToken);
                     input = spooled;
                 }
             }
 
-            if (target == DataFormat.Csv) {
-                if (source == DataFormat.Csv) throw new NotSupportedException("CSV to CSV is not a data conversion.");
+            if (DataFormats.IsTable(target)) {
                 using StructuredDataReader rows = StructuredDataReader.Create(input, source, effective, owned: null, text: true);
-                return CsvTableOutput.Write(rows, output, DataFormats.Name(source));
+                return CsvTableOutput.Write(rows, output, DataFormats.Name(source), target == DataFormat.Tsv);
             }
 
             long? documents = DocumentCount(source);
@@ -130,7 +134,9 @@ internal static class DataConversionEngine {
         DataFormat.JsonLines => new JsonEventReader(input, jsonLines: true, context),
         DataFormat.Yaml => new YamlEventReader(input, context),
         DataFormat.Xml => XmlEventReader.FromStream(input, context),
-        DataFormat.Csv => TableEventReader.OpenCsv(input, context),
+        DataFormat.Csv => TableEventReader.OpenCsv(input, context, tsv: false),
+        DataFormat.Tsv => TableEventReader.OpenCsv(input, context, tsv: true),
+        DataFormat.Toml => new TomlModelEventReader(LoadToml(input, context), context, owned: true),
         _ => throw new NotSupportedException("Reading " + format + " is not supported.")
     };
 
@@ -138,8 +144,13 @@ internal static class DataConversionEngine {
         DataFormat.Json or DataFormat.JsonLines => new JsonEventWriter(output, documents, context, reportCombined: source == DataFormat.Yaml),
         DataFormat.Xml => XmlEventWriter.Create(output, documents, rootIsNamed: source == DataFormat.Xml, context),
         DataFormat.Yaml => new YamlEventWriter(output, context),
+        DataFormat.Toml => new TomlEventWriter(output, context),
         _ => throw new NotSupportedException("Writing " + format + " is not supported.")
     };
+
+    // TOML tables can be defined in any order and must be checked as a whole, so the source is loaded as a document.
+    private static OfficeIMO.Toml.TomlDocument LoadToml(Stream input, DataConversionContext context) =>
+        OfficeIMO.Toml.TomlDocument.Load(input, context.Options.TomlLoad);
 
     /// <summary>Writes through a temporary file next to the target and replaces the target only when the conversion succeeds.</summary>
     internal static OfficeConversionReport SaveToPath(string path, Func<Stream, OfficeConversionReport> write) {

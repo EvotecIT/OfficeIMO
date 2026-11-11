@@ -1,14 +1,15 @@
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
 using OfficeIMO.CSV;
+using OfficeIMO.Toml;
 using OfficeIMO.Yaml;
 
 namespace OfficeIMO.Data.Conversions;
 
 /// <summary>
-/// Converts a <see cref="CsvDocument"/> to JSON, JSON Lines and XML: an array of row objects. Column types are inferred
-/// from canonical spellings only (<c>007</c> stays text), and path headers (<c>address.city</c>, <c>tags[0]</c>) rebuild
-/// nested data.
+/// Converts a <see cref="CsvDocument"/>, including one loaded with the TSV profile, to JSON, JSON Lines, XML, YAML and
+/// TOML: an array of row objects. Column types are inferred from canonical spellings only (<c>007</c> stays text), and
+/// path headers (<c>address.city</c>, <c>tags[0]</c>) rebuild nested data.
 /// </summary>
 public static class CsvDataConversions {
     /// <summary>Returns the rows as a JSON array.</summary>
@@ -55,6 +56,21 @@ public static class CsvDataConversions {
     /// <summary>Writes the rows as UTF-8 YAML to a stream, which stays open.</summary>
     public static OfficeConversionReport SaveAsYaml(this CsvDocument document, Stream stream, DataConversionOptions? options = null) =>
         DataConversionPublishing.SaveAs(Open(document), 1, DataFormat.Csv, DataFormat.Yaml, stream, options);
+
+    /// <summary>Returns the rows (wrapped as an array of tables) as a TOML document. Nulls are omitted and a root that is not an object is wrapped in <see cref="DataConversionOptions.RootName"/>; both are reported.</summary>
+    public static TomlDocument ToToml(this CsvDocument document, DataConversionOptions? options = null) => ToToml(document, options, out _);
+
+    /// <summary>Returns the rows (wrapped as an array of tables) as a TOML document, with the conversion report.</summary>
+    public static TomlDocument ToToml(this CsvDocument document, DataConversionOptions? options, out OfficeConversionReport report) =>
+        DataConversionPublishing.ToToml(Open(document), 1, DataFormat.Csv, options, out report);
+
+    /// <summary>Writes the rows (wrapped as an array of tables) as TOML.</summary>
+    public static OfficeConversionReport SaveAsToml(this CsvDocument document, string path, DataConversionOptions? options = null) =>
+        DataConversionPublishing.SaveAs(Open(document), 1, DataFormat.Csv, DataFormat.Toml, path, options);
+
+    /// <summary>Writes the rows (wrapped as an array of tables) as UTF-8 TOML to a stream, which stays open.</summary>
+    public static OfficeConversionReport SaveAsToml(this CsvDocument document, Stream stream, DataConversionOptions? options = null) =>
+        DataConversionPublishing.SaveAs(Open(document), 1, DataFormat.Csv, DataFormat.Toml, stream, options);
 
     internal static DataConversionPublishing.ReaderFactory Open(CsvDocument document) {
         if (document == null) throw new ArgumentNullException(nameof(document));

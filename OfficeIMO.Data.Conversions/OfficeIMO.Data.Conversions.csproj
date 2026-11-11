@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Streaming structured-data conversions between JSON, JSON Lines, YAML, XML and CSV for OfficeIMO, with loss reporting through OfficeConversionReport.</Description>
+    <Description>Streaming structured-data conversions between JSON, JSON Lines, YAML, TOML, XML, CSV and TSV for OfficeIMO, with loss reporting through OfficeConversionReport.</Description>
 
     <VersionPrefix>3.6.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
@@ -12,7 +12,7 @@
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
 
-    <PackageTags>json;jsonl;yaml;xml;csv;conversion;streaming;netstandard2.0;net8.0;net10.0;aot</PackageTags>
+    <PackageTags>json;jsonl;yaml;toml;xml;csv;tsv;conversion;streaming;netstandard2.0;net8.0;net10.0;aot</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>(c) 2011 - 2026 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
@@ -46,6 +46,7 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.Yaml\OfficeIMO.Yaml.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Toml\OfficeIMO.Toml.csproj" />
     <ProjectReference Include="..\OfficeIMO.CSV\OfficeIMO.CSV.csproj" />
   </ItemGroup>
 

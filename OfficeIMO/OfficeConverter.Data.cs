@@ -46,6 +46,8 @@ public static partial class OfficeConverter {
         "yaml" => Data.Conversions.DataFormat.Yaml,
         "xml" => Data.Conversions.DataFormat.Xml,
         "csv" => Data.Conversions.DataFormat.Csv,
+        "tsv" => Data.Conversions.DataFormat.Tsv,
+        "toml" => Data.Conversions.DataFormat.Toml,
         _ => null
     };
 }

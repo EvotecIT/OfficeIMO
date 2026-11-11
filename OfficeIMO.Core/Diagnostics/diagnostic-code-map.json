@@ -11127,6 +11127,30 @@
       ]
     },
     {
+      "oldCode": "null-dropped",
+      "catalogCode": "null-dropped",
+      "member": "NullDropped",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Toml/TomlEventWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "number-out-of-range",
+      "catalogCode": "number-out-of-range",
+      "member": "NumberOutOfRange",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Toml/TomlEventWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "key-order-changed",
+      "catalogCode": "key-order-changed",
+      "member": "KeyOrderChanged",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Toml/TomlEventWriter.cs"
+      ]
+    },
+    {
       "oldCode": "xml-sibling-order-changed",
       "catalogCode": "xml-sibling-order-changed",
       "member": "XmlSiblingOrderChanged",

@@ -26,6 +26,13 @@ public class LossReportingTests {
         { "[{\"app.version\":\"1\"}]", "Json", "Csv", OfficeDiagnosticCodes.HeaderPathAmbiguous },
         { "[{\"tags\":[]}]", "Json", "Csv", OfficeDiagnosticCodes.EmptyCollectionDropped },
         { "day\n2026-11-10\n", "Csv", "Yaml", OfficeDiagnosticCodes.DatetimeAsString },
+        { "day = 2026-11-10\n", "Toml", "Json", OfficeDiagnosticCodes.DatetimeAsString },
+        { "# file header\n\na = 1\n", "Toml", "Yaml", OfficeDiagnosticCodes.CommentsOmitted },
+        { "{\"a\":null}", "Json", "Toml", OfficeDiagnosticCodes.NullDropped },
+        { "{\"a\":123456789012345678901234}", "Json", "Toml", OfficeDiagnosticCodes.NumberOutOfRange },
+        { "{\"a\":3.14159265358979323846}", "Json", "Toml", OfficeDiagnosticCodes.NumberPrecision },
+        { "[1,2]", "Json", "Toml", OfficeDiagnosticCodes.RootWrapped },
+        { "{\"t\":{\"x\":1},\"b\":2}", "Json", "Toml", OfficeDiagnosticCodes.KeyOrderChanged },
     };
 
     [Theory]

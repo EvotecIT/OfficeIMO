@@ -1,11 +1,12 @@
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
 using OfficeIMO.CSV;
+using OfficeIMO.Toml;
 using OfficeIMO.Yaml;
 
 namespace OfficeIMO.Data.Conversions;
 
-/// <summary>Converts a loaded <see cref="YamlDocument"/> to JSON, JSON Lines, CSV and XML.</summary>
+/// <summary>Converts a loaded <see cref="YamlDocument"/> to JSON, JSON Lines, CSV or TSV, XML and TOML.</summary>
 public static class YamlDataConversions {
     /// <summary>
     /// Returns the document as a JSON model. A stream of several documents becomes a JSON array of them; an empty stream
@@ -32,7 +33,7 @@ public static class YamlDataConversions {
     public static CsvDocument ToCsv(this YamlDocument document, DataConversionOptions? options, out OfficeConversionReport report) =>
         DataConversionPublishing.ToCsv(Open(document), Count(document), DataFormat.Yaml, options, out report);
 
-    /// <summary>Writes the rows of the document as CSV.</summary>
+    /// <summary>Writes the rows of the document as CSV, or as TSV when the path ends in <c>.tsv</c> or <c>.tab</c>.</summary>
     public static OfficeConversionReport SaveAsCsv(this YamlDocument document, string path, DataConversionOptions? options = null) =>
         DataConversionPublishing.SaveAs(Open(document), Count(document), DataFormat.Yaml, DataFormat.Csv, path, options);
 
@@ -54,6 +55,21 @@ public static class YamlDataConversions {
     /// <summary>Writes the document as UTF-8 XML to a stream, which stays open.</summary>
     public static OfficeConversionReport SaveAsXml(this YamlDocument document, Stream stream, DataConversionOptions? options = null) =>
         DataConversionPublishing.SaveAs(Open(document), Count(document), DataFormat.Yaml, DataFormat.Xml, stream, options);
+
+    /// <summary>Returns the document (a stream of several documents is wrapped as an array of tables) as a TOML document. Nulls are omitted and a root that is not an object is wrapped in <see cref="DataConversionOptions.RootName"/>; both are reported.</summary>
+    public static TomlDocument ToToml(this YamlDocument document, DataConversionOptions? options = null) => ToToml(document, options, out _);
+
+    /// <summary>Returns the document (a stream of several documents is wrapped as an array of tables) as a TOML document, with the conversion report.</summary>
+    public static TomlDocument ToToml(this YamlDocument document, DataConversionOptions? options, out OfficeConversionReport report) =>
+        DataConversionPublishing.ToToml(Open(document), Count(document), DataFormat.Yaml, options, out report);
+
+    /// <summary>Writes the document (a stream of several documents is wrapped as an array of tables) as TOML.</summary>
+    public static OfficeConversionReport SaveAsToml(this YamlDocument document, string path, DataConversionOptions? options = null) =>
+        DataConversionPublishing.SaveAs(Open(document), Count(document), DataFormat.Yaml, DataFormat.Toml, path, options);
+
+    /// <summary>Writes the document (a stream of several documents is wrapped as an array of tables) as UTF-8 TOML to a stream, which stays open.</summary>
+    public static OfficeConversionReport SaveAsToml(this YamlDocument document, Stream stream, DataConversionOptions? options = null) =>
+        DataConversionPublishing.SaveAs(Open(document), Count(document), DataFormat.Yaml, DataFormat.Toml, stream, options);
 
     internal static DataConversionPublishing.ReaderFactory Open(YamlDocument document) {
         if (document == null) throw new ArgumentNullException(nameof(document));

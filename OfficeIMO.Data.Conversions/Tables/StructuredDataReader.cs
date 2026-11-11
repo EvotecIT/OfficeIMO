@@ -8,7 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace OfficeIMO.Data.Conversions;
 
 /// <summary>
-/// Reads the rows of JSON, JSON Lines, YAML or XML data as a forward-only <see cref="DbDataReader"/>, for
+/// Reads the rows of JSON, JSON Lines, YAML, TOML or XML data as a forward-only <see cref="DbDataReader"/>, for
 /// <c>SqlBulkCopy</c>, Arrow, Excel or any ADO.NET consumer. Rows come from an array (the root, each document of a stream,
 /// or the path in <see cref="DataConversionOptions.Select"/>); nested objects and arrays become path columns such as
 /// <c>address.city</c> and <c>tags[0]</c>. A root object whose members are all arrays is several tables, reached with
@@ -75,11 +75,11 @@ public sealed class StructuredDataReader : DbDataReader {
         Allocate();
     }
 
-    /// <summary>Opens a JSON, JSON Lines (<c>.jsonl</c>, <c>.ndjson</c>), YAML or XML file by its extension.</summary>
+    /// <summary>Opens a JSON, JSON Lines (<c>.jsonl</c>, <c>.ndjson</c>), YAML, TOML or XML file by its extension.</summary>
     public static StructuredDataReader Open(string path, DataConversionOptions? options = null) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A path is required.", nameof(path));
-        DataFormat format = DataFormats.FromExtension(path) is { } known && known != DataFormat.Csv ? known
-            : throw new NotSupportedException("Open reads .json, .jsonl, .ndjson, .yaml, .yml and .xml files.");
+        DataFormat format = DataFormats.FromExtension(path) is { } known && !DataFormats.IsTable(known) ? known
+            : throw new NotSupportedException("Open reads .json, .jsonl, .ndjson, .yaml, .yml, .toml and .xml files.");
         var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920);
         try {
             return Create(stream, format, options, owned: stream, text: false);
@@ -90,7 +90,7 @@ public sealed class StructuredDataReader : DbDataReader {
     }
 
     /// <summary>
-    /// Opens JSON, YAML or XML data from a seekable stream, which stays open. Set <see cref="DataConversionOptions.JsonLines"/>
+    /// Opens JSON, YAML, TOML or XML data from a seekable stream, which stays open. Set <see cref="DataConversionOptions.JsonLines"/>
     /// for JSON Lines.
     /// </summary>
     public static StructuredDataReader Open(Stream stream, OfficeDocumentFormat format, DataConversionOptions? options = null) {
@@ -100,7 +100,8 @@ public sealed class StructuredDataReader : DbDataReader {
             OfficeDocumentFormat.Json => options?.JsonLines == true ? DataFormat.JsonLines : DataFormat.Json,
             OfficeDocumentFormat.Yaml => DataFormat.Yaml,
             OfficeDocumentFormat.Xml => DataFormat.Xml,
-            _ => throw new NotSupportedException("Open reads JSON, JSON Lines, YAML and XML data.")
+            OfficeDocumentFormat.Toml => DataFormat.Toml,
+            _ => throw new NotSupportedException("Open reads JSON, JSON Lines, YAML, TOML and XML data.")
         };
 
         return Create(stream, source, options, owned: null, text: false);

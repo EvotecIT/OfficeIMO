@@ -224,3 +224,7 @@ OfficeIMO.OfficeTrackedChangesAction.RejectAll = 2 -> OfficeIMO.OfficeTrackedCha
 override OfficeIMO.OfficeHiddenDataFinding.ToString() -> string!
 *REMOVED*const OfficeIMO.OfficeConversionCapabilityCatalog.SchemaVersion = 9 -> int
 const OfficeIMO.OfficeConversionCapabilityCatalog.SchemaVersion = 10 -> int
+const OfficeIMO.OfficeDiagnosticCodes.KeyOrderChanged = "key-order-changed" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.NullDropped = "null-dropped" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.NumberOutOfRange = "number-out-of-range" -> string!
+OfficeIMO.OfficeDocumentFormat.Toml = 30 -> OfficeIMO.OfficeDocumentFormat
