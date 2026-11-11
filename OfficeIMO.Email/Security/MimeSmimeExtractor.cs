@@ -224,8 +224,17 @@ internal static class MimeSmimeExtractor {
         long maximumBytes) {
         var preflightDiagnostics = new List<EmailDiagnostic>();
         long decodedLength = MimeTextCodec.GetDecodedLength(
-            source, offset, count, transferEncoding, preflightDiagnostics, location);
+            source, offset, count, transferEncoding, out var base64Analysis, preflightDiagnostics, location);
         if (decodedLength > maximumBytes) {
+            if (base64Analysis.HasValue && base64Analysis.Value.IsValid &&
+                base64Analysis.Value.DecodedLength <= maximumBytes) {
+                // The runtime rejected a syntactically valid tail. Before raw-size preflight,
+                // decoding reported this error before the retained payload crossed the limit.
+                preflightDiagnostics.Clear();
+                preflightDiagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_INVALID",
+                    "The invalid Base64 payload was preserved without decoding.",
+                    EmailDiagnosticSeverity.Error, location));
+            }
             foreach (EmailDiagnostic diagnostic in preflightDiagnostics) diagnostics.Add(diagnostic);
             throw new InvalidDataException("The S/MIME payload exceeds the configured CMS limit.");
         }
