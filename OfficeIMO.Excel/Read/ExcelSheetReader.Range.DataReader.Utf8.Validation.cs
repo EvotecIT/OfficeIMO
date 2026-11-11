@@ -60,7 +60,8 @@ namespace OfficeIMO.Excel {
                         return TryIndexSimpleInlineStringCell(ref position, tag, cellIndex);
                     }
 
-                    if (tag.IsEnd || !IsIndexedTag(tag) || (!LocalNameEquals(tag, "v") && !LocalNameEquals(tag, "f"))) {
+                    bool selfBound = !tag.IsEnd && !IsIndexedTag(tag) && IsSelfBoundSpreadsheetTag(tag);
+                    if (tag.IsEnd || (!IsIndexedTag(tag) && !selfBound) || (!LocalNameEquals(tag, "v") && !LocalNameEquals(tag, "f"))) {
                         return false;
                     }
 
@@ -87,7 +88,9 @@ namespace OfficeIMO.Excel {
 
                     if (!TryReadNextTag(ref position, _length, out Utf8Tag endTag)
                         || !endTag.IsEnd
-                        || !IsIndexedTag(endTag)
+                        || (selfBound
+                            ? !ByteRangesEqual(tag.NameStart, tag.NameEnd - tag.NameStart, endTag.NameStart, endTag.NameEnd - endTag.NameStart)
+                            : !IsIndexedTag(endTag))
                         || !LocalNamesEqual(tag, endTag)
                         || ContainsByte(tag.End + 1, endTag.Start, (byte)'<')) {
                         return false;
@@ -146,6 +149,11 @@ namespace OfficeIMO.Excel {
                 int valueStart,
                 int valueLength) {
                 int validatedSharedStringIndex = -1;
+                if (_isParallelIndexHelper
+                    && (styleIndex >= 0 && !_owner.StylesLoaded || kind == Utf8CellKind.SharedString && !_owner._sst.IsLoaded)) {
+                    // The sequential indexer resumes at this row and loads the part on its own thread.
+                    throw new ParallelIndexRowDeferredException();
+                }
                 if (styleIndex >= 0 && (uint)styleIndex >= (uint)_owner.Styles.CellFormatCount) {
                     string reference = ExcelA1.CellReference(rowIndex, columnIndex);
                     throw new InvalidDataException(
