@@ -1,4 +1,3 @@
-using System.Text;
 using OfficeIMO.Pdf.Filters;
 
 namespace OfficeIMO.Pdf;
@@ -20,7 +19,7 @@ internal static class PdfContentStreamSequenceDecoder {
         Guard.NotNull(limits, nameof(limits));
 
         content = string.Empty;
-        var builder = new StringBuilder();
+        var segments = new byte[streams.Count][];
         long decodedBytes = 0L;
         for (int index = 0; index < streams.Count; index++) {
             PdfStream stream = streams[index];
@@ -37,11 +36,10 @@ internal static class PdfContentStreamSequenceDecoder {
                     limits.MaxPageContentBytes,
                     decodedBytes);
             }
-            if (index > 0) builder.Append(Separator);
-            builder.Append(PdfEncoding.Latin1GetString(decoded));
+            segments[index] = decoded;
         }
 
-        content = builder.ToString();
+        content = PdfEncoding.Latin1JoinSegments(segments, Separator);
         return true;
     }
 }

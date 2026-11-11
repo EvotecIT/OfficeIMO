@@ -86,6 +86,11 @@ public static partial class MarkdownPdfConverterExtensions {
         string? linkContents,
         MarkdownPdfExportOptions options,
         MarkdownPdfStyle visualTheme) {
+        if (IsSvgImage(bytes, sourceName)) {
+            RenderSvgFigure(pdf, bytes, sourceName, altText, caption, linkUri, linkContents, options, visualTheme);
+            return;
+        }
+
         if (!PdfCore.PdfDocument.TryPrepareImageBytes(
                 bytes,
                 out byte[] preparedBytes,
@@ -104,6 +109,41 @@ public static partial class MarkdownPdfConverterExtensions {
         string? normalizedLinkContents = linkUri == null || string.IsNullOrWhiteSpace(linkContents) ? null : linkContents;
 
         pdf.Image(preparedBytes, width, height, align: null, clipPath: null, fit: null, spacingBefore: null, spacingAfter: null, style: imageStyle, linkUri: linkUri, linkContents: normalizedLinkContents);
+        RenderCaption(pdf, caption, figureStyle);
+    }
+
+    private static bool IsSvgImage(byte[] bytes, string sourceName) {
+        if (sourceName.EndsWith(".svg", StringComparison.OrdinalIgnoreCase)) return true;
+        int length = Math.Min(bytes.Length, 512);
+        string head = Encoding.UTF8.GetString(bytes, 0, length);
+        return head.IndexOf("<svg", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    // SVG images, such as diagrams rendered from Mermaid fences, are imported into vector drawing scenes rather than rasterized.
+    private static void RenderSvgFigure(
+        PdfCore.PdfDocument pdf,
+        byte[] bytes,
+        string sourceName,
+        string? altText,
+        string? caption,
+        string? linkUri,
+        string? linkContents,
+        MarkdownPdfExportOptions options,
+        MarkdownPdfStyle visualTheme) {
+        var readerOptions = new OfficeSvgDrawingReaderOptions { CancellationToken = options.CancellationToken };
+        if (!OfficeSvgDrawingReader.TryRead(bytes, readerOptions, out OfficeDrawing? drawing) || drawing == null ||
+            drawing.Width <= 0D || drawing.Height <= 0D || drawing.Elements.Count == 0) {
+            AddWarning(options, "unsupported-image", sourceName, "The Markdown SVG image could not be read as a drawing scene.");
+            RenderImagePlaceholder(pdf, altText ?? sourceName, visualTheme);
+            return;
+        }
+
+        MarkdownPdfFigureStyle figureStyle = visualTheme.FigureStyleSnapshot;
+        PdfCore.PdfDrawingStyle drawingStyle = figureStyle.DrawingStyleSnapshot;
+        drawingStyle.ConstrainToContentWidth = true;
+        drawingStyle.Decorative = string.IsNullOrWhiteSpace(altText);
+        if (!drawingStyle.Decorative) drawingStyle.AlternativeText = altText;
+        pdf.Drawing(drawing, style: drawingStyle, linkUri: linkUri, linkContents: linkUri == null || string.IsNullOrWhiteSpace(linkContents) ? null : linkContents);
         RenderCaption(pdf, caption, figureStyle);
     }
 
@@ -336,7 +376,7 @@ public static partial class MarkdownPdfConverterExtensions {
         string payload = path.Substring(commaIndex + 1);
         string[] parts = metadata.Split(';');
         string mediaType = parts.Length == 0 ? string.Empty : parts[0].Trim().ToLowerInvariant();
-        if (mediaType != "image/png" && mediaType != "image/jpeg" && mediaType != "image/jpg") {
+        if (mediaType != "image/png" && mediaType != "image/jpeg" && mediaType != "image/jpg" && mediaType != "image/svg+xml") {
             return false;
         }
 
@@ -373,7 +413,7 @@ public static partial class MarkdownPdfConverterExtensions {
             return false;
         }
 
-        sourceName = mediaType == "image/png" ? "data-uri.png" : "data-uri.jpg";
+        sourceName = mediaType == "image/png" ? "data-uri.png" : mediaType == "image/svg+xml" ? "data-uri.svg" : "data-uri.jpg";
         return true;
     }
 

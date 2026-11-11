@@ -7,11 +7,11 @@ internal static partial class PdfSyntax {
     /// planner has accepted the source and the canonical assembler has produced the bytes.
     /// </summary>
     internal static PdfDocumentSecurityInfo ReadRewrittenOutputSecurityInfo(
-        string decodedText,
+        byte[] pdf,
         string trailerRaw,
         PdfLoadOptions options,
         CancellationToken cancellationToken = default) {
-        Guard.NotNull(decodedText, nameof(decodedText));
+        Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(trailerRaw, nameof(trailerRaw));
         Guard.NotNull(options, nameof(options));
         cancellationToken.ThrowIfCancellationRequested();
@@ -21,7 +21,7 @@ internal static partial class PdfSyntax {
             throw new InvalidDataException("The canonical clear-text rewrite unexpectedly emitted an encryption reference.");
         }
 
-        if (!TryGetLatestStartXrefOffset(decodedText, out int startXrefOffset, cancellationToken)) {
+        if (!TryGetLatestStartXrefOffset(new PdfByteContentText(pdf), out int startXrefOffset, cancellationToken)) {
             throw new InvalidDataException("The canonical full rewrite did not contain a readable terminal cross-reference pointer.");
         }
 
@@ -159,6 +159,7 @@ internal static partial class PdfSyntax {
 
         foreach (var entry in orderedObjects) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (IsUnbuiltWithoutSignatureData(entry.Value)) continue;
             if (!hasParsedSignatureMarker || !hasParsedByteRangeMarker) {
                 CollectParsedSignatureMarkers(
                     entry.Value.Value,
@@ -196,6 +197,7 @@ internal static partial class PdfSyntax {
 
         foreach (var entry in orderedObjects) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (IsUnbuiltWithoutSignatureData(entry.Value)) continue;
             PdfDictionary? dictionary = entry.Value.Value switch {
                 PdfDictionary directDictionary => directDictionary,
                 PdfStream stream => stream.Dictionary,
@@ -231,16 +233,13 @@ internal static partial class PdfSyntax {
         PdfReference? infoReference = trailerReferences.Third;
         int? infoObjectNumber = infoReference?.ObjectNumber ?? fallback.InfoObjectNumber;
         int? infoObjectGeneration = infoReference?.Generation ?? fallback.InfoObjectGeneration;
-        string? rawFallback = null;
         bool hasSignatures = hasParsedSignatureMarker;
         if (!hasSignatures && repairReport.HasIncompleteObjectCoverage) {
-            rawFallback = PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken);
-            hasSignatures = ContainsAnyPdfName(rawFallback, cancellationToken, "ByteRange", "SigFlags", "Sig");
+            hasSignatures = ContainsAnyPdfName(pdf, cancellationToken, "ByteRange", "SigFlags", "Sig");
         }
         bool hasByteRange = byteRangeValueCount > 0 || hasParsedByteRangeMarker;
         if (!hasByteRange && hasSignatures && repairReport.HasIncompleteObjectCoverage) {
-            rawFallback ??= PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken);
-            hasByteRange = ContainsAnyPdfName(rawFallback, cancellationToken, "ByteRange");
+            hasByteRange = ContainsAnyPdfName(pdf, cancellationToken, "ByteRange");
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -286,6 +285,11 @@ internal static partial class PdfSyntax {
             fallback.HasXrefStreams,
             fallback.HasObjectStreams);
     }
+
+    // An object that has not been built and holds no signature names or indirect /FT or /Type
+    // cannot be a signature field or value, so the signature passes leave it unparsed.
+    private static bool IsUnbuiltWithoutSignatureData(PdfIndirectObject indirect) =>
+        indirect.TryGetUnbuiltSummary(out PdfDeferredObjectSummary summary) && !summary.MayCarrySignatureData;
 
     private static void CollectParsedSignatureMarkers(
         PdfObject value,

@@ -16,6 +16,11 @@ namespace OfficeIMO.Excel {
         /// <param name="newSheetName">Requested name for the copied worksheet.</param>
         /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
         /// <returns>The copied worksheet.</returns>
+        /// <remarks>
+        /// The copy keeps the source worksheet's hidden or very hidden state. A workbook needs a visible sheet, so a copy
+        /// that would leave none is shown, and when the active worksheet is hidden after the copy, the first visible
+        /// worksheet becomes active.
+        /// </remarks>
         public ExcelSheet CopyWorksheet(string sourceSheetName, string newSheetName, ExcelSheetNameValidationMode validationMode = ExcelSheetNameValidationMode.Sanitize) {
             return CopyWorksheet(GetSheet(sourceSheetName), newSheetName, validationMode);
         }
@@ -28,6 +33,11 @@ namespace OfficeIMO.Excel {
         /// <param name="newSheetName">Requested name for the copied worksheet.</param>
         /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
         /// <returns>The copied worksheet.</returns>
+        /// <remarks>
+        /// The copy keeps the source worksheet's hidden or very hidden state. A workbook needs a visible sheet, so a copy
+        /// that would leave none is shown, and when the active worksheet is hidden after the copy, the first visible
+        /// worksheet becomes active.
+        /// </remarks>
         public ExcelSheet CopyWorksheet(ExcelSheet sourceSheet, string newSheetName, ExcelSheetNameValidationMode validationMode = ExcelSheetNameValidationMode.Sanitize) {
             ArgumentNullException.ThrowIfNull(sourceSheet);
             if (!ReferenceEquals(sourceSheet.Document, this)) {
@@ -44,6 +54,7 @@ namespace OfficeIMO.Excel {
             WorksheetPackageCopyResult result = CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode);
             var sheetMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [sourceSheet.Name] = result.Sheet.Name };
             CopyReferencedDefinedNamesFromSource(this, result.Sheet, sheetMap, result.TableNameMap);
+            EnsureVisibleActiveWorksheetAfterCopy(result.Sheet);
             return result.Sheet;
         }
 
@@ -68,6 +79,7 @@ namespace OfficeIMO.Excel {
                 copiedPart.Worksheet.Save();
 
                 Sheet sheet = AppendWorksheetElement(copiedPart, validatedName);
+                CopyWorksheetVisibility(sourceSheet.SheetElement, sheet);
                 MarkSheetCacheDirty();
                 WorkbookRoot.Save();
                 return new WorksheetPackageCopyResult(new ExcelSheet(this, _spreadSheetDocument, sheet), tableNameMap);
@@ -82,6 +94,11 @@ namespace OfficeIMO.Excel {
         /// <param name="newSheetName">Requested name for the copied worksheet.</param>
         /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
         /// <returns>The copied worksheet.</returns>
+        /// <remarks>
+        /// The copy keeps the source worksheet's hidden or very hidden state. A workbook needs a visible sheet, so a copy
+        /// that would leave none is shown, and when the active worksheet is hidden after the copy, the first visible
+        /// worksheet becomes active.
+        /// </remarks>
         public ExcelSheet CopyWorksheetFrom(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, ExcelSheetNameValidationMode validationMode = ExcelSheetNameValidationMode.Sanitize) {
             return CopyWorksheetFrom(sourceDocument, sourceSheetName, newSheetName, validationMode, options: null);
         }
@@ -95,6 +112,11 @@ namespace OfficeIMO.Excel {
         /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
         /// <param name="options">Copy strategy options.</param>
         /// <returns>The copied worksheet.</returns>
+        /// <remarks>
+        /// The copy keeps the source worksheet's hidden or very hidden state. A workbook needs a visible sheet, so a copy
+        /// that would leave none is shown, and when the active worksheet is hidden after the copy, the first visible
+        /// worksheet becomes active.
+        /// </remarks>
         public ExcelSheet CopyWorksheetFrom(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, ExcelSheetNameValidationMode validationMode, ExcelWorksheetCopyOptions? options) {
             ArgumentNullException.ThrowIfNull(sourceDocument);
             if (string.IsNullOrWhiteSpace(sourceSheetName)) throw new ArgumentNullException(nameof(sourceSheetName));
@@ -116,18 +138,25 @@ namespace OfficeIMO.Excel {
                 WorksheetPackageCopyResult result = CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode);
                 var sheetMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [sourceSheet.Name] = result.Sheet.Name };
                 CopyReferencedDefinedNamesFromSource(this, result.Sheet, sheetMap, result.TableNameMap);
+                EnsureVisibleActiveWorksheetAfterCopy(result.Sheet);
                 return result.Sheet;
             }
 
-            return options.CopyMode == ExcelWorksheetCopyMode.Values
-                ? CopyWorksheetFromValues(sourceDocument, sourceSheetName, newSheetName, validationMode)
-                : CopyWorksheetFromPackage(
+            ExcelSheet copiedSheet;
+            if (options.CopyMode == ExcelWorksheetCopyMode.Values) {
+                copiedSheet = CopyWorksheetFromValues(sourceDocument, sourceSheetName, newSheetName, validationMode);
+            } else {
+                copiedSheet = CopyWorksheetFromPackage(
                     sourceDocument,
                     sourceSheetName,
                     newSheetName,
                     validationMode,
                     options,
                     new DefinedNameCopyBudget(options.MaxDefinedNames, options.MaxDefinedNameCharacters));
+            }
+
+            EnsureVisibleActiveWorksheetAfterCopy(copiedSheet);
+            return copiedSheet;
         }
 
         /// <summary>

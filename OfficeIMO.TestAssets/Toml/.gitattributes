@@ -1,0 +1,4 @@
+# toml-test cases and corpus files are bound to upstream bytes and SHA-256 manifests.
+# Line endings, BOMs, tabs, control characters and invalid UTF-8 are part of the test data.
+* -text -whitespace
+*.ps1 text eol=lf

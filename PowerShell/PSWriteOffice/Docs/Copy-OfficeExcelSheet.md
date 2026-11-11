@@ -169,7 +169,7 @@ Gets or sets target workbook paths with filesystem wildcard expansion.
 ```yaml
 Type: String[]
 Parameter Sets: Path
-Aliases: None
+Aliases: FilePath
 Possible values:
 
 Required: True
@@ -185,7 +185,7 @@ Gets or sets source worksheet names or patterns, one-based positions or native w
 ```yaml
 Type: OfficeSheetSelector[]
 Parameter Sets: Document, Path, LiteralPath
-Aliases: None
+Aliases: WorksheetName
 Possible values:
 
 Required: False

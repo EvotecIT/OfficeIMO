@@ -46,7 +46,7 @@ public sealed class MermaidDocumentTests {
     public void WordAndPdfEmbedTheRenderedImageAndPreserveCaption() {
         var document = MarkdownDocument.Parse("# Report\n\n" + Fence);
         document.DescendantObjectsOfType<CodeBlock>().Single().Caption = "Request approval";
-        MermaidMarkdownAdapter.Materialize(document);
+        MermaidMarkdownAdapter.Materialize(document, MermaidMarkdownImageFormat.Png);
         var image = Assert.Single(document.DescendantObjectsOfType<ImageBlock>());
         var png = Convert.FromBase64String(image.Path.Substring(image.Path.IndexOf(',') + 1));
 
@@ -72,6 +72,28 @@ public sealed class MermaidDocumentTests {
         Assert.StartsWith("%PDF-", text);
         Assert.Contains("/Subtype /Image", text);
         Assert.DoesNotContain("flowchart LR", text);
+    }
+
+    [Fact]
+    public void DefaultSvgGivesWordAVectorPictureWithPngFallbackAndPdfVectorContent() {
+        var document = MarkdownDocument.Parse("# Report\n\n" + Fence);
+        MermaidMarkdownAdapter.Materialize(document);
+        var image = Assert.Single(document.DescendantObjectsOfType<ImageBlock>());
+        Assert.StartsWith("data:image/svg+xml;base64,", image.Path, StringComparison.Ordinal);
+
+        using var word = document.ToWord(new MarkdownWordExportOptions { FitImagesToContextWidth = true });
+        using var stream = new MemoryStream();
+        word.Save(stream);
+        stream.Position = 0;
+        using var package = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
+        Assert.Contains(package.Entries, entry => entry.FullName.EndsWith(".svg", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(package.Entries, entry => entry.FullName.EndsWith(".png", StringComparison.OrdinalIgnoreCase));
+
+        using var pdfStream = new MemoryStream();
+        var report = document.SaveAsPdf(pdfStream);
+        byte[] pdf = pdfStream.ToArray();
+        Assert.DoesNotContain("/Subtype /Image", Encoding.ASCII.GetString(pdf));
+        Assert.DoesNotContain(report.Diagnostics, diagnostic => diagnostic.Code == "unsupported-image");
     }
 
     [Theory]
@@ -183,7 +205,7 @@ public sealed class MermaidDocumentTests {
         var rendered = document.DescendantObjectsOfType<ImageBlock>().Single();
         var markup = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
         markup.Blocks.Add(new OfficeMarkupImageBlock(mismatched
-            ? rendered.Path.Replace("image/png", "image/jpeg") : rendered.Path, "Diagram"));
+            ? rendered.Path.Replace("image/svg+xml", "image/png") : rendered.Path, "Diagram"));
         using var presentation = markup.ToPowerPoint(new MarkupPowerPointExportOptions {
             AllowDataUriImages = allowed,
             MaximumDataUriImageBytes = oversized ? 1 : 16L * 1024 * 1024

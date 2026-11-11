@@ -9,6 +9,7 @@ internal sealed class MarkdownReaderPipeline {
     private static readonly IMarkdownBlockParser QuoteParser = new MarkdownReader.QuoteParser();
     private static readonly IMarkdownBlockParser CustomContainerParser = new MarkdownReader.CustomContainerParser();
     private static readonly IMarkdownBlockParser FencedCodeParser = new MarkdownReader.FencedCodeParser();
+    private static readonly IMarkdownBlockParser MathBlockParser = new MarkdownReader.MathBlockParser();
     private static readonly IMarkdownBlockParser ImageParser = new MarkdownReader.ImageParser();
     private static readonly IMarkdownBlockParser HrParser = new MarkdownReader.HrParser();
     private static readonly IMarkdownBlockParser HtmlBlockParser = new MarkdownReader.HtmlBlockParser();
@@ -40,6 +41,7 @@ internal sealed class MarkdownReaderPipeline {
         p.Add(QuoteParser);
         if (options.CustomContainers) p.Add(CustomContainerParser);
         if (options.FencedCode) p.Add(FencedCodeParser);
+        if (options.Math) p.Add(MathBlockParser);
         if (options.Images && options.StandaloneImageBlocks) p.Add(ImageParser);
         p.Add(HrParser);
         if (options.HtmlBlocks) p.Add(HtmlBlockParser);

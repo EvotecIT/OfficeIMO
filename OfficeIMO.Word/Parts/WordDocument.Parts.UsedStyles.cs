@@ -82,10 +82,6 @@ public partial class WordDocument {
     }
 
     private Style? FindLibraryStyleDefinition(string styleId) {
-        Style? registered = WordParagraphStyle.CustomStyles.FirstOrDefault(style =>
-            string.Equals(style.StyleId?.Value, styleId, StringComparison.Ordinal));
-        if (registered != null) return registered;
-
         if (WordTableStyles.TryGetStyle(styleId, out var tableStyle))
             return tableStyle == WordTableStyle.OfficeIMOModern
                 ? WordThemeDefaults.CreateTableStyle(EffectiveCreationTheme)

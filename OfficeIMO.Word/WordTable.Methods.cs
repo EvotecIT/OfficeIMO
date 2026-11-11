@@ -299,6 +299,17 @@ namespace OfficeIMO.Word {
             } catch { }
         }
 
+        /// <summary>Applies a table style defined in this table's document.</summary>
+        /// <param name="style">A table style from <see cref="WordDocument.Styles"/>.</param>
+        /// <returns>The current <see cref="WordTable"/> instance.</returns>
+        /// <exception cref="ArgumentException">The style is not a table style of this document.</exception>
+        public WordTable SetStyle(WordStyle style) {
+            ArgumentNullException.ThrowIfNull(style);
+            if (!ReferenceEquals(style.Document, _document)) throw new ArgumentException("The style belongs to another document.", nameof(style));
+            if (style.Type != WordStyleType.Table) throw new ArgumentException($"'{style.StyleId}' is not a table style.", nameof(style));
+            return SetStyleId(style.StyleId);
+        }
+
         /// <summary>
         /// Applies a table style defined in the document.
         /// </summary>

@@ -12,20 +12,15 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PdfIndependentCorpusTests {
     private const string ManifestPath = "OfficeIMO.Pdf.Benchmarks.Comparisons/Corpus/pdf-corpus-extended.json";
     private const string CorpusFolder = "OfficeIMO.TestAssets/Pdf/IndependentCorpus";
-    private static readonly TimeSpan FileBudget = TimeSpan.FromSeconds(20);
-    private static readonly TimeSpan RenderBudget = TimeSpan.FromSeconds(10);
+    // These budgets catch hangs, not slowness; they stay well clear of shared-runner load.
+    private static readonly TimeSpan FileBudget = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan RenderBudget = TimeSpan.FromSeconds(45);
     // Large scanned pages are rendered downscaled rather than skipped.
     private const int MaximumRenderDimension = 1600;
 
     // Current defects from Docs/benchmarks/pdf-independent-corpus-2026-11-10.md. Each entry must still fail at
     // every listed stage and nowhere else; the test fails once a defect is fixed so the entry gets removed.
     private static readonly Dictionary<string, KnownFailure> KnownFailures = new(StringComparer.Ordinal) {
-        ["verapdf-jpx-image"] = new(
-            "Opaque 8-bit RGB/ICC JPX images cannot be decoded by the managed renderer.",
-            Stage.Render),
-        ["pdfua-ref-brochure"] = new(
-            "Opaque 8-bit RGB/ICC JPX images cannot be decoded by the managed renderer.",
-            Stage.Render),
         ["qpdf-inline-images"] = new(
             "Ghostscript 5.50 inline images at 600 dpi exceed the managed raster limits.",
             Stage.Render),

@@ -15,6 +15,9 @@ namespace OfficeIMO.Excel {
         /// <see cref="ExcelWorkbookMergeOptions.SheetNamePrefix"/>. References between imported worksheets are
         /// rewritten from each source name to its target name in one step. Imported worksheets keep no tab
         /// selection from their source workbook, so only the active worksheet stays selected.
+        /// Imported worksheets keep their source's hidden or very hidden state. When the merge leaves the active
+        /// worksheet hidden, as when an empty workbook imports a hidden sheet first, the first visible worksheet becomes
+        /// active. When the merge leaves no sheet visible, the first imported worksheet is shown.
         /// </remarks>
         public ExcelWorkbookMergeResult MergeWorkbookFrom(ExcelDocument sourceDocument, ExcelWorkbookMergeOptions? options = null) {
             ArgumentNullException.ThrowIfNull(sourceDocument);
@@ -97,6 +100,10 @@ namespace OfficeIMO.Excel {
                         tableNameMap,
                         externalReferenceMap);
                 }
+            }
+
+            if (createdTargetNames.Count > 0) {
+                EnsureVisibleActiveWorksheetAfterCopy(GetSheet(createdTargetNames[0]));
             }
 
             ClearMergedWorksheetTabSelection(createdTargetNames);

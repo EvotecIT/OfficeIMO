@@ -1,6 +1,5 @@
 using OfficeIMO.Word.Html;
 using OfficeIMO.Word;
-using System.Reflection;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
@@ -8,11 +7,6 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Html {
-    private static void RemoveCustomStyle(string styleId) {
-        var field = typeof(WordParagraphStyle).GetField("_customStyles", BindingFlags.NonPublic | BindingFlags.Static);
-        var dict = (IDictionary<string, Style>)field!.GetValue(null)!;
-        dict.Remove(styleId);
-    }
     [Fact]
     public void Test_Html_RoundTrip() {
         string html = "<p>Hello <b>world</b> and <i>universe</i>. <u>under</u> <s>strike</s> <a href=\"https://example.com\">link</a></p>";
@@ -221,7 +215,6 @@ public partial class Html {
 
     [Fact]
     public void Test_Html_Blockquote_WithoutQuoteStyle() {
-        RemoveCustomStyle("Quote");
         string html = "<blockquote>Quoted text</blockquote>";
 
         var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
@@ -234,18 +227,13 @@ public partial class Html {
 
     [Fact]
     public void Test_Html_Blockquote_WithQuoteStyle() {
-        RemoveCustomStyle("Quote");
-        var quote = WordParagraphStyle.CreateFontStyle("Quote", "Arial");
-        WordParagraphStyle.RegisterCustomStyle("Quote", quote);
+        using var doc = WordDocument.Create();
+        doc.Styles.AddParagraphStyle("Quote").FontFamily = "Arial";
 
-        string html = "<blockquote>Quoted text</blockquote>";
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
+        doc.AddHtml("<blockquote>Quoted text</blockquote>", new HtmlWordExportOptions());
 
-        Assert.True(doc.StyleExists("Quote"));
         Assert.Equal("Quoted text", doc.Paragraphs[0].Text);
-        Assert.Equal(WordParagraphStyles.Custom, doc.Paragraphs[0].Style);
-
-        RemoveCustomStyle("Quote");
+        Assert.Equal("Quote", doc.Paragraphs[0].StyleId);
     }
 
     [Fact]

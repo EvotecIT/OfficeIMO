@@ -56,6 +56,7 @@ internal static partial class DocumentReaderEngine {
             ".json" => ReaderInputKind.Json,
             ".xml" => ReaderInputKind.Xml,
             ".yml" or ".yaml" => ReaderInputKind.Yaml,
+            ".toml" => ReaderInputKind.Toml,
             ".zip" => ReaderInputKind.Zip,
             ".one" or ".onepkg" or ".onetoc2" => ReaderInputKind.OneNote,
             ".rtf" => ReaderInputKind.Rtf,

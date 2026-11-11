@@ -8,7 +8,7 @@ internal static partial class PdfSyntax {
         hasXrefStreams = false;
         var objects = document.Objects;
         PdfReadLimits limits = document.ReadOptions.Limits;
-        string text = PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken);
+        var text = new PdfByteContentText(pdf);
         if (!TryGetLatestStartXrefOffset(text, out int start, cancellationToken)) return false;
         var pending = new Stack<(int Offset, bool Supplement)>();
         var visited = new HashSet<int>();

@@ -1,7 +1,7 @@
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeImageReader {
-    /// <summary>Decodes and validates a bounded base64 PNG or JPEG data URI.</summary>
+    /// <summary>Decodes and validates a bounded base64 PNG, JPEG or SVG data URI.</summary>
     /// <remarks>Rejects unsupported MIME types, malformed or oversized payloads, and content that does not match the declared MIME type.</remarks>
     public static bool TryReadBase64DataUri(string? source, long maximumImageBytes,
         out byte[] bytes, out OfficeImageInfo info) {
@@ -15,12 +15,13 @@ public static partial class OfficeImageReader {
         string mime;
         if (string.Equals(metadata, "image/png;base64", StringComparison.OrdinalIgnoreCase)) mime = "image/png";
         else if (string.Equals(metadata, "image/jpeg;base64", StringComparison.OrdinalIgnoreCase)) mime = "image/jpeg";
+        else if (string.Equals(metadata, "image/svg+xml;base64", StringComparison.OrdinalIgnoreCase)) mime = "image/svg+xml";
         else return false;
         long payloadLength = source.Length - comma - 1L;
         // Four encoded characters represent at most three bytes, with up to two padding bytes.
         if ((payloadLength + 3L) / 4L * 3L - 2L > maximumImageBytes) return false;
         try {
-            bytes = Convert.FromBase64String(source.Substring(comma + 1));
+            bytes = OfficeIMO.Core.Internal.OfficeBase64.FromBase64String(source, comma + 1);
         } catch (FormatException) {
             return false;
         }

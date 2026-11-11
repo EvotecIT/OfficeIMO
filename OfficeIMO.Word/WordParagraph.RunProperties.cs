@@ -370,6 +370,8 @@ namespace OfficeIMO.Word {
                             Value = value.Value.ToOpenXml()
                         }
                     };
+                    // w:val is required; it caches the theme colour for applications that ignore the theme.
+                    color.Val = WordRunFormatting.ResolveColorHex(color, _document) ?? "auto";
                     runProperties.Color = color;
                 } else {
                     if (runProperties.Color != null) runProperties.Color.Remove();

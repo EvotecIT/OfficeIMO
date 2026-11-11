@@ -42,6 +42,7 @@ The package README is the primary usage guide for its public API. These reposito
 
 - [Provenance support matrix](officeimo.provenance-support-matrix.md) — exact carrier, package-owner, removal, verification, and resource-limit contracts.
 - [Content safety support matrix](officeimo.content-safety-support-matrix.md) — concealed-content, Unicode, cleanup, and format-specific ingestion-security boundaries.
+- [Hidden data and personal information](officeimo.hidden-data-support-matrix.md) — Document Inspector-style metadata, comment, identity and hidden-content removal for Word, Excel and PowerPoint.
 - [Text formatting support matrix](officeimo.text-formatting-support-matrix.md) — native font, decoration, script, casing, rendering, and compatibility contracts across formats.
 
 ### Office formats and interoperability
@@ -101,6 +102,7 @@ The package README is the primary usage guide for its public API. These reposito
 - [Access document design](officeimo.access-design.md) — proposed typed API, native codec ownership, database-provider boundary, preservation, security, and qualification. Open milestones live in the [Access roadmap](ROADMAP.md#microsoft-access-document-library).
 - [Owned HTML documents and providers](../OfficeIMO.Html/README.md#inspect-and-edit-owned-html) — current snapshot, edit, parsing and charset contracts; lightweight packages and retained runtime dependencies.
 - [Independent HTML engine design](officeimo.html-engine-design.md) — proposed shared DOM, CSS, layout, conversion and optional web-runtime boundaries, with staged dependency retirement. Open milestones live in the [roadmap](ROADMAP.md#independent-html-engine).
+- [TOML engine design](officeimo.toml-engine-design.md) — owned lossless TOML 1.1 engine: reader, editable model, minimal-diff saving, limits and qualification. Open work lives in the [roadmap](ROADMAP.md#toml-engine).
 - [Native Apple apps design](officeimo.studio-apple-native-design.md) — Swift apps for macOS, iPadOS and iOS over the shared C# engine: layer ownership, C interface rules, storage boundary and engine builds. Open work lives in the [Studio roadmap](ROADMAP.md#phase-7-native-apple-apps).
 - [Document assistant design](officeimo.document-assistant-design.md) — headless AI operations, Studio integration, evidence contracts and support limits. [Evidence measurements](../Build/Benchmarks/README.md) cover local preparation and snapshot reuse. Open work lives in the [roadmap](ROADMAP.md#document-assistant).
 

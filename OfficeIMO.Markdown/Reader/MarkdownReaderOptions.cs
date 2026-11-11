@@ -101,6 +101,7 @@ public sealed class MarkdownLoadOptions {
             Abbreviations = Abbreviations,
             GenericAttributes = GenericAttributes,
             CustomContainers = CustomContainers,
+            Math = Math,
             SingleTildeStrikethrough = SingleTildeStrikethrough,
             Highlight = Highlight,
             Inserted = Inserted,
@@ -346,6 +347,17 @@ public sealed class MarkdownLoadOptions {
     /// Default: <c>false</c>; opt in when mirroring Markdig's <c>UseCustomContainers</c> extension.
     /// </summary>
     public bool CustomContainers { get; set; } = false;
+    /// <summary>
+    /// Enable TeX math: inline <c>$...$</c>, inline display <c>$$...$$</c>, display blocks whose
+    /// <c>$$</c> delimiters sit on their own lines, and <c>```math</c> fences.
+    /// Inline math yields <see cref="MathInline"/>, <c>$$</c> blocks yield <see cref="MathBlock"/> and <c>math</c> fences
+    /// yield a <see cref="SemanticFencedBlock"/> whose <see cref="SemanticFencedBlock.SemanticKind"/> is <c>math</c>.
+    /// An opening <c>$</c> must be followed by a non-space character, and a closing <c>$</c> must follow a non-space
+    /// character and must not be followed by a digit, so prices such as <c>$5 and $10</c> stay text. Escape a literal
+    /// dollar sign as <c>\$</c>.
+    /// Default: <c>false</c>; opt in for documents authored with TeX math.
+    /// </summary>
+    public bool Math { get; set; } = false;
     /// <summary>
     /// When <c>true</c>, GitHub Flavored Markdown-style single-tilde strikethrough (<c>~text~</c>) is enabled.
     /// Default: <c>false</c>.

@@ -97,7 +97,7 @@ namespace OfficeIMO.Word {
             MergeNamespaces(_sourceMain.WordprocessingCommentsExPart?.CommentsEx, _destinationMain.WordprocessingCommentsExPart?.CommentsEx);
         }
 
-        private static void MergeNamespaces(OpenXmlPartRootElement? source, OpenXmlPartRootElement? destination) {
+        internal static void MergeNamespaces(OpenXmlPartRootElement? source, OpenXmlPartRootElement? destination) {
             if (source == null || destination == null) {
                 return;
             }

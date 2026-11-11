@@ -21,6 +21,7 @@ public sealed class ReaderContractTests {
             typeof(OfficeIMO.Reader.Opml.OfficeDocumentReaderBuilderOpmlExtensions),
             typeof(OfficeIMO.Reader.Pdf.OfficeDocumentReaderBuilderPdfExtensions),
             typeof(OfficeIMO.Reader.Rtf.OfficeDocumentReaderBuilderRtfExtensions),
+            typeof(OfficeIMO.Reader.Toml.OfficeDocumentReaderBuilderTomlExtensions),
             typeof(OfficeIMO.Reader.Visio.OfficeDocumentReaderBuilderVisioExtensions),
             typeof(OfficeIMO.Reader.Xml.OfficeDocumentReaderBuilderXmlExtensions),
             typeof(OfficeIMO.Reader.Yaml.OfficeDocumentReaderBuilderYamlExtensions),
@@ -37,7 +38,7 @@ public sealed class ReaderContractTests {
     [Fact]
     public void OfficeDocumentReadResultSchema_ExposesStableCurrentContract() {
         Assert.Equal(5, OfficeDocumentReadResultSchema.MinimumSupportedVersion);
-        Assert.Equal(14, OfficeDocumentReadResultSchema.CurrentVersion);
+        Assert.Equal(15, OfficeDocumentReadResultSchema.CurrentVersion);
         Assert.True(OfficeDocumentReadResultSchema.IsSupported(
             OfficeDocumentReadResultSchema.Id, 5));
         Assert.True(OfficeDocumentReadResultSchema.IsSupported(

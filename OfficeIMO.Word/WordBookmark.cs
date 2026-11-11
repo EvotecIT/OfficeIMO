@@ -54,6 +54,59 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Gets or sets the text the bookmark spans. Paragraph breaks are returned as <c>\n</c>.
+        /// Setting the text replaces the bookmarked content and keeps the bookmark around the new text,
+        /// so REF and cross-reference fields show it after their next update.
+        /// </summary>
+        /// <remarks>Setting the text follows <see cref="WordRange.Replace(string)"/>.</remarks>
+        public string Text {
+            get => GetRange().Text;
+            set => GetRange().Replace(value ?? string.Empty);
+        }
+
+        /// <summary>Returns the range between the bookmark's start and end.</summary>
+        /// <returns>The bookmarked range; empty when the bookmark marks a position rather than text.</returns>
+        public WordRange GetRange() {
+            if (_bookmarkStart.Parent == null) throw new InvalidOperationException("The bookmark was removed from the document.");
+            (Paragraph startParagraph, int start) = LocateMarker(_bookmarkStart, isStart: true);
+            BookmarkEnd? end = _bookmarkEnd;
+            (Paragraph endParagraph, int endOffset) = end != null ? LocateMarker(end, isStart: false) : (startParagraph, start);
+            bool endFirst = ReferenceEquals(startParagraph, endParagraph)
+                ? endOffset < start
+                : WordRange.GetParagraphsBetween(startParagraph, endParagraph) == null;
+            if (endFirst) (endParagraph, endOffset) = (startParagraph, start);
+            return new WordRange(_document, startParagraph, start, endParagraph, endOffset, _bookmarkStart);
+        }
+
+        private static (Paragraph Paragraph, int Offset) LocateMarker(OpenXmlElement marker, bool isStart) {
+            Paragraph? paragraph = marker.Ancestors<Paragraph>().FirstOrDefault();
+            if (paragraph != null) {
+                var positions = new Dictionary<OpenXmlElement, int>();
+                int index = 0;
+                foreach (OpenXmlElement element in paragraph.Descendants()) positions[element] = index++;
+                int markerPosition = positions[marker];
+                int offset = 0;
+                foreach (WordTextAtom atom in WordTextMap.Build(paragraph).Atoms) {
+                    if (positions[atom.Element] < markerPosition) offset = atom.End;
+                }
+                return (paragraph, offset);
+            }
+
+            // A marker between paragraphs starts at the next paragraph or ends at the previous one.
+            for (OpenXmlElement current = marker; current.Parent != null; current = current.Parent) {
+                IEnumerable<OpenXmlElement> siblings = isStart ? current.ElementsAfter() : current.ElementsBefore().Reverse();
+                foreach (OpenXmlElement sibling in siblings) {
+                    Paragraph? found = sibling as Paragraph ?? (isStart
+                        ? sibling.Descendants<Paragraph>().FirstOrDefault()
+                        : sibling.Descendants<Paragraph>().LastOrDefault());
+                    if (found != null) return (found, isStart ? 0 : WordTextMap.Build(found).Text.Length);
+                }
+                if (current.Parent is Body or Header or Footer or Footnote or Endnote or Comment) break;
+            }
+            throw new InvalidOperationException("The bookmark is not next to any paragraph.");
+        }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="WordBookmark"/> class.
         /// </summary>
         /// <param name="document">Parent document.</param>

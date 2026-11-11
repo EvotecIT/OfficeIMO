@@ -461,7 +461,7 @@ namespace OfficeIMO.Core.Internal {
             string fullTargetPath = GetFullTargetPath(targetPath);
             if (ownerOnlyUnixPermissions) OfficeTemporaryFile.ApplyOwnerOnlyUnixPermissions(temporaryPath);
             if (conflictPolicy == ConflictPolicy.FailIfExists) {
-                if (!TryMoveIfAbsent(temporaryPath, fullTargetPath, applyDefaultUnixPermissions: !ownerOnlyUnixPermissions)) {
+                if (!TryMoveIfAbsent(temporaryPath, fullTargetPath, applyDefaultPermissions: !ownerOnlyUnixPermissions)) {
                     throw new IOException($"Destination file '{fullTargetPath}' already exists.");
                 }
                 return;
@@ -473,7 +473,7 @@ namespace OfficeIMO.Core.Internal {
 
             if (!File.Exists(fullTargetPath)) {
                 if (TryMoveIfAbsent(temporaryPath, fullTargetPath, waitForClaim: true,
-                    applyDefaultUnixPermissions: !ownerOnlyUnixPermissions)) {
+                    applyDefaultPermissions: !ownerOnlyUnixPermissions)) {
                     return;
                 }
 
@@ -496,6 +496,10 @@ namespace OfficeIMO.Core.Internal {
                 // Some file systems reject File.Replace even though moves are supported.
             }
 
+            // A move publishes the staging file's DACL; keep the replaced file's, as File.Replace does.
+            if (!ownerOnlyUnixPermissions && RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                OfficeTemporaryFile.CopyWindowsPermissions(fullTargetPath, temporaryPath);
+            }
             ReplaceUsingBackup(temporaryPath, fullTargetPath);
         }
 
