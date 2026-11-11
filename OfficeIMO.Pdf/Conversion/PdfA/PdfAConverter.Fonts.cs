@@ -132,6 +132,10 @@ internal sealed partial class PdfAConverter {
         bool standard = PdfWriter.TryGetStandardFontByBaseFontName(plainName, out PdfStandardFont standardFont);
         int? descriptorFlags = descriptor is not null && Resolve(descriptor.Items.TryGetValue("Flags", out PdfObject? flagValue) ? flagValue : null) is PdfNumber flagNumber
             ? (int)flagNumber.Value : null;
+        if (IsStandardSymbolicName(plainName, out bool dingbats)) {
+            EmbedSymbolicSubstitute(use, descriptor, location, plainName, dingbats);
+            return;
+        }
         bool symbolicName = IsSymbolicName(plainName);
         if (symbolicName || (!standard && descriptorFlags is int flags && (flags & 4) != 0 && (flags & 32) == 0)) {
             AddViolation(PdfAConversionRefusalReason.FontNotEmbeddable, location,

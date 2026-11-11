@@ -15,4 +15,11 @@ internal sealed partial class PdfTrueTypeFontProgram {
     /// <summary>Builds a subset that keeps the original glyph numbering and cmap, for simple fonts addressed by glyph name.</summary>
     internal byte[] BuildGlyphRetainingSubset(IEnumerable<int> glyphIds) =>
         BuildSubsetFontFileUncached(glyphIds.Distinct().OrderBy(static glyph => glyph).ToArray(), compact: false, out _);
+
+    /// <summary>
+    /// Builds a glyph-retaining subset whose cmap is replaced, for a symbolic simple font that selects glyphs by code through
+    /// a (3,0) subtable rather than through the face's own cmaps.
+    /// </summary>
+    internal byte[] BuildGlyphRetainingSubset(IEnumerable<int> glyphIds, byte[] replacementCmap) =>
+        BuildSubsetFontFileUncached(glyphIds.Distinct().OrderBy(static glyph => glyph).ToArray(), compact: false, out _, replacementCmap);
 }

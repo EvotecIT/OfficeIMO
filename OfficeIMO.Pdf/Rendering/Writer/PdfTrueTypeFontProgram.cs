@@ -341,6 +341,13 @@ internal sealed partial class PdfTrueTypeFontProgram {
         return string.CompareOrdinal(candidate, existing) < 0;
     }
 
+    /// <summary>
+    /// True when the OS/2 fsType forbids embedding. Restricted License (bit 1) applies only on its own: when Preview &amp; Print
+    /// (bit 2) or Editable (bit 3) is also set, the least restrictive permission takes precedence, as the OpenType
+    /// specification requires.
+    /// </summary>
+    internal static bool IsEmbeddingRestricted(ushort fsType) => (fsType & 0x0002) != 0 && (fsType & 0x000C) == 0;
+
     public static PdfTrueTypeFontProgram Parse(byte[] data, string? fontNameOverride = null) {
         Guard.NotNull(data, nameof(data));
         if (data.Length < 12) {
@@ -388,7 +395,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         int weightClass = 400;
         if (os2.HasValue) {
             ushort fsType = ReadUInt16(data, os2.Value.Offset + 8);
-            if ((fsType & 0x0002) != 0) {
+            if (PdfTrueTypeFontProgram.IsEmbeddingRestricted(fsType)) {
                 throw new NotSupportedException("TrueType font embedding is restricted by the font fsType license flags.");
             }
 

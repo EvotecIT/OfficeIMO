@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal sealed partial class PdfTrueTypeFontProgram {
     private const uint TrueTypeChecksumMagic = 0xB1B0AFBA;
-    private byte[] BuildSubsetFontFileUncached(int[] usedGlyphIds, bool compact, out int[]? glyphOrder) {
+    private byte[] BuildSubsetFontFileUncached(int[] usedGlyphIds, bool compact, out int[]? glyphOrder, byte[]? replacementCmap = null) {
         glyphOrder = null;
         var glyphs = new SortedSet<int>(usedGlyphIds);
         if (!_tables.TryGetValue("glyf", out TableRecord originalGlyf) ||
@@ -30,6 +30,8 @@ internal sealed partial class PdfTrueTypeFontProgram {
                 content = glyf;
             } else if (string.Equals(tag, "loca", StringComparison.Ordinal)) {
                 content = loca;
+            } else if (replacementCmap is not null && string.Equals(tag, "cmap", StringComparison.Ordinal)) {
+                content = replacementCmap;
             } else if (string.Equals(tag, "head", StringComparison.Ordinal)) {
                 content = CopyTableData(table.Value);
                 WriteUInt32(content, 8, 0);
@@ -40,7 +42,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
             tables.Add(new SubsetTable(tag, content));
         }
 
-        if (tables.Count == _tables.Count &&
+        if (replacementCmap is null && tables.Count == _tables.Count &&
             glyf.Length >= originalGlyf.Length &&
             loca.Length >= originalLoca.Length) {
             return _data.ToArray();

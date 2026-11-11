@@ -152,7 +152,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         int weightClass = 400;
         if (os2.HasValue) {
             ushort fsType = ReadUInt16(data, os2.Value.Offset + 8);
-            if ((fsType & 0x0002) != 0) {
+            if (PdfTrueTypeFontProgram.IsEmbeddingRestricted(fsType)) {
                 throw new NotSupportedException("OpenType/CFF font embedding is restricted by the font fsType license flags.");
             }
 
