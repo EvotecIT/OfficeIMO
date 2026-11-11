@@ -200,27 +200,38 @@ public abstract class YamlNode {
     /// Returns the node a path addresses from here, or <see langword="null"/> when nothing matches. Paths share their
     /// grammar with the paths <c>OfficeIMO.Reader.Yaml</c> reports:
     /// <list type="bullet">
-    /// <item><description><c>.name</c> selects a mapping value by key text; a name runs to the next <c>.</c> or <c>[</c>,
-    /// and the leading dot of the first step may be omitted (<c>spec.replicas</c>).</description></item>
-    /// <item><description><c>["key"]</c> selects a key containing dots, brackets or other characters, with JSON escapes
-    /// (<c>\"</c>, <c>\\</c>, <c>\n</c>, <c>\uXXXX</c>...).</description></item>
-    /// <item><description><c>[n]</c> selects the zero-based item of a sequence.</description></item>
-    /// <item><description>A leading <c>$</c> stands for this node.</description></item>
+    /// <item><description><c>.name</c> selects a mapping value by key text. A name runs to the next <c>.</c> or <c>[</c>
+    /// and may contain any other character, spaces included; the leading dot of the first step may be omitted
+    /// (<c>spec.replicas</c>).</description></item>
+    /// <item><description><c>["key"]</c> selects any key, and is needed for keys that contain <c>.</c> or <c>[</c>, are
+    /// empty, or start with <c>$</c>. The text is JSON-quoted: <c>\"</c>, <c>\\</c>, <c>\/</c>, <c>\b</c>, <c>\f</c>,
+    /// <c>\n</c>, <c>\r</c>, <c>\t</c> and <c>\uXXXX</c> (<c>labels["app.kubernetes.io/name"]</c>,
+    /// <c>["say \"hi\""]</c>).</description></item>
+    /// <item><description><c>[n]</c> selects the zero-based item of a sequence. A mapping key that is a number is a key
+    /// step: <c>.0</c> or <c>["0"]</c>.</description></item>
+    /// <item><description>A leading <c>$</c> stands for this node. On a <see cref="YamlDocument"/> with several
+    /// documents, a leading <c>$[n]</c> picks the document.</description></item>
     /// </list>
-    /// Key steps match scalar keys by decoded text and follow aliases and, under the YAML 1.1 schema, <c>&lt;&lt;</c>
-    /// merge keys. Paths address nodes; they do not evaluate expressions. Because steps match text, a path cannot reach
-    /// values under collection keys (<c>[a, b]: x</c>), and of two keys with the same text but different types
-    /// (<c>1</c> and <c>"1"</c>) it finds the one the document's duplicate-key policy picks; enumerate
-    /// <see cref="YamlMapping"/> entries to reach those. <see cref="YamlDocument.Set"/>,
-    /// <see cref="YamlDocument.Add"/> and <see cref="YamlDocument.Remove"/> edit by the same paths.
+    /// <para>Key steps compare the step text with each scalar key's decoded value, whatever its style or type: <c>'a'</c>,
+    /// <c>"a"</c> and <c>a</c> are all <c>.a</c>, and the integer key <c>0x1F</c> is <c>.0x1F</c>. They follow aliases and
+    /// <c>&lt;&lt;</c> merge keys where merges apply. When no scalar key matches, a step matches a collection key by
+    /// its YAML text, the form <see cref="ToString"/> returns and <c>OfficeIMO.Reader.Yaml</c> reports:
+    /// <c>["[a, b]"]</c> for <c>[a, b]: x</c>. Keys with equal text resolve as lookups do, by the duplicate-key policy
+    /// (by default the last); enumerate <see cref="YamlMapping"/> entries to reach the others, such as <c>1</c> next to
+    /// <c>"1"</c>.</para>
+    /// <para>Paths address nodes; they do not evaluate expressions or wildcards. <see cref="GetPath"/> returns the path
+    /// of a node, and <see cref="YamlDocument.Set"/>, <see cref="YamlDocument.Add"/> and <see cref="YamlDocument.Remove"/>
+    /// edit by the same paths.</para>
     /// </summary>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="path"/> is malformed.</exception>
     public YamlNode? Select(string path) => YamlPath.Select(this, path, 0);
 
     /// <summary>Returns the path of this node from its document root, in the grammar <see cref="Select"/> reads.</summary>
-    /// <remarks>Keys that are not plain names (dots, brackets, quotes) use the <c>["key"]</c> form.</remarks>
-    /// <exception cref="InvalidOperationException">The node is a mapping key, or sits under a collection key; see <see cref="Select"/>.</exception>
+    /// <remarks>Keys that are not plain names (empty, starting with <c>$</c>, or containing dots, brackets, quotes,
+    /// backslashes, whitespace or control characters) use the <c>["key"]</c> form; a value under a collection key uses
+    /// the key's YAML text.</remarks>
+    /// <exception cref="InvalidOperationException">The node is a mapping key; paths address values.</exception>
     public string GetPath() => YamlPath.Format(this);
 
     /// <summary>

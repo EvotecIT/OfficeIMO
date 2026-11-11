@@ -253,6 +253,25 @@ public sealed class YamlMapping : YamlNode, IReadOnlyList<YamlMappingEntry> {
         return found;
     }
 
+    /// <summary>
+    /// Returns the position of the own entry whose collection key (<c>[a, b]: x</c>, <c>{a: 1}: x</c>) has the given YAML
+    /// text, the form <see cref="YamlNode.ToString"/> and <c>OfficeIMO.Reader.Yaml</c> paths use, or -1. Paths fall back to
+    /// it when no scalar key has the text; equal collection keys follow the duplicate-key policy.
+    /// </summary>
+    internal int IndexOfCollectionKey(string text) {
+        YamlKeyIndex index = _keyIndex ??= YamlKeyIndex.Build(this);
+        if (!index.HasCollectionKeys) return -1;
+        bool first = Document?.DuplicateKeys == YamlDuplicateKeyPolicy.FirstWins;
+        int found = -1;
+        for (int i = 0; i < _count; i++) {
+            YamlNode key = _entries[i].Key.Resolved;
+            if (key is YamlScalar || !string.Equals(key.ToString(), text, StringComparison.Ordinal)) continue;
+            found = i;
+            if (first) break;
+        }
+        return found;
+    }
+
     /// <summary>Returns the decoded text a string lookup matches for a key, or null for collection keys.</summary>
     internal static string? KeyText(YamlNode key) => key.Resolved is YamlScalar scalar ? scalar.Value : null;
 
@@ -272,23 +291,32 @@ public sealed class YamlMapping : YamlNode, IReadOnlyList<YamlMappingEntry> {
 
     /// <summary>The lazily built lookup state of one mapping: a dictionary for large mappings and the merge entries.</summary>
     private sealed class YamlKeyIndex {
-        private static readonly YamlKeyIndex Empty = new YamlKeyIndex(null, Array.Empty<int>());
+        private static readonly YamlKeyIndex Empty = new YamlKeyIndex(null, Array.Empty<int>(), hasCollectionKeys: false);
 
-        private YamlKeyIndex(Dictionary<string, int>? map, int[] merges) {
+        private YamlKeyIndex(Dictionary<string, int>? map, int[] merges, bool hasCollectionKeys) {
             Map = map;
             Merges = merges;
+            HasCollectionKeys = hasCollectionKeys;
         }
 
         public Dictionary<string, int>? Map { get; }
 
         public int[] Merges { get; }
 
+        /// <summary>Whether a key is a mapping or sequence, which only <see cref="IndexOfCollectionKey"/> can find.</summary>
+        public bool HasCollectionKeys { get; }
+
         public static YamlKeyIndex Build(YamlMapping mapping) {
             int count = mapping._count;
             YamlMappingEntry[] entries = mapping._entries;
             int merges = 0;
+            bool collectionKeys = false;
             for (int i = 0; i < count; i++) {
-                if (entries[i].Key is YamlScalar key && key.IsMergeKey()) merges++;
+                if (entries[i].Key is YamlScalar key) {
+                    if (key.IsMergeKey()) merges++;
+                } else if (entries[i].Key.Resolved is not YamlScalar) {
+                    collectionKeys = true;
+                }
             }
             Dictionary<string, int>? map = null;
             if (count > LinearLookupLimit) {
@@ -301,12 +329,12 @@ public sealed class YamlMapping : YamlNode, IReadOnlyList<YamlMappingEntry> {
                     else if (!map.ContainsKey(text)) map.Add(text, i);
                 }
             }
-            if (map is null && merges == 0) return Empty;
+            if (map is null && merges == 0 && !collectionKeys) return Empty;
             int[] mergeEntries = merges == 0 ? Array.Empty<int>() : new int[merges];
             for (int i = 0, m = 0; m < merges; i++) {
                 if (entries[i].Key is YamlScalar key && key.IsMergeKey()) mergeEntries[m++] = i;
             }
-            return new YamlKeyIndex(map, mergeEntries);
+            return new YamlKeyIndex(map, mergeEntries, collectionKeys);
         }
     }
 
