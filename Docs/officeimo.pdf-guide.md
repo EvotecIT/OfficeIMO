@@ -2142,11 +2142,21 @@ if (result.Succeeded) {
 }
 ```
 
-`ConvertToPdfA` targets PDF/A-2b, 2u, 3b, 3u, 4 and 4f. It fixes only what leaves every page drawn the same: it adds PDF/A identification in XMP and an sRGB output intent, removes encryption (`Password` takes the owner password), JavaScript and forbidden actions, sets annotation print flags, keeps only normal appearances, re-encodes LZW streams, embeds a non-embedded font, including Symbol and ZapfDingbats, from an installed face when every drawn glyph has the same width, and adds ToUnicode maps for the u-levels. PDF/A-3 and PDF/A-4f keep attachments and mark their relationship; PDF/A-2 and PDF/A-4 remove them unless `RemoveEmbeddedFiles` is `false`. PDF/A-4f requires at least one attachment. `Report.Changes` lists every change by object.
+`ConvertToPdfA` targets PDF/A-2b (the default), 2u, 3b, 3u, 4 and 4f. It fixes only what leaves every page drawn the same: it adds PDF/A identification in XMP and an sRGB output intent, removes encryption, JavaScript and forbidden actions, sets annotation print flags, keeps only normal appearances, re-encodes LZW streams, embeds a non-embedded font, including Symbol and ZapfDingbats, from a substitute face when every drawn glyph has the same width and the face's licence allows embedding, and adds ToUnicode maps for the u-levels. To convert an encrypted file, load it with the owner password in `PdfLoadOptions.Password`. PDF/A-3 and PDF/A-4f keep attachments and mark their relationship; PDF/A-2 and PDF/A-4 remove them, or refuse the file when `Attachments` is `PdfAAttachmentPolicy.Refuse`. PDF/A-4f requires at least one attachment. `Report.Changes` lists every change by object; `SaveAsPdfA` writes to a path or a stream.
+
+`FontSubstitution` chooses where substitutes come from: `PdfAFontSubstitution.InstalledFonts` (the default), `None`, or your own faces with `Supplied(...)`, optionally followed by `ThenInstalledFonts()`. A supplied family is matched by its name against the font the PDF names, its standard substitutes or `Symbol` and `ZapfDingbats`, so a server without those fonts can still convert:
+
+```csharp
+var options = new PdfAConversionOptions {
+    FontSubstitution = PdfAFontSubstitution.Supplied(
+        PdfEmbeddedFontFamily.FromFiles("ZapfDingbats", "Fonts/Dingbats.ttf")).ThenInstalledFonts()
+};
+PdfDocument.Load("form.pdf").SaveAsPdfA("form-archive.pdf", options);
+```
 
 PDF/A-4 files are written as PDF 2.0. XMP is the authoritative metadata: the document information dictionary is carried into XMP and removed, or reduced to `ModDate` when the catalog has `PieceInfo`. PDF/A-4 permits JavaScript and some additional-action triggers that PDF/A-2 and PDF/A-3 forbid, so those are kept. PDF/A-4e is not supported.
 
-When something cannot be fixed that way, such as a composite font that is not embedded, device CMYK under an RGB output intent, or an annotation without an appearance, nothing is produced and `Report.Violations` lists every reason by object. `SaveAsPdfA(path)` throws `PdfAConversionException` in that case without creating the file. Supply a CMYK ICC profile in `OutputIntentProfile` to convert files painted in device CMYK. Validate the converted file externally before claiming conformance.
+When something cannot be fixed that way, such as a composite font that is not embedded, device CMYK under an RGB output intent, or an annotation without an appearance, nothing is produced and `Report.Violations` lists every reason by object. `SaveAsPdfA(path)` throws `PdfAConversionException` in that case without creating the file. To convert files painted in device CMYK, set `OutputIntent` to a `PdfOutputIntent` with a CMYK ICC profile; it is written as a `GTS_PDFA1` intent, and a source that already has an output intent profile is refused. Validate the converted file externally before claiming conformance.
 
 ### Generate a fail-closed PDF/X artifact
 
