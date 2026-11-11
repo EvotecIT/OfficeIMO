@@ -88,27 +88,24 @@ internal static class OfficeProvenanceXmp {
         return new UTF8Encoding(false).GetBytes(text);
     }
 
-    /// <summary>Whether a packet carries digital source type declarations and nothing else.</summary>
+    /// <summary>Whether a packet carries nothing but digital source type declarations, including a packet emptied by provenance removal.</summary>
     internal static bool HasOnlyDigitalSourceTypes(byte[] packet, OfficeProvenanceOptions options) {
         if (!TryLoad(packet, options, out XDocument? document) || document == null) return false;
         XElement[] graphs = document.Descendants(RdfNamespace + "RDF").ToArray();
         if (graphs.Length == 0) return false;
-        bool found = false;
         foreach (XElement graph in graphs) {
             foreach (XElement description in graph.Elements()) {
                 if (description.Name != RdfNamespace + "Description") return false;
                 foreach (XAttribute attribute in description.Attributes()) {
                     if (attribute.IsNamespaceDeclaration || attribute.Name == RdfNamespace + "about") continue;
                     if (!IsDigitalSourceType(attribute.Name)) return false;
-                    found = true;
                 }
                 foreach (XElement property in description.Elements()) {
                     if (!IsDigitalSourceType(property.Name) || property.HasElements) return false;
-                    found = true;
                 }
             }
         }
-        return found;
+        return true;
     }
 
     private static bool IsDigitalSourceType(XName name) =>

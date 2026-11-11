@@ -152,11 +152,14 @@ OfficeIMO.OfficeHiddenDataFinding.Outcome.get -> OfficeIMO.OfficeHiddenDataOutco
 OfficeIMO.OfficeHiddenDataFinding.Provenance.get -> OfficeIMO.Provenance.OfficeProvenanceEvidence?
 OfficeIMO.OfficeHiddenDataFinding.Value.get -> string?
 OfficeIMO.OfficeHiddenDataKind
-OfficeIMO.OfficeHiddenDataKind.All = OfficeIMO.OfficeHiddenDataKind.TrackedChanges | OfficeIMO.OfficeHiddenDataKind.HiddenContent | OfficeIMO.OfficeHiddenDataKind.Default | OfficeIMO.OfficeHiddenDataKind.Provenance -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.ActiveContent = 65536 -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.All = OfficeIMO.OfficeHiddenDataKind.TrackedChanges | OfficeIMO.OfficeHiddenDataKind.HiddenContent | OfficeIMO.OfficeHiddenDataKind.Provenance | OfficeIMO.OfficeHiddenDataKind.Attachments | OfficeIMO.OfficeHiddenDataKind.Default | OfficeIMO.OfficeHiddenDataKind.Bookmarks -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.Attachments = 32768 -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.Bookmarks = 131072 -> OfficeIMO.OfficeHiddenDataKind
 OfficeIMO.OfficeHiddenDataKind.Comments = 4 -> OfficeIMO.OfficeHiddenDataKind
 OfficeIMO.OfficeHiddenDataKind.CustomProperties = 2 -> OfficeIMO.OfficeHiddenDataKind
 OfficeIMO.OfficeHiddenDataKind.CustomXml = 256 -> OfficeIMO.OfficeHiddenDataKind
-OfficeIMO.OfficeHiddenDataKind.Default = OfficeIMO.OfficeHiddenDataKind.DocumentProperties | OfficeIMO.OfficeHiddenDataKind.CustomProperties | OfficeIMO.OfficeHiddenDataKind.Comments | OfficeIMO.OfficeHiddenDataKind.PersonalIdentities | OfficeIMO.OfficeHiddenDataKind.SpeakerNotes | OfficeIMO.OfficeHiddenDataKind.Thumbnail | OfficeIMO.OfficeHiddenDataKind.CustomXml | OfficeIMO.OfficeHiddenDataKind.ImageMetadata | OfficeIMO.OfficeHiddenDataKind.PrinterSettings | OfficeIMO.OfficeHiddenDataKind.ExternalReferences | OfficeIMO.OfficeHiddenDataKind.DocumentVariables | OfficeIMO.OfficeHiddenDataKind.RevisionIdentifiers -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.Default = OfficeIMO.OfficeHiddenDataKind.DocumentProperties | OfficeIMO.OfficeHiddenDataKind.CustomProperties | OfficeIMO.OfficeHiddenDataKind.Comments | OfficeIMO.OfficeHiddenDataKind.PersonalIdentities | OfficeIMO.OfficeHiddenDataKind.SpeakerNotes | OfficeIMO.OfficeHiddenDataKind.Thumbnail | OfficeIMO.OfficeHiddenDataKind.CustomXml | OfficeIMO.OfficeHiddenDataKind.ImageMetadata | OfficeIMO.OfficeHiddenDataKind.PrinterSettings | OfficeIMO.OfficeHiddenDataKind.ExternalReferences | OfficeIMO.OfficeHiddenDataKind.DocumentVariables | OfficeIMO.OfficeHiddenDataKind.RevisionIdentifiers | OfficeIMO.OfficeHiddenDataKind.ActiveContent -> OfficeIMO.OfficeHiddenDataKind
 OfficeIMO.OfficeHiddenDataKind.DocumentProperties = 1 -> OfficeIMO.OfficeHiddenDataKind
 OfficeIMO.OfficeHiddenDataKind.DocumentVariables = 4096 -> OfficeIMO.OfficeHiddenDataKind
 OfficeIMO.OfficeHiddenDataKind.ExternalReferences = 2048 -> OfficeIMO.OfficeHiddenDataKind
@@ -199,3 +202,26 @@ OfficeIMO.OfficeTrackedChangesAction.RejectAll = 2 -> OfficeIMO.OfficeTrackedCha
 override OfficeIMO.OfficeHiddenDataFinding.ToString() -> string!
 *REMOVED*const OfficeIMO.OfficeConversionCapabilityCatalog.SchemaVersion = 9 -> int
 const OfficeIMO.OfficeConversionCapabilityCatalog.SchemaVersion = 10 -> int
+OfficeIMO.OfficeHiddenDataFinding.Scope.get -> OfficeIMO.OfficeHiddenDataScope
+OfficeIMO.OfficeHiddenDataOptions.Provenance.get -> OfficeIMO.Provenance.OfficeProvenanceRemovalOptions!
+OfficeIMO.OfficeHiddenDataScope
+OfficeIMO.OfficeHiddenDataScope.Document = 0 -> OfficeIMO.OfficeHiddenDataScope
+OfficeIMO.OfficeHiddenDataScope.EmbeddedImage = 1 -> OfficeIMO.OfficeHiddenDataScope
+OfficeIMO.OfficeHiddenDataScope.Package = 2 -> OfficeIMO.OfficeHiddenDataScope
+OfficeIMO.OfficeHiddenDataResult
+OfficeIMO.OfficeHiddenDataResult.Length.get -> long
+OfficeIMO.OfficeHiddenDataResult.Report.get -> OfficeIMO.OfficeHiddenDataReport!
+OfficeIMO.OfficeHiddenDataResult.ToArray() -> byte[]!
+OfficeIMO.OfficeHiddenDataFinding.Part.get -> string?
+OfficeIMO.OfficeHiddenDataFinding.Reason.get -> OfficeIMO.OfficeHiddenDataReason
+OfficeIMO.OfficeHiddenDataReason
+OfficeIMO.OfficeHiddenDataReason.None = 0 -> OfficeIMO.OfficeHiddenDataReason
+OfficeIMO.OfficeHiddenDataReason.NotSelected = 1 -> OfficeIMO.OfficeHiddenDataReason
+OfficeIMO.OfficeHiddenDataReason.NeededByDocument = 2 -> OfficeIMO.OfficeHiddenDataReason
+OfficeIMO.OfficeHiddenDataReason.ProtectsContentCredentials = 3 -> OfficeIMO.OfficeHiddenDataReason
+OfficeIMO.OfficeHiddenDataReason.SourceTypeKept = 4 -> OfficeIMO.OfficeHiddenDataReason
+OfficeIMO.OfficeHiddenDataReason.ContentCredentialsNoLongerVerify = 5 -> OfficeIMO.OfficeHiddenDataReason
+OfficeIMO.OfficeHiddenDataReason.WholeFileCredentialsCannotSurvive = 6 -> OfficeIMO.OfficeHiddenDataReason
+OfficeIMO.OfficeHiddenDataReason.UnsupportedImageFormat = 7 -> OfficeIMO.OfficeHiddenDataReason
+OfficeIMO.OfficeHiddenDataReason.KeptByProvenanceChoices = 8 -> OfficeIMO.OfficeHiddenDataReason
+OfficeIMO.OfficeHiddenDataReason.UnusedImage = 9 -> OfficeIMO.OfficeHiddenDataReason

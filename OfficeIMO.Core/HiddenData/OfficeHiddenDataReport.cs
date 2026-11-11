@@ -8,7 +8,9 @@ public sealed class OfficeHiddenDataFinding {
     internal const int MaxValueLength = 160;
 
     internal OfficeHiddenDataFinding(OfficeHiddenDataKind kind, string location, string description, string? value,
-        OfficeHiddenDataOutcome outcome, string? note, OfficeProvenanceEvidence? provenance = null) {
+        OfficeHiddenDataOutcome outcome, string? note, OfficeProvenanceEvidence? provenance = null,
+        OfficeHiddenDataScope scope = OfficeHiddenDataScope.Document, OfficeHiddenDataReason reason = OfficeHiddenDataReason.None,
+        string? part = null) {
         Kind = kind;
         Location = location;
         Description = description;
@@ -16,6 +18,9 @@ public sealed class OfficeHiddenDataFinding {
         Outcome = outcome;
         Note = note;
         Provenance = provenance;
+        Scope = scope;
+        Reason = reason;
+        Part = part;
     }
 
     /// <summary>The category.</summary>
@@ -28,10 +33,16 @@ public sealed class OfficeHiddenDataFinding {
     public string? Value { get; }
     /// <summary>What happened to it.</summary>
     public OfficeHiddenDataOutcome Outcome { get; }
-    /// <summary>Why a finding was retained, or other detail about the outcome.</summary>
+    /// <summary>Why a finding was retained, or other detail about the outcome, as a sentence for the person cleaning the file.</summary>
     public string? Note { get; }
     /// <summary>The provenance carrier behind a <see cref="OfficeHiddenDataKind.Provenance"/> finding, as the provenance inspector reports it.</summary>
     public OfficeProvenanceEvidence? Provenance { get; }
+    /// <summary>What the finding belongs to: the document, one embedded image, or the whole file.</summary>
+    public OfficeHiddenDataScope Scope { get; }
+    /// <summary>Why the finding ended as it did; <see cref="Note"/> says the same in a sentence.</summary>
+    public OfficeHiddenDataReason Reason { get; }
+    /// <summary>The package part or file entry that holds the finding, such as <c>/word/media/image1.png</c>, when it lives in its own part.</summary>
+    public string? Part { get; }
 
     /// <inheritdoc />
     public override string ToString() => Kind + " " + Location + ": " + Description + " (" + Outcome + ")";
@@ -42,14 +53,14 @@ public sealed class OfficeHiddenDataFinding {
     }
 }
 
-/// <summary>Metadata, hidden data and provenance found in a Word, Excel or PowerPoint document, and what removal did with each item.</summary>
+/// <summary>Metadata, hidden data and provenance found in a document, and what removal did with each item.</summary>
 public sealed class OfficeHiddenDataReport {
     internal OfficeHiddenDataReport(string format, IList<OfficeHiddenDataFinding> findings) {
         Format = format;
         Findings = new ReadOnlyCollection<OfficeHiddenDataFinding>(findings);
     }
 
-    /// <summary>The inspected format, such as <c>Word</c>.</summary>
+    /// <summary>The inspected format, such as <c>Word</c> or <c>ODT</c>.</summary>
     public string Format { get; }
 
     /// <summary>Findings in document order, grouped by category.</summary>
