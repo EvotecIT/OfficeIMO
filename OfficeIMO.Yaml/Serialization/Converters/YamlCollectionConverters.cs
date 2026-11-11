@@ -27,17 +27,23 @@ internal sealed class YamlCollectionConverter<TCollection, TElement> : YamlConve
     public override TCollection Read(YamlEventCursor cursor, YamlReadState state) {
         if (cursor.TokenType != YamlTokenType.SequenceStart) throw YamlSerializationErrors.TypeMismatch(cursor, state, typeof(TCollection));
         YamlTypeInfo<TElement> element = _element!;
-        var list = new List<TElement>(state.SizeHint(mapping: false));
+        // The first event is read before the list is created, so an empty sequence takes no capacity from the hint,
+        // and leaves the hint to the next sequence with items.
+        if (!cursor.Read()) throw YamlSerializationErrors.UnexpectedEnd(cursor);
+        bool empty = cursor.TokenType == YamlTokenType.SequenceEnd;
+        var list = new List<TElement>(empty ? 0 : state.SizeHint(mapping: false));
         if (_listIsResult && state.Preserve) state.TakePendingAnchor(list);
-        state.PushIndex(0);
-        while (true) {
-            if (!cursor.Read()) throw YamlSerializationErrors.UnexpectedEnd(cursor);
-            if (cursor.TokenType == YamlTokenType.SequenceEnd) break;
-            state.SetIndex(list.Count);
-            list.Add(element.Read(cursor, state));
+        if (!empty) {
+            state.PushIndex(0);
+            while (true) {
+                list.Add(element.Read(cursor, state));
+                if (!cursor.Read()) throw YamlSerializationErrors.UnexpectedEnd(cursor);
+                if (cursor.TokenType == YamlTokenType.SequenceEnd) break;
+                state.SetIndex(list.Count);
+            }
+            state.Pop();
+            state.NoteSize(mapping: false, list.Count);
         }
-        state.Pop();
-        state.NoteSize(mapping: false, list.Count);
         return _listIsResult ? (TCollection)(object)list : _finish(list);
     }
 
@@ -99,20 +105,30 @@ internal sealed class YamlDictionaryConverter<TDictionary, TKey, TValue> : YamlC
 
     public override TDictionary Read(YamlEventCursor cursor, YamlReadState state) {
         if (cursor.TokenType != YamlTokenType.MappingStart) throw YamlSerializationErrors.TypeMismatch(cursor, state, typeof(TDictionary));
-        var dictionary = new Dictionary<TKey, TValue>(state.SizeHint(mapping: true));
+        // The first event is read before the dictionary is created, so an empty mapping takes no capacity from the
+        // hint, and leaves the hint to the next mapping with entries.
+        if (!cursor.Read()) throw YamlSerializationErrors.UnexpectedEnd(cursor);
+        bool empty = cursor.TokenType == YamlTokenType.MappingEnd;
+        var dictionary = new Dictionary<TKey, TValue>(empty ? 0 : state.SizeHint(mapping: true));
         if (_dictionaryIsResult && state.Preserve) state.TakePendingAnchor(dictionary);
-        HashSet<TKey>? merged = null;
-        ReadEntries(cursor, state, dictionary, ref merged, merging: false);
-        state.NoteSize(mapping: true, dictionary.Count);
+        if (!empty) {
+            HashSet<TKey>? merged = null;
+            ReadEntries(cursor, state, dictionary, ref merged, merging: false, positioned: true);
+            state.NoteSize(mapping: true, dictionary.Count);
+        }
         return _dictionaryIsResult ? (TDictionary)(object)dictionary : _finish(dictionary);
     }
 
-    /// <summary>Reads entries up to the mapping's end. Merged entries never replace a key the mapping or an earlier merge set.</summary>
-    private void ReadEntries(YamlEventCursor cursor, YamlReadState state, Dictionary<TKey, TValue> dictionary, ref HashSet<TKey>? merged, bool merging) {
+    /// <summary>
+    /// Reads entries up to the mapping's end. Merged entries never replace a key the mapping or an earlier merge set.
+    /// With <c>positioned</c>, the cursor is already on the first event after the mapping's start.
+    /// </summary>
+    private void ReadEntries(YamlEventCursor cursor, YamlReadState state, Dictionary<TKey, TValue> dictionary, ref HashSet<TKey>? merged, bool merging, bool positioned = false) {
         YamlTypeInfo<TKey> keyInfo = _key!;
         YamlTypeInfo<TValue> valueInfo = _value!;
         while (true) {
-            if (!cursor.Read()) throw YamlSerializationErrors.UnexpectedEnd(cursor);
+            if (positioned) positioned = false;
+            else if (!cursor.Read()) throw YamlSerializationErrors.UnexpectedEnd(cursor);
             if (cursor.TokenType == YamlTokenType.MappingEnd) return;
             if (cursor.IsMergeKey) {
                 if (!cursor.Read()) throw YamlSerializationErrors.UnexpectedEnd(cursor);
