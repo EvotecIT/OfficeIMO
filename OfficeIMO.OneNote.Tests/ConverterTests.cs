@@ -332,6 +332,28 @@ public sealed class ConverterTests {
     }
 
     [Fact]
+    public void NativeHyperlinkFieldShowsOnlyItsResultAndCarriesTheTargetAcrossOutputs() {
+        // The fixture stores "et dolore " + protected "﷟HYPERLINK \"https://example.com\"" + protected "magna".
+        OneNoteSection section = OneNoteSection.Load(Path.Combine(AppContext.BaseDirectory, "Fixtures", "handwriting_recognition.one"));
+
+        var pdf = section.ConvertToVisualPdfWithEvidence(new OneNoteVisualPdfExportOptions(), default);
+        PdfDocument loaded = PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes()));
+        string pdfText = System.Text.RegularExpressions.Regex.Replace(loaded.ExtractText(), @"\s+", " ");
+        string markdown = MarkdownText(section, null);
+        string visualHtml = section.ToVisualHtml(new OneNoteVisualHtmlExportOptions());
+
+        Assert.Contains("et dolore magna aliquyam", pdfText, StringComparison.Ordinal);
+        foreach (string output in new[] { pdfText, markdown, visualHtml }) {
+            Assert.DoesNotContain("HYPERLINK", output, StringComparison.Ordinal);
+            Assert.DoesNotContain("dolore ?", output, StringComparison.Ordinal);
+            Assert.DoesNotContain('﷟', output);
+        }
+        Assert.NotEmpty(loaded.Inspect().GetLinkAnnotationsByUri("https://example.com/"));
+        Assert.Contains("[magna](https://example.com)", markdown, StringComparison.Ordinal);
+        Assert.Contains("href=\"https://example.com/\"", visualHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void VisualPdfEmbedsOnlyAPictureWithoutNativePdfFormAsPng() {
         OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
         OneNoteImage image = Assert.Single(section.Pages[0].DirectContent.OfType<OneNoteImage>());
@@ -459,9 +481,11 @@ public sealed class ConverterTests {
         byte[] pdf = section.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Contains("Native\ntitle", text, StringComparison.Ordinal);
-        Assert.Contains("Alpha\nBeta??", text, StringComparison.Ordinal);
+        Assert.Contains("Alpha\nBeta?", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Beta??", text, StringComparison.Ordinal);
         Assert.Contains("Native<br>title", markdown, StringComparison.Ordinal);
-        Assert.Contains("Alpha<br>Beta??", markdown, StringComparison.Ordinal);
+        Assert.Contains("Alpha<br>Beta?", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("Beta??", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain('\v', html);
         Assert.DoesNotContain('\u0001', html);
         Assert.DoesNotContain('\uFDDF', html);

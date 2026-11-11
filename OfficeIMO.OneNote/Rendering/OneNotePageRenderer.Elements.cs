@@ -229,7 +229,7 @@ public static partial class OneNotePageRenderer {
             OfficeTextParagraphIndent indent = CreateParagraphIndent(paragraph) ?? OfficeTextParagraphIndent.Empty;
             var items = new List<InlineMathItem>();
             if (prefix.Length > 0) AddInlineTextItems(items, paragraph.Runs[0], prefix, Math.Max(1D, width - indent.MaximumOffset));
-            foreach (OneNoteTextRun run in paragraph.Runs) {
+            foreach (OneNoteTextRun run in OneNoteFieldCodes.ResolveRuns(paragraph.Runs)) {
                 if (run.MathExpression != null && _options.IncludeMath) {
                     OfficeMathRenderOptions mathOptions = CreateMathOptions(run);
                     OfficeMathLayoutMetrics metrics = OfficeMathRenderer.Measure(run.MathExpression, mathOptions);
@@ -280,9 +280,10 @@ public static partial class OneNotePageRenderer {
                     ? Array.Empty<OfficeRichTextRun>()
                     : new[] { CreateRichTextRun(new OneNoteTextRun(), prefix) };
             }
-            var runs = new List<OfficeRichTextRun>(paragraph.Runs.Count);
-            for (int index = 0; index < paragraph.Runs.Count; index++) {
-                OneNoteTextRun run = paragraph.Runs[index];
+            IReadOnlyList<OneNoteTextRun> displayRuns = OneNoteFieldCodes.ResolveRuns(paragraph.Runs);
+            var runs = new List<OfficeRichTextRun>(displayRuns.Count);
+            for (int index = 0; index < displayRuns.Count; index++) {
+                OneNoteTextRun run = displayRuns[index];
                 runs.Add(CreateRichTextRun(run, (index == 0 ? prefix : string.Empty) + (run.Text ?? string.Empty)));
             }
             return runs;
@@ -672,7 +673,15 @@ public static partial class OneNotePageRenderer {
             run.Style.HighlightColorArgb.HasValue ? ResolveColor(run.Style.HighlightColorArgb) : (OfficeColor?)null,
             baseline: run.Style.Superscript == true
                 ? OfficeTextBaseline.Superscript
-                : run.Style.Subscript == true ? OfficeTextBaseline.Subscript : OfficeTextBaseline.Normal);
+                : run.Style.Subscript == true ? OfficeTextBaseline.Subscript : OfficeTextBaseline.Normal) { LinkUri = CanvasLinkUri(run.Hyperlink) };
+
+        // PDF link annotations and SVG anchors carry only absolute web and mail targets.
+        private static string? CanvasLinkUri(string? hyperlink) =>
+            !string.IsNullOrWhiteSpace(hyperlink) &&
+            Uri.TryCreate(hyperlink!.Trim(), UriKind.Absolute, out Uri? uri) &&
+            (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeMailto)
+                ? uri.AbsoluteUri
+                : null;
 
         private OfficeFontInfo CreateFont(OneNoteTextRun run) {
             OfficeFontStyle style = OfficeFontStyle.Regular;

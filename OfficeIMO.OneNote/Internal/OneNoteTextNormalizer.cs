@@ -1,14 +1,16 @@
 namespace OfficeIMO.OneNote;
 
 /// <summary>
-/// Turns native OneNote/RichEdit text into displayable Unicode: layout controls become line breaks;
-/// other controls, noncharacters (such as the U+FDDF field-code marker) and unpaired surrogates become '?'.
+/// Turns native OneNote/RichEdit text into displayable Unicode: field-code markers and HYPERLINK
+/// instructions are removed (see <see cref="OneNoteFieldCodes"/>), layout controls become line breaks,
+/// and other controls, noncharacters and unpaired surrogates become '?'.
 /// Shared by the semantic projection and the visual page canvas.
 /// </summary>
 internal static class OneNoteTextNormalizer {
     internal static string Normalize(string? value) {
         if (string.IsNullOrEmpty(value)) return value ?? string.Empty;
-        if (!RequiresNormalization(value!)) return value!;
+        value = OneNoteFieldCodes.StripInstructions(value!);
+        if (!RequiresNormalization(value)) return value;
 
         var builder = new System.Text.StringBuilder(value!.Length);
         for (int index = 0; index < value.Length; index++) {
