@@ -15,7 +15,7 @@ Targets .NET Standard 2.0, .NET 8, .NET 10 and .NET Framework 4.7.2.
 
 ## Inspect and read members
 
-`ArchiveInspector.Open` builds an ordinal-preserving inventory without decoding payloads. Reads then return complete, length- and checksum-verified streams; a failed read returns nothing partial.
+`ArchiveInspector.Open` builds an ordinal-preserving inventory without decoding payloads. Reads then return complete, length-verified streams, checking every ZIP CRC and each CAB frame checksum that is present (zero-checksum CAB frames have nothing to check); a failed read returns nothing partial.
 
 ```csharp
 using OfficeIMO.Archives;

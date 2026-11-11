@@ -56,6 +56,8 @@ Limits: the default `RasterizeWhenNeeded` policy falls back to PNG when SVG impo
 
 ```shell
 dotnet add package OfficeIMO.ChartForgeX.Markdown
+dotnet add package OfficeIMO.Word.Markdown
+dotnet add package OfficeIMO.Markdown.Pdf
 ```
 
 ```csharp
