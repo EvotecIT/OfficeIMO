@@ -34,7 +34,7 @@ OfficeConversionReport odpReport = pdf.SaveAsOdp("handout.odp", new PdfOdpExport
 });
 ```
 
-Forward conversion takes `OdpPdfExportOptions` (`ConversionOptions` for the OpenDocument import, `PdfOptions` for the PDF engine, `FailOnLoss`); `ToPdf(options, out report)`, `ToPdfAsync`, `SaveAsPdf` and `SaveAsPdfAsync` return the report of both stages. `FailOnLoss` throws `OfficeConversionException` when either stage reports loss. Reverse conversion takes `PdfOdpExportOptions` (`PdfOptions`, `OpenDocumentOptions`, `FailOnLoss`) on a `PdfDocument` or `PdfDocumentReadResult`: `ToOdp(options, out report)`, `ToOdpAsync`, `SaveAsOdp` and `SaveAsOdpAsync`. The reverse report is a `PdfOdpConversionReport` with the PDF and OpenDocument stage reports.
+Forward conversion takes `OdpPdfExportOptions` (`ConversionOptions` for the OpenDocument import, `PdfOptions` for the PDF engine, `FailOnLoss`); `ToPdf(options, out report)`, `ToPdfAsync`, `SaveAsPdf` and `SaveAsPdfAsync` return the report of both stages. `FailOnLoss` throws `OfficeConversionException` when either stage reports loss. Reverse conversion takes `PdfOdpExportOptions` (`PdfOptions`, `OpenDocumentOptions`, `FailOnLoss`) on a `PdfDocument` or `PdfDocumentReadResult`: `ToOdp(options, out report)`, `ToOdpAsync`, `SaveAsOdp` and `SaveAsOdpAsync`. The report from `ToOdp(options, out report)` and `ToOdpAsync` is a `PdfOdpConversionReport`; cast it to read the separate PDF and OpenDocument stage reports. `SaveAsOdp` and `SaveAsOdpAsync` return a plain `OfficeConversionReport` with the diagnostics of both stages.
 
 ## What it exports
 
