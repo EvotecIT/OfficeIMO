@@ -58,7 +58,14 @@ public sealed class YamlMapping : YamlNode, IReadOnlyList<YamlMappingEntry> {
         _entries = count == 0 ? Array.Empty<YamlMappingEntry>() : null;
     }
 
-    private YamlNodeTable Table => _part!._document._table!;
+    /// <summary>The document's node table; a disposed document has returned it, and reaching nodes not created before fails.</summary>
+    private YamlNodeTable Table {
+        get {
+            YamlNodeTable table = _part!._document._table!;
+            table.ThrowIfReleased();
+            return table;
+        }
+    }
 
     /// <summary>The entries with their objects, creating the objects of every entry that has none yet.</summary>
     internal YamlMappingEntry[] Entries {

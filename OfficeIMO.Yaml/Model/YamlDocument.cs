@@ -184,9 +184,9 @@ public sealed partial class YamlDocument : IDisposable {
     }
 
     /// <summary>
-    /// Returns the document's pooled storage: the input bytes of a document loaded from a file or stream, and the loaded
-    /// nodes when none was read. The document holds only managed memory. Do not use the document after disposing it:
-    /// nodes not reached before are no longer available.
+    /// Returns the document's pooled storage: its node table and, for a document loaded from a file or stream, its input
+    /// bytes. The document holds only managed memory. Do not use the document after disposing it: nodes reached before
+    /// keep their values, and reaching any other node throws <see cref="ObjectDisposedException"/>.
     /// </summary>
     public void Dispose() {
         _table?.Release();

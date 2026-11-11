@@ -51,13 +51,13 @@ internal struct YamlRecordProperties {
 /// <summary>
 /// The loaded nodes of a <see cref="YamlDocument"/> as a compact table in pooled arrays. Loading writes one record per
 /// node and creates no node objects; <see cref="YamlNode"/> objects are created when code first reaches them, one
-/// collection's children at a time, and keep their identity from then on. Untouched subtrees therefore cost their
-/// records only, and saving them copies their source text.
+/// mapping entry or sequence item at a time, and keep their identity from then on. Untouched subtrees therefore cost
+/// their records only, and saving them copies their source text.
 /// </summary>
 /// <remarks>
 /// Creating node objects is serialized by a lock so concurrent readers of a loaded document see one object per node.
-/// The arrays go back to the pool when the document is disposed before any node object was created; once a node has
-/// been handed out the table stays, because that node may still need its children.
+/// The arrays go back to the pool when the document is disposed; nodes created before keep their values, and reaching
+/// a node that was not created before throws <see cref="ObjectDisposedException"/>.
 /// </remarks>
 internal sealed class YamlNodeTable {
     public YamlNodeRecord[] Records;
@@ -69,7 +69,6 @@ internal sealed class YamlNodeTable {
     private Dictionary<int, YamlNode>? _anchored;
     /// <summary>Shares the text of equal keys across the entries created from the table.</summary>
     private YamlStringCache? _keys;
-    private bool _handedOut;
     private bool _released;
 
     public YamlNodeTable(string source) {
@@ -89,10 +88,10 @@ internal sealed class YamlNodeTable {
         return PropertyCount++;
     }
 
-    /// <summary>Returns the pooled arrays when no node object was created from them.</summary>
+    /// <summary>Returns the pooled arrays; nodes created before keep working, and reaching others throws <see cref="ObjectDisposedException"/>.</summary>
     public void Release() {
         lock (this) {
-            if (_handedOut || _released) return;
+            if (_released) return;
             _released = true;
             Array.Clear(Properties, 0, PropertyCount);
             ArrayPool<YamlRecordProperties>.Shared.Return(Properties);
@@ -100,6 +99,8 @@ internal sealed class YamlNodeTable {
             Properties = Array.Empty<YamlRecordProperties>();
             Records = Array.Empty<YamlNodeRecord>();
             Count = PropertyCount = 0;
+            _keys?.Release();
+            _keys = null;
         }
     }
 
@@ -155,7 +156,6 @@ internal sealed class YamlNodeTable {
         lock (this) {
             if (part._rootNode is { } existing) return existing;
             ThrowIfReleased();
-            _handedOut = true;
             YamlNode root = Create(part, record, null, 0);
             Volatile.Write(ref part._rootNode, root);
             return root;
@@ -348,7 +348,10 @@ internal sealed class YamlNodeTable {
         return node;
     }
 
-    private void ThrowIfReleased() {
-        if (_released) throw new ObjectDisposedException(nameof(YamlDocument), "The document was disposed before its nodes were read.");
+    /// <summary>Whether the document was disposed and the arrays went back to the pool.</summary>
+    public bool Released => Volatile.Read(ref _released);
+
+    public void ThrowIfReleased() {
+        if (Released) throw new ObjectDisposedException(nameof(YamlDocument), "The document was disposed; nodes not read before cannot be read after.");
     }
 }

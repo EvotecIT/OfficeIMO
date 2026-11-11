@@ -22,7 +22,14 @@ public sealed class YamlSequence : YamlNode, IReadOnlyList<YamlNode> {
         _items = count == 0 ? Array.Empty<YamlNode>() : null;
     }
 
-    private YamlNodeTable Table => _part!._document._table!;
+    /// <summary>The document's node table; a disposed document has returned it, and reaching nodes not created before fails.</summary>
+    private YamlNodeTable Table {
+        get {
+            YamlNodeTable table = _part!._document._table!;
+            table.ThrowIfReleased();
+            return table;
+        }
+    }
 
     /// <summary>The items with their objects, creating the object of every item that has none yet.</summary>
     internal YamlNode[] Items {

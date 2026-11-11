@@ -121,17 +121,19 @@ public class YamlDocumentEncodingTests {
     }
 
     [Fact]
-    public void DisposingReleasesOnlyNodesThatWereNeverRead() {
-        // A document disposed unread has returned its pooled node storage, so reading it fails instead of reading reused memory.
+    public void ADisposedDocumentRefusesNodesItHasNotCreated() {
+        // Disposal returns the pooled node storage, so a node not read before fails instead of reading reused memory.
         YamlDocument unread = YamlDocument.Parse("a: [1, 2]\n");
         unread.Dispose();
         Assert.Throws<ObjectDisposedException>(() => unread.Root);
 
-        // Nodes handed out before disposal keep their storage, children not yet reached included.
-        YamlDocument read = YamlDocument.Parse("a: [1, 2]\n");
+        YamlDocument read = YamlDocument.Parse("a: [1, 2]\nb: c\n");
         YamlMapping root = read.Root!.AsMapping();
+        YamlNode a = root["a"];
         read.Dispose();
-        Assert.Equal(2, root["a"].AsSequence()[1].GetValue<int>());
+        Assert.Equal("a", root[0].Key.AsString());
+        Assert.Throws<ObjectDisposedException>(() => root["b"]);
+        Assert.Throws<ObjectDisposedException>(() => a.AsSequence()[0]);
     }
 
     [Fact]
