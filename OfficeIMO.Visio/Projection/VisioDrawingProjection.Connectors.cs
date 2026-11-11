@@ -25,7 +25,7 @@ internal sealed partial class VisioDrawingProjection {
             VisioRenderConnectorLabelPlacement label = VisioRenderLabelLayout.ResolveUnadjusted(connector, cached, projection);
             (double cx, double cy) = VisioConnectorGeometry.GetLabelCenter(connector, label.X, label.Y, label.Width, label.Height);
             (double x, double y) = projection.PagePoint(cx, cy);
-            ProjectText(drawing, connector.Label!, connector.TextStyle,
+            ProjectText(drawing, connector.Label!, VisioTextBackground.Effective(connector),
                 VisioRichTextProjection.Create(page, connector, 72D, _token, styles), x, y,
                 label.Width * projection.GeometryDensity, label.Height * projection.GeometryDensity,
                 VisioConnectorLabelFrame.ResolveAngle(connector), 9D, location);

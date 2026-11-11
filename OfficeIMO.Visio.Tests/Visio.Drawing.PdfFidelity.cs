@@ -52,6 +52,26 @@ public sealed class VisioDrawingPdfFidelityTests {
         Assert.DoesNotContain(report.Diagnostics, diagnostic => diagnostic.Code is "VISIO_DRAWING_METADATA" or "VISIO_DRAWING_LINKS" or "VISIO_DRAWING_ARROW_KIND");
     }
 
+    [Fact]
+    public void TextBackgroundFromTheTextStyleSheetIsPaintedAndAnUnsetOneStaysTransparent() {
+        string root = OfficeIMO.Tests.RepositoryTestPaths.Find();
+        // The Jenkins dynamic connector master uses the Connector style sheet, whose TextBkgnd is white.
+        VisioDocument styled = VisioDocument.Load(Path.Combine(root, "Assets", "VisioTemplates", "DrawingWithJenkinsDiagram.vsdx"));
+        VisioConnector connector = styled.Pages[0].Connectors.First(item => VisioConnectorGeometry.HasVisibleLine(item));
+        connector.Label = "Styled label";
+        // This document defines no TextBkgnd anywhere, so Visio's transparent default applies.
+        VisioDocument unset = VisioDocument.Load(Path.Combine(root, "Website", "static", "downloads", "showcase", "visio", "premium-cloud-architecture.vsdx"));
+
+        Assert.Contains(LabelBackings(styled.ToDrawings().Value[0], "Styled label"), color => color.R == 255 && color.G == 255 && color.B == 255 && color.A == 255);
+        Assert.Empty(LabelBackings(unset.ToDrawings().Value[0], "auth"));
+    }
+
+    private static IEnumerable<OfficeColor> LabelBackings(OfficeDrawing scene, string label) =>
+        scene.Elements.OfType<OfficeDrawingEffectGroup>()
+            .Select(group => group.Drawing)
+            .Where(local => local.Elements.OfType<OfficeDrawingRichText>().Any(text => text.PlainText.Contains(label)))
+            .SelectMany(local => local.Shapes.Select(item => item.Shape.FillColor).OfType<OfficeColor>());
+
     private static VisioPdfExportOptions DiagramOptions() => new() { Mode = VisioPdfProjectionMode.DiagramPages };
 
     private static IEnumerable<OfficeShape> Flatten(OfficeDrawing drawing) {

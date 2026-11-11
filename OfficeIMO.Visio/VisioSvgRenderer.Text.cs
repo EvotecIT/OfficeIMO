@@ -7,7 +7,7 @@ using Color = OfficeIMO.OfficeColor;
 namespace OfficeIMO.Visio {
     internal static partial class VisioSvgRenderer {
         private static void WriteShapeText(XmlWriter writer, VisioPage page, VisioShape shape, VisioRenderProjection projection, VisioSvgSaveOptions options, VisioNativeTextStyleResolver textStyles, VisioNativeShapeTransform transform) {
-            VisioTextStyle? style = shape.TextStyle;
+            VisioTextStyle? style = VisioTextBackground.Effective(shape);
             VisioTextFramePlacement frame = VisioTextFramePlacement.Resolve(shape, projection.DrawingToPhysical, transform);
             (double x, double y) = ToSvg(page, frame.PageX, frame.PageY, projection);
             WriteText(

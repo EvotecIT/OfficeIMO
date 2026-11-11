@@ -29,7 +29,7 @@ internal sealed partial class VisioDrawingProjection {
             if (!string.IsNullOrEmpty(shape.Text)) {
                 VisioTextFramePlacement frame = VisioTextFramePlacement.Resolve(shape, projection.DrawingToPhysical, transform);
                 (double x, double y) = projection.PagePoint(frame.PageX, frame.PageY);
-                ProjectText(drawing, shape.Text!, shape.TextStyle,
+                ProjectText(drawing, shape.Text!, VisioTextBackground.Effective(shape),
                     VisioRichTextProjection.Create(page, shape, 72D, _token, styles),
                     x, y, frame.ContentWidth * projection.GeometryDensity, frame.ContentHeight * projection.GeometryDensity,
                     frame.Angle, 10D, location);

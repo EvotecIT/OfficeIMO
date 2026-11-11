@@ -160,7 +160,7 @@ namespace OfficeIMO.Visio {
             }
 
             if (options.RenderText && !string.IsNullOrEmpty(shape.Text)) {
-                VisioTextStyle? style = shape.TextStyle;
+                VisioTextStyle? style = VisioTextBackground.Effective(shape);
                 VisioTextFramePlacement frame = VisioTextFramePlacement.Resolve(shape, canvas.Projection.DrawingToPhysical, transform);
                 (double x, double y) = ToRaster(page, frame.PageX, frame.PageY, canvas.Projection);
                 DrawText(
@@ -280,7 +280,7 @@ namespace OfficeIMO.Visio {
                 (double x, double y) = ToRaster(page, labelCenterX, labelCenterY, canvas.Projection);
                 double maxWidth = label.Width * canvas.Projection.GeometryDensity;
                 double maxHeight = label.Height * canvas.Projection.GeometryDensity;
-                DrawText(canvas, connector.Label!, x, y, connector.TextStyle, 9D, maxWidth, maxHeight,
+                DrawText(canvas, connector.Label!, x, y, VisioTextBackground.Effective(connector), 9D, maxWidth, maxHeight,
                     ToRasterRotation(VisioConnectorLabelFrame.ResolveAngle(connector)), true,
                     VisioRichTextProjection.Create(page, connector, canvas.Projection.PhysicalDensity, options.CancellationToken, textStyles));
             }
