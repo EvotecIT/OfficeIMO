@@ -2107,6 +2107,28 @@ These operations create separate copies, preserve their sources, and use the PDF
 
 Only the `Faithful` profile applies. Input snapshots, byte limits during generation, output conflicts, provider confirmation contracts, recovery, and final publication guards follow the same runner behavior as other single-output operations. Cancellation is forwarded through security preflight, graph rewriting, preservation inspection, and publication.
 
+## Convert a PDF to PDF/A
+
+```csharp
+OfficeWorkflowResult archive = await OfficeWorkflow.ConvertToPdfA("report.pdf",
+        new OfficeIMO.Pdf.PdfAConversionOptions {
+            Profile = OfficeIMO.Pdf.PdfComplianceProfile.PdfA3B,
+            Attachments = OfficeIMO.Pdf.PdfAAttachmentPolicy.Refuse
+        })
+    .To("report-archive.pdf")
+    .RunAsync(cancellationToken: cancellationToken);
+
+foreach (OfficeWorkflowDiagnostic item in archive.Diagnostics.Where(item => item.Code.StartsWith("PdfA.", StringComparison.Ordinal))) {
+    Console.WriteLine($"{item.Code} at {item.Details["location"]}: {item.Message}");
+}
+```
+
+The typed request uses `ConvertToPdfA` with optional `PdfAConversion` settings; without them the library defaults apply (PDF/A-2b, attachments removed, installed fonts as substitutes). For an encrypted source, pass its owner password with `WithPdfPassword`; the PDF/A copy is written without encryption. Settings are copied before execution.
+
+The runner calls `PdfDocument.ConvertToPdfA` and copies its report into the result. Every change becomes a `PdfA.<change kind>` diagnostic, with Warning severity when it removed or approximated content. When the source cannot be converted without changing its content, the workflow fails with `UnsupportedInput`, publishes nothing, and lists one `PdfA.<refusal reason>` Error per violation. Each diagnostic carries `location` and, for indirect objects, `objectNumber` details. `ConversionEvidence` holds the same report with the profile and change and violation counts as facts.
+
+Only the `Faithful` profile applies. The converted copy is reopened, must be unencrypted and keep the source page count, and is published through the same input snapshot, byte limits, conflict policy, provider confirmation and publication guards as other single-output operations. The output can never replace the source.
+
 ## Extract selected PDF pages
 
 ```csharp

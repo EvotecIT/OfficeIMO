@@ -231,6 +231,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             OfficeWorkflowOperation.AnalyzeWordImages or OfficeWorkflowOperation.OptimizeWordImages => OptimizeWordImages(request, diagnostics, cancellationToken),
             OfficeWorkflowOperation.ScanCleanup => CleanScan(request, diagnostics, cancellationToken),
             OfficeWorkflowOperation.SignPdf => SignPdf(request, cancellationToken),
+            OfficeWorkflowOperation.ConvertToPdfA => ConvertToPdfA(request, diagnostics, cancellationToken),
             OfficeWorkflowOperation.ProtectPdf or OfficeWorkflowOperation.RemovePdfProtection => ChangeProtection(request, cancellationToken),
             OfficeWorkflowOperation.ExtractPages => ExtractPages(request, cancellationToken),
             OfficeWorkflowOperation.Convert => Convert(request, diagnostics, cancellationToken),
@@ -630,7 +631,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         FileOptions.Asynchronous | FileOptions.SequentialScan);
 
     private static void EnsureVerifiedHealthArtifact(OfficeWorkflowOperation operation, PdfHealthReport? report) {
-        if (operation is OfficeWorkflowOperation.Optimize or OfficeWorkflowOperation.Repair or OfficeWorkflowOperation.Sanitize or OfficeWorkflowOperation.ProtectPdf or OfficeWorkflowOperation.RemovePdfProtection or OfficeWorkflowOperation.SignPdf &&
+        if (operation is OfficeWorkflowOperation.Optimize or OfficeWorkflowOperation.Repair or OfficeWorkflowOperation.Sanitize or OfficeWorkflowOperation.ProtectPdf or OfficeWorkflowOperation.RemovePdfProtection or OfficeWorkflowOperation.SignPdf or OfficeWorkflowOperation.ConvertToPdfA &&
             report is not { Verified: true }) {
             throw new InvalidOperationException($"{operation} did not produce verified preservation evidence; no artifact will be published.");
         }
@@ -742,6 +743,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         OfficeWorkflowOperation.SignPdf => "Signing and verifying a separate PDF copy",
         OfficeWorkflowOperation.ProtectPdf => "Creating and verifying a protected PDF copy",
         OfficeWorkflowOperation.RemovePdfProtection => "Creating and verifying an unencrypted PDF copy",
+        OfficeWorkflowOperation.ConvertToPdfA => "Converting a separate PDF/A copy",
         OfficeWorkflowOperation.ExtractPages => "Extracting the selected PDF pages",
         OfficeWorkflowOperation.Convert => "Converting with the first-party OfficeIMO format owner",
         OfficeWorkflowOperation.Inspect => "Inspecting PDF structure and capabilities",
@@ -808,5 +810,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         int MaximumExtractedPages = 100_000,
         OfficePageSelector? ComparisonExpectedPages = null,
         OfficePageSelector? ComparisonActualPages = null,
-        OfficeConversionOptions? UnifiedConversionOptions = null);
+        OfficeConversionOptions? UnifiedConversionOptions = null,
+        PdfAConversionOptions? PdfAConversion = null);
 }

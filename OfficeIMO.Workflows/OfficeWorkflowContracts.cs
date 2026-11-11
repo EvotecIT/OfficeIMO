@@ -27,6 +27,8 @@ public enum OfficeWorkflowOperation {
     RemovePdfProtection,
     /// <summary>Create a separate PDF with a cryptographically verified certificate signature.</summary>
     SignPdf,
+    /// <summary>Create a separate PDF/A copy, or report every reason the source cannot be converted without changing its content.</summary>
+    ConvertToPdfA,
     /// <summary>Create an explicitly reviewed raster PDF from prepared scan pages.</summary>
     ScanCleanup,
     /// <summary>Analyze Word embedded-image candidates without publishing an artifact.</summary>
@@ -206,6 +208,12 @@ public sealed class OfficeWorkflowRequest {
 
     /// <summary>New password protection for ProtectPdf. Cloned before execution; credentials remain request-only.</summary>
     public OfficeIMO.Pdf.PdfStandardEncryptionOptions? OutputEncryption { get; set; }
+
+    /// <summary>
+    /// PDF/A conversion settings for ConvertToPdfA. When omitted, the library defaults apply. Copied before execution.
+    /// An encrypted source needs its owner password in <see cref="PdfPassword"/>; the PDF/A copy is written without encryption.
+    /// </summary>
+    public OfficeIMO.Pdf.PdfAConversionOptions? PdfAConversion { get; set; }
 
     /// <summary>Current owner password for replacing or removing protection. Falls back to PdfPassword when omitted.</summary>
     public string? PdfOwnerPassword { get; set; }
