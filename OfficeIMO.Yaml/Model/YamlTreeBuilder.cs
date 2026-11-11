@@ -25,8 +25,9 @@ internal sealed class YamlTreeBuilder {
     private int _partRoot;
     private int _documentNodes;
     private long _expansion;
-    private int[] _keys = ArrayPool<int>.Shared.Rent(16);
-    private KeyIdentity[] _identities = new KeyIdentity[16];
+    /// <summary>The identities of the keys of the open mappings, innermost last; each frame's keys start at its <see cref="Frame.KeyBase"/>.</summary>
+    private KeyIdentity[] _keys = new KeyIdentity[16];
+    private int _keyCount;
     private int[] _buckets = ArrayPool<int>.Shared.Rent(16);
     private int _findingsTaken;
     /// <summary>Whether the current part's merge keys still need their one note: they merge under the core schema only because the load is not strict.</summary>
@@ -36,6 +37,9 @@ internal sealed class YamlTreeBuilder {
         public int Record;
         public int Children;
         public long Expanded;
+        /// <summary>Where the mapping's key identities start in <see cref="_keys"/>.</summary>
+        public int KeyBase;
+        public bool Mapping;
         /// <summary>A '&lt;&lt;' key was added, so the mapping's merge keys may need the part's note.</summary>
         public bool MergeKey;
     }
@@ -53,7 +57,6 @@ internal sealed class YamlTreeBuilder {
             Build(reader);
         } finally {
             ArrayPool<Frame>.Shared.Return(_frames);
-            ArrayPool<int>.Shared.Return(_keys);
             ArrayPool<int>.Shared.Return(_buckets);
         }
     }
@@ -100,7 +103,7 @@ internal sealed class YamlTreeBuilder {
                         && IsMergeKey(record)) {
                         _frames[_frameCount - 1].MergeKey = true;
                     }
-                    AddToParent(1);
+                    AddToParent(record, 1);
                     break;
                 }
                 case YamlTokenType.Alias:
@@ -138,7 +141,7 @@ internal sealed class YamlTreeBuilder {
         SetProperties(record, reader, in ev, open: true);
         Count(in ev);
         if (_frameCount == _frames.Length) _frames = Grow(_frames, _frameCount, _frameCount * 2);
-        _frames[_frameCount++] = new Frame { Record = record, Expanded = 1 };
+        _frames[_frameCount++] = new Frame { Record = record, Expanded = 1, KeyBase = _keyCount, Mapping = kind == YamlRecordKind.Mapping };
     }
 
     private void Close(in YamlEvent ev) {
@@ -146,10 +149,16 @@ internal sealed class YamlTreeBuilder {
         ref YamlNodeRecord r = ref _table.Records[frame.Record];
         r.Size = _table.Count - frame.Record;
         r.End = ev.End;
-        if (r.Kind == YamlRecordKind.Mapping) {
+        if (frame.Mapping) {
             r.Count = frame.Children / 2;
-            if (_noteMergeKeys && frame.MergeKey) NoteMergeKeys(frame.Record);
-            CheckDuplicates(frame.Record);
+            try {
+                if (_noteMergeKeys && frame.MergeKey) NoteMergeKeys(frame.KeyBase, r.Count);
+                if (r.Count > 1) CheckDuplicates(frame.KeyBase, r.Count);
+            } finally {
+                // The identities hold strings; the array keeps none past their mapping.
+                Array.Clear(_keys, frame.KeyBase, _keyCount - frame.KeyBase);
+                _keyCount = frame.KeyBase;
+            }
         } else {
             r.Count = frame.Children;
         }
@@ -158,7 +167,7 @@ internal sealed class YamlTreeBuilder {
             properties.ExpandedSize = frame.Expanded;
             properties.Open = false;
         }
-        AddToParent(frame.Expanded);
+        AddToParent(frame.Record, frame.Expanded);
     }
 
     private void AddAlias(YamlReader reader, in YamlEvent ev) {
@@ -192,7 +201,7 @@ internal sealed class YamlTreeBuilder {
         r.Size = 1;
         r.Props = -1;
         r.Text = _table.AddText(name);
-        AddToParent(size);
+        AddToParent(record, size);
     }
 
     private void SetProperties(int record, YamlReader reader, in YamlEvent ev, bool open) {
@@ -215,10 +224,20 @@ internal sealed class YamlTreeBuilder {
         }
     }
 
-    /// <summary>Counts a finished node as a child of the innermost open collection.</summary>
-    private void AddToParent(long expanded) {
+    /// <summary>
+    /// Counts a finished node as a child of the innermost open collection. A mapping's key gets its identity now, while
+    /// its record and text are fresh, for the duplicate check when the mapping closes.
+    /// </summary>
+    private void AddToParent(int record, long expanded) {
         if (_frameCount == 0) return;
         ref Frame parent = ref _frames[_frameCount - 1];
+        if (parent.Mapping && (parent.Children & 1) == 0) {
+            if (_keyCount == _keys.Length) Array.Resize(ref _keys, _keys.Length * 2);
+            ref KeyIdentity identity = ref _keys[_keyCount++];
+            identity = Identify(record);
+            identity.Hash = Hash(in identity);
+            identity.Record = record;
+        }
         parent.Children++;
         parent.Expanded = Saturate(parent.Expanded + expanded);
     }
@@ -235,76 +254,51 @@ internal sealed class YamlTreeBuilder {
 
     private static YamlPosition Position(in YamlEvent ev) => new YamlPosition(ev.Start, ev.StartLine + 1, ev.StartColumn + 1);
 
-    /// <summary>Lists the key records of a closed mapping in <see cref="_keys"/> and returns their number.</summary>
-    private int CollectKeys(int mapping) {
-        int count = _table.Records[mapping].Count;
-        if (_keys.Length < count) _keys = Grow(_keys, 0, Math.Max(count, _keys.Length * 2));
-        int child = mapping + 1;
-        for (int i = 0; i < count; i++) {
-            _keys[i] = child;
-            child = _table.Next(_table.Next(child));
-        }
-        return count;
-    }
-
     /// <summary>
     /// Finds keys that are equal as YAML values (specification section 3.2.1.3). Each key gets an identity: its decoded
     /// text for strings, read from the source without a copy when the text is the value, or a canonical form for other
     /// kinds. Equal identities are confirmed by <see cref="Equal"/>. Small mappings compare identities pairwise, larger
     /// ones through a reused hash table, so checking keys allocates nothing in the common case.
     /// </summary>
-    private void CheckDuplicates(int mapping) {
-        int count = _table.Records[mapping].Count;
-        if (count < 2) return;
-        CollectKeys(mapping);
-        int[] keys = _keys;
-        if (_identities.Length < count) _identities = new KeyIdentity[Math.Max(count, _identities.Length * 2)];
-        KeyIdentity[] identities = _identities;
-        for (int i = 0; i < count; i++) {
-            identities[i] = Identify(keys[i]);
-            identities[i].Hash = Hash(in identities[i]);
-        }
-        try {
-            if (count <= LinearDuplicateLimit) {
-                for (int i = 1; i < count; i++) {
-                    for (int j = 0; j < i; j++) {
-                        if (Same(in identities[i], in identities[j]) && Equal(keys[j], keys[i])) {
-                            ReportDuplicate(keys[i], keys[j]);
-                            break;
-                        }
+    private void CheckDuplicates(int first, int count) {
+        KeyIdentity[] keys = _keys;
+        if (count <= LinearDuplicateLimit) {
+            for (int i = 1; i < count; i++) {
+                for (int j = 0; j < i; j++) {
+                    if (Same(in keys[first + i], in keys[first + j]) && Equal(keys[first + j].Record, keys[first + i].Record)) {
+                        ReportDuplicate(keys[first + i].Record, keys[first + j].Record);
+                        break;
                     }
-                }
-            } else {
-                int size = 16;
-                while (size < count * 2) size <<= 1;
-                if (_buckets.Length < size) _buckets = Grow(_buckets, 0, size);
-                int[] buckets = _buckets;
-                Array.Clear(buckets, 0, size);
-                int mask = size - 1;
-                for (int i = 0; i < count; i++) {
-                    int slot = identities[i].Hash & mask;
-                    bool seen = false;
-                    for (int known; (known = buckets[slot]) != 0; slot = (slot + 1) & mask) {
-                        if (Same(in identities[known - 1], in identities[i])) {
-                            seen = true;
-                            break;
-                        }
-                    }
-                    if (seen || identities[i].Class == CollectionKey) {
-                        // Collection keys and identity collisions are rare: confirm against every earlier key.
-                        for (int j = 0; j < i; j++) {
-                            if (Same(in identities[j], in identities[i]) && Equal(keys[j], keys[i])) {
-                                ReportDuplicate(keys[i], keys[j]);
-                                break;
-                            }
-                        }
-                    }
-                    if (!seen) buckets[slot] = i + 1;
                 }
             }
-        } finally {
-            // The identities hold strings; the pooled array keeps none of them.
-            Array.Clear(identities, 0, count);
+            return;
+        }
+        int size = 16;
+        while (size < count * 2) size <<= 1;
+        if (_buckets.Length < size) _buckets = Grow(_buckets, 0, size);
+        int[] buckets = _buckets;
+        Array.Clear(buckets, 0, size);
+        int mask = size - 1;
+        for (int i = 0; i < count; i++) {
+            ref KeyIdentity key = ref keys[first + i];
+            int slot = key.Hash & mask;
+            bool seen = false;
+            for (int known; (known = buckets[slot]) != 0; slot = (slot + 1) & mask) {
+                if (Same(in keys[first + known - 1], in key)) {
+                    seen = true;
+                    break;
+                }
+            }
+            if (seen || key.Class == CollectionKey) {
+                // Collection keys and identity collisions are rare: confirm against every earlier key.
+                for (int j = 0; j < i; j++) {
+                    if (Same(in keys[first + j], in key) && Equal(keys[first + j].Record, key.Record)) {
+                        ReportDuplicate(key.Record, keys[first + j].Record);
+                        break;
+                    }
+                }
+            }
+            if (!seen) buckets[slot] = i + 1;
         }
     }
 
@@ -323,6 +317,7 @@ internal sealed class YamlTreeBuilder {
         public int Length;
         /// <summary>A hash of the class and text, compared before the text.</summary>
         public int Hash;
+        public int Record;
     }
 
     private ReadOnlySpan<char> Span(in KeyIdentity identity) => identity.Text is { } text ? text.AsSpan() : _source.AsSpan(identity.Start, identity.Length);
@@ -443,10 +438,9 @@ internal sealed class YamlTreeBuilder {
     }
 
     /// <summary>Notes, once per document part, that '&lt;&lt;' keys merge although no %YAML 1.1 directive asks for it.</summary>
-    private void NoteMergeKeys(int mapping) {
-        int count = CollectKeys(mapping);
+    private void NoteMergeKeys(int first, int count) {
         for (int i = 0; i < count; i++) {
-            int key = _keys[i];
+            int key = _keys[first + i].Record;
             if (_table.Records[key].Kind != YamlRecordKind.Scalar || !IsMergeKey(key)) continue;
             _noteMergeKeys = false;
             YamlPosition position = _document.GetPosition(_table.Records[key].Start);
