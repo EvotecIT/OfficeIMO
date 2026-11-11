@@ -16,8 +16,8 @@ Open Markdown work is tracked in the repository [roadmap](ROADMAP.md).
 
 | Evidence | Current result |
 | --- | --- |
-| CommonMark smoke fixtures | 316 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
-| CommonMark full inventory | 651 of 652 official CommonMark `0.31.2` examples match; 1 failures |
+| CommonMark smoke fixtures | 317 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
+| CommonMark full inventory | 652 of 652 official CommonMark `0.31.2` examples match; 0 failures |
 | GFM smoke fixtures | 52 cmark-gfm extension smoke fixtures plus focused OfficeIMO supplements for upstream ignored-autolink crash and query/fragment autolink regressions |
 | GFM generated inventory | 52 tracked GFM fixtures; 52 passing, 0 failing |
 | Engine ownership | `OfficeIMO.Markdown` owns parsing, semantic AST, syntax tree, writing, source edits, and HTML projection |

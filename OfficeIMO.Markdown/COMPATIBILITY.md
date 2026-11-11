@@ -24,8 +24,8 @@ The default profile enables OfficeIMO conveniences such as typed image blocks, c
 
 ## Current standards evidence
 
-- 316 CommonMark 0.31.2 examples are pinned as smoke fixtures.
-- The generated full CommonMark inventory reports 651 of 652 examples matching.
+- 317 CommonMark 0.31.2 examples are pinned as smoke fixtures.
+- The generated full CommonMark inventory reports all 652 examples matching.
 - The generated GFM inventory reports 52 tracked fixtures and 52 passing.
 - Focused tests cover syntax spans, native projection, source edits, HTML rendering, Markdown writing, profiles, extensions, diagnostics, and round trips.
 
