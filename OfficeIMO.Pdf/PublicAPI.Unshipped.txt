@@ -986,3 +986,4 @@ OfficeIMO.Pdf.PdfAConversionRefusalReason.SourceUnreadable = 2 -> OfficeIMO.Pdf.
 OfficeIMO.Pdf.PdfAConversionRefusalReason.UnicodeMappingUnavailable = 7 -> OfficeIMO.Pdf.PdfAConversionRefusalReason
 OfficeIMO.Pdf.PdfAConversionRefusalReason.UnsupportedStream = 17 -> OfficeIMO.Pdf.PdfAConversionRefusalReason
 OfficeIMO.Pdf.PdfAConversionRefusalReason.VerificationFailed = 21 -> OfficeIMO.Pdf.PdfAConversionRefusalReason
+OfficeIMO.Pdf.PdfAConversionRefusalReason.EmbeddedFileRequired = 22 -> OfficeIMO.Pdf.PdfAConversionRefusalReason

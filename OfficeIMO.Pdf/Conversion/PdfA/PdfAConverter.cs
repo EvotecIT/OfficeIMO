@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 namespace OfficeIMO.Pdf;
 
 /// <summary>
-/// Converts a parsed PDF into PDF/A-2 or PDF/A-3 by fixing what does not change the rendered page and refusing,
+/// Converts a parsed PDF into PDF/A-2, PDF/A-3 or PDF/A-4 by fixing what does not change the rendered page and refusing,
 /// with every reason, when something cannot be fixed that way.
 /// </summary>
 internal sealed partial class PdfAConverter {
@@ -14,6 +14,7 @@ internal sealed partial class PdfAConverter {
     private readonly CancellationToken _cancellationToken;
     private readonly int _part;
     private readonly bool _unicode;
+    private readonly bool _attachmentsProfile;
     private readonly List<PdfAConversionChange> _changes = new();
     private readonly List<PdfAConversionViolation> _violations = new();
     private readonly Dictionary<PdfObject, int> _objectNumbers = new(ReferenceComparer.Instance);
@@ -24,8 +25,13 @@ internal sealed partial class PdfAConverter {
         _objects = document.Objects;
         _options = options;
         _cancellationToken = cancellationToken;
-        _part = options.Profile is PdfComplianceProfile.PdfA2B or PdfComplianceProfile.PdfA2U ? 2 : 3;
+        _part = options.Profile switch {
+            PdfComplianceProfile.PdfA2B or PdfComplianceProfile.PdfA2U => 2,
+            PdfComplianceProfile.PdfA4 or PdfComplianceProfile.PdfA4F => 4,
+            _ => 3
+        };
         _unicode = options.Profile is PdfComplianceProfile.PdfA2U or PdfComplianceProfile.PdfA3U;
+        _attachmentsProfile = options.Profile == PdfComplianceProfile.PdfA4F;
         foreach (PdfIndirectObject indirect in _objects.Values) {
             if (!_objectNumbers.ContainsKey(indirect.Value)) _objectNumbers.Add(indirect.Value, indirect.ObjectNumber);
             if (indirect.Value is PdfStream stream && !_objectNumbers.ContainsKey(stream.Dictionary)) {
@@ -39,8 +45,11 @@ internal sealed partial class PdfAConverter {
     internal static PdfAConversionResult Convert(byte[] source, PdfLoadOptions? readOptions, PdfAConversionOptions options, CancellationToken cancellationToken) {
         Guard.NotNull(source, nameof(source));
         Guard.NotNull(options, nameof(options));
-        if (options.Profile is not (PdfComplianceProfile.PdfA2B or PdfComplianceProfile.PdfA2U or PdfComplianceProfile.PdfA3B or PdfComplianceProfile.PdfA3U)) {
-            throw new ArgumentException("PDF/A conversion supports PdfA2B, PdfA2U, PdfA3B and PdfA3U.", nameof(options));
+        if (options.Profile == PdfComplianceProfile.PdfA4E) {
+            throw new ArgumentException("PDF/A-4e conversion is not supported: it permits 3D and rich-media content that this converter does not check. Use PdfA4 or PdfA4F.", nameof(options));
+        }
+        if (!IsSupportedProfile(options.Profile)) {
+            throw new ArgumentException("PDF/A conversion supports PdfA2B, PdfA2U, PdfA3B, PdfA3U, PdfA4 and PdfA4F.", nameof(options));
         }
         if (options.OutputIntentProfile is { } profile && !PdfAIccProfile.TryRead(profile, out _, out string? profileError)) {
             throw new ArgumentException("The output intent profile is not a usable ICC profile: " + profileError, nameof(options));
@@ -96,7 +105,7 @@ internal sealed partial class PdfAConverter {
             (_, _) => infoObjectNumber,
             preserveSourceEncryption: false,
             cancellationToken: cancellationToken,
-            fileVersionOverride: PdfFileVersion.Pdf17);
+            fileVersionOverride: converter._part == 4 ? PdfFileVersion.Pdf20 : PdfFileVersion.Pdf17);
         cancellationToken.ThrowIfCancellationRequested();
 
         string? verificationError = Verify(converted, options, cancellationToken);
@@ -107,6 +116,10 @@ internal sealed partial class PdfAConverter {
         return new PdfAConversionResult(converted, new PdfAConversionReport(options.Profile,
             converter._changes.AsReadOnly(), Array.Empty<PdfAConversionViolation>()));
     }
+
+    private static bool IsSupportedProfile(PdfComplianceProfile profile) =>
+        profile is PdfComplianceProfile.PdfA2B or PdfComplianceProfile.PdfA2U or PdfComplianceProfile.PdfA3B or PdfComplianceProfile.PdfA3U or
+            PdfComplianceProfile.PdfA4 or PdfComplianceProfile.PdfA4F;
 
     private static PdfAConversionResult Refuse(PdfComplianceProfile profile, PdfAConversionRefusalReason reason, string location, string message, int? objectNumber) =>
         new(null, new PdfAConversionReport(profile, Array.Empty<PdfAConversionChange>(),
@@ -127,6 +140,10 @@ internal sealed partial class PdfAConverter {
             return "The converted file could not be reopened: " + exception.Message;
         }
         if (output.Security.HasEncryption) return "The converted file is still encrypted.";
+        string expectedHeader = options.Profile is PdfComplianceProfile.PdfA4 or PdfComplianceProfile.PdfA4F ? "%PDF-2.0" : "%PDF-1.7";
+        if (converted.Length < 8 || Encoding.ASCII.GetString(converted, 0, 8) != expectedHeader) {
+            return "The converted file does not start with the " + expectedHeader + " header the PDF/A part requires.";
+        }
         var check = new PdfAConverter(output, options, cancellationToken) { _verifyOnly = true };
         check.Run();
         if (check._violations.Count == 0 && check._changes.Count == 0) return null;

@@ -55,6 +55,8 @@ public sealed class PdfAConversionReport : OfficeConversionReport {
         PdfComplianceProfile.PdfA2U => "PDF/A-2u",
         PdfComplianceProfile.PdfA3B => "PDF/A-3b",
         PdfComplianceProfile.PdfA3U => "PDF/A-3u",
+        PdfComplianceProfile.PdfA4 => "PDF/A-4",
+        PdfComplianceProfile.PdfA4F => "PDF/A-4f",
         _ => profile.ToString()
     };
 }

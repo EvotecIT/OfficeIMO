@@ -7,14 +7,29 @@ internal sealed partial class PdfAConverter {
         "GoTo", "GoToR", "GoToE", "Thread", "URI", "Named", "SubmitForm"
     };
 
+    // PDF/A-4 (ISO 19005-4, 6.6.1) also permits JavaScript, RichMediaExecute and GoToDp actions.
+    private static readonly HashSet<string> AllowedActionsPart4 = new(AllowedActions, StringComparer.Ordinal) {
+        "JavaScript", "RichMediaExecute", "GoToDp"
+    };
+
     private static readonly HashSet<string> AllowedNamedActions = new(StringComparer.Ordinal) {
         "NextPage", "PrevPage", "FirstPage", "LastPage"
     };
 
+    // PDF/A-4 (6.6.3) allows these additional-action triggers on the catalog, pages and non-widget annotations.
+    private static readonly HashSet<string> AllowedAdditionalActionsPart4 = new(StringComparer.Ordinal) {
+        "E", "X", "D", "U", "Fo", "Bl"
+    };
+
     private void ProcessCatalog(PdfDictionary catalog) {
-        if (catalog.Items.ContainsKey("AA") &&
-            Change(PdfAConversionChangeKind.ActionRemoved, "catalog", "Removed the document additional-actions (AA), which PDF/A forbids.", catalog, OfficeConversionLossKind.Omission)) {
-            catalog.Items.Remove("AA");
+        ProcessAdditionalActions(catalog, "catalog", "document", restrictTriggers: true);
+        if (catalog.Items.ContainsKey("Requirements") &&
+            Change(PdfAConversionChangeKind.StructureUpdated, "catalog", "Removed the viewer requirements (Requirements), which PDF/A forbids.", catalog, OfficeConversionLossKind.Omission)) {
+            catalog.Items.Remove("Requirements");
+        }
+        if (Resolve(catalog.Items.TryGetValue("NeedsRendering", out PdfObject? needsRenderingValue) ? needsRenderingValue : null) is PdfBoolean { Value: false } &&
+            Change(PdfAConversionChangeKind.StructureUpdated, "catalog", "Removed the NeedsRendering entry, which PDF/A forbids; its value was false, so viewers draw the same pages.", catalog)) {
+            catalog.Items.Remove("NeedsRendering");
         }
         if (catalog.Items.TryGetValue("OpenAction", out PdfObject? openAction) && ResolveDictionary(openAction) is not null) {
             PdfObject? kept = SanitizeAction(openAction, "catalog open action", 0);
@@ -23,7 +38,7 @@ internal sealed partial class PdfAConverter {
         }
 
         if (ResolveDictionary(catalog.Items.TryGetValue("Names", out PdfObject? names) ? names : null) is PdfDictionary nameDictionary) {
-            if (nameDictionary.Items.ContainsKey("JavaScript") &&
+            if (_part != 4 && nameDictionary.Items.ContainsKey("JavaScript") &&
                 Change(PdfAConversionChangeKind.ActionRemoved, "catalog names", "Removed the document JavaScript name tree, which PDF/A forbids.", nameDictionary, OfficeConversionLossKind.Omission)) {
                 nameDictionary.Items.Remove("JavaScript");
             }
@@ -38,13 +53,44 @@ internal sealed partial class PdfAConverter {
             catalog.Items.Remove("Perms");
         }
 
-        if (GetName(catalog, "Version") is string version && string.CompareOrdinal(version, "1.7") > 0 &&
-            Change(PdfAConversionChangeKind.StructureUpdated, "catalog", "Removed the PDF " + version + " version override; PDF/A-2 and PDF/A-3 files are PDF 1.7.", catalog)) {
+        if (GetName(catalog, "Version") is string version && (_part == 4 ? !IsPdf2Version(version) : string.CompareOrdinal(version, "1.7") > 0) &&
+            Change(PdfAConversionChangeKind.StructureUpdated, "catalog",
+                "Removed the PDF " + version + " version override; " + (_part == 4 ? "PDF/A-4 files are PDF 2.0." : "PDF/A-2 and PDF/A-3 files are PDF 1.7."), catalog)) {
             catalog.Items.Remove("Version");
         }
         ProcessAcroForm(catalog);
         ProcessOptionalContent(catalog);
         ProcessOutlines(catalog);
+    }
+
+    private static bool IsPdf2Version(string version) => version.Length == 3 && version[0] == '2' && version[1] == '.' && version[2] is >= '0' and <= '9';
+
+    /// <summary>
+    /// Removes an additional-actions dictionary, which PDF/A-2 and PDF/A-3 forbid. PDF/A-4 keeps the triggers it allows,
+    /// all of them on widgets and form fields, and sanitizes the actions they run.
+    /// </summary>
+    private void ProcessAdditionalActions(PdfDictionary owner, string location, string ownerDescription, bool restrictTriggers) {
+        if (!owner.Items.TryGetValue("AA", out PdfObject? value)) return;
+        if (_part != 4 || ResolveDictionary(value) is not PdfDictionary actions) {
+            if (Change(PdfAConversionChangeKind.ActionRemoved, location, "Removed " + ownerDescription + " additional-actions (AA), which PDF/A forbids.", owner, OfficeConversionLossKind.Omission)) {
+                owner.Items.Remove("AA");
+            }
+            return;
+        }
+        foreach (string trigger in actions.Items.Keys.ToList()) {
+            if (restrictTriggers && !AllowedAdditionalActionsPart4.Contains(trigger)) {
+                if (Change(PdfAConversionChangeKind.ActionRemoved, location,
+                        "Removed the " + ownerDescription + " /" + trigger + " additional action, a trigger PDF/A-4 forbids.", owner, OfficeConversionLossKind.Omission)) {
+                    actions.Items.Remove(trigger);
+                }
+                continue;
+            }
+            PdfObject? kept = SanitizeAction(actions.Items[trigger], location, 0);
+            if (_verifyOnly) continue;
+            if (kept is null) actions.Items.Remove(trigger);
+            else actions.Items[trigger] = kept;
+        }
+        if (!_verifyOnly && actions.Items.Count == 0) owner.Items.Remove("AA");
     }
 
     /// <summary>Returns the action with forbidden links removed from its chain, or <see langword="null"/> when nothing remains.</summary>
@@ -70,7 +116,8 @@ internal sealed partial class PdfAConverter {
         }
 
         string type = GetName(action, "S") ?? string.Empty;
-        bool allowed = AllowedActions.Contains(type) && (type != "Named" || AllowedNamedActions.Contains(GetName(action, "N") ?? string.Empty));
+        bool allowed = (_part == 4 ? AllowedActionsPart4 : AllowedActions).Contains(type) &&
+            (type != "Named" || AllowedNamedActions.Contains(GetName(action, "N") ?? string.Empty));
         if (allowed) return actionObject;
         string description = type == "Named" ? "named action /" + (GetName(action, "N") ?? "?") : (type.Length == 0 ? "untyped" : type) + " action";
         if (!Change(PdfAConversionChangeKind.ActionRemoved, location, "Removed a " + description + ", which PDF/A forbids.", action, OfficeConversionLossKind.Omission)) {
@@ -124,10 +171,7 @@ internal sealed partial class PdfAConverter {
     private void ProcessField(PdfObject fieldObject, HashSet<PdfObject> visited, int depth) {
         if (depth > 64 || ResolveDictionary(fieldObject) is not PdfDictionary field || !visited.Add(field)) return;
         string name = Resolve(field.Items.TryGetValue("T", out PdfObject? title) ? title : null) is PdfStringObj text ? text.Value : "(unnamed)";
-        if (field.Items.ContainsKey("AA") &&
-            Change(PdfAConversionChangeKind.ActionRemoved, "form field " + name, "Removed field additional-actions (AA), which PDF/A forbids.", field, OfficeConversionLossKind.Omission)) {
-            field.Items.Remove("AA");
-        }
+        ProcessAdditionalActions(field, "form field " + name, "field", restrictTriggers: false);
         if (Resolve(field.Items.TryGetValue("Kids", out PdfObject? kids) ? kids : null) is PdfArray children) {
             foreach (PdfObject child in children.Items) ProcessField(child, visited, depth + 1);
         }
@@ -156,7 +200,7 @@ internal sealed partial class PdfAConverter {
                     config.Items["Name"] = new PdfStringObj(unique, useTextStringEncoding: true);
                 }
             }
-            if (config.Items.ContainsKey("AS") &&
+            if (_part != 4 && config.Items.ContainsKey("AS") &&
                 Change(PdfAConversionChangeKind.OptionalContentUpdated, location, "Removed automatic layer-state changes (AS), which PDF/A forbids.", config)) {
                 config.Items.Remove("AS");
             }

@@ -5,6 +5,7 @@ namespace OfficeIMO.Pdf;
 
 internal sealed partial class PdfAConverter {
     private readonly List<(string Location, PdfDictionary State)> _overprintStates = new();
+    private readonly List<(string Location, PdfStream Profile, byte[] Data)> _iccCmykProfiles = new();
     private bool _usesIccCmyk;
 
     private void CheckResources(PdfDictionary resources, string location, int depth) {
@@ -61,6 +62,11 @@ internal sealed partial class PdfAConverter {
                 state.Items.Remove("HTP");
             }
         }
+        if (state.Items.ContainsKey("HTO")) {
+            if (Change(PdfAConversionChangeKind.GraphicsStateUpdated, location, "Removed the halftone origin (HTO), which applies only to printing devices.", state)) {
+                state.Items.Remove("HTO");
+            }
+        }
         if (state.Items.TryGetValue("HT", out PdfObject? halftone) && !IsCompliantHalftone(Resolve(halftone))) {
             if (Change(PdfAConversionChangeKind.GraphicsStateUpdated, location,
                     "Removed a halftone that PDF/A forbids. Halftones apply only to printing devices; the page renders the same.", state,
@@ -79,7 +85,7 @@ internal sealed partial class PdfAConverter {
                 }
             }
         }
-        if (state.Items.TryGetValue("RI", out PdfObject? intent) && NameOf(Resolve(intent)) is string intentName && !RenderingIntents.Contains(intentName)) {
+        if (_part != 4 && state.Items.TryGetValue("RI", out PdfObject? intent) && NameOf(Resolve(intent)) is string intentName && !RenderingIntents.Contains(intentName)) {
             AddViolation(PdfAConversionRefusalReason.ForbiddenGraphicsState, location,
                 "The rendering intent /" + intentName + " is not one PDF/A allows.", state);
         }
@@ -161,7 +167,7 @@ internal sealed partial class PdfAConverter {
                 if (array.Items.Count > 2) CheckColorSpace(array.Items[2], resources, location, owner, recordUse);
                 break;
             case "DeviceN":
-                if (array.Items.Count > 1 && Resolve(array.Items[1]) is PdfArray colorants && colorants.Items.Count > 32 && firstCheck) {
+                if (_part != 4 && array.Items.Count > 1 && Resolve(array.Items[1]) is PdfArray colorants && colorants.Items.Count > 32 && firstCheck) {
                     AddViolation(PdfAConversionRefusalReason.ImplementationLimitExceeded, location,
                         "A DeviceN colour space has " + colorants.Items.Count.ToString(CultureInfo.InvariantCulture) + " colourants; PDF/A allows 32.", array);
                 }
@@ -188,7 +194,10 @@ internal sealed partial class PdfAConverter {
             AddViolation(PdfAConversionRefusalReason.InvalidIccProfile, location, "The ICC profile is not valid for PDF/A: " + error + ".", profile);
             return;
         }
-        if (header.Components == 4) _usesIccCmyk = true;
+        if (header.Components == 4) {
+            _usesIccCmyk = true;
+            _iccCmykProfiles.Add((location, profile, data));
+        }
         if (!header.IsColorSpaceClass) {
             AddViolation(PdfAConversionRefusalReason.InvalidIccProfile, location,
                 "The ICC profile device class '" + header.DeviceClass + "' is not an input, display, output or colour-space profile.", profile);
@@ -245,7 +254,7 @@ internal sealed partial class PdfAConverter {
         PdfDictionary dictionary = image.Dictionary;
         bool isMask = Resolve(dictionary.Items.TryGetValue("ImageMask", out PdfObject? imageMask) ? imageMask : null) is PdfBoolean { Value: true };
         if (!isMask && dictionary.Items.TryGetValue("ColorSpace", out PdfObject? space)) CheckColorSpace(space, resources, location, image);
-        if (dictionary.Items.TryGetValue("Intent", out PdfObject? intent) && NameOf(Resolve(intent)) is string intentName && !RenderingIntents.Contains(intentName)) {
+        if (_part != 4 && dictionary.Items.TryGetValue("Intent", out PdfObject? intent) && NameOf(Resolve(intent)) is string intentName && !RenderingIntents.Contains(intentName)) {
             AddViolation(PdfAConversionRefusalReason.ContentNotCompliant, location, "The image rendering intent /" + intentName + " is not one PDF/A allows.", image);
         }
         if (Resolve(dictionary.Items.TryGetValue("SMask", out PdfObject? softMask) ? softMask : null) is PdfStream mask) CheckImage(mask, resources, location + " soft mask");
@@ -295,6 +304,7 @@ internal sealed partial class PdfAConverter {
             }
         }
 
+        if (_part == 4) RemoveOutputProfileReferences(intents, "catalog output intent");
         var profiles = new List<PdfObject>();
         foreach (PdfDictionary intent in intents) {
             if (intent.Items.TryGetValue("DestOutputProfile", out PdfObject? profileReference)) {
@@ -359,17 +369,92 @@ internal sealed partial class PdfAConverter {
                     "The graphics state sets overprint mode 1 with overprinting while CMYK colour is ICC-based, which PDF/A forbids; changing it would change printed output.", state);
             }
         }
+        Dictionary<int, int> pageComponents = _part == 4 ? ProcessPageOutputIntents() : new Dictionary<int, int>();
+        if (_part == 4 && (components == 4 || pageComponents.ContainsValue(4))) CheckCmykProfilesDifferFromOutputIntent(profiles);
         foreach (DeviceColorUse use in _deviceColors) {
             if (use.Family == "DeviceGray") continue;
             int needed = use.Family == "DeviceRGB" ? 3 : 4;
-            if (components == needed) continue;
+            int available = pageComponents.TryGetValue(use.PageIndex, out int pageIntent) ? pageIntent : components;
+            if (available == needed) continue;
             string defaultKey = use.Family == "DeviceRGB" ? "DefaultRGB" : "DefaultCMYK";
             if (use.Resources is not null && ResolveResourceObject(use.Resources, "ColorSpace", defaultKey) is not null) continue;
             AddViolation(PdfAConversionRefusalReason.DeviceColorNotCharacterized, use.Location,
-                use.Family + " colour is painted here, but the output intent is " + DescribeComponents(components) +
+                use.Family + " colour is painted here, but the output intent is " + DescribeComponents(available) +
                 ". PDF/A requires device colour to match the output intent" +
                 (use.Family == "DeviceCMYK" ? "; supply a CMYK profile in PdfAConversionOptions.OutputIntentProfile." : "."),
                 use.Owner);
+        }
+    }
+
+    /// <summary>PDF/A-4 forbids DestOutputProfileRef (6.2.3); it points at an external profile that no viewer uses for display.</summary>
+    private void RemoveOutputProfileReferences(IEnumerable<PdfDictionary> intents, string location) {
+        foreach (PdfDictionary intent in intents) {
+            if (intent.Items.ContainsKey("DestOutputProfileRef") &&
+                Change(PdfAConversionChangeKind.OutputIntentAdded, location,
+                    "Removed the external output profile reference (DestOutputProfileRef), which PDF/A-4 forbids.", intent, OfficeConversionLossKind.Omission)) {
+                intent.Items.Remove("DestOutputProfileRef");
+            }
+        }
+    }
+
+    /// <summary>
+    /// PDF 2.0 pages can carry their own output intents. PDF/A-4 characterizes device colour on such a page by its PDF/A
+    /// output intent, so each page intent is checked like the document's; returns the colour components per page.
+    /// </summary>
+    private Dictionary<int, int> ProcessPageOutputIntents() {
+        var components = new Dictionary<int, int>();
+        IReadOnlyList<PdfReadPage> pages = _document.Pages;
+        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+            PdfDictionary page = pages[pageIndex].PageDictionary;
+            if (Resolve(page.Items.TryGetValue("OutputIntents", out PdfObject? value) ? value : null) is not PdfArray array) continue;
+            string location = "page " + (pageIndex + 1).ToString(CultureInfo.InvariantCulture) + " output intents";
+            var intents = array.Items.Select(ResolveDictionary).Where(static intent => intent is not null).Cast<PdfDictionary>().ToList();
+            RemoveOutputProfileReferences(intents, location);
+            var profiles = new List<PdfObject>();
+            foreach (PdfDictionary intent in intents) {
+                PdfObject? profile = intent.Items.TryGetValue("DestOutputProfile", out PdfObject? reference) ? Resolve(reference) : null;
+                if (profile is not null && !profiles.Any(existing => ReferenceEquals(existing, profile))) profiles.Add(profile);
+            }
+            if (profiles.Count > 1) {
+                AddViolation(PdfAConversionRefusalReason.ConflictingOutputIntents, location,
+                    "The page has output intents with different destination profiles; PDF/A-4 requires them to share one profile.", array);
+                continue;
+            }
+            if (profiles.Count == 0) continue;
+            if (profiles[0] is not PdfStream profileStream ||
+                !StreamDecoder.TryDecode(profileStream, _document.ReadOptions.Limits.MaxDecodedStreamBytes, out byte[] data, _objects) ||
+                !PdfAIccProfile.TryRead(data, out PdfAIccProfile header, out _) || !header.IsOutputDevice) {
+                AddViolation(PdfAConversionRefusalReason.InvalidIccProfile, location,
+                    "The page output intent profile is not a valid output or display ICC profile.", profiles[0]);
+                continue;
+            }
+            if (intents.Any(intent => GetName(intent, "S") == "GTS_PDFA1" && intent.Items.ContainsKey("DestOutputProfile"))) {
+                components[pageIndex] = header.Components;
+            }
+        }
+        return components;
+    }
+
+    /// <summary>PDF/A-4 (6.2.4.2) forbids an ICCBased CMYK space whose profile is the CMYK output intent profile itself.</summary>
+    private void CheckCmykProfilesDifferFromOutputIntent(List<PdfObject> documentProfiles) {
+        var outputProfiles = new List<(PdfObject? Profile, byte[]? Data)>();
+        if (_options.OutputIntentProfile is byte[] supplied) outputProfiles.Add((null, supplied));
+        IEnumerable<PdfObject> candidates = documentProfiles.Concat(_document.Pages
+            .Select(page => Resolve(page.PageDictionary.Items.TryGetValue("OutputIntents", out PdfObject? value) ? value : null) as PdfArray)
+            .Where(static array => array is not null)
+            .SelectMany(array => array!.Items.Select(ResolveDictionary))
+            .Where(static intent => intent is not null && intent.Items.ContainsKey("DestOutputProfile"))
+            .Select(intent => Resolve(intent!.Items["DestOutputProfile"])!));
+        foreach (PdfObject profile in candidates) {
+            byte[]? data = profile is PdfStream stream && StreamDecoder.TryDecode(stream, _document.ReadOptions.Limits.MaxDecodedStreamBytes, out byte[] decoded, _objects)
+                ? decoded : null;
+            outputProfiles.Add((profile, data));
+        }
+        foreach ((string location, PdfStream profile, byte[] data) in _iccCmykProfiles) {
+            if (outputProfiles.Any(output => ReferenceEquals(output.Profile, profile) || output.Data is not null && output.Data.SequenceEqual(data))) {
+                AddViolation(PdfAConversionRefusalReason.InvalidIccProfile, location,
+                    "An ICCBased CMYK colour space uses the CMYK output intent profile itself, which PDF/A-4 forbids; replacing it would change how the colour is defined.", profile);
+            }
         }
     }
 

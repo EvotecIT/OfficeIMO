@@ -23,7 +23,7 @@ internal sealed partial class PdfAConverter {
                 if (PdfObjectLookup.TryGet(_objects, reference, out PdfIndirectObject indirect)) pending.Push((indirect.Value, reference.ObjectNumber));
                 continue;
             }
-            if (!CheckValueLimit(value) && objectNumber is int limitObject && limitReported.Add(limitObject)) {
+            if (_part != 4 && !CheckValueLimit(value) && objectNumber is int limitObject && limitReported.Add(limitObject)) {
                 AddViolation(PdfAConversionRefusalReason.ImplementationLimitExceeded, "object " + limitObject.ToString(CultureInfo.InvariantCulture),
                     "The object holds a number, string or name beyond the PDF/A implementation limits.", limitObject);
             }
@@ -79,6 +79,12 @@ internal sealed partial class PdfAConverter {
                 if (ResolveDictionary(entry) is PdfDictionary fileSpec) _associatedFiles.Add(fileSpec);
             }
         }
+        if (_part == 4 && Resolve(dictionary.Items.TryGetValue("ActualText", out PdfObject? actualText) ? actualText : null) is PdfStringObj replacement &&
+            ContainsPrivateUse(replacement.Value) &&
+            Change(PdfAConversionChangeKind.StructureUpdated, location,
+                "Removed replacement text (ActualText) made of private-use characters, which PDF/A-4 forbids; the page draws the same.", dictionary, OfficeConversionLossKind.Omission)) {
+            dictionary.Items.Remove("ActualText");
+        }
         if (!ReferenceEquals(dictionary, catalog) && dictionary.Items.TryGetValue("Metadata", out PdfObject? objectMetadata) &&
             Resolve(objectMetadata) is PdfStream &&
             Change(PdfAConversionChangeKind.StructureUpdated, location,
@@ -86,6 +92,19 @@ internal sealed partial class PdfAConverter {
                 dictionary, OfficeConversionLossKind.Omission)) {
             dictionary.Items.Remove("Metadata");
         }
+    }
+
+    private static bool ContainsPrivateUse(string text) {
+        for (int index = 0; index < text.Length; index++) {
+            char character = text[index];
+            if (character >= '\uE000' && character <= '\uF8FF') return true;
+            if (char.IsHighSurrogate(character) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1])) {
+                int scalar = char.ConvertToUtf32(character, text[index + 1]);
+                if (scalar >= 0xF0000) return true;
+                index++;
+            }
+        }
+        return false;
     }
 
     private void RemoveXObjectEntry(PdfDictionary dictionary, PdfStream owner, string key, string location, string message) {
@@ -199,19 +218,24 @@ internal sealed partial class PdfAConverter {
         }
     }
 
-    /// <summary>PDF/A-2 keeps only attachments that are PDF/A themselves; PDF/A-3 keeps all, with their relationships.</summary>
+    /// <summary>
+    /// PDF/A-2 and PDF/A-4 keep only attachments that are PDF/A themselves, so attachments are removed; PDF/A-3 and PDF/A-4f
+    /// keep all, with their relationships. PDF/A-4f also requires at least one attachment in the embedded-files name tree.
+    /// </summary>
     private void ProcessEmbeddedFiles(PdfDictionary catalog) {
         PdfDictionary? names = ResolveDictionary(catalog.Items.TryGetValue("Names", out PdfObject? namesValue) ? namesValue : null);
-        if (_part == 2) {
+        string partName = PdfAConversionReport.ToProfileName(_options.Profile);
+        if (_part == 2 || (_part == 4 && !_attachmentsProfile)) {
             foreach ((PdfDictionary fileSpec, string location) in _fileSpecifications) {
                 string fileName = DescribeFileSpecification(fileSpec);
                 if (!_options.RemoveEmbeddedFiles) {
                     AddViolation(PdfAConversionRefusalReason.EmbeddedFileNotAllowed, location,
-                        "The embedded file " + fileName + " cannot be kept in PDF/A-2, and RemoveEmbeddedFiles is false.", fileSpec);
+                        "The embedded file " + fileName + " cannot be kept in " + partName + ", and RemoveEmbeddedFiles is false.", fileSpec);
                     continue;
                 }
                 if (Change(PdfAConversionChangeKind.EmbeddedFileRemoved, location,
-                        "Removed the embedded file " + fileName + "; PDF/A-2 cannot carry it. Choose PDF/A-3 to keep attachments.", fileSpec, OfficeConversionLossKind.Omission)) {
+                        "Removed the embedded file " + fileName + "; " + partName + " cannot carry it. Choose " + (_part == 4 ? "PDF/A-4f" : "PDF/A-3") +
+                        " to keep attachments.", fileSpec, OfficeConversionLossKind.Omission)) {
                     fileSpec.Items.Remove("EF");
                     fileSpec.Items.Remove("RF");
                 }
@@ -233,24 +257,24 @@ internal sealed partial class PdfAConverter {
             string? f = TextOf(fileSpec, "F");
             string? uf = TextOf(fileSpec, "UF");
             if ((f is null || uf is null) && (f ?? uf) is string known &&
-                Change(PdfAConversionChangeKind.EmbeddedFileUpdated, location, "Added the " + (f is null ? "F" : "UF") + " file name of " + fileName + ", as PDF/A-3 requires.", fileSpec)) {
+                Change(PdfAConversionChangeKind.EmbeddedFileUpdated, location, "Added the " + (f is null ? "F" : "UF") + " file name of " + fileName + ", as " + partName + " requires.", fileSpec)) {
                 if (f is null) fileSpec.Items["F"] = new PdfStringObj(known);
                 else fileSpec.Items["UF"] = new PdfStringObj(known, useTextStringEncoding: true);
             }
             if (!fileSpec.Items.ContainsKey("AFRelationship") &&
-                Change(PdfAConversionChangeKind.EmbeddedFileUpdated, location, "Marked the relationship of " + fileName + " as Unspecified, as PDF/A-3 requires.", fileSpec)) {
+                Change(PdfAConversionChangeKind.EmbeddedFileUpdated, location, "Marked the relationship of " + fileName + " as Unspecified, as " + partName + " requires.", fileSpec)) {
                 fileSpec.Items["AFRelationship"] = new PdfName("Unspecified");
             }
             if (ResolveDictionary(fileSpec.Items.TryGetValue("EF", out PdfObject? ef) ? ef : null) is PdfDictionary embedded) {
                 foreach (PdfObject fileValue in embedded.Items.Values) {
                     if (Resolve(fileValue) is PdfStream file && GetName(file.Dictionary, "Subtype") is null &&
-                        Change(PdfAConversionChangeKind.EmbeddedFileUpdated, location, "Marked the media type of " + fileName + " as application/octet-stream, as PDF/A-3 requires.", file)) {
+                        Change(PdfAConversionChangeKind.EmbeddedFileUpdated, location, "Marked the media type of " + fileName + " as application/octet-stream, as " + partName + " requires.", file)) {
                         file.Dictionary.Items["Subtype"] = new PdfName("application/octet-stream");
                     }
                 }
             }
             if (!_associatedFiles.Contains(fileSpec) &&
-                Change(PdfAConversionChangeKind.EmbeddedFileUpdated, location, "Associated " + fileName + " with the document (AF), as PDF/A-3 requires.", fileSpec)) {
+                Change(PdfAConversionChangeKind.EmbeddedFileUpdated, location, "Associated " + fileName + " with the document (AF), as " + partName + " requires.", fileSpec)) {
                 if (catalogFiles is null) {
                     catalogFiles = new PdfArray();
                     catalog.Items["AF"] = catalogFiles;
@@ -260,6 +284,54 @@ internal sealed partial class PdfAConverter {
                 _associatedFiles.Add(fileSpec);
             }
         }
+        if (_attachmentsProfile) EnsureEmbeddedFilesNameTree(catalog, names);
+    }
+
+    /// <summary>
+    /// PDF/A-4f requires the EmbeddedFiles name tree (ISO 19005-4, Annex A). Attachments reachable only from annotations are
+    /// listed in a new tree; a source without any attachment is refused, because the converter cannot invent one.
+    /// </summary>
+    private void EnsureEmbeddedFilesNameTree(PdfDictionary catalog, PdfDictionary? names) {
+        if (names is not null && ResolveDictionary(names.Items.TryGetValue("EmbeddedFiles", out PdfObject? tree) ? tree : null) is PdfDictionary existing &&
+            NameTreeHasEntries(existing, 0)) return;
+        if (_fileSpecifications.Count == 0) {
+            AddViolation(PdfAConversionRefusalReason.EmbeddedFileRequired, "catalog names",
+                "PDF/A-4f requires at least one embedded file, and the PDF has none. Choose PDF/A-4 for a file without attachments.", catalog);
+            return;
+        }
+        if (!Change(PdfAConversionChangeKind.EmbeddedFileUpdated, "catalog names",
+                "Listed " + _fileSpecifications.Count.ToString(CultureInfo.InvariantCulture) +
+                " attachment(s) in the embedded-files name tree, as PDF/A-4f requires.", catalog)) return;
+        var entries = new SortedDictionary<string, PdfObject>(StringComparer.Ordinal);
+        foreach ((PdfDictionary fileSpec, _) in _fileSpecifications) {
+            string baseName = TextOf(fileSpec, "UF") ?? TextOf(fileSpec, "F") ?? "attachment";
+            string key = baseName;
+            for (int suffix = 2; entries.ContainsKey(key); suffix++) key = baseName + " (" + suffix.ToString(CultureInfo.InvariantCulture) + ")";
+            int? number = ObjectNumberOf(fileSpec);
+            entries[key] = number is int fileSpecNumber ? new PdfReference(fileSpecNumber, _objects[fileSpecNumber].Generation) : AddObject(fileSpec);
+        }
+        var array = new PdfArray();
+        foreach (KeyValuePair<string, PdfObject> entry in entries) {
+            array.Items.Add(new PdfStringObj(entry.Key, useTextStringEncoding: true));
+            array.Items.Add(entry.Value);
+        }
+        var nameTree = new PdfDictionary();
+        nameTree.Items["Names"] = array;
+        if (names is null) {
+            names = new PdfDictionary();
+            catalog.Items["Names"] = names;
+        }
+        names.Items["EmbeddedFiles"] = AddObject(nameTree);
+    }
+
+    private bool NameTreeHasEntries(PdfDictionary node, int depth) {
+        if (depth > 32) return false;
+        if (Resolve(node.Items.TryGetValue("Names", out PdfObject? values) ? values : null) is PdfArray { Items.Count: >= 2 }) return true;
+        if (Resolve(node.Items.TryGetValue("Kids", out PdfObject? kids) ? kids : null) is not PdfArray children) return false;
+        foreach (PdfObject child in children.Items) {
+            if (ResolveDictionary(child) is PdfDictionary kid && NameTreeHasEntries(kid, depth + 1)) return true;
+        }
+        return false;
     }
 
     private string? TextOf(PdfDictionary dictionary, string key) =>

@@ -4,7 +4,9 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfAConversionOptions {
     /// <summary>
     /// Gets or sets the target profile. <see cref="PdfComplianceProfile.PdfA2B"/>, <see cref="PdfComplianceProfile.PdfA2U"/>,
-    /// <see cref="PdfComplianceProfile.PdfA3B"/> and <see cref="PdfComplianceProfile.PdfA3U"/> are supported.
+    /// <see cref="PdfComplianceProfile.PdfA3B"/>, <see cref="PdfComplianceProfile.PdfA3U"/>, <see cref="PdfComplianceProfile.PdfA4"/>
+    /// and <see cref="PdfComplianceProfile.PdfA4F"/> are supported. PDF/A-4 files are written as PDF 2.0; PDF/A-4f requires
+    /// at least one embedded file in the source.
     /// </summary>
     public PdfComplianceProfile Profile { get; set; } = PdfComplianceProfile.PdfA2B;
 
@@ -22,7 +24,7 @@ public sealed class PdfAConversionOptions {
     public bool EmbedSubstituteFonts { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets whether embedded files may be removed when the target is PDF/A-2, which cannot carry arbitrary
+    /// Gets or sets whether embedded files may be removed when the target is PDF/A-2 or PDF/A-4, which cannot carry arbitrary
     /// attachments. When <see langword="false"/>, a source with attachments is refused. Defaults to <see langword="true"/>.
     /// </summary>
     public bool RemoveEmbeddedFiles { get; set; } = true;

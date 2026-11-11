@@ -27,6 +27,7 @@ internal sealed partial class PdfAConverter {
             }
             NormalizeFontNames(use, location);
             if (_unicode) EnsureUnicode(use, location);
+            else if (_part == 4) RemoveInvalidUnicodeValues(use, location);
         }
     }
 
@@ -96,6 +97,7 @@ internal sealed partial class PdfAConverter {
                 descriptor.Items.Remove("CharSet");
             }
             FixTrueTypeEncoding(use, descriptor, location);
+            AddWindowsUnicodeCmapRecord(use, descriptor, location);
             CheckEmbeddedProgram(use, location, composite: false);
             return;
         }

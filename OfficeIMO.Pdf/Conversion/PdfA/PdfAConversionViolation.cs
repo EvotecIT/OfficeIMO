@@ -28,7 +28,7 @@ public enum PdfAConversionRefusalReason {
     AnnotationAppearanceMissing,
     /// <summary>An annotation type PDF/A forbids draws something on the page.</summary>
     ForbiddenAnnotation,
-    /// <summary>PDF/A-2 cannot carry the embedded files and their removal was not allowed.</summary>
+    /// <summary>PDF/A-2 or PDF/A-4 cannot carry the embedded files and their removal was not allowed.</summary>
     EmbeddedFileNotAllowed,
     /// <summary>A PostScript or reference XObject draws content that cannot be kept.</summary>
     ForbiddenXObject,
@@ -45,7 +45,9 @@ public enum PdfAConversionRefusalReason {
     /// <summary>The form is a dynamic XFA form whose pages exist only in XFA.</summary>
     DynamicXfaForm,
     /// <summary>The converted file failed the post-conversion check.</summary>
-    VerificationFailed
+    VerificationFailed,
+    /// <summary>PDF/A-4f requires at least one embedded file and the source has none.</summary>
+    EmbeddedFileRequired
 }
 
 /// <summary>Describes one reason PDF/A conversion refused the source.</summary>
