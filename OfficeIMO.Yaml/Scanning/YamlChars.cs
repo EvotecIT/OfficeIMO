@@ -59,6 +59,10 @@ internal static class YamlChars {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsFlowIndicator(char c) => c < 128 && (s_table[c] & FlowIndicator) != 0;
 
+    /// <summary>ASCII letters and digits: they start a plain scalar in any context.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsAlphanumeric(char c) => c < 128 && (s_table[c] & Word) != 0 && c != '-';
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsWord(char c) => c < 128 && (s_table[c] & Word) != 0;
 

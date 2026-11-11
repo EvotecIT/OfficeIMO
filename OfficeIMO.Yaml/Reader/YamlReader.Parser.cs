@@ -34,6 +34,27 @@ public sealed partial class YamlReader {
         scanner.Skip();
     }
 
+    /// <summary>
+    /// Makes a scalar event of a plain scalar token the scanner handed over without the queue, as <see cref="ParseNode"/>
+    /// makes one of a queued scalar without properties, and records it as consumed.
+    /// </summary>
+    private void TakeScalar(ref YamlEvent ev, in YamlToken token) {
+        if (token.End >= _lastEnd) {
+            _lastEnd = token.End;
+            _lastEndLine = token.EndLine;
+            _lastEndColumn = token.EndColumn;
+        }
+        if (_c.RetainMark < 0) _c.RetainMark = token.Start;
+        ev.Type = YamlTokenType.Scalar;
+        ev.Style = token.Style;
+        ev.Flags = token.Flags;
+        ev.Chomping = token.Chomping;
+        ev.Indent = token.Extra;
+        ev.ValueStart = token.ValueStart;
+        ev.ValueEnd = token.ValueEnd;
+        SetSpan(ref ev, in token);
+    }
+
     private YamlException ParseError(string code, string message, in YamlToken token) =>
         new YamlException(code, message, new YamlPosition(token.Start, token.StartLine + 1, token.StartColumn + 1));
 
@@ -92,6 +113,10 @@ public sealed partial class YamlReader {
                 ref YamlToken token = ref scanner.Peek();
                 if (token.Kind == YamlTokenKind.BlockEntry) {
                     Consume(ref scanner, ref token);
+                    if (_c.TokenCount == 0 && !_c.StreamEndProduced && scanner.TryFetchBlockItem(out YamlToken item)) {
+                        TakeScalar(ref ev, in item);
+                        return;
+                    }
                     ref YamlToken next = ref scanner.Peek();
                     if (next.Kind == YamlTokenKind.BlockEntry || next.Kind == YamlTokenKind.BlockEnd) {
                         EmptyScalar(ref ev);
@@ -113,6 +138,10 @@ public sealed partial class YamlReader {
                 ref YamlToken token = ref scanner.Peek();
                 if (token.Kind == YamlTokenKind.BlockEntry) {
                     Consume(ref scanner, ref token);
+                    if (_c.TokenCount == 0 && !_c.StreamEndProduced && scanner.TryFetchBlockItem(out YamlToken item)) {
+                        TakeScalar(ref ev, in item);
+                        return;
+                    }
                     ref YamlToken next = ref scanner.Peek();
                     if (next.Kind is YamlTokenKind.BlockEntry or YamlTokenKind.Key or YamlTokenKind.Value or YamlTokenKind.BlockEnd) {
                         EmptyScalar(ref ev);
@@ -130,6 +159,13 @@ public sealed partial class YamlReader {
                 return;
             }
             case YamlParserState.BlockMappingKey: {
+                // Most keys are plain scalars at the mapping's indentation; they skip the token queue.
+                if (_c.TokenCount == 0 && !_c.StreamEndProduced && scanner.TryFetchBlockKey(out YamlToken key)) {
+                    TakeScalar(ref ev, in key);
+                    ev.IsKey = true;
+                    _state = YamlParserState.BlockMappingValue;
+                    return;
+                }
                 ref YamlToken token = ref scanner.Peek();
                 if (token.Kind == YamlTokenKind.Key) {
                     Consume(ref scanner, ref token);
@@ -162,6 +198,11 @@ public sealed partial class YamlReader {
                 ref YamlToken token = ref scanner.Peek();
                 if (token.Kind == YamlTokenKind.Value) {
                     Consume(ref scanner, ref token);
+                    if (_c.TokenCount == 0 && !_c.StreamEndProduced && scanner.TryFetchBlockValue(out YamlToken value)) {
+                        TakeScalar(ref ev, in value);
+                        _state = YamlParserState.BlockMappingKey;
+                        return;
+                    }
                     ref YamlToken next = ref scanner.Peek();
                     if (next.Kind is YamlTokenKind.Key or YamlTokenKind.Value or YamlTokenKind.BlockEnd) {
                         _state = YamlParserState.BlockMappingKey;
