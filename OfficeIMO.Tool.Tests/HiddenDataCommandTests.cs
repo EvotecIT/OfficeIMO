@@ -1,6 +1,9 @@
 using System.Text;
 using System.Text.Json;
+using ModelContextProtocol.Client;
+using ModelContextProtocol.Protocol;
 using OfficeIMO.Drawing;
+using OfficeIMO.Tool.Agent;
 using OfficeIMO.Provenance;
 using OfficeIMO.Word;
 using Xunit;
@@ -9,7 +12,7 @@ namespace OfficeIMO.Tool.Tests;
 
 public sealed class HiddenDataCommandTests {
     [Fact]
-    public async Task RemoveWritesACleanCopyAndKeepsProvenanceUnlessItIsSelected() {
+    public async Task CliAndMcpWriteACleanCopyAndKeepProvenanceUnlessItIsSelected() {
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-tool-hidden-data-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         try {
@@ -47,6 +50,23 @@ public sealed class HiddenDataCommandTests {
             Assert.Equal(0, (await RunAsync("hidden-data", "remove", input, "--force", "--kinds", "default,provenance")).ExitCode);
             Assert.Empty(OfficeProvenanceInspector.InspectFile(cleaned).Evidence);
             Assert.Equal(2, (await RunAsync("hidden-data", "remove", input, "--kinds", "everything")).ExitCode);
+
+            var transport = new StdioClientTransport(new() {
+                Name = "officeimo-hidden-data-test", Command = "dotnet", Arguments = [typeof(OfficeImoToolApp).Assembly.Location, "mcp", "serve", "--stdio"],
+                WorkingDirectory = directory,
+                EnvironmentVariables = new Dictionary<string, string?> { [AgentPathPolicy.AllowedRootsEnvironmentVariable] = directory }
+            });
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            await using McpClient client = await McpClient.CreateAsync(transport, cancellationToken: timeout.Token);
+            string mcpOutput = Path.Combine(directory, "mcp.docx");
+            var arguments = new Dictionary<string, object?> { ["path"] = input, ["outputPath"] = mcpOutput, ["kinds"] = new[] { "default", "provenance" } };
+            CallToolResult removed = await client.CallToolAsync("officeimo_remove_hidden_data", arguments, cancellationToken: timeout.Token);
+            Assert.False(removed.IsError);
+            JsonElement finding = removed.StructuredContent!.Value.GetProperty("findings").EnumerateArray()
+                .Single(item => item.GetProperty("kind").GetString() == "Provenance");
+            Assert.Equal("Removed", finding.GetProperty("outcome").GetString());
+            Assert.Empty(OfficeProvenanceInspector.InspectFile(mcpOutput).Evidence);
+            Assert.True((await client.CallToolAsync("officeimo_remove_hidden_data", arguments, cancellationToken: timeout.Token)).IsError);
         } finally {
             Directory.Delete(directory, recursive: true);
         }

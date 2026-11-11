@@ -2,51 +2,46 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocumentRedactions {
     /// <summary>
-    /// Applies a reviewed redaction, sanitizes the rewritten artifact using an explicit policy,
+    /// Applies a reviewed redaction, removes the selected hidden data from the rewritten artifact,
     /// and rechecks the final artifact before returning it. No source file is modified.
     /// </summary>
     /// <remarks>The final verification checks the original reviewed areas and configured markers again,
-    /// because sanitization is a second rewrite. Configured text markers and external validators check
-    /// the final sanitized artifact. Report summaries omit document text and search criteria.</remarks>
+    /// because hidden-data removal is a second rewrite. Configured text markers and external validators check
+    /// the final artifact. Report summaries omit document text and search criteria.</remarks>
     public PdfRedactionSharingResult ApplyForSharing(
         PdfRedactionPlan plan,
-        PdfSanitizationOptions sanitizationOptions,
+        OfficeHiddenDataOptions hiddenDataOptions,
         PdfRedactionApplyOptions? applyOptions = null,
         PdfRedactionVerificationOptions? verificationOptions = null, System.Threading.CancellationToken cancellationToken = default) {
-        sanitizationOptions = PdfOperationCancellation.Bind(sanitizationOptions, createWhenNull: false, cancellationToken)!;
+        Guard.NotNull(hiddenDataOptions, nameof(hiddenDataOptions));
         applyOptions = PdfOperationCancellation.Bind(applyOptions, createWhenNull: true, cancellationToken);
         verificationOptions = PdfOperationCancellation.Bind(verificationOptions, createWhenNull: true, cancellationToken);
-        Guard.NotNull(sanitizationOptions, nameof(sanitizationOptions));
-        sanitizationOptions.CancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         var verification = verificationOptions ?? new PdfRedactionVerificationOptions {
             CheckManagedRendering = true, RequireCompleteStreamInspection = true, FailOnUndecodablePdfStreams = true,
-            CancellationToken = sanitizationOptions.CancellationToken
+            CancellationToken = cancellationToken
         };
-        applyOptions ??= new PdfRedactionApplyOptions { CancellationToken = sanitizationOptions.CancellationToken };
-        // Global markers can remain in metadata or attachments until the requested sanitizer runs.
+        applyOptions ??= new PdfRedactionApplyOptions { CancellationToken = cancellationToken };
+        // Global markers can remain in metadata or attachments until the requested hidden-data removal runs.
         // Prove the reviewed page-content rewrite first; apply whole-artifact requirements only
-        // to the final output so validators never receive the intermediate unsanitized artifact.
+        // to the final output so validators never receive the intermediate artifact.
         PdfRedactionApplyResult redaction = ApplyWithEvidence(plan, applyOptions,
             CreateIntermediateVerification(verification), cancellationToken: cancellationToken).ThrowIfUnverified();
-        sanitizationOptions.CancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDocument redactedDocument = redaction.ToDocument();
-        PdfSanitizationResult sanitization = redactedDocument.Sanitize(sanitizationOptions, cancellationToken: cancellationToken);
-        if (!sanitization.IsSanitized || !sanitization.PreservationReport.IsPreserved) {
-            throw new InvalidOperationException("The redacted artifact did not pass sanitization and preservation checks.");
-        }
-        sanitizationOptions.CancellationToken.ThrowIfCancellationRequested();
-        PdfDocument finalDocument = sanitization.ToDocument();
-        byte[] finalBytes = sanitization.ToBytes();
+        PdfHiddenDataRemoval removal = redactedDocument.RemoveHiddenDataCore(hiddenDataOptions, maximumOutputBytes: null, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] finalBytes = removal.Bytes;
         IReadOnlyList<string> beforeContent = PdfRedactionPlan.CapturePageContentIdentities(
-            PdfReadDocument.Open(redaction.Pdf, redactedDocument.ReadOptions, sanitizationOptions.CancellationToken));
+            PdfReadDocument.Open(redaction.Pdf, redactedDocument.ReadOptions, cancellationToken));
         IReadOnlyList<string> afterContent = PdfRedactionPlan.CapturePageContentIdentities(
-            PdfReadDocument.Open(finalBytes, finalDocument.ReadOptions, sanitizationOptions.CancellationToken));
+            PdfReadDocument.Open(finalBytes, removal.ReadOptions, cancellationToken));
         if (!beforeContent.SequenceEqual(afterContent, StringComparer.Ordinal)) {
-            throw new InvalidOperationException("Sanitization changed page content or geometry after redaction; the combined artifact cannot be verified.");
+            throw new InvalidOperationException("Hidden-data removal changed page content or geometry after redaction; the combined artifact cannot be verified.");
         }
-        // The ordinary plan identity also includes annotations and links that sanitization may
+        // The ordinary plan identity also includes annotations and links that hidden-data removal may
         // intentionally remove. Its replacement is the full page-content comparison above plus
-        // the sanitizer's policy-specific preservation report, not a blanket identity bypass.
+        // the engine's selection-specific preservation report, not a blanket identity bypass.
         var contentPlan = new PdfRedactionPlan(plan.Preflight, plan.Areas, plan.Matches, plan.Findings,
             plan.RequestedSearchCriteria, plan.SourceSha256, reviewedTextObjectScopes: plan.ReviewedTextObjectScopes,
             searchMatchCase: plan.SearchMatchCase, searchRegexOptions: plan.SearchRegexOptions,
@@ -55,10 +50,10 @@ public sealed partial class PdfDocumentRedactions {
             .Where(item => item.Status == PdfRedactionEvidenceStatus.VerifiedAbsent && item.ReviewedMatch.Kind == PdfRedactionMatchKind.ImagePlacement)
             .Select(item => item.ReviewedMatch).ToArray();
         PdfRedactionVerificationReport finalVerification = PdfRedactionVerification.VerifyAppliedPlan(
-            finalBytes, contentPlan, verification, finalDocument.ReadOptions, provenImageRewrites);
+            finalBytes, contentPlan, verification, removal.ReadOptions, provenImageRewrites);
         finalVerification.ThrowIfFailed();
-        sanitizationOptions.CancellationToken.ThrowIfCancellationRequested();
-        return new PdfRedactionSharingResult(redaction.Evidence, sanitization, finalVerification);
+        cancellationToken.ThrowIfCancellationRequested();
+        return new PdfRedactionSharingResult(redaction.Evidence, removal, finalVerification);
     }
 
     private static PdfRedactionVerificationOptions CreateIntermediateVerification(PdfRedactionVerificationOptions final) => new() {

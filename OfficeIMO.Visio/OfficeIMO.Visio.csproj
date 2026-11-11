@@ -74,4 +74,10 @@
         <Reference Include="System.IO.Compression" />
         <Reference Include="System.IO.Compression.FileSystem" />
     </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO" />
+    <InternalsVisibleTo Include="OfficeIMO.Workflows" />
+    <InternalsVisibleTo Include="OfficeIMO.Shared.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Workflows.Tests" />
+  </ItemGroup>
 </Project>

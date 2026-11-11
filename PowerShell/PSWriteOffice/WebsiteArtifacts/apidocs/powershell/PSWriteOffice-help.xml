@@ -154790,14 +154790,14 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SanitizationOptions</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="SanitizationOptions">
+          <maml:name>HiddenDataOptions</maml:name>
           <maml:description>
-            <maml:para>SanitizationOptions for this operation.</maml:para>
+            <maml:para>Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfSanitizationOptions</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
           <dev:type>
-            <maml:name>PdfSanitizationOptions</maml:name>
+            <maml:name>OfficeHiddenDataOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -154901,14 +154901,14 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SanitizationOptions</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="SanitizationOptions">
+          <maml:name>HiddenDataOptions</maml:name>
           <maml:description>
-            <maml:para>SanitizationOptions for this operation.</maml:para>
+            <maml:para>Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfSanitizationOptions</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
           <dev:type>
-            <maml:name>PdfSanitizationOptions</maml:name>
+            <maml:name>OfficeHiddenDataOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -155159,14 +155159,14 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SanitizationOptions</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="SanitizationOptions">
+          <maml:name>HiddenDataOptions</maml:name>
           <maml:description>
-            <maml:para>SanitizationOptions for this operation.</maml:para>
+            <maml:para>Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfSanitizationOptions</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
           <dev:type>
-            <maml:name>PdfSanitizationOptions</maml:name>
+            <maml:name>OfficeHiddenDataOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -155417,14 +155417,14 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SanitizationOptions</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="SanitizationOptions">
+          <maml:name>HiddenDataOptions</maml:name>
           <maml:description>
-            <maml:para>SanitizationOptions for this operation.</maml:para>
+            <maml:para>Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfSanitizationOptions</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
           <dev:type>
-            <maml:name>PdfSanitizationOptions</maml:name>
+            <maml:name>OfficeHiddenDataOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -155612,14 +155612,14 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SanitizationOptions</maml:name>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="SanitizationOptions">
+        <maml:name>HiddenDataOptions</maml:name>
         <maml:description>
-          <maml:para>SanitizationOptions for this operation.</maml:para>
+          <maml:para>Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfSanitizationOptions</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
         <dev:type>
-          <maml:name>PdfSanitizationOptions</maml:name>
+          <maml:name>OfficeHiddenDataOptions</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>

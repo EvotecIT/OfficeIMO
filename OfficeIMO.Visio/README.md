@@ -674,6 +674,20 @@ OfficeConversionReport pages = document.SaveAsImages("pipeline-pages", imageOpti
 
 `SaveAsImages(folder, options)` and its async form return `OfficeConversionReport`. The options carry the output format, selection, deadlines, resource limits and file conflict policy. Use the `ToImages` consumer overloads to process each image with its sequence metadata and diagnostics.
 
+## Before sharing
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Visio;
+
+VisioDocument drawing = VisioDocument.Load("Network.vsdx");
+OfficeHiddenDataReport report = drawing.RemoveHiddenData();
+foreach (OfficeHiddenDataFinding finding in report.Findings) Console.WriteLine($"{finding.Outcome} {finding.Kind} at {finding.Location}");
+drawing.Save("Network-shared.vsdx");
+```
+
+`RemoveHiddenData()` removes the author, comments and image metadata, anonymizes the authors of comments you keep, and reports each item. Hyperlinks to files, hidden pages and hidden layers are reported and kept. Saving writes a new package from the drawing, so other package properties, thumbnails and package-level Content Credentials of a loaded file are not saved. Provenance, such as an image's AI-generated declaration, is kept unless `OfficeHiddenDataKind.Provenance` is selected. See the [hidden data matrix](../Docs/officeimo.hidden-data-support-matrix.md).
+
 ## Content provenance
 
 `VisioDocument.InspectProvenance("input.vsdx")` reports C2PA and AI-specific IPTC metadata in the drawing and its supported embedded images. `VisioDocument.RemoveProvenance("input.vsdx", "clean.vsdx")` removes the selected carriers. Signed-package mutation is blocked unless `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures` is selected explicitly. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.

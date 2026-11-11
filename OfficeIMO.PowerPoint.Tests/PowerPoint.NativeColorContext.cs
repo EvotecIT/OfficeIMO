@@ -135,14 +135,14 @@ public sealed class PowerPointNativeColorContextTests {
             new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.Background1 }), true);
         SetMap(slide, scope, A.ColorSchemeIndexValues.Accent2);
         using (var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()))) {
-            var report = saved.InspectAccessibility(PowerPointAccessibilityOptions.ForProfile(PowerPointAccessibilityPolicyProfile.Strict));
+            var report = saved.InspectAccessibility(PowerPointAccessibilityOptions.ForProfile(OfficeAccessibilityPolicyProfile.Strict));
             var findings = report.Findings.Where(finding => finding.Code == "accessibility-low-contrast").ToArray();
             Assert.Equal(11, findings.Length);
             Assert.All(findings, finding => Assert.Equal(1D, finding.MeasuredValue));
         }
         SetMap(slide, scope, A.ColorSchemeIndexValues.Dark1);
         using var control = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
-        Assert.DoesNotContain(control.InspectAccessibility(PowerPointAccessibilityOptions.ForProfile(PowerPointAccessibilityPolicyProfile.Strict)).Findings,
+        Assert.DoesNotContain(control.InspectAccessibility(PowerPointAccessibilityOptions.ForProfile(OfficeAccessibilityPolicyProfile.Strict)).Findings,
             finding => finding.Code == "accessibility-low-contrast");
     }
 

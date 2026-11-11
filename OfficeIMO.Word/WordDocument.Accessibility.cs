@@ -13,23 +13,23 @@ public partial class WordDocument {
     private const int LongDocumentParagraphCount = 20;
 
     /// <summary>Inspects the document body against an accessibility policy: alternative text, headings, tables, links, contrast, floating objects, spacing, title and language.</summary>
-    public WordAccessibilityReport InspectAccessibility(WordAccessibilityOptions? options = null) {
+    public OfficeAccessibilityReport InspectAccessibility(WordAccessibilityOptions? options = null) {
         options ??= new WordAccessibilityOptions();
         MainDocumentPart main = _wordprocessingDocument.MainDocumentPart
             ?? throw new InvalidOperationException("MainDocumentPart is missing.");
         W.Body? body = main.Document?.Body;
-        var findings = new List<WordAccessibilityFinding>();
+        var findings = new List<OfficeAccessibilityFinding>();
         var context = new AccessibilityContext(main, options);
 
         if (options.RequireDocumentTitle && string.IsNullOrWhiteSpace(_wordprocessingDocument.PackageProperties.Title)) {
-            findings.Add(new WordAccessibilityFinding(WordAccessibilitySeverity.Error, OfficeDiagnosticCodes.AccessibilityMissingDocumentTitle,
+            findings.Add(new OfficeAccessibilityFinding(OfficeAccessibilitySeverity.Error, OfficeDiagnosticCodes.AccessibilityMissingDocumentTitle,
                 "The document does not define a title.", "Document"));
         }
         if (options.RequireLanguage && GetDefaultLanguage(main) == null) {
-            findings.Add(new WordAccessibilityFinding(WordAccessibilitySeverity.Error, OfficeDiagnosticCodes.AccessibilityMissingLanguage,
+            findings.Add(new OfficeAccessibilityFinding(OfficeAccessibilitySeverity.Error, OfficeDiagnosticCodes.AccessibilityMissingLanguage,
                 "The document does not define a default text language.", "Document"));
         }
-        if (body == null) return new WordAccessibilityReport(options.Profile, findings);
+        if (body == null) return new OfficeAccessibilityReport("Word", options.Profile, findings);
 
         List<W.Paragraph> paragraphs = body.Descendants<W.Paragraph>().ToList();
         var paragraphIndexes = new Dictionary<W.Paragraph, int>(paragraphs.Count);
@@ -42,11 +42,11 @@ public partial class WordDocument {
         for (int index = 0; index < paragraphs.Count; index++) InspectParagraph(paragraphs[index], index, context, findings);
         if (options.CheckBlankParagraphs) InspectBlankParagraphs(body, context, findings);
 
-        return new WordAccessibilityReport(options.Profile, findings);
+        return new OfficeAccessibilityReport("Word", options.Profile, findings);
     }
 
     /// <summary>Applies the selected safe fixes (title, language, table header rows) and returns a fresh inspection with default options.</summary>
-    public WordAccessibilityReport FixAccessibility(WordAccessibilityFixOptions options) {
+    public OfficeAccessibilityReport FixAccessibility(WordAccessibilityFixOptions options) {
         ArgumentNullException.ThrowIfNull(options);
         MainDocumentPart main = _wordprocessingDocument.MainDocumentPart
             ?? throw new InvalidOperationException("MainDocumentPart is missing.");
@@ -87,8 +87,8 @@ public partial class WordDocument {
         internal Dictionary<W.Paragraph, int> ParagraphIndexes { get; set; } = new();
 
         /// <summary>Strict promotes structural warnings to errors; heuristics stay warnings.</summary>
-        internal WordAccessibilitySeverity Structural =>
-            Options.Profile == WordAccessibilityPolicyProfile.Strict ? WordAccessibilitySeverity.Error : WordAccessibilitySeverity.Warning;
+        internal OfficeAccessibilitySeverity Structural =>
+            Options.Profile == OfficeAccessibilityPolicyProfile.Strict ? OfficeAccessibilitySeverity.Error : OfficeAccessibilitySeverity.Warning;
 
         internal int IndexOf(OpenXmlElement element) {
             W.Paragraph? paragraph = element as W.Paragraph ?? element.Descendants<W.Paragraph>().FirstOrDefault() ?? element.Ancestors<W.Paragraph>().FirstOrDefault();
@@ -96,7 +96,7 @@ public partial class WordDocument {
         }
     }
 
-    private static void InspectHeadings(List<W.Paragraph> paragraphs, AccessibilityContext context, List<WordAccessibilityFinding> findings) {
+    private static void InspectHeadings(List<W.Paragraph> paragraphs, AccessibilityContext context, List<OfficeAccessibilityFinding> findings) {
         int previousLevel = 0;
         int headingCount = 0;
         int textParagraphCount = 0;
@@ -107,7 +107,7 @@ public partial class WordDocument {
             if (level == 0) continue;
             headingCount++;
             if (previousLevel > 0 && level > previousLevel + 1) {
-                findings.Add(new WordAccessibilityFinding(context.Structural, OfficeDiagnosticCodes.AccessibilityHeadingLevelSkipped,
+                findings.Add(new OfficeAccessibilityFinding(context.Structural, OfficeDiagnosticCodes.AccessibilityHeadingLevelSkipped,
                     "Heading level " + level.ToString(CultureInfo.InvariantCulture) + " follows level " + previousLevel.ToString(CultureInfo.InvariantCulture) + "; heading levels should not be skipped.",
                     ParagraphLocation(index), index));
             }
@@ -115,29 +115,29 @@ public partial class WordDocument {
         }
 
         if (headingCount == 0 && textParagraphCount >= LongDocumentParagraphCount) {
-            findings.Add(new WordAccessibilityFinding(context.Structural, "accessibility-missing-headings",
+            findings.Add(new OfficeAccessibilityFinding(context.Structural, "accessibility-missing-headings",
                 "The document has " + textParagraphCount.ToString(CultureInfo.InvariantCulture) + " paragraphs of text but no headings to navigate by.", "Document"));
         }
     }
 
-    private static void InspectTable(W.Table table, int tableNumber, AccessibilityContext context, List<WordAccessibilityFinding> findings) {
+    private static void InspectTable(W.Table table, int tableNumber, AccessibilityContext context, List<OfficeAccessibilityFinding> findings) {
         List<W.TableRow> rows = table.Elements<W.TableRow>().ToList();
         if (rows.Count == 0) return;
         int paragraphIndex = context.IndexOf(table);
         string location = "Table " + tableNumber.ToString(CultureInfo.InvariantCulture);
         if (IsLikelyLayoutTable(table, rows)) {
-            findings.Add(new WordAccessibilityFinding(WordAccessibilitySeverity.Warning, "accessibility-layout-table",
+            findings.Add(new OfficeAccessibilityFinding(OfficeAccessibilitySeverity.Warning, "accessibility-layout-table",
                 "The table looks like it is used for layout; screen readers announce it as a data table.", location,
                 paragraphIndex < 0 ? null : paragraphIndex, isHeuristic: true));
             return;
         }
         if (context.Options.RequireTableHeaders && rows.Count > 1 && !HasHeaderRow(rows)) {
-            findings.Add(new WordAccessibilityFinding(WordAccessibilitySeverity.Error, OfficeDiagnosticCodes.AccessibilityMissingTableHeader,
+            findings.Add(new OfficeAccessibilityFinding(OfficeAccessibilitySeverity.Error, OfficeDiagnosticCodes.AccessibilityMissingTableHeader,
                 "The table does not mark its first row as a header row.", location, paragraphIndex < 0 ? null : paragraphIndex));
         }
     }
 
-    private static void InspectParagraph(W.Paragraph paragraph, int index, AccessibilityContext context, List<WordAccessibilityFinding> findings) {
+    private static void InspectParagraph(W.Paragraph paragraph, int index, AccessibilityContext context, List<OfficeAccessibilityFinding> findings) {
         WordAccessibilityOptions options = context.Options;
         foreach (OpenXmlElement child in paragraph.Descendants().Where(element => element is W.Drawing || element is W.Picture).ToList()) {
             if (child.Ancestors<W.Paragraph>().FirstOrDefault() != paragraph) continue;
@@ -150,10 +150,10 @@ public partial class WordDocument {
                 string label = string.Concat(hyperlink.Descendants<W.Text>().Select(text => text.Text));
                 bool hasImage = hyperlink.Descendants<W.Drawing>().Any();
                 if (string.IsNullOrWhiteSpace(label) && !hasImage) {
-                    findings.Add(new WordAccessibilityFinding(WordAccessibilitySeverity.Error, OfficeDiagnosticCodes.AccessibilityLinkTextMissing,
+                    findings.Add(new OfficeAccessibilityFinding(OfficeAccessibilitySeverity.Error, OfficeDiagnosticCodes.AccessibilityLinkTextMissing,
                         "The hyperlink has no visible text.", ParagraphLocation(index), index));
                 } else if (!hasImage && !OfficeAccessibilityText.IsMeaningfulLinkLabel(label)) {
-                    findings.Add(new WordAccessibilityFinding(WordAccessibilitySeverity.Error, OfficeDiagnosticCodes.AccessibilityUnclearLinkLabel,
+                    findings.Add(new OfficeAccessibilityFinding(OfficeAccessibilitySeverity.Error, OfficeDiagnosticCodes.AccessibilityUnclearLinkLabel,
                         "Hyperlink text '" + label.Trim() + "' does not describe its destination without surrounding context.", ParagraphLocation(index), index));
                 }
             }
@@ -162,38 +162,39 @@ public partial class WordDocument {
         if (options.CheckContrast) InspectParagraphContrast(paragraph, index, context, findings);
     }
 
-    private static void InspectDrawing(W.Drawing drawing, int index, AccessibilityContext context, List<WordAccessibilityFinding> findings) {
+    private static void InspectDrawing(W.Drawing drawing, int index, AccessibilityContext context, List<OfficeAccessibilityFinding> findings) {
         DW.Anchor? anchor = drawing.GetFirstChild<DW.Anchor>();
         DW.DocProperties? properties = anchor?.GetFirstChild<DW.DocProperties>() ?? drawing.GetFirstChild<DW.Inline>()?.GetFirstChild<DW.DocProperties>();
         if (properties == null) return;
         string? name = properties.Name?.Value;
+        uint? objectId = properties.Id?.Value;
         if (IsDecorative(properties)) return;
         string kind = DescribeGraphic(drawing.Descendants<A.GraphicData>().FirstOrDefault()?.Uri?.Value);
         bool textShape = kind == "shape" && drawing.Descendants<W.TextBoxContent>().Any(content => !string.IsNullOrWhiteSpace(content.InnerText));
 
         if (context.Options.RequireAlternativeText && !textShape &&
             string.IsNullOrWhiteSpace(properties.Description?.Value) && string.IsNullOrWhiteSpace(properties.Title?.Value)) {
-            findings.Add(new WordAccessibilityFinding(WordAccessibilitySeverity.Error, OfficeDiagnosticCodes.AccessibilityMissingAlternativeText,
-                "The " + kind + " is neither decorative nor described with alternative text.", ParagraphLocation(index), index, name));
+            findings.Add(new OfficeAccessibilityFinding(OfficeAccessibilitySeverity.Error, OfficeDiagnosticCodes.AccessibilityMissingAlternativeText,
+                "The " + kind + " is neither decorative nor described with alternative text.", ParagraphLocation(index), index, objectId, name));
         }
         if (context.Options.CheckFloatingObjects && anchor != null) {
-            findings.Add(new WordAccessibilityFinding(context.Structural, "accessibility-floating-object",
-                "The " + kind + " floats over the text instead of sitting inline, so its reading order is unclear.", ParagraphLocation(index), index, name));
+            findings.Add(new OfficeAccessibilityFinding(context.Structural, "accessibility-floating-object",
+                "The " + kind + " floats over the text instead of sitting inline, so its reading order is unclear.", ParagraphLocation(index), index, objectId, name));
         }
     }
 
-    private static void InspectVmlPicture(W.Picture picture, int index, AccessibilityContext context, List<WordAccessibilityFinding> findings) {
+    private static void InspectVmlPicture(W.Picture picture, int index, AccessibilityContext context, List<OfficeAccessibilityFinding> findings) {
         foreach (OpenXmlElement shape in picture.Elements().Where(element => element.LocalName == "shape")) {
             if (!shape.Descendants().Any(element => element.LocalName == "imagedata")) continue;
             string? alt = shape.GetAttributes().FirstOrDefault(attribute => attribute.LocalName == "alt").Value;
             if (context.Options.RequireAlternativeText && string.IsNullOrWhiteSpace(alt)) {
-                findings.Add(new WordAccessibilityFinding(WordAccessibilitySeverity.Error, OfficeDiagnosticCodes.AccessibilityMissingAlternativeText,
+                findings.Add(new OfficeAccessibilityFinding(OfficeAccessibilitySeverity.Error, OfficeDiagnosticCodes.AccessibilityMissingAlternativeText,
                     "The image is neither decorative nor described with alternative text.", ParagraphLocation(index), index));
             }
         }
     }
 
-    private static void InspectParagraphContrast(W.Paragraph paragraph, int index, AccessibilityContext context, List<WordAccessibilityFinding> findings) {
+    private static void InspectParagraphContrast(W.Paragraph paragraph, int index, AccessibilityContext context, List<OfficeAccessibilityFinding> findings) {
         foreach (W.Run run in paragraph.Descendants<W.Run>()) {
             if (run.Ancestors<W.Paragraph>().FirstOrDefault() != paragraph) continue;
             string text = string.Concat(run.Elements<W.Text>().Select(item => item.Text));
@@ -209,7 +210,7 @@ public partial class WordDocument {
             double required = large ? context.Options.MinimumLargeTextContrastRatio : context.Options.MinimumTextContrastRatio;
             double measured = OfficeColorContrast.ContrastRatio(foreground.Value, background);
             if (measured + 0.000001D >= required) continue;
-            findings.Add(new WordAccessibilityFinding(WordAccessibilitySeverity.Error, OfficeDiagnosticCodes.AccessibilityLowContrast,
+            findings.Add(new OfficeAccessibilityFinding(OfficeAccessibilitySeverity.Error, OfficeDiagnosticCodes.AccessibilityLowContrast,
                 "Text contrast is " + measured.ToString("0.##", CultureInfo.InvariantCulture) + ":1; the policy requires at least " +
                 required.ToString("0.##", CultureInfo.InvariantCulture) + ":1.", ParagraphLocation(index), index,
                 measuredValue: measured, requiredValue: required));
@@ -217,7 +218,7 @@ public partial class WordDocument {
         }
     }
 
-    private static void InspectBlankParagraphs(W.Body body, AccessibilityContext context, List<WordAccessibilityFinding> findings) {
+    private static void InspectBlankParagraphs(W.Body body, AccessibilityContext context, List<OfficeAccessibilityFinding> findings) {
         W.Paragraph? first = null;
         int count = 0;
         foreach (OpenXmlElement element in body.Elements().Append(null!)) {
@@ -227,7 +228,7 @@ public partial class WordDocument {
             }
             if (count >= 2 && first != null) {
                 int index = context.IndexOf(first);
-                findings.Add(new WordAccessibilityFinding(context.Structural, "accessibility-blank-paragraph-spacing",
+                findings.Add(new OfficeAccessibilityFinding(context.Structural, "accessibility-blank-paragraph-spacing",
                     count.ToString(CultureInfo.InvariantCulture) + " consecutive empty paragraphs are used for spacing; use paragraph spacing or a page break instead.",
                     ParagraphLocation(index), index));
             }

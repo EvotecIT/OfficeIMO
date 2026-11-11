@@ -1,11 +1,13 @@
+using OfficeIMO.Provenance;
+
 namespace OfficeIMO;
 
-/// <summary>Selects which hidden-data categories <c>RemoveHiddenData</c> removes from a Word, Excel or PowerPoint document.</summary>
+/// <summary>Selects which hidden-data categories <c>RemoveHiddenData</c> removes from a document.</summary>
 public sealed class OfficeHiddenDataOptions {
     private OfficeHiddenDataKind _kinds = OfficeHiddenDataKind.Default;
     private string _anonymousAuthor = "Author";
 
-    /// <summary>Categories to remove. Defaults to <see cref="OfficeHiddenDataKind.Default"/>; tracked changes, hidden content and provenance are opt-in.</summary>
+    /// <summary>Categories to remove. Defaults to <see cref="OfficeHiddenDataKind.Default"/>; tracked changes, hidden content, provenance, attachments and bookmarks are opt-in.</summary>
     public OfficeHiddenDataKind Kinds {
         get => _kinds;
         set {
@@ -25,6 +27,14 @@ public sealed class OfficeHiddenDataOptions {
             _anonymousAuthor = value.Trim();
         }
     }
+
+    /// <summary>
+    /// Which provenance carriers <see cref="OfficeHiddenDataKind.Provenance"/> removes and the limits for reading them, with the same switches as
+    /// <c>RemoveProvenance</c>: for example keep Content Credentials but drop AI-generated declarations by setting
+    /// <see cref="OfficeProvenanceRemovalOptions.RemoveC2paManifests"/> to false. Its <see cref="OfficeProvenanceRemovalOptions.SignatureMutationPolicy"/>
+    /// is not used here; the save decides how signatures are handled.
+    /// </summary>
+    public OfficeProvenanceRemovalOptions Provenance { get; } = new();
 
     internal bool Removes(OfficeHiddenDataKind kind) => kind != OfficeHiddenDataKind.TrackedChanges && (Kinds & kind) == kind;
 

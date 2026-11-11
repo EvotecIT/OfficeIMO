@@ -45,7 +45,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>Unified inspection result over the same presentation model used for authoring and editing.</summary>
     public sealed class PowerPointInspectionReport {
         internal PowerPointInspectionReport(IList<OfficeOpenXmlValidationError> packageErrors,
-            PowerPointDeckPreflightReport? preflight, PowerPointAccessibilityReport? accessibility,
+            PowerPointDeckPreflightReport? preflight, OfficeAccessibilityReport? accessibility,
             PowerPointFeatureReport? features, PowerPointReviewReport? reviewComments,
             PowerPointAnimationReport? animations, PowerPointSignatureReport? signatures,
             PowerPointVisualProofReport? visuals) {
@@ -67,7 +67,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointDeckPreflightReport? Preflight { get; }
 
         /// <summary>Accessibility inspection, when requested.</summary>
-        public PowerPointAccessibilityReport? Accessibility { get; }
+        public OfficeAccessibilityReport? Accessibility { get; }
 
         /// <summary>Feature inventory, when requested.</summary>
         public PowerPointFeatureReport? Features { get; }
@@ -104,7 +104,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDeckPreflightReport? preflight = resolved.InspectPreflight
                 ? InspectPreflight(resolved.Preflight)
                 : null;
-            PowerPointAccessibilityReport? accessibility = resolved.InspectAccessibility
+            OfficeAccessibilityReport? accessibility = resolved.InspectAccessibility
                 ? InspectAccessibility(resolved.Accessibility)
                 : null;
             PowerPointFeatureReport? features = resolved.InspectFeatures ? InspectFeatures() : null;

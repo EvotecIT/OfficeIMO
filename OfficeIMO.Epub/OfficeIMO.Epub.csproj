@@ -42,4 +42,10 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
     <Reference Include="System.IO.Compression" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO" />
+    <InternalsVisibleTo Include="OfficeIMO.Workflows" />
+    <InternalsVisibleTo Include="OfficeIMO.Shared.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Workflows.Tests" />
+  </ItemGroup>
 </Project>

@@ -11,7 +11,7 @@ internal static class HiddenDataSmoke {
         if (!report.Changed || document.InspectHiddenData().GetFindings(OfficeHiddenDataKind.Comments).Count != 0) {
             throw new InvalidOperationException("Word hidden-data removal did not remove the comment.");
         }
-        WordAccessibilityReport accessibility = document.FixAccessibility(new WordAccessibilityFixOptions { Title = "Smoke", Language = "en-US", MarkTableHeaderRows = true });
+        OfficeAccessibilityReport accessibility = document.FixAccessibility(new WordAccessibilityFixOptions { Title = "Smoke", Language = "en-US", MarkTableHeaderRows = true });
         if (accessibility.Findings.Any(finding => finding.Code == OfficeDiagnosticCodes.AccessibilityMissingTableHeader)) {
             throw new InvalidOperationException("Word accessibility fix did not mark the table header row.");
         }

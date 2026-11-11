@@ -1,6 +1,17 @@
 # Hidden data and personal information support matrix
 
-`WordDocument`, `ExcelDocument` and `PowerPointDocument` find and remove the metadata and hidden data that Office's Document Inspector covers. `InspectHiddenData()` changes nothing and returns an `OfficeHiddenDataReport`. `RemoveHiddenData(OfficeHiddenDataOptions)` removes the selected categories in memory and returns the same report shape, where each finding records what happened to it. Save the document to keep the result.
+`WordDocument`, `ExcelDocument`, `PowerPointDocument`, `VisioDocument`, `OdfDocument` (ODT, ODS, ODP and ODG), `EpubPublication` and `PdfDocument` find and remove the metadata and hidden data that Office's Document Inspector covers. `InspectHiddenData()` changes nothing and returns an `OfficeHiddenDataReport`. `RemoveHiddenData(OfficeHiddenDataOptions)` removes the selected categories in memory and returns the same report shape, where each finding records what happened to it. Save the document to keep the result. `PdfDocument.RemoveHiddenData` returns an `OfficeHiddenDataResult` with the cleaned bytes instead, because a PDF is cleaned by one verified rewrite and the loaded document is not changed.
+
+## Which call to make
+
+| You have | To see what leaves with it | To clean it |
+| --- | --- | --- |
+| A loaded document | `document.InspectHiddenData()` | `document.RemoveHiddenData(options)`, then save; for a PDF, write `result.ToArray()` |
+| A file | `OfficeDocument.Inspect(path, new OfficeInspectOptions { IncludeHiddenData = true })` | `OfficeDocument.RemoveHiddenData(inputPath, outputPath, options)` |
+| A file, provenance only, without loading it | `OfficeDocument.Inspect(path, new OfficeInspectOptions { Provenance = new() })` | The format's static `RemoveProvenance(inputPath, outputPath)` |
+| A shell or an agent | `officeimo hidden-data inspect` or the `officeimo_inspect_hidden_data` MCP tool | `officeimo hidden-data remove` or `officeimo_remove_hidden_data` |
+
+Saving after removal follows the same signature rule everywhere: `OfficeSignatureMutationPolicy.BlockSave` (the default) refuses to invalidate a signature, `RemoveInvalidatedSignatures` removes the signatures, and `PreserveSignatureMarkup` keeps signature markup that no longer verifies. Word, Excel and PowerPoint take it as `SignatureMutationPolicy` on their save options, `OfficeDocument.RemoveHiddenData` as a parameter, and `RemoveProvenance` on `OfficeProvenanceRemovalOptions`.
 
 ```csharp
 using OfficeIMO;
@@ -18,13 +29,13 @@ foreach (OfficeHiddenDataFinding finding in report.Findings) {
 document.Save("Contract-shared.docx");
 ```
 
-`OfficeHiddenDataKind.Default` selects every category except tracked changes and hidden content, which change what readers see, and provenance, which discloses how content was made. Tracked changes are reported and kept unless `TrackedChanges` is `AcceptAll` or `RejectAll`. Authors on comments and revisions that stay in the document are replaced with `AnonymousAuthor` (default `Author`) rather than deleted, because Office requires an author name on them.
+`OfficeHiddenDataKind.Default` selects every category except tracked changes and hidden content, which change what readers see, attachments and bookmarks, which carry or organize the content being shared, and provenance, which discloses how content was made. Active content such as scripts is part of `Default`. Tracked changes are reported and kept unless `TrackedChanges` is `AcceptAll` or `RejectAll`. Authors on comments and revisions that stay in the document are replaced with `AnonymousAuthor` (default `Author`) rather than deleted, because Office requires an author name on them.
 
 ## Provenance
 
 The report also answers what provenance leaves with the file. Content Credentials (C2PA manifests and references to them) and IPTC digital source type declarations, such as an image marked as AI-generated, appear as `Provenance` findings whose `Provenance` property carries the same evidence that `InspectProvenance` returns.
 
-Provenance is kept unless you add `OfficeHiddenDataKind.Provenance`. While it is kept, `ImageMetadata` cleanup reduces an image's XMP to its digital source type declaration instead of deleting it, and leaves images that carry Content Credentials untouched, because changing their bytes would invalidate the credential; those images are reported as `Retained`. Selecting `Provenance` removes the carriers through the same engine as `RemoveProvenance`, and then image metadata is stripped as usual.
+Provenance is kept unless you add `OfficeHiddenDataKind.Provenance`. While it is kept, `ImageMetadata` cleanup reduces an image's XMP to its digital source type declaration instead of deleting it, and leaves images that carry Content Credentials untouched, because changing their bytes would invalidate the credential; those images are reported as `Retained`. Selecting `Provenance` removes the carriers through the same engine as `RemoveProvenance`, and then image metadata is stripped as usual. `OfficeHiddenDataOptions.Provenance` chooses the carriers with the same switches as `RemoveProvenance`: to keep Content Credentials but drop AI-generated declarations, set `RemoveC2paManifests` to false. Removing a declaration changes the image, so a kept credential is reported with a note that it no longer verifies. Each finding's `Scope` says whether it belongs to the document, one embedded image, or the whole file.
 
 Content Credentials stored for the whole package (`META-INF/content_credential.c2pa`) cover every byte of the file, so any change to a loaded document invalidates them. `RemoveHiddenData` always removes them and says so in the finding's `Note`. To remove only provenance from a file and leave every other byte alone, use the static `RemoveProvenance(inputPath, outputPath)` instead; it also handles package signatures through `SignatureMutationPolicy`.
 
@@ -51,6 +62,43 @@ Each finding's `Outcome` is `Found` when inspecting, and `Removed`, `Anonymized`
 | `ExternalReferences` | Attached template removed. Other linked content, such as linked images and OLE links, is reported and retained | Cached values from external workbooks removed. External workbook paths and pivot cache source workbooks are reported and retained, because formulas and refreshes depend on them | Not applicable |
 | `DocumentVariables` | Removed | Not applicable | Not applicable |
 | `RevisionIdentifiers` | RSID attributes and the settings RSID table removed | Not applicable | Not applicable |
+
+## Visio, OpenDocument and EPUB
+
+`OdfDocument` covers all four OpenDocument kinds. `EpubPublication` is the editable EPUB model; `EpubDocument` is read-only and has no save. Categories a format does not have are never reported.
+
+| Category | Visio | OpenDocument | EPUB |
+| --- | --- | --- | --- |
+| `DocumentProperties` | Author | Initial creator, last modified by, printed by, print date, editing cycles, editing duration, template and a generator string that carries build and platform | Creators, contributors, publishers and dates with their refinements. The EPUB 3 modification date is reported and kept, because the format requires it; saving an edited publication replaces it with the save time |
+| `CustomProperties` | Not applicable | User-defined metadata | Named EPUB 2 `meta` values, except the cover declaration |
+| `Comments` | Page comments | Annotations in text, cells, slides and pages, with their range ends | Not applicable |
+| `TrackedChanges` | Not applicable | ODT insertions and deletions accepted or rejected through the document's own tracked-change methods; format changes can be accepted but not rejected. Spreadsheet tracked changes are reported and kept | Not applicable |
+| `PersonalIdentities` | Comment authors and resolution identities anonymized | Authors and initials on kept annotations and tracked changes anonymized | Not applicable |
+| `HiddenContent` (opt-in) | Hidden pages and hidden layers reported and kept: pages cannot be removed through the model, and shapes on a hidden layer can belong to visible layers | Hidden sections and hidden text or paragraph styles (ODT), hidden sheets (ODS), hidden slides and shapes (ODP) and shapes on hidden layers (ODG) removed. Conditional sections and hidden-text fields, and hidden rows and columns, are reported and kept. The last sheet or slide is kept | Not applicable |
+| `SpeakerNotes` | Not applicable | Presentation notes removed | Not applicable |
+| `Thumbnail` | Not saved | `Thumbnails/thumbnail.png` removed | Not applicable |
+| `ImageMetadata` and `Provenance` | Embedded images on pages, shapes, connectors and masters, as for Word | Images in the package, as for Word. Package-level Content Credentials are always removed and the manifest entry goes with them | Manifest images, as for Word. Package-level Content Credentials are always removed with any manifest item that declares them |
+| `PrinterSettings` | Not applicable | Printer name and driver setup in `settings.xml` removed | Not applicable |
+| `ExternalReferences` | Hyperlinks to files and network paths reported and kept | Linked images, objects, sections and sheet sources reported and kept | Not applicable |
+
+Saving a Visio drawing writes a new package from the drawing model. Package properties other than title and author, thumbnails and package-level Content Credentials of a loaded file are not written, so they are not reported.
+
+## PDF
+
+`PdfDocument` maps its content onto the same categories. Categories PDF does not have are never reported, and Word, Excel, PowerPoint, Visio, OpenDocument and EPUB never report `Attachments`, `ActiveContent` or `Bookmarks`.
+
+| Category | PDF |
+| --- | --- |
+| `DocumentProperties` | User-authored Info fields and the catalog XMP packet. Producer, creation and modification dates, and trapping status are kept |
+| `Comments` | Comment and markup annotations, except Link, Widget, file attachment and rich media annotations |
+| `ActiveContent` | JavaScript, launch, submit-form, remote-navigation, import, movie, rendition and rich media actions; links and catalog base URIs whose scheme is not `http`, `https`, `mailto` or `tel`; and RichMedia, Movie, Sound, Screen and 3D annotations |
+| `Attachments` (opt-in) | Embedded files, associated files and file attachment annotations |
+| `Bookmarks` (opt-in) | The document outline |
+| `HiddenContent` (opt-in) | Optional-content (layer) definitions and associations; the page content that belonged to a layer stays visible |
+| `Provenance` | Content Credentials stored as associated files. They sign the whole file and cannot stay valid after the rewrite, so removal always removes them and says so in the finding's `Note`. Use `PdfProvenance.Remove` to change only provenance |
+| `PersonalIdentities` | Not supported: comment authors are not anonymized. They appear in the comment finding's description and leave with the comment unless `Comments` is selected |
+
+Removal rewrites the whole file, inspects the output again and throws when a selected item remains or when anything outside the selection changed. Signed PDFs are refused, because the rewrite would invalidate their signatures.
 
 ## Safety
 

@@ -14,7 +14,7 @@ This guide shows every `OfficeIMO.Pdf` workflow with an example. Installation an
 | Stamp, watermark or edit existing text and images | [Stamp and watermark](#stamp-and-watermark-an-existing-pdf), [edit text](#search-and-edit-existing-page-text) |
 | Fill, flatten or add form fields | [Forms](#forms) |
 | Protect, unlock or sign a PDF | [Security and signatures](#security-and-signatures) |
-| Remove sensitive content | [Redaction](#redaction), [sanitize before sharing](#inspect-and-sanitize-before-sharing) |
+| Remove sensitive content | [Redaction](#redaction), [remove hidden data before sharing](#remove-hidden-data-before-sharing) |
 | Render pages or compare two PDFs | [Render and compare](#render-and-compare) |
 | Snapshot-test PDFs your code generates | [Snapshot-test generated PDFs](#snapshot-test-generated-pdfs) |
 | Produce PDF/A, PDF/UA, PDF/X or Factur-X | [Compliance](#compliance) |
@@ -1093,50 +1093,39 @@ foreach (PdfDiagnosticFinding finding in analysis.Diagnostics.Findings) {
 
 ### Prepare a file for sharing
 
-#### Inspect and sanitize before sharing
+#### Remove hidden data before sharing
+
+PDF uses the same hidden-data contract as Word, Excel, PowerPoint, OpenDocument and EPUB. `InspectHiddenData()` changes nothing; `RemoveHiddenData(options)` returns an `OfficeHiddenDataResult` with the cleaned bytes and one finding per item, each with its `Outcome`. The loaded `PdfDocument` is not changed.
 
 ```csharp
-PdfDocument incoming = PdfDocument.Load("incoming.pdf");
-var policy = new PdfSanitizationOptions {
-    ContentKindsToRemove = PdfSanitizationContentKind.All,
-    ActionKindsToRemove = PdfSanitizationActionKind.All
-};
+using OfficeIMO;
+using OfficeIMO.Pdf;
 
-PdfSanitizationReport preview = incoming.InspectSanitization(policy);
-Console.WriteLine($"User metadata: {preview.CategoryCounts.UserMetadata}");
-Console.WriteLine($"Attachments: {preview.CategoryCounts.EmbeddedFiles}");
-Console.WriteLine($"Actions: {preview.CategoryCounts.Actions}");
-Console.WriteLine($"Comments and markup: {preview.CategoryCounts.CommentsAndMarkup}");
-Console.WriteLine($"Bookmarks: {preview.CategoryCounts.Bookmarks}");
-Console.WriteLine($"Layer definitions: {preview.CategoryCounts.OptionalContent}");
+using PdfDocument incoming = PdfDocument.Load("incoming.pdf");
+OfficeHiddenDataReport preview = incoming.InspectHiddenData();
+foreach (OfficeHiddenDataFinding finding in preview.Findings) {
+    Console.WriteLine($"{finding.Kind} at {finding.Location}: {finding.Description}");
+}
 
-PdfSanitizationResult result = incoming.Sanitize(policy);
-File.WriteAllBytes("shared.pdf", result.ToBytes());
+OfficeHiddenDataResult result = incoming.RemoveHiddenData(new OfficeHiddenDataOptions {
+    Kinds = OfficeHiddenDataKind.Default | OfficeHiddenDataKind.Attachments | OfficeHiddenDataKind.Bookmarks
+});
+File.WriteAllBytes("shared.pdf", result.ToArray());
 ```
 
-`ContentKindsToRemove` is an exact selection of user-authored Info fields and XMP, embedded files, actions, comments and markup, bookmarks, and optional-content definitions. Unselected categories remain. Link and Widget annotations remain when comments are selected; selecting URI actions can still remove a link's URI. Producer, creation and modification dates, and trapping status are not classified as user metadata and remain in the output.
+| Kind | PDF content |
+| --- | --- |
+| `DocumentProperties` | User-authored Info fields (author, title, subject, keywords, creator and custom keys) and the catalog XMP packet. Producer, creation and modification dates, and trapping status remain |
+| `Comments` | Comment and markup annotations. Link, Widget and file attachment annotations remain, and rich media counts as active content |
+| `ActiveContent` | JavaScript, Launch, SubmitForm, GoToR, GoToE, ImportData, Movie, Rendition and RichMedia actions, links and catalog URI bases with a scheme other than `http`, `https`, `mailto` or `tel`, and RichMedia, Movie, Sound, Screen and 3D annotations |
+| `Attachments` (opt-in) | Embedded and associated files and file attachment annotations |
+| `Bookmarks` (opt-in) | The document outline |
+| `HiddenContent` (opt-in) | Optional-content (layer) definitions and associations |
+| `Provenance` | Content Credentials stored as associated files |
 
-Selecting optional content removes layer definitions and associations. Drawing and text operators that belonged to a layer remain as ordinary page content, so they no longer depend on viewer layer state. Use content-safety inspection and verified redaction when the page content itself must be removed.
+`OfficeHiddenDataKind.Default` removes metadata, comments and active content. Attachments, bookmarks and layers are opt-in because they are part of what readers use. Removing layer definitions keeps the drawing and text operators that belonged to a layer as ordinary page content; use content-safety inspection and verified redaction when the page content itself must go.
 
-#### Preview and select active-content removal
-
-```csharp
-PdfDocument incoming = PdfDocument.Load("incoming.pdf");
-var policy = new PdfSanitizationOptions {
-    ActionKindsToRemove = PdfSanitizationActionKind.JavaScript |
-        PdfSanitizationActionKind.Launch |
-        PdfSanitizationActionKind.SubmitForm
-};
-
-PdfSanitizationReport preview = incoming.InspectSanitization(policy);
-Console.WriteLine($"Scripts: {preview.ActionCounts.JavaScript}");
-Console.WriteLine($"Launch actions: {preview.ActionCounts.Launch}");
-
-PdfSanitizationResult result = incoming.Sanitize(policy);
-File.WriteAllBytes("sanitized.pdf", result.ToBytes());
-```
-
-`ActionKindsToRemove` is an exact opt-in selection, so unselected action kinds remain. Selecting `Uri` removes every URI action and catalog URI base, including ordinary web links. Leave the property null for the established default policy: known active-content actions are removed, allowed `http`, `https`, `mailto`, and `tel` links remain, and URI schemes outside `AllowedUriSchemes` are removed.
+Removal is one full rewrite. The output is inspected again and the call throws when a selected item remains or when anything outside the selection changed, so a returned result is verified. Content Credentials sign the whole file and cannot stay valid after the rewrite, so they are always removed and their finding's `Note` says so; use `PdfProvenance.Remove` to change only provenance. Signed PDFs are refused, because the rewrite would invalidate their signatures. `OfficeDocument.RemoveHiddenData` and `OfficeDocument.Inspect` with `IncludeHiddenData` cover `.pdf` files in the same way.
 
 #### Read and edit named document JavaScript
 
@@ -1156,7 +1145,7 @@ PdfJavaScriptEditResult edited = document.JavaScript.Edit(scripts => scripts
 File.WriteAllBytes("output.pdf", edited.ToBytes());
 ```
 
-Script names use exact, case-sensitive matching. Editing preserves untouched name-tree entries and action data, then reads the saved artifact back before returning it. Per-script, script-count, and aggregate-byte limits come from `PdfLoadOptions.Limits`. Document JavaScript is active content: the default sanitizer removes it, and full-rewrite edits are blocked for encrypted or signed inputs rather than weakening their security or revision contracts.
+Script names use exact, case-sensitive matching. Editing preserves untouched name-tree entries and action data, then reads the saved artifact back before returning it. Per-script, script-count, and aggregate-byte limits come from `PdfLoadOptions.Limits`. Document JavaScript is active content: `RemoveHiddenData` removes it by default, and full-rewrite edits are blocked for encrypted or signed inputs rather than weakening their security or revision contracts.
 
 #### Concealed-content inspection and cleanup
 
@@ -1589,7 +1578,7 @@ Batch annotation edits use `document.Annotations.MoveMany`, `CopyMany`, `RemoveM
 
 `document.Forms.GetForInteraction()` reads field values, options, widget geometry, and whether XFA data is present under content-copy, form-filling, or form-authoring authorization. `document.GetEditingInteractions(pageNumber)` combines permitted annotation and form-widget hit regions without extracting page text or images. These reads do not grant a write operation; use `PlanMutation` to check it. Encrypted form filling still requires owner authorization or an explicit `IgnoreRestrictions` policy for its full-rewrite path.
 
-Authorized form-authoring and sanitization operations check preservation without granting content extraction. Their `PdfRewritePreservationReport` exposes the proof result and issues; `CanReadDetails` indicates whether the complete `Original` and `Rewritten` inspection snapshots may be read. Those properties enforce each input's content-extraction permission.
+Authorized form-authoring and hidden-data removal operations check preservation without granting content extraction. Their `PdfRewritePreservationReport` exposes the proof result and issues; `CanReadDetails` indicates whether the complete `Original` and `Rewritten` inspection snapshots may be read. Those properties enforce each input's content-extraction permission.
 
 `document.Annotations.Group(objectNumbers)` groups at least two editable markup annotations on one page using standard `/IRT` and `/RT /Group` relationships. Grouping requires PDF 1.6; older ordinary documents receive a catalog version upgrade. Certified and usage-rights documents that would require that upgrade are rejected because it changes the catalog beyond an annotation edit. `Ungroup(objectNumbers)` removes those relationships from the complete selected groups. `PdfAnnotationGrouping.GetMembers(info.Annotations, objectNumber)` resolves a saved group without including conversational replies. Links, redaction marks, and reply annotations cannot become group members. Locked and read-only annotations are rejected by batch edits. Multi-selection geometry edits move annotations; resize each annotation separately. Free-text callout transforms remain unsupported.
 
@@ -1741,7 +1730,7 @@ if (accepted.Length > 0)
 
 Recognition proposes text fields from empty continuous outlines or writing lines and check boxes from small square outlines. Dashed outlines and writing lines are skipped with an `unsupported-outline-dash` diagnostic because their painted segments cannot be proven from the recognition geometry. Later fill, stroke, or image paint that intersects a required outline segment is also skipped conservatively, including partially erased boxes and writing lines. Exact rectangular path fills can prove opaque covers; arbitrary or compound paths do not prove their entire bounds are filled. Compound filled-and-stroked paths are not split into independent field candidates, since their shared fill rule can leave holes. Nearby native text supplies labels; callers can also pass bounded positioned OCR text as `PdfStaticFormTextEvidence` without installing an OCR runtime in `OfficeIMO.Pdf`. Native labels require perceptible opacity, resolved paint, proven contrast, and full visibility within the visual page and any rectangular clip. Patterned, dashed-stroke, or combined fill-and-stroke labels, labels with partial or unproven clipping, and image backdrops need separate visibility evidence such as positioned OCR. Native text crossing a page or crop edge still counts as possible field occupancy within the visible page. Labels partially covered by later paint are excluded. A label names at most one nearest eligible field; equally plausible assignments require manual authoring. Detected table text and table regions are excluded from automatic form evidence. Duplicate labels retain the strongest evidence after the OCR confidence adjustment, and native text occupancy respects exact rectangular clips and conservative text-stroke envelopes. Overlapping labels that support different fields require manual assignment. Unsupported graphics-state paint is excluded from field evidence. The report includes page-local tab order suggestions and collision diagnostics. It does not infer radio groups, choice values, calculations, or form actions from static marks. Applying selected proposals edits the analyzed PDF snapshot; a new analysis is needed to include later changes to the source document. The usual PDF mutation and preservation checks apply.
 
-The same transaction creates text fields, check boxes, combo or list choices, radio-button groups, push buttons, and empty signature fields. Generated widget appearances use `PdfFormFieldStyle`; widget JavaScript is returned as inert, typed `PdfFormWidgetAction` data and is never executed by OfficeIMO.Pdf. Form edits and fills preserve eligible actions owned by form widgets. Unrelated catalog, page, outline, or annotation active content remains a rewrite blocker. Flattening removes actions owned by the fields being flattened, while the sanitizer removes forbidden actions without discarding the remaining form tree.
+The same transaction creates text fields, check boxes, combo or list choices, radio-button groups, push buttons, and empty signature fields. Generated widget appearances use `PdfFormFieldStyle`; widget JavaScript is returned as inert, typed `PdfFormWidgetAction` data and is never executed by OfficeIMO.Pdf. Form edits and fills preserve eligible actions owned by form widgets. Unrelated catalog, page, outline, or annotation active content remains a rewrite blocker. Flattening removes actions owned by the fields being flattened, while hidden-data removal drops active content without discarding the remaining form tree.
 
 ## Security and signatures
 
@@ -1914,11 +1903,11 @@ Selection is refused for partial ligatures, ambiguous ActualText mappings, unsup
 
 Precise selection retains inherited font state and uses the source text matrix for scaled or sheared glyph bounds. Rewriting preserves imported numeric font resources and fractional review geometry. Independently produced TrueType and CFF regression inputs cover neighboring text, bookmarks and ink preservation; the [viewer checks](../Build/PdfViewerVerification/README.md) describe independent readback and rendering. Outlined letters require a reviewed area because they are vector paths rather than searchable text.
 
-`source.Redactions.ApplyForSharing(plan, sanitizationOptions, verificationOptions: verification)` applies the reviewed redaction, sanitizes with the explicit policy, and verifies the final bytes. It requires successful sanitization, policy-specific preservation, unchanged page content and geometry, and final redaction checks. It does not bypass active-content or protected-document mutation gates. A policy that changes page content, such as flattening optional content, may need to be applied before planning redaction.
+`source.Redactions.ApplyForSharing(plan, hiddenDataOptions, verificationOptions: verification)` applies the reviewed redaction, removes the selected hidden data, and verifies the final bytes. It requires verified hidden-data removal, selection-specific preservation, unchanged page content and geometry, and final redaction checks. It does not bypass active-content or protected-document mutation gates. A selection that changes page content, such as removing optional content, may need to be applied before planning redaction.
 
-Configured removed and retained markers and external validators check the final sanitized artifact. A marker in policy-selected metadata can remain until sanitization; it must be absent from the final PDF. The intermediate redaction still requires evidence for every reviewed area and the configured stream and rendering checks.
+Configured removed and retained markers and external validators check the final artifact. A marker in selected metadata can remain until hidden-data removal; it must be absent from the final PDF. The intermediate redaction still requires evidence for every reviewed area and the configured stream and rendering checks.
 
-Save `PdfRedactionSharingResult.ToBytes()` and serialize its `Summary` when sharing content-free evidence. For redaction without sanitization, use `redacted.Evidence.CreateShareableSummary()`. These summaries include hexadecimal SHA-256 fingerprints and counts, but omit matched text, search criteria, reasons, paths, and detailed diagnostics. The detailed evidence remains suitable for local review and can contain sensitive document content.
+Save `PdfRedactionSharingResult.ToBytes()` and serialize its `Summary` when sharing content-free evidence; `HiddenData.Report` lists what was removed. For redaction without hidden-data removal, use `redacted.Evidence.CreateShareableSummary()`. These summaries include hexadecimal SHA-256 fingerprints and counts, but omit matched text, search criteria, reasons, paths, and detailed diagnostics. The detailed evidence remains suitable for local review and can contain sensitive document content.
 
 Each `PdfRedactionArea` carries two independent policies. `TextOnly` removes selected text while preserving intersecting images and paths; `TextAndUnderlay` also removes supported intersecting underlay content and fails closed when that cannot be done safely. The appearance can remain exact, merge nearby reviewed marks, round widths to a configured quantum, or cover the effective page line. Verification evaluates residue against the selected content scope rather than treating a deliberately preserved underlay as a failure.
 

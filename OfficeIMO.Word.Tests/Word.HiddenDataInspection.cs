@@ -162,11 +162,13 @@ namespace OfficeIMO.Tests {
                 OfficeHiddenDataReport removed = document.RemoveHiddenData();
                 OfficeHiddenDataFinding metadata = Assert.Single(removed.GetFindings(OfficeHiddenDataKind.ImageMetadata));
                 Assert.Equal(OfficeHiddenDataOutcome.Retained, metadata.Outcome);
-                Assert.Contains("Content Credentials", metadata.Note);
+                Assert.Equal(OfficeHiddenDataReason.ProtectsContentCredentials, metadata.Reason);
                 OfficeHiddenDataFinding image = Assert.Single(removed.GetFindings(OfficeHiddenDataKind.Provenance), finding => finding.Location != "/META-INF/content_credential.c2pa");
                 Assert.Equal(OfficeHiddenDataOutcome.Retained, image.Outcome);
                 OfficeHiddenDataFinding package = Assert.Single(removed.GetFindings(OfficeHiddenDataKind.Provenance), finding => finding.Location == "/META-INF/content_credential.c2pa");
                 Assert.Equal(OfficeHiddenDataOutcome.Removed, package.Outcome);
+                Assert.Equal(OfficeHiddenDataScope.Package, package.Scope);
+                Assert.Equal(OfficeHiddenDataScope.EmbeddedImage, image.Scope);
                 Assert.NotNull(package.Note);
                 Assert.Equal(credentialed, document.Images.Single().ToBytes());
                 document.Save();
@@ -188,6 +190,72 @@ namespace OfficeIMO.Tests {
                 byte[] scrubbed = reopened.Images.Single().ToBytes();
                 Assert.DoesNotContain(OfficeImageMetadata.Read(scrubbed).ExifValues, value => value.Tag.Directory == OfficeExifDirectory.Gps);
                 Assert.Equal(JpegScanData(source), JpegScanData(scrubbed));
+            }
+        }
+
+        [Fact]
+        public void Test_RemoveHiddenData_ProvenanceCarriersCanBeKeptSeparately() {
+            string filePath = Path.Combine(_directoryWithFiles, "HiddenData.ProvenanceCarriers.docx");
+            string imagePath = Path.Combine(_directoryWithFiles, "c2pa-ai.jpg");
+            byte[] source = File.ReadAllBytes(Path.Combine(_directoryWithImages, "Kulek.jpg"));
+            OfficeImageMetadata tagged = OfficeImageMetadata.Read(source);
+            tagged.XmpProfile = Encoding.UTF8.GetBytes(
+                "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">" +
+                "<rdf:Description rdf:about=\"\" xmlns:Iptc4xmpExt=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\">" +
+                "<Iptc4xmpExt:DigitalSourceType rdf:resource=\"http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia\"/>" +
+                "</rdf:Description></rdf:RDF></x:xmpmeta>");
+            byte[] declared = OfficeImageMetadata.Apply(source, tagged);
+            File.WriteAllBytes(imagePath, Join(declared.Take(2).ToArray(), CreateJpegApp11(CreateManifestStore()), declared.Skip(2).ToArray()));
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph().AddImage(imagePath);
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var options = new OfficeHiddenDataOptions { Kinds = OfficeHiddenDataKind.Provenance };
+                options.Provenance.RemoveC2paManifests = false;
+                OfficeHiddenDataReport removed = document.RemoveHiddenData(options);
+                OfficeHiddenDataFinding credential = Assert.Single(removed.GetFindings(OfficeHiddenDataKind.Provenance),
+                    finding => finding.Provenance!.Carrier == OfficeProvenanceCarrierKind.C2paManifest);
+                Assert.Equal(OfficeHiddenDataOutcome.Retained, credential.Outcome);
+                Assert.Equal(OfficeHiddenDataOutcome.Removed, Assert.Single(removed.GetFindings(OfficeHiddenDataKind.Provenance),
+                    finding => finding.Provenance!.Carrier == OfficeProvenanceCarrierKind.IptcDigitalSourceType).Outcome);
+                document.Save();
+            }
+
+            OfficeProvenanceEvidence kept = Assert.Single(WordDocument.InspectProvenance(filePath).Evidence);
+            Assert.Equal(OfficeProvenanceCarrierKind.C2paManifest, kept.Carrier);
+        }
+
+        [Fact]
+        public void Test_RemoveHiddenData_ReportsAndCleansPicturesTheDocumentDoesNotUse() {
+            string filePath = Path.Combine(_directoryWithFiles, "HiddenData.UnusedPicture.docx");
+            byte[] source = File.ReadAllBytes(Path.Combine(_directoryWithImages, "Kulek.jpg"));
+            OfficeImageMetadata gps = OfficeImageMetadata.Read(source);
+            gps.SetExifValue(OfficeExifTag.GPSLatitudeRef, "N");
+            byte[] located = OfficeImageMetadata.Apply(source, gps);
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Text only");
+                document.Save();
+            }
+            using (Package package = Package.Open(filePath, FileMode.Open, FileAccess.ReadWrite)) {
+                using Stream stream = package.CreatePart(new Uri("/word/media/leftover.jpeg", UriKind.Relative), "image/jpeg").GetStream();
+                stream.Write(located, 0, located.Length);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                OfficeHiddenDataFinding found = Assert.Single(document.InspectHiddenData().GetFindings(OfficeHiddenDataKind.ImageMetadata));
+                Assert.Equal("/word/media/leftover.jpeg", found.Part);
+                Assert.Equal(OfficeHiddenDataScope.EmbeddedImage, found.Scope);
+                Assert.Contains("not used", found.Description);
+
+                OfficeHiddenDataFinding removed = Assert.Single(document.RemoveHiddenData().GetFindings(OfficeHiddenDataKind.ImageMetadata));
+                Assert.Equal(OfficeHiddenDataOutcome.Removed, removed.Outcome);
+                document.Save();
+            }
+
+            using (WordDocument reopened = WordDocument.Load(filePath)) {
+                Assert.Empty(reopened.InspectHiddenData().GetFindings(OfficeHiddenDataKind.ImageMetadata));
             }
         }
 

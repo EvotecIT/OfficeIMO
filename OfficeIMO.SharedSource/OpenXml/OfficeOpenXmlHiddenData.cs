@@ -4,8 +4,6 @@ using DocumentFormat.OpenXml.CustomProperties;
 using DocumentFormat.OpenXml.Experimental;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Core.Internal;
-using OfficeIMO.Drawing;
-using OfficeIMO.Provenance;
 using System.IO.Packaging;
 using Ext = DocumentFormat.OpenXml.ExtendedProperties;
 
@@ -87,163 +85,64 @@ namespace OfficeIMO.OpenXml.Internal {
             return properties?.DataStoreItem?.ItemId?.Value;
         }
 
-        private const string PackageManifestLocation = "/META-INF/content_credential.c2pa";
-        private const string UnsupportedImageNote = "This image container does not support removing metadata without re-encoding.";
-        private const string BoundImageNote = "Removing this image's metadata would invalidate its Content Credentials; select Provenance to remove both.";
-        private const string KeptSourceTypeNote = "The image's digital source type declaration was kept; select Provenance to remove it.";
-        private const string PackageManifestNote = "Removed although Provenance was not selected: Content Credentials that cover the whole package cannot stay valid once a loaded document is changed and saved. Use RemoveProvenance on the file to change only provenance.";
-        private const string ProvenanceEngineNote = "The provenance engine keeps malformed carriers and source declarations that do not disclose AI generation.";
-
-        /// <summary>
-        /// Provenance in the package and its images, and the Exif, GPS, XMP and IPTC metadata in those images. Metadata is stripped in place without
-        /// re-encoding pixels. Provenance carriers are found and removed by the provenance engine, so this walk and <c>RemoveProvenance</c> agree.
-        /// </summary>
+        /// <summary>Provenance and image metadata in the package and its images, through the shared asset engine.</summary>
         internal static void InspectImagesAndProvenance(OpenXmlPackage package, OfficeHiddenDataCollector collector) {
             InspectPackageProvenance(package, collector);
-            bool removeProvenance = collector.Removes(OfficeHiddenDataKind.Provenance);
-            foreach (ImagePart image in EnumerateParts(package).Select(pair => pair.Part).OfType<ImagePart>().Distinct().ToList()) {
-                string location = image.Uri.ToString();
-                byte[] original = ReadPart(image);
-                List<OfficeProvenanceEvidence> provenance = InspectImageProvenance(original, location);
-                string? description = DescribePrivateImageMetadata(original);
-                if (provenance.Count == 0 && description == null) continue;
-
-                byte[] current = original;
-                if (removeProvenance && provenance.Count > 0) current = TryRemoveImageProvenance(current, location) ?? current;
-
-                bool metadataRemoved = false;
-                string? metadataNote = null;
-                if (description != null && collector.Removes(OfficeHiddenDataKind.ImageMetadata)) {
-                    List<OfficeProvenanceEvidence> currentProvenance = ReferenceEquals(current, original) ? provenance : InspectImageProvenance(current, location);
-                    bool bound = currentProvenance.Any(IsContentBinding);
-                    byte[]? stripped = bound ? null : TryStripPrivateImageMetadata(current, keepDigitalSourceType: !removeProvenance);
-                    if (stripped == null) {
-                        metadataNote = bound ? BoundImageNote : UnsupportedImageNote;
-                    } else {
-                        current = stripped;
-                        metadataRemoved = true;
-                        if (!removeProvenance && provenance.Any(item => item.Carrier == OfficeProvenanceCarrierKind.IptcDigitalSourceType)) metadataNote = KeptSourceTypeNote;
-                    }
-                }
-
-                if (!ReferenceEquals(current, original)) image.FeedData(new MemoryStream(current, writable: false));
-
-                if (description != null) {
-                    OfficeHiddenDataOutcome outcome = collector.Resolve(OfficeHiddenDataKind.ImageMetadata, metadataRemoved, metadataNote, out string? note);
-                    collector.Record(OfficeHiddenDataKind.ImageMetadata, location, description, null, outcome, metadataRemoved ? metadataNote : note);
-                }
-
-                List<OfficeProvenanceEvidence> remaining = ReferenceEquals(current, original) ? provenance.ToList() : InspectImageProvenance(current, location);
-                foreach (OfficeProvenanceEvidence evidence in provenance) {
-                    bool removed = !TakeMatch(remaining, evidence);
-                    OfficeHiddenDataOutcome outcome = collector.Resolve(OfficeHiddenDataKind.Provenance, removed, ProvenanceEngineNote, out string? note);
-                    collector.Record(OfficeHiddenDataKind.Provenance, location + "/" + evidence.Location, DescribeProvenance(evidence),
-                        ProvenanceValue(evidence), outcome, note, evidence);
-                }
+            var related = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (OpenXmlPart part in EnumerateParts(package).Select(pair => pair.Part).Distinct().ToList()) {
+                related.Add(part.Uri.OriginalString);
+                if (part is not ImagePart image) continue;
+                byte[] original;
+                using (Stream stream = image.GetStream(FileMode.Open, FileAccess.Read)) original = OfficeHiddenDataAssets.ReadAll(stream);
+                byte[]? replacement = OfficeHiddenDataAssets.ProcessImage(original, image.Uri.ToString(), collector);
+                if (replacement != null) image.FeedData(new MemoryStream(replacement, writable: false));
             }
+            InspectUnusedImages(package, related, collector);
         }
 
         /// <summary>
-        /// A C2PA manifest stored as a package part. It binds every byte of the package, so no edit of a loaded document can keep it valid,
-        /// and saving does not carry an unreferenced part. Removal therefore always deletes it and says so.
+        /// Pictures stored in the package that no relationship reaches. Nothing shows them, but their metadata and provenance still leave with
+        /// the file, so they are reported and cleaned like any other picture.
         /// </summary>
+        private static void InspectUnusedImages(OpenXmlPackage package, HashSet<string> related, OfficeHiddenDataCollector collector) {
+#pragma warning disable OOXML0001
+            IPackage opc = package.GetPackage();
+            foreach (IPackagePart part in opc.GetParts().ToList()) {
+                string uri = part.Uri.OriginalString;
+                if (related.Contains(uri) || !part.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) continue;
+                byte[] original;
+                using (Stream stream = part.GetStream(FileMode.Open, FileAccess.Read)) original = OfficeHiddenDataAssets.ReadAll(stream);
+                byte[]? replacement = OfficeHiddenDataAssets.ProcessImage(original, uri, collector, unused: true);
+                if (replacement == null) continue;
+                using Stream target = part.GetStream(FileMode.Create, FileAccess.Write);
+                target.Write(replacement, 0, replacement.Length);
+            }
+#pragma warning restore OOXML0001
+        }
+
+        /// <summary>A package-level C2PA manifest part. Saving a loaded package does not carry an unreferenced part, so removal deletes it.</summary>
         private static void InspectPackageProvenance(OpenXmlPackage package, OfficeHiddenDataCollector collector) {
 #pragma warning disable OOXML0001
             IPackage opc = package.GetPackage();
-            var uri = new Uri(PackageManifestLocation, UriKind.Relative);
+            string location = "/" + OfficeHiddenDataAssets.PackageManifestPath;
+            var uri = new Uri(location, UriKind.Relative);
             if (!opc.PartExists(uri)) return;
             byte[] manifest;
-            using (Stream stream = opc.GetPart(uri).GetStream(FileMode.Open, FileAccess.Read)) manifest = ReadAll(stream);
-            var limits = new OfficeProvenanceOptions();
-            bool valid = manifest.LongLength <= limits.MaxManifestBytes &&
-                OfficeC2paManifestStore.IsValid(manifest, 0, manifest.Length, limits.MaxManifestBytes, limits.MaxContainerEntries, out _);
-            OfficeProvenanceEvidence evidence = new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest,
-                "ZIP/META-INF/content_credential.c2pa[0]", valid, manifest.Length)
-                .WithManifest(valid ? OfficeC2paManifestStore.TryDescribe(manifest, 0, manifest.Length) : null);
-
-            bool remove = collector.Removal != null;
-            if (remove) {
-                IdPartPair related = package.Parts.FirstOrDefault(pair => pair.OpenXmlPart.Uri.OriginalString == PackageManifestLocation);
-                if (related.OpenXmlPart != null) {
-                    package.DeletePart(related.RelationshipId);
-                } else {
-                    foreach (IPackageRelationship relationship in opc.Relationships.ToList()) {
-                        if (relationship.TargetMode == TargetMode.Internal &&
-                            relationship.TargetUri.OriginalString.TrimStart('/') == PackageManifestLocation.TrimStart('/')) {
-                            opc.Relationships.Remove(relationship.Id);
-                        }
+            using (Stream stream = opc.GetPart(uri).GetStream(FileMode.Open, FileAccess.Read)) manifest = OfficeHiddenDataAssets.ReadAll(stream);
+            if (!OfficeHiddenDataAssets.ProcessPackageManifest(manifest, location, collector)) return;
+            IdPartPair related = package.Parts.FirstOrDefault(pair => pair.OpenXmlPart.Uri.OriginalString == location);
+            if (related.OpenXmlPart != null) {
+                package.DeletePart(related.RelationshipId);
+            } else {
+                foreach (IPackageRelationship relationship in opc.Relationships.ToList()) {
+                    if (relationship.TargetMode == TargetMode.Internal &&
+                        relationship.TargetUri.OriginalString.TrimStart('/') == OfficeHiddenDataAssets.PackageManifestPath) {
+                        opc.Relationships.Remove(relationship.Id);
                     }
                 }
-                if (opc.PartExists(uri)) opc.DeletePart(uri);
             }
+            if (opc.PartExists(uri)) opc.DeletePart(uri);
 #pragma warning restore OOXML0001
-
-            OfficeHiddenDataOutcome outcome = remove ? OfficeHiddenDataOutcome.Removed : OfficeHiddenDataOutcome.Found;
-            string? note = remove && !collector.Removes(OfficeHiddenDataKind.Provenance) ? PackageManifestNote : null;
-            collector.Record(OfficeHiddenDataKind.Provenance, PackageManifestLocation, DescribeProvenance(evidence),
-                ProvenanceValue(evidence), outcome, note, evidence);
-        }
-
-        private static List<OfficeProvenanceEvidence> InspectImageProvenance(byte[] data, string location) {
-            var options = new OfficeProvenanceOptions { ProcessEmbeddedAssets = false };
-            try {
-                if (data.LongLength > options.MaxAssetBytes || !IsProvenanceImage(OfficeProvenanceInspector.DetectFormat(data, null, options))) {
-                    return new List<OfficeProvenanceEvidence>();
-                }
-                return OfficeProvenanceInspector.Inspect(data, location, options).Evidence.ToList();
-            } catch (Exception exception) when (exception is InvalidDataException or System.Xml.XmlException or NotSupportedException or FormatException) {
-                return new List<OfficeProvenanceEvidence>();
-            }
-        }
-
-        private static byte[]? TryRemoveImageProvenance(byte[] data, string location) {
-            try {
-                OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(data, location, new OfficeProvenanceRemovalOptions { ProcessEmbeddedAssets = false });
-                return result.WasChanged ? result.ToArray() : null;
-            } catch (Exception exception) when (exception is InvalidDataException or System.Xml.XmlException or NotSupportedException or FormatException) {
-                return null;
-            }
-        }
-
-        private static bool IsProvenanceImage(OfficeProvenanceAssetFormat format) =>
-            format is OfficeProvenanceAssetFormat.Jpeg or OfficeProvenanceAssetFormat.Png or OfficeProvenanceAssetFormat.Webp or
-                OfficeProvenanceAssetFormat.Gif or OfficeProvenanceAssetFormat.Tiff or OfficeProvenanceAssetFormat.Svg;
-
-        /// <summary>Carriers whose signature covers the image bytes, so any metadata edit breaks them.</summary>
-        private static bool IsContentBinding(OfficeProvenanceEvidence evidence) =>
-            evidence.Carrier is OfficeProvenanceCarrierKind.C2paManifest or OfficeProvenanceCarrierKind.C2paExternalManifest;
-
-        private static bool TakeMatch(List<OfficeProvenanceEvidence> remaining, OfficeProvenanceEvidence evidence) {
-            int index = remaining.FindIndex(item => item.Carrier == evidence.Carrier && item.Value == evidence.Value &&
-                item.PayloadLength == evidence.PayloadLength);
-            if (index < 0) return false;
-            remaining.RemoveAt(index);
-            return true;
-        }
-
-        private static string DescribeProvenance(OfficeProvenanceEvidence evidence) {
-            string description = evidence.Carrier switch {
-                OfficeProvenanceCarrierKind.C2paManifest => evidence.Manifest?.DeclaresGenerativeAi == true
-                    ? "Content Credentials (C2PA manifest) declaring generative AI"
-                    : "Content Credentials (C2PA manifest)",
-                OfficeProvenanceCarrierKind.C2paExternalManifest => "Reference to external Content Credentials",
-                _ => "Digital source type: " + evidence.DigitalSourceKind
-            };
-            return evidence.IsStructurallyValid ? description : description + " (malformed)";
-        }
-
-        private static string? ProvenanceValue(OfficeProvenanceEvidence evidence) =>
-            evidence.Carrier == OfficeProvenanceCarrierKind.C2paManifest ? evidence.Manifest?.ClaimGenerator : evidence.Value;
-
-        private static byte[] ReadPart(OpenXmlPart part) {
-            using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
-            return ReadAll(stream);
-        }
-
-        private static byte[] ReadAll(Stream stream) {
-            using var buffer = new MemoryStream();
-            stream.CopyTo(buffer);
-            return buffer.ToArray();
         }
 
         /// <summary>Embedded printer settings parts and the elements that point to them.</summary>
@@ -300,53 +199,6 @@ namespace OfficeIMO.OpenXml.Internal {
         private static bool IsPrinterSettings(OpenXmlPart part) =>
             part.ContentType.EndsWith(".printerSettings", StringComparison.OrdinalIgnoreCase);
 
-        private static string? DescribePrivateImageMetadata(byte[] data) {
-            OfficeImageMetadata metadata;
-            try {
-                metadata = OfficeImageMetadata.Read(data);
-            } catch (Exception exception) when (exception is FormatException or NotSupportedException or ArgumentException) {
-                return null;
-            }
-
-            var profiles = new List<string>();
-            bool hasGps = false;
-            bool hasExif = false;
-            foreach (OfficeExifValue value in metadata.ExifValues) {
-                if (value.Tag.Directory == OfficeExifDirectory.Gps) hasGps = true;
-                else if (!IsOrientation(value.Tag)) hasExif = true;
-            }
-
-            if (hasExif) profiles.Add("Exif");
-            if (hasGps) profiles.Add("GPS location");
-            byte[]? xmp = metadata.XmpProfileData;
-            if (xmp != null && !OfficeProvenanceXmp.HasOnlyDigitalSourceTypes(xmp, new OfficeProvenanceOptions())) profiles.Add("XMP");
-            if (metadata.IptcProfile != null) profiles.Add("IPTC");
-            return profiles.Count == 0 ? null : "Image metadata: " + string.Join(", ", profiles);
-        }
-
-        /// <summary>
-        /// Rewrites only the metadata containers; ICC colour, density and orientation stay so the image looks the same.
-        /// With <paramref name="keepDigitalSourceType"/>, XMP is reduced to the image's digital source type declaration.
-        /// </summary>
-        private static byte[]? TryStripPrivateImageMetadata(byte[] data, bool keepDigitalSourceType) {
-            try {
-                OfficeImageMetadata metadata = OfficeImageMetadata.Read(data);
-                OfficeExifValue? orientation = metadata.GetExifValue(OfficeExifTag.Orientation);
-                OfficeImageMetadata stripped = metadata.Clone();
-                stripped.ClearExif();
-                byte[]? xmp = metadata.XmpProfileData;
-                stripped.XmpProfile = keepDigitalSourceType && xmp != null
-                    ? OfficeProvenanceXmp.CreateDigitalSourceTypePacket(xmp, new OfficeProvenanceOptions())
-                    : null;
-                stripped.IptcProfile = null;
-                if (orientation != null) stripped.SetExifValue(OfficeExifTag.Orientation, orientation.Value);
-                return OfficeImageMetadata.Apply(data, stripped);
-            } catch (Exception exception) when (exception is FormatException or NotSupportedException or ArgumentException) {
-                return null;
-            }
-        }
-
-        private static bool IsOrientation(OfficeExifTag tag) => tag.Equals(OfficeExifTag.Orientation);
 
         private static Ext.Properties? GetExtendedProperties(OpenXmlPackage package) => package switch {
             WordprocessingDocument word => word.ExtendedFilePropertiesPart?.Properties,

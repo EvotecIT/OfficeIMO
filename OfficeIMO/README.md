@@ -115,6 +115,19 @@ OfficeDocumentInfo info = OfficeDocument.Inspect("Review.docx", new OfficeInspec
 Console.WriteLine(info.Source);
 ```
 
+## Before sharing
+
+```csharp
+using OfficeIMO;
+
+OfficeDocumentInfo info = OfficeDocument.Inspect("Review.docx", new OfficeInspectOptions { IncludeContent = false, IncludeHiddenData = true });
+foreach (OfficeHiddenDataFinding finding in info.HiddenData!.Findings) Console.WriteLine($"{finding.Kind} at {finding.Location}: {finding.Description}");
+
+OfficeHiddenDataReport cleaned = OfficeDocument.RemoveHiddenData("Review.docx", "Review-shared.docx");
+```
+
+`IncludeHiddenData` reports what would leave with a Word, Excel, PowerPoint, Visio, OpenDocument or EPUB file: properties, comments, tracked changes, hidden content, image metadata and provenance such as Content Credentials. `RemoveHiddenData` writes a cleaned copy and never changes the input; provenance is kept unless `OfficeHiddenDataKind.Provenance` is selected, and a signed document is refused unless you pass `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures`. `OfficeInspectOptions.Provenance` reports provenance alone without loading the document. See the [hidden data matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.hidden-data-support-matrix.md).
+
 `OfficeIMO.Workflows` and `OfficeIMO.Workflows.IWork` add further routes, such as Apple iWork files, through `RegisterConversions()`.
 
 See the [repository README](https://github.com/EvotecIT/OfficeIMO#readme) for the package map and the [migration guide](https://github.com/EvotecIT/OfficeIMO/blob/master/MIGRATION.md) when upgrading.

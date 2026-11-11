@@ -154,7 +154,7 @@ public static partial class OfficeDocument {
                         var report = presentation.InspectAccessibility(options.PowerPointAccessibility);
                         evidence.Add(report);
                         foreach (var finding in report.Findings) diagnostics.Add(new OfficeDiagnostic(finding.Code,
-                            (OfficeDiagnosticSeverity)(int)finding.Severity, finding.Message, "slide:" + finding.SlideIndex + "/shape:" + finding.ShapeId, "PowerPoint"));
+                            (OfficeDiagnosticSeverity)(int)finding.Severity, finding.Message, finding.Location, report.Format));
                     } else ValidationNotApplicable(diagnostics, check, document.GetType().Name);
                     break;
                 default:

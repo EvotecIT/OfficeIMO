@@ -43,6 +43,8 @@ public sealed class OfficeDocumentInfo {
     public OfficeContentSafetyReport? ContentSafety { get; internal set; }
     /// <summary>Source provenance evidence, when requested.</summary>
     public OfficeProvenanceReport? Provenance { get; internal set; }
+    /// <summary>Metadata and hidden data that would leave with the file, when requested.</summary>
+    public OfficeHiddenDataReport? HiddenData { get; internal set; }
     /// <summary>OPC package signature metadata, when requested.</summary>
     public OfficeIMO.Security.OfficePackageSignatureInfo? PackageSignatures { get; internal set; }
     /// <summary>VBA signature metadata, when requested.</summary>
