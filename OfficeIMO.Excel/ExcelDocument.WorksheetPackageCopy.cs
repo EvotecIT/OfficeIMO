@@ -15,6 +15,10 @@ namespace OfficeIMO.Excel {
             }
 
             ExcelSheet targetSheet = AddSheet(newSheetName, validationMode);
+            Locking.ExecuteWrite(EnsureLock(), () => {
+                CopyWorksheetVisibility(sourceSheet.SheetElement, targetSheet.SheetElement);
+                WorkbookRoot.Save();
+            });
             for (int rowOffset = 0; rowOffset < values.GetLength(0); rowOffset++) {
                 for (int columnOffset = 0; columnOffset < values.GetLength(1); columnOffset++) {
                     object? value = values[rowOffset, columnOffset];
@@ -114,6 +118,7 @@ namespace OfficeIMO.Excel {
                     .Any(formula => !string.IsNullOrWhiteSpace(formula.Text));
 
                 Sheet sheet = AppendWorksheetElement(copiedPart, validatedName);
+                CopyWorksheetVisibility(sourceSheet.SheetElement, sheet);
                 var targetSheet = new ExcelSheet(this, _spreadSheetDocument, sheet);
                 MarkSheetCacheDirty();
                 var sheetNameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {

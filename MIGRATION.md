@@ -5615,6 +5615,10 @@ the plan; a matching clipping-mode span requires a supported redaction strategy.
 
 `CopyWorksheet`, `CopyWorksheetFrom` with `ExcelWorksheetCopyMode.Package` and package-mode `MergeWorkbookFrom` now keep the copied sheet's images, charts, shapes, legacy and threaded comments, header/footer images, background picture and external hyperlinks. Earlier versions removed them. Copied threaded comments receive new ids, and the people they mention are added to the target workbook. Code that removed these features after copying, or that expected the copy to have none, should remove them explicitly with the sheet's comment, image and hyperlink APIs. See the [worksheet copy contract](OfficeIMO.Excel/COMPATIBILITY.md#workbook-capabilities).
 
+## Excel worksheet copies keep sheet visibility
+
+`CopyWorksheet`, `CopyWorksheetFrom` and `MergeWorkbookFrom`, in both copy modes, now give each copy the hidden or very hidden state of its source worksheet. Earlier versions made every copy visible. When a copy leaves the active worksheet hidden, for example when an empty workbook imports a hidden sheet first, the first visible worksheet becomes active. A copy that would leave no visible sheet stays visible, so a hidden worksheet copied alone into an empty workbook is shown. To keep it hidden, import it together with a visible worksheet through `MergeWorkbookFrom`, or call `SetHidden(true)` once a visible worksheet exists. Code that needs a visible copy calls `SetHidden(false)` on it.
+
 ## Word document append
 
 `WordDocument.AppendDocument` now keeps the page setup of each document: the destination's final section properties become a section break before the appended content, which starts in its own section (a new page unless the source section says otherwise). To continue the appended content in the destination's section, as a workaround that moved the destination's closing `w:sectPr` did before, pass `new WordDocumentMergeOptions { SectionMode = WordMergeSectionMode.UseDestinationSections }`.
