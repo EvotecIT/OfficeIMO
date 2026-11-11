@@ -37,9 +37,11 @@ internal sealed class YamlLayoutProfile {
                     else if (scalar._style == YamlStyle.DoubleQuoted) doubles++;
                     continue;
                 }
+                // The first vote of each kind decides it; once both are in, the rest of the sample only counts quotes.
+                if (mappingVote > 0 && offsetVote >= 0) continue;
                 if (node is not YamlMapping { _style: YamlStyle.Block, HasSourceSpan: true } mapping || mapping._count == 0) continue;
                 int keyColumn = Column(source, mapping._entries[0].Key._start);
-                for (int i = 0; i < mapping._count; i++) {
+                for (int i = 0; i < mapping._count && (mappingVote == 0 || offsetVote < 0); i++) {
                     YamlNode value = mapping._entries[i].Value;
                     if (!value.HasSourceSpan || value._style != YamlStyle.Block) continue;
                     if (value is YamlMapping { _count: > 0 } child && mappingVote == 0) {
