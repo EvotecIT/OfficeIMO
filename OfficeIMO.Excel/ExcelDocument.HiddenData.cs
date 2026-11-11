@@ -136,6 +136,8 @@ namespace OfficeIMO.Excel {
                 Authors? authors = worksheetPart.WorksheetCommentsPart?.Comments?.Authors;
                 foreach (Author author in authors?.Elements<Author>().ToList() ?? new List<Author>()) {
                     if (string.IsNullOrEmpty(author.Text)) continue;
+                    // Excel links the legacy note behind a threaded comment through a "tc={id}" author; it isn't a name.
+                    if (author.Text!.StartsWith("tc=", StringComparison.OrdinalIgnoreCase)) continue;
                     if (collector.Removal != null && author.Text == collector.Removal.AnonymousAuthor) continue;
                     collector.Add(OfficeHiddenDataKind.PersonalIdentities, worksheetPart.WorksheetCommentsPart!.Uri.ToString(), "Note author", author.Text,
                         () => author.Text = collector.Removal!.AnonymousAuthor, removedOutcome: OfficeHiddenDataOutcome.Anonymized);

@@ -73,5 +73,23 @@ namespace OfficeIMO.Tests {
             Assert.Contains(names, description => description.Contains("'HiddenTotal'"));
             Assert.DoesNotContain(names, description => description.Contains("'VisibleTotal'"));
         }
+
+        [Fact]
+        public void Test_RemoveHiddenData_KeepsThreadedCommentPlaceholderAuthors() {
+            using ExcelDocument document = ExcelDocument.Create(Path.Combine(_directoryWithFiles, "HiddenData.ThreadedPlaceholder.xlsx"));
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.AddThreadedComment("A1", "Is this final?", "Private Reviewer");
+            string id = sheet.GetThreadedComments().Single().Id!;
+            // Excel writes the legacy note behind a threaded comment with a "tc={id}" author.
+            sheet.SetComment(1, 1, "[Threaded comment] Is this final?", "tc=" + id);
+            sheet.SetComment(2, 1, "Check the totals.", "Private Author");
+
+            OfficeHiddenDataReport removed = document.RemoveHiddenData(new OfficeHiddenDataOptions { Kinds = OfficeHiddenDataKind.PersonalIdentities });
+
+            Assert.DoesNotContain(removed.Findings, finding => finding.Value != null && finding.Value.StartsWith("tc=", StringComparison.Ordinal));
+            var authors = sheet.GetComments().ToDictionary(note => note.CellReference, note => note.Author);
+            Assert.Equal("tc=" + id, authors["A1"]);
+            Assert.Equal("Author", authors["A2"]);
+        }
     }
 }

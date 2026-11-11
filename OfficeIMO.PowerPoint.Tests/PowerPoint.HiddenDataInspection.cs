@@ -76,6 +76,8 @@ namespace OfficeIMO.Tests {
             slide.AddTextBox("Quarterly results").BindToPlaceholder(PowerPointPlaceholderType.Title);
 
             Assert.Empty(presentation.InspectHiddenData().GetFindings(OfficeHiddenDataKind.HiddenContent));
+            presentation.RemoveHiddenData(new OfficeHiddenDataOptions { Kinds = OfficeHiddenDataKind.HiddenContent });
+            Assert.Equal("Quarterly results", slide.GetPlaceholder(PowerPointPlaceholderType.Title)?.Text);
         }
 
         [Fact]
