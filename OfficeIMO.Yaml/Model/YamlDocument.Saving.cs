@@ -133,6 +133,14 @@ public sealed partial class YamlDocument {
     }
 
     private void Write(Stream stream, List<YamlTextSegment> segments) {
+#if NET8_0_OR_GREATER
+        byte[] output = Encode(segments, out int length);
+        try {
+            stream.Write(output, 0, length);
+        } finally {
+            ArrayPool<byte>.Shared.Return(output);
+        }
+#else
         Encoder encoder = YamlEncodingDetector.CreateEncoding(_encoding).GetEncoder();
         char[] chars = ArrayPool<char>.Shared.Rent(EncodeChunk);
         byte[] bytes = ArrayPool<byte>.Shared.Rent(EncodeChunk * 4 + 8);
@@ -154,9 +162,18 @@ public sealed partial class YamlDocument {
             ArrayPool<char>.Shared.Return(chars);
             ArrayPool<byte>.Shared.Return(bytes);
         }
+#endif
     }
 
     private async Task WriteAsync(Stream stream, List<YamlTextSegment> segments, CancellationToken cancellationToken) {
+#if NET8_0_OR_GREATER
+        byte[] output = Encode(segments, out int length);
+        try {
+            await stream.WriteAsync(output.AsMemory(0, length), cancellationToken).ConfigureAwait(false);
+        } finally {
+            ArrayPool<byte>.Shared.Return(output);
+        }
+#else
         Encoder encoder = YamlEncodingDetector.CreateEncoding(_encoding).GetEncoder();
         char[] chars = ArrayPool<char>.Shared.Rent(EncodeChunk);
         byte[] bytes = ArrayPool<byte>.Shared.Rent(EncodeChunk * 4 + 8);
@@ -178,13 +195,47 @@ public sealed partial class YamlDocument {
             ArrayPool<char>.Shared.Return(chars);
             ArrayPool<byte>.Shared.Return(bytes);
         }
+#endif
     }
 
+#if NET8_0_OR_GREATER
+    /// <summary>
+    /// Encodes the whole output, byte-order mark included, into one pooled buffer, so the stream receives one write of
+    /// the exact length: a <see cref="MemoryStream"/> then allocates its buffer once instead of doubling it. Segments
+    /// end at node boundaries, never inside a surrogate pair, so each encodes on its own.
+    /// </summary>
+    private byte[] Encode(List<YamlTextSegment> segments, out int length) {
+        Encoding encoding = YamlEncodingDetector.CreateEncoding(_encoding);
+        byte[]? mark = _byteOrderMark ? YamlEncodingDetector.GetByteOrderMark(_encoding) : null;
+        long total = mark?.Length ?? 0;
+        for (int i = 0; i < segments.Count; i++) total += encoding.GetByteCount(segments[i].Text.AsSpan(segments[i].Start, segments[i].Length));
+        if (total > Array.MaxLength) throw new InvalidOperationException("The document is too large to encode.");
+        byte[] output = ArrayPool<byte>.Shared.Rent((int)Math.Max(total, 1));
+        try {
+            int offset = 0;
+            if (mark is not null) {
+                mark.CopyTo(output, 0);
+                offset = mark.Length;
+            }
+            for (int i = 0; i < segments.Count; i++) {
+                offset += encoding.GetBytes(segments[i].Text.AsSpan(segments[i].Start, segments[i].Length), output.AsSpan(offset));
+            }
+            length = offset;
+            return output;
+        } catch {
+            ArrayPool<byte>.Shared.Return(output);
+            throw;
+        }
+    }
+#endif
+
+#if !NET8_0_OR_GREATER
     private static int Encode(Encoder encoder, YamlTextSegment segment, int offset, char[] chars, byte[] bytes, bool flush) {
         int count = Math.Min(EncodeChunk, segment.Length - offset);
         segment.Text.CopyTo(segment.Start + offset, chars, 0, count);
         return encoder.GetBytes(chars, 0, count, bytes, 0, flush);
     }
+#endif
 
     private static void RequireWritable(Stream stream) {
         if (stream is null) throw new ArgumentNullException(nameof(stream));
