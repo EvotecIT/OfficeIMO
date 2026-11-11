@@ -257,6 +257,30 @@ public class PdfAConversionTests {
     }
 
     [Fact]
+    public void ConvertToPdfA_FixesTheEmbeddedFontRulesPdfA4AddsWithoutChangingGlyphs() {
+        // The program's Unicode cmap is listed only under the Unicode platform, and ToUnicode maps code 65 to U+0000.
+        byte[] program = TrueTypeWithUnicodePlatformCmapOnly();
+        const string toUnicode = "/CIDInit /ProcSet findresource begin 12 dict begin begincmap 1 begincodespacerange <00> <FF> endcodespacerange " +
+            "1 beginbfchar <41> <0000> endbfchar endcmap CMapName currentdict /CMap defineresource pop end end";
+        byte[] source = RawPdf.Build("BT /F1 24 Tf 20 100 Td (A) Tj ET\n", resources: "/Font << /F1 5 0 R >>",
+            extraObjects: new[] {
+                "<< /Type /Font /Subtype /TrueType /BaseFont /Carlito /FirstChar 65 /LastChar 65 /Widths [578.613] /Encoding /WinAnsiEncoding " +
+                    "/FontDescriptor 6 0 R /ToUnicode 8 0 R >>",
+                "<< /Type /FontDescriptor /FontName /Carlito /Flags 32 /FontBBox [-500 -300 1300 1000] /ItalicAngle 0 /Ascent 950 /Descent -250 /CapHeight 640 /StemV 80 /FontFile2 7 0 R >>",
+                RawPdf.Stream("/Length1 " + program.Length.ToString(CultureInfo.InvariantCulture), RawPdf.Latin1(program)),
+                RawPdf.Stream(string.Empty, toUnicode)
+            });
+
+        PdfAConversionResult result = PdfDocument.Load(new MemoryStream(source)).ConvertToPdfA(new PdfAConversionOptions { Profile = PdfComplianceProfile.PdfA4 });
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Report.Violations));
+        Assert.Contains(result.Report.Changes, change => change.Kind == PdfAConversionChangeKind.FontDescriptorUpdated && change.ObjectNumber == 7);
+        Assert.Contains(result.Report.Changes, change => change.Kind == PdfAConversionChangeKind.ToUnicodeAdded && change.LossKind == OfficeIMO.OfficeConversionLossKind.Omission);
+        AssertRendersSame(source, result.ToBytes());
+        AssertVeraPdfPasses(result.ToBytes(), "4");
+    }
+
+    [Fact]
     public void ConvertToPdfA_RejectsPdfA4E() {
         PdfDocument document = PdfDocument.Load(new MemoryStream(RawPdf.Build("0 g 0 0 10 10 re f\n")));
 
@@ -468,6 +492,30 @@ public class PdfAConversionTests {
             }),
         _ => throw new ArgumentOutOfRangeException(nameof(name))
     };
+
+    /// <summary>The bundled Carlito face with its Windows Unicode and Macintosh Roman cmaps relabelled to encodings viewers do not use.</summary>
+    private static byte[] TrueTypeWithUnicodePlatformCmapOnly() {
+        string? path = PdfComplianceTestFonts.FindBundledTrueTypeFont();
+        Assert.NotNull(path);
+        byte[] font = File.ReadAllBytes(path!);
+        int tables = (font[4] << 8) | font[5];
+        for (int table = 0; table < tables; table++) {
+            int record = 12 + table * 16;
+            if (Encoding.ASCII.GetString(font, record, 4) != "cmap") continue;
+            int offset = (font[record + 8] << 24) | (font[record + 9] << 16) | (font[record + 10] << 8) | font[record + 11];
+            int count = (font[offset + 2] << 8) | font[offset + 3];
+            for (int entry = 0; entry < count; entry++) {
+                int at = offset + 4 + entry * 8;
+                if (font[at + 1] == 3 && font[at + 3] == 1) {
+                    font[at + 1] = 0;
+                    font[at + 3] = 4;
+                } else if (font[at + 1] == 1 && font[at + 3] == 0) {
+                    font[at + 3] = 1;
+                }
+            }
+        }
+        return font;
+    }
 
     /// <summary>The bundled Carlito face with its Windows Unicode cmap relabelled as a symbol cmap.</summary>
     private static byte[] TrueTypeWithoutUnicodeCmap() {
