@@ -73,17 +73,21 @@ namespace OfficeIMO.Excel {
                 "[Content_Types].xml"
             };
 
+            var sourceTargets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (string relationships in splicer.Names.Where(static name => name.EndsWith(".rels", StringComparison.OrdinalIgnoreCase)).ToArray()) {
                 string owner = GetRelationshipOwner(relationships);
                 expectedEntries.Add(relationships);
                 relationshipSets.TryGetValue(owner, out HashSet<string>? live);
-                ReconcileRelationships(splicer, relationships, owner, live ?? new HashSet<string>(StringComparer.Ordinal), parts, removedParts);
+                ReconcileRelationships(splicer, relationships, owner, live ?? new HashSet<string>(StringComparer.Ordinal), parts, removedParts, sourceTargets);
                 relationshipSets.Remove(owner);
             }
             if (relationshipSets.Values.Any(static set => set.Count > 0)) throw new InvalidDataException("A part gained relationships.");
 
             foreach (string name in splicer.Names.ToArray()) {
                 if (expectedEntries.Contains(name)) continue;
+                // An entry that nothing in the source package referenced, such as a theme a producer left behind, is
+                // not a part of the document; it stays exactly as it was, as it does when the package is edited in place.
+                if (!sourceTargets.Contains(name) && !splicer.Contains(GetRelationshipEntry(name))) continue;
                 if (!removedParts.Contains(name) || splicer.Contains(GetRelationshipEntry(name))) throw new InvalidDataException($"Package entry '{name}' has no live part.");
                 splicer.Remove(name);
             }
@@ -160,7 +164,8 @@ namespace OfficeIMO.Excel {
             string owner,
             HashSet<string> live,
             Dictionary<string, OpenXmlPart> parts,
-            HashSet<string> removedParts) {
+            HashSet<string> removedParts,
+            HashSet<string> sourceTargets) {
             XDocument document = LoadPackageXml(splicer.Read(entry));
             XElement root = document.Root ?? throw new InvalidDataException("Relationships are empty.");
             bool changed = false;
@@ -169,6 +174,7 @@ namespace OfficeIMO.Excel {
                 bool external = string.Equals((string?)relationship.Attribute("TargetMode"), "External", StringComparison.OrdinalIgnoreCase);
                 string target = (string?)relationship.Attribute("Target") ?? throw new InvalidDataException("A relationship has no target.");
                 string resolved = external ? "external:" + target : ResolvePackagePath(owner, target);
+                if (!external) sourceTargets.Add(resolved.TrimStart('/'));
                 string key = (string?)relationship.Attribute("Id") + "\n" + (string?)relationship.Attribute("Type") + "\n" + resolved;
                 if (live.Contains(key)) {
                     matched++;
