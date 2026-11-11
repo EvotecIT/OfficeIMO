@@ -2,13 +2,12 @@ namespace OfficeIMO.Email;
 
 /// <summary>Rejects retained payloads that cannot fit before a format writer materializes encoded output.</summary>
 internal static class EmailOutputPreflight {
-    internal static long EnsurePayloadsFit(EmailDocument document, EmailFileFormat format, long maxOutputBytes) {
+    internal static void EnsurePayloadsFit(EmailDocument document, EmailFileFormat format, long maxOutputBytes) {
         var visited = new HashSet<EmailDocument>(ReferenceEqualityComparer<EmailDocument>.Instance);
         long retainedBytes = CountRetainedPayloadBytes(document, format, visited, maxOutputBytes);
         if (retainedBytes > maxOutputBytes) {
             throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes), retainedBytes, maxOutputBytes);
         }
-        return retainedBytes;
     }
 
     private static long CountRetainedPayloadBytes(EmailDocument document, EmailFileFormat format,
