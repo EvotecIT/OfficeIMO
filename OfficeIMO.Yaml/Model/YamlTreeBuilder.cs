@@ -13,6 +13,7 @@ internal sealed class YamlTreeBuilder {
     private const string NullIdentity = "\u0001null";
     private const string TrueIdentity = "\u0001true";
     private const string FalseIdentity = "\u0001false";
+    private const string MergeIdentity = "\u0001<<";
 
     private readonly YamlDocument _document;
     private readonly YamlLoadOptions _options;
@@ -454,6 +455,9 @@ internal sealed class YamlTreeBuilder {
                 break;
             case YamlScalarKind.String:
                 return StringIdentity(record);
+            case YamlScalarKind.Merge:
+                // Merge keys are never duplicates of each other (see Equal), so they share one identity.
+                return Other(MergeIdentity);
         }
         return Other(Marker + _table.Value(record));
 
