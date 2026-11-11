@@ -83,6 +83,14 @@ internal sealed class YamlCharBuffer : TextWriter {
         _length = position;
     }
 
+    /// <summary>Appends <paramref name="count"/> spaces, the indentation of a deep line, in one step.</summary>
+    public void AppendSpaces(int count) {
+        if (_stream is not null && _length + count > StreamBlock) Drain(final: false);
+        if (_buffer.Length - _length < count) Grow(count);
+        _buffer.AsSpan(_length, count).Fill(' ');
+        _length += count;
+    }
+
     /// <summary>Appends a block mapping key on a new line: the line start (or padding), the key and <c>':'</c>.</summary>
     public void AppendKey(ReadOnlySpan<char> lineStart, string key) {
         int total = lineStart.Length + key.Length + 1;

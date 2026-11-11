@@ -163,7 +163,11 @@ internal sealed class YamlReadState {
 internal sealed class YamlWriteState {
     private const int ScannedAncestors = 16;
     private object[] _ancestors = new object[8];
-    private HashSet<object>? _deepAncestors;
+    // Ancestors past the scanned ones also sit in an open-addressed identity table, with the slot each took. They
+    // leave in reverse order of entering, so leaving clears the slot: every entry still present was placed earlier,
+    // so no probe sequence of one runs through a slot taken later.
+    private object?[] _deepTable = Array.Empty<object?>();
+    private int[] _deepSlots = Array.Empty<int>();
     private int _depth;
     private Dictionary<object, string>? _anchors;
     private HashSet<object>? _shared;
@@ -194,7 +198,6 @@ internal sealed class YamlWriteState {
         _anchors = null;
         _shared = null;
         _nextAnchor = 0;
-        _deepAncestors?.Clear();
         DiscriminatorKey = null;
         DiscriminatorValue = null;
         Options = null!;
@@ -251,26 +254,52 @@ internal sealed class YamlWriteState {
 
     /// <summary>
     /// Enters an object or collection, failing on a cycle. The first <see cref="ScannedAncestors"/> ancestors are
-    /// compared one by one; deeper ones are also kept in a set, so deep nesting costs a lookup per level instead of a
-    /// scan of the whole path.
+    /// compared one by one; deeper ones are also kept in an identity table, so deep nesting costs a lookup per level
+    /// instead of a scan of the whole path.
     /// </summary>
     public void Enter(object value, Type type) {
         int scanned = Math.Min(_depth, ScannedAncestors);
         for (int i = 0; i < scanned; i++) {
             if (ReferenceEquals(_ancestors[i], value)) throw YamlSerializationErrors.Cycle(type);
         }
-        if (_depth >= ScannedAncestors) {
-            HashSet<object> deep = _deepAncestors ??= new HashSet<object>(YamlReferenceComparer.Instance);
-            if (!deep.Add(value)) throw YamlSerializationErrors.Cycle(type);
-        }
+        if (_depth >= ScannedAncestors && !AddDeep(value, _depth - ScannedAncestors)) throw YamlSerializationErrors.Cycle(type);
         if (_depth == _ancestors.Length) Array.Resize(ref _ancestors, _depth * 2);
         _ancestors[_depth++] = value;
     }
 
     public void Exit() {
-        object value = _ancestors[--_depth];
-        _ancestors[_depth] = null!;
-        if (_depth >= ScannedAncestors) _deepAncestors!.Remove(value);
+        _ancestors[--_depth] = null!;
+        if (_depth >= ScannedAncestors) _deepTable[_deepSlots[_depth - ScannedAncestors]] = null;
+    }
+
+    /// <summary>Adds a deep ancestor as the table's entry number <paramref name="count"/>; false when it is already there.</summary>
+    private bool AddDeep(object value, int count) {
+        if ((count + 1) * 2 > _deepTable.Length) GrowDeep(count);
+        object?[] table = _deepTable;
+        int mask = table.Length - 1;
+        int slot = RuntimeHelpers.GetHashCode(value) & mask;
+        while (table[slot] is object present) {
+            if (ReferenceEquals(present, value)) return false;
+            slot = (slot + 1) & mask;
+        }
+        table[slot] = value;
+        if (count == _deepSlots.Length) Array.Resize(ref _deepSlots, Math.Max(16, count * 2));
+        _deepSlots[count] = slot;
+        return true;
+    }
+
+    /// <summary>Doubles the table and places the present entries again, in the order they entered.</summary>
+    private void GrowDeep(int count) {
+        var table = new object?[Math.Max(64, _deepTable.Length * 2)];
+        int mask = table.Length - 1;
+        for (int i = 0; i < count; i++) {
+            object value = _ancestors[ScannedAncestors + i];
+            int slot = RuntimeHelpers.GetHashCode(value) & mask;
+            while (table[slot] is not null) slot = (slot + 1) & mask;
+            table[slot] = value;
+            _deepSlots[i] = slot;
+        }
+        _deepTable = table;
     }
 }
 

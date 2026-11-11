@@ -58,6 +58,8 @@ internal sealed class YamlEmitter {
     [ThreadStatic] private static Frame[]? t_frames;
     private const int MaxReusedFrames = 1024;
     private Frame[] _frames;
+    // The deepest the stack has been, so releasing it clears only the frames used.
+    private int _maxDepth;
     private int _depth;
     private int _column;
     private int _documents;
@@ -88,7 +90,7 @@ internal sealed class YamlEmitter {
         _frames = Array.Empty<Frame>();
         _depth = 0;
         if (frames.Length > MaxReusedFrames) return;
-        Array.Clear(frames, 0, frames.Length);
+        Array.Clear(frames, 0, Math.Min(_maxDepth, frames.Length));
         t_frames = frames;
     }
 
@@ -964,6 +966,11 @@ internal sealed class YamlEmitter {
     }
 
     private void WriteSpaces(int count) {
+        if (_buffer is not null && count > Spaces.Length) {
+            _buffer.AppendSpaces(count);
+            _column += count;
+            return;
+        }
         while (count > 0) {
             int n = Math.Min(count, Spaces.Length);
             WriteRun(Spaces, 0, n);
@@ -1026,6 +1033,7 @@ internal sealed class YamlEmitter {
     private void Push(Frame frame) {
         if (_depth == _frames.Length) Array.Resize(ref _frames, Math.Max(8, _frames.Length * 2));
         _frames[_depth++] = frame;
+        if (_depth > _maxDepth) _maxDepth = _depth;
     }
 
     private static InvalidOperationException Invalid(string message) => new InvalidOperationException(message);
