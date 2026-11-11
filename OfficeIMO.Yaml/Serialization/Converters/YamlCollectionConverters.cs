@@ -154,7 +154,10 @@ internal sealed class YamlDictionaryConverter<TDictionary, TKey, TValue> : YamlC
     }
 
     private void ReadMerge(YamlEventCursor cursor, YamlReadState state, Dictionary<TKey, TValue> dictionary, ref HashSet<TKey>? merged) {
-        if (cursor.TokenType == YamlTokenType.Alias) cursor.ExpandAlias();
+        if (cursor.TokenType == YamlTokenType.Alias) {
+            if (TryMergeShared(cursor, state, dictionary, ref merged)) return;
+            cursor.ExpandAlias();
+        }
         if (cursor.TokenType == YamlTokenType.MappingStart) {
             ReadEntries(cursor, state, dictionary, ref merged, merging: true);
             return;
@@ -163,9 +166,42 @@ internal sealed class YamlDictionaryConverter<TDictionary, TKey, TValue> : YamlC
         while (true) {
             if (!cursor.Read()) throw YamlSerializationErrors.UnexpectedEnd(cursor);
             if (cursor.TokenType == YamlTokenType.SequenceEnd) return;
-            if (cursor.TokenType == YamlTokenType.Alias) cursor.ExpandAlias();
+            if (cursor.TokenType == YamlTokenType.Alias) {
+                if (TryMergeShared(cursor, state, dictionary, ref merged)) continue;
+                cursor.ExpandAlias();
+            }
             if (cursor.TokenType != YamlTokenType.MappingStart) throw YamlSerializationErrors.TypeMismatch(cursor, state, typeof(TDictionary), "a merge key needs a mapping or a sequence of mappings");
             ReadEntries(cursor, state, dictionary, ref merged, merging: true);
+        }
+    }
+
+    /// <summary>
+    /// Merges the entries of the untyped value already read for an aliased anchor, a mapping or a sequence of mappings,
+    /// instead of replaying it, and charges the alias what a replay would visit. Returns false when no shared value of
+    /// this dictionary's type is there, for a replay to read.
+    /// </summary>
+    private bool TryMergeShared(YamlEventCursor cursor, YamlReadState state, Dictionary<TKey, TValue> dictionary, ref HashSet<TKey>? merged) {
+        if (!state.SharesAliases || cursor.AliasTarget is not YamlRecording target || !state.TryGetShared(target, out object? shared)) return false;
+        if (shared is Dictionary<TKey, TValue> mapping) {
+            cursor.ChargeAlias(target);
+            MergeEntries(mapping, dictionary, ref merged);
+            return true;
+        }
+        if (shared is not List<object?> list || target.Logged) return false;
+        cursor.ChargeAlias(target);
+        foreach (object? item in list) {
+            if (item is not Dictionary<TKey, TValue> itemMapping) throw YamlSerializationErrors.TypeMismatch(cursor, state, typeof(TDictionary), "a merge key needs a mapping or a sequence of mappings");
+            MergeEntries(itemMapping, dictionary, ref merged);
+        }
+        return true;
+    }
+
+    /// <summary>Adds the entries the dictionary does not have yet, as a replayed merge does.</summary>
+    private static void MergeEntries(Dictionary<TKey, TValue> source, Dictionary<TKey, TValue> dictionary, ref HashSet<TKey>? merged) {
+        foreach (KeyValuePair<TKey, TValue> entry in source) {
+            if (dictionary.ContainsKey(entry.Key)) continue;
+            dictionary.Add(entry.Key, entry.Value);
+            (merged ??= new HashSet<TKey>(dictionary.Comparer)).Add(entry.Key);
         }
     }
 

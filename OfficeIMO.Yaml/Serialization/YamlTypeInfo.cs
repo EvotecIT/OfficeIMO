@@ -55,6 +55,9 @@ public abstract class YamlTypeInfo {
     /// <summary>The object converter, when values are object mappings.</summary>
     internal abstract IYamlObjectConverter? ObjectConverter { get; }
 
+    /// <summary>Whether values are read untyped (<see cref="object"/>), sharing the value of an anchor among its aliases.</summary>
+    internal abstract bool IsUntyped { get; }
+
     /// <summary>Resolves the metadata of the types this one contains, once, on first use.</summary>
     internal void EnsureConfigured() {
         if (_configured) return;
@@ -109,6 +112,8 @@ public sealed class YamlTypeInfo<T> : YamlTypeInfo {
 
     internal override bool IsObject => _converter.IsObject;
 
+    internal override bool IsUntyped => _sharesAliases;
+
     private protected override void Configure() => _converter.Configure(Options);
 
     /// <summary>
@@ -133,6 +138,7 @@ public sealed class YamlTypeInfo<T> : YamlTypeInfo {
         }
         if (!state.Preserve) {
             if (_sharesAliases && state.SharesAliases && cursor.DefinedAnchor is YamlRecording defined) {
+                if (state.SharedTree && cursor.TokenType is YamlTokenType.MappingStart or YamlTokenType.SequenceStart) cursor.StopLogging(defined);
                 T anchored = _converter.Read(cursor, state);
                 state.Share(defined, anchored);
                 return anchored;

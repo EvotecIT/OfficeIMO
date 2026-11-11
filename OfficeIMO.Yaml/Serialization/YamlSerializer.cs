@@ -228,7 +228,7 @@ public static class YamlSerializer {
         if (typeInfo is null) throw new ArgumentNullException(nameof(typeInfo));
         int maxExpansion = typeInfo.Options.EffectiveReaderOptions.MaxAliasExpansion;
         var cursor = new YamlEventCursor(YamlEventCursor.Record(node), maxExpansion, typeInfo.Options.EffectiveReaderOptions.Strict);
-        return typeInfo.Read(cursor, new YamlReadState(typeInfo.Options));
+        return typeInfo.Read(cursor, new YamlReadState(typeInfo.Options, typeInfo.IsUntyped));
     }
 
     // ------------------------------------------------------------------ generated metadata: context and Type
@@ -368,7 +368,7 @@ public static class YamlSerializer {
     private static object? DeserializeBoxed(YamlReader reader, YamlTypeInfo typeInfo) {
         if (reader is null) throw new ArgumentNullException(nameof(reader));
         if (!MoveToValue(reader, out bool document)) return null;
-        object? value = typeInfo.ReadBoxed(Begin(reader), new YamlReadState(typeInfo.Options));
+        object? value = typeInfo.ReadBoxed(Begin(reader), new YamlReadState(typeInfo.Options, typeInfo.IsUntyped));
         if (document) ReadDocumentEnd(reader);
         return value;
     }
@@ -377,12 +377,12 @@ public static class YamlSerializer {
         if (node is null) throw new ArgumentNullException(nameof(node));
         int maxExpansion = typeInfo.Options.EffectiveReaderOptions.MaxAliasExpansion;
         var cursor = new YamlEventCursor(YamlEventCursor.Record(node), maxExpansion, typeInfo.Options.EffectiveReaderOptions.Strict);
-        return typeInfo.ReadBoxed(cursor, new YamlReadState(typeInfo.Options));
+        return typeInfo.ReadBoxed(cursor, new YamlReadState(typeInfo.Options, typeInfo.IsUntyped));
     }
 
     private static T? ReadDocument<T>(YamlReader reader, YamlTypeInfo<T> typeInfo) {
         if (!MoveToValue(reader, out _)) return ReadEmpty(typeInfo);
-        T value = typeInfo.Read(Begin(reader), new YamlReadState(typeInfo.Options));
+        T value = typeInfo.Read(Begin(reader), new YamlReadState(typeInfo.Options, typeInfo.IsUntyped));
         ReadDocumentEnd(reader);
         RequireStreamEnd(reader);
         return value;
@@ -390,7 +390,7 @@ public static class YamlSerializer {
 
     private static object? ReadDocumentBoxed(YamlReader reader, YamlTypeInfo typeInfo) {
         if (!MoveToValue(reader, out _)) return null;
-        object? value = typeInfo.ReadBoxed(Begin(reader), new YamlReadState(typeInfo.Options));
+        object? value = typeInfo.ReadBoxed(Begin(reader), new YamlReadState(typeInfo.Options, typeInfo.IsUntyped));
         ReadDocumentEnd(reader);
         RequireStreamEnd(reader);
         return value;
@@ -398,7 +398,7 @@ public static class YamlSerializer {
 
     private static T? ReadNext<T>(YamlReader reader, YamlTypeInfo<T> typeInfo) {
         if (!MoveToValue(reader, out bool document)) return ReadEmpty(typeInfo);
-        T value = typeInfo.Read(Begin(reader), new YamlReadState(typeInfo.Options));
+        T value = typeInfo.Read(Begin(reader), new YamlReadState(typeInfo.Options, typeInfo.IsUntyped));
         if (document) ReadDocumentEnd(reader);
         return value;
     }
