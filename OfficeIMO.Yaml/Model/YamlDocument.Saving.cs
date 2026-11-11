@@ -48,6 +48,10 @@ public sealed partial class YamlDocument {
     /// <param name="options">Save settings, or <see langword="null"/> for a minimal-change save.</param>
     public void Save(Stream stream, YamlSaveOptions? options = null) {
         RequireWritable(stream);
+        if (!_partsDirty && options?.Reformat != true && _utf8 is { } input) {
+            stream.Write(input, 0, _utf8Length);
+            return;
+        }
         Write(stream, CollectSegments(options));
     }
 
@@ -76,6 +80,7 @@ public sealed partial class YamlDocument {
     /// <param name="cancellationToken">Observed between writes.</param>
     public Task SaveAsync(Stream stream, YamlSaveOptions? options = null, CancellationToken cancellationToken = default) {
         RequireWritable(stream);
+        if (!_partsDirty && options?.Reformat != true && _utf8 is { } input) return stream.WriteAsync(input, 0, _utf8Length, cancellationToken);
         return WriteAsync(stream, CollectSegments(options), cancellationToken);
     }
 
