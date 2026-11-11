@@ -147,6 +147,183 @@ public class PdfAConversionTests {
     }
 
     [Theory]
+    [InlineData(PdfComplianceProfile.PdfA4, "4")]
+    [InlineData(PdfComplianceProfile.PdfA4F, "4f")]
+    public void ConvertToPdfA_WritesPdfA4AsPdf20WithXmpAuthoritativeMetadataAndItsActionRules(PdfComplianceProfile profile, string flavour) {
+        byte[] source = RawPdf.Build(
+            content: "0 g 20 20 80 80 re f\n",
+            pageEntries: "/Annots [5 0 R] /AA << /O 7 0 R >>",
+            catalogEntries: "/Version /1.7 /OpenAction 6 0 R /AA << /WC 6 0 R >> /Requirements [<< /Type /Requirement /S /EnableJavaScripts >>] " +
+                "/Names << /EmbeddedFiles << /Names [(data.xml) 9 0 R] >> >>",
+            trailerEntries: "/Info 8 0 R",
+            extraObjects: new[] {
+                "<< /Type /Annot /Subtype /Link /Rect [20 20 100 100] /Border [0 0 0] /A 7 0 R >>",
+                "<< /S /JavaScript /JS (app.alert\\('x'\\)) >>",
+                "<< /S /Launch /F (calc.exe) >>",
+                "<< /Title (Quarterly archive) /Author (Records team) /CreationDate (D:20240102030405Z) >>",
+                "<< /Type /Filespec /F (data.xml) /EF << /F 10 0 R >> >>",
+                RawPdf.Stream("/Type /EmbeddedFile", "<data/>")
+            });
+
+        PdfAConversionResult result = PdfDocument.Load(new MemoryStream(source)).ConvertToPdfA(new PdfAConversionOptions { Profile = profile });
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Report.Violations));
+        Assert.Equal(profile == PdfComplianceProfile.PdfA4 ? "PDF/A-4" : "PDF/A-4f", result.Report.Target);
+        Assert.Contains(result.Report.Changes, change => change.Kind == PdfAConversionChangeKind.DocumentInfoUpdated && change.ObjectNumber == 8);
+        Assert.Contains(result.Report.Changes, change => change.Kind == PdfAConversionChangeKind.ActionRemoved && change.ObjectNumber == 7);
+        byte[] converted = result.ToBytes();
+        Assert.StartsWith("%PDF-2.0", Encoding.ASCII.GetString(converted, 0, 8), StringComparison.Ordinal);
+        PdfReadDocument output = PdfReadDocument.Open(converted);
+        Assert.Null(output.Security.InfoObjectNumber);
+        PdfDictionary catalog = output.CatalogDictionary!;
+        Assert.False(catalog.Items.ContainsKey("Version"));
+        Assert.False(catalog.Items.ContainsKey("Requirements"));
+        Assert.False(catalog.Items.ContainsKey("AA"));
+        // PDF/A-4 permits JavaScript actions; only the triggers and action types it forbids are removed.
+        Assert.True(catalog.Items.ContainsKey("OpenAction"));
+        Assert.False(output.Pages[0].PageDictionary.Items.ContainsKey("AA"));
+        var link = (PdfDictionary)PdfObjectLookup.Resolve(output.Objects, ((PdfArray)PdfObjectLookup.Resolve(output.Objects, output.Pages[0].PageDictionary.Items["Annots"])!).Items[0])!;
+        Assert.False(link.Items.ContainsKey("A"));
+        string xmp = Encoding.UTF8.GetString(((PdfStream)PdfObjectLookup.Resolve(output.Objects, catalog.Items["Metadata"])!).Data);
+        Assert.Contains("<pdfaid:part>4</pdfaid:part>", xmp, StringComparison.Ordinal);
+        Assert.Contains("<pdfaid:rev>2020</pdfaid:rev>", xmp, StringComparison.Ordinal);
+        Assert.Contains("Quarterly archive", xmp, StringComparison.Ordinal);
+        if (profile == PdfComplianceProfile.PdfA4F) {
+            Assert.Contains("<pdfaid:conformance>F</pdfaid:conformance>", xmp, StringComparison.Ordinal);
+            Assert.Single(result.RequireValue().Attachments.Extract());
+        } else {
+            Assert.DoesNotContain("pdfaid:conformance", xmp, StringComparison.Ordinal);
+            Assert.Empty(result.RequireValue().Attachments.Extract());
+            Assert.Contains(result.Report.Changes, change => change.Kind == PdfAConversionChangeKind.EmbeddedFileRemoved);
+        }
+
+        AssertRendersSame(source, converted);
+        AssertVeraPdfPasses(converted, flavour);
+    }
+
+    [Fact]
+    public void ConvertToPdfA_KeepsOnlyModDateInTheInfoDictionaryWhenPieceInfoNeedsItForPdfA4() {
+        byte[] source = RawPdf.Build("0 g 20 20 50 50 re f\n",
+            catalogEntries: "/PieceInfo << /Producer.App << /LastModified (D:20240102030405Z) /Private << /Data 1 >> >> >>",
+            trailerEntries: "/Info 5 0 R",
+            extraObjects: new[] { "<< /Title (Kept in XMP) /ModDate (D:20240102030405Z) >>" });
+
+        PdfAConversionResult result = PdfDocument.Load(new MemoryStream(source)).ConvertToPdfA(new PdfAConversionOptions { Profile = PdfComplianceProfile.PdfA4 });
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Report.Violations));
+        PdfReadDocument output = PdfReadDocument.Open(result.ToBytes());
+        PdfDictionary info = Assert.IsType<PdfDictionary>(output.Objects[output.Security.InfoObjectNumber!.Value].Value);
+        Assert.Equal("ModDate", Assert.Single(info.Items.Keys));
+        AssertVeraPdfPasses(result.ToBytes(), "4");
+    }
+
+    [Fact]
+    public void ConvertToPdfA_ListsAnnotationOnlyAttachmentsInTheEmbeddedFilesTreeForPdfA4F() {
+        byte[] source = RawPdf.Build("0 g 20 20 50 50 re f\n",
+            pageEntries: "/Annots [5 0 R]",
+            extraObjects: new[] {
+                "<< /Type /Annot /Subtype /FileAttachment /Rect [120 120 140 140] /F 4 /FS 6 0 R /AP << /N 8 0 R >> >>",
+                "<< /Type /Filespec /F (notes.txt) /UF (notes.txt) /EF << /F 7 0 R >> >>",
+                RawPdf.Stream("/Type /EmbeddedFile /Subtype /text#2Fplain", "archived notes"),
+                RawPdf.Stream("/Type /XObject /Subtype /Form /BBox [0 0 20 20]", "0 0 1 rg 0 0 20 20 re f")
+            });
+
+        PdfAConversionResult archive4f = PdfDocument.Load(new MemoryStream(source)).ConvertToPdfA(new PdfAConversionOptions { Profile = PdfComplianceProfile.PdfA4F });
+        PdfAConversionResult archive4 = PdfDocument.Load(new MemoryStream(source)).ConvertToPdfA(new PdfAConversionOptions { Profile = PdfComplianceProfile.PdfA4 });
+
+        Assert.True(archive4f.Succeeded, string.Join(Environment.NewLine, archive4f.Report.Violations));
+        Assert.Contains(archive4f.Report.Changes, change => change.Kind == PdfAConversionChangeKind.EmbeddedFileUpdated && change.Location == "catalog names");
+        Assert.Single(archive4f.RequireValue().Attachments.Extract());
+        AssertRendersSame(source, archive4f.ToBytes());
+        AssertVeraPdfPasses(archive4f.ToBytes(), "4f");
+        // PDF/A-4 forbids the FileAttachment annotation, and this one draws an icon, so removing it would change the page.
+        Assert.Equal(PdfAConversionRefusalReason.ForbiddenAnnotation, Assert.Single(archive4.Report.Violations).Reason);
+    }
+
+    [Fact]
+    public void ConvertToPdfA_ChecksPageOutputIntentsForPdfA4() {
+        byte[] source = RawPdf.Build("0 g 20 20 50 50 re f\n",
+            pageEntries: "/OutputIntents [5 0 R]",
+            extraObjects: new[] {
+                "<< /Type /OutputIntent /S /GTS_PDFA1 /OutputConditionIdentifier (sRGB) /DestOutputProfile 6 0 R /DestOutputProfileRef << /URLs [(http://example.com/srgb.icc)] >> >>",
+                RawPdf.Stream("/N 3", RawPdf.Latin1(PdfIccProfiles.SrgbIec6196621))
+            });
+
+        PdfAConversionResult result = PdfDocument.Load(new MemoryStream(source)).ConvertToPdfA(new PdfAConversionOptions { Profile = PdfComplianceProfile.PdfA4 });
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Report.Violations));
+        Assert.Contains(result.Report.Changes, change => change.ObjectNumber == 5 && change.Message.Contains("DestOutputProfileRef", StringComparison.Ordinal));
+        AssertVeraPdfPasses(result.ToBytes(), "4");
+    }
+
+    [Fact]
+    public void ConvertToPdfA_RejectsPdfA4E() {
+        PdfDocument document = PdfDocument.Load(new MemoryStream(RawPdf.Build("0 g 0 0 10 10 re f\n")));
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => document.ConvertToPdfA(new PdfAConversionOptions { Profile = PdfComplianceProfile.PdfA4E }));
+
+        Assert.Contains("PDF/A-4e", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(PdfComplianceProfile.PdfA2B, "2b")]
+    [InlineData(PdfComplianceProfile.PdfA3U, "3u")]
+    [InlineData(PdfComplianceProfile.PdfA4, "4")]
+    public void ConvertToPdfA_EmbedsSymbolAndZapfDingbatsSubstitutesByGlyphName(PdfComplianceProfile profile, string flavour) {
+        // Symbol draws alpha, beta and, through Differences, summation; ZapfDingbats draws a check mark and a star.
+        byte[] source = RawPdf.Build(
+            "BT /F1 24 Tf 20 120 Td (ab) Tj (A) Tj ET BT /F2 24 Tf 20 60 Td (34H) Tj ET\n",
+            resources: "/Font << /F1 5 0 R /F2 6 0 R >>",
+            extraObjects: new[] {
+                "<< /Type /Font /Subtype /Type1 /BaseFont /Symbol /Encoding << /Differences [65 /summation] >> >>",
+                "<< /Type /Font /Subtype /Type1 /BaseFont /ZapfDingbats >>"
+            });
+
+        PdfAConversionResult result = PdfDocument.Load(new MemoryStream(source)).ConvertToPdfA(new PdfAConversionOptions { Profile = profile });
+
+        if (!HasSymbolicSubstitutes()) {
+            Assert.False(result.Succeeded);
+            Assert.All(result.Report.Violations, violation => Assert.Equal(PdfAConversionRefusalReason.FontNotEmbeddable, violation.Reason));
+            return;
+        }
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Report.Violations));
+        Assert.Equal(2, result.Report.Changes.Count(change => change.Kind == PdfAConversionChangeKind.FontEmbedded));
+        byte[] converted = result.ToBytes();
+        PdfReadDocument output = PdfReadDocument.Open(converted);
+        foreach (string name in new[] { "F1", "F2" }) {
+            var pageFonts = (PdfDictionary)PdfObjectLookup.Resolve(output.Objects, output.Pages[0].GetFontInspectionResources()!.Items["Font"])!;
+            var font = (PdfDictionary)PdfObjectLookup.Resolve(output.Objects, pageFonts.Items[name])!;
+            Assert.Equal("TrueType", font.Get<PdfName>("Subtype")!.Name);
+            Assert.False(font.Items.ContainsKey("Encoding"));
+            PdfDictionary descriptor = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(output.Objects, font.Items["FontDescriptor"]));
+            Assert.Equal(4, (int)((PdfNumber)descriptor.Items["Flags"]).Value & 36);
+        }
+        Assert.Contains("\u03B1\u03B2\u2211", PdfDocument.Load(new MemoryStream(converted)).ExtractText(), StringComparison.Ordinal);
+        // Viewers position non-embedded standard fonts by the Adobe metrics, so the embedded fonts keep those advances.
+        var fonts = (PdfDictionary)PdfObjectLookup.Resolve(output.Objects, output.Pages[0].GetFontInspectionResources()!.Items["Font"])!;
+        var symbol = (PdfDictionary)PdfObjectLookup.Resolve(output.Objects, fonts.Items["F1"])!;
+        double[] widths = ((PdfArray)PdfObjectLookup.Resolve(output.Objects, symbol.Items["Widths"])!).Items.Select(item => ((PdfNumber)item).Value).ToArray();
+        int firstChar = (int)((PdfNumber)symbol.Items["FirstChar"]).Value;
+        Assert.Equal(713D, widths[65 - firstChar]);
+        Assert.Equal(631D, widths[97 - firstChar]);
+        Assert.Equal(549D, widths[98 - firstChar]);
+
+        AssertVeraPdfPasses(converted, flavour);
+    }
+
+    [Fact]
+    public void ConvertToPdfA_RefusesASymbolSubstituteWhoseWidthsDifferFromThePage() {
+        byte[] source = RawPdf.Build("BT /F1 24 Tf 20 120 Td (a) Tj ET\n", resources: "/Font << /F1 5 0 R >>",
+            extraObjects: new[] { "<< /Type /Font /Subtype /Type1 /BaseFont /Symbol /FirstChar 97 /LastChar 97 /Widths [100] >>" });
+
+        PdfAConversionResult result = PdfDocument.Load(new MemoryStream(source)).ConvertToPdfA();
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(HasSymbolicSubstitutes() ? PdfAConversionRefusalReason.FontMetricsMismatch : PdfAConversionRefusalReason.FontNotEmbeddable,
+            Assert.Single(result.Report.Violations).Reason);
+    }
+
+    [Theory]
     [MemberData(nameof(RefusalCases))]
     public void ConvertToPdfA_RefusesWithEveryReasonAndWritesNothing(string name, PdfAConversionRefusalReason reason, PdfComplianceProfile profile) {
         PdfAConversionOptions options = new() { Profile = profile, RemoveEmbeddedFiles = name != "embedded file" };
@@ -187,7 +364,10 @@ public class PdfAConversionTests {
         { "external stream", PdfAConversionRefusalReason.UnsupportedStream, PdfComplianceProfile.PdfA2B },
         { "inline image", PdfAConversionRefusalReason.InlineImageNotCompliant, PdfComplianceProfile.PdfA2B },
         { "operator", PdfAConversionRefusalReason.ContentNotCompliant, PdfComplianceProfile.PdfA2B },
-        { "xfa", PdfAConversionRefusalReason.DynamicXfaForm, PdfComplianceProfile.PdfA2B }
+        { "xfa", PdfAConversionRefusalReason.DynamicXfaForm, PdfComplianceProfile.PdfA2B },
+        { "no attachment", PdfAConversionRefusalReason.EmbeddedFileRequired, PdfComplianceProfile.PdfA4F },
+        { "undefined resource", PdfAConversionRefusalReason.ContentNotCompliant, PdfComplianceProfile.PdfA4 },
+        { "page output intents", PdfAConversionRefusalReason.ConflictingOutputIntents, PdfComplianceProfile.PdfA4 }
     };
 
     [Fact]
@@ -276,6 +456,16 @@ public class PdfAConversionTests {
         "xfa" => RawPdf.Build("0 g 0 0 10 10 re f\n",
             catalogEntries: "/NeedsRendering true /AcroForm << /Fields [] /XFA 5 0 R >>",
             extraObjects: new[] { RawPdf.Stream(string.Empty, "<xdp:xdp xmlns:xdp=\"http://ns.adobe.com/xdp/\"/>") }),
+        "no attachment" => RawPdf.Build("0 g 0 0 10 10 re f\n"),
+        "undefined resource" => RawPdf.Build("/Missing gs 0 g 0 0 10 10 re f\n"),
+        "page output intents" => RawPdf.Build("0 g 0 0 10 10 re f\n",
+            pageEntries: "/OutputIntents [5 0 R 6 0 R]",
+            extraObjects: new[] {
+                "<< /Type /OutputIntent /S /GTS_PDFA1 /OutputConditionIdentifier (sRGB) /DestOutputProfile 7 0 R >>",
+                "<< /Type /OutputIntent /S /GTS_PDFX /OutputConditionIdentifier (sRGB) /DestOutputProfile 8 0 R >>",
+                RawPdf.Stream("/N 3", RawPdf.Latin1(PdfIccProfiles.SrgbIec6196621)),
+                RawPdf.Stream("/N 3", RawPdf.Latin1(PdfIccProfiles.SrgbIec6196621))
+            }),
         _ => throw new ArgumentOutOfRangeException(nameof(name))
     };
 
@@ -297,6 +487,9 @@ public class PdfAConversionTests {
         }
         return font;
     }
+
+    private static bool HasSymbolicSubstitutes() =>
+        PdfEmbeddedFontFamily.TryFromSystem("Symbol", out _) && PdfEmbeddedFontFamily.TryFromSystem("Zapf Dingbats", out _);
 
     private static bool HasHelveticaSubstitute() =>
         new[] { "Arial", "Liberation Sans", "Arimo", "Helvetica" }.Any(family => PdfEmbeddedFontFamily.TryFromSystem(family, out _));
@@ -333,7 +526,7 @@ public class PdfAConversionTests {
         private static readonly Encoding Iso88591 = Encoding.GetEncoding(28591);
 
         internal static byte[] Build(string content, string resources = "", string pageEntries = "", string catalogEntries = "",
-            string contentFilter = "", params string[] extraObjects) {
+            string contentFilter = "", string trailerEntries = "", params string[] extraObjects) {
             var objects = new List<string> {
                 "<< /Type /Catalog /Pages 2 0 R " + catalogEntries + " >>",
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -350,7 +543,7 @@ public class PdfAConversionTests {
             int xref = pdf.Length;
             pdf.Append("xref\n0 ").Append(objects.Count + 1).Append("\n0000000000 65535 f \n");
             foreach (int offset in offsets) pdf.Append(offset.ToString("0000000000", CultureInfo.InvariantCulture)).Append(" 00000 n \n");
-            pdf.Append("trailer\n<< /Size ").Append(objects.Count + 1).Append(" /Root 1 0 R >>\nstartxref\n").Append(xref).Append("\n%%EOF\n");
+            pdf.Append("trailer\n<< /Size ").Append(objects.Count + 1).Append(" /Root 1 0 R ").Append(trailerEntries).Append(" >>\nstartxref\n").Append(xref).Append("\n%%EOF\n");
             return Iso88591.GetBytes(pdf.ToString());
         }
 
