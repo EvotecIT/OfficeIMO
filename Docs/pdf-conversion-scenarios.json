@@ -260,10 +260,10 @@
       "id": "email-document",
       "sourceFormats": [ "eml", "msg", "oft", "tnef" ],
       "status": "direct-loss-aware-adapter",
-      "stages": [ "OfficeIMO.Reader.Email", "OfficeIMO.Reader.Core", "OfficeIMO.Reader.Pdf" ],
+      "stages": [ "OfficeIMO.Email", "OfficeIMO.Email.Html", "OfficeIMO.Email.Image", "OfficeIMO.Html.Pdf" ],
       "implementationProject": "OfficeIMO/OfficeIMO.csproj",
-      "evidenceTest": "OfficeIMO.Tests/OfficeConverter.ReaderTests.cs#EmailConversion_ProducesSearchablePdfWithEmailPolicyEvidence",
-      "diagnosticContract": "The direct façade applies the Reader email body, inline-resource, and attachment policies, then preserves their evidence through the shared searchable PDF projection."
+      "evidenceTest": "OfficeIMO.Tests/OfficeConverter.ReaderTests.cs#EmailConversion_RendersStyledMessageAndKeepsReaderTextOnlyOnRequest",
+      "diagnosticContract": "The direct façade renders the message header, sanitized body, inline resources and attachment list through the HTML-to-PDF engine and reports body-projection findings with the rendering findings; the TextOnly profile keeps the Reader email policies and their evidence through the shared searchable PDF projection."
     },
     {
       "id": "epub-book",

@@ -143,22 +143,22 @@ internal sealed partial class OfficeImoMcpTools {
 
     [McpServerTool(
         Name = "officeimo_convert",
-        Title = "Convert one Office document",
+        Title = "Convert one document",
         ReadOnly = false,
         Destructive = true,
         Idempotent = true,
         OpenWorld = false,
         UseStructuredContent = true,
         OutputSchemaType = typeof(AgentConvertResult))]
-    [Description("Write one ordinary document as Markdown or Reader JSON, or convert an iWork ZIP file or authorized directory package to its matching DOCX/XLSX/PPTX destination or PDF through shared workflows. Directory packages reject linked members and require output outside the source. Retains source hashes and fidelity evidence. PDF requires complete editable reconstruction. Whole-mailbox conversion is intentionally rejected.")]
+    [Description("Write one document as Markdown or Reader JSON, or convert it through a shared OfficeIMO conversion route selected by source extension and format: for example DOCX/XLSX/PPTX/ODT/ODS/ODP/RTF/Markdown/HTML/EML/MSG/EPUB/Visio to PDF, Markdown/HTML/RTF/ODT to DOCX, and DOCX/XLSX/PPTX to ODT/ODS/ODP. officeimo_capabilities with operation 'convert' lists the routes. iWork ZIP files and authorized directory packages convert to their matching DOCX/XLSX/PPTX destination or PDF; directory packages reject linked members and require output outside the source, and iWork PDF requires complete editable reconstruction. Email PDF renders the styled message with headers, body, inline images and attachment list. Retains source hashes and fidelity evidence. Whole-mailbox conversion is intentionally rejected.")]
     public async Task<CallToolResult> ConvertAsync(
         [Description("Path to one supported local document.")] string path,
         [Description("Destination file path. Existing files are protected unless overwrite is true.")] string outputPath,
-        [Description("Output format: markdown, json, docx, xlsx, pptx, or pdf. Office and PDF formats require a matching iWork source.")] string format = "markdown",
+        [Description("Output format: markdown, json, or a route destination extension such as pdf, docx, xlsx, pptx, odt, ods, or odp.")] string format = "markdown",
         [Description("Whether an existing destination may be replaced.")] bool overwrite = false,
         [Description("Typed iWork representation and acceptance options. Defaults reject partial output and incomplete previews; PDF always requires complete editable output.")] IWorkConversionOptions? iworkOptions = null,
-        [Description("Maximum captured iWork input bytes.")] long maximumInputBytes = 256L * 1024L * 1024L,
-        [Description("Maximum generated iWork destination bytes.")] long maximumOutputBytes = 512L * 1024L * 1024L,
+        [Description("Maximum captured input bytes for route and iWork conversions.")] long maximumInputBytes = 256L * 1024L * 1024L,
+        [Description("Maximum generated destination bytes for route and iWork conversions.")] long maximumOutputBytes = 512L * 1024L * 1024L,
         CancellationToken cancellationToken = default) =>
         await ExecuteAsync(
             () => _service.ConvertAsync(path, outputPath, format, overwrite, cancellationToken, iworkOptions, maximumInputBytes, maximumOutputBytes),

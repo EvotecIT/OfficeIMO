@@ -302,8 +302,8 @@
           "detail": "Word, Excel, PowerPoint, RTF, text, HTML, Markdown, XPS, Visio and Publisher",
           "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
           "notes": {
-            "windows": "Also DjVu, CHM and OpenDocument Draw, with conversion diagnostics.",
-            "linux": "Also DjVu, CHM and OpenDocument Draw, with conversion diagnostics."
+            "windows": "Also DjVu, CHM, OpenDocument text, spreadsheets, presentations and Draw, email and EPUB, with conversion diagnostics. The conversion workbench also writes Word from Markdown, HTML, RTF and ODT, and converts between Office and OpenDocument.",
+            "linux": "Also DjVu, CHM, OpenDocument text, spreadsheets, presentations and Draw, email and EPUB, with conversion diagnostics. The conversion workbench also writes Word from Markdown, HTML, RTF and ODT, and converts between Office and OpenDocument."
           }
         },
         {

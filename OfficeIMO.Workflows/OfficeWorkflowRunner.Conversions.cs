@@ -74,7 +74,8 @@ public sealed partial class OfficeWorkflowRunner {
         if (request.Registration is not null) return ConvertRegistered(request, input, diagnostics, cancellationToken);
         OfficeWorkflowRoute route = request.Route!;
         OfficeWorkflowRenderingOptions settings = request.ConversionOptions ?? new();
-        bool tier1 = OfficeConverter.IsBuiltinRoute(route.Id);
+        // Front-door routes and registered pair adapters run through the shared OfficeConverter route table.
+        bool tier1 = OfficeConverter.IsBuiltinRoute(route.Id) || OfficeWorkflow.IsPairRoute(route.Id);
         // The optimizer operates on unencrypted bytes; apply native output security last.
         PdfStandardEncryptionOptions? deferredEncryption = settings.CompressPdfOutput && !tier1
             ? settings.GetOutputPdfOptions()?.Encryption : null;
@@ -168,7 +169,10 @@ public sealed partial class OfficeWorkflowRunner {
                 break;
             }
             default:
-                throw new NotSupportedException("The conversion route '" + route.Id + "' is not implemented by the local runner.");
+                if (!tier1) throw new NotSupportedException("The conversion route '" + route.Id + "' is not implemented by the local runner.");
+                (bytes, evidence) = ConvertTier1(request, input, cancellationToken, emitHtmlTaggedStructure, htmlResourceSnapshots);
+                hasLoss = evidence.HasLoss;
+                break;
         }
 
         try {
