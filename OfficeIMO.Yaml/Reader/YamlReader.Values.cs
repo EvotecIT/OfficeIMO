@@ -2,6 +2,8 @@ namespace OfficeIMO.Yaml;
 
 public sealed partial class YamlReader {
     private const int TagCacheSize = 8;
+    // Values up to this length are shared through the string cache; longer ones are rarely repeated.
+    private const int SharedValueLength = 8;
     private string?[]? _tagCachePrefix;
     private string?[]? _tagCacheSuffix;
     private string?[]? _tagCacheValue;
@@ -71,7 +73,8 @@ public sealed partial class YamlReader {
         ReadOnlySpan<char> raw = Slice(_event.ValueStart, _event.ValueEnd);
         if (YamlScalarDecoder.IsVerbatim(_event.Style, _event.Flags)) {
             if (raw.Length == 0) return string.Empty;
-            return _event.IsKey ? Strings.Get(raw) : raw.ToString();
+            // Keys and short values repeat (enumerations, names, tags), so they come from the cache.
+            return _event.IsKey || raw.Length <= SharedValueLength ? Strings.Get(raw) : raw.ToString();
         }
         if (_scratch is null || _scratch.Length < raw.Length + 1) {
             if (_scratch is not null) ArrayPool<char>.Shared.Return(_scratch);

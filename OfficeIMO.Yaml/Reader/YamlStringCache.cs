@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace OfficeIMO.Yaml;
 
 /// <summary>
@@ -28,9 +30,7 @@ internal sealed class YamlStringCache {
     public string Get(ReadOnlySpan<char> text) {
         if (text.Length == 0) return string.Empty;
         if (text.Length > MaxLength) return text.ToString();
-        uint hash = 2166136261;
-        foreach (char ch in text) hash = (hash ^ ch) * 16777619;
-        int slot = (int)((hash ^ (hash >> 16)) & (Size - 1));
+        int slot = Slot(text);
         string? entry = _entries[slot];
         if (entry is not null && text.SequenceEqual(entry.AsSpan())) return entry;
         entry = text.ToString();
@@ -43,6 +43,27 @@ internal sealed class YamlStringCache {
             default: _filled3 |= bit; break;
         }
         return entry;
+    }
+
+    /// <summary>
+    /// Hashes the span from its first and last eight bytes (overlapping for short text) and its length: two reads and two
+    /// multiplications instead of a step per character. A collision only replaces a slot.
+    /// </summary>
+    private static int Slot(ReadOnlySpan<char> text) {
+        ReadOnlySpan<byte> bytes = MemoryMarshal.AsBytes(text);
+        ulong head, tail;
+        if (bytes.Length >= 8) {
+            head = MemoryMarshal.Read<ulong>(bytes);
+            tail = MemoryMarshal.Read<ulong>(bytes.Slice(bytes.Length - 8));
+        } else if (bytes.Length >= 4) {
+            head = MemoryMarshal.Read<uint>(bytes);
+            tail = MemoryMarshal.Read<uint>(bytes.Slice(bytes.Length - 4));
+        } else {
+            head = text[0];
+            tail = 0;
+        }
+        ulong hash = (head * 0x9E3779B97F4A7C15UL) ^ (tail * 0xC2B2AE3D27D4EB4FUL) ^ (ulong)bytes.Length;
+        return (int)((hash ^ (hash >> 29) ^ (hash >> 47)) & (Size - 1));
     }
 
     /// <summary>Clears the filled slots and keeps the cache for this thread's next reader, or returns its table. The caller drops its reference.</summary>

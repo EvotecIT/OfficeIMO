@@ -23,7 +23,6 @@ internal sealed class YamlReadState {
     private PathStep[] _path = new PathStep[8];
     private int _depth;
     private Dictionary<string, object?>? _references;
-    private Dictionary<YamlRecording, object?>? _shared;
 
     public YamlReadState(YamlSerializerOptions options, bool untypedRoot = false) {
         Options = options;
@@ -47,7 +46,6 @@ internal sealed class YamlReadState {
         Array.Clear(_path, 0, _path.Length);
         _depth = 0;
         _references = null;
-        _shared = null;
         if (_sizes is not null) Array.Clear(_sizes, 0, _sizes.Length);
         PendingAnchor = null;
         Options = null!;
@@ -75,11 +73,15 @@ internal sealed class YamlReadState {
     public bool SharedTree { get; private set; }
 
     /// <summary>Keeps the value read for an anchored node, for the aliases to it read later.</summary>
-    public void Share(YamlRecording anchor, object? value) => (_shared ??= new Dictionary<YamlRecording, object?>())[anchor] = value;
+    /// <remarks>The value is kept on the recording, which belongs to this read's cursor and ends with it.</remarks>
+    public void Share(YamlRecording anchor, object? value) {
+        anchor.Shared = value;
+        anchor.HasShared = true;
+    }
 
     public bool TryGetShared(YamlRecording anchor, out object? value) {
-        value = null;
-        return _shared is not null && _shared.TryGetValue(anchor, out value);
+        value = anchor.Shared;
+        return anchor.HasShared;
     }
 
     /// <summary>The anchor of the node being read, until the converter that creates its instance takes it.</summary>
