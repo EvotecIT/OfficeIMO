@@ -202,7 +202,7 @@ internal static partial class CsvWriter
     {
         if (invariantComma)
         {
-            if (!value.TryFormat(output.GetSpan(64), out var written, default, CultureInfo.InvariantCulture))
+            if (!TryFormatInvariant(value, output.GetSpan(64), out var written))
             {
                 return false;
             }

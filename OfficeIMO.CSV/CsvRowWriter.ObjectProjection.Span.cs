@@ -34,8 +34,7 @@ public sealed partial class CsvRowWriter
         {
             int start = writer._propertyCharacterCount + (ordinal > 0 ? 1 : 0);
             if (start <= writer._propertyCharacters!.Length &&
-                value.TryFormat(writer._propertyCharacters.AsSpan(start), out int written,
-                    default, CultureInfo.InvariantCulture))
+                CsvWriter.TryFormatInvariant(value, writer._propertyCharacters.AsSpan(start), out int written))
             {
                 if (ordinal > 0) writer._propertyCharacters[writer._propertyCharacterCount] = writer._delimiter;
                 writer._propertyCharacterCount = start + written;

@@ -322,13 +322,26 @@ internal static partial class CsvWriter
         CultureInfo culture)
         where T : ISpanFormattable
     {
-        if (delimiter == ',' && ReferenceEquals(culture, CultureInfo.InvariantCulture))
+        Span<char> destination = stackalloc char[128];
+        if (ReferenceEquals(culture, CultureInfo.InvariantCulture))
         {
-            buffer.Append(CultureInfo.InvariantCulture, $"{value}");
+            if (!TryFormatInvariant(value, destination, out var invariantWritten))
+            {
+                WriteEscapedDefault(buffer, FormatValue(value, culture), delimiter);
+            }
+            else if (delimiter == ',')
+            {
+                // Invariant scalars contain no comma, quote or line break.
+                buffer.Append(destination[..invariantWritten]);
+            }
+            else
+            {
+                AppendEscapedSpanDefault(buffer, destination[..invariantWritten], delimiter);
+            }
+
             return;
         }
 
-        Span<char> destination = stackalloc char[128];
         if (!value.TryFormat(destination, out var charsWritten, default, culture))
         {
             WriteEscapedDefault(buffer, FormatValue(value, culture), delimiter);
