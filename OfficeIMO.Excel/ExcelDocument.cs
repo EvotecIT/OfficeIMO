@@ -362,7 +362,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         internal SpreadsheetDocument _spreadSheetDocument {
             get {
-                if (_pendingRowDeletes != null) FlushPendingRowDeletes();
+                FlushPendingPackageEditsIfAny();
                 return _spreadSheetDocumentValue;
             }
             set => _spreadSheetDocumentValue = value;
@@ -374,14 +374,17 @@ namespace OfficeIMO.Excel {
         public SpreadsheetDocument OpenXmlDocument {
             get {
                 _openXmlDocumentExposed = true;
-                return _spreadSheetDocument;
+                SpreadsheetDocument document = _spreadSheetDocument;
+                CommitPendingStylesheet();
+                ExcelSheet.MarkPackageExposed(document);
+                return document;
             }
         }
         private bool _openXmlDocumentExposed;
         internal bool IsOpenXmlDocumentExposed => _openXmlDocumentExposed;
         private WorkbookPart _workBookPart {
             get {
-                if (_pendingRowDeletes != null) FlushPendingRowDeletes();
+                FlushPendingPackageEditsIfAny();
                 return _workBookPartValue;
             }
             set => _workBookPartValue = value;

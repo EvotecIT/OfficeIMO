@@ -65,6 +65,12 @@ namespace OfficeIMO.Excel {
             _replacements[name] = content;
         }
 
+        /// <summary>Returns the package with <paramref name="name"/> replaced by <paramref name="content"/>.</summary>
+        internal byte[] BuildWith(string name, byte[] content) {
+            Replace(name, content);
+            return Build()!;
+        }
+
         internal void Remove(string name) {
             if (!_entries.ContainsKey(name)) throw new InvalidDataException($"Package entry '{name}' is missing.");
             _removals.Add(name);
@@ -89,6 +95,60 @@ namespace OfficeIMO.Excel {
                 int block = deflate.Read(content, read, content.Length - read);
                 if (block == 0) throw new InvalidDataException("Truncated package entry.");
                 read += block;
+            }
+            return content;
+        }
+
+        /// <summary>
+        /// Opens only archives every ZIP reader agrees on: one disk, no ZIP64 records, a central directory that ends
+        /// at the end record, unencrypted entries and ASCII names that differ by more than letter case. Anything else
+        /// returns null so callers keep their archive route and its errors.
+        /// </summary>
+        internal static ExcelPackageEntrySplicer? TryOpenPlain(byte[] package) {
+            ExcelPackageEntrySplicer? splicer;
+            try {
+                splicer = Open(package);
+            } catch (Exception exception) when (exception is ArgumentException or IndexOutOfRangeException) {
+                return null;
+            }
+            if (splicer == null) return null;
+
+            int end = splicer._endRecord;
+            if (ReadUInt16(package, end + 6) != 0
+                || ReadUInt16(package, end + 8) != ReadUInt16(package, end + 10)
+                || splicer._directoryOffset + ReadUInt32(package, end + 12) != end
+                || (end >= 20 && ReadUInt32(package, end - 20) == 0x07064B50)) {
+                return null;
+            }
+
+            int directoryEnd = splicer._directoryOffset;
+            foreach (Entry entry in splicer._entries.Values) {
+                directoryEnd = Math.Max(directoryEnd, entry.CentralOffset + entry.CentralLength);
+                if ((ReadUInt16(package, entry.CentralOffset + 8) & 0x0001) != 0) return null;
+                foreach (char character in entry.Name) {
+                    if (character < 0x20 || character > 0x7E) return null;
+                }
+            }
+            return directoryEnd == end ? splicer : null;
+        }
+
+        /// <summary>Whether an entry has exactly this name, as a ZIP reader's lookup would find it.</summary>
+        internal bool ContainsExact(string name) =>
+            _entries.TryGetValue(name, out Entry? entry) && string.Equals(entry.Name, name, StringComparison.Ordinal);
+
+        /// <summary>
+        /// Reads an entry whose name matches exactly, or returns null when it is missing. Throws
+        /// <see cref="InvalidDataException"/> when the stored data does not match its size and CRC.
+        /// </summary>
+        internal byte[]? ReadExact(string name) {
+            if (!_entries.TryGetValue(name, out Entry? entry) || !string.Equals(entry.Name, name, StringComparison.Ordinal)) return null;
+            int method = ReadUInt16(_package, entry.CentralOffset + 10);
+            if (method == 0 && ReadUInt32(_package, entry.CentralOffset + 20) != ReadUInt32(_package, entry.CentralOffset + 24)) {
+                throw new InvalidDataException("Stored entry sizes differ.");
+            }
+            byte[] content = Read(name);
+            if (ReadUInt32(_package, entry.CentralOffset + 16) != Crc(content, content.Length)) {
+                throw new InvalidDataException("Entry CRC does not match.");
             }
             return content;
         }

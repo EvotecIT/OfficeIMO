@@ -759,14 +759,15 @@ namespace OfficeIMO.Excel {
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-            var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
-            var namedFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetFontName(font, fontName));
-            ApplyCellFormatOverride(stylesheet, cell, format => {
-                format.FontId = namedFontId;
-                format.ApplyFont = true;
+            ApplyDerivedCellFormat(stylesPart, stylesheet, cell, "font-name", fontName, () => {
+                uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+                var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
+                var namedFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetFontName(font, fontName));
+                ApplyCellFormatOverride(stylesheet, cell, format => {
+                    format.FontId = namedFontId;
+                    format.ApplyFont = true;
+                });
             });
-            SaveStylesheet(stylesPart);
         }
 
         private void ApplyFontSize(Cell cell, double fontSize) {
@@ -778,14 +779,15 @@ namespace OfficeIMO.Excel {
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-            var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
-            var fontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetFontSize(font, fontSize));
-            ApplyCellFormatOverride(stylesheet, cell, format => {
-                format.FontId = fontId;
-                format.ApplyFont = true;
+            ApplyDerivedCellFormat(stylesPart, stylesheet, cell, "font-size", fontSize.ToString("R", CultureInfo.InvariantCulture), () => {
+                uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+                var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
+                var fontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetFontSize(font, fontSize));
+                ApplyCellFormatOverride(stylesheet, cell, format => {
+                    format.FontId = fontId;
+                    format.ApplyFont = true;
+                });
             });
-            SaveStylesheet(stylesPart);
         }
 
         private static string NormalizeHexColor(string hex) {

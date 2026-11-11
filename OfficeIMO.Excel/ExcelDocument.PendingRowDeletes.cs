@@ -68,10 +68,6 @@ namespace OfficeIMO.Excel {
             return new PendingRowDeleteScope(pending);
         }
 
-        internal void FlushPendingRowDeletesIfAny() {
-            if (_pendingRowDeletes != null) FlushPendingRowDeletes();
-        }
-
         private void FlushPendingRowDeletes() {
             PendingRowDeletes? pending = _pendingRowDeletes;
             if (pending == null || pending.OwnerThreadId == Environment.CurrentManagedThreadId) return;

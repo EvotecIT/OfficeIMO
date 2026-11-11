@@ -25,25 +25,80 @@ namespace OfficeIMO.Excel {
                     } else {
                         ws.Append(merges);
                     }
-                } else if (MergeCellsContainReference(merges, a1Range, out mergeCount)) {
+                }
+
+                MergeReferenceIndex index = MergeIndexFor(merges);
+                bool? contains = index.Contains(merges, a1Range, out mergeCount);
+                if (contains == null) {
+                    // A remembered merge is no longer what the worksheet holds, so answer from the worksheet itself.
+                    index = new MergeReferenceIndex(merges);
+                    Persistence.MergeReferences = index;
+                    contains = index.Contains(merges, a1Range, out mergeCount);
+                }
+                if (contains == true) {
                     return;
                 }
 
-                merges.Append(new MergeCell { Reference = a1Range });
+                var merge = new MergeCell { Reference = a1Range };
+                merges.Append(merge);
                 merges.Count = mergeCount + 1U;
+                index.Appended(merge, a1Range);
             });
         }
 
-        private static bool MergeCellsContainReference(MergeCells merges, string reference, out uint count) {
-            count = 0;
-            foreach (var merge in merges.Elements<MergeCell>()) {
-                count++;
-                if (string.Equals(merge.Reference?.Value, reference, StringComparison.OrdinalIgnoreCase)) {
-                    return true;
+        private MergeReferenceIndex MergeIndexFor(MergeCells merges) {
+            if (Persistence.MergeReferences is not { } index || !index.Serves(merges)) {
+                index = new MergeReferenceIndex(merges);
+                Persistence.MergeReferences = index;
+            }
+            return index;
+        }
+
+        /// <summary>
+        /// Drops the merge index after merge cells are removed or their references rewritten in place. The index
+        /// belongs to the worksheet part, so every wrapper of the same part sees the invalidation.
+        /// </summary>
+        private void InvalidateMergeReferenceIndex() => Persistence.MergeReferences = null;
+
+        /// <summary>
+        /// Remembers the merge references of one <see cref="MergeCells"/> element so merging many ranges does not
+        /// rescan every earlier merge. It serves only the element it indexed while that element's last child is the
+        /// last merge it saw, so a reloaded worksheet or a merge appended elsewhere rebuilds it; removals and in-place
+        /// reference rewrites invalidate it explicitly. A remembered match is confirmed against the live element.
+        /// </summary>
+        private sealed class MergeReferenceIndex {
+            private readonly MergeCells _merges;
+            private readonly Dictionary<string, MergeCell> _references = new(StringComparer.OrdinalIgnoreCase);
+            private OpenXmlElement? _lastChild;
+            private uint _count;
+
+            internal MergeReferenceIndex(MergeCells merges) {
+                _merges = merges;
+                foreach (var merge in merges.Elements<MergeCell>()) {
+                    _count++;
+                    if (merge.Reference?.Value is string reference && !_references.ContainsKey(reference)) _references.Add(reference, merge);
                 }
+                _lastChild = merges.LastChild;
             }
 
-            return false;
+            internal bool Serves(MergeCells merges) => ReferenceEquals(merges, _merges) && ReferenceEquals(merges.LastChild, _lastChild);
+
+            /// <summary>True when the range is merged, false when it is not, or null when a remembered merge no longer
+            /// holds that reference and the index must be rebuilt.</summary>
+            internal bool? Contains(MergeCells merges, string reference, out uint count) {
+                count = _count;
+                if (!_references.TryGetValue(reference, out MergeCell? merge)) return false;
+                return ReferenceEquals(merge.Parent, merges)
+                    && string.Equals(merge.Reference?.Value, reference, StringComparison.OrdinalIgnoreCase)
+                    ? true
+                    : null;
+            }
+
+            internal void Appended(MergeCell merge, string reference) {
+                _count++;
+                if (!_references.ContainsKey(reference)) _references.Add(reference, merge);
+                _lastChild = merge;
+            }
         }
 
         /// <summary>
@@ -58,6 +113,7 @@ namespace OfficeIMO.Excel {
             var merges = WorksheetRoot.GetFirstChild<MergeCells>();
             if (merges == null) return;
             if (!MergeCellsOverlap(merges, bounds)) return;
+            InvalidateMergeReferenceIndex();
 
             bool changed = false;
             uint remainingCount = 0;
