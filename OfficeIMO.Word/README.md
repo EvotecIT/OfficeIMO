@@ -207,10 +207,10 @@ using var document = WordDocument.Load("Proposal.docx");
 OfficeHiddenDataReport removed = document.RemoveHiddenData(new OfficeHiddenDataOptions {
     TrackedChanges = OfficeTrackedChangesAction.AcceptAll
 });
-WordAccessibilityReport accessibility = document.FixAccessibility(new WordAccessibilityFixOptions {
+OfficeAccessibilityReport accessibility = document.FixAccessibility(new WordAccessibilityFixOptions {
     Title = "Proposal", Language = "en-US", MarkTableHeaderRows = true
 });
-foreach (WordAccessibilityFinding finding in accessibility.Findings) Console.WriteLine($"{finding.Severity} {finding.Code} at {finding.Location}");
+foreach (OfficeAccessibilityFinding finding in accessibility.Findings) Console.WriteLine($"{finding.Severity} {finding.Code} at {finding.Location}");
 document.Save("Proposal-shared.docx");
 ```
 

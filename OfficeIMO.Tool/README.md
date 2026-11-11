@@ -372,9 +372,12 @@ officeimo hidden-data remove .\proposal.docx
 
 # Also remove Content Credentials and AI-source declarations, and accept tracked changes
 officeimo hidden-data remove .\proposal.docx --output .\shared.docx --force --kinds default,provenance --tracked-changes accept
+
+# Drop only the AI-generated declaration and keep the Content Credentials
+officeimo hidden-data remove .\poster.docx --kinds default,provenance --keep-provenance c2pa
 ```
 
-Output uses the `officeimo.hidden-data.result.v1` schema, with one finding per item and its outcome. `--kinds` takes `default`, `all` or category names such as `provenance`, `hidden-content` and `image-metadata`. Removal never changes the input and refuses signed documents. The [hidden data matrix](../Docs/officeimo.hidden-data-support-matrix.md) lists every category.
+Output uses the `officeimo.hidden-data.result.v1` schema from `OfficeHiddenDataReportSerializer`, with one finding per item, its outcome and its scope. Inputs are Office, Visio, OpenDocument, EPUB and image files. `--kinds` takes `default`, `all` or category names such as `provenance`, `hidden-content` and `image-metadata`. Removal never changes the input and refuses to invalidate a signature unless `--remove-invalidated-signatures` is given. The `officeimo_inspect_hidden_data` and `officeimo_remove_hidden_data` MCP tools take the same choices. The [hidden data matrix](../Docs/officeimo.hidden-data-support-matrix.md) lists every category.
 
 ## Provenance workflows
 

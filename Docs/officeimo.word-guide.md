@@ -511,7 +511,7 @@ Console.WriteLine($"{report.OptimizedCount} images changed; {report.BytesSaved} 
 
 The inventory visits all package stories and XML media references, including body paragraphs, tables, headers, footers, notes, comments, DrawingML, and VML. Shared media uses the greatest pixel demand across its placements; crop edges increase that demand. Cropping remains editable and hidden crop pixels remain in the image. Tile fills, unresolved group transforms, relative sizing, and other unknown placements block downsampling for the shared part; explicit same-size recompression can still apply.
 
-Candidates are staged before mutation, with cooperative cancellation and rollback. Default limits are 32 MiB per encoded image, 128 MiB of staged originals/candidates, and 10,000 package parts. Metadata loss, including deliberate `Strip` or selective removal, blocks replacement unless `AllowMetadataLoss` is explicit. Signed packages block mutation unless `SignedDocumentPolicy` permits invalidation; saving that package also requires the corresponding save policy. `CompressionQuality` records Word's compression-state hint; use `OptimizeImages` to change the encoded bytes.
+Candidates are staged before mutation, with cooperative cancellation and rollback. Default limits are 32 MiB per encoded image, 128 MiB of staged originals/candidates, and 10,000 package parts. Metadata loss, including deliberate `Strip` or selective removal, blocks replacement unless `AllowMetadataLoss` is explicit. Signed packages block mutation unless `SignatureMutationPolicy` is set to `RemoveInvalidatedSignatures` or `PreserveSignatureMarkup`; saving that package also requires the same policy on `WordSaveOptions`. `CompressionQuality` records Word's compression-state hint; use `OptimizeImages` to change the encoded bytes.
 
 For supported legacy DOC inline pictures, optimization uses the same projected media API and native save preflight. The [legacy compatibility guide](../Docs/officeimo.word.legacy-doc-compatibility.md) describes the supported subset. The [workflow runner](../OfficeIMO.Workflows/README.md#optimize-embedded-word-images) provides source-preserving file and batch publication.
 
@@ -655,6 +655,20 @@ certificate trust. The cross-host `OfficeDocument.Inspect(path, options).Package
 PowerPoint, and Visio. The established `ValidateSignatures(...)` API additionally retains Word-specific timestamp and
 diagnostic evidence.
 
+Saving a signed document is blocked by default with `WordSignatureSavePolicyException`, because the rewritten
+package invalidates existing signatures. Set `WordSaveOptions.SignatureMutationPolicy` to
+`OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures` to drop the signature parts and the application
+signature flag, or to `PreserveSignatureMarkup` to keep the now-untrusted markup, for example before re-signing.
+Excel and PowerPoint use the same option on `ExcelSaveOptions` and `PowerPointSaveOptions`.
+
+```csharp
+using WordDocument document = WordDocument.Load("report.docx");
+document.AddParagraph("Edited after signing");
+document.Save(new WordSaveOptions {
+    SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+});
+```
+
 ### VBA macro-project signatures
 
 Signature parts in saved `.docm` and `.dotm` files can be inspected on every
@@ -668,7 +682,8 @@ WordMacroProjectSignatureInfo signatures =
 ```
 
 Managed VBA signing and content-binding validation work on every supported
-platform. The workflow blocks existing OPC package signatures by default,
+platform. The workflow blocks existing OPC package signatures by default
+(`WordMacroProjectSigningOptions.SignatureMutationPolicy`),
 clears existing VBA signatures, creates and verifies the legacy, agile, and V3
 profiles, proves that `vbaProject.bin` and the source package did not change
 concurrently, and atomically replaces the package only after final validation.
@@ -1168,7 +1183,7 @@ static OfficeProvenanceReport InspectUploadedWord(byte[] packageBytes) =>
 
 ## Accessibility checks
 
-`InspectAccessibility()` checks the document body and returns a `WordAccessibilityReport` with the same severity, code and `EnsureCompliant` shape as the PowerPoint checker:
+`InspectAccessibility()` checks the document body and returns an `OfficeAccessibilityReport`, the same report type as the PowerPoint checker, so one list, `EnsureCompliant()` gate and `ToJson()` output cover both formats. Each finding's `Location` reads `Document`, `Paragraph 12` or `Table 2`; `LocationIndex` is the zero-based paragraph and `ObjectId` and `ObjectName` identify a drawing. `WordAccessibilityOptions.Profile` takes `OfficeAccessibilityPolicyProfile.Default` or `Strict`. The rules:
 
 | Code | Rule | Severity |
 | --- | --- | --- |
