@@ -66,6 +66,15 @@ internal static class OfficeTextElements {
     private static string SingleCodeUnitElement(char value) =>
         SingleCodeUnitElements[value] ??= value.ToString();
 
+    /// <summary>Counts Unicode grapheme clusters as <see cref="Enumerate"/> yields them, without materializing them for single-code-unit text.</summary>
+    internal static int Count(string? value) {
+        if (string.IsNullOrEmpty(value)) return 0;
+        if (HasOnlySingleCodeUnitElements(value!)) return value!.Length;
+        int count = 0;
+        foreach (string _ in Enumerate(value)) count++;
+        return count;
+    }
+
     /// <summary>Splits text into Unicode grapheme clusters.</summary>
     public static IReadOnlyList<string> Split(string? value, bool includeEmptyElement = false) {
         var elements = new List<string>();

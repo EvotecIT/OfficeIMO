@@ -242,7 +242,9 @@
     "WordPictureControl.Text : string?",
     "WordRepeatingSection.Text : string?",
     "WordDocumentStatisticsInfo: detached eleven-counter native statistics snapshot",
-    "WordDocumentInfo.Statistics: detached statistics captured by WordDocument.Inspect"
+    "WordDocumentInfo.Statistics: detached statistics captured by WordDocument.Inspect",
+    "WordDocument.Styles : WordStyleCollection (list, get, add paragraph/character/table styles, GetOrAdd built-ins, Remove, Import with WordStyleConflictMode)",
+    "WordDocument.Theme : WordTheme (GetColor/SetColor, MajorFont, MinorFont, Name, Import)"
   ],
   "internalizeCandidates": [
     {
@@ -7399,28 +7401,6 @@
       "applied": "applied"
     },
     {
-      "old": "OfficeIMO.Word.WordParagraphStyle.CreateFontStyle(string styleId, string fontName, string? styleName = null)",
-      "kind": "method",
-      "action": "change",
-      "new": "OfficeIMO.Word.WordParagraphStyle.CreateFontStyle(string styleId, string fontFamily, string? styleName = null)",
-      "reason": "Use FontFamily for typeface names across authoring and design models.",
-      "file": "OfficeIMO.Word/WordParagraphStyle.cs",
-      "category": "authoring",
-      "phase": "B",
-      "applied": "applied"
-    },
-    {
-      "old": "OfficeIMO.Word.WordParagraphStyle.RegisterFontStyle(string styleId, string fontName, string? styleName = null)",
-      "kind": "method",
-      "action": "change",
-      "new": "OfficeIMO.Word.WordParagraphStyle.RegisterFontStyle(string styleId, string fontFamily, string? styleName = null)",
-      "reason": "Use FontFamily for typeface names across authoring and design models.",
-      "file": "OfficeIMO.Word/WordParagraphStyle.cs",
-      "category": "authoring",
-      "phase": "B",
-      "applied": "applied"
-    },
-    {
       "old": "OfficeIMO.Word.WordTable.DistributeColumnsEvenly() -> void",
       "kind": "method",
       "action": "change",
@@ -7527,6 +7507,90 @@
       "new": "OfficeIMO.Word.WordDocument.ToImage(...) : OfficeImageExportResult",
       "reason": "Use ToImage for one encoded surface and ToImages for a batch. Read Bytes for the payload, inspect CreateReport() for diagnostics, and use SaveAsImage or SaveAsImages to persist results. ExportImage and ExportImages aliases are removed.",
       "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraphStyle.RegisterCustomStyle(string styleId, WordParagraphStyleDefinition styleDefinition)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordStyleCollection.AddParagraphStyle(string styleId, string name = null) : WordStyle",
+      "replacement": "Create the style in the document that uses it: document.Styles.AddParagraphStyle(\"MyStyle\") and set its properties on the returned WordStyle.",
+      "reason": "Styles belong to the document that uses them; the process-wide registry leaked definitions into every later document.",
+      "file": "OfficeIMO.Word/WordStyleCollection.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraphStyle.RegisterFontStyle(string styleId, string fontName, string styleName = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordStyleCollection.AddParagraphStyle(string styleId, string name = null) : WordStyle",
+      "replacement": "document.Styles.AddParagraphStyle(styleId, styleName).FontFamily = fontName;",
+      "reason": "Styles belong to the document that uses them; the process-wide registry leaked definitions into every later document.",
+      "file": "OfficeIMO.Word/WordStyleCollection.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraphStyle.CreateFontStyle(string styleId, string fontName, string styleName = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Create the style in the document with document.Styles.AddParagraphStyle and set FontFamily.",
+      "reason": "Styles belong to the document that uses them; the process-wide registry leaked definitions into every later document.",
+      "file": "OfficeIMO.Word/WordStyleCollection.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraphStyle.OverrideBuiltInStyle(WordParagraphStyles style, WordParagraphStyleDefinition styleDefinition)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordStyleCollection.GetOrAdd(WordParagraphStyles style) : WordStyle",
+      "replacement": "Edit the document's own definition: document.Styles.GetOrAdd(WordParagraphStyles.Normal).Bold = true; or import a template's styles with document.Styles.Import(template, WordStyleConflictMode.Overwrite).",
+      "reason": "Styles belong to the document that uses them; the process-wide registry leaked definitions into every later document.",
+      "file": "OfficeIMO.Word/WordStyleCollection.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraphStyle.GetStyleDefinition(WordParagraphStyles style)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordStyleCollection.GetOrAdd(WordParagraphStyles style) : WordStyle",
+      "replacement": "Read the document's definition with document.Styles[\"Heading1\"], document.Styles.Get(idOrName) or document.Styles.GetOrAdd(WordParagraphStyles.Heading1).",
+      "reason": "Styles belong to the document that uses them; the process-wide registry leaked definitions into every later document.",
+      "file": "OfficeIMO.Word/WordStyleCollection.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraphStyleDefinition",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordStyle",
+      "replacement": "WordStyle edits a style in place in its document. LeftIndent is IndentationBefore, SpacingBefore and SpacingAfter are LineSpacingBefore and LineSpacingAfter, and Alignment is ParagraphAlignment, matching WordParagraph.",
+      "reason": "Styles belong to the document that uses them; the process-wide registry leaked definitions into every later document.",
+      "file": "OfficeIMO.Word/WordStyleCollection.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.EmbedFont(string fontPath, string styleId, string styleName = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.EmbedFont(string fontPath, string styleId, string styleName = null) : WordStyle",
+      "replacement": "The paragraph style is created in this document only and returned; an existing style with the identifier is updated to use the font.",
+      "reason": "Styles belong to the document that uses them; the process-wide registry leaked definitions into every later document.",
+      "file": "OfficeIMO.Word/WordStyleCollection.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
     }
   ],
   "packageMoves": [

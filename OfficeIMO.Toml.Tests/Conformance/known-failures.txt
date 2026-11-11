@@ -1,0 +1,2 @@
+# toml-test cases OfficeIMO.Toml does not pass yet, one case name per line with its reason.
+# The conformance tests fail when a listed case passes, so this list only shrinks.

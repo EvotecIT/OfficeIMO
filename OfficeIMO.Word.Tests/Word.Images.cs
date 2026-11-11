@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_AddSvgImage_UsesSharedImageFormatForSvgBlipExtension() {
+        public void Test_AddSvgImage_StoresSvgBlipWithPngFallback() {
             string filePath = Path.Combine(_directoryWithFiles, "AddSvgImageUsesSharedFormat.docx");
             string imagePath = Path.Combine(_directoryWithImages, "Sample.svg");
             if (File.Exists(filePath)) {
@@ -46,12 +46,15 @@ namespace OfficeIMO.Tests {
             }
 
             using WordprocessingDocument package = WordprocessingDocument.Open(filePath, false);
-            var imagePart = package.MainDocumentPart!.ImageParts.Single();
-            string documentXml = package.MainDocumentPart.Document!.OuterXml;
+            var mainPart = package.MainDocumentPart!;
+            var blip = mainPart.Document!.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().Single();
+            var svgBlip = blip.Descendants().Single(element => element.LocalName == "svgBlip");
+            string svgId = svgBlip.GetAttribute("embed", "http://schemas.openxmlformats.org/officeDocument/2006/relationships").Value!;
 
-            Assert.Equal(OfficeImageInfo.GetMimeType(OfficeImageFormat.Svg), imagePart.ContentType);
-            Assert.Contains("svgBlip", documentXml, StringComparison.Ordinal);
-            Assert.Contains("http://schemas.microsoft.com/office/drawing/2010/main", documentXml, StringComparison.Ordinal);
+            // Word draws the SVG; the ordinary blip carries the PNG fallback that older consumers display.
+            Assert.Equal(OfficeImageInfo.GetMimeType(OfficeImageFormat.Png), mainPart.GetPartById(blip.Embed!.Value!).ContentType);
+            Assert.Equal(OfficeImageInfo.GetMimeType(OfficeImageFormat.Svg), mainPart.GetPartById(svgId).ContentType);
+            Assert.Equal("http://schemas.microsoft.com/office/drawing/2016/SVG/main", svgBlip.NamespaceUri);
         }
 
         [Fact]

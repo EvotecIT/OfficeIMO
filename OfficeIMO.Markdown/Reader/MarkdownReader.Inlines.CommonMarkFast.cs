@@ -28,6 +28,7 @@ internal static partial class MarkdownReader {
         if (state?.CaptureSyntaxTree != false
             || sourceMap != null
             || options.InlineParserExtensions.Count != 0
+            || options.Math
             || options.InlineTransformExtensions.Count != 0
             || (options.Abbreviations && state?.Abbreviations.Count > 0)
             || ContainsPotentialBareAutolinkSyntax(text, options)
@@ -181,6 +182,7 @@ internal static partial class MarkdownReader {
         if (state?.CaptureSyntaxTree != false
             || sourceMap != null
             || options.InlineParserExtensions.Count != 0
+            || options.Math
             || options.InlineTransformExtensions.Count != 0
             || (options.Abbreviations && state?.Abbreviations.Count > 0)
             || ContainsPotentialBareAutolinkSyntax(text, options)

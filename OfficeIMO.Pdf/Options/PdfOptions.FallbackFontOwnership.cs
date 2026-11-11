@@ -6,8 +6,15 @@ public sealed partial class PdfCreateOptions {
 
     internal bool HasCallerOwnedEmbeddedFontFamily(PdfStandardFont family) {
         PdfStandardFont normalized = PdfStandardFontMapper.GetFontFamily(family);
+        ResolvePendingDefaultFontFamilies(normalized);
         return _fallbackOwnedFontFamilies?.Contains(normalized) != true &&
             _embeddedFonts?.Keys.Any(font => PdfStandardFontMapper.GetFontFamily(font) == normalized) == true;
+    }
+
+    internal bool HasEmbeddedFontInFamily(PdfStandardFont family) {
+        PdfStandardFont normalized = PdfStandardFontMapper.GetFontFamily(family);
+        ResolvePendingDefaultFontFamilies(normalized);
+        return _embeddedFonts?.Keys.Any(font => PdfStandardFontMapper.GetFontFamily(font) == normalized) == true;
     }
 
     private void MergeResolvedFallbackFontMappingsFrom(PdfCreateOptions nested) {
@@ -58,6 +65,7 @@ public sealed partial class PdfCreateOptions {
             for (int style = 0; style < 4; style++) {
                 PdfStandardFont font = PdfStandardFontMapper.GetStyledFont(family,
                     bold: (style & 1) != 0, italic: (style & 2) != 0);
+                ResolvePendingDefaultFontFamilies(font);
                 _embeddedFonts?.Remove(font);
                 _embeddedFontPrograms?.Remove(font);
                 _embeddedOpenTypeCffFontPrograms?.Remove(font);

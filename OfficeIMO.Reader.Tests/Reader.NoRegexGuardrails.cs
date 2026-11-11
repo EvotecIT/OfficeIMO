@@ -7,6 +7,7 @@ public sealed class ReaderNoRegexGuardrailTests {
     [InlineData("OfficeIMO.Reader.Csv")]
     [InlineData("OfficeIMO.Reader.Json")]
     [InlineData("OfficeIMO.Reader.Xml")]
+    [InlineData("OfficeIMO.Reader.Toml")]
     [InlineData("OfficeIMO.Reader.Yaml")]
     [InlineData("OfficeIMO.Reader.Html")]
     [InlineData("OfficeIMO.Reader.Pdf")]

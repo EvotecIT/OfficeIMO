@@ -472,6 +472,20 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_EscapedFontFaceAtKeywordStillLoadsItsFace() {
+        string html = "<style>@font\\-face{font-family:EscapedFace;src:url('data:font/ttf;base64,"
+            + Convert.ToBase64String(CreateHtmlRenderTestFont())
+            + "')}p{font-family:EscapedFace}</style><p>Escaped</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.Single(rendered.Fonts.Faces);
+    }
+
+    [Fact]
     public void HtmlRender_InvalidInlineFontMimeDoesNotConsumeImageBudgetOrMislabelTheResource() {
         byte[] font = CreateHtmlRenderTestFont();
         string png = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));

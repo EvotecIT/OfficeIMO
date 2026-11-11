@@ -268,21 +268,17 @@ internal static class PdfFileAssembler {
         byte[]? permanentFileId,
         CancellationToken cancellationToken) {
         int objectCount = offsets.Count - 1;
-        var trailer = new StringBuilder();
+        var trailer = new StringBuilder(checked(XrefSectionHeaderLength(objectCount) + objectCount * XrefEntryLength + 256));
         trailer.Append("xref\n");
         trailer.Append("0 ").Append((objectCount + 1).ToString(CultureInfo.InvariantCulture)).Append('\n');
         trailer.Append("0000000000 65535 f \n");
         for (int i = 1; i <= objectCount; i++) {
             cancellationToken.ThrowIfCancellationRequested();
-            trailer.Append(offsets[i].ToString("0000000000", CultureInfo.InvariantCulture)).Append(" 00000 n \n");
+            AppendXrefOffset(trailer, offsets[i]);
+            trailer.Append(" 00000 n \n");
         }
 
-        trailer.Append("trailer\n");
-        trailer.Append("<< /Size ").Append((objectCount + 1).ToString(CultureInfo.InvariantCulture))
-            .Append(" /Root ").Append(PdfSyntaxEscaper.IndirectReference(catalogId))
-            .Append(infoId > 0 ? " /Info " + PdfSyntaxEscaper.IndirectReference(infoId) : string.Empty)
-            .Append(BuildTrailerEntries(encryptionAssembly, fileId, trailerIdEntry, permanentFileId)).Append(" >>\n");
-        trailer.Append("startxref\n").Append(xrefPos.ToString(CultureInfo.InvariantCulture)).Append("\n%%EOF\n");
+        trailer.Append(BuildTrailerDictionary(objectCount, catalogId, infoId, xrefPos, encryptionAssembly, fileId, trailerIdEntry, permanentFileId));
         byte[] bytes = new byte[trailer.Length];
         char[] characters = new char[Math.Min(64 * 1024, trailer.Length)];
         for (int offset = 0; offset < trailer.Length; offset += characters.Length) {
@@ -405,7 +401,7 @@ internal static class PdfFileAssembler {
         }
 
         byte[] placeholderId = new byte[16];
-        long trailerLength = BuildTrailerBytes(offsets, catalogId, infoId, written, encryptionAssembly: null, placeholderId, trailerIdEntry, permanentFileId, cancellationToken).LongLength;
+        long trailerLength = MeasureTrailerLength(offsets, catalogId, infoId, written, placeholderId, trailerIdEntry, permanentFileId, cancellationToken);
         if (written > long.MaxValue - trailerLength) {
             throw new InvalidDataException("The assembled PDF exceeds the supported output size.");
         }
@@ -467,6 +463,67 @@ internal static class PdfFileAssembler {
 
     private static long AddWithoutOverflow(long left, long right) =>
         left > long.MaxValue - right ? long.MaxValue : left + right;
+
+    // Each in-use cross-reference entry is a ten-digit offset followed by " 00000 n \n".
+    private const int XrefEntryLength = 20;
+
+    private static int XrefSectionHeaderLength(int objectCount) =>
+        "xref\n".Length + "0 ".Length + (objectCount + 1).ToString(CultureInfo.InvariantCulture).Length + 1 + XrefEntryLength;
+
+    private static string BuildTrailerDictionary(
+        int objectCount,
+        int catalogId,
+        int infoId,
+        long xrefPos,
+        PdfEncryptionAssembly? encryptionAssembly,
+        byte[] fileId,
+        string? trailerIdEntry,
+        byte[]? permanentFileId) =>
+        "trailer\n"
+        + "<< /Size " + (objectCount + 1).ToString(CultureInfo.InvariantCulture)
+        + " /Root " + PdfSyntaxEscaper.IndirectReference(catalogId)
+        + (infoId > 0 ? " /Info " + PdfSyntaxEscaper.IndirectReference(infoId) : string.Empty)
+        + BuildTrailerEntries(encryptionAssembly, fileId, trailerIdEntry, permanentFileId) + " >>\n"
+        + "startxref\n" + xrefPos.ToString(CultureInfo.InvariantCulture) + "\n%%EOF\n";
+
+    // Matches offset.ToString("0000000000") without a string per object.
+    private static void AppendXrefOffset(StringBuilder builder, long offset) {
+        if (offset < 0L || offset > 9999999999L) {
+            builder.Append(offset.ToString("0000000000", CultureInfo.InvariantCulture));
+            return;
+        }
+
+        long divisor = 1000000000L;
+        for (int digit = 0; digit < 10; digit++) {
+            builder.Append((char)('0' + (int)(offset / divisor % 10L)));
+            divisor /= 10L;
+        }
+    }
+
+    /// <summary>The byte length <see cref="BuildTrailerBytes"/> produces, without building the cross-reference text.</summary>
+    private static long MeasureTrailerLength(
+        List<long> offsets,
+        int catalogId,
+        int infoId,
+        long xrefPos,
+        byte[] fileId,
+        string? trailerIdEntry,
+        byte[]? permanentFileId,
+        CancellationToken cancellationToken) {
+        int objectCount = offsets.Count - 1;
+        long length = XrefSectionHeaderLength(objectCount);
+        for (int i = 1; i <= objectCount; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            long offset = offsets[i];
+            length += offset < 0L || offset > 9999999999L
+                ? offset.ToString("0000000000", CultureInfo.InvariantCulture).Length + XrefEntryLength - 10
+                : XrefEntryLength;
+        }
+
+        string dictionary = BuildTrailerDictionary(objectCount, catalogId, infoId, xrefPos, encryptionAssembly: null, fileId, trailerIdEntry, permanentFileId);
+        cancellationToken.ThrowIfCancellationRequested();
+        return length + dictionary.Length;
+    }
 
     private static string BuildTrailerEntries(
         PdfEncryptionAssembly? encryptionAssembly,

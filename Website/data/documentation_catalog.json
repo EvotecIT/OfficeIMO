@@ -2,19 +2,19 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 334,
-    "productionComponentCount": 160,
-    "testProjectCount": 64,
-    "benchmarkProjectCount": 38,
+    "projectCount": 338,
+    "productionComponentCount": 162,
+    "testProjectCount": 65,
+    "benchmarkProjectCount": 39,
     "validationProjectCount": 73,
     "apiReferenceCount": 128,
     "conceptualPageCount": 132,
-    "conceptualWordCount": 61605
+    "conceptualWordCount": 61693
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
-      "componentCount": 34,
+      "componentCount": 35,
       "componentIndexes": [
         102,
         103,
@@ -49,7 +49,8 @@
         132,
         133,
         134,
-        135
+        135,
+        136
       ]
     },
     {
@@ -80,8 +81,8 @@
         84,
         100,
         101,
-        145,
-        146
+        147,
+        148
       ]
     },
     {
@@ -102,7 +103,7 @@
         73,
         74,
         99,
-        139
+        140
       ]
     },
     {
@@ -132,21 +133,21 @@
         95,
         96,
         97,
-        147,
-        148,
         149,
         150,
         151,
         152,
         153,
-        154
+        154,
+        155,
+        156
       ]
     },
     {
       "name": "PowerShell automation",
       "componentCount": 1,
       "componentIndexes": [
-        159
+        161
       ]
     },
     {
@@ -179,9 +180,9 @@
         89,
         90,
         91,
-        136,
         137,
-        138
+        138,
+        139
       ]
     },
     {
@@ -195,7 +196,7 @@
     },
     {
       "name": "Specialized components",
-      "componentCount": 27,
+      "componentCount": 28,
       "componentIndexes": [
         0,
         1,
@@ -215,15 +216,16 @@
         75,
         85,
         98,
-        140,
         141,
         142,
         143,
         144,
-        155,
-        156,
+        145,
+        146,
         157,
-        158
+        158,
+        159,
+        160
       ]
     }
   ],
@@ -807,7 +809,7 @@
       "description": "HTML parsing, resource policy, CSS layout, diagnostics, and provider-neutral render scenes for OfficeIMO converters.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html/OfficeIMO.Html.csproj",
-      "sourceFileCount": 559,
+      "sourceFileCount": 560,
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html/",
@@ -1906,6 +1908,19 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Subtitles"
     },
     {
+      "name": "OfficeIMO.Reader.Toml",
+      "packageId": "OfficeIMO.Reader.Toml",
+      "category": "Extraction and ingestion",
+      "description": "TOML adapter extensions for OfficeIMO.Reader: pyproject.toml, Cargo.toml, lock files and other TOML configuration as path, type and value chunks.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Reader.Toml/OfficeIMO.Reader.Toml.csproj",
+      "sourceFileCount": 3,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/reader/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Toml"
+    },
+    {
       "name": "OfficeIMO.Reader.Visio",
       "packageId": "OfficeIMO.Reader.Visio",
       "category": "Extraction and ingestion",
@@ -2099,6 +2114,19 @@
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": null
+    },
+    {
+      "name": "OfficeIMO.Toml",
+      "packageId": "OfficeIMO.Toml",
+      "category": "Specialized components",
+      "description": "A dependency-free TOML 1.1 engine for OfficeIMO: a low-allocation pull reader, a lossless document model that saves unchanged input byte for byte and edits with minimal diffs, and a writer.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Toml/OfficeIMO.Toml.csproj",
+      "sourceFileCount": 24,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Toml"
     },
     {
       "name": "OfficeIMO.Tool",

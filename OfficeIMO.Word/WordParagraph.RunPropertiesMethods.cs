@@ -251,17 +251,6 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="styleId">The style identifier.</param>
         /// <returns>The current paragraph instance.</returns>
-        /// <example>
-        /// <code><![CDATA[
-        /// Style style = new() {
-        ///     Type = StyleValues.Paragraph,
-        ///     StyleId = "MyStyle"
-        /// };
-        ///
-        /// WordParagraphStyle.RegisterCustomStyle("MyStyle", style);
-        /// document.AddParagraph("Hello world").SetStyleId("MyStyle");
-        /// ]]></code>
-        /// </example>
         public WordParagraph SetStyleId(string styleId) {
             if (!string.IsNullOrEmpty(styleId)) {
                 _document?.EnsureStyleDefinition(styleId);
@@ -272,6 +261,30 @@ namespace OfficeIMO.Word {
                 props.ParagraphStyleId.Val = styleId;
             }
             return this;
+        }
+
+        /// <summary>Applies a paragraph style defined in this paragraph's document.</summary>
+        /// <param name="style">A paragraph style from <see cref="WordDocument.Styles"/>.</param>
+        /// <returns>The current paragraph instance.</returns>
+        /// <exception cref="ArgumentException">The style is not a paragraph style of this document.</exception>
+        public WordParagraph SetStyle(WordStyle style) {
+            RequireOwnStyle(style, WordStyleType.Paragraph);
+            return SetStyleId(style.StyleId);
+        }
+
+        /// <summary>Applies a character style defined in this paragraph's document to the run.</summary>
+        /// <param name="style">A character style from <see cref="WordDocument.Styles"/>.</param>
+        /// <returns>The current paragraph instance.</returns>
+        /// <exception cref="ArgumentException">The style is not a character style of this document.</exception>
+        public WordParagraph SetCharacterStyle(WordStyle style) {
+            RequireOwnStyle(style, WordStyleType.Character);
+            return SetCharacterStyleId(style.StyleId);
+        }
+
+        private void RequireOwnStyle(WordStyle style, WordStyleType type) {
+            ArgumentNullException.ThrowIfNull(style);
+            if (!ReferenceEquals(style.Document, _document)) throw new ArgumentException("The style belongs to another document.", nameof(style));
+            if (style.Type != type) throw new ArgumentException($"'{style.StyleId}' is a {style.Type.ToString().ToLowerInvariant()} style, not a {type.ToString().ToLowerInvariant()} style.", nameof(style));
         }
 
         /// <summary>

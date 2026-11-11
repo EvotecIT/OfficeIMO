@@ -562,6 +562,8 @@ namespace OfficeIMO.Excel {
             }
 
             int nextResultIndex = _resultIndex + 1;
+            // The current sheet's background reads share the package with the next sheet, so they end first.
+            _activeReader?.Dispose();
             DbDataReader nextReader;
             try {
                 nextReader = _openSheet(nextResultIndex, cancellationToken);
@@ -570,7 +572,6 @@ namespace OfficeIMO.Excel {
                 throw;
             }
 
-            _activeReader?.Dispose();
             _currentSheetCancellationSource?.Dispose();
             _currentSheetCancellationSource = null;
             CurrentReader = nextReader;
@@ -607,6 +608,7 @@ namespace OfficeIMO.Excel {
 
             try {
                 int nextResultIndex = _resultIndex + 1;
+                _activeReader?.Dispose();
                 nextReader = await Task.Run(
                         () => _openSheet(nextResultIndex, sheetCancellationSource.Token),
                         sheetCancellationSource.Token)
@@ -616,7 +618,6 @@ namespace OfficeIMO.Excel {
                 cancellationToken.ThrowIfCancellationRequested();
                 _cancellationToken.ThrowIfCancellationRequested();
 
-                _activeReader?.Dispose();
                 _currentSheetCancellationSource?.Dispose();
                 CurrentReader = nextReader;
                 _currentSheetCancellationSource = sheetCancellationSource;

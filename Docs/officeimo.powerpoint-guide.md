@@ -218,6 +218,7 @@ dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- 
 dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --modern-powerpoint
 dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint-design-brief
 dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint-deck-plan
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint-masters
 ```
 
 ## Examples
@@ -306,6 +307,66 @@ slide.AddLine(
         OfficeIMO.OfficeLength.Centimeters(8), OfficeIMO.OfficeLength.Centimeters(3))
     .Stroke("#404040");
 ```
+
+### Slide masters and layouts
+
+`SlideMasters` lists the masters; each `PowerPointSlideMaster` lists its `Layouts`. Masters and layouts share one
+editing surface: `AddShape`, `AddTextBox`, `AddImage`, `AddPlaceholder`, `BackgroundColor`, `SetBackgroundImage`,
+`Shapes` and `Placeholders`. Content on a master shows on every slide; content on a layout shows on the slides that
+use it. A slide placeholder without its own position follows the layout placeholder, so moving the layout's
+placeholder moves it on every slide.
+
+```csharp
+PowerPointSlideMaster master = deck.SlideMasters[0];
+master.AddImage("logo.png", OfficeLength.Centimeters(29), OfficeLength.Centimeters(17.5),
+    OfficeLength.Centimeters(4), OfficeLength.Centimeters(1.2));
+
+PowerPointSlideLayout layout = master.AddLayout("Picture and content");
+layout.AddPlaceholder(PowerPointPlaceholderType.Title, new PowerPointLayoutBox(
+    OfficeLength.Centimeters(1.5), OfficeLength.Centimeters(1), OfficeLength.Centimeters(31), OfficeLength.Centimeters(2)));
+layout.AddPlaceholder(PowerPointPlaceholderType.Picture, new PowerPointLayoutBox(
+    OfficeLength.Centimeters(1.5), OfficeLength.Centimeters(3.5), OfficeLength.Centimeters(12), OfficeLength.Centimeters(13)));
+
+PowerPointSlide slide = deck.AddSlide(layout);
+slide.AddTextBox("Quarterly review").BindToPlaceholder(PowerPointPlaceholderType.Title);
+slide.AddImage("team.jpg").BindToPlaceholder(PowerPointPlaceholderType.Picture);
+```
+
+`BindToPlaceholder` puts a text box, picture, table or chart into a layout placeholder the way PowerPoint does: the
+shape keeps the placeholder binding and replaces an empty slide instance of it. A text box inherits the placeholder's
+geometry and text formatting; a picture is cropped to fill the placeholder; a table spans its width and keeps its
+row heights.
+
+`AddLayout` adds an empty custom layout; `Duplicate` copies a layout (or a whole master with its theme) and
+`AddSlideMaster` adds a master with the default theme and standard layouts. `Remove()` refuses a layout that slides
+still use; `Remove(replacement)` moves those slides to another layout first. A master keeps at least one layout and
+a presentation at least one master. `slide.Layout` and `slide.SetLayout(layout)` read and change a slide's layout.
+
+### Connectors
+
+`AddConnector` adds a straight, elbow or curved connector glued to two shapes. Pass connection-site indexes, or let
+OfficeIMO pick the closest pair of sites that face each other. `ConnectionSites` lists a shape's sites (index,
+position and outgoing direction) from its preset geometry: rectangles, rounded rectangles, diamonds, ellipses,
+triangles, common flowchart shapes, pictures, tables and charts, and custom geometry whose sites use literal
+coordinates. Moving, resizing, rotating or flipping a glued shape through the API reroutes its connectors; call
+`Reroute()` after editing geometry another way.
+
+```csharp
+PowerPointAutoShape draft = slide.AddRectangle(OfficeLength.Centimeters(2), OfficeLength.Centimeters(6),
+    OfficeLength.Centimeters(5), OfficeLength.Centimeters(2));
+PowerPointAutoShape done = slide.AddShape(OfficePresetShapeType.Ellipse, OfficeLength.Centimeters(14),
+    OfficeLength.Centimeters(10), OfficeLength.Centimeters(5), OfficeLength.Centimeters(2.5));
+
+PowerPointConnectionShape arrow = slide.AddConnector(draft, 3, done, 0, PowerPointConnectorKind.Elbow);
+arrow.Stroke(OfficeColor.Parse("1F4E79"), OfficeLength.Points(2));
+arrow.SetLineEnds(null, OfficeLineMarkerKind.Triangle);
+arrow.OutlineDash = PowerPointLineDashStyle.Dash;
+
+done.MoveBy(OfficeLength.Centimeters(1), OfficeLength.Zero); // the connector follows
+```
+
+Connectors glue to top-level shapes on the same slide. Rerouting draws one or two bends for elbow and curved
+connectors; it does not avoid obstacles.
 
 ### Tables from data
 

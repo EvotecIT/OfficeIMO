@@ -50,8 +50,7 @@ internal static partial class PdfSyntax {
                 continue;
             }
             // Header: pairs of objectNumber and offset (ASCII)
-            string header = PdfEncoding.Latin1GetStringCancellable(data, 0, first, cancellationToken);
-            var pairs = ParsePairs(header, n, out bool completeHeader, cancellationToken);
+            var pairs = ParsePairs(data, first, n, out bool completeHeader, cancellationToken);
             if (!completeHeader) { reportUnreadable(id); continue; }
             for (int i = 0; i < n; i++) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -69,12 +68,13 @@ internal static partial class PdfSyntax {
                     reportUnreadable(id);
                     continue;
                 }
-                var slice = PdfEncoding.Latin1GetStringCancellable(data, start, end - start, cancellationToken);
                 var parsed = ParseTopLevelObject(
-                    slice,
+                    data,
+                    start,
+                    end - start,
                     limits,
                     trackEncodedStringSourceSpans: false,
-                    cancellationToken: cancellationToken);
+                    cancellationToken);
                 if (parsed is not null) {
                     if (parsed.HasIncompleteSyntax) reportUnreadable(objNum);
                     map[objNum] = new PdfIndirectObject(objNum, 0, parsed) { SourceOffset = objectStreamOffset };
@@ -122,12 +122,15 @@ internal static partial class PdfSyntax {
         return true;
     }
 
-    private static List<(int Obj, int Off)> ParsePairs(string header, int n, out bool complete,
+    /// <summary>Reads the object-number and offset pairs from the first <paramref name="length"/> decoded bytes of an object stream.</summary>
+    private static List<(int Obj, int Off)> ParsePairs(byte[] data, int length, int n, out bool complete,
         System.Threading.CancellationToken cancellationToken) {
+        var header = new PdfByteContentText(data);
         var list = new List<(int, int)>(n);
         int i = 0; int count = 0;
-        var identifiers = new HashSet<int>();
-        while (i < header.Length && count < n) {
+        // Each pair needs at least two digits and a separator, so the header length bounds the set.
+        var identifiers = PdfCollectionSizing.CreateHashSet<int>(n, length / 2 + 1);
+        while (i < length && count < n) {
             cancellationToken.ThrowIfCancellationRequested();
             SkipWs();
             if (!ReadInt(out int obj)) break;
@@ -139,14 +142,14 @@ internal static partial class PdfSyntax {
             list.Add((obj, off)); count++;
         }
         SkipWs();
-        complete = list.Count == n && i == header.Length;
+        complete = list.Count == n && i == length;
         return list;
 
-        void SkipWs() { i = SkipWhitespaceAndComments(header, i, header.Length, cancellationToken); }
+        void SkipWs() { i = SkipWhitespaceAndComments(header, i, length, cancellationToken); }
         bool ReadInt(out int val) {
             int start = i;
-            if (i < header.Length && (header[i] == '-' || header[i] == '+')) i++;
-            while (i < header.Length && header[i] >= '0' && header[i] <= '9') {
+            if (i < length && (header[i] == '-' || header[i] == '+')) i++;
+            while (i < length && header[i] >= '0' && header[i] <= '9') {
                 if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 i++;
             }
@@ -155,9 +158,11 @@ internal static partial class PdfSyntax {
                 return false;
             }
 #if NET6_0_OR_GREATER
-            return int.TryParse(header.AsSpan(start, i - start), System.Globalization.NumberStyles.AllowLeadingSign,
+            Span<char> digits = stackalloc char[i - start];
+            for (int index = 0; index < digits.Length; index++) digits[index] = header[start + index];
+            return int.TryParse(digits, System.Globalization.NumberStyles.AllowLeadingSign,
 #else
-            return int.TryParse(header.Substring(start, i - start), System.Globalization.NumberStyles.AllowLeadingSign,
+            return int.TryParse(header.Substring(start, i - start, cancellationToken), System.Globalization.NumberStyles.AllowLeadingSign,
 #endif
                 System.Globalization.CultureInfo.InvariantCulture, out val);
         }

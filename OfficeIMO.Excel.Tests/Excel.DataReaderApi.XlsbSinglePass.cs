@@ -104,9 +104,41 @@ public partial class Excel {
         }
     }
 
-    private static byte[] CreateSinglePassXlsb(int extraColumnRow) {
+    /// <summary>
+    /// Moving to the next worksheet while the current one is still inflating reads the next sheet as the
+    /// default reader does, so the two sheets never share the package archive at the same time.
+    /// </summary>
+    [Fact]
+    public void XlsbSinglePassNextResultReadsTheNextSheetWhileTheCurrentOneIsStillInflating() {
+        byte[] workbook = CreateSinglePassXlsb(extraColumnRow: 0, sheetCount: 2);
+        var expected = new List<object>();
+        using (DbDataReader second = ExcelDocument.OpenReader(workbook, new ExcelReaderOptions { SheetIndex = 1 })) {
+            while (second.Read()) {
+                for (int ordinal = 0; ordinal < second.FieldCount; ordinal++) expected.Add(second.GetValue(ordinal));
+            }
+        }
+
+        for (int attempt = 0; attempt < 5; attempt++) {
+            using DbDataReader reader = ExcelDocument.OpenReader(workbook, new ExcelReaderOptions { EnableSinglePassReading = true });
+            for (int row = 0; row < attempt * 3; row++) Assert.True(reader.Read());
+            Assert.True(reader.NextResult());
+            var actual = new List<object>();
+            while (reader.Read()) {
+                for (int ordinal = 0; ordinal < reader.FieldCount; ordinal++) actual.Add(reader.GetValue(ordinal));
+            }
+            Assert.Equal(expected, actual);
+        }
+    }
+
+    private static byte[] CreateSinglePassXlsb(int extraColumnRow, int sheetCount = 1) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddSheet("Data");
+        for (int index = 0; index < sheetCount; index++) {
+            FillSinglePassSheet(document.AddSheet(index == 0 ? "Data" : "Data" + (index + 1)), extraColumnRow);
+        }
+        return document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb, XlsbUseSharedStrings = true });
+    }
+
+    private static void FillSinglePassSheet(ExcelSheet sheet, int extraColumnRow) {
         string[] headers = { "Region", "Date", "Id", "Price", "Cost", "Note" };
         for (int column = 0; column < headers.Length; column++) sheet.Cell(1, column + 1).SetValue(headers[column]);
         for (int row = 2; row <= XlsbSinglePassRows; row++) {
@@ -121,7 +153,6 @@ public partial class Excel {
             sheet.Cell(row, 6).SetValue("note " + row % 11);
             if (row == extraColumnRow) sheet.Cell(row, 8).SetValue("late");
         }
-        return document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb, XlsbUseSharedStrings = true });
     }
 
     /// <summary>Points the first shared-string cell of a 1-based worksheet row at a missing item.</summary>

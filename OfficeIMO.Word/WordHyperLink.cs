@@ -518,7 +518,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void ApplyHyperlinkStyle(Run run) {
+        internal static void ApplyHyperlinkStyle(Run run) {
             run.RunProperties ??= new RunProperties();
             run.RunProperties.RunStyle ??= new RunStyle { Val = "Hyperlink" };
             run.RunProperties.Color ??= new Color { ThemeColor = ThemeColorValues.Hyperlink, Val = "0000FF" };
