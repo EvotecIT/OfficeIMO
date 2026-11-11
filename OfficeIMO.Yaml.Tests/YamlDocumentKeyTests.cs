@@ -108,6 +108,11 @@ public class YamlDocumentKeyTests {
             Assert.Equal(OfficeDiagnosticSeverity.Information, d.Severity);
         });
 
+        // The note names the position the merge key node reports, with CRLF and lone CR line breaks before it.
+        YamlDocument mixed = YamlDocument.Parse("a: 1\r\nb: 2\rc:\n  x: 1\n  <<: {d: 3}\n");
+        YamlNode mergeKey = mixed.Root!.AsMapping()["c"].AsMapping()[1].Key;
+        Assert.Equal(mergeKey.Start.ToString(), Assert.Single(mixed.Diagnostics).Location);
+
         YamlDocument strict = YamlDocument.Parse(Merges, new YamlLoadOptions { Strict = true });
         YamlMapping single = strict.Root!.AsMapping()["single"].AsMapping();
         Assert.False(single.ContainsKey("port"));

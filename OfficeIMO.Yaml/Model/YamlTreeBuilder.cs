@@ -24,6 +24,8 @@ internal sealed class YamlTreeBuilder {
     private int _frameCount;
     /// <summary>The anchors defined so far in the current document, by name, in open addressing over their source spans.</summary>
     private AnchorSlot[] _anchors = Array.Empty<AnchorSlot>();
+    /// <summary>The slots of <see cref="_anchors"/> in use, a power of two; the pooled array may be longer.</summary>
+    private int _anchorSlots;
     private int _anchorCount;
     private YamlDocumentPart? _part;
     private int _partRoot;
@@ -74,6 +76,7 @@ internal sealed class YamlTreeBuilder {
             Array.Clear(_keys, 0, _keyCount);
             ArrayPool<KeyIdentity>.Shared.Return(_keys);
             ArrayPool<int>.Shared.Return(_buckets);
+            if (_anchorSlots > 0) ArrayPool<AnchorSlot>.Shared.Return(_anchors);
         }
     }
 
@@ -85,7 +88,7 @@ internal sealed class YamlTreeBuilder {
                 case YamlTokenType.DocumentStart:
                     _part = new YamlDocumentPart(_document, reader.DocumentSchema, reader.DocumentVersion, reader.CopyTagDirectives(), !ev.Implicit, ev.Start, ev.End);
                     if (_anchorCount > 0) {
-                        Array.Clear(_anchors, 0, _anchors.Length);
+                        Array.Clear(_anchors, 0, _anchorSlots);
                         _anchorCount = 0;
                     }
                     _noteMergeKeys = _part.Schema == YamlSchema.Core && _part.MergeKeys;
@@ -247,9 +250,9 @@ internal sealed class YamlTreeBuilder {
 
     /// <summary>Makes an anchor name refer to a record; a later anchor with the same name replaces the earlier one.</summary>
     private void DefineAnchor(int start, int length, int record) {
-        if ((_anchorCount + 1) * 2 > _anchors.Length) GrowAnchors();
+        if ((_anchorCount + 1) * 2 > _anchorSlots) GrowAnchors();
         int hash = YamlNodeTable.HashText(_source.AsSpan(start, length));
-        int mask = _anchors.Length - 1;
+        int mask = _anchorSlots - 1;
         for (int slot = hash & mask; ; slot = (slot + 1) & mask) {
             ref AnchorSlot anchor = ref _anchors[slot];
             if (!anchor.Used) {
@@ -268,7 +271,7 @@ internal sealed class YamlTreeBuilder {
     private int FindAnchor(int start, int length) {
         if (_anchorCount == 0) return -1;
         int hash = YamlNodeTable.HashText(_source.AsSpan(start, length));
-        int mask = _anchors.Length - 1;
+        int mask = _anchorSlots - 1;
         for (int slot = hash & mask; _anchors[slot].Used; slot = (slot + 1) & mask) {
             ref AnchorSlot anchor = ref _anchors[slot];
             if (anchor.Hash == hash && _source.AsSpan(anchor.Start, anchor.Length).SequenceEqual(_source.AsSpan(start, length))) return anchor.Record;
@@ -278,14 +281,19 @@ internal sealed class YamlTreeBuilder {
 
     private void GrowAnchors() {
         AnchorSlot[] old = _anchors;
-        _anchors = new AnchorSlot[Math.Max(16, old.Length * 2)];
-        int mask = _anchors.Length - 1;
-        foreach (AnchorSlot anchor in old) {
+        int oldSlots = _anchorSlots;
+        _anchorSlots = Math.Max(16, oldSlots * 2);
+        _anchors = ArrayPool<AnchorSlot>.Shared.Rent(_anchorSlots);
+        Array.Clear(_anchors, 0, _anchorSlots);
+        int mask = _anchorSlots - 1;
+        for (int i = 0; i < oldSlots; i++) {
+            AnchorSlot anchor = old[i];
             if (!anchor.Used) continue;
             int slot = anchor.Hash & mask;
             while (_anchors[slot].Used) slot = (slot + 1) & mask;
             _anchors[slot] = anchor;
         }
+        if (oldSlots > 0) ArrayPool<AnchorSlot>.Shared.Return(old);
     }
 
     private void Count(in YamlEvent ev) {
@@ -542,7 +550,7 @@ internal sealed class YamlTreeBuilder {
             int key = _keys[first + i].Record;
             if (_table.Records[key].Kind != YamlRecordKind.Scalar || !IsMergeKey(key)) continue;
             _noteMergeKeys = false;
-            YamlPosition position = _document.GetPosition(_table.Records[key].Start);
+            YamlPosition position = _document.FindPosition(_table.Records[key].Start);
             _document.AddDiagnostic(new OfficeDiagnostic(OfficeDiagnosticCodes.YamlMergeKeyWithoutDirective, OfficeDiagnosticSeverity.Information,
                 "The document uses '<<' merge keys, such as the one at " + position + ", without a %YAML 1.1 directive; they were resolved as YAML 1.1 and common tools resolve them. Load with Strict to read '<<' as an ordinary key.",
                 position.ToString(), "YAML"));
