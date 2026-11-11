@@ -108,6 +108,73 @@ public class CsvDataReaderWriterRegressionTests
         Assert.Equal(rows.ToString(), typed.ToString());
     }
 
+    public sealed class FormattedObjectRow
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+        public DateTime Created { get; set; }
+        public DateTime? Due { get; set; }
+        public DateTimeOffset Offset { get; set; }
+        public object? Any { get; set; }
+        public double Amount { get; set; }
+        public int? Count { get; set; }
+    }
+
+    [Theory]
+    [InlineData("yyyy-MM-dd, HH:mm", false, "n,a", "", false)]
+    [InlineData("O", true, null, "", true)]
+    [InlineData("", true, "NULL", "de-DE", false)]
+    [InlineData(null, false, "\"none\"", "", true)]
+    [InlineData("dd.MM.yyyy", false, null, "de-DE", true)]
+    [InlineData("dddd dddd dddd dddd dddd dddd dddd dddd dddd dddd dddd dddd dddd yyyy", false, null, "", false)]
+    public void WriteObjects_FormattedValuesMatchRowWriting(string? format, bool useUtc, string? nullValue, string cultureName, bool utf8)
+    {
+        var rows = new List<FormattedObjectRow>();
+        for (int index = 0; index < 400; index++)
+        {
+            bool empty = index % 5 == 3;
+            rows.Add(new FormattedObjectRow {
+                Id = index,
+                Name = empty ? null : index % 7 == 0 ? "a,\"b\"" : "name" + index,
+                Created = new DateTime(2026, 3, 4, 5, 6, 7, DateTimeKind.Local).AddMinutes(index * 37),
+                Due = empty ? null : new DateTime(2024, 2, 29, 0, 0, 0, DateTimeKind.Utc).AddHours(index),
+                Offset = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.FromHours(2)).AddDays(index),
+                Any = empty ? null : index % 2 == 0 ? new DateTime(2025, 12, 31, 23, 59, 59, DateTimeKind.Utc) : "text",
+                Amount = index * 1.25,
+                Count = empty ? null : index
+            });
+        }
+        var options = new CsvSaveOptions {
+            NewLine = "\n", DateTimeFormat = format, UseUtc = useUtc, NullValue = nullValue,
+            Culture = cultureName.Length == 0 ? CultureInfo.InvariantCulture : CultureInfo.GetCultureInfo(cultureName)
+        };
+
+        string projected;
+        if (utf8)
+        {
+            using var stream = new MemoryStream();
+            using (var streamWriter = new StreamWriter(stream, new UTF8Encoding(false), 1024, leaveOpen: true))
+                CsvDocument.WriteObjects(streamWriter, rows, options);
+            projected = Encoding.UTF8.GetString(stream.ToArray());
+        }
+        else
+        {
+            using var text = new StringWriter(CultureInfo.InvariantCulture);
+            CsvDocument.WriteObjects(text, rows, options);
+            projected = text.ToString();
+        }
+
+        using var expected = new StringWriter(CultureInfo.InvariantCulture);
+        using (var writer = new CsvRowWriter(expected, options, leaveOpen: true))
+        {
+            string[] columns = { "Id", "Name", "Created", "Due", "Offset", "Any", "Amount", "Count" };
+            foreach (var row in rows)
+                writer.WriteRow(columns, new object?[] { row.Id, row.Name, row.Created, row.Due, row.Offset, row.Any, row.Amount, row.Count });
+        }
+
+        Assert.Equal(expected.ToString(), projected);
+    }
+
     [Theory]
     [InlineData(',', "", false)]
     [InlineData(';', "", false)]
