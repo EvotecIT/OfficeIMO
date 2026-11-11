@@ -232,6 +232,11 @@ internal static partial class PdfAdvancedUnderstandingStages {
     private sealed class AdvancedWordGroupingStage : IPdfWordGroupingStage {
         public IReadOnlyList<PdfUnderstandingWord> GroupWords(PdfUnderstandingPageContext context, IReadOnlyList<PdfTextSpan> runs) {
             var result = new List<PdfUnderstandingWord>();
+            // Projection evidence depends only on the advance source and baseline angle, so words on the
+            // same kind of run share one immutable evidence item instead of formatting it per word.
+            PdfInferenceEvidence? projectionEvidence = null;
+            bool projectionEvidenceResolved = false;
+            double projectionEvidenceRotation = 0D;
             for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
                 context.ConsumeWork();
                 PdfTextSpan run = runs[runIndex];
@@ -280,12 +285,7 @@ internal static partial class PdfAdvancedUnderstandingStages {
                         NormalizeAngle(run.RotationDegrees),
                         new[] { run },
                         confidence,
-                        new[] { new PdfInferenceEvidence(
-                            hasResolvedCharacterAdvances ? "word-character-advance-projection" : "word-baseline-projection",
-                            hasResolvedCharacterAdvances
-                                ? "Word geometry was projected from decoded per-character advances along a " + run.RotationDegrees.ToString("0.###", CultureInfo.InvariantCulture) + " degree baseline."
-                                : "Word geometry was projected uniformly along a " + run.RotationDegrees.ToString("0.###", CultureInfo.InvariantCulture) + " degree baseline because per-character advances were unavailable.",
-                            hasResolvedCharacterAdvances ? 0.95D : (Math.Abs(run.RotationDegrees) <= 0.5D ? 0.8D : 0.6D)) },
+                        new[] { GetProjectionEvidence(hasResolvedCharacterAdvances, run.RotationDegrees) },
                         Math.Max(0D, endDistance - startDistance),
                         visualBounds: run.HasActualText && run.TextRenderingMode == 3
                             ? GetSelectionBounds(context, startX, startY, endDistance - startDistance, run.FontSize, run.RotationDegrees)
@@ -294,6 +294,21 @@ internal static partial class PdfAdvancedUnderstandingStages {
                 }
             }
             return result.Count == 0 ? Array.Empty<PdfUnderstandingWord>() : result.AsReadOnly();
+
+            PdfInferenceEvidence GetProjectionEvidence(bool resolved, double rotationDegrees) {
+                if (projectionEvidence is not null && projectionEvidenceResolved == resolved &&
+                    BitConverter.DoubleToInt64Bits(projectionEvidenceRotation) == BitConverter.DoubleToInt64Bits(rotationDegrees)) {
+                    return projectionEvidence;
+                }
+                projectionEvidenceResolved = resolved;
+                projectionEvidenceRotation = rotationDegrees;
+                return projectionEvidence = new PdfInferenceEvidence(
+                    resolved ? "word-character-advance-projection" : "word-baseline-projection",
+                    resolved
+                        ? "Word geometry was projected from decoded per-character advances along a " + rotationDegrees.ToString("0.###", CultureInfo.InvariantCulture) + " degree baseline."
+                        : "Word geometry was projected uniformly along a " + rotationDegrees.ToString("0.###", CultureInfo.InvariantCulture) + " degree baseline because per-character advances were unavailable.",
+                    resolved ? 0.95D : (Math.Abs(rotationDegrees) <= 0.5D ? 0.8D : 0.6D));
+            }
         }
 
         // Kerning and glyph positioning split one TJ array into several spans. A fragment that
