@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Xml.Linq;
 using BenchmarkDotNet.Attributes;
 using CsvHelper;
+using CsvHelper.Configuration;
 using Newtonsoft.Json;
 using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
@@ -25,6 +26,10 @@ public class ConversionBenchmarks {
     private byte[] _flatJson = Array.Empty<byte>();
     private byte[] _csv = Array.Empty<byte>();
     private string _csvText = string.Empty;
+    private byte[] _tsv = Array.Empty<byte>();
+    private string _tsvText = string.Empty;
+    private byte[] _toml = Array.Empty<byte>();
+    private string _tomlText = string.Empty;
 
     [Params(20_000)]
     public int Records { get; set; }
@@ -40,6 +45,10 @@ public class ConversionBenchmarks {
         _flatJson = Encoding.UTF8.GetBytes(Workloads.FlatJson(Records));
         _csvText = Workloads.Csv(Records);
         _csv = Encoding.UTF8.GetBytes(_csvText);
+        _tsvText = Workloads.Tsv(Records);
+        _tsv = Encoding.UTF8.GetBytes(_tsvText);
+        _tomlText = Workloads.Toml(Records / 4);
+        _toml = Encoding.UTF8.GetBytes(_tomlText);
         Validation.Run(this);
     }
 
@@ -87,10 +96,56 @@ public class ConversionBenchmarks {
     public long JsonToCsvOfficeIMO() => Run(_flatJson, DataFormat.Json, DataFormat.Csv);
 
     [Benchmark(Description = "JSON->CSV JsonDocument + CsvHelper")]
-    public long JsonToCsvCsvHelper() {
-        using JsonDocument document = JsonDocument.Parse(_flatJson);
+    public long JsonToCsvCsvHelper() => JsonToDelimited(_flatJson, ",");
+
+    [Benchmark(Description = "CSV->JSON OfficeIMO (typed columns)")]
+    public long CsvToJsonOfficeIMO() => Run(_csv, DataFormat.Csv, DataFormat.Json);
+
+    [Benchmark(Description = "CSV->JSON CsvHelper dynamic + System.Text.Json (strings only)")]
+    public long CsvToJsonCsvHelper() {
+        using var reader = new CsvReader(new StringReader(_csvText), CultureInfo.InvariantCulture);
+        var rows = new List<IDictionary<string, object>>();
+        foreach (dynamic record in reader.GetRecords<dynamic>()) rows.Add((IDictionary<string, object>)record);
+        return System.Text.Json.JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = true }).Length;
+    }
+
+    // ---------------------------------------------------------------- TSV <-> JSON
+
+    [Benchmark(Description = "JSON->TSV OfficeIMO")]
+    public long JsonToTsvOfficeIMO() => Run(_flatJson, DataFormat.Json, DataFormat.Tsv);
+
+    [Benchmark(Description = "JSON->TSV JsonDocument + CsvHelper (tab)")]
+    public long JsonToTsvCsvHelper() => JsonToDelimited(_flatJson, "\t");
+
+    [Benchmark(Description = "TSV->JSON OfficeIMO (typed columns)")]
+    public long TsvToJsonOfficeIMO() => Run(_tsv, DataFormat.Tsv, DataFormat.Json);
+
+    [Benchmark(Description = "TSV->JSON CsvHelper dynamic (tab) + System.Text.Json (strings only)")]
+    public long TsvToJsonCsvHelper() {
+        using var reader = new CsvReader(new StringReader(_tsvText), new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = "\t", Mode = CsvMode.NoEscape });
+        var rows = new List<IDictionary<string, object>>();
+        foreach (dynamic record in reader.GetRecords<dynamic>()) rows.Add((IDictionary<string, object>)record);
+        return System.Text.Json.JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = true }).Length;
+    }
+
+    // ---------------------------------------------------------------- TOML <-> JSON
+
+    [Benchmark(Description = "TOML->JSON OfficeIMO")]
+    public long TomlToJsonOfficeIMO() => Run(_toml, DataFormat.Toml, DataFormat.Json);
+
+    [Benchmark(Description = "TOML->JSON Tomlyn model + Utf8JsonWriter")]
+    public long TomlToJsonTomlyn() => TomlynPipelines.ToJson(_tomlText).Length;
+
+    [Benchmark(Description = "JSON->TOML OfficeIMO")]
+    public long JsonToTomlOfficeIMO() => Run(_nestedJson, DataFormat.Json, DataFormat.Toml);
+
+    [Benchmark(Description = "JSON->TOML JsonDocument + Tomlyn model + TomlSerializer")]
+    public long JsonToTomlTomlyn() => TomlynPipelines.FromJson(_nestedJson).Length;
+
+    internal static long JsonToDelimited(byte[] json, string delimiter) {
+        using JsonDocument document = JsonDocument.Parse(json);
         var output = new StringWriter();
-        using var csv = new CsvWriter(output, CultureInfo.InvariantCulture);
+        using var csv = new CsvWriter(output, new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = delimiter });
         bool header = true;
         foreach (JsonElement row in document.RootElement.EnumerateArray()) {
             if (header) {
@@ -110,17 +165,6 @@ public class ConversionBenchmarks {
         return output.GetStringBuilder().Length;
     }
 
-    [Benchmark(Description = "CSV->JSON OfficeIMO (typed columns)")]
-    public long CsvToJsonOfficeIMO() => Run(_csv, DataFormat.Csv, DataFormat.Json);
-
-    [Benchmark(Description = "CSV->JSON CsvHelper dynamic + System.Text.Json (strings only)")]
-    public long CsvToJsonCsvHelper() {
-        using var reader = new CsvReader(new StringReader(_csvText), CultureInfo.InvariantCulture);
-        var rows = new List<IDictionary<string, object>>();
-        foreach (dynamic record in reader.GetRecords<dynamic>()) rows.Add((IDictionary<string, object>)record);
-        return System.Text.Json.JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = true }).Length;
-    }
-
     internal static long Run(byte[] input, DataFormat source, DataFormat target) {
         using var output = new MemoryStream();
         DataConversionEngine.Convert(new MemoryStream(input, writable: false), source, output, target, null);
@@ -132,4 +176,7 @@ public class ConversionBenchmarks {
     internal byte[] NestedJsonBytes => _nestedJson;
     internal byte[] FlatJsonBytes => _flatJson;
     internal byte[] CsvBytes => _csv;
+    internal byte[] TsvBytes => _tsv;
+    internal byte[] TomlBytes => _toml;
+    internal string TomlText => _tomlText;
 }

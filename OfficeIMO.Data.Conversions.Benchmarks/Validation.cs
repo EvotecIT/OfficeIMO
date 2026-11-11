@@ -17,6 +17,23 @@ internal static class Validation {
         string csv = Encoding.UTF8.GetString(Output(lanes.FlatJsonBytes, DataFormat.Json, DataFormat.Csv));
         Require(csv.Split('\n').Length - 2 == lanes.Records, "JSON->CSV rows");
         Require(Count(Output(lanes.CsvBytes, DataFormat.Csv, DataFormat.Json)) == lanes.Records, "CSV->JSON rows");
+        string tsv = Encoding.UTF8.GetString(Output(lanes.FlatJsonBytes, DataFormat.Json, DataFormat.Tsv));
+        Require(tsv.Split('\n').Length - 2 == lanes.Records && tsv.StartsWith("id\tname\t", StringComparison.Ordinal), "JSON->TSV rows");
+        Require(Count(Output(lanes.TsvBytes, DataFormat.Tsv, DataFormat.Json)) == lanes.Records, "TSV->JSON rows");
+        using (JsonDocument toml = JsonDocument.Parse(Output(lanes.TomlBytes, DataFormat.Toml, DataFormat.Json))) {
+            Require(toml.RootElement.GetProperty("package").GetArrayLength() == lanes.Records / 4, "TOML->JSON packages");
+        }
+
+        using (JsonDocument tomlyn = JsonDocument.Parse(TomlynPipelines.ToJson(lanes.TomlText))) {
+            Require(tomlyn.RootElement.GetProperty("package").GetArrayLength() == lanes.Records / 4, "TOML->JSON Tomlyn packages");
+        }
+
+        using (OfficeIMO.Toml.TomlDocument ours = OfficeIMO.Toml.TomlDocument.Load(new MemoryStream(Output(lanes.NestedJsonBytes, DataFormat.Json, DataFormat.Toml)))) {
+            Require(ours.Root["root"].AsTableArray().Count == lanes.Records, "JSON->TOML tables");
+        }
+
+        Require(((Tomlyn.Model.TomlTableArray)Tomlyn.TomlSerializer.Deserialize<Tomlyn.Model.TomlTable>(TomlynPipelines.FromJson(lanes.NestedJsonBytes))!["root"]).Count == lanes.Records,
+            "JSON->TOML Tomlyn tables");
     }
 
     private static byte[] Json(byte[] input, DataFormat source) => Output(input, source, DataFormat.Json);

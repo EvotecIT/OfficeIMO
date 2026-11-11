@@ -10,7 +10,7 @@ public static class Program {
         }
 
         if (args.Length > 0 && args[0] == "--profile") {
-            Profile.Run();
+            Profile.Run(args.Length > 1 ? args[1] : null);
             return;
         }
 

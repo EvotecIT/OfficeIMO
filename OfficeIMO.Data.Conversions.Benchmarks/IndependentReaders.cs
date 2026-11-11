@@ -11,7 +11,8 @@ namespace OfficeIMO.Data.Conversions.Benchmarks;
 
 /// <summary>
 /// Opt-in check (<c>--verify</c>) that established libraries read OfficeIMO's output to the same data: YamlDotNet reads
-/// the YAML, Newtonsoft.Json reads the JSON and the XML (through its own XML convention), and CsvHelper reads the CSV.
+/// the YAML, Newtonsoft.Json reads the JSON and the XML (through its own XML convention), CsvHelper reads the CSV and
+/// Tomlyn reads the TOML.
 /// Inputs are the pinned JSONTestSuite accept cases, the yaml-test-suite in.json values and generated records with
 /// awkward text. Each disagreement is printed; the exit code is the number of failures.
 /// </summary>
@@ -21,7 +22,7 @@ internal static class IndependentReaders {
         CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
         var failures = new List<string>();
         List<(string Name, byte[] Json)> inputs = JsonInputs();
-        int yaml = 0, json = 0, xml = 0, csv = 0;
+        int yaml = 0, json = 0, xml = 0, csv = 0, toml = 0, tomlReported = 0;
         foreach ((string name, byte[] input) in inputs) {
             using JsonDocument expected = JsonDocument.Parse(input);
             string yamlText = Convert(input, DataFormat.Json, DataFormat.Yaml);
@@ -30,6 +31,26 @@ internal static class IndependentReaders {
             JToken newtonsoft = Parse(Convert(input, DataFormat.Json, DataFormat.Json));
             Check(failures, name + " (Newtonsoft JSON)", Same(expected.RootElement, ToPlain(newtonsoft)), null);
             json++;
+
+            // TOML: Tomlyn reads the data back, less what the report names (nulls are omitted, a non-table root is
+            // wrapped in "root"). Numbers TOML cannot hold exactly are reported and left out of the comparison.
+            (string tomlText, OfficeConversionReport report) = ConvertWithReport(input, DataFormat.Json, DataFormat.Toml);
+            if (report.Diagnostics.Any(d => d.Code is OfficeDiagnosticCodes.NumberOutOfRange or OfficeDiagnosticCodes.NumberPrecision)) {
+                tomlReported++;
+                continue;
+            }
+
+            object? tomlyn;
+            try {
+                tomlyn = TomlynPlain(Tomlyn.TomlSerializer.Deserialize<Tomlyn.Model.TomlTable>(tomlText));
+            } catch (Exception error) {
+                failures.Add(name + " (Tomlyn): " + error.Message + "\n" + tomlText);
+                continue;
+            }
+
+            using JsonDocument withoutNulls = JsonDocument.Parse(TomlShape(expected.RootElement));
+            Check(failures, name + " (Tomlyn)", Same(withoutNulls.RootElement, tomlyn), tomlText);
+            toml++;
         }
 
         // XML: Newtonsoft's SerializeXNode and OfficeIMO's reader share the convention for data XML, so both must agree.
@@ -75,7 +96,7 @@ internal static class IndependentReaders {
             csv++;
         }
 
-        Console.WriteLine($"YamlDotNet: {yaml} documents, Newtonsoft JSON: {json}, Newtonsoft XML: {xml}, CsvHelper: {csv} files; {failures.Count} disagreements.");
+        Console.WriteLine($"YamlDotNet: {yaml} documents, Newtonsoft JSON: {json}, Newtonsoft XML: {xml}, CsvHelper: {csv} files, Tomlyn: {toml} documents ({tomlReported} with reported loss skipped); {failures.Count} disagreements.");
         foreach (string failure in failures.Take(50)) Console.WriteLine("  " + failure);
         return failures.Count;
     }
@@ -110,6 +131,67 @@ internal static class IndependentReaders {
         DataConversionEngine.Convert(new MemoryStream(input), source, output, target, null);
         return Encoding.UTF8.GetString(output.ToArray());
     }
+
+    private static (string, OfficeConversionReport) ConvertWithReport(byte[] input, DataFormat source, DataFormat target) {
+        using var output = new MemoryStream();
+        OfficeConversionReport report = DataConversionEngine.Convert(new MemoryStream(input), source, output, target, null);
+        return (Encoding.UTF8.GetString(output.ToArray()), report);
+    }
+
+    // The data TOML holds: nulls removed and a root that is not an object wrapped in "root".
+    private static string TomlShape(JsonElement root) {
+        using var output = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(output)) {
+            if (root.ValueKind == JsonValueKind.Null) {
+                writer.WriteStartObject();
+                writer.WriteEndObject();
+            } else if (root.ValueKind != JsonValueKind.Object) {
+                writer.WriteStartObject();
+                writer.WritePropertyName("root");
+                WithoutNulls(writer, root);
+                writer.WriteEndObject();
+            } else {
+                WithoutNulls(writer, root);
+            }
+        }
+
+        return Encoding.UTF8.GetString(output.ToArray());
+    }
+
+    private static void WithoutNulls(Utf8JsonWriter writer, JsonElement element) {
+        switch (element.ValueKind) {
+            case JsonValueKind.Object:
+                writer.WriteStartObject();
+                foreach (JsonProperty property in element.EnumerateObject()) {
+                    if (property.Value.ValueKind == JsonValueKind.Null) continue;
+                    writer.WritePropertyName(property.Name);
+                    WithoutNulls(writer, property.Value);
+                }
+
+                writer.WriteEndObject();
+                break;
+            case JsonValueKind.Array:
+                writer.WriteStartArray();
+                foreach (JsonElement item in element.EnumerateArray()) {
+                    if (item.ValueKind != JsonValueKind.Null) WithoutNulls(writer, item);
+                }
+
+                writer.WriteEndArray();
+                break;
+            case JsonValueKind.Null:
+                break;
+            default:
+                element.WriteTo(writer);
+                break;
+        }
+    }
+
+    private static object? TomlynPlain(object? value) => value switch {
+        Tomlyn.Model.TomlTable table => table.ToDictionary(entry => (object)entry.Key, entry => TomlynPlain(entry.Value)),
+        Tomlyn.Model.TomlTableArray tables => tables.Select(item => TomlynPlain(item)).ToList(),
+        Tomlyn.Model.TomlArray array => array.Select(TomlynPlain).ToList(),
+        _ => value
+    };
 
     private static object? YamlDotNetValue(string yaml) {
         var deserializer = new YamlDotNet.Serialization.DeserializerBuilder().WithAttemptingUnquotedStringTypeDeserialization().Build();

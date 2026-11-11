@@ -48,6 +48,24 @@ internal static class Workloads {
         return builder.ToString();
     }
 
+    public static string Tsv(int count) => Csv(count).Replace(',', '\t');
+
+    // A Cargo.lock-like file: one [[package]] table per record.
+    public static string Toml(int count) {
+        var builder = new StringBuilder(count * 260).Append("version = 4\n");
+        for (int i = 0; i < count; i++) {
+            builder.Append("\n[[package]]\nname = \"crate-").Append(i).Append("\"\nversion = \"1.").Append(i % 40).Append('.').Append(i % 7)
+                .Append("\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"")
+                .Append((i * 2654435761L).ToString("x16", CultureInfo.InvariantCulture)).Append("\"\ndownloads = ").Append(i * 37)
+                .Append("\nscore = ").Append((i % 1000 / 10.0).ToString("0.0#", CultureInfo.InvariantCulture))
+                .Append("\nyanked = ").Append(i % 11 == 0 ? "true" : "false")
+                .Append("\npublished = 2026-").Append((i % 12 + 1).ToString("D2", CultureInfo.InvariantCulture)).Append("-15T10:20:30Z")
+                .Append("\ndependencies = [\"crate-").Append(i % 5).Append("\", \"crate-").Append(i % 7).Append("\"]\n");
+        }
+
+        return builder.ToString();
+    }
+
     // A Kubernetes-like multi-document stream.
     public static string Yaml(int documents) {
         var builder = new StringBuilder(documents * 400);

@@ -13,6 +13,7 @@
     <PackageReference Include="YamlDotNet" Version="18.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="CsvHelper" Version="33.1.0" />
+    <PackageReference Include="Tomlyn" Version="2.10.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -21,6 +22,8 @@
     <Compile Include="..\OfficeIMO.Yaml.Tests\Conformance\YamlTestSuite.cs" Link="Shared\Yaml\YamlTestSuite.cs" />
     <Compile Include="..\OfficeIMO.Yaml.Tests\Conformance\YamlJsonReader.cs" Link="Shared\Yaml\YamlJsonReader.cs" />
     <Compile Include="..\OfficeIMO.Yaml.Tests\Conformance\YamlConformanceNode.cs" Link="Shared\Yaml\YamlConformanceNode.cs" />
+    <Compile Include="..\OfficeIMO.Toml.Tests\Conformance\TomlTestAssets.cs" Link="Shared\Toml\TomlTestAssets.cs" />
+    <Compile Include="..\OfficeIMO.Toml.Tests\Conformance\TomlJson.cs" Link="Shared\Toml\TomlJson.cs" />
   </ItemGroup>
 
   <ItemGroup>
