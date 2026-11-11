@@ -92,6 +92,31 @@ internal sealed class TableColumnNode {
         return node;
     }
 
+#if NET8_0_OR_GREATER
+    private byte[]? _utf8Name;
+
+    /// <summary>The object visit that last matched this node by name, for duplicate-key detection without decoding keys.</summary>
+    public int Visit;
+
+    /// <summary>Finds a named child by its UTF-8 key; rows repeat their keys in order, so the next child is tried first.</summary>
+    public TableColumnNode? FindName(ReadOnlySpan<byte> name) {
+        int count = _named.Count;
+        if (count == 0) return null;
+        int next = _cursor < count ? _cursor : 0;
+        for (int tried = 0; tried < count; tried++) {
+            int i = next + tried;
+            if (i >= count) i -= count;
+            TableColumnNode child = _named[i];
+            if (name.SequenceEqual(child._utf8Name ??= Encoding.UTF8.GetBytes(child.Name!))) {
+                _cursor = i + 1;
+                return child;
+            }
+        }
+
+        return null;
+    }
+#endif
+
     public TableColumnNode? FindIndex(int index) => _indexed != null && index < _indexed.Count ? _indexed[index] : null;
 
     public TableColumnNode GetOrAddIndex(int index) {

@@ -14,7 +14,7 @@ namespace OfficeIMO.Data.Conversions;
 /// <c>address.city</c> and <c>tags[0]</c>. A root object whose members are all arrays is several tables, reached with
 /// <see cref="NextResult"/>. The input is read twice: once to find the columns and their types, then to stream rows.
 /// </summary>
-public sealed class StructuredDataReader : DbDataReader {
+public sealed partial class StructuredDataReader : DbDataReader {
     private readonly DataConversionPublishing.ReaderFactory _open;
     private readonly DataConversionContext _context;
     private readonly bool _text;
@@ -37,6 +37,15 @@ public sealed class StructuredDataReader : DbDataReader {
     private readonly long _sampleRows;
     private bool _sampled;
     private string? _latePath;
+#if NET8_0_OR_GREATER
+    // CSV output on .NET 8 and later keeps each row's cells as UTF-8 in one buffer and hands them to the CSV writer's UTF-8
+    // row path, so no string is created per cell.
+    private readonly bool _utf8;
+    private byte[] _cellBytes = Array.Empty<byte>();
+    private int _cellBytesLength;
+    private int[] _cellStarts = Array.Empty<int>();
+    private int[] _cellLengths = Array.Empty<int>();
+#endif
 
     private enum Mode {
         Rows,
@@ -72,6 +81,10 @@ public sealed class StructuredDataReader : DbDataReader {
 
         _events = open(context);
         context.Source = _events;
+#if NET8_0_OR_GREATER
+        // Numbers keep their source spelling unless the culture changes the decimal separator.
+        _utf8 = text && _culture.NumberFormat.NumberDecimalSeparator == "." && _events.PreferUtf8();
+#endif
         Allocate();
     }
 
@@ -122,7 +135,14 @@ public sealed class StructuredDataReader : DbDataReader {
             return DataConversionEngine.OpenReader(stream, format, c);
         }
 
-        return new StructuredDataReader(Open, documents, context, text, owned);
+        var reader = new StructuredDataReader(Open, documents, context, text, owned);
+#if NET8_0_OR_GREATER
+        if (format == DataFormat.Json) {
+            reader._jsonInput = stream;
+            reader._jsonInputStart = start;
+        }
+#endif
+        return reader;
     }
 
     /// <summary>Findings so far: what the table shape could not carry, aggregated per code.</summary>
@@ -267,7 +287,7 @@ public sealed class StructuredDataReader : DbDataReader {
         switch (reader.TokenType) {
             case DataTokenType.Scalar:
                 if (scan) node!.Observe(reader.ScalarKind, reader.Text);
-                else if (node is { Column: >= 0 }) SetCell(node, reader.ScalarKind, reader.Text);
+                else if (node is { Column: >= 0 }) SetCell(node, reader.ScalarKind, reader);
                 else if (_sampled && reader.ScalarKind != DataScalarKind.Null) LateColumn(node, reader);
                 return;
             case DataTokenType.StartObject: {
@@ -317,19 +337,79 @@ public sealed class StructuredDataReader : DbDataReader {
         _context.Report(OfficeDiagnosticCodes.ArrayJoined, OfficeConversionLossKind.Approximation,
             "Arrays were joined into one cell each; the items cannot be told apart if they contain the separator.");
         _kinds[node.Column] = DataScalarKind.String;
+#if NET8_0_OR_GREATER
+        if (_utf8) {
+            AppendCell(node.Column, builder.ToString().AsSpan());
+            return;
+        }
+#endif
         _texts[node.Column] = builder.ToString();
     }
+
+#if NET8_0_OR_GREATER
+    private void SetUtf8Cell(int column, DataScalarKind kind, DataEventReader reader) {
+        if (kind == DataScalarKind.Null) {
+            _cellLengths[column] = -1;
+            return;
+        }
+
+        if (reader.HasUtf8Text) {
+            ReadOnlySpan<byte> utf8 = reader.Utf8Text;
+            if (kind == DataScalarKind.String && utf8.Length > 0 && MaybeTyped(utf8[0]) && TableTypes.LooksTyped(reader.Text)) ReportTypedText();
+            utf8.CopyTo(ReserveCell(column, utf8.Length));
+            _cellLengths[column] = utf8.Length;
+            return;
+        }
+
+        ReadOnlySpan<char> text = reader.Text;
+        if (kind == DataScalarKind.String && TableTypes.LooksTyped(text)) ReportTypedText();
+        AppendCell(column, text);
+    }
+
+    private static bool MaybeTyped(byte first) =>
+        (first >= (byte)'0' && first <= (byte)'9') || first is (byte)'-' or (byte)'t' or (byte)'T' or (byte)'f' or (byte)'F';
+
+    private void AppendCell(int column, ReadOnlySpan<char> text) {
+        Span<byte> destination = ReserveCell(column, Encoding.UTF8.GetMaxByteCount(text.Length));
+        _cellLengths[column] = Encoding.UTF8.GetBytes(text, destination);
+    }
+
+    private Span<byte> ReserveCell(int column, int length) {
+        if (_cellBytes.Length - _cellBytesLength < length) Array.Resize(ref _cellBytes, Math.Max(Math.Max(_cellBytes.Length * 2, 1024), _cellBytesLength + length));
+        _cellStarts[column] = _cellBytesLength;
+        var destination = new Span<byte>(_cellBytes, _cellBytesLength, length);
+        _cellBytesLength += length;
+        return destination;
+    }
+
+    /// <summary>Whether <see cref="GetUtf8"/> serves the cells of this text reader.</summary>
+    internal bool HasUtf8Cells => _utf8;
+
+    /// <summary>The cell as UTF-8, or null for a null cell; valid until the next <see cref="Read"/>.</summary>
+    internal ReadOnlyMemory<byte>? GetUtf8(int ordinal) {
+        int length = _cellLengths[ordinal];
+        return length < 0 ? default(ReadOnlyMemory<byte>?) : new ReadOnlyMemory<byte>(_cellBytes, _cellStarts[ordinal], length);
+    }
+#endif
+
+    private void ReportTypedText() =>
+        _context.Report(OfficeDiagnosticCodes.ScalarTypeDropped, OfficeConversionLossKind.Approximation,
+            "Text values that look like numbers, booleans or dates read back as those types from CSV.");
 
     // A row past the sample holds a value at a path the header does not have.
     private void LateColumn(TableColumnNode? node, DataEventReader reader) {
         string? path = node?.Path is { Length: > 0 } known ? known : _latePath;
+        throw LateColumnError(path, reader.Location);
+    }
+
+    private InvalidDataException LateColumnError(string? path, string? location) {
         string where = path != null ? "'" + path + "'" : "a new path";
-        throw new InvalidDataException("Row " + (_row + 1).ToString(CultureInfo.InvariantCulture) + " has a value at " + where
-            + " that the first " + _sampleRows.ToString(CultureInfo.InvariantCulture) + " rows did not have" + (reader.Location is { } at ? " (" + at + ")" : string.Empty)
+        return new InvalidDataException("Row " + (_row + 1).ToString(CultureInfo.InvariantCulture) + " has a value at " + where
+            + " that the first " + _sampleRows.ToString(CultureInfo.InvariantCulture) + " rows did not have" + (location is { } at ? " (" + at + ")" : string.Empty)
             + ". Set SampleRows to 0 to read every row before writing, or list the columns in Columns.");
     }
 
-    private void SetCell(TableColumnNode node, DataScalarKind kind, ReadOnlySpan<char> text) {
+    private void SetCell(TableColumnNode node, DataScalarKind kind, DataEventReader reader) {
         int column = node.Column;
         if (_text && kind == DataScalarKind.Null && node.Kind is null or DataScalarKind.String) {
             _context.Report(OfficeDiagnosticCodes.NullAsEmpty, OfficeConversionLossKind.Approximation,
@@ -337,11 +417,15 @@ public sealed class StructuredDataReader : DbDataReader {
         }
 
         _kinds[column] = kind;
-        _texts[column] = kind == DataScalarKind.Null ? null : text.ToString();
-        if (_text && kind == DataScalarKind.String && TableTypes.LooksTyped(text)) {
-            _context.Report(OfficeDiagnosticCodes.ScalarTypeDropped, OfficeConversionLossKind.Approximation,
-                "Text values that look like numbers, booleans or dates read back as those types from CSV.");
+#if NET8_0_OR_GREATER
+        if (_utf8) {
+            SetUtf8Cell(column, kind, reader);
+            return;
         }
+#endif
+        ReadOnlySpan<char> text = reader.Text;
+        _texts[column] = kind == DataScalarKind.Null ? null : text.ToString();
+        if (_text && kind == DataScalarKind.String && TableTypes.LooksTyped(text)) ReportTypedText();
     }
 
     private void Allocate() {
@@ -349,6 +433,10 @@ public sealed class StructuredDataReader : DbDataReader {
         _kinds = new DataScalarKind[count];
         _texts = new string?[count];
         _joins = new StringBuilder?[count];
+#if NET8_0_OR_GREATER
+        _cellStarts = new int[count];
+        _cellLengths = new int[count];
+#endif
     }
 
     // ---------------------------------------------------------------- pass two
@@ -365,6 +453,12 @@ public sealed class StructuredDataReader : DbDataReader {
 
         Array.Clear(_texts, 0, _texts.Length);
         Array.Clear(_kinds, 0, _kinds.Length);
+#if NET8_0_OR_GREATER
+        if (_utf8) {
+            _cellLengths.AsSpan().Fill(-1);
+            _cellBytesLength = 0;
+        }
+#endif
         switch (_mode) {
             case Mode.Tables:
                 if (!_inArray) return false;
@@ -485,7 +579,7 @@ public sealed class StructuredDataReader : DbDataReader {
 
     /// <inheritdoc />
     public override object GetValue(int ordinal) {
-        string? text = _texts[ordinal];
+        string? text = CellText(ordinal);
         if (text == null) return DBNull.Value;
         DataScalarKind kind = _kinds[ordinal];
         return _text ? TableValues.Text(kind, text, _culture) : TableValues.Convert(kind, text, Current.Types[ordinal]);
@@ -499,7 +593,14 @@ public sealed class StructuredDataReader : DbDataReader {
     }
 
     /// <inheritdoc />
-    public override bool IsDBNull(int ordinal) => _texts[ordinal] == null;
+    public override bool IsDBNull(int ordinal) => CellText(ordinal) == null;
+
+    private string? CellText(int ordinal) {
+#if NET8_0_OR_GREATER
+        if (_utf8) return GetUtf8(ordinal) is { } utf8 ? Encoding.UTF8.GetString(utf8.Span) : null;
+#endif
+        return _texts[ordinal];
+    }
 
     /// <inheritdoc />
     public override object this[int ordinal] => GetValue(ordinal);
@@ -508,7 +609,7 @@ public sealed class StructuredDataReader : DbDataReader {
     public override object this[string name] => GetValue(GetOrdinal(name));
 
     /// <inheritdoc />
-    public override string GetString(int ordinal) => _texts[ordinal] is { } text
+    public override string GetString(int ordinal) => CellText(ordinal) is { } text
         ? (_text ? TableValues.Text(_kinds[ordinal], text, _culture) : text)
         : throw new InvalidCastException("The value is null.");
 

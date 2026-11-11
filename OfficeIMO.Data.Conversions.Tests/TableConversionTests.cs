@@ -1,3 +1,4 @@
+using System.Text;
 using System.Data;
 using System.Text.Json;
 using OfficeIMO.Data.Conversions;
@@ -42,6 +43,24 @@ public class TableConversionTests {
         Assert.Contains("'b'", error.Message);
         (string csv, _) = Convert.Run(rows, DataFormat.Json, DataFormat.Csv, new DataConversionOptions { SampleRows = 0 });
         Assert.Equal("a,b\n1,\n2,\n3,4\n", csv);
+    }
+
+    // Rows of a large JSON array cross the reader's buffer refills; each row is written once, in order, with its findings.
+    [Fact]
+    public void JsonRowsAcrossBufferRefillsAreWrittenOnce() {
+        var json = new StringBuilder("[");
+        var expected = new StringBuilder("id,name,note\n");
+        for (int i = 0; i < 4000; i++) {
+            if (i > 0) json.Append(',');
+            json.Append("{\"id\":").Append(i).Append(",\"name\":\"caf\\u00e9 \\\"").Append(i).Append("\\\"\",\"note\":").Append(i % 1000 == 999 ? "\"42\"" : "null").Append('}');
+            expected.Append(i).Append(",\"café \"\"").Append(i).Append("\"\"\",").Append(i % 1000 == 999 ? "42" : string.Empty).Append('\n');
+        }
+
+        (string csv, OfficeConversionReport report) = Convert.Run(json.Append(']').ToString(), DataFormat.Json, DataFormat.Csv);
+        Assert.Equal(expected.ToString(), csv);
+        Assert.Equal(4000, report.ItemsWritten);
+        OfficeDiagnostic typed = Assert.Single(report.Diagnostics, d => d.Code == OfficeDiagnosticCodes.ScalarTypeDropped);
+        Assert.Contains("(4 occurrences)", typed.Message);
     }
 
     [Fact]

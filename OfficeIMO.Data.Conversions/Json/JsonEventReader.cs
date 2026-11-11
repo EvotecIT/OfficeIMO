@@ -4,7 +4,8 @@ namespace OfficeIMO.Data.Conversions;
 /// Reads JSON or JSON Lines from a stream with <see cref="Utf8JsonReader"/> over one pooled, refilled buffer, so memory
 /// stays bounded by the longest token. Tokens are decoded in batches into a reused character arena, which amortizes
 /// creating the reader and lets property names and strings reach the sink without a copy. Each top-level value is a
-/// document.
+/// document. On .NET 8 and later a consumer that writes UTF-8 can take scalars as UTF-8 (<see cref="DataEventReader.PreferUtf8"/>): they
+/// point into the input buffer, or into a byte arena when escaped, and are decoded to characters only on request.
 /// </summary>
 internal sealed class JsonEventReader : DataEventReader {
     private const int InitialBufferSize = 64 * 1024;
@@ -30,6 +31,13 @@ internal sealed class JsonEventReader : DataEventReader {
     private char[] _arena = new char[16 * 1024];
     private int _arenaLength;
     private long _tokenOffset;
+#if NET8_0_OR_GREATER
+    private static readonly byte[] TrueUtf8 = "true"u8.ToArray();
+    private static readonly byte[] FalseUtf8 = "false"u8.ToArray();
+    private bool _utf8;
+    private byte[] _bytes = Array.Empty<byte>();
+    private int _bytesLength;
+#endif
 
     // Document framing.
     private int _depth;
@@ -37,9 +45,19 @@ internal sealed class JsonEventReader : DataEventReader {
     private bool _endDocumentPending;
     private bool _sawDocument;
 
+    // Where a token's text lives: characters in the arena, or UTF-8 in the input buffer, the byte arena or a literal.
+    private enum TextSource : byte {
+        Chars,
+        Input,
+        Bytes,
+        True,
+        False
+    }
+
     private struct Token {
         public DataTokenType Type;
         public DataScalarKind Kind;
+        public TextSource Source;
         public int Start;
         public int Length;
         public long Offset;
@@ -54,6 +72,10 @@ internal sealed class JsonEventReader : DataEventReader {
         _state = new JsonReaderState(_options);
         TrackDuplicateKeys = true;
     }
+
+#if NET8_0_OR_GREATER
+    public override bool PreferUtf8() => _utf8 = true;
+#endif
 
     public override string? Location => "byte " + _tokenOffset.ToString(CultureInfo.InvariantCulture);
 
@@ -96,7 +118,16 @@ internal sealed class JsonEventReader : DataEventReader {
                 CommitPropertyName(_arena, token.Start, token.Length);
                 break;
             case DataTokenType.Scalar:
-                CommitScalar(token.Kind, _arena, token.Start, token.Length);
+                switch (token.Source) {
+#if NET8_0_OR_GREATER
+                    case TextSource.Input: CommitUtf8Scalar(token.Kind, _buffer, token.Start, token.Length); break;
+                    case TextSource.Bytes: CommitUtf8Scalar(token.Kind, _bytes, token.Start, token.Length); break;
+                    case TextSource.True: CommitUtf8Scalar(token.Kind, TrueUtf8, 0, 4); break;
+                    case TextSource.False: CommitUtf8Scalar(token.Kind, FalseUtf8, 0, 5); break;
+#endif
+                    default: CommitScalar(token.Kind, _arena, token.Start, token.Length); break;
+                }
+
                 if (_depth == 0) _endDocumentPending = true;
                 break;
             case DataTokenType.Comment:
@@ -113,6 +144,9 @@ internal sealed class JsonEventReader : DataEventReader {
         _tokenCount = 0;
         _tokenIndex = 0;
         _arenaLength = 0;
+#if NET8_0_OR_GREATER
+        _bytesLength = 0;
+#endif
         while (true) {
             if (_jsonLines && _atBoundary) {
                 if (!SkipToNextValue()) return false;
@@ -154,8 +188,12 @@ internal sealed class JsonEventReader : DataEventReader {
         ref Token token = ref _tokens[_tokenCount++];
         token.Offset = _offset + _start + reader.TokenStartIndex;
         token.Kind = default;
+        token.Source = TextSource.Chars;
         token.Start = _arenaLength;
         token.Length = 0;
+#if NET8_0_OR_GREATER
+        if (_utf8 && AddUtf8(ref reader, ref token)) return;
+#endif
         switch (reader.TokenType) {
             case JsonTokenType.StartObject: token.Type = DataTokenType.StartObject; _scanDepth++; return;
             case JsonTokenType.StartArray: token.Type = DataTokenType.StartArray; _scanDepth++; return;
@@ -209,6 +247,65 @@ internal sealed class JsonEventReader : DataEventReader {
 
         _arenaLength += token.Length;
     }
+
+#if NET8_0_OR_GREATER
+    // Scalars as UTF-8: unescaped strings and numbers stay in the input buffer, which is not moved until the batch is
+    // consumed; escaped strings are unescaped into the byte arena. Strings are validated here, because only decoding
+    // them would.
+    private bool AddUtf8(ref Utf8JsonReader reader, ref Token token) {
+        switch (reader.TokenType) {
+            case JsonTokenType.String:
+                token.Type = DataTokenType.Scalar;
+                token.Kind = DataScalarKind.String;
+                if (reader.ValueIsEscaped) {
+                    int room = reader.ValueSpan.Length;
+                    if (_bytes.Length - _bytesLength < room) Array.Resize(ref _bytes, Math.Max(Math.Max(_bytes.Length * 2, 4096), _bytesLength + room));
+                    int written = reader.CopyString(new Span<byte>(_bytes, _bytesLength, room));
+                    SetUtf8(ref token, TextSource.Bytes, _bytesLength, written);
+                    _bytesLength += written;
+                } else {
+                    SetUtf8(ref token, TextSource.Input, InputOffset(reader.ValueSpan), reader.ValueSpan.Length);
+                }
+
+                return true;
+            case JsonTokenType.Number: {
+                token.Type = DataTokenType.Scalar;
+                ReadOnlySpan<byte> raw = reader.ValueSpan;
+                token.Kind = raw.IndexOfAny((byte)'.', (byte)'e', (byte)'E') < 0 ? DataScalarKind.Integer : DataScalarKind.Float;
+                token.Source = TextSource.Input;
+                token.Start = InputOffset(raw);
+                token.Length = raw.Length;
+                return true;
+            }
+            case JsonTokenType.True:
+                token.Type = DataTokenType.Scalar;
+                token.Kind = DataScalarKind.Boolean;
+                token.Source = TextSource.True;
+                return true;
+            case JsonTokenType.False:
+                token.Type = DataTokenType.Scalar;
+                token.Kind = DataScalarKind.Boolean;
+                token.Source = TextSource.False;
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private void SetUtf8(ref Token token, TextSource source, int start, int length) {
+        if (!System.Text.Unicode.Utf8.IsValid(new ReadOnlySpan<byte>(source == TextSource.Input ? _buffer : _bytes, start, length))) {
+            throw new InvalidDataException("The JSON input has invalid text near byte " + token.Offset.ToString(CultureInfo.InvariantCulture)
+                + ": a string is not valid UTF-8.");
+        }
+
+        token.Source = source;
+        token.Start = start;
+        token.Length = length;
+    }
+
+    private int InputOffset(ReadOnlySpan<byte> value) =>
+        (int)System.Runtime.CompilerServices.Unsafe.ByteOffset(ref _buffer[0], ref System.Runtime.InteropServices.MemoryMarshal.GetReference(value));
+#endif
 
     // Room for a value's characters at the end of the arena; decoded text is never longer than its UTF-8 bytes.
     private Span<char> Arena(int length) {
