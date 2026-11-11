@@ -584,6 +584,8 @@ static OfficeIMO.PowerPoint.PowerPointLayoutKpi.FromDelta(string! value, string!
 static OfficeIMO.PowerPoint.PowerPointDocument.ValidateSignatures(System.IO.Stream! source, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, OfficeIMO.Security.OfficePackageSignatureValidationOptions? options = null) -> OfficeIMO.Security.OfficePackageSignatureValidationReport!
 OfficeIMO.PowerPoint.PowerPointDocument.ToImages(OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!
 OfficeIMO.PowerPoint.PowerPointDocument.ToImagesAsync(OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!>!
+OfficeIMO.PowerPoint.PowerPointDocument.InspectHiddenData() -> OfficeIMO.OfficeHiddenDataReport!
+OfficeIMO.PowerPoint.PowerPointDocument.RemoveHiddenData(OfficeIMO.OfficeHiddenDataOptions? options = null) -> OfficeIMO.OfficeHiddenDataReport!
 OfficeIMO.PowerPoint.PowerPointConnectionShape.EndShape.get -> OfficeIMO.PowerPoint.PowerPointShape?
 OfficeIMO.PowerPoint.PowerPointConnectionShape.EndSite.get -> int?
 OfficeIMO.PowerPoint.PowerPointConnectionShape.Kind.get -> OfficeIMO.PowerPoint.PowerPointConnectorKind?

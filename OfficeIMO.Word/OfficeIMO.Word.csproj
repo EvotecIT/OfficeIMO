@@ -73,6 +73,7 @@
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartSeriesReader*.cs" Link="SharedSource\OpenXml\%(Filename)%(Extension)" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartWriter*.cs" Link="SharedSource\OpenXml\%(Filename)%(Extension)" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlPackagePayload*.cs" Link="SharedSource\OpenXml\%(Filename)%(Extension)" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlHiddenData.cs" Link="SharedSource\OpenXml\OfficeOpenXmlHiddenData.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlContractMappings.cs" Link="SharedSource\OpenXml\OfficeOpenXmlContractMappings.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\Processes\OfficeWindowsSuspendedProcess.cs" Link="SharedSource\Processes\OfficeWindowsSuspendedProcess.cs" />
     </ItemGroup>
