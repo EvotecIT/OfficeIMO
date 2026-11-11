@@ -5,6 +5,10 @@ internal static partial class PdfSyntax {
         CancellationToken cancellationToken) {
         foreach (var entry in map.Values) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (entry.TryGetUnbuiltSummary(out PdfDeferredObjectSummary summary)) {
+                if (summary.HasEncryptKey) throw new NotSupportedException("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.");
+                continue;
+            }
             PdfDictionary? dictionary = entry.Value switch {
                 PdfDictionary directDictionary => directDictionary,
                 PdfStream stream => stream.Dictionary,
@@ -16,6 +20,10 @@ internal static partial class PdfSyntax {
             }
         }
     }
+
+    // Whole-document type scans skip objects that are not built yet and whose load scan recorded a different /Type.
+    private static bool IsUnbuiltWithOtherType(PdfIndirectObject entry, string type) =>
+        entry.TryGetUnbuiltSummary(out PdfDeferredObjectSummary summary) && !string.Equals(summary.KnownType, type, StringComparison.Ordinal);
 
     internal static PdfDictionary? FindCatalog(Dictionary<int, PdfIndirectObject> map, string? trailerRaw = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -39,6 +47,7 @@ internal static partial class PdfSyntax {
     private static PdfDictionary? FindCatalogByScan(Dictionary<int, PdfIndirectObject> map, CancellationToken cancellationToken) {
         foreach (var entry in map.Values) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (IsUnbuiltWithOtherType(entry, "Catalog")) continue;
             if (entry.Value is PdfDictionary dictionary &&
                 dictionary.Get<PdfName>("Type")?.Name == "Catalog") {
                 return dictionary;
@@ -57,7 +66,7 @@ internal static partial class PdfSyntax {
         int highestMatchingObjectNumber = int.MinValue;
         foreach (var entry in map.Values) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (entry.ObjectNumber <= highestMatchingObjectNumber) {
+            if (entry.ObjectNumber <= highestMatchingObjectNumber || IsUnbuiltWithOtherType(entry, "XRef")) {
                 continue;
             }
 

@@ -80,8 +80,7 @@ internal static partial class PdfSyntax {
         byte[] data = budget.Decode(stream, objects, limits.MaxDecodedStreamBytes, cancellationToken);
         if (!TryReadObjectStreamLayout(stream.Dictionary, data.Length, limits, out int count, out int first))
             throw new InvalidDataException("The object stream layout cannot be verified.");
-        var pairs = ParsePairs(PdfEncoding.Latin1GetStringCancellable(CopyBytes(data, 0, first, cancellationToken), cancellationToken),
-            count, out bool complete, cancellationToken);
+        var pairs = ParsePairs(data, first, count, out bool complete, cancellationToken);
         if (!complete) throw new InvalidDataException("The object stream header cannot be verified.");
         for (int index = 0; index < count; index++) {
             int start = first + pairs[index].Off;

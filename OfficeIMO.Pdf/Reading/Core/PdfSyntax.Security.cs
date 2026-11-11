@@ -157,6 +157,7 @@ internal static partial class PdfSyntax {
                 var seenFieldNames = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var entry in orderedObjects) {
                     cancellationToken.ThrowIfCancellationRequested();
+                    if (IsUnbuiltWithoutSignatureData(entry.Value)) continue;
                     PdfDictionary? dictionary = entry.Value.Value switch {
                         PdfDictionary directDictionary => directDictionary,
                         PdfStream stream => stream.Dictionary,
@@ -187,6 +188,7 @@ internal static partial class PdfSyntax {
 
                 foreach (var entry in orderedObjects) {
                     cancellationToken.ThrowIfCancellationRequested();
+                    if (IsUnbuiltWithoutSignatureData(entry.Value)) continue;
                     PdfDictionary? dictionary = entry.Value.Value switch {
                         PdfDictionary directDictionary => directDictionary,
                         PdfStream stream => stream.Dictionary,
