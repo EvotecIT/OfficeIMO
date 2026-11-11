@@ -129,7 +129,8 @@ internal sealed class YamlDictionaryConverter<TDictionary, TKey, TValue> : YamlC
                     cursor.Skip();
                 } else {
                     dictionary.Add(key, valueInfo.Read(cursor, state));
-                    (merged ??= new HashSet<TKey>(dictionary.Comparer)).Add(key);
+                    // Only a strict read asks which keys a merge set, to tell a replaced merged value from a duplicate.
+                    if (cursor.Strict) (merged ??= new HashSet<TKey>(dictionary.Comparer)).Add(key);
                 }
             } else {
 #if NET8_0_OR_GREATER
@@ -188,24 +189,28 @@ internal sealed class YamlDictionaryConverter<TDictionary, TKey, TValue> : YamlC
         if (!state.SharesAliases || cursor.AliasTarget is not YamlRecording target || !state.TryGetShared(target, out object? shared)) return false;
         if (shared is Dictionary<TKey, TValue> mapping) {
             cursor.ChargeAlias(target);
-            MergeEntries(mapping, dictionary, ref merged);
+            MergeEntries(mapping, dictionary, ref merged, cursor.Strict);
             return true;
         }
         if (shared is not List<object?> list || target.Logged) return false;
         cursor.ChargeAlias(target);
         foreach (object? item in list) {
             if (item is not Dictionary<TKey, TValue> itemMapping) throw YamlSerializationErrors.TypeMismatch(cursor, state, typeof(TDictionary), "a merge key needs a mapping or a sequence of mappings");
-            MergeEntries(itemMapping, dictionary, ref merged);
+            MergeEntries(itemMapping, dictionary, ref merged, cursor.Strict);
         }
         return true;
     }
 
     /// <summary>Adds the entries the dictionary does not have yet, as a replayed merge does.</summary>
-    private static void MergeEntries(Dictionary<TKey, TValue> source, Dictionary<TKey, TValue> dictionary, ref HashSet<TKey>? merged) {
+    private static void MergeEntries(Dictionary<TKey, TValue> source, Dictionary<TKey, TValue> dictionary, ref HashSet<TKey>? merged, bool strict) {
         foreach (KeyValuePair<TKey, TValue> entry in source) {
+#if NET8_0_OR_GREATER
+            if (!dictionary.TryAdd(entry.Key, entry.Value)) continue;
+#else
             if (dictionary.ContainsKey(entry.Key)) continue;
             dictionary.Add(entry.Key, entry.Value);
-            (merged ??= new HashSet<TKey>(dictionary.Comparer)).Add(entry.Key);
+#endif
+            if (strict) (merged ??= new HashSet<TKey>(dictionary.Comparer)).Add(entry.Key);
         }
     }
 
