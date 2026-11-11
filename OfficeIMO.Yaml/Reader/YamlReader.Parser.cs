@@ -35,7 +35,7 @@ public sealed partial class YamlReader {
     }
 
     /// <summary>
-    /// Makes a scalar event of a plain scalar token the scanner handed over without the queue, as <see cref="ParseNode"/>
+    /// Makes a scalar event of a scalar token the scanner handed over without the queue, as <see cref="ParseNode"/>
     /// makes one of a queued scalar without properties, and records it as consumed.
     /// </summary>
     private void TakeScalar(ref YamlEvent ev, in YamlToken token) {

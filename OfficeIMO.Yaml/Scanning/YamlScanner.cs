@@ -424,7 +424,7 @@ internal ref partial struct YamlScanner {
 
     /// <summary>
     /// Fetches the value of a block mapping entry after its ':' for a parser expecting one, with the token queue empty.
-    /// A plain scalar on the indicator's line is taken as consumed and returned, as fetching and consuming it through the
+    /// A plain or quoted scalar on the indicator's line is taken as consumed and returned, as fetching and consuming it through the
     /// queue would leave the scanner: no implicit key is possible after the indicator, so nothing waits on the next
     /// token. Otherwise the token is queued as <see cref="FetchNextToken"/> queues it and the method returns false.
     /// </summary>
@@ -456,7 +456,7 @@ internal ref partial struct YamlScanner {
 
     /// <summary>
     /// Fetches the item of a block sequence entry after its '-' for a parser expecting one, with the token queue empty.
-    /// A one-line plain scalar on the indicator's line that is not a key is taken as consumed and returned: the rest of
+    /// A one-line plain or quoted scalar on the indicator's line that is not a key is taken as consumed and returned: the rest of
     /// its line settles its implicit-key candidate. Otherwise the tokens are queued as <see cref="FetchNextToken"/>
     /// queues them and the method returns false.
     /// </summary>
