@@ -80,8 +80,8 @@ public static partial class OfficeOperationCapabilityCatalog {
             "XpsDocument.Create / Load / Save; page, document and story-fragment editing",
             "OfficeIMO.Xps.Tests XpsDocumentTests, XpsContentEditingTests, NativeSaveLifecycleTests, XpsInterleavingTests, XpsLogicalStructureTests and XpsMicrosoftProducerTests",
             new[] { ".xps", ".oxps" },
-            new[] { OfficeOperationKind.Inspect },
-            limitedSupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit },
+            Array.Empty<OfficeOperationKind>(),
+            limitedSupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Inspect, OfficeOperationKind.Edit },
             partial: new[] { OfficeOperationKind.Preserve },
             limitation: "Microsoft XPS and OpenXPS are loaded fully into memory; protected packages cannot be loaded. Creation is a bounded fixed-page profile; edits cover page and document insertion, reordering and removal, resource replacement and story fragments. Saves keep the original dialect and opaque parts, but ZIP metadata and XML bytes may change, interleaved parts are normalized and signed or protected packages cannot be rewritten. See OfficeIMO.Xps/SUPPORT.md.");
         AddNativeLifecycle(rows, "pdf-native", "OfficeIMO.Pdf", "Pdf.Native",

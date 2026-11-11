@@ -20902,7 +20902,7 @@
       "evidence":"OfficeIMO.Xps.Tests XpsDocumentTests, XpsContentEditingTests, NativeSaveLifecycleTests, XpsInterleavingTests, XpsLogicalStructureTests and XpsMicrosoftProducerTests::Inspect",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".oxps",".xps"],
-      "limitation":""
+      "limitation":"Microsoft XPS and OpenXPS are loaded fully into memory; protected packages cannot be loaded. Creation is a bounded fixed-page profile; edits cover page and document insertion, reordering and removal, resource replacement and story fragments. Saves keep the original dialect and opaque parts, but ZIP metadata and XML bytes may change, interleaved parts are normalized and signed or protected packages cannot be rewritten. See OfficeIMO.Xps/SUPPORT.md."
     },
     {
       "id":"conversion:xps-pdf",
