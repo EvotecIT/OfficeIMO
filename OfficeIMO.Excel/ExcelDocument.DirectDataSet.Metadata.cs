@@ -216,7 +216,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static string CreateFrozenSheetViewsXml(int topRows, int leftCols) {
-            if (topRows == 0 && leftCols == 0) return ExcelSheet.CreateDefaultSheetViews().OuterXml;
+            if (topRows == 0 && leftCols == 0) return ExcelSheet.DefaultSheetViewsXml;
             string topLeftCell = ExcelA1.CellReference(topRows + 1, leftCols + 1);
             string escapedTopLeftCell = EscapeXmlAttribute(topLeftCell);
             var builder = new StringBuilder(256);

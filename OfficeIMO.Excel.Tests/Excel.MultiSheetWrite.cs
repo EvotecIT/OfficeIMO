@@ -37,6 +37,46 @@ public partial class Excel {
         }
     }
 
+    [Fact]
+    public void Save_OfSeveralWrittenSheets_IsTheSameWithAndWithoutWorkerThreads() {
+        static byte[] Save(bool sequential) {
+            using var output = new MemoryStream();
+            using (ExcelDocument document = ExcelDocument.Create()) {
+                if (sequential) document.Execution.Mode = ExcelExecutionMode.Sequential;
+                for (int sheet = 1; sheet <= 6; sheet++) {
+                    var rows = Enumerable.Range(0, 400)
+                        .Select(i => new MultiSheetRow("Row " + (i * sheet).ToString(CultureInfo.InvariantCulture) + (i % 5 == 0 ? " & <b>\nnext" : ""),
+                            i, new DateTime(2024, 1, 1).AddDays(i), i % 3 == 0 ? null : i / 8d))
+                        .ToArray();
+                    document.AddSheet("Sheet" + sheet.ToString(CultureInfo.InvariantCulture)).WriteData(rows,
+                        ("Name", r => r.Name), ("Id", r => r.Id), ("CreatedOn", r => r.CreatedOn), ("Amount", r => r.Amount));
+                }
+                document.Save(output);
+            }
+            return output.ToArray();
+        }
+
+        static List<(string Name, byte[] Content)> Parts(byte[] package) {
+            using var archive = new System.IO.Compression.ZipArchive(new MemoryStream(package), System.IO.Compression.ZipArchiveMode.Read);
+            return archive.Entries.Select(entry => {
+                using Stream stream = entry.Open();
+                using var content = new MemoryStream();
+                stream.CopyTo(content);
+                return (entry.FullName, content.ToArray());
+            }).ToList();
+        }
+
+        var parallel = Parts(Save(sequential: false));
+        var sequential = Parts(Save(sequential: true));
+
+        Assert.Equal(sequential.Select(part => part.Name), parallel.Select(part => part.Name));
+        foreach (var (expected, actual) in sequential.Zip(parallel, (expected, actual) => (expected, actual))) {
+            // Relationship ids and creation times are generated per save; every other part must match exactly.
+            if (expected.Name.EndsWith(".rels", StringComparison.Ordinal) || expected.Name is "xl/workbook.xml" or "docProps/core.xml") continue;
+            Assert.True(expected.Content.SequenceEqual(actual.Content), expected.Name + " differs.");
+        }
+    }
+
     [Theory]
     [InlineData("Q1::Sales//North", "Q1_Sales_North")]
     [InlineData("__Totals__", "Totals")]

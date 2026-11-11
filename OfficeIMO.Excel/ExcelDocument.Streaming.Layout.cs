@@ -73,11 +73,8 @@ public partial class ExcelDocument {
             int frozenColumns = options.FreezeFirstColumn ? FirstColumn : 0;
             if (frozenRows >= ExcelA1.MaxRows || frozenColumns >= ExcelA1.MaxColumns)
                 throw new ArgumentOutOfRangeException(nameof(options.Address), "A freeze pane must leave a visible worksheet cell.");
-            ViewsXml = frozenRows != 0 || frozenColumns != 0 ? FrozenViewsXml(frozenRows, frozenColumns) : DefaultViewsXml;
+            ViewsXml = frozenRows != 0 || frozenColumns != 0 ? FrozenViewsXml(frozenRows, frozenColumns) : ExcelSheet.DefaultSheetViewsXml;
         }
-
-        // The SDK serialization of a plain view; spelling it out keeps the Open XML element model out of plain writers.
-        private const string DefaultViewsXml = "<x:sheetViews xmlns:x=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><x:sheetView workbookViewId=\"0\" /></x:sheetViews>";
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static string FrozenViewsXml(int frozenRows, int frozenColumns) {
