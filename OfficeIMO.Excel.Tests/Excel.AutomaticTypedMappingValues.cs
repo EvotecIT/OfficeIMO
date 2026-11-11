@@ -181,6 +181,38 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
     }
 
     [Fact]
+    public void DecimalProjectionTypedRowsMatchTheirProjectedValues() {
+        string path = CreateWorkbook(
+            "<row r=\"2\"><c r=\"A2\"><v>1234567890.123456789</v></c><c r=\"B2\"><v>42</v></c>" +
+            "<c r=\"C2\" s=\"1\"><v>45292.25</v></c><c r=\"D2\" t=\"inlineStr\"><is><t>North</t></is></c>" +
+            "<c r=\"E2\" t=\"b\"><v>1</v></c></row>",
+            new[] { "Amount", "Count", "Created", "Name", "Active" }, 2);
+        try {
+            var options = new ExcelReaderOptions { NumericAsDecimal = true };
+            object[] projected = new object[5];
+            using (var oracle = ExcelDocument.OpenReader(path, options)) {
+                Assert.True(oracle.Read());
+                oracle.GetValues(projected);
+            }
+            using var reader = ExcelDocument.OpenReader(path, options);
+            DecimalProjectionRow row = Assert.Single(reader.RowsAs<DecimalProjectionRow>());
+            Assert.Equal(Assert.IsType<decimal>(projected[0]), row.Amount);
+            Assert.Equal(Convert.ToInt32(projected[1], CultureInfo.InvariantCulture), row.Count);
+            Assert.Equal(Assert.IsType<DateTime>(projected[2]), row.Created);
+            Assert.Equal("North", row.Name);
+            Assert.True(row.Active);
+        } finally { File.Delete(path); }
+    }
+
+    private sealed class DecimalProjectionRow {
+        public decimal Amount { get; set; }
+        public int Count { get; set; }
+        public DateTime Created { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public bool Active { get; set; }
+    }
+
+    [Fact]
     public void ParallelAutomaticRowsOwnBorrowedCellArraysAcrossBatchReuse() {
         using var table = new System.Data.DataTable();
         table.Columns.Add("Id", typeof(int));
