@@ -90,7 +90,7 @@ public sealed class OpenOfficeYamlCommand : OfficeLifecycleCmdlet<YamlDocument> 
         foreach (string source in OfficePath.ResolveInput(SessionState, literal ? LiteralPath : Path, literal)) {
             try {
                 RunDocument(source, isNew: false, force: false,
-                    path => OfficeYamlDocuments.Associate(YamlDocument.Load(path!, options), path),
+                    path => YamlDocument.Load(path!, options),
                     (document, path, _) => { document.Save(path, WriteOptions); return null; });
             } catch (YamlException error) {
                 WriteError(OfficeYamlDocuments.Error(error, source));

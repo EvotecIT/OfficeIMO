@@ -30,7 +30,7 @@ public sealed class NewOfficeYamlCommand : OfficeNewLifecycleCmdlet<YamlDocument
     /// <inheritdoc />
     protected override void ProcessRecord() {
         RunDocument(Path, isNew: true, Force.IsPresent,
-            path => OfficeYamlDocuments.Associate(YamlDocument.Create(), path),
+            path => path == null ? YamlDocument.Create() : YamlDocument.Create(path),
             (document, path, _) => { document.Save(path, WriteOptions); return null; });
     }
 }

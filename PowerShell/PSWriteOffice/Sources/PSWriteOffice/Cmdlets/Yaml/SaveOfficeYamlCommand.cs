@@ -19,7 +19,7 @@ public sealed class SaveOfficeYamlCommand : OfficeCmdlet {
     /// <summary>YAML document to save.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Document"), ValidateNotNull]
     public YamlDocument Document { get; set; } = null!;
-    /// <summary>Optional destination; omission saves to the file the document was opened or created with.</summary>
+    /// <summary>Optional destination, which becomes the document's FilePath; omission saves to its FilePath.</summary>
     [Parameter(Position = 0), ValidateNotNullOrEmpty]
     public string? Path { get; set; }
     /// <summary>Native save settings or a hashtable of their properties.</summary>
@@ -31,7 +31,7 @@ public sealed class SaveOfficeYamlCommand : OfficeCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        string? destination = Path ?? OfficeYamlDocuments.GetPath(Document);
+        string? destination = Path ?? Document.FilePath;
         if (string.IsNullOrWhiteSpace(destination)) {
             InvalidArgument(new PSArgumentException("Supply Path when the document has no associated file."), Document);
             return;
@@ -39,9 +39,7 @@ public sealed class SaveOfficeYamlCommand : OfficeCmdlet {
         destination = ResolveOutputPath(destination!);
         if (!ShouldProcess(destination, "Save YAML document")) return;
         try {
-            OfficeOutput.Write(destination, stream => Document.Save(stream, WriteOptions), noClobber: false);
-            // A document created without a path takes the first file it is saved to, as New- promises.
-            if (OfficeYamlDocuments.GetPath(Document) == null) OfficeYamlDocuments.Associate(Document, destination);
+            Document.Save(destination, WriteOptions);
             if (PassThru) WriteObject(new FileInfo(destination));
         } catch (PipelineStoppedException) { throw; }
         catch (Exception error) { WriteError(OfficeYamlDocuments.Error(error, destination)); }

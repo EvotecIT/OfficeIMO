@@ -1,6 +1,5 @@
 using System.Management.Automation;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using OfficeIMO.Yaml;
 using PSWriteOffice.Foundation;
 
@@ -8,20 +7,6 @@ namespace PSWriteOffice.Services.Yaml;
 
 /// <summary>Shared YAML document plumbing for the lifecycle, node and conversion commands.</summary>
 internal static class OfficeYamlDocuments {
-    // YamlDocument keeps its load path internal and Create() takes none, so the shell remembers the file a live
-    // document belongs to. Save-OfficeYaml without -Path and Merge-OfficeDocument read it from here.
-    private static readonly ConditionalWeakTable<YamlDocument, string> Paths = new();
-
-    internal static YamlDocument Associate(YamlDocument document, string? path) {
-        if (path != null) {
-            Paths.Remove(document);
-            Paths.Add(document, path);
-        }
-        return document;
-    }
-
-    internal static string? GetPath(YamlDocument document) => Paths.TryGetValue(document, out string? path) ? path : null;
-
     /// <summary>
     /// Copies caller options so the command switches never change the caller's object. -Untrusted caps every limit at
     /// <see cref="YamlLoadOptions.UntrustedDefaults"/>, so it can only tighten what -Options sets.

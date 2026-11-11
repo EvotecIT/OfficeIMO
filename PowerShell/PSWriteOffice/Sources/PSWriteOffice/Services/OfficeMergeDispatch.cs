@@ -7,7 +7,6 @@ using OfficeIMO.Word;
 using OfficeIMO.Yaml;
 using PSWriteOffice.Foundation;
 using PSWriteOffice.Models.Excel;
-using PSWriteOffice.Services.Yaml;
 
 namespace PSWriteOffice.Services;
 
@@ -49,7 +48,7 @@ internal static partial class OfficeMergeDispatch {
                 return excel.FilePath;
             case YamlDocument yaml:
                 if (!IsYaml(extension)) throw new PSArgumentException("The native document format must match every input and OutputPath; format conversion is not part of merge.");
-                return OfficeYamlDocuments.GetPath(yaml);
+                return yaml.FilePath;
             case PdfDocument:
                 throw new NotSupportedException("Live PDF targets cannot be appended in place. Use Path or LiteralPath and OutputPath for a native PDF merge.");
             default:
