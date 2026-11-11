@@ -873,11 +873,17 @@ namespace OfficeIMO.Excel {
             Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            ApplyCellFormatOverride(stylesheet, cell, format => {
-                format.NumberFormatId = builtInFormatId;
-                format.ApplyNumberFormat = true;
+            string argument = builtInFormatId switch {
+                14U => "14",
+                46U => "46",
+                _ => builtInFormatId.ToString(CultureInfo.InvariantCulture)
+            };
+            ApplyDerivedCellFormat(stylesPart, stylesheet, cell, "built-in-number-format", argument, () => {
+                ApplyCellFormatOverride(stylesheet, cell, format => {
+                    format.NumberFormatId = builtInFormatId;
+                    format.ApplyNumberFormat = true;
+                });
             });
-            SaveStylesheet(stylesPart);
         }
 
         private void FormatCellCore(Cell cell, int row, int column, string numberFormat) {
