@@ -134,12 +134,12 @@ namespace OfficeIMO.Word {
                         continue;
                     }
 
-                    if (mode == WordStyleConflictMode.Overwrite) {
-                        // Two source styles can match one destination style (one by name, one by id); the first replaces it.
+                    // Two source styles can match one destination style (one by name, one by id). The first replaces it and the
+                    // others are copied under a new name: collapsing them would lose a definition, and a style based on
+                    // the other would end up based on itself.
+                    if (mode == WordStyleConflictMode.Overwrite && overwritten.Add(match)) {
                         _styleMap[sourceId] = match.StyleId!.Value!;
-                        if (overwritten.Add(match)) {
-                            _styleCopies.Add((style, match.StyleId!.Value!, null, match));
-                        }
+                        _styleCopies.Add((style, match.StyleId!.Value!, null, match));
                         continue;
                     }
                 } else if (!IsNameTaken(style, usedNames) && usedIds.Add(sourceId)) {

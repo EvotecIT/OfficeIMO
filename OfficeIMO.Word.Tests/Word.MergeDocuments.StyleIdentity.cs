@@ -85,21 +85,31 @@ public partial class Word {
         }, ("Destination", "Body"));
         WordStyle handle = destination.Styles["Body"];
 
-        // One source style matches "Body" by id (and is named like the destination's character style), the other by name.
-        using WordDocument source = Create(new[] { Paragraph("Body", "Label", "222222"), Paragraph("Other", "Body", "333333") },
+        // One source style matches "Body" by id (and is named like the destination's character style), the other by name,
+        // and the first is based on the second.
+        Style byId = Paragraph("Body", "Label", "222222");
+        byId.BasedOn = new BasedOn { Val = "Other" };
+        using WordDocument source = Create(new[] { byId, Paragraph("Other", "Body", "333333") },
             ("By id", "Body"), ("By name", "Other"));
 
         destination.AppendDocument(source, new WordDocumentMergeOptions { StyleConflictMode = WordStyleConflictMode.Overwrite });
 
         Style[] styles = destination._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Elements<Style>().ToArray();
         Style body = Assert.Single(styles, style => style.StyleId == "Body");
-        string color = body.StyleRunProperties!.Color!.Val!.Value!;
-        Assert.Contains(color, new[] { "222222", "333333" });
         Assert.Equal("Body", body.StyleName!.Val!.Value);
         Assert.Equal(styles.Length, styles.Select(style => style.StyleName?.Val?.Value).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.DoesNotContain(styles, style => style.BasedOn?.Val?.Value == style.StyleId?.Value);
+
+        // The first matching source style overwrites "Body"; the other is copied, so both source paragraphs keep their look.
         Body merged = destination._wordprocessingDocument.MainDocumentPart!.Document!.Body!;
-        Assert.All(merged.Descendants<Paragraph>().Where(paragraph => paragraph.InnerText.Length > 0),
-            paragraph => Assert.Equal("Body", paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value));
+        string ColorOf(string text) {
+            string styleId = merged.Descendants<Paragraph>().Single(paragraph => paragraph.InnerText == text).ParagraphProperties!.ParagraphStyleId!.Val!.Value!;
+            return styles.Single(style => style.StyleId == styleId).StyleRunProperties!.Color!.Val!.Value!;
+        }
+        Assert.Equal("222222", ColorOf("By id"));
+        Assert.Equal("333333", ColorOf("By name"));
+        string color = body.StyleRunProperties!.Color!.Val!.Value!;
+        Assert.Equal(color, ColorOf("Destination"));
 
         Assert.Equal(OfficeColor.Parse("#" + color), handle.Color);
         handle.Bold = true;
