@@ -54,10 +54,100 @@ internal sealed class ExcelZipWriter : ExcelPackageArchive {
         return _current = new PartStream(this, part);
     }
 
+    /// <summary>
+    /// Deflates the bytes <paramref name="write"/> produces, as a <see cref="CompressionLevel.Fastest"/> entry would be,
+    /// without touching an archive, so several parts can be prepared at once and appended in order.
+    /// </summary>
+    internal static PreparedEntry Prepare(Action<Stream> write) {
+        var buffer = new MemoryStream();
+        using (var stream = new PreparingStream(buffer)) {
+            write(stream);
+            stream.Complete();
+            return new PreparedEntry(buffer, stream.Crc, stream.Size);
+        }
+    }
+
+    /// <summary>Appends a part that <see cref="Prepare"/> compressed; the entry is the one <see cref="OpenEntry"/> would write.</summary>
+    internal void WritePrepared(string name, PreparedEntry entry) {
+        if (_closed) throw new ObjectDisposedException(nameof(ExcelZipWriter));
+        if (_current != null) throw new InvalidOperationException("Close the previous package entry before opening another.");
+        if (_faulted) throw new InvalidOperationException("A package entry failed; the archive cannot take more entries.");
+        var part = new Part(name, CompressionLevel.Fastest);
+        if (!_seekable) part.Flags |= DescriptorFlag;
+        try {
+            WriteLocalHeader(part);
+            long contentStart = _offset;
+            _sink.Write(entry.Content.GetBuffer(), 0, checked((int)entry.Content.Length));
+            part.Crc = entry.Crc;
+            part.Size = entry.Size;
+            part.CompressedSize = _offset - contentStart;
+        } catch {
+            FailPart();
+            throw;
+        }
+        CompletePart(part);
+    }
+
+    /// <summary>A part deflated away from the archive, with the CRC-32 and size of its uncompressed bytes.</summary>
+    internal sealed class PreparedEntry {
+        internal PreparedEntry(MemoryStream content, uint crc, long size) {
+            Content = content;
+            Crc = crc;
+            Size = size;
+        }
+
+        internal MemoryStream Content { get; }
+        internal uint Crc { get; }
+        internal long Size { get; }
+    }
+
+    private sealed class PreparingStream(MemoryStream output) : Stream {
+        private readonly ExcelDeflateEncoder _encoder = new(output);
+        private uint _crc = OfficePngCrc32.Begin();
+        private bool _completed;
+
+        internal uint Crc => OfficePngCrc32.Complete(_crc);
+        internal long Size { get; private set; }
+
+        public override void Write(byte[] buffer, int offset, int count) {
+            ValidateBufferArguments(buffer, offset, count);
+            Write(new ReadOnlySpan<byte>(buffer, offset, count));
+        }
+
+        public override void Write(ReadOnlySpan<byte> buffer) {
+            if (_completed) throw new ObjectDisposedException(nameof(PreparingStream));
+            _crc = OfficePngCrc32.Append(_crc, buffer);
+            Size += buffer.Length;
+            _encoder.Write(buffer);
+        }
+
+        internal void Complete() {
+            if (_completed) return;
+            _completed = true;
+            _encoder.Finish();
+        }
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) _encoder.Dispose();
+            base.Dispose(disposing);
+        }
+
+        public override void Flush() { }
+        public override bool CanRead => false;
+        public override bool CanSeek => false;
+        public override bool CanWrite => !_completed;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+    }
+
     /// <summary>Writes the central directory once every entry has completed. A faulted archive stays unfinished.</summary>
     public override void Dispose() {
         if (_closed) return;
         _closed = true;
+        AbandonCompression();
         if (_current != null || _faulted) return;
         long directoryStart = _offset;
         using var directory = new MemoryStream(64 + _parts.Count * 80);

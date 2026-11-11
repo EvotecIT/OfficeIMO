@@ -1,9 +1,13 @@
+
 namespace OfficeIMO.Excel;
 
 /// <summary>Defers the bounded worksheet compression handoff until a streamed sheet is large enough.</summary>
-internal sealed class StreamingWorksheetCompression(Stream destination) : Stream {
-    // Smaller sheets stay on the caller; past this the compressor thread costs less than serial deflate.
-    private const int SynchronousPrefixLength = 256 * 1024;
+/// <remarks>With an <paramref name="owner"/> archive the sheet borrows that package's compressor, so a workbook of many
+/// sheets starts one worker instead of one per sheet.</remarks>
+internal sealed class StreamingWorksheetCompression(Stream destination, ExcelPackageArchive? owner = null) : Stream {
+    // Smaller sheets stay on the caller. The package keeps its compressor for later sheets, so only the first large
+    // sheet pays to start the worker.
+    private const int SynchronousPrefixLength = 64 * 1024;
     private WorksheetCompressionPipeline? _pipeline;
     private int _prefixBytes;
     private bool _disposed;
@@ -18,7 +22,7 @@ internal sealed class StreamingWorksheetCompression(Stream destination) : Stream
             _prefixBytes += count;
             return;
         }
-        _pipeline ??= new WorksheetCompressionPipeline(destination);
+        _pipeline ??= owner?.AcquireCompression(destination) ?? new WorksheetCompressionPipeline(destination);
         _pipeline.Write(buffer, offset, count);
     }
 
@@ -26,14 +30,19 @@ internal sealed class StreamingWorksheetCompression(Stream destination) : Stream
     internal void Complete() {
         if (_disposed) throw new ObjectDisposedException(nameof(StreamingWorksheetCompression));
         if (_complete) return;
-        _pipeline?.Complete();
+        if (owner != null) _pipeline?.Drain();
+        else _pipeline?.Complete();
         _complete = true;
     }
 
     protected override void Dispose(bool disposing) {
         if (_disposed) return;
         _disposed = true;
-        if (disposing) _pipeline?.Dispose();
+        if (disposing && _pipeline != null) {
+            // A borrowed compressor stays with the package only after this entry drained completely.
+            if (owner == null) _pipeline.Dispose();
+            else if (!_complete) owner.AbandonCompression();
+        }
         base.Dispose(disposing);
     }
 

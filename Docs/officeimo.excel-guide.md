@@ -92,6 +92,12 @@ a failed or cancelled source discards the staged file. No table calls leave a
 file destination unchanged. Stream destinations support non-seekable output;
 use `leaveOpen: true` to retain the stream after completion.
 
+The writer gives every row and cell an explicit `r` reference, as Excel does. Set
+`IncludeCellReferences = false` in `ExcelWriterOptions` to leave them out: the
+package is roughly half the size, writing is faster, and Excel still opens the
+file. Some other readers and tools require cell references, so they stay on by
+default.
+
 ## Loading, cell borders and report sheets
 
 When a workbook comes from an untrusted source, pass the bounded load profile before parsing it:
