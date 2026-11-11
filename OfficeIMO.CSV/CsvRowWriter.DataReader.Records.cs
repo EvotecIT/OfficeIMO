@@ -16,6 +16,7 @@ public sealed partial class CsvRowWriter
         var scratch = new StringBuilder();
         using var output = new CsvWriter.RecordBuffer();
         var completed = 0;
+        bool boxedValues = reader.GetType() == typeof(DataTableReader);
         try
         {
             while (true)
@@ -28,7 +29,7 @@ public sealed partial class CsvRowWriter
 
                 cancellationToken.ThrowIfCancellationRequested();
                 CsvWriter.AppendDataReaderRecord(output, scratch, reader, fieldKinds, _delimiter, _options.NewLine,
-                    _options.Culture, _useFormattedDefaultWritePath, _options.DateTimeFormat, _options.UseUtc, _options.NullValue);
+                    _options.Culture, _useFormattedDefaultWritePath, _options.DateTimeFormat, _options.UseUtc, _options.NullValue, boxedValues);
                 completed = output.Length;
                 if (completed >= CsvWriter.DataReaderFlushThreshold)
                 {

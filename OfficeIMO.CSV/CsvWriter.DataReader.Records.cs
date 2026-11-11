@@ -42,6 +42,7 @@ internal static partial class CsvWriter
             Length += value.Length;
         }
 
+
         public void Dispose()
         {
             ArrayPool<char>.Shared.Return(_characters, clearArray: true);
@@ -65,7 +66,8 @@ internal static partial class CsvWriter
         bool formatted,
         string? dateTimeFormat,
         bool useUtc,
-        string? nullValue)
+        string? nullValue,
+        bool boxedValues = false)
     {
         bool invariantComma = delimiter == ',' && ReferenceEquals(culture, CultureInfo.InvariantCulture);
         string? format = string.IsNullOrEmpty(dateTimeFormat) ? null : dateTimeFormat;
@@ -76,7 +78,7 @@ internal static partial class CsvWriter
                 output.Write(delimiter);
             }
 
-            if (TryAppendRecordValue(output, reader, i, fieldKinds[i], delimiter, culture, invariantComma, formatted, format, useUtc, nullValue))
+            if (TryAppendRecordValue(output, reader, i, fieldKinds[i], delimiter, culture, invariantComma, formatted, format, useUtc, nullValue, boxedValues))
             {
                 continue;
             }
@@ -120,7 +122,8 @@ internal static partial class CsvWriter
         bool formatted,
         string? format,
         bool useUtc,
-        string? nullValue)
+        string? nullValue,
+        bool boxedValues)
     {
         switch (fieldKind)
         {
@@ -138,7 +141,10 @@ internal static partial class CsvWriter
 
         try
         {
-            if (reader.IsDBNull(ordinal))
+            // A data table reader looks a row up on every call; one boxed read answers both the null check
+            // and the value, and a table column holds only its declared type or DBNull.
+            object? boxed = null;
+            if (boxedValues ? (boxed = reader.GetValue(ordinal)) is DBNull : reader.IsDBNull(ordinal))
             {
                 // A null marker keeps the general path; an absent one writes nothing.
                 return !formatted || nullValue is null;
@@ -147,21 +153,21 @@ internal static partial class CsvWriter
             switch (fieldKind)
             {
                 case DataReaderFieldKind.String:
-                    AppendEscapedRecordText(output, reader.GetString(ordinal), delimiter);
+                    AppendEscapedRecordText(output, boxedValues ? (string)boxed! : reader.GetString(ordinal), delimiter);
                     return true;
                 case DataReaderFieldKind.Int32:
-                    return AppendRecordScalar(output, reader.GetInt32(ordinal), delimiter, culture, invariantComma);
+                    return AppendRecordScalar(output, boxedValues ? (int)boxed! : reader.GetInt32(ordinal), delimiter, culture, invariantComma);
                 case DataReaderFieldKind.Int64:
-                    return AppendRecordScalar(output, reader.GetInt64(ordinal), delimiter, culture, invariantComma);
+                    return AppendRecordScalar(output, boxedValues ? (long)boxed! : reader.GetInt64(ordinal), delimiter, culture, invariantComma);
                 case DataReaderFieldKind.Double:
-                    return AppendRecordScalar(output, reader.GetDouble(ordinal), delimiter, culture, invariantComma);
+                    return AppendRecordScalar(output, boxedValues ? (double)boxed! : reader.GetDouble(ordinal), delimiter, culture, invariantComma);
                 case DataReaderFieldKind.Decimal:
-                    return AppendRecordScalar(output, reader.GetDecimal(ordinal), delimiter, culture, invariantComma);
+                    return AppendRecordScalar(output, boxedValues ? (decimal)boxed! : reader.GetDecimal(ordinal), delimiter, culture, invariantComma);
                 case DataReaderFieldKind.Boolean:
-                    AppendEscapedRecordText(output, reader.GetBoolean(ordinal) ? "True" : "False", delimiter);
+                    AppendEscapedRecordText(output, (boxedValues ? (bool)boxed! : reader.GetBoolean(ordinal)) ? "True" : "False", delimiter);
                     return true;
                 default:
-                    var value = reader.GetDateTime(ordinal);
+                    var value = boxedValues ? (DateTime)boxed! : reader.GetDateTime(ordinal);
                     if (!formatted)
                     {
                         return AppendRecordScalar(output, value, delimiter, culture, invariantComma);
