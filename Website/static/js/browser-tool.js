@@ -823,8 +823,23 @@
     var panel = el('div', 'bt-commit');
     var selectable = result.items.filter(function (item) { return item.selectable; });
     var others = result.items.filter(function (item) { return !item.selectable; });
-    var list = el('ul', 'bt-item-list');
-    (selectable.length ? selectable : result.items).forEach(function (item) { list.appendChild(itemRow(item, !!item.selectable)); });
+    var shownItems = selectable.length ? selectable : result.items;
+    var grouped = shownItems.some(function (item) { return !!item.group; });
+    var list = el(grouped ? 'div' : 'ul', grouped ? 'bt-commit__groups' : 'bt-item-list');
+    if (grouped) {
+      // One report, one action: each category heading holds its own choices.
+      var hosts = {};
+      shownItems.forEach(function (item) {
+        var key = item.group || '';
+        if (!hosts[key]) {
+          if (key) list.appendChild(el('h3', 'bt-items__group', key));
+          hosts[key] = list.appendChild(el('ul', 'bt-item-list'));
+        }
+        hosts[key].appendChild(itemRow(item, !!item.selectable));
+      });
+    } else {
+      shownItems.forEach(function (item) { list.appendChild(itemRow(item, !!item.selectable)); });
+    }
     if (cfg.kind === 'text' && selectable.length > 1) {
       var tools = el('div', 'bt-commit__bulk');
       var risky = el('button', 'bt-chip', 'Select the ones that can change meaning');
@@ -870,14 +885,14 @@
   function previewBox(result, primary) {
     var preview = result.preview;
     if (!preview) {
-      if (cfg.kind === 'origin' && state.files[0] && /\.(png|jpe?g|webp)$/.test(state.files[0].ext)) return originalImage();
+      if (cfg.kind === 'share' && state.files[0] && /\.(png|jpe?g|webp)$/.test(state.files[0].ext)) return originalImage();
       return null;
     }
     var box = el('figure', 'bt-preview');
     if (preview.kind === 'pdf' && primary) {
       box.appendChild(pdfPager(preview.pageCount || 0, preview.artifactIndex || 0));
     } else if (preview.kind === 'image' && primary) {
-      if (cfg.kind === 'origin' && state.files[0]) {
+      if (cfg.kind === 'share' && state.files[0]) {
         box.className = 'bt-preview bt-preview--pair';
         box.appendChild(imageFigure(objectUrl(new Blob([state.files[0].buffer])), 'Original'));
         box.appendChild(imageFigure(primary.url, 'Clean copy'));

@@ -2112,6 +2112,27 @@ For an opened PDF, `pdf.AssessCompliance(profile, cancellationToken)` checks rea
 
 PDF authoring accepts font faces up to 128 MiB each. `EmbedStandardFont` and `PdfEmbeddedFontFamily.FromFiles` check file size before reading and recheck while reading, so use their path overloads when loading files. Byte-array inputs are checked before OfficeIMO copies them. An oversized face throws `InvalidDataException` without changing the authoring options.
 
+### Convert an existing PDF to PDF/A
+
+```csharp
+using OfficeIMO.Pdf;
+
+PdfAConversionResult result = PdfDocument.Load("contract.pdf")
+    .ConvertToPdfA(new PdfAConversionOptions { Profile = PdfComplianceProfile.PdfA3U });
+
+if (result.Succeeded) {
+    result.Save("contract-archive.pdf");
+} else {
+    foreach (PdfAConversionViolation violation in result.Report.Violations) {
+        Console.WriteLine($"{violation.Reason} at {violation.Location}: {violation.Message}");
+    }
+}
+```
+
+`ConvertToPdfA` targets PDF/A-2b, 2u, 3b and 3u. It fixes only what leaves every page drawn the same: it adds PDF/A identification in XMP and an sRGB output intent, removes encryption (`Password` takes the owner password), JavaScript and forbidden actions, sets annotation print flags, keeps only normal appearances, re-encodes LZW streams, embeds a non-embedded font from an installed face when every drawn glyph has the same width, and adds ToUnicode maps for the u-levels. PDF/A-3 keeps attachments and marks their relationship; PDF/A-2 removes them unless `RemoveEmbeddedFiles` is `false`. `Report.Changes` lists every change by object.
+
+When something cannot be fixed that way, such as a composite font that is not embedded, device CMYK under an RGB output intent, or an annotation without an appearance, nothing is produced and `Report.Violations` lists every reason by object. `SaveAsPdfA(path)` throws `PdfAConversionException` in that case without creating the file. Supply a CMYK ICC profile in `OutputIntentProfile` to convert files painted in device CMYK. Validate the converted file externally before claiming conformance.
+
 ### Generate a fail-closed PDF/X artifact
 
 ```csharp

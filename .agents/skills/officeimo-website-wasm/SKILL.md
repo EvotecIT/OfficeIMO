@@ -30,7 +30,7 @@ Use this skill for OfficeIMO.com browser tool work.
 - Keep local automation, batch conversion, and agent workflows in the CLI or an MCP server, not in the public browser app.
 - Values shown on pages come from catalogs (`office_conversion_routes.json`, the engine catalogs); write plain-language
   copy for visitors, not engine terms. Name findings, don't just count them.
-- One primary action at a time. Read-only checks (inspect, origin, compare) run as soon as files are added.
+- One primary action at a time. Read-only checks (inspect, clean before sharing, compare) run as soon as files are added.
 - Keep reflection out of the engine: it is fully trimmed with trim analysis on. Use source-generated JSON contexts.
 
 ## Add a browser tool
@@ -40,7 +40,7 @@ Use this skill for OfficeIMO.com browser tool work.
    `options` (choice, flag, number, text, password, pages), `engine` (`kind`, `target`, `action`, optional `commit`,
    `find`, `confirm`, and the lazy `assemblies`), `run` labels, `expect`, `next`, `legacy`, `guide`, `package`.
 2. If the engine can already run it (a new conversion route or PDF operation), no C# is needed. Otherwise add a handler
-   beside `Engine/ConvertTool.cs` / `PdfTool.cs` / `OriginTool.cs` / `TextTool.cs` and dispatch it in `EngineExports.Run`.
+   beside `Engine/ConvertTool.cs` / `PdfTool.cs` / `ShareTool.cs` / `TextTool.cs` and dispatch it in `EngineExports.Run`.
    Return a `ToolResultDocument` with a plain verdict.
 3. Mark any new engine assembly with `BlazorWebAssemblyLazyLoad` in the project file.
 4. Run `pwsh Website/scripts/Sync-BrowserToolPages.ps1` to create the page front matter.

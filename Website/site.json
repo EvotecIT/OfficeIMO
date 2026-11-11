@@ -507,15 +507,6 @@
         ]
       },
       {
-        "Match": "/provenance/",
-        "Bundles": [
-          "global",
-          "product",
-          "docs",
-          "experience"
-        ]
-      },
-      {
         "Match": "/pdf/**",
         "Bundles": [
           "global",
@@ -1008,6 +999,19 @@
       "From": "/showcase/html-rendering/",
       "To": "/showcase/?format=html",
       "Status": 301
+    },
+    {
+      "From": "/browser/file-origin/",
+      "To": "/browser/clean-before-sharing/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/provenance/",
+      "To": "/docs/before-sharing/provenance/",
+      "Status": 301,
+      "MatchType": "Exact"
     },
     {
       "From": "/playground/",
