@@ -90,4 +90,4 @@ Every operation is bounded: input size, entry count, per-member and aggregate ex
 - CAB checksums and ZIP CRC-32 detect corruption; they do not prove authenticity.
 - Limits bound logical data, not process peak memory.
 
-See the [package README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Archives/README.md) and the [support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Archives/SUPPORT.md).
+See the [OfficeIMO.Archives README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Archives/README.md) and the [OfficeIMO.Archives support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Archives/SUPPORT.md).

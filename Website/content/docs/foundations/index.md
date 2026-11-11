@@ -48,7 +48,7 @@ document.Save();
 
 The same artifact can be passed to `sheet.AddVisualArtifact("B4:I18", artifact)` and `slide.AddVisualArtifact(...)`. Word fits an unsized visual to the paragraph's available content width.
 
-Limits: the default `RasterizeWhenNeeded` policy falls back to PNG when SVG import is incomplete, which is reported as an approximation and loses vector editability; choose `PreserveVector` or `RequireVector` to change that. Cropped `Cover` fitting is not supported. Native Visio output does not draw static watermarks and recomputes the layout of flow and sequence diagrams; both are reported. See the [package README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.ChartForgeX/README.md).
+Limits: the default `RasterizeWhenNeeded` policy falls back to PNG when SVG import is incomplete, which is reported as an approximation and loses vector editability; choose `PreserveVector` or `RequireVector` to change that. Cropped `Cover` fitting is not supported. Native Visio output does not draw static watermarks and recomputes the layout of flow and sequence diagrams; both are reported. See the [OfficeIMO.ChartForgeX README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.ChartForgeX/README.md).
 
 ## Mermaid diagrams in Markdown
 
@@ -73,7 +73,7 @@ word.Save("report.docx");
 document.SaveAsPdf("report.pdf");
 ```
 
-Limits: supported Mermaid grammar and its static approximations are defined by ChartForgeX. Invalid or unsupported diagrams keep their source fence and report a diagnostic. Mermaid's browser runtime is not used. See the [package README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.ChartForgeX.Markdown/README.md).
+Limits: supported Mermaid grammar and its static approximations are defined by ChartForgeX. Invalid or unsupported diagrams keep their source fence and report a diagnostic. Mermaid's browser runtime is not used. See the [OfficeIMO.ChartForgeX.Markdown README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.ChartForgeX.Markdown/README.md).
 
 ## OCR
 
@@ -158,4 +158,4 @@ foreach (string finding in result.Findings)
 
 `Valid` means a manifest was found, verified, and produced no findings. `Untrusted`, `Invalid`, `NotPresent`, `ProviderUnavailable`, `Indeterminate`, and `Error` are reported separately. Remote manifest and OCSP fetching are disabled by default. `C2paToolProvenanceSigner` signs through `c2patool` 0.27.0 or newer with a signer process backed by your HSM, KMS, or signing service, and installs the signed asset atomically.
 
-Limits: the adapter does not emit watermark actions, because they require soft-binding assertions that OfficeIMO does not create. Built-in test credentials are for development only and are marked as such in results. See the [package README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Provenance.C2pa/README.md).
+Limits: the adapter does not emit watermark actions, because they require soft-binding assertions that OfficeIMO does not create. Built-in test credentials are for development only and are marked as such in results. See the [OfficeIMO.Provenance.C2pa README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Provenance.C2pa/README.md).

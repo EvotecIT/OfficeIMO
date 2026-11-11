@@ -48,7 +48,7 @@ foreach (OfficeDiagnostic diagnostic in pdf.Diagnostics)
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 ```
 
-Limits: the engine does not claim every Asciidoctor substitution, macro, extension, advanced table layout, or rendering behavior. File encoding and BOM bytes are not retained by `Load`/`Save`. See the [package README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.AsciiDoc/README.md) and the [AsciiDoc support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.asciidoc-support-matrix.md).
+Limits: the engine does not claim every Asciidoctor substitution, macro, extension, advanced table layout, or rendering behavior. File encoding and BOM bytes are not retained by `Load`/`Save`. See the [OfficeIMO.AsciiDoc README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.AsciiDoc/README.md) and the [AsciiDoc support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.asciidoc-support-matrix.md).
 
 ## LaTeX
 
@@ -75,7 +75,7 @@ OfficeConversionReport pdf = article.SaveAsPdf("article.pdf");
 Console.WriteLine($"PDF conversion reported loss: {pdf.HasLoss}");
 ```
 
-Limits: PDF output is a projection of the bounded profile through the Markdown and PDF engines, not TeX typesetting. Math layout, package-specific commands, bibliography formatting, and unknown environments are reported as source fallbacks or simplifications. See the [package README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Latex/README.md) and the [LaTeX support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.latex-support-matrix.md).
+Limits: PDF output is a projection of the bounded profile through the Markdown and PDF engines, not TeX typesetting. Math layout, package-specific commands, bibliography formatting, and unknown environments are reported as source fallbacks or simplifications. See the [OfficeIMO.Latex README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Latex/README.md) and the [LaTeX support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.latex-support-matrix.md).
 
 ## DocBook
 
@@ -101,7 +101,7 @@ Console.WriteLine($"Valid: {validation.IsValid}");
 document.Save("guide.docbook");
 ```
 
-Limits: `Validate()` checks the OfficeIMO common-structure contract only. It does not run the official DTD, RELAX NG, or Schematron rules; the package exposes their identifiers so you can run them in your own validator. Shared-model pages, forms, and structured visuals have no equivalent in this profile and are reported as loss. See the [package README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.DocBook/README.md).
+Limits: `Validate()` checks the OfficeIMO common-structure contract only. It does not run the official DTD, RELAX NG, or Schematron rules; the package exposes their identifiers so you can run them in your own validator. Shared-model pages, forms, and structured visuals have no equivalent in this profile and are reported as loss. See the [OfficeIMO.DocBook README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.DocBook/README.md).
 
 ## Compiled HTML Help (CHM)
 
@@ -130,7 +130,7 @@ foreach (OfficeDiagnostic diagnostic in pdf.Diagnostics)
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 ```
 
-Limits: there is no CHM writer. ActiveX, scripts, compiled full-text search, merged books, and help-viewer window behavior are outside the conversion contract. EPUB and PDF output do not rebuild the keyword index, and multi-topic PDFs are untagged. See the [package README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Chm/README.md) and [CHM support](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Chm/SUPPORT.md).
+Limits: there is no CHM writer. ActiveX, scripts, compiled full-text search, merged books, and help-viewer window behavior are outside the conversion contract. EPUB and PDF output do not rebuild the keyword index, and multi-topic PDFs are untagged. See the [OfficeIMO.Chm README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Chm/README.md) and [CHM support](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Chm/SUPPORT.md).
 
 ## OPML
 
@@ -156,7 +156,7 @@ document.Validate();
 document.Save("subscriptions.opml");
 ```
 
-Limits: DTDs and external entities are disabled. Tables, assets, pages, and forms have no OPML outline equivalent and are omitted with a diagnostic when converting from the shared model. See the [package README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Opml/README.md).
+Limits: DTDs and external entities are disabled. Tables, assets, pages, and forms have no OPML outline equivalent and are omitted with a diagnostic when converting from the shared model. See the [OfficeIMO.Opml README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Opml/README.md).
 
 ## DjVu
 
@@ -181,7 +181,7 @@ OfficeConversionReport report = document.SaveAsPdf("book.pdf", new DjVuPdfExport
 });
 ```
 
-Limits: DjVu authoring is not supported. JPEG 2000 layers fail explicitly, and the PDF keeps scanned pixels rather than rebuilding editable text or typography. OCR for pages without stored text runs only through the asynchronous PDF methods with an `IOcrEngine` you supply; see [Charts, OCR and provenance](/docs/foundations/). See the [package README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.DjVu/README.md) and [DjVu support](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.DjVu/SUPPORT.md).
+Limits: DjVu authoring is not supported. JPEG 2000 layers fail explicitly, and the PDF keeps scanned pixels rather than rebuilding editable text or typography. OCR for pages without stored text runs only through the asynchronous PDF methods with an `IOcrEngine` you supply; see [Charts, OCR and provenance](/docs/foundations/). See the [OfficeIMO.DjVu README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.DjVu/README.md) and [DjVu support](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.DjVu/SUPPORT.md).
 
 ## Atlassian Document Format and Confluence
 
@@ -285,4 +285,4 @@ BibliographyWriteResult csl = read.Document.Save("library.json", new Bibliograph
 Console.WriteLine($"CSL JSON conversion reported loss: {csl.Report.HasLoss}");
 ```
 
-Limits: the package does not run TeX, fetch DOI or PubMed metadata, or resolve remote resources. The CSL renderer implements a qualified subset of CSL 1.0.2, and style resolution performs no network or file access. See the [package README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Bibliography/README.md) and the [bibliography support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.bibliography-support-matrix.md).
+Limits: the package does not run TeX, fetch DOI or PubMed metadata, or resolve remote resources. The CSL renderer implements a qualified subset of CSL 1.0.2, and style resolution performs no network or file access. See the [OfficeIMO.Bibliography README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Bibliography/README.md) and the [bibliography support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.bibliography-support-matrix.md).
