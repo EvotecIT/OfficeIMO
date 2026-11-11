@@ -103,6 +103,21 @@ Describe 'YAML document commands' {
 
         [IO.File]::ReadAllText($path) | Should -BeExactly "name: web`nreplicas: 3`n"
     }
+
+    It 'merges overlays through Merge-OfficeDocument and reports what changed' {
+        $base = Join-Path $TestDrive 'values.yaml'
+        $overlay = Join-Path $TestDrive 'values.prod.yml'
+        $output = Join-Path $TestDrive 'values.merged.yaml'
+        [IO.File]::WriteAllText($base, (Join-YamlLines "`n" @('# defaults', 'image:', '  tag: dev   # overridden per environment', 'debug: true', 'ports: [80]')))
+        [IO.File]::WriteAllText($overlay, (Join-YamlLines "`n" @('image:', '  tag: "1.27"', 'debug: null', 'ports: [443]')))
+
+        $report = Merge-OfficeDocument -Path $base, $overlay -OutputPath $output -Options @{ NullRemovesKey = $true } -PassThruReport
+
+        @($report).Count | Should -Be 1
+        @($report.Replaced) | Should -Be @('image.tag', 'ports')
+        @($report.Removed) | Should -Be @('debug')
+        [IO.File]::ReadAllText($output) | Should -BeExactly (Join-YamlLines "`n" @('# defaults', 'image:', "  tag: '1.27'   # overridden per environment", 'ports: [443]'))
+    }
 }
 
 Describe 'YAML data conversion' {

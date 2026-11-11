@@ -4,23 +4,33 @@ using OfficeIMO;
 using OfficeIMO.Excel;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
+using OfficeIMO.Yaml;
 using PSWriteOffice.Foundation;
 using PSWriteOffice.Models.Excel;
+using PSWriteOffice.Services.Yaml;
 
 namespace PSWriteOffice.Services;
 
-internal enum OfficeMergeFamily { Word, Excel, Pdf }
+internal enum OfficeMergeFamily { Word, Excel, Pdf, Yaml }
 
 /// <summary>Owns only shell-loaded input lifetimes and dispatches to native append/merge methods.</summary>
 internal static partial class OfficeMergeDispatch {
     internal static OfficeMergeFamily GetFamily(string extension) {
         if (extension.Equals(".pdf", StringComparison.OrdinalIgnoreCase)) return OfficeMergeFamily.Pdf;
+        if (IsYaml(extension)) return OfficeMergeFamily.Yaml;
         if (WordFormatCatalog.TryGetByExtension(extension, out var word) && word!.Encoding == OfficeFormatEncoding.OpenXml)
             return OfficeMergeFamily.Word;
         if (ExcelFormatCatalog.TryGetByExtension(extension, out var excel) && excel!.Encoding == OfficeFormatEncoding.OpenXml)
             return OfficeMergeFamily.Excel;
-        throw new NotSupportedException("Native merge supports PDF and Open XML Word/Excel packages only. Unsupported format: " + extension);
+        throw new NotSupportedException("Native merge supports PDF, Open XML Word/Excel packages and YAML only. Unsupported format: " + extension);
     }
+
+    /// <summary>Whether two inputs share a format: the same extension, or .yaml and .yml.</summary>
+    internal static bool SameFormat(string extension, string other) =>
+        extension.Equals(other, StringComparison.OrdinalIgnoreCase) || (IsYaml(extension) && IsYaml(other));
+
+    private static bool IsYaml(string extension) =>
+        extension.Equals(".yaml", StringComparison.OrdinalIgnoreCase) || extension.Equals(".yml", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Checks the live target without saving, changing persistence, or taking ownership.</summary>
     internal static string? ValidateDocument(object document, string extension) {
@@ -37,15 +47,19 @@ internal static partial class OfficeMergeDispatch {
                 if (excel.InspectSignatures().HasSignatures)
                     throw new PSArgumentException("Signed Excel merge targets cannot be changed without invalidating their signatures.");
                 return excel.FilePath;
+            case YamlDocument yaml:
+                if (!IsYaml(extension)) throw new PSArgumentException("The native document format must match every input and OutputPath; format conversion is not part of merge.");
+                return OfficeYamlDocuments.GetPath(yaml);
             case PdfDocument:
                 throw new NotSupportedException("Live PDF targets cannot be appended in place. Use Path or LiteralPath and OutputPath for a native PDF merge.");
             default:
-                throw new NotSupportedException("Document must be an editable WordDocument or ExcelDocument. Other live formats do not support this native append contract.");
+                throw new NotSupportedException("Document must be an editable WordDocument, ExcelDocument or YamlDocument. Other live formats do not support this native append contract.");
         }
     }
 
-    internal static PdfMergeReport? Execute(IReadOnlyList<string> paths, SecureString?[]? passwords, OfficeMergeFamily family,
+    internal static object? Execute(IReadOnlyList<string> paths, SecureString?[]? passwords, OfficeMergeFamily family,
         string extension, object options, object? document, string? output, bool noClobber, PdfLoadOptions? readOptions = null) {
+        if (family == OfficeMergeFamily.Yaml) return MergeYaml(paths, (YamlMergeOptions)options, (YamlDocument?)document, output, noClobber);
         var owned = new List<IDisposable>();
         Exception? operationFailure = null;
         try {
