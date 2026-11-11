@@ -12,9 +12,64 @@ internal static partial class OfficeJpeg2000Decoder {
         internal int Precision => PaletteColumn != null ? PalettePrecision : Plane.Precision;
     }
 
-    // Applies the JP2 palette, component mapping and channel definitions (I.5.3.4 to I.5.3.6), then upsamples
-    // subsampled components to the reference grid and interleaves eight-bit channels.
-    private static OfficeJpeg2000Image BuildImage(Codestream codestream, ContainerHeader? header, ComponentPlane[] planes,
+    /// <summary>Output channels in interleaving order, their eight-bit lookups and the output samples.</summary>
+    private sealed class OutputLayout {
+        internal List<OutputChannel> Ordered = new();
+        internal int ColourCount;
+        internal OutputChannel? Alpha;
+        internal bool UsedPalette;
+        internal bool Container;
+        internal byte[] Samples = Array.Empty<byte>();
+        internal byte[][] Lookups = Array.Empty<byte[]>();
+        internal int Width, Height;
+    }
+
+    // Plans decoding straight into the interleaved output: components on the reference grid are written through
+    // their lookups as tiles are reconstructed, and only subsampled components keep a plane for upsampling. Returns
+    // null when the channels cannot be resolved; whole planes are then decoded and the same error reported after.
+    private static OutputLayout? PlanDirectOutput(Codestream codestream, ContainerHeader? header, ComponentPlane[] planes,
+        OfficeJpeg2000DecodeOptions options, Budget budget) {
+        long mark = budget.Reserved;
+        OutputLayout layout;
+        try {
+            layout = ResolveOutput(codestream, header, planes, options, budget);
+        } catch (Jpeg2000Exception) {
+            budget.Release(budget.Reserved - mark);
+            return null;
+        }
+        int count = layout.Ordered.Count;
+        var direct = new List<int>[planes.Length];
+        var stored = new bool[planes.Length];
+        for (int c = 0; c < count; c++) {
+            int index = Array.IndexOf(planes, layout.Ordered[c].Plane);
+            if (codestream.SubsamplingX[index] == 1 && codestream.SubsamplingY[index] == 1) (direct[index] ??= new List<int>()).Add(c);
+            else stored[index] = true;
+        }
+        long pixels = (long)codestream.Width * codestream.Height;
+        for (int index = 0; index < planes.Length; index++) {
+            ComponentPlane plane = planes[index];
+            if (stored[index]) AllocatePlane(plane, budget);
+            if (direct[index] == null) continue;
+            plane.Output = layout.Samples;
+            plane.OutputChannels = count;
+            plane.OutputIndexes = direct[index].ToArray();
+            plane.OutputLookups = Array.ConvertAll(plane.OutputIndexes, c => layout.Lookups[c]);
+            // Missing tiles keep the level-shifted zero, the mid-grey of an unsigned component.
+            foreach (int c in plane.OutputIndexes) {
+                byte value = layout.Lookups[c][1 << (plane.Precision - 1)];
+                byte[] samples = layout.Samples;
+                for (long pixel = 0, target = c; pixel < pixels; pixel++, target += count) {
+                    if ((pixel & 0xFFFF) == 0) budget.Token.ThrowIfCancellationRequested();
+                    samples[target] = value;
+                }
+            }
+        }
+        return layout;
+    }
+
+    // Applies the JP2 palette, component mapping and channel definitions (I.5.3.4 to I.5.3.6) and allocates the
+    // interleaved eight-bit output.
+    private static OutputLayout ResolveOutput(Codestream codestream, ContainerHeader? header, ComponentPlane[] planes,
         OfficeJpeg2000DecodeOptions options, Budget budget) {
         bool container = options.ApplyContainerChannels && header != null;
         var channels = new List<OutputChannel>();
@@ -74,13 +129,25 @@ internal static partial class OfficeJpeg2000Decoder {
         var samples = new byte[total];
         var lookups = new byte[count][];
         for (int c = 0; c < count; c++) lookups[c] = BuildLookup(ordered[c], options.ScaleToEightBits, budget);
+        return new OutputLayout {
+            Ordered = ordered, ColourCount = colour.Count, Alpha = alpha, UsedPalette = usedPalette, Container = container,
+            Samples = samples, Lookups = lookups, Width = width, Height = height
+        };
+    }
+
+    // Upsamples components kept as planes to the reference grid and interleaves them.
+    private static void InterleavePlanes(OutputLayout layout, Codestream codestream, ComponentPlane[] planes, Budget budget) {
+        int width = codestream.Width, height = codestream.Height;
+        int count = layout.Ordered.Count;
+        byte[] samples = layout.Samples;
         for (int c = 0; c < count; c++) {
-            OutputChannel channel = ordered[c];
+            OutputChannel channel = layout.Ordered[c];
             ComponentPlane plane = channel.Plane;
+            if (plane.Bytes == null && plane.Words == null) continue;
             int dx = codestream.SubsamplingX[Array.IndexOf(planes, plane)], dy = codestream.SubsamplingY[Array.IndexOf(planes, plane)];
             var columns = new int[width];
             for (int x = 0; x < width; x++) columns[x] = Clamp((codestream.XOsiz + x) / dx - plane.OriginX, plane.Width);
-            byte[] lookup = lookups[c];
+            byte[] lookup = layout.Lookups[c];
             for (int y = 0; y < height; y++) {
                 if ((y & 63) == 0) budget.Token.ThrowIfCancellationRequested();
                 int row = Clamp((codestream.YOsiz + y) / dy - plane.OriginY, plane.Height) * plane.Width;
@@ -94,12 +161,19 @@ internal static partial class OfficeJpeg2000Decoder {
                 }
             }
         }
-        var image = new OfficeJpeg2000Image(width, height, colour.Count, alpha != null, alpha?.Type == 2, samples) {
+    }
+
+    private static OfficeJpeg2000Image CreateImage(OutputLayout layout, ContainerHeader? header, ComponentPlane[] planes,
+        OfficeJpeg2000DecodeOptions options, Budget budget) {
+        bool container = layout.Container;
+        OutputChannel? alpha = layout.Alpha;
+        byte[] samples = layout.Samples;
+        var image = new OfficeJpeg2000Image(layout.Width, layout.Height, layout.ColourCount, alpha != null, alpha?.Type == 2, samples) {
             ColorSpace = container ? header!.ColorSpace : OfficeJpeg2000ColorSpace.Unspecified,
             EnumeratedColorSpace = container ? header!.EnumeratedColorSpace : -1,
             IccProfile = container ? header!.IccProfile : null,
-            UsedPalette = usedPalette,
-            Precisions = ordered.ConvertAll(static channel => channel.Precision).ToArray(),
+            UsedPalette = layout.UsedPalette,
+            Precisions = layout.Ordered.ConvertAll(static channel => channel.Precision).ToArray(),
             HasSignedComponents = Array.Exists(planes, static plane => plane.Signed)
         };
         if (image.ColorSpace == OfficeJpeg2000ColorSpace.Sycc && image.ColorChannels == 3 && options.ScaleToEightBits) {

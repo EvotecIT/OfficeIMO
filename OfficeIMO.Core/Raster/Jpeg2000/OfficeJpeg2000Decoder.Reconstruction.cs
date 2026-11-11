@@ -1,11 +1,8 @@
 namespace OfficeIMO.Drawing;
 
 internal static partial class OfficeJpeg2000Decoder {
-    private const float IrreversibleAlpha = -1.586134342059924F;
-    private const float IrreversibleBeta = -0.052980118572961F;
-    private const float IrreversibleGamma = 0.882911075530934F;
-    private const float IrreversibleDelta = 0.443506852043971F;
-    private const float IrreversibleK = 1.230174104914001F;
+    /// <summary>Full-resolution rows reconstructed, colour transformed and stored per step.</summary>
+    private const int StripRows = 32;
 
     /// <summary>Reconstructed samples of one component at its own (possibly subsampled) resolution.</summary>
     private sealed class ComponentPlane {
@@ -16,15 +13,19 @@ internal static partial class OfficeJpeg2000Decoder {
         internal byte[]? Bytes;
         internal ushort[]? Words;
 
-        internal int Get(int index) => Bytes != null ? Bytes[index] : Words![index];
+        // Direct output: stored values go straight through these lookups into interleaved output channels.
+        internal byte[]? Output;
+        internal int OutputChannels;
+        internal int[] OutputIndexes = Array.Empty<int>();
+        internal byte[][] OutputLookups = Array.Empty<byte[]>();
     }
 
-    private static ComponentPlane[] DecodeTiles(byte[] bytes, Codestream codestream, Budget budget) {
+    private static ComponentPlane[] CreatePlanes(Codestream codestream) {
         var planes = new ComponentPlane[codestream.Components];
         for (int index = 0; index < planes.Length; index++) {
             int dx = codestream.SubsamplingX[index], dy = codestream.SubsamplingY[index];
             int originX = (int)CeilDiv(codestream.XOsiz, dx), originY = (int)CeilDiv(codestream.YOsiz, dy);
-            var plane = new ComponentPlane {
+            planes[index] = new ComponentPlane {
                 OriginX = originX,
                 OriginY = originY,
                 Width = (int)CeilDiv(codestream.Xsiz, dx) - originX,
@@ -32,28 +33,21 @@ internal static partial class OfficeJpeg2000Decoder {
                 Precision = codestream.Precisions[index],
                 Signed = codestream.Signed[index]
             };
-            long samples = (long)plane.Width * plane.Height;
-            budget.Reserve(plane.Precision > 8 ? samples * 2 : samples);
-            if (plane.Precision > 8) plane.Words = new ushort[samples];
-            else plane.Bytes = new byte[samples];
-            // Missing tiles keep the level-shifted zero, the mid-grey of an unsigned component.
-            if (!plane.Signed) {
-                if (plane.Bytes != null) Fill(plane.Bytes, (byte)(1 << (plane.Precision - 1)), budget.Token);
-                else Fill(plane.Words!, (ushort)(1 << (plane.Precision - 1)), budget.Token);
-            } else {
-                if (plane.Bytes != null) Fill(plane.Bytes, (byte)(1 << (plane.Precision - 1)), budget.Token);
-                else Fill(plane.Words!, (ushort)(1 << (plane.Precision - 1)), budget.Token);
-            }
-            planes[index] = plane;
-        }
-        var blocks = new CodeBlockDecoder(budget);
-        var tiles = new List<int>(codestream.Tiles.Keys);
-        tiles.Sort();
-        foreach (int tileIndex in tiles) {
-            budget.Token.ThrowIfCancellationRequested();
-            DecodeTile(bytes, codestream, codestream.Tiles[tileIndex], tileIndex, planes, blocks, budget);
         }
         return planes;
+    }
+
+    private static void AllocatePlane(ComponentPlane plane, Budget budget) {
+        long samples = (long)plane.Width * plane.Height;
+        budget.Reserve(plane.Precision > 8 ? samples * 2 : samples);
+        // Missing tiles keep the level-shifted zero, the mid-grey of an unsigned component.
+        if (plane.Precision > 8) {
+            plane.Words = new ushort[samples];
+            Fill(plane.Words, (ushort)(1 << (plane.Precision - 1)), budget.Token);
+        } else {
+            plane.Bytes = new byte[samples];
+            Fill(plane.Bytes, (byte)(1 << (plane.Precision - 1)), budget.Token);
+        }
     }
 
     private static void Fill<T>(T[] array, T value, CancellationToken token) {
@@ -63,187 +57,114 @@ internal static partial class OfficeJpeg2000Decoder {
         }
     }
 
+    private static void DecodeTiles(byte[] bytes, Codestream codestream, ComponentPlane[] planes, Budget budget) {
+        var workspace = new Workspace(budget, new CodeBlockDecoder(budget));
+        var tiles = new List<int>(codestream.Tiles.Keys);
+        tiles.Sort();
+        foreach (int tileIndex in tiles) {
+            budget.Token.ThrowIfCancellationRequested();
+            DecodeTile(bytes, codestream, codestream.Tiles[tileIndex], tileIndex, planes, workspace);
+        }
+    }
+
+    // Each tile-component is reconstructed in strips of full-resolution rows; only the code-block rows and wavelet
+    // rows a strip needs are held, never a whole coefficient plane.
     private static void DecodeTile(byte[] bytes, Codestream codestream, TileData tile, int tileIndex, ComponentPlane[] planes,
-        CodeBlockDecoder blocks, Budget budget) {
+        Workspace workspace) {
+        Budget budget = workspace.Budget;
         TileComponent[] components = CreateTileLayout(codestream, tile, tileIndex, budget,
             out GlobalCoding coding, out List<ProgressionChange> changes, out _, out _);
         TileStream stream = CreateTileStream(bytes, codestream, tile, coding, budget);
         DecodePackets(stream, components, coding, changes, budget);
-        long reserved = 0;
+        workspace.Source = stream.Data;
+        var sources = new RowSource?[components.Length];
         try {
-            foreach (TileComponent component in components) {
-                long samples = (long)component.Width * component.Height;
-                if (samples <= 0) continue;
-                budget.Reserve(samples * 4);
-                reserved += samples * 4;
-                if (component.Coding.Reversible) component.Integers = new int[samples];
-                else component.Floats = new float[samples];
-                DecodeCodeBlocks(stream.Data, component, blocks, budget);
-                InverseWavelet(component, budget);
+            for (int index = 0; index < components.Length; index++) {
+                TileComponent component = components[index];
+                if ((long)component.Width * component.Height > 0) sources[index] = CreateComponentSource(component, workspace);
             }
-            bool transform = coding.MultipleComponentTransform && components.Length >= 3;
-            if (transform) ApplyInverseComponentTransform(components, budget);
-            for (int index = 0; index < components.Length; index++)
-                StoreComponent(components[index], planes[index], budget.Token);
+            int first = 0;
+            if (coding.MultipleComponentTransform && components.Length >= 3) {
+                ReconstructTransformed(components, sources, planes, workspace);
+                first = 3;
+            }
+            for (int index = first; index < components.Length; index++) {
+                RowSource? source = sources[index];
+                if (source == null) continue;
+                for (int row = 0; row < source.Height; row += StripRows) {
+                    int end = Math.Min(source.Height, row + StripRows);
+                    source.Ensure(row, end - 1, workspace);
+                    StoreRows(components[index], source, row, end, planes[index], budget.Token);
+                }
+            }
         } finally {
-            foreach (TileComponent component in components) {
-                component.Integers = null;
-                component.Floats = null;
-            }
-            budget.Release(reserved);
+            foreach (RowSource? source in sources) source?.Return(workspace.Pool);
+            workspace.Source = Array.Empty<byte>();
         }
     }
 
-    private static void DecodeCodeBlocks(byte[] source, TileComponent component, CodeBlockDecoder blocks, Budget budget) {
-        int stride = component.Width;
-        foreach (Resolution resolution in component.Resolutions) {
-            foreach (Precinct precinct in resolution.Precincts) {
-                budget.Token.ThrowIfCancellationRequested();
-                for (int b = 0; b < precinct.Bands.Length; b++) {
-                    SubBand band = resolution.Bands[b];
-                    foreach (CodeBlock block in precinct.Bands[b].Blocks) {
-                        if (!blocks.Decode(block, band, component.Coding.Style, source)) continue;
-                        int left = band.OffsetX + block.X0 - band.X0, top = band.OffsetY + block.Y0 - band.Y0;
-                        if (component.Integers != null) blocks.WriteIntegers(component.Integers, stride, left, top, component.RegionShift);
-                        else blocks.WriteFloats(component.Floats!, stride, left, top, component.RegionShift, band.StepSize);
+    // Inverse RCT and ICT (G.2, G.3) on the first three components, strip by strip.
+    private static void ReconstructTransformed(TileComponent[] components, RowSource?[] sources, ComponentPlane[] planes, Workspace workspace) {
+        Budget budget = workspace.Budget;
+        TileComponent y = components[0], cb = components[1], cr = components[2];
+        bool equalSizes = y.Width == cb.Width && y.Width == cr.Width && y.Height == cb.Height && y.Height == cr.Height;
+        bool mixed = equalSizes && (long)y.Width * y.Height > 0 &&
+            (y.Coding.Reversible != cb.Coding.Reversible || y.Coding.Reversible != cr.Coding.Reversible);
+        if (!equalSizes || mixed) {
+            // Reconstruct the components first so that coding failures and budgets take precedence, in the same
+            // order as a decoder that transforms whole tiles.
+            for (int index = 0; index < sources.Length; index++) {
+                RowSource? source = sources[index];
+                if (source == null) continue;
+                for (int row = 0; row < source.Height; row += StripRows) source.Ensure(row, Math.Min(source.Height, row + StripRows) - 1, workspace);
+            }
+            if (!equalSizes) throw new Jpeg2000Exception("The JPEG 2000 component transform requires equally sized components.");
+            budget.Charge(y.Width * y.Height);
+            throw new Jpeg2000Exception("The JPEG 2000 component transform mixes reversible and irreversible components.");
+        }
+        int height = y.Height, width = y.Width;
+        budget.Charge(width * height);
+        if ((long)width * height <= 0) return;
+        RowSource s0 = sources[0]!, s1 = sources[1]!, s2 = sources[2]!;
+        for (int row = 0; row < height; row += StripRows) {
+            int end = Math.Min(height, row + StripRows);
+            s0.Ensure(row, end - 1, workspace);
+            s1.Ensure(row, end - 1, workspace);
+            s2.Ensure(row, end - 1, workspace);
+            for (int line = row; line < end; line++) {
+                int o0 = s0.Offset(line), o1 = s1.Offset(line), o2 = s2.Offset(line);
+                if (s0.Ints != null) {
+                    int[] c0 = s0.Ints, c1 = s1.Ints!, c2 = s2.Ints!;
+                    for (int x = 0; x < width; x++) {
+                        int green = c0[o0 + x] - ((c1[o1 + x] + c2[o2 + x]) >> 2);
+                        int red = c2[o2 + x] + green;
+                        int blue = c1[o1 + x] + green;
+                        c0[o0 + x] = red;
+                        c1[o1 + x] = green;
+                        c2[o2 + x] = blue;
+                    }
+                } else {
+                    float[] c0 = s0.Floats!, c1 = s1.Floats!, c2 = s2.Floats!;
+                    for (int x = 0; x < width; x++) {
+                        float luma = c0[o0 + x], blueDifference = c1[o1 + x], redDifference = c2[o2 + x];
+                        c0[o0 + x] = luma + 1.402F * redDifference;
+                        c1[o1 + x] = luma - 0.34413F * blueDifference - 0.71414F * redDifference;
+                        c2[o2 + x] = luma + 1.772F * blueDifference;
                     }
                 }
             }
+            StoreRows(y, s0, row, end, planes[0], budget.Token);
+            StoreRows(cb, s1, row, end, planes[1], budget.Token);
+            StoreRows(cr, s2, row, end, planes[2], budget.Token);
         }
     }
 
-    // Inverse discrete wavelet transformation (F.3): each level runs HOR_SR on rows, then VER_SR on columns.
-    private static void InverseWavelet(TileComponent component, Budget budget) {
-        int stride = component.Width;
-        int longest = Math.Max(component.Width, component.Height);
-        int[]? integerLine = component.Integers != null ? new int[longest + 8] : null;
-        float[]? floatLine = component.Floats != null ? new float[longest + 8] : null;
-        for (int r = 1; r < component.Resolutions.Length; r++) {
-            Resolution resolution = component.Resolutions[r], lower = component.Resolutions[r - 1];
-            int width = resolution.Width, height = resolution.Height;
-            if (width <= 0 || height <= 0) continue;
-            budget.Charge((long)width * height * 2);
-            for (int y = 0; y < height; y++) {
-                if ((y & 63) == 0) budget.Token.ThrowIfCancellationRequested();
-                int row = y * stride;
-                if (integerLine != null) {
-                    Interleave(component.Integers!, row, 1, width, lower.Width, resolution.X0, integerLine);
-                    Synthesize53(integerLine, width, resolution.X0);
-                    Array.Copy(integerLine, 4, component.Integers!, row, width);
-                } else {
-                    Interleave(component.Floats!, row, 1, width, lower.Width, resolution.X0, floatLine!);
-                    Synthesize97(floatLine!, width, resolution.X0);
-                    Array.Copy(floatLine!, 4, component.Floats!, row, width);
-                }
-            }
-            for (int x = 0; x < width; x++) {
-                if ((x & 63) == 0) budget.Token.ThrowIfCancellationRequested();
-                if (integerLine != null) {
-                    Interleave(component.Integers!, x, stride, height, lower.Height, resolution.Y0, integerLine);
-                    Synthesize53(integerLine, height, resolution.Y0);
-                    for (int y = 0; y < height; y++) component.Integers![y * stride + x] = integerLine[4 + y];
-                } else {
-                    Interleave(component.Floats!, x, stride, height, lower.Height, resolution.Y0, floatLine!);
-                    Synthesize97(floatLine!, height, resolution.Y0);
-                    for (int y = 0; y < height; y++) component.Floats![y * stride + x] = floatLine![4 + y];
-                }
-            }
-        }
-    }
-
-    // 2D_INTERLEAVE along one line: low-pass samples sit at even absolute coordinates.
-    private static void Interleave<T>(T[] source, int start, int step, int count, int lowCount, int origin, T[] line) {
-        int low = 0, high = 0;
-        for (int index = 0; index < count; index++) {
-            bool even = ((origin + index) & 1) == 0;
-            line[4 + index] = even ? source[start + (low++) * step] : source[start + (lowCount + high++) * step];
-        }
-    }
-
-    // Periodic symmetric extension (F.3.7).
-    private static int Reflect(int index, int count) {
-        int period = 2 * (count - 1);
-        index %= period;
-        if (index < 0) index += period;
-        return index >= count ? period - index : index;
-    }
-
-    private static void Extend<T>(T[] line, int count, int padding) {
-        for (int k = 1; k <= padding; k++) {
-            line[4 - k] = line[4 + Reflect(-k, count)];
-            line[4 + count - 1 + k] = line[4 + Reflect(count - 1 + k, count)];
-        }
-    }
-
-    // 1D_SR for the reversible 5/3 filter (F.3.8.1).
-    private static void Synthesize53(int[] line, int count, int origin) {
-        if (count == 1) {
-            if ((origin & 1) != 0) line[4] /= 2;
-            return;
-        }
-        Extend(line, count, 2);
-        int first = ((origin - 1) & 1) == 0 ? -1 : 0;
-        for (int j = first; j <= count; j += 2) line[4 + j] -= (line[3 + j] + line[5 + j] + 2) >> 2;
-        first = (origin & 1) != 0 ? 0 : 1;
-        for (int j = first; j < count; j += 2) line[4 + j] += (line[3 + j] + line[5 + j]) >> 1;
-    }
-
-    // 1D_SR for the irreversible 9/7 filter (F.3.8.2).
-    private static void Synthesize97(float[] line, int count, int origin) {
-        if (count == 1) {
-            if ((origin & 1) != 0) line[4] *= 0.5F;
-            return;
-        }
-        Extend(line, count, 4);
-        int evenStart = ((origin - 4) & 1) == 0 ? -4 : -3;
-        int oddStart = evenStart == -4 ? -3 : -4;
-        const float inverseK = 1F / IrreversibleK;
-        for (int j = evenStart; j < count + 4; j += 2) line[4 + j] *= IrreversibleK;
-        for (int j = oddStart; j < count + 4; j += 2) line[4 + j] *= inverseK;
-        int even = ((origin - 3) & 1) == 0 ? -3 : -2;
-        for (int j = even; j < count + 3; j += 2) line[4 + j] -= IrreversibleDelta * (line[3 + j] + line[5 + j]);
-        int odd = ((origin - 2) & 1) != 0 ? -2 : -1;
-        for (int j = odd; j < count + 2; j += 2) line[4 + j] -= IrreversibleGamma * (line[3 + j] + line[5 + j]);
-        even = ((origin - 1) & 1) == 0 ? -1 : 0;
-        for (int j = even; j < count + 1; j += 2) line[4 + j] -= IrreversibleBeta * (line[3 + j] + line[5 + j]);
-        odd = (origin & 1) != 0 ? 0 : 1;
-        for (int j = odd; j < count; j += 2) line[4 + j] -= IrreversibleAlpha * (line[3 + j] + line[5 + j]);
-    }
-
-    // Inverse RCT and ICT (G.2, G.3) on the first three components.
-    private static void ApplyInverseComponentTransform(TileComponent[] components, Budget budget) {
-        TileComponent y = components[0], cb = components[1], cr = components[2];
-        if (y.Width != cb.Width || y.Width != cr.Width || y.Height != cb.Height || y.Height != cr.Height)
-            throw new Jpeg2000Exception("The JPEG 2000 component transform requires equally sized components.");
-        int count = y.Width * y.Height;
-        budget.Charge(count);
-        if (y.Integers != null && cb.Integers != null && cr.Integers != null) {
-            int[] c0 = y.Integers, c1 = cb.Integers, c2 = cr.Integers;
-            for (int index = 0; index < count; index++) {
-                int green = c0[index] - ((c1[index] + c2[index]) >> 2);
-                int red = c2[index] + green;
-                int blue = c1[index] + green;
-                c0[index] = red;
-                c1[index] = green;
-                c2[index] = blue;
-            }
-        } else if (y.Floats != null && cb.Floats != null && cr.Floats != null) {
-            float[] c0 = y.Floats, c1 = cb.Floats, c2 = cr.Floats;
-            for (int index = 0; index < count; index++) {
-                float luma = c0[index], blueDifference = c1[index], redDifference = c2[index];
-                c0[index] = luma + 1.402F * redDifference;
-                c1[index] = luma - 0.34413F * blueDifference - 0.71414F * redDifference;
-                c2[index] = luma + 1.772F * blueDifference;
-            }
-        } else if (count > 0) {
-            throw new Jpeg2000Exception("The JPEG 2000 component transform mixes reversible and irreversible components.");
-        }
-    }
-
-    // DC level shifting (G.1) and clamping into the component plane.
-    private static void StoreComponent(TileComponent component, ComponentPlane plane, CancellationToken token) {
-        int width = component.Width, height = component.Height;
-        if (width <= 0 || height <= 0) return;
+    // DC level shifting (G.1) and clamping into the component plane or straight into the output channels.
+    private static void StoreRows(TileComponent component, RowSource source, int first, int end, ComponentPlane plane, CancellationToken token) {
+        int width = component.Width;
+        if (width <= 0) return;
+        token.ThrowIfCancellationRequested();
+        if (plane.Output == null && plane.Bytes == null && plane.Words == null) return;
         int precision = plane.Precision;
         int offset = 1 << (precision - 1);
         int minimum = plane.Signed ? -offset : 0;
@@ -251,22 +172,32 @@ internal static partial class OfficeJpeg2000Decoder {
         int shift = plane.Signed ? 0 : offset;
         int storageOffset = plane.Signed ? offset : 0;
         int left = component.X0 - plane.OriginX, top = component.Y0 - plane.OriginY;
-        for (int y = 0; y < height; y++) {
-            if ((y & 63) == 0) token.ThrowIfCancellationRequested();
+        int from = Math.Max(0, -left), to = Math.Min(width, plane.Width - left);
+        if (from >= to) return;
+        int[]? ints = source.Ints;
+        float[]? floats = source.Floats;
+        byte[]? output = plane.Output;
+        int channels = plane.OutputChannels;
+        int[] indexes = plane.OutputIndexes;
+        byte[][] lookups = plane.OutputLookups;
+        for (int y = first; y < end; y++) {
             int planeY = top + y;
             if ((uint)planeY >= (uint)plane.Height) continue;
-            int source = y * width;
+            int sourceRow = source.Offset(y);
             int target = planeY * plane.Width + left;
-            for (int x = 0; x < width; x++) {
-                if ((uint)(left + x) >= (uint)plane.Width) continue;
-                int value = component.Integers != null
-                    ? component.Integers[source + x]
-                    : (int)Math.Floor(component.Floats![source + x] + 0.5);
+            for (int x = from; x < to; x++) {
+                int value = ints != null ? ints[sourceRow + x] : (int)Math.Floor(floats![sourceRow + x] + 0.5);
                 value += shift;
                 value = value < minimum ? minimum : value > maximum ? maximum : value;
                 value += storageOffset;
-                if (plane.Bytes != null) plane.Bytes[target + x] = (byte)value;
-                else plane.Words![target + x] = (ushort)value;
+                if (output != null) {
+                    int pixel = (target + x) * channels;
+                    for (int t = 0; t < indexes.Length; t++) output[pixel + indexes[t]] = lookups[t][value];
+                } else if (plane.Bytes != null) {
+                    plane.Bytes[target + x] = (byte)value;
+                } else {
+                    plane.Words![target + x] = (ushort)value;
+                }
             }
         }
     }

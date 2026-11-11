@@ -11,8 +11,6 @@ internal static partial class OfficeJpeg2000Decoder {
         internal Quantization Quantization = new();
         internal int RegionShift;
         internal Resolution[] Resolutions = Array.Empty<Resolution>();
-        internal int[]? Integers;
-        internal float[]? Floats;
         internal int Width => X1 - X0;
         internal int Height => Y1 - Y0;
     }
