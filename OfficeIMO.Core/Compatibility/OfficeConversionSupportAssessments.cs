@@ -31,7 +31,9 @@ internal static class OfficeConversionSupportAssessments {
         if (routeId is "visio-binary-vsdx" or "visio-binary-vssx" or "visio-binary-vstx" or "visio-binary-svg" or "visio-binary-pdf")
             return Targeted(
                 "Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
-                "Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; PDF output uses the same vector diagram pages as VSDX. Native Microsoft Visio acceptance remains unqualified.");
+                "Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports." +
+                (routeId == "visio-binary-pdf" ? " PDF output uses the same vector diagram pages as VSDX." : string.Empty) +
+                " Native Microsoft Visio acceptance remains unqualified.");
         if (IsImageRoute(routeId, out string source)) return Image(source);
         if (routeId.StartsWith("email-", StringComparison.Ordinal)) {
             return Established(
@@ -161,7 +163,7 @@ internal static class OfficeConversionSupportAssessments {
             "The API targets the OfficeIMO section model; full .one binary fidelity, ink, embedded files, rich positioning, and OneNote application rendering remain incomplete."),
         "onenote-pdf" => Targeted(
             "Native .one fixtures reopen the visual PDF and verify page geometry, extracted page text, hyperlink field results with link annotations, and per-picture embedding with alternative text (OfficeIMO.OneNote.Tests).",
-            "Visual pages are vector content with searchable text, embedded subset fonts, ink, tables and math. Pictures without a native PDF image form are embedded as PNG for that picture only, with a diagnostic. Text is not tagged with paragraph structure, fonts come from the host, and encrypted revisions, embedded files and OneNote application rendering remain incomplete. The semantic profile produces reflowable PDF."),
+            "SaveAsPdf writes the semantic profile: reflowable PDF in reading order that flattens the free-form canvas. SaveAsVisualPdf, or the route's OneNoteVisualPdf setting, writes visual pages as vector content with searchable text, embedded subset fonts, ink, tables and math. Pictures without a native PDF image form are embedded as PNG for that picture only, with a diagnostic. Text is not tagged with paragraph structure, fonts come from the host, and encrypted revisions, embedded files and OneNote application rendering remain incomplete."),
         "odt-pdf" or "ods-pdf" or "odp-pdf" => Targeted(
             "Representative OpenDocument fixtures verify the supported typed model, fixed-layout output, and source diagnostics.",
             "Inherited styles, advanced drawings, charts, media, nested inline syntax, and exact office-suite pagination remain incomplete."),
