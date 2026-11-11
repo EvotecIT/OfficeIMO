@@ -45,10 +45,10 @@ PSWriteOffice gets YAML commands built on the same public API, with `Yaml` as th
 |---|---|
 | `New-OfficeYaml` / `Open-OfficeYaml` / `Save-OfficeYaml` / `Close-OfficeYaml` | The standard document lifecycle, including the content-block form that saves on exit |
 | `Get-OfficeYamlNode -Select` / `Set-OfficeYamlNode -Select -Value` / `Remove-OfficeYamlNode -Select` | Read and edit by path inside a live document. `-Select` uses the C# path grammar; `-Path` stays the file, as everywhere |
-| `Import-OfficeYaml -Path` / `Export-OfficeYaml -InputObject -Path` | Objects from and to files through the serializer |
-| `ConvertFrom-OfficeYaml` / `ConvertTo-OfficeYaml` | Text to objects and objects to text, following PowerShell's `ConvertFrom-Json`/`ConvertTo-Json` pattern |
-| `Test-OfficeYaml` | Validate without changing the file, reporting diagnostics |
-| `Merge-OfficeDocument` | The shared cross-format command; for YAML it overlays files with the [merge](#merging) rules |
+| `Import-OfficeYaml -Path` / `Export-OfficeYaml -InputObject -Path` | Objects from and to files through the serializer, with the same parameters as the text commands |
+| `ConvertFrom-OfficeYaml` / `ConvertTo-OfficeYaml` | Text to objects and objects to text, following PowerShell's `ConvertFrom-Json`/`ConvertTo-Json` pattern: `-AsHashtable` (ordered), `-Depth`, `-NoEnumerate`, plus `-AllDocuments` for streams and `-Schema` (`Failsafe` keeps every scalar a string) |
+| `Test-OfficeYaml` | Validate without changing the file. Returns `$true`/`$false` like `Test-Json`; `-Detailed` returns the error code, 1-based line and column, and the load diagnostics |
+| `Merge-OfficeDocument` | The shared cross-format command; for YAML (`.yaml` and `.yml`) it overlays files or a live document with the [merge](#merging) rules, and `-PassThruReport` writes one `YamlMergeReport` per overlay |
 
 Typical script:
 
@@ -168,7 +168,7 @@ baseDoc.Save("values.merged.yaml");
 - **Merge keys:** the overlay is read through its typed view, so the entries its `<<` keys provide count as its own. In the base, a key only a merge provides gets an entry of its own; merged mappings are never edited or flattened.
 - **Aliases that cannot follow their anchor:** an overlay alias whose anchored node merged into an existing base node, or that would come before its anchor in the base, is written as a copy of the anchored node and reported (`yaml-merge-alias-expanded`), because the merged base node no longer holds the overlay's value.
 - **Empty overlay documents** change nothing. With `NullRemovesKey`, a null for a key the base lacks adds nothing. A key that a null cannot remove (a merge provides it, or aliases refer into it) stays and is reported (`yaml-merge-key-not-removed`).
-- **`YamlMergeReport`** lists every added, replaced and removed path, plus diagnostics for conflicts (`yaml-merge-kind-conflict`), alias edits (`yaml-aliased-node-edited`) and renamed anchors (`yaml-merge-anchor-renamed`). `Merge-OfficeDocument` writes it to the pipeline.
+- **`YamlMergeReport`** lists every added, replaced and removed path, plus diagnostics for conflicts (`yaml-merge-kind-conflict`), alias edits (`yaml-aliased-node-edited`) and renamed anchors (`yaml-merge-anchor-renamed`). `Merge-OfficeDocument -PassThruReport` writes it to the pipeline.
 - **Qualification:** committed base and overlay pairs (`OfficeIMO.TestAssets/Yaml/Merge`) must change only the lines the report accounts for, load in YamlDotNet to the result of an independent Helm-rules merge of YamlDotNet-loaded data, load alike in SharpYaml, and merge to the same bytes every time.
 
 ### Writer

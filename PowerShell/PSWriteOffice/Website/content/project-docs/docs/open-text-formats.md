@@ -6,7 +6,7 @@ aliases:
   - /docs/pswriteoffice/markdown/
 ---
 
-PSWriteOffice is not limited to the three desktop Office formats. Smaller command families expose the same managed-engine approach for text, interchange, open document, and email workflows.
+PSWriteOffice is not limited to the three desktop Office formats. Smaller command families expose the same managed-engine approach for text, interchange, configuration, open document, and email workflows.
 
 ## Markdown
 
@@ -33,6 +33,12 @@ See [update and convert RTF](https://github.com/EvotecIT/OfficeIMO/blob/master/P
 Five commands convert, import, export, and inspect CSV through OfficeIMO.CSV. Use the CSV family for delimited-data contracts; use Excel when worksheet formatting, formulas, charts, or workbook structure are part of the outcome.
 
 See [safe CSV export](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Csv/Recipe-Csv-SafeExport.ps1) for delimiter, quoting, and round-trip validation choices.
+
+## YAML
+
+Twelve commands work with YAML through OfficeIMO's own engine. `Open-OfficeYaml` loads a file as a lossless document; `Set-OfficeYamlNode` and `Remove-OfficeYamlNode` edit it by path, and saving changes only the edited text, so comments, quoting, indentation and the file encoding stay as they were. `Merge-OfficeDocument` overlays `.yaml` files the way Helm combines values files and reports what it added, replaced and removed. `ConvertFrom-OfficeYaml`, `ConvertTo-OfficeYaml`, `Import-OfficeYaml` and `Export-OfficeYaml` follow the `ConvertFrom-Json` and `ConvertTo-Json` conventions for data, and `Test-OfficeYaml` validates files with the error line and column.
+
+See [edit, merge and read YAML configuration](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Yaml/Example-YamlEditMergeConvert.ps1) for an end-to-end example.
 
 ## OpenDocument
 
