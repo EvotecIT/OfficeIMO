@@ -443,7 +443,7 @@ internal static partial class PdfSyntax {
             if (table.XrefStreamOffset.HasValue) {
                 var xrefStream = xrefStreams.FirstOrDefault(item => item.Offset == table.XrefStreamOffset.Value);
                 if (xrefStream.Stream is not null)
-                    UpdateActiveCompressedEntries(activeEntries, xrefStream.Stream, map, decodedStreamBudget,
+                    UpdateActiveCompressedEntries(activeEntries, xrefStream.Stream, map, decodedStreamBudget, limits,
                         () => reportUnreadable(xrefStream.ObjectNumber), cancellationToken);
             }
             for (int i = 0; i < table.Entries.Length; i++) {
@@ -455,7 +455,7 @@ internal static partial class PdfSyntax {
             foreach (int chainOffset in activeChainOffsets) {
                 cancellationToken.ThrowIfCancellationRequested();
                 var xrefStream = xrefStreams.First(item => item.Offset == chainOffset);
-                UpdateActiveCompressedEntries(activeEntries, xrefStream.Stream, map, decodedStreamBudget, () => reportUnreadable(xrefStream.ObjectNumber), cancellationToken);
+                UpdateActiveCompressedEntries(activeEntries, xrefStream.Stream, map, decodedStreamBudget, limits, () => reportUnreadable(xrefStream.ObjectNumber), cancellationToken);
             }
         }
 
@@ -497,12 +497,16 @@ internal static partial class PdfSyntax {
         PdfStream xrefStream,
         Dictionary<int, PdfIndirectObject> map,
         PdfDecodedStreamBudget decodedStreamBudget,
+        PdfReadLimits limits,
         Action reportIncompleteXref,
         System.Threading.CancellationToken cancellationToken) {
         byte[] data = decodedStreamBudget.Decode(xrefStream, map, int.MaxValue, cancellationToken);
 #if NET8_0_OR_GREATER
-        // The decoded rows bound the entries this stream can add, so the table grows once rather than by doubling.
-        activeEntries.EnsureCapacity(activeEntries.Count + GetXrefRowCount(xrefStream.Dictionary, data.Length));
+        // Grow once for the entries this stream can add. Rows alone are not a bound (/W [1 0 0] makes every byte a row),
+        // so the declared /Size caps the reservation as it does for the entry list.
+        int rows = GetXrefRowCount(xrefStream.Dictionary, data.Length);
+        int capacity = GetXrefEntryCapacity(xrefStream.Dictionary, limits, rows);
+        if (capacity > 0) activeEntries.EnsureCapacity(activeEntries.Count + capacity);
 #endif
         foreach (XrefStreamEntry entry in ReadXrefStreamEntries(xrefStream.Dictionary, data, reportIncompleteXref, cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
