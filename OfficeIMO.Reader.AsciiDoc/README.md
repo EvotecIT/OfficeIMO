@@ -55,7 +55,7 @@ Exceeding a parser limit fails the read rather than silently returning partial c
 
 - **Chunk ids:** `asciidoc-<block>` in block mode (`asciidoc-0`, `asciidoc-2`, ...); a block split by `MaxChars` continues as `asciidoc-4-part-2`.
 - **Location:** `StartLine`/`EndLine` from the lossless source spans, `HeadingPath` such as `Guide > Install`, `BlockAnchor` `asciidoc-block-<n>`, and `SourceBlockKind`: `heading`, `paragraph`, `ordered-list`, `unordered-list`, `callout-list`, `description-list`, `admonition`, `table`, `delimited-<kind>` (for example `delimited-listing`) or `block-macro`.
-- **Text and Markdown:** `Text` is plain text with attributes resolved; `Markdown` is the typed `OfficeIMO.AsciiDoc.Markdown` projection, except for a block split by `MaxChars`: each part then carries its plain text as `Markdown`, so structure such as listing fences is not kept.
+- **Text and Markdown:** `Text` is plain text with attributes resolved; `Markdown` is the typed `OfficeIMO.AsciiDoc.Markdown` projection, except when `MaxChars` splits a chunk, in block mode or in document mode (`ChunkByBlock = false`): each part then carries its plain text as `Markdown`, so structure such as listing fences is not kept.
 - **Warnings:** diagnostics that fall inside the block's span, plus `AsciiDoc content was split due to ReaderOptions.MaxChars.` for split blocks.
 
 ## Example output
