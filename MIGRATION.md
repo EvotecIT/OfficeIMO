@@ -1529,7 +1529,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Word
 
 <details>
-<summary>458 changes</summary>
+<summary>460 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -1671,6 +1671,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Authoring | `OfficeIMO.Word.WordDocument.ToImage(WordImageExportOptions options)` | Removed | &mdash; | Use ToImage/SaveAsImage/SaveAsImages with WordImageExportOptions. |
 | Authoring | `OfficeIMO.Word.WordDocument.ToImages()` | Removed | &mdash; | Use ToImage/SaveAsImage/SaveAsImages with WordImageExportOptions. |
 | Authoring | `OfficeIMO.Word.WordDocument.ToImages(WordImageExportOptions options)` | Removed | &mdash; | Use ToImage/SaveAsImage/SaveAsImages with WordImageExportOptions. |
+| Authoring | `OfficeIMO.Word.WordDocumentMergeOptions.StyleMode` | Renamed | `OfficeIMO.Word.WordDocumentMergeOptions.StyleConflictMode : WordStyleConflictMode` | UseDestinationStyles is KeepTarget and KeepDifferentStyles is Rename. The default is now Rename: a source style that clashes with a destination style is copied as Heading1\_0, so appended content keeps its look. Pass StyleConflictMode = WordStyleConflictMode.KeepTarget to format appended content with the destination styles as before; Overwrite replaces the destination definition. |
 | Authoring | `OfficeIMO.Word.WordFooters` | Removed | `OfficeIMO.Word.WordPageSetup` | footers.Default/First/Even -&gt; setup.GetFooter(type) or the creating Footer/FirstPageFooter/EvenPageFooter properties. |
 | Authoring | `OfficeIMO.Word.WordFormattedRun.Strike` | Renamed | `OfficeIMO.Word.WordFormattedRun.Strikethrough` | Use one formatting vocabulary on the native object model. |
 | Authoring | `OfficeIMO.Word.WordHeaders` | Removed | `OfficeIMO.Word.WordPageSetup` | headers.Default/First/Even -&gt; setup.GetHeader(WordHeaderFooterType.Default/First/Even) or the creating Header/FirstPageHeader/EvenPageHeader properties. |
@@ -1680,6 +1681,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Authoring | `OfficeIMO.Word.WordList.Strike` | Renamed | `OfficeIMO.Word.WordList.Strikethrough` | Use one formatting vocabulary on the native object model. |
 | Authoring | `OfficeIMO.Word.WordListNumbering.AddLevel(WordListLevel wordListLevel)` | Changed | `OfficeIMO.Word.WordListNumbering.AddLevel(WordListLevel wordListLevel) : WordListLevel` | Add\* methods return the created object. |
 | Authoring | `OfficeIMO.Word.WordMargins.SetMargins(WordSection, WordMargin) : WordSection` | Removed | `OfficeIMO.Word.WordMargins.Type` | section.PageSetup.Margins.Type = preset; |
+| Authoring | `OfficeIMO.Word.WordMergeStyleMode` | Merged | `OfficeIMO.Word.WordStyleConflictMode` | UseDestinationStyles is KeepTarget and KeepDifferentStyles is Rename; Overwrite is new. |
 | Authoring | `OfficeIMO.Word.WordPaperStyle.AddCover(WordDocument document, string eyebrow, string title, string subtitle)` | Changed | `OfficeIMO.Word.WordPaperStyle.AddCover(WordDocument document, string eyebrow, string title, string subtitle) : (WordParagraph Eyebrow, WordParagraph Title, WordParagraph Subtitle)` | Add\* methods return the created object. |
 | Authoring | `OfficeIMO.Word.WordPaperStyle.AddPageChrome(WordDocument document, string title, string product, string scope)` | Changed | `OfficeIMO.Word.WordPaperStyle.AddPageChrome(WordDocument document, string title, string product, string scope) : (WordParagraph DefaultHeader, WordParagraph EvenHeader, WordParagraph DefaultFooter, WordParagraph EvenFooter)` | Add\* methods return the created object. |
 | Authoring | `OfficeIMO.Word.WordParagraph.AddBookmark(string bookmarkName)` | Changed | `OfficeIMO.Word.WordParagraph.AddBookmark(...) : WordBookmark` | Add\* methods return the created object. |
@@ -5692,8 +5694,6 @@ the plan; a matching clipping-mode span requires a supported redaction strategy.
 `WordDocument.AppendDocument` now keeps the page setup of each document: the destination's final section properties become a section break before the appended content, which starts in its own section (a new page unless the source section says otherwise). To continue the appended content in the destination's section, as a workaround that moved the destination's closing `w:sectPr` did before, pass `new WordDocumentMergeOptions { SectionMode = WordMergeSectionMode.UseDestinationSections }`.
 
 Source styles now match destination styles by name before id, so a source style with a different id but the same name (for example a localized `Heading 1`) uses the destination style instead of being copied alongside it. Appended footnotes, endnotes and comments are copied with renumbered ids, and source bookmarks whose names already exist in the destination are renamed with a numeric suffix (`Intro` becomes `Intro_1`); hyperlinks and fields in the appended content follow the new name.
-
-Appended content now keeps its look by default. A source style with the same name as a destination style but a different definition is copied under a new id and name (`Heading1_0` / `heading 1_0`) instead of taking the destination's definition. To format appended content with the destination's styles as before, pass `new WordDocumentMergeOptions { StyleConflictMode = WordStyleConflictMode.KeepTarget }`. `StyleConflictMode` uses the same `WordStyleConflictMode` values as `document.Styles.Import`, including `Overwrite`.
 
 `WordTableOfContent.RefreshEntries()` also includes paragraphs whose style, or a style it is based on, sets an outline level 1-9 when the TOC uses `\u` (as Word's default TOC does), and heading styles copied by a merge such as `heading 1_0`.
 
