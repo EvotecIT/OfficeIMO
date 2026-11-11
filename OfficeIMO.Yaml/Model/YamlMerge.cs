@@ -171,7 +171,7 @@ internal sealed class YamlMerge {
             int index = target.IndexOf(entry.Text);
             if (index >= 0) {
                 if (remove) Remove(target, index, childPath);
-                else MergeValue(new Slot(target, index), target._entries[index].Value, entry.Value, childPath, depth + 1);
+                else MergeValue(new Slot(target, index), target.Entries[index].Value, entry.Value, childPath, depth + 1);
                 continue;
             }
             if (target.TryGetValue(entry.Text, out YamlNode? merged)) {
@@ -215,17 +215,17 @@ internal sealed class YamlMerge {
             case YamlSequenceMergeMode.Append:
                 for (int i = 0; i < overlay._count; i++) {
                     int index = target._count;
-                    YamlEdit.InsertItem(target, index, Copy(overlay._items[i], keepAnchor: true, comments: true));
+                    YamlEdit.InsertItem(target, index, Copy(overlay.Items[i], keepAnchor: true, comments: true));
                     Added(YamlPath.AppendIndex(path, index));
                 }
                 break;
             case YamlSequenceMergeMode.MergeByKey:
                 for (int i = 0; i < overlay._count; i++) {
-                    YamlNode item = overlay._items[i];
+                    YamlNode item = overlay.Items[i];
                     string? id = ItemKey(item, mode.Key!);
                     int match = id is null ? -1 : FindItem(target, mode.Key!, id);
                     if (match >= 0) {
-                        MergeMappings((YamlMapping)target._items[match].Resolved, (YamlMapping)item.Resolved, YamlPath.AppendIndex(path, match), depth + 1);
+                        MergeMappings((YamlMapping)target.Items[match].Resolved, (YamlMapping)item.Resolved, YamlPath.AppendIndex(path, match), depth + 1);
                     } else {
                         int index = target._count;
                         YamlEdit.InsertItem(target, index, Copy(item, keepAnchor: true, comments: true));
@@ -246,7 +246,7 @@ internal sealed class YamlMerge {
 
     private static int FindItem(YamlSequence sequence, string key, string id) {
         for (int i = 0; i < sequence._count; i++) {
-            if (ItemKey(sequence._items[i], key) == id) return i;
+            if (ItemKey(sequence.Items[i], key) == id) return i;
         }
         return -1;
     }
@@ -272,14 +272,14 @@ internal sealed class YamlMerge {
         bool changed = false;
         int common = Math.Min(target._count, overlay._count);
         for (int i = 0; i < common; i++) {
-            if (Assign(new Slot(target, i), target._items[i], overlay._items[i], depth)) changed = true;
+            if (Assign(new Slot(target, i), target.Items[i], overlay.Items[i], depth)) changed = true;
         }
         while (target._count > overlay._count) {
             if (!TryRemove(target, target._count - 1)) break;
             changed = true;
         }
         for (int i = target._count; i < overlay._count; i++) {
-            YamlEdit.InsertItem(target, target._count, Copy(overlay._items[i], keepAnchor: true, comments: true));
+            YamlEdit.InsertItem(target, target._count, Copy(overlay.Items[i], keepAnchor: true, comments: true));
             changed = true;
         }
         return changed;
@@ -293,14 +293,14 @@ internal sealed class YamlMerge {
         }
         bool changed = false;
         for (int i = target._count - 1; i >= 0; i--) {
-            string? text = YamlMapping.KeyText(target._entries[i].Key);
+            string? text = YamlMapping.KeyText(target.Entries[i].Key);
             if (text is not null && keep.Contains(text) && target.IndexOf(text) == i) continue;
             if (TryRemove(target, i)) changed = true;
         }
         foreach (Entry entry in entries) {
             int index = entry.Text is null ? -1 : target.IndexOf(entry.Text);
             if (index >= 0) {
-                if (Assign(new Slot(target, index), target._entries[index].Value, entry.Value, depth)) changed = true;
+                if (Assign(new Slot(target, index), target.Entries[index].Value, entry.Value, depth)) changed = true;
             } else {
                 YamlEdit.InsertEntry(target, target._count, CopyKey(entry.Key), Copy(entry.Value, keepAnchor: true, comments: true));
                 changed = true;
@@ -311,7 +311,7 @@ internal sealed class YamlMerge {
 
     private static bool HasMergeKey(YamlMapping mapping) {
         for (int i = 0; i < mapping._count; i++) {
-            if (mapping._entries[i].Key is YamlScalar key && key.IsMergeKey()) return true;
+            if (mapping.Entries[i].Key is YamlScalar key && key.IsMergeKey()) return true;
         }
         return false;
     }
@@ -358,7 +358,7 @@ internal sealed class YamlMerge {
     }
 
     private void Remove(YamlMapping target, int index, string path) {
-        YamlNode value = target._entries[index].Value;
+        YamlNode value = target.Entries[index].Value;
         try {
             YamlEdit.RemoveChild(target, index);
             Removed(path);
@@ -369,7 +369,7 @@ internal sealed class YamlMerge {
     }
 
     private bool TryRemove(YamlNode collection, int index) {
-        YamlNode child = collection is YamlMapping mapping ? mapping._entries[index].Value : ((YamlSequence)collection)._items[index];
+        YamlNode child = collection is YamlMapping mapping ? mapping.Entries[index].Value : ((YamlSequence)collection).Items[index];
         try {
             YamlEdit.RemoveChild(collection, index);
             return true;
@@ -402,7 +402,7 @@ internal sealed class YamlMerge {
             case YamlMapping mapping: {
                 var target = new YamlMapping(mapping._style);
                 for (int i = 0; i < mapping._count; i++) {
-                    YamlMappingEntry entry = mapping._entries[i];
+                    YamlMappingEntry entry = mapping.Entries[i];
                     // Of equal keys a lenient load admitted, only the one lookups see is copied.
                     string? text = YamlMapping.KeyText(entry.Key);
                     if (text is not null && mapping.IndexOf(text) != i) continue;
@@ -415,7 +415,7 @@ internal sealed class YamlMerge {
             default: {
                 var sequence = (YamlSequence)node;
                 var target = new YamlSequence(sequence._style);
-                for (int i = 0; i < sequence._count; i++) YamlEdit.InsertItem(target, target._count, Copy(sequence._items[i], keepAnchor, comments));
+                for (int i = 0; i < sequence._count; i++) YamlEdit.InsertItem(target, target._count, Copy(sequence.Items[i], keepAnchor, comments));
                 copy = target;
                 break;
             }
@@ -505,7 +505,7 @@ internal sealed class YamlMerge {
     /// </summary>
     private void FixAliasOrder() {
         if (_aliases.Count == 0 || _scope is null) return;
-        YamlNode scope = _part?._root ?? _scope;
+        YamlNode scope = _part?.RootNode ?? _scope;
         var created = new HashSet<YamlAlias>(_aliases);
         var anchored = new HashSet<YamlNode>();
         var late = new List<YamlAlias>();
@@ -558,7 +558,7 @@ internal sealed class YamlMerge {
         if (depth > MaxMergeDepth) throw new InvalidOperationException("Merge keys are nested deeper than " + MaxMergeDepth + " levels.");
         bool merges = false;
         for (int i = 0; i < mapping._count; i++) {
-            YamlMappingEntry entry = mapping._entries[i];
+            YamlMappingEntry entry = mapping.Entries[i];
             if (entry.Key is YamlScalar key && key.IsMergeKey()) {
                 merges = true;
                 continue;
@@ -573,14 +573,14 @@ internal sealed class YamlMerge {
         }
         if (!merges) return;
         for (int i = 0; i < mapping._count; i++) {
-            YamlMappingEntry entry = mapping._entries[i];
+            YamlMappingEntry entry = mapping.Entries[i];
             if (entry.Key is not YamlScalar key || !key.IsMergeKey()) continue;
             YamlNode source = entry.Value.Resolved;
             if (source is YamlMapping merged) {
                 Collect(merged, entries, seen, depth + 1);
             } else if (source is YamlSequence list) {
                 for (int s = 0; s < list._count; s++) {
-                    if (list._items[s].Resolved is YamlMapping item) Collect(item, entries, seen, depth + 1);
+                    if (list.Items[s].Resolved is YamlMapping item) Collect(item, entries, seen, depth + 1);
                 }
             }
         }
@@ -633,7 +633,7 @@ internal sealed class YamlMerge {
             case YamlSequence sequence when right is YamlSequence other:
                 if (sequence._count != other._count) return false;
                 for (int i = 0; i < sequence._count; i++) {
-                    if (!Equal(sequence._items[i], other._items[i], ref budget)) return false;
+                    if (!Equal(sequence.Items[i], other.Items[i], ref budget)) return false;
                 }
                 return true;
             case YamlMapping mapping when right is YamlMapping other:
@@ -715,7 +715,7 @@ internal sealed class YamlMerge {
         public YamlDocumentPart? Part { get; }
 
         public YamlNode Current => Part is not null ? Part.Root
-            : Collection is YamlMapping mapping ? mapping._entries[Index].Value
-            : ((YamlSequence)Collection!)._items[Index];
+            : Collection is YamlMapping mapping ? mapping.Entries[Index].Value
+            : ((YamlSequence)Collection!).Items[Index];
     }
 }

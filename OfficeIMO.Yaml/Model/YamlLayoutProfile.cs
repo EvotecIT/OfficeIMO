@@ -28,8 +28,8 @@ internal sealed class YamlLayoutProfile {
         profile.NewLine = DominantLineBreak(source);
         int mappingVote = 0, offsetVote = -1, sequenceVote = 0, singles = 0, doubles = 0, seen = 0;
         foreach (YamlDocumentPart part in document.Documents) {
-            if (part._root is null) continue;
-            foreach (YamlNode node in part._root.Descendants()) {
+            if (part.RootNode is null) continue;
+            foreach (YamlNode node in part.RootNode.Descendants()) {
                 if (seen > SampleLimit * 8) break;
                 seen++;
                 if (node is YamlScalar { HasSourceSpan: true } scalar) {
@@ -40,17 +40,17 @@ internal sealed class YamlLayoutProfile {
                 // The first vote of each kind decides it; once both are in, the rest of the sample only counts quotes.
                 if (mappingVote > 0 && offsetVote >= 0) continue;
                 if (node is not YamlMapping { _style: YamlStyle.Block, HasSourceSpan: true } mapping || mapping._count == 0) continue;
-                int keyColumn = Column(source, mapping._entries[0].Key._start);
+                int keyColumn = Column(source, mapping.Entries[0].Key._start);
                 for (int i = 0; i < mapping._count && (mappingVote == 0 || offsetVote < 0); i++) {
-                    YamlNode value = mapping._entries[i].Value;
+                    YamlNode value = mapping.Entries[i].Value;
                     if (!value.HasSourceSpan || value._style != YamlStyle.Block) continue;
                     if (value is YamlMapping { _count: > 0 } child && mappingVote == 0) {
-                        int indent = Column(source, child._entries[0].Key._start) - keyColumn;
-                        if (indent > 0 && indent <= 9 && YamlTrivia.OnlyBlanksOrIndicators(source, YamlTrivia.LineStart(source, child._entries[0].Key._start), child._entries[0].Key._start)) mappingVote = indent;
+                        int indent = Column(source, child.Entries[0].Key._start) - keyColumn;
+                        if (indent > 0 && indent <= 9 && YamlTrivia.OnlyBlanksOrIndicators(source, YamlTrivia.LineStart(source, child.Entries[0].Key._start), child.Entries[0].Key._start)) mappingVote = indent;
                     } else if (value is YamlSequence { _count: > 0 } sequence && offsetVote < 0) {
-                        int dash = YamlTrivia.DashPosition(source, sequence._items[0]._start);
+                        int dash = YamlTrivia.DashPosition(source, sequence.Items[0]._start);
                         int offset = Column(source, dash) - keyColumn;
-                        int content = Column(source, sequence._items[0]._start) - keyColumn;
+                        int content = Column(source, sequence.Items[0]._start) - keyColumn;
                         if (offset >= 0 && offset <= 8 && content >= offset + 2 && content <= 10) {
                             offsetVote = offset;
                             sequenceVote = content;

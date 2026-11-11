@@ -1,44 +1,65 @@
 namespace OfficeIMO.Yaml;
 
 /// <summary>
-/// Builds the model from <see cref="YamlReader"/> events in one pass without recursion. Children of open collections
-/// wait on one shared stack and move into an exactly sized array when their collection closes, so a collection costs
-/// its node object and one array. The builder also enforces the per-document node and alias-expansion limits, resolves
-/// aliases and checks mappings for duplicate keys.
+/// Builds the document's <see cref="YamlNodeTable"/> from <see cref="YamlReader"/> events in one pass without recursion:
+/// one record per node, in document order, and no node objects. The builder also enforces the per-document node and
+/// alias-expansion limits, resolves aliases to their anchored records and checks mappings for duplicate keys.
 /// </summary>
 internal sealed class YamlTreeBuilder {
     /// <summary>Saturation point for expansion sizes, far above any limit and safe from overflow when added.</summary>
     private const long ExpansionCap = long.MaxValue / 4;
     private const int LinearDuplicateLimit = 8;
+    private const char Marker = '\u0001';
+    private const string NullIdentity = "\u0001null";
+    private const string TrueIdentity = "\u0001true";
+    private const string FalseIdentity = "\u0001false";
 
     private readonly YamlDocument _document;
     private readonly YamlLoadOptions _options;
-    private YamlNode[] _nodes = new YamlNode[64];
-    private int _nodeCount;
-    private Frame[] _frames = new Frame[16];
+    private readonly YamlNodeTable _table;
+    private readonly string _source;
+    private Frame[] _frames = ArrayPool<Frame>.Shared.Rent(16);
     private int _frameCount;
-    private Dictionary<string, YamlNode>? _anchors;
+    private Dictionary<string, int>? _anchors;
     private YamlDocumentPart? _part;
+    private int _partRoot;
     private int _documentNodes;
     private long _expansion;
-    private string?[] _identities = new string?[16];
-    private Dictionary<string, int>? _seen;
+    private int[] _keys = ArrayPool<int>.Shared.Rent(16);
+    private KeyIdentity[] _identities = ArrayPool<KeyIdentity>.Shared.Rent(16);
+    private int[] _buckets = ArrayPool<int>.Shared.Rent(16);
     private int _findingsTaken;
     /// <summary>Whether the current part's merge keys still need their one note: they merge under the core schema only because the load is not strict.</summary>
     private bool _noteMergeKeys;
 
     private struct Frame {
-        public YamlNode Node;
-        public int First;
+        public int Record;
+        public int Children;
         public long Expanded;
+        /// <summary>A '&lt;&lt;' key was added, so the mapping's merge keys may need the part's note.</summary>
+        public bool MergeKey;
     }
 
-    public YamlTreeBuilder(YamlDocument document, YamlLoadOptions options) {
+    public YamlTreeBuilder(YamlDocument document, YamlLoadOptions options, YamlNodeTable table) {
         _document = document;
         _options = options;
+        _table = table;
+        _source = document._source;
     }
 
+    /// <summary>Reads every event into the table, then returns the builder's pooled scratch arrays.</summary>
     public void Run(YamlReader reader) {
+        try {
+            Build(reader);
+        } finally {
+            ArrayPool<Frame>.Shared.Return(_frames);
+            ArrayPool<int>.Shared.Return(_keys);
+            ArrayPool<KeyIdentity>.Shared.Return(_identities);
+            ArrayPool<int>.Shared.Return(_buckets);
+        }
+    }
+
+    private void Build(YamlReader reader) {
         while (reader.Read()) {
             if (reader.LenientFindings is { } findings && findings.Count > _findingsTaken) TakeFindings(findings);
             ref readonly YamlEvent ev = ref reader.CurrentEvent;
@@ -49,31 +70,44 @@ internal sealed class YamlTreeBuilder {
                     _noteMergeKeys = _part.Schema == YamlSchema.Core && _part.MergeKeys;
                     _expansion = 0;
                     _documentNodes = 0;
+                    _partRoot = _table.Count;
                     break;
                 case YamlTokenType.DocumentEnd:
-                    _part!._root = _nodes[0];
-                    _nodes[0] = null!;
-                    _nodeCount = 0;
+                    _part!._table = _table;
+                    _part._rootRecord = _partRoot;
                     _part._end = ev.End;
                     _part.HasEndMarker = !ev.Implicit;
                     _document.AddPart(_part);
                     break;
                 case YamlTokenType.Scalar: {
-                    var scalar = new YamlScalar(_part!, in ev);
-                    if (ev.IsKey) scalar.SetDecodedValue(reader.GetString());
-                    SetProperties(scalar, reader, in ev, open: false);
+                    int record = _table.Add();
+                    ref YamlNodeRecord r = ref _table.Records[record];
+                    r.Kind = YamlRecordKind.Scalar;
+                    r.Style = ev.Style;
+                    r.Flags = ev.Flags;
+                    r.Chomping = ev.Chomping;
+                    r.Start = ev.Start;
+                    r.End = ev.End;
+                    r.ValueStart = ev.ValueStart;
+                    r.ValueEnd = ev.ValueEnd;
+                    r.Count = ev.Indent;
+                    r.Size = 1;
+                    r.Props = -1;
+                    r.Text = -1;
+                    SetProperties(record, reader, in ev, open: false);
                     Count(in ev);
-                    Push(scalar, 1);
+                    if (ev.IsKey && _noteMergeKeys && _frameCount > 0 && IsMergeKey(record)) _frames[_frameCount - 1].MergeKey = true;
+                    AddToParent(1);
                     break;
                 }
                 case YamlTokenType.Alias:
                     AddAlias(reader, in ev);
                     break;
                 case YamlTokenType.MappingStart:
-                    Open(new YamlMapping(_part!, in ev), reader, in ev);
+                    Open(YamlRecordKind.Mapping, reader, in ev);
                     break;
                 case YamlTokenType.SequenceStart:
-                    Open(new YamlSequence(_part!, in ev), reader, in ev);
+                    Open(YamlRecordKind.Sequence, reader, in ev);
                     break;
                 case YamlTokenType.MappingEnd:
                 case YamlTokenType.SequenceEnd:
@@ -83,73 +117,93 @@ internal sealed class YamlTreeBuilder {
         }
     }
 
-    private void Open(YamlNode node, YamlReader reader, in YamlEvent ev) {
-        SetProperties(node, reader, in ev, open: true);
+    private void Open(YamlRecordKind kind, YamlReader reader, in YamlEvent ev) {
+        int record = _table.Add();
+        ref YamlNodeRecord r = ref _table.Records[record];
+        r.Kind = kind;
+        r.Style = ev.Style;
+        r.Flags = 0;
+        r.Chomping = 0;
+        r.Start = ev.Start;
+        r.End = ev.End;
+        r.ValueStart = ev.End;
+        r.ValueEnd = ev.End;
+        r.Count = 0;
+        r.Size = 1;
+        r.Props = -1;
+        r.Text = -1;
+        SetProperties(record, reader, in ev, open: true);
         Count(in ev);
-        node._parent = _frameCount == 0 ? null : _frames[_frameCount - 1].Node;
-        if (_frameCount == _frames.Length) Array.Resize(ref _frames, _frames.Length * 2);
-        _frames[_frameCount++] = new Frame { Node = node, First = _nodeCount, Expanded = 1 };
+        if (_frameCount == _frames.Length) _frames = Grow(_frames, _frameCount, _frameCount * 2);
+        _frames[_frameCount++] = new Frame { Record = record, Expanded = 1 };
     }
 
     private void Close(in YamlEvent ev) {
         Frame frame = _frames[--_frameCount];
-        _frames[_frameCount].Node = null!;
-        YamlNode node = frame.Node;
-        int count = _nodeCount - frame.First;
-        if (node is YamlMapping mapping) {
-            var entries = new YamlMappingEntry[count / 2];
-            for (int i = 0; i < entries.Length; i++) entries[i] = new YamlMappingEntry(_nodes[frame.First + 2 * i], _nodes[frame.First + 2 * i + 1]);
-            mapping._entries = entries;
-            mapping._count = entries.Length;
-            mapping.Renumber(0);
-            if (_noteMergeKeys) NoteMergeKeys(mapping);
-            CheckDuplicates(mapping);
+        ref YamlNodeRecord r = ref _table.Records[frame.Record];
+        r.Size = _table.Count - frame.Record;
+        r.End = ev.End;
+        if (r.Kind == YamlRecordKind.Mapping) {
+            r.Count = frame.Children / 2;
+            if (_noteMergeKeys && frame.MergeKey) NoteMergeKeys(frame.Record);
+            CheckDuplicates(frame.Record);
         } else {
-            var sequence = (YamlSequence)node;
-            var items = new YamlNode[count];
-            Array.Copy(_nodes, frame.First, items, 0, count);
-            sequence._items = items;
-            sequence._count = count;
-            sequence.Renumber(0);
+            r.Count = frame.Children;
         }
-        Array.Clear(_nodes, frame.First, count);
-        _nodeCount = frame.First;
-        node._end = ev.End;
-        if (node._properties is { } properties) {
+        if (r.Props >= 0) {
+            ref YamlRecordProperties properties = ref _table.Properties[r.Props];
             properties.ExpandedSize = frame.Expanded;
-            node._state &= ~YamlNodeState.Open;
+            properties.Open = false;
         }
-        PushChild(node, frame.Expanded);
+        AddToParent(frame.Expanded);
     }
 
     private void AddAlias(YamlReader reader, in YamlEvent ev) {
         string name = reader.Anchor!;
         YamlPosition position = Position(in ev);
-        if (_anchors is null || !_anchors.TryGetValue(name, out YamlNode? target)) {
+        if (_anchors is null || !_anchors.TryGetValue(name, out int target)) {
             throw new YamlException(YamlErrorCodes.UndefinedAlias, "The alias *" + name + " has no anchor before it in its document.", position);
         }
         int limit = _options.MaxAliasExpansion;
+        ref YamlRecordProperties properties = ref _table.Properties[_table.Records[target].Props];
         // An alias inside the collection it refers to makes the resolved graph infinite.
-        if ((target._state & YamlNodeState.Open) != 0) {
+        if (properties.Open) {
             throw new YamlException(YamlErrorCodes.RecursiveAlias, "The alias *" + name + " is inside the collection its anchor names, which would make the document infinite.", position);
         }
-        long size = target._properties!.ExpandedSize;
+        long size = properties.ExpandedSize;
         _expansion = Saturate(_expansion + size);
         if (_expansion > limit) throw new YamlLimitExceededException(nameof(YamlLoadOptions.MaxAliasExpansion), limit, position);
         Count(in ev);
-        target._state |= YamlNodeState.Aliased;
-        Push(new YamlAlias(_part!, ev.Start, ev.End, name, target), size);
+        properties.Aliased = true;
+        int record = _table.Add();
+        ref YamlNodeRecord r = ref _table.Records[record];
+        r.Kind = YamlRecordKind.Alias;
+        r.Style = YamlStyle.None;
+        r.Flags = 0;
+        r.Chomping = 0;
+        r.Start = ev.Start;
+        r.End = ev.End;
+        r.ValueStart = ev.Start;
+        r.ValueEnd = ev.End;
+        r.Count = target;
+        r.Size = 1;
+        r.Props = -1;
+        r.Text = _table.AddText(name);
+        AddToParent(size);
     }
 
-    private void SetProperties(YamlNode node, YamlReader reader, in YamlEvent ev, bool open) {
+    private void SetProperties(int record, YamlReader reader, in YamlEvent ev, bool open) {
         if (ev.AnchorStart < 0 && !ev.HasTag) return;
-        var properties = new YamlNodeProperties { Tag = reader.Tag, ExpandedSize = 1 };
-        node._properties = properties;
+        int row = _table.AddProperties();
+        _table.Records[record].Props = row;
+        ref YamlRecordProperties properties = ref _table.Properties[row];
+        properties.Tag = reader.Tag;
+        properties.ExpandedSize = 1;
         if (ev.AnchorStart < 0) return;
         string anchor = reader.Anchor!;
         properties.Anchor = anchor;
-        if (open) node._state |= YamlNodeState.Open;
-        (_anchors ??= new Dictionary<string, YamlNode>(StringComparer.Ordinal))[anchor] = node;
+        properties.Open = open;
+        (_anchors ??= new Dictionary<string, int>(StringComparer.Ordinal))[anchor] = record;
     }
 
     private void Count(in YamlEvent ev) {
@@ -158,77 +212,246 @@ internal sealed class YamlTreeBuilder {
         }
     }
 
-    /// <summary>Adds a leaf to the innermost open collection, or makes it the document root.</summary>
-    private void Push(YamlNode node, long expanded) {
-        node._parent = _frameCount == 0 ? null : _frames[_frameCount - 1].Node;
-        PushChild(node, expanded);
+    /// <summary>Counts a finished node as a child of the innermost open collection.</summary>
+    private void AddToParent(long expanded) {
+        if (_frameCount == 0) return;
+        ref Frame parent = ref _frames[_frameCount - 1];
+        parent.Children++;
+        parent.Expanded = Saturate(parent.Expanded + expanded);
     }
 
-    private void PushChild(YamlNode node, long expanded) {
-        if (_nodeCount == _nodes.Length) Array.Resize(ref _nodes, _nodes.Length * 2);
-        _nodes[_nodeCount++] = node;
-        if (_frameCount > 0) {
-            ref Frame parent = ref _frames[_frameCount - 1];
-            parent.Expanded = Saturate(parent.Expanded + expanded);
-        }
+    /// <summary>Replaces a pooled scratch array with a larger one, keeping its first <paramref name="keep"/> elements.</summary>
+    private static T[] Grow<T>(T[] array, int keep, int size) {
+        T[] larger = ArrayPool<T>.Shared.Rent(size);
+        Array.Copy(array, larger, keep);
+        ArrayPool<T>.Shared.Return(array);
+        return larger;
     }
 
     private static long Saturate(long value) => value > ExpansionCap ? ExpansionCap : value;
 
     private static YamlPosition Position(in YamlEvent ev) => new YamlPosition(ev.Start, ev.StartLine + 1, ev.StartColumn + 1);
 
+    /// <summary>Lists the key records of a closed mapping in <see cref="_keys"/> and returns their number.</summary>
+    private int CollectKeys(int mapping) {
+        int count = _table.Records[mapping].Count;
+        if (_keys.Length < count) _keys = Grow(_keys, 0, Math.Max(count, _keys.Length * 2));
+        int child = mapping + 1;
+        for (int i = 0; i < count; i++) {
+            _keys[i] = child;
+            child = _table.Next(_table.Next(child));
+        }
+        return count;
+    }
+
     /// <summary>
-    /// Finds keys that are equal as YAML values. Each key gets one identity string (its decoded text for strings, so the
-    /// common case allocates nothing); equal identities are confirmed by <see cref="YamlKeyEquality.Equal"/>. Small
-    /// mappings compare identities pairwise, larger ones through a reused dictionary.
+    /// Finds keys that are equal as YAML values (specification section 3.2.1.3). Each key gets an identity: its decoded
+    /// text for strings, read from the source without a copy when the text is the value, or a canonical form for other
+    /// kinds. Equal identities are confirmed by <see cref="Equal"/>. Small mappings compare identities pairwise, larger
+    /// ones through a reused hash table, so checking keys allocates nothing in the common case.
     /// </summary>
-    private void CheckDuplicates(YamlMapping mapping) {
-        int count = mapping._count;
+    private void CheckDuplicates(int mapping) {
+        int count = _table.Records[mapping].Count;
         if (count < 2) return;
-        YamlMappingEntry[] entries = mapping._entries;
-        if (_identities.Length < count) _identities = new string?[Math.Max(count, _identities.Length * 2)];
-        string?[] identities = _identities;
-        for (int i = 0; i < count; i++) identities[i] = YamlKeyEquality.Identity(entries[i].Key);
-        if (count <= LinearDuplicateLimit) {
-            for (int i = 1; i < count; i++) {
-                for (int j = 0; j < i; j++) {
-                    if (string.Equals(identities[i], identities[j], StringComparison.Ordinal) && YamlKeyEquality.Equal(entries[j].Key, entries[i].Key)) {
-                        ReportDuplicate(entries[i].Key, entries[j].Key);
-                        break;
-                    }
-                }
-            }
-        } else {
-            Dictionary<string, int> seen = _seen ??= new Dictionary<string, int>(StringComparer.Ordinal);
-            seen.Clear();
-            for (int i = 0; i < count; i++) {
-                string? identity = identities[i];
-                if (identity is null || seen.TryGetValue(identity, out _)) {
-                    // Collection keys and identity collisions are rare: confirm against every earlier key.
+        CollectKeys(mapping);
+        int[] keys = _keys;
+        if (_identities.Length < count) _identities = Grow(_identities, 0, Math.Max(count, _identities.Length * 2));
+        KeyIdentity[] identities = _identities;
+        for (int i = 0; i < count; i++) identities[i] = Identify(keys[i]);
+        try {
+            if (count <= LinearDuplicateLimit) {
+                for (int i = 1; i < count; i++) {
                     for (int j = 0; j < i; j++) {
-                        if (string.Equals(identities[j], identity, StringComparison.Ordinal) && YamlKeyEquality.Equal(entries[j].Key, entries[i].Key)) {
-                            ReportDuplicate(entries[i].Key, entries[j].Key);
+                        if (Same(in identities[i], in identities[j]) && Equal(keys[j], keys[i])) {
+                            ReportDuplicate(keys[i], keys[j]);
                             break;
                         }
                     }
                 }
-                if (identity is not null && !seen.ContainsKey(identity)) seen.Add(identity, i);
+            } else {
+                int size = 16;
+                while (size < count * 2) size <<= 1;
+                if (_buckets.Length < size) _buckets = Grow(_buckets, 0, size);
+                int[] buckets = _buckets;
+                Array.Clear(buckets, 0, size);
+                int mask = size - 1;
+                for (int i = 0; i < count; i++) {
+                    int slot = Hash(in identities[i]) & mask;
+                    bool seen = false;
+                    for (int known; (known = buckets[slot]) != 0; slot = (slot + 1) & mask) {
+                        if (Same(in identities[known - 1], in identities[i])) {
+                            seen = true;
+                            break;
+                        }
+                    }
+                    if (seen || identities[i].Class == CollectionKey) {
+                        // Collection keys and identity collisions are rare: confirm against every earlier key.
+                        for (int j = 0; j < i; j++) {
+                            if (Same(in identities[j], in identities[i]) && Equal(keys[j], keys[i])) {
+                                ReportDuplicate(keys[i], keys[j]);
+                                break;
+                            }
+                        }
+                    }
+                    if (!seen) buckets[slot] = i + 1;
+                }
             }
+        } finally {
+            // The identities hold strings; the pooled array keeps none of them.
+            Array.Clear(identities, 0, count);
         }
-        Array.Clear(identities, 0, count);
+    }
+
+    private const byte CollectionKey = 0;
+    private const byte StringKey = 1;
+    private const byte OtherKey = 2;
+
+    /// <summary>
+    /// A key's identity for duplicate checks: equal for keys equal as values, though unequal keys may share one. String
+    /// keys refer to their text (a source range or a decoded copy); other kinds hold a canonical form.
+    /// </summary>
+    private struct KeyIdentity {
+        public byte Class;
+        public string? Text;
+        public int Start;
+        public int Length;
+    }
+
+    private ReadOnlySpan<char> Span(in KeyIdentity identity) => identity.Text is { } text ? text.AsSpan() : _source.AsSpan(identity.Start, identity.Length);
+
+    private bool Same(in KeyIdentity a, in KeyIdentity b) => a.Class == b.Class && (a.Class == CollectionKey || Span(in a).SequenceEqual(Span(in b)));
+
+    private int Hash(in KeyIdentity identity) {
+        uint hash = 2166136261 ^ identity.Class;
+        foreach (char ch in Span(in identity)) hash = (hash ^ ch) * 16777619;
+        return (int)(hash ^ (hash >> 15));
+    }
+
+    /// <summary>Resolves a scalar record's kind as the reader does; returns false for tags no schema resolves.</summary>
+    private bool TryGetKind(int record, out YamlScalarKind kind) {
+        string? tag = _table.Tag(record);
+        YamlStyle style = _table.Records[record].Style;
+        bool plain = tag is null && style == YamlStyle.Plain;
+        YamlSchema schema = _part!.Schema;
+        bool resolved = YamlSchemaResolver.TryGetKind(tag, style, plain ? _table.ValueSpan(record) : default, schema, out kind);
+        // Outside strict mode the core schema reads '<<' as a merge key too, as YAML 1.1 does.
+        if (plain && kind == YamlScalarKind.String && schema == YamlSchema.Core && _part.MergeKeys && IsMergeKey(record)) kind = YamlScalarKind.Merge;
+        return resolved;
+    }
+
+    private bool IsMergeKey(int record) {
+        string? tag = _table.Tag(record);
+        if (tag is not null) return tag == YamlSchemaResolver.TagPrefix + "merge";
+        ref YamlNodeRecord r = ref _table.Records[record];
+        if (r.Style != YamlStyle.Plain || !_part!.MergeKeys) return false;
+        return r.ValueEnd - r.ValueStart == 2 && _source[r.ValueStart] == '<' && _source[r.ValueStart + 1] == '<';
+    }
+
+    /// <summary>
+    /// Returns a key's identity; equal identities correspond to equal values of <see cref="YamlKeyEquality.Identity"/> for
+    /// the nodes the records become.
+    /// </summary>
+    private KeyIdentity Identify(int key) {
+        int record = _table.Resolve(key);
+        ref YamlNodeRecord r = ref _table.Records[record];
+        if (r.Kind != YamlRecordKind.Scalar) return default;
+        // Untagged quoted keys, and plain keys no schema reads as anything but a string, are their text.
+        if (r.Props < 0 && (r.Style != YamlStyle.Plain || IsAlwaysString(_source.AsSpan(r.ValueStart, r.ValueEnd - r.ValueStart)))) return StringIdentity(record);
+        if (!TryGetKind(record, out YamlScalarKind kind)) return Other(_table.Tag(record) + Marker + _table.Value(record));
+        YamlSchema schema = _part!.Schema == YamlSchema.Failsafe ? YamlSchema.Core : _part.Schema;
+        switch (kind) {
+            case YamlScalarKind.Null:
+                return Other(NullIdentity);
+            case YamlScalarKind.Boolean:
+                if (YamlSchemaResolver.TryParseBoolean(_table.ValueSpan(record), schema, out bool flag)) return Other(flag ? TrueIdentity : FalseIdentity);
+                break;
+            case YamlScalarKind.Integer:
+                if (YamlSchemaResolver.TryParseInt64(_table.ValueSpan(record), schema, out long integer)) return Other(Marker + integer.ToString(CultureInfo.InvariantCulture));
+                break;
+            case YamlScalarKind.Float:
+                if (YamlSchemaResolver.TryParseDouble(_table.ValueSpan(record), schema, out double number)) return Other(Marker + number.ToString("R", CultureInfo.InvariantCulture));
+                break;
+            case YamlScalarKind.String:
+                return StringIdentity(record);
+        }
+        return Other(Marker + _table.Value(record));
+
+        static KeyIdentity Other(string text) => new KeyIdentity { Class = OtherKey, Text = text };
+    }
+
+    private KeyIdentity StringIdentity(int record) {
+        ref YamlNodeRecord r = ref _table.Records[record];
+        if (r.Text < 0 && YamlScalarDecoder.IsVerbatim(r.Style, r.Flags)) {
+            return new KeyIdentity { Class = StringKey, Start = r.ValueStart, Length = r.ValueEnd - r.ValueStart };
+        }
+        return new KeyIdentity { Class = StringKey, Text = _table.Value(record) };
+    }
+
+    /// <summary>
+    /// Returns whether a plain scalar reads as a string under every schema. Numbers, timestamps, <c>~</c> and the YAML
+    /// 1.1 <c>&lt;&lt;</c> and <c>=</c> keys start with a digit, sign, dot or symbol; nulls and booleans that start
+    /// with a letter are words of at most five letters (<c>null</c>, <c>false</c>, <c>yes</c>, <c>off</c>, <c>y</c>).
+    /// Anything else needs the schema.
+    /// </summary>
+    private static bool IsAlwaysString(ReadOnlySpan<char> text) {
+        if (text.Length == 0) return false;
+        char first = text[0];
+        if (!(first is >= 'a' and <= 'z' or >= 'A' and <= 'Z')) return first is not ((>= '0' and <= '9') or '+' or '-' or '.' or '~' or '<' or '=');
+        if (text.Length > 5) return true;
+        switch (first | 0x20) {
+            case 'n':
+            case 't':
+            case 'f':
+            case 'y':
+            case 'o':
+                return false;
+            default:
+                return true;
+        }
+    }
+
+    /// <summary>Compares two key records as values, as <see cref="YamlKeyEquality.Equal"/> compares nodes.</summary>
+    private bool Equal(int left, int right) {
+        int a = _table.Resolve(left), b = _table.Resolve(right);
+        if (a == b) return true;
+        ref YamlNodeRecord ra = ref _table.Records[a];
+        ref YamlNodeRecord rb = ref _table.Records[b];
+        if (ra.Kind != rb.Kind) return false;
+        switch (ra.Kind) {
+            case YamlRecordKind.Scalar:
+                bool ka = TryGetKind(a, out YamlScalarKind kindA), kb = TryGetKind(b, out YamlScalarKind kindB);
+                if (ka != kb) return false;
+                if (!ka) return _table.Tag(a) == _table.Tag(b) && _table.ValueSpan(a).SequenceEqual(_table.ValueSpan(b));
+                // Repeated YAML 1.1 merge keys are merge instructions, not duplicate entries.
+                if (kindA != kindB || kindA == YamlScalarKind.Merge) return false;
+                // Integers and floats share the "\u0001" prefix; an equal identity with different kinds is not a duplicate.
+                KeyIdentity ia = Identify(a), ib = Identify(b);
+                return Same(in ia, in ib);
+            case YamlRecordKind.Mapping:
+            case YamlRecordKind.Sequence:
+                int children = ra.Kind == YamlRecordKind.Mapping ? ra.Count * 2 : ra.Count;
+                if (ra.Count != rb.Count || _table.Tag(a) != _table.Tag(b)) return false;
+                for (int i = 0, x = a + 1, y = b + 1; i < children; i++, x = _table.Next(x), y = _table.Next(y)) {
+                    if (!Equal(x, y)) return false;
+                }
+                return true;
+            default:
+                return false;
+        }
     }
 
     private void TakeFindings(List<YamlLenientFinding> findings) {
-        for (; _findingsTaken < findings.Count; _findingsTaken++) _document.AddDiagnostic(findings[_findingsTaken].ToDiagnostic(_document._source));
+        for (; _findingsTaken < findings.Count; _findingsTaken++) _document.AddDiagnostic(findings[_findingsTaken].ToDiagnostic(_source));
     }
 
     /// <summary>Notes, once per document part, that '&lt;&lt;' keys merge although no %YAML 1.1 directive asks for it.</summary>
-    private void NoteMergeKeys(YamlMapping mapping) {
-        YamlMappingEntry[] entries = mapping._entries;
-        for (int i = 0; i < mapping._count; i++) {
-            if (entries[i].Key is not YamlScalar key || !key.IsMergeKey()) continue;
+    private void NoteMergeKeys(int mapping) {
+        int count = CollectKeys(mapping);
+        for (int i = 0; i < count; i++) {
+            int key = _keys[i];
+            if (_table.Records[key].Kind != YamlRecordKind.Scalar || !IsMergeKey(key)) continue;
             _noteMergeKeys = false;
-            YamlPosition position = _document.GetPosition(key._start);
+            YamlPosition position = _document.GetPosition(_table.Records[key].Start);
             _document.AddDiagnostic(new OfficeDiagnostic(OfficeDiagnosticCodes.YamlMergeKeyWithoutDirective, OfficeDiagnosticSeverity.Information,
                 "The document uses '<<' merge keys, such as the one at " + position + ", without a %YAML 1.1 directive; they were resolved as YAML 1.1 and common tools resolve them. Load with Strict to read '<<' as an ordinary key.",
                 position.ToString(), "YAML"));
@@ -236,13 +459,15 @@ internal sealed class YamlTreeBuilder {
         }
     }
 
-    private void ReportDuplicate(YamlNode key, YamlNode first) {
-        string text = YamlMapping.KeyText(key) ?? key.ToString();
+    private void ReportDuplicate(int key, int first) {
+        int resolved = _table.Resolve(key);
+        ref YamlNodeRecord r = ref _table.Records[key];
+        string text = _table.Records[resolved].Kind == YamlRecordKind.Scalar ? _table.Value(resolved) : _source.Substring(r.Start, r.End - r.Start);
         if (text.Length > 64) text = text.Substring(0, 61) + "...";
-        YamlPosition position = _document.GetPosition(key._start);
-        string message = "The mapping key '" + text + "' at " + position + " repeats the key at " + _document.GetPosition(first._start) + ".";
+        YamlPosition position = _document.GetPosition(r.Start);
+        string message = "The mapping key '" + text + "' at " + position + " repeats the key at " + _document.GetPosition(_table.Records[first].Start) + ".";
         if (_options.EffectiveDuplicateKeys == YamlDuplicateKeyPolicy.Error) throw new YamlException(YamlErrorCodes.DuplicateKey, message, position);
         _document.AddDiagnostic(new OfficeDiagnostic(OfficeDiagnosticCodes.YamlDuplicateKey, OfficeDiagnosticSeverity.Warning,
-            message + YamlExcerpt.Format(_document._source, key._start), position.ToString(), "YAML"));
+            message + YamlExcerpt.Format(_source, r.Start), position.ToString(), "YAML"));
     }
 }

@@ -4,15 +4,21 @@ namespace OfficeIMO.Yaml;
 
 /// <summary>A sequence node: block (<c>- item</c>) or flow (<c>[a, b]</c>), in source order.</summary>
 public sealed class YamlSequence : YamlNode, IReadOnlyList<YamlNode> {
-    internal YamlNode[] _items = Array.Empty<YamlNode>();
+    /// <summary>The items; null for a loaded sequence until code first reaches them (see <see cref="Items"/>).</summary>
+    internal YamlNode[]? _items = Array.Empty<YamlNode>();
     internal int _count;
     internal int _contentStart;
     /// <summary>The loaded items as (start, end) source pairs, kept from the first insertion or removal so saving can find their source text.</summary>
     internal int[]? _original;
 
-    internal YamlSequence(YamlDocumentPart part, in YamlEvent ev) : base(part, ev.Style, ev.Start, ev.End) {
-        _contentStart = ev.End;
+    internal YamlSequence(YamlDocumentPart part, YamlStyle style, int start, int end, int contentStart, int count) : base(part, style, start, end) {
+        _contentStart = contentStart;
+        _count = count;
+        _items = count == 0 ? Array.Empty<YamlNode>() : null;
     }
+
+    /// <summary>The items, created from the document's node table on first use.</summary>
+    internal YamlNode[] Items => Volatile.Read(ref _items) ?? _part!._document._table!.MaterializeItems(this);
 
     /// <summary>Creates an empty block sequence. Inside a flow collection it is written as flow.</summary>
     public YamlSequence() : base(YamlStyle.Block) {
@@ -34,7 +40,7 @@ public sealed class YamlSequence : YamlNode, IReadOnlyList<YamlNode> {
     public YamlNode this[int index] {
         get {
             if ((uint)index >= (uint)_count) throw new ArgumentOutOfRangeException(nameof(index), index, "The index is outside the sequence.");
-            return _items[index];
+            return Items[index];
         }
         set {
             if ((uint)index >= (uint)_count) throw new ArgumentOutOfRangeException(nameof(index), index, "The index is outside the sequence.");
@@ -72,16 +78,16 @@ public sealed class YamlSequence : YamlNode, IReadOnlyList<YamlNode> {
 
     internal int IndexOf(YamlNode item) {
         int known = item._index;
-        if ((uint)known < (uint)_count && ReferenceEquals(_items[known], item)) return known;
+        if ((uint)known < (uint)_count && ReferenceEquals(Items[known], item)) return known;
         for (int i = 0; i < _count; i++) {
-            if (ReferenceEquals(_items[i], item)) return i;
+            if (ReferenceEquals(Items[i], item)) return i;
         }
         return -1;
     }
 
     /// <summary>Records each item's position from <paramref name="from"/> on, so lookups take constant time.</summary>
     internal void Renumber(int from) {
-        for (int i = from; i < _count; i++) _items[i]._index = i;
+        for (int i = from; i < _count; i++) Items[i]._index = i;
     }
 
     /// <summary>Enumerates the items of a <see cref="YamlSequence"/>.</summary>
@@ -95,7 +101,7 @@ public sealed class YamlSequence : YamlNode, IReadOnlyList<YamlNode> {
         }
 
         /// <inheritdoc />
-        public YamlNode Current => _sequence._items[_index];
+        public YamlNode Current => _sequence.Items[_index];
 
         object IEnumerator.Current => Current;
 

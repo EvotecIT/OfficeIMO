@@ -59,12 +59,12 @@ public readonly struct YamlNodeWalk : IEnumerable<YamlNode> {
             if (node is YamlMapping mapping) {
                 Reserve(mapping._count * 2);
                 for (int i = mapping._count - 1; i >= 0; i--) {
-                    _stack[_count++] = mapping._entries[i].Value;
-                    _stack[_count++] = mapping._entries[i].Key;
+                    _stack[_count++] = mapping.Entries[i].Value;
+                    _stack[_count++] = mapping.Entries[i].Key;
                 }
             } else if (node is YamlSequence sequence) {
                 Reserve(sequence._count);
-                for (int i = sequence._count - 1; i >= 0; i--) _stack[_count++] = sequence._items[i];
+                for (int i = sequence._count - 1; i >= 0; i--) _stack[_count++] = sequence.Items[i];
             }
             return true;
         }

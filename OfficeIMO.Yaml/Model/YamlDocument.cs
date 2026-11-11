@@ -24,6 +24,8 @@ public sealed partial class YamlDocument : IDisposable {
     /// <summary>Set by any edit; an unedited document saves as one copy of its source.</summary>
     internal bool _partsDirty;
     private string? _path;
+    /// <summary>The loaded nodes; null for a document created in memory.</summary>
+    internal YamlNodeTable? _table;
 
     private YamlDocument(string source, YamlTextEncoding encoding, bool byteOrderMark, YamlDuplicateKeyPolicy duplicateKeys, bool strict) {
         _source = source;
@@ -178,8 +180,12 @@ public sealed partial class YamlDocument : IDisposable {
         return part;
     }
 
-    /// <summary>Releases nothing: the document holds only managed memory. It is disposable so <c>using</c> works as for every OfficeIMO document.</summary>
+    /// <summary>
+    /// Returns the pooled storage of the loaded nodes when no node was read; the document holds only managed memory.
+    /// Do not use the document after disposing it: nodes not reached before are no longer available.
+    /// </summary>
     public void Dispose() {
+        _table?.Release();
     }
 
     /// <summary>The layout conventions new nodes follow, read from the source on first use.</summary>

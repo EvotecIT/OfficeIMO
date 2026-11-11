@@ -103,6 +103,20 @@ public class YamlDocumentEncodingTests {
     }
 
     [Fact]
+    public void DisposingReleasesOnlyNodesThatWereNeverRead() {
+        // A document disposed unread has returned its pooled node storage, so reading it fails instead of reading reused memory.
+        YamlDocument unread = YamlDocument.Parse("a: [1, 2]\n");
+        unread.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => unread.Root);
+
+        // Nodes handed out before disposal keep their storage, children not yet reached included.
+        YamlDocument read = YamlDocument.Parse("a: [1, 2]\n");
+        YamlMapping root = read.Root!.AsMapping();
+        read.Dispose();
+        Assert.Equal(2, root["a"].AsSequence()[1].GetValue<int>());
+    }
+
+    [Fact]
     public void ParsedTextSavesAsUtf8AndKeepsALeadingByteOrderMarkCharacter() {
         const string text = "﻿key: v\n";
         YamlDocument document = YamlDocument.Parse(text);

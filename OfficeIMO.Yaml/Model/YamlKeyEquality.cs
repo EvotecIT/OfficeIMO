@@ -53,13 +53,13 @@ internal static class YamlKeyEquality {
             case YamlSequence qa when b is YamlSequence qb:
                 if (qa._count != qb._count || qa.Tag != qb.Tag) return false;
                 for (int i = 0; i < qa._count; i++) {
-                    if (!Equal(qa._items[i], qb._items[i])) return false;
+                    if (!Equal(qa.Items[i], qb.Items[i])) return false;
                 }
                 return true;
             case YamlMapping ma when b is YamlMapping mb:
                 if (ma._count != mb._count || ma.Tag != mb.Tag) return false;
                 for (int i = 0; i < ma._count; i++) {
-                    if (!Equal(ma._entries[i].Key, mb._entries[i].Key) || !Equal(ma._entries[i].Value, mb._entries[i].Value)) return false;
+                    if (!Equal(ma.Entries[i].Key, mb.Entries[i].Key) || !Equal(ma.Entries[i].Value, mb.Entries[i].Value)) return false;
                 }
                 return true;
             default:

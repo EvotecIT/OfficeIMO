@@ -6,7 +6,10 @@ namespace OfficeIMO.Yaml;
 /// </summary>
 public sealed class YamlDocumentPart {
     internal readonly YamlDocument _document;
-    internal YamlNode? _root;
+    /// <summary>The root object, created from <see cref="_table"/> on first use for a loaded part.</summary>
+    internal YamlNode? _rootNode;
+    internal YamlNodeTable? _table;
+    internal int _rootRecord = -1;
     /// <summary>Start of the part: its first directive, its <c>---</c>, or its first content when both are absent.</summary>
     internal int _start;
     /// <summary>End of the <c>---</c> marker, or <see cref="_start"/> without one.</summary>
@@ -48,8 +51,14 @@ public sealed class YamlDocumentPart {
     /// </summary>
     /// <exception cref="InvalidOperationException">Setting: the node already belongs to a document, or aliases refer to the old root.</exception>
     public YamlNode Root {
-        get => _root!;
+        get => RootNode!;
         set => YamlEdit.ReplaceRoot(this, value ?? new YamlScalar((string?)null));
+    }
+
+    /// <summary>The root node, created from the node table on first use; null only while a part added by editing has none.</summary>
+    internal YamlNode? RootNode {
+        get => Volatile.Read(ref _rootNode) ?? (_rootRecord >= 0 ? _table!.MaterializeRoot(this, _rootRecord) : null);
+        set => _rootNode = value;
     }
 
     /// <summary>
