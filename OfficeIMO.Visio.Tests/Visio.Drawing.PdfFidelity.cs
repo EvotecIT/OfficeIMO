@@ -78,6 +78,21 @@ public sealed class VisioDrawingPdfFidelityTests {
         Assert.Empty(LabelBackings(unset.ToDrawings().Value[0], "auth"));
     }
 
+    [Fact]
+    public void WorldMapContinentsWithDegenerateContoursAndInheritedNurbsCellsKeepTheirNativeOutline() {
+        // Shape 92 has out-and-back contours that enclose no area; shape 93 has NURBSTo rows whose knots and
+        // weights come from the master row and whose E cell is F="Inh" with the NURBS value cached in V.
+        VisioDocument document = VisioDocument.Load(Path.Combine(OfficeIMO.Tests.RepositoryTestPaths.Find(), "Assets", "VisioTemplates", "DrawingWithLotsOfShapresAndArrows.vsdx"));
+        VisioPage background = document.Pages.Single(page => page.Name == "VBackground-2");
+
+        var projected = background.ToDrawing();
+
+        foreach (string id in new[] { "92", "93" })
+            Assert.DoesNotContain(projected.Report.Diagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_GEOMETRY_FALLBACK" && diagnostic.Location!.EndsWith(":shape:" + id));
+        // Each continent outline is one filled path of many contours, not a four-corner fallback.
+        Assert.True(Flatten(projected.Value).Count(shape => shape.FillColor != null && shape.PathCommands.Count > 500) >= 2);
+    }
+
     private static IEnumerable<OfficeColor> LabelBackings(OfficeDrawing scene, string label) =>
         scene.Elements.OfType<OfficeDrawingEffectGroup>()
             .Select(group => group.Drawing)

@@ -121,10 +121,10 @@ namespace OfficeIMO.Visio {
                 if (string.Equals(type, "NURBSTo", StringComparison.OrdinalIgnoreCase)) {
                     if (points.Count == 0 ||
                         !TryReadPoint(row, ns, shape, relative: false, out (double X, double Y) end) ||
-                        !TryReadCell(row, ns, "A", shape, out double secondLastKnot) ||
-                        !TryReadCell(row, ns, "B", shape, out double lastWeight) ||
-                        !TryReadCell(row, ns, "C", shape, out double firstKnot) ||
-                        !TryReadCell(row, ns, "D", shape, out double firstWeight) ||
+                        !TryReadInheritedScalarCell(row, ns, "A", shape, out double secondLastKnot) ||
+                        !TryReadInheritedScalarCell(row, ns, "B", shape, out double lastWeight) ||
+                        !TryReadInheritedScalarCell(row, ns, "C", shape, out double firstKnot) ||
+                        !TryReadInheritedScalarCell(row, ns, "D", shape, out double firstWeight) ||
                         !TryReadFormulaCell(row, ns, "E", out string? nurbsFormula) ||
                         !TryParseNurbsFormula(nurbsFormula, shape, points[points.Count - 1], end, firstKnot, firstWeight, secondLastKnot, lastWeight, out NurbsCurve? nurbsCurve)) {
                         return false;
@@ -311,6 +311,16 @@ namespace OfficeIMO.Visio {
             // Fill closes implicitly; only native closure may join the stroke's endpoints.
             bool renderClosedPath = closedPrimitive || explicitlyClosed;
             int minimumPointCount = renderClosedPath ? 3 : 2;
+            if (points.Count == 0) {
+                return false;
+            }
+
+            // A lone move point draws nothing; skipping it keeps the shape's other contours instead of
+            // discarding the whole native outline for a fallback.
+            if (points.Count == 1) {
+                return true;
+            }
+
             if (points.Count < minimumPointCount) {
                 return false;
             }
@@ -323,6 +333,12 @@ namespace OfficeIMO.Visio {
             }
 
             if (points.Count < minimumPointCount) {
+                // An out-and-back contour encloses no area: keep it as the open stroke Visio draws.
+                if (points.Count == 2) {
+                    paths.Add(new VisioShapeGeometryPath(points, true, noLine, false, fillGroup));
+                    return true;
+                }
+
                 return false;
             }
 
