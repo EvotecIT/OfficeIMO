@@ -215,15 +215,17 @@ public sealed class YamlWriter : IDisposable {
     internal bool TryWritePlainEntry(string key, string value, bool checkKey = false) {
         CheckDisposed();
         if (_builder is not null || !_emitter.AtBlockKey) return false;
-        if (checkKey) {
-            // The key gets the default style too: plain on one line, as an implicit key.
-            ReadOnlySpan<char> name = key.AsSpan();
-            if (name.Length > YamlScalarFormat.MaxImplicitKeyLength || !YamlScalarFormat.CanBePlain(name, flow: false, key: true) || YamlScalarFormat.IsSchemaAmbiguous(name)) return false;
-        }
+        if (checkKey && !IsPlainKey(key)) return false;
         ReadOnlySpan<char> text = value.AsSpan();
         if (!YamlScalarFormat.CanBePlain(text, flow: false) || YamlScalarFormat.IsSchemaAmbiguous(text)) return false;
         _emitter.WriteEntry(key, text);
         return true;
+    }
+
+    /// <summary>Whether a block mapping key gets the default style plain on one line, as an implicit key.</summary>
+    internal static bool IsPlainKey(string key) {
+        ReadOnlySpan<char> name = key.AsSpan();
+        return name.Length <= YamlScalarFormat.MaxImplicitKeyLength && YamlScalarFormat.CanBePlain(name, flow: false, key: true) && !YamlScalarFormat.IsSchemaAmbiguous(name);
     }
 
     /// <summary>
