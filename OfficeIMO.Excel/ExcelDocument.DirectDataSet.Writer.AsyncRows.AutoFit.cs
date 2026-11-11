@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private static partial class DirectDataSetWorkbookWriter {
             /// <summary>Spools only sheetData so final column widths precede it without retaining source rows.</summary>
-            private static async Task<int> WriteAutoFitWorksheetRows<T>(ZipArchive archive, DirectDataSetSheetModel sheet,
+            private static async Task<int> WriteAutoFitWorksheetRows<T>(ExcelPackageArchive archive, DirectDataSetSheetModel sheet,
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, ExcelDateSystem dateSystem,
                 DirectColumnWritePlan columnWritePlan, IAsyncEnumerable<T> rows, Action<ExcelTabularRowWriter, T> writeRow,
                 int maximumRows, DirectSharedStringTable? sharedStrings, ExcelTabularStylePlan? declaredStyles,
@@ -26,8 +26,7 @@ namespace OfficeIMO.Excel {
                 spool.Position = 0;
                 double[] widths = MeasureStreamingColumns(spool, sheet, stylesheet, dateSystem, ct);
                 spool.Position = 0;
-                var entry = archive.CreateEntry("xl/worksheets/sheet" + InvariantNumberText.Get(sheet.Index) + ".xml", CompressionLevel.Fastest);
-                using var stream = entry.Open();
+                using var stream = archive.OpenEntry("xl/worksheets/sheet" + InvariantNumberText.Get(sheet.Index) + ".xml", CompressionLevel.Fastest);
                 using (var writer = new PooledUtf8TextWriter(stream, Utf8NoBom, XmlWriterBufferSize, leaveOpen: true)) {
                     writer.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
                     writer.Write("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">");

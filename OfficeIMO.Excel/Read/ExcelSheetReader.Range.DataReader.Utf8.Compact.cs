@@ -37,12 +37,13 @@ namespace OfficeIMO.Excel {
                 }
 
                 int end = cursor + _repeatedRowSuffixLength - 1;
+                int prefix = _worksheetPrefixLength;
                 tag = new Utf8Tag(
                     start,
                     end,
                     start + 1,
-                    start + 4,
-                    start + 1,
+                    start + 4 + prefix,
+                    start + 1 + prefix,
                     isEnd: false,
                     _repeatedRowIsEmpty);
                 position = end + 1;
@@ -51,19 +52,23 @@ namespace OfficeIMO.Excel {
 
             private bool TryReadRepeatedRowPrefix(ref int cursor, out int rowIndex) {
                 rowIndex = 0;
-                if (cursor > _length - 9
+                int prefix = _worksheetPrefixLength;
+                int name = cursor + 1 + prefix;
+                if (cursor > _length - 9 - prefix
                     || _buffer![cursor] != (byte)'<'
-                    || _buffer[cursor + 1] != (byte)'r'
-                    || _buffer[cursor + 2] != (byte)'o'
-                    || _buffer[cursor + 3] != (byte)'w'
-                    || _buffer[cursor + 4] != (byte)' '
-                    || _buffer[cursor + 5] != (byte)'r'
-                    || _buffer[cursor + 6] != (byte)'='
-                    || _buffer[cursor + 7] != (byte)'\"') {
+                    || prefix != 0 && !_buffer.AsSpan(cursor + 1, prefix).SequenceEqual(
+                        _buffer.AsSpan(_worksheetPrefixStart, prefix))
+                    || _buffer[name] != (byte)'r'
+                    || _buffer[name + 1] != (byte)'o'
+                    || _buffer[name + 2] != (byte)'w'
+                    || _buffer[name + 3] != (byte)' '
+                    || _buffer[name + 4] != (byte)'r'
+                    || _buffer[name + 5] != (byte)'='
+                    || _buffer[name + 6] != (byte)'\"') {
                     return false;
                 }
 
-                cursor += 8;
+                cursor = name + 7;
                 int referenceStart = cursor;
                 while (cursor < _length && _buffer[cursor] is >= (byte)'0' and <= (byte)'9') {
                     cursor++;
@@ -199,6 +204,10 @@ namespace OfficeIMO.Excel {
                         if (!TryParseNonNegativeInt(_buffer, valueStart, valueLength, out styleIndex)) {
                             return false;
                         }
+                    } else if (AsciiEquals(attributeStart, attributeLength, "xml:space")) {
+                        // Some writers put xml:space on the cell. The general parser ignores it and
+                        // keeps the full XML check for the sheet; this path does the same.
+                        _sheetDataSupportsFastValidation = false;
                     } else {
                         return false;
                     }
@@ -235,6 +244,7 @@ namespace OfficeIMO.Excel {
                 int previousColumn = 0;
                 int cellsUntilCancellationCheck = 0;
                 while (position < _length) {
+                    SkipWhitespaceInsideRow(ref position);
                     if (position <= _length - 6
                         && _buffer![position + 1] == (byte)'/'
                         && TryConsumeCompactRowEnd(ref position)) {
@@ -247,7 +257,9 @@ namespace OfficeIMO.Excel {
                         cellsUntilCancellationCheck = 256;
                     }
 
-                    if (!TryReadCanonicalCellStartTag(
+                    // Compact tags also accept r, s and t in any order, as ClosedXML, EPPlus and
+                    // other producers write them; anything richer keeps the general row parser.
+                    if (!TryReadCompactCellStartTag(
                             ref position,
                             ref nextColumn,
                             out Utf8Tag tag,
@@ -269,18 +281,34 @@ namespace OfficeIMO.Excel {
                     }
 
                     int cellIndex = rowOffset + ordinal;
+                    bool sharedFormulaFollower = false;
                     bool hasCachedValue = false;
                     int valueStart = -1;
                     int valueLength = -1;
-                    if (!tag.IsEmpty
-                        && !TryIndexCompactValueCell(
-                            ref position,
-                            cellIndex,
-                            kind,
-                            out hasCachedValue,
-                            out valueStart,
-                            out valueLength)) {
-                        return false;
+                    if (!tag.IsEmpty) {
+                        int contentPosition = position;
+                        if (!TryIndexCompactValueCell(
+                                ref position,
+                                cellIndex,
+                                kind,
+                                out hasCachedValue,
+                                out valueStart,
+                                out valueLength)) {
+                            // Formulas and other element content use the same cell indexer, and the
+                            // same full XML check, as the general row parser.
+                            _sheetDataSupportsFastValidation = false;
+                            position = contentPosition;
+                            if (!TryIndexCell(
+                                    ref position,
+                                    cellIndex,
+                                    kind,
+                                    out sharedFormulaFollower,
+                                    out hasCachedValue,
+                                    out valueStart,
+                                    out valueLength)) {
+                                return false;
+                            }
+                        }
                     }
 
                     int sharedStringIndex = ValidateIndexedCell(
@@ -288,7 +316,7 @@ namespace OfficeIMO.Excel {
                         columnIndex,
                         kind,
                         styleIndex,
-                        sharedFormulaFollower: false,
+                        sharedFormulaFollower,
                         hasCachedValue,
                         valueStart,
                         valueLength);
@@ -466,6 +494,29 @@ namespace OfficeIMO.Excel {
                 }
                 position = valueEnd + 8;
                 return true;
+            }
+
+            /// <summary>
+            /// Skips indentation between cells. The general row parser disables the fast sheet-data
+            /// proof for such rows, so this path does the same and the full XML check still runs.
+            /// </summary>
+            private void SkipWhitespaceInsideRow(ref int position) {
+                int cursor = position;
+                while (cursor < _length && IsAsciiWhitespace(_buffer![cursor])) cursor++;
+                if (cursor == position) return;
+                _sheetDataSupportsFastValidation = false;
+                position = cursor;
+            }
+
+            /// <summary>Recognizes an attribute-free row start tag in the worksheet's element prefix.</summary>
+            private bool IsAttributeFreeRowTag(int position) =>
+                _worksheetPrefixLength == 0 ? MatchesUtf8(position, "<row>"u8) : MatchesPrefixedCompactTag(position, "<row>"u8);
+
+            /// <summary>Skips indentation between rows, which the general parser also ignores.</summary>
+            private void SkipWhitespaceBetweenRows(ref int position) {
+                int cursor = position;
+                while (cursor < _length && IsAsciiWhitespace(_buffer![cursor])) cursor++;
+                if (cursor < _length && _buffer![cursor] == (byte)'<') position = cursor;
             }
 
             // Static UTF-8 literals allow fixed-width comparisons of the canonical

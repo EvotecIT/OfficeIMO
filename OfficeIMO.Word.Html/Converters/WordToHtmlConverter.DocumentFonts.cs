@@ -71,11 +71,10 @@ namespace OfficeIMO.Word.Html {
             if (fonts == null) {
                 return null;
             }
-            if (!string.IsNullOrWhiteSpace(fonts.Ascii?.Value)) {
-                return fonts.Ascii!.Value!.Trim();
-            }
+            // A theme font selection takes precedence over the family name cached beside it, as in Word.
             ThemeFontValues? theme = fonts.AsciiTheme?.Value ?? fonts.HighAnsiTheme?.Value;
             if (theme == null) {
+                if (!string.IsNullOrWhiteSpace(fonts.Ascii?.Value)) return fonts.Ascii!.Value!.Trim();
                 return string.IsNullOrWhiteSpace(fonts.HighAnsi?.Value) ? null : fonts.HighAnsi!.Value!.Trim();
             }
 
@@ -85,6 +84,7 @@ namespace OfficeIMO.Word.Html {
             string? typeface = major
                 ? scheme?.MajorFont?.LatinFont?.Typeface?.Value
                 : scheme?.MinorFont?.LatinFont?.Typeface?.Value;
+            if (string.IsNullOrWhiteSpace(typeface)) typeface = fonts.Ascii?.Value ?? fonts.HighAnsi?.Value;
             return string.IsNullOrWhiteSpace(typeface) ? null : typeface!.Trim();
         }
 

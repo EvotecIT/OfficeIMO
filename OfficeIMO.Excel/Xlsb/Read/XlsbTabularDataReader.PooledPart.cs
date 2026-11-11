@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         $"The XLSB worksheet part contains {remaining} bytes, exceeding the configured limit of {limits.MaxPartBytes} bytes.");
                 }
                 int length = checked((int)remaining);
-                byte[] buffer = ArrayPool<byte>.Shared.Rent(Math.Max(1, length));
+                byte[] buffer = ExcelArrayPool.RentBytes(Math.Max(1, length));
                 try {
                     int offset = 0;
                     while (offset < length) {
@@ -34,7 +34,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     cancellationToken.ThrowIfCancellationRequested();
                     return new XlsbPooledPartStream(buffer, length, worksheetPart);
                 } catch {
-                    ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
+                    ExcelArrayPool.Return(buffer, clearArray: true);
                     throw;
                 }
             } catch {

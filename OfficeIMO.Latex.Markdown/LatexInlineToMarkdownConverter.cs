@@ -203,9 +203,8 @@ internal static class LatexInlineToMarkdownConverter {
         LatexProjectionContext context,
         LatexMath math,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
-        target.AddRaw(new CodeSpanInline(LatexToMarkdownConverter.ExtractVisibleSource(context, math.ContentSpan, diagnostics)));
-        Report(diagnostics, "LATEXMD101", LatexMarkdownConversionOutcome.Simplified, "inline-math",
-            "LaTeX math source was transported in a code span; TeX layout was not evaluated.", math.Syntax.Span);
+        // Inline math keeps its TeX source as typed math; Markdown renderers lay it out through the shared math engine.
+        target.AddRaw(new MathInline(LatexToMarkdownConverter.ExtractVisibleSource(context, math.ContentSpan, diagnostics)));
     }
 
     private static void AddVerbatim(

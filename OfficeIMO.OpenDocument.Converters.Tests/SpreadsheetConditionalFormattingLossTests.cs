@@ -189,7 +189,9 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
         sheet.Range("A1").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0", fillColor: global::OfficeIMO.OfficeColor.FromRgba(0xFF, 0x00, 0x00, 0xFF));
-        using MemoryStream packageStream = new MemoryStream(source.ToBytes());
+        using MemoryStream packageStream = new MemoryStream();
+        byte[] sourceBytes = source.ToBytes();
+        packageStream.Write(sourceBytes, 0, sourceBytes.Length);
         using (SpreadsheetDocument package = SpreadsheetDocument.Open(packageStream, true)) {
             Stylesheet stylesheet = package.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
             DifferentialFormat format = stylesheet.DifferentialFormats!.Elements<DifferentialFormat>().Single();

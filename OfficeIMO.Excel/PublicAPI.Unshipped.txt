@@ -530,3 +530,5 @@ OfficeIMO.Excel.ExcelDocument.ToImages(OfficeIMO.Excel.ExcelImageExportOptions? 
 OfficeIMO.Excel.ExcelDocument.ToImagesAsync(OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!>!
 OfficeIMO.Excel.ExcelSheet.ToImages(OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!
 OfficeIMO.Excel.ExcelSheet.ToImagesAsync(OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!>!
+OfficeIMO.Excel.ExcelReaderOptions.EnableSinglePassReading.get -> bool
+OfficeIMO.Excel.ExcelReaderOptions.EnableSinglePassReading.set -> void

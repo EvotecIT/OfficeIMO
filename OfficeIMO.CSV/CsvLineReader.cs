@@ -159,6 +159,7 @@ internal sealed partial class CsvLineReader : IDisposable
         isEmptyRecord = false;
         line = null;
         separator = string.Empty;
+        LastQuotedRecordLineSeparators = -1;
 
         if (!EnsureBuffered())
         {
@@ -221,6 +222,11 @@ internal sealed partial class CsvLineReader : IDisposable
             segmentLength = _length - _position;
             specialIndex = IndexOfRecordSpecial(segmentStart, segmentLength);
         }
+
+        // A failed extension can still move the segment to the buffer start before it finds the end
+        // of input, so the final record is read from the current position.
+        segmentStart = _position;
+        segmentLength = _length - _position;
 
         var endsAtReaderEnd = false;
         if (specialIndex < 0)
@@ -310,21 +316,29 @@ internal sealed partial class CsvLineReader : IDisposable
         }
     }
 
+    /// <summary>
+    /// Finds the first CR or LF in one pass. Searching for each separator over the whole buffered
+    /// text made every line of a file without the other separator scan the rest of the buffer.
+    /// </summary>
     private int IndexOfNewline(int start, int count)
     {
-        var lineFeed = Array.IndexOf(_buffer, '\n', start, count);
-        var carriageReturn = Array.IndexOf(_buffer, '\r', start, count);
-        if (lineFeed < 0)
+#if NET8_0_OR_GREATER
+        int index = _buffer.AsSpan(start, count).IndexOfAny('\r', '\n');
+        return index < 0 ? -1 : start + index;
+#else
+        char[] buffer = _buffer;
+        int end = start + count;
+        for (int index = start; index < end; index++)
         {
-            return carriageReturn;
+            char value = buffer[index];
+            if (value == '\n' || value == '\r')
+            {
+                return index;
+            }
         }
 
-        if (carriageReturn < 0)
-        {
-            return lineFeed;
-        }
-
-        return Math.Min(lineFeed, carriageReturn);
+        return -1;
+#endif
     }
 
     private void AddUnquotedFields(int start, int end, char delimiter, bool trim, List<string> fields)

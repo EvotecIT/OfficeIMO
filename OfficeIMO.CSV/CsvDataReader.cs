@@ -1465,6 +1465,16 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
         }
 
         var column = _columns[ordinal];
+        // Numbers parse from the UTF-8 field text without widening it to characters first.
+        if (_utf8StreamTextRowSource is not null &&
+            CsvDataProjectionConverter.IsNumber(column.ConversionKind) &&
+            _utf8StreamTextRowSource.TryGetUtf8Text(ordinal, out var utf8Text) &&
+            utf8Text.Length > 0 &&
+            CsvDataProjectionConverter.TryConvertUtf8Number(utf8Text, column.ConversionKind, _culture, out var number))
+        {
+            return number;
+        }
+
         var text = source.GetSpan(ordinal);
         if (text.Length == 0 && column.SchemaColumn?.IsRequired == true)
         {

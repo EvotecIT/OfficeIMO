@@ -985,15 +985,13 @@
         "section-hierarchy",
         "paragraphs-and-lists",
         "tables",
-        "stem-source-fallback",
+        "inline-math",
         "source-located-diagnostics"
       ],
       "expectedSimplifications": [
-        "AsciiDoc is projected through the typed Markdown model; constructs without an equivalent remain visible as configured source fallbacks with combined parser, projection, and PDF diagnostics"
+        "AsciiDoc is projected through the typed Markdown model; TeX STEM is laid out by the shared math engine, while AsciiMath and constructs without an equivalent remain visible as configured source fallbacks with combined parser, projection, and PDF diagnostics"
       ],
-      "expectedWarnings": [
-        "ADOCMD103"
-      ],
+      "expectedWarnings": [],
       "visualReviewFiles": [
         "asciidoc-direct-semantic-document.pdf"
       ],
@@ -1033,10 +1031,9 @@
         "source-located-diagnostics"
       ],
       "expectedSimplifications": [
-        "LaTeX is not executed; the bounded semantic profile is projected through Markdown, while citations, math transport, package behavior, and unsupported constructs remain explicit warnings or visible source fallbacks"
+        "LaTeX is not executed; the bounded semantic profile is projected through Markdown, with math laid out by the shared math engine, while citations, package behavior, and unsupported constructs remain explicit warnings or visible source fallbacks"
       ],
       "expectedWarnings": [
-        "LATEXMD101",
         "LATEXMD102"
       ],
       "visualReviewFiles": [

@@ -42,5 +42,23 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(styles!.Elements<Style>().FirstOrDefault(s => s.StyleId == "DejaVuStyle"));
             File.Delete(fontPath);
         }
+
+        [Fact]
+        public void Test_EmbedFontWithTakenStyleNameLeavesFontTableUnchanged() {
+            string fontPath = Path.Combine(_directoryWithFiles, "DummyFontTakenName.ttf");
+            File.WriteAllText(fontPath, "dummy");
+            using (var document = WordDocument.Create()) {
+                document.Styles.AddParagraphStyle("Existing", "Brand Font");
+                int fontsBefore = document._wordprocessingDocument.MainDocumentPart!.FontTablePart?.Fonts?.Elements<Font>().Count() ?? 0;
+
+                Assert.Throws<ArgumentException>(() => document.EmbedFont(fontPath, "BrandFont", "Brand Font"));
+                document.Styles.AddCharacterStyle("BrandCharacter");
+                Assert.Throws<ArgumentException>(() => document.EmbedFont(fontPath, "BrandCharacter"));
+
+                Assert.False(document.Styles.Contains("BrandFont"));
+                Assert.Equal(fontsBefore, document._wordprocessingDocument.MainDocumentPart!.FontTablePart?.Fonts?.Elements<Font>().Count() ?? 0);
+            }
+            File.Delete(fontPath);
+        }
     }
 }

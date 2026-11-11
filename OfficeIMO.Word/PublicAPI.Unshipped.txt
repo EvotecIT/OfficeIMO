@@ -225,12 +225,8 @@ OfficeIMO.Word.WordParagraphBorderInfo.Color.get -> OfficeIMO.OfficeColor?
 *REMOVED*OfficeIMO.Word.WordParagraphBorders.TopColorHex.set -> void
 OfficeIMO.Word.WordParagraphInfo.ShadingFillColor.get -> OfficeIMO.OfficeColor?
 *REMOVED*OfficeIMO.Word.WordParagraphInfo.ShadingFillColorHex.get -> string?
-OfficeIMO.Word.WordParagraphStyleDefinition.Color.get -> OfficeIMO.OfficeColor?
-OfficeIMO.Word.WordParagraphStyleDefinition.Color.set -> void
 *REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.ColorHex.get -> string?
 *REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.ColorHex.set -> void
-OfficeIMO.Word.WordParagraphStyleDefinition.FontFamily.get -> string?
-OfficeIMO.Word.WordParagraphStyleDefinition.FontFamily.set -> void
 *REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.FontName.get -> string?
 *REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.FontName.set -> void
 OfficeIMO.Word.WordParagraphStyles.Subtitle = 13 -> OfficeIMO.Word.WordParagraphStyles
@@ -403,9 +399,7 @@ static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! 
 static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, char symbol, string! fontFamily, OfficeIMO.OfficeColor? color, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
 *REMOVED*static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, char symbol, string! fontName, string? colorHex, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
 *REMOVED*static OfficeIMO.Word.WordMargins.SetMargins(OfficeIMO.Word.WordSection! wordSection, OfficeIMO.Word.WordMargin pageMargins) -> OfficeIMO.Word.WordSection!
-static OfficeIMO.Word.WordParagraphStyle.CreateFontStyle(string! styleId, string! fontFamily, string? styleName = null) -> OfficeIMO.Word.WordParagraphStyleDefinition!
 *REMOVED*static OfficeIMO.Word.WordParagraphStyle.CreateFontStyle(string! styleId, string! fontName, string? styleName = null) -> OfficeIMO.Word.WordParagraphStyleDefinition!
-static OfficeIMO.Word.WordParagraphStyle.RegisterFontStyle(string! styleId, string! fontFamily, string? styleName = null) -> void
 *REMOVED*static OfficeIMO.Word.WordParagraphStyle.RegisterFontStyle(string! styleId, string! fontName, string? styleName = null) -> void
 OfficeIMO.Word.WordCheckBox.Text.get -> string?
 OfficeIMO.Word.WordComboBox.Text.get -> string?
@@ -447,3 +441,217 @@ OfficeIMO.Word.WordDocument.CreateTable(int rows, int columns, OfficeIMO.Word.Wo
 static OfficeIMO.Word.WordTable.Create(OfficeIMO.Word.WordDocument! document, int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.TableGrid) -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordEndNote.TextParagraphs.get -> System.Collections.Generic.IReadOnlyList<string!>?
 OfficeIMO.Word.WordFootNote.TextParagraphs.get -> System.Collections.Generic.IReadOnlyList<string!>?
+*REMOVED*OfficeIMO.Word.WordDocument.EmbedFont(string! fontPath, string! styleId, string? styleName = null) -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.Alignment.get -> OfficeIMO.Word.WordParagraphAlignment?
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.Alignment.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.AvoidWidowAndOrphan.get -> bool?
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.AvoidWidowAndOrphan.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.BasedOnStyleId.get -> string?
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.BasedOnStyleId.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.Bold.get -> bool?
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.Bold.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.ContextualSpacing.get -> bool?
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.ContextualSpacing.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.FontSize.get -> OfficeIMO.OfficeLength?
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.FontSize.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.IsDefault.get -> bool
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.IsDefault.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.IsPrimary.get -> bool
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.IsPrimary.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.Italic.get -> bool?
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.Italic.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.KeepLinesTogether.get -> bool?
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.KeepLinesTogether.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.KeepWithNext.get -> bool?
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.KeepWithNext.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.LeftIndent.get -> OfficeIMO.OfficeLength?
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.LeftIndent.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.MirrorIndents.get -> bool?
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.MirrorIndents.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.Name.get -> string!
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.Name.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.NextStyleId.get -> string?
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.NextStyleId.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.OutlineLevel.get -> int?
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.OutlineLevel.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.PageBreakBefore.get -> bool?
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.PageBreakBefore.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.SpacingAfter.get -> OfficeIMO.OfficeLength?
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.SpacingAfter.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.SpacingBefore.get -> OfficeIMO.OfficeLength?
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.SpacingBefore.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.StyleId.get -> string!
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.SuppressAutoHyphens.get -> bool?
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.SuppressAutoHyphens.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.SuppressLineNumbers.get -> bool?
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.SuppressLineNumbers.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.WordParagraphStyleDefinition(string! styleId) -> void
+*REMOVED*static OfficeIMO.Word.WordParagraphStyle.GetStyleDefinition(OfficeIMO.Word.WordParagraphStyles style) -> OfficeIMO.Word.WordParagraphStyleDefinition?
+*REMOVED*static OfficeIMO.Word.WordParagraphStyle.OverrideBuiltInStyle(OfficeIMO.Word.WordParagraphStyles style, OfficeIMO.Word.WordParagraphStyleDefinition! styleDefinition) -> void
+*REMOVED*static OfficeIMO.Word.WordParagraphStyle.RegisterCustomStyle(string! styleId, OfficeIMO.Word.WordParagraphStyleDefinition! styleDefinition) -> void
+OfficeIMO.Word.WordDocument.EmbedFont(string! fontPath, string! styleId, string? styleName = null) -> OfficeIMO.Word.WordStyle!
+OfficeIMO.Word.WordDocument.Styles.get -> OfficeIMO.Word.WordStyleCollection!
+OfficeIMO.Word.WordDocument.Theme.get -> OfficeIMO.Word.WordTheme!
+OfficeIMO.Word.WordParagraph.SetCharacterStyle(OfficeIMO.Word.WordStyle! style) -> OfficeIMO.Word.WordParagraph!
+OfficeIMO.Word.WordParagraph.SetStyle(OfficeIMO.Word.WordStyle! style) -> OfficeIMO.Word.WordParagraph!
+OfficeIMO.Word.WordStyle
+OfficeIMO.Word.WordStyle.AvoidWidowAndOrphan.get -> bool?
+OfficeIMO.Word.WordStyle.AvoidWidowAndOrphan.set -> void
+OfficeIMO.Word.WordStyle.BasedOnStyleId.get -> string?
+OfficeIMO.Word.WordStyle.BasedOnStyleId.set -> void
+OfficeIMO.Word.WordStyle.Bold.get -> bool?
+OfficeIMO.Word.WordStyle.Bold.set -> void
+OfficeIMO.Word.WordStyle.Borders.get -> OfficeIMO.Word.WordParagraphBorders!
+OfficeIMO.Word.WordStyle.CapsStyle.get -> OfficeIMO.Word.WordCapsStyle?
+OfficeIMO.Word.WordStyle.CapsStyle.set -> void
+OfficeIMO.Word.WordStyle.Color.get -> OfficeIMO.OfficeColor?
+OfficeIMO.Word.WordStyle.Color.set -> void
+OfficeIMO.Word.WordStyle.ContextualSpacing.get -> bool?
+OfficeIMO.Word.WordStyle.ContextualSpacing.set -> void
+OfficeIMO.Word.WordStyle.FontFamily.get -> string?
+OfficeIMO.Word.WordStyle.FontFamily.set -> void
+OfficeIMO.Word.WordStyle.FontSize.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordStyle.FontSize.set -> void
+OfficeIMO.Word.WordStyle.GetTableRegion(OfficeIMO.Word.WordTableStyleRegion region) -> OfficeIMO.Word.WordTableStyleRegionFormat!
+OfficeIMO.Word.WordStyle.Highlight.get -> OfficeIMO.Word.WordHighlightColor?
+OfficeIMO.Word.WordStyle.Highlight.set -> void
+OfficeIMO.Word.WordStyle.IndentationAfter.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordStyle.IndentationAfter.set -> void
+OfficeIMO.Word.WordStyle.IndentationBefore.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordStyle.IndentationBefore.set -> void
+OfficeIMO.Word.WordStyle.IndentationFirstLine.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordStyle.IndentationFirstLine.set -> void
+OfficeIMO.Word.WordStyle.IndentationHanging.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordStyle.IndentationHanging.set -> void
+OfficeIMO.Word.WordStyle.IsCustom.get -> bool
+OfficeIMO.Word.WordStyle.IsDefault.get -> bool
+OfficeIMO.Word.WordStyle.IsDefault.set -> void
+OfficeIMO.Word.WordStyle.IsPrimary.get -> bool
+OfficeIMO.Word.WordStyle.IsPrimary.set -> void
+OfficeIMO.Word.WordStyle.Italic.get -> bool?
+OfficeIMO.Word.WordStyle.Italic.set -> void
+OfficeIMO.Word.WordStyle.KeepLinesTogether.get -> bool?
+OfficeIMO.Word.WordStyle.KeepLinesTogether.set -> void
+OfficeIMO.Word.WordStyle.KeepWithNext.get -> bool?
+OfficeIMO.Word.WordStyle.KeepWithNext.set -> void
+OfficeIMO.Word.WordStyle.LineSpacing.get -> OfficeIMO.Word.WordLineSpacing?
+OfficeIMO.Word.WordStyle.LineSpacing.set -> void
+OfficeIMO.Word.WordStyle.LineSpacingAfter.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordStyle.LineSpacingAfter.set -> void
+OfficeIMO.Word.WordStyle.LineSpacingBefore.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordStyle.LineSpacingBefore.set -> void
+OfficeIMO.Word.WordStyle.LinkedStyleId.get -> string?
+OfficeIMO.Word.WordStyle.LinkedStyleId.set -> void
+OfficeIMO.Word.WordStyle.List.get -> OfficeIMO.Word.WordList?
+OfficeIMO.Word.WordStyle.ListLevel.get -> int?
+OfficeIMO.Word.WordStyle.Name.get -> string!
+OfficeIMO.Word.WordStyle.Name.set -> void
+OfficeIMO.Word.WordStyle.NextStyleId.get -> string?
+OfficeIMO.Word.WordStyle.NextStyleId.set -> void
+OfficeIMO.Word.WordStyle.OutlineLevel.get -> int?
+OfficeIMO.Word.WordStyle.OutlineLevel.set -> void
+OfficeIMO.Word.WordStyle.PageBreakBefore.get -> bool?
+OfficeIMO.Word.WordStyle.PageBreakBefore.set -> void
+OfficeIMO.Word.WordStyle.ParagraphAlignment.get -> OfficeIMO.Word.WordParagraphAlignment?
+OfficeIMO.Word.WordStyle.ParagraphAlignment.set -> void
+OfficeIMO.Word.WordStyle.SetList(OfficeIMO.Word.WordList? list, int level = 0) -> OfficeIMO.Word.WordStyle!
+OfficeIMO.Word.WordStyle.SetTableBorders(OfficeIMO.Word.WordBorderStyle style, OfficeIMO.OfficeLength size, OfficeIMO.OfficeColor color) -> OfficeIMO.Word.WordStyle!
+OfficeIMO.Word.WordStyle.ShadingFillColor.get -> OfficeIMO.OfficeColor?
+OfficeIMO.Word.WordStyle.ShadingFillColor.set -> void
+OfficeIMO.Word.WordStyle.Strikethrough.get -> bool?
+OfficeIMO.Word.WordStyle.Strikethrough.set -> void
+OfficeIMO.Word.WordStyle.StyleId.get -> string!
+OfficeIMO.Word.WordStyle.ThemeColor.get -> OfficeIMO.Word.WordThemeColor?
+OfficeIMO.Word.WordStyle.ThemeColor.set -> void
+OfficeIMO.Word.WordStyle.ThemeFont.get -> OfficeIMO.Word.WordThemeFont?
+OfficeIMO.Word.WordStyle.ThemeFont.set -> void
+OfficeIMO.Word.WordStyle.Type.get -> OfficeIMO.Word.WordStyleType
+OfficeIMO.Word.WordStyle.Underline.get -> OfficeIMO.Word.WordUnderlineStyle?
+OfficeIMO.Word.WordStyle.Underline.set -> void
+OfficeIMO.Word.WordStyleCollection
+OfficeIMO.Word.WordStyleCollection.AddCharacterStyle(string! styleId, string? name = null) -> OfficeIMO.Word.WordStyle!
+OfficeIMO.Word.WordStyleCollection.AddParagraphStyle(string! styleId, string? name = null) -> OfficeIMO.Word.WordStyle!
+OfficeIMO.Word.WordStyleCollection.AddTableStyle(string! styleId, string? name = null) -> OfficeIMO.Word.WordStyle!
+OfficeIMO.Word.WordStyleCollection.Contains(string! styleId) -> bool
+OfficeIMO.Word.WordStyleCollection.Count.get -> int
+OfficeIMO.Word.WordStyleCollection.Get(string! styleIdOrName) -> OfficeIMO.Word.WordStyle?
+OfficeIMO.Word.WordStyleCollection.GetEnumerator() -> System.Collections.Generic.IEnumerator<OfficeIMO.Word.WordStyle!>!
+OfficeIMO.Word.WordStyleCollection.GetOrAdd(OfficeIMO.Word.WordParagraphStyles style) -> OfficeIMO.Word.WordStyle!
+OfficeIMO.Word.WordStyleCollection.GetOrAdd(OfficeIMO.Word.WordTableStyle style) -> OfficeIMO.Word.WordStyle!
+OfficeIMO.Word.WordStyleCollection.Import(OfficeIMO.Word.WordDocument! source, OfficeIMO.Word.WordStyleConflictMode conflictMode = OfficeIMO.Word.WordStyleConflictMode.KeepTarget, System.Collections.Generic.IEnumerable<string!>? styleIds = null) -> OfficeIMO.Word.WordStyleImportReport!
+OfficeIMO.Word.WordStyleCollection.Remove(string! styleId) -> bool
+OfficeIMO.Word.WordStyleCollection.this[string! styleId].get -> OfficeIMO.Word.WordStyle!
+OfficeIMO.Word.WordStyleConflictMode
+OfficeIMO.Word.WordStyleConflictMode.KeepTarget = 0 -> OfficeIMO.Word.WordStyleConflictMode
+OfficeIMO.Word.WordStyleConflictMode.Overwrite = 1 -> OfficeIMO.Word.WordStyleConflictMode
+OfficeIMO.Word.WordStyleConflictMode.Rename = 2 -> OfficeIMO.Word.WordStyleConflictMode
+OfficeIMO.Word.WordStyleImportReport
+OfficeIMO.Word.WordStyleImportReport.Added.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Word.WordStyleImportReport.Kept.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Word.WordStyleImportReport.Renamed.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+OfficeIMO.Word.WordStyleImportReport.Replaced.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Word.WordStyleType
+OfficeIMO.Word.WordStyleType.Character = 1 -> OfficeIMO.Word.WordStyleType
+OfficeIMO.Word.WordStyleType.Numbering = 3 -> OfficeIMO.Word.WordStyleType
+OfficeIMO.Word.WordStyleType.Paragraph = 0 -> OfficeIMO.Word.WordStyleType
+OfficeIMO.Word.WordStyleType.Table = 2 -> OfficeIMO.Word.WordStyleType
+OfficeIMO.Word.WordTable.SetStyle(OfficeIMO.Word.WordStyle! style) -> OfficeIMO.Word.WordTable!
+OfficeIMO.Word.WordTableStyleRegion
+OfficeIMO.Word.WordTableStyleRegion.BandedColumns = 6 -> OfficeIMO.Word.WordTableStyleRegion
+OfficeIMO.Word.WordTableStyleRegion.BandedRows = 5 -> OfficeIMO.Word.WordTableStyleRegion
+OfficeIMO.Word.WordTableStyleRegion.FirstColumn = 3 -> OfficeIMO.Word.WordTableStyleRegion
+OfficeIMO.Word.WordTableStyleRegion.FirstRow = 1 -> OfficeIMO.Word.WordTableStyleRegion
+OfficeIMO.Word.WordTableStyleRegion.LastColumn = 4 -> OfficeIMO.Word.WordTableStyleRegion
+OfficeIMO.Word.WordTableStyleRegion.LastRow = 2 -> OfficeIMO.Word.WordTableStyleRegion
+OfficeIMO.Word.WordTableStyleRegion.WholeTable = 0 -> OfficeIMO.Word.WordTableStyleRegion
+OfficeIMO.Word.WordTableStyleRegionFormat
+OfficeIMO.Word.WordTableStyleRegionFormat.Bold.get -> bool?
+OfficeIMO.Word.WordTableStyleRegionFormat.Bold.set -> void
+OfficeIMO.Word.WordTableStyleRegionFormat.Color.get -> OfficeIMO.OfficeColor?
+OfficeIMO.Word.WordTableStyleRegionFormat.Color.set -> void
+OfficeIMO.Word.WordTableStyleRegionFormat.FillColor.get -> OfficeIMO.OfficeColor?
+OfficeIMO.Word.WordTableStyleRegionFormat.FillColor.set -> void
+OfficeIMO.Word.WordTableStyleRegionFormat.Italic.get -> bool?
+OfficeIMO.Word.WordTableStyleRegionFormat.Italic.set -> void
+OfficeIMO.Word.WordTableStyleRegionFormat.Region.get -> OfficeIMO.Word.WordTableStyleRegion
+OfficeIMO.Word.WordTheme
+OfficeIMO.Word.WordTheme.GetColor(OfficeIMO.Word.WordThemeColor color) -> OfficeIMO.OfficeColor?
+OfficeIMO.Word.WordTheme.Import(OfficeIMO.Word.WordDocument! source) -> void
+OfficeIMO.Word.WordTheme.MajorFont.get -> string?
+OfficeIMO.Word.WordTheme.MajorFont.set -> void
+OfficeIMO.Word.WordTheme.MinorFont.get -> string?
+OfficeIMO.Word.WordTheme.MinorFont.set -> void
+OfficeIMO.Word.WordTheme.Name.get -> string?
+OfficeIMO.Word.WordTheme.Name.set -> void
+OfficeIMO.Word.WordTheme.SetColor(OfficeIMO.Word.WordThemeColor color, OfficeIMO.OfficeColor value) -> OfficeIMO.Word.WordTheme!
+OfficeIMO.Word.WordThemeFont
+OfficeIMO.Word.WordThemeFont.Major = 0 -> OfficeIMO.Word.WordThemeFont
+OfficeIMO.Word.WordThemeFont.Minor = 1 -> OfficeIMO.Word.WordThemeFont
+override OfficeIMO.Word.WordStyle.ToString() -> string!
+OfficeIMO.Word.WordStyle.SuppressLineNumbers.get -> bool?
+OfficeIMO.Word.WordStyle.SuppressLineNumbers.set -> void
+OfficeIMO.Word.WordStyle.SuppressAutoHyphens.get -> bool?
+OfficeIMO.Word.WordStyle.SuppressAutoHyphens.set -> void
+OfficeIMO.Word.WordStyle.MirrorIndents.get -> bool?
+OfficeIMO.Word.WordStyle.MirrorIndents.set -> void
+OfficeIMO.Word.WordBookmark.GetRange() -> OfficeIMO.Word.WordRange!
+OfficeIMO.Word.WordBookmark.Text.get -> string!
+OfficeIMO.Word.WordBookmark.Text.set -> void
+OfficeIMO.Word.WordDocument.ReplaceAll(System.Text.RegularExpressions.Regex! pattern, System.Action<System.Text.RegularExpressions.Match!, OfficeIMO.Word.WordParagraph!>! content) -> int
+OfficeIMO.Word.WordDocument.ReplaceAll(System.Text.RegularExpressions.Regex! pattern, System.Text.RegularExpressions.MatchEvaluator! evaluator) -> int
+OfficeIMO.Word.WordDocument.ReplaceAll(System.Text.RegularExpressions.Regex! pattern, string! replacement) -> int
+OfficeIMO.Word.WordParagraph.GetRange() -> OfficeIMO.Word.WordRange!
+OfficeIMO.Word.WordParagraph.GetRange(int start, int length) -> OfficeIMO.Word.WordRange!
+OfficeIMO.Word.WordRange
+OfficeIMO.Word.WordRange.AddBookmark(string! name) -> OfficeIMO.Word.WordBookmark!
+OfficeIMO.Word.WordRange.AddComment(string! author, string! initials, System.Action<OfficeIMO.Word.WordParagraph!>! content) -> OfficeIMO.Word.WordComment!
+OfficeIMO.Word.WordRange.AddComment(string! author, string! initials, string! text) -> OfficeIMO.Word.WordComment!
+OfficeIMO.Word.WordRange.AddHyperLink(System.Uri! uri) -> OfficeIMO.Word.WordHyperLink!
+OfficeIMO.Word.WordRange.AddHyperLink(string! anchor) -> OfficeIMO.Word.WordHyperLink!
+OfficeIMO.Word.WordRange.ExtendTo(OfficeIMO.Word.WordRange! end) -> OfficeIMO.Word.WordRange!
+OfficeIMO.Word.WordRange.Format(System.Action<OfficeIMO.Word.WordParagraph!>! format) -> OfficeIMO.Word.WordRange!
+OfficeIMO.Word.WordRange.Replace(System.Action<OfficeIMO.Word.WordParagraph!>! content) -> OfficeIMO.Word.WordRange!
+OfficeIMO.Word.WordRange.Replace(string! text) -> OfficeIMO.Word.WordRange!
+OfficeIMO.Word.WordRange.Text.get -> string!
+OfficeIMO.Word.WordSearchResult.Ranges.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordRange!>!

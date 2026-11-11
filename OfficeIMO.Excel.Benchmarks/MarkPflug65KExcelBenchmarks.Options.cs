@@ -27,6 +27,14 @@ public partial class MarkPflug65KXlsxBenchmarks {
         return Validate(nameof(OfficeIMO_Loaded), Observe(reader));
     }
 
+    /// <summary>Prototype single-pass delivery: rows are read while inflation and validation continue.</summary>
+    [Benchmark]
+    public ExcelReadObservation OfficeIMO_SinglePass() {
+        using var reader = ExcelDocument.OpenReader(MarkPflug65KFixture.XlsxPath,
+            new ExcelReaderOptions { NumericAsDecimal = true, SheetName = null, EnableSinglePassReading = true });
+        return Validate(nameof(OfficeIMO_SinglePass), Observe(reader));
+    }
+
     /// <summary>Excludes file access using the same immutable package as the memory comparison.</summary>
     [Benchmark]
     public ExcelReadObservation OfficeIMO_Memory() {
