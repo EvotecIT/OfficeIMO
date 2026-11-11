@@ -248,11 +248,14 @@ internal sealed partial class PdfUnderstandingPipeline {
         }
     }
 
-    private PdfUnderstandingPageResult RunPage(PdfReadPage page, int pageNumber, CancellationToken cancellationToken) =>
-        RunPage(CreateContext(page, pageNumber, cancellationToken), cancellationToken);
+    private PdfUnderstandingPageResult RunPage(PdfReadPage page, int pageNumber, CancellationToken cancellationToken) {
+        using PdfReadPage.DecodedContentReuseScope contentReuse = page.ReuseDecodedContent();
+        return RunPage(CreateContext(page, pageNumber, cancellationToken), cancellationToken);
+    }
 
     internal PdfUnderstandingPageResult RunInspectionPage(PdfReadPage page, int pageNumber, bool recoverDecodableText,
         CancellationToken cancellationToken, out PdfUnsupportedTextMappingException? mappingFailure) {
+        using PdfReadPage.DecodedContentReuseScope contentReuse = page.ReuseDecodedContent();
         PdfUnderstandingPageContext context = CreateContext(page, pageNumber, cancellationToken);
         if (recoverDecodableText) context.InspectionTextRecovery = new PdfTextDecodingDiagnosticsBuilder(context);
         try {

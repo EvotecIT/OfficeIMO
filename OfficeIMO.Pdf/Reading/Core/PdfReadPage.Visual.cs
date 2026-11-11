@@ -945,6 +945,9 @@ public sealed partial class PdfReadPage {
                 patternTextClippingBudget: patternTextClippingBudget,
                 pageContentBudget: pageContentBudget,
                 contentOrderPrefix: PdfContentOrderKey.Root,
+                // The page's own content shares the cached root analysis with text, image and count reads.
+                invokedResourceNames: GetRootInvokedResourceNames(content, pageResources,
+                    pageContentBudget.CancellationToken.ThrowIfCancellationRequested),
                 scaleStrokeWidthWithTransform: scaleStrokeWidthWithTransform);
         }
 
@@ -962,6 +965,9 @@ public sealed partial class PdfReadPage {
             _page = page;
             _cancellationToken = cancellationToken;
         }
+
+        /// <summary>True once the primitives were parsed, or their parse failed.</summary>
+        internal bool HasResult => _primitives is not null || _failure is not null;
 
         internal IReadOnlyList<PdfPageVisualPrimitive> Get() {
             if (_primitives is not null) return _primitives;
