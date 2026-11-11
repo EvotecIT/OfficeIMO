@@ -557,7 +557,7 @@ Every slice must protect both the established behavior and its new claim. Run th
 
 Breaking cleanup remains allowed, but batch it around durable owned contracts and record user action in `MIGRATION.md`. Once a named profile is published as stable, ordinary additions must preserve its qualified behavior. Observable standards changes, removed fallbacks and incompatible default changes use a new profile version or a documented breaking release rather than quietly changing an old manifest.
 
-The long-running engine branch is an integration and full-stack qualification line, not a release gate. Keep it current with the default branch and use it to prove interactions among dependent slices. When a slice reaches its admission gate, replay it on the current default branch as a focused, reviewable change and merge it through the normal OfficeIMO path. Bring the merged result back into the integration line. Do not wait for parser or interpreter replacement, and do not merge the accumulated integration branch wholesale unless its remaining diff is itself cohesive and qualified.
+Static engine work develops on the default branch through focused, reviewable changes merged through the normal OfficeIMO path. The earlier engine branch now only holds the parked scripted runtime and its provider forks; it is not kept current and is never merged wholesale. When the runtime route is decided, its code is ported to a fresh branch from the default branch as its own change. Do not wait for parser or interpreter replacement.
 
 ## Provider ownership and maintenance
 
