@@ -179,7 +179,7 @@ internal static partial class CsvWriter
         }
 
         Span<char> destination = stackalloc char[64];
-        if (value.TryFormat(destination, out var charsWritten, format, culture))
+        if (TryFormatDate(value, destination, out var charsWritten, format, culture))
         {
             AppendEscapedSpanDefault(buffer, destination[..charsWritten], delimiter);
         }

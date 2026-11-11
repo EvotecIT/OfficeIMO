@@ -5,7 +5,7 @@ using Xunit;
 
 namespace OfficeIMO.CSV.Tests;
 
-/// <summary>Number text written by the CSV writers must equal the runtime's invariant text for every value.</summary>
+/// <summary>Number and date text written by the CSV writers must equal the runtime's text for every value.</summary>
 public class CsvValueTextTests
 {
     [Fact]
@@ -79,6 +79,36 @@ public class CsvValueTextTests
         {
             Assert.True(CsvWriter.TryFormatInvariant(value, text, out int written));
             Assert.Equal(value.ToString(CultureInfo.InvariantCulture), text[..written].ToString());
+        }
+    }
+    [Theory]
+    [InlineData("")]
+    [InlineData("de-DE")]
+    public void FormattedDateTextMatchesTheRuntime(string cultureName)
+    {
+        CultureInfo culture = cultureName.Length == 0 ? CultureInfo.InvariantCulture : CultureInfo.GetCultureInfo(cultureName);
+        string[] formats = {
+            "yyyy-MM-ddTHH:mm:ss", "yyyy-MM-dd HH:mm:ss.fff", "yyyy/MM/dd", "dd.MM.yyyy", "HH:mm", "yyyyMMdd_HHmmss", "yyyy-MM-ddTHH:mm:ss.fffffff",
+            "ss.f", "mm:ss.ffffff", "--yyyy--", "yyyy-MM-dd'T'HH:mm:ss", "yyyy\\-MM\\Tdd", "\"at\" HH:mm", "'un''closed", "'a\\b'yyyy", "yyyy\\", "'unclosed", "yyyy-MM-ddTHH:mm:ssK", "yy-M-d", "yyyyy", "MMM dd", "hh:mm tt", "'T'yyyy", "dddd", "fffffffff", "s", "O", "d"
+        };
+        var random = new Random(20261113);
+        var values = new List<DateTime> { DateTime.MinValue, DateTime.MaxValue, new DateTime(999, 1, 2, 3, 4, 5, 6, DateTimeKind.Utc), new DateTime(2024, 2, 29, 23, 59, 59, 999).AddTicks(9999) };
+        for (int sample = 0; sample < 20_000; sample++)
+        {
+            values.Add(new DateTime(random.NextInt64(DateTime.MinValue.Ticks, DateTime.MaxValue.Ticks), (DateTimeKind)random.Next(3)));
+        }
+
+        Span<char> text = stackalloc char[128];
+        foreach (string format in formats)
+        {
+            foreach (DateTime value in values)
+            {
+                string expected;
+                try { expected = value.ToString(format, culture); }
+                catch (FormatException) { Assert.Throws<FormatException>(() => CsvWriter.TryFormatDate(value, new char[128], out _, format, culture)); continue; }
+                Assert.True(CsvWriter.TryFormatDate(value, text, out int written, format, culture));
+                Assert.Equal(expected, text[..written].ToString());
+            }
         }
     }
 }

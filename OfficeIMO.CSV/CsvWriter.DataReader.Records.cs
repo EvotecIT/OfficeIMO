@@ -179,7 +179,7 @@ internal static partial class CsvWriter
                     }
 
                     Span<char> characters = stackalloc char[64];
-                    if (!value.TryFormat(characters, out var written, format, culture))
+                    if (!TryFormatDate(value, characters, out var written, format, culture))
                     {
                         return false;
                     }
