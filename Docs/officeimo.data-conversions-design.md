@@ -51,7 +51,8 @@ Each buffer is bounded by a limit and reported in the README:
 |---|---|---|
 | XML repeated siblings | Adjacent same-name siblings stream with one-sibling lookahead. Non-adjacent repeats (`a, b, a`) buffer that parent to group them | One record, or one parent |
 | YAML aliases expanded for non-YAML targets | The anchored subtree | `MaxAliasExpansion` from `YamlReaderOptions` |
-| TOML sink | Within a table, scalars must precede sub-tables, so object members are held until the table's scalars are written | One table's subtree; TOML files are small configuration |
+| TOML sink | Within a table, values must precede sub-tables, and an array of objects can only become `[[name]]` sections once all its items are known, so the sink holds the document and writes it at the end | The document; TOML files are configuration-sized |
+| TOML source | Tables can be defined in any order and duplicate-key rules span the file, so the source is loaded as a `TomlDocument` and walked | The document, bounded by `TomlLoadOptions` |
 | XML root children | A first pass reads only the root's child names; interleaved names (`a, b, a`) buffer the root to group them, otherwise records stream | One record, or the root when its children interleave |
 | Tree → table column discovery | Pass 1 scans events for column paths and type evidence; pass 2 writes rows. CSV output, which needs only the column set, scans the first `SampleRows` rows (1,000); a later row with a value at a new path fails with its name, as Miller does on a CSV schema change. Typed outputs (Excel, `StructuredDataReader`) scan every row for column types | The column set only. The input is re-read; `OfficeConverter` already captures input to re-readable bounded storage |
 | CSV/TSV type inference | Pass 1 decides each column's type | Per-column state only |
@@ -169,6 +170,8 @@ Each case has one behavior. Codes are added to `OfficeIMO.Core/Diagnostics/diagn
 |---|---|---|---|
 | Comments into JSON, CSV, TSV or Excel | Dropped | `comments-omitted` (existing) | O |
 | Comments between YAML, TOML and XML | Carried, attached to the following node | – | – |
+| TOML comments that are not directly above a key or header, or after a value on its line (such as a file header followed by a blank line, or comments inside arrays) | Dropped | `comments-omitted` (existing) | O |
+| Comments inside arrays and inline tables into TOML | Dropped | `comments-omitted` (existing) | O |
 | JSON comments | Read only when the caller's `JsonReaderOptions` allow them (JSONC such as `tsconfig.json`), then carried as above | – | – |
 | YAML anchors and aliases into other formats | Expanded within `MaxAliasExpansion`. The YAML specification calls anchors a serialization detail, so the data is unchanged | `yaml-alias-expanded` | – |
 | YAML merge keys `<<` (1.1) | Resolved into the mapping | – | – |
@@ -180,14 +183,18 @@ Each case has one behavior. Codes are added to `OfficeIMO.Core/Diagnostics/diagn
 | Multi-document YAML into JSON | An array of the documents | `yaml-documents-combined` | A |
 | Duplicate keys | Error by default, as YAML and TOML require. A source's `LastWins`/`FirstWins` policy reports each dropped value | `duplicate-key` | O |
 | Big or high-precision numbers | Exact text into JSON and YAML | – | – |
-| Integers outside int64 into TOML | Written as strings | `number-out-of-range` | A |
+| Integers outside int64, and floats beyond the `double` range, into TOML | Written as strings | `number-out-of-range` | A |
+| Floats with more significant digits than a `double` holds into TOML | Rounded to the nearest `double` | `number-precision` | A |
 | More than 15 significant digits into Excel | Text cell | `number-precision` | A |
 | NaN and ±Infinity into JSON | Strings `"NaN"`, `"Infinity"`, `"-Infinity"`, which `System.Text.Json`'s named floating-point literals read back as numbers | `non-finite-number` | A |
-| TOML date kinds into JSON | RFC 3339 text | `datetime-as-string` | A |
-| TOML date kinds into YAML | Plain scalars; local times are quoted, because YAML 1.1 reads `07:32:00` as a base-60 integer | `datetime-as-string` for local times only | A |
+| TOML date kinds into JSON and YAML | RFC 3339 text; YAML quotes it where YAML 1.1 would read another type, such as a local time as a base-60 integer | `datetime-as-string` | A |
+| Date kinds into TOML | The same kind: offset date-time, local date-time, local date or local time, with nanoseconds kept. Text that is not RFC 3339 (a YAML 1.1 timestamp with a space before the zone) is written as a string | `datetime-as-string` for strings only | A |
+| TOML local times into CSV or TSV | Written as `07:32:00`; inference types dates and date-times, not times of day, so the column reads back as text | – | – |
 | Date-times with an offset into Excel | Wall-clock time kept, offset dropped | `datetime-offset-dropped` | A |
 | Fractional seconds beyond the target's precision (Excel: milliseconds) | Rounded | `datetime-precision` | A |
-| `null` into TOML | Key omitted | `null-dropped` | O |
+| `null` into TOML | Key or array item omitted | `null-dropped` | O |
+| Values after a nested object or array of objects into TOML | Moved before the table's `[sub-table]` and `[[array]]` sections, which TOML writes last | `key-order-changed` | A |
+| A TSV value containing a tab or line break | The conversion fails; `CsvSave` with `CsvEscapeMode.Backslash` writes `\t` and `\n` escapes instead | – | – |
 | Non-table root into TOML; array root into XML | Wrapped in `RootName` | `root-wrapped` | A |
 | Scalar types into XML | Text | `scalar-type-dropped` | A |
 | Strings into CSV that inference would read back as other types (`"42"`) | Written as text | `scalar-type-dropped` | A |
@@ -285,7 +292,9 @@ One type, because the routes share one mapping. Each property exists for a named
 | `JsonReader`, `JsonWriter`, `YamlReader`, `CsvReader`, `CsvSave`, `XmlReader`, `XmlWriter` | Each format's own reader and writer options, passed through: comments, indentation, encoder, delimiter, limits. DTD processing stays prohibited |
 
 - Writer defaults: JSON is indented with 2 spaces and uses the relaxed encoder, so non-ASCII text stays readable. The output is a JSON file, not HTML. YAML, TOML and CSV use their engines' defaults, including YAML's 1.1-safe quoting.
-- Key order is always preserved.
+- Key order is preserved, except that TOML output writes a table's values before its sub-tables (`key-order-changed`).
+- TOML output: objects become `[table]` sections and non-empty arrays whose items are all objects become `[[array]]` sections; other arrays and objects inside arrays stay on their key's line as arrays and inline tables. A table holding only sub-tables gets no header of its own. Multi-document sources become an array of tables under `RootName`.
+- TSV uses `CsvProfile.Tsv` from `OfficeIMO.CSV` for reading and writing unless `CsvReader` or `CsvSave` is set; a `.tsv` or `.tab` path selects it for `SaveAsCsv` and `OfficeConverter`. CSV to TSV is a dialect change, not a data conversion: load with `CsvDocument` and save with the TSV profile.
 
 ### PowerShell
 
@@ -306,7 +315,7 @@ No new `ConvertTo-`/`ConvertFrom-` file-conversion commands are added, as the AP
 | YAML → JSON, JSON → YAML | YamlDotNet deserialize + `System.Text.Json` serialize, and the reverse; SharpYaml as a second baseline |
 | TOML ⇄ JSON | Tomlyn `TomlSerializer`/model + `System.Text.Json` |
 | XML ⇄ JSON | Newtonsoft `JsonConvert.SerializeXNode`/`DeserializeXNode` |
-| CSV ⇄ JSON | CsvHelper `GetRecords<dynamic>` + `System.Text.Json`, and `JsonDocument` + CsvHelper writer |
+| CSV and TSV ⇄ JSON | CsvHelper `GetRecords<dynamic>` + `System.Text.Json`, and `JsonDocument` + CsvHelper writer, with a tab delimiter for TSV |
 | Excel ⇄ JSON | The existing Excel benchmark baselines + `System.Text.Json` |
 
 **Workloads:** many small configuration files (1–10 KB), a 10 MB multi-document Kubernetes stream, a 100 MB and a 1 GB JSON array of records, deep nesting, a 50 MB data-XML export and a 1M-row CSV.
@@ -314,7 +323,7 @@ No new `ConvertTo-`/`ConvertFrom-` file-conversion commands are added, as the AP
 **Targets:**
 
 - Lead every lane in elapsed time and allocation.
-- The opt-in `--verify` mode of the benchmark project has YamlDotNet read our YAML, Newtonsoft.Json read our JSON and XML, and CsvHelper read our CSV, over the JSONTestSuite accept cases, the yaml-test-suite values and awkward-text records.
+- The opt-in `--verify` mode of the benchmark project has YamlDotNet read our YAML, Newtonsoft.Json read our JSON and XML, CsvHelper read our CSV, and Tomlyn read our TOML, over the JSONTestSuite accept cases, the yaml-test-suite values and awkward-text records.
 - Streaming routes keep peak managed memory flat as input grows from 10 MB to 1 GB (measured, with a fixed ceiling recorded per route).
 - Small-file batches are bound by I/O, not converter setup.
 
@@ -323,7 +332,7 @@ Windows, Linux and macOS evidence, as for the YAML engine.
 **Correctness:**
 
 - **yaml-test-suite:** YAML → JSON equals `in.json` for every case that has one.
-- **toml-test:** TOML → JSON equals the fixtures' tagged JSON after mapping their type tags. The encoder fixtures check JSON → TOML.
+- **toml-test:** every valid case converts TOML → JSON to the fixture's tagged JSON, and TOML → TOML through the TOML sink re-reads to the same tagged JSON, so the sink keeps every type, including the four date-time kinds.
 - **JSONTestSuite:** every `y_` case converts JSON → YAML → JSON to equal data. Every `n_` case fails.
 - **Round-trip identity** where the table above says lossless:
   - JSON ⇄ YAML on the YAML corpus's JSON-compatible files;
@@ -347,8 +356,8 @@ Windows, Linux and macOS evidence, as for the YAML engine.
 | D2 | Tree → table and table → tree: CSV ⇄ JSON, CSV/Excel → JSON, JSON → Excel, `Select`, flattening and inference; the Excel adapter; removal of Excel's `ToJson`/`FromJson` | – | L |
 | D3 | JSON → YAML, CSV/Excel ⇄ YAML (done: the YAML sink writes through `YamlWriter`) | Y3 `YamlWriter` | S–M |
 | D4 | XML ⇄ JSON/YAML/tables | – (can run in parallel with D3) | M |
-| D5 | TOML ⇄ everything, toml-test oracle | `OfficeIMO.Toml` reader and writer | S–M |
-| D6 | TSV routes | The strict TSV profile in `OfficeIMO.CSV` | S |
+| D5 | TOML ⇄ everything, toml-test oracle (done) | `OfficeIMO.Toml` reader and writer | S–M |
+| D6 | TSV routes (done) | The strict TSV profile in `OfficeIMO.CSV` | S |
 | D7 | Front-door registration, PSWriteOffice `Convert-OfficeDocument` routes and `ConvertFrom/To-OfficeToml`, READMEs, `MIGRATION.md`, three-OS benchmark evidence | D1–D6 | M |
 
 **Out of scope:**

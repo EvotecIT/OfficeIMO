@@ -303,6 +303,14 @@
       "family": "other"
     },
     {
+      "name": "TOML",
+      "family": "other"
+    },
+    {
+      "name": "TSV",
+      "family": "other"
+    },
+    {
       "name": "VSDX",
       "family": "other"
     },
@@ -877,6 +885,18 @@
       "support": "Targeted",
       "fidelity": "Semantic",
       "api": "CsvDocument.Load(stream).SaveAsJson(output, new DataConversionOptions { JsonLines = true })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "csv-toml",
+      "source": "CSV",
+      "target": "TOML",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "CsvDocument.Load(stream).SaveAsToml(output, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -1816,6 +1836,30 @@
       ]
     },
     {
+      "id": "json-toml",
+      "source": "JSON",
+      "target": "TOML",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "JsonNode.Parse(stream).SaveAsToml(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "json-tsv",
+      "source": "JSON",
+      "target": "TSV",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "JsonNode.Parse(stream).SaveAsCsv(tsvPath, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
       "id": "json-xlsx",
       "source": "JSON",
       "target": "XLSX",
@@ -1867,6 +1911,30 @@
       "id": "jsonl-json",
       "source": "JSON Lines",
       "target": "JSON",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeConverter.Convert(inputPath, outputPath)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "jsonl-toml",
+      "source": "JSON Lines",
+      "target": "TOML",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeConverter.Convert(inputPath, outputPath)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "jsonl-tsv",
+      "source": "JSON Lines",
+      "target": "TSV",
       "package": "OfficeIMO.Data.Conversions",
       "support": "Targeted",
       "fidelity": "Semantic",
@@ -3649,6 +3717,150 @@
       ]
     },
     {
+      "id": "toml-csv",
+      "source": "TOML",
+      "target": "CSV",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "TomlDocument.Load(stream).SaveAsCsv(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "toml-json",
+      "source": "TOML",
+      "target": "JSON",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "TomlDocument.Load(stream).SaveAsJson(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "toml-jsonl",
+      "source": "TOML",
+      "target": "JSON Lines",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "TomlDocument.Load(stream).SaveAsJson(output, new DataConversionOptions { JsonLines = true })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "toml-tsv",
+      "source": "TOML",
+      "target": "TSV",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "TomlDocument.Load(stream).SaveAsCsv(tsvPath, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "toml-xlsx",
+      "source": "TOML",
+      "target": "XLSX",
+      "package": "OfficeIMO.Data.Conversions.Excel",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "TomlDocument.Load(stream).SaveAsExcel(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "toml-xml",
+      "source": "TOML",
+      "target": "XML",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "TomlDocument.Load(stream).SaveAsXml(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "toml-yaml",
+      "source": "TOML",
+      "target": "YAML",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "TomlDocument.Load(stream).SaveAsYaml(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "tsv-json",
+      "source": "TSV",
+      "target": "JSON",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeConverter.Convert(inputPath, outputPath)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "tsv-jsonl",
+      "source": "TSV",
+      "target": "JSON Lines",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeConverter.Convert(inputPath, outputPath)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "tsv-toml",
+      "source": "TSV",
+      "target": "TOML",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeConverter.Convert(inputPath, outputPath)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "tsv-xml",
+      "source": "TSV",
+      "target": "XML",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeConverter.Convert(inputPath, outputPath)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "tsv-yaml",
+      "source": "TSV",
+      "target": "YAML",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeConverter.Convert(inputPath, outputPath)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
       "id": "txt-pdf",
       "source": "Plain text",
       "target": "PDF",
@@ -4009,6 +4221,18 @@
       "example": "Export-OfficeDocumentImage -Path ./in.xlsx -OutputDirectory ./Images -Format Tiff"
     },
     {
+      "id": "xlsx-toml",
+      "source": "XLSX",
+      "target": "TOML",
+      "package": "OfficeIMO.Data.Conversions.Excel",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "ExcelDocument.Load(stream).SaveAsToml(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
       "id": "xlsx-webp",
       "source": "XLSX",
       "target": "WebP",
@@ -4079,6 +4303,30 @@
       "support": "Targeted",
       "fidelity": "Semantic",
       "api": "XDocument.Load(stream).SaveAsJson(output, new DataConversionOptions { JsonLines = true })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "xml-toml",
+      "source": "XML",
+      "target": "TOML",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "XDocument.Load(stream).SaveAsToml(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "xml-tsv",
+      "source": "XML",
+      "target": "TSV",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "XDocument.Load(stream).SaveAsCsv(tsvPath, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -4213,6 +4461,30 @@
       "support": "Targeted",
       "fidelity": "Semantic",
       "api": "YamlDocument.Load(stream).SaveAsJson(output, new DataConversionOptions { JsonLines = true })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "yaml-toml",
+      "source": "YAML",
+      "target": "TOML",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "YamlDocument.Load(stream).SaveAsToml(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "yaml-tsv",
+      "source": "YAML",
+      "target": "TSV",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "YamlDocument.Load(stream).SaveAsCsv(tsvPath, options)",
       "surfaces": [
         "dotnet"
       ]

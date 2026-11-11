@@ -1453,10 +1453,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"CsvDocument.Load(stream).SaveAsJson(output, options)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".csv"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:csv-jsonl",
@@ -1467,10 +1467,24 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"CsvDocument.Load(stream).SaveAsJson(output, new DataConversionOptions { JsonLines = true })",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".csv"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
+    },
+    {
+      "id":"conversion:csv-toml",
+      "packageId":"OfficeIMO.Data.Conversions",
+      "formatId":"CSV",
+      "targetFormatId":"TOML",
+      "capabilityId":"csv-toml",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"CsvDocument.Load(stream).SaveAsToml(output, options)",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".csv"],
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:csv-xml",
@@ -1481,10 +1495,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"CsvDocument.Load(stream).SaveAsXml(output, options)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".csv"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:csv-yaml",
@@ -1495,10 +1509,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"CsvDocument.Load(stream).SaveAsYaml(output, options)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".csv"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:json-csv",
@@ -1509,10 +1523,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"JsonNode.Parse(stream).SaveAsCsv(output, options)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".json"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:json-jsonl",
@@ -1523,10 +1537,38 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"JsonNode.Parse(stream).SaveAsJson(output, new DataConversionOptions { JsonLines = true })",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".json"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
+    },
+    {
+      "id":"conversion:json-toml",
+      "packageId":"OfficeIMO.Data.Conversions",
+      "formatId":"JSON",
+      "targetFormatId":"TOML",
+      "capabilityId":"json-toml",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"JsonNode.Parse(stream).SaveAsToml(output, options)",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".json"],
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
+    },
+    {
+      "id":"conversion:json-tsv",
+      "packageId":"OfficeIMO.Data.Conversions",
+      "formatId":"JSON",
+      "targetFormatId":"TSV",
+      "capabilityId":"json-tsv",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"JsonNode.Parse(stream).SaveAsCsv(tsvPath, options)",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".json"],
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:json-xml",
@@ -1537,10 +1579,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"JsonNode.Parse(stream).SaveAsXml(output, options)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".json"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:json-yaml",
@@ -1551,10 +1593,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"JsonNode.Parse(stream).SaveAsYaml(output, options)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".json"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:jsonl-csv",
@@ -1565,10 +1607,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"OfficeConverter.Convert(inputPath, outputPath)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".jsonl",".ndjson"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:jsonl-json",
@@ -1579,10 +1621,38 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"OfficeConverter.Convert(inputPath, outputPath)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".jsonl",".ndjson"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
+    },
+    {
+      "id":"conversion:jsonl-toml",
+      "packageId":"OfficeIMO.Data.Conversions",
+      "formatId":"JSON Lines",
+      "targetFormatId":"TOML",
+      "capabilityId":"jsonl-toml",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"OfficeConverter.Convert(inputPath, outputPath)",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".jsonl",".ndjson"],
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
+    },
+    {
+      "id":"conversion:jsonl-tsv",
+      "packageId":"OfficeIMO.Data.Conversions",
+      "formatId":"JSON Lines",
+      "targetFormatId":"TSV",
+      "capabilityId":"jsonl-tsv",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"OfficeConverter.Convert(inputPath, outputPath)",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".jsonl",".ndjson"],
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:jsonl-xml",
@@ -1593,10 +1663,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"OfficeConverter.Convert(inputPath, outputPath)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".jsonl",".ndjson"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:jsonl-yaml",
@@ -1607,10 +1677,164 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"OfficeConverter.Convert(inputPath, outputPath)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".jsonl",".ndjson"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
+    },
+    {
+      "id":"conversion:toml-csv",
+      "packageId":"OfficeIMO.Data.Conversions",
+      "formatId":"TOML",
+      "targetFormatId":"CSV",
+      "capabilityId":"toml-csv",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"TomlDocument.Load(stream).SaveAsCsv(output, options)",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".toml"],
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
+    },
+    {
+      "id":"conversion:toml-json",
+      "packageId":"OfficeIMO.Data.Conversions",
+      "formatId":"TOML",
+      "targetFormatId":"JSON",
+      "capabilityId":"toml-json",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"TomlDocument.Load(stream).SaveAsJson(output, options)",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".toml"],
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
+    },
+    {
+      "id":"conversion:toml-jsonl",
+      "packageId":"OfficeIMO.Data.Conversions",
+      "formatId":"TOML",
+      "targetFormatId":"JSON Lines",
+      "capabilityId":"toml-jsonl",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"TomlDocument.Load(stream).SaveAsJson(output, new DataConversionOptions { JsonLines = true })",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".toml"],
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
+    },
+    {
+      "id":"conversion:toml-tsv",
+      "packageId":"OfficeIMO.Data.Conversions",
+      "formatId":"TOML",
+      "targetFormatId":"TSV",
+      "capabilityId":"toml-tsv",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"TomlDocument.Load(stream).SaveAsCsv(tsvPath, options)",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".toml"],
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
+    },
+    {
+      "id":"conversion:toml-xml",
+      "packageId":"OfficeIMO.Data.Conversions",
+      "formatId":"TOML",
+      "targetFormatId":"XML",
+      "capabilityId":"toml-xml",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"TomlDocument.Load(stream).SaveAsXml(output, options)",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".toml"],
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
+    },
+    {
+      "id":"conversion:toml-yaml",
+      "packageId":"OfficeIMO.Data.Conversions",
+      "formatId":"TOML",
+      "targetFormatId":"YAML",
+      "capabilityId":"toml-yaml",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"TomlDocument.Load(stream).SaveAsYaml(output, options)",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".toml"],
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
+    },
+    {
+      "id":"conversion:tsv-json",
+      "packageId":"OfficeIMO.Data.Conversions",
+      "formatId":"TSV",
+      "targetFormatId":"JSON",
+      "capabilityId":"tsv-json",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"OfficeConverter.Convert(inputPath, outputPath)",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".tab",".tsv"],
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
+    },
+    {
+      "id":"conversion:tsv-jsonl",
+      "packageId":"OfficeIMO.Data.Conversions",
+      "formatId":"TSV",
+      "targetFormatId":"JSON Lines",
+      "capabilityId":"tsv-jsonl",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"OfficeConverter.Convert(inputPath, outputPath)",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".tab",".tsv"],
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
+    },
+    {
+      "id":"conversion:tsv-toml",
+      "packageId":"OfficeIMO.Data.Conversions",
+      "formatId":"TSV",
+      "targetFormatId":"TOML",
+      "capabilityId":"tsv-toml",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"OfficeConverter.Convert(inputPath, outputPath)",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".tab",".tsv"],
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
+    },
+    {
+      "id":"conversion:tsv-xml",
+      "packageId":"OfficeIMO.Data.Conversions",
+      "formatId":"TSV",
+      "targetFormatId":"XML",
+      "capabilityId":"tsv-xml",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"OfficeConverter.Convert(inputPath, outputPath)",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".tab",".tsv"],
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
+    },
+    {
+      "id":"conversion:tsv-yaml",
+      "packageId":"OfficeIMO.Data.Conversions",
+      "formatId":"TSV",
+      "targetFormatId":"YAML",
+      "capabilityId":"tsv-yaml",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"OfficeConverter.Convert(inputPath, outputPath)",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".tab",".tsv"],
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:xml-csv",
@@ -1621,10 +1845,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"XDocument.Load(stream).SaveAsCsv(output, options)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".xml"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:xml-json",
@@ -1635,10 +1859,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"XDocument.Load(stream).SaveAsJson(output, options)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".xml"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:xml-jsonl",
@@ -1649,10 +1873,38 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"XDocument.Load(stream).SaveAsJson(output, new DataConversionOptions { JsonLines = true })",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".xml"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
+    },
+    {
+      "id":"conversion:xml-toml",
+      "packageId":"OfficeIMO.Data.Conversions",
+      "formatId":"XML",
+      "targetFormatId":"TOML",
+      "capabilityId":"xml-toml",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"XDocument.Load(stream).SaveAsToml(output, options)",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".xml"],
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
+    },
+    {
+      "id":"conversion:xml-tsv",
+      "packageId":"OfficeIMO.Data.Conversions",
+      "formatId":"XML",
+      "targetFormatId":"TSV",
+      "capabilityId":"xml-tsv",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"XDocument.Load(stream).SaveAsCsv(tsvPath, options)",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".xml"],
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:xml-yaml",
@@ -1663,10 +1915,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"XDocument.Load(stream).SaveAsYaml(output, options)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".xml"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:yaml-csv",
@@ -1677,10 +1929,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"YamlDocument.Load(stream).SaveAsCsv(output, options)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".yaml",".yml"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:yaml-json",
@@ -1691,10 +1943,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"YamlDocument.Load(stream).SaveAsJson(output, options)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".yaml",".yml"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:yaml-jsonl",
@@ -1705,10 +1957,38 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"YamlDocument.Load(stream).SaveAsJson(output, new DataConversionOptions { JsonLines = true })",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".yaml",".yml"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
+    },
+    {
+      "id":"conversion:yaml-toml",
+      "packageId":"OfficeIMO.Data.Conversions",
+      "formatId":"YAML",
+      "targetFormatId":"TOML",
+      "capabilityId":"yaml-toml",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"YamlDocument.Load(stream).SaveAsToml(output, options)",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".yaml",".yml"],
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
+    },
+    {
+      "id":"conversion:yaml-tsv",
+      "packageId":"OfficeIMO.Data.Conversions",
+      "formatId":"YAML",
+      "targetFormatId":"TSV",
+      "capabilityId":"yaml-tsv",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"YamlDocument.Load(stream).SaveAsCsv(tsvPath, options)",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".yaml",".yml"],
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:yaml-xml",
@@ -1719,10 +1999,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"YamlDocument.Load(stream).SaveAsXml(output, options)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".yaml",".yml"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:json-xlsx",
@@ -1733,10 +2013,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"JsonNode.Parse(stream).SaveAsExcel(output, options)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".json"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:jsonl-xlsx",
@@ -1747,10 +2027,24 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"OfficeConverter.Convert(inputPath, outputPath)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".jsonl",".ndjson"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
+    },
+    {
+      "id":"conversion:toml-xlsx",
+      "packageId":"OfficeIMO.Data.Conversions.Excel",
+      "formatId":"TOML",
+      "targetFormatId":"XLSX",
+      "capabilityId":"toml-xlsx",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"TomlDocument.Load(stream).SaveAsExcel(output, options)",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".toml"],
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:xlsx-json",
@@ -1761,10 +2055,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"ExcelDocument.Load(stream).SaveAsJson(output, options)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:xlsx-jsonl",
@@ -1775,10 +2069,24 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"ExcelDocument.Load(stream).SaveAsJson(output, new DataConversionOptions { JsonLines = true })",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
+    },
+    {
+      "id":"conversion:xlsx-toml",
+      "packageId":"OfficeIMO.Data.Conversions.Excel",
+      "formatId":"XLSX",
+      "targetFormatId":"TOML",
+      "capabilityId":"xlsx-toml",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"ExcelDocument.Load(stream).SaveAsToml(output, options)",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:xlsx-xml",
@@ -1789,10 +2097,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"ExcelDocument.Load(stream).SaveAsXml(output, options)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:xlsx-yaml",
@@ -1803,10 +2111,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"ExcelDocument.Load(stream).SaveAsYaml(output, options)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:xml-xlsx",
@@ -1817,10 +2125,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"XDocument.Load(stream).SaveAsExcel(output, options)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".xml"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:yaml-xlsx",
@@ -1831,10 +2139,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"YamlDocument.Load(stream).SaveAsExcel(output, options)",
-      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), JSONTestSuite accept and reject cases, XML convention fixtures, CSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML output re-reads to the same data across the suite.",
+      "evidence":"The yaml-test-suite in.json cases (both streaming and model routes), the toml-test valid cases (TOML to JSON against their tagged JSON, and back through TOML), JSONTestSuite accept and reject cases, XML convention fixtures, CSV, TSV and workbook round trips and one fixture per documented loss code verify the mapping; YAML and TOML output re-read to the same data across the suites.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".yaml",".yml"],
-      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV types and Excel precision are reported when they cannot be carried. TOML and TSV are not yet routed."
+      "limitation":"Conversions follow the documented structured-data mapping; comments, YAML tags, XML order and mixed content, CSV and TSV types, TOML nulls, key order and number range, and Excel precision are reported when they cannot be carried. TSV output fails on a value containing a tab or line break unless backslash escapes are selected."
     },
     {
       "id":"conversion:djvu-jpeg",

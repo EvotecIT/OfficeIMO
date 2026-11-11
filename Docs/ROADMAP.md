@@ -880,7 +880,7 @@ Extend the managed shaping provider in `OfficeIMO.Core` so complex scripts and v
 - [ ] Markdown `+++` front matter: read and write Hugo-style TOML front matter in `OfficeIMO.Markdown` through `TomlDocument`, after Markdown's YAML front matter moves onto `OfficeIMO.Yaml`, so both front matter kinds share one integration shape.
 - [ ] `TomlSerializer`: object mapping with a source generator for trimming and NativeAOT, following the YAML serializer's design once that lands, so both formats share attributes, naming policies and options.
 - [ ] Stream and `TextReader` input for `TomlReader` with a pooled sliding buffer, as `YamlReader` has, for very large lock files.
-- [ ] `OfficeDocumentFormat.Toml` in `OfficeIMO.Core`, so Reader results map TOML to a format instead of `Unknown` in the neutral document model.
+- [ ] A `ReaderInputKind.Toml` for `OfficeIMO.Reader.Toml`, so Reader results map to `OfficeDocumentFormat.Toml` instead of `Unknown` in the neutral document model.
 - [ ] PSWriteOffice commands on the same API (`New-`/`Open-`/`Save-OfficeToml`, `Get-`/`Set-`/`Remove-OfficeTomlNode -Select`, `ConvertFrom-`/`ConvertTo-OfficeToml`), following the YAML command set.
 - [ ] An opt-in large corpus run over thousands of pinned real-world TOML files (crates.io manifests, PyPI `pyproject.toml`, lock files, Hugo sites), checking parse, byte-exact round-trip and scripted edits, plus a mutation run for hostile input.
 - [ ] Lead Tomlyn on parse and load elapsed time and allocation on every benchmark workload, with Windows and Linux evidence alongside macOS.
