@@ -46,6 +46,7 @@ internal sealed class YamlSaveWalk {
                 continue;
             }
             if (part._commentBeforeSet) EmitPartComments(part, header: true);
+            if (part._commentSet) EmitMarkerComment(part);
             if (part._root is not null) Visit(part._root);
             if (part._commentAfterSet) EmitPartComments(part, header: false);
         }
@@ -500,6 +501,24 @@ internal sealed class YamlSaveWalk {
             return;
         }
         Replace(Math.Max(first, _cursor), LastCommentLineEnd(first, to), footer);
+    }
+
+    /// <summary>Rewrites the rest of the <c>---</c> line, which holds only blanks and the comment being replaced.</summary>
+    private void EmitMarkerComment(YamlDocumentPart part) {
+        int hash = YamlTrivia.MarkerHash(part, out int lineEnd);
+        string? text = part._comment;
+        if (hash < 0) {
+            if (text is not null) Replace(Math.Max(part._markerEnd, _cursor), lineEnd, " " + CommentText(text));
+            return;
+        }
+        if (text is not null) {
+            // A replaced comment keeps the spacing before it.
+            Replace(Math.Max(hash, _cursor), lineEnd, CommentText(text));
+            return;
+        }
+        int start = hash;
+        while (start > part._markerEnd && (_source[start - 1] == ' ' || _source[start - 1] == '\t')) start--;
+        Skip(Math.Max(start, _cursor), lineEnd);
     }
 
     private int FirstCommentLine(int from, int to) {

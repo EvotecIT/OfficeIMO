@@ -114,6 +114,7 @@ internal static class YamlModelWriter {
             if (!marker && emitter.Documents == 0) emitter.WriteBlankLine();
         }
         emitter.StartDocument(marker);
+        if (marker && part.Comment is { } comment) emitter.SetTrailingComment(comment);
         if (part._root is not null) {
             CommentLines(emitter, part._root);
             WriteNode(emitter, part._root, ownComments: true);
