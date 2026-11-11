@@ -18,7 +18,7 @@ internal static class YamlLargeCorpusRun {
     private static readonly YamlLoadOptions Yaml11 = new() { Schema = YamlSchema.Yaml11 };
     private static readonly YamlReaderOptions StrictReader = new() { Strict = true };
 
-    private enum Engine { OfficeIMO, YamlDotNet, SharpYaml, SharpYamlSyntax, VYaml }
+    private enum Engine { OfficeIMO, YamlDotNet, SharpYaml, SharpYamlSyntax, VYaml, OneYaml }
 
     private enum Operation { Parse, Load, RoundTrip }
 
@@ -36,7 +36,8 @@ internal static class YamlLargeCorpusRun {
             [Engine.YamlDotNet] = new YamlDotNetConformanceEngine(),
             [Engine.SharpYaml] = new SharpYamlConformanceEngine(),
             [Engine.SharpYamlSyntax] = new SharpYamlSyntaxConformanceEngine(),
-            [Engine.VYaml] = new VYamlConformanceEngine()
+            [Engine.VYaml] = new VYamlConformanceEngine(),
+            [Engine.OneYaml] = new OneYamlConformanceEngine()
         };
 
         var run = new RunState(timeout);
@@ -62,13 +63,13 @@ internal static class YamlLargeCorpusRun {
         // A file that no longer matches the index stops the run: the results would not describe the pinned corpus.
         byte[] yaml = file.ReadYaml();
         result.YamlBytes = yaml.Length;
-        foreach (Engine engine in new[] { Engine.OfficeIMO, Engine.YamlDotNet, Engine.SharpYaml, Engine.VYaml }) {
+        foreach (Engine engine in new[] { Engine.OfficeIMO, Engine.YamlDotNet, Engine.SharpYaml, Engine.VYaml, Engine.OneYaml }) {
             IYamlConformanceEngine adapter = engines[engine];
             result.Events[engine] = run.Measure(engine, Operation.Parse, yaml.Length, () => adapter.Parse(yaml));
             result.Data[engine] = run.Measure(engine, Operation.Load, yaml.Length, () => adapter.Load(yaml));
         }
 
-        foreach (Engine engine in new[] { Engine.OfficeIMO, Engine.YamlDotNet, Engine.SharpYaml, Engine.SharpYamlSyntax }) {
+        foreach (Engine engine in new[] { Engine.OfficeIMO, Engine.YamlDotNet, Engine.SharpYaml, Engine.SharpYamlSyntax, Engine.OneYaml }) {
             IYamlConformanceEngine adapter = engines[engine];
             Outcome<byte[]> saved = run.Measure(engine, Operation.RoundTrip, yaml.Length, () => adapter.RoundTrip(yaml));
             result.RoundTrip[engine] = saved.Value == null ? null : yaml.AsSpan().SequenceEqual(saved.Value);
@@ -119,7 +120,7 @@ internal static class YamlLargeCorpusRun {
     private static void CompareWithReferences(FileResult result) {
         IReadOnlyList<YamlTestEvent>? ourEvents = result.Events[Engine.OfficeIMO].Value;
         IReadOnlyList<YamlConformanceNode>? ourData = result.Data[Engine.OfficeIMO].Value;
-        foreach (Engine engine in new[] { Engine.YamlDotNet, Engine.SharpYaml, Engine.VYaml }) {
+        foreach (Engine engine in new[] { Engine.YamlDotNet, Engine.SharpYaml, Engine.VYaml, Engine.OneYaml }) {
             IReadOnlyList<YamlTestEvent>? theirEvents = result.Events[engine].Value;
             if (ourEvents != null && theirEvents != null) {
                 int index = YamlTestEventText.FindContentDifference(ourEvents, theirEvents);
@@ -220,21 +221,21 @@ internal static class YamlLargeCorpusRun {
         text.AppendLine("# YAML large-corpus run");
         text.AppendLine();
         text.AppendLine("- " + files.Count + " files" + (partial ? " (filtered run)" : string.Empty) + " from " + files.Select(f => f.Source).Distinct().Count() + " sources, " + YamlLargeCorpus.Format(results.Sum(r => r.YamlBytes)) + " bytes of YAML; " + corpus.Exclusions.Count + " indexed files excluded before the run");
-        text.AppendLine("- YamlDotNet " + Version(typeof(YamlDotNet.Core.Parser)) + ", SharpYaml " + Version(typeof(SharpYaml.Parser)) + ", VYaml " + VYamlConformanceEngine.PackageVersion + ", " + RuntimeInformation.FrameworkDescription + ", " + RuntimeInformation.OSDescription + ", per-call timeout " + run.Timeout.TotalSeconds.ToString(CultureInfo.InvariantCulture) + " s");
-        text.AppendLine("- Acceptance is classified by YamlDotNet and SharpYaml. VYaml events carry no presentation, so all event comparisons are by content: kinds, values, tags, anchors and aliases. Data compares the loaded YAML 1.2 core-schema values; VYaml resolves scalars itself.");
+        text.AppendLine("- YamlDotNet " + Version(typeof(YamlDotNet.Core.Parser)) + ", SharpYaml " + Version(typeof(SharpYaml.Parser)) + ", VYaml " + VYamlConformanceEngine.PackageVersion + ", OneYaml " + OneYamlConformanceEngine.PackageVersion + ", " + RuntimeInformation.FrameworkDescription + ", " + RuntimeInformation.OSDescription + ", per-call timeout " + run.Timeout.TotalSeconds.ToString(CultureInfo.InvariantCulture) + " s");
+        text.AppendLine("- Acceptance is classified by YamlDotNet and SharpYaml. VYaml events carry no presentation and OneYaml's are read from its document nodes, so all event comparisons are by content: kinds, values, tags, anchors and aliases. Data compares the loaded YAML 1.2 core-schema values; VYaml resolves scalars itself.");
         text.AppendLine();
 
         text.AppendLine("## Checks");
         text.AppendLine();
         text.AppendLine("Cells are passes/applicable. Events and data compare each reference with OfficeIMO.Yaml on files both accept.");
         text.AppendLine();
-        text.AppendLine("| Check | OfficeIMO.Yaml | YamlDotNet | SharpYaml | SharpYaml syntax | VYaml |");
-        text.AppendLine("|---|---|---|---|---|---|");
-        text.AppendLine("| Parses | " + Ratio(results, r => r.Events[Engine.OfficeIMO].Value != null) + " | " + Ratio(results, r => r.Events[Engine.YamlDotNet].Value != null) + " | " + Ratio(results, r => r.Events[Engine.SharpYaml].Value != null) + " | n/a | " + Ratio(results, r => r.Events[Engine.VYaml].Value != null) + " |");
-        text.AppendLine("| Loads | " + Ratio(results, r => r.Data[Engine.OfficeIMO].Value != null) + " | " + Ratio(results, r => r.Data[Engine.YamlDotNet].Value != null) + " | " + Ratio(results, r => r.Data[Engine.SharpYaml].Value != null) + " | n/a | " + Ratio(results, r => r.Data[Engine.VYaml].Value != null) + " |");
-        text.AppendLine("| Round-trip bytes | " + RoundTripCell(results, Engine.OfficeIMO) + " | " + RoundTripCell(results, Engine.YamlDotNet) + " | " + RoundTripCell(results, Engine.SharpYaml) + " | " + RoundTripCell(results, Engine.SharpYamlSyntax) + " | n/a |");
-        text.AppendLine("| Events agree with OfficeIMO.Yaml | - | " + AgreeCell(results, Engine.YamlDotNet, events: true) + " | " + AgreeCell(results, Engine.SharpYaml, events: true) + " | n/a | " + AgreeCell(results, Engine.VYaml, events: true) + " |");
-        text.AppendLine("| Data agrees with OfficeIMO.Yaml | - | " + AgreeCell(results, Engine.YamlDotNet, events: false) + " | " + AgreeCell(results, Engine.SharpYaml, events: false) + " | n/a | " + AgreeCell(results, Engine.VYaml, events: false) + " |");
+        text.AppendLine("| Check | OfficeIMO.Yaml | YamlDotNet | SharpYaml | SharpYaml syntax | VYaml | OneYaml |");
+        text.AppendLine("|---|---|---|---|---|---|---|");
+        text.AppendLine("| Parses | " + Ratio(results, r => r.Events[Engine.OfficeIMO].Value != null) + " | " + Ratio(results, r => r.Events[Engine.YamlDotNet].Value != null) + " | " + Ratio(results, r => r.Events[Engine.SharpYaml].Value != null) + " | n/a | " + Ratio(results, r => r.Events[Engine.VYaml].Value != null) + " | " + Ratio(results, r => r.Events[Engine.OneYaml].Value != null) + " |");
+        text.AppendLine("| Loads | " + Ratio(results, r => r.Data[Engine.OfficeIMO].Value != null) + " | " + Ratio(results, r => r.Data[Engine.YamlDotNet].Value != null) + " | " + Ratio(results, r => r.Data[Engine.SharpYaml].Value != null) + " | n/a | " + Ratio(results, r => r.Data[Engine.VYaml].Value != null) + " | " + Ratio(results, r => r.Data[Engine.OneYaml].Value != null) + " |");
+        text.AppendLine("| Round-trip bytes | " + RoundTripCell(results, Engine.OfficeIMO) + " | " + RoundTripCell(results, Engine.YamlDotNet) + " | " + RoundTripCell(results, Engine.SharpYaml) + " | " + RoundTripCell(results, Engine.SharpYamlSyntax) + " | n/a | " + RoundTripCell(results, Engine.OneYaml) + " |");
+        text.AppendLine("| Events agree with OfficeIMO.Yaml | - | " + AgreeCell(results, Engine.YamlDotNet, events: true) + " | " + AgreeCell(results, Engine.SharpYaml, events: true) + " | n/a | " + AgreeCell(results, Engine.VYaml, events: true) + " | " + AgreeCell(results, Engine.OneYaml, events: true) + " |");
+        text.AppendLine("| Data agrees with OfficeIMO.Yaml | - | " + AgreeCell(results, Engine.YamlDotNet, events: false) + " | " + AgreeCell(results, Engine.SharpYaml, events: false) + " | n/a | " + AgreeCell(results, Engine.VYaml, events: false) + " | " + AgreeCell(results, Engine.OneYaml, events: false) + " |");
         text.AppendLine();
 
         text.AppendLine("## Acceptance");
@@ -274,8 +275,8 @@ internal static class YamlLargeCorpusRun {
     private static void AppendGroups(StringBuilder text, string title, string column, IReadOnlyList<FileResult> results, Func<FileResult, string> key, YamlLargeCorpus? corpus) {
         text.AppendLine("## " + title);
         text.AppendLine();
-        text.AppendLine("| " + column + (corpus != null ? " | License" : string.Empty) + " | Files | Bytes | Parses | Loads | Round-trip exact | Invalid (all reject) | Investigate | YamlDotNet data differs | VYaml data differs |");
-        text.AppendLine("|---|" + (corpus != null ? "---|" : string.Empty) + "---|---|---|---|---|---|---|---|---|");
+        text.AppendLine("| " + column + (corpus != null ? " | License" : string.Empty) + " | Files | Bytes | Parses | Loads | Round-trip exact | Invalid (all reject) | Investigate | YamlDotNet data differs | VYaml data differs | OneYaml data differs |");
+        text.AppendLine("|---|" + (corpus != null ? "---|" : string.Empty) + "---|---|---|---|---|---|---|---|---|---|");
         foreach (var group in results.GroupBy(key).OrderBy(g => g.Key, StringComparer.Ordinal)) {
             text.Append("| ").Append(group.Key);
             if (corpus != null) text.Append(" | ").Append(corpus.Sources.FirstOrDefault(s => s.Id == group.Key)?.License ?? "?");
@@ -288,6 +289,7 @@ internal static class YamlLargeCorpusRun {
             text.Append(" | ").Append(group.Count(r => r.Failures.Any(f => f.Outcome == "investigate")));
             text.Append(" | ").Append(group.Count(r => r.DataDifference.TryGetValue(Engine.YamlDotNet, out YamlDataDifference? d) && d != null));
             text.Append(" | ").Append(group.Count(r => r.DataDifference.TryGetValue(Engine.VYaml, out YamlDataDifference? d) && d != null));
+            text.Append(" | ").Append(group.Count(r => r.DataDifference.TryGetValue(Engine.OneYaml, out YamlDataDifference? d) && d != null));
             text.AppendLine(" |");
         }
 
@@ -301,7 +303,7 @@ internal static class YamlLargeCorpusRun {
         text.AppendLine();
         text.AppendLine("| Engine | Difference | Files | Sample |");
         text.AppendLine("|---|---|---|---|");
-        foreach (Engine engine in new[] { Engine.YamlDotNet, Engine.SharpYaml, Engine.VYaml }) {
+        foreach (Engine engine in new[] { Engine.YamlDotNet, Engine.SharpYaml, Engine.VYaml, Engine.OneYaml }) {
             int eventDiffs = results.Count(r => r.EventsAgree.TryGetValue(engine, out bool agree) && !agree);
             if (eventDiffs > 0) {
                 FileResult sample = results.First(r => r.EventsAgree.TryGetValue(engine, out bool agree) && !agree);
