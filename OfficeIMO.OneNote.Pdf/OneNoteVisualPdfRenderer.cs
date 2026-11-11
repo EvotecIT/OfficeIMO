@@ -5,6 +5,7 @@ namespace OfficeIMO.OneNote.Pdf;
 
 internal static class OneNoteVisualPdfRenderer {
     internal const string ImageRasterizedCode = "ONENOTE_PDF_IMAGE_RASTERIZED";
+    internal const string GlyphSubstitutedCode = "ONENOTE_PDF_GLYPH_SUBSTITUTED";
 
     internal static PdfCore.PdfDocumentConversionResult Render(
         string sourceName,
@@ -16,21 +17,9 @@ internal static class OneNoteVisualPdfRenderer {
         effective.Validate();
         effective.PdfOptions.UseContentStreamCompressionByDefault();
         var report = new PdfCore.PdfConversionReport();
-        var drawings = new List<OfficeDrawing>(pages.Count);
+        List<PageSnapshot> snapshots = CreateSnapshots(pages, effective, textSubstitution: null, cancellationToken);
         var fonts = new OfficeFontFaceCollection();
-        foreach (OneNotePageReference reference in pages) {
-            cancellationToken.ThrowIfCancellationRequested();
-            string source = PageSource(reference);
-            var diagnostics = new List<OfficeImageExportDiagnostic>();
-            OneNotePageRenderingOptions pageRendering = effective.PageRendering.Clone();
-            pageRendering.ImageSubstitution = (byte[] bytes, string? contentType, out byte[] substitute, out string substituteContentType) =>
-                TryEmbedUnsupportedImageAsPng(bytes, contentType, pageRendering, diagnostics, source, cancellationToken, out substitute, out substituteContentType);
-            OneNotePageVisualSnapshot snapshot = OneNotePageRenderer.CreateSnapshot(reference.Page, pageRendering);
-            diagnostics.InsertRange(0, snapshot.Diagnostics);
-            drawings.Add(snapshot.Drawing);
-            fonts.AddRange(snapshot.Drawing.Fonts);
-            AddDiagnostics(reference, diagnostics, report);
-        }
+        foreach (PageSnapshot snapshot in snapshots) fonts.AddRange(snapshot.Drawing.Fonts);
 
         cancellationToken.ThrowIfCancellationRequested();
         effective.PdfOptions.UseRenderingProfile(new OfficeRenderingProfile(
@@ -38,7 +27,27 @@ internal static class OneNoteVisualPdfRenderer {
             fonts: fonts,
             textShapingProvider: effective.PageRendering.TextShapingProvider,
             textShapingLanguage: effective.PageRendering.TextShapingLanguage), OfficeRenderingProfileApplyMode.Overlay);
-        effective.PdfOptions.UseDrawingTextFonts(drawings, cancellationToken);
+        effective.PdfOptions.UseDrawingTextFonts(snapshots.Select(snapshot => snapshot.Drawing), cancellationToken);
+
+        // A character no installed font covers would fail the PDF text preflight. Lay the pages out again
+        // with those characters replaced by a covered compatibility form or a visible missing-glyph mark.
+        var substitutions = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        if (effective.PdfOptions.HasUncoveredDrawingText(snapshots.Select(snapshot => snapshot.Drawing), cancellationToken)) {
+            PdfCore.PdfCreateOptions pdfOptions = effective.PdfOptions;
+            snapshots = CreateSnapshots(pages, effective, (text, font) => pdfOptions.SubstituteUncoveredDrawingText(
+                text, font.FamilyName, font.IsBold, font.IsItalic, (original, replacement) => substitutions[original] = replacement), cancellationToken);
+        }
+        foreach (PageSnapshot snapshot in snapshots) AddDiagnostics(snapshot.Reference, snapshot.Diagnostics, report);
+        if (substitutions.Count > 0) {
+            report.Add(new PdfCore.PdfConversionWarning(
+                "OfficeIMO.OneNote.Pdf",
+                GlyphSubstitutedCode,
+                sourceName,
+                "No available font covers " + string.Join(", ", substitutions.Select(pair => Describe(pair.Key) + " (drawn as " + Describe(pair.Value) + ")")) +
+                ". Install or configure a font with these glyphs to keep them.",
+                PdfCore.PdfConversionWarningSeverity.Warning));
+        }
+        List<OfficeDrawing> drawings = snapshots.Select(snapshot => snapshot.Drawing).ToList();
         effective.PdfOptions.ReportDiagnosticsTo(report, "OfficeIMO.OneNote.Pdf");
         string title = string.IsNullOrWhiteSpace(effective.Title) ? sourceName : effective.Title!;
         PdfCore.PdfDocument document = PdfCore.PdfDocument.CreateForImportedLayout(effective.PdfOptions).Meta(title, effective.Author, effective.Subject, effective.Keywords);
@@ -55,6 +64,49 @@ internal static class OneNoteVisualPdfRenderer {
 
         cancellationToken.ThrowIfCancellationRequested();
         return new PdfCore.PdfDocumentConversionResult(document, report);
+    }
+
+    private sealed class PageSnapshot {
+        internal PageSnapshot(OneNotePageReference reference, OfficeDrawing drawing, IReadOnlyList<OfficeImageExportDiagnostic> diagnostics) {
+            Reference = reference;
+            Drawing = drawing;
+            Diagnostics = diagnostics;
+        }
+
+        internal OneNotePageReference Reference { get; }
+        internal OfficeDrawing Drawing { get; }
+        internal IReadOnlyList<OfficeImageExportDiagnostic> Diagnostics { get; }
+    }
+
+    private static List<PageSnapshot> CreateSnapshots(
+        IReadOnlyList<OneNotePageReference> pages,
+        OneNoteVisualPdfExportOptions effective,
+        Func<string, OfficeFontInfo, string>? textSubstitution,
+        CancellationToken cancellationToken) {
+        var snapshots = new List<PageSnapshot>(pages.Count);
+        foreach (OneNotePageReference reference in pages) {
+            cancellationToken.ThrowIfCancellationRequested();
+            string source = PageSource(reference);
+            var diagnostics = new List<OfficeImageExportDiagnostic>();
+            OneNotePageRenderingOptions pageRendering = effective.PageRendering.Clone();
+            pageRendering.ImageSubstitution = (byte[] bytes, string? contentType, out byte[] substitute, out string substituteContentType) =>
+                TryEmbedUnsupportedImageAsPng(bytes, contentType, pageRendering, diagnostics, source, cancellationToken, out substitute, out substituteContentType);
+            pageRendering.TextSubstitution = textSubstitution;
+            OneNotePageVisualSnapshot snapshot = OneNotePageRenderer.CreateSnapshot(reference.Page, pageRendering);
+            diagnostics.InsertRange(0, snapshot.Diagnostics);
+            snapshots.Add(new PageSnapshot(reference, snapshot.Drawing, diagnostics));
+        }
+        return snapshots;
+    }
+
+    private static string Describe(string text) {
+        var builder = new System.Text.StringBuilder();
+        for (int index = 0; index < text.Length; index++) {
+            int scalar = char.IsHighSurrogate(text[index]) && index + 1 < text.Length ? char.ConvertToUtf32(text[index], text[++index]) : text[index];
+            if (builder.Length > 0) builder.Append(' ');
+            builder.Append("U+").Append(scalar.ToString("X4", System.Globalization.CultureInfo.InvariantCulture));
+        }
+        return builder.ToString();
     }
 
     // The PDF writer embeds JPEG and PNG directly and normalizes formats its own decoder reads.

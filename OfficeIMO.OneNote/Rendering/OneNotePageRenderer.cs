@@ -36,13 +36,15 @@ public static partial class OneNotePageRenderer {
         double pendingFlowSpace = 0D;
         if (effective.IncludeTitle && !string.IsNullOrWhiteSpace(page.Title)) {
             double titleHeight = Math.Min(42D, Math.Max(22D, height - flowY));
+            var titleFont = new OfficeFontInfo(effective.DefaultFont.FamilyName, 17D, OfficeFontStyle.Bold);
+            string titleText = OneNoteTextNormalizer.Normalize(page.Title);
             drawing.AddText(
-                OneNoteTextNormalizer.Normalize(page.Title),
+                effective.TextSubstitution?.Invoke(titleText, titleFont) ?? titleText,
                 Clamp(marginLeft, 0D, Math.Max(0D, width - 1D)),
                 Clamp(flowY, 0D, Math.Max(0D, height - 1D)),
                 Math.Max(1D, Math.Min(bodyWidth, width - marginLeft)),
                 Math.Max(1D, Math.Min(titleHeight, height - flowY)),
-                new OfficeFontInfo(effective.DefaultFont.FamilyName, 17D, OfficeFontStyle.Bold),
+                titleFont,
                 OfficeColor.Black,
                 page.RightToLeft == true ? OfficeTextAlignment.Right : OfficeTextAlignment.Left,
                 wrapText: false);

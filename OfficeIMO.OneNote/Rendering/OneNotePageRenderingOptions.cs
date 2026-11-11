@@ -58,6 +58,12 @@ public class OneNotePageRenderingOptions : OfficeImageExportOptions {
     /// </summary>
     internal OneNoteImageSubstitution? ImageSubstitution { get; set; }
 
+    /// <summary>
+    /// Lets an output adapter replace characters its writer cannot render in the given font,
+    /// such as the visual PDF route when no installed font covers a glyph.
+    /// </summary>
+    internal Func<string, OfficeFontInfo, string>? TextSubstitution { get; set; }
+
     /// <summary>Creates a detached copy.</summary>
     public OneNotePageRenderingOptions Clone() => CopyTo(new OneNotePageRenderingOptions());
 
@@ -77,6 +83,7 @@ public class OneNotePageRenderingOptions : OfficeImageExportOptions {
         clone.Ink = Ink?.Clone() ?? new OfficeInkRenderOptions();
         clone.Math = Math?.Clone() ?? new OfficeMathRenderOptions();
         clone.ImageSubstitution = ImageSubstitution;
+        clone.TextSubstitution = TextSubstitution;
         return clone;
     }
 

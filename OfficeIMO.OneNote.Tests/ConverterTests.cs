@@ -354,6 +354,25 @@ public sealed class ConverterTests {
     }
 
     [Fact]
+    public void VisualPdfMarksAGlyphNoFontCoversAndKeepsTheRestSearchable() {
+        // U+0378 is unassigned, so no installed font on any host has a glyph for it.
+        var section = new OneNoteSection { Name = "Uncovered" };
+        var page = new OneNotePage { Title = "Glyphs", PageSize = OneNotePageSize.IndexCard };
+        page.DirectContent.Add(Paragraph("Covered words ͸ stay searchable"));
+        section.Pages.Add(page);
+
+        var result = section.ConvertToVisualPdfWithEvidence(new OneNoteVisualPdfExportOptions(), default);
+        PdfDocument loaded = PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes()));
+        string text = System.Text.RegularExpressions.Regex.Replace(loaded.ExtractText(), @"\s+", " ");
+
+        PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "ONENOTE_PDF_GLYPH_SUBSTITUTED");
+        Assert.Contains("U+0378", warning.Message, StringComparison.Ordinal);
+        Assert.Contains("Covered words", text, StringComparison.Ordinal);
+        Assert.Contains("stay searchable", text, StringComparison.Ordinal);
+        Assert.DoesNotContain('͸', text);
+    }
+
+    [Fact]
     public void VisualPdfEmbedsOnlyAPictureWithoutNativePdfFormAsPng() {
         OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
         OneNoteImage image = Assert.Single(section.Pages[0].DirectContent.OfType<OneNoteImage>());
