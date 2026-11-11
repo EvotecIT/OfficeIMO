@@ -401,11 +401,6 @@ namespace OfficeIMO.Excel {
             try {
                 ValidateUniqueSheetNames(owner.TableNames, options.CancellationToken);
                 IReadOnlyList<SheetSelection> sheets = SelectSheets(owner.TableNames, options);
-                if (sheets.Count != 1) {
-                    throw new XlsxTabularFastPathNotSupportedException(
-                        "Multi-result XLSX reads retain the complete Open XML SDK path.");
-                }
-
                 return new ExcelWorkbookDataReader(
                     sheets,
                     (index, cancellationToken) => lifetime.OpenSheet(sheets[index].Name, options, cancellationToken),

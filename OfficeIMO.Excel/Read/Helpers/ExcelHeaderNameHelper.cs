@@ -32,11 +32,43 @@ namespace OfficeIMO.Excel {
 
         internal static string NormalizeHeader(string? header, bool normalizeHeaders) {
             string value = header ?? string.Empty;
-            if (normalizeHeaders) {
-                value = System.Text.RegularExpressions.Regex.Replace(value, "\\s+", " ").Trim();
+            return normalizeHeaders ? CollapseWhiteSpace(value) : value;
+        }
+
+        /// <summary>
+        /// Trims the header and turns each inner run of white space into one space. A regular
+        /// expression would cost a cold read several milliseconds to build.
+        /// </summary>
+        private static string CollapseWhiteSpace(string value) {
+            int start = 0;
+            int end = value.Length;
+            while (start < end && char.IsWhiteSpace(value[start])) start++;
+            while (end > start && char.IsWhiteSpace(value[end - 1])) end--;
+
+            bool collapsed = true;
+            for (int index = start; index < end && collapsed; index++) {
+                // After trimming, white space is always followed by another character.
+                collapsed = !char.IsWhiteSpace(value[index]) || value[index] == ' ' && !char.IsWhiteSpace(value[index + 1]);
+            }
+            if (collapsed) {
+                return start == 0 && end == value.Length ? value : value.Substring(start, end - start);
             }
 
-            return value;
+            var builder = new System.Text.StringBuilder(end - start);
+            bool pendingSpace = false;
+            for (int index = start; index < end; index++) {
+                char character = value[index];
+                if (char.IsWhiteSpace(character)) {
+                    pendingSpace = true;
+                    continue;
+                }
+                if (pendingSpace) {
+                    builder.Append(' ');
+                    pendingSpace = false;
+                }
+                builder.Append(character);
+            }
+            return builder.ToString();
         }
 
         private static string MakeUnique(

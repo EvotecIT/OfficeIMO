@@ -15,7 +15,9 @@ namespace OfficeIMO.Excel {
         private const string StrictSpreadsheetNamespace =
             SpreadsheetXmlContent.StrictSpreadsheetNamespace;
         private readonly string _sheetName;
-        private readonly WorksheetPart _wsPart;
+        // Typed as the base part so loading this reader does not load the Open XML SDK on the native
+        // route; SDK-only members go through SdkWorksheetPart.
+        private readonly OpenXmlPart _wsPart;
         private readonly string _worksheetPartName;
         private readonly bool _hasSdkWorksheetPart;
         private readonly SharedStringCache _sst;
@@ -79,6 +81,8 @@ namespace OfficeIMO.Excel {
             _richValueErrors = richValueErrors ?? new Lazy<RichValueErrorLookup>(() => RichValueErrorLookup.Empty);
             _hasWorksheetPartStreamContent = true;
         }
+
+        private WorksheetPart SdkWorksheetPart => (WorksheetPart)_wsPart;
 
         private void RequireSdkWorksheetPart() {
             if (!_hasSdkWorksheetPart) {

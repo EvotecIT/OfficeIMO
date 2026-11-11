@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
         internal bool ReadRightToLeft(CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             if (_hasSdkWorksheetPart && _wsPart.IsRootElementLoaded) {
-                return _wsPart.Worksheet?.GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>()
+                return SdkWorksheetPart.Worksheet?.GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>()
                     ?.RightToLeft?.Value == true;
             }
 

@@ -739,7 +739,7 @@ decompression with workbook metadata parsing on a spare worker. It is disabled b
 retains the existing package-part limits, and can be slower for small or simple workbooks.
 Enable it only after measuring a representative workbook on the target CPU.
 
-By default an XLSX data reader validates the whole worksheet before returning its first
+By default an XLSX or XLSB data reader validates the whole worksheet before returning its first
 row, so a malformed workbook fails before any data is consumed.
 `ExcelReaderOptions.EnableSinglePassReading` instead returns rows while the rest of a large
 worksheet is still being decompressed and checked. Every returned row is fully parsed and

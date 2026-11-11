@@ -13,24 +13,24 @@ namespace OfficeIMO.Excel {
         private const int MaximumLongLivedBufferSize = 4 * 1024 * 1024;
         private static readonly object Sync = new object();
         private static readonly Dictionary<int, byte[]> RetainedBuffers = new Dictionary<int, byte[]>();
-        private static readonly ExcelReleasingArrayStore<byte> LargeBuffers = new ExcelReleasingArrayStore<byte>(2, MaximumRetainedBytes);
+        // Concurrent reads of several worksheets need one buffer each. Buffers beyond the one kept per size, and every
+        // buffer above the long-lived size, wait here only until the process is idle.
+        private static readonly ExcelReleasingArrayStore<byte> LargeBuffers = new ExcelReleasingArrayStore<byte>(32, MaximumRetainedBytes);
         private static long _retainedBytes;
 
         internal static byte[] Rent(int minimumLength) {
             int capacity = GetCapacity(minimumLength);
-            if (capacity > MaximumLongLivedBufferSize) {
-                return LargeBuffers.TryTake(capacity) ?? new byte[capacity];
-            }
-
-            lock (Sync) {
-                if (RetainedBuffers.TryGetValue(capacity, out byte[]? retained)) {
-                    RetainedBuffers.Remove(capacity);
-                    _retainedBytes -= capacity;
-                    return retained;
+            if (capacity <= MaximumLongLivedBufferSize) {
+                lock (Sync) {
+                    if (RetainedBuffers.TryGetValue(capacity, out byte[]? retained)) {
+                        RetainedBuffers.Remove(capacity);
+                        _retainedBytes -= capacity;
+                        return retained;
+                    }
                 }
             }
 
-            return new byte[capacity];
+            return LargeBuffers.TryTake(capacity) ?? new byte[capacity];
         }
 
         internal static void Return(byte[]? buffer, bool retain = true) {
@@ -52,14 +52,15 @@ namespace OfficeIMO.Excel {
             }
 
             lock (Sync) {
-                if (RetainedBuffers.ContainsKey(buffer.Length)
-                    || _retainedBytes + buffer.Length > MaximumRetainedBytes) {
+                if (!RetainedBuffers.ContainsKey(buffer.Length)
+                    && _retainedBytes + buffer.Length <= MaximumRetainedBytes) {
+                    RetainedBuffers.Add(buffer.Length, buffer);
+                    _retainedBytes += buffer.Length;
                     return;
                 }
-
-                RetainedBuffers.Add(buffer.Length, buffer);
-                _retainedBytes += buffer.Length;
             }
+
+            LargeBuffers.TryAdd(buffer);
         }
 
         internal static int GetCapacity(int minimumLength) {

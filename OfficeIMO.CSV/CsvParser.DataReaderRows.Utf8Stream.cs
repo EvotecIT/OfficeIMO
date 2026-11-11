@@ -761,7 +761,7 @@ internal static partial class CsvParser
                     return RecordScanResult.Complete;
                 }
 
-                if (special != fieldStart)
+                if (special != fieldStart && !IsTrimmedBeforeQuote(fieldStart, special))
                 {
                     // A quote inside an unquoted field is not RFC 4180 syntax.
                     scan.Next = special;
@@ -1028,6 +1028,28 @@ internal static partial class CsvParser
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool IsAsciiWhiteSpace(byte value) => value == (byte)' ' || (uint)(value - 9) <= 4;
+
+        /// <summary>
+        /// Whether only ASCII whitespace precedes an opening quote that trimming drops, as the block
+        /// scanner accepts. Strict quoting admits whitespace only after the closing quote.
+        /// </summary>
+        private bool IsTrimmedBeforeQuote(int fieldStart, int quote)
+        {
+            if (!_trim || _strictQuotes)
+            {
+                return false;
+            }
+
+            for (int position = fieldStart; position < quote; position++)
+            {
+                if (!IsAsciiWhiteSpace(_buffer[position]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// Classifies the character at <paramref name="position"/> as <see cref="char.IsWhiteSpace(char)"/>

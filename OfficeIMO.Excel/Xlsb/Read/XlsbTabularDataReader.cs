@@ -189,12 +189,15 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 }
 
                 _hasRows = _hasPendingRow;
-                int headerFirstColumn = headerValues != null && headerValues.Count > 0
-                    ? headerValues.Keys.Min()
-                    : int.MaxValue;
-                int headerLastColumn = headerValues != null && headerValues.Count > 0
-                    ? headerValues.Keys.Max()
-                    : -1;
+                // A plain loop: LINQ Min and Max over the keys cost a cold read milliseconds of JIT time.
+                int headerFirstColumn = int.MaxValue;
+                int headerLastColumn = -1;
+                if (headerValues != null) {
+                    foreach (int column in headerValues.Keys) {
+                        if (column < headerFirstColumn) headerFirstColumn = column;
+                        if (column > headerLastColumn) headerLastColumn = column;
+                    }
+                }
                 int firstColumn = dimensionLastColumn >= dimensionFirstColumn
                     ? dimensionFirstColumn
                     : int.MaxValue;
@@ -219,7 +222,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     ? checked(lastColumn - firstColumn + 1)
                     : headerValues == null || headerValues.Count == 0
                         ? 0
-                        : checked(headerValues.Keys.Max() - firstColumn + 1);
+                        : checked(headerLastColumn - firstColumn + 1);
                 if (fieldCount > _options.MaxDataReaderColumns) {
                     throw new InvalidDataException(
                         $"XLSB table column count {fieldCount} exceeds the configured limit of {_options.MaxDataReaderColumns}.");
@@ -583,10 +586,17 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             uint styleIndex,
             int recordType) {
             Func<ExcelCellContext, ExcelCellValue>? converter = _options.CellValueConverter;
-            if (converter == null) {
-                return cell;
-            }
+            return converter == null ? cell : ConvertCell(converter, cell, styleIndex, recordType);
+        }
 
+        // The Open XML type hint stays out of the per-cell path, so a read without a converter does not
+        // load the Open XML SDK.
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private DecodedCell ConvertCell(
+            Func<ExcelCellContext, ExcelCellValue> converter,
+            DecodedCell cell,
+            uint styleIndex,
+            int recordType) {
             CellValues? typeHint = cell.Kind switch {
                 XlsbTabularValueKind.Number or XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => CellValues.Number,
                 XlsbTabularValueKind.Boolean => CellValues.Boolean,

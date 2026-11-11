@@ -203,8 +203,9 @@ The reader validates the whole worksheet before returning its first row. For lar
 XLSX and XLSB worksheets, `new ExcelReaderOptions { EnableSinglePassReading = true }` returns
 rows while the rest of the sheet is still being read. An invalid cell then raises the same error,
 naming the same cell, but only after the rows before it have been returned, so use it where a
-part-way failure can be discarded. The option applies on .NET 8 and later; on .NET Framework
-and .NET Standard, and for XLS, the reader always validates first.
+part-way failure can be discarded. The option applies on .NET 8 and later to worksheets of
+1 MB or more, without `A1Range`, a cell value converter or diagnostics, and when the execution
+policy allows background work; otherwise, and for XLS, the reader always validates first.
 
 XML Spreadsheet import also limits defined names (10,000 by default). Set `ExcelSpreadsheetXmlOptions.MaxNames` for a larger trusted workbook.
 
