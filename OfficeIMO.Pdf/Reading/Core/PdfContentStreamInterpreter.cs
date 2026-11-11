@@ -433,6 +433,9 @@ internal static class PdfContentStreamInterpreter {
 
         private void ClearOperands() {
             _operands.Clear();
+            for (int index = 0; index < _borrowedArrayCount; index++) {
+                _borrowedArrays![index].Clear();
+            }
             _borrowedArrayCount = 0;
         }
 
