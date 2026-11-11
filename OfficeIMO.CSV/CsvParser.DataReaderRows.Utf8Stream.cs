@@ -1322,6 +1322,9 @@ internal static partial class CsvParser
             {
                 byte[] buffer = _buffer;
                 _buffer = Array.Empty<byte>();
+#if NET8_0_OR_GREATER
+                ReturnBatchIndex();
+#endif
                 try { ArrayPool<byte>.Shared.Return(buffer); }
                 finally { ReturnStringCacheWorkspace(cache); }
             }
