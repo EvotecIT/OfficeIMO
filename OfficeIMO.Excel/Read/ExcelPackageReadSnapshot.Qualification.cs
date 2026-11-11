@@ -48,7 +48,7 @@ namespace OfficeIMO.Excel {
                         ExcelSheetReader.CanBufferUtf8WorksheetPrefix)) {
                     WorksheetExtent? extent;
                     bool validatedIndexedXml = false;
-                    if (ExcelSheetReader.TryMeasureCanonicalWorksheet(buffer!, length, options.CancellationToken,
+                    if (ExcelSheetReader.TryMeasureCanonicalWorksheet(buffer!, length, options.Execution, options.CancellationToken,
                             out WorksheetExtent measured)) {
                         extent = measured;
                     } else {

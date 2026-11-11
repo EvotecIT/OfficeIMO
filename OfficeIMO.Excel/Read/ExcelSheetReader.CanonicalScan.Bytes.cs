@@ -1,14 +1,38 @@
+using System.Runtime.ExceptionServices;
+
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
+        private const int MinimumParallelScanBytes = 2 * 1024 * 1024;
+        private const int MaximumParallelScanHelpers = 3;
+
         /// <summary>
         /// Answers <see cref="MeasureCanonicalWorksheet"/> from buffered UTF-8 bytes for a strict XML shape.
         /// True means the scan would return this extent for an unprefixed root; false means only that the
         /// bytes did not decide it, and the caller runs the scan. Comments, processing instructions, CDATA,
         /// DOCTYPE, a prefixed root, non-ASCII names, inner namespace subtleties, references the text proof
         /// does not cover, and every cell the scan would send to the SDK route are left to the scan.
+        /// Large parts may walk their rows on helper threads under the read's execution policy.
         /// </summary>
-        internal static bool TryMeasureCanonicalWorksheet(byte[] buffer, int length, CancellationToken cancellationToken,
-            out WorksheetExtent extent) {
+        internal static bool TryMeasureCanonicalWorksheet(byte[] buffer, int length, ExcelExecutionPolicy execution,
+            CancellationToken cancellationToken, out WorksheetExtent extent) {
+            int helpers = 0;
+#if NET8_0_OR_GREATER
+            if (length >= MinimumParallelScanBytes && execution.AllowsBackgroundProcessing) {
+                helpers = Math.Min(MaximumParallelScanHelpers, Environment.ProcessorCount - 2);
+                if (execution.MaxDegreeOfParallelism is int maximumDegree) helpers = Math.Min(helpers, maximumDegree - 1);
+                helpers = helpers > 0 ? ExcelParallelReadBudget.Reserve(helpers) : 0;
+            }
+#endif
+            try {
+                return TryMeasureCanonicalWorksheet(buffer, length, helpers, cancellationToken, out extent);
+            } finally {
+                ExcelParallelReadBudget.Release(helpers);
+            }
+        }
+
+        /// <summary>Measures with the given number of row helpers, whatever the part's size.</summary>
+        internal static bool TryMeasureCanonicalWorksheet(byte[] buffer, int length, int helpers,
+            CancellationToken cancellationToken, out WorksheetExtent extent) {
             extent = default;
 #if NET8_0_OR_GREATER
             if (!ExcelUtf8RangeRowSource.IsCanonicalDocumentTextValid(buffer.AsSpan(0, length))) return false;
@@ -16,7 +40,7 @@ namespace OfficeIMO.Excel {
             if (!ExcelUtf8RangeRowSource.IsCanonicalTextValidDownLevel(buffer, length, cancellationToken)) return false;
 #endif
             cancellationToken.ThrowIfCancellationRequested();
-            return new CanonicalByteScan(buffer, length).TryMeasure(cancellationToken, out extent);
+            return new CanonicalByteScan(buffer, length).TryMeasure(helpers, cancellationToken, out extent);
         }
 
         private sealed class CanonicalByteScan {
@@ -40,12 +64,23 @@ namespace OfficeIMO.Excel {
             private int _attributeCount;
             private bool _hasNamespaceWork;
 
+            // Walk state. A row chunk starts inside sheetData at _baseDepth and may not close it.
+            private int _baseDepth;
+            private int _depth;
+            private bool _rootSeen;
+            private bool _rootClosed;
+            private bool _checkValueText;
+            private int _lastRow;
+            private int _lastColumn;
+            private int _currentRow;
+            private int _tags;
+
             internal CanonicalByteScan(byte[] buffer, int length) {
                 _buffer = buffer;
                 _length = length;
             }
 
-            internal bool TryMeasure(CancellationToken cancellationToken, out WorksheetExtent extent) {
+            internal bool TryMeasure(int helpers, CancellationToken cancellationToken, out WorksheetExtent extent) {
                 extent = default;
                 int position = _length >= 3 && _buffer[0] == 0xEF && _buffer[1] == 0xBB && _buffer[2] == 0xBF ? 3 : 0;
                 if (position + 1 < _length && _buffer[position] == (byte)'<' && _buffer[position + 1] == (byte)'?'
@@ -53,66 +88,166 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                bool rootSeen = false;
-                bool rootClosed = false;
-                bool checkValueText = false;
-                int depth = 0;
-                int lastRow = 0;
-                int lastColumn = 0;
-                int currentRow = 0;
-                int tags = 0;
-                while (true) {
-                    int textEnd = IndexOfTagStart(position);
-                    if (depth == 0 && !IsWhitespace(position, textEnd)) return false;
-                    // The scan sends a whitespace-only value or text node to the SDK route.
-                    if (checkValueText && textEnd > position && IsWhitespace(position, textEnd)) return false;
-                    checkValueText = false;
-                    if (textEnd == _length) break;
+                if (!Walk(position, _length, stopAtSheetData: helpers > 0, cancellationToken, out int stopped, out bool atSheetData)) {
+                    return false;
+                }
+                if (atSheetData) {
+                    int resume = TryWalkRowsInParallel(stopped, helpers, cancellationToken);
+                    if (resume < 0) return false;
+                    if (!Walk(resume, _length, stopAtSheetData: false, cancellationToken, out _, out _)) return false;
+                }
 
-                    if ((++tags & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!_rootSeen || !_rootClosed || _depth != 0) return false;
+                extent = new WorksheetExtent(_lastRow, _lastColumn);
+                return true;
+            }
+
+            /// <summary>
+            /// Walks sheetData's rows in chunks split at row tags, one chunk per thread, and returns where the
+            /// sequential walk resumes: sheetData's end tag, or the body start when no split was found. A
+            /// negative result means a chunk left the decision to the XmlReader scan. Splits are taken only at
+            /// a '&lt;', which in the accepted shape always starts a tag; a chunk that begins inside other
+            /// markup, closes sheetData or ends inside a row fails its own walk.
+            /// </summary>
+            private int TryWalkRowsInParallel(int bodyStart, int helpers, CancellationToken cancellationToken) {
+                int close = _buffer.AsSpan(bodyStart, _length - bodyStart).LastIndexOf("</sheetData"u8);
+                if (close < 0) return bodyStart;
+                close += bodyStart;
+                int chunks = helpers + 1;
+                var starts = new List<int>(chunks + 1) { bodyStart };
+                for (int index = 1; index < chunks; index++) {
+                    int from = Math.Max(starts[starts.Count - 1] + 1, bodyStart + (int)((long)(close - bodyStart) * index / chunks));
+                    int split = IndexOfRowTag(from, close);
+                    if (split < 0) break;
+                    starts.Add(split);
+                }
+                if (starts.Count < 2) return bodyStart;
+                starts.Add(close);
+
+                var scans = new CanonicalByteScan[starts.Count - 1];
+                var results = new bool[scans.Length];
+                for (int index = 0; index < scans.Length; index++) scans[index] = CreateRowChunk();
+                var tasks = new Task[scans.Length - 1];
+                for (int index = 1; index < scans.Length; index++) {
+                    int chunk = index;
+                    tasks[index - 1] = Task.Run(() => results[chunk] = scans[chunk].WalkRowChunk(starts[chunk], starts[chunk + 1], cancellationToken));
+                }
+                try {
+                    results[0] = scans[0].WalkRowChunk(starts[0], starts[1], cancellationToken);
+                } finally {
+                    try {
+                        Task.WaitAll(tasks);
+                    } catch (AggregateException failure) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        ExceptionDispatchInfo.Capture(failure.InnerExceptions[0]).Throw();
+                    }
+                }
+
+                for (int index = 0; index < scans.Length; index++) {
+                    if (!results[index]) return -1;
+                    if (scans[index]._lastRow > _lastRow) _lastRow = scans[index]._lastRow;
+                    if (scans[index]._lastColumn > _lastColumn) _lastColumn = scans[index]._lastColumn;
+                }
+                _currentRow = scans[scans.Length - 1]._currentRow;
+                return close;
+            }
+
+            private CanonicalByteScan CreateRowChunk() {
+                var chunk = new CanonicalByteScan(_buffer, _length) {
+                    _baseDepth = _depth,
+                    _depth = _depth,
+                    _rootSeen = true,
+                    _bindingCount = _bindingCount,
+                    _bindingStarts = (int[])_bindingStarts.Clone(),
+                    _bindingLengths = (int[])_bindingLengths.Clone(),
+                    _bindingDepths = (int[])_bindingDepths.Clone()
+                };
+                if (chunk._elementStarts.Length <= _depth) {
+                    chunk._elementStarts = new int[_depth * 2];
+                    chunk._elementLengths = new int[_depth * 2];
+                }
+                return chunk;
+            }
+
+            private bool WalkRowChunk(int start, int end, CancellationToken cancellationToken) =>
+                Walk(start, end, stopAtSheetData: false, cancellationToken, out _, out _) && _depth == _baseDepth;
+
+            private int IndexOfRowTag(int from, int end) {
+                while (from < end) {
+                    int relative = _buffer.AsSpan(from, end - from).IndexOf("<row"u8);
+                    if (relative < 0) return -1;
+                    int match = from + relative;
+                    if (match + 4 < end && (_buffer[match + 4] is (byte)'>' or (byte)'/' || IsWhitespace(_buffer[match + 4]))) {
+                        return match;
+                    }
+                    from = match + 4;
+                }
+                return -1;
+            }
+
+            /// <summary>
+            /// Walks tags from <paramref name="position"/> to <paramref name="end"/>, the part's end or the '&lt;'
+            /// that starts a later chunk. With <paramref name="stopAtSheetData"/> it stops just after the root's
+            /// sheetData start tag.
+            /// </summary>
+            private bool Walk(int position, int end, bool stopAtSheetData, CancellationToken cancellationToken,
+                out int stopped, out bool atSheetData) {
+                stopped = end;
+                atSheetData = false;
+                while (true) {
+                    int textEnd = IndexOfTagStart(position, end);
+                    if (_depth == 0 && !IsWhitespace(position, textEnd)) return false;
+                    // The scan sends a whitespace-only value or text node to the SDK route.
+                    if (_checkValueText && textEnd > position && IsWhitespace(position, textEnd)) return false;
+                    _checkValueText = false;
+                    if (textEnd == end) return true;
+
+                    if ((++_tags & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                     int tagStart = textEnd;
                     if (tagStart + 1 >= _length) return false;
                     byte marker = _buffer[tagStart + 1];
                     if (marker == (byte)'/') {
-                        if (depth == 0
+                        if (_depth == _baseDepth
+                            || _depth == 0
                             || !TryReadName(tagStart + 2, out int nameEnd, out _)
                             || !SkipWhitespace(nameEnd, out int close)
                             || _buffer[close] != (byte)'>'
-                            || !BytesEqual(tagStart + 2, nameEnd - tagStart - 2, _elementStarts[depth - 1], _elementLengths[depth - 1])) {
+                            || !BytesEqual(tagStart + 2, nameEnd - tagStart - 2, _elementStarts[_depth - 1], _elementLengths[_depth - 1])) {
                             return false;
                         }
-                        depth--;
-                        PopBindings(depth);
-                        if (depth == 0) rootClosed = true;
+                        _depth--;
+                        PopBindings(_depth);
+                        if (_depth == 0) _rootClosed = true;
                         position = close + 1;
                         continue;
                     }
-                    if (marker is (byte)'!' or (byte)'?' || rootClosed) return false;
+                    if (marker is (byte)'!' or (byte)'?' || _rootClosed) return false;
 
                     int nameStart = tagStart + 1;
                     if (!TryReadName(nameStart, out int elementNameEnd, out int elementColon)
                         || !TryReadAttributes(elementNameEnd, out int tagEnd, out bool selfClosing)
-                        || _hasNamespaceWork && !TryBindNamespaces(depth)
-                        || elementColon >= 0 && (!rootSeen || !IsBoundPrefix(nameStart, elementColon))) {
+                        || _hasNamespaceWork && !TryBindNamespaces(_depth)
+                        || elementColon >= 0 && (!_rootSeen || !IsBoundPrefix(nameStart, elementColon))) {
                         return false;
                     }
-                    rootSeen = true;
+                    _rootSeen = true;
 
                     int localStart = elementColon >= 0 ? elementColon + 1 : nameStart;
                     int localLength = elementNameEnd - localStart;
                     if (localLength == 1 && _buffer[localStart] is (byte)'v' or (byte)'t') {
-                        checkValueText = !selfClosing;
+                        _checkValueText = !selfClosing;
                     } else if (localLength == 3 && _buffer[localStart] == (byte)'r'
                                && _buffer[localStart + 1] == (byte)'o' && _buffer[localStart + 2] == (byte)'w') {
                         int r = FindUnprefixedAttribute((byte)'r');
                         if (r < 0) {
-                            currentRow = 0;
+                            _currentRow = 0;
                         } else {
-                            if (!TryParseDigits(_valueStarts[r], _valueEnds[r], out currentRow)
-                                || currentRow <= 0 || currentRow > ExcelA1.MaxRows) {
+                            if (!TryParseDigits(_valueStarts[r], _valueEnds[r], out _currentRow)
+                                || _currentRow <= 0 || _currentRow > ExcelA1.MaxRows) {
                                 return false;
                             }
-                            if (currentRow > lastRow) lastRow = currentRow;
+                            if (_currentRow > _lastRow) _lastRow = _currentRow;
                         }
                     } else if (localLength == 1 && _buffer[localStart] == (byte)'c') {
                         int t = FindUnprefixedAttribute((byte)'t');
@@ -120,31 +255,32 @@ namespace OfficeIMO.Excel {
                         if (t >= 0 && !IsKnownCellType(_valueStarts[t], _valueEnds[t])
                             || r < 0
                             || !TryParseReference(_valueStarts[r], _valueEnds[r], out int row, out int column)
-                            || row != currentRow) {
+                            || row != _currentRow) {
                             return false;
                         }
-                        if (column > lastColumn) lastColumn = column;
+                        if (column > _lastColumn) _lastColumn = column;
                     }
 
                     if (selfClosing) {
-                        PopBindings(depth);
-                        if (depth == 0) rootClosed = true;
+                        PopBindings(_depth);
+                        if (_depth == 0) _rootClosed = true;
                     } else {
-                        if (depth == _elementStarts.Length) {
-                            Array.Resize(ref _elementStarts, depth * 2);
-                            Array.Resize(ref _elementLengths, depth * 2);
+                        if (_depth == _elementStarts.Length) {
+                            Array.Resize(ref _elementStarts, _depth * 2);
+                            Array.Resize(ref _elementLengths, _depth * 2);
                         }
-                        _elementStarts[depth] = nameStart;
-                        _elementLengths[depth] = elementNameEnd - nameStart;
-                        depth++;
+                        _elementStarts[_depth] = nameStart;
+                        _elementLengths[_depth] = elementNameEnd - nameStart;
+                        _depth++;
+                        if (stopAtSheetData && _depth == 2 && elementColon < 0
+                            && localLength == 9 && Matches(localStart, "sheetData")) {
+                            stopped = tagEnd + 1;
+                            atSheetData = true;
+                            return true;
+                        }
                     }
                     position = tagEnd + 1;
                 }
-
-                cancellationToken.ThrowIfCancellationRequested();
-                if (!rootSeen || !rootClosed || depth != 0) return false;
-                extent = new WorksheetExtent(lastRow, lastColumn);
-                return true;
             }
 
             /// <summary>Reads an ASCII name with at most one prefix; anything richer is left to the scan.</summary>
@@ -432,14 +568,14 @@ namespace OfficeIMO.Excel {
                 _valueEnds[index] - _valueStarts[index] == text.Length && Matches(_valueStarts[index], text);
 
             /// <summary>Values and short text end within a few bytes; long text uses the vectorized search.</summary>
-            private int IndexOfTagStart(int position) {
-                int shortEnd = Math.Min(_length, position + 16);
+            private int IndexOfTagStart(int position, int end) {
+                int shortEnd = Math.Min(end, position + 16);
                 for (int index = position; index < shortEnd; index++) {
                     if (_buffer[index] == (byte)'<') return index;
                 }
-                if (shortEnd == _length) return _length;
-                int relative = _buffer.AsSpan(shortEnd, _length - shortEnd).IndexOf((byte)'<');
-                return relative < 0 ? _length : shortEnd + relative;
+                if (shortEnd == end) return end;
+                int relative = _buffer.AsSpan(shortEnd, end - shortEnd).IndexOf((byte)'<');
+                return relative < 0 ? end : shortEnd + relative;
             }
 
             private bool BytesEqual(int firstStart, int firstLength, int secondStart, int secondLength) {
