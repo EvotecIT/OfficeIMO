@@ -31,6 +31,9 @@ public static partial class MarkdownPdfConverterExtensions {
             case SemanticFencedBlock semantic:
                 RenderSemanticFencedBlock(pdf, semantic, options, visualTheme);
                 break;
+            case MathBlock math:
+                RenderMathBlock(pdf, math, options, visualTheme);
+                break;
             case CalloutBlock callout:
                 RenderCalloutBlock(pdf, callout, document, options, visualTheme);
                 break;

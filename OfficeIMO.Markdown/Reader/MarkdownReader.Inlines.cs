@@ -8,6 +8,7 @@ internal static partial class MarkdownReader {
         if (state?.CaptureSyntaxTree == false
             && sourceMap == null
             && options.InlineParserExtensions.Count == 0
+            && !options.Math
             && !hasRegisteredAbbreviations
             && !ContainsPotentialInlineSyntax(text, options, allowLinks: true, allowImages: true)) {
             sequence = new InlineSequence { AutoSpacing = false };
