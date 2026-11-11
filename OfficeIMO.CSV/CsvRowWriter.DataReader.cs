@@ -44,8 +44,13 @@ public sealed partial class CsvRowWriter
 
         EnsureColumns(columns);
 
-        var usesBatchedRecords = _batchFormattedTextDataReader || _useDefaultWritePath;
-        int flushThreshold = _useDefaultWritePath
+#if NET6_0_OR_GREATER
+        var typedDefaultPath = _useDefaultWritePath || _useFormattedDefaultWritePath;
+#else
+        var typedDefaultPath = _useDefaultWritePath;
+#endif
+        var usesBatchedRecords = _batchFormattedTextDataReader || typedDefaultPath;
+        int flushThreshold = typedDefaultPath
             ? CsvWriter.DataReaderFlushThreshold
             : TextDelimiterDataReaderFlushThreshold;
         if (usesBatchedRecords)
@@ -55,7 +60,7 @@ public sealed partial class CsvRowWriter
 
         var useTypedBatch = false;
 #if NET6_0_OR_GREATER
-        var defaultFieldKinds = _useDefaultWritePath
+        var defaultFieldKinds = typedDefaultPath
             ? CsvWriter.TryCreateDataReaderFieldKinds(reader)
             : null;
         if (defaultFieldKinds != null)
@@ -119,13 +124,29 @@ public sealed partial class CsvRowWriter
 #if NET6_0_OR_GREATER
                 if (defaultFieldKinds != null)
                 {
-                    CsvWriter.AppendDataReaderRecordBufferedDefault(
-                        _rowBuffer,
-                        reader,
-                        defaultFieldKinds,
-                        _delimiter,
-                        _options.NewLine,
-                        _options.Culture);
+                    if (_useFormattedDefaultWritePath)
+                    {
+                        CsvWriter.AppendDataReaderRecordBufferedFormatted(
+                            _rowBuffer,
+                            reader,
+                            defaultFieldKinds,
+                            _delimiter,
+                            _options.NewLine,
+                            _options.Culture,
+                            _options.DateTimeFormat,
+                            _options.UseUtc,
+                            _options.NullValue);
+                    }
+                    else
+                    {
+                        CsvWriter.AppendDataReaderRecordBufferedDefault(
+                            _rowBuffer,
+                            reader,
+                            defaultFieldKinds,
+                            _delimiter,
+                            _options.NewLine,
+                            _options.Culture);
+                    }
                     if (useTypedBatch)
                     {
                         completedBufferedLength = _rowBuffer.Length;

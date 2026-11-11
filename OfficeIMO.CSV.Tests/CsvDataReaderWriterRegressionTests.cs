@@ -72,6 +72,41 @@ public class CsvDataReaderWriterRegressionTests
         Assert.Equal(expected, output);
     }
 
+    [Theory]
+    [InlineData("yyyy-MM-dd, HH:mm", false, "n,a")]
+    [InlineData("O", true, null)]
+    [InlineData("", true, "NULL")]
+    [InlineData(null, false, "\"none\"")]
+    [InlineData("dddd dddd dddd dddd dddd dddd dddd dddd dddd dddd dddd dddd dddd yyyy", false, null)]
+    public void WriteDataReader_FormattedValuesMatchRowWriting(string? format, bool useUtc, string? nullValue)
+    {
+        using var table = new DataTable();
+        table.Columns.Add("Id", typeof(int));
+        table.Columns.Add("Name", typeof(string));
+        table.Columns.Add("Created", typeof(DateTime));
+        table.Columns.Add("Offset", typeof(DateTimeOffset));
+        table.Columns.Add("Any", typeof(object));
+        table.Columns.Add("Amount", typeof(decimal));
+        table.Rows.Add(1, "a,b", new DateTime(2026, 3, 4, 5, 6, 7, DateTimeKind.Local),
+            new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.FromHours(2)), new DateTime(2025, 12, 31, 23, 59, 59, DateTimeKind.Utc), 1.5m);
+        table.Rows.Add(DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value);
+        table.Rows.Add(3, "plain", new DateTime(2024, 2, 29), new DateTimeOffset(2024, 2, 29, 0, 0, 0, TimeSpan.Zero), "text", -2m);
+        var options = new CsvSaveOptions { NewLine = "\n", DateTimeFormat = format, UseUtc = useUtc, NullValue = nullValue };
+
+        using var reader = table.CreateDataReader();
+        using var typed = new StringWriter(CultureInfo.InvariantCulture);
+        CsvDocument.WriteDataReader(typed, reader, options);
+
+        using var rows = new StringWriter(CultureInfo.InvariantCulture);
+        using (var writer = new CsvRowWriter(rows, options, leaveOpen: true))
+        {
+            string[] columns = table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray();
+            foreach (DataRow row in table.Rows) writer.WriteRow(columns, row.ItemArray);
+        }
+
+        Assert.Equal(rows.ToString(), typed.ToString());
+    }
+
     [Fact]
     public void WriteDataReader_MultiCharacterDelimiterPreservesLongCustomDateFormat()
     {

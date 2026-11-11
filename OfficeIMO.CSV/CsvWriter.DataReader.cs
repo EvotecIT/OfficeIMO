@@ -119,6 +119,144 @@ internal static partial class CsvWriter
         buffer.Append(newLine);
     }
 
+    /// <summary>
+    /// Typed record writing for options that also format dates or write a null marker. Values are
+    /// produced exactly as the general path produces them: dates are converted to UTC when requested,
+    /// formatted with the configured format and culture and escaped, and nulls write the escaped marker.
+    /// </summary>
+    internal static void AppendDataReaderRecordBufferedFormatted(
+        StringBuilder buffer,
+        IDataRecord reader,
+        DataReaderFieldKind[] fieldKinds,
+        char delimiter,
+        string newLine,
+        CultureInfo culture,
+        string? dateTimeFormat,
+        bool useUtc,
+        string? nullValue)
+    {
+        var format = string.IsNullOrEmpty(dateTimeFormat) ? null : dateTimeFormat;
+        for (var i = 0; i < fieldKinds.Length; i++)
+        {
+            if (i > 0)
+            {
+                buffer.Append(delimiter);
+            }
+
+            var fieldKind = fieldKinds[i];
+            if (fieldKind == DataReaderFieldKind.Object || !TryAppendFormattedTypedDataReaderValue(
+                    buffer, reader, i, fieldKind, delimiter, culture, format, useUtc, nullValue))
+            {
+                fieldKinds[i] = DataReaderFieldKind.Object;
+                AppendFormattedDataReaderObjectValue(buffer, reader.GetValue(i), delimiter, culture, dateTimeFormat, useUtc, nullValue);
+            }
+        }
+
+        buffer.Append(newLine);
+    }
+
+    private static bool TryAppendFormattedTypedDataReaderValue(
+        StringBuilder buffer,
+        IDataRecord reader,
+        int ordinal,
+        DataReaderFieldKind fieldKind,
+        char delimiter,
+        CultureInfo culture,
+        string? format,
+        bool useUtc,
+        string? nullValue)
+    {
+        try
+        {
+            if (reader.IsDBNull(ordinal))
+            {
+                AppendNullMarkerDefault(buffer, nullValue, delimiter);
+                return true;
+            }
+
+            if (fieldKind == DataReaderFieldKind.DateTime)
+            {
+                AppendFormattedDateDefault(buffer, reader.GetDateTime(ordinal), format, useUtc, delimiter, culture);
+                return true;
+            }
+        }
+        catch (InvalidCastException)
+        {
+            return false;
+        }
+        catch (NotSupportedException)
+        {
+            return false;
+        }
+        catch (NotImplementedException)
+        {
+            return false;
+        }
+
+        // Other kinds ignore the date and null options once the value is known not to be null.
+        return fieldKind != DataReaderFieldKind.DateTimeOffset
+            && TryAppendTypedDataReaderValue(buffer, reader, ordinal, fieldKind, delimiter, culture);
+    }
+
+    private static void AppendFormattedDataReaderObjectValue(
+        StringBuilder buffer,
+        object? value,
+        char delimiter,
+        CultureInfo culture,
+        string? dateTimeFormat,
+        bool useUtc,
+        string? nullValue)
+    {
+        if (value is null || ReferenceEquals(value, DBNull.Value))
+        {
+            AppendNullMarkerDefault(buffer, nullValue, delimiter);
+        }
+        else if (value is DateTime dateTime)
+        {
+            AppendFormattedDateDefault(buffer, dateTime, string.IsNullOrEmpty(dateTimeFormat) ? null : dateTimeFormat, useUtc, delimiter, culture);
+        }
+        else if (value is DateTimeOffset)
+        {
+            WriteEscapedDefault(buffer, FormatValue(value, culture, dateTimeFormat, useUtc, nullValue), delimiter);
+        }
+        else
+        {
+            AppendEscapedValueDefault(buffer, value, delimiter, culture);
+        }
+    }
+
+    private static void AppendNullMarkerDefault(StringBuilder buffer, string? nullValue, char delimiter)
+    {
+        if (nullValue is not null)
+        {
+            WriteEscapedDefault(buffer, nullValue, delimiter);
+        }
+    }
+
+    private static void AppendFormattedDateDefault(
+        StringBuilder buffer,
+        DateTime value,
+        string? format,
+        bool useUtc,
+        char delimiter,
+        CultureInfo culture)
+    {
+        if (useUtc)
+        {
+            value = value.ToUniversalTime();
+        }
+
+        Span<char> destination = stackalloc char[64];
+        if (value.TryFormat(destination, out var charsWritten, format, culture))
+        {
+            AppendEscapedSpanDefault(buffer, destination[..charsWritten], delimiter);
+        }
+        else
+        {
+            WriteEscapedDefault(buffer, value.ToString(format, culture), delimiter);
+        }
+    }
+
     private static bool TryAppendTypedDataReaderValue(
         StringBuilder buffer,
         IDataRecord reader,
