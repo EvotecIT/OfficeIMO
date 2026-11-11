@@ -95,9 +95,13 @@ public class YamlSerializerBehaviorTests {
     }
 
     [Fact]
-    public void DuplicateKeysFail() {
-        Assert.Equal(YamlErrorCodes.DuplicateKey, Assert.Throws<YamlException>(() => YamlSerializer.Deserialize("Name: a\nName: b\n", Context.AppConfig)).Code);
-        Assert.Equal(YamlErrorCodes.DuplicateKey, Assert.Throws<YamlException>(() => YamlSerializer.Deserialize("a: 1\na: 2\n", Context.DictionaryStringObject)).Code);
+    public void DuplicateKeysTakeTheLastValueUnlessStrict() {
+        Assert.Equal("b", YamlSerializer.Deserialize("Name: a\nName: b\n", Context.AppConfig)!.Name);
+        Assert.Equal(2L, YamlSerializer.Deserialize("a: 1\na: 2\n", Context.DictionaryStringObject)!["a"]);
+
+        var strict = new TestYamlContext(new YamlSerializerOptions { ReaderOptions = new YamlReaderOptions { Strict = true } });
+        Assert.Equal(YamlErrorCodes.DuplicateKey, Assert.Throws<YamlException>(() => YamlSerializer.Deserialize("Name: a\nName: b\n", strict.AppConfig)).Code);
+        Assert.Equal(YamlErrorCodes.DuplicateKey, Assert.Throws<YamlException>(() => YamlSerializer.Deserialize("a: 1\na: 2\n", strict.DictionaryStringObject)).Code);
     }
 
     // Only registered discriminators create derived types; a tag never names a .NET type by itself.

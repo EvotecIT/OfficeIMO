@@ -82,12 +82,16 @@ internal sealed class YamlEventCursor {
     }
 
     /// <summary>Creates a cursor over recorded events, positioned on the first.</summary>
-    public YamlEventCursor(List<YamlRecordedEvent> events, int maxExpansion) {
+    public YamlEventCursor(List<YamlRecordedEvent> events, int maxExpansion, bool strict) {
         _maxExpansion = maxExpansion;
+        _strict = strict;
         _log = events;
         PushFrame(events, 0, events.Count, countsExpansion: false);
         if (events.Count > 0) MoveReplay();
     }
+
+    /// <summary>Gets whether the input is read strictly; a duplicate key then fails instead of replacing the earlier value.</summary>
+    public bool Strict => _strict;
 
     public YamlTokenType TokenType => _live ? _reader!.TokenType : _current.Type;
 

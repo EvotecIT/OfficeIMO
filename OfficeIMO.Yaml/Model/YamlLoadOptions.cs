@@ -1,12 +1,18 @@
 namespace OfficeIMO.Yaml;
 
-/// <summary>How <see cref="YamlDocument"/> treats a mapping that contains two equal keys.</summary>
+/// <summary>
+/// How <see cref="YamlDocument"/> treats a mapping that contains two equal keys. Without an explicit policy, loads use
+/// <see cref="LastWins"/>, and strict loads (<see cref="YamlLoadOptions.Strict"/>) use <see cref="Error"/>.
+/// </summary>
 public enum YamlDuplicateKeyPolicy : byte {
-    /// <summary>The load fails with <see cref="YamlErrorCodes.DuplicateKey"/>, as the YAML specification requires. This is the default.</summary>
+    /// <summary>The load fails with <see cref="YamlErrorCodes.DuplicateKey"/>, as the YAML specification requires. Strict loads use it by default.</summary>
     Error = 0,
-    /// <summary>The load succeeds; key lookups return the first of the equal keys, and each later one is reported as a diagnostic.</summary>
+    /// <summary>The load succeeds; key lookups return the first of the equal keys, and each later one is reported as a warning diagnostic.</summary>
     FirstWins,
-    /// <summary>The load succeeds; key lookups return the last of the equal keys, and each later one is reported as a diagnostic.</summary>
+    /// <summary>
+    /// The load succeeds; key lookups, paths and the serializer use the last of the equal keys, as PyYAML, go-yaml v2 and
+    /// SharpYaml do, and each later one is reported as a warning diagnostic. Non-strict loads use it by default.
+    /// </summary>
     LastWins
 }
 
@@ -62,18 +68,28 @@ public sealed class YamlLoadOptions {
     /// real files rely on and libyaml and SharpYaml accept: flow-collection lines (such as a closing <c>]</c>
     /// under its key) and quoted-scalar continuation lines indented no deeper than the enclosing block collection, and
     /// <c>&lt;&lt;</c> merge keys under the YAML 1.2 core schema as under YAML 1.1, so repeated <c>&lt;&lt;</c> keys
-    /// (common in docker-compose and GitLab CI files) are one merge list rather than duplicate keys. Each accepted
+    /// (common in docker-compose and GitLab CI files) are one merge list rather than duplicate keys, and duplicate keys
+    /// unless <see cref="DuplicateKeys"/> says otherwise (the last one wins). Each accepted
     /// indentation and each document part that uses merge keys without a <c>%YAML 1.1</c> directive is reported in
-    /// <see cref="YamlDocument.Diagnostics"/>. When on, both indentation forms are syntax errors and <c>&lt;&lt;</c> is an
-    /// ordinary key unless the YAML 1.1 schema applies. Saving never writes the accepted indentation for new or edited text.
+    /// <see cref="YamlDocument.Diagnostics"/>. When on, both indentation forms are syntax errors, <c>&lt;&lt;</c> is an
+    /// ordinary key unless the YAML 1.1 schema applies, and a duplicate key fails the load unless <see cref="DuplicateKeys"/>
+    /// is set. Saving never writes the accepted indentation for new or edited text.
     /// </summary>
     public bool Strict {
         get => _reader.Strict;
         set => _reader.Strict = value;
     }
 
-    /// <summary>Gets or sets how a mapping with equal keys loads. Defaults to <see cref="YamlDuplicateKeyPolicy.Error"/>.</summary>
-    public YamlDuplicateKeyPolicy DuplicateKeys { get; set; }
+    /// <summary>
+    /// Gets or sets how a mapping with equal keys loads. When <see langword="null"/> (the default), the last key wins and
+    /// each repeat is a <see cref="OfficeDiagnosticCodes.YamlDuplicateKey"/> warning in <see cref="YamlDocument.Diagnostics"/>,
+    /// or, with <see cref="Strict"/>, the load fails with <see cref="YamlErrorCodes.DuplicateKey"/> as the specification requires.
+    /// Either way the document keeps every entry, so saving reproduces the file.
+    /// </summary>
+    public YamlDuplicateKeyPolicy? DuplicateKeys { get; set; }
+
+    /// <summary>The policy the load applies: <see cref="DuplicateKeys"/>, or the default that <see cref="Strict"/> selects.</summary>
+    internal YamlDuplicateKeyPolicy EffectiveDuplicateKeys => DuplicateKeys ?? (Strict ? YamlDuplicateKeyPolicy.Error : YamlDuplicateKeyPolicy.LastWins);
 
     /// <summary>Gets or sets the maximum nesting of collections and flow brackets. Defaults to 256.</summary>
     public int MaxDepth {

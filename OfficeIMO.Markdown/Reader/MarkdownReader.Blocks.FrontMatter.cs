@@ -24,13 +24,9 @@ internal static partial class MarkdownReader {
 
     private static bool IsFrontMatterFence(string? line) => string.Equals(line?.Trim(), FrontMatterBlock.Fence, StringComparison.Ordinal);
 
-    private static YamlLoadOptions CreateFrontMatterLoadOptions() {
-        // Front matter comes from documents of unknown origin. Repeated keys are common in hand-edited files and the
-        // last one wins in Jekyll, Hugo and the earlier OfficeIMO reader, so they are reported instead of failing.
-        YamlLoadOptions options = YamlLoadOptions.UntrustedDefaults;
-        options.DuplicateKeys = YamlDuplicateKeyPolicy.LastWins;
-        return options;
-    }
+    // Front matter comes from documents of unknown origin. Repeated keys are common in hand-edited files; the engine's
+    // default lets the last one win, as Jekyll and Hugo do, and reports each repeat instead of failing.
+    private static YamlLoadOptions CreateFrontMatterLoadOptions() => YamlLoadOptions.UntrustedDefaults;
 
     /// <summary>Parses the lines between the fences with the YAML engine; invalid YAML is kept as text with a positioned error.</summary>
     private static FrontMatterBlock ParseFrontMatterBlock(string[] lines, int closingIndex, MarkdownReaderState state) {

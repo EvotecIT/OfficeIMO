@@ -226,7 +226,7 @@ public static class YamlSerializer {
         if (node is null) throw new ArgumentNullException(nameof(node));
         if (typeInfo is null) throw new ArgumentNullException(nameof(typeInfo));
         int maxExpansion = typeInfo.Options.EffectiveReaderOptions.MaxAliasExpansion;
-        var cursor = new YamlEventCursor(YamlEventCursor.Record(node), maxExpansion);
+        var cursor = new YamlEventCursor(YamlEventCursor.Record(node), maxExpansion, typeInfo.Options.EffectiveReaderOptions.Strict);
         return typeInfo.Read(cursor, new YamlReadState(typeInfo.Options));
     }
 
@@ -375,7 +375,7 @@ public static class YamlSerializer {
     private static object? DeserializeBoxed(YamlNode node, YamlTypeInfo typeInfo) {
         if (node is null) throw new ArgumentNullException(nameof(node));
         int maxExpansion = typeInfo.Options.EffectiveReaderOptions.MaxAliasExpansion;
-        var cursor = new YamlEventCursor(YamlEventCursor.Record(node), maxExpansion);
+        var cursor = new YamlEventCursor(YamlEventCursor.Record(node), maxExpansion, typeInfo.Options.EffectiveReaderOptions.Strict);
         return typeInfo.ReadBoxed(cursor, new YamlReadState(typeInfo.Options));
     }
 

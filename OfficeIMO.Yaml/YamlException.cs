@@ -94,8 +94,9 @@ public static class YamlErrorCodes {
     /// <summary>An alias (<c>*name</c>) that no preceding anchor in the same document defines.</summary>
     public const string UndefinedAlias = "Yaml.Load.UndefinedAlias";
     /// <summary>
-    /// A mapping with two equal keys. <see cref="YamlDocument"/> throws it under <see cref="YamlDuplicateKeyPolicy.Error"/>
-    /// and reports it as a warning diagnostic under the other policies.
+    /// A mapping with two equal keys. <see cref="YamlDocument"/> throws it under <see cref="YamlDuplicateKeyPolicy.Error"/>,
+    /// the default of strict loads, and reports it as a warning diagnostic under the other policies.
+    /// <see cref="YamlSerializer"/> throws it only when <see cref="YamlReaderOptions.Strict"/> is set; otherwise the last key wins.
     /// </summary>
     public const string DuplicateKey = "Yaml.Load.DuplicateKey";
     /// <summary>An alias inside the collection its anchor names (<c>&amp;a [*a]</c>), which would make the document infinite.</summary>

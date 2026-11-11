@@ -241,7 +241,7 @@ internal sealed class YamlTreeBuilder {
         if (text.Length > 64) text = text.Substring(0, 61) + "...";
         YamlPosition position = _document.GetPosition(key._start);
         string message = "The mapping key '" + text + "' at " + position + " repeats the key at " + _document.GetPosition(first._start) + ".";
-        if (_options.DuplicateKeys == YamlDuplicateKeyPolicy.Error) throw new YamlException(YamlErrorCodes.DuplicateKey, message, position);
+        if (_options.EffectiveDuplicateKeys == YamlDuplicateKeyPolicy.Error) throw new YamlException(YamlErrorCodes.DuplicateKey, message, position);
         _document.AddDiagnostic(new OfficeDiagnostic(OfficeDiagnosticCodes.YamlDuplicateKey, OfficeDiagnosticSeverity.Warning,
             message + YamlExcerpt.Format(_document._source, key._start), position.ToString(), "YAML"));
     }

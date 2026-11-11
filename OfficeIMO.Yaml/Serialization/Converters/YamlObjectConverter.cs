@@ -203,7 +203,7 @@ internal sealed class YamlObjectConverter<T> : YamlConverter<T>, IYamlObjectConv
                 cursor.Skip();
                 continue;
             }
-            if (flags[index] == Explicit) throw YamlSerializationErrors.DuplicateKey(cursor, state, property.Name);
+            if (flags[index] == Explicit && cursor.Strict) throw YamlSerializationErrors.DuplicateKey(cursor, state, property.Name);
             state.PushKey(property.Name);
             if (values is not null) values[index] = property.ReadBoxed(cursor, state);
             else property.ReadAndSet(cursor, state, owner!);
