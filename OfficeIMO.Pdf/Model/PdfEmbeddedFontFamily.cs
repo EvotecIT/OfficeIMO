@@ -49,6 +49,25 @@ public sealed partial class PdfEmbeddedFontFamily {
         _boldItalic = boldItalic == null ? null : SnapshotFace(boldItalic, familyName);
     }
 
+    // Faces read from disk by the library are private to it, so they need no defensive snapshot copy.
+    private PdfEmbeddedFontFamily(string familyName, byte[] regular, byte[]? bold, byte[]? italic, byte[]? boldItalic, bool facesOwned) {
+        Guard.NotNullOrWhiteSpace(familyName, nameof(familyName));
+        Guard.NotNullOrEmpty(regular, nameof(regular));
+        PdfFontInput.EnsureWithinLimit(regular.LongLength);
+        if (bold != null) PdfFontInput.EnsureWithinLimit(bold.LongLength);
+        if (italic != null) PdfFontInput.EnsureWithinLimit(italic.LongLength);
+        if (boldItalic != null) PdfFontInput.EnsureWithinLimit(boldItalic.LongLength);
+        FamilyName = familyName.Trim();
+        _regular = regular;
+        _bold = bold;
+        _italic = italic;
+        _boldItalic = boldItalic;
+    }
+
+    /// <summary>Creates a family from face bytes that no caller can reach or change.</summary>
+    internal static PdfEmbeddedFontFamily FromOwnedFaces(string familyName, byte[] regular, byte[]? bold, byte[]? italic, byte[]? boldItalic) =>
+        new PdfEmbeddedFontFamily(familyName, regular, bold, italic, boldItalic, facesOwned: true);
+
     /// <summary>Family name used for generated PDF font resource names.</summary>
     public string FamilyName { get; }
 

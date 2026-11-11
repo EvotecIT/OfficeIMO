@@ -86,6 +86,8 @@ public sealed partial class OfficeConversionOptions {
     public ReaderVisioOptions? ReaderVisio { get; set; }
     /// <summary>Reader-to-PDF pagination, resource and attachment policy.</summary>
     public PdfProjectionOptions? ReaderPdf { get; set; }
+    /// <summary>Styled email-to-PDF header, body, attachment-list and page settings. The TextOnly output profile uses the Reader projection instead.</summary>
+    public OfficeIMO.Email.EmailPdfExportOptions? EmailPdf { get; set; }
     /// <summary>HTML-to-PDF rendering and resource settings.</summary>
     public HtmlPdfExportOptions? Html { get; set; }
     /// <summary>PDF-to-HTML semantic or positioned review settings.</summary>
@@ -166,6 +168,7 @@ public sealed partial class OfficeConversionOptions {
         copy.ReaderVisio = ReaderVisioOptionsCloner.CloneNullable(ReaderVisio);
         copy.ReaderPipeline = ReaderPipeline;
         copy.ReaderPdf = ReaderPdf?.Snapshot();
+        copy.EmailPdf = EmailPdf?.Clone();
         copy.Html = Html?.ClonePdf(); copy.PdfHtml = PdfHtml?.CloneForConversion(); copy.PlainText = PlainText?.Clone();
         copy.Markdown = Markdown?.Clone(); copy.PdfLoad = PdfLoad?.Clone();
         copy.PdfWord = PdfWord?.Clone(); copy.PdfExcel = PdfExcel?.Clone(); copy.PdfPowerPoint = PdfPowerPoint?.Snapshot();

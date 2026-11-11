@@ -38,7 +38,7 @@ internal static partial class HtmlConversionInputGuard {
                     tracker?.RecordElementStart(depth);
                     ValidateSemanticAttributes(element, limits.MaxSemanticMetadataCharacters, cancellationToken);
                     if (string.Equals(element.LocalName, "style", StringComparison.OrdinalIgnoreCase)) {
-                        cssBudget.ReserveOrThrow(element.TextContent ?? string.Empty);
+                        cssBudget.ReserveOrThrow(HtmlStyleElementText.Read(element) ?? string.Empty);
                     }
                     string? inlineStyle = element.GetAttribute("style");
                     if (!string.IsNullOrEmpty(inlineStyle)) cssBudget.ReserveOrThrow(inlineStyle!);

@@ -23,6 +23,8 @@ internal static partial class PdfWriter {
             AppendClipPath(sb, item.ClipPath, item.X, bottomY, item.Height);
 
             int diagnosticClipCount = _diagnosticCanvasClips.Count;
+            int diagnosticSourceClipCount = _diagnosticSourceClipStack.Count;
+            int diagnosticTargetClipCount = _diagnosticTargetClipStack.Count;
             if (currentOpts.HasDiagnosticsReport) {
                 OfficeTransform placement = new OfficeTransform(1D, 0D, 0D, -1D, item.X, bottomY + item.Height).Then(_canvasEffectToPage);
                 var diagnosticContours = OfficeClipPathGeometry.CreateContours(item.ClipPath, points => {
@@ -30,8 +32,10 @@ internal static partial class PdfWriter {
                     foreach (OfficePoint point in points) { cancellationToken.ThrowIfCancellationRequested(); mapped.Add(placement.TransformPoint(point)); }
                     return mapped;
                 });
-                _diagnosticCanvasClips.Add(OfficeTextInkClip.FromFilledContours(diagnosticContours, item.ClipPath.FillRule));
+                OfficeTextInkClip diagnosticClip = OfficeTextInkClip.FromFilledContours(diagnosticContours, item.ClipPath.FillRule);
+                _diagnosticCanvasClips.Add(diagnosticClip);
                 _diagnosticCanvasSourceClips.Add(item.PreservesSourceClip);
+                (item.PreservesSourceClip ? _diagnosticSourceClipStack : _diagnosticTargetClipStack).Add(diagnosticClip);
             }
             _canvasClipDepth++;
             try {
@@ -40,6 +44,8 @@ internal static partial class PdfWriter {
                 _canvasClipDepth--;
                 _diagnosticCanvasClips.RemoveRange(diagnosticClipCount, _diagnosticCanvasClips.Count - diagnosticClipCount);
                 _diagnosticCanvasSourceClips.RemoveRange(diagnosticClipCount, _diagnosticCanvasSourceClips.Count - diagnosticClipCount);
+                _diagnosticSourceClipStack.RemoveRange(diagnosticSourceClipCount, _diagnosticSourceClipStack.Count - diagnosticSourceClipCount);
+                _diagnosticTargetClipStack.RemoveRange(diagnosticTargetClipCount, _diagnosticTargetClipStack.Count - diagnosticTargetClipCount);
             }
 
             ClipCanvasLinkAnnotations(currentPage.Annotations, annotationStart, item.X, bottomY, item.Width, item.Height, item.ClipPath);

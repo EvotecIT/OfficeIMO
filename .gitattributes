@@ -70,6 +70,8 @@ OfficeIMO.TestAssets/TableGeometry/manifest.json text eol=lf
 OfficeIMO.TestAssets/TableGeometry/ruling-controls-manifest.json text eol=lf
 OfficeIMO.TestAssets/*Layout/manifest.json text eol=lf
 OfficeIMO.TestAssets/ScanQuality/sources.json text eol=lf
+# Independent corpus PDFs are byte-identical upstream copies pinned by SHA-256.
+OfficeIMO.TestAssets/Pdf/IndependentCorpus/*.pdf -text -diff
 
 # Independent redaction fixtures include ASCII containers and embedded fonts.
 # Preserve source fingerprints and PDF stream/xref byte offsets on every OS.

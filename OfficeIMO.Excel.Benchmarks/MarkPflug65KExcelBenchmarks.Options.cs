@@ -27,6 +27,14 @@ public partial class MarkPflug65KXlsxBenchmarks {
         return Validate(nameof(OfficeIMO_Loaded), Observe(reader));
     }
 
+    /// <summary>Single-pass delivery: rows are read while inflation and validation continue.</summary>
+    [Benchmark]
+    public ExcelReadObservation OfficeIMO_SinglePass() {
+        using var reader = ExcelDocument.OpenReader(MarkPflug65KFixture.XlsxPath,
+            new ExcelReaderOptions { NumericAsDecimal = true, SheetName = null, EnableSinglePassReading = true });
+        return Validate(nameof(OfficeIMO_SinglePass), Observe(reader));
+    }
+
     /// <summary>Excludes file access using the same immutable package as the memory comparison.</summary>
     [Benchmark]
     public ExcelReadObservation OfficeIMO_Memory() {
@@ -51,6 +59,16 @@ public partial class MarkPflug65KXlsxBenchmarks {
         return Validate(nameof(ExcelReaderNet_InternStrings), ObserveExcelReader(reader));
     }
 #endif
+}
+
+public partial class MarkPflug65KXlsbBenchmarks {
+    /// <summary>Single-pass delivery: rows are read while inflation and validation continue.</summary>
+    [Benchmark]
+    public ExcelReadObservation OfficeIMO_SinglePass() {
+        using var reader = ExcelDocument.OpenReader(MarkPflug65KFixture.XlsbPath,
+            new ExcelReaderOptions { NumericAsDecimal = true, EnableSinglePassReading = true });
+        return Validate(nameof(OfficeIMO_SinglePass), MarkPflug65KXlsxBenchmarks.Observe(reader));
+    }
 }
 
 #if NET10_0_OR_GREATER

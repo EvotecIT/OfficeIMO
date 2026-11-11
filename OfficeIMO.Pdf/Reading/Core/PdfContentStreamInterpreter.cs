@@ -8,7 +8,7 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 internal static class PdfContentStreamInterpreter {
     internal static void Interpret(
-        string content,
+        PdfContentSource content,
         int maxOperations,
         Action<PdfContentOperation> visit,
         Func<string, int>? inlineImageComponentCount = null,
@@ -16,18 +16,24 @@ internal static class PdfContentStreamInterpreter {
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
         bool dispatchInvalidOperations = false,
         Func<PdfArray, int>? inlineImageArrayComponentCount = null,
-        List<object>? operandBuffer = null) {
-        Guard.NotNull(content, nameof(content));
+        PdfContentOperands? operandBuffer = null) {
+        content.ThrowIfNull(nameof(content));
         Guard.NotNull(visit, nameof(visit));
-        var reader = new Reader(content, maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations, operandBuffer);
-        reader.InterpretUntil(operation => {
+        Func<PdfContentOperation, bool> visitAll = operation => {
             visit(operation);
             return true;
-        });
+        };
+        if (content.Bytes is byte[] bytes) {
+            new Reader<PdfByteContentText>(new PdfByteContentText(bytes), maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations, operandBuffer)
+                .InterpretUntil(visitAll);
+        } else {
+            new Reader<PdfStringContentText>(new PdfStringContentText(content.Text!), maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations, operandBuffer)
+                .InterpretUntil(visitAll);
+        }
     }
 
     internal static bool InterpretUntil(
-        string content,
+        PdfContentSource content,
         int maxOperations,
         Func<PdfContentOperation, bool> visit,
         Func<string, int>? inlineImageComponentCount = null,
@@ -35,37 +41,86 @@ internal static class PdfContentStreamInterpreter {
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
         bool dispatchInvalidOperations = false,
         Func<PdfArray, int>? inlineImageArrayComponentCount = null) {
-        Guard.NotNull(content, nameof(content));
+        content.ThrowIfNull(nameof(content));
         Guard.NotNull(visit, nameof(visit));
-        var reader = new Reader(content, maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations);
-        return reader.InterpretUntil(visit);
+        return content.Bytes is byte[] bytes
+            ? new Reader<PdfByteContentText>(new PdfByteContentText(bytes), maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations)
+                .InterpretUntil(visit)
+            : new Reader<PdfStringContentText>(new PdfStringContentText(content.Text!), maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations)
+                .InterpretUntil(visit);
     }
 
-    private sealed class Reader {
-        private readonly string _content;
+    // Operators are short Latin-1 tokens; reusing one instance per operator avoids a string per operation.
+    private static readonly Dictionary<int, string> KnownOperators = CreateKnownOperators();
+
+    private static Dictionary<int, string> CreateKnownOperators() {
+        string[] operators = {
+            "b", "B", "b*", "B*", "BDC", "BI", "BMC", "BT", "BX", "c", "cm", "CS", "cs", "d", "d0", "d1", "Do", "DP",
+            "EI", "EMC", "ET", "EX", "f", "F", "f*", "G", "g", "gs", "h", "i", "ID", "j", "J", "K", "k", "l", "m", "M",
+            "MP", "n", "q", "Q", "re", "RG", "rg", "ri", "s", "S", "SC", "sc", "SCN", "scn", "sh", "T*", "Tc", "Td",
+            "TD", "Tf", "Tj", "TJ", "TL", "Tm", "Tr", "Ts", "Tw", "Tz", "v", "w", "W", "W*", "y"
+        };
+        var known = new Dictionary<int, string>(operators.Length);
+        foreach (string op in operators) {
+            if (TryGetOperatorKey(op, 0, op.Length, out int key)) known.Add(key, op);
+        }
+        return known;
+    }
+
+    // Packs up to three Latin-1 characters with the length. Longer tokens are not interned.
+    private static bool TryGetOperatorKey(string source, int start, int length, out int key) =>
+        TryGetOperatorKey(new PdfStringContentText(source), start, length, out key);
+
+    private static bool TryGetOperatorKey<TText>(TText source, int start, int length, out int key)
+        where TText : struct, IPdfContentText {
+        key = 0;
+        if (length is < 1 or > 3) return false;
+        int packed = length << 24;
+        for (int index = 0; index < length; index++) {
+            char character = source[start + index];
+            if (character > 0xFF) return false;
+            packed |= character << (index * 8);
+        }
+        key = packed;
+        return true;
+    }
+
+    // Generic over the content representation so decoded stream bytes are read directly. The byte
+    // view behaves exactly like the Latin-1 string the reader used before: one character per byte.
+    private sealed class Reader<TText> where TText : struct, IPdfContentText {
+        private const int CacheSlots = 64;
+        private readonly TText _content;
+        private string? _contentString;
         private readonly int _maxOperations;
         private readonly int _maxOperands;
         private readonly int _maxNestingDepth;
         private readonly Func<string, int>? _inlineImageComponentCount;
         private readonly Func<PdfArray, int>? _inlineImageArrayComponentCount;
         private readonly bool _dispatchInvalidOperations;
-        private readonly List<object> _operands;
+        private readonly PdfContentOperands _operands;
         private readonly bool _borrowOperands;
         private int _index;
         private int _operationCount;
         private int _operandCount;
         private int _markedContentDepth;
         private bool _hasInvalidOperand;
+        private string?[]? _rawNames;
+        private string?[]? _decodedNames;
+        private PdfContentOperands?[]? _arrayScratch;
+        // Borrowed operands may also borrow their mixed arrays, such as TJ arrays. A synchronous
+        // visitor reads them only during its callback, so the lists are reused by later operations.
+        private List<PdfContentOperands>? _borrowedArrays;
+        private int _borrowedArrayCount;
 
         internal Reader(
-            string content,
+            TText content,
             int maxOperations,
             int maxOperands,
             int maxNestingDepth,
             Func<string, int>? inlineImageComponentCount,
             Func<PdfArray, int>? inlineImageArrayComponentCount,
             bool dispatchInvalidOperations,
-            List<object>? operandBuffer = null) {
+            PdfContentOperands? operandBuffer = null) {
             _content = content;
             _maxOperations = maxOperations;
             _maxOperands = maxOperands;
@@ -76,7 +131,7 @@ internal static class PdfContentStreamInterpreter {
             // An explicitly supplied buffer belongs to a synchronous visitor. Its contents
             // are valid only during that callback; ordinary visitors retain stable snapshots.
             _borrowOperands = operandBuffer != null;
-            _operands = operandBuffer ?? new List<object>(8);
+            _operands = operandBuffer ?? new PdfContentOperands();
             _operands.Clear();
         }
 
@@ -93,11 +148,7 @@ internal static class PdfContentStreamInterpreter {
                     continue;
                 }
 
-                if (TryReadValue(0, out object? value)) {
-                    if (value is not null) {
-                        _operands.Add(value);
-                    }
-
+                if (TryReadOperand(0, _operands)) {
                     continue;
                 }
 
@@ -124,14 +175,14 @@ internal static class PdfContentStreamInterpreter {
                 bool invalidOperation = hasInvalidOperand || hasInvalidInlineImageOperand;
                 bool skipOperation = hasInvalidInlineImageOperand && !_dispatchInvalidOperations ||
                     hasInvalidOperand && !_dispatchInvalidOperations && !CanDispatchWithInvalidOperands(name);
-                if (invalidOperation) _operands.Clear();
+                if (invalidOperation) ClearOperands();
                 var operation = new PdfContentOperation(
                     name,
-                    _borrowOperands ? _operands : _operands.Count == 0 ? Array.Empty<object>() : _operands.ToArray(),
+                    _borrowOperands ? _operands : _operands.ToObjectArray(),
                     operatorOffset,
                     inlineImage,
                     invalidOperation);
-                if (!_borrowOperands || skipOperation) _operands.Clear();
+                if (!_borrowOperands || skipOperation) ClearOperands();
                 _hasInvalidOperand = false;
                 if (skipOperation) {
                     continue;
@@ -148,7 +199,7 @@ internal static class PdfContentStreamInterpreter {
                 try {
                     keepReading = visit(operation);
                 } finally {
-                    if (_borrowOperands) _operands.Clear();
+                    if (_borrowOperands) ClearOperands();
                 }
                 if (!keepReading) {
                     return false;
@@ -162,7 +213,7 @@ internal static class PdfContentStreamInterpreter {
                         _maxOperations,
                         _operationCount);
                 }
-                _operands.Clear();
+                ClearOperands();
                 _hasInvalidOperand = false;
                 return visit(new PdfContentOperation(
                     string.Empty,
@@ -173,6 +224,57 @@ internal static class PdfContentStreamInterpreter {
             }
 
             return true;
+        }
+
+        // Reads one operand into a typed list: numbers stay unboxed and strings stay in its buffer.
+        private bool TryReadOperand(int nestingDepth, PdfContentOperands target) {
+            if (_index >= _content.Length) {
+                return false;
+            }
+
+            char current = _content[_index];
+            if (current == '/') {
+                target.AddObject(ReadName());
+                CountOperand();
+                return true;
+            }
+
+            if (current == '(') {
+                ReadLiteralString(target);
+                CountOperand();
+                return true;
+            }
+
+            if (current == '<') {
+                if (_index + 1 < _content.Length && _content[_index + 1] == '<') {
+                    int childDepth = EnsureNestingBudget(nestingDepth);
+                    target.AddObject(ReadDictionary(childDepth));
+                } else {
+                    ReadHexString(target);
+                }
+                CountOperand();
+                return true;
+            }
+
+            if (current == '[') {
+                target.AddObject(ReadArray(EnsureNestingBudget(nestingDepth), borrowMixedResult: _borrowOperands && nestingDepth == 0));
+                CountOperand();
+                return true;
+            }
+
+            if (IsNumberStart(current)) {
+                double? number = ReadNumber();
+                if (number.HasValue) {
+                    target.AddNumber(number.Value);
+                } else {
+                    _hasInvalidOperand = true;
+                }
+
+                CountOperand();
+                return true;
+            }
+
+            return false;
         }
 
         private bool TryReadValue(int nestingDepth, out object? value) {
@@ -206,7 +308,7 @@ internal static class PdfContentStreamInterpreter {
             }
 
             if (current == '[') {
-                value = ReadArray(EnsureNestingBudget(nestingDepth));
+                value = ReadArray(EnsureNestingBudget(nestingDepth), borrowMixedResult: _borrowOperands && nestingDepth == 0);
                 CountOperand();
                 return true;
             }
@@ -214,7 +316,7 @@ internal static class PdfContentStreamInterpreter {
             if (IsNumberStart(current)) {
                 double? number = ReadNumber();
                 if (number.HasValue) {
-                    value = number.Value;
+                    value = PdfContentNumberBoxes.Box(number.Value);
                 } else {
                     _hasInvalidOperand = true;
                 }
@@ -229,12 +331,29 @@ internal static class PdfContentStreamInterpreter {
         private string ReadName() {
             _index++;
             int start = _index;
+            uint hash = 2166136261;
             while (_index < _content.Length && !IsDelimiter(_content[_index])) {
+                hash = unchecked((hash ^ _content[_index]) * 16777619);
                 _index++;
             }
 
-            return PdfSyntax.DecodeName(_content.Substring(start, _index - start));
+            // Resource and tag names repeat throughout a stream; decode each distinct spelling once.
+            int length = _index - start;
+            int slot = (int)(hash % CacheSlots);
+            _rawNames ??= new string?[CacheSlots];
+            _decodedNames ??= new string?[CacheSlots];
+            string? raw = _rawNames[slot];
+            if (raw != null && raw.Length == length && EqualsAt(start, raw)) {
+                return _decodedNames[slot]!;
+            }
+
+            raw = _content.Substring(start, length);
+            string decoded = PdfSyntax.DecodeName(raw);
+            _rawNames[slot] = raw;
+            _decodedNames[slot] = decoded;
+            return decoded;
         }
+
 
         private double? ReadNumber() {
             int start = _index++;
@@ -252,23 +371,74 @@ internal static class PdfContentStreamInterpreter {
                 _index++;
             }
 
-#pragma warning disable CA1846 // Keep netstandard2.0-safe parsing.
-            bool parsed = double.TryParse(
 #if NET8_0_OR_GREATER
-                _content.AsSpan(start, _index - start),
-#else
-                _content.Substring(start, _index - start),
+            if (TryParseSimpleDecimal(start, _index - start, out double simple)) return simple;
 #endif
-                NumberStyles.Float,
-                CultureInfo.InvariantCulture,
-                out double value);
-#pragma warning restore CA1846
+            bool parsed = _content.TryParseDouble(start, _index - start, out double value);
             return parsed && !double.IsNaN(value) && !double.IsInfinity(value)
                 ? value
                 : (double?)null;
         }
 
+#if NET8_0_OR_GREATER
+        // Plain decimals such as "12", "-0.5" or "612.000" with at most 15 significant digits and
+        // 22 fractional digits. Both the digits and the power of ten are exact doubles, so one IEEE
+        // division yields the correctly rounded value that double.TryParse returns on this runtime.
+        private bool TryParseSimpleDecimal(int start, int length, out double value) {
+            value = 0D;
+            int index = start;
+            int end = start + length;
+            bool negative = false;
+            if (index < end && (_content[index] == '-' || _content[index] == '+')) {
+                negative = _content[index] == '-';
+                index++;
+            }
+            long mantissa = 0;
+            int digits = 0;
+            int fractionDigits = 0;
+            bool seenPoint = false;
+            bool seenDigit = false;
+            for (; index < end; index++) {
+                char character = _content[index];
+                if (character >= '0' && character <= '9') {
+                    seenDigit = true;
+                    if (mantissa == 0 && character == '0') {
+                        if (seenPoint) fractionDigits++;
+                        continue;
+                    }
+                    if (++digits > 15) return false;
+                    mantissa = (mantissa * 10) + (character - '0');
+                    if (seenPoint) fractionDigits++;
+                } else if (character == '.' && !seenPoint) {
+                    seenPoint = true;
+                } else {
+                    return false;
+                }
+            }
+            if (!seenDigit || fractionDigits > 22) return false;
+            double magnitude = fractionDigits == 0 ? mantissa : mantissa / ExactPowersOfTen[fractionDigits];
+            value = negative ? -magnitude : magnitude;
+            return true;
+        }
+
+        private static readonly double[] ExactPowersOfTen = {
+            1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11,
+            1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22
+        };
+#endif
+
         private byte[] ReadLiteralStringBytes() {
+            int start = ScanLiteralString(out int length);
+            return ParseLiteralBytes(start, length);
+        }
+
+        private void ReadLiteralString(PdfContentOperands target) {
+            int start = ScanLiteralString(out int length);
+            byte[] buffer = target.BeginString(length, out int offset);
+            target.CommitString(offset, DecodeLiteralInto(start, length, buffer, offset));
+        }
+
+        private int ScanLiteralString(out int length) {
             int start = ++_index;
             int depth = 1;
             bool escaped = false;
@@ -288,29 +458,175 @@ internal static class PdfContentStreamInterpreter {
             if (depth != 0 || escaped) _hasInvalidOperand = true;
 
             int end = _index - (depth == 0 || escaped ? 1 : 0);
-            return PdfStringParser.ParseLiteralToBytes(_content, start, end - start);
+            length = end - start;
+            return start;
         }
 
         private byte[] ReadHexStringBytes() {
+            int start = ScanHexString(out int length);
+            return DecodeHexBytes(start, length);
+        }
+
+        private void ReadHexString(PdfContentOperands target) {
+            int start = ScanHexString(out int length);
+            byte[] buffer = target.BeginString((length + 1) / 2, out int offset);
+            target.CommitString(offset, DecodeHexInto(start, length, buffer, offset));
+        }
+
+        private int ScanHexString(out int length) {
             _index++;
             int start = _index;
             while (_index < _content.Length && _content[_index] != '>') {
                 _index++;
             }
 
-            string hex = _content.Substring(start, _index - start);
+            length = _index - start;
             if (_index < _content.Length) {
                 _index++;
             } else {
                 _hasInvalidOperand = true;
             }
 
-            return PdfTextString.DecodeHexBytes(hex);
+            return start;
         }
 
-        private object ReadArray(int nestingDepth) {
+        // Same decoding as PdfStringParser.ParseLiteralToBytes over the reader's content.
+        private byte[] ParseLiteralBytes(int start, int length) {
+            if (length == 0) return Array.Empty<byte>();
+            var bytes = new byte[length];
+            int count = DecodeLiteralInto(start, length, bytes, 0);
+            if (count == bytes.Length) return bytes;
+            var result = new byte[count];
+            Buffer.BlockCopy(bytes, 0, result, 0, count);
+            return result;
+        }
+
+        // Escapes only remove characters, so the decoded bytes never exceed the source length.
+        private int DecodeLiteralInto(int start, int length, byte[] bytes, int offset) {
+            int count = offset;
+            int end = start + length;
+            for (int i = start; i < end; i++) {
+                char c = _content[i];
+                if (c == '\\') {
+                    if (i + 1 >= end) break;
+                    char n = _content[++i];
+                    switch (n) {
+                        case 'n': bytes[count++] = (byte)'\n'; break;
+                        case 'r': bytes[count++] = (byte)'\r'; break;
+                        case 't': bytes[count++] = (byte)'\t'; break;
+                        case 'b': bytes[count++] = (byte)'\b'; break;
+                        case 'f': bytes[count++] = (byte)'\f'; break;
+                        case '\\': bytes[count++] = (byte)'\\'; break;
+                        case '(': bytes[count++] = (byte)'('; break;
+                        case ')': bytes[count++] = (byte)')'; break;
+                        case '\n': break;
+                        case '\r':
+                            if (i + 1 < end && _content[i + 1] == '\n') i++;
+                            break;
+                        default:
+                            if (IsOctalDigit(n)) {
+                                int v = n - '0';
+                                for (int k = 0; k < 2 && i + 1 < end && IsOctalDigit(_content[i + 1]); k++) {
+                                    v = (v << 3) + (_content[++i] - '0');
+                                }
+                                bytes[count++] = (byte)(v & 0xFF);
+                            } else {
+                                bytes[count++] = (byte)(n & 0xFF);
+                            }
+                            break;
+                    }
+                } else {
+                    bytes[count++] = (byte)(c & 0xFF);
+                }
+            }
+
+            return count - offset;
+        }
+
+        private static bool IsOctalDigit(char c) => c >= '0' && c <= '7';
+
+        // Same decoding as PdfTextString.DecodeHexBytes over the reader's content.
+        private byte[] DecodeHexBytes(int start, int length) {
+            int end = start + length;
+            int nibbleCount = 0;
+            for (int i = start; i < end; i++) {
+                if (!char.IsWhiteSpace(_content[i])) nibbleCount++;
+            }
+
+            if (nibbleCount == 0) return Array.Empty<byte>();
+            var bytes = new byte[(nibbleCount + 1) / 2];
+            int highNibble = -1;
+            int byteIndex = 0;
+            for (int i = start; i < end; i++) {
+                char ch = _content[i];
+                if (char.IsWhiteSpace(ch)) continue;
+                int nibble = HexNibble(ch);
+                if (highNibble < 0) {
+                    highNibble = nibble;
+                } else {
+                    bytes[byteIndex++] = (byte)((highNibble << 4) | nibble);
+                    highNibble = -1;
+                }
+            }
+
+            if (highNibble >= 0) bytes[byteIndex] = (byte)(highNibble << 4);
+            return bytes;
+        }
+
+        // One pass of DecodeHexBytes: the first invalid character throws the same exception.
+        private int DecodeHexInto(int start, int length, byte[] bytes, int offset) {
+            int end = start + length;
+            int highNibble = -1;
+            int byteIndex = offset;
+            for (int i = start; i < end; i++) {
+                char ch = _content[i];
+                if (char.IsWhiteSpace(ch)) continue;
+                int nibble = HexNibble(ch);
+                if (highNibble < 0) {
+                    highNibble = nibble;
+                } else {
+                    bytes[byteIndex++] = (byte)((highNibble << 4) | nibble);
+                    highNibble = -1;
+                }
+            }
+
+            if (highNibble >= 0) bytes[byteIndex++] = (byte)(highNibble << 4);
+            return byteIndex - offset;
+        }
+
+        private static int HexNibble(char c) {
+            if (c >= '0' && c <= '9') return c - '0';
+            if (c >= 'a' && c <= 'f') return 10 + (c - 'a');
+            if (c >= 'A' && c <= 'F') return 10 + (c - 'A');
+            throw new FormatException($"Invalid hex character '{c}'.");
+        }
+
+        private bool EqualsAt(int start, string value) {
+            for (int index = 0; index < value.Length; index++) {
+                if (_content[start + index] != value[index]) return false;
+            }
+            return true;
+        }
+
+        // Rare paths (inline image data scanning) still read a Latin-1 string; byte content builds it once.
+        private string ContentString => _contentString ??= _content.Substring(0, _content.Length);
+
+        private void ClearOperands() {
+            _operands.Clear();
+            for (int index = 0; index < _borrowedArrayCount; index++) {
+                _borrowedArrays![index].Clear();
+            }
+            _borrowedArrayCount = 0;
+        }
+
+        private object ReadArray(int nestingDepth, bool borrowMixedResult = false) {
             _index++;
-            var values = new List<object>();
+            // Each nesting level collects into its own reusable typed list; the result is sized exactly.
+            if (_arrayScratch == null || _arrayScratch.Length <= nestingDepth) {
+                Array.Resize(ref _arrayScratch, Math.Max(4, nestingDepth + 1));
+            }
+            PdfContentOperands values = _arrayScratch[nestingDepth] ??= new PdfContentOperands();
+            values.Clear();
             bool terminated = false;
             while (_index < _content.Length) {
                 SkipWhitespaceAndComments();
@@ -324,25 +640,21 @@ internal static class PdfContentStreamInterpreter {
                     break;
                 }
 
-                if (TryReadValue(nestingDepth, out object? value)) {
-                    if (value is not null) {
-                        values.Add(value);
-                    }
-                } else {
+                if (!TryReadOperand(nestingDepth, values)) {
                     string token = ReadOperator();
                     if (string.Equals(token, "true", StringComparison.Ordinal)) {
-                        values.Add(true);
+                        values.AddObject(true);
                         CountOperand();
                     } else if (string.Equals(token, "false", StringComparison.Ordinal)) {
-                        values.Add(false);
+                        values.AddObject(false);
                         CountOperand();
                     } else if (string.Equals(token, "R", StringComparison.Ordinal) &&
                         values.Count >= 2 &&
-                        TryReadReferencePart(values[values.Count - 2], out int objectNumber) &&
-                        TryReadReferencePart(values[values.Count - 1], out int generation)) {
-                        values.RemoveAt(values.Count - 1);
-                        values.RemoveAt(values.Count - 1);
-                        values.Add(new PdfReference(objectNumber, generation));
+                        TryReadReferencePart(values, values.Count - 2, out int objectNumber) &&
+                        TryReadReferencePart(values, values.Count - 1, out int generation)) {
+                        values.RemoveLast();
+                        values.RemoveLast();
+                        values.AddObject(new PdfReference(objectNumber, generation));
                     } else if (token.Length == 0) {
                         _index++;
                     }
@@ -350,16 +662,25 @@ internal static class PdfContentStreamInterpreter {
             }
             if (!terminated) _hasInvalidOperand = true;
 
-            if (values.All(value => value is double)) {
-                return values.Cast<double>().ToArray();
+            object result;
+            if (values.AllNumbers()) {
+                result = values.ToNumberArray();
+            } else if (borrowMixedResult) {
+                _borrowedArrays ??= new List<PdfContentOperands>();
+                if (_borrowedArrayCount == _borrowedArrays.Count) _borrowedArrays.Add(new PdfContentOperands(values.Count));
+                PdfContentOperands borrowed = _borrowedArrays[_borrowedArrayCount++];
+                borrowed.CopyFrom(values);
+                result = borrowed;
+            } else {
+                result = values.ToList();
             }
-
-            return values;
+            values.Clear();
+            return result;
         }
 
-        private static bool TryReadReferencePart(object value, out int result) {
+        private static bool TryReadReferencePart(PdfContentOperands values, int index, out int result) {
             result = 0;
-            if (value is not double number ||
+            if (!values.TryGetNumber(index, out double number) ||
                 number < 0D ||
                 number > int.MaxValue ||
                 number != Math.Truncate(number)) {
@@ -412,10 +733,7 @@ internal static class PdfContentStreamInterpreter {
             }
             if (!terminated) _hasInvalidOperand = true;
 
-            dictionary.OptionalContentReferences = PdfInlineOptionalContentReferenceParser.Parse(
-                _content,
-                dictionaryStart,
-                Math.Max(0, _index - dictionaryStart));
+            dictionary.SetOptionalContentSource(_content.Source, dictionaryStart, Math.Max(0, _index - dictionaryStart));
             return dictionary;
         }
 
@@ -438,14 +756,17 @@ internal static class PdfContentStreamInterpreter {
             int start = _index++;
             char first = _content[start];
             if (first == '\'' || first == '"') {
-                return first.ToString();
+                return first == '\'' ? "'" : "\"";
             }
 
             while (_index < _content.Length && !IsDelimiter(_content[_index])) {
                 _index++;
             }
 
-            return _content.Substring(start, _index - start);
+            int length = _index - start;
+            return TryGetOperatorKey(_content, start, length, out int key) && KnownOperators.TryGetValue(key, out string? known)
+                ? known
+                : _content.Substring(start, length);
         }
 
         private PdfContentInlineImage? ReadInlineImage() {
@@ -483,7 +804,7 @@ internal static class PdfContentStreamInterpreter {
             int dataStart = _index;
             int dataLength = TryGetRawInlineImageLength(dictionary, out int rawLength)
                 ? rawLength
-                : PdfInlineImageDataScanner.FindLength(_content, dataStart);
+                : PdfInlineImageDataScanner.FindLength(ContentString, dataStart);
             if (dataLength < 0 || dataStart + dataLength > _content.Length) {
                 _index = _content.Length;
                 return null;
@@ -782,7 +1103,7 @@ internal static class PdfContentStreamInterpreter {
 
         private bool IsAt(string value) =>
             _index + value.Length <= _content.Length &&
-            string.CompareOrdinal(_content, _index, value, 0, value.Length) == 0;
+            EqualsAt(_index, value);
 
         private static bool IsNumberStart(char value) =>
             value == '-' || value == '+' || value == '.' || char.IsDigit(value);
@@ -906,8 +1227,35 @@ internal readonly struct PdfContentOperation {
 }
 
 internal sealed class PdfContentDictionary {
+    private object? _optionalContentSource;
+    private int _optionalContentStart;
+    private int _optionalContentLength;
+    private PdfInlineOptionalContentReferences? _optionalContentReferences;
+
     internal Dictionary<string, object> Items { get; } = new Dictionary<string, object>(StringComparer.Ordinal);
-    internal PdfInlineOptionalContentReferences? OptionalContentReferences { get; set; }
+
+    // Only /OC marked content reads these references, so the dictionary text is scanned on first use.
+    internal PdfInlineOptionalContentReferences? OptionalContentReferences {
+        get {
+            if (_optionalContentReferences is null && _optionalContentSource is not null) {
+                _optionalContentReferences = _optionalContentSource is string text
+                    ? PdfInlineOptionalContentReferenceParser.Parse(text, _optionalContentStart, _optionalContentLength)
+                    // The parser reads only inside the dictionary window, so byte content passes that slice.
+                    : PdfInlineOptionalContentReferenceParser.Parse(
+                        PdfEncoding.Latin1GetString((byte[])_optionalContentSource, _optionalContentStart, _optionalContentLength),
+                        0,
+                        _optionalContentLength);
+            }
+            return _optionalContentReferences;
+        }
+    }
+
+    internal void SetOptionalContentSource(object source, int start, int length) {
+        _optionalContentSource = source;
+        _optionalContentStart = start;
+        _optionalContentLength = length;
+        _optionalContentReferences = null;
+    }
 }
 
 internal sealed class PdfContentInlineImage {

@@ -43,6 +43,26 @@ internal static partial class PdfStructTreeRootDictionaryBuilder {
         return sb.Append(" >>\n").ToString();
     }
 
+    /// <summary>
+    /// Closes an element dictionary written by an Append*StructElementBody method, adding its structure
+    /// metadata and optional extra attributes exactly as <see cref="WithStructureMetadata"/> places them.
+    /// </summary>
+    internal static void CloseStructElement(StringBuilder sb, int? namespaceId, string? language, string? elementId, string? trailingAttributes) {
+        // A rewritten closed dictionary keeps the space that preceded its ">>".
+        if (namespaceId.HasValue || !string.IsNullOrWhiteSpace(language) || elementId != null) {
+            sb.Append(' ');
+            if (namespaceId.HasValue) {
+                sb.Append(" /NS ");
+                PdfSyntaxEscaper.AppendIndirectReference(sb, namespaceId.Value);
+            }
+            if (!string.IsNullOrWhiteSpace(language)) sb.Append(" /Lang ").Append(PdfSyntaxEscaper.TextString(language!));
+            if (elementId != null) sb.Append(" /ID ").Append(PdfSyntaxEscaper.TextString(elementId));
+        }
+        sb.Append(' ');
+        if (trailingAttributes != null) sb.Append(trailingAttributes);
+        sb.Append(">>\n");
+    }
+
     // Metadata belongs to the structure dictionary, never to a text/content writer.
     internal static string WithStructureMetadata(string dictionary, int? namespaceId = null, string? language = null, string? elementId = null) {
         if (!namespaceId.HasValue && string.IsNullOrWhiteSpace(language) && elementId == null) return dictionary;

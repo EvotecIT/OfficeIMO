@@ -264,7 +264,9 @@ internal static partial class HtmlPdfRenderedConverter {
         HtmlRenderDocument rendered,
         ISet<string> activeWebFontFamilies,
         ISet<PdfCore.PdfStandardFont> reservedFontSlots) {
+        var mappedFamilyLists = new HashSet<string>(StringComparer.Ordinal);
         foreach (string familyNames in EnumerateUsedFontFamilyLists(rendered.Pages.SelectMany(page => page.Visuals))) {
+            if (!mappedFamilyLists.Add(familyNames)) continue;
             if (EnumerateFamilies(familyNames).Any(activeWebFontFamilies.Contains)) continue;
             reservedFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(MapStandardFont(familyNames)));
         }
@@ -481,21 +483,26 @@ internal static partial class HtmlPdfRenderedConverter {
     private static bool RequiresUnicodeFont(string text) =>
         PdfCore.PdfTextDiagnostics.RequiresEmbeddedUnicodeFont(text);
 
-    internal static string CollectRenderedTextForFontFallbackSelection(HtmlRenderDocument rendered) =>
-        CollectRenderedTextForFontFallbackSelection(rendered, webFonts: null);
-
     /// <summary>
-    /// Collects the text that may reach a run fallback. A run that its own family stack already
-    /// covers is painted with that family, so it can neither select nor use a fallback face.
+    /// Collects the text that fallback selection must cover and reports whether any of it can reach a
+    /// run fallback. A run that its own family stack already covers is painted with that family, so it
+    /// can neither select nor use a fallback face.
     /// </summary>
-    private static string CollectRenderedTextForFontFallbackSelection(HtmlRenderDocument rendered, RegisteredWebFonts? webFonts) {
+    private static string CollectRenderedTextForFontFallbackSelection(HtmlRenderDocument rendered, RegisteredWebFonts webFonts,
+        out bool runFallbackReachable) {
         var text = new System.Text.StringBuilder();
+        runFallbackReachable = false;
         foreach (HtmlRenderVisual visual in EnumerateVisuals(rendered.Pages.SelectMany(page => page.Visuals))) {
-            if (visual is HtmlRenderText renderedText
-                && (webFonts == null || !IsCoveredByOwnFamily(renderedText, webFonts))) {
+            if (visual is HtmlRenderText renderedText) {
                 text.Append(renderedText.Text);
+                // Coverage checks may resolve faces and report their failures, so every run keeps its check.
+                if (!IsCoveredByOwnFamily(renderedText, webFonts) && renderedText.Text.Length > 0) runFallbackReachable = true;
             }
-            if (visual is HtmlRenderDrawing drawing) AppendDrawingText(drawing.Drawing.Elements, text);
+            if (visual is HtmlRenderDrawing drawing) {
+                int length = text.Length;
+                AppendDrawingText(drawing.Drawing.Elements, text);
+                if (text.Length > length) runFallbackReachable = true;
+            }
         }
         return text.ToString();
     }
@@ -601,21 +608,40 @@ internal static partial class HtmlPdfRenderedConverter {
     private static IEnumerable<string> EnumerateFamilies(string? familyNames) =>
         HtmlRenderCssValues.FontFamilyNames(familyNames);
 
-    private static IEnumerable<string> EnumerateBoundedSystemFamilies(string? familyNames) {
+    private const int MaximumBoundedSystemFamilyLists = 256;
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string[]> BoundedSystemFamilyLists =
+        new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// The CSS stack followed by its shared Office substitutes. Both depend only on the family list, and
+    /// every text run asks for its stack, so a bounded number of lists is resolved once per process.
+    /// </summary>
+    private static IReadOnlyList<string> EnumerateBoundedSystemFamilies(string? familyNames) {
+        if (familyNames == null) return ResolveBoundedSystemFamilies(null);
+        if (BoundedSystemFamilyLists.TryGetValue(familyNames, out string[]? cached)) return cached;
+        string[] resolved = ResolveBoundedSystemFamilies(familyNames);
+        if (familyNames.Length <= 1024 && BoundedSystemFamilyLists.Count < MaximumBoundedSystemFamilyLists)
+            BoundedSystemFamilyLists.TryAdd(familyNames, resolved);
+        return resolved;
+    }
+
+    private static string[] ResolveBoundedSystemFamilies(string? familyNames) {
         if (!HtmlRenderCssValues.TrySplitTopLevelCommas(familyNames, MaximumCssFontFamilyCandidates, out _))
-            yield break;
+            return Array.Empty<string>();
         string[] requested = EnumerateFamilies(familyNames).Where(name => name.Length <= 256).ToArray();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var families = new List<string>();
         // CSS's explicit stack wins before the shared Office substitutions are considered.
         foreach (string family in requested) {
-            if (seen.Add(family)) yield return family;
+            if (seen.Add(family)) families.Add(family);
         }
         foreach (string family in requested) {
             foreach (string substitute in OfficeDocumentFontSubstitutions.Enumerate(family)) {
-                if (seen.Count >= MaximumSystemFontFamilyCandidates) yield break;
-                if (seen.Add(substitute)) yield return substitute;
+                if (seen.Count >= MaximumSystemFontFamilyCandidates) return families.ToArray();
+                if (seen.Add(substitute)) families.Add(substitute);
             }
         }
+        return families.ToArray();
     }
 
     private sealed class RegisteredWebFonts {

@@ -8,13 +8,16 @@ public static partial class HtmlComputedStyleEngine {
     // Provider metadata describes both retained shorthands and synthesized values.
     // Cache its dependency names for this operation, never across provider contexts.
     internal sealed class ProviderDeclarationQueryCache {
+        // The related names depend only on the provider's declaration factory, which every document of a
+        // configuration shares, so they are built once per factory rather than once per conversion.
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<IDeclarationFactory, Dictionary<string, string[]>> RelatedNamesByFactory = new();
         private readonly Dictionary<IBrowsingContext, Dictionary<string, string[]>> _contexts = new();
 
         internal ProviderDeclarationQuery For(ICssStyleDeclaration declaration) {
             IBrowsingContext? context = declaration.Parent?.Owner?.Context;
             if (context == null) return default;
             if (!_contexts.TryGetValue(context, out Dictionary<string, string[]>? related)) {
-                related = CreateRelatedNames(context.GetFactory<IDeclarationFactory>());
+                related = RelatedNamesByFactory.GetValue(context.GetFactory<IDeclarationFactory>(), CreateRelatedNames);
                 _contexts.Add(context, related);
             }
             var declaredNames = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);

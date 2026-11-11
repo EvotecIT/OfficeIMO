@@ -267,6 +267,36 @@ public class PdfParsingModeTests {
     }
 
     [Fact]
+    public void StartXrefIsFoundBehindTrailingBinaryBytesLongerThanOneSearchWindow() {
+        byte[] clean = PdfDocument.Create().Paragraph(p => p.AddText("Trailing bytes")).ToBytes();
+        var garbage = new byte[70_000];
+        for (int i = 0; i < garbage.Length; i++) garbage[i] = (byte)(0x80 + i % 0x80);
+        // Near misses, including a different case, must not be taken for the pointer.
+        byte[] nearMisses = PdfEncoding.Latin1GetBytes(" startxre STARTXREF tartxref ");
+        Buffer.BlockCopy(nearMisses, 0, garbage, garbage.Length - 65_540, nearMisses.Length);
+        byte[] pdf = clean.Concat(garbage).ToArray();
+
+        PdfReadDocument strict = PdfReadDocument.Open(pdf, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict });
+
+        Assert.Empty(strict.RepairReport.Diagnostics);
+        Assert.Contains("Trailing bytes", strict.ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TrailerKeywordIgnoresCaseWhenStartXrefIsMissing() {
+        byte[] pdf = PdfEncoding.Latin1GetBytes(
+            "%PDF-1.7\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
+            "2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\n" +
+            "3 0 obj\n<< /Title (Upper-case trailer) >>\nendobj\n" +
+            "TRAILER\n<< /Root 1 0 R /Info 3 0 R /Size 4 >>\n%%EOF\n\u00C4\u00D4\u00E9");
+
+        PdfReadDocument lenient = PdfReadDocument.Open(pdf, new PdfLoadOptions { ParsingMode = PdfParsingMode.Lenient });
+
+        Assert.Contains(lenient.RepairReport.Diagnostics, item => item.Code == "missing-start-xref");
+        Assert.Equal("Upper-case trailer", lenient.Metadata.Title);
+    }
+
+    [Fact]
     public void IncorrectPageCountDoesNotHideReachablePagesAndStrictModeRejectsIt() {
         byte[] clean = PdfDocument.Create().Paragraph(p => p.AddText("Page one")).PageBreak().Paragraph(p => p.AddText("Page two")).ToBytes();
         string text = PdfEncoding.Latin1GetString(clean);

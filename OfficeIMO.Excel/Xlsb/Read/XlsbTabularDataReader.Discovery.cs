@@ -23,7 +23,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             out int firstDataRow,
             out int lastDataRow,
             out XlsbValidatedRowPlan? validatedRowPlan,
-            WorksheetInflationProgress? inflation = null) {
+            WorksheetInflationProgress? inflation = null,
+            XlsbSinglePassGate? gate = null) {
             ArgumentNullException.ThrowIfNull(dateStyles);
             int styleCount = dateStyles.Length;
             firstColumn = int.MaxValue;
@@ -51,6 +52,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 var currentRowSpanBounds = new int[32];
                 XlsbValidatedRowPlanBuilder? rowPlanBuilder = new XlsbValidatedRowPlanBuilder(treatDatesUsingNumberFormat);
                 int currentRowSpanCount = 0;
+                // Single-pass reading: the header row fixes the schema, and later cells outside it are flagged.
+                int dimensionFirstColumn = 0;
+                int dimensionLastColumn = -1;
+                bool schemaFixed = false;
+                int schemaFirstColumn = 0;
+                int schemaLastColumn = -1;
                 cancellationToken.ThrowIfCancellationRequested();
                 // Discovery is the full-buffer validation pass. Fuse BIFF12 framing with the
                 // common fixed-cell checks so large worksheets are validated once without a
@@ -144,8 +151,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                                 recordType,
                                 payloadOffset,
                                 recordSize),
-                            out _,
-                            out _);
+                            out dimensionFirstColumn,
+                            out dimensionLastColumn);
                         sawDimension = true;
                         continue;
                     }
@@ -167,6 +174,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
                         if (previousCellColumn > lastColumn) {
                             lastColumn = previousCellColumn;
+                        }
+                        if (gate != null) {
+                            if (!schemaFixed && firstDataRow >= 0) {
+                                FixSinglePassSchema(gate, firstColumn, lastColumn, firstDataRow,
+                                    dimensionFirstColumn, dimensionLastColumn, out schemaFirstColumn, out schemaLastColumn);
+                                schemaFixed = true;
+                            }
+                            gate.PublishRowBoundary(position, int.MaxValue);
                         }
                         sawEndSheetData = true;
                         inSheetData = false;
@@ -199,6 +214,15 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                                 $"The XLSB worksheet contains non-increasing row index {nextRow} after header row {currentRow}.");
                         }
 
+                        if (gate != null) {
+                            // The header row is the first row with cells; it ends at the next row header.
+                            if (!schemaFixed && firstDataRow >= 0) {
+                                FixSinglePassSchema(gate, firstColumn, lastColumn, firstDataRow,
+                                    dimensionFirstColumn, dimensionLastColumn, out schemaFirstColumn, out schemaLastColumn);
+                                schemaFixed = true;
+                            }
+                            gate.PublishRowBoundary(position, currentRow);
+                        }
                         currentRow = nextRow;
                         previousCellColumn = -1;
                         rowPlanBuilder = rowPlanBuilder?.BeginRow(nextRow, position);
@@ -315,6 +339,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         if (column < firstColumn) {
                             firstColumn = column;
                         }
+                        gate?.ObserveDataRow(currentRow);
+                    }
+                    if (schemaFixed && (column < schemaFirstColumn || column > schemaLastColumn)) {
+                        gate!.MarkOutOfSchema(currentRow);
                     }
                 }
 
@@ -336,6 +364,20 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 }
                 validatedRowPlan = rowPlanBuilder?.Build();
             }
+        }
+
+        /// <summary>
+        /// Fixes the columns a single-pass reader returns. The default reader spans the declared dimension's
+        /// first column, the header row and every cell; with only the header row read so far that span is
+        /// the dimension's first column through the header's last cell. A later cell outside it is flagged.
+        /// </summary>
+        private static void FixSinglePassSchema(XlsbSinglePassGate gate, int headerFirstColumn, int headerLastColumn,
+            int headerRow, int dimensionFirstColumn, int dimensionLastColumn, out int schemaFirstColumn, out int schemaLastColumn) {
+            schemaFirstColumn = dimensionLastColumn >= dimensionFirstColumn
+                ? Math.Min(dimensionFirstColumn, headerFirstColumn)
+                : headerFirstColumn;
+            schemaLastColumn = headerLastColumn;
+            gate.FixSchema(headerFirstColumn, headerLastColumn, headerRow);
         }
 
         private static bool IsCoveredByRowSpan(int[] spanBounds, int spanCount, int column) {

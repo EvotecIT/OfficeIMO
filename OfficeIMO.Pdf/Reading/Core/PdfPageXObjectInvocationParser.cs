@@ -23,7 +23,7 @@ internal static partial class PdfPageXObjectInvocationParser {
     }
 
     public static IReadOnlyList<PdfPageXObjectInvocation> Parse(
-        string content,
+        PdfContentSource content,
         Matrix2D baseTransform,
         double pageHeight,
         IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates,
@@ -99,7 +99,7 @@ internal static partial class PdfPageXObjectInvocationParser {
         Action? operationCheck = null,
         PdfTextStateSnapshot? initialTextState = null,
         Action<string>? operatorVisitor = null) {
-        if (string.IsNullOrEmpty(content)) {
+        if (content.IsNullOrEmpty) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
@@ -111,7 +111,7 @@ internal static partial class PdfPageXObjectInvocationParser {
 
     private sealed partial class Parser {
         internal Action<string>? OperatorVisitor { get; set; }
-        private readonly string _content;
+        private readonly PdfContentSource _content;
         private readonly double _pageHeight;
         private readonly double? _pageWidth;
         private readonly Matrix2D _baseTransform;
@@ -125,23 +125,23 @@ internal static partial class PdfPageXObjectInvocationParser {
         private readonly double _paintOrderScale;
         private readonly double _paintOrderOffset;
         private readonly List<PdfPageXObjectInvocation> _invocations = new List<PdfPageXObjectInvocation>();
-        private readonly List<object> _args = new List<object>(8);
-        private readonly Stack<GraphicsState> _stack = new Stack<GraphicsState>();
-        private readonly Stack<bool> _inexactDashStack = new Stack<bool>();
-        private readonly Stack<GraphicsEffectState> _graphicsEffectStack = new Stack<GraphicsEffectState>();
-        private readonly Stack<PatternState> _patternStack = new Stack<PatternState>();
-        private readonly Stack<(bool Authored, OfficeIccRenderingIntent Intent, PdfPaintColorSelection? Fill, PdfPaintColorSelection? Stroke)> _renderingIntentStack =
-            new Stack<(bool, OfficeIccRenderingIntent, PdfPaintColorSelection?, PdfPaintColorSelection?)>();
-        private readonly Stack<TextState> _textStack = new Stack<TextState>();
-        private readonly Stack<(string? Fill, string? Stroke)> _colorSpaceNameStack = new Stack<(string?, string?)>();
-        private readonly Stack<(PdfPageSoftMaskResource? SoftMask, Matrix2D? Transform, OfficeColor FillColor, OfficeColor StrokeColor, bool HasFillPattern, bool HasStrokePattern, PdfPageGraphicsStateResource? InheritedGraphicsState)> _softMaskStack =
-            new Stack<(PdfPageSoftMaskResource?, Matrix2D?, OfficeColor, OfficeColor, bool, bool, PdfPageGraphicsStateResource?)>();
-        private readonly Stack<bool> _hiddenContentStack = new Stack<bool>();
-        private readonly Stack<int?> _markedContentMcidStack = new Stack<int?>();
-        private readonly Stack<bool> _artifactContentStack = new Stack<bool>();
-        private readonly List<(double X, double Y)> _path = new List<(double X, double Y)>();
-        private readonly List<OfficePathCommand> _pathCommands = new List<OfficePathCommand>();
-        private readonly List<PdfPageClipPath> _pendingTextClipPaths = new List<PdfPageClipPath>();
+        // Scratch state reused across parses on one thread; every parse leaves it empty.
+        private readonly ParserWorkspace _workspace;
+        private readonly PdfContentOperands _args;
+        private readonly Stack<GraphicsState> _stack;
+        private readonly Stack<bool> _inexactDashStack;
+        private readonly Stack<GraphicsEffectState> _graphicsEffectStack;
+        private readonly Stack<PatternState> _patternStack;
+        private readonly Stack<(bool Authored, OfficeIccRenderingIntent Intent, PdfPaintColorSelection? Fill, PdfPaintColorSelection? Stroke)> _renderingIntentStack;
+        private readonly Stack<TextState> _textStack;
+        private readonly Stack<(string? Fill, string? Stroke)> _colorSpaceNameStack;
+        private readonly Stack<(PdfPageSoftMaskResource? SoftMask, Matrix2D? Transform, OfficeColor FillColor, OfficeColor StrokeColor, bool HasFillPattern, bool HasStrokePattern, PdfPageGraphicsStateResource? InheritedGraphicsState)> _softMaskStack;
+        private readonly Stack<bool> _hiddenContentStack;
+        private readonly Stack<int?> _markedContentMcidStack;
+        private readonly Stack<bool> _artifactContentStack;
+        private readonly List<(double X, double Y)> _path;
+        private readonly List<OfficePathCommand> _pathCommands;
+        private readonly List<PdfPageClipPath> _pendingTextClipPaths;
         private readonly PdfTextClippingBudget _textClippingBudget;
         private readonly PdfReadPage.VisualGeometryBudget _type3VisibilityGeometryBudget = new PdfReadPage.VisualGeometryBudget();
         private readonly GraphicsState _initialState;
@@ -194,6 +194,7 @@ internal static partial class PdfPageXObjectInvocationParser {
         private readonly Action<PdfType3PaintChannels, PdfPagePatternSelection?, PdfPagePatternSelection?, bool>? _ordinaryTextPaintVisitor;
         private readonly Action<PdfPagePatternSelection>? _patternSelectionVisitor;
         private readonly Action<string>? _visibleColorSpaceVisitor;
+        private HashSet<string>? _publishedColorSpaceNames;
         private readonly bool _allowSupportedGraphicsEffects;
         private string _textFont = string.Empty;
         private double _currentPaintOrder;
@@ -218,7 +219,7 @@ internal static partial class PdfPageXObjectInvocationParser {
         private string? _strokeColorSpaceResourceName;
 
         public Parser(
-            string content,
+            PdfContentSource content,
             Matrix2D baseTransform,
             double pageHeight,
             double? pageWidth,
@@ -292,6 +293,22 @@ internal static partial class PdfPageXObjectInvocationParser {
             PdfStrokeDashPattern? initialStrokeDashPattern,
             Func<string, int?>? mcidForProperty,
             Action? operationCheck) {
+            _workspace = ParserWorkspace.Rent();
+            _args = _workspace.Args;
+            _stack = _workspace.Stack;
+            _inexactDashStack = _workspace.InexactDashStack;
+            _graphicsEffectStack = _workspace.GraphicsEffectStack;
+            _patternStack = _workspace.PatternStack;
+            _renderingIntentStack = _workspace.RenderingIntentStack;
+            _textStack = _workspace.TextStack;
+            _colorSpaceNameStack = _workspace.ColorSpaceNameStack;
+            _softMaskStack = _workspace.SoftMaskStack;
+            _hiddenContentStack = _workspace.HiddenContentStack;
+            _markedContentMcidStack = _workspace.MarkedContentMcidStack;
+            _artifactContentStack = _workspace.ArtifactContentStack;
+            _path = _workspace.Path;
+            _pathCommands = _workspace.PathCommands;
+            _pendingTextClipPaths = _workspace.PendingTextClipPaths;
             _content = content;
             _baseTransform = baseTransform;
             _graphicsStates = graphicsStates;
@@ -376,6 +393,14 @@ internal static partial class PdfPageXObjectInvocationParser {
         }
 
         public IReadOnlyList<PdfPageXObjectInvocation> Parse() {
+            try {
+                return ParseContent();
+            } finally {
+                _workspace.Return();
+            }
+        }
+
+        private IReadOnlyList<PdfPageXObjectInvocation> ParseContent() {
             PdfContentStreamInterpreter.Interpret(
                 _content,
                 _maxOperations,
@@ -569,16 +594,20 @@ internal static partial class PdfPageXObjectInvocationParser {
         }
 
         private void ShowTextArray(object arrayObject) {
-            if (arrayObject is not List<object> items) {
+            if (arrayObject is not IReadOnlyList<object> items) {
                 ShowText(arrayObject);
                 return;
             }
 
+            // Borrowed TJ arrays keep their strings typed; each string is read through a scratch copy.
+            PdfContentOperands? typed = items as PdfContentOperands;
             bool usesType3GlyphProgram = IsActiveType3Font();
             bool isVisible = !HasHiddenContent() && !IsCurrentPaintSuppressedBySoftMask();
             long glyphCount = 0;
             for (int i = 0; i < items.Count; i++) {
-                if (items[i] is byte[] bytes) glyphCount += bytes.Length;
+                if (typed != null) {
+                    if (typed.IsString(i)) glyphCount += typed.StringLength(i);
+                } else if (items[i] is byte[] bytes) glyphCount += bytes.Length;
             }
             if (glyphCount > int.MaxValue) {
                 _type3GlyphBudgetConsumer?.Invoke(int.MaxValue);
@@ -588,7 +617,10 @@ internal static partial class PdfPageXObjectInvocationParser {
             PdfType3PaintChannels ordinaryTextPaintChannels = ResolveTextPaintChannels(_textRenderingMode);
             bool ordinaryTextAffectsOutput = false;
             for (int i = 0; i < items.Count; i++) {
-                if (items[i] is byte[] bytes) {
+                byte[]? bytes = typed != null
+                    ? typed.IsString(i) ? ReadScratchString(typed, i) : null
+                    : items[i] as byte[];
+                if (bytes != null) {
                     (double X, double Y) advance = ProcessShownText(bytes, glyphs);
                     ordinaryTextAffectsOutput |=
                         isVisible &&
@@ -597,7 +629,7 @@ internal static partial class PdfPageXObjectInvocationParser {
                         IsOrdinaryTextFrameVisible(advance.X);
                     if (isVisible && !usesType3GlyphProgram) ApplyTextClippingPath(advance.X);
                     _textMatrix = Matrix2D.Multiply(_textMatrix, Matrix2D.Translation(advance.X, advance.Y));
-                } else if (items[i] is double kerning) {
+                } else if (TryGetArrayNumber(items, typed, i, out double kerning)) {
                     double delta = -kerning / 1000D * _textSize * _textHScale;
                     _textMatrix = Matrix2D.Multiply(_textMatrix, Matrix2D.Translation(delta, 0D));
                 }
@@ -628,6 +660,32 @@ internal static partial class PdfPageXObjectInvocationParser {
                 glyphCount > 0) {
                 _ordinaryTextPaintVisitor?.Invoke(ordinaryTextPaintChannels, _patternState.Fill, _patternState.Stroke, ordinaryTextAddsClip);
             }
+        }
+
+        private byte[]?[]? _scratchStrings;
+
+        private static bool TryGetArrayNumber(IReadOnlyList<object> items, PdfContentOperands? typed, int index, out double value) {
+            if (typed != null) return typed.TryGetNumber(index, out value);
+            if (items[index] is double number) {
+                value = number;
+                return true;
+            }
+            value = 0D;
+            return false;
+        }
+
+        // Shown text is measured synchronously and never retained, so strings of one length share a buffer.
+        private byte[] ReadScratchString(PdfContentOperands operands, int index) {
+            int length = operands.StringLength(index);
+            byte[] bytes;
+            if (length < 256) {
+                _scratchStrings ??= new byte[]?[256];
+                bytes = _scratchStrings[length] ??= new byte[length];
+            } else {
+                bytes = new byte[length];
+            }
+            operands.CopyStringTo(index, bytes, 0);
+            return bytes;
         }
 
         private void AdvertiseInheritedType3Patterns(PdfType3PaintChannels channels) {
@@ -886,12 +944,12 @@ internal static partial class PdfPageXObjectInvocationParser {
 
         private OfficePoint ToOfficePoint((double X, double Y) point) => new OfficePoint(point.X, ToTop(point.Y));
 
-        private double NumberAt(int index) => _args[index] is double value ? value : 0D;
+        private double NumberAt(int index) => _args.NumberOrZero(index);
 
         private bool HasTrailingFiniteNumbers(int count) {
             if (_args.Count < count) return false;
             for (int index = _args.Count - count; index < _args.Count; index++) {
-                if (_args[index] is not double value || double.IsNaN(value) || double.IsInfinity(value)) return false;
+                if (!_args.TryGetNumber(index, out double value) || double.IsNaN(value) || double.IsInfinity(value)) return false;
             }
             return true;
         }
@@ -938,13 +996,33 @@ internal static partial class PdfPageXObjectInvocationParser {
         private void PublishVisibleColorSpaceUse(PdfType3PaintChannels channels) {
             if ((channels & PdfType3PaintChannels.Fill) != 0 &&
                 !string.IsNullOrEmpty(_fillColorSpaceResourceName)) {
-                _visibleColorSpaceVisitor?.Invoke(_fillColorSpaceResourceName!);
+                PublishVisibleColorSpace(_fillColorSpaceResourceName!);
             }
             if ((channels & PdfType3PaintChannels.Stroke) != 0 &&
                 !string.IsNullOrEmpty(_strokeColorSpaceResourceName)) {
-                _visibleColorSpaceVisitor?.Invoke(_strokeColorSpaceResourceName!);
+                PublishVisibleColorSpace(_strokeColorSpaceResourceName!);
             }
         }
+
+        private void PublishVisibleColorSpace(string name) {
+            if (_visibleColorSpaceVisitor == null) return;
+            (_publishedColorSpaceNames ??= new HashSet<string>(StringComparer.Ordinal)).Add(name);
+            _visibleColorSpaceVisitor(name);
+        }
+
+        private bool IsUnpublishedColorSpace(string? name) =>
+            _visibleColorSpaceVisitor != null && !string.IsNullOrEmpty(name) &&
+            _publishedColorSpaceNames?.Contains(name!) != true;
+
+        // Path visibility analysis only feeds the observers below. When none of them can
+        // observe this paint, the geometry work is skipped.
+        private bool PathPaintHasObserver(bool fill, bool stroke) =>
+            (fill && IsUnpublishedColorSpace(_fillColorSpaceResourceName)) ||
+            (stroke && IsUnpublishedColorSpace(_strokeColorSpaceResourceName)) ||
+            (fill && _patternState.FillDeferredVisibleUse && _patternState.Fill.HasValue) ||
+            (stroke && _patternState.StrokeDeferredVisibleUse && _patternState.Stroke.HasValue) ||
+            _graphicsEffectState.HasEffect || _graphicsEffectPaintVisitor != null ||
+            (stroke && _hasInexactDash && _unsupportedGraphicsEffectVisitor != null);
 
         private static bool IsBuiltInColorSpaceName(string name) =>
             name is "DeviceRGB" or "RGB" or "DeviceCMYK" or "CMYK" or
@@ -1216,7 +1294,7 @@ internal static partial class PdfPageXObjectInvocationParser {
         private int CountPatternComponents() {
             int count = 0;
             for (int index = 0; index < _args.Count - 1; index++) {
-                if (_args[index] is not double) return -1;
+                if (!_args.TryGetNumber(index, out _)) return -1;
                 count++;
             }
             return count;
@@ -1288,7 +1366,7 @@ internal static partial class PdfPageXObjectInvocationParser {
                 return true;
             }
 
-            if (value is List<object> items) {
+            if (value is IReadOnlyList<object> items) {
                 var collected = new List<double>(items.Count);
                 for (int i = 0; i < items.Count; i++) {
                     if (items[i] is not double number) {
@@ -1509,6 +1587,66 @@ internal static partial class PdfPageXObjectInvocationParser {
         }
 
         private static bool NearlyEqual(double left, double right) => Math.Abs(left - right) <= 0.001D;
+    }
+
+    private sealed class ParserWorkspace {
+        private const int MaximumRetainedItems = 1024;
+        [ThreadStatic] private static ParserWorkspace? t_available;
+
+        internal readonly PdfContentOperands Args = new PdfContentOperands();
+        internal readonly Stack<GraphicsState> Stack = new Stack<GraphicsState>();
+        internal readonly Stack<bool> InexactDashStack = new Stack<bool>();
+        internal readonly Stack<GraphicsEffectState> GraphicsEffectStack = new Stack<GraphicsEffectState>();
+        internal readonly Stack<PatternState> PatternStack = new Stack<PatternState>();
+        internal readonly Stack<(bool Authored, OfficeIccRenderingIntent Intent, PdfPaintColorSelection? Fill, PdfPaintColorSelection? Stroke)> RenderingIntentStack =
+            new Stack<(bool, OfficeIccRenderingIntent, PdfPaintColorSelection?, PdfPaintColorSelection?)>();
+        internal readonly Stack<TextState> TextStack = new Stack<TextState>();
+        internal readonly Stack<(string? Fill, string? Stroke)> ColorSpaceNameStack = new Stack<(string?, string?)>();
+        internal readonly Stack<(PdfPageSoftMaskResource? SoftMask, Matrix2D? Transform, OfficeColor FillColor, OfficeColor StrokeColor, bool HasFillPattern, bool HasStrokePattern, PdfPageGraphicsStateResource? InheritedGraphicsState)> SoftMaskStack =
+            new Stack<(PdfPageSoftMaskResource?, Matrix2D?, OfficeColor, OfficeColor, bool, bool, PdfPageGraphicsStateResource?)>();
+        internal readonly Stack<bool> HiddenContentStack = new Stack<bool>();
+        internal readonly Stack<int?> MarkedContentMcidStack = new Stack<int?>();
+        internal readonly Stack<bool> ArtifactContentStack = new Stack<bool>();
+        internal readonly List<(double X, double Y)> Path = new List<(double X, double Y)>();
+        internal readonly List<OfficePathCommand> PathCommands = new List<OfficePathCommand>();
+        internal readonly List<PdfPageClipPath> PendingTextClipPaths = new List<PdfPageClipPath>();
+
+        // Nested parses (forms, Type 3 glyphs) rent their own workspace while the outer one is in use.
+        internal static ParserWorkspace Rent() {
+            ParserWorkspace? workspace = t_available;
+            t_available = null;
+            return workspace ?? new ParserWorkspace();
+        }
+
+        private int _maximumSaveDepth;
+
+        internal void ObserveSaveDepth(int depth) {
+            if (depth > _maximumSaveDepth) _maximumSaveDepth = depth;
+        }
+
+        internal void Return() {
+            // Deep nesting or long paths would pin large buffers for the thread's lifetime.
+            bool retain = _maximumSaveDepth <= MaximumRetainedItems &&
+                Path.Capacity <= MaximumRetainedItems && PathCommands.Capacity <= MaximumRetainedItems &&
+                PendingTextClipPaths.Capacity <= MaximumRetainedItems && Args.Capacity <= MaximumRetainedItems;
+            Args.Clear();
+            Stack.Clear();
+            InexactDashStack.Clear();
+            GraphicsEffectStack.Clear();
+            PatternStack.Clear();
+            RenderingIntentStack.Clear();
+            TextStack.Clear();
+            ColorSpaceNameStack.Clear();
+            SoftMaskStack.Clear();
+            HiddenContentStack.Clear();
+            MarkedContentMcidStack.Clear();
+            ArtifactContentStack.Clear();
+            Path.Clear();
+            PathCommands.Clear();
+            PendingTextClipPaths.Clear();
+            _maximumSaveDepth = 0;
+            if (retain) t_available = this;
+        }
     }
 
     private readonly struct TextState {

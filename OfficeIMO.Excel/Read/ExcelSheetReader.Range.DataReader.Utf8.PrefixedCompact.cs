@@ -74,6 +74,61 @@ namespace OfficeIMO.Excel {
                 position = cellEnd + 4 + prefixLength;
                 return true;
             }
+
+            /// <summary>
+            /// Indexes an attribute-free formula, with or without a cached value, as the general
+            /// cell scan would, so it keeps the row's exact-syntax proof. Shared and array formulas
+            /// carry attributes and keep that scan. Only the row scan calls this: the canonical row
+            /// parsers reset formula metadata for the cells they index.
+            /// </summary>
+            private bool TryIndexCompactFormulaCell(
+                ref int position,
+                int cellIndex,
+                Utf8CellKind kind,
+                out bool hasCachedValue,
+                out int valueStart,
+                out int valueLength) {
+                hasCachedValue = false;
+                valueStart = valueLength = -1;
+                int prefixLength = _worksheetPrefixLength;
+                if (kind == Utf8CellKind.InlineString || !MatchesPrefixedCompactTag(position, "<f>"u8)) return false;
+                int formulaStart = position + 3 + prefixLength;
+                int relativeEnd = _buffer!.AsSpan(formulaStart, _length - formulaStart).IndexOf((byte)'<');
+                if (relativeEnd < 0) return false;
+                int formulaEnd = formulaStart + relativeEnd;
+                if (!MatchesPrefixedCompactTag(formulaEnd, "</f>"u8)) return false;
+
+                int cursor = formulaEnd + 4 + prefixLength;
+                int cachedStart = -1;
+                int cachedLength = -1;
+                if (MatchesPrefixedCompactTag(cursor, "<v>"u8)) {
+                    cachedStart = cursor + 3 + prefixLength;
+                    relativeEnd = _buffer.AsSpan(cachedStart, _length - cachedStart).IndexOf((byte)'<');
+                    if (relativeEnd < 0) return false;
+                    int cachedEnd = cachedStart + relativeEnd;
+                    if (!MatchesPrefixedCompactTag(cachedEnd, "</v>"u8)) return false;
+                    cachedLength = cachedEnd - cachedStart;
+                    cursor = cachedEnd + 4 + prefixLength;
+                }
+                if (!MatchesPrefixedCompactTag(cursor, "</c>"u8)) return false;
+
+                if (cellIndex >= 0) {
+                    EnsureFormulaMetadata();
+                    _formulaStarts![cellIndex] = formulaStart;
+                    _formulaLengths![cellIndex] = formulaEnd - formulaStart;
+                    if (cachedLength >= 0) {
+                        _valueStarts![cellIndex] = cachedStart;
+                        _valueLengths![cellIndex] = cachedLength;
+                    }
+                }
+                if (cachedLength >= 0) {
+                    hasCachedValue = true;
+                    valueStart = cachedStart;
+                    valueLength = cachedLength;
+                }
+                position = cursor + 4 + prefixLength;
+                return true;
+            }
         }
     }
 }

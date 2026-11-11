@@ -16,7 +16,7 @@ public static partial class HtmlComputedStyleEngine {
                 continue;
             }
 
-            ParseTopLevelCustomPropertyRegistrations(styleElement.TextContent ?? string.Empty, registrations, budget);
+            ParseTopLevelCustomPropertyRegistrations(HtmlStyleElementText.Read(styleElement) ?? string.Empty, registrations, budget);
         }
         return registrations;
     }

@@ -30,33 +30,38 @@ public sealed partial class PdfEmbeddedFontFamily {
     }
 
     private static bool TryReadTrueTypeNameTable(byte[] data, int offset,
+        int tableLength, out TrueTypeNameMetadata? metadata) =>
+        TryReadTrueTypeNameTable(data, data.Length, offset, tableLength, out metadata);
+
+    /// <summary>Reads a name table whose valid bytes end at <paramref name="dataLength"/>, which a pooled buffer can exceed.</summary>
+    private static bool TryReadTrueTypeNameTable(byte[] data, int dataLength, int offset,
         int tableLength, out TrueTypeNameMetadata? metadata) {
         metadata = null;
         try {
-            EnsureRange(data, offset, tableLength);
+            EnsureRange(dataLength, offset, tableLength);
             var names = new System.Collections.Generic.Dictionary<int, TrueTypeNameValue>();
             var aliases = new System.Collections.Generic.HashSet<string>(System.StringComparer.Ordinal);
             int aliasCharacters = 0;
             var familyAliases = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
             var typographicFamilyAliases = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
-            int count = ReadUInt16(data, offset + 2);
+            int count = ReadUInt16(data, dataLength, offset + 2);
             if (count > MaxSystemFontNameRecords || 6L + count * 12L > tableLength) return false;
             int decodedNameBytes = 0;
-            int stringOffset = offset + ReadUInt16(data, offset + 4);
+            int stringOffset = offset + ReadUInt16(data, dataLength, offset + 4);
             for (int i = 0; i < count; i++) {
                 int record = offset + 6 + i * 12;
-                EnsureRange(data, record, 12);
-                int platformId = ReadUInt16(data, record);
-                int encodingId = ReadUInt16(data, record + 2);
-                int languageId = ReadUInt16(data, record + 4);
-                int nameId = ReadUInt16(data, record + 6);
+                EnsureRange(dataLength, record, 12);
+                int platformId = ReadUInt16(data, dataLength, record);
+                int encodingId = ReadUInt16(data, dataLength, record + 2);
+                int languageId = ReadUInt16(data, dataLength, record + 4);
+                int nameId = ReadUInt16(data, dataLength, record + 6);
                 if (nameId != 1 && nameId != 2 && nameId != 4 && nameId != 6 && nameId != 16 && nameId != 17) {
                     continue;
                 }
 
-                int length = ReadUInt16(data, record + 8);
-                int valueOffset = stringOffset + ReadUInt16(data, record + 10);
-                EnsureRange(data, valueOffset, length);
+                int length = ReadUInt16(data, dataLength, record + 8);
+                int valueOffset = stringOffset + ReadUInt16(data, dataLength, record + 10);
+                EnsureRange(dataLength, valueOffset, length);
                 if (length > MaxSystemFontDecodedNameBytes - decodedNameBytes) return false;
                 decodedNameBytes += length;
                 string? value = DecodeNameValue(data, valueOffset, length, platformId, encodingId);
@@ -90,6 +95,17 @@ public sealed partial class PdfEmbeddedFontFamily {
             return true;
         } catch (System.Exception exception) when (exception is System.NotSupportedException) {
             return false;
+        }
+    }
+
+    private static ushort ReadUInt16(byte[] data, int dataLength, int offset) {
+        EnsureRange(dataLength, offset, 2);
+        return (ushort)((data[offset] << 8) | data[offset + 1]);
+    }
+
+    private static void EnsureRange(int dataLength, int offset, int length) {
+        if (offset < 0 || length < 0 || offset > dataLength - length) {
+            throw new System.NotSupportedException("TrueType font table data is truncated or invalid.");
         }
     }
 

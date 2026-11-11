@@ -1,20 +1,21 @@
-#if NET8_0_OR_GREATER
 using System.Buffers;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
+#if NET8_0_OR_GREATER
+using System.Numerics;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-using System.Text;
+#endif
 
 namespace OfficeIMO.CSV;
 
 internal static partial class CsvParser
 {
     /// <summary>
-    /// Pull-based UTF-8 row source for ordinary unquoted records. Complex records are handed to
-    /// the canonical text row source from the current record boundary so quote and comment
-    /// behavior continues to have one implementation.
+    /// Pull-based UTF-8 row source. RFC 4180 and lenient quoted records are parsed from the
+    /// bytes with the canonical text parser's semantics; a comment record hands the rest of the
+    /// input to the canonical text row source from that record boundary.
     /// </summary>
     internal sealed partial class CsvUtf8StreamDataReaderRowSource : ICsvDataReaderHeaderRowSource, ICsvDataReaderPositionSource
     {
@@ -26,13 +27,22 @@ internal static partial class CsvParser
         private CsvStringCache? _stringCache;
         private readonly byte _delimiter;
         private readonly byte _commentCharacter;
-        private readonly Vector256<byte> _delimiterVector;
-        private static readonly Vector256<byte> QuoteVector = Vector256.Create((byte)'"');
-        private static readonly Vector256<byte> CarriageReturnVector = Vector256.Create((byte)'\r');
-        private static readonly Vector256<byte> LineFeedVector = Vector256.Create((byte)'\n');
+        private readonly SearchValues<byte> _specialBytes;
+        private const int CancellationCheckInterval = 16 * 1024;
+        private const int MaximumBufferSize = 1 << 30;
+        private const int BlockSize = 64;
         private readonly bool _allowEmpty;
+        private readonly bool _strictQuotes;
+        // TSV-style dialects: quotes are ordinary data, so every line break ends a record.
+        private readonly bool _quotesAreData;
+        // All bits when quotes delimit fields; zero when they are data, which empties every quote mask.
+        private readonly ulong _quoteMask;
+        private readonly bool _trim;
+        private readonly bool _checkFieldLengths;
         private Stream _stream;
         private byte[] _buffer;
+        private byte[]? _flexibleFieldBytes;
+        private RecordScan _scan;
         private CsvUtf8DataReaderRowVisitor _visitor;
         private CsvStreamDataReaderRowSource? _fallback;
         private int _position;
@@ -60,12 +70,26 @@ internal static partial class CsvParser
             _encoding = encoding;
             _delimiter = checked((byte)GetDelimiterChar(options));
             _commentCharacter = checked((byte)options.CommentCharacter);
-            _delimiterVector = Vector256.Create(_delimiter);
+            _delimiterText = UsesTextDelimiter(options) ? Encoding.ASCII.GetBytes(options.DelimiterText!) : null;
+            _delimiterByte = new[] { _delimiter };
+            _quotesAreData = options.QuotesAreData;
+            _quoteMask = _quotesAreData ? 0UL : ulong.MaxValue;
+            _specialBytes = SearchValues.Create(_quotesAreData
+                ? new[] { _delimiter, (byte)'\r', (byte)'\n' }
+                : new[] { _delimiter, (byte)'"', (byte)'\r', (byte)'\n' });
             _allowEmpty = options.AllowEmptyLines;
+            _strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
+            _trim = options.TrimWhitespace;
+            _checkFieldLengths = HasFieldLengthLimits(options);
+#if NET8_0_OR_GREATER
+            // The batch index handles single-character delimiters without per-field trimming or limits.
+            _batchable = !_trim && !_checkFieldLengths && _delimiterText is null &&
+                BitConverter.IsLittleEndian && Vector128.IsHardwareAccelerated;
+#endif
             _buffer = buffer;
             _length = length;
             _position = position;
-            _visitor = new CsvUtf8DataReaderRowVisitor(buffer, encoding);
+            _visitor = new CsvUtf8DataReaderRowVisitor(buffer, encoding, _quotesAreData);
             _stringCache = RentStringCacheWorkspace(options);
         }
 
@@ -136,7 +160,11 @@ internal static partial class CsvParser
 
         internal void SetSourceColumnCount(int sourceColumnCount)
         {
+#if NET8_0_OR_GREATER
             ArgumentOutOfRangeException.ThrowIfNegative(sourceColumnCount);
+#else
+            if (sourceColumnCount < 0) throw new ArgumentOutOfRangeException(nameof(sourceColumnCount));
+#endif
 
             _sourceColumnCount = sourceColumnCount;
             _visitor.SetSourceColumnCount(sourceColumnCount);
@@ -152,12 +180,24 @@ internal static partial class CsvParser
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfCancellationRequested(_options);
+#if NET8_0_OR_GREATER
+            // Records of an indexed batch need none of the record scanner's state.
+            if (_batchRow < _batchRowCount && !_disposed && TryCompleteBatchRecord(out bool emitted) && emitted)
+            {
+                return true;
+            }
+#endif
+
             return ReadCore(cancellationToken);
         }
 
         private bool ReadCore(CancellationToken cancellationToken)
         {
+#if NET8_0_OR_GREATER
             ObjectDisposedException.ThrowIf(_disposed, this);
+#else
+            if (_disposed) throw new ObjectDisposedException(GetType().FullName);
+#endif
             if (_fallback is not null)
             {
                 return _fallback.Read(cancellationToken);
@@ -165,175 +205,1072 @@ internal static partial class CsvParser
 
             _currentPhysicalLineNumber = null;
             _currentPhysicalEndLineNumber = null;
+            if (_delimiterText is not null)
+            {
+                return ReadTextDelimitedRecord(cancellationToken);
+            }
 
+            bool checkCancellation = false;
             while (true)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                ThrowIfCancellationRequested(_options);
+                if (checkCancellation)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    ThrowIfCancellationRequested(_options);
+                }
+
+                checkCancellation = true;
+#if NET8_0_OR_GREATER
+                if (_batchRow < _batchRowCount && TryCompleteBatchRecord(out bool emitted))
+                {
+                    if (emitted)
+                    {
+                        return true;
+                    }
+
+                    continue;
+                }
+#endif
+
                 if (!PrepareRecordStart(cancellationToken))
                 {
                     return false;
                 }
 
-                int recordStart = _position;
-                int fieldStart = recordStart;
-                int fieldIndex = 0;
-                int recordLineNumber = _physicalLineSeparatorsConsumed + 1;
-                int cancellationCheckPosition = _position + 16 * 1024;
-                _visitor.Reset();
-
-                if (_buffer[recordStart] == _commentCharacter)
+#if NET8_0_OR_GREATER
+                if (TryIndexBatch(cancellationToken))
                 {
-                    return StartFallback(recordStart, recordLineNumber, cancellationToken);
+                    continue;
                 }
+#endif
 
-                while (true)
+                int recordStart = _position;
+                int recordLineNumber = _physicalLineSeparatorsConsumed + 1;
+                if (_buffer[recordStart] == _commentCharacter && ShouldSkipCommentRecord(ref recordStart, cancellationToken))
                 {
-                    if (_position >= cancellationCheckPosition)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        ThrowIfCancellationRequested(_options);
-                        cancellationCheckPosition = _position + 16 * 1024;
-                    }
-
-                    if (_position == _length)
-                    {
-                        if (!_endOfStream && !FillForCurrentRecord(
-                                ref recordStart,
-                                ref fieldStart,
-                                cancellationToken) && !_endOfStream)
-                        {
-                            return StartFallback(recordStart, recordLineNumber, cancellationToken);
-                        }
-
-                        if (_endOfStream)
-                        {
-                            if (_position == recordStart && fieldIndex == 0)
-                            {
-                                return false;
-                            }
-
-                            if (CompleteRecord(
-                                recordStart,
-                                _position,
-                                fieldStart,
-                                fieldIndex,
-                                recordLineNumber,
-                                hasLineSeparator: false))
-                            {
-                                return true;
-                            }
-
-                            break;
-                        }
-                    }
-
-                    if ((Avx2.IsSupported || Vector128.IsHardwareAccelerated) && _length - _position >= 32)
-                    {
-                        int chunkStart = _position;
-                        uint delimiterMask, terminalMask;
-                        if (Avx2.IsSupported)
-                        {
-                            Vector256<byte> values = Vector256.LoadUnsafe(
-                                ref MemoryMarshal.GetArrayDataReference(_buffer), (nuint)chunkStart);
-                            delimiterMask = (uint)Avx2.MoveMask(Avx2.CompareEqual(values, _delimiterVector));
-                            terminalMask = (uint)Avx2.MoveMask(Avx2.Or(
-                                Avx2.CompareEqual(values, QuoteVector),
-                                Avx2.Or(Avx2.CompareEqual(values, CarriageReturnVector),
-                                    Avx2.CompareEqual(values, LineFeedVector))));
-                        }
-                        else
-                        {
-                            CsvSimdMasks.ReadBytes32(ref MemoryMarshal.GetArrayDataReference(_buffer),
-                                chunkStart, _delimiter, out delimiterMask, out uint quotes, out uint newlines);
-                            terminalMask = quotes | newlines;
-                        }
-                        if (terminalMask == 0)
-                        {
-                            VisitDelimiterMask(delimiterMask, chunkStart, ref fieldStart, ref fieldIndex);
-                            _position += Vector256<byte>.Count;
-                            continue;
-                        }
-
-                        int terminalOffset = BitOperations.TrailingZeroCount(terminalMask);
-                        uint delimitersBeforeTerminal = delimiterMask & ((1u << terminalOffset) - 1u);
-                        VisitDelimiterMask(delimitersBeforeTerminal, chunkStart, ref fieldStart, ref fieldIndex);
-                        int terminalIndex = chunkStart + terminalOffset;
-                        byte terminal = _buffer[terminalIndex];
-                        if (terminal == (byte)'"')
-                        {
-                            return StartFallback(recordStart, recordLineNumber, cancellationToken);
-                        }
-
-                        _position = terminalIndex + 1;
-                        if (terminal == (byte)'\r')
-                        {
-                            _skipLineFeedAfterCarriageReturn = true;
-                        }
-
-                        _physicalLineSeparatorsConsumed++;
-                        if (CompleteRecord(
-                            recordStart,
-                            terminalIndex,
-                            fieldStart,
-                            fieldIndex,
-                            recordLineNumber,
-                            hasLineSeparator: true))
-                        {
-                            return true;
-                        }
-
-                        break;
-                    }
-
-                    byte special = _buffer[_position];
-                    if (special != _delimiter && special != (byte)'"' &&
-                        special != (byte)'\r' && special != (byte)'\n')
-                    {
-                        _position++;
-                        continue;
-                    }
-
-                    int specialIndex = _position;
-                    if (special == _delimiter)
-                    {
-                        _visitor.VisitFieldRange(fieldIndex++, fieldStart, specialIndex - fieldStart);
-                        fieldStart = specialIndex + 1;
-                        _position = fieldStart;
-                        continue;
-                    }
-
-                    if (special == (byte)'"')
+                    // A skipped comment line with a quote can continue on later lines.
+                    if (!TrySkipCommentLine(ref recordStart, cancellationToken) &&
+                        !SkipQuotedCommentRecord(ref recordStart, cancellationToken))
                     {
                         return StartFallback(recordStart, recordLineNumber, cancellationToken);
                     }
 
-                    _position = specialIndex + 1;
-                    if (special == (byte)'\r')
+                    continue;
+                }
+
+                RecordScanResult result;
+                while (true)
+                {
+                    result = ScanRecord(recordStart, cancellationToken, out _scan);
+                    if (result == RecordScanResult.Invalid && !_strictQuotes)
                     {
-                        _skipLineFeedAfterCarriageReturn = true;
+                        result = ScanFlexibleRecord(recordStart, out _scan);
                     }
 
-                    _physicalLineSeparatorsConsumed++;
-                    if (CompleteRecord(
-                        recordStart,
-                        specialIndex,
-                        fieldStart,
-                        fieldIndex,
-                        recordLineNumber,
-                        hasLineSeparator: true))
+                    if (result != RecordScanResult.NeedMoreData)
+                    {
+                        break;
+                    }
+
+                    if (!FillForCurrentRecord(ref recordStart, cancellationToken) && !_endOfStream)
+                    {
+                        return StartFallback(recordStart, recordLineNumber, cancellationToken);
+                    }
+                }
+
+                if (result == RecordScanResult.Complete)
+                {
+                    if (CompleteRecord(recordStart, recordLineNumber))
                     {
                         return true;
                     }
 
+                    continue;
+                }
+
+                if (result == RecordScanResult.Invalid)
+                {
+                    int errorLineNumber = recordLineNumber + _scan.LineBreaks;
+                    SkipOrThrowParseError(
+                        _options,
+                        new CsvParseException("Invalid quoted field.", errorLineNumber),
+                        errorLineNumber);
+                    SkipInvalidRecordLine(cancellationToken);
+                    continue;
+                }
+
+                // An unterminated quote consumes the remaining input, as the text reader's line
+                // continuation does. Its line is the last physical line actually read.
+                int lastLineNumber = recordLineNumber + _scan.LineBreaks - (_scan.EndsWithLineBreak ? 1 : 0);
+                _position = _length;
+                _physicalLineSeparatorsConsumed += _scan.LineBreaks;
+                SkipOrThrowParseError(
+                    _options,
+                    new CsvParseException("Unterminated quoted field.", lastLineNumber),
+                    lastLineNumber);
+            }
+        }
+
+        private enum RecordScanResult
+        {
+            Complete,
+            NeedMoreData,
+            Invalid,
+            Unterminated,
+            /// <summary>The block scanner cannot classify the record; the exact scanner rescans it.</summary>
+            Irregular
+        }
+
+        /// <summary>Boundaries of the record most recently scanned from the current buffer.</summary>
+        private struct RecordScan
+        {
+            /// <summary>Index of the record terminator, or the end of input.</summary>
+            internal int End;
+            /// <summary>Index after the terminator; for an invalid record, the invalid byte.</summary>
+            internal int Next;
+            internal int FieldCount;
+            /// <summary>Line separators inside quoted fields before <see cref="Next"/>.</summary>
+            internal int LineBreaks;
+            internal byte Terminator;
+            internal bool EndsWithLineBreak;
+            /// <summary>Whether the block scanner already established if the record is ASCII.</summary>
+            internal AsciiState Ascii;
+            /// <summary>The block scanner found no escaped quote pair in the record.</summary>
+            internal bool NoEscapedQuotes;
+        }
+
+        private enum AsciiState : byte
+        {
+            Unknown,
+            Ascii,
+            NonAscii
+        }
+
+        /// <summary>
+        /// Scans one record from <paramref name="recordStart"/>. Quoted fields are stored as their
+        /// inner byte range and unescaped only when requested. The scan restarts from the record
+        /// start after a refill, so a partially buffered record never leaves partial state.
+        /// </summary>
+        private RecordScanResult ScanRecord(int recordStart, CancellationToken cancellationToken, out RecordScan scan)
+        {
+#if NET8_0_OR_GREATER
+            if (Vector128.IsHardwareAccelerated && BitConverter.IsLittleEndian)
+            {
+                RecordScanResult result = ScanRecordBlocks(recordStart, cancellationToken, out scan);
+                if (result != RecordScanResult.Irregular)
+                {
+                    return result;
+                }
+            }
+#else
+            if (!_trim && BitConverter.IsLittleEndian)
+            {
+                RecordScanResult result = ScanRecordWords(recordStart, out scan);
+                if (result != RecordScanResult.Irregular)
+                {
+                    return result;
+                }
+            }
+#endif
+
+            return ScanRecordExact(recordStart, cancellationToken, out scan);
+        }
+
+#if NET8_0_OR_GREATER
+        /// <summary>
+        /// Scans 64-byte blocks of a well-formed record. Quote parity is a prefix XOR of the quote
+        /// mask, so delimiters and line separators inside quotes drop out of the structural mask and
+        /// only field boundaries are visited. A quoted field is accepted when it starts and ends
+        /// with a quote and every inner quote is part of an escaped pair; anything else, and the
+        /// final partial block, is <see cref="RecordScanResult.Irregular"/> for the exact scanner.
+        /// </summary>
+        private RecordScanResult ScanRecordBlocks(int recordStart, CancellationToken cancellationToken, out RecordScan scan)
+        {
+            if (_trim)
+            {
+                return ScanTrimmedRecordBlocks(recordStart, cancellationToken, out scan);
+            }
+
+            scan = default;
+            _visitor.Reset();
+            int length = _length;
+            int position = recordStart;
+            int fieldStart = recordStart;
+            int fieldIndex = 0;
+            int lineBreaks = 0;
+            ulong insideQuotes = 0;
+            ulong nonAscii = 0;
+            bool closingQuotePending = false;
+            bool openingQuoteAllowed = true;
+            bool escapedQuotes = false;
+            bool carriageReturnInside = false;
+            int cancellationCheckPosition = position + CancellationCheckInterval;
+            ref byte data = ref MemoryMarshal.GetArrayDataReference(_buffer);
+            while (true)
+            {
+                if (length - position < BlockSize)
+                {
+                    return _endOfStream ? RecordScanResult.Irregular : RecordScanResult.NeedMoreData;
+                }
+
+                LoadBlockMasks(ref data, position, out ulong delimiters, out ulong quotes,
+                    out ulong carriageReturns, out ulong lineFeeds, out ulong high);
+                ulong lineSeparators = carriageReturns | lineFeeds;
+                ulong structural, recordEnds, boundaries;
+                if ((quotes | insideQuotes) == 0 && !closingQuotePending)
+                {
+                    structural = delimiters | lineSeparators;
+                    recordEnds = lineSeparators;
+                    boundaries = structural;
+                    carriageReturnInside = false;
+                }
+                else
+                {
+                    // Quote parity marks bytes inside quotes. A closing quote must be followed by a
+                    // quote (an escaped pair), a delimiter or a line separator; an opening quote must
+                    // start a field or follow a closing quote. Anything else is left to the exact scan.
+                    ulong inside = PrefixXor(quotes) ^ insideQuotes;
+                    ulong opening = quotes & inside;
+                    ulong closing = quotes & ~inside;
+                    structural = (delimiters | lineSeparators) & ~inside;
+                    recordEnds = lineSeparators & ~inside;
+                    boundaries = structural | closing;
+                    ulong scope = recordEnds == 0 ? ulong.MaxValue : recordEnds ^ (recordEnds - 1UL);
+                    ulong followsClosing = quotes | delimiters | lineSeparators;
+                    ulong invalid = ((closing << 1) & ~followsClosing) |
+                        (opening & ~((boundaries << 1) | (openingQuoteAllowed ? 1UL : 0UL)));
+                    if ((invalid & scope) != 0 || (closingQuotePending && (followsClosing & 1UL) == 0))
+                    {
+                        return RecordScanResult.Irregular;
+                    }
+
+                    // The second quote of an escaped pair directly follows a closing quote.
+                    escapedQuotes |= ((((closing << 1) | (closingQuotePending ? 1UL : 0UL)) & quotes & scope) != 0);
+
+                    ulong innerCarriageReturns = carriageReturns & inside & scope;
+                    ulong innerLineFeeds = lineFeeds & inside & scope;
+                    if ((innerCarriageReturns | innerLineFeeds) != 0)
+                    {
+                        // CR, LF and CRLF inside quotes each end one physical line.
+                        lineBreaks += BitOperations.PopCount(innerCarriageReturns) + BitOperations.PopCount(
+                            innerLineFeeds & ~((innerCarriageReturns << 1) | (carriageReturnInside ? 1UL : 0UL)));
+                    }
+
+                    carriageReturnInside = (innerCarriageReturns >> 63) != 0;
+                    closingQuotePending = (closing >> 63) != 0;
+                    insideQuotes = (ulong)((long)inside >> 63);
+                }
+
+                if (recordEnds != 0)
+                {
+                    int end = BitOperations.TrailingZeroCount(recordEnds);
+                    ulong before = (1UL << end) - 1UL;
+                    _visitor.VisitDelimiterMask(structural & before, position, ref fieldStart, ref fieldIndex);
+                    RecordScanResult result = CompleteBlockRecord(position + end, fieldStart, fieldIndex, lineBreaks, (nonAscii | (high & before)) == 0, out scan);
+                    scan.NoEscapedQuotes = !escapedQuotes;
+                    return result;
+                }
+
+                // Quoted fields keep their quotes; the visitor removes them when the text is read.
+                _visitor.VisitDelimiterMask(structural, position, ref fieldStart, ref fieldIndex);
+                openingQuoteAllowed = (boundaries >> 63) != 0;
+                nonAscii |= high;
+                position += BlockSize;
+                if (position >= cancellationCheckPosition)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    ThrowIfCancellationRequested(_options);
+                    cancellationCheckPosition = position + CancellationCheckInterval;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Block scan with trimming. Each field is visited on its own so whitespace around quoted
+        /// text can be removed before the quotes are checked.
+        /// </summary>
+        private RecordScanResult ScanTrimmedRecordBlocks(int recordStart, CancellationToken cancellationToken, out RecordScan scan)
+        {
+            scan = default;
+            _visitor.Reset();
+            byte[] buffer = _buffer;
+            int length = _length;
+            int position = recordStart;
+            int fieldStart = recordStart;
+            int fieldIndex = 0;
+            int fieldQuotes = 0;
+            int lineBreaks = 0;
+            bool innerLineBreaks = false;
+            ulong insideQuotes = 0;
+            ulong nonAscii = 0;
+            int cancellationCheckPosition = position + CancellationCheckInterval;
+            ref byte data = ref MemoryMarshal.GetArrayDataReference(buffer);
+            while (true)
+            {
+                if (length - position < BlockSize)
+                {
+                    return _endOfStream ? RecordScanResult.Irregular : RecordScanResult.NeedMoreData;
+                }
+
+                LoadBlockMasks(ref data, position, out ulong delimiters, out ulong quotes,
+                    out ulong carriageReturns, out ulong lineFeeds, out ulong high);
+                ulong lineSeparators = carriageReturns | lineFeeds;
+                ulong inside = insideQuotes;
+                if (quotes != 0)
+                {
+                    inside = PrefixXor(quotes) ^ insideQuotes;
+                    insideQuotes = (ulong)((long)inside >> 63);
+                }
+
+                innerLineBreaks |= (lineSeparators & inside) != 0;
+                ulong structural = (delimiters | lineSeparators) & ~inside;
+                while (structural != 0)
+                {
+                    int bit = BitOperations.TrailingZeroCount(structural);
+                    ulong before = (1UL << bit) - 1UL;
+                    fieldQuotes += BitOperations.PopCount(quotes & before);
+                    quotes &= ~before;
+                    int end = position + bit;
+                    if (fieldQuotes == 0)
+                    {
+                        VisitUnquotedField(fieldIndex, fieldStart, end);
+                    }
+                    else if (!TryVisitQuotedField(fieldIndex, fieldStart, end, fieldQuotes, innerLineBreaks, ref lineBreaks))
+                    {
+                        return RecordScanResult.Irregular;
+                    }
+
+                    fieldQuotes = 0;
+                    if ((lineSeparators & (1UL << bit)) != 0)
+                    {
+                        return CompleteBlockRecord(end, fieldStart: -1, fieldIndex, lineBreaks, (nonAscii | (high & before)) == 0, out scan);
+                    }
+
+                    fieldIndex++;
+                    fieldStart = end + 1;
+                    structural &= structural - 1UL;
+                }
+
+                fieldQuotes += BitOperations.PopCount(quotes);
+                nonAscii |= high;
+                position += BlockSize;
+
+                if (position >= cancellationCheckPosition)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    ThrowIfCancellationRequested(_options);
+                    cancellationCheckPosition = position + CancellationCheckInterval;
+                }
+            }
+        }
+
+        /// <summary>Completes a block-scanned record at a line separator; a negative field start means its last field was visited.</summary>
+        private RecordScanResult CompleteBlockRecord(int end, int fieldStart, int fieldIndex, int lineBreaks, bool isAscii, out RecordScan scan)
+        {
+            if (fieldStart >= 0)
+            {
+                VisitUnquotedField(fieldIndex, fieldStart, end);
+            }
+
+            scan = default;
+            scan.End = end;
+            scan.Next = end + 1;
+            scan.FieldCount = fieldIndex + 1;
+            scan.LineBreaks = lineBreaks;
+            scan.Terminator = _buffer[end];
+            scan.Ascii = isAscii ? AsciiState.Ascii : AsciiState.NonAscii;
+            return RecordScanResult.Complete;
+        }
+
+        private bool TryVisitQuotedField(int fieldIndex, int fieldStart, int end, int quotes, bool innerLineBreaks, ref int lineBreaks)
+        {
+            byte[] buffer = _buffer;
+            if (_trim)
+            {
+                // Strict quoting admits whitespace only after the closing quote.
+                while (!_strictQuotes && fieldStart < end && IsAsciiWhiteSpace(buffer[fieldStart])) fieldStart++;
+                while (end > fieldStart && IsAsciiWhiteSpace(buffer[end - 1])) end--;
+            }
+
+            if ((quotes & 1) != 0 || end - fieldStart < 2 || buffer[fieldStart] != (byte)'"' || buffer[end - 1] != (byte)'"')
+            {
+                return false;
+            }
+
+            int contentStart = fieldStart + 1;
+            int contentLength = end - fieldStart - 2;
+            bool escaped = quotes > 2;
+            if (escaped)
+            {
+                ReadOnlySpan<byte> content = buffer.AsSpan(contentStart, contentLength);
+                while (true)
+                {
+                    int quote = content.IndexOf((byte)'"');
+                    if (quote < 0)
+                    {
+                        break;
+                    }
+
+                    if (quote + 1 == content.Length || content[quote + 1] != (byte)'"')
+                    {
+                        return false;
+                    }
+
+                    content = content.Slice(quote + 2);
+                }
+            }
+
+            if (innerLineBreaks)
+            {
+                lineBreaks += CountLineBreaks(buffer, contentStart, end - 1, out _);
+            }
+
+            _visitor.VisitQuotedFieldRange(fieldIndex, contentStart, contentLength, escaped);
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void LoadBlockMasks(ref byte data, int position, out ulong delimiters, out ulong quotes,
+            out ulong carriageReturns, out ulong lineFeeds, out ulong high)
+        {
+            if (Vector512.IsHardwareAccelerated)
+            {
+                Vector512<byte> values = Vector512.LoadUnsafe(ref data, (nuint)position);
+                high = values.ExtractMostSignificantBits();
+                delimiters = Vector512.Equals(values, Vector512.Create(_delimiter)).ExtractMostSignificantBits();
+                quotes = Vector512.Equals(values, Vector512.Create((byte)'"')).ExtractMostSignificantBits();
+                carriageReturns = Vector512.Equals(values, Vector512.Create((byte)'\r')).ExtractMostSignificantBits();
+                lineFeeds = Vector512.Equals(values, Vector512.Create((byte)'\n')).ExtractMostSignificantBits();
+            }
+            else if (Vector256.IsHardwareAccelerated)
+            {
+                LoadMasks256(ref data, position, out uint lowDelimiters, out uint lowQuotes, out uint lowReturns, out uint lowFeeds, out uint lowHigh);
+                LoadMasks256(ref data, position + 32, out uint highDelimiters, out uint highQuotes, out uint highReturns, out uint highFeeds, out uint highHigh);
+                high = lowHigh | ((ulong)highHigh << 32);
+                delimiters = lowDelimiters | ((ulong)highDelimiters << 32);
+                quotes = lowQuotes | ((ulong)highQuotes << 32);
+                carriageReturns = lowReturns | ((ulong)highReturns << 32);
+                lineFeeds = lowFeeds | ((ulong)highFeeds << 32);
+            }
+            else
+            {
+                delimiters = quotes = carriageReturns = lineFeeds = high = 0;
+                for (int offset = 0; offset < BlockSize; offset += 16)
+                {
+                    Vector128<byte> values = Vector128.LoadUnsafe(ref data, (nuint)(position + offset));
+                    high |= (ulong)values.ExtractMostSignificantBits() << offset;
+                    delimiters |= (ulong)Vector128.Equals(values, Vector128.Create(_delimiter)).ExtractMostSignificantBits() << offset;
+                    quotes |= (ulong)Vector128.Equals(values, Vector128.Create((byte)'"')).ExtractMostSignificantBits() << offset;
+                    carriageReturns |= (ulong)Vector128.Equals(values, Vector128.Create((byte)'\r')).ExtractMostSignificantBits() << offset;
+                    lineFeeds |= (ulong)Vector128.Equals(values, Vector128.Create((byte)'\n')).ExtractMostSignificantBits() << offset;
+                }
+            }
+            quotes &= _quoteMask;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void LoadMasks256(ref byte data, int position, out uint delimiters, out uint quotes,
+            out uint carriageReturns, out uint lineFeeds, out uint high)
+        {
+            Vector256<byte> values = Vector256.LoadUnsafe(ref data, (nuint)position);
+            high = values.ExtractMostSignificantBits();
+            delimiters = Vector256.Equals(values, Vector256.Create(_delimiter)).ExtractMostSignificantBits();
+            quotes = Vector256.Equals(values, Vector256.Create((byte)'"')).ExtractMostSignificantBits();
+            carriageReturns = Vector256.Equals(values, Vector256.Create((byte)'\r')).ExtractMostSignificantBits();
+            lineFeeds = Vector256.Equals(values, Vector256.Create((byte)'\n')).ExtractMostSignificantBits();
+        }
+
+
+        /// <summary>Sets each bit to the parity of the quote bits at and below it.</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static ulong PrefixXor(ulong mask)
+        {
+            if (Pclmulqdq.IsSupported)
+            {
+                return Pclmulqdq.CarrylessMultiply(
+                    Vector128.CreateScalar(mask), Vector128.CreateScalar(ulong.MaxValue), 0).ToScalar();
+            }
+
+            mask ^= mask << 1;
+            mask ^= mask << 2;
+            mask ^= mask << 4;
+            mask ^= mask << 8;
+            mask ^= mask << 16;
+            mask ^= mask << 32;
+            return mask;
+        }
+#endif
+
+        /// <summary>
+        /// Exact byte-by-byte RFC 4180 record scan used for irregular records and input tails. It
+        /// reports the precise position of invalid quoting and unterminated quoted fields.
+        /// </summary>
+        private RecordScanResult ScanRecordExact(int recordStart, CancellationToken cancellationToken, out RecordScan scan)
+        {
+            scan = default;
+            _visitor.Reset();
+            byte[] buffer = _buffer;
+            int length = _length;
+            int position = recordStart;
+            int fieldStart = recordStart;
+            int fieldIndex = 0;
+            int lineBreaks = 0;
+            int cancellationCheckPosition = position + CancellationCheckInterval;
+            while (true)
+            {
+                if (position >= cancellationCheckPosition)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    ThrowIfCancellationRequested(_options);
+                    cancellationCheckPosition = position + CancellationCheckInterval;
+                }
+
+                int found = buffer.AsSpan(position, length - position).IndexOfAny(_specialBytes);
+                if (found < 0)
+                {
+                    if (!_endOfStream)
+                    {
+                        return RecordScanResult.NeedMoreData;
+                    }
+
+                    VisitUnquotedField(fieldIndex, fieldStart, length);
+                    scan.End = length;
+                    scan.Next = length;
+                    scan.FieldCount = fieldIndex + 1;
+                    scan.LineBreaks = lineBreaks;
+                    return RecordScanResult.Complete;
+                }
+
+                int special = position + found;
+                if (buffer[special] == _delimiter)
+                {
+                    VisitUnquotedField(fieldIndex++, fieldStart, special);
+                    fieldStart = position = special + 1;
+                    continue;
+                }
+
+                byte terminal = buffer[special];
+                if (terminal != (byte)'"')
+                {
+                    VisitUnquotedField(fieldIndex, fieldStart, special);
+                    scan.End = special;
+                    scan.Next = special + 1;
+                    scan.FieldCount = fieldIndex + 1;
+                    scan.LineBreaks = lineBreaks;
+                    scan.Terminator = terminal;
+                    return RecordScanResult.Complete;
+                }
+
+                if (special != fieldStart)
+                {
+                    // A quote inside an unquoted field is not RFC 4180 syntax.
+                    scan.Next = special;
+                    scan.LineBreaks = lineBreaks;
+                    return RecordScanResult.Invalid;
+                }
+
+                int contentStart = special + 1;
+                int search = contentStart;
+                bool escaped = false;
+                int closingQuote;
+                while (true)
+                {
+                    int quote = buffer.AsSpan(search, length - search).IndexOf((byte)'"');
+                    if (quote < 0)
+                    {
+                        if (!_endOfStream)
+                        {
+                            return RecordScanResult.NeedMoreData;
+                        }
+
+                        scan.LineBreaks = lineBreaks + CountLineBreaks(buffer, contentStart, length, out bool endsWithLineBreak);
+                        scan.EndsWithLineBreak = endsWithLineBreak;
+                        return RecordScanResult.Unterminated;
+                    }
+
+                    closingQuote = search + quote;
+                    if (closingQuote + 1 == length && !_endOfStream)
+                    {
+                        return RecordScanResult.NeedMoreData;
+                    }
+
+                    if (closingQuote + 1 < length && buffer[closingQuote + 1] == (byte)'"')
+                    {
+                        escaped = true;
+                        search = closingQuote + 2;
+                        continue;
+                    }
+
                     break;
                 }
+
+                lineBreaks += CountLineBreaks(buffer, contentStart, closingQuote, out _);
+                _visitor.VisitQuotedFieldRange(fieldIndex, contentStart, closingQuote - contentStart, escaped);
+                position = closingQuote + 1;
+                if (_trim && !SkipWhiteSpaceAfterQuote(ref position))
+                {
+                    return RecordScanResult.NeedMoreData;
+                }
+
+                if (position == length)
+                {
+                    scan.End = position;
+                    scan.Next = position;
+                    scan.FieldCount = fieldIndex + 1;
+                    scan.LineBreaks = lineBreaks;
+                    return RecordScanResult.Complete;
+                }
+
+                byte next = buffer[position];
+                if (next == _delimiter)
+                {
+                    fieldIndex++;
+                    fieldStart = ++position;
+                    continue;
+                }
+
+                if (next == (byte)'\r' || next == (byte)'\n')
+                {
+                    scan.End = position;
+                    scan.Next = position + 1;
+                    scan.FieldCount = fieldIndex + 1;
+                    scan.LineBreaks = lineBreaks;
+                    scan.Terminator = next;
+                    return RecordScanResult.Complete;
+                }
+
+                scan.Next = position;
+                scan.LineBreaks = lineBreaks;
+                return RecordScanResult.Invalid;
+            }
+        }
+
+        /// <summary>
+        /// Lenient parse of a record that is not RFC 4180 quoted, matching the canonical flexible
+        /// parser: a quote opens a quoted section anywhere, and a quote right after a closing quote
+        /// is literal. With trimming, whitespace before an opening quote and after a closing quote
+        /// is dropped and fields without quotes are trimmed. Each field is decoded during the scan.
+        /// </summary>
+        private RecordScanResult ScanFlexibleRecord(int recordStart, out RecordScan scan)
+        {
+            scan = default;
+            _visitor.Reset();
+            _flexibleFieldBytes ??= new byte[256];
+            byte[] buffer = _buffer;
+            int length = _length;
+            int position = recordStart;
+            int fieldIndex = 0;
+            int fieldLength = 0;
+            int lineBreaks = 0;
+            bool inQuotes = false;
+            bool afterClosingQuote = false;
+            bool fieldWasQuoted = false;
+            bool whiteSpaceOnly = true;
+            while (true)
+            {
+                if (position == length)
+                {
+                    if (!_endOfStream)
+                    {
+                        return RecordScanResult.NeedMoreData;
+                    }
+
+                    if (inQuotes)
+                    {
+                        scan.LineBreaks = lineBreaks;
+                        scan.EndsWithLineBreak = position > recordStart &&
+                            buffer[position - 1] is (byte)'\r' or (byte)'\n';
+                        return RecordScanResult.Unterminated;
+                    }
+
+                    VisitFlexibleField(fieldIndex, fieldLength, fieldWasQuoted);
+                    scan.End = position;
+                    scan.Next = position;
+                    scan.FieldCount = fieldIndex + 1;
+                    scan.LineBreaks = lineBreaks;
+                    return RecordScanResult.Complete;
+                }
+
+                byte value = buffer[position];
+                if (value == (byte)'"')
+                {
+                    if (inQuotes)
+                    {
+                        if (position + 1 == length && !_endOfStream)
+                        {
+                            return RecordScanResult.NeedMoreData;
+                        }
+
+                        if (position + 1 < length && buffer[position + 1] == (byte)'"')
+                        {
+                            AppendFlexibleBytes(ref fieldLength, position, 1);
+                            whiteSpaceOnly = false;
+                            position += 2;
+                            continue;
+                        }
+
+                        inQuotes = false;
+                        afterClosingQuote = true;
+                    }
+                    else if (afterClosingQuote)
+                    {
+                        AppendFlexibleBytes(ref fieldLength, position, 1);
+                        whiteSpaceOnly = false;
+                        afterClosingQuote = false;
+                    }
+                    else
+                    {
+                        if (_trim && whiteSpaceOnly)
+                        {
+                            fieldLength = 0;
+                        }
+
+                        inQuotes = true;
+                        fieldWasQuoted = true;
+                    }
+
+                    position++;
+                    continue;
+                }
+
+                if (value == (byte)'\r' || value == (byte)'\n')
+                {
+                    if (!inQuotes)
+                    {
+                        VisitFlexibleField(fieldIndex, fieldLength, fieldWasQuoted);
+                        scan.End = position;
+                        scan.Next = position + 1;
+                        scan.FieldCount = fieldIndex + 1;
+                        scan.LineBreaks = lineBreaks;
+                        scan.Terminator = value;
+                        return RecordScanResult.Complete;
+                    }
+
+                    // A separator inside quotes is kept as read and does not change whether the
+                    // field so far is whitespace.
+                    int separatorLength = 1;
+                    if (value == (byte)'\r')
+                    {
+                        if (position + 1 == length && !_endOfStream)
+                        {
+                            return RecordScanResult.NeedMoreData;
+                        }
+
+                        if (position + 1 < length && buffer[position + 1] == (byte)'\n')
+                        {
+                            separatorLength = 2;
+                        }
+                    }
+
+                    lineBreaks++;
+                    AppendFlexibleBytes(ref fieldLength, position, separatorLength);
+                    position += separatorLength;
+                    continue;
+                }
+
+                if (value == _delimiter && !inQuotes)
+                {
+                    VisitFlexibleField(fieldIndex++, fieldLength, fieldWasQuoted);
+                    fieldLength = 0;
+                    afterClosingQuote = false;
+                    fieldWasQuoted = false;
+                    whiteSpaceOnly = true;
+                    position++;
+                    continue;
+                }
+
+                int characterLength = 1;
+                bool whiteSpace = false;
+                if (_trim)
+                {
+                    if (!TryClassifyWhiteSpace(position, out whiteSpace, out characterLength))
+                    {
+                        return RecordScanResult.NeedMoreData;
+                    }
+
+                    if (!inQuotes && afterClosingQuote && whiteSpace)
+                    {
+                        position += characterLength;
+                        continue;
+                    }
+                }
+
+                if (!inQuotes)
+                {
+                    afterClosingQuote = false;
+                }
+
+                AppendFlexibleBytes(ref fieldLength, position, characterLength);
+                whiteSpaceOnly &= whiteSpace;
+                position += characterLength;
+            }
+        }
+
+        private void AppendFlexibleBytes(ref int fieldLength, int start, int count)
+        {
+            if (fieldLength + count > _flexibleFieldBytes!.Length)
+            {
+                Array.Resize(ref _flexibleFieldBytes, checked(Math.Max(fieldLength + count, _flexibleFieldBytes.Length * 2)));
+            }
+
+            _buffer.AsSpan(start, count).CopyTo(_flexibleFieldBytes.AsSpan(fieldLength));
+            fieldLength += count;
+        }
+
+        private void VisitFlexibleField(int fieldIndex, int fieldLength, bool fieldWasQuoted)
+        {
+            ReadOnlySpan<byte> bytes = _flexibleFieldBytes.AsSpan(0, fieldLength);
+            string value = fieldLength == 0
+                ? string.Empty
+                : Ascii.IsValid(bytes) ? CsvAsciiText.GetString(bytes) : _encoding.GetString(bytes);
+            _visitor.VisitMaterializedField(fieldIndex, _trim && !fieldWasQuoted ? value.Trim() : value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsAsciiWhiteSpace(byte value) => value == (byte)' ' || (uint)(value - 9) <= 4;
+
+        /// <summary>
+        /// Classifies the character at <paramref name="position"/> as <see cref="char.IsWhiteSpace(char)"/>
+        /// does, decoding a non-ASCII scalar. Returns false when a sequence continues past buffered input.
+        /// </summary>
+        private bool TryClassifyWhiteSpace(int position, out bool whiteSpace, out int length)
+        {
+            byte value = _buffer[position];
+            if (value < 0x80)
+            {
+                whiteSpace = IsAsciiWhiteSpace(value);
+                length = 1;
+                return true;
+            }
+
+            OperationStatus status = Rune.DecodeFromUtf8(_buffer.AsSpan(position, _length - position), out Rune rune, out length);
+            if (status == OperationStatus.NeedMoreData && !_endOfStream)
+            {
+                whiteSpace = false;
+                return false;
+            }
+
+            // Invalid UTF-8 decodes to U+FFFD, which is not whitespace.
+            whiteSpace = status == OperationStatus.Done && Rune.IsWhiteSpace(rune);
+            return true;
+        }
+
+        /// <summary>Skips whitespace between a closing quote and the next delimiter or line separator.</summary>
+        private bool SkipWhiteSpaceAfterQuote(ref int position)
+        {
+            while (position < _length)
+            {
+                byte value = _buffer[position];
+                if (value == _delimiter || value == (byte)'\r' || value == (byte)'\n')
+                {
+                    return true;
+                }
+
+                if (!TryClassifyWhiteSpace(position, out bool whiteSpace, out int length))
+                {
+                    return false;
+                }
+
+                if (!whiteSpace)
+                {
+                    return true;
+                }
+
+                position += length;
+            }
+
+            return _endOfStream;
+        }
+
+        /// <summary>Stores an unquoted field, trimming it as the canonical parser does when requested.</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void VisitUnquotedField(int fieldIndex, int start, int end)
+        {
+            if (_trim && end > start &&
+                (IsAsciiWhiteSpace(_buffer[start]) || IsAsciiWhiteSpace(_buffer[end - 1]) ||
+                 _buffer[start] >= 0x80 || _buffer[end - 1] >= 0x80))
+            {
+                VisitTrimmedField(fieldIndex, start, end);
+                return;
+            }
+
+            _visitor.VisitFieldRange(fieldIndex, start, end - start);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void VisitTrimmedField(int fieldIndex, int start, int end)
+        {
+            byte[] buffer = _buffer;
+            while (start < end && IsAsciiWhiteSpace(buffer[start])) start++;
+            while (end > start && IsAsciiWhiteSpace(buffer[end - 1])) end--;
+            ReadOnlySpan<byte> text = buffer.AsSpan(start, end - start);
+            if (!text.IsEmpty &&
+                ((text[0] >= 0x80 && Rune.DecodeFromUtf8(text, out Rune first, out _) == OperationStatus.Done && Rune.IsWhiteSpace(first)) ||
+                 (text[text.Length - 1] >= 0x80 && Rune.DecodeLastFromUtf8(text, out Rune last, out _) == OperationStatus.Done && Rune.IsWhiteSpace(last))))
+            {
+                // Non-ASCII whitespace at an edge: trim the decoded text exactly as string.Trim does.
+                _visitor.VisitMaterializedField(fieldIndex, _encoding.GetString(text).Trim());
+                return;
+            }
+
+            _visitor.VisitFieldRange(fieldIndex, start, end - start);
+        }
+
+
+        /// <summary>Counts CR, LF and CRLF separators in quoted content.</summary>
+        private static int CountLineBreaks(byte[] buffer, int start, int end, out bool endsWithLineBreak)
+        {
+            endsWithLineBreak = end > start && buffer[end - 1] is (byte)'\r' or (byte)'\n';
+            ReadOnlySpan<byte> content = buffer.AsSpan(start, end - start);
+            int index = content.IndexOfAny((byte)'\r', (byte)'\n');
+            if (index < 0)
+            {
+                return 0;
+            }
+
+            int count = 0;
+            for (; index < content.Length; index++)
+            {
+                byte value = content[index];
+                if (value == (byte)'\n')
+                {
+                    count++;
+                }
+                else if (value == (byte)'\r')
+                {
+                    count++;
+                    if (index + 1 < content.Length && content[index + 1] == (byte)'\n')
+                    {
+                        index++;
+                    }
+                }
+            }
+
+            return count;
+        }
+
+        /// <summary>
+        /// Applies the canonical comment rules to a record that starts with the comment character:
+        /// it is skipped when comment rows are skipped, or before the header row, unless it is a W3C
+        /// <c>#Fields:</c> header. Otherwise it is an ordinary record.
+        /// </summary>
+        private bool ShouldSkipCommentRecord(ref int recordStart, CancellationToken cancellationToken)
+        {
+            CsvParsingSettings options = _options;
+            bool beforeHeader = _emittedRecordCount <= GetParserInitialRecordsToSkip(options) &&
+                options.HasHeaderRow && options.Header is null;
+            if (!options.SkipCommentRows && !(beforeHeader && options.SkipCommentRowsBeforeHeader))
+            {
+                return false;
+            }
+
+            if (!beforeHeader || !options.RecognizeW3CFieldsHeader)
+            {
+                return true;
+            }
+
+            ReadOnlySpan<byte> marker = "#Fields:"u8;
+            while (_length - recordStart < marker.Length && !_endOfStream && FillForCurrentRecord(ref recordStart, cancellationToken))
+            {
+            }
+
+            _position = recordStart;
+            ReadOnlySpan<byte> start = _buffer.AsSpan(recordStart, Math.Min(marker.Length, _length - recordStart));
+            return !(start.Length == marker.Length && Ascii.EqualsIgnoreCase(start, marker));
+        }
+
+        /// <summary>
+        /// Skips a comment record that is one physical line without quotes. Returns false, leaving the
+        /// record unread, when the line contains a quote.
+        /// </summary>
+        private bool TrySkipCommentLine(ref int recordStart, CancellationToken cancellationToken)
+        {
+            int searched = recordStart;
+            while (true)
+            {
+                int found = _quotesAreData
+                    ? _buffer.AsSpan(searched, _length - searched).IndexOfAny((byte)'\r', (byte)'\n')
+                    : _buffer.AsSpan(searched, _length - searched).IndexOfAny((byte)'"', (byte)'\r', (byte)'\n');
+                if (found >= 0)
+                {
+                    int end = searched + found;
+                    if (_buffer[end] == (byte)'"' && !_quotesAreData)
+                    {
+                        _position = recordStart;
+                        return false;
+                    }
+
+                    if (_buffer[end] == (byte)'\r')
+                    {
+                        _skipLineFeedAfterCarriageReturn = true;
+                    }
+
+                    _position = end + 1;
+                    _physicalLineSeparatorsConsumed++;
+                    return true;
+                }
+
+                if (_endOfStream)
+                {
+                    _position = _length;
+                    return true;
+                }
+
+                int scannedLength = _length - recordStart;
+                if (!FillForCurrentRecord(ref recordStart, cancellationToken))
+                {
+                    if (!_endOfStream)
+                    {
+                        _position = recordStart;
+                        return false;
+                    }
+                }
+
+                searched = recordStart + scannedLength;
+            }
+        }
+
+        /// <summary>Skips an invalid record through the end of the physical line that contains the error.</summary>
+        private void SkipInvalidRecordLine(CancellationToken cancellationToken)
+        {
+            _physicalLineSeparatorsConsumed += _scan.LineBreaks;
+            int position = _scan.Next;
+            while (true)
+            {
+                int found = _buffer.AsSpan(position, _length - position).IndexOfAny((byte)'\r', (byte)'\n');
+                if (found >= 0)
+                {
+                    position += found;
+                    if (_buffer[position] == (byte)'\r')
+                    {
+                        _skipLineFeedAfterCarriageReturn = true;
+                    }
+
+                    _position = position + 1;
+                    _physicalLineSeparatorsConsumed++;
+                    return;
+                }
+
+                if (_endOfStream)
+                {
+                    _position = _length;
+                    return;
+                }
+
+                // Nothing before the end of the buffer is needed again.
+                _position = _length;
+                if (!EnsureBuffered(cancellationToken))
+                {
+                    return;
+                }
+
+                position = _position;
             }
         }
 
         public ReadOnlySpan<char> GetSpan(int ordinal) => _fallback is not null
             ? _fallback.GetSpan(ordinal)
-            : _visitor.GetString(ordinal).AsSpan();
+            : _visitor.GetSpan(ordinal);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string GetString(int ordinal) => _fallback?.GetString(ordinal) ?? _visitor.GetString(ordinal);
@@ -342,8 +1279,7 @@ internal static partial class CsvParser
 
         public bool IsNull(int ordinal, string? nullValue) =>
             _fallback?.IsNull(ordinal, nullValue) ??
-            (nullValue is not null && !_visitor.IsMissing(ordinal) &&
-                string.Equals(_visitor.GetString(ordinal), nullValue, StringComparison.Ordinal));
+            (nullValue is not null && !_visitor.IsMissing(ordinal) && _visitor.TextEquals(ordinal, nullValue));
 
         public int CopyStringValues(object[] values, int count, string? nullValue)
         {
@@ -427,26 +1363,33 @@ internal static partial class CsvParser
             return !_endOfStream;
         }
 
-        private bool FillForCurrentRecord(
-            ref int recordStart,
-            ref int fieldStart,
-            CancellationToken cancellationToken)
+        /// <summary>
+        /// Moves the current record to the start of the buffer, growing the buffer when the record
+        /// already fills it, and appends more input. The caller rescans the record afterwards.
+        /// </summary>
+        private bool FillForCurrentRecord(ref int recordStart, CancellationToken cancellationToken)
         {
             int retainedLength = _length - recordStart;
             if (retainedLength == _buffer.Length)
             {
-                return false;
-            }
+                if (_buffer.Length >= MaximumBufferSize)
+                {
+                    return false;
+                }
 
-            if (retainedLength > 0 && recordStart != 0)
+                byte[] larger = ArrayPool<byte>.Shared.Rent(_buffer.Length * 2);
+                Buffer.BlockCopy(_buffer, recordStart, larger, 0, retainedLength);
+                ArrayPool<byte>.Shared.Return(_buffer);
+                _buffer = larger;
+                _visitor.SetBuffer(larger);
+            }
+            else if (retainedLength > 0 && recordStart != 0)
             {
                 Buffer.BlockCopy(_buffer, recordStart, _buffer, 0, retainedLength);
-                _visitor.ShiftStarts(-recordStart);
             }
 
-            fieldStart -= recordStart;
             recordStart = 0;
-            _position = retainedLength;
+            _position = 0;
             _length = retainedLength;
             cancellationToken.ThrowIfCancellationRequested();
             _options.CancellationToken.ThrowIfCancellationRequested();
@@ -463,46 +1406,70 @@ internal static partial class CsvParser
             return true;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void VisitDelimiterMask(
-            uint delimiterMask,
-            int chunkStart,
-            ref int fieldStart,
-            ref int fieldIndex)
+        private bool CompleteRecord(int recordStart, int recordLineNumber)
         {
-            _visitor.VisitDelimiterMask(delimiterMask, chunkStart, ref fieldStart, ref fieldIndex);
-        }
+            ref readonly RecordScan scan = ref _scan;
+            _position = scan.Next;
+            if (scan.Terminator == (byte)'\r')
+            {
+                _skipLineFeedAfterCarriageReturn = true;
+            }
 
-        private bool CompleteRecord(
-            int recordStart,
-            int recordEnd,
-            int fieldStart,
-            int fieldIndex,
-            int recordLineNumber,
-            bool hasLineSeparator)
-        {
-            if (!_allowEmpty && recordEnd == recordStart && fieldIndex == 0)
+            _physicalLineSeparatorsConsumed += scan.LineBreaks + (scan.Terminator != 0 ? 1 : 0);
+            if (!_allowEmpty && scan.FieldCount == 1 && _visitor.IsEmpty(0))
             {
                 _visitor.Reset();
                 return false;
             }
 
-            bool isAscii = Ascii.IsValid(_buffer.AsSpan(recordStart, recordEnd - recordStart));
+            int recordLength = scan.End - recordStart;
+            bool isAscii = scan.Ascii == AsciiState.Unknown
+                ? Ascii.IsValid(_buffer.AsSpan(recordStart, recordLength))
+                : scan.Ascii == AsciiState.Ascii;
             if (!isAscii && _encoding.DecoderFallback is DecoderExceptionFallback)
-                _encoding.GetCharCount(_buffer, recordStart, recordEnd - recordStart);
-            _visitor.VisitFieldRange(fieldIndex, fieldStart, recordEnd - fieldStart);
+                _encoding.GetCharCount(_buffer, recordStart, recordLength);
+            if (_checkFieldLengths && !FieldLengthsWithinLimits(recordStart, recordLength, recordLineNumber + scan.LineBreaks, isAscii))
+            {
+                return false;
+            }
+
             _visitor.Complete(
-                fieldIndex + 1,
+                scan.FieldCount,
                 _options.ColumnCountMismatchPolicy,
-                isAscii);
+                isAscii,
+                mayHaveEscapedQuotes: !scan.NoEscapedQuotes);
             if (_stringCache is { } stringCache) _visitor.InternFields(stringCache);
             _emittedRecordCount++;
             ReportProgress(_options, _emittedRecordCount, recordLineNumber);
+            int endLineNumber = recordLineNumber + scan.LineBreaks;
             _currentPhysicalLineNumber = recordLineNumber;
-            _currentPhysicalEndLineNumber = hasLineSeparator
-                ? Math.Max(recordLineNumber, _physicalLineSeparatorsConsumed)
-                : recordLineNumber;
+            _currentPhysicalEndLineNumber = endLineNumber;
             return true;
+        }
+
+        /// <summary>
+        /// Applies the configured field length limits to the record as the canonical parser does:
+        /// a violation is reported on the record's last line and the record is skipped or thrown.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private bool FieldLengthsWithinLimits(int recordStart, int recordLength, int lineNumber, bool isAscii)
+        {
+            // Records of a quote-free dialect are never quoted, as the canonical parser treats them.
+            bool quotedRecord = _options.MaxQuotedFieldLength.HasValue && !_quotesAreData &&
+                _buffer.AsSpan(recordStart, recordLength).Contains((byte)'"');
+            if (_visitor.FindFieldLongerThan(
+                    _scan.FieldCount,
+                    GetFieldLengthLimit(_options, quotedRecord),
+                    isAscii,
+                    mayHaveEscapedQuotes: !_scan.NoEscapedQuotes,
+                    out int length) < 0)
+            {
+                return true;
+            }
+
+            _visitor.Reset();
+            SkipOrThrowParseError(_options, CreateFieldLengthException(_options, length, lineNumber), lineNumber);
+            return false;
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -579,6 +1546,21 @@ internal static partial class CsvParser
                 set => throw new NotSupportedException();
             }
 
+#if !NET8_0_OR_GREATER
+            public override int Read(byte[] buffer, int offset, int count)
+            {
+                int prefixRemaining = _prefix.Length - _position;
+                if (prefixRemaining > 0)
+                {
+                    int copied = Math.Min(prefixRemaining, count);
+                    Buffer.BlockCopy(_prefix, _position, buffer, offset, copied);
+                    _position += copied;
+                    return copied;
+                }
+
+                return _remainder.Read(buffer, offset, count);
+            }
+#else
             public override int Read(byte[] buffer, int offset, int count) =>
                 Read(buffer.AsSpan(offset, count));
 
@@ -595,6 +1577,7 @@ internal static partial class CsvParser
 
                 return _remainder.Read(buffer);
             }
+#endif
 
             public override void Flush() { }
             public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
@@ -614,4 +1597,3 @@ internal static partial class CsvParser
     }
 
 }
-#endif

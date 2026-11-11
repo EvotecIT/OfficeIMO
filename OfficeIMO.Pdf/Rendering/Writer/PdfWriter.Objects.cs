@@ -30,6 +30,15 @@ internal static partial class PdfWriter {
         list[id - 1] = PdfObjectBytes.WrapIndirectObject(id, body);
     }
 
+    private static void ReplaceObject(System.Collections.Generic.IList<byte[]> list, int id, System.Text.StringBuilder body) {
+        Guard.NotNull(list, nameof(list));
+        if (id < 1 || id > list.Count) {
+            throw new ArgumentOutOfRangeException(nameof(id), "PDF object id is outside the current object table.");
+        }
+
+        list[id - 1] = PdfObjectBytes.WrapIndirectObject(id, body);
+    }
+
     private static int AddStreamObject(System.Collections.Generic.IList<byte[]> list, byte[] content) {
         Guard.NotNull(content, nameof(content));
         return AddStreamObject(

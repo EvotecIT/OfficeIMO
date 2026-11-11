@@ -245,6 +245,24 @@ officeimo convert diagram.odg diagram.pdf
 officeimo convert diagram.fodg diagram.pdf --diagram-layers screen
 officeimo convert diagram.odg diagram.pdf --require-no-loss
 
+# OpenDocument, email, EPUB and Visio to PDF
+officeimo convert report.odt report.pdf
+officeimo convert budget.ods budget.pdf
+officeimo convert slides.odp slides.pdf
+officeimo convert message.eml message.pdf
+officeimo convert message.msg archive.pdf --text-only
+officeimo convert book.epub book.pdf
+officeimo convert diagram.vsdx diagram.pdf
+
+# Markdown, HTML, RTF and ODT to Word, and Office to OpenDocument and back
+officeimo convert notes.md notes.docx
+officeimo convert page.html page.docx
+officeimo convert letter.rtf letter.docx
+officeimo convert report.docx report.odt
+officeimo convert report.odt report.docx
+officeimo convert workbook.xlsx workbook.ods
+officeimo convert deck.pptx deck.odp
+
 # DjVu scans to searchable PDF, using existing text layers
 officeimo convert book.djvu book.pdf
 officeimo convert scan.djv scan.pdf --require-no-loss
@@ -321,7 +339,7 @@ All `convert` destinations are protected from accidental replacement. Pass `--fo
 
 - `officeimo invoice` inspects, validates, converts and renders CII/UBL invoices through the shared invoice workflows, individually or in bounded batches.
 
-- `officeimo convert` routes Apple-to-OOXML and Apple-to-PDF destinations through `OfficeIMO.Workflows.IWork`, Office PDF destinations to their first-party adapters, Draw PDF destinations through `OfficeIMO.Workflows`, and Markdown/JSON destinations to OfficeIMO.Reader.
+- `officeimo convert` selects a route from the shared conversion catalog by input and output extension and runs it through the same registration as `OfficeIMO.Workflows` and the `officeimo_convert` MCP tool. `officeimo convert --help` lists the routes; the [conversion route catalog](../Docs/Compatibility/generated/conversion-routes.md) marks them in its Hosts column. Apple-to-OOXML and Apple-to-PDF destinations use `OfficeIMO.Workflows.IWork`, and Markdown/JSON destinations use OfficeIMO.Reader. Email PDF renders the styled message (subject, sender, recipients, date, HTML or plain body, inline images and the attachment list) through the HTML-to-PDF engine; `--text-only` writes the Reader text projection instead.
 - `officeimo read` and `officeimo extract` are convenient aliases for `officeimo reader read`.
 - `officeimo inspect` is a convenient alias for `officeimo agent inspect`.
 - `officeimo tabular` lists workbook sheets, reports reader schemas, and converts CSV, TSV, XLSX, XLSB, or XLS tabular data.
@@ -515,7 +533,7 @@ The server exposes:
 - `officeimo_search`
 - `officeimo_search_email`
 - `officeimo_fetch`
-- `officeimo_convert`
+- `officeimo_convert` — Markdown or Reader JSON, iWork packages, and every catalog route the CLI runs, selected by the source extension and `format`
 - `officeimo_capabilities`
 - `officeimo_pdf` — extract, decrypt, raster flatten, optimize, or sanitize into a separate PDF
 - `officeimo_pdf_split` — validated consecutive parts in an explicit destination folder

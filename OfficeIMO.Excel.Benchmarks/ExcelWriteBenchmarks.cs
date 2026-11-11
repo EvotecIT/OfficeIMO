@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel.Benchmarks;
 public class ExcelWriteBenchmarks {
     private IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> _rows = null!;
 
-    [Params(250, 2500, 25000)]
+    [Params(250, 2500, 25000, 100_000)]
     public int RowCount { get; set; }
 
     [GlobalSetup]

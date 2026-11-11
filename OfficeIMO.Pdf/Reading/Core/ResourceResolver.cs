@@ -112,12 +112,13 @@ internal static partial class ResourceResolver {
                 continue;
             }
             if (string.Equals(subtype, "Type0", System.StringComparison.Ordinal)) {
+                CidWidthMap? cidMap = GetCidWidthMap(fontResource, fontVal, objects);
                 if (fontResource.PredefinedCMap is Lazy<PdfPredefinedCMap> predefined) {
-                    TryBuildCidWidthMap(fontVal, objects, out CidWidthMap? widths);
+                    CidWidthMap? widths = cidMap;
                     map[kv.Key] = bytes => SumPredefinedCidWidths(bytes, widths, predefined, fontResource);
                     continue;
                 }
-                if (TryBuildCidWidthMap(fontVal, objects, out var cidMap)) {
+                if (cidMap is not null) {
                     var localMap = cidMap!;
                     map[kv.Key] = bytes => SumWidthsCid(bytes, localMap);
                 } else {
@@ -1064,6 +1065,24 @@ internal static partial class ResourceResolver {
             case "perthousand": value = "\u2030"; return true;
             case "guilsinglleft": value = "\u2039"; return true;
             case "guilsinglright": value = "\u203A"; return true;
+            case "zero": value = "0"; return true;
+            case "one": value = "1"; return true;
+            case "two": value = "2"; return true;
+            case "three": value = "3"; return true;
+            case "four": value = "4"; return true;
+            case "five": value = "5"; return true;
+            case "six": value = "6"; return true;
+            case "seven": value = "7"; return true;
+            case "eight": value = "8"; return true;
+            case "nine": value = "9"; return true;
+            case "dotlessi": value = "\u0131"; return true;
+            case "caron": value = "\u02C7"; return true;
+            case "breve": value = "\u02D8"; return true;
+            case "dotaccent": value = "\u02D9"; return true;
+            case "ring": value = "\u02DA"; return true;
+            case "ogonek": value = "\u02DB"; return true;
+            case "hungarumlaut": value = "\u02DD"; return true;
+            case "trademark": value = "\u2122"; return true;
             case "ff": value = "ff"; return true;
             case "fi": value = "fi"; return true;
             case "fl": value = "fl"; return true;
@@ -1228,6 +1247,7 @@ internal static partial class ResourceResolver {
         string? extension = null;
         string? mimeType = null;
         bool isImageFile = false;
+        bool ownsBytes = false;
         string? transparencyMaskKind = GetTransparencyMaskKind(stream.Dictionary, objects);
         bool transparencyMaskResolved = false;
 
@@ -1242,6 +1262,18 @@ internal static partial class ResourceResolver {
             extension = OfficeIMO.Drawing.OfficeImageInfo.GetDefaultExtension(format).TrimStart('.');
             mimeType = OfficeIMO.Drawing.OfficeImageInfo.GetMimeType(format);
             isImageFile = true;
+        } else if (!hasMalformedFilterDeclaration && !isImageMask && IsJpxFilterChain(stream.Dictionary, objects)) {
+            if (TryBuildJpxPngFile(stream, objects, colorSpaceObject != null ? effectiveColorSpaceObject : null, colorSpace,
+                    maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform, colorFunctionEvaluationBudget,
+                    functionResolutionContext, out byte[] jpxPngBytes, out string? jpxMaskKind, out bool jpxMaskResolved, cancellationToken)) {
+                bytes = jpxPngBytes;
+                ownsBytes = true;
+                extension = "png";
+                mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
+                isImageFile = true;
+                transparencyMaskKind = jpxMaskKind;
+                transparencyMaskResolved = jpxMaskResolved;
+            }
         } else if (!hasMalformedFilterDeclaration &&
             isImageMask &&
             TryBuildExtractedImageMaskPng(
@@ -1254,6 +1286,7 @@ internal static partial class ResourceResolver {
                 maxDecodedStreamBytes,
                 out var imageMaskPngBytes, cancellationToken)) {
             bytes = imageMaskPngBytes;
+            ownsBytes = true;
             extension = "png";
             mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
             isImageFile = true;
@@ -1262,6 +1295,7 @@ internal static partial class ResourceResolver {
                    (RequiresDctColorNormalization(stream.Dictionary, colorSpace, transparencyMaskKind, objects) || hasSupportedOutputIntent)) {
             if (TryBuildPngFile(stream, width, height, bitsPerComponent, effectiveColorSpaceObject, colorSpace, filter, objects, maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, out var colorManagedJpegPngBytes, cancellationToken: cancellationToken)) {
                 bytes = colorManagedJpegPngBytes;
+                ownsBytes = true;
                 extension = "png";
                 mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
                 isImageFile = true;
@@ -1292,6 +1326,7 @@ internal static partial class ResourceResolver {
                    TryBuildPngFile(stream, width, height, bitsPerComponent, effectiveColorSpaceObject, colorSpace, filter, objects, maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, out var pngBytes,
                        objectNumber > 0 ? indexedSoftMaskMemo : null, cancellationToken)) {
             bytes = pngBytes;
+            ownsBytes = true;
             extension = "png";
             mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
             isImageFile = true;
@@ -1342,7 +1377,8 @@ internal static partial class ResourceResolver {
                 ResolveObject(interpolateObject, objects) is PdfBoolean { Value: true },
             hasAuthoredRenderingIntent: hasAuthoredRenderingIntent || inheritedHasAuthoredRenderingIntent,
             requiresScanDecode: HasScanFilter(filterObj, objects, maxImageReferenceSteps, cancellationToken),
-            hasUnsafePassThroughDecode: hasUnsafePassThroughDecode);
+            hasUnsafePassThroughDecode: hasUnsafePassThroughDecode,
+            ownsBytes: ownsBytes);
     }
 
     private static void PreflightImageFilterReferences(PdfDictionary dictionary,
@@ -1598,6 +1634,10 @@ internal static partial class ResourceResolver {
         }
 
         if (IsPackedGray(colorSpace, bitsPerComponent)) {
+            if (TryBuildPackedGrayPngFile(stream, width, height, bitsPerComponent, colorSpaceObj, colorSpace, objects,
+                    maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform, colorFunctionEvaluationBudget,
+                    functionResolutionContext, out bool packedGrayHandled, out pngBytes, cancellationToken)) return true;
+            if (packedGrayHandled) return false;
             if (!TryExpandPackedGray(stream, width, height, bitsPerComponent, objects, maxDecodedStreamBytes, out PdfStream expanded, cancellationToken)) return false;
             return TryBuildPngFile(expanded, width, height, 8, colorSpaceObj, colorSpace, string.Empty,
                 objects, maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform,

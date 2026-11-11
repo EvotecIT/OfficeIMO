@@ -29,29 +29,6 @@ namespace OfficeIMO.Word {
             var styles = styleDefinitionsPart.Styles ??= new Styles();
             if (overrideExisting) {
                 AddTableStyles(styles, overrideExisting: true);
-                var customList = WordParagraphStyle.CustomStyles
-                    .Where(s => !string.IsNullOrEmpty(s.StyleId?.Value))
-                    .ToList();
-                // Replace custom styles only when explicitly requested
-                var byId = customList
-                    .GroupBy(s => s.StyleId!.Value!, StringComparer.Ordinal)
-                    .ToDictionary(g => g.Key, g => g.Last(), StringComparer.Ordinal);
-
-                Styles newStyles = new Styles();
-                foreach (var child in styles.ChildElements) {
-                    if (child is Style st) {
-                        var id = st.StyleId?.Value;
-                        if (id != null && byId.ContainsKey(id)) {
-                            // Skip existing definitions for ids we override
-                            continue;
-                        }
-                    }
-                    newStyles.Append(child.CloneNode(true));
-                }
-                foreach (var kv in byId) {
-                    newStyles.Append((Style)kv.Value.CloneNode(true));
-                }
-                styleDefinitionsPart.Styles = newStyles;
             }
 
             FindMissingStyleDefinitions(styleDefinitionsPart, overrideExisting);
@@ -161,11 +138,7 @@ namespace OfficeIMO.Word {
 
         // Generates content of styleDefinitionsPart1.
         private static void GenerateStyleDefinitionsPart1Content(StyleDefinitionsPart styleDefinitionsPart1) {
-            Styles styles1 = (Styles)BuiltInStyleDefinitions.Value.CloneNode(true);
-            foreach (var custom in WordParagraphStyle.CustomStyles) {
-                styles1.Append((Style)custom.CloneNode(true));
-            }
-            styleDefinitionsPart1.Styles = styles1;
+            styleDefinitionsPart1.Styles = (Styles)BuiltInStyleDefinitions.Value.CloneNode(true);
         }
 
         private static Styles CreateBuiltInStyleDefinitions() {
@@ -220,34 +193,6 @@ namespace OfficeIMO.Word {
             }
 
             return styles1;
-        }
-
-        private static void ApplyCurrentStyleRegistrations(StyleDefinitionsPart? styleDefinitionsPart) {
-            if (!WordParagraphStyle.HasRuntimeStyleRegistrations) return;
-            Styles? styles = styleDefinitionsPart?.Styles;
-            if (styles == null) return;
-
-            foreach (WordParagraphStyles paragraphStyle in global::OfficeIMO.Internal.EnumCompat.GetValues<WordParagraphStyles>()) {
-                if (paragraphStyle == WordParagraphStyles.Custom) continue;
-                string expectedId = paragraphStyle.ToStringStyle();
-                styles.Elements<Style>()
-                    .FirstOrDefault(style => string.Equals(style.StyleId?.Value, expectedId, StringComparison.Ordinal))
-                    ?.Remove();
-                Style? current = WordParagraphStyle.GetOpenXmlStyleDefinition(paragraphStyle);
-                if (current != null) styles.Append(current);
-            }
-
-            foreach (Style custom in WordParagraphStyle.CustomStyles) {
-                string? styleId = custom.StyleId?.Value;
-                if (styleId == null) continue;
-                foreach (Style existing in styles.Elements<Style>()
-                    .Where(style => string.Equals(style.StyleId?.Value, styleId, StringComparison.Ordinal))
-                    .ToArray()) {
-                    existing.Remove();
-                }
-                styles.Append((Style)custom.CloneNode(true));
-            }
-            styles.Save();
         }
 
         private static Style GenerateStyleNoList() {

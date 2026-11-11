@@ -31,8 +31,18 @@ public class ExcelReaderGeneratedWriteBenchmarks {
         Validate(OfficeIMO_WriteData());
     }
 
+    [GlobalSetup(Target = nameof(OfficeIMO_MatchingWriteData))]
+    public void SetupOfficeIMOMatching() {
+        ApplyPriorityOverride();
+        Validate(OfficeIMO_MatchingWriteData());
+    }
+
     [Benchmark]
     public byte[] OfficeIMO_WriteData() => ExcelReaderGeneratedBenchmarks.WriteOfficeIMOBuffered(Format, RowCount);
+
+    /// <summary>The typed writer producing the same cells, references and string storage as <see cref="OfficeIMO_WriteData"/>.</summary>
+    [Benchmark]
+    public byte[] OfficeIMO_MatchingWriteData() => ExcelReaderGeneratedBenchmarks.WriteOfficeIMOMatchingBuffered(Format, RowCount);
 
     [Benchmark(Baseline = true)]
     public byte[] OfficeIMO() => ExcelReaderGeneratedBenchmarks.WriteOfficeIMO(Format, RowCount);

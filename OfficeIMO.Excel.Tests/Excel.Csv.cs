@@ -9,6 +9,29 @@ using Xunit;
 namespace OfficeIMO.Excel.Tests;
 
 public class ExcelCsvExtensionsTests {
+    [Fact]
+    public void TsvFilesConvertToWorkbooksWithQuotesAsData() {
+        string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string source = Path.Combine(directory, "notes.tsv");
+            File.WriteAllText(source, "Id\tNote\n1\t\"open\n2\tsays \"hi\", twice\n");
+            using var imported = ExcelDocument.Create();
+            imported.ImportCsvFile(source);
+            using ExcelDocument converted = CsvDocument.Load(source).ToExcel();
+            foreach (ExcelSheet sheet in new[] { imported["Import"], converted["Import"] }) {
+                Assert.True(sheet.TryGetCellText(2, 2, out string? first));
+                Assert.Equal("\"open", first);
+                Assert.True(sheet.TryGetCellText(3, 2, out string? second));
+                Assert.Equal("says \"hi\", twice", second);
+            }
+
+            string exported = Path.Combine(directory, "export.tsv");
+            imported["Import"].SaveAsCsv(exported);
+            Assert.Equal("Id\tNote\n1\t\"open\n2\tsays \"hi\", twice\n", File.ReadAllText(exported));
+        } finally { Directory.Delete(directory, recursive: true); }
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

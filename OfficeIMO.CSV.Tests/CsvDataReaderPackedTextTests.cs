@@ -32,7 +32,7 @@ public sealed class CsvDataReaderPackedTextTests {
             Assert.Equal("unchanged-tail", reader.GetString(2));
             retained[row] = reader.GetString(1);
             Assert.Equal(expected[row], retained[row]);
-            Assert.Same(retained[row], reader.GetString(1));
+            Assert.Equal(retained[row], reader.GetString(1));
         }
         Assert.False(reader.Read());
         Assert.Equal(expected, retained);

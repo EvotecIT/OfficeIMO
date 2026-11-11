@@ -52,10 +52,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 column = FindAvailableColumn(occupancy, column, requestedSpan);
                 if (column >= columnCount) break;
                 int span = Math.Max(1, Math.Min(requestedSpan, columnCount - column));
-                HtmlRenderBoxStyle cellStyle = ResolveFormattingCellStyle(cell, contentWidth);
-                ApplyTableCellFallbackInsets(cellStyle, legacyBorderWidth);
-                if (collapsedBorders?.CellInsets.TryGetValue(cell, out HtmlRenderBorderInsets collapsedInsets) == true) {
-                    cellStyle.TableCollapsedBorderInsets = collapsedInsets;
+                // Intrinsic measurement reads the cell's used border insets, including the vertical ones
+                // behind a border-box height. A cell whose fallback or collapsed insets change its style gets
+                // its own copy with them applied; any other cell is measured with its unchanged shared style.
+                HtmlRenderBoxStyle cellStyle = ReadFormattingCellStyle(cell, contentWidth);
+                HtmlRenderBorderInsets collapsedInsets = default;
+                bool hasCollapsedInsets = collapsedBorders != null && collapsedBorders.CellInsets.TryGetValue(cell, out collapsedInsets);
+                if (hasCollapsedInsets || !cellStyle.HasBorderLayout && !cellStyle.BorderDeclared) {
+                    cellStyle = cellStyle.Clone();
+                    ApplyTableCellFallbackInsets(cellStyle, legacyBorderWidth);
+                    if (hasCollapsedInsets) cellStyle.TableCollapsedBorderInsets = collapsedInsets;
                 }
                 if (span == 1 && cellStyle.ExplicitWidth.HasValue) {
                     if (cellStyle.ExplicitWidthUsesPercentage) {

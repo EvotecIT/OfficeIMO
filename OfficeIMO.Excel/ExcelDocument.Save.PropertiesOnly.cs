@@ -21,13 +21,15 @@ namespace OfficeIMO.Excel {
                 || options?.SafeRepairDefinedNames == true
                 || options?.ValidateOpenXml == true
                 || HasCalculationSaveWork(options)
-                || _spreadSheetDocument.DigitalSignatureOriginPart != null
-                || _spreadSheetDocument.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
+                || _spreadSheetDocument.DigitalSignatureOriginPart != null) {
                 return false;
             }
 
             _spreadSheetDocument.PackageProperties.Modified = DateTime.UtcNow;
             byte[]? package = ExcelPackageEntrySplicer.TryEdit(source, splicer => {
+                if (ExtendedPropertiesMayCarrySignature(splicer)) {
+                    throw new InvalidOperationException("Signed extended properties take the full save.");
+                }
                 KeyValuePair<string, byte[]> core = RewriteCoreProperties(splicer);
                 splicer.Replace(core.Key, core.Value);
             });
@@ -41,6 +43,18 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
+        /// <summary>
+        /// Looks for a DigSig element in the unchanged extended-properties bytes instead of loading
+        /// their DOM. Any occurrence of the name, even in text, keeps the full save.
+        /// </summary>
+        private bool ExtendedPropertiesMayCarrySignature(ExcelPackageEntrySplicer splicer) {
+            var part = _spreadSheetDocument.ExtendedFilePropertiesPart;
+            if (part == null) return false;
+            if (part.IsRootElementLoaded) return part.Properties?.DigitalSignature != null;
+            byte[] xml = splicer.Read(part.Uri.OriginalString.TrimStart('/'));
+            return xml.AsSpan().IndexOf("DigSig"u8) >= 0;
+        }
+
         private KeyValuePair<string, byte[]> RewriteCoreProperties(ExcelPackageEntrySplicer splicer) {
             string entryName = FindCorePropertiesEntry(splicer.Read("_rels/.rels"));
             XDocument document = LoadPackageXml(splicer.Read(entryName));
@@ -52,6 +66,7 @@ namespace OfficeIMO.Excel {
             SetCoreText(root, CoreNamespace + "category", properties.Category);
             SetCoreText(root, DublinCoreNamespace + "description", properties.Description);
             SetCoreText(root, CoreNamespace + "keywords", properties.Keywords);
+            SetCoreText(root, CoreNamespace + "revision", properties.Revision);
             SetCoreText(root, CoreNamespace + "lastModifiedBy", properties.LastModifiedBy);
             SetCoreText(root, CoreNamespace + "version", properties.Version);
             SetCoreDate(root, DublinTermsNamespace + "created", properties.Created, typed: true);

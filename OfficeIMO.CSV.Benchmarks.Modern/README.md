@@ -74,3 +74,18 @@ Sep and BenchmarkDotNet are MIT. FourLambda is MPL-2.0 and uses its software
 fallback on hosts without AVX2; I record that platform distinction with the results.
 All comparison dependencies remain local to
 this nonpackable executable.
+
+## PackageAssets shapes
+
+`PackageAssetsModernCsvBenchmarks` compares OfficeIMO, CsvHelper 34 and Sep on
+the pinned 50,000-line NCsvPerf PackageAssets input in its `Plain`, `Quotes` and
+`SpacesQuotes` shapes, described with the
+[CsvHelper 33.1.0 lanes](../OfficeIMO.CSV.Benchmarks/README.md#packageassets-shapes).
+Every reader returns an owned, unescaped string for each field of the same
+in-memory UTF-8 bytes; `SpacesQuotes` trims whitespace outside quotes in all
+three readers. Setup and every timed call check the counts, decoded characters
+and ordered checksum against values computed from the source rows.
+
+```sh
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks.Modern -- --filter "*PackageAssetsModernCsvBenchmarks*" --inProcess --warmupCount 6 --iterationCount 12 --invocationCount 8 --unrollFactor 1 --outliers DontRemove
+```

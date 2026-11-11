@@ -7,6 +7,8 @@ namespace OfficeIMO.Pdf;
 #pragma warning disable CA1850 // Static HashData is unavailable on netstandard2.0 and net472.
 
 internal sealed partial class PdfFontResource {
+    // Shared immutable decoding evidence for runs without unmapped bytes, indexed by source.
+    internal PdfTextDecodingEvidence?[]? DecodingEvidenceBySource;
     public string ResourceName { get; }
     public string BaseFont { get; }
     public string Encoding { get; }
@@ -28,6 +30,15 @@ internal sealed partial class PdfFontResource {
     public bool IsBold => PdfFontStyleEvidence.IsBold(BaseFont, FontWeight);
     public bool IsItalic => PdfFontStyleEvidence.IsItalic(BaseFont, FontDescriptorFlags);
     internal PdfType3FontResource? Type3 { get; }
+    /// <summary>
+    /// Lazily built CID width table, shared by every alias of this font so that each text pass does
+    /// not rebuild it from the /W array.
+    /// </summary>
+    internal sealed class CidWidthSlot {
+        internal object? Value;
+        internal bool IsBuilt;
+    }
+    internal CidWidthSlot CidWidths { get; }
     public PdfFontResource(
         string resourceName,
         string baseFont,
@@ -61,6 +72,7 @@ internal sealed partial class PdfFontResource {
         FontWeight = fontWeight;
         FontDescriptorFlags = fontDescriptorFlags;
         IsSymbolicSubstitute = DetectSymbolicSubstitute(baseFont, fontDescriptorFlags);
+        CidWidths = new CidWidthSlot();
     }
 
     private PdfFontResource(string resourceName, PdfFontResource source, PdfDrawingFontProgram? drawingProgram = null) {
@@ -87,6 +99,7 @@ internal sealed partial class PdfFontResource {
         FontDescriptorFlags = source.FontDescriptorFlags;
         IsSymbolicSubstitute = source.IsSymbolicSubstitute;
         Type3 = source.Type3;
+        CidWidths = source.CidWidths;
     }
 
     private static bool DetectSymbolicSubstitute(string baseFont, int? descriptorFlags) {

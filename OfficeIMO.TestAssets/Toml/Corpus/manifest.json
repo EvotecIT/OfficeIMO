@@ -1,0 +1,352 @@
+{
+  "description": "Real-world TOML corpus for the OfficeIMO TOML engine. Files keep upstream bytes.",
+  "retrieved": "2026-11-10",
+  "files": [
+    {
+      "path": "Python/sampleproject-pyproject.toml",
+      "category": "Python",
+      "repository": "https://github.com/pypa/sampleproject",
+      "commit": "621e4974ca25ce531773def586ba3ed8e736b3fc",
+      "sourcePath": "pyproject.toml",
+      "sourceUrl": "https://github.com/pypa/sampleproject/blob/621e4974ca25ce531773def586ba3ed8e736b3fc/pyproject.toml",
+      "license": "MIT",
+      "licenseFiles": [
+        "Licenses/pypa-sampleproject.LICENSE.txt"
+      ],
+      "bytes": 6684,
+      "sha256": "e4ce3af8b9396db683e4f967f09562cd2b61017f3c9b31ef7eb810cb24c6d206",
+      "features": [
+        "pyproject",
+        "comments",
+        "inline-tables",
+        "arrays-of-inline-tables"
+      ],
+      "why": "PyPA's reference pyproject.toml: heavily commented PEP 621 metadata with inline tables for authors and URLs."
+    },
+    {
+      "path": "Python/pydantic-pyproject.toml",
+      "category": "Python",
+      "repository": "https://github.com/pydantic/pydantic",
+      "commit": "560f0f96a37d6913afdfddb2de22030ef08e68c3",
+      "sourcePath": "pyproject.toml",
+      "sourceUrl": "https://github.com/pydantic/pydantic/blob/560f0f96a37d6913afdfddb2de22030ef08e68c3/pyproject.toml",
+      "license": "MIT",
+      "licenseFiles": [
+        "Licenses/pydantic.LICENSE.txt"
+      ],
+      "bytes": 9209,
+      "sha256": "48115a23734a5857699ee23d1ebe8bdee7a4e979bafd488df54c8f110d04214d",
+      "features": [
+        "pyproject",
+        "dependency-groups",
+        "tool-tables",
+        "multiline-arrays"
+      ],
+      "why": "Real library pyproject with dependency groups and many [tool.*] tables."
+    },
+    {
+      "path": "Python/ruff-pyproject.toml",
+      "category": "Python",
+      "repository": "https://github.com/astral-sh/ruff",
+      "commit": "9d2a5666adf07bb104875a9cbe8fc6913ddc9dad",
+      "sourcePath": "pyproject.toml",
+      "sourceUrl": "https://github.com/astral-sh/ruff/blob/9d2a5666adf07bb104875a9cbe8fc6913ddc9dad/pyproject.toml",
+      "license": "MIT",
+      "licenseFiles": [
+        "Licenses/astral-sh-ruff.LICENSE.txt"
+      ],
+      "bytes": 17897,
+      "sha256": "7fdab4316f2b0916638ec9a3b0c5a3f58d39e363c7e69deef64e4a58155a435a",
+      "features": [
+        "pyproject",
+        "ruff-config",
+        "literal-strings",
+        "nested-tables"
+      ],
+      "why": "Ruff's own pyproject: deep [tool.*] nesting and lint configuration arrays."
+    },
+    {
+      "path": "Uv/uv-pyproject.toml",
+      "category": "Uv",
+      "repository": "https://github.com/astral-sh/uv",
+      "commit": "419068541b7452193b72a240d345595595cca3e3",
+      "sourcePath": "pyproject.toml",
+      "sourceUrl": "https://github.com/astral-sh/uv/blob/419068541b7452193b72a240d345595595cca3e3/pyproject.toml",
+      "license": "Apache-2.0 OR MIT",
+      "licenseFiles": [
+        "Licenses/astral-sh-uv.LICENSE.txt"
+      ],
+      "bytes": 7093,
+      "sha256": "4092f71e82353cb21e783343b3771758eb5ee9153be62e079022e82aa6d4dc08",
+      "features": [
+        "pyproject",
+        "uv-config",
+        "dotted-keys"
+      ],
+      "why": "uv's pyproject with [tool.uv] settings."
+    },
+    {
+      "path": "Uv/uv-uv.lock",
+      "category": "Uv",
+      "repository": "https://github.com/astral-sh/uv",
+      "commit": "419068541b7452193b72a240d345595595cca3e3",
+      "sourcePath": "uv.lock",
+      "sourceUrl": "https://github.com/astral-sh/uv/blob/419068541b7452193b72a240d345595595cca3e3/uv.lock",
+      "license": "Apache-2.0 OR MIT",
+      "licenseFiles": [
+        "Licenses/astral-sh-uv.LICENSE.txt"
+      ],
+      "bytes": 351604,
+      "sha256": "83f967a248f0582ab862359c4d5d007158a5b6e4eb0a5745fe86ae41cb704b3f",
+      "features": [
+        "lockfile",
+        "arrays-of-tables",
+        "inline-tables",
+        "large"
+      ],
+      "why": "A 350 KB uv lockfile: thousands of [[package]] tables and inline tables; the large parse workload."
+    },
+    {
+      "path": "Ruff/uv-ruff.toml",
+      "category": "Ruff",
+      "repository": "https://github.com/astral-sh/uv",
+      "commit": "419068541b7452193b72a240d345595595cca3e3",
+      "sourcePath": "ruff.toml",
+      "sourceUrl": "https://github.com/astral-sh/uv/blob/419068541b7452193b72a240d345595595cca3e3/ruff.toml",
+      "license": "Apache-2.0 OR MIT",
+      "licenseFiles": [
+        "Licenses/astral-sh-uv.LICENSE.txt"
+      ],
+      "bytes": 554,
+      "sha256": "2eff0c60d2e5bf07b6bed87668171ffb4d7e459f9e4b5268b808ffb40f993694",
+      "features": [
+        "ruff-config",
+        "small"
+      ],
+      "why": "A standalone ruff.toml configuration."
+    },
+    {
+      "path": "Cargo/ripgrep-Cargo.toml",
+      "category": "Cargo",
+      "repository": "https://github.com/BurntSushi/ripgrep",
+      "commit": "178cc027e283fd965cb72d0a7395b219eada170c",
+      "sourcePath": "Cargo.toml",
+      "sourceUrl": "https://github.com/BurntSushi/ripgrep/blob/178cc027e283fd965cb72d0a7395b219eada170c/Cargo.toml",
+      "license": "Unlicense OR MIT",
+      "licenseFiles": [
+        "Licenses/burntsushi-ripgrep.LICENSE.txt"
+      ],
+      "bytes": 3223,
+      "sha256": "b47eda568db69ec2b299c24a588a4ee5ecf3fb6ebf7ba9b4623ff47f83ba07f7",
+      "features": [
+        "cargo",
+        "dependencies",
+        "profiles",
+        "comments"
+      ],
+      "why": "Cargo manifest with dependency tables, features and profiles."
+    },
+    {
+      "path": "Cargo/ripgrep-Cargo.lock",
+      "category": "Cargo",
+      "repository": "https://github.com/BurntSushi/ripgrep",
+      "commit": "178cc027e283fd965cb72d0a7395b219eada170c",
+      "sourcePath": "Cargo.lock",
+      "sourceUrl": "https://github.com/BurntSushi/ripgrep/blob/178cc027e283fd965cb72d0a7395b219eada170c/Cargo.lock",
+      "license": "Unlicense OR MIT",
+      "licenseFiles": [
+        "Licenses/burntsushi-ripgrep.LICENSE.txt"
+      ],
+      "bytes": 13008,
+      "sha256": "bf918d72d563dd706beacb4e258106102c14fbc2f85272f1f749a5044e3c3f43",
+      "features": [
+        "lockfile",
+        "arrays-of-tables"
+      ],
+      "why": "Cargo lockfile: [[package]] arrays of tables with dependency arrays."
+    },
+    {
+      "path": "Cargo/uv-Cargo.toml",
+      "category": "Cargo",
+      "repository": "https://github.com/astral-sh/uv",
+      "commit": "419068541b7452193b72a240d345595595cca3e3",
+      "sourcePath": "Cargo.toml",
+      "sourceUrl": "https://github.com/astral-sh/uv/blob/419068541b7452193b72a240d345595595cca3e3/Cargo.toml",
+      "license": "Apache-2.0 OR MIT",
+      "licenseFiles": [
+        "Licenses/astral-sh-uv.LICENSE.txt"
+      ],
+      "bytes": 24705,
+      "sha256": "6516e7637da722d7c0829985dccd44a2eaeb2e87557cf527a60c1263b2e71c25",
+      "features": [
+        "cargo",
+        "workspace",
+        "inline-tables",
+        "large"
+      ],
+      "why": "A 25 KB workspace manifest with hundreds of inline-table dependencies."
+    },
+    {
+      "path": "Cargo/tokio-Cargo.toml",
+      "category": "Cargo",
+      "repository": "https://github.com/tokio-rs/tokio",
+      "commit": "d6102c7e0a97b939c23d056122490faf777d2875",
+      "sourcePath": "Cargo.toml",
+      "sourceUrl": "https://github.com/tokio-rs/tokio/blob/d6102c7e0a97b939c23d056122490faf777d2875/Cargo.toml",
+      "license": "MIT",
+      "licenseFiles": [
+        "Licenses/tokio-rs-tokio.LICENSE.txt"
+      ],
+      "bytes": 835,
+      "sha256": "34ea03adbf7667b3b1a4cad02847027d286f7ff80f66224f6710ddb72554eaa9",
+      "features": [
+        "cargo",
+        "workspace",
+        "small"
+      ],
+      "why": "Minimal workspace manifest."
+    },
+    {
+      "path": "Cargo/cargo-Cargo.toml",
+      "category": "Cargo",
+      "repository": "https://github.com/rust-lang/cargo",
+      "commit": "4cd86403f25a8686f46a7f44f66c204767ee5c34",
+      "sourcePath": "Cargo.toml",
+      "sourceUrl": "https://github.com/rust-lang/cargo/blob/4cd86403f25a8686f46a7f44f66c204767ee5c34/Cargo.toml",
+      "license": "Apache-2.0 OR MIT",
+      "licenseFiles": [
+        "Licenses/rust-lang-cargo.LICENSE.txt"
+      ],
+      "bytes": 9826,
+      "sha256": "23630837aa9c05ca03c3aa4aa563dd66b0f6cf920e194695ee899ede9a72b09c",
+      "features": [
+        "cargo",
+        "workspace",
+        "lints",
+        "dotted-keys"
+      ],
+      "why": "Cargo's own manifest: workspace dependencies and lint tables."
+    },
+    {
+      "path": "Cargo/cargo-deny.toml",
+      "category": "Cargo",
+      "repository": "https://github.com/rust-lang/cargo",
+      "commit": "4cd86403f25a8686f46a7f44f66c204767ee5c34",
+      "sourcePath": "deny.toml",
+      "sourceUrl": "https://github.com/rust-lang/cargo/blob/4cd86403f25a8686f46a7f44f66c204767ee5c34/deny.toml",
+      "license": "Apache-2.0 OR MIT",
+      "licenseFiles": [
+        "Licenses/rust-lang-cargo.LICENSE.txt"
+      ],
+      "bytes": 11150,
+      "sha256": "c502e3a832018e29b41e08327a8e7fccd92f4d6ed61f73a3bc838feb51a8bd26",
+      "features": [
+        "cargo-deny",
+        "comments",
+        "arrays"
+      ],
+      "why": "cargo-deny configuration, mostly comments around arrays."
+    },
+    {
+      "path": "Cargo/cargo-triagebot.toml",
+      "category": "Cargo",
+      "repository": "https://github.com/rust-lang/cargo",
+      "commit": "4cd86403f25a8686f46a7f44f66c204767ee5c34",
+      "sourcePath": "triagebot.toml",
+      "sourceUrl": "https://github.com/rust-lang/cargo/blob/4cd86403f25a8686f46a7f44f66c204767ee5c34/triagebot.toml",
+      "license": "Apache-2.0 OR MIT",
+      "licenseFiles": [
+        "Licenses/rust-lang-cargo.LICENSE.txt"
+      ],
+      "bytes": 10538,
+      "sha256": "1a66eb5c4cdcf22df2426ae228006e580c5ec01ed039e7a1ed53cd658588045e",
+      "features": [
+        "triagebot",
+        "nested-tables",
+        "multiline-strings"
+      ],
+      "why": "Bot configuration with many small tables and multi-line strings."
+    },
+    {
+      "path": "Hugo/hugo-docs-hugo.toml",
+      "category": "Hugo",
+      "repository": "https://github.com/gohugoio/hugo",
+      "commit": "5b44cfcec8459352ba9cb892009519ab815e2912",
+      "sourcePath": "docs/hugo.toml",
+      "sourceUrl": "https://github.com/gohugoio/hugo/blob/5b44cfcec8459352ba9cb892009519ab815e2912/docs/hugo.toml",
+      "license": "Apache-2.0",
+      "licenseFiles": [
+        "Licenses/gohugoio-hugo.LICENSE.txt"
+      ],
+      "bytes": 4890,
+      "sha256": "5e79996633de4c7dcf5f269678a04a10112f9dba1fb9eb3e3ee691cf2cddfc14",
+      "features": [
+        "hugo",
+        "site-config",
+        "nested-tables"
+      ],
+      "why": "Hugo site configuration from the Hugo documentation site."
+    },
+    {
+      "path": "Netlify/hugo-docs-netlify.toml",
+      "category": "Netlify",
+      "repository": "https://github.com/gohugoio/hugo",
+      "commit": "5b44cfcec8459352ba9cb892009519ab815e2912",
+      "sourcePath": "docs/netlify.toml",
+      "sourceUrl": "https://github.com/gohugoio/hugo/blob/5b44cfcec8459352ba9cb892009519ab815e2912/docs/netlify.toml",
+      "license": "Apache-2.0",
+      "licenseFiles": [
+        "Licenses/gohugoio-hugo.LICENSE.txt"
+      ],
+      "bytes": 1112,
+      "sha256": "0f6a40224c9a997580dcad8ffe5c3d666bdcbc5c4d2f13c30785aaeb6eee59bd",
+      "features": [
+        "netlify",
+        "build-config",
+        "arrays-of-tables"
+      ],
+      "why": "Netlify build configuration with [[redirects]]-style tables."
+    },
+    {
+      "path": "Starship/pastel-powerline.toml",
+      "category": "Starship",
+      "repository": "https://github.com/starship/starship",
+      "commit": "94dfccf79eeb6b79805dcfbdcc2d788f6fb4c248",
+      "sourcePath": "docs/public/presets/toml/pastel-powerline.toml",
+      "sourceUrl": "https://github.com/starship/starship/blob/94dfccf79eeb6b79805dcfbdcc2d788f6fb4c248/docs/public/presets/toml/pastel-powerline.toml",
+      "license": "ISC",
+      "licenseFiles": [
+        "Licenses/starship-starship.LICENSE.txt"
+      ],
+      "bytes": 3418,
+      "sha256": "0b015e7e6782d4818e5181a014df2f9cffa6d951581fe5de6c4225f3be3e5cbc",
+      "features": [
+        "starship",
+        "unicode",
+        "format-strings",
+        "literal-strings"
+      ],
+      "why": "Starship prompt preset with non-BMP symbols and format strings."
+    },
+    {
+      "path": "Starship/nerd-font-symbols.toml",
+      "category": "Starship",
+      "repository": "https://github.com/starship/starship",
+      "commit": "94dfccf79eeb6b79805dcfbdcc2d788f6fb4c248",
+      "sourcePath": "docs/public/presets/toml/nerd-font-symbols.toml",
+      "sourceUrl": "https://github.com/starship/starship/blob/94dfccf79eeb6b79805dcfbdcc2d788f6fb4c248/docs/public/presets/toml/nerd-font-symbols.toml",
+      "license": "ISC",
+      "licenseFiles": [
+        "Licenses/starship-starship.LICENSE.txt"
+      ],
+      "bytes": 3371,
+      "sha256": "36291374da0fb4fb4ca1daefa898862fa00e6f32d261ab82cff164ee1c6b8ce7",
+      "features": [
+        "starship",
+        "unicode",
+        "many-tables"
+      ],
+      "why": "Starship preset: many small tables holding Nerd Font symbols."
+    }
+  ]
+}

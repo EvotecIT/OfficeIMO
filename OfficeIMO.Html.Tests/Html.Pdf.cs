@@ -143,6 +143,18 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_TextAddedAfterConversionIsPreflightedBeforeSerialization() {
+        var options = new HtmlPdfExportOptions();
+        options.ResourcePolicy.AllowSystemFontEmbedding = false;
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse("<p>Converted</p>").ConvertToPdfWithEvidence(options);
+
+        result.Value.Paragraph(paragraph => paragraph.AddText("Added \u2603"));
+
+        PdfCore.PdfTextEncodingPreflightException failure = Assert.Throws<PdfCore.PdfTextEncodingPreflightException>(() => result.ToBytes());
+        Assert.Contains(failure.TextEncodingDiagnostics, diagnostic => diagnostic.CodePoint == "U+2603");
+    }
+
+    [Fact]
     public void HtmlToPdf_DuplicateIdsAndRepeatedTableHeadersEmitOneNamedDestination() {
         string rows = string.Concat(Enumerable.Range(1, 18).Select(index => $"<tr><td>Row {index}</td></tr>"));
         string html = "<style>@page{size:180px 120px;margin:8px}body,table{margin:0;font-size:10px;line-height:12px}</style>"

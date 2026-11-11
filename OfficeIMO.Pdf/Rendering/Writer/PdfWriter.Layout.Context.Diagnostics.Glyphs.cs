@@ -13,7 +13,7 @@ internal static partial class PdfWriter {
                 DiagnosticGlyphOutline(font, glyph, size, placement, contained);
             return EnumerateGlyphPaintContours(segment, text, x, baseline, currentOpts,
                 _diagnosticFonts, DiagnosticTextOptions, DiagnosticTextCommand(segment, text), cancellationToken: cancellationToken,
-                glyphOutline: ResolveOutline, fontCacheCleared: ClearDiagnosticGlyphCache);
+                glyphOutline: ResolveOutline, fontCacheCleared: ClearDiagnosticGlyphCache, nominalContained: contained);
         }
 
         private const int DiagnosticTextCommandLimit = 4096;

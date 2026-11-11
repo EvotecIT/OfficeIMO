@@ -272,13 +272,16 @@ public sealed partial class PdfReadPage {
         var activeStreams = new HashSet<PdfStream>();
         var budget = new PageContentBudget(this, cancellationToken);
         var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
+        string content = GetContentStreamContent(budget);
         if (ContentUsesOutputIntentCompositionInteraction(
-                GetContentStreamContent(budget),
+                content,
                 resources,
                 activeStreams,
                 budget,
                 type3GlyphBudget,
-                0)) return true;
+                0,
+                // The page's own content shares the cached root analysis with text and visual reads.
+                () => GetRootInvokedResourceNames(content, resources, cancellationToken.ThrowIfCancellationRequested))) return true;
 
         PdfArray? annotations = ResolveArray(
             _pageDict.Items.TryGetValue("Annots", out PdfObject? annotationsObject) ? annotationsObject : null);
@@ -301,7 +304,8 @@ public sealed partial class PdfReadPage {
         HashSet<PdfStream> activeStreams,
         PageContentBudget budget,
         Type3GlyphBudget type3GlyphBudget,
-        int depth) {
+        int depth,
+        Func<PdfPageInvokedResourceNames>? invokedResourceNames = null) {
         EnsureContentNestingBudget(depth);
         if (Type3TextUsesOutputIntentCompositionInteraction(
                 content,
@@ -309,7 +313,8 @@ public sealed partial class PdfReadPage {
                 activeStreams,
                 budget,
                 type3GlyphBudget,
-                depth)) return true;
+                depth,
+                invokedResourceNames)) return true;
         bool found = false;
         PdfPageOptionalContentVisibility? optionalContentVisibility = GetOptionalContentVisibility(resources);
         var hiddenContentStack = new Stack<bool>();
@@ -433,11 +438,14 @@ public sealed partial class PdfReadPage {
         HashSet<PdfStream> activeStreams,
         PageContentBudget budget,
         Type3GlyphBudget type3GlyphBudget,
-        int depth) {
-        Dictionary<string, PdfFontResource> fonts = resources == null
-            ? new Dictionary<string, PdfFontResource>(StringComparer.Ordinal)
-            : ResourceResolver.GetFontsForResources(resources, _objects);
-        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources, budget.CancellationToken.ThrowIfCancellationRequested);
+        int depth,
+        Func<PdfPageInvokedResourceNames>? invokedResourceNames = null) {
+        // The document font cache already holds these fonts and their width providers.
+        PdfFontResourceSet? fontResources = resources == null ? null : _fontResourceCache.GetOrCreate(resources, _objects);
+        Dictionary<string, PdfFontResource> fonts = fontResources?.Fonts ??
+            new Dictionary<string, PdfFontResource>(StringComparer.Ordinal);
+        PdfPageInvokedResourceNames invokedResources = invokedResourceNames?.Invoke() ??
+            GetInvokedResourceNames(content, resources, budget.CancellationToken.ThrowIfCancellationRequested);
 
         bool found = false;
         PdfPageXObjectInvocationParser.Parse(
@@ -451,9 +459,8 @@ public sealed partial class PdfReadPage {
             maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: _limits.MaxContentOperands,
             fonts: fonts,
-            fontWidthProviders: resources == null
-                ? new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal)
-                : ResourceResolver.GetFontWidthProvidersForResources(resources, _objects),
+            fontWidthProviders: fontResources?.WidthProviders ??
+                new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal),
             type3TextVisitor: invocation => {
                 for (int index = 0; index < invocation.Glyphs.Count && !found; index++) {
                     PdfPageType3GlyphInvocation glyph = invocation.Glyphs[index];

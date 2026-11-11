@@ -81,14 +81,24 @@ internal static partial class PdfWriter {
                 rowIndex++;
             }
             var headers = cells.Where(cell => cell.Element.StructureType == "TH").ToArray();
+            if (headers.Length == 0) continue;
+            // Each data cell usually has one or two headers; collect them in header order without
+            // an iterator chain per cell. Duplicate identifiers keep their first position.
+            var applicable = new List<string>();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach (var cell in cells) {
-                var applicable = headers.Where(header => !ReferenceEquals(header.Element, cell.Element) && (
-                    ((header.Element.TableHeaderScope is "" or "Column" or "Both") && header.Row < cell.Row &&
-                        header.Column < cell.Column + cell.Element.TableColumnSpan && header.Column + header.Element.TableColumnSpan > cell.Column) ||
-                    ((header.Element.TableHeaderScope is "Row" or "Both") && header.Column < cell.Column &&
-                        header.Row < (long)cell.Row + cell.Element.TableRowSpan && (long)header.Row + header.Element.TableRowSpan > cell.Row)))
-                    .Select(header => StructureId(header.Element)!).Distinct(StringComparer.Ordinal).ToArray();
-                if (applicable.Length > 0) result[cell.Element] = applicable;
+                applicable.Clear();
+                seen.Clear();
+                foreach (var header in headers) {
+                    if (ReferenceEquals(header.Element, cell.Element) || !(
+                        ((header.Element.TableHeaderScope is "" or "Column" or "Both") && header.Row < cell.Row &&
+                            header.Column < cell.Column + cell.Element.TableColumnSpan && header.Column + header.Element.TableColumnSpan > cell.Column) ||
+                        ((header.Element.TableHeaderScope is "Row" or "Both") && header.Column < cell.Column &&
+                            header.Row < (long)cell.Row + cell.Element.TableRowSpan && (long)header.Row + header.Element.TableRowSpan > cell.Row))) continue;
+                    string id = StructureId(header.Element)!;
+                    if (seen.Add(id)) applicable.Add(id);
+                }
+                if (applicable.Count > 0) result[cell.Element] = applicable.ToArray();
             }
         }
         return result;

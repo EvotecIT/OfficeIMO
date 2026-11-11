@@ -69,6 +69,10 @@ public sealed partial class OfficeFontFace {
 
     internal IOfficeFontProgram ParsedFont { get; }
 
+    // True when the dependency-free engine decoded this face. A provider-supplied program is caller code that
+    // receives the text it measures, shapes, and outlines.
+    internal bool HasBuiltInProgram => ParsedFont is OfficeTrueTypeFont || ParsedFont is OfficeOpenTypeCffFont;
+
     // Library-selected installed substitutes retain their origin across collection
     // snapshots. An explicit caller-created alias remains a caller-supplied family.
     internal string? InstalledSubstituteFamily { get; set; }

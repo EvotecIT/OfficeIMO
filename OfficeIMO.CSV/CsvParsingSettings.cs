@@ -94,6 +94,22 @@ internal sealed class CsvParsingSettings
     /// </summary>
     public CsvQuoteParsingMode QuoteParsingMode { get; set; } = CsvQuoteParsingMode.Lenient;
 
+    /// <summary>Gets or sets escape decoding for unquoted fields.</summary>
+    public CsvEscapeMode EscapeMode { get; set; }
+
+    /// <summary>Gets whether quote characters are ordinary data, so every physical line is one record.</summary>
+    internal bool QuotesAreData => QuoteParsingMode == CsvQuoteParsingMode.None;
+
+    /// <summary>Gets whether fields need backslash escape decoding after splitting.</summary>
+    internal bool DecodesBackslashEscapes => EscapeMode switch
+    {
+        CsvEscapeMode.None => false,
+        CsvEscapeMode.Backslash when QuotesAreData => true,
+        CsvEscapeMode.Backslash => throw new ArgumentException(
+            "Backslash escapes require QuoteParsingMode.None; quoted fields already protect delimiters and line breaks."),
+        _ => throw new ArgumentOutOfRangeException(nameof(EscapeMode))
+    };
+
     /// <summary>
     /// Gets or sets columns appended to every loaded row, useful for source file names, import timestamps, or batch metadata.
     /// </summary>

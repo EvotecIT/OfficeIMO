@@ -48,7 +48,15 @@ public sealed class PdfDocumentViewingTests {
         Assert.Throws<PdfPermissionDeniedException>(() => restricted.Inspect());
         Assert.Throws<PdfPermissionDeniedException>(() => restricted.Read());
         Assert.Throws<PdfPermissionDeniedException>(() => restricted.Render.Drawing(1));
-        Assert.Throws<PdfPermissionDeniedException>(() => restricted.Render.Pages("1", new PdfPageRenderOptions { ContinueOnError = false }));
+        // Raster rendering is viewing; SVG output carries text and source images, so it stays an extraction.
+        Assert.Equal(raster.Bytes, restricted.Render.Pages("1", new PdfPageRenderOptions { ContinueOnError = false })[0].Bytes);
+        Assert.Throws<PdfPermissionDeniedException>(() => restricted.Render.Pages("1", new PdfPageRenderOptions {
+            ContinueOnError = false, Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg }));
+        // A provider-loaded font program is caller code that would receive the page text.
+        var callerFonts = new global::OfficeIMO.Drawing.OfficeFontFaceCollection { FontProgramProvider = new CallerFontProgramProvider() };
+        callerFonts.Add("Helvetica", File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.Drawing.Tests", "TestAssets", "OpenSans-Bold.ttf")));
+        Assert.Throws<PdfPermissionDeniedException>(() => restricted.Render.Pages("1", new PdfPageRenderOptions {
+            ContinueOnError = false, Fonts = callerFonts }));
         Assert.False(restricted.PlanMutation(PdfMutationOperation.ExtractPages).CanExecute);
         Assert.False(restricted.PlanMutation(PdfMutationOperation.ChangeEncryption).CanExecute);
         if (!permissions.HasFlag(PdfStandardPermissions.Print))
@@ -112,6 +120,32 @@ public sealed class PdfDocumentViewingTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => document.Render.DisplayPage(2));
         var thumbnail = document.Render.DisplayPage(1, new PdfPageDisplayOptions { MaximumDimension = 80 });
         Assert.InRange(Math.Max(thumbnail.Width, thumbnail.Height), 1, 80);
+    }
+
+    private sealed class CallerFontProgramProvider : global::OfficeIMO.Drawing.IOfficeFontProgramProvider {
+        public global::OfficeIMO.Drawing.OfficeFontProgramLoadResult? TryLoad(global::OfficeIMO.Drawing.OfficeFontProgramLoadRequest request) =>
+            new(new CallerFontProgram(), request.Data.Length);
+    }
+
+    private sealed class CallerFontProgram : global::OfficeIMO.Drawing.IOfficeFontProgram {
+        private static Exception Reached() => new InvalidOperationException("Page content reached a caller font program.");
+        public string Fingerprint => "caller-font-program";
+        public string? DisplayName => null;
+        public int? CollectionIndex => null;
+        public int UnitsPerEm => 1000;
+        public bool IsOpenTypeCff => false;
+        public bool ProvidesComplexTextLayout => false;
+        public double LineSpacingRatio => 1D;
+        public byte[] GetFontDataForShaping() => throw Reached();
+        public bool HasGlyphs(string text) => throw Reached();
+        public double Measure(string text, double fontSize) => throw Reached();
+        public IReadOnlyList<double> MeasureTextElements(IReadOnlyList<string> elements, double fontSize) => throw Reached();
+        public double LineHeight(double fontSize) => throw Reached();
+        public List<List<global::OfficeIMO.Drawing.OfficePoint>> GetTextContours(string text, double x, double y, double fontSize) => throw Reached();
+        public bool TryGetGlyphMetrics(int scalar, out int glyphId, out int advanceWidth) => throw Reached();
+        public double MeasureShapedText(string text, global::OfficeIMO.Drawing.OfficeTextShapingResult result, double fontSize) => throw Reached();
+        public List<List<global::OfficeIMO.Drawing.OfficePoint>> GetShapedTextContours(string text, global::OfficeIMO.Drawing.OfficeTextShapingResult result,
+            double x, double y, double fontSize) => throw Reached();
     }
 
     private static byte[] CreatePdf(PdfStandardPermissions permissions) =>

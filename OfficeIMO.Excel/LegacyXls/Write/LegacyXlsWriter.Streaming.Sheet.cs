@@ -1,17 +1,25 @@
+using System.Buffers;
 using OfficeIMO.Excel.LegacyXls.Biff;
 
 namespace OfficeIMO.Excel.LegacyXls.Write;
 
 internal static partial class LegacyXlsWriter {
-    /// <summary>Keeps one 32-row BIFF block while assembling an owned worksheet record stream.</summary>
+    /// <summary>Keeps one 32-row BIFF block while appending completed blocks to owned, pooled chunks.</summary>
     private sealed class StreamingSheet : ExcelTabularRowSink {
+        private const int ChunkSize = 1 << 20;
+        // BIFF8 LABEL stores at most 255 characters; longer text uses the shared-string table.
+        private const int MaximumLabelLength = 255;
         private readonly int _columns;
         private readonly ushort[] _styles;
         private readonly LegacyXlsDirectSharedStringBuilder _strings;
-        private readonly DirectTabularWorkbookStream _cells = new(16 * 1024);
+        private readonly bool _inlineText;
         private readonly DirectTabularWorkbookStream _block = new(16 * 1024);
         private readonly int[] _firstCells = new int[DirectRowsPerDbCellBlock];
         private readonly List<uint> _dbCells = new();
+        private readonly List<ArraySegment<byte>> _chunks = new();
+        private byte[]? _chunk;
+        private int _chunkUsed;
+        private long _length;
         private int _row;
         private int _rows;
         private int _blockRows;
@@ -20,10 +28,9 @@ internal static partial class LegacyXlsWriter {
         private int _rkLastColumn;
         private bool _complete;
 
-        internal StreamingSheet(int columns, ushort[] styles, LegacyXlsDirectSharedStringBuilder strings) {
-            _columns = columns; _styles = styles; _strings = strings;
+        internal StreamingSheet(int columns, ushort[] styles, LegacyXlsDirectSharedStringBuilder strings, bool inlineText) {
+            _columns = columns; _styles = styles; _strings = strings; _inlineText = inlineText;
         }
-        internal long Length => _cells.Length;
         internal override void BeginRow(int oneBasedRow) {
             _rkRunStart = -1;
             _row = oneBasedRow - 1;
@@ -36,16 +43,46 @@ internal static partial class LegacyXlsWriter {
         internal override void WriteText(string value) {
             _rkRunStart = -1;
             CoerceValueHelper.ValidateSharedStringLength(value, nameof(value));
+            if (_inlineText && value.Length <= MaximumLabelLength) {
+                WriteLabel(value);
+                return;
+            }
             uint index = _strings.Add(value);
-            int position = PrepareCell();
+            int position = PrepareCell(18);
             WriteCellHeader(ref position, 0x00fd, 10);
             WriteUInt32(_block.Buffer, position, index);
             position += 4;
             _block.CommitDirectWrite(position);
         }
+        /// <summary>Writes a BIFF8 LABEL record with an 8-bit string when every character fits Latin-1.</summary>
+        private void WriteLabel(string value) {
+            bool compressed = CanUseCompressedString(value);
+            int textBytes = compressed ? value.Length : value.Length * 2;
+            int position = PrepareCell(13 + textBytes);
+            WriteCellHeader(ref position, 0x0204, checked((ushort)(9 + textBytes)));
+            byte[] buffer = _block.Buffer;
+            WriteUInt16(buffer, position, checked((ushort)value.Length));
+            buffer[position + 2] = compressed ? (byte)0 : (byte)1;
+            position += 3;
+            if (compressed) {
+                for (int index = 0; index < value.Length; index++) buffer[position + index] = unchecked((byte)value[index]);
+            } else {
+                System.Text.Encoding.Unicode.GetBytes(value, 0, value.Length, buffer, position);
+            }
+            _block.CommitDirectWrite(position + textBytes);
+        }
         internal override void WriteNumber(double value) {
-            ValidateNumber(value);
-            int position = PrepareCell();
+            if (double.IsNaN(value) || double.IsInfinity(value)) {
+                // BIFF8 has no NaN or infinite number; Excel shows #NUM! (error 0x24) for such a result.
+                _rkRunStart = -1;
+                int errorPosition = PrepareCell(18);
+                WriteCellHeader(ref errorPosition, 0x0205, 8);
+                _block.Buffer[errorPosition++] = 0x24;
+                _block.Buffer[errorPosition++] = 1;
+                _block.CommitDirectWrite(errorPosition);
+                return;
+            }
+            int position = PrepareCell(18);
             if (BiffRkNumberReader.TryEncodeRkNumber(value, out uint rk)) {
                 WriteRkCell(ref position, rk);
             } else {
@@ -60,7 +97,7 @@ internal static partial class LegacyXlsWriter {
         }
         internal override void WriteBoolean(bool value) {
             _rkRunStart = -1;
-            int position = PrepareCell();
+            int position = PrepareCell(18);
             WriteCellHeader(ref position, 0x0205, 8);
             _block.Buffer[position++] = value ? (byte)1 : (byte)0;
             _block.Buffer[position++] = 0;
@@ -68,7 +105,7 @@ internal static partial class LegacyXlsWriter {
         }
         internal override void WriteBlank() {
             _rkRunStart = -1;
-            int position = PrepareCell();
+            int position = PrepareCell(18);
             WriteCellHeader(ref position, 0x0201, 6);
             _block.CommitDirectWrite(position);
         }
@@ -97,23 +134,23 @@ internal static partial class LegacyXlsWriter {
             _rkLastColumn = Column;
         }
 
-        private int PrepareCell() {
+        private int PrepareCell(int maximumBytes) {
             int start = checked((int)_block.Position);
-            _block.EnsureCapacity(checked(start + 18));
-            _block.RegisterDirectWriteUpperBound(start + 18);
+            _block.EnsureCapacity(checked(start + maximumBytes));
+            _block.RegisterDirectWriteUpperBound(start + maximumBytes);
             return start;
         }
         private void WriteCellHeader(ref int position, ushort type, ushort length) =>
             WriteDirectFixedCellHeader(_block.Buffer, ref position, type, length,
                 checked((ushort)_row), checked((ushort)Column), _styles[checked((int)Style)]);
 
+        /// <summary>Appends the block's ROW records, cells and DBCELL; a block never spans two chunks.</summary>
         private void FlushBlock() {
             if (_blockRows == 0) return;
-            int start = checked((int)_cells.Position);
-            int end = checked(start + _blockRows * 20 + (int)_block.Length + 8 + _blockRows * 2);
-            _cells.EnsureCapacity(end);
-            _cells.RegisterDirectWriteUpperBound(end);
-            byte[] output = _cells.Buffer;
+            int size = checked(_blockRows * 20 + (int)_block.Length + 8 + _blockRows * 2);
+            if (_chunk == null || _chunk.Length - _chunkUsed < size) StartChunk(size);
+            byte[] output = _chunk!;
+            int start = _chunkUsed;
             int position = start;
             int firstRow = _rows - _blockRows;
             for (int row = 0; row < _blockRows; row++)
@@ -123,25 +160,56 @@ internal static partial class LegacyXlsWriter {
             position += checked((int)_block.Length);
             for (int row = 0; row < _blockRows; row++) _firstCells[row] += cellsStart;
             int dbCell = position;
-            _dbCells.Add(checked((uint)dbCell));
+            // DBCELL offsets are relative to the sheet's cell table; chunk gaps are not part of it.
+            _dbCells.Add(checked((uint)(_length + (dbCell - start))));
             WriteDirectDbCellRecord(output, ref position, start, _firstCells.AsSpan(0, _blockRows), dbCell);
-            _cells.CommitDirectWrite(position);
+            _length += position - start;
+            _chunkUsed = position;
             _block.SetLength(0);
             _block.Position = 0;
             _blockRows = 0;
         }
-        internal override void Complete() { FlushBlock(); _complete = true; }
-        internal void WriteTo(DirectTabularWorkbookStream workbook) {
+        private void StartChunk(int minimumSize) {
+            if (_chunk != null) _chunks.Add(new ArraySegment<byte>(_chunk, 0, _chunkUsed));
+            _chunk = ArrayPool<byte>.Shared.Rent(Math.Max(ChunkSize, minimumSize));
+            _chunkUsed = 0;
+        }
+        internal override void Complete() {
+            FlushBlock();
+            if (_chunk != null) {
+                _chunks.Add(new ArraySegment<byte>(_chunk, 0, _chunkUsed));
+                _chunk = null;
+            }
+            _complete = true;
+        }
+        /// <summary>Adds this sheet's records at <paramref name="position"/> in the workbook stream and returns the following position.</summary>
+        internal long AddSegments(List<ArraySegment<byte>> segments, long position) {
             if (!_complete) throw new InvalidOperationException("Complete each XLS table before publishing the workbook.");
             var dimensions = _rows == 0 ? default : new LegacyXlsDimensions(0, checked((uint)_rows), 0, checked((ushort)_columns));
             byte[] index = new byte[checked(16 + _dbCells.Count * 4)];
             WriteUInt32(index, 8, checked((uint)_rows));
-            WriteDirectWorksheetPrefix(workbook, dimensions, index, out long indexPosition, out long widthPosition);
-            uint offset = checked((uint)workbook.Position);
-            workbook.Write(_cells.Buffer, 0, checked((int)_cells.Length));
-            WriteDirectWorksheetSuffix(workbook);
-            PatchIndexRecord(workbook, indexPosition, widthPosition, _dbCells.Select(position => checked(position + offset)).ToArray());
+            var prefix = new MemoryStream(checked(512 + index.Length));
+            WriteDirectWorksheetPrefix(prefix, dimensions, index, out long indexPosition, out long widthPosition);
+            long cellsStart = checked(position + prefix.Length);
+            var dbCells = new uint[_dbCells.Count];
+            for (int block = 0; block < dbCells.Length; block++) dbCells[block] = checked((uint)(cellsStart + _dbCells[block]));
+            PatchIndexRecord(prefix, indexPosition, checked(position + widthPosition), dbCells);
+            segments.Add(new ArraySegment<byte>(prefix.GetBuffer(), 0, checked((int)prefix.Length)));
+            segments.AddRange(_chunks);
+            var suffix = new MemoryStream(64);
+            WriteDirectWorksheetSuffix(suffix);
+            segments.Add(new ArraySegment<byte>(suffix.GetBuffer(), 0, checked((int)suffix.Length)));
+            return checked(cellsStart + _length + suffix.Length);
         }
-        public override void Dispose() { _block.Dispose(); _cells.Dispose(); }
+        public override void Dispose() {
+            _block.Dispose();
+            if (_chunk != null) _chunks.Add(new ArraySegment<byte>(_chunk, 0, _chunkUsed));
+            _chunk = null;
+            foreach (ArraySegment<byte> chunk in _chunks) {
+                Array.Clear(chunk.Array!, 0, chunk.Count);
+                ArrayPool<byte>.Shared.Return(chunk.Array!);
+            }
+            _chunks.Clear();
+        }
     }
 }

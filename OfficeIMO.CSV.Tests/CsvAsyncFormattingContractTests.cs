@@ -13,7 +13,7 @@ public class CsvAsyncFormattingContractTests
     [InlineData("TextDelimiter")]
     [InlineData("Culture")]
     [InlineData("AlwaysQuote")]
-    [InlineData("NeverQuote")]
+    [InlineData("BackslashEscaped")]
     [InlineData("QuoteFields")]
     [InlineData("EmptyQuoteFields")]
     [InlineData("CustomValues")]
@@ -27,7 +27,11 @@ public class CsvAsyncFormattingContractTests
             case "TextDelimiter": options.DelimiterText = "||"; break;
             case "Culture": options.Culture = CultureInfo.GetCultureInfo("fr-FR"); break;
             case "AlwaysQuote": options.QuoteMode = CsvQuoteMode.Always; break;
-            case "NeverQuote": options.QuoteMode = CsvQuoteMode.Never; break;
+            case "BackslashEscaped":
+                options.Delimiter = '\t';
+                options.QuoteMode = CsvQuoteMode.Never;
+                options.EscapeMode = CsvEscapeMode.Backslash;
+                break;
             case "QuoteFields": options.QuoteFields = new[] { "number", "NULL" }; break;
             case "EmptyQuoteFields": options.QuoteFields = new[] { "", "  " }; break;
             case "CustomValues":

@@ -77,10 +77,20 @@ public sealed class PdfUnderstandingPageContext {
         Width = frame.Width;
         Height = frame.Height;
     }
-    internal (double Width, double Height) GetVisualSize() => ReadingFrame is null ? Page.GetVisualPageSize() : (Width, Height);
-    internal PdfVisualBounds ToVisualBounds(double left, double bottom, double right, double top) => ReadingFrame is null
-        ? Page.TransformBoundsToVisual(left, bottom, right, top)
-        : new PdfVisualBounds(left, Height - top, right, Height - bottom);
+    internal (double Width, double Height) GetVisualSize() {
+        if (ReadingFrame is not null) return (Width, Height);
+        (PdfPageBox box, int rotation, double userUnit) = GetVisualMapping();
+        return PdfVisualCoordinateMapper.GetVisualSize(box, rotation, userUnit);
+    }
+    internal PdfVisualBounds ToVisualBounds(double left, double bottom, double right, double top) {
+        if (ReadingFrame is not null) return new PdfVisualBounds(left, Height - top, right, Height - bottom);
+        (PdfPageBox box, int rotation, double userUnit) = GetVisualMapping();
+        return PdfVisualCoordinateMapper.TransformBounds(box, rotation, left, bottom, right, top, userUnit);
+    }
+    // Stages map thousands of region bounds; read the page geometry once per page analysis.
+    private (PdfPageBox Box, int RotationDegrees, double UserUnit)? _visualMapping;
+    private (PdfPageBox Box, int RotationDegrees, double UserUnit) GetVisualMapping() =>
+        _visualMapping ??= Page.GetVisualMapping();
     internal bool TryGetImageBounds(PdfImagePlacement placement, out PdfVisualBounds bounds) {
         if (!PdfPageInteractionMap.TryGetVisibleImageBounds(Page, placement, out bounds)) return false;
         if (ReadingFrame is not null) bounds = ReadingFrame.ImageBounds(bounds);

@@ -415,6 +415,45 @@ public class PdfMergerPolicyTests {
     }
 
     [Fact]
+    public void Merge_TreatsNamelessTypedWidgetKidsAsWidgetsOfTheirField() {
+        // LibreOffice repeats the parent /FT on each radio widget; those kids are not separate fields.
+        byte[] source = BuildRawPdf(
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R /Annots [7 0 R 8 0 R] >>",
+            "<< /Length 0 >>\nstream\n\nendstream",
+            "<< /Fields [6 0 R] >>",
+            "<< /FT /Btn /Ff 49152 /T (Choice) /V /A /Kids [7 0 R 8 0 R] >>",
+            "<< /Type /Annot /Subtype /Widget /FT /Btn /Parent 6 0 R /Rect [10 70 30 90] /AS /A >>",
+            "<< /Type /Annot /Subtype /Widget /FT /Btn /Parent 6 0 R /Rect [10 30 30 50] /AS /Off >>");
+
+        PdfFormField field = Assert.Single(PdfReadDocument.Open(PdfMerger.Merge(source, source)).FormFields);
+
+        Assert.Equal("Choice", field.Name);
+    }
+
+    [Fact]
+    public void Merge_KeepsTaggedOutlineWhoseItemLinksAStructureElement() {
+        // The structure element reaches a marked-content stream; the tagged structure rewrite owns that graph.
+        byte[] source = BuildRawPdf(
+            "<< /Type /Catalog /Pages 2 0 R /Outlines 5 0 R /StructTreeRoot 7 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R /StructParents 0 >>",
+            "<< /Length 21 >>\nstream\n/P <</MCID 0>> BDC EMC\nendstream",
+            "<< /Type /Outlines /First 6 0 R /Last 6 0 R /Count 1 >>",
+            "<< /Title (Intro) /Parent 5 0 R /Dest [3 0 R /Fit] /SE 8 0 R >>",
+            "<< /Type /StructTreeRoot /K [8 0 R] /ParentTree 9 0 R /ParentTreeNextKey 1 >>",
+            "<< /Type /StructElem /S /P /P 7 0 R /Pg 3 0 R /K << /Type /MCR /MCID 0 /Pg 3 0 R /Stm 10 0 R >> >>",
+            "<< /Nums [0 [8 0 R]] >>",
+            "<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Length 0 >>\nstream\n\nendstream");
+
+        PdfOutlineItem outline = Assert.Single(PdfReadDocument.Open(PdfMerger.Merge(source, source)).Outlines);
+
+        Assert.Equal("Intro", outline.Title);
+        Assert.Equal(1, outline.PageNumber);
+    }
+
+    [Fact]
     public void Merge_MaterializesSourceAcroFormDefaultsOnImportedFields() {
         byte[] primary = PdfDocument.Create().TextField("Primary", value: "one").ToBytes();
         byte[] incoming = BuildFormWithAcroFormDefaultsPdf();
@@ -524,7 +563,7 @@ public class PdfMergerPolicyTests {
         byte[] second = PdfOptionalContentSupport.BuildOptionalContentMetadataPdf();
         var options = new PdfMergeOptions { Policy = new PdfMergePolicy { CatalogState = PdfMergeStructureMode.Combine } };
 
-        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
             PdfMerger.MergeResult(options, first, second));
 
         Assert.Contains("intentionally hid", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -542,9 +581,10 @@ public class PdfMergerPolicyTests {
             .ToBytes();
         var options = new PdfMergeOptions { Policy = new PdfMergePolicy { CatalogState = mode } };
 
-        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
             PdfMerger.MergeResult(options, first, second));
 
+        Assert.Equal(new[] { "MergePolicy.OptionalContent" }, exception.Plan.BlockerCodes);
         Assert.Contains("hidden", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 

@@ -534,3 +534,7 @@ OfficeIMO.Excel.ExcelSheet.ToImagesAsync(OfficeIMO.Excel.ExcelImageExportOptions
 *REMOVED*OfficeIMO.Excel.ExcelSheet.TableToJson(string! tableName, bool? headersInFirstRow = null, OfficeIMO.Excel.ExcelReaderOptions? options = null, OfficeIMO.Excel.ExcelExecutionMode? mode = null, System.Text.Json.JsonSerializerOptions? jsonOptions = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> string!
 *REMOVED*OfficeIMO.Excel.ExcelSheet.ToJson(bool headersInFirstRow = true, OfficeIMO.Excel.ExcelReaderOptions? options = null, OfficeIMO.Excel.ExcelExecutionMode? mode = null, System.Text.Json.JsonSerializerOptions? jsonOptions = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> string!
 *REMOVED*OfficeIMO.Excel.ExcelSheet.ToJson(string! a1Range, bool headersInFirstRow = true, OfficeIMO.Excel.ExcelReaderOptions? options = null, OfficeIMO.Excel.ExcelExecutionMode? mode = null, System.Text.Json.JsonSerializerOptions? jsonOptions = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> string!
+OfficeIMO.Excel.ExcelDocument.InspectHiddenData() -> OfficeIMO.OfficeHiddenDataReport!
+OfficeIMO.Excel.ExcelDocument.RemoveHiddenData(OfficeIMO.OfficeHiddenDataOptions? options = null) -> OfficeIMO.OfficeHiddenDataReport!
+OfficeIMO.Excel.ExcelReaderOptions.EnableSinglePassReading.get -> bool
+OfficeIMO.Excel.ExcelReaderOptions.EnableSinglePassReading.set -> void

@@ -156,6 +156,15 @@
       "OfficeIMO.Pdf",
       "OfficeIMO.Word.Pdf"
     ],
+    "pdf-testing-package-consumers": [
+      "OfficeIMO.Core",
+      "OfficeIMO.Pdf",
+      "OfficeIMO.Pdf.Testing",
+      "OfficeIMO.Pdf.Testing.PackageSmoke.MSTest",
+      "OfficeIMO.Pdf.Testing.PackageSmoke.NUnit",
+      "OfficeIMO.Pdf.Testing.PackageSmoke.Xunit",
+      "OfficeIMO.Pdf.Testing.Tests"
+    ],
     "email-package-consumers": [
       "OfficeIMO.Core",
       "OfficeIMO.Email",
@@ -314,6 +323,7 @@
       "OfficeIMO.Reader.Tests",
       "OfficeIMO.Shared.Tests",
       "OfficeIMO.Tests",
+      "OfficeIMO.Toml.Tests",
       "OfficeIMO.Tool.Tests",
       "OfficeIMO.VerifyTests",
       "OfficeIMO.Visio.Tests",
@@ -461,6 +471,10 @@
     {
       "name": "Shared",
       "project": "OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj"
+    },
+    {
+      "name": "Toml",
+      "project": "OfficeIMO.Toml.Tests/OfficeIMO.Toml.Tests.csproj"
     },
     {
       "name": "Visio",

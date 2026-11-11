@@ -98,4 +98,23 @@ public partial class PdfPageImageRendererTests {
             BuildStreamObject(9, "<<", cmapPrefix + "006600660069" + cmapSuffix),
             BuildStreamObject(10, "<<", cmapPrefix + "0052" + cmapSuffix), sharedForm, otherForm);
     }
+
+    [Fact]
+    public void DisplayPage_RegistersFontsOnceWhenFormsShareOneXObjectDictionary() {
+        // LibreOffice gives every form the page's resource dictionary, so each form lists all the others.
+        const int formCount = 16;
+        string names = string.Join(" ", Enumerable.Range(0, formCount).Select(index => "/Fm" + index + " " + (6 + index) + " 0 R"));
+        var objects = new List<string> { "5 0 obj", "<< /XObject << " + names + " >> >>", "endobj" };
+        for (int index = 0; index < formCount; index++) {
+            objects.Add((6 + index) + " 0 obj");
+            objects.Add("<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources 5 0 R /Length 0 >>");
+            objects.Add("stream\n\nendstream");
+            objects.Add("endobj");
+        }
+        byte[] pdf = BuildSingleStreamPdf("1 0 0 rg 10 10 50 50 re f", "5 0 R", objects.ToArray());
+
+        PdfPageRenderResult result = PdfDocument.Load(pdf).Render.DisplayPage(1, new PdfPageDisplayOptions { Timeout = TimeSpan.FromSeconds(20) });
+
+        Assert.True(result.Succeeded);
+    }
 }

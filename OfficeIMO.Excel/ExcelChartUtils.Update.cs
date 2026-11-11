@@ -9,6 +9,7 @@ namespace OfficeIMO.Excel {
         internal static void UpdateChartData(ChartPart chartPart, ExcelChartData data, ExcelChartDataRange range) {
             ArgumentNullException.ThrowIfNull(chartPart);
             ArgumentNullException.ThrowIfNull(data);
+            ExcelChartAxisIdGenerator.EnsureInitialized(chartPart.OpenXmlPackage);
 
             ChartSpace? chartSpace = chartPart.ChartSpace;
             Chart? chart = chartSpace?.GetFirstChild<Chart>();

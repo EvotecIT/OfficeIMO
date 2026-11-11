@@ -16,7 +16,9 @@ public enum CsvQuoteMode
     Always = 1,
 
     /// <summary>
-    /// Never quote fields. Use only for consumers that require non-standard CSV output.
+    /// Never quote fields. A field containing the delimiter, a carriage return or a line feed cannot be
+    /// represented and fails the write, unless <see cref="CsvSaveOptions.EscapeMode"/> is
+    /// <see cref="CsvEscapeMode.Backslash"/>. Quote characters are written as ordinary data.
     /// </summary>
     Never = 2
 }

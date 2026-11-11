@@ -1114,6 +1114,8 @@
       "api": "WordDocument.Load(stream).SaveAsOpenDocument(output, options)",
       "surfaces": [
         "dotnet",
+        "cli",
+        "studio",
         "powershell"
       ],
       "cmdlet": "Convert-OfficeDocument",
@@ -1365,10 +1367,12 @@
       "target": "PDF",
       "package": "OfficeIMO",
       "support": "Targeted",
-      "fidelity": "Semantic",
+      "fidelity": "FixedLayout",
       "api": "OfficeConverter.Convert(source, destination, options)",
       "surfaces": [
-        "dotnet"
+        "dotnet",
+        "cli",
+        "studio"
       ]
     },
     {
@@ -1485,7 +1489,9 @@
       "fidelity": "Semantic",
       "api": "OfficeConverter.Convert(source, destination, options)",
       "surfaces": [
-        "dotnet"
+        "dotnet",
+        "cli",
+        "studio"
       ]
     },
     {
@@ -1621,6 +1627,8 @@
       "api": "HtmlConversionDocument.Parse(html).SaveAsWord(output, options)",
       "surfaces": [
         "dotnet",
+        "cli",
+        "studio",
         "powershell"
       ],
       "cmdlet": "Convert-OfficeDocument",
@@ -2014,6 +2022,8 @@
       "surfaces": [
         "dotnet",
         "browser",
+        "cli",
+        "studio",
         "powershell"
       ],
       "cmdlet": "Convert-OfficeDocument",
@@ -2568,7 +2578,9 @@
       "fidelity": "FixedLayout",
       "api": "OdpPresentation.Load(stream) or LoadFlatXml(stream).SaveAsPdf(output, options)",
       "surfaces": [
-        "dotnet"
+        "dotnet",
+        "cli",
+        "studio"
       ]
     },
     {
@@ -2593,6 +2605,8 @@
       "api": "OdpPresentation.Load(stream) or LoadFlatXml(stream).SaveAsPowerPoint(output, options)",
       "surfaces": [
         "dotnet",
+        "cli",
+        "studio",
         "powershell"
       ],
       "cmdlet": "Convert-OfficeDocument",
@@ -2655,7 +2669,9 @@
       "fidelity": "FixedLayout",
       "api": "OdsDocument.Load(stream) or LoadFlatXml(stream).SaveAsPdf(output, options)",
       "surfaces": [
-        "dotnet"
+        "dotnet",
+        "cli",
+        "studio"
       ]
     },
     {
@@ -2716,6 +2732,8 @@
       "api": "OdsDocument.Load(stream) or LoadFlatXml(stream).SaveAsExcel(output, options)",
       "surfaces": [
         "dotnet",
+        "cli",
+        "studio",
         "powershell"
       ],
       "cmdlet": "Convert-OfficeDocument",
@@ -2731,6 +2749,8 @@
       "api": "OdtDocument.Load(stream) or LoadFlatXml(stream).SaveAsWord(output, options)",
       "surfaces": [
         "dotnet",
+        "cli",
+        "studio",
         "powershell"
       ],
       "cmdlet": "Convert-OfficeDocument",
@@ -2757,7 +2777,9 @@
       "fidelity": "FixedLayout",
       "api": "OdtDocument.Load(stream) or LoadFlatXml(stream).SaveAsPdf(output, options)",
       "surfaces": [
-        "dotnet"
+        "dotnet",
+        "cli",
+        "studio"
       ]
     },
     {
@@ -3255,6 +3277,8 @@
       "api": "PowerPointDocument.Load(stream).SaveAsOpenDocument(output, options)",
       "surfaces": [
         "dotnet",
+        "cli",
+        "studio",
         "powershell"
       ],
       "cmdlet": "Convert-OfficeDocument",
@@ -3498,6 +3522,8 @@
       "api": "RtfDocument.LoadResult(stream, readOptions).SaveAsWord(output, options)",
       "surfaces": [
         "dotnet",
+        "cli",
+        "studio",
         "powershell"
       ],
       "cmdlet": "Convert-OfficeDocument",
@@ -3912,6 +3938,8 @@
       "api": "ExcelDocument.Load(stream).SaveAsOpenDocument(output, options)",
       "surfaces": [
         "dotnet",
+        "cli",
+        "studio",
         "powershell"
       ],
       "cmdlet": "Convert-OfficeDocument",

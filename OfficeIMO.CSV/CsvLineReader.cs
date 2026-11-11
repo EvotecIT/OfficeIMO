@@ -24,6 +24,9 @@ internal sealed partial class CsvLineReader : IDisposable
     private char[] _buffer;
     private readonly CancellationToken _cancellationToken;
     private readonly CsvParsingSettings? _options;
+    // All bits when quotes delimit fields; zero when quotes are data, so SIMD scans never leave the unquoted path.
+    private readonly uint _quoteMask = uint.MaxValue;
+    private readonly bool _quotesAreData;
     private CancellationToken _operationCancellationToken;
     private int _position;
     private int _length;
@@ -67,6 +70,8 @@ internal sealed partial class CsvLineReader : IDisposable
         : this(reader, options?.CancellationToken ?? throw new ArgumentNullException(nameof(options)))
     {
         _options = options;
+        _quotesAreData = options.QuotesAreData;
+        _quoteMask = _quotesAreData ? 0u : uint.MaxValue;
     }
 
     internal void SetOperationCancellationToken(CancellationToken cancellationToken) =>
@@ -122,7 +127,7 @@ internal sealed partial class CsvLineReader : IDisposable
         }
 
         var lineLength = newlineIndex - segmentStart;
-        if (Array.IndexOf(_buffer, '"', segmentStart, lineLength) >= 0)
+        if (!_quotesAreData && Array.IndexOf(_buffer, '"', segmentStart, lineLength) >= 0)
         {
             line = ReadLine(out separator);
             return CsvLineReadResult.Line;
@@ -154,6 +159,7 @@ internal sealed partial class CsvLineReader : IDisposable
         isEmptyRecord = false;
         line = null;
         separator = string.Empty;
+        LastQuotedRecordLineSeparators = -1;
 
         if (!EnsureBuffered())
         {
@@ -209,13 +215,18 @@ internal sealed partial class CsvLineReader : IDisposable
             return readResult;
         }
 
-        var specialIndex = _buffer.AsSpan(segmentStart, segmentLength).IndexOfAny('"', '\r', '\n');
+        var specialIndex = IndexOfRecordSpecial(segmentStart, segmentLength);
         while (specialIndex < 0 && TryExtendCurrentSegment())
         {
             segmentStart = _position;
             segmentLength = _length - _position;
-            specialIndex = _buffer.AsSpan(segmentStart, segmentLength).IndexOfAny('"', '\r', '\n');
+            specialIndex = IndexOfRecordSpecial(segmentStart, segmentLength);
         }
+
+        // A failed extension can still move the segment to the buffer start before it finds the end
+        // of input, so the final record is read from the current position.
+        segmentStart = _position;
+        segmentLength = _length - _position;
 
         var endsAtReaderEnd = false;
         if (specialIndex < 0)
@@ -273,6 +284,12 @@ internal sealed partial class CsvLineReader : IDisposable
     }
 #endif
 
+#if NET8_0_OR_GREATER
+    private int IndexOfRecordSpecial(int start, int length) => _quotesAreData
+        ? _buffer.AsSpan(start, length).IndexOfAny('\r', '\n')
+        : _buffer.AsSpan(start, length).IndexOfAny('"', '\r', '\n');
+#endif
+
     public string? ReadLine(out string separator)
     {
         separator = string.Empty;
@@ -299,21 +316,29 @@ internal sealed partial class CsvLineReader : IDisposable
         }
     }
 
+    /// <summary>
+    /// Finds the first CR or LF in one pass. Searching for each separator over the whole buffered
+    /// text made every line of a file without the other separator scan the rest of the buffer.
+    /// </summary>
     private int IndexOfNewline(int start, int count)
     {
-        var lineFeed = Array.IndexOf(_buffer, '\n', start, count);
-        var carriageReturn = Array.IndexOf(_buffer, '\r', start, count);
-        if (lineFeed < 0)
+#if NET8_0_OR_GREATER
+        int index = _buffer.AsSpan(start, count).IndexOfAny('\r', '\n');
+        return index < 0 ? -1 : start + index;
+#else
+        char[] buffer = _buffer;
+        int end = start + count;
+        for (int index = start; index < end; index++)
         {
-            return carriageReturn;
+            char value = buffer[index];
+            if (value == '\n' || value == '\r')
+            {
+                return index;
+            }
         }
 
-        if (carriageReturn < 0)
-        {
-            return lineFeed;
-        }
-
-        return Math.Min(lineFeed, carriageReturn);
+        return -1;
+#endif
     }
 
     private void AddUnquotedFields(int start, int end, char delimiter, bool trim, List<string> fields)

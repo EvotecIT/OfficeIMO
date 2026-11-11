@@ -39,23 +39,14 @@ internal static partial class PdfMerger {
 
     private static byte[] ApplyCatalogStatePolicy(byte[] merged, IReadOnlyList<ImportedSource> sources, int primarySourceIndex, PdfMergeStructureMode mode, List<PdfMergeDecision> decisions, PdfLoadOptions readOptions, CancellationToken cancellationToken) {
         int incoming = sources.Where((source, index) => index != primarySourceIndex && HasCatalogState(source)).Count();
-        bool incomingOptionalContent = sources.Where((source, index) => index != primarySourceIndex)
-            .Any(static source => source.CatalogState.OptionalContent != null);
-        bool anyOptionalContent = sources.Any(static source => source.CatalogState.OptionalContent != null);
-        if (mode == PdfMergeStructureMode.KeepPrimary && incomingOptionalContent) {
-            throw new NotSupportedException("Keeping only the primary PDF optional-content configuration is blocked because incoming pages can reference hidden layers whose visibility state would be discarded.");
-        }
+        // MergeCore reports these conflicts as blocked plans before assembly; page import reaches this guard directly.
+        string? optionalContentConflict = FindOptionalContentPolicyConflict(sources, primarySourceIndex, mode);
+        if (optionalContentConflict is not null) throw new NotSupportedException(optionalContentConflict);
         if (mode == PdfMergeStructureMode.KeepPrimary) { decisions.Add(new PdfMergeDecision("CatalogState", mode, "Kept primary compatible catalog state.", droppedCount: incoming)); return merged; }
         if (mode == PdfMergeStructureMode.RejectIncoming) {
             if (incoming > 0) throw new InvalidOperationException("PDF merge policy rejected incoming catalog state from " + incoming + " source(s).");
             decisions.Add(new PdfMergeDecision("CatalogState", mode, "No incoming catalog state was present; kept primary catalog state."));
             return merged;
-        }
-        if (mode == PdfMergeStructureMode.Combine && anyOptionalContent) {
-            throw new NotSupportedException("Combining PDF optional-content configurations is blocked because rebuilding them with an all-visible default can expose content that a source intentionally hid.");
-        }
-        if (mode == PdfMergeStructureMode.Drop && anyOptionalContent) {
-            throw new NotSupportedException("Dropping PDF optional-content configuration is blocked because page content can remain associated with hidden layers and become visible without its source visibility state.");
         }
 
         string? version = mode == PdfMergeStructureMode.Combine ? FirstCatalogValue(sources, primarySourceIndex, static document => document.CatalogVersion) : null;

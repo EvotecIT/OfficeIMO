@@ -2,21 +2,20 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 328,
-    "productionComponentCount": 159,
-    "testProjectCount": 63,
-    "benchmarkProjectCount": 38,
-    "validationProjectCount": 69,
+    "projectCount": 338,
+    "productionComponentCount": 162,
+    "testProjectCount": 65,
+    "benchmarkProjectCount": 39,
+    "validationProjectCount": 73,
     "apiReferenceCount": 128,
     "conceptualPageCount": 132,
-    "conceptualWordCount": 61275
+    "conceptualWordCount": 61693
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
-      "componentCount": 34,
+      "componentCount": 35,
       "componentIndexes": [
-        101,
         102,
         103,
         104,
@@ -49,7 +48,9 @@
         131,
         132,
         133,
-        134
+        134,
+        135,
+        136
       ]
     },
     {
@@ -78,10 +79,10 @@
         82,
         83,
         84,
-        99,
         100,
-        144,
-        145
+        101,
+        147,
+        148
       ]
     },
     {
@@ -101,8 +102,8 @@
         72,
         73,
         74,
-        98,
-        138
+        99,
+        140
       ]
     },
     {
@@ -126,32 +127,32 @@
         37,
         38,
         39,
-        91,
         92,
         93,
         94,
         95,
         96,
-        146,
-        147,
-        148,
+        97,
         149,
         150,
         151,
         152,
-        153
+        153,
+        154,
+        155,
+        156
       ]
     },
     {
       "name": "PowerShell automation",
       "componentCount": 1,
       "componentIndexes": [
-        158
+        161
       ]
     },
     {
       "name": "Publishing and conversion",
-      "componentCount": 28,
+      "componentCount": 29,
       "componentIndexes": [
         7,
         8,
@@ -178,9 +179,10 @@
         88,
         89,
         90,
-        135,
-        136,
-        137
+        91,
+        137,
+        138,
+        139
       ]
     },
     {
@@ -194,7 +196,7 @@
     },
     {
       "name": "Specialized components",
-      "componentCount": 27,
+      "componentCount": 28,
       "componentIndexes": [
         0,
         1,
@@ -213,16 +215,17 @@
         71,
         75,
         85,
-        97,
-        139,
-        140,
+        98,
         141,
         142,
         143,
-        154,
-        155,
-        156,
-        157
+        144,
+        145,
+        146,
+        157,
+        158,
+        159,
+        160
       ]
     }
   ],
@@ -468,7 +471,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 1262,
+      "sourceFileCount": 1266,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -663,7 +666,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 1378,
+      "sourceFileCount": 1386,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -806,7 +809,7 @@
       "description": "HTML parsing, resource policy, CSS layout, diagnostics, and provider-neutral render scenes for OfficeIMO converters.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html/OfficeIMO.Html.csproj",
-      "sourceFileCount": 557,
+      "sourceFileCount": 560,
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html/",
@@ -949,7 +952,7 @@
       "description": "Bounded Apple iWork package inspection, source projections, template-free native Pages, Numbers and Keynote creation, and preservation-aware native saving.",
       "kind": "package",
       "projectPath": "OfficeIMO.IWork/OfficeIMO.IWork.csproj",
-      "sourceFileCount": 213,
+      "sourceFileCount": 212,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/iwork/",
       "apiUrl": "/api/iwork/",
@@ -1352,7 +1355,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1702,
+      "sourceFileCount": 1707,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -1396,6 +1399,19 @@
       "docsUrl": "/docs/pdf/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf.PowerPoint"
+    },
+    {
+      "name": "OfficeIMO.Pdf.Testing",
+      "packageId": "OfficeIMO.Pdf.Testing",
+      "category": "Publishing and conversion",
+      "description": "Framework-neutral PDF snapshot testing for OfficeIMO.Pdf: rendered pages, logical text and structure compared against approved baselines with a visual review gallery.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Pdf.Testing/OfficeIMO.Pdf.Testing.csproj",
+      "sourceFileCount": 6,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/pdf/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf.Testing"
     },
     {
       "name": "OfficeIMO.Pdf.Word",
@@ -1892,6 +1908,19 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Subtitles"
     },
     {
+      "name": "OfficeIMO.Reader.Toml",
+      "packageId": "OfficeIMO.Reader.Toml",
+      "category": "Extraction and ingestion",
+      "description": "TOML adapter extensions for OfficeIMO.Reader: pyproject.toml, Cargo.toml, lock files and other TOML configuration as path, type and value chunks.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Reader.Toml/OfficeIMO.Reader.Toml.csproj",
+      "sourceFileCount": 3,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/reader/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Toml"
+    },
+    {
       "name": "OfficeIMO.Reader.Visio",
       "packageId": "OfficeIMO.Reader.Visio",
       "category": "Extraction and ingestion",
@@ -2087,6 +2116,19 @@
       "packageUrl": null
     },
     {
+      "name": "OfficeIMO.Toml",
+      "packageId": "OfficeIMO.Toml",
+      "category": "Specialized components",
+      "description": "A dependency-free TOML 1.1 engine for OfficeIMO: a low-allocation pull reader, a lossless document model that saves unchanged input byte for byte and edits with minimal diffs, and a writer.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Toml/OfficeIMO.Toml.csproj",
+      "sourceFileCount": 24,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Toml"
+    },
+    {
       "name": "OfficeIMO.Tool",
       "packageId": "OfficeIMO.Tool",
       "category": "Specialized components",
@@ -2132,7 +2174,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 858,
+      "sourceFileCount": 861,
       "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",

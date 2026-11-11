@@ -6,6 +6,11 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private readonly List<OfficeTextInkClip> _diagnosticCanvasClips = new();
         private readonly List<bool> _diagnosticCanvasSourceClips = new();
+        // The canvas clips split by whether the source already paints through them, in stack order.
+        // Paint inspection only reads these, so each inspection uses them without copying.
+        private readonly List<OfficeTextInkClip> _diagnosticSourceClipStack = new();
+        private readonly List<OfficeTextInkClip> _diagnosticTargetClipStack = new();
+        private (double Width, double Height, OfficeTextInkClip Clip)? _diagnosticPageClip;
         private readonly Dictionary<byte[], IOfficeBoundedFontProgram> _diagnosticFonts = new();
         private bool _diagnosticPaintHidden;
         private PdfCreateOptions? _diagnosticTextOptions;
@@ -51,13 +56,15 @@ internal static partial class PdfWriter {
             }
             OfficeTransform transform = (localTransform ?? OfficeTransform.Identity).Then(_canvasEffectToPage);
             if (!transform.TryInvert(out _)) return; // Singular paint has no filled area.
-            var sourceClips = new List<OfficeTextInkClip>();
-            var targetClips = new List<OfficeTextInkClip>();
-            for (int index = 0; index < _diagnosticCanvasClips.Count; index++) {
-                (_diagnosticCanvasSourceClips[index] ? sourceClips : targetClips).Add(_diagnosticCanvasClips[index]);
+            List<OfficeTextInkClip> sourceClips = _diagnosticSourceClipStack;
+            List<OfficeTextInkClip> targetClips = _diagnosticTargetClipStack;
+            double pageWidth = currentOpts.PageWidth.ToPoints(), pageHeight = currentOpts.PageHeight.ToPoints();
+            if (_diagnosticPageClip is not { } cachedPage || !cachedPage.Width.Equals(pageWidth) || !cachedPage.Height.Equals(pageHeight)) {
+                cachedPage = (pageWidth, pageHeight, DiagnosticRectangleClip(new TableCellContentFrame(0D, pageHeight,
+                    pageWidth, pageHeight), OfficeTransform.Identity));
+                _diagnosticPageClip = cachedPage;
             }
-            OfficeTextInkClip pageClip = DiagnosticRectangleClip(new TableCellContentFrame(0D, currentOpts.PageHeight.ToPoints(),
-                currentOpts.PageWidth.ToPoints(), currentOpts.PageHeight.ToPoints()), OfficeTransform.Identity);
+            OfficeTextInkClip pageClip = cachedPage.Clip;
             bool clipped = false, outsidePage = false, overflow = false, outerClipped = false;
             string? unmeasuredReason = null;
             double baseline = firstBaseline;

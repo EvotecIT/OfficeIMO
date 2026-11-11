@@ -40,19 +40,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 int span = Math.Max(1, Math.Min(requestedSpan, columnCount - column));
                 int rowSpan = ReadRowSpan(cell.RowSpan, rows, rowIndex);
                 placements.Add(cell, new CollapsedTableCellPlacement(rowIndex, column, span, rowSpan));
-                HtmlRenderBoxStyle cellStyle = ResolveFormattingCellStyle(cell, contentWidth);
-                ApplyTableCellFallbackInsets(cellStyle, legacyBorderWidth);
+                HtmlRenderBorderEdges cellBorders = ResolveTableCellFallbackBorders(
+                    ReadFormattingCellStyle(cell, contentWidth), legacyBorderWidth);
                 for (int segment = column; segment < column + span; segment++) {
                     AddCollapsedBorderCandidate(winners, new CollapsedBorderKey(true, rowIndex, segment),
-                        cellStyle.Borders.Top, CollapsedBorderOrigin.Cell, sourceOrder++, column, rowIndex);
+                        cellBorders.Top, CollapsedBorderOrigin.Cell, sourceOrder++, column, rowIndex);
                     AddCollapsedBorderCandidate(winners, new CollapsedBorderKey(true, rowIndex + rowSpan, segment),
-                        cellStyle.Borders.Bottom, CollapsedBorderOrigin.Cell, sourceOrder++, column, rowIndex);
+                        cellBorders.Bottom, CollapsedBorderOrigin.Cell, sourceOrder++, column, rowIndex);
                 }
                 for (int segment = rowIndex; segment < rowIndex + rowSpan; segment++) {
                     AddCollapsedBorderCandidate(winners, new CollapsedBorderKey(false, rtl ? column + span : column, segment),
-                        cellStyle.Borders.Left, CollapsedBorderOrigin.Cell, sourceOrder++, column, rowIndex);
+                        cellBorders.Left, CollapsedBorderOrigin.Cell, sourceOrder++, column, rowIndex);
                     AddCollapsedBorderCandidate(winners, new CollapsedBorderKey(false, rtl ? column : column + span, segment),
-                        cellStyle.Borders.Right, CollapsedBorderOrigin.Cell, sourceOrder++, column, rowIndex);
+                        cellBorders.Right, CollapsedBorderOrigin.Cell, sourceOrder++, column, rowIndex);
                 }
                 for (int occupied = column; occupied < column + span; occupied++) {
                     occupancy[occupied] = Math.Max(occupancy[occupied], rowSpan);

@@ -1,5 +1,6 @@
 using System.Management.Automation;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
@@ -36,5 +37,6 @@ public sealed class CloseOfficeExcelCommand : PSCmdlet {
     protected override void ProcessRecord() {
         ExcelDocumentService.EnsureExplicitPersistence(Document);
         ExcelDocumentService.CloseDocument(Document);
+        OfficeUnsavedNewDocuments.WarnIfUnsaved(this, Document, "workbook", "Excel");
     }
 }

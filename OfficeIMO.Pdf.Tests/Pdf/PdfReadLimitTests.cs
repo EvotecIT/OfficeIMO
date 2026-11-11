@@ -1374,10 +1374,10 @@ public class PdfReadLimitTests {
 
         PdfReadLimitException countException = Assert.Throws<PdfReadLimitException>(() => PdfReadDocument.Open(
             twoFields,
-            new PdfLoadOptions { Limits = new PdfReadLimits { MaxFormFields = 1 } }));
+            new PdfLoadOptions { Limits = new PdfReadLimits { MaxFormFields = 1 } }).FormFields);
         PdfReadLimitException depthException = Assert.Throws<PdfReadLimitException>(() => PdfReadDocument.Open(
             nestedFields,
-            new PdfLoadOptions { Limits = new PdfReadLimits { MaxFormFieldDepth = 1 } }));
+            new PdfLoadOptions { Limits = new PdfReadLimits { MaxFormFieldDepth = 1 } }).FormFields);
 
         Assert.Equal(PdfReadLimitKind.FormFields, countException.Kind);
         Assert.Equal(PdfReadLimitKind.FormFieldDepth, depthException.Kind);
@@ -1387,7 +1387,7 @@ public class PdfReadLimitTests {
     public void WidgetAppearanceStateBudgetStopsDictionaryExpansion() {
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfReadDocument.Open(
             BuildWidgetAppearanceStatesPdf(),
-            new PdfLoadOptions { Limits = new PdfReadLimits { MaxFormFieldAppearanceStates = 1 } }));
+            new PdfLoadOptions { Limits = new PdfReadLimits { MaxFormFieldAppearanceStates = 1 } }).FormFields);
 
         Assert.Equal(PdfReadLimitKind.FormAppearanceStates, exception.Kind);
         Assert.Equal(1, exception.Limit);

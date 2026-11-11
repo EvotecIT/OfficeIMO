@@ -19,11 +19,11 @@ internal sealed partial class PdfReadDocument {
         return (null, null, null, null, null, null, null);
     }
 
-    private IReadOnlyList<PdfNamedDestination> ExtractNamedDestinations(System.Threading.CancellationToken cancellationToken) {
+    private NamedDestinationIndex ExtractNamedDestinations(System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfDictionary? catalog = FindCatalog();
         if (catalog is null) {
-            return Array.Empty<PdfNamedDestination>();
+            return NamedDestinationIndex.Empty;
         }
 
         PdfDictionary? directDestinations = catalog.Items.TryGetValue("Dests", out var directDests)
@@ -35,10 +35,10 @@ internal sealed partial class PdfReadDocument {
             namesDictionary.Items.TryGetValue("Dests", out namedDestinationTree);
         }
         if (directDestinations is null && namedDestinationTree is null) {
-            return Array.Empty<PdfNamedDestination>();
+            return NamedDestinationIndex.Empty;
         }
 
-        var result = new List<PdfNamedDestination>();
+        var result = new NamedDestinationIndex();
         if (directDestinations is not null) {
             foreach (var entry in directDestinations.Items) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -53,12 +53,12 @@ internal sealed partial class PdfReadDocument {
             AddNamedDestinationsFromNameTree(namedDestinationTree, result, new HashSet<int>(), 0, ref traversedNameTreeNodes, cancellationToken);
         }
 
-        return result.Count == 0 ? Array.Empty<PdfNamedDestination>() : result.AsReadOnly();
+        return result;
     }
 
     private void AddNamedDestinationsFromNameTree(
         PdfObject treeObject,
-        List<PdfNamedDestination> result,
+        NamedDestinationIndex result,
         HashSet<int> visitedReferences,
         int depth,
         ref int traversedNodes,
@@ -112,22 +112,8 @@ internal sealed partial class PdfReadDocument {
         }
     }
 
-    private void AddNamedDestination(List<PdfNamedDestination> result, PdfNamedDestination destination, PdfNamedDestinationTokenKind kind) {
-        result.Add(destination);
-        Dictionary<string, PdfNamedDestination> lookup;
-        if (kind == PdfNamedDestinationTokenKind.String) {
-            lookup = _stringDestinations ??= new Dictionary<string, PdfNamedDestination>(StringComparer.Ordinal);
-        } else {
-            lookup = _nameDestinations ??= new Dictionary<string, PdfNamedDestination>(StringComparer.Ordinal);
-        }
-#if NETSTANDARD2_0 || NET472
-        if (!lookup.ContainsKey(destination.Name)) {
-            lookup[destination.Name] = destination;
-        }
-#else
-        lookup.TryAdd(destination.Name, destination);
-#endif
-    }
+    private static void AddNamedDestination(NamedDestinationIndex index, PdfNamedDestination destination, PdfNamedDestinationTokenKind kind) =>
+        index.Add(destination, kind);
 
     private bool TryReadDestinationName(PdfObject obj, out string? name, out PdfNamedDestinationTokenKind kind) {
         PdfObject? resolved = ResolveObject(obj);
@@ -180,8 +166,7 @@ internal sealed partial class PdfReadDocument {
         }
 
         if (TryReadDestinationName(destinationObject, out string? name, out var kind)) {
-            Dictionary<string, PdfNamedDestination>? lookup = kind == PdfNamedDestinationTokenKind.String ? _stringDestinations : _nameDestinations;
-            if (lookup is not null && lookup.TryGetValue(name!, out var destination)) {
+            if (_namedDestinationsFeature.GetValue().TryGet(name!, kind, out PdfNamedDestination? found) && found is PdfNamedDestination destination) {
                 pageNumber = destination.PageNumber;
                 destinationTop = destination.DestinationTop;
                 destinationMode = destination.DestinationMode;
@@ -343,5 +328,34 @@ internal sealed partial class PdfReadDocument {
         }
 
         return pageNumbers.TryGetValue(objectNumber, out int pageNumber) ? pageNumber : null;
+    }
+
+    /// <summary>Named destinations in catalog order with the first definition of each name indexed by token kind.</summary>
+    private sealed class NamedDestinationIndex {
+        internal static readonly NamedDestinationIndex Empty = new();
+        private readonly List<PdfNamedDestination> _destinations = new();
+        private Dictionary<string, PdfNamedDestination>? _byName;
+        private Dictionary<string, PdfNamedDestination>? _byString;
+        private IReadOnlyList<PdfNamedDestination>? _readOnlyDestinations;
+
+        internal IReadOnlyList<PdfNamedDestination> Destinations => _readOnlyDestinations ??= _destinations.Count == 0
+            ? Array.Empty<PdfNamedDestination>()
+            : _destinations.AsReadOnly();
+
+        internal void Add(PdfNamedDestination destination, PdfNamedDestinationTokenKind kind) {
+            _destinations.Add(destination);
+            Dictionary<string, PdfNamedDestination> lookup = kind == PdfNamedDestinationTokenKind.String
+                ? _byString ??= new Dictionary<string, PdfNamedDestination>(StringComparer.Ordinal)
+                : _byName ??= new Dictionary<string, PdfNamedDestination>(StringComparer.Ordinal);
+            if (!lookup.ContainsKey(destination.Name)) {
+                lookup[destination.Name] = destination;
+            }
+        }
+
+        internal bool TryGet(string name, PdfNamedDestinationTokenKind kind, out PdfNamedDestination? destination) {
+            Dictionary<string, PdfNamedDestination>? lookup = kind == PdfNamedDestinationTokenKind.String ? _byString : _byName;
+            destination = null;
+            return lookup is not null && lookup.TryGetValue(name, out destination);
+        }
     }
 }

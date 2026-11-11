@@ -76,6 +76,11 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             protected override void VisitBlock(Omd.MarkdownBlock block) {
+                if (block is Omd.MathBlock math) {
+                    RenderDisplayMath(math.Content, caption: null, language: "math");
+                    return;
+                }
+
                 if (block is Omd.IMarkdownBlock markdownBlock) {
                     RenderFallback(markdownBlock);
                 }
@@ -146,14 +151,40 @@ namespace OfficeIMO.Word.Markdown {
                     return;
                 }
 
+                if (IsMathSemanticBlock(block)) {
+                    RenderDisplayMath(block.Content, block.Caption, block.Language);
+                    return;
+                }
+
+                RenderCodePanel(block.Content, block.Language, block.Caption);
+            }
+
+            private void RenderDisplayMath(string tex, string? caption, string language) {
+                var mathParagraph = _host.CreateParagraph();
+                ApplyBlockParagraphFormatting(mathParagraph, _quoteDepth, _alignment, _options);
+                if (!TryAddEquation(mathParagraph, tex, display: true, _options)) {
+                    mathParagraph.Remove();
+                    RenderCodePanel(tex, language, caption);
+                    return;
+                }
+
+                if (!string.IsNullOrWhiteSpace(caption)) {
+                    var captionParagraph = _host.CreateParagraph();
+                    ApplyBlockParagraphFormatting(captionParagraph, _quoteDepth, _alignment, _options);
+                    AddContextText(captionParagraph, caption!, _options);
+                    ApplyBodyTextTheme(captionParagraph, _options);
+                }
+            }
+
+            private void RenderCodePanel(string content, string language, string? caption) {
                 var paragraph = _host.CreateParagraph();
                 ApplyCodeBlockParagraphFormatting(paragraph);
-                AddCodeText(paragraph, block.Content, block.Language, _options);
+                AddCodeText(paragraph, content, language, _options);
                 ApplyCodeTheme(paragraph, _options);
-                if (!string.IsNullOrWhiteSpace(block.Caption)) {
+                if (!string.IsNullOrWhiteSpace(caption)) {
                     var captionParagraph = _host.CreateParagraph();
                     ApplyCodeBlockParagraphFormatting(captionParagraph);
-                    AddContextText(captionParagraph, block.Caption!, _options);
+                    AddContextText(captionParagraph, caption!, _options);
                     ApplyBodyTextTheme(captionParagraph, _options);
                 }
             }

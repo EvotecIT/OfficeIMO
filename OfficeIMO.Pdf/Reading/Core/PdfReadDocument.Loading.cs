@@ -40,7 +40,6 @@ internal sealed partial class PdfReadDocument {
             pdf,
             effectiveOptions,
             includeParsedDetails: false,
-            out string decodedText,
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfRepairReport repairReport;
@@ -51,14 +50,12 @@ internal sealed partial class PdfReadDocument {
                 effectiveOptions,
                 out repairReport,
                 out decodedStreamBytes,
-                decodedText,
                 cancellationToken)
             : PdfSyntax.ParseObjects(
                 pdf,
                 effectiveOptions,
                 out repairReport,
                 out decodedStreamBytes,
-                decodedText,
                 cancellationToken);
         Dictionary<int, PdfIndirectObject> map = parsed.Map;
         string trailer = parsed.TrailerRaw;
@@ -88,13 +85,11 @@ internal sealed partial class PdfReadDocument {
         Guard.NotNull(pdf, nameof(pdf));
         cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
-        string decodedText = PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken);
         var (map, trailer) = PdfSyntax.ParseOwnedObjects(
             pdf,
             effectiveOptions,
             out PdfRepairReport repairReport,
             out long decodedStreamBytes,
-            decodedText,
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentSecurityInfo security;
@@ -102,7 +97,7 @@ internal sealed partial class PdfReadDocument {
             security = PdfSyntax.ReadDocumentSecurityInfo(pdf, effectiveOptions, includeParsedDetails: false, cancellationToken);
             security = PdfSyntax.ReadDocumentSecurityInfo(pdf, map, trailer, security, repairReport, effectiveOptions, cancellationToken);
         } else {
-            security = PdfSyntax.ReadRewrittenOutputSecurityInfo(decodedText, trailer, effectiveOptions, cancellationToken);
+            security = PdfSyntax.ReadRewrittenOutputSecurityInfo(pdf, trailer, effectiveOptions, cancellationToken);
         }
 
         return new PdfReadDocument(map, trailer, security, repairReport, effectiveOptions, decodedStreamBytes, cancellationToken);
