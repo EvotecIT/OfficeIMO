@@ -347,6 +347,7 @@ namespace OfficeIMO.Excel {
                 clonedTable.DisplayName = tableName;
                 _excelDocument.ReserveTableName(tableName);
 
+                _excelDocument.InvalidateTableLayouts();
                 targetTablePart.Table = clonedTable;
                 targetTablePart.Table.Save();
                 tablePart.Id = targetRelationshipId;

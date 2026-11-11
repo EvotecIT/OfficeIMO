@@ -59,6 +59,7 @@ namespace OfficeIMO.Excel {
                         cell.DataType = null;
                     }
 
+                    _excelDocument.InvalidateTableLayouts();
                     table.Reference = ExcelA1.CellReference(firstRow, firstColumn) + ":" + ExcelA1.CellReference(lastRow - 1, lastColumn);
                     ClearCellTextSharedStringCache();
                     _hasWorksheetMutations = true;
@@ -181,6 +182,7 @@ namespace OfficeIMO.Excel {
                             $"Cannot add a totals row to table '{table.Name?.Value}': row {totalsRow.ToString(System.Globalization.CultureInfo.InvariantCulture)} below the table is not empty.");
                     }
 
+                    _excelDocument.InvalidateTableLayouts();
                     table.Reference = ExcelA1.CellReference(firstRow, firstColumn) + ":" + ExcelA1.CellReference(totalsRow, lastColumn);
                 }
 
@@ -796,6 +798,7 @@ namespace OfficeIMO.Excel {
                     ShowColumnStripes = false
                 });
 
+                _excelDocument.InvalidateTableLayouts();
                 tableDefinitionPart.Table = table;
 
                 var tableParts = WorksheetRoot.GetFirstChild<TableParts>();

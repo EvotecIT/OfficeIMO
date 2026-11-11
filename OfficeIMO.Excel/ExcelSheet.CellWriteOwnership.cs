@@ -45,10 +45,68 @@ namespace OfficeIMO.Excel {
             return cached;
         }
 
+        /// <summary>
+        /// Every cell write asks whether it lands on a table header, so the header rows of a worksheet's tables are
+        /// indexed by row. The index belongs to the worksheet part and serves while the tableParts list and its last
+        /// child are unchanged and no table range, header count or table part has changed since it was built; code
+        /// that changes those calls <see cref="ExcelDocument.InvalidateTableLayouts"/>. A remembered header is
+        /// confirmed against the live table. Once the package is handed out for direct editing, lookups scan.
+        /// </summary>
+        private sealed class TableHeaderIndex {
+            private readonly Dictionary<int, (Table Table, string Reference, int Left, int Right)[]> _rows = new();
+
+            internal TableHeaderIndex(int epoch, TableParts? list, IEnumerable<TableDefinitionPart> parts) {
+                Epoch = epoch;
+                List = list;
+                LastChild = list?.LastChild;
+                foreach (TableDefinitionPart part in parts) {
+                    Table? table = part.Table;
+                    string? reference = table?.Reference?.Value;
+                    if (table == null || reference == null || (table.HeaderRowCount?.Value ?? 1U) == 0U
+                        || !ExcelA1.TryParseRange(reference, out int top, out int left, out _, out int right)) continue;
+                    var entry = (table, reference, left, right);
+                    _rows[top] = _rows.TryGetValue(top, out var existing) ? existing.Concat(new[] { entry }).ToArray() : new[] { entry };
+                }
+            }
+
+            internal int Epoch { get; }
+            internal TableParts? List { get; }
+            internal OpenXmlElement? LastChild { get; }
+
+            /// <summary>True or false when the index answers, null when a remembered table changed and it must be rebuilt.</summary>
+            internal bool? Find(int row, int column, out Table table, out int headerIndex) {
+                table = null!;
+                headerIndex = -1;
+                if (!_rows.TryGetValue(row, out var entries)) return false;
+                foreach (var entry in entries) {
+                    if (!string.Equals(entry.Table.Reference?.Value, entry.Reference, StringComparison.Ordinal)
+                        || (entry.Table.HeaderRowCount?.Value ?? 1U) == 0U) return null;
+                    if (column < entry.Left || column > entry.Right) continue;
+                    table = entry.Table;
+                    headerIndex = column - entry.Left;
+                    return true;
+                }
+                return false;
+            }
+        }
+
         private bool TryGetTableHeader(int row, int column, out Table table, out int headerIndex) {
             table = null!;
             headerIndex = -1;
             if (!HasTableDefinitions) return false;
+            if (!_excelDocument.IsOpenXmlDocumentExposed) {
+                TableParts? list = WorksheetRoot.GetFirstChild<TableParts>();
+                int epoch = _excelDocument.TableLayoutEpoch;
+                TableHeaderIndex? index = Persistence.TableHeaders;
+                if (index == null || index.Epoch != epoch || !ReferenceEquals(index.List, list)
+                    || !ReferenceEquals(index.LastChild, list?.LastChild)) {
+                    index = new TableHeaderIndex(epoch, list, GetTableDefinitionParts().Select(entry => entry.Part));
+                    Persistence.TableHeaders = index;
+                }
+                bool? found = index.Find(row, column, out table, out headerIndex);
+                if (found.HasValue) return found.Value;
+                Persistence.TableHeaders = null;
+            }
             foreach ((_, TableDefinitionPart part) in GetTableDefinitionParts()) {
                 Table? candidate = part.Table;
                 if (candidate == null || (candidate.HeaderRowCount?.Value ?? 1U) == 0U

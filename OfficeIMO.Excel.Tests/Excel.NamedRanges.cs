@@ -4,6 +4,24 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class ExcelNamedRangesTests {
         [Fact]
+        public void DefinedNamesReachThePackageBeforeDirectReaders() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetFormula("Rate*2");
+            document.SetNamedRange("Rate", "'Data'!B1");
+            document.SetNamedRange("Other", "'Data'!C1");
+
+            var package = document.OpenXmlDocument;
+            var formula = package.WorkbookPart!.WorksheetParts.Single().Worksheet
+                .Descendants<DocumentFormat.OpenXml.Spreadsheet.CellFormula>().Single();
+            Assert.True(formula.CalculateCell?.Value);
+            string workbookXml;
+            using (var reader = new StreamReader(package.WorkbookPart.GetStream(FileMode.Open, FileAccess.Read))) workbookXml = reader.ReadToEnd();
+            Assert.Contains("name=\"Rate\"", workbookXml);
+            Assert.Contains("name=\"Other\"", workbookXml);
+        }
+
+        [Fact]
         public void CanCreateAndReadNamedRanges() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {

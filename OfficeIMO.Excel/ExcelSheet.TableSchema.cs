@@ -162,6 +162,7 @@ namespace OfficeIMO.Excel {
                     currentBounds,
                     targetBounds,
                     totalsRows);
+                _excelDocument.InvalidateTableLayouts();
                 table.Reference = normalizedRange;
                 if (rangeChanged) RemapTableResizeSortReferences(
                     table,

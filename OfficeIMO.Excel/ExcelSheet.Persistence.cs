@@ -26,6 +26,8 @@ namespace OfficeIMO.Excel {
             internal bool OwnsTablePrintDefaults;
             /// <summary>The grid was loaded into stored rows, so rows this sheet adds keep their plain cells stored too.</summary>
             internal bool UsesCellStore;
+            internal MergeReferenceIndex? MergeReferences;
+            internal TableHeaderIndex? TableHeaders;
         }
 
         /// <summary>
@@ -58,6 +60,8 @@ namespace OfficeIMO.Excel {
                 if (!WorksheetPersistenceStates.TryGetValue(part, out WorksheetPersistenceState? state)) continue;
                 state.PartSaves.Clear();
                 state.CommentVmlDocuments.Clear();
+                state.MergeReferences = null;
+                state.TableHeaders = null;
             }
         }
 

@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel {
                 if (contains == null) {
                     // A remembered merge is no longer what the worksheet holds, so answer from the worksheet itself.
                     index = new MergeReferenceIndex(merges);
-                    _mergeReferenceIndex = index;
+                    Persistence.MergeReferences = index;
                     contains = index.Contains(merges, a1Range, out mergeCount);
                 }
                 if (contains == true) {
@@ -47,15 +47,18 @@ namespace OfficeIMO.Excel {
         }
 
         private MergeReferenceIndex MergeIndexFor(MergeCells merges) {
-            if (_mergeReferenceIndex is not { } index || !index.Serves(merges)) {
+            if (Persistence.MergeReferences is not { } index || !index.Serves(merges)) {
                 index = new MergeReferenceIndex(merges);
-                _mergeReferenceIndex = index;
+                Persistence.MergeReferences = index;
             }
             return index;
         }
 
-        /// <summary>Drops the merge index after merge cells are removed or their references rewritten in place.</summary>
-        private void InvalidateMergeReferenceIndex() => _mergeReferenceIndex = null;
+        /// <summary>
+        /// Drops the merge index after merge cells are removed or their references rewritten in place. The index
+        /// belongs to the worksheet part, so every wrapper of the same part sees the invalidation.
+        /// </summary>
+        private void InvalidateMergeReferenceIndex() => Persistence.MergeReferences = null;
 
         /// <summary>
         /// Remembers the merge references of one <see cref="MergeCells"/> element so merging many ranges does not

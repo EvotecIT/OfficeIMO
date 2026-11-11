@@ -50,6 +50,7 @@ namespace OfficeIMO.Excel {
                         else snapshot!.Restore();
                     } finally {
                         _excelDocument.RestoreFormulaMutationState(formulaMutationState);
+                        _excelDocument.InvalidateTableLayouts();
                         ResetPendingPartsAfterMutationRollback();
                         ResetMutationCaches(drawingHandles);
                         RestoreDynamicSpillMutationState(_excelDocument.WorkbookPartRoot, dynamicSpillState);

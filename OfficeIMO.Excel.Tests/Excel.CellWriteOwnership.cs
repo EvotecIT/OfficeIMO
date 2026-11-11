@@ -4,6 +4,24 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
+        [Fact]
+        public void Test_CellWriteOwnership_HeaderMovedByRowInsertStillOwnsSchema() {
+            using var document = ExcelDocument.Create();
+            var sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue("EU");
+            sheet.Cell(2, 2).SetValue(10);
+            sheet.AddTable("A1:B2", true, "Sales", ExcelTableStyle.TableStyleMedium2);
+            sheet.Cell(2, 2).SetValue(11);
+
+            sheet.InsertRows(1);
+            sheet.Cell(2, 2).SetValue("Net");
+            sheet.Cell(1, 2).SetValue("Note");
+
+            Assert.Equal(new[] { "Region", "Net" }, Assert.Single(document.GetTables()).Columns.Select(column => column.Name));
+        }
+
         [Theory]
         [InlineData(false, "Net")]
         [InlineData(true, "42")]
