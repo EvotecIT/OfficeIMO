@@ -53,10 +53,15 @@ internal static partial class OfficeJpeg2000Decoder {
 
         // MQ decoder registers (C.3).
         private byte[] _data = Array.Empty<byte>();
-        private int _position, _end;
-        private uint _c, _a;
-        private int _ct;
+        private int _end;
+        private MqState _mq;
         private int _rawCurrent, _rawBits;
+
+        /// <summary>MQ decoder registers (C.3) and the read position, copied to a local by the coding passes.</summary>
+        private struct MqState {
+            internal uint A, C;
+            internal int Ct, Position;
+        }
 
         internal CodeBlockDecoder(Budget budget) {
             _budget = budget;
@@ -142,7 +147,9 @@ internal static partial class OfficeJpeg2000Decoder {
                     else {
                         CleanupPass(plane);
                         if ((style & CodeBlockSegmentationSymbols) != 0) {
-                            for (int index = 0; index < 4; index++) DecodeDecision(ContextUniform);
+                            MqState mq = _mq;
+                            for (int index = 0; index < 4; index++) Decide(ref mq, ContextUniform);
+                            _mq = mq;
                         }
                     }
                     _lastPlane = plane;
@@ -173,7 +180,7 @@ internal static partial class OfficeJpeg2000Decoder {
                 offset += length;
             }
             _data = _buffer;
-            _position = 0;
+            _mq.Position = 0;
             _end = offset;
         }
 
@@ -188,28 +195,31 @@ internal static partial class OfficeJpeg2000Decoder {
 
         // INITDEC (C.3.5).
         private void InitializeArithmetic() {
-            _c = (uint)ByteAt(_position) << 16;
-            ByteIn();
-            _c <<= 7;
-            _ct -= 7;
-            _a = 0x8000;
+            MqState mq = _mq;
+            mq.C = (uint)ByteAt(mq.Position) << 16;
+            ByteIn(ref mq);
+            mq.C <<= 7;
+            mq.Ct -= 7;
+            mq.A = 0x8000;
+            _mq = mq;
         }
 
         // BYTEIN (C.3.4).
-        private void ByteIn() {
-            if (ByteAt(_position) == 0xFF) {
-                if (ByteAt(_position + 1) > 0x8F) {
-                    _c += 0xFF00;
-                    _ct = 8;
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private void ByteIn(ref MqState mq) {
+            if (ByteAt(mq.Position) == 0xFF) {
+                if (ByteAt(mq.Position + 1) > 0x8F) {
+                    mq.C += 0xFF00;
+                    mq.Ct = 8;
                 } else {
-                    _position++;
-                    _c += (uint)ByteAt(_position) << 9;
-                    _ct = 7;
+                    mq.Position++;
+                    mq.C += (uint)ByteAt(mq.Position) << 9;
+                    mq.Ct = 7;
                 }
             } else {
-                _position++;
-                _c += (uint)ByteAt(_position) << 8;
-                _ct = 8;
+                mq.Position++;
+                mq.C += (uint)ByteAt(mq.Position) << 8;
+                mq.Ct = 8;
             }
         }
 
@@ -225,57 +235,50 @@ internal static partial class OfficeJpeg2000Decoder {
         }
 
         // DECODE (C.3.2) with conditional exchange; the LPS sub-interval lies at the bottom.
-        private int DecodeDecision(int context) {
-            int index = _contexts[context];
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private int Decide(ref MqState mq, int context) {
+            byte[] contexts = _contexts;
+            int index = contexts[context];
             uint qe = IndexQe[index];
-            uint a = _a - qe, c = _c;
+            uint a = mq.A - qe;
             int decision;
-            if ((c >> 16) < qe) {
+            if ((mq.C >> 16) < qe) {
                 if (a < qe) {
                     decision = index & 1;
-                    _contexts[context] = IndexAfterMps[index];
+                    contexts[context] = IndexAfterMps[index];
                 } else {
                     decision = (index & 1) ^ 1;
-                    _contexts[context] = IndexAfterLps[index];
+                    contexts[context] = IndexAfterLps[index];
                 }
                 a = qe;
             } else {
-                c -= qe << 16;
+                mq.C -= qe << 16;
                 if ((a & 0x8000) != 0) {
-                    _a = a;
-                    _c = c;
+                    mq.A = a;
                     return index & 1;
                 }
                 if (a < qe) {
                     decision = (index & 1) ^ 1;
-                    _contexts[context] = IndexAfterLps[index];
+                    contexts[context] = IndexAfterLps[index];
                 } else {
                     decision = index & 1;
-                    _contexts[context] = IndexAfterMps[index];
+                    contexts[context] = IndexAfterMps[index];
                 }
             }
-            int ct = _ct;
             do {
-                if (ct == 0) {
-                    _c = c;
-                    ByteIn();
-                    c = _c;
-                    ct = _ct;
-                }
+                if (mq.Ct == 0) ByteIn(ref mq);
                 a <<= 1;
-                c <<= 1;
-                ct--;
+                mq.C <<= 1;
+                mq.Ct--;
             } while ((a & 0x8000) == 0);
-            _a = a;
-            _c = c;
-            _ct = ct;
+            mq.A = a;
             return decision;
         }
 
         // Raw (bypass) bits (D.6) with a stuffed zero bit after 0xFF.
         private int RawBit() {
             if (_rawBits == 0) {
-                int value = _position < _end ? _data[_position++] : 0xFF;
+                int value = _mq.Position < _end ? _data[_mq.Position++] : 0xFF;
                 _rawBits = _rawCurrent == 0xFF ? 7 : 8;
                 _rawCurrent = value;
             }
@@ -284,9 +287,10 @@ internal static partial class OfficeJpeg2000Decoder {
         }
 
         // Sign coding (D.3.2) from the neighbour bits of a coefficient.
-        private int DecodeSign(int flags) {
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private int DecodeSign(ref MqState mq, int flags) {
             int entry = SignContexts[((flags >> 4) & 0x0F) | ((flags >> 8) & 0xF0)];
-            return DecodeDecision(entry & 0x1F) ^ (entry >> 7);
+            return Decide(ref mq, entry & 0x1F) ^ (entry >> 7);
         }
 
         private void MakeSignificant(int index, int sign) {
@@ -315,34 +319,46 @@ internal static partial class OfficeJpeg2000Decoder {
             int one = 1 << plane;
             ushort[] f = _flags;
             int stride = _stride;
+            // Raw passes read through the field; only arithmetic passes work on, and write back, the local copy.
+            MqState mq = _mq;
             for (int stripe = 0; stripe < _height; stripe += 4) {
                 int rows = Math.Min(4, _height - stripe);
                 int first = (stripe + 1) * stride + 1;
                 for (int x = 0; x < _width; x++) {
-                    for (int row = 0, index = first + x; row < rows; row++, index += stride) {
+                    int top = first + x;
+                    // A column without significant neighbours, or with only significant coefficients, codes nothing here.
+                    if (rows == 4) {
+                        int f0 = f[top], f1 = f[top + stride], f2 = f[top + 2 * stride], f3 = f[top + 3 * stride];
+                        if (((f0 | f1 | f2 | f3) & Neighbours) == 0 || (f0 & f1 & f2 & f3 & Significant) != 0) continue;
+                    }
+                    for (int row = 0, index = top; row < rows; row++, index += stride) {
                         int flags = f[index];
                         if (row == 3) flags &= _lastRowMask;
                         if ((flags & Significant) != 0 || (flags & Neighbours) == 0) continue;
                         f[index] |= Visited;
-                        int bit = raw ? RawBit() : DecodeDecision(ZeroCodingLabels[_labelOffset + ((flags >> 4) & 0xFF)]);
+                        int bit = raw ? RawBit() : Decide(ref mq, ZeroCodingLabels[_labelOffset + ((flags >> 4) & 0xFF)]);
                         if (bit == 0) continue;
-                        int sign = raw ? RawBit() : DecodeSign(flags);
+                        int sign = raw ? RawBit() : DecodeSign(ref mq, flags);
                         _magnitudes[(stripe + row) * _width + x] = one;
                         MakeSignificant(index, sign);
                     }
                 }
             }
+            if (!raw) _mq = mq;
         }
 
         private void RefinementPass(int plane, bool raw) {
             int one = 1 << plane;
             ushort[] f = _flags;
             int stride = _stride;
+            MqState mq = _mq;
             for (int stripe = 0; stripe < _height; stripe += 4) {
                 int rows = Math.Min(4, _height - stripe);
                 int first = (stripe + 1) * stride + 1;
                 for (int x = 0; x < _width; x++) {
-                    for (int row = 0, index = first + x; row < rows; row++, index += stride) {
+                    int top = first + x;
+                    if (rows == 4 && ((f[top] | f[top + stride] | f[top + 2 * stride] | f[top + 3 * stride]) & Significant) == 0) continue;
+                    for (int row = 0, index = top; row < rows; row++, index += stride) {
                         int flags = f[index];
                         if ((flags & (Significant | Visited)) != Significant) continue;
                         int bit;
@@ -350,36 +366,49 @@ internal static partial class OfficeJpeg2000Decoder {
                             bit = RawBit();
                         } else {
                             int neighbours = row == 3 ? flags & _lastRowMask & Neighbours : flags & Neighbours;
-                            bit = DecodeDecision((flags & Refined) != 0 ? 16 : neighbours != 0 ? 15 : 14);
+                            bit = Decide(ref mq, (flags & Refined) != 0 ? 16 : neighbours != 0 ? 15 : 14);
                         }
                         if (bit != 0) _magnitudes[(stripe + row) * _width + x] |= one;
                         f[index] = (ushort)(flags | Refined);
                     }
                 }
             }
+            if (!raw) _mq = mq;
         }
 
         private void CleanupPass(int plane) {
             int one = 1 << plane;
             ushort[] f = _flags;
             int stride = _stride;
+            MqState mq = _mq;
             for (int stripe = 0; stripe < _height; stripe += 4) {
                 int rows = Math.Min(4, _height - stripe);
                 for (int x = 0; x < _width; x++) {
                     int first = (stripe + 1) * stride + x + 1;
                     int start = 0;
+                    if (rows == 4) {
+                        int f0 = f[first], f1 = f[first + stride], f2 = f[first + 2 * stride], f3 = f[first + 3 * stride];
+                        // Every coefficient already significant or coded in this bit-plane: only the visited marks change.
+                        if (((f0 | f0 >> 2) & (f1 | f1 >> 2) & (f2 | f2 >> 2) & (f3 | f3 >> 2) & Significant) != 0) {
+                            f[first] = (ushort)(f0 & ~Visited);
+                            f[first + stride] = (ushort)(f1 & ~Visited);
+                            f[first + 2 * stride] = (ushort)(f2 & ~Visited);
+                            f[first + 3 * stride] = (ushort)(f3 & ~Visited);
+                            continue;
+                        }
+                    }
                     if (rows == 4 &&
                         ((f[first] | f[first + stride] | f[first + 2 * stride] | (f[first + 3 * stride] & _lastRowMask)) &
                          (Significant | Visited | Neighbours)) == 0) {
-                        if (DecodeDecision(ContextRunLength) == 0) {
+                        if (Decide(ref mq, ContextRunLength) == 0) {
                             start = 4;
                         } else {
-                            int position = DecodeDecision(ContextUniform) << 1;
-                            position |= DecodeDecision(ContextUniform);
+                            int position = Decide(ref mq, ContextUniform) << 1;
+                            position |= Decide(ref mq, ContextUniform);
                             int index = first + position * stride;
                             int flags = f[index];
                             if (position == 3) flags &= _lastRowMask;
-                            int sign = DecodeSign(flags);
+                            int sign = DecodeSign(ref mq, flags);
                             _magnitudes[(stripe + position) * _width + x] = one;
                             MakeSignificant(index, sign);
                             start = position + 1;
@@ -389,14 +418,15 @@ internal static partial class OfficeJpeg2000Decoder {
                         int flags = f[index];
                         if ((flags & (Significant | Visited)) != 0) continue;
                         if (row == 3) flags &= _lastRowMask;
-                        if (DecodeDecision(ZeroCodingLabels[_labelOffset + ((flags >> 4) & 0xFF)]) == 0) continue;
-                        int sign = DecodeSign(flags);
+                        if (Decide(ref mq, ZeroCodingLabels[_labelOffset + ((flags >> 4) & 0xFF)]) == 0) continue;
+                        int sign = DecodeSign(ref mq, flags);
                         _magnitudes[(stripe + row) * _width + x] = one;
                         MakeSignificant(index, sign);
                     }
                     for (int row = 0, index = first; row < rows; row++, index += stride) f[index] &= unchecked((ushort)~Visited);
                 }
             }
+            _mq = mq;
         }
 
         // Lowest decoded bit-plane of a coefficient, used for mid-point reconstruction (E.1.1.2).
