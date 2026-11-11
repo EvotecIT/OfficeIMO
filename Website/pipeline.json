@@ -349,6 +349,7 @@
         "../OfficeIMO.OneNote.Pdf/OfficeIMO.OneNote.Pdf.csproj",
         "../OfficeIMO.Project/OfficeIMO.Project.csproj",
         "../OfficeIMO.Opml/OfficeIMO.Opml.csproj",
+        "../OfficeIMO.Yaml/OfficeIMO.Yaml.csproj",
         "../OfficeIMO.Provenance.C2pa/OfficeIMO.Provenance.C2pa.csproj",
         "../OfficeIMO.Security/OfficeIMO.Security.csproj",
         "../OfficeIMO.PowerPoint.IWork/OfficeIMO.PowerPoint.IWork.csproj",
@@ -2248,6 +2249,17 @@
           "packageId": "OfficeIMO.Opml"
         },
         {
+          "id": "yaml",
+          "xml": "../OfficeIMO.Yaml/bin/Release/net8.0/OfficeIMO.Yaml.xml",
+          "assembly": "../OfficeIMO.Yaml/bin/Release/net8.0/OfficeIMO.Yaml.dll",
+          "out": "./_site/api/yaml",
+          "title": "OfficeIMO.Yaml API Reference",
+          "baseUrl": "/api/yaml",
+          "docsHome": "/docs/yaml/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Yaml"
+        },
+        {
           "id": "provenance-c2pa",
           "xml": "../OfficeIMO.Provenance.C2pa/bin/Release/net8.0/OfficeIMO.Provenance.C2pa.xml",
           "assembly": "../OfficeIMO.Provenance.C2pa/bin/Release/net8.0/OfficeIMO.Provenance.C2pa.dll",
@@ -2938,6 +2950,7 @@
         "./_site/api/one-note-pdf/xrefmap.json",
         "./_site/api/project/xrefmap.json",
         "./_site/api/opml/xrefmap.json",
+        "./_site/api/yaml/xrefmap.json",
         "./_site/api/provenance-c2pa/xrefmap.json",
         "./_site/api/security/xrefmap.json",
         "./_site/api/power-point-iwork/xrefmap.json",
@@ -3185,6 +3198,7 @@
         "./_site/api/one-note-pdf/index.json",
         "./_site/api/project/index.json",
         "./_site/api/opml/index.json",
+        "./_site/api/yaml/index.json",
         "./_site/api/provenance-c2pa/index.json",
         "./_site/api/security/index.json",
         "./_site/api/power-point-iwork/index.json",

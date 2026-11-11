@@ -344,6 +344,16 @@
     ]
   },
   {
+    "title": "YAML",
+    "items": [
+      {
+        "title": "YAML Overview",
+        "path": "yaml/index.md",
+        "href": "/docs/yaml/"
+      }
+    ]
+  },
+  {
     "title": "Project",
     "items": [
       {
