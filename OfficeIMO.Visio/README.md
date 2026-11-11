@@ -83,19 +83,17 @@ geometry and cached string text fields. The existing SVG and
 the import report and the subsequent projection report. To render a page-less
 stencil, place a recovered master on a drawing page first.
 
-For diagram PDF output, select the adapter's page projection explicitly:
+The PDF adapter draws imported pages by default:
 
 ```csharp
 using OfficeIMO.Visio.Pdf;
 
-OfficeConversionReport pdfReport = imported.Value.SaveAsPdf("floorplan.pdf", new VisioPdfExportOptions {
-    Mode = VisioPdfProjectionMode.DiagramPages
-});
+OfficeConversionReport pdfReport = imported.Value.SaveAsPdf("floorplan.pdf");
 ```
 
 Cached paint styles and transparency feed the shared model. Geometryless native
 master children remain text-only in previews. Non-solid fill patterns use a
-foreground-color approximation in managed SVG/PDF; the modern package retains
+foreground-color approximation in managed SVG and PDF; the modern package retains
 the cached pattern cells. Exact native appearance remains unqualified.
 
 This is a lossy conversion. Native page/master/shape names use stable fallback
@@ -409,6 +407,10 @@ foreach (var diagnostic in projected.Report.Diagnostics)
 
 The cached profile includes nested group placement, master outlines, native
 geometry visibility flags, multiple connector outlines, physical drawing scale,
+line, arc, ellipse and Bezier rows as exact curves, cached linear and radial
+gradient fills, open, filled-triangle, dot and diamond arrowheads, shape and
+connector hyperlinks as link areas (links to other pages target the
+`visio-page-<number>` destination that the PDF adapter adds to each page),
 styled runs and paragraphs, cached text frames, and supported bitmap crop,
 rotation and mirroring. Fonts and an optional text shaper belong to
 `VisioDrawingOptions` and travel with the returned scenes. For raster export,
@@ -432,12 +434,17 @@ defaults allow 64 million decoded pixels and 128 MiB of projected PNG bytes;
 each decode also uses the existing 32-million-pixel and 64-MiB source limits.
 
 The source-qualified report distinguishes policy exclusions from fidelity loss.
-Missing or cyclic background references, connector fills, metadata and opaque
-content report omissions. Curve flattening, builtin outline fallback, unsupported
-reflection formulas, triangular arrows and text layout report approximations.
+Missing or cyclic background references, connector fills, Shape Data, hyperlink
+targets that are not web, mail, telephone or page targets, and opaque content
+report omissions. Spline and NURBS flattening, builtin outline fallback,
+unsupported reflection formulas, rectangular and path gradients drawn as
+radial gradients, arrow proportions, arrow kinds without a qualified shape
+(drawn as filled triangles), non-solid fill patterns and text layout report
+approximations.
 Cached outline and shape text-frame reflections follow the placement contract above. Shared
-fitting reduces text to fit its cached frame and reports an omission
-when the selected fonts still cannot retain all content. Native
+fitting reduces text to fit its cached frame; like Visio, text taller than its
+frame overflows it from the aligned edge. An omission is reported when the
+selected fonts still cannot retain all content. Native
 font placement and fitting, themes, data graphics and arbitrary ShapeSheet
 recalculation are not qualified. `ThrowIfLoss` rejects reported loss before
 returning scenes. The [PDF diagram-page mode](../OfficeIMO.Visio.Pdf/README.md#diagram-pages)

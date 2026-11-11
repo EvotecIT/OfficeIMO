@@ -80,7 +80,7 @@ public sealed class VisioDrawingProjectionTests {
         Assert.Throws<InvalidOperationException>(() => stencil.ToDrawings());
         Assert.Throws<InvalidOperationException>(() => stencil.ToPdf(DiagramOptions()).ToBytes());
         VisioDocument drawing = VisioDocument.Create(); drawing.AddPage("Page");
-        Assert.Throws<ArgumentException>(() => drawing.ToPdf(new VisioPdfExportOptions { DrawingOptions = new VisioDrawingOptions() }, out _));
+        Assert.Throws<ArgumentException>(() => drawing.ToPdf(new VisioPdfExportOptions { Mode = VisioPdfProjectionMode.SemanticReport, DrawingOptions = new VisioDrawingOptions() }, out _));
         Assert.Throws<ArgumentException>(() => drawing.ToPdf(new VisioPdfExportOptions { Mode = VisioPdfProjectionMode.DiagramPages, ProjectionOptions = new PdfProjectionOptions() }, out _));
         Assert.Throws<ArgumentOutOfRangeException>(() => drawing.ToPdf(new VisioPdfExportOptions { Mode = (VisioPdfProjectionMode)100 }, out _));
     }

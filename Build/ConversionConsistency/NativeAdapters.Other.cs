@@ -31,6 +31,7 @@ internal static partial class NativeAdapters {
                 var document = VisioDocument.Load(source);
                 var imageOptions = Images<VisioImageExportOptions>(suite, profile);
                 var pdfOptions = new VisioPdfExportOptions {
+                    Mode = VisioPdfProjectionMode.SemanticReport,
                     ProjectionOptions = new PdfProjectionOptions { PdfOptions = new PdfCreateOptions().UseRenderingProfile(profile) }
                 };
                 using (PdfDocument pdf = document.ToPdf(pdfOptions, out OfficeConversionReport pdfReport, token))
