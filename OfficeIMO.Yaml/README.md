@@ -300,6 +300,9 @@ Set `YamlReaderOptions.IncludeComments` to receive `YamlTokenType.Comment` event
 Malformed input throws `YamlException` with a stable `Code` (see `YamlErrorCodes`), line, column and offset; when the source text is at hand, the message ends with the offending line and a caret under the column. `ToDiagnostic()` returns the failure as an error `OfficeDiagnostic` with the catalog code (`Yaml.Syntax.InvalidIndentation` becomes `yaml-syntax-invalid-indentation`, a strict duplicate key `yaml-duplicate-key`) and a `line:column` location, so a tool can report files that fail next to the warnings of files that load:
 
 ```csharp
+using OfficeIMO;
+using OfficeIMO.Yaml;
+
 IReadOnlyList<OfficeDiagnostic> diagnostics;
 try {
     diagnostics = YamlDocument.Load(path).Diagnostics;
