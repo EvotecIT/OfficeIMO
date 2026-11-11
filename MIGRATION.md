@@ -5875,6 +5875,7 @@ PDF page rendering to PNG, JPEG, WebP, TIFF and Drawing follows PDF viewer conve
 - Embedded CFF, Type1C, CIDFontType0C, OpenType/CFF and Type 1 fonts render from their own outlines instead of a substituted system font, so the `font-cff-substitution` and `font-substitution` diagnostics no longer appear for them. Text in the standard Symbol and ZapfDingbats fonts extracts as Greek, mathematical and dingbat characters rather than ASCII letters.
 - Text render modes 1, 2, 5 and 6 stroke glyph outlines. Text clipping modes 4–7 still do not clip later painting.
 - Function-based (type 1) and mesh (types 4–7) shadings render. Axial and radial shadings without `/Extend` leave their ends unpainted.
+- JPEG 2000 (`JPXDecode`) images render and extract with the managed decoder; `PdfPageRenderOptions.ImageCodec` is no longer needed for them and the `render.resource.image-codec-optional` diagnostic is removed. Images whose dictionary adds colour spaces, masks, `SMaskInData` or output intents now extract as normalized PNG instead of the raw `.jp2`/`.j2c` payload; JPEG 2000 alpha applies only with `SMaskInData` 1 or 2. Huffman-coded JBIG2 symbol dictionaries and text regions, custom Huffman tables, and JBIG2 pattern and halftone regions decode instead of reporting `render.resource.image-unsupported`.
 - Images with 1, 2, 4 or 16 bits per component, resized or non-8-bit soft masks, `/Matte`, and JBIG2 images render. JBIG2 direct regions honour the page combination policy, and arithmetic symbol dictionaries reuse retained generic and refinement bitmap contexts, including global dictionaries. Regenerate previews of these images that used the earlier context reset. Soft masks with a `/TR` transfer function apply it. Undecodable images report `render.resource.image-unsupported` instead of being omitted silently, and knockout groups report `render.resource.knockout-group-simplified`.
 - Widgets without appearance streams, and text and choice widgets under `/NeedAppearances`, render a transient synthesized appearance reported as `render.annotation.appearance-synthesized` instead of `render.resource.annotation-appearance-missing`. The source document is not changed. List boxes retain visible `/Opt` rows, export/display labels, all selected highlights, and `/TI` scrolling; combo boxes retain their single selected display value. Filling and incremental appearance regeneration use the same list-row paint and clear selection without hiding the options. Incremental text and choice appearances preserve inherited Type0 glyph encoding and apply the caller's decoded-stream limit while reading their font maps.
 
@@ -7903,11 +7904,10 @@ table-only projection and the matching structured table scope is present.
 
 ### Rendering loss and gallery evidence
 
-Scanned PDF rendering no longer returns a blank successful page when a CCITT or
-JPEG 2000 image cannot be projected. Check `PdfPageRenderResult.Succeeded` and
+Scanned PDF rendering no longer returns a blank successful page when a CCITT,
+JBIG2 or JPEG 2000 image cannot be decoded. Check `PdfPageRenderResult.Succeeded` and
 `Diagnostics`, or handle the rendering exception when using fail-fast rendering
-or OCR. Supply `PdfPageRenderOptions.ImageCodec` or `PdfOcrMergeOptions.ImageCodec`
-for supported JPEG 2000 images. OCR page diagnostics now retain rendering warnings;
+or OCR. OCR page diagnostics now retain rendering warnings;
 applications that present or count diagnostics should include that additional evidence.
 
 PDF warnings now retain the existing `OfficeConversionLossKind` classification

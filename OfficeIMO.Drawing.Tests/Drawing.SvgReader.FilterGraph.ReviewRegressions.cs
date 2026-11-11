@@ -56,6 +56,8 @@ public partial class DrawingTests {
     [Fact]
     public void SvgFilterGraphUndecodableSourceRetainsImageAndReportsUnsupportedFilter() {
         byte[] jp2 = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "red-rgb.jp2"));
+        int coding = Enumerable.Range(0, jp2.Length - 1).First(index => jp2[index] == 0xFF && jp2[index + 1] == 0x52);
+        jp2[coding + 12] |= 0xC0; // Reserved code-block style bits leave the header readable but the pixels undecodable.
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><defs><filter id='f'><feColorMatrix/></filter></defs>"
             + "<g filter='url(#f)'><image width='4' height='4' href='data:image/jp2;base64," + Convert.ToBase64String(jp2) + "'/></g></svg>";
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));

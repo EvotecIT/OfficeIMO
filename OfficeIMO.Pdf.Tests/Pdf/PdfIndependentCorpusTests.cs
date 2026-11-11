@@ -20,12 +20,6 @@ public sealed class PdfIndependentCorpusTests {
     // Current defects from Docs/benchmarks/pdf-independent-corpus-2026-11-10.md. Each entry must still fail at
     // every listed stage and nowhere else; the test fails once a defect is fixed so the entry gets removed.
     private static readonly Dictionary<string, KnownFailure> KnownFailures = new(StringComparer.Ordinal) {
-        ["verapdf-jpx-image"] = new(
-            "Opaque 8-bit RGB/ICC JPX images cannot be decoded by the managed renderer.",
-            Stage.Render),
-        ["pdfua-ref-brochure"] = new(
-            "Opaque 8-bit RGB/ICC JPX images cannot be decoded by the managed renderer.",
-            Stage.Render),
         ["qpdf-inline-images"] = new(
             "Ghostscript 5.50 inline images at 600 dpi exceed the managed raster limits.",
             Stage.Render),
