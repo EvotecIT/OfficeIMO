@@ -6,12 +6,21 @@ internal static partial class OfficeJpeg2000Decoder {
     /// code-block of an image; its scratch buffers are sized for the largest permitted code-block.
     /// </summary>
     private sealed class CodeBlockDecoder {
+        // Coefficient state: its own flags, then the significance of its eight neighbours and the signs of the four
+        // direct ones, updated whenever a coefficient becomes significant so that contexts are single lookups.
         private const int Significant = 1, Negative = 2, Visited = 4, Refined = 8;
+        private const int NorthSignificant = 1 << 4, SouthSignificant = 1 << 5, WestSignificant = 1 << 6, EastSignificant = 1 << 7,
+            NorthWestSignificant = 1 << 8, NorthEastSignificant = 1 << 9, SouthWestSignificant = 1 << 10, SouthEastSignificant = 1 << 11,
+            NorthNegative = 1 << 12, SouthNegative = 1 << 13, WestNegative = 1 << 14, EastNegative = 1 << 15;
+        private const int Neighbours = 0x0FF0;
+        // Vertically causal mode ignores the next stripe for the last row of a stripe (D.7).
+        private const int SouthNeighbours = SouthSignificant | SouthWestSignificant | SouthEastSignificant | SouthNegative;
         private const int ContextRunLength = 17, ContextUniform = 18;
         private const int MaximumCoefficients = 4096;
         private const int MaximumFlags = 1026 * 6;
 
         private static readonly byte[] ZeroCodingLabels = BuildZeroCodingLabels();
+        private static readonly byte[] SignContexts = BuildSignContexts();
         private static readonly ushort[] Qe = {
             0x5601, 0x3401, 0x1801, 0x0AC1, 0x0521, 0x0221, 0x5601, 0x5401, 0x4801, 0x3801, 0x3001, 0x2401, 0x1C01, 0x1601,
             0x5601, 0x5401, 0x5101, 0x4801, 0x3801, 0x3401, 0x3001, 0x2801, 0x2401, 0x2201, 0x1C01, 0x1801, 0x1601, 0x1401,
@@ -32,47 +41,75 @@ internal static partial class OfficeJpeg2000Decoder {
         };
 
         private readonly int[] _magnitudes = new int[MaximumCoefficients];
-        private readonly byte[] _flags = new byte[MaximumFlags];
-        private readonly byte[] _states = new byte[19];
-        private readonly byte[] _mps = new byte[19];
+        private readonly ushort[] _flags = new ushort[MaximumFlags];
+        private readonly byte[] _contexts = new byte[19]; // MQ state index times two plus the MPS
         private byte[] _buffer = new byte[1024];
         private readonly Budget _budget;
 
-        private int _width, _height, _stride, _group;
+        private int _width, _height, _stride, _labelOffset;
+        private int _lastRowMask; // flags mask for the last row of a stripe
         private bool _causal;
         private int _lastPlane, _lastKind;
 
         // MQ decoder registers (C.3).
         private byte[] _data = Array.Empty<byte>();
-        private int _position, _end;
-        private uint _c, _a;
-        private int _ct;
+        private int _end;
+        private MqState _mq;
         private int _rawCurrent, _rawBits;
+
+        /// <summary>MQ decoder registers (C.3) and the read position, copied to a local by the coding passes.</summary>
+        private struct MqState {
+            internal uint A, C;
+            internal int Ct, Position;
+        }
 
         internal CodeBlockDecoder(Budget budget) {
             _budget = budget;
-            budget.Reserve(MaximumCoefficients * 4L + MaximumFlags + _buffer.Length);
+            budget.Reserve(MaximumCoefficients * 4L + MaximumFlags * 2L + _buffer.Length);
         }
 
+        // Table D.1 by the eight neighbour-significance bits: LL and LH, then HL (horizontal and vertical swapped), then HH.
         private static byte[] BuildZeroCodingLabels() {
-            var labels = new byte[3 * 45];
-            for (int h = 0; h <= 2; h++) {
-                for (int v = 0; v <= 2; v++) {
-                    for (int d = 0; d <= 4; d++) {
-                        labels[h * 15 + v * 5 + d] = HorizontalLabel(h, v, d);
-                        labels[45 + h * 15 + v * 5 + d] = HorizontalLabel(v, h, d);
-                        int hv = h + v;
-                        labels[90 + h * 15 + v * 5 + d] = (byte)(d >= 3 ? 8 : d == 2 ? (hv >= 1 ? 7 : 6) :
-                            d == 1 ? (hv >= 2 ? 5 : hv == 1 ? 4 : 3) : (hv >= 2 ? 2 : hv == 1 ? 1 : 0));
-                    }
-                }
+            var labels = new byte[3 * 256];
+            for (int bits = 0; bits < 256; bits++) {
+                int v = (bits & 1) + ((bits >> 1) & 1);
+                int h = ((bits >> 2) & 1) + ((bits >> 3) & 1);
+                int d = ((bits >> 4) & 1) + ((bits >> 5) & 1) + ((bits >> 6) & 1) + ((bits >> 7) & 1);
+                int hv = h + v;
+                labels[bits] = HorizontalLabel(h, v, d);
+                labels[256 + bits] = HorizontalLabel(v, h, d);
+                labels[512 + bits] = (byte)(d >= 3 ? 8 : d == 2 ? (hv >= 1 ? 7 : 6) :
+                    d == 1 ? (hv >= 2 ? 5 : hv == 1 ? 4 : 3) : (hv >= 2 ? 2 : hv == 1 ? 1 : 0));
             }
             return labels;
 
-            // Table D.1 for LL and LH subbands; HL swaps the horizontal and vertical sums.
             static byte HorizontalLabel(int h, int v, int d) => (byte)(h == 2 ? 8 :
                 h == 1 ? (v >= 1 ? 7 : d >= 1 ? 6 : 5) :
                 v == 2 ? 4 : v == 1 ? 3 : d >= 2 ? 2 : d == 1 ? 1 : 0);
+        }
+
+        // Tables D.2 and D.3 by the significance (low nibble) and sign (high nibble) of the N, S, W and E neighbours:
+        // the context, with the XOR bit in bit 7.
+        private static byte[] BuildSignContexts() {
+            var contexts = new byte[256];
+            for (int bits = 0; bits < 256; bits++) {
+                int v = Contribution(bits, 0) + Contribution(bits, 1);
+                int h = Contribution(bits, 2) + Contribution(bits, 3);
+                h = h < -1 ? -1 : h > 1 ? 1 : h;
+                v = v < -1 ? -1 : v > 1 ? 1 : v;
+                int context, inversion = 0;
+                if (h == 0) {
+                    context = v == 0 ? 9 : 10;
+                    if (v < 0) inversion = 1;
+                } else {
+                    context = v == 0 ? 12 : v == h ? 13 : 11;
+                    if (h < 0) inversion = 1;
+                }
+                contexts[bits] = (byte)(context | inversion << 7);
+            }
+            return contexts;
+
+            static int Contribution(int bits, int neighbour) => ((bits >> neighbour) & 1) == 0 ? 0 : ((bits >> (neighbour + 4)) & 1) != 0 ? -1 : 1;
         }
 
         /// <summary>Decodes every included pass of the code-block into the magnitude and sign scratch buffers.</summary>
@@ -84,8 +121,9 @@ internal static partial class OfficeJpeg2000Decoder {
             if (block.Passes == 0 || planes <= 0 || block.Segments == null || _width <= 0 || _height <= 0) return false;
             Array.Clear(_magnitudes, 0, _width * _height);
             Array.Clear(_flags, 0, _stride * (_height + 2));
-            _group = band.Orientation == 1 ? 1 : band.Orientation == 3 ? 2 : 0;
+            _labelOffset = band.Orientation == 1 ? 256 : band.Orientation == 3 ? 512 : 0;
             _causal = (style & CodeBlockVerticallyCausal) != 0;
+            _lastRowMask = _causal ? ~SouthNeighbours : ~0;
             bool bypass = (style & CodeBlockBypass) != 0;
             ResetContexts();
             int plane = planes - 1, kind = 2, passIndex = 0;
@@ -109,7 +147,9 @@ internal static partial class OfficeJpeg2000Decoder {
                     else {
                         CleanupPass(plane);
                         if ((style & CodeBlockSegmentationSymbols) != 0) {
-                            for (int index = 0; index < 4; index++) DecodeDecision(ContextUniform);
+                            MqState mq = _mq;
+                            for (int index = 0; index < 4; index++) Decide(ref mq, ContextUniform);
+                            _mq = mq;
                         }
                     }
                     _lastPlane = plane;
@@ -140,89 +180,105 @@ internal static partial class OfficeJpeg2000Decoder {
                 offset += length;
             }
             _data = _buffer;
-            _position = 0;
+            _mq.Position = 0;
             _end = offset;
         }
 
         private void ResetContexts() {
-            Array.Clear(_states, 0, _states.Length);
-            Array.Clear(_mps, 0, _mps.Length);
-            _states[0] = 4;
-            _states[ContextRunLength] = 3;
-            _states[ContextUniform] = 46;
+            Array.Clear(_contexts, 0, _contexts.Length);
+            _contexts[0] = 4 << 1;
+            _contexts[ContextRunLength] = 3 << 1;
+            _contexts[ContextUniform] = 46 << 1;
         }
 
         private int ByteAt(int position) => position < _end ? _data[position] : 0xFF;
 
         // INITDEC (C.3.5).
         private void InitializeArithmetic() {
-            _c = (uint)ByteAt(_position) << 16;
-            ByteIn();
-            _c <<= 7;
-            _ct -= 7;
-            _a = 0x8000;
+            MqState mq = _mq;
+            mq.C = (uint)ByteAt(mq.Position) << 16;
+            ByteIn(ref mq);
+            mq.C <<= 7;
+            mq.Ct -= 7;
+            mq.A = 0x8000;
+            _mq = mq;
         }
 
         // BYTEIN (C.3.4).
-        private void ByteIn() {
-            if (ByteAt(_position) == 0xFF) {
-                if (ByteAt(_position + 1) > 0x8F) {
-                    _c += 0xFF00;
-                    _ct = 8;
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private void ByteIn(ref MqState mq) {
+            if (ByteAt(mq.Position) == 0xFF) {
+                if (ByteAt(mq.Position + 1) > 0x8F) {
+                    mq.C += 0xFF00;
+                    mq.Ct = 8;
                 } else {
-                    _position++;
-                    _c += (uint)ByteAt(_position) << 9;
-                    _ct = 7;
+                    mq.Position++;
+                    mq.C += (uint)ByteAt(mq.Position) << 9;
+                    mq.Ct = 7;
                 }
             } else {
-                _position++;
-                _c += (uint)ByteAt(_position) << 8;
-                _ct = 8;
+                mq.Position++;
+                mq.C += (uint)ByteAt(mq.Position) << 8;
+                mq.Ct = 8;
             }
         }
 
+        // Qe and the next context index after an MPS or LPS decision, by state index times two plus the MPS (Table C.2).
+        private static readonly ushort[] IndexQe = BuildIndexTable(static (state, mps) => Qe[state]);
+        private static readonly byte[] IndexAfterMps = Array.ConvertAll(BuildIndexTable(static (state, mps) => (ushort)(NextMps[state] << 1 | mps)), static value => (byte)value);
+        private static readonly byte[] IndexAfterLps = Array.ConvertAll(BuildIndexTable(static (state, mps) => (ushort)(NextLps[state] << 1 | (mps ^ Switch[state]))), static value => (byte)value);
+
+        private static ushort[] BuildIndexTable(Func<int, int, ushort> value) {
+            var table = new ushort[Qe.Length * 2];
+            for (int index = 0; index < table.Length; index++) table[index] = value(index >> 1, index & 1);
+            return table;
+        }
+
         // DECODE (C.3.2) with conditional exchange; the LPS sub-interval lies at the bottom.
-        private int DecodeDecision(int context) {
-            int state = _states[context];
-            int mps = _mps[context];
-            uint qe = Qe[state];
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private int Decide(ref MqState mq, int context) {
+            byte[] contexts = _contexts;
+            int index = contexts[context];
+            uint qe = IndexQe[index];
+            uint a = mq.A - qe;
             int decision;
-            _a -= qe;
-            if ((_c >> 16) < qe) {
-                if (_a < qe) {
-                    decision = mps;
-                    _states[context] = NextMps[state];
+            if ((mq.C >> 16) < qe) {
+                if (a < qe) {
+                    decision = index & 1;
+                    contexts[context] = IndexAfterMps[index];
                 } else {
-                    decision = 1 - mps;
-                    if (Switch[state] != 0) _mps[context] = (byte)(1 - mps);
-                    _states[context] = NextLps[state];
+                    decision = (index & 1) ^ 1;
+                    contexts[context] = IndexAfterLps[index];
                 }
-                _a = qe;
+                a = qe;
             } else {
-                _c -= qe << 16;
-                if ((_a & 0x8000) != 0) return mps;
-                if (_a < qe) {
-                    decision = 1 - mps;
-                    if (Switch[state] != 0) _mps[context] = (byte)(1 - mps);
-                    _states[context] = NextLps[state];
+                mq.C -= qe << 16;
+                if ((a & 0x8000) != 0) {
+                    mq.A = a;
+                    return index & 1;
+                }
+                if (a < qe) {
+                    decision = (index & 1) ^ 1;
+                    contexts[context] = IndexAfterLps[index];
                 } else {
-                    decision = mps;
-                    _states[context] = NextMps[state];
+                    decision = index & 1;
+                    contexts[context] = IndexAfterMps[index];
                 }
             }
             do {
-                if (_ct == 0) ByteIn();
-                _a <<= 1;
-                _c <<= 1;
-                _ct--;
-            } while ((_a & 0x8000) == 0);
+                if (mq.Ct == 0) ByteIn(ref mq);
+                a <<= 1;
+                mq.C <<= 1;
+                mq.Ct--;
+            } while ((a & 0x8000) == 0);
+            mq.A = a;
             return decision;
         }
 
         // Raw (bypass) bits (D.6) with a stuffed zero bit after 0xFF.
         private int RawBit() {
             if (_rawBits == 0) {
-                int value = _position < _end ? _data[_position++] : 0xFF;
+                int value = _mq.Position < _end ? _data[_mq.Position++] : 0xFF;
                 _rawBits = _rawCurrent == 0xFF ? 7 : 8;
                 _rawCurrent = value;
             }
@@ -230,133 +286,147 @@ internal static partial class OfficeJpeg2000Decoder {
             return (_rawCurrent >> _rawBits) & 1;
         }
 
-        private int ZeroCodingLabel(int index, bool lastStripeRow) {
-            byte[] f = _flags;
-            int s = _stride;
-            bool cut = lastStripeRow && _causal;
-            int h = (f[index - 1] & Significant) + (f[index + 1] & Significant);
-            int v = (f[index - s] & Significant) + (cut ? 0 : f[index + s] & Significant);
-            int d = (f[index - s - 1] & Significant) + (f[index - s + 1] & Significant) +
-                (cut ? 0 : (f[index + s - 1] & Significant) + (f[index + s + 1] & Significant));
-            return ZeroCodingLabels[_group * 45 + h * 15 + v * 5 + d];
+        // Sign coding (D.3.2) from the neighbour bits of a coefficient.
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private int DecodeSign(ref MqState mq, int flags) {
+            int entry = SignContexts[((flags >> 4) & 0x0F) | ((flags >> 8) & 0xF0)];
+            return Decide(ref mq, entry & 0x1F) ^ (entry >> 7);
         }
 
-        private static int SignContribution(byte flags) => (flags & Significant) == 0 ? 0 : (flags & Negative) != 0 ? -1 : 1;
-
-        // Sign coding (D.3.2, Tables D.2 and D.3).
-        private int DecodeSign(int index, bool lastStripeRow, bool raw) {
-            if (raw) return RawBit();
-            byte[] f = _flags;
-            int h = SignContribution(f[index - 1]) + SignContribution(f[index + 1]);
-            int v = SignContribution(f[index - _stride]) + (lastStripeRow && _causal ? 0 : SignContribution(f[index + _stride]));
-            h = h < -1 ? -1 : h > 1 ? 1 : h;
-            v = v < -1 ? -1 : v > 1 ? 1 : v;
-            int context, inversion = 0;
-            if (h == 0) {
-                context = v == 0 ? 9 : 10;
-                if (v < 0) inversion = 1;
+        private void MakeSignificant(int index, int sign) {
+            ushort[] f = _flags;
+            int s = _stride;
+            if (sign != 0) {
+                f[index] |= Significant | Negative;
+                f[index - s] |= SouthSignificant | SouthNegative;
+                f[index + s] |= NorthSignificant | NorthNegative;
+                f[index - 1] |= EastSignificant | EastNegative;
+                f[index + 1] |= WestSignificant | WestNegative;
             } else {
-                context = v == 0 ? 12 : v == h ? 13 : 11;
-                if (h < 0) inversion = 1;
+                f[index] |= Significant;
+                f[index - s] |= SouthSignificant;
+                f[index + s] |= NorthSignificant;
+                f[index - 1] |= EastSignificant;
+                f[index + 1] |= WestSignificant;
             }
-            return DecodeDecision(context) ^ inversion;
-        }
-
-        private bool HasSignificantNeighbour(int index, bool lastStripeRow) {
-            byte[] f = _flags;
-            int s = _stride;
-            int any = f[index - 1] | f[index + 1] | f[index - s] | f[index - s - 1] | f[index - s + 1];
-            if (!(lastStripeRow && _causal)) any |= f[index + s] | f[index + s - 1] | f[index + s + 1];
-            return (any & Significant) != 0;
+            f[index - s - 1] |= SouthEastSignificant;
+            f[index - s + 1] |= SouthWestSignificant;
+            f[index + s - 1] |= NorthEastSignificant;
+            f[index + s + 1] |= NorthWestSignificant;
         }
 
         private void SignificancePass(int plane, bool raw) {
             int one = 1 << plane;
+            ushort[] f = _flags;
+            int stride = _stride;
+            // Raw passes read through the field; only arithmetic passes work on, and write back, the local copy.
+            MqState mq = _mq;
             for (int stripe = 0; stripe < _height; stripe += 4) {
                 int rows = Math.Min(4, _height - stripe);
+                int first = (stripe + 1) * stride + 1;
                 for (int x = 0; x < _width; x++) {
-                    for (int row = 0; row < rows; row++) {
-                        int y = stripe + row;
-                        int index = (y + 1) * _stride + x + 1;
-                        if ((_flags[index] & Significant) != 0) continue;
-                        bool last = row == 3;
-                        int label = ZeroCodingLabel(index, last);
-                        if (label == 0) continue;
-                        _flags[index] |= Visited;
-                        int bit = raw ? RawBit() : DecodeDecision(label);
+                    int top = first + x;
+                    // A column without significant neighbours, or with only significant coefficients, codes nothing here.
+                    if (rows == 4) {
+                        int f0 = f[top], f1 = f[top + stride], f2 = f[top + 2 * stride], f3 = f[top + 3 * stride];
+                        if (((f0 | f1 | f2 | f3) & Neighbours) == 0 || (f0 & f1 & f2 & f3 & Significant) != 0) continue;
+                    }
+                    for (int row = 0, index = top; row < rows; row++, index += stride) {
+                        int flags = f[index];
+                        if (row == 3) flags &= _lastRowMask;
+                        if ((flags & Significant) != 0 || (flags & Neighbours) == 0) continue;
+                        f[index] |= Visited;
+                        int bit = raw ? RawBit() : Decide(ref mq, ZeroCodingLabels[_labelOffset + ((flags >> 4) & 0xFF)]);
                         if (bit == 0) continue;
-                        int sign = DecodeSign(index, last, raw);
-                        _magnitudes[y * _width + x] = one;
-                        _flags[index] |= (byte)(Significant | (sign != 0 ? Negative : 0));
+                        int sign = raw ? RawBit() : DecodeSign(ref mq, flags);
+                        _magnitudes[(stripe + row) * _width + x] = one;
+                        MakeSignificant(index, sign);
                     }
                 }
             }
+            if (!raw) _mq = mq;
         }
 
         private void RefinementPass(int plane, bool raw) {
             int one = 1 << plane;
+            ushort[] f = _flags;
+            int stride = _stride;
+            MqState mq = _mq;
             for (int stripe = 0; stripe < _height; stripe += 4) {
                 int rows = Math.Min(4, _height - stripe);
+                int first = (stripe + 1) * stride + 1;
                 for (int x = 0; x < _width; x++) {
-                    for (int row = 0; row < rows; row++) {
-                        int y = stripe + row;
-                        int index = (y + 1) * _stride + x + 1;
-                        byte flags = _flags[index];
+                    int top = first + x;
+                    if (rows == 4 && ((f[top] | f[top + stride] | f[top + 2 * stride] | f[top + 3 * stride]) & Significant) == 0) continue;
+                    for (int row = 0, index = top; row < rows; row++, index += stride) {
+                        int flags = f[index];
                         if ((flags & (Significant | Visited)) != Significant) continue;
                         int bit;
                         if (raw) {
                             bit = RawBit();
                         } else {
-                            int context = (flags & Refined) != 0 ? 16 : HasSignificantNeighbour(index, row == 3) ? 15 : 14;
-                            bit = DecodeDecision(context);
+                            int neighbours = row == 3 ? flags & _lastRowMask & Neighbours : flags & Neighbours;
+                            bit = Decide(ref mq, (flags & Refined) != 0 ? 16 : neighbours != 0 ? 15 : 14);
                         }
-                        if (bit != 0) _magnitudes[y * _width + x] |= one;
-                        _flags[index] = (byte)(flags | Refined);
+                        if (bit != 0) _magnitudes[(stripe + row) * _width + x] |= one;
+                        f[index] = (ushort)(flags | Refined);
                     }
                 }
             }
+            if (!raw) _mq = mq;
         }
 
         private void CleanupPass(int plane) {
             int one = 1 << plane;
+            ushort[] f = _flags;
+            int stride = _stride;
+            MqState mq = _mq;
             for (int stripe = 0; stripe < _height; stripe += 4) {
                 int rows = Math.Min(4, _height - stripe);
                 for (int x = 0; x < _width; x++) {
-                    int first = (stripe + 1) * _stride + x + 1;
+                    int first = (stripe + 1) * stride + x + 1;
                     int start = 0;
-                    if (rows == 4 && IsRunCandidate(first)) {
-                        if (DecodeDecision(ContextRunLength) == 0) {
+                    if (rows == 4) {
+                        int f0 = f[first], f1 = f[first + stride], f2 = f[first + 2 * stride], f3 = f[first + 3 * stride];
+                        // Every coefficient already significant or coded in this bit-plane: only the visited marks change.
+                        if (((f0 | f0 >> 2) & (f1 | f1 >> 2) & (f2 | f2 >> 2) & (f3 | f3 >> 2) & Significant) != 0) {
+                            f[first] = (ushort)(f0 & ~Visited);
+                            f[first + stride] = (ushort)(f1 & ~Visited);
+                            f[first + 2 * stride] = (ushort)(f2 & ~Visited);
+                            f[first + 3 * stride] = (ushort)(f3 & ~Visited);
+                            continue;
+                        }
+                    }
+                    if (rows == 4 &&
+                        ((f[first] | f[first + stride] | f[first + 2 * stride] | (f[first + 3 * stride] & _lastRowMask)) &
+                         (Significant | Visited | Neighbours)) == 0) {
+                        if (Decide(ref mq, ContextRunLength) == 0) {
                             start = 4;
                         } else {
-                            int position = DecodeDecision(ContextUniform) << 1;
-                            position |= DecodeDecision(ContextUniform);
-                            int index = first + position * _stride;
-                            int sign = DecodeSign(index, position == 3, raw: false);
+                            int position = Decide(ref mq, ContextUniform) << 1;
+                            position |= Decide(ref mq, ContextUniform);
+                            int index = first + position * stride;
+                            int flags = f[index];
+                            if (position == 3) flags &= _lastRowMask;
+                            int sign = DecodeSign(ref mq, flags);
                             _magnitudes[(stripe + position) * _width + x] = one;
-                            _flags[index] |= (byte)(Significant | (sign != 0 ? Negative : 0));
+                            MakeSignificant(index, sign);
                             start = position + 1;
                         }
                     }
-                    for (int row = start; row < rows; row++) {
-                        int index = first + row * _stride;
-                        if ((_flags[index] & (Significant | Visited)) != 0) continue;
-                        bool last = row == 3;
-                        if (DecodeDecision(ZeroCodingLabel(index, last)) == 0) continue;
-                        int sign = DecodeSign(index, last, raw: false);
+                    for (int row = start, index = first + start * stride; row < rows; row++, index += stride) {
+                        int flags = f[index];
+                        if ((flags & (Significant | Visited)) != 0) continue;
+                        if (row == 3) flags &= _lastRowMask;
+                        if (Decide(ref mq, ZeroCodingLabels[_labelOffset + ((flags >> 4) & 0xFF)]) == 0) continue;
+                        int sign = DecodeSign(ref mq, flags);
                         _magnitudes[(stripe + row) * _width + x] = one;
-                        _flags[index] |= (byte)(Significant | (sign != 0 ? Negative : 0));
+                        MakeSignificant(index, sign);
                     }
-                    for (int row = 0; row < rows; row++) _flags[first + row * _stride] &= unchecked((byte)~Visited);
+                    for (int row = 0, index = first; row < rows; row++, index += stride) f[index] &= unchecked((ushort)~Visited);
                 }
             }
-        }
-
-        private bool IsRunCandidate(int first) {
-            for (int row = 0; row < 4; row++) {
-                int index = first + row * _stride;
-                if ((_flags[index] & (Significant | Visited)) != 0 || ZeroCodingLabel(index, row == 3) != 0) return false;
-            }
-            return true;
+            _mq = mq;
         }
 
         // Lowest decoded bit-plane of a coefficient, used for mid-point reconstruction (E.1.1.2).

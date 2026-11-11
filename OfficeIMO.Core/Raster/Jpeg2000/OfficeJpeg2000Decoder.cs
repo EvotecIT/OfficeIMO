@@ -19,7 +19,7 @@ internal sealed class OfficeJpeg2000DecodeOptions {
     /// <summary>Largest accepted reference-grid image area.</summary>
     internal long MaximumPixels { get; set; } = OfficeRasterGuards.MaximumPixels;
 
-    /// <summary>Budget for every buffer the decoder holds at once: coefficients, code-block data, planes and output.</summary>
+    /// <summary>Budget for every buffer the decoder holds at once: code-block data, wavelet rows, planes and output.</summary>
     internal long MaximumWorkingBytes { get; set; } = OfficeRasterGuards.MaximumDecodedBytes;
 
     /// <summary>
@@ -103,8 +103,15 @@ internal static partial class OfficeJpeg2000Decoder {
         Codestream codestream = ReadCodestream(bytes, container.CodestreamStart, container.CodestreamEnd, budget);
         long area = (long)codestream.Width * codestream.Height;
         if (area <= 0 || area > options.MaximumPixels) throw new Jpeg2000Exception("The JPEG 2000 image exceeds the pixel limit.");
-        ComponentPlane[] planes = DecodeTiles(bytes, codestream, budget);
-        return BuildImage(codestream, container.Header, planes, options, budget);
+        ComponentPlane[] planes = CreatePlanes(codestream);
+        OutputLayout? layout = PlanDirectOutput(codestream, container.Header, planes, options, budget);
+        if (layout == null) {
+            foreach (ComponentPlane plane in planes) AllocatePlane(plane, budget);
+        }
+        DecodeTiles(bytes, codestream, planes, budget);
+        layout ??= ResolveOutput(codestream, container.Header, planes, options, budget);
+        InterleavePlanes(layout, codestream, planes, budget);
+        return CreateImage(layout, container.Header, planes, options, budget);
     }
 
     /// <summary>Malformed, unsupported or over-budget input; caught at the decoder boundary.</summary>
@@ -133,6 +140,8 @@ internal static partial class OfficeJpeg2000Decoder {
             if (bytes < 0 || bytes > _maximumBytes - _reserved) throw new Jpeg2000Exception("The JPEG 2000 image exceeds the working memory budget.");
             _reserved += bytes;
         }
+
+        internal long Reserved => _reserved;
 
         internal void Release(long bytes) => _reserved = Math.Max(0L, _reserved - bytes);
 
