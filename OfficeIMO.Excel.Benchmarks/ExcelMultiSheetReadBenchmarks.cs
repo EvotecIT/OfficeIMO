@@ -35,6 +35,9 @@ public class ExcelMultiSheetReadBenchmarks {
     [Params(25_000)]
     public int RowsPerSheet { get; set; }
 
+    /// <summary>Cell references in the generated worksheets; the editable-workbook lanes read a file as Excel writes it.</summary>
+    internal bool IncludeCellReferences { get; init; }
+
     [GlobalSetup]
     public void Setup() {
         OfficeIMO.Benchmarks.BenchmarkProcessPriority.ApplyConfiguredPriority();
@@ -42,7 +45,7 @@ public class ExcelMultiSheetReadBenchmarks {
         string root = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_DATA") ?? Path.GetTempPath();
         Directory.CreateDirectory(root);
         _path = Path.Combine(root, $"multi-sheet-{SheetCount}x{RowsPerSheet}-{Guid.NewGuid():N}.{Format.ToString().ToLowerInvariant()}");
-        File.WriteAllBytes(_path, Write(Format, SheetCount, RowsPerSheet));
+        File.WriteAllBytes(_path, Write(Format, SheetCount, RowsPerSheet, IncludeCellReferences));
         _expected = new long[SheetCount];
         for (int sheet = 0; sheet < SheetCount; sheet++) {
             for (int row = 0; row < RowsPerSheet; row++) _expected[sheet] = Add(_expected[sheet], Record(sheet, row));
@@ -60,10 +63,10 @@ public class ExcelMultiSheetReadBenchmarks {
     [GlobalCleanup]
     public void Cleanup() { if (_path.Length > 0) File.Delete(_path); }
 
-    internal static byte[] Write(ExcelFileFormat format, int sheetCount, int rowsPerSheet) {
+    internal static byte[] Write(ExcelFileFormat format, int sheetCount, int rowsPerSheet, bool includeCellReferences) {
         using var output = new MemoryStream();
         using (var writer = ExcelDocument.CreateWriter(format, output,
-            new ExcelWriterOptions { IncludeCellReferences = false, UseSharedStrings = false }, leaveOpen: true)) {
+            new ExcelWriterOptions { IncludeCellReferences = includeCellReferences, UseSharedStrings = false }, leaveOpen: true)) {
             for (int sheet = 0; sheet < sheetCount; sheet++) {
                 writer.WriteTable(SheetName(sheet), Generate(sheet, rowsPerSheet), ExcelReaderGeneratedBenchmarks.Headers,
                     static (row, value) => row.Write(value.Name).Write(value.Id).Write(value.CreatedOn).Write(value.Amount));
@@ -231,7 +234,7 @@ public class ExcelMultiSheetReadBenchmarks {
     /// <summary>Loads the XLSX workbook into an editable model and reads every sheet.</summary>
     [MemoryDiagnoser]
     public class Workbook {
-        private readonly ExcelMultiSheetReadBenchmarks _owner = new() { Format = ExcelFileFormat.Xlsx };
+        private readonly ExcelMultiSheetReadBenchmarks _owner = new() { Format = ExcelFileFormat.Xlsx, IncludeCellReferences = true };
 
         [Params(8)]
         public int SheetCount { get; set; }
