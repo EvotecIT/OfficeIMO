@@ -161,10 +161,23 @@ internal sealed class YamlCharBuffer : TextWriter {
 
     /// <summary>Encodes the characters written to a string buffer as UTF-8 into an array of exactly their length.</summary>
     public byte[] ToUtf8Bytes() {
+        if (_length <= SinglePassLimit) {
+            // Encoding once into pooled room and copying is cheaper than counting first when the text is not ASCII,
+            // and costs a copy of a small array when it is.
+            byte[] room = ArrayPool<byte>.Shared.Rent(Utf8.GetMaxByteCount(_length));
+            int count = Utf8.GetBytes(_buffer, 0, _length, room, 0);
+            var exact = new byte[count];
+            Buffer.BlockCopy(room, 0, exact, 0, count);
+            ArrayPool<byte>.Shared.Return(room);
+            return exact;
+        }
         var bytes = new byte[Utf8.GetByteCount(_buffer, 0, _length)];
         Utf8.GetBytes(_buffer, 0, _length, bytes, 0);
         return bytes;
     }
+
+    // Up to this many characters, ToUtf8Bytes encodes once into pooled room of three bytes per character.
+    private const int SinglePassLimit = 64 * 1024;
 
     /// <summary>Encodes everything buffered to the stream; for a string buffer it does nothing.</summary>
     public override void Flush() {
