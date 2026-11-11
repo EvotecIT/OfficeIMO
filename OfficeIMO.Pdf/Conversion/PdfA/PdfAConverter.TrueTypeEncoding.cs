@@ -70,8 +70,12 @@ internal sealed partial class PdfAConverter {
             "The embedded TrueType font has no WinAnsi or MacRoman encoding, and its glyphs cannot be selected the same way with one.", font);
     }
 
-    private bool HasWindowsUnicodeCmap(PdfStream program) {
-        if (!StreamDecoder.TryDecode(program, _document.ReadOptions.Limits.MaxDecodedStreamBytes, out byte[] data, _objects) || data.Length < 12) return false;
+    private bool HasWindowsUnicodeCmap(PdfStream program) =>
+        StreamDecoder.TryDecode(program, _document.ReadOptions.Limits.MaxDecodedStreamBytes, out byte[] data, _objects) && HasWindowsUnicodeCmap(data);
+
+    /// <summary>True when an sfnt program has a (3,1) Windows Unicode cmap, which PDF/A requires for encodings with Differences.</summary>
+    internal static bool HasWindowsUnicodeCmap(byte[] data) {
+        if (data.Length < 12) return false;
         int tables = (data[4] << 8) | data[5];
         for (int table = 0; table < tables; table++) {
             int record = 12 + table * 16;

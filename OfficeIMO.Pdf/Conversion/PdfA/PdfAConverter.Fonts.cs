@@ -164,8 +164,14 @@ internal sealed partial class PdfAConverter {
         IEnumerable<string> families = standard ? StandardSubstitutes(standardFont) : FamilyCandidates(plainName);
 
         string? lastFailure = null;
+        string? firstFailure = null;
         PdfAConversionRefusalReason failureReason = PdfAConversionRefusalReason.FontNotEmbeddable;
+        PdfAConversionRefusalReason firstReason = failureReason;
         foreach (string family in families) {
+            if (firstFailure is null && lastFailure is not null) {
+                firstFailure = lastFailure;
+                firstReason = failureReason;
+            }
             if (!PdfEmbeddedFontFamily.TryFromSystem(family, out PdfEmbeddedFontFamily? installed) || installed is null) continue;
             byte[]? face = bold && italic ? installed.BoldItalicSnapshot : bold ? installed.BoldSnapshot : italic ? installed.ItalicSnapshot : installed.RegularSnapshot;
             if (face is null) {
@@ -211,6 +217,13 @@ internal sealed partial class PdfAConverter {
                 failureReason = PdfAConversionRefusalReason.FontGlyphMissing;
                 continue;
             }
+            string?[] winAnsiNames = PdfFontEncodingNames.Get("WinAnsiEncoding")!;
+            if (glyphs.Keys.Any(code => !string.Equals(glyphNames[code], winAnsiNames[code], StringComparison.Ordinal)) &&
+                !HasWindowsUnicodeCmap(face)) {
+                lastFailure = "the installed " + family + " face has no Windows Unicode cmap, which PDF/A requires for the font's encoding differences";
+                failureReason = PdfAConversionRefusalReason.FontEncodingNotCompliant;
+                continue;
+            }
 
             if (Change(PdfAConversionChangeKind.FontEmbedded, location,
                     "Embedded the installed " + family + " face (" + program.FontName + ") for the non-embedded font " + plainName +
@@ -220,7 +233,14 @@ internal sealed partial class PdfAConverter {
             return;
         }
 
-        if (lastFailure is null) {
+        if (firstFailure is null && lastFailure is not null) {
+            firstFailure = lastFailure;
+            firstReason = failureReason;
+        }
+        if (firstFailure is not null) {
+            AddViolation(firstReason, location, "The font is not embedded and cannot be substituted without changing the page: " + firstFailure +
+                (lastFailure is not null && !ReferenceEquals(firstFailure, lastFailure) ? "; other installed substitutes fail too (last: " + lastFailure + ")" : string.Empty) + ".", font);
+        } else if (lastFailure is null) {
             AddViolation(PdfAConversionRefusalReason.FontNotEmbeddable, location,
                 "The font is not embedded and no installed substitute (" + string.Join(", ", families) + ") was found.", font);
         } else {
@@ -314,15 +334,18 @@ internal sealed partial class PdfAConverter {
         return null;
     }
 
-    /// <summary>The named family first, as viewers show it when installed, then the library's metric-compatible substitutes.</summary>
+    /// <summary>
+    /// The family the page renderer draws the standard font with comes first, so the embedded program draws what was shown;
+    /// then the library's metric-compatible substitutes.
+    /// </summary>
     private static List<string> StandardSubstitutes(PdfStandardFont font) {
-        string family = font switch {
-            PdfStandardFont.TimesRoman or PdfStandardFont.TimesBold or PdfStandardFont.TimesItalic or PdfStandardFont.TimesBoldItalic => "Times",
-            PdfStandardFont.Courier or PdfStandardFont.CourierBold or PdfStandardFont.CourierOblique or PdfStandardFont.CourierBoldOblique => "Courier",
-            _ => "Helvetica"
+        (string drawn, string standard) = font switch {
+            PdfStandardFont.TimesRoman or PdfStandardFont.TimesBold or PdfStandardFont.TimesItalic or PdfStandardFont.TimesBoldItalic => ("Times New Roman", "Times"),
+            PdfStandardFont.Courier or PdfStandardFont.CourierBold or PdfStandardFont.CourierOblique or PdfStandardFont.CourierBoldOblique => ("Courier New", "Courier"),
+            _ => ("Helvetica", "Helvetica")
         };
-        var candidates = new List<string> { family };
-        foreach (string substitute in OfficeIMO.Drawing.OfficeDocumentFontSubstitutions.EnumerateGeneric(family)) {
+        var candidates = new List<string> { drawn };
+        foreach (string substitute in OfficeIMO.Drawing.OfficeDocumentFontSubstitutions.EnumerateGeneric(standard)) {
             if (!candidates.Contains(substitute, StringComparer.OrdinalIgnoreCase)) candidates.Add(substitute);
         }
         return candidates;
