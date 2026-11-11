@@ -23,7 +23,6 @@
     <SignAssembly>False</SignAssembly>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <LangVersion>Latest</LangVersion>
-    <EnableTrimmingPolyfills>true</EnableTrimmingPolyfills>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">

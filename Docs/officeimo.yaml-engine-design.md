@@ -19,10 +19,11 @@ The C# rules and PowerShell rules in the [API design](officeimo.api-design.md) a
 - **Lifecycle:**
   ```csharp
   using var doc = YamlDocument.Create();
+  using var doc = YamlDocument.Create("values.yaml");    // in memory, saved there later
   using var doc = YamlDocument.Load("values.yaml", YamlLoadOptions.UntrustedDefaults);
   await using var doc = await YamlDocument.LoadAsync(stream, options);
   YamlDocument doc = YamlDocument.Parse(text);
-  doc.Save();                 // to the path it was loaded from
+  doc.Save();                 // to FilePath: the path it was created or loaded with, or last saved to
   doc.Save("copy.yaml");
   await doc.SaveAsync(stream);
   ```

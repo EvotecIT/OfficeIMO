@@ -71,6 +71,37 @@ public class YamlDocumentEncodingTests {
         }
     }
 
+    // FilePath follows the shared document lifecycle: Create(path) and loads set it, saves to a path move it, and
+    // Save() writes to it. Text and streams have none.
+    [Fact]
+    public void FilePathComesFromCreateLoadAndPathSaves() {
+        string folder = Path.Combine(Path.GetTempPath(), "officeimo-yaml-" + Guid.NewGuid().ToString("N"));
+        string created = Path.Combine(folder, "created.yaml");
+        string copy = Path.Combine(folder, "copy.yaml");
+        try {
+            Assert.Null(YamlDocument.Parse("a: 1\n").FilePath);
+            Assert.Throws<InvalidOperationException>(() => YamlDocument.Parse("a: 1\n").Save());
+
+            YamlDocument document = YamlDocument.Create(created);
+            Assert.Equal(created, document.FilePath);
+            Assert.False(File.Exists(created));
+            document.Set("a", 1);
+            document.Save();
+            Assert.Equal("a: 1\n", File.ReadAllText(created));
+
+            YamlDocument loaded = YamlDocument.Load(created);
+            Assert.Equal(created, loaded.FilePath);
+            loaded.Save(copy);
+            Assert.Equal(copy, loaded.FilePath);
+            loaded.Set("a", 2);
+            loaded.Save();
+            Assert.Equal("a: 2\n", File.ReadAllText(copy));
+            Assert.Equal("a: 1\n", File.ReadAllText(created));
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
     [Fact]
     public void ParsedTextSavesAsUtf8AndKeepsALeadingByteOrderMarkCharacter() {
         const string text = "﻿key: v\n";

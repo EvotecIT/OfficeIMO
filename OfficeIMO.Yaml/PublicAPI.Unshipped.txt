@@ -184,3 +184,5 @@ OfficeIMO.Yaml.YamlException.ToDiagnostic() -> OfficeIMO.OfficeDiagnostic!
 OfficeIMO.Yaml.YamlNode.IsModified.get -> bool
 OfficeIMO.Yaml.YamlDocumentPart.Comment.get -> string?
 OfficeIMO.Yaml.YamlDocumentPart.SetComment(string? text) -> OfficeIMO.Yaml.YamlDocumentPart!
+OfficeIMO.Yaml.YamlDocument.FilePath.get -> string?
+static OfficeIMO.Yaml.YamlDocument.Create(string! path) -> OfficeIMO.Yaml.YamlDocument!

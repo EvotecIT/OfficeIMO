@@ -15,7 +15,7 @@ public sealed partial class YamlDocument {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, FileBufferSize, FileOptions.SequentialScan);
         YamlDocument document = Load(stream, options, cancellationToken);
-        document._path = path;
+        document._path = Path.GetFullPath(path);
         return document;
     }
 
@@ -56,7 +56,7 @@ public sealed partial class YamlDocument {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, FileBufferSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
         YamlDocument document = await LoadAsync(stream, options, cancellationToken).ConfigureAwait(false);
-        document._path = path;
+        document._path = Path.GetFullPath(path);
         return document;
     }
 

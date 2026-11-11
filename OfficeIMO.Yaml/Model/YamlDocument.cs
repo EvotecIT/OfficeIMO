@@ -23,8 +23,7 @@ public sealed partial class YamlDocument : IDisposable {
     private HashSet<YamlNode>? _sharedEdits;
     /// <summary>Set by any edit; an unedited document saves as one copy of its source.</summary>
     internal bool _partsDirty;
-    /// <summary>The file the document was loaded from, which <see cref="Save()"/> writes back to.</summary>
-    internal string? _path;
+    private string? _path;
 
     private YamlDocument(string source, YamlTextEncoding encoding, bool byteOrderMark, YamlDuplicateKeyPolicy duplicateKeys, bool strict) {
         _source = source;
@@ -49,6 +48,24 @@ public sealed partial class YamlDocument : IDisposable {
     /// </code>
     /// </example>
     public static YamlDocument Create() => new YamlDocument(string.Empty, YamlTextEncoding.Utf8, byteOrderMark: false, YamlDuplicateKeyPolicy.LastWins, strict: false);
+
+    /// <summary>
+    /// Creates an empty document in memory associated with a path, without writing a file. <see cref="Save()"/> writes
+    /// it there.
+    /// </summary>
+    /// <param name="path">The file the document will be saved to.</param>
+    public static YamlDocument Create(string path) {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        YamlDocument document = Create();
+        document._path = System.IO.Path.GetFullPath(path);
+        return document;
+    }
+
+    /// <summary>
+    /// Gets the full path that <see cref="Save()"/> writes to: the path of <see cref="Create(string)"/>, or of the last
+    /// file load or save. Documents parsed from text or loaded from a stream have none until they are saved to a path.
+    /// </summary>
+    public string? FilePath => _path;
 
     /// <summary>Gets the policy the document was loaded with; lookups among equal keys follow it.</summary>
     internal YamlDuplicateKeyPolicy DuplicateKeys { get; }

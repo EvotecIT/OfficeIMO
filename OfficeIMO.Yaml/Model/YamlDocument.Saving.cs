@@ -1,3 +1,5 @@
+using OfficeIMO.Core.Internal;
+
 namespace OfficeIMO.Yaml;
 
 /// <summary>A run of output text: a range of a string, usually of the retained source.</summary>
@@ -17,26 +19,25 @@ public sealed partial class YamlDocument {
     private const int EncodeChunk = 8192;
 
     /// <summary>
-    /// Saves the document back to the file it was loaded from, in the encoding it was loaded with. Untouched text is
-    /// copied from the source; only edited nodes are written anew.
+    /// Saves the document to its <see cref="FilePath"/>, in the encoding it was loaded with. Untouched text is copied
+    /// from the source; only edited nodes are written anew.
     /// </summary>
-    /// <exception cref="InvalidOperationException">The document was not loaded from a file path.</exception>
-    public void Save() {
-        if (_path is null) throw new InvalidOperationException("The document was not loaded from a file; use Save(path) or Save(stream).");
-        Save(_path);
-    }
+    /// <exception cref="InvalidOperationException">The document has no associated path.</exception>
+    public void Save() => Save(AssociatedPath());
 
     /// <summary>
-    /// Saves the document to a file in the encoding it was loaded with, writing its byte-order mark when the input had one.
-    /// An unchanged document reproduces the loaded bytes exactly; an edited one changes only the edited nodes' text.
+    /// Saves the document to a file in the encoding it was loaded with, writing its byte-order mark when the input had one,
+    /// and makes the file its <see cref="FilePath"/>. The file is replaced atomically, so a failed save leaves the old
+    /// contents. An unchanged document reproduces the loaded bytes exactly; an edited one changes only the edited nodes' text.
     /// </summary>
     /// <param name="path">The file to create or overwrite.</param>
     /// <param name="options">Save settings, or <see langword="null"/> for a minimal-change save.</param>
     public void Save(string path, YamlSaveOptions? options = null) {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        string fullPath = Path.GetFullPath(path);
         List<YamlTextSegment> segments = CollectSegments(options);
-        using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, FileBufferSize);
-        Write(stream, segments);
+        OfficeFileCommit.Write(fullPath, stream => Write(stream, segments));
+        _path = fullPath;
     }
 
     /// <summary>
@@ -50,12 +51,9 @@ public sealed partial class YamlDocument {
         Write(stream, CollectSegments(options));
     }
 
-    /// <summary>Saves the document back to the file it was loaded from asynchronously; see <see cref="Save()"/>.</summary>
+    /// <summary>Saves the document to its <see cref="FilePath"/> asynchronously; see <see cref="Save()"/>.</summary>
     /// <param name="cancellationToken">Observed between writes.</param>
-    public Task SaveAsync(CancellationToken cancellationToken = default) {
-        if (_path is null) throw new InvalidOperationException("The document was not loaded from a file; use SaveAsync(path) or SaveAsync(stream).");
-        return SaveAsync(_path, null, cancellationToken);
-    }
+    public Task SaveAsync(CancellationToken cancellationToken = default) => SaveAsync(AssociatedPath(), null, cancellationToken);
 
     /// <summary>Saves the document to a file asynchronously; see <see cref="Save(string, YamlSaveOptions?)"/>.</summary>
     /// <param name="path">The file to create or overwrite.</param>
@@ -63,10 +61,14 @@ public sealed partial class YamlDocument {
     /// <param name="cancellationToken">Observed between writes.</param>
     public async Task SaveAsync(string path, YamlSaveOptions? options = null, CancellationToken cancellationToken = default) {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        string fullPath = Path.GetFullPath(path);
         List<YamlTextSegment> segments = CollectSegments(options);
-        using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, FileBufferSize, FileOptions.Asynchronous);
-        await WriteAsync(stream, segments, cancellationToken).ConfigureAwait(false);
+        await OfficeFileCommit.WriteAsync(fullPath, (stream, token) => WriteAsync(stream, segments, token), cancellationToken: cancellationToken).ConfigureAwait(false);
+        _path = fullPath;
     }
+
+    private string AssociatedPath() =>
+        _path ?? throw new InvalidOperationException("The document has no associated path; use Save(path) or Save(stream), or create it with Create(path).");
 
     /// <summary>Saves the document to a caller-owned stream asynchronously; see <see cref="Save(Stream, YamlSaveOptions?)"/>.</summary>
     /// <param name="stream">A writable stream. It is not disposed.</param>
