@@ -40,9 +40,20 @@ internal sealed class YamlUntypedConverter : YamlConverter<object> {
     }
 
     private static object? ReadScalar(YamlEventCursor cursor) {
-        ReadOnlySpan<char> text = cursor.ScalarSpan;
-        YamlSchema schema = cursor.Schema;
-        switch (cursor.ResolveKind()) {
+        ReadOnlySpan<char> text;
+        YamlSchema schema;
+        YamlScalarKind kind;
+        if (cursor.TryGetLiveUntagged(out YamlStyle style, out text, out schema)) {
+            // Untagged quoted and block scalars are strings; plain ones resolve once through the document's schema.
+            if (style != YamlStyle.Plain) return cursor.GetString();
+            kind = YamlSchemaResolver.Resolve(text, schema);
+            if (schema == YamlSchema.Failsafe) schema = YamlSchema.Core;
+        } else {
+            text = cursor.ScalarSpan;
+            schema = cursor.Schema;
+            kind = cursor.ResolveKind();
+        }
+        switch (kind) {
             case YamlScalarKind.Null:
                 return null;
             case YamlScalarKind.Boolean:
