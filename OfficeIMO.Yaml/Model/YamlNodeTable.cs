@@ -66,7 +66,7 @@ internal sealed class YamlNodeTable {
     private readonly string _source;
     /// <summary>Anchored nodes that aliases refer to, by record, once created; aliases find their targets here.</summary>
     private Dictionary<int, YamlNode>? _anchored;
-    /// <summary>Shares the text of equal keys across the mappings created from the table.</summary>
+    /// <summary>Shares the text of equal keys across the entries created from the table.</summary>
     private YamlStringCache? _keys;
     private bool _handedOut;
     private bool _released;
@@ -137,6 +137,24 @@ internal sealed class YamlNodeTable {
         return YamlScalar.DecodeValue(_source, r.ValueStart, r.ValueEnd, r.Style, r.Flags, r.Chomping, r.Count);
     }
 
+#if !NETCOREAPP3_0_OR_GREATER
+    private static readonly uint HashSeed = (uint)Guid.NewGuid().GetHashCode();
+#endif
+
+    /// <summary>
+    /// Hashes text for the key indexes. On .NET Core the hash is the runtime's randomized string hash, so crafted keys
+    /// cannot make lookups or duplicate checks collide on purpose; older frameworks use FNV-1a with a per-process seed.
+    /// </summary>
+    public static int HashText(ReadOnlySpan<char> text) {
+#if NETCOREAPP3_0_OR_GREATER
+        return string.GetHashCode(text);
+#else
+        uint hash = 2166136261 ^ HashSeed;
+        foreach (char ch in text) hash = (hash ^ ch) * 16777619;
+        return (int)(hash ^ (hash >> 15));
+#endif
+    }
+
     /// <summary>The record an alias refers to, or the record itself.</summary>
     public int Resolve(int record) => Records[record].Kind == YamlRecordKind.Alias ? Records[record].Count : record;
 
@@ -155,46 +173,121 @@ internal sealed class YamlNodeTable {
         }
     }
 
-    /// <summary>Creates the key and value objects of a loaded mapping on first use.</summary>
-    public YamlMappingEntry[] MaterializeEntries(YamlMapping mapping) {
+    /// <summary>
+    /// Creates the entry array of a loaded mapping on first use, with each entry's key record in its slots. The entries'
+    /// objects are created one entry at a time by <see cref="LoadEntry"/>, so reaching one key of a large mapping
+    /// creates the objects of that entry only.
+    /// </summary>
+    public YamlMappingEntry[] CreateSlots(YamlMapping mapping) {
         lock (this) {
             if (mapping._entries is { } existing) return existing;
             ThrowIfReleased();
-            YamlDocumentPart part = mapping._part!;
-            var entries = new YamlMappingEntry[mapping._count];
-            YamlStringCache keys = _keys ??= YamlStringCache.Rent();
+            var slots = new int[mapping._count];
             int child = mapping._record + 1;
-            for (int i = 0; i < entries.Length; i++) {
-                YamlNode key = Create(part, child, mapping, i);
-                // Keys are looked up by text, so their text is read now, shared with equal keys of other mappings.
-                if (key is YamlScalar scalar && YamlScalarDecoder.IsVerbatim(scalar._style, scalar._flags)) {
-                    scalar._value = keys.Get(_source.AsSpan(scalar._valueStart, scalar._valueEnd - scalar._valueStart));
-                }
-                child += Records[child].Size;
-                YamlNode value = Create(part, child, mapping, i);
-                child += Records[child].Size;
-                entries[i] = new YamlMappingEntry(key, value);
+            for (int i = 0; i < slots.Length; i++) {
+                slots[i] = child;
+                child = Next(Next(child));
             }
+            mapping._slots = slots;
+            var entries = new YamlMappingEntry[slots.Length];
             Volatile.Write(ref mapping._entries, entries);
             return entries;
         }
     }
 
-    /// <summary>Creates the item objects of a loaded sequence on first use.</summary>
-    public YamlNode[] MaterializeItems(YamlSequence sequence) {
+    /// <summary>Creates the key and value objects of one entry of a loaded mapping.</summary>
+    public YamlMappingEntry LoadEntry(YamlMapping mapping, int index) {
+        lock (this) {
+            YamlMappingEntry[] entries = mapping._entries!;
+            YamlMappingEntry entry = entries[index];
+            if (entry.Key is not null && entry.Value is not null) return entry;
+            ThrowIfReleased();
+            int key = mapping._slots![index];
+            entry = new YamlMappingEntry(CreateKey(mapping, key, index), Create(mapping._part!, Next(key), mapping, index));
+            entries[index] = entry;
+            return entry;
+        }
+    }
+
+    /// <summary>Creates the objects of every entry of a loaded mapping that has none yet.</summary>
+    public void LoadEntries(YamlMapping mapping) {
+        lock (this) {
+            if (mapping._slots is null) return;
+            for (int i = 0; i < mapping._count; i++) LoadEntry(mapping, i);
+            Volatile.Write(ref mapping._slots, null);
+        }
+    }
+
+    /// <summary>Creates the item array of a loaded sequence on first use, with each item's record in its slots.</summary>
+    public YamlNode?[] CreateSlots(YamlSequence sequence) {
         lock (this) {
             if (sequence._items is { } existing) return existing;
             ThrowIfReleased();
-            YamlDocumentPart part = sequence._part!;
-            var items = new YamlNode[sequence._count];
+            var slots = new int[sequence._count];
             int child = sequence._record + 1;
-            for (int i = 0; i < items.Length; i++) {
-                items[i] = Create(part, child, sequence, i);
-                child += Records[child].Size;
+            for (int i = 0; i < slots.Length; i++) {
+                slots[i] = child;
+                child = Next(child);
             }
+            sequence._slots = slots;
+            var items = new YamlNode?[slots.Length];
             Volatile.Write(ref sequence._items, items);
             return items;
         }
+    }
+
+    /// <summary>Creates the object of one item of a loaded sequence.</summary>
+    public YamlNode LoadItem(YamlSequence sequence, int index) {
+        lock (this) {
+            YamlNode?[] items = sequence._items!;
+            if (items[index] is { } existing) return existing;
+            ThrowIfReleased();
+            YamlNode item = Create(sequence._part!, sequence._slots![index], sequence, index);
+            Volatile.Write(ref items[index], item);
+            return item;
+        }
+    }
+
+    /// <summary>Creates the objects of every item of a loaded sequence that has none yet.</summary>
+    public void LoadItems(YamlSequence sequence) {
+        lock (this) {
+            if (sequence._slots is null) return;
+            for (int i = 0; i < sequence._count; i++) LoadItem(sequence, i);
+            Volatile.Write(ref sequence._slots, null);
+        }
+    }
+
+    /// <summary>Creates a key; a key's text is read now, shared with equal keys of other mappings, because keys are looked up by text.</summary>
+    private YamlNode CreateKey(YamlMapping mapping, int record, int index) {
+        YamlNode key = Create(mapping._part!, record, mapping, index);
+        if (key is YamlScalar scalar && YamlScalarDecoder.IsVerbatim(scalar._style, scalar._flags)) {
+            scalar._value = (_keys ??= YamlStringCache.Rent()).Get(_source.AsSpan(scalar._valueStart, scalar._valueEnd - scalar._valueStart));
+        }
+        return key;
+    }
+
+    /// <summary>
+    /// Returns the decoded text of a key record, looking through an alias, or false for a collection key. The text is
+    /// read from the source without a copy when the raw text is the value.
+    /// </summary>
+    public bool TryGetKeyText(int record, out ReadOnlySpan<char> text) {
+        int resolved = Resolve(record);
+        if (Records[resolved].Kind != YamlRecordKind.Scalar) {
+            text = default;
+            return false;
+        }
+        text = ValueSpan(resolved);
+        return true;
+    }
+
+    /// <summary>Returns whether a scalar record is the merge key <c>&lt;&lt;</c> in a document where merge keys apply.</summary>
+    public bool IsMergeKey(int record, bool mergeKeys) {
+        ref YamlNodeRecord r = ref Records[record];
+        if (r.Kind != YamlRecordKind.Scalar) return false;
+        string? tag = Tag(record);
+        if (tag is not null) return tag == YamlSchemaResolver.TagPrefix + "merge";
+        if (r.Style != YamlStyle.Plain || !mergeKeys) return false;
+        return r.ValueEnd - r.ValueStart == 2 && _source[r.ValueStart] == '<' && _source[r.ValueStart + 1] == '<';
     }
 
     /// <summary>
@@ -208,15 +301,23 @@ internal sealed class YamlNodeTable {
             while (current._record != record) {
                 YamlNode? next = null;
                 if (current is YamlMapping mapping) {
-                    YamlMappingEntry[] entries = mapping.Entries;
                     for (int i = 0; i < mapping._count && next is null; i++) {
-                        if (Contains(entries[i].Key, record)) next = entries[i].Key;
-                        else if (Contains(entries[i].Value, record)) next = entries[i].Value;
+                        if (!mapping.IsLoaded(i)) {
+                            int key = mapping._slots![i];
+                            if (record < key || record >= Next(Next(key))) continue;
+                        }
+                        YamlMappingEntry entry = mapping.EntryAt(i);
+                        if (Contains(entry.Key, record)) next = entry.Key;
+                        else if (Contains(entry.Value, record)) next = entry.Value;
                     }
                 } else if (current is YamlSequence sequence) {
-                    YamlNode[] items = sequence.Items;
                     for (int i = 0; i < sequence._count && next is null; i++) {
-                        if (Contains(items[i], record)) next = items[i];
+                        if (!sequence.IsLoaded(i)) {
+                            int item = sequence._slots![i];
+                            if (record < item || record >= Next(item)) continue;
+                        }
+                        YamlNode node = sequence.ItemAt(i);
+                        if (Contains(node, record)) next = node;
                     }
                 }
                 current = next ?? throw new InvalidOperationException("The anchored node of an alias is no longer in its document.");

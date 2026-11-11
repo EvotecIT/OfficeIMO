@@ -36,11 +36,16 @@ public readonly struct YamlMappingEntry {
 /// Enumeration and <see cref="Count"/> show the tree as written; merges are never flattened into it.
 /// </remarks>
 public sealed class YamlMapping : YamlNode, IReadOnlyList<YamlMappingEntry> {
-    /// <summary>Mappings up to this size are searched linearly instead of through a dictionary.</summary>
+    /// <summary>Mappings up to this size are searched linearly instead of through a hash index.</summary>
     private const int LinearLookupLimit = 8;
 
-    /// <summary>The entries; null for a loaded mapping until code first reaches them (see <see cref="Entries"/>).</summary>
+    /// <summary>
+    /// The entries; null for a loaded mapping until code first reaches them. While <see cref="_slots"/> is set, an entry
+    /// whose objects were not created yet is empty and its key record is in the slot of the same position.
+    /// </summary>
     internal YamlMappingEntry[]? _entries = Array.Empty<YamlMappingEntry>();
+    /// <summary>The key record of each entry while some entries have no objects yet; null once all have.</summary>
+    internal int[]? _slots;
     internal int _count;
     internal int _contentStart;
     /// <summary>The loaded entries as (start, end) source pairs, kept from the first insertion or removal so saving can find their source text.</summary>
@@ -53,8 +58,73 @@ public sealed class YamlMapping : YamlNode, IReadOnlyList<YamlMappingEntry> {
         _entries = count == 0 ? Array.Empty<YamlMappingEntry>() : null;
     }
 
-    /// <summary>The entries, created from the document's node table on first use.</summary>
-    internal YamlMappingEntry[] Entries => Volatile.Read(ref _entries) ?? _part!._document._table!.MaterializeEntries(this);
+    private YamlNodeTable Table => _part!._document._table!;
+
+    /// <summary>The entries with their objects, creating the objects of every entry that has none yet.</summary>
+    internal YamlMappingEntry[] Entries {
+        get {
+            YamlMappingEntry[] entries = Volatile.Read(ref _entries) ?? Table.CreateSlots(this);
+            if (Volatile.Read(ref _slots) is not null) Table.LoadEntries(this);
+            return entries;
+        }
+    }
+
+    /// <summary>The entry array, whose entries may still have no objects (see <see cref="IsLoaded"/>).</summary>
+    internal YamlMappingEntry[] Slots => Volatile.Read(ref _entries) ?? Table.CreateSlots(this);
+
+    /// <summary>The entry at a position, creating the objects of that entry only.</summary>
+    internal YamlMappingEntry EntryAt(int index) {
+        YamlMappingEntry entry = (Volatile.Read(ref _entries) ?? Table.CreateSlots(this))[index];
+        return entry.Key is not null && entry.Value is not null ? entry : Table.LoadEntry(this, index);
+    }
+
+    /// <summary>Whether the entry at a position has its objects; entries without them are untouched source.</summary>
+    internal bool IsLoaded(int index) {
+        YamlMappingEntry[] entries = Volatile.Read(ref _entries) ?? Table.CreateSlots(this);
+        return Volatile.Read(ref _slots) is null || (entries[index].Key is not null && entries[index].Value is not null);
+    }
+
+    /// <summary>Where the entry's key starts in the source, or -1 for a key created by editing; reads no objects.</summary>
+    internal int KeyStart(int index) {
+        if (!IsLoaded(index)) return Table.Records[_slots![index]].Start;
+        YamlNode key = EntryAt(index).Key;
+        return key._start >= 0 && key._part is not null ? key._start : -1;
+    }
+
+    /// <summary>Where the entry's value ends in the source; reads no objects for an entry that has none.</summary>
+    internal int ValueEnd(int index) => IsLoaded(index) ? EntryAt(index).Value._end : Table.Records[Table.Next(_slots![index])].End;
+
+    /// <summary>
+    /// Returns the text a string lookup matches for an entry's key, or false for a collection key. An entry without
+    /// objects is read from the node table unless its key is an alias, whose anchored node an edit may have changed.
+    /// </summary>
+    private bool TryGetKeyText(int index, out ReadOnlySpan<char> text) {
+        if (!IsLoaded(index)) {
+            YamlNodeTable table = Table;
+            int record = _slots![index];
+            if (table.Records[record].Kind != YamlRecordKind.Alias) return table.TryGetKeyText(record, out text);
+        }
+        if (EntryAt(index).Key.Resolved is YamlScalar scalar) {
+            text = scalar.ValueSpan;
+            return true;
+        }
+        text = default;
+        return false;
+    }
+
+    private bool IsMergeKeyAt(int index) {
+        if (!IsLoaded(index)) return Table.IsMergeKey(_slots![index], _part!.MergeKeys);
+        return EntryAt(index).Key is YamlScalar key && key.IsMergeKey();
+    }
+
+    private bool IsCollectionKeyAt(int index) {
+        if (!IsLoaded(index)) {
+            YamlNodeTable table = Table;
+            int record = _slots![index];
+            if (table.Records[record].Kind != YamlRecordKind.Alias) return table.Records[record].Kind != YamlRecordKind.Scalar;
+        }
+        return EntryAt(index).Key.Resolved is not YamlScalar;
+    }
 
     /// <summary>Creates an empty block mapping. Inside a flow collection it is written as flow.</summary>
     public YamlMapping() : base(YamlStyle.Block) {
@@ -73,7 +143,7 @@ public sealed class YamlMapping : YamlNode, IReadOnlyList<YamlMappingEntry> {
     public YamlMappingEntry this[int index] {
         get {
             if ((uint)index >= (uint)_count) throw new ArgumentOutOfRangeException(nameof(index), index, "The index is outside the mapping.");
-            return Entries[index];
+            return EntryAt(index);
         }
     }
 
@@ -170,7 +240,8 @@ public sealed class YamlMapping : YamlNode, IReadOnlyList<YamlMappingEntry> {
         if (newKey is null) throw new ArgumentNullException(nameof(newKey));
         int index = IndexOf(key);
         if (index < 0) throw new KeyNotFoundException("The mapping" + Where() + " has no key '" + key + "' of its own.");
-        if (Entries[index].Key.Resolved is not YamlScalar scalar || Entries[index].Key is YamlAlias) {
+        YamlNode renamed = EntryAt(index).Key;
+        if (renamed.Resolved is not YamlScalar scalar || renamed is YamlAlias) {
             throw new InvalidOperationException("Only a scalar key can be renamed.");
         }
         if (key == newKey) return scalar;
@@ -192,15 +263,19 @@ public sealed class YamlMapping : YamlNode, IReadOnlyList<YamlMappingEntry> {
     /// <summary>Returns the position of the mapping's own entry with the key text, or -1. Merged keys are not counted.</summary>
     public int IndexOf(string key) {
         if (key is null) throw new ArgumentNullException(nameof(key));
-        YamlKeyIndex index = _keyIndex ??= YamlKeyIndex.Build(this);
-        return index.Map is null ? FindLinear(key) : index.Map.TryGetValue(key, out int i) ? i : -1;
+        return (_keyIndex ??= YamlKeyIndex.Build(this)).Find(this, key);
     }
 
-    /// <summary>Records each child's position from <paramref name="from"/> on, so lookups of a node's entry take constant time.</summary>
+    /// <summary>
+    /// Records each child's position from <paramref name="from"/> on, so lookups of a node's entry take constant time.
+    /// Entries without objects get theirs when the objects are created.
+    /// </summary>
     internal void Renumber(int from) {
+        YamlMappingEntry[] entries = _entries!;
         for (int i = from; i < _count; i++) {
-            Entries[i].Key._index = i;
-            Entries[i].Value._index = i;
+            if (entries[i].Key is null) continue;
+            entries[i].Key._index = i;
+            entries[i].Value._index = i;
         }
     }
 
@@ -227,19 +302,19 @@ public sealed class YamlMapping : YamlNode, IReadOnlyList<YamlMappingEntry> {
 
     private bool TryGetValueCore(string key, out YamlNode? value) {
         YamlKeyIndex index = _keyIndex ??= YamlKeyIndex.Build(this);
-        int found = index.Map is null ? FindLinear(key) : index.Map.TryGetValue(key, out int i) ? i : -1;
+        int found = index.Find(this, key);
         if (found >= 0) {
-            value = Entries[found].Value;
+            value = EntryAt(found).Value;
             return true;
         }
         int[] merges = index.Merges;
         for (int m = 0; m < merges.Length; m++) {
-            YamlNode source = Entries[merges[m]].Value.Resolved;
+            YamlNode source = EntryAt(merges[m]).Value.Resolved;
             if (source is YamlMapping merged) {
                 if (merged.TryGetValueCore(key, out value)) return true;
             } else if (source is YamlSequence list) {
                 for (int s = 0; s < list._count; s++) {
-                    if (list.Items[s].Resolved is YamlMapping item && item.TryGetValueCore(key, out value)) return true;
+                    if (list.ItemAt(s).Resolved is YamlMapping item && item.TryGetValueCore(key, out value)) return true;
                 }
             }
         }
@@ -247,17 +322,6 @@ public sealed class YamlMapping : YamlNode, IReadOnlyList<YamlMappingEntry> {
         return false;
     }
 
-    private int FindLinear(string key) {
-        int found = -1;
-        bool last = Document?.DuplicateKeys == YamlDuplicateKeyPolicy.LastWins;
-        for (int i = 0; i < _count; i++) {
-            if (string.Equals(KeyText(Entries[i].Key), key, StringComparison.Ordinal)) {
-                if (!last) return i;
-                found = i;
-            }
-        }
-        return found;
-    }
 
     /// <summary>
     /// Returns the position of the own entry whose collection key (<c>[a, b]: x</c>, <c>{a: 1}: x</c>) has the given YAML
@@ -270,8 +334,7 @@ public sealed class YamlMapping : YamlNode, IReadOnlyList<YamlMappingEntry> {
         bool first = Document?.DuplicateKeys == YamlDuplicateKeyPolicy.FirstWins;
         int found = -1;
         for (int i = 0; i < _count; i++) {
-            YamlNode key = Entries[i].Key.Resolved;
-            if (key is YamlScalar || !string.Equals(key.ToString(), text, StringComparison.Ordinal)) continue;
+            if (!IsCollectionKeyAt(i) || !string.Equals(EntryAt(i).Key.Resolved.ToString(), text, StringComparison.Ordinal)) continue;
             found = i;
             if (first) break;
         }
@@ -281,66 +344,99 @@ public sealed class YamlMapping : YamlNode, IReadOnlyList<YamlMappingEntry> {
     /// <summary>Returns the decoded text a string lookup matches for a key, or null for collection keys.</summary>
     internal static string? KeyText(YamlNode key) => key.Resolved is YamlScalar scalar ? scalar.Value : null;
 
+    /// <summary>Finds the entry holding a node; entries without objects cannot hold it and are not created.</summary>
     internal int IndexOfNode(YamlNode node, out bool isKey) {
+        YamlMappingEntry[] entries = Volatile.Read(ref _entries) ?? Table.CreateSlots(this);
         int known = node._index;
         if ((uint)known < (uint)_count) {
-            if (ReferenceEquals(Entries[known].Key, node)) { isKey = true; return known; }
-            if (ReferenceEquals(Entries[known].Value, node)) { isKey = false; return known; }
+            if (ReferenceEquals(entries[known].Key, node)) { isKey = true; return known; }
+            if (ReferenceEquals(entries[known].Value, node)) { isKey = false; return known; }
         }
         for (int i = 0; i < _count; i++) {
-            if (ReferenceEquals(Entries[i].Key, node)) { isKey = true; return i; }
-            if (ReferenceEquals(Entries[i].Value, node)) { isKey = false; return i; }
+            if (ReferenceEquals(entries[i].Key, node)) { isKey = true; return i; }
+            if (ReferenceEquals(entries[i].Value, node)) { isKey = false; return i; }
         }
         isKey = false;
         return -1;
     }
 
-    /// <summary>The lazily built lookup state of one mapping: a dictionary for large mappings and the merge entries.</summary>
+    /// <summary>
+    /// The lazily built lookup state of one mapping: a hash index over the key texts for large mappings, and the merge
+    /// entries. The index reads key texts as spans, from the source for entries without objects, so building it creates
+    /// no node objects and no strings.
+    /// </summary>
     private sealed class YamlKeyIndex {
-        private static readonly YamlKeyIndex Empty = new YamlKeyIndex(null, Array.Empty<int>(), hasCollectionKeys: false);
+        private static readonly YamlKeyIndex Empty = new YamlKeyIndex(null, null, null, Array.Empty<int>(), hasCollectionKeys: false);
 
-        private YamlKeyIndex(Dictionary<string, int>? map, int[] merges, bool hasCollectionKeys) {
-            Map = map;
+        private readonly int[]? _buckets;
+        private readonly int[]? _next;
+        private readonly int[]? _hashes;
+
+        private YamlKeyIndex(int[]? buckets, int[]? next, int[]? hashes, int[] merges, bool hasCollectionKeys) {
+            _buckets = buckets;
+            _next = next;
+            _hashes = hashes;
             Merges = merges;
             HasCollectionKeys = hasCollectionKeys;
         }
-
-        public Dictionary<string, int>? Map { get; }
 
         public int[] Merges { get; }
 
         /// <summary>Whether a key is a mapping or sequence, which only <see cref="IndexOfCollectionKey"/> can find.</summary>
         public bool HasCollectionKeys { get; }
 
+        /// <summary>Returns the position of the entry whose key has the text, choosing among equal keys by the duplicate-key policy.</summary>
+        public int Find(YamlMapping mapping, string key) {
+            bool last = mapping.Document?.DuplicateKeys == YamlDuplicateKeyPolicy.LastWins;
+            int found = -1;
+            if (_buckets is null) {
+                for (int i = 0; i < mapping._count; i++) {
+                    if (!mapping.TryGetKeyText(i, out ReadOnlySpan<char> text) || !text.SequenceEqual(key.AsSpan())) continue;
+                    if (!last) return i;
+                    found = i;
+                }
+                return found;
+            }
+            int hash = YamlNodeTable.HashText(key.AsSpan());
+            // Chains list later entries first.
+            for (int i = _buckets[hash & (_buckets.Length - 1)] - 1; i >= 0; i = _next![i] - 1) {
+                if (_hashes![i] != hash || !mapping.TryGetKeyText(i, out ReadOnlySpan<char> text) || !text.SequenceEqual(key.AsSpan())) continue;
+                if (last) return i;
+                found = i;
+            }
+            return found;
+        }
+
         public static YamlKeyIndex Build(YamlMapping mapping) {
             int count = mapping._count;
-            YamlMappingEntry[] entries = mapping.Entries;
             int merges = 0;
             bool collectionKeys = false;
             for (int i = 0; i < count; i++) {
-                if (entries[i].Key is YamlScalar key) {
-                    if (key.IsMergeKey()) merges++;
-                } else if (entries[i].Key.Resolved is not YamlScalar) {
-                    collectionKeys = true;
-                }
+                if (mapping.IsMergeKeyAt(i)) merges++;
+                else if (mapping.IsCollectionKeyAt(i)) collectionKeys = true;
             }
-            Dictionary<string, int>? map = null;
+            int[]? buckets = null, next = null, hashes = null;
             if (count > LinearLookupLimit) {
-                bool last = mapping.Document?.DuplicateKeys == YamlDuplicateKeyPolicy.LastWins;
-                map = new Dictionary<string, int>(count, StringComparer.Ordinal);
+                int size = 16;
+                while (size < count * 2) size <<= 1;
+                buckets = new int[size];
+                next = new int[count];
+                hashes = new int[count];
                 for (int i = 0; i < count; i++) {
-                    string? text = KeyText(entries[i].Key);
-                    if (text is null) continue;
-                    if (last) map[text] = i;
-                    else if (!map.ContainsKey(text)) map.Add(text, i);
+                    if (!mapping.TryGetKeyText(i, out ReadOnlySpan<char> text)) continue;
+                    int hash = YamlNodeTable.HashText(text);
+                    int bucket = hash & (size - 1);
+                    hashes[i] = hash;
+                    next[i] = buckets[bucket];
+                    buckets[bucket] = i + 1;
                 }
             }
-            if (map is null && merges == 0 && !collectionKeys) return Empty;
+            if (buckets is null && merges == 0 && !collectionKeys) return Empty;
             int[] mergeEntries = merges == 0 ? Array.Empty<int>() : new int[merges];
             for (int i = 0, m = 0; m < merges; i++) {
-                if (entries[i].Key is YamlScalar key && key.IsMergeKey()) mergeEntries[m++] = i;
+                if (mapping.IsMergeKeyAt(i)) mergeEntries[m++] = i;
             }
-            return new YamlKeyIndex(map, mergeEntries, collectionKeys);
+            return new YamlKeyIndex(buckets, next, hashes, mergeEntries, collectionKeys);
         }
     }
 
@@ -355,7 +451,7 @@ public sealed class YamlMapping : YamlNode, IReadOnlyList<YamlMappingEntry> {
         }
 
         /// <inheritdoc />
-        public YamlMappingEntry Current => _mapping.Entries[_index];
+        public YamlMappingEntry Current => _mapping.EntryAt(_index);
 
         object IEnumerator.Current => Current;
 

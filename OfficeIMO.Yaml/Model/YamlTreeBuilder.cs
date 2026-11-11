@@ -26,7 +26,7 @@ internal sealed class YamlTreeBuilder {
     private int _documentNodes;
     private long _expansion;
     private int[] _keys = ArrayPool<int>.Shared.Rent(16);
-    private KeyIdentity[] _identities = ArrayPool<KeyIdentity>.Shared.Rent(16);
+    private KeyIdentity[] _identities = new KeyIdentity[16];
     private int[] _buckets = ArrayPool<int>.Shared.Rent(16);
     private int _findingsTaken;
     /// <summary>Whether the current part's merge keys still need their one note: they merge under the core schema only because the load is not strict.</summary>
@@ -54,7 +54,6 @@ internal sealed class YamlTreeBuilder {
         } finally {
             ArrayPool<Frame>.Shared.Return(_frames);
             ArrayPool<int>.Shared.Return(_keys);
-            ArrayPool<KeyIdentity>.Shared.Return(_identities);
             ArrayPool<int>.Shared.Return(_buckets);
         }
     }
@@ -96,7 +95,11 @@ internal sealed class YamlTreeBuilder {
                     r.Text = -1;
                     SetProperties(record, reader, in ev, open: false);
                     Count(in ev);
-                    if (ev.IsKey && _noteMergeKeys && _frameCount > 0 && IsMergeKey(record)) _frames[_frameCount - 1].MergeKey = true;
+                    // A merge key is '<<' or tagged; other keys skip the check.
+                    if (ev.IsKey && _noteMergeKeys && _frameCount > 0 && (ev.HasTag || (ev.ValueEnd - ev.ValueStart == 2 && _source[ev.ValueStart] == '<'))
+                        && IsMergeKey(record)) {
+                        _frames[_frameCount - 1].MergeKey = true;
+                    }
                     AddToParent(1);
                     break;
                 }
@@ -255,7 +258,7 @@ internal sealed class YamlTreeBuilder {
         if (count < 2) return;
         CollectKeys(mapping);
         int[] keys = _keys;
-        if (_identities.Length < count) _identities = Grow(_identities, 0, Math.Max(count, _identities.Length * 2));
+        if (_identities.Length < count) _identities = new KeyIdentity[Math.Max(count, _identities.Length * 2)];
         KeyIdentity[] identities = _identities;
         for (int i = 0; i < count; i++) {
             identities[i] = Identify(keys[i]);
@@ -328,11 +331,7 @@ internal sealed class YamlTreeBuilder {
     private bool Same(in KeyIdentity a, in KeyIdentity b) =>
         a.Class == b.Class && a.Hash == b.Hash && (a.Class == CollectionKey || Span(in a).SequenceEqual(Span(in b)));
 
-    private int Hash(in KeyIdentity identity) {
-        uint hash = 2166136261 ^ identity.Class;
-        foreach (char ch in Span(in identity)) hash = (hash ^ ch) * 16777619;
-        return (int)(hash ^ (hash >> 15));
-    }
+    private int Hash(in KeyIdentity identity) => YamlNodeTable.HashText(Span(in identity)) ^ (identity.Class * 0x45D9F3B);
 
     /// <summary>Resolves a scalar record's kind as the reader does; returns false for tags no schema resolves.</summary>
     private bool TryGetKind(int record, out YamlScalarKind kind) {
@@ -346,13 +345,7 @@ internal sealed class YamlTreeBuilder {
         return resolved;
     }
 
-    private bool IsMergeKey(int record) {
-        string? tag = _table.Tag(record);
-        if (tag is not null) return tag == YamlSchemaResolver.TagPrefix + "merge";
-        ref YamlNodeRecord r = ref _table.Records[record];
-        if (r.Style != YamlStyle.Plain || !_part!.MergeKeys) return false;
-        return r.ValueEnd - r.ValueStart == 2 && _source[r.ValueStart] == '<' && _source[r.ValueStart + 1] == '<';
-    }
+    private bool IsMergeKey(int record) => _table.IsMergeKey(record, _part!.MergeKeys);
 
     /// <summary>
     /// Returns a key's identity; equal identities correspond to equal values of <see cref="YamlKeyEquality.Identity"/> for
