@@ -599,11 +599,15 @@ internal static partial class PdfPageXObjectInvocationParser {
                 return;
             }
 
+            // Borrowed TJ arrays keep their strings typed; each string is read through a scratch copy.
+            PdfContentOperands? typed = items as PdfContentOperands;
             bool usesType3GlyphProgram = IsActiveType3Font();
             bool isVisible = !HasHiddenContent() && !IsCurrentPaintSuppressedBySoftMask();
             long glyphCount = 0;
             for (int i = 0; i < items.Count; i++) {
-                if (items[i] is byte[] bytes) glyphCount += bytes.Length;
+                if (typed != null) {
+                    if (typed.IsString(i)) glyphCount += typed.StringLength(i);
+                } else if (items[i] is byte[] bytes) glyphCount += bytes.Length;
             }
             if (glyphCount > int.MaxValue) {
                 _type3GlyphBudgetConsumer?.Invoke(int.MaxValue);
@@ -613,7 +617,10 @@ internal static partial class PdfPageXObjectInvocationParser {
             PdfType3PaintChannels ordinaryTextPaintChannels = ResolveTextPaintChannels(_textRenderingMode);
             bool ordinaryTextAffectsOutput = false;
             for (int i = 0; i < items.Count; i++) {
-                if (items[i] is byte[] bytes) {
+                byte[]? bytes = typed != null
+                    ? typed.IsString(i) ? ReadScratchString(typed, i) : null
+                    : items[i] as byte[];
+                if (bytes != null) {
                     (double X, double Y) advance = ProcessShownText(bytes, glyphs);
                     ordinaryTextAffectsOutput |=
                         isVisible &&
@@ -622,7 +629,7 @@ internal static partial class PdfPageXObjectInvocationParser {
                         IsOrdinaryTextFrameVisible(advance.X);
                     if (isVisible && !usesType3GlyphProgram) ApplyTextClippingPath(advance.X);
                     _textMatrix = Matrix2D.Multiply(_textMatrix, Matrix2D.Translation(advance.X, advance.Y));
-                } else if (items[i] is double kerning) {
+                } else if (TryGetArrayNumber(items, typed, i, out double kerning)) {
                     double delta = -kerning / 1000D * _textSize * _textHScale;
                     _textMatrix = Matrix2D.Multiply(_textMatrix, Matrix2D.Translation(delta, 0D));
                 }
@@ -653,6 +660,32 @@ internal static partial class PdfPageXObjectInvocationParser {
                 glyphCount > 0) {
                 _ordinaryTextPaintVisitor?.Invoke(ordinaryTextPaintChannels, _patternState.Fill, _patternState.Stroke, ordinaryTextAddsClip);
             }
+        }
+
+        private byte[]?[]? _scratchStrings;
+
+        private static bool TryGetArrayNumber(IReadOnlyList<object> items, PdfContentOperands? typed, int index, out double value) {
+            if (typed != null) return typed.TryGetNumber(index, out value);
+            if (items[index] is double number) {
+                value = number;
+                return true;
+            }
+            value = 0D;
+            return false;
+        }
+
+        // Shown text is measured synchronously and never retained, so strings of one length share a buffer.
+        private byte[] ReadScratchString(PdfContentOperands operands, int index) {
+            int length = operands.StringLength(index);
+            byte[] bytes;
+            if (length < 256) {
+                _scratchStrings ??= new byte[]?[256];
+                bytes = _scratchStrings[length] ??= new byte[length];
+            } else {
+                bytes = new byte[length];
+            }
+            operands.CopyStringTo(index, bytes, 0);
+            return bytes;
         }
 
         private void AdvertiseInheritedType3Patterns(PdfType3PaintChannels channels) {
