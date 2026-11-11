@@ -101,6 +101,7 @@ public sealed partial class PdfCreateOptions {
             _defaultFontsUseStandardMetrics = _defaultFontsUseStandardMetrics,
             _defaultFontEmbeddingAttempts = _defaultFontEmbeddingAttempts == null ? null : new HashSet<PdfStandardFont>(_defaultFontEmbeddingAttempts),
             _defaultEmbeddedFontFamilies = _defaultEmbeddedFontFamilies == null ? null : new HashSet<PdfStandardFont>(_defaultEmbeddedFontFamilies),
+            _pendingDefaultFontFamilies = ClonePendingDefaultFontFamilies(),
             _fallbackOwnedFontFamilies = _fallbackOwnedFontFamilies == null
                 ? null : new HashSet<PdfStandardFont>(_fallbackOwnedFontFamilies),
             _automaticFallbackOwnedNamedFamilyKeys = _automaticFallbackOwnedNamedFamilyKeys == null

@@ -140,6 +140,7 @@ public sealed partial class PdfCreateOptions {
                 : family.ItalicSnapshot == null;
         }
 
+        ResolvePendingDefaultFontFamilies(font);
         return _embeddedFonts != null &&
                _embeddedFonts.TryGetValue(font, out PdfEmbeddedFont? embeddedFont) &&
                embeddedFont.SyntheticOblique;

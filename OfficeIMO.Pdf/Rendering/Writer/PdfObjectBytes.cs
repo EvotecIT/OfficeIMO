@@ -9,14 +9,14 @@ internal static class PdfObjectBytes {
             return WrapIndirectObject(objectNumber, PdfEncoding.Latin1GetBytes(body));
         }
 
-        string header = objectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj\n";
+        int headerLength = GetObjectHeaderLength(objectNumber);
         // The suffix follows encoded bytes: high code units may also have a CR/LF low byte.
         int lastByte = body.Length == 0 ? -1 : body[body.Length - 1] & 0xFF;
         string suffix = lastByte == '\n' || lastByte == '\r' ? "endobj\n" : "\nendobj\n";
-        var result = new byte[header.Length + body.Length + suffix.Length];
-        PdfEncoding.Latin1GetBytes(header, result, 0);
-        PdfEncoding.Latin1GetBytes(body, result, header.Length);
-        PdfEncoding.Latin1GetBytes(suffix, result, header.Length + body.Length);
+        var result = new byte[headerLength + body.Length + suffix.Length];
+        WriteObjectHeader(objectNumber, result, headerLength);
+        PdfEncoding.Latin1GetBytes(body, result, headerLength);
+        PdfEncoding.Latin1GetBytes(suffix, result, headerLength + body.Length);
         return result;
     }
 
@@ -25,12 +25,12 @@ internal static class PdfObjectBytes {
         Guard.NotNull(body, nameof(body));
 #if NET6_0_OR_GREATER
         if (objectNumber >= 1) {
-            string header = objectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj\n";
+            int headerLength = GetObjectHeaderLength(objectNumber);
             int lastByte = body.Length == 0 ? -1 : body[body.Length - 1] & 0xFF;
             string suffix = lastByte == '\n' || lastByte == '\r' ? "endobj\n" : "\nendobj\n";
-            var result = new byte[header.Length + body.Length + suffix.Length];
-            PdfEncoding.Latin1GetBytes(header, result, 0);
-            int position = header.Length;
+            var result = new byte[headerLength + body.Length + suffix.Length];
+            WriteObjectHeader(objectNumber, result, headerLength);
+            int position = headerLength;
             foreach (ReadOnlyMemory<char> chunk in body.GetChunks()) {
                 ReadOnlySpan<char> span = chunk.Span;
                 for (int index = 0; index < span.Length; index++) result[position++] = (byte)(span[index] & 0xFF);
@@ -40,6 +40,21 @@ internal static class PdfObjectBytes {
         }
 #endif
         return WrapIndirectObject(objectNumber, body.ToString());
+    }
+
+    // "N 0 obj\n" for a positive object number, written as bytes rather than built as a string per object.
+    private static int GetObjectHeaderLength(int objectNumber) {
+        int digits = 1;
+        for (int value = objectNumber; value >= 10; value /= 10) digits++;
+        return digits + " 0 obj\n".Length;
+    }
+
+    private static void WriteObjectHeader(int objectNumber, byte[] result, int headerLength) {
+        int position = headerLength - " 0 obj\n".Length;
+        for (int value = objectNumber; position > 0; value /= 10) {
+            result[--position] = (byte)('0' + value % 10);
+        }
+        PdfEncoding.Latin1GetBytes(" 0 obj\n", result, headerLength - " 0 obj\n".Length);
     }
 
     internal static byte[] WrapIndirectObject(int objectNumber, byte[] body) {

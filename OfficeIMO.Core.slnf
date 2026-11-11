@@ -6,6 +6,8 @@
       "OfficeIMO.Archives\\OfficeIMO.Archives.csproj",
       "OfficeIMO.Core\\OfficeIMO.Core.csproj",
       "OfficeIMO.CSV\\OfficeIMO.CSV.csproj",
+      "OfficeIMO.Toml.Tests\\OfficeIMO.Toml.Tests.csproj",
+      "OfficeIMO.Toml\\OfficeIMO.Toml.csproj",
       "OfficeIMO.Data.Arrow\\OfficeIMO.Data.Arrow.csproj",
       "OfficeIMO.Data.Generators\\OfficeIMO.Data.Generators.csproj",
       "OfficeIMO.Epub\\OfficeIMO.Epub.csproj",

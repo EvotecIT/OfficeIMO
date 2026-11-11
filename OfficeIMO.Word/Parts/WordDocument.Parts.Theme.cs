@@ -6,7 +6,7 @@ namespace OfficeIMO.Word {
     // Provides the theme part content.
     public partial class WordDocument {
         // Generates content of themePart1.
-        private static void GenerateThemePart1Content(ThemePart themePart1) {
+        internal static void GenerateThemePart1Content(ThemePart themePart1) {
             A.Theme theme1 = new A.Theme() { Name = "Office Theme" };
             theme1.AddNamespaceDeclaration("thm15", "http://schemas.microsoft.com/office/thememl/2012/main");
             theme1.AddNamespaceDeclaration("a", "http://schemas.openxmlformats.org/drawingml/2006/main");

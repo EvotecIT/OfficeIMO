@@ -43,7 +43,8 @@ namespace OfficeIMO.Excel.Xlsb.Package {
 
         /// <summary>
         /// Starts inflating a worksheet on a background task and returns at once, for single-pass reading.
-        /// The caller owns the part and must join <paramref name="producer"/> before disposing it.
+        /// The caller owns the part and must join <paramref name="producer"/> before disposing it or reading
+        /// another part, since the producer reads the shared archive and decompression budget.
         /// </summary>
         internal bool TryStartStreamedRead(string partName, CancellationToken cancellationToken,
             out XlsbPooledPartStream? part, out WorksheetInflationProgress? progress, out Task? producer,

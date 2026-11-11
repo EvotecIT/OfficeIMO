@@ -263,5 +263,15 @@ public enum MarkdownSyntaxKind {
     /// <summary>Placeholder table of contents block.</summary>
     TocPlaceholder,
     /// <summary>Fallback for blocks without a dedicated mapping yet.</summary>
-    Unknown
+    Unknown,
+    /// <summary>Inline TeX math node (<c>$...$</c> or <c>$$...$$</c>).</summary>
+    InlineMath,
+    /// <summary>TeX source token inside an inline math node.</summary>
+    InlineMathContent,
+    /// <summary>Display math block delimited by <c>$$</c> lines.</summary>
+    MathBlock,
+    /// <summary>Opening or closing <c>$$</c> delimiter of a display math block.</summary>
+    MathBlockDelimiter,
+    /// <summary>TeX source token inside a display math block.</summary>
+    MathBlockContent
 }

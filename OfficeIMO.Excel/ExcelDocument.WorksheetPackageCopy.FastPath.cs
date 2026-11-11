@@ -20,6 +20,7 @@ namespace OfficeIMO.Excel {
             WorksheetPart copiedPart = WorkbookPartRoot.AddPart(sourcePart);
             IReadOnlyDictionary<string, string> tableNameMap = BuildIdentityTableNameMap(copiedPart);
             Sheet sheet = AppendWorksheetElement(copiedPart, validatedName);
+            CopyWorksheetVisibility(sourceSheet.SheetElement, sheet);
             var targetSheet = new ExcelSheet(this, _spreadSheetDocument, sheet);
             _tableNameCache = null;
             _nextTableId = null;

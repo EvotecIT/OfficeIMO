@@ -1991,7 +1991,7 @@ When the PDF reader can prove a text span's code-to-glyph mapping, SVG export pr
 
 PDF text rendering retains affine text geometry, including shear combined with rotation or nonuniform scaling. Source clipping stays in page coordinates, and positioned character and word spacing retain their PDF origins. Glyph outlines transform before text strokes, so the text matrix does not distort stroke widths or dash spacing. Drawings read from PDF pages retain this geometry for raster and SVG export. PDF canvas authoring rejects imported affine glyph text explicitly; writing that drawing into a new PDF needs a qualified glyph-transform writer path. Dashed outline joins can still differ from native PDF renderers at closed-path seams or when a dash starts exactly at a corner.
 
-Scanned-page images support managed CCITT Group 3/4 decoding and packed 1-, 2-, and 4-bit DeviceGray samples. Opaque JPEG 2000 Gray/RGB images require a caller-supplied `IOfficeRasterImageCodec`; embedded or external masks, channel remapping, and color normalization remain diagnosed limitations. Missing scan decoders and malformed scan data fail raster rendering instead of producing a blank successful page. See the [OCR integration](../OfficeIMO.Pdf.Ocr/README.md#scan-rendering-and-execution-limits) for the decoder limits and scan-to-searchable-PDF workflow.
+Scanned-page images support managed CCITT Group 3/4 decoding and packed 1-, 2-, and 4-bit DeviceGray samples. JPEG 2000 (`JPXDecode`) images decode with the managed ISO/IEC 15444-1 decoder, including JP2 palettes, channel definitions, ICC colour boxes and `SMaskInData`; JBIG2 images decode generic, refinement, symbol/text (arithmetic and Huffman) and pattern/halftone regions. Missing scan decoders and malformed scan data fail raster rendering instead of producing a blank successful page. See the [OCR integration](../OfficeIMO.Pdf.Ocr/README.md#scan-rendering-and-execution-limits) for the decoder limits and scan-to-searchable-PDF workflow.
 
 Convert a source document to `PdfDocument` and use the same paged-image bridge:
 
@@ -2122,6 +2122,27 @@ Formal generation gates are available for PDF/A-2a/b/u, PDF/A-3a/b/u, PDF/A-4/4e
 For an opened PDF, `pdf.AssessCompliance(profile, cancellationToken)` checks readback readiness and observes cancellation during inspection. These checks do not independently verify the PDF/A-4f catalog `EmbeddedFiles` name tree or all PDF/A-2 and base PDF/A-4 attachment restrictions. Attachment recovery alone does not prove those requirements; validate the exact saved artifact externally before claiming conformance.
 
 PDF authoring accepts font faces up to 128 MiB each. `EmbedStandardFont` and `PdfEmbeddedFontFamily.FromFiles` check file size before reading and recheck while reading, so use their path overloads when loading files. Byte-array inputs are checked before OfficeIMO copies them. An oversized face throws `InvalidDataException` without changing the authoring options.
+
+### Convert an existing PDF to PDF/A
+
+```csharp
+using OfficeIMO.Pdf;
+
+PdfAConversionResult result = PdfDocument.Load("contract.pdf")
+    .ConvertToPdfA(new PdfAConversionOptions { Profile = PdfComplianceProfile.PdfA3U });
+
+if (result.Succeeded) {
+    result.Save("contract-archive.pdf");
+} else {
+    foreach (PdfAConversionViolation violation in result.Report.Violations) {
+        Console.WriteLine($"{violation.Reason} at {violation.Location}: {violation.Message}");
+    }
+}
+```
+
+`ConvertToPdfA` targets PDF/A-2b, 2u, 3b and 3u. It fixes only what leaves every page drawn the same: it adds PDF/A identification in XMP and an sRGB output intent, removes encryption (`Password` takes the owner password), JavaScript and forbidden actions, sets annotation print flags, keeps only normal appearances, re-encodes LZW streams, embeds a non-embedded font from an installed face when every drawn glyph has the same width, and adds ToUnicode maps for the u-levels. PDF/A-3 keeps attachments and marks their relationship; PDF/A-2 removes them unless `RemoveEmbeddedFiles` is `false`. `Report.Changes` lists every change by object.
+
+When something cannot be fixed that way, such as a composite font that is not embedded, device CMYK under an RGB output intent, or an annotation without an appearance, nothing is produced and `Report.Violations` lists every reason by object. `SaveAsPdfA(path)` throws `PdfAConversionException` in that case without creating the file. Supply a CMYK ICC profile in `OutputIntentProfile` to convert files painted in device CMYK. Validate the converted file externally before claiming conformance.
 
 ### Generate a fail-closed PDF/X artifact
 

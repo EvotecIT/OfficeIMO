@@ -28,10 +28,12 @@
     <InternalsVisibleTo Include="OfficeIMO.Archives" />
     <InternalsVisibleTo Include="OfficeIMO.Archives.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Drawing.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Email" />
     <InternalsVisibleTo Include="OfficeIMO.Html" />
     <InternalsVisibleTo Include="OfficeIMO" />
     <InternalsVisibleTo Include="OfficeIMO.Word.Html" />
     <InternalsVisibleTo Include="OfficeIMO.Markdown.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.Markdown.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.OneNote" />
     <InternalsVisibleTo Include="OfficeIMO.Chm" />
     <InternalsVisibleTo Include="OfficeIMO.Xps" />

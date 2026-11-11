@@ -912,6 +912,7 @@ public sealed partial class PdfCreateOptions {
     }
 
     private void ClearEmbeddedStandardFontMappings() {
+        ResolvePendingDefaultFontFamilies();
         _embeddedFonts?.Clear();
         _embeddedFontPrograms?.Clear();
         _embeddedOpenTypeCffFontPrograms?.Clear();

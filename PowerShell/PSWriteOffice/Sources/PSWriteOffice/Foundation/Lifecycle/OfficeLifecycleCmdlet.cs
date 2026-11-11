@@ -36,7 +36,12 @@ public abstract class OfficeLifecycleCmdlet<TDocument> : OfficeCmdlet, IDisposab
             }
         } catch (ArgumentException error) { InvalidArgument(error, path); return; }
         // Opening a live document and editing in memory have no filesystem effect.
-        if (Content == null) { WriteObject(factory(sourcePath ?? resolved)); return; }
+        if (Content == null) {
+            TDocument live = factory(sourcePath ?? resolved);
+            if (isNew && resolved != null) OfficeUnsavedNewDocuments.Track(live, resolved);
+            WriteObject(live);
+            return;
+        }
         if (!ShouldProcess(resolved!, isNew ? "Create document" : "Save document")) return;
         try {
             FileInfo result = OfficeContentLifecycle.Run(resolved!, isNew, isNew && !force, AllowLoss,

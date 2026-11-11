@@ -1,5 +1,5 @@
 {
-  "schemaVersion":9,
+  "schemaVersion":10,
   "routes": [
     {
       "id":"heic-pdf",
@@ -20,6 +20,7 @@
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
       "agentDiscoverable":false,
+      "hostExecutable":true,
       "requiresImageCodec":true
     },
     {
@@ -31,16 +32,17 @@
       "targetExtension":".pdf",
       "packageId":"OfficeIMO",
       "api":"OfficeConverter.Convert(source, destination, options)",
-      "description":"Project email content and attachment policy into searchable PDF with Reader evidence.",
-      "fidelity":"Semantic",
+      "description":"Render the message header, sanitized body, inline images and attachment list into searchable PDF through the HTML engine; the TextOnly profile writes the Reader text projection.",
+      "fidelity":"FixedLayout",
       "textFormatting":"FixedLayoutAppearance",
       "textFormattingContract":"Preserves supported font styling as fixed-layout PDF text and graphics; conversion diagnostics identify source semantics the managed renderer approximates or omits.",
       "supportLevel":"Targeted",
-      "supportEvidence":"Reader projection fixtures cover searchable email text, EPUB chapter order, Visio semantic fallback and policy findings in reopened PDF output.",
-      "knownLimitations":"Source-neutral semantic projection only. Attachments, pagination, resources, forms and source layout follow explicit projection policies and diagnostics; this route does not promise native visual equivalence.",
+      "supportEvidence":"Converter and host fixtures reopen the PDF and find the subject, sender, To and Cc recipients, date, HTML body and attachment list; the TextOnly profile keeps the Reader projection and its email policy finding.",
+      "knownLimitations":"Renders through the HTML-to-PDF engine with the shared email body sanitization, blocked remote resources and bounded inline MIME images. RTF-only bodies are approximated through HTML. Attachment payloads are listed, not embedded or rendered; signed and encrypted payloads are not verified or decrypted. Mail-client visual equivalence is not promised.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"epub-pdf",
@@ -60,7 +62,8 @@
       "knownLimitations":"Source-neutral semantic projection only. Attachments, pagination, resources, forms and source layout follow explicit projection policies and diagnostics; this route does not promise native visual equivalence.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"reader-visio-pdf",
@@ -80,7 +83,8 @@
       "knownLimitations":"Source-neutral semantic projection only. Attachments, pagination, resources, forms and source layout follow explicit projection policies and diagnostics; this route does not promise native visual equivalence.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"doc-pdf",
@@ -100,7 +104,8 @@
       "knownLimitations":"Only the supported Word 97-2003 import subset is projected. Preserved-only graphics and richer structures cannot be rendered; Word pagination may differ.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"txt-pdf",
@@ -120,7 +125,8 @@
       "knownLimitations":"Long lines wrap to page width. Unicode appearance depends on supplied fonts; no Markdown, HTML or ANSI interpretation occurs.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"djvu-pdf",
@@ -140,7 +146,8 @@
       "knownLimitations":"JB2, MMR, IW44 1.2, palettes and managed JPEG profiles only. Annotations are reported without active rendering; indirect components require an explicit native resolver. OCR is caller-supplied and absent/empty-text-only. See OfficeIMO.DjVu/SUPPORT.md.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"xps-pdf",
@@ -160,7 +167,8 @@
       "knownLimitations":"Strict export rejects unsupported paint and semantic reconstruction. Search requires literal UnicodeString; glyph IDs, figure descriptions and PDF/UA conformance are not inferred. Native print tickets, metadata and signatures are not PDF preservation contracts.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"chm-pdf",
@@ -180,7 +188,8 @@
       "knownLimitations":"ITSF 2/3 with uncompressed or standard LZX storage. ActiveX, scripts, merged-help books, the compiled search engine and Windows viewer behavior are not reproduced. Reflow can change CSS scope; multi-topic PDF is untagged and does not rebuild cross-topic links or the keyword index. See OfficeIMO.Chm/SUPPORT.md.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"chm-markdown",
@@ -200,7 +209,8 @@
       "knownLimitations":"ITSF 2/3 with uncompressed or standard LZX storage. ActiveX, scripts, merged-help books, the compiled search engine and Windows viewer behavior are not reproduced. Reflow can change CSS scope; multi-topic PDF is untagged and does not rebuild cross-topic links or the keyword index. See OfficeIMO.Chm/SUPPORT.md.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"chm-epub",
@@ -220,7 +230,8 @@
       "knownLimitations":"ITSF 2/3 with uncompressed or standard LZX storage. ActiveX, scripts, merged-help books, the compiled search engine and Windows viewer behavior are not reproduced. Reflow can change CSS scope; multi-topic PDF is untagged and does not rebuild cross-topic links or the keyword index. See OfficeIMO.Chm/SUPPORT.md.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"word-xml-docx",
@@ -240,7 +251,8 @@
       "knownLimitations":"DOCX output accepts ordinary Word documents. Macro-enabled and template Flat OPC packages require a matching native package destination through the Word API. Word 2003 XML import reports unsupported features.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"spreadsheet-xml-xlsx",
@@ -260,7 +272,8 @@
       "knownLimitations":"Uses the bounded Excel XML Spreadsheet 2003 codec. Unsupported workbook features are reported and formula execution is outside import.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"docx-pdf",
@@ -280,7 +293,8 @@
       "knownLimitations":"Complex floating layout, advanced DrawingML, SmartArt, field behavior, and exact Microsoft Word pagination are not fully reproduced.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":true,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"xlsx-pdf",
@@ -300,7 +314,8 @@
       "knownLimitations":"Pivot tables, advanced conditional formatting, charts, external links, and exact Excel print-layout behavior remain incomplete.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":true,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"pptx-pdf",
@@ -320,7 +335,8 @@
       "knownLimitations":"SmartArt, animation, media playback, advanced effects, uncommon DrawingML, and exact PowerPoint composition remain incomplete.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":true,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"html-pdf",
@@ -340,7 +356,8 @@
       "knownLimitations":"The renderer supports bounded HTML and CSS, not a full browser layout engine; scripts, dynamic layout, and advanced CSS are intentionally unsupported.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":true,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"book-project-epub",
@@ -360,7 +377,8 @@
       "knownLimitations":"Exports the current publication only; project revisions and review records remain in the source project. Import failures block export, and non-fatal import losses require saved author acknowledgment. Reader presentation and comprehensive accessibility qualification remain separate.",
       "resultContract":"EpubWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"html-epub",
@@ -380,7 +398,8 @@
       "knownLimitations":"Reflowable EPUB 3 only. Source layout, live fields, revisions, comments and controls can require reported approximations or omissions. Missing assets and unnamed images block export; schema conformance, accessibility metadata and reader presentation require independent review. DOCX and Markdown composition uses OfficeIMO.Workflows on .NET 8 or newer.",
       "resultContract":"EpubManuscriptResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"markdown-epub",
@@ -400,7 +419,8 @@
       "knownLimitations":"Reflowable EPUB 3 only. Source layout, live fields, revisions, comments and controls can require reported approximations or omissions. Missing assets and unnamed images block export; schema conformance, accessibility metadata and reader presentation require independent review. DOCX and Markdown composition uses OfficeIMO.Workflows on .NET 8 or newer.",
       "resultContract":"EpubManuscriptResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"docx-epub",
@@ -420,7 +440,8 @@
       "knownLimitations":"Reflowable EPUB 3 only. Source layout, live fields, revisions, comments and controls can require reported approximations or omissions. Missing assets and unnamed images block export; schema conformance, accessibility metadata and reader presentation require independent review. DOCX and Markdown composition uses OfficeIMO.Workflows on .NET 8 or newer.",
       "resultContract":"EpubManuscriptResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"markdown-html",
@@ -440,7 +461,8 @@
       "knownLimitations":"Raw HTML, extension-specific syntax, and browser-dependent styling are governed by the selected safety and rendering profile.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":true,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"html-markdown",
@@ -460,7 +482,8 @@
       "knownLimitations":"CSS layout, scripting, arbitrary embedded content, and presentation-only markup are simplified or omitted.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":true,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"markdown-pptx",
@@ -480,7 +503,8 @@
       "knownLimitations":"Markdown is projected through the supported OfficeIMO Markup presentation profile. Unsupported blocks and styling are simplified or diagnosed; automatic layout, pagination, and native PowerPoint visual equivalence are not promised.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"markdown-docx",
@@ -500,7 +524,8 @@
       "knownLimitations":"Raw HTML, extension-specific syntax, and constructs without a Word equivalent may be simplified.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":true,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"docx-html",
@@ -520,7 +545,8 @@
       "knownLimitations":"Page layout, floating objects, advanced fields, tracked changes, and unsupported DrawingML are simplified in semantic output.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"docx-markdown",
@@ -540,7 +566,8 @@
       "knownLimitations":"Page layout, floating objects, advanced fields, tracked changes, and unsupported DrawingML are simplified in semantic output.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"docx-odt",
@@ -560,7 +587,8 @@
       "knownLimitations":"Fields, notes, section-specific layout, advanced drawings, nested styles, and producer-specific extensions remain incomplete.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"odt-docx",
@@ -580,7 +608,8 @@
       "knownLimitations":"Fields, notes, section-specific layout, advanced drawings, nested styles, and producer-specific extensions remain incomplete.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"docx-rtf",
@@ -600,7 +629,8 @@
       "knownLimitations":"Unsupported destinations, fields, embedded objects, complex tables, and producer-specific RTF controls are simplified or reported.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"rtf-docx",
@@ -620,7 +650,8 @@
       "knownLimitations":"Unsupported destinations, fields, embedded objects, complex tables, and producer-specific RTF controls are simplified or reported.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"xlsx-html",
@@ -640,7 +671,8 @@
       "knownLimitations":"Interactive workbook behavior, chart rendering and unsupported chart styling, pivots, macros, and exact print layout are not represented in semantic HTML.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"xlsx-ods",
@@ -660,7 +692,8 @@
       "knownLimitations":"Advanced validation, conditional formatting, charts, pivots, external links, macros, and complex styles remain incomplete.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"ods-xlsx",
@@ -680,7 +713,8 @@
       "knownLimitations":"Advanced validation, conditional formatting, charts, pivots, external links, macros, and complex styles remain incomplete.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"pptx-html",
@@ -700,7 +734,8 @@
       "knownLimitations":"The result is review HTML rather than a slide renderer; animations, media, SmartArt, and advanced effects are simplified.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"pptx-odp",
@@ -720,7 +755,8 @@
       "knownLimitations":"Masters, advanced DrawingML, SmartArt, media, transitions, animations, and theme inheritance remain incomplete.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"odp-pptx",
@@ -740,7 +776,8 @@
       "knownLimitations":"Masters, advanced DrawingML, SmartArt, media, transitions, animations, and theme inheritance remain incomplete.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"markdown-pdf",
@@ -760,7 +797,8 @@
       "knownLimitations":"Raw HTML and extension-specific constructs are bounded by the Markdown profile and the managed PDF layout engine.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"rtf-markdown",
@@ -780,7 +818,8 @@
       "knownLimitations":"Unsupported destinations, fields, embedded objects, complex tables, and producer-specific RTF controls are simplified or reported.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"rtf-pdf",
@@ -800,7 +839,8 @@
       "knownLimitations":"Unsupported destinations, fields, embedded objects, complex tables, and producer-specific RTF controls are simplified or reported.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"markdown-rtf",
@@ -820,7 +860,8 @@
       "knownLimitations":"Unsupported destinations, fields, embedded objects, complex tables, and producer-specific RTF controls are simplified or reported.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"html-docx",
@@ -840,7 +881,8 @@
       "knownLimitations":"CSS layout, scripts, complex web components, and constructs without a native destination equivalent are simplified or omitted.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"html-xlsx",
@@ -860,7 +902,8 @@
       "knownLimitations":"CSS layout, scripts, complex web components, and constructs without a native destination equivalent are simplified or omitted.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"html-pptx",
@@ -880,7 +923,8 @@
       "knownLimitations":"CSS layout, scripts, complex web components, and constructs without a native destination equivalent are simplified or omitted.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"html-rtf",
@@ -900,7 +944,8 @@
       "knownLimitations":"CSS layout, scripts, complex web components, and constructs without a native destination equivalent are simplified or omitted.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"rtf-html",
@@ -920,7 +965,8 @@
       "knownLimitations":"Unsupported destinations, fields, embedded objects, complex tables, and producer-specific RTF controls are simplified or reported.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"asciidoc-markdown",
@@ -940,7 +986,8 @@
       "knownLimitations":"Includes, extensions, macros, complex attributes, custom processors, and unsupported inline or block syntax are not a full AsciiDoc implementation.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"markdown-asciidoc",
@@ -960,7 +1007,8 @@
       "knownLimitations":"Includes, extensions, macros, complex attributes, custom processors, and unsupported inline or block syntax are not a full AsciiDoc implementation.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"asciidoc-pdf",
@@ -980,7 +1028,8 @@
       "knownLimitations":"Includes, extensions, macros, complex attributes, custom processors, and unsupported inline or block syntax are not a full AsciiDoc implementation.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"latex-markdown",
@@ -1000,7 +1049,8 @@
       "knownLimitations":"Macro expansion, package execution, TeX layout, arbitrary mathematics, and unsupported environments are intentionally outside the managed subset.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"markdown-latex",
@@ -1020,7 +1070,8 @@
       "knownLimitations":"Macro expansion, package execution, TeX layout, arbitrary mathematics, and unsupported environments are intentionally outside the managed subset.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"latex-pdf",
@@ -1040,7 +1091,8 @@
       "knownLimitations":"Macro expansion, package execution, TeX layout, arbitrary mathematics, and unsupported environments are intentionally outside the managed subset.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"onenote-html",
@@ -1060,7 +1112,8 @@
       "knownLimitations":"The API targets the OfficeIMO section model; full .one binary fidelity, ink, embedded files, rich positioning, and OneNote application rendering remain incomplete.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"html-onenote",
@@ -1080,7 +1133,8 @@
       "knownLimitations":"The API targets the OfficeIMO section model; full .one binary fidelity, ink, embedded files, rich positioning, and OneNote application rendering remain incomplete.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"onenote-markdown",
@@ -1100,7 +1154,8 @@
       "knownLimitations":"The API targets the OfficeIMO section model; full .one binary fidelity, ink, embedded files, rich positioning, and OneNote application rendering remain incomplete.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"onenote-pdf",
@@ -1120,7 +1175,8 @@
       "knownLimitations":"The API targets the OfficeIMO section model; full .one binary fidelity, ink, embedded files, rich positioning, and OneNote application rendering remain incomplete.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"odt-pdf",
@@ -1140,7 +1196,8 @@
       "knownLimitations":"Inherited styles, advanced drawings, charts, media, nested inline syntax, and exact office-suite pagination remain incomplete.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"ods-pdf",
@@ -1160,7 +1217,8 @@
       "knownLimitations":"Inherited styles, advanced drawings, charts, media, nested inline syntax, and exact office-suite pagination remain incomplete.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"odp-pdf",
@@ -1180,7 +1238,8 @@
       "knownLimitations":"Inherited styles, advanced drawings, charts, media, nested inline syntax, and exact office-suite pagination remain incomplete.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"pdf-docx",
@@ -1200,7 +1259,8 @@
       "knownLimitations":"Editable mode reconstructs supported logical content; scans need OCR and exact layout is not preserved. Visual mode embeds page images within the managed renderer's support and resource limits; text and interactive objects are not editable.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":true,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"pdf-xlsx",
@@ -1220,7 +1280,8 @@
       "knownLimitations":"Only table-shaped content is in scope; arbitrary page layout, charts, free text, scans without OCR, and workbook formulas are not reconstructed.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":true,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"pdf-pptx",
@@ -1240,7 +1301,8 @@
       "knownLimitations":"Editable reconstruction is bounded to supported text, tables, basic shapes, and images; complex graphics, clipping, reading order, and effects remain incomplete.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":true,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"pdf-html",
@@ -1260,7 +1322,8 @@
       "knownLimitations":"The result is review HTML, not a full PDF renderer; complex graphics, optional content, scans without OCR, and pixel-perfect composition are not preserved.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":true,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"pdf-markdown",
@@ -1280,7 +1343,8 @@
       "knownLimitations":"Reading order and structure are reconstructed from supported PDF content. Fixed page layout, graphics, interactive behavior, and scans without OCR are not preserved; the canonical conversion reports layout approximation.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"pdf-png",
@@ -1300,7 +1364,8 @@
       "knownLimitations":"Image output is intentionally flattened; Type 3 glyph programs, advanced color profiles, patterns, masks, transparency groups, optional content, and scanned-text OCR remain incomplete.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":true,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"pdf-rtf",
@@ -1320,7 +1385,8 @@
       "knownLimitations":"Page layout, complex graphics, columns, clipping, annotations, scans without OCR, and exact pagination are not reconstructed.",
       "resultContract":"RtfDocument",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"pdf-odt",
@@ -1340,7 +1406,8 @@
       "knownLimitations":"Page layout, complex graphics, columns, clipping, annotations, scans without OCR, and exact pagination are not reconstructed.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"pdf-ods",
@@ -1360,7 +1427,8 @@
       "knownLimitations":"Only table-shaped content is in scope; arbitrary layout, charts, formulas, and scans without OCR are not reconstructed.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"pdf-odp",
@@ -1380,7 +1448,8 @@
       "knownLimitations":"Complex graphics, clipping, reading order, effects, annotations, and exact visual reconstruction remain incomplete.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"mhtml-pdf",
@@ -1400,7 +1469,8 @@
       "knownLimitations":"Scripts, remote execution, browser-only layout, malformed multipart edge cases, and advanced CSS are not a full browser/MHTML engine.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"docx-google-docs",
@@ -1420,7 +1490,8 @@
       "knownLimitations":"Google Docs supports single underline and strike rather than Word decoration variants; all-caps is materialized and unsupported Word-only layout uses explicit diagnostics or Drive fallback.",
       "resultContract":"Task<GoogleDocumentReference>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"google-docs-docx",
@@ -1440,7 +1511,8 @@
       "knownLimitations":"Google Docs supports single underline and strike rather than Word decoration variants; all-caps is materialized and unsupported Word-only layout uses explicit diagnostics or Drive fallback.",
       "resultContract":"Task<GoogleDocsImportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"xlsx-google-sheets",
@@ -1460,7 +1532,8 @@
       "knownLimitations":"Google Sheets has no subscript, superscript, casing, or underline-variant fields in its cell text-format model; unsupported Excel-only behavior is diagnosed or uses Drive fallback.",
       "resultContract":"Task<GoogleSpreadsheetReference>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"google-sheets-xlsx",
@@ -1480,7 +1553,8 @@
       "knownLimitations":"Google Sheets has no subscript, superscript, casing, or underline-variant fields in its cell text-format model; unsupported Excel-only behavior is diagnosed or uses Drive fallback.",
       "resultContract":"Task<GoogleSheetsImportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"pptx-google-slides",
@@ -1500,7 +1574,8 @@
       "knownLimitations":"Google Slides supports single underline and strike rather than DrawingML variants; all-caps is materialized and complex PowerPoint-only composition uses explicit diagnostics or raster/Drive fallback.",
       "resultContract":"Task<GooglePresentationReference>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"google-slides-pptx",
@@ -1520,7 +1595,8 @@
       "knownLimitations":"Google Slides supports single underline and strike rather than DrawingML variants; all-caps is materialized and complex PowerPoint-only composition uses explicit diagnostics or raster/Drive fallback.",
       "resultContract":"Task<GoogleSlidesImportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"adf-markdown",
@@ -1540,7 +1616,8 @@
       "knownLimitations":"ADF text/background colors and arbitrary HTML styling are retained only when the intermediate Markdown profile can represent them; unsupported nodes and marks use explicit diagnostics or extension preservation.",
       "resultContract":"AdfConversionResult<string>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"markdown-adf",
@@ -1560,7 +1637,8 @@
       "knownLimitations":"ADF text/background colors and arbitrary HTML styling are retained only when the intermediate Markdown profile can represent them; unsupported nodes and marks use explicit diagnostics or extension preservation.",
       "resultContract":"AdfConversionResult<AdfDocument>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"adf-html",
@@ -1580,7 +1658,8 @@
       "knownLimitations":"ADF text/background colors and arbitrary HTML styling are retained only when the intermediate Markdown profile can represent them; unsupported nodes and marks use explicit diagnostics or extension preservation.",
       "resultContract":"AdfConversionResult<string>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"html-adf",
@@ -1600,7 +1679,8 @@
       "knownLimitations":"ADF text/background colors and arbitrary HTML styling are retained only when the intermediate Markdown profile can represent them; unsupported nodes and marks use explicit diagnostics or extension preservation.",
       "resultContract":"AdfConversionResult<AdfDocument>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"markdown-confluence",
@@ -1620,7 +1700,8 @@
       "knownLimitations":"This is content-body conversion, not live page synchronization; Confluence-only macros, layouts, extensions, and presentation outside the supported ADF/storage subset may be simplified.",
       "resultContract":"ConfluenceContentConversionResult<ConfluencePageBody>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"html-confluence",
@@ -1640,7 +1721,8 @@
       "knownLimitations":"This is content-body conversion, not live page synchronization; Confluence-only macros, layouts, extensions, and presentation outside the supported ADF/storage subset may be simplified.",
       "resultContract":"ConfluenceContentConversionResult<ConfluencePageBody>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"confluence-markdown",
@@ -1660,7 +1742,8 @@
       "knownLimitations":"This is content-body conversion, not live page synchronization; Confluence-only macros, layouts, extensions, and presentation outside the supported ADF/storage subset may be simplified.",
       "resultContract":"ConfluenceContentConversionResult<string>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"confluence-html",
@@ -1680,7 +1763,8 @@
       "knownLimitations":"This is content-body conversion, not live page synchronization; Confluence-only macros, layouts, extensions, and presentation outside the supported ADF/storage subset may be simplified.",
       "resultContract":"ConfluenceContentConversionResult<string>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"csv-xlsx",
@@ -1700,7 +1784,8 @@
       "knownLimitations":"CSV and TSV have no font, rich-text, formula, multi-sheet, drawing, or layout model; those workbook semantics are intentionally absent from CSV output.",
       "resultContract":"ExcelDocument",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"xlsx-csv",
@@ -1720,7 +1805,8 @@
       "knownLimitations":"CSV and TSV have no font, rich-text, formula, multi-sheet, drawing, or layout model; those workbook semantics are intentionally absent from CSV output.",
       "resultContract":"CsvDocument",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"dbf-csv",
@@ -1740,7 +1826,8 @@
       "knownLimitations":"Requires DBAClientX.Dbf's bounded field profiles. Native application acceptance and Visual FoxPro 31/32 generations remain unqualified. Output omits DBF indexes, deletion flags and native schema metadata; CSV nulls need a selected marker, and XLSX follows Excel numeric precision and cell text limits.",
       "resultContract":"void",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"dbf-xlsx",
@@ -1760,7 +1847,8 @@
       "knownLimitations":"Requires DBAClientX.Dbf's bounded field profiles. Native application acceptance and Visual FoxPro 31/32 generations remain unqualified. Output omits DBF indexes, deletion flags and native schema metadata; CSV nulls need a selected marker, and XLSX follows Excel numeric precision and cell text limits.",
       "resultContract":"ExcelDataSetImportResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"officemarkup-docx",
@@ -1780,7 +1868,8 @@
       "knownLimitations":"OfficeIMO Markup is a directed authoring format rather than a lossless Office round trip; unsupported blocks and destination-only effects are diagnosed, simplified, or omitted according to exporter options.",
       "resultContract":"WordDocument",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"officemarkup-xlsx",
@@ -1800,7 +1889,8 @@
       "knownLimitations":"OfficeIMO Markup is a directed authoring format rather than a lossless Office round trip; unsupported blocks and destination-only effects are diagnosed, simplified, or omitted according to exporter options.",
       "resultContract":"ExcelDocument",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"officemarkup-pptx",
@@ -1820,7 +1910,8 @@
       "knownLimitations":"OfficeIMO Markup is a directed authoring format rather than a lossless Office round trip; unsupported blocks and destination-only effects are diagnosed, simplified, or omitted according to exporter options.",
       "resultContract":"PowerPointDocument",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"visio-binary-vsdx",
@@ -1840,7 +1931,8 @@
       "knownLimitations":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified.",
       "resultContract":"OfficeConversionResult<VisioDocument, OfficeLegacyImportReport>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"visio-binary-vssx",
@@ -1860,7 +1952,8 @@
       "knownLimitations":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified.",
       "resultContract":"OfficeConversionResult<VisioDocument, OfficeLegacyImportReport>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"visio-binary-vstx",
@@ -1880,7 +1973,8 @@
       "knownLimitations":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified.",
       "resultContract":"OfficeConversionResult<VisioDocument, OfficeLegacyImportReport>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"visio-binary-svg",
@@ -1900,7 +1994,8 @@
       "knownLimitations":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified.",
       "resultContract":"string",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"visio-binary-pdf",
@@ -1920,7 +2015,8 @@
       "knownLimitations":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"visio-pdf",
@@ -1940,7 +2036,8 @@
       "knownLimitations":"Diagram pages use the cached Visio-to-Drawing profile. Arbitrary formula recalculation, broad native appearance and exact native typography remain unqualified; workflow defaults select diagram pages while the direct adapter defaults to a semantic report.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"odg-pdf",
@@ -1960,7 +2057,8 @@
       "knownLimitations":"Uses the supported Draw-to-Drawing profile. Master artwork, page backgrounds, advanced graphic styles, embedded objects, metadata and exact native typography remain incomplete.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"publisher-pdf",
@@ -1980,7 +2078,8 @@
       "knownLimitations":"Publisher 2002-and-later recovery uses the bounded shared drawing profile. Earlier generations, unsupported graphics, exact native text breaks and native Publisher pixel comparisons remain unqualified.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":true,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":true
     },
     {
       "id":"native-word-doc",
@@ -2000,7 +2099,8 @@
       "knownLimitations":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"native-word-docx",
@@ -2020,7 +2120,8 @@
       "knownLimitations":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"native-word-docm",
@@ -2040,7 +2141,8 @@
       "knownLimitations":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"native-word-dotx",
@@ -2060,7 +2162,8 @@
       "knownLimitations":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"native-word-dotm",
@@ -2080,7 +2183,8 @@
       "knownLimitations":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"native-excel-xls",
@@ -2100,7 +2204,8 @@
       "knownLimitations":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"native-excel-xlsx",
@@ -2120,7 +2225,8 @@
       "knownLimitations":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"native-excel-xlsm",
@@ -2140,7 +2246,8 @@
       "knownLimitations":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"native-excel-xltx",
@@ -2160,7 +2267,8 @@
       "knownLimitations":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"native-excel-xltm",
@@ -2180,7 +2288,8 @@
       "knownLimitations":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"native-excel-xlam",
@@ -2200,7 +2309,8 @@
       "knownLimitations":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"native-excel-xlsb",
@@ -2220,7 +2330,8 @@
       "knownLimitations":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"native-powerpoint-ppt",
@@ -2240,7 +2351,8 @@
       "knownLimitations":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"native-powerpoint-pot",
@@ -2260,7 +2372,8 @@
       "knownLimitations":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"native-powerpoint-pps",
@@ -2280,7 +2393,8 @@
       "knownLimitations":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"native-powerpoint-pptx",
@@ -2300,7 +2414,8 @@
       "knownLimitations":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"native-powerpoint-pptm",
@@ -2320,7 +2435,8 @@
       "knownLimitations":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"native-powerpoint-potx",
@@ -2340,7 +2456,8 @@
       "knownLimitations":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"native-powerpoint-potm",
@@ -2360,7 +2477,8 @@
       "knownLimitations":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"native-powerpoint-ppsx",
@@ -2380,7 +2498,8 @@
       "knownLimitations":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"native-powerpoint-ppsm",
@@ -2400,7 +2519,8 @@
       "knownLimitations":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"native-powerpoint-ppam",
@@ -2420,7 +2540,8 @@
       "knownLimitations":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"xls-pdf",
@@ -2440,7 +2561,8 @@
       "knownLimitations":"Binary source projection is bounded and incomplete. Unsupported source records, preserved-only content and PDF layout approximations remain explicit findings; native application visual equivalence is not promised.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"xlsb-pdf",
@@ -2460,7 +2582,8 @@
       "knownLimitations":"Binary source projection is bounded and incomplete. Unsupported source records, preserved-only content and PDF layout approximations remain explicit findings; native application visual equivalence is not promised.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"ppt-pdf",
@@ -2480,7 +2603,8 @@
       "knownLimitations":"Binary source projection is bounded and incomplete. Unsupported source records, preserved-only content and PDF layout approximations remain explicit findings; native application visual equivalence is not promised.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"email-eml-msg",
@@ -2500,7 +2624,8 @@
       "knownLimitations":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy.",
       "resultContract":"EmailWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"email-eml-oft",
@@ -2520,7 +2645,8 @@
       "knownLimitations":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy.",
       "resultContract":"EmailWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"email-eml-tnef",
@@ -2540,7 +2666,8 @@
       "knownLimitations":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy.",
       "resultContract":"EmailWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"email-msg-eml",
@@ -2560,7 +2687,8 @@
       "knownLimitations":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy.",
       "resultContract":"EmailWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"email-msg-oft",
@@ -2580,7 +2708,8 @@
       "knownLimitations":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy.",
       "resultContract":"EmailWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"email-msg-tnef",
@@ -2600,7 +2729,8 @@
       "knownLimitations":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy.",
       "resultContract":"EmailWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"email-oft-eml",
@@ -2620,7 +2750,8 @@
       "knownLimitations":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy.",
       "resultContract":"EmailWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"email-oft-msg",
@@ -2640,7 +2771,8 @@
       "knownLimitations":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy.",
       "resultContract":"EmailWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"email-oft-tnef",
@@ -2660,7 +2792,8 @@
       "knownLimitations":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy.",
       "resultContract":"EmailWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"email-tnef-eml",
@@ -2680,7 +2813,8 @@
       "knownLimitations":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy.",
       "resultContract":"EmailWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"email-tnef-msg",
@@ -2700,7 +2834,8 @@
       "knownLimitations":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy.",
       "resultContract":"EmailWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"email-tnef-oft",
@@ -2720,7 +2855,8 @@
       "knownLimitations":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy.",
       "resultContract":"EmailWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-bibtex-biblatex",
@@ -2740,7 +2876,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-bibtex-csl-json",
@@ -2760,7 +2897,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-bibtex-ris",
@@ -2780,7 +2918,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-bibtex-nbib",
@@ -2800,7 +2939,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-bibtex-endnote-xml",
@@ -2820,7 +2960,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-biblatex-bibtex",
@@ -2840,7 +2981,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-biblatex-csl-json",
@@ -2860,7 +3002,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-biblatex-ris",
@@ -2880,7 +3023,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-biblatex-nbib",
@@ -2900,7 +3044,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-biblatex-endnote-xml",
@@ -2920,7 +3065,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-csl-json-bibtex",
@@ -2940,7 +3086,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-csl-json-biblatex",
@@ -2960,7 +3107,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-csl-json-ris",
@@ -2980,7 +3128,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-csl-json-nbib",
@@ -3000,7 +3149,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-csl-json-endnote-xml",
@@ -3020,7 +3170,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-ris-bibtex",
@@ -3040,7 +3191,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-ris-biblatex",
@@ -3060,7 +3212,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-ris-csl-json",
@@ -3080,7 +3233,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-ris-nbib",
@@ -3100,7 +3254,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-ris-endnote-xml",
@@ -3120,7 +3275,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-nbib-bibtex",
@@ -3140,7 +3296,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-nbib-biblatex",
@@ -3160,7 +3317,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-nbib-csl-json",
@@ -3180,7 +3338,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-nbib-ris",
@@ -3200,7 +3359,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-nbib-endnote-xml",
@@ -3220,7 +3380,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-endnote-xml-bibtex",
@@ -3240,7 +3401,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-endnote-xml-biblatex",
@@ -3260,7 +3422,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-endnote-xml-csl-json",
@@ -3280,7 +3443,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-endnote-xml-ris",
@@ -3300,7 +3464,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"bibliography-endnote-xml-nbib",
@@ -3320,7 +3485,8 @@
       "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"pages-docx",
@@ -3340,7 +3506,8 @@
       "knownLimitations":"Modern IWA support is a bounded read-only source adapter; unsupported records, advanced layout, media, formulas, and producer-specific effects may require visual fallbacks or remain diagnostic evidence.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"numbers-xlsx",
@@ -3360,7 +3527,8 @@
       "knownLimitations":"Modern IWA support is a bounded read-only source adapter; unsupported records, advanced layout, media, formulas, and producer-specific effects may require visual fallbacks or remain diagnostic evidence.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"keynote-pptx",
@@ -3380,7 +3548,8 @@
       "knownLimitations":"Modern IWA support is a bounded read-only source adapter; unsupported records, advanced layout, media, formulas, and producer-specific effects may require visual fallbacks or remain diagnostic evidence.",
       "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"pages-pdf",
@@ -3400,7 +3569,8 @@
       "knownLimitations":"Requires the complete editable subset. Partial reconstructions, embedded previews, selection/clipping, and PDF-stage content omissions are rejected. Pagination, fonts, character spacing, and other rendering approximations remain reported; Apple visual equivalence is fixture-specific.",
       "resultContract":"OfficeWorkflowResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"numbers-pdf",
@@ -3420,7 +3590,8 @@
       "knownLimitations":"Requires the complete editable subset. Partial reconstructions, embedded previews, selection/clipping, and PDF-stage content omissions are rejected. Pagination, fonts, character spacing, and other rendering approximations remain reported; Apple visual equivalence is fixture-specific.",
       "resultContract":"OfficeWorkflowResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"keynote-pdf",
@@ -3440,7 +3611,8 @@
       "knownLimitations":"Requires the complete editable subset. Partial reconstructions, embedded previews, selection/clipping, and PDF-stage content omissions are rejected. Pagination, fonts, character spacing, and other rendering approximations remain reported; Apple visual equivalence is fixture-specific.",
       "resultContract":"OfficeWorkflowResult",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"docx-png",
@@ -3460,7 +3632,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"docx-svg",
@@ -3480,7 +3653,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"docx-jpeg",
@@ -3500,7 +3674,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"docx-tiff",
@@ -3520,7 +3695,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"docx-webp",
@@ -3540,7 +3716,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"xlsx-png",
@@ -3560,7 +3737,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"xlsx-svg",
@@ -3580,7 +3758,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"xlsx-jpeg",
@@ -3600,7 +3779,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"xlsx-tiff",
@@ -3620,7 +3800,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"xlsx-webp",
@@ -3640,7 +3821,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"pptx-png",
@@ -3660,7 +3842,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"pptx-svg",
@@ -3680,7 +3863,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"pptx-jpeg",
@@ -3700,7 +3884,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"pptx-tiff",
@@ -3720,7 +3905,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"pptx-webp",
@@ -3740,7 +3926,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"html-png",
@@ -3760,7 +3947,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"html-svg",
@@ -3780,7 +3968,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"html-jpeg",
@@ -3800,7 +3989,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"html-tiff",
@@ -3820,7 +4010,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"html-webp",
@@ -3840,7 +4031,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"onenote-png",
@@ -3860,7 +4052,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"onenote-svg",
@@ -3880,7 +4073,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"onenote-jpeg",
@@ -3900,7 +4094,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"onenote-tiff",
@@ -3920,7 +4115,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"onenote-webp",
@@ -3940,7 +4136,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"visio-png",
@@ -3960,7 +4157,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"visio-svg",
@@ -3980,7 +4178,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"visio-jpeg",
@@ -4000,7 +4199,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"visio-tiff",
@@ -4020,7 +4220,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"visio-webp",
@@ -4040,7 +4241,8 @@
       "knownLimitations":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"email-png",
@@ -4060,7 +4262,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"email-svg",
@@ -4080,7 +4283,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"email-jpeg",
@@ -4100,7 +4304,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"email-tiff",
@@ -4120,7 +4325,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"email-webp",
@@ -4140,7 +4346,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"epub-png",
@@ -4160,7 +4367,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"epub-svg",
@@ -4180,7 +4388,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"epub-jpeg",
@@ -4200,7 +4409,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"epub-tiff",
@@ -4220,7 +4430,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"epub-webp",
@@ -4240,7 +4451,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"odt-png",
@@ -4260,7 +4472,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"odt-svg",
@@ -4280,7 +4493,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"odt-jpeg",
@@ -4300,7 +4514,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"odt-tiff",
@@ -4320,7 +4535,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"odt-webp",
@@ -4340,7 +4556,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"ods-png",
@@ -4360,7 +4577,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"ods-svg",
@@ -4380,7 +4598,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"ods-jpeg",
@@ -4400,7 +4619,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"ods-tiff",
@@ -4420,7 +4640,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"ods-webp",
@@ -4440,7 +4661,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"odp-png",
@@ -4460,7 +4682,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"odp-svg",
@@ -4480,7 +4703,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"odp-jpeg",
@@ -4500,7 +4724,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"odp-tiff",
@@ -4520,7 +4745,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"odp-webp",
@@ -4540,7 +4766,8 @@
       "knownLimitations":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"rtf-png",
@@ -4560,7 +4787,8 @@
       "knownLimitations":"Uses the source owner's semantic PDF layout. Native Office pagination and unsupported source structures remain subject to reported conversion loss.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"rtf-svg",
@@ -4580,7 +4808,8 @@
       "knownLimitations":"Uses the source owner's semantic PDF layout. Native Office pagination and unsupported source structures remain subject to reported conversion loss.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"rtf-jpeg",
@@ -4600,7 +4829,8 @@
       "knownLimitations":"Uses the source owner's semantic PDF layout. Native Office pagination and unsupported source structures remain subject to reported conversion loss.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"rtf-tiff",
@@ -4620,7 +4850,8 @@
       "knownLimitations":"Uses the source owner's semantic PDF layout. Native Office pagination and unsupported source structures remain subject to reported conversion loss.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"rtf-webp",
@@ -4640,7 +4871,8 @@
       "knownLimitations":"Uses the source owner's semantic PDF layout. Native Office pagination and unsupported source structures remain subject to reported conversion loss.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"mhtml-png",
@@ -4660,7 +4892,8 @@
       "knownLimitations":"Uses the source owner's semantic PDF layout. Native Office pagination and unsupported source structures remain subject to reported conversion loss.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"mhtml-svg",
@@ -4680,7 +4913,8 @@
       "knownLimitations":"Uses the source owner's semantic PDF layout. Native Office pagination and unsupported source structures remain subject to reported conversion loss.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"mhtml-jpeg",
@@ -4700,7 +4934,8 @@
       "knownLimitations":"Uses the source owner's semantic PDF layout. Native Office pagination and unsupported source structures remain subject to reported conversion loss.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"mhtml-tiff",
@@ -4720,7 +4955,8 @@
       "knownLimitations":"Uses the source owner's semantic PDF layout. Native Office pagination and unsupported source structures remain subject to reported conversion loss.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"mhtml-webp",
@@ -4740,7 +4976,8 @@
       "knownLimitations":"Uses the source owner's semantic PDF layout. Native Office pagination and unsupported source structures remain subject to reported conversion loss.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"odg-png",
@@ -4760,7 +4997,8 @@
       "knownLimitations":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"odg-svg",
@@ -4780,7 +5018,8 @@
       "knownLimitations":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"odg-jpeg",
@@ -4800,7 +5039,8 @@
       "knownLimitations":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"odg-tiff",
@@ -4820,7 +5060,8 @@
       "knownLimitations":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"odg-webp",
@@ -4840,7 +5081,8 @@
       "knownLimitations":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"xps-png",
@@ -4860,7 +5102,8 @@
       "knownLimitations":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"xps-svg",
@@ -4880,7 +5123,8 @@
       "knownLimitations":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"xps-jpeg",
@@ -4900,7 +5144,8 @@
       "knownLimitations":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"xps-tiff",
@@ -4920,7 +5165,8 @@
       "knownLimitations":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"xps-webp",
@@ -4940,7 +5186,8 @@
       "knownLimitations":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"publisher-png",
@@ -4960,7 +5207,8 @@
       "knownLimitations":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"publisher-svg",
@@ -4980,7 +5228,8 @@
       "knownLimitations":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"publisher-jpeg",
@@ -5000,7 +5249,8 @@
       "knownLimitations":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"publisher-tiff",
@@ -5020,7 +5270,8 @@
       "knownLimitations":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"publisher-webp",
@@ -5040,7 +5291,8 @@
       "knownLimitations":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"djvu-png",
@@ -5060,7 +5312,8 @@
       "knownLimitations":"Retains the DjVu renderer's qualified codec, annotation and short-edge limitations. SVG embeds the rendered raster and does not reconstruct vectors.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"djvu-svg",
@@ -5080,7 +5333,8 @@
       "knownLimitations":"Retains the DjVu renderer's qualified codec, annotation and short-edge limitations. SVG embeds the rendered raster and does not reconstruct vectors.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"djvu-jpeg",
@@ -5100,7 +5354,8 @@
       "knownLimitations":"Retains the DjVu renderer's qualified codec, annotation and short-edge limitations. SVG embeds the rendered raster and does not reconstruct vectors.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"djvu-tiff",
@@ -5120,7 +5375,8 @@
       "knownLimitations":"Retains the DjVu renderer's qualified codec, annotation and short-edge limitations. SVG embeds the rendered raster and does not reconstruct vectors.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"djvu-webp",
@@ -5140,7 +5396,8 @@
       "knownLimitations":"Retains the DjVu renderer's qualified codec, annotation and short-edge limitations. SVG embeds the rendered raster and does not reconstruct vectors.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"project-png",
@@ -5160,7 +5417,8 @@
       "knownLimitations":"Requires an explicit ProjectView. Scheduling requires a project calendar; portable reports do not reproduce native Project saved-view styling or filters.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"project-svg",
@@ -5180,7 +5438,8 @@
       "knownLimitations":"Requires an explicit ProjectView. Scheduling requires a project calendar; portable reports do not reproduce native Project saved-view styling or filters.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"project-jpeg",
@@ -5200,7 +5459,8 @@
       "knownLimitations":"Requires an explicit ProjectView. Scheduling requires a project calendar; portable reports do not reproduce native Project saved-view styling or filters.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"project-tiff",
@@ -5220,7 +5480,8 @@
       "knownLimitations":"Requires an explicit ProjectView. Scheduling requires a project calendar; portable reports do not reproduce native Project saved-view styling or filters.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"project-webp",
@@ -5240,7 +5501,8 @@
       "knownLimitations":"Requires an explicit ProjectView. Scheduling requires a project calendar; portable reports do not reproduce native Project saved-view styling or filters.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"pdf-svg",
@@ -5260,7 +5522,8 @@
       "knownLimitations":"Image output is intentionally flattened; Type 3 glyph programs, advanced color profiles, patterns, masks, transparency groups, optional content, and scanned-text OCR remain incomplete.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"pdf-jpeg",
@@ -5280,7 +5543,8 @@
       "knownLimitations":"Image output is intentionally flattened; Type 3 glyph programs, advanced color profiles, patterns, masks, transparency groups, optional content, and scanned-text OCR remain incomplete.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"pdf-tiff",
@@ -5300,7 +5564,8 @@
       "knownLimitations":"Image output is intentionally flattened; Type 3 glyph programs, advanced color profiles, patterns, masks, transparency groups, optional content, and scanned-text OCR remain incomplete.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     },
     {
       "id":"pdf-webp",
@@ -5320,7 +5585,8 @@
       "knownLimitations":"Image output is intentionally flattened; Type 3 glyph programs, advanced color profiles, patterns, masks, transparency groups, optional content, and scanned-text OCR remain incomplete.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":true,
+      "hostExecutable":false
     }
   ]
 }

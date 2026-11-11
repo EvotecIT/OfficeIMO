@@ -139,7 +139,7 @@ Workbook paths, including filesystem wildcard patterns.
 ```yaml
 Type: String[]
 Parameter Sets: Path
-Aliases: None
+Aliases: FilePath
 Possible values:
 
 Required: True
@@ -171,7 +171,7 @@ Worksheet names, wildcard patterns, one-based positions or native worksheet obje
 ```yaml
 Type: OfficeSheetSelector[]
 Parameter Sets: Document, Path, LiteralPath
-Aliases: None
+Aliases: WorksheetName
 Possible values:
 
 Required: False

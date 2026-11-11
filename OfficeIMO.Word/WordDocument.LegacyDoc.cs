@@ -127,7 +127,7 @@ namespace OfficeIMO.Word {
             // Binary DOC projects its own formatting onto the neutral package, without authoring defaults.
             const WordprocessingDocumentType documentType = WordprocessingDocumentType.Document;
             WordDocument document = CreateInternal(filePath: null, stream: null, documentType, DocumentPersistenceMode.Explicit, theme: null,
-                templateBytes: GetDefaultPackageBytes(documentType), themeApplied: false, applyStyleRegistrations: true, applyDefaultTheme: false);
+                templateBytes: GetDefaultPackageBytes(documentType), themeApplied: false, applyDefaultTheme: false);
             try {
                 ApplyLegacyDocParagraphDefaults(document);
                 ApplyLegacyDocProperties(document, legacyDocument.DocumentProperties);

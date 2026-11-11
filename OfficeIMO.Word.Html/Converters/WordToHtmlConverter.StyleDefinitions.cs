@@ -84,7 +84,7 @@ namespace OfficeIMO.Word.Html {
                         if (rPr.Caps != null) {
                             props["text-transform"] = IsEnabled(rPr.Caps) ? "uppercase" : "none";
                         }
-                        var colorVal = rPr.Color?.Val?.Value;
+                        var colorVal = WordRunFormatting.ResolveColorHex(rPr.Color, document);
                         if (!string.IsNullOrEmpty(colorVal) &&
                             !string.Equals(colorVal, "auto", StringComparison.OrdinalIgnoreCase) &&
                             IsSixDigitHexColor(colorVal!)) {
@@ -95,7 +95,7 @@ namespace OfficeIMO.Word.Html {
                         if (!string.IsNullOrEmpty(sizeVal) && int.TryParse(sizeVal, out int sz)) {
                             props["font-size"] = (sz / 2.0).ToString("0.##") + "pt";
                         }
-                        var font = rPr.RunFonts?.Ascii?.Value;
+                        var font = ResolveRunFonts(rPr.RunFonts, document._wordprocessingDocument?.MainDocumentPart);
                         if (!string.IsNullOrEmpty(font)) {
                             props["font-family"] = FontFamilyCss(font!);
                         }

@@ -8,6 +8,7 @@ public abstract class OfficeNewLifecycleCmdlet<TDocument> : OfficeLifecycleCmdle
     [Parameter(Position = 0, ParameterSetName = "Live")]
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Content")]
     [ValidateNotNullOrEmpty]
+    [Alias("FilePath")]
     public string? Path { get; set; }
 
     /// <summary>Authoring block to complete before the document is atomically saved and closed.</summary>

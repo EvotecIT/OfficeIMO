@@ -277,6 +277,7 @@ public sealed partial class TableBlock {
         clone.Abbreviations = source.Abbreviations;
         clone.GenericAttributes = source.GenericAttributes;
         clone.CustomContainers = source.CustomContainers;
+        clone.Math = source.Math;
         clone.BaseUri = source.BaseUri;
         clone.DisallowScriptUrls = source.DisallowScriptUrls;
         clone.DisallowFileUrls = source.DisallowFileUrls;

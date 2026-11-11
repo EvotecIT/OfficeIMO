@@ -961,6 +961,7 @@ internal static partial class DocumentReaderEngine {
             ReaderInputKind.Epub => "application/epub+zip",
             ReaderInputKind.Visio => "application/vnd.ms-visio.drawing.main+xml",
             ReaderInputKind.Yaml => "application/yaml",
+            ReaderInputKind.Toml => "application/toml",
             ReaderInputKind.Rtf => "application/rtf",
             _ => null
         };
@@ -1000,6 +1001,7 @@ internal static partial class DocumentReaderEngine {
             ".json" => "application/json",
             ".xml" => "application/xml",
             ".yml" or ".yaml" => "application/yaml",
+            ".toml" => "application/toml",
             ".odt" => "application/vnd.oasis.opendocument.text",
             ".ods" => "application/vnd.oasis.opendocument.spreadsheet",
             ".odp" => "application/vnd.oasis.opendocument.presentation",
@@ -1017,6 +1019,7 @@ internal static partial class DocumentReaderEngine {
             ReaderInputKind.Xml or
             ReaderInputKind.Html or
             ReaderInputKind.Yaml or
+            ReaderInputKind.Toml or
             ReaderInputKind.Rtf => ReaderInputKind.Text,
             ReaderInputKind.Word or
             ReaderInputKind.Excel or

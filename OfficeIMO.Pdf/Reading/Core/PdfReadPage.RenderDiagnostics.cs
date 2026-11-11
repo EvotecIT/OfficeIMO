@@ -1072,10 +1072,6 @@ public sealed partial class PdfReadPage {
             return false;
         }
         PdfExtractedImage? image = FindImage(images, placement);
-        bool requiresOptionalCodec = RequiresOptionalImageCodec(imageDictionary.Items.TryGetValue("Filter", out PdfObject? filterObject) ? filterObject : null);
-        if (requiresOptionalCodec) {
-            AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.OptionalImageCodecId, invocation.Name);
-        }
         CollectImageColorSpaceCapabilityDiagnostic(
             imageDictionary,
             resources,
@@ -1394,7 +1390,6 @@ public sealed partial class PdfReadPage {
                     entry.Key,
                     pageContentBudget,
                     stream);
-                if (RequiresOptionalImageCodec(stream.Dictionary.Items.TryGetValue("Filter", out PdfObject? filterObject) ? filterObject : null)) AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.OptionalImageCodecId, entry.Key);
                 continue;
             }
             if (!string.Equals(subtype, "Form", StringComparison.Ordinal)) {
@@ -1564,14 +1559,6 @@ public sealed partial class PdfReadPage {
         }
 
         AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.ColorSpaceId, subject);
-    }
-
-    private bool RequiresOptionalImageCodec(PdfObject? value) {
-        PdfObject? resolved = ResolveObject(value);
-        if (resolved is PdfName name) return name.Name is "JPXDecode";
-        if (resolved is not PdfArray array) return false;
-        for (int i = 0; i < array.Items.Count; i++) if (RequiresOptionalImageCodec(array.Items[i])) return true;
-        return false;
     }
 
     private PdfPageClipPath? CreateTransformedFormBoundingBoxClip(PdfDictionary dictionary, Matrix2D transform) {

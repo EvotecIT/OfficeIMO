@@ -62,52 +62,39 @@ public partial class PdfPageImageRendererTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task Ocr_UsesJpeg2000CodecAndDoesNotSendBlankPageWhenCodecIsMissing(bool rawCodestream) {
+    public async Task Ocr_DecodesJpeg2000WithoutCallerCodec(bool rawCodestream) {
         byte[] payload = ReadScanJpx("rgb");
         if (rawCodestream) payload = payload.Skip(FindMarker(payload, 0xFF, 0x4F, 0xFF, 0x51)).ToArray();
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(payload,
             colorSpace: "/DeviceRGB", imageWidth: 1, imageFilterEntry: "/Filter /JPXDecode");
-        var codec = new ScanJpxCodec(payload);
         int calls = 0;
-        var engine = new DelegateOcrEngine("codec-proof", (request, token) => {
+        var engine = new DelegateOcrEngine("managed-jpx", (request, token) => {
             calls++;
             Assert.True(OfficeRasterImageDecoder.TryDecode(request.Payload, out OfficeRasterImage? raster));
             Assert.Equal(OfficeColor.Red, raster!.GetPixel(50, 110));
             return Task.FromResult(new OcrResult());
         });
-        await Assert.ThrowsAsync<NotSupportedException>(() => PdfDocument.Load(pdf).ReadWithOcrAsync(engine));
-        Assert.Equal(0, calls);
-        PdfOcrMergeResult result = await PdfDocument.Load(pdf).ReadWithOcrAsync(engine,
-            new PdfOcrMergeOptions { Dpi = 72, ImageCodec = codec });
+        await PdfDocument.Load(pdf).ReadWithOcrAsync(engine, new PdfOcrMergeOptions { Dpi = 72 });
         Assert.Equal(1, calls);
-        Assert.Equal(1, codec.Calls);
-        Assert.Contains(result.Pages.Single().Diagnostics, diagnostic => diagnostic.StartsWith(PdfRenderCapabilities.OptionalImageCodecId));
     }
 
+    // The red RGBA fixture is fully transparent; PDF honours its alpha only through SMaskInData 1 or 2 (ISO 32000-1 Table 89).
     [Theory]
-    [InlineData("rgba", "")]
-    [InlineData("rgba", " /SMaskInData 0")]
-    [InlineData("rgba", " /SMaskInData 1")]
-    [InlineData("rgba", " /SMaskInData 2")]
-    [InlineData("rgb", " /SMaskInData 1")]
-    [InlineData("rgb", " /SMaskInData 2")]
-    public async Task Ocr_RejectsJpeg2000OpacityBeforeRenderingOrCallingProvider(string mode, string mask) {
+    [InlineData("rgba", "", 255)]
+    [InlineData("rgba", " /SMaskInData 0", 255)]
+    [InlineData("rgba", " /SMaskInData 1", 0)]
+    [InlineData("rgba", " /SMaskInData 2", 0)]
+    [InlineData("rgb", " /SMaskInData 1", 255)]
+    public void RenderPage_AppliesJpeg2000OpacityOnlyThroughSMaskInData(string mode, string mask, int expectedAlpha) {
         byte[] payload = ReadScanJpx(mode);
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(payload,
             colorSpace: "/DeviceRGB", imageWidth: 1, imageFilterEntry: "/Filter /JPXDecode",
             extraImageEntries: mask);
-        var codec = new ScanJpxCodec(payload);
-        Assert.False(Assert.Single(PdfPageImageRenderer.RenderPages(pdf,
-            options: new PdfPageRenderOptions { ImageCodec = codec })).Succeeded);
-        int calls = 0;
-        var engine = new DelegateOcrEngine("alpha-proof", (request, token) => {
-            calls++;
-            return Task.FromResult(new OcrResult());
-        });
-        await Assert.ThrowsAsync<NotSupportedException>(() => PdfDocument.Load(pdf).ReadWithOcrAsync(engine,
-            new PdfOcrMergeOptions { ImageCodec = codec }));
-        Assert.Equal(0, calls);
-        Assert.Equal(0, codec.Calls);
+        OfficeDrawingImage image = Assert.Single(PdfPageImageRenderer.RenderPage(pdf).Images);
+        Assert.True(OfficeRasterImageDecoder.TryDecode(image.Bytes, out OfficeRasterImage? raster));
+        OfficeColor pixel = raster!.GetPixel(0, 0);
+        Assert.Equal(expectedAlpha, pixel.A);
+        if (expectedAlpha == 255) Assert.Equal(OfficeColor.Red, pixel);
     }
 
     [Fact]

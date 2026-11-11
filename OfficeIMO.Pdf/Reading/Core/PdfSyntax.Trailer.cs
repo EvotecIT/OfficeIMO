@@ -113,13 +113,13 @@ internal static partial class PdfSyntax {
         return -1;
     }
 
-    private static int LastIndexOfTrailerMarker(string raw, string marker, StringComparison comparison,
-        CancellationToken cancellationToken) {
+    private static int LastIndexOfTrailerMarker<TText>(TText raw, string marker, bool ignoreCase,
+        CancellationToken cancellationToken) where TText : struct, IPdfContentText {
         const int window = 65536;
         for (int end = raw.Length; end > 0; end -= window) {
             cancellationToken.ThrowIfCancellationRequested();
             int start = Math.Max(0, end - window - marker.Length + 1);
-            int found = raw.LastIndexOf(marker, end - 1, end - start, comparison);
+            int found = raw.LastIndexOf(marker, start, end - start, ignoreCase);
             if (found >= 0) return found;
         }
         return -1;
@@ -141,7 +141,7 @@ internal static partial class PdfSyntax {
     }
 
     private static string GetActiveTrailerRaw(
-        string text,
+        PdfByteContentText text,
         Dictionary<int, PdfIndirectObject> map,
         Dictionary<int, int> parsedOffsets,
         int maximumTrailerCharacters,
@@ -157,7 +157,7 @@ internal static partial class PdfSyntax {
             }
         }
 
-        int trailerIdx = LastIndexOfTrailerMarker(text, "trailer", StringComparison.OrdinalIgnoreCase, cancellationToken);
+        int trailerIdx = LastIndexOfTrailerMarker(text, "trailer", ignoreCase: true, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return trailerIdx >= 0
             ? SafeSliceCancellable(text, trailerIdx, text.Length - trailerIdx, maximumTrailerCharacters, cancellationToken)
@@ -165,7 +165,7 @@ internal static partial class PdfSyntax {
     }
 
     private static bool TryGetXrefStreamTrailerChainRaw(
-        string text,
+        PdfByteContentText text,
         Dictionary<int, PdfIndirectObject> map,
         Dictionary<int, int> parsedOffsets,
         int activeXrefOffset,
@@ -282,7 +282,7 @@ internal static partial class PdfSyntax {
     }
 
     private static bool TryGetClassicTrailerChainRaw(
-        string text,
+        PdfByteContentText text,
         Dictionary<int, PdfIndirectObject> map,
         Dictionary<int, int> parsedOffsets,
         int activeXrefOffset,
