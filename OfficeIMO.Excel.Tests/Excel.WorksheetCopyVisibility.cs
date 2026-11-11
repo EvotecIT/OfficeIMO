@@ -133,6 +133,36 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_ExcelWorksheetCopy_HiddenCopyOpensOnTheOnlyVisibleChartSheet() {
+            using ExcelDocument source = LoadVisibilitySource();
+            var stream = new MemoryStream();
+            using (SpreadsheetDocument package = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook)) {
+                WorkbookPart workbookPart = package.AddWorkbookPart();
+                WorksheetPart worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+                worksheetPart.Worksheet = new Worksheet(new SheetData());
+                ChartsheetPart chartsheetPart = workbookPart.AddNewPart<ChartsheetPart>();
+                chartsheetPart.Chartsheet = new Chartsheet();
+                // No workbook view, so the hidden worksheet in the first tab is the active tab.
+                workbookPart.Workbook = new Workbook(new Sheets(
+                    new Sheet { Id = workbookPart.GetIdOfPart(worksheetPart), SheetId = 1U, Name = "Data", State = SheetStateValues.Hidden },
+                    new Sheet { Id = workbookPart.GetIdOfPart(chartsheetPart), SheetId = 2U, Name = "Chart" }));
+            }
+
+            stream.Position = 0;
+            using (ExcelDocument target = ExcelDocument.Load(stream)) {
+                target.CopyWorksheetFrom(source, "Lookup", "Lookup", ExcelSheetNameValidationMode.Strict, new ExcelWorksheetCopyOptions { CopyMode = ExcelWorksheetCopyMode.Package });
+                Assert.True(target["Lookup"].Hidden);
+
+                using var saved = new MemoryStream(SaveToBytes(target));
+                using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(saved, false);
+                Workbook root = spreadsheet.WorkbookPart!.Workbook;
+                List<Sheet> sheets = root.Sheets!.Elements<Sheet>().ToList();
+                Assert.Equal(new[] { ("Data", "hidden"), ("Chart", (string?)null), ("Lookup", "hidden") }, sheets.Select(_ => (_.Name!.Value!, _.State?.InnerText)).ToArray());
+                Assert.Equal(1U, root.BookViews?.GetFirstChild<WorkbookView>()?.ActiveTab?.Value);
+            }
+        }
+
         /// <summary>Loads a workbook whose active "Report" sits between a hidden "Lookup" and a very hidden "Secret".</summary>
         private static ExcelDocument LoadVisibilitySource(bool readOnly = true) {
             byte[] bytes;

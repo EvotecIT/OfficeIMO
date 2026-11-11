@@ -15,10 +15,12 @@ namespace OfficeIMO.Excel {
             }
 
             ExcelSheet targetSheet = AddSheet(newSheetName, validationMode);
-            Locking.ExecuteWrite(EnsureLock(), () => {
-                CopyWorksheetVisibility(sourceSheet.SheetElement, targetSheet.SheetElement);
-                WorkbookRoot.Save();
-            });
+            if (IsHiddenSheet(sourceSheet.SheetElement)) {
+                Locking.ExecuteWrite(EnsureLock(), () => {
+                    CopyWorksheetVisibility(sourceSheet.SheetElement, targetSheet.SheetElement);
+                    WorkbookRoot.Save();
+                });
+            }
             for (int rowOffset = 0; rowOffset < values.GetLength(0); rowOffset++) {
                 for (int columnOffset = 0; columnOffset < values.GetLength(1); columnOffset++) {
                     object? value = values[rowOffset, columnOffset];

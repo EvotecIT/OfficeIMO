@@ -28,7 +28,18 @@ namespace OfficeIMO.Excel {
                     return null;
                 }
 
-                return GetSheetsForLockedOperation().FirstOrDefault(_ => !_.Hidden);
+                ExcelSheet? visibleWorksheet = GetSheetsForLockedOperation().FirstOrDefault(_ => !_.Hidden);
+                if (visibleWorksheet == null) {
+                    // Only a non-worksheet tab, such as a chart sheet, is visible: open on it and leave the copies hidden.
+                    int visibleTab = tabs.FindIndex(_ => !IsHiddenSheet(_));
+                    WorkbookView workbookView = GetOrCreatePrimaryWorkbookViewForActiveWorksheet();
+                    workbookView.ActiveTab = (uint)visibleTab;
+                    workbookView.FirstSheet = (uint)visibleTab;
+                    WorkbookRoot.Save();
+                    MarkPackageDirty();
+                }
+
+                return visibleWorksheet;
             });
 
             if (activate != null) {
