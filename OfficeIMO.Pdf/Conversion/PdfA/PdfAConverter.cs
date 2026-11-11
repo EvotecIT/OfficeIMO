@@ -160,6 +160,7 @@ internal sealed partial class PdfAConverter {
     private int? Run() {
         PdfDictionary catalog = _document.CatalogDictionary ?? throw new InvalidDataException("The PDF has no readable catalog.");
         RepairPageTree(catalog);
+        ShortenStructureTypeNames(catalog);
         ProcessCatalog(catalog);
         ProcessPages();
         ScanObjects(catalog);

@@ -281,6 +281,31 @@ public class PdfAConversionTests {
     }
 
     [Fact]
+    public void ConvertToPdfA_ShortensStructureTypeNamesBeyondTheNameLimit() {
+        string longType = "Caption" + string.Concat(Enumerable.Repeat(",Caption#20Char", 12));
+        byte[] source = RawPdf.Build("0 g 20 20 50 50 re f\n",
+            catalogEntries: "/StructTreeRoot 5 0 R /MarkInfo << /Marked true >>",
+            extraObjects: new[] {
+                "<< /Type /StructTreeRoot /K [6 0 R] /RoleMap << /" + longType + " /P >> >>",
+                "<< /Type /StructElem /S /" + longType + " /P 5 0 R >>"
+            });
+
+        PdfAConversionResult result = PdfDocument.Load(new MemoryStream(source)).ConvertToPdfA();
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Report.Violations));
+        Assert.Contains(result.Report.Changes, change => change.Kind == PdfAConversionChangeKind.StructureUpdated && change.ObjectNumber == 5);
+        PdfReadDocument output = PdfReadDocument.Open(result.ToBytes());
+        var root = (PdfDictionary)PdfObjectLookup.Resolve(output.Objects, output.CatalogDictionary!.Items["StructTreeRoot"])!;
+        var roleMap = (PdfDictionary)PdfObjectLookup.Resolve(output.Objects, root.Items["RoleMap"])!;
+        string renamed = Assert.Single(roleMap.Items.Keys);
+        Assert.True(Encoding.UTF8.GetByteCount(renamed) <= 127);
+        Assert.Equal("P", ((PdfName)roleMap.Items[renamed]).Name);
+        var element = (PdfDictionary)PdfObjectLookup.Resolve(output.Objects, ((PdfArray)PdfObjectLookup.Resolve(output.Objects, root.Items["K"])!).Items[0])!;
+        Assert.Equal(renamed, ((PdfName)element.Items["S"]).Name);
+        AssertVeraPdfPasses(result.ToBytes(), "2b");
+    }
+
+    [Fact]
     public void ConvertToPdfA_RejectsPdfA4E() {
         PdfDocument document = PdfDocument.Load(new MemoryStream(RawPdf.Build("0 g 0 0 10 10 re f\n")));
 
