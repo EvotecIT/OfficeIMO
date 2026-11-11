@@ -750,7 +750,8 @@ can handle a failure part-way through, such as a stream into a staging table tha
 on error. It applies on .NET 8 and later to worksheets of 1 MB or more, when no diagnostics or
 diagnostic callbacks are requested, parallelism is not capped at one and the execution policy
 allows background work, with `A1Range` and `CellValueConverter` unset: XLSX worksheets that
-declare their dimension and XLSB worksheets read with a header row. An XLSB reader takes its columns from the header row, so a later cell outside them
+declare their dimension, up to 256 MB, and XLSB worksheets read with a header row, up to 64 MB;
+larger worksheets use the default mode. An XLSB reader takes its columns from the header row, so a later cell outside them
 raises `NotSupportedException` at that row, because the default reader would return a wider
 table. On .NET Framework and .NET Standard, with a sequential execution policy, for other
 worksheets and in the XLS reader, the reader always validates before the first row.
