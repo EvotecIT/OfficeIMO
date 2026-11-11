@@ -255,7 +255,7 @@ internal static partial class OfficeJpeg2000Decoder {
         private readonly int _x0, _y0;
         private readonly int _margin;
         private int[]? _intWindow, _intLine, _intCarry;
-        private float[]? _floatWindow, _floatLine, _floatCarry;
+        private float[]? _floatWindow, _floatLine, _floatCarry, _floatLow, _floatHigh;
         // Horizontally synthesized rows at the end of the last window, which start the next one.
         private int _carryStart, _carryCount;
 
@@ -330,6 +330,12 @@ internal static partial class OfficeJpeg2000Decoder {
                     _floatLine = pool.RentFloats(width + 8);
                 }
                 if (carry > 0 && _floatCarry == null) _floatCarry = pool.RentFloats(2 * _margin * width);
+#if NET8_0_OR_GREATER
+                if (width >= PolyphaseMinimumWidth && Vector.IsHardwareAccelerated && _floatLow == null) {
+                    _floatLow = pool.RentFloats(width / 2 + 8);
+                    _floatHigh = pool.RentFloats(width / 2 + 8);
+                }
+#endif
             }
 
             // HOR_SR on every window row not carried over from the previous window.
@@ -350,6 +356,12 @@ internal static partial class OfficeJpeg2000Decoder {
                     Synthesize53(line, width, _x0);
                     Array.Copy(line, 4, _intWindow!, target, width);
                 } else {
+#if NET8_0_OR_GREATER
+                    if (_floatLow != null) {
+                        SynthesizePolyphase97(left.Floats!, leftOffset, right.Floats!, rightOffset, width, _x0, _floatLow, _floatHigh!, _floatWindow!, target);
+                        continue;
+                    }
+#endif
                     float[] line = _floatLine!;
                     Interleave(left.Floats!, leftOffset, right.Floats!, rightOffset, width, _x0, line);
                     Synthesize97(line, width, _x0);
@@ -382,8 +394,10 @@ internal static partial class OfficeJpeg2000Decoder {
             pool.Return(_floatWindow);
             pool.Return(_floatLine);
             pool.Return(_floatCarry);
+            pool.Return(_floatLow);
+            pool.Return(_floatHigh);
             _intWindow = _intLine = _intCarry = null;
-            _floatWindow = _floatLine = _floatCarry = null;
+            _floatWindow = _floatLine = _floatCarry = _floatLow = _floatHigh = null;
             _carryCount = 0;
             _lower.Return(pool);
             _hl.Return(pool);
@@ -448,6 +462,68 @@ internal static partial class OfficeJpeg2000Decoder {
         odd = (origin & 1) != 0 ? 0 : 1;
         for (int j = odd; j < count; j += 2) line[4 + j] -= IrreversibleAlpha * (line[3 + j] + line[5 + j]);
     }
+
+#if NET8_0_OR_GREATER
+    /// <summary>Rows at least this wide run the horizontal 9/7 synthesis in polyphase form.</summary>
+    private const int PolyphaseMinimumWidth = 32;
+
+    // Synthesize97 on one row with the low-pass (even absolute) and high-pass positions of the extended line kept
+    // in separate arrays, so each lifting step reads its neighbours contiguously and runs on vectors. Every
+    // position is updated by the same steps, with the same operands, as in Synthesize97.
+    private static void SynthesizePolyphase97(float[] lowSource, int lowStart, float[] highSource, int highStart, int count, int origin,
+        float[] low, float[] high, float[] target, int targetStart) {
+        int lowBase = (origin & 1) == 0 ? -4 : -3; // first low-pass position of the extended line [-4, count + 4)
+        int highBase = lowBase == -4 ? -3 : -4;
+        int firstLow = lowBase + 4, firstHigh = highBase + 4; // first positions inside [0, count)
+        int lowCount = (count - firstLow + 1) >> 1, highCount = count - lowCount;
+        Array.Copy(lowSource, lowStart, low, (firstLow - lowBase) >> 1, lowCount);
+        Array.Copy(highSource, highStart, high, (firstHigh - highBase) >> 1, highCount);
+        for (int k = 1; k <= 4; k++) {
+            ExtendPolyphase(-k);
+            ExtendPolyphase(count - 1 + k);
+        }
+        int lowLength = (count + 4 - lowBase + 1) >> 1, highLength = (count + 4 - highBase + 1) >> 1;
+        const float inverseK = 1F / IrreversibleK;
+        ScaleSpan(low, 0, lowLength, IrreversibleK);
+        ScaleSpan(high, 0, highLength, inverseK);
+        // Neighbours of low position lowBase + 2k are high entries k + lowShift and k + lowShift + 1, and the
+        // reverse for high positions.
+        int lowShift = highBase == lowBase + 1 ? -1 : 0, highShift = lowBase == highBase + 1 ? -1 : 0;
+        LiftSpan(low, lowBase, ((origin - 3) & 1) == 0 ? -3 : -2, count + 3, high, lowShift, IrreversibleDelta);
+        LiftSpan(high, highBase, ((origin - 2) & 1) != 0 ? -2 : -1, count + 2, low, highShift, IrreversibleGamma);
+        LiftSpan(low, lowBase, ((origin - 1) & 1) == 0 ? -1 : 0, count + 1, high, lowShift, IrreversibleBeta);
+        LiftSpan(high, highBase, (origin & 1) != 0 ? 0 : 1, count, low, highShift, IrreversibleAlpha);
+        for (int position = firstLow, k = (firstLow - lowBase) >> 1; position < count; position += 2, k++) target[targetStart + position] = low[k];
+        for (int position = firstHigh, k = (firstHigh - highBase) >> 1; position < count; position += 2, k++) target[targetStart + position] = high[k];
+
+        // Periodic symmetric extension (F.3.7) keeps the parity of a position, so each side extends from itself.
+        void ExtendPolyphase(int position) {
+            int source = Reflect(position, count);
+            bool lowPosition = ((origin + position) & 1) == 0;
+            float value = lowPosition ? lowSource[lowStart + ((source - firstLow) >> 1)] : highSource[highStart + ((source - firstHigh) >> 1)];
+            if (lowPosition) low[(position - lowBase) >> 1] = value;
+            else high[(position - highBase) >> 1] = value;
+        }
+    }
+
+    private static void ScaleSpan(float[] values, int start, int end, float factor) {
+        int index = start;
+        var scale = new Vector<float>(factor);
+        for (int lanes = Vector<float>.Count; index <= end - lanes; index += lanes) (new Vector<float>(values, index) * scale).CopyTo(values, index);
+        for (; index < end; index++) values[index] *= factor;
+    }
+
+    // values[k] -= factor * (neighbours[k + shift] + neighbours[k + shift + 1]) for positions [from, to) of one parity.
+    private static void LiftSpan(float[] values, int valuesBase, int from, int to, float[] neighbours, int shift, float factor) {
+        int index = (from - valuesBase) >> 1, end = index + ((to - from + 1) >> 1);
+        var weight = new Vector<float>(factor);
+        for (int lanes = Vector<float>.Count; index <= end - lanes; index += lanes) {
+            var sum = new Vector<float>(neighbours, index + shift) + new Vector<float>(neighbours, index + shift + 1);
+            (new Vector<float>(values, index) - weight * sum).CopyTo(values, index);
+        }
+        for (; index < end; index++) values[index] -= factor * (neighbours[index + shift] + neighbours[index + shift + 1]);
+    }
+#endif
 
     // First position at or after `from` with the parity of `start`.
     private static int Align(int from, int start) => from + ((from - start) & 1);
