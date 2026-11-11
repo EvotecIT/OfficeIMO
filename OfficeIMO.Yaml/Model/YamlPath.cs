@@ -134,7 +134,12 @@ internal static class YamlPath {
         Step last = steps[steps.Count - 1];
         YamlNode resolved = parent.Resolved;
         if (last.Key is not null) {
-            if (resolved is YamlMapping mapping) return mapping.Remove(last.Key);
+            if (resolved is YamlMapping mapping) {
+                int own = OwnIndex(mapping, last.Key);
+                if (own < 0) return false;
+                mapping.RemoveAt(own);
+                return true;
+            }
             if (resolved is YamlScalar) throw ThroughScalar(path, parent);
             return false;
         }
@@ -178,9 +183,11 @@ internal static class YamlPath {
                     if (!create) return null;
                     throw new InvalidOperationException("The path '" + path + "' has a key step where " + Describe(node) + " is.");
                 }
+                // Own scalar keys first, then keys merges provide (reading only), then collection keys, as Select finds them.
                 int own = mapping.IndexOf(step.Key);
                 next = own >= 0 ? mapping._entries[own].Value : null;
                 if (next is null && !create && mapping.TryGetValue(step.Key, out YamlNode? merged)) next = merged;
+                if (next is null && (own = mapping.IndexOfCollectionKey(step.Key)) >= 0) next = mapping._entries[own].Value;
                 if (next is null || (create && next is YamlScalar && next.IsNull && s + 1 < steps.Count)) {
                     if (!create) return null;
                     next = mapping.Set(step.Key, ContainerFor(steps, s + 1, lastIsSequence));
@@ -216,7 +223,8 @@ internal static class YamlPath {
         if (resolved is YamlScalar) throw ThroughScalar(path, parent);
         if (step.Key is not null) {
             if (resolved is not YamlMapping mapping) throw new InvalidOperationException("The path '" + path + "' has a key step where " + Describe(parent) + " is.");
-            return mapping.Set(step.Key, value);
+            int own = mapping.IndexOf(step.Key) >= 0 ? -1 : mapping.IndexOfCollectionKey(step.Key);
+            return own >= 0 ? YamlEdit.ReplaceValue(mapping, own, value) : mapping.Set(step.Key, value);
         }
         if (resolved is not YamlSequence sequence) throw new InvalidOperationException("The path '" + path + "' has an index step where " + Describe(parent) + " is.");
         if (step.Index == sequence._count) return sequence.Add(value);
@@ -245,10 +253,9 @@ internal static class YamlPath {
                 var mapping = (YamlMapping)parent;
                 int index = mapping.IndexOfNode(current, out bool isKey);
                 YamlNode key = mapping._entries[index].Key;
-                if (isKey || key.Resolved is not YamlScalar scalar) {
-                    throw new InvalidOperationException("No path addresses " + (isKey ? "a mapping key" : "a value under a collection key") + "; paths select values by key text.");
-                }
-                string text = scalar.Value;
+                if (isKey) throw new InvalidOperationException("No path addresses a mapping key; paths select values by key text.");
+                // A collection key is addressed by its YAML text, as OfficeIMO.Reader.Yaml reports it.
+                string text = key.Resolved is YamlScalar scalar ? scalar.Value : key.Resolved.ToString();
                 steps.Add(IsName(text) ? "." + text : "[" + Quote(text) + "]");
             }
             current = parent;
@@ -306,8 +313,18 @@ internal static class YamlPath {
         return quoted.Append('"').ToString();
     }
 
-    private static YamlNode? Key(YamlNode? node, string key) =>
-        node?.Resolved is YamlMapping mapping && mapping.TryGetValue(key, out YamlNode? value) ? value : null;
+    private static YamlNode? Key(YamlNode? node, string key) {
+        if (node?.Resolved is not YamlMapping mapping) return null;
+        if (mapping.TryGetValue(key, out YamlNode? value)) return value;
+        int index = mapping.IndexOfCollectionKey(key);
+        return index >= 0 ? mapping._entries[index].Value : null;
+    }
+
+    /// <summary>The mapping's own entry a key step names: a scalar key by its text, otherwise a collection key by its YAML text.</summary>
+    private static int OwnIndex(YamlMapping mapping, string key) {
+        int index = mapping.IndexOf(key);
+        return index >= 0 ? index : mapping.IndexOfCollectionKey(key);
+    }
 
     private static string ReadName(string path, ref int i) {
         int start = i;

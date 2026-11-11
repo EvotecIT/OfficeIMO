@@ -17,6 +17,24 @@ public class YamlDocumentEditingTests {
         Assert.Equal("debug: TRUE\nport: 8080\nname: 'web'\n", document.ToString());
     }
 
+    // Tools that point users at a node (validation messages, editors) read its loaded line and whether edits changed it.
+    [Fact]
+    public void NodesReportTheirLoadedPositionAndWhetherEditingChangedThem() {
+        YamlDocument document = YamlDocument.Parse("spec:\n  replicas: 1\n  image: web\n");
+        YamlNode replicas = document.Select("spec.replicas")!, image = document.Select("spec.image")!, spec = document.Select("spec")!;
+        Assert.Equal((2, 13), (replicas.Start.Line, replicas.Start.Column));
+        Assert.False(document.Root!.IsModified);
+
+        document.Set("spec.replicas", 3);
+        Assert.True(replicas.IsModified);
+        Assert.Equal(0, replicas.Start.Line);
+        Assert.True(spec.IsModified);
+        Assert.True(document.Root!.IsModified);
+        Assert.False(image.IsModified);
+        Assert.Equal((3, 10), (image.Start.Line, image.Start.Column));
+        Assert.True(spec.AsMapping().Add("paused", false).IsModified);
+    }
+
     [Fact]
     public void ChangedStringsKeepTheirStyleWhenItFitsAndAreQuotedWhenAmbiguous() {
         YamlDocument document = YamlDocument.Parse("a: plain # note\nb: \"double\"\nc: |\n  line\n");

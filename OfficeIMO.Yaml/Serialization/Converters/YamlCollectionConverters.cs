@@ -142,8 +142,9 @@ internal sealed class YamlDictionaryConverter<TDictionary, TKey, TValue> : YamlC
                     continue;
                 }
 #endif
-                // An explicit key replaces a merged value once; a second explicit occurrence is a duplicate.
-                if (merged is null || !merged.Remove(key)) throw YamlSerializationErrors.DuplicateKey(cursor, state, keyText);
+                // An explicit key replaces a merged value once; a second explicit occurrence is a duplicate, which
+                // replaces the earlier value unless the read is strict.
+                if ((merged is null || !merged.Remove(key)) && cursor.Strict) throw YamlSerializationErrors.DuplicateKey(cursor, state, keyText);
                 dictionary[key] = valueInfo.Read(cursor, state);
             }
             state.Pop();

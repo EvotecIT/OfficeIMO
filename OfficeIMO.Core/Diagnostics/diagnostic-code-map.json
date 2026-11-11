@@ -11097,6 +11097,12 @@
       "oldPattern": "RewriteBlocker.{kind}",
       "catalogPattern": "rewrite-blocker-{kind}",
       "source": "OfficeIMO.Pdf/Diagnostics/PdfDiagnostics.cs"
+    },
+    {
+      "oldPattern": "Yaml.{area}.{rule}",
+      "catalogPattern": "yaml-{area}-{rule}",
+      "source": "OfficeIMO.Yaml/YamlException.cs",
+      "notes": "YamlException.ToDiagnostic converts the stable YamlErrorCodes values, such as Yaml.Syntax.InvalidIndentation to yaml-syntax-invalid-indentation. Yaml.Load.DuplicateKey keeps its literal entry, yaml-duplicate-key."
     }
   ],
   "dynamicForwardingSites": [

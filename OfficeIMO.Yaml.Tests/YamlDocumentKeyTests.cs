@@ -14,25 +14,34 @@ public class YamlDocumentKeyTests {
     [Theory]
     [InlineData(0)]
     [InlineData(20)]
-    public void DuplicateKeysFailByDefault(int padding) {
-        YamlException error = Assert.Throws<YamlException>(() => YamlDocument.Parse(Mapping(padding, "a: 1\n\"a\": 2\n")));
+    public void DuplicateKeysFailWhenStrict(int padding) {
+        string yaml = Mapping(padding, "a: 1\n\"a\": 2\n");
+        YamlException error = Assert.Throws<YamlException>(() => YamlDocument.Parse(yaml, new YamlLoadOptions { Strict = true }));
         Assert.Equal(YamlErrorCodes.DuplicateKey, error.Code);
         Assert.Equal(padding + 2, error.Line);
+        // An explicit policy overrides the strict default, and Error also applies without Strict.
+        Assert.Equal("2", YamlDocument.Parse(yaml, new YamlLoadOptions { Strict = true, DuplicateKeys = YamlDuplicateKeyPolicy.LastWins }).Select("a")!.AsString());
+        Assert.Throws<YamlException>(() => YamlDocument.Parse(yaml, new YamlLoadOptions { DuplicateKeys = YamlDuplicateKeyPolicy.Error }));
     }
 
     [Theory]
+    [InlineData(0, null)]
+    [InlineData(20, null)]
     [InlineData(0, YamlDuplicateKeyPolicy.FirstWins)]
     [InlineData(20, YamlDuplicateKeyPolicy.FirstWins)]
     [InlineData(0, YamlDuplicateKeyPolicy.LastWins)]
     [InlineData(20, YamlDuplicateKeyPolicy.LastWins)]
-    public void LenientPoliciesKeepEveryEntryAndReportEachRepeat(int padding, YamlDuplicateKeyPolicy policy) {
+    public void LenientPoliciesKeepEveryEntryAndReportEachRepeat(int padding, YamlDuplicateKeyPolicy? policy) {
         string yaml = Mapping(padding, "a: 1\nb: 2\na: 3\n'a': 4\n");
         YamlDocument document = YamlDocument.Parse(yaml, new YamlLoadOptions { DuplicateKeys = policy });
         YamlMapping root = document.Root!.AsMapping();
         Assert.Equal(padding + 4, root.Count);
         Assert.Equal(policy == YamlDuplicateKeyPolicy.FirstWins ? "1" : "4", root["a"].AsString());
         Assert.Equal(2, document.Diagnostics.Count);
-        Assert.All(document.Diagnostics, d => Assert.Equal(OfficeDiagnosticCodes.YamlDuplicateKey, d.Code));
+        Assert.All(document.Diagnostics, d => {
+            Assert.Equal(OfficeDiagnosticCodes.YamlDuplicateKey, d.Code);
+            Assert.Equal(OfficeDiagnosticSeverity.Warning, d.Severity);
+        });
         Assert.Equal((padding + 3) + ":1", document.Diagnostics[0].Location);
         Assert.Equal(yaml, document.ToString());
     }
@@ -47,8 +56,9 @@ public class YamlDocumentKeyTests {
     [InlineData("1: a\n1.0: b\n", false)]
     [InlineData("!x a: 1\n!y a: 2\n", false)]
     public void KeysAreDuplicatesWhenTheirValuesAreEqual(string yaml, bool duplicate) {
-        if (duplicate) Assert.Equal(YamlErrorCodes.DuplicateKey, Assert.Throws<YamlException>(() => YamlDocument.Parse(yaml)).Code);
-        else Assert.Equal(2, YamlDocument.Parse(yaml).Root!.AsMapping().Count);
+        var strict = new YamlLoadOptions { Strict = true };
+        if (duplicate) Assert.Equal(YamlErrorCodes.DuplicateKey, Assert.Throws<YamlException>(() => YamlDocument.Parse(yaml, strict)).Code);
+        else Assert.Equal(2, YamlDocument.Parse(yaml, strict).Root!.AsMapping().Count);
     }
 
     private const string Merges = """

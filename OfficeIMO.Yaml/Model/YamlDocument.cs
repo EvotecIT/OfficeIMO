@@ -48,7 +48,7 @@ public sealed partial class YamlDocument : IDisposable {
     /// doc.Save("service.yaml");
     /// </code>
     /// </example>
-    public static YamlDocument Create() => new YamlDocument(string.Empty, YamlTextEncoding.Utf8, byteOrderMark: false, YamlDuplicateKeyPolicy.Error, strict: false);
+    public static YamlDocument Create() => new YamlDocument(string.Empty, YamlTextEncoding.Utf8, byteOrderMark: false, YamlDuplicateKeyPolicy.LastWins, strict: false);
 
     /// <summary>Gets the policy the document was loaded with; lookups among equal keys follow it.</summary>
     internal YamlDuplicateKeyPolicy DuplicateKeys { get; }
@@ -73,7 +73,7 @@ public sealed partial class YamlDocument : IDisposable {
 
     /// <summary>
     /// Gets findings recorded while loading and editing, with a line and column as the location: each duplicate key a
-    /// lenient <see cref="YamlDuplicateKeyPolicy"/> admitted (<see cref="OfficeDiagnosticCodes.YamlDuplicateKey"/>), each
+    /// non-strict load or a lenient <see cref="YamlDuplicateKeyPolicy"/> admitted (<see cref="OfficeDiagnosticCodes.YamlDuplicateKey"/>), each
     /// indentation the specification rejects that a non-strict load accepted (<see cref="OfficeDiagnosticCodes.YamlLenientIndentation"/>),
     /// one note per document part that uses <c>&lt;&lt;</c> merge keys without a <c>%YAML 1.1</c> directive
     /// (<see cref="OfficeDiagnosticCodes.YamlMergeKeyWithoutDirective"/>), and each edit of a node that aliases share

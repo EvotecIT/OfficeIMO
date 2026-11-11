@@ -72,7 +72,7 @@ var chunks = reader.Enumerate(stream, "values.yaml", new ReaderOptions {
 - Types follow the document's schema: YAML 1.2 core by default, YAML 1.1 for `%YAML 1.1` documents, and explicit tags such as `!!str`.
 - Chunks of `ChunkRows` rows with source `StartLine`/`EndLine`; each document of a multi-document stream starts a new chunk.
 - Path and stream dispatch.
-- A warning chunk with the engine's error code, message, line and column for malformed YAML or an exceeded limit, and chunk warnings for duplicate keys admitted by a lenient `YamlDuplicateKeyPolicy`.
+- A warning chunk with the engine's error code, message, line and column for malformed YAML or an exceeded limit, and a chunk warning for each repeated key (the last one wins unless `YamlLoadOptions` is strict or sets `DuplicateKeys`).
 
 ## Limits
 

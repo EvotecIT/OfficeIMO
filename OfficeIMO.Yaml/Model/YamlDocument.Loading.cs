@@ -104,7 +104,7 @@ public sealed partial class YamlDocument {
     }
 
     private static YamlDocument Build(string text, YamlTextEncoding encoding, bool byteOrderMark, YamlLoadOptions options, CancellationToken cancellationToken) {
-        var document = new YamlDocument(text, encoding, byteOrderMark, options.DuplicateKeys, options.Strict);
+        var document = new YamlDocument(text, encoding, byteOrderMark, options.EffectiveDuplicateKeys, options.Strict);
         try {
             using var reader = new YamlReader(text.AsMemory(), options.ReaderOptions, cancellationToken);
             new YamlTreeBuilder(document, options).Run(reader);

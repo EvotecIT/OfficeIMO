@@ -419,6 +419,30 @@ internal static class YamlTrivia {
         return found ? Comments(part._document._source, start, end) : null;
     }
 
+    /// <summary>The comment after a loaded part's <c>---</c> when nothing else is on that line, or null.</summary>
+    public static string? MarkerComment(YamlDocumentPart part) {
+        if (part._new || !part.HasStartMarker) return null;
+        int hash = MarkerHash(part, out int lineEnd);
+        return hash < 0 ? null : CommentText(part._document._source, hash, lineEnd);
+    }
+
+    /// <summary>Whether a node or its properties start on a loaded part's <c>---</c> line; its comment is then the node's.</summary>
+    public static bool MarkerLineHasContent(YamlDocumentPart part) => MarkerHash(part, out _) == -2;
+
+    /// <summary>
+    /// Finds the <c>#</c> of the comment after <c>---</c>: -1 when the rest of the line is blank, -2 when content starts
+    /// on it. <paramref name="lineEnd"/> receives the end of the line's content.
+    /// </summary>
+    public static int MarkerHash(YamlDocumentPart part, out int lineEnd) {
+        string source = part._document._source;
+        lineEnd = LineContentEnd(source, part._markerEnd);
+        int i = part._markerEnd;
+        while (i < lineEnd && (source[i] == ' ' || source[i] == '\t')) i++;
+        if (i == lineEnd) return -1;
+        // '---#' is not a marker followed by a comment, so the scanner never ends a marker there.
+        return source[i] == '#' && i > part._markerEnd ? i : -2;
+    }
+
     private static int PartIndex(YamlDocumentPart part) {
         IReadOnlyList<YamlDocumentPart> parts = part._document.Documents;
         for (int i = 0; i < parts.Count; i++) {

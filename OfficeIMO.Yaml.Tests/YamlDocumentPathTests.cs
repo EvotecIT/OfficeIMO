@@ -57,6 +57,30 @@ public class YamlDocumentPathTests {
         Assert.Throws<ArgumentException>(() => YamlDocument.Parse(Deployment).Select(path));
     }
 
+    // Every key a path can name round-trips through GetPath, Select, Set and Remove, including keys that only the
+    // quoted form or the YAML text of a collection key (as OfficeIMO.Reader.Yaml reports it) can address.
+    [Theory]
+    [InlineData("a.b: 1\n", "[\"a.b\"]")]
+    [InlineData("\"x[0]\": 1\n", "[\"x[0]\"]")]
+    [InlineData("'say \"hi\"': 1\n", "[\"say \\\"hi\\\"\"]")]
+    [InlineData("$: 1\n", "[\"$\"]")]
+    [InlineData("\"\": 1\n", "[\"\"]")]
+    [InlineData("0x1F: 1\n", "0x1F")]
+    [InlineData("[a, b]: 1\n", "[\"[a, b]\"]")]
+    [InlineData("? {name: web}\n: 1\n", "[\"{name: web}\"]")]
+    [InlineData("? - x\n  - y\n: 1\n", "[\"- x\\n  - y\"]")]
+    public void EveryKeyIsAddressableByThePathGetPathReturns(string yaml, string path) {
+        YamlDocument document = YamlDocument.Parse(yaml);
+        YamlNode value = document.Root!.AsMapping()[0].Value;
+        Assert.Equal(path, value.GetPath());
+        Assert.Same(value, document.Select(path));
+        document.Set(path, 2);
+        Assert.Equal(2, document.Select(path)!.GetValue<int>());
+        Assert.Single(document.Root!.AsMapping());
+        Assert.True(document.Remove(path));
+        Assert.Empty(document.Root!.AsMapping());
+    }
+
     [Fact]
     public void SelectStartsAtTheNodeAndAliasesStayInTheTree() {
         YamlDocument document = YamlDocument.Parse(Deployment);

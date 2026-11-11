@@ -24,13 +24,9 @@ internal static partial class MarkdownReader {
 
     private static bool IsFrontMatterFence(string? line) => string.Equals(line?.Trim(), FrontMatterBlock.Fence, StringComparison.Ordinal);
 
-    private static YamlLoadOptions CreateFrontMatterLoadOptions() {
-        // Front matter comes from documents of unknown origin. Repeated keys are common in hand-edited files and the
-        // last one wins in Jekyll, Hugo and the earlier OfficeIMO reader, so they are reported instead of failing.
-        YamlLoadOptions options = YamlLoadOptions.UntrustedDefaults;
-        options.DuplicateKeys = YamlDuplicateKeyPolicy.LastWins;
-        return options;
-    }
+    // Front matter comes from documents of unknown origin. Repeated keys are common in hand-edited files; the engine's
+    // default lets the last one win, as Jekyll and Hugo do, and reports each repeat instead of failing.
+    private static YamlLoadOptions CreateFrontMatterLoadOptions() => YamlLoadOptions.UntrustedDefaults;
 
     /// <summary>Parses the lines between the fences with the YAML engine; invalid YAML is kept as text with a positioned error.</summary>
     private static FrontMatterBlock ParseFrontMatterBlock(string[] lines, int closingIndex, MarkdownReaderState state) {
@@ -45,11 +41,13 @@ internal static partial class MarkdownReader {
         try {
             yaml = YamlDocument.Parse(rawYaml, CreateFrontMatterLoadOptions());
         } catch (YamlException exception) {
+            // The YAML diagnostic's message leaves out its YAML-relative position; the location is given in Markdown lines.
+            OfficeDiagnostic yamlDiagnostic = exception.ToDiagnostic();
             int line = bodyLine + Math.Max(1, exception.Line) - 1;
             int column = Math.Max(1, exception.Column);
             string location = "line " + line.ToString(CultureInfo.InvariantCulture) + ", column " + column.ToString(CultureInfo.InvariantCulture);
             var diagnostic = new OfficeDiagnostic(OfficeDiagnosticCodes.MarkdownFrontMatterInvalidYaml, OfficeDiagnosticSeverity.Error,
-                "The front matter is not valid YAML and is kept as text (" + exception.Code + "): " + exception.Message,
+                "The front matter is not valid YAML and is kept as text (" + yamlDiagnostic.Code + "): " + yamlDiagnostic.Message,
                 location, "Markdown");
             return FrontMatterBlock.FromInvalid(rawYaml, bodySpan, diagnostic, lines[0], lines[closingIndex]);
         }

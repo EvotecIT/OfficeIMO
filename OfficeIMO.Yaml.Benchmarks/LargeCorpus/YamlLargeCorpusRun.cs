@@ -168,6 +168,7 @@ internal static class YamlLargeCorpusRun {
             YamlDocument document = YamlDocument.Load(new MemoryStream(yaml, writable: false));
             result.LenientWarnings = document.Diagnostics.Count(d => d.Code == OfficeDiagnosticCodes.YamlLenientIndentation);
             result.MergeNotes = document.Diagnostics.Count(d => d.Code == OfficeDiagnosticCodes.YamlMergeKeyWithoutDirective);
+            result.DuplicateKeyWarnings = document.Diagnostics.Count(d => d.Code == OfficeDiagnosticCodes.YamlDuplicateKey);
             if (result.MergeNotes == 0) return document;
             foreach (YamlDocumentPart part in document.Documents) {
                 if (part.Schema != YamlSchema.Core) continue;
@@ -352,6 +353,7 @@ internal static class YamlLargeCorpusRun {
         text.AppendLine("| of those, loaded data agrees with SharpYaml | " + onlyDefault.Count(r => r.DataDifference.TryGetValue(Engine.SharpYaml, out YamlDataDifference? d) && d == null) + "/" + onlyDefault.Count(r => r.DataDifference.ContainsKey(Engine.SharpYaml)) + " |");
         text.AppendLine("| of those, round-trip exact | " + onlyDefault.Count(r => r.RoundTrip.TryGetValue(Engine.OfficeIMO, out bool? exact) && exact == true) + "/" + onlyDefault.Count + " |");
         text.AppendLine("| Files with yaml-lenient-indentation warnings (warnings) | " + results.Count(r => r.LenientWarnings > 0) + " (" + results.Sum(r => r.LenientWarnings) + ") |");
+        text.AppendLine("| Files with yaml-duplicate-key warnings (warnings) | " + results.Count(r => r.DuplicateKeyWarnings > 0) + " (" + results.Sum(r => r.DuplicateKeyWarnings) + ") |");
         text.AppendLine("| Files with yaml-merge-key-without-directive notes (notes) | " + merged.Count + " (" + merged.Sum(r => r.MergeNotes) + ") |");
         text.AppendLine("| Merge keys resolving to a mapping or list of mappings | " + merged.Sum(r => r.MergeKeysResolved) + "/" + merged.Sum(r => r.MergeKeysResolved + r.MergeKeysUnresolved) + " |");
         text.AppendLine();
@@ -568,6 +570,8 @@ internal static class YamlLargeCorpusRun {
         public int LenientWarnings { get; set; }
 
         public int MergeNotes { get; set; }
+
+        public int DuplicateKeyWarnings { get; set; }
 
         public int MergeKeysResolved { get; set; }
 
