@@ -30,7 +30,7 @@ public static class ExcelDocumentCsvExtensions {
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        ExcelCsvImportOptions resolved = ResolveOptions(options);
+        ExcelCsvImportOptions resolved = ResolveOptions(options, path);
         using var linkedCancellation = CreateLinkedLoadOptions(resolved, cancellationToken, out CsvReaderOptions loadOptions);
         using DbDataReader reader = CsvDocument.OpenReader(path, loadOptions);
         return ImportIntoNewWorksheet(document, reader, resolved, cancellationToken);
@@ -144,6 +144,17 @@ public static class ExcelDocumentCsvExtensions {
 
         ExcelSheet sheet = document.AddSheet(options.SheetName.Trim());
         return ExcelSheetCsvExtensions.ImportCsvCore(sheet, reader, options, cancellationToken);
+    }
+
+    // Without caller options a .tsv or .tab file is read as IANA TSV: quotes are data.
+    internal static ExcelCsvImportOptions ResolveOptions(ExcelCsvImportOptions? options, string path) {
+        if (options is null && CsvProfiles.IsTabSeparatedPath(path)) {
+            CsvReaderOptions tsv = CsvProfiles.CreateReaderOptions(CsvProfile.Tsv);
+            tsv.InferSchema = true;
+            options = new ExcelCsvImportOptions { ReaderOptions = tsv };
+        }
+
+        return ResolveOptions(options);
     }
 
     internal static ExcelCsvImportOptions ResolveOptions(ExcelCsvImportOptions? options) {

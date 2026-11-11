@@ -544,11 +544,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static void ApplyTableCellFallbackInsets(HtmlRenderBoxStyle cellStyle, int legacyBorderWidth) {
         if (!cellStyle.HasBorderLayout && !cellStyle.BorderDeclared) {
-            cellStyle.Borders = legacyBorderWidth > 0
-                ? HtmlRenderBorderEdges.Uniform(1D, "solid", OfficeColor.FromRgb(128, 128, 128))
-                : HtmlRenderBorderEdges.Uniform(0D, "none", cellStyle.Color);
+            cellStyle.Borders = ResolveTableCellFallbackBorders(cellStyle, legacyBorderWidth);
         }
     }
+
+    private static HtmlRenderBorderEdges ResolveTableCellFallbackBorders(HtmlRenderBoxStyle cellStyle, int legacyBorderWidth) =>
+        cellStyle.HasBorderLayout || cellStyle.BorderDeclared ? cellStyle.Borders
+            : legacyBorderWidth > 0
+                ? HtmlRenderBorderEdges.Uniform(1D, "solid", OfficeColor.FromRgb(128, 128, 128))
+                : HtmlRenderBorderEdges.Uniform(0D, "none", cellStyle.Color);
 
     private int DetermineColumnCount(IReadOnlyList<TableFormattingRow> rows) {
         var occupancy = new List<int>();

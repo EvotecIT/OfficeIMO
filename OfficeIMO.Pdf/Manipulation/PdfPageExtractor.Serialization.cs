@@ -33,9 +33,15 @@ internal static partial class PdfPageExtractor {
         return result;
     }
 
-    internal static byte[] SerializePageDictionary(PdfDictionary dictionary, int sourceId, SerializationContext context) {
+    /// <summary>Serializes a copied page directly into its final indirect-object bytes.</summary>
+    internal static PdfSerializedObject SerializeIndirectPageDictionary(int objectNumber, PdfDictionary dictionary, int sourceId, SerializationContext context) {
         context.CancellationToken.ThrowIfCancellationRequested();
-        var sb = new StringBuilder();
+        StringBuilder sb = StartIndirectObject(objectNumber);
+        AppendPageDictionary(sb, dictionary, sourceId, context);
+        return FinishIndirectObject(sb, context);
+    }
+
+    private static void AppendPageDictionary(StringBuilder sb, PdfDictionary dictionary, int sourceId, SerializationContext context) {
         sb.Append("<< ");
     
         bool hasType = false;
@@ -86,7 +92,17 @@ internal static partial class PdfPageExtractor {
         }
     
         sb.Append(">>\n");
-        return PdfEncoding.Latin1GetBytesCancellable(sb, context.CancellationToken);
+    }
+
+    // The serialized body always ends with an EOL, so the final bytes match WrapIndirectObjectCancellable.
+    private static StringBuilder StartIndirectObject(int objectNumber) {
+        if (objectNumber < 1) throw new ArgumentOutOfRangeException(nameof(objectNumber), "PDF object number must be positive.");
+        return new StringBuilder().Append(objectNumber.ToString(CultureInfo.InvariantCulture)).Append(" 0 obj\n");
+    }
+
+    private static PdfSerializedObject FinishIndirectObject(StringBuilder sb, SerializationContext context) {
+        sb.Append("endobj\n");
+        return PdfSerializedObject.FromBytes(PdfEncoding.Latin1GetBytesCancellable(sb, context.CancellationToken));
     }
     
     internal static byte[] SerializeObject(PdfObject value, SerializationContext context) {
@@ -114,8 +130,15 @@ internal static partial class PdfPageExtractor {
         SerializationContext context) =>
         value is PdfStream stream
             ? PdfObjectBytes.SegmentStreamObject(objectNumber, BuildStreamDictionary(stream, context), stream, context.CancellationToken)
-            : PdfSerializedObject.FromBytes(PdfObjectBytes.WrapIndirectObjectCancellable(
-                objectNumber, SerializeObject(value, context), context.CancellationToken));
+            : SerializeIndirectValue(objectNumber, value, context);
+
+    private static PdfSerializedObject SerializeIndirectValue(int objectNumber, PdfObject value, SerializationContext context) {
+        context.CancellationToken.ThrowIfCancellationRequested();
+        StringBuilder sb = StartIndirectObject(objectNumber);
+        AppendObject(sb, value, context);
+        sb.Append('\n');
+        return FinishIndirectObject(sb, context);
+    }
 
     internal static void EnsureSerializedObjectWithinLimit(PdfObject value, SerializationContext context, long maximumBytes) {
         if (maximumBytes < 0 || CountSerializedObjectBytes(value, context, maximumBytes) > maximumBytes) {

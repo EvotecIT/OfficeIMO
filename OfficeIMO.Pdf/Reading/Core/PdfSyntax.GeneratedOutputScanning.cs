@@ -23,7 +23,7 @@ internal static partial class PdfSyntax {
         Guard.NotNull(limits, nameof(limits));
         limits.Validate();
         var parseTimer = System.Diagnostics.Stopwatch.StartNew();
-        string text = PdfEncoding.Latin1GetString(pdf);
+        var text = new PdfByteContentText(pdf);
         int count = 0;
         int maximumObjectCharacters = 0;
         int maximumRawStreamBytes = 0;
@@ -55,7 +55,7 @@ internal static partial class PdfSyntax {
             }
 
             int bodyEnd = objectEnd >= 6 &&
-                string.Equals(text.Substring(objectEnd - 6, 6), "endobj", StringComparison.Ordinal)
+                MatchesAt(text, objectEnd - 6, "endobj")
                     ? objectEnd - 6
                     : objectEnd;
             maximumObjectCharacters = Math.Max(maximumObjectCharacters, Math.Max(0, bodyEnd - bodyStart));
@@ -65,7 +65,7 @@ internal static partial class PdfSyntax {
 
         int startXrefMarkers = 0;
         int startXrefCursor = 0;
-        while (TryReadNextStartXrefOffset(text, ref startXrefCursor, out _)) {
+        while (TryReadNextStartXrefOffset(pdf, ref startXrefCursor, out _)) {
             startXrefMarkers = checked(startXrefMarkers + 1);
         }
 

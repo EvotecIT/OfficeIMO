@@ -32,7 +32,8 @@ public sealed partial class PdfExtractedImage {
         bool interpolate = false,
         bool hasAuthoredRenderingIntent = false,
         bool requiresScanDecode = false,
-        bool hasUnsafePassThroughDecode = false) {
+        bool hasUnsafePassThroughDecode = false,
+        bool ownsBytes = false) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
         ObjectNumber = objectNumber;
@@ -41,7 +42,8 @@ public sealed partial class PdfExtractedImage {
         BitsPerComponent = bitsPerComponent;
         ColorSpace = colorSpace;
         Filter = filter;
-        _bytes = (byte[])bytes.Clone();
+        // A payload built for this image, such as a normalized PNG, is not shared; source stream bytes are.
+        _bytes = ownsBytes ? bytes : (byte[])bytes.Clone();
         FileExtension = fileExtension;
         MimeType = mimeType;
         IsImageFile = isImageFile;

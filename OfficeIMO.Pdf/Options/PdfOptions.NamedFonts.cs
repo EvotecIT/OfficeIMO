@@ -140,6 +140,7 @@ public sealed partial class PdfCreateOptions {
                 : family.ItalicSnapshot == null;
         }
 
+        ResolvePendingDefaultFontFamilies(font);
         return _embeddedFonts != null &&
                _embeddedFonts.TryGetValue(font, out PdfEmbeddedFont? embeddedFont) &&
                embeddedFont.SyntheticOblique;
@@ -278,7 +279,7 @@ public sealed partial class PdfCreateOptions {
                 return true;
             }
             if (allowSubstitution && TryGetFontFamilySubstitution(
-                    OfficeIMO.Drawing.OfficeFontFamilyParser.Quote(candidate), out PdfFontFamilySubstitution? substitution) &&
+                    QuoteFontFamilyName(candidate), out PdfFontFamilySubstitution? substitution) &&
                 substitution != null &&
                 TryGetNamedFontFamilyDirect(substitution.TargetFontFamily, out family)) {
                 return true;
@@ -345,6 +346,24 @@ public sealed partial class PdfCreateOptions {
         _namedFontProgramFailures?.RemoveWhere(face => face.FamilyKey == familyKey);
     }
 
-    private static string NormalizeNamedFontFamilyKey(string familyName) =>
-        familyName.Trim().ToUpperInvariant();
+    private static string NormalizeNamedFontFamilyKey(string familyName) {
+        if (NormalizedFontFamilyKeys.TryGetValue(familyName, out string? key)) return key;
+        key = familyName.Trim().ToUpperInvariant();
+        if (familyName.Length <= 256 && NormalizedFontFamilyKeys.Count < MaximumParsedFontFamilyLists) NormalizedFontFamilyKeys.TryAdd(familyName, key);
+        return key;
+    }
+
+    /// <summary>Quotes one parsed family name; text runs ask for the same few names repeatedly.</summary>
+    private static string QuoteFontFamilyName(string familyName) {
+        if (QuotedFontFamilyNames.TryGetValue(familyName, out string? quoted)) return quoted;
+        quoted = OfficeIMO.Drawing.OfficeFontFamilyParser.Quote(familyName);
+        if (familyName.Length <= 256 && QuotedFontFamilyNames.Count < MaximumParsedFontFamilyLists) QuotedFontFamilyNames.TryAdd(familyName, quoted);
+        return quoted;
+    }
+
+    // Family keys depend only on the name, so these bounded tables are shared by all documents.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> NormalizedFontFamilyKeys =
+        new(StringComparer.Ordinal);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> QuotedFontFamilyNames =
+        new(StringComparer.Ordinal);
 }

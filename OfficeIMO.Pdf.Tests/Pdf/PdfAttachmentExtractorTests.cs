@@ -205,7 +205,7 @@ public class PdfAttachmentExtractorTests {
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
             PdfReadDocument.Open(pdf, new PdfLoadOptions {
                 Limits = new PdfReadLimits { MaxAttachments = 2 }
-            }));
+            }).Attachments);
 
         Assert.Equal(PdfReadLimitKind.Attachments, exception.Kind);
         Assert.Equal(2, exception.Limit);
@@ -266,7 +266,7 @@ public class PdfAttachmentExtractorTests {
                     MaxAttachments = 1,
                     MaxTotalAttachmentBytes = 3
                 }
-            }));
+            }).Attachments);
 
         Assert.Equal(PdfReadLimitKind.Attachments, exception.Kind);
         Assert.Equal(1, exception.Limit);

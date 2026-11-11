@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfSyntax {
     // Security markers are observations and may also occur inside payload streams. Definition
     // ownership must use the terminal cross-reference pointer and its parsed /Prev chain.
-    private static int[] GetActiveRevisionOffsets(byte[] pdf, string text, Dictionary<int, PdfIndirectObject> objects,
+    private static int[] GetActiveRevisionOffsets(byte[] pdf, PdfByteContentText text, Dictionary<int, PdfIndirectObject> objects,
         PdfReadLimits limits, System.Diagnostics.Stopwatch timer, CancellationToken cancellationToken) {
         if (!TryGetLatestStartXrefOffset(text, out int current, cancellationToken)) return Array.Empty<int>();
         var scanBudget = new XrefObjectScanBudget(limits);
@@ -39,7 +39,7 @@ internal static partial class PdfSyntax {
     internal static int[] GetHistoricalRevisionEnds(byte[] pdf, PdfReadDocument document, CancellationToken cancellationToken) {
         var timer = System.Diagnostics.Stopwatch.StartNew();
         var limits = document.ReadOptions.Limits;
-        string text = PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken);
+        var text = new PdfByteContentText(pdf);
         int[] offsets = GetActiveRevisionOffsets(pdf, text, document.Objects, limits, timer, cancellationToken);
         var ends = new List<int>();
         for (int index = offsets.Length - 2; index >= 0; index--) {
@@ -55,7 +55,7 @@ internal static partial class PdfSyntax {
             }
             if (position < 0) throw new InvalidDataException("An earlier PDF update has no complete cross-reference boundary.");
             position = SkipRevisionTrivia(position);
-            if (position + 9 > text.Length || string.CompareOrdinal(text, position, "startxref", 0, 9) != 0)
+            if (position + 9 > text.Length || !MatchesAt(text, position, "startxref"))
                 throw new InvalidDataException("An earlier PDF update has no terminal cross-reference pointer.");
             position += 9;
             position = SkipRevisionTrivia(position);
@@ -64,7 +64,7 @@ internal static partial class PdfSyntax {
             if (!TryParseXrefInteger(text, first, position - first, out int target) || target != offsets[index])
                 throw new InvalidDataException("An earlier PDF update's terminal pointer does not match its cross-reference section.");
             position = SkipRevisionTrivia(position);
-            if (position + 5 > text.Length || string.CompareOrdinal(text, position, "%%EOF", 0, 5) != 0)
+            if (position + 5 > text.Length || !MatchesAt(text, position, "%%EOF"))
                 throw new InvalidDataException("An earlier PDF update has no complete EOF boundary.");
             ends.Add(position + 5);
         }
@@ -75,7 +75,7 @@ internal static partial class PdfSyntax {
             while (position < text.Length) {
                 if ((position & 4095) == 0) { cancellationToken.ThrowIfCancellationRequested(); ThrowIfParsingTimeExceeded(timer, limits); }
                 if (char.IsWhiteSpace(text[position])) { position++; continue; }
-                if (text[position] != '%' || (position + 5 <= text.Length && string.CompareOrdinal(text, position, "%%EOF", 0, 5) == 0)) break;
+                if (text[position] != '%' || (position + 5 <= text.Length && MatchesAt(text, position, "%%EOF"))) break;
                 while (position < text.Length && text[position] != '\r' && text[position] != '\n') {
                     if ((position & 4095) == 0) { cancellationToken.ThrowIfCancellationRequested(); ThrowIfParsingTimeExceeded(timer, limits); }
                     position++;

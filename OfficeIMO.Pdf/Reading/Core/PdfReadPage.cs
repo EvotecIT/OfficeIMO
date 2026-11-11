@@ -119,6 +119,10 @@ public sealed partial class PdfReadPage {
     internal PdfVisualBounds TransformBoundsToVisual(double left, double bottom, double right, double top) =>
         PdfVisualCoordinateMapper.TransformBounds(GetPageBoundaryBox(), GetRotationDegrees(), left, bottom, right, top, GetEffectiveUserUnit());
 
+    /// <summary>Reads the page box, rotation and user unit once for callers that map many bounds.</summary>
+    internal (PdfPageBox Box, int RotationDegrees, double UserUnit) GetVisualMapping() =>
+        (GetPageBoundaryBox(), GetRotationDegrees(), GetEffectiveUserUnit());
+
     internal PdfVisualBounds TransformVisualBoundsToUser(double left, double top, double right, double bottom) =>
         PdfVisualCoordinateMapper.TransformVisualBoundsToUser(GetPageBoundaryBox(), GetRotationDegrees(), left, top, right, bottom, GetEffectiveUserUnit());
 
@@ -223,8 +227,8 @@ public sealed partial class PdfReadPage {
         bool recoverDecodableText = false) {
         if (_includeArtifactText) return 0;
         var pageContentBudget = new PageContentBudget(this, cancellationToken);
-        string content = GetContentStreamSequence(pageContentBudget).Content;
-        if (content.IndexOf("/Artifact", StringComparison.Ordinal) < 0) return 0;
+        PdfContentSource content = GetContentStreamSequence(pageContentBudget).Source;
+        if (content.IndexOf("/Artifact") < 0) return 0;
         // These passes count spans only. Inspection already recorded failures on its logical pass.
         Action<PdfUnsupportedTextMappingException, int?>? ignoreUnmappableText = recoverDecodableText ? static (_, _) => { } : null;
         int withArtifacts = GetTextSpans(includeArtifactText: true, cancellationToken,
@@ -258,10 +262,8 @@ public sealed partial class PdfReadPage {
         var pageContentBudget = new PageContentBudget(this, cancellationToken);
 
         PageContentStreamSequence contentSequence = GetContentStreamSequence(pageContentBudget);
-        string content = contentSequence.Content;
+        PdfContentSource content = contentSequence.Source;
         if (content.Length > 0) {
-            PdfPageInvokedResourceNames invokedResources = GetRootInvokedResourceNames(content, pageResources,
-                cancellationToken.CanBeCanceled ? cancellationToken.ThrowIfCancellationRequested : null);
             CollectTextAndForms(
                 content,
                 pageResources,
@@ -282,7 +284,8 @@ public sealed partial class PdfReadPage {
                 cancellationCheck: cancellationToken.CanBeCanceled
                     ? cancellationToken.ThrowIfCancellationRequested
                     : null,
-                invokedResourceNames: invokedResources,
+                invokedResourceNames: () => GetRootInvokedResourceNames(content, pageResources,
+                    cancellationToken.CanBeCanceled ? cancellationToken.ThrowIfCancellationRequested : null),
                 onUnmappableText: onUnmappableText,
                 retainEditingEvidence: retainEditingEvidence);
         }
@@ -900,7 +903,7 @@ public sealed partial class PdfReadPage {
     }
 
     private void CollectTextAndForms(
-        string content,
+        PdfContentSource content,
         PdfDictionary? resources,
         Dictionary<string, Func<byte[], int, string>> decoders,
         Dictionary<string, Func<byte[], double>> widthProviders,
@@ -937,7 +940,7 @@ public sealed partial class PdfReadPage {
         Action? cancellationCheck = null,
         bool includeHiddenOptionalContent = false,
         PdfTextStateSnapshot? initialTextState = null,
-        PdfPageInvokedResourceNames? invokedResourceNames = null,
+        Func<PdfPageInvokedResourceNames>? invokedResourceNames = null,
         Action<int>? onTextSpan = null,
         double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D,
         bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0",
@@ -1036,10 +1039,50 @@ public sealed partial class PdfReadPage {
         PdfPageOptionalContentVisibility? optionalContentVisibility = includeHiddenOptionalContent
             ? null
             : GetOptionalContentVisibility(resources);
-        PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(
-            content, resources, cancellationCheck ?? (Action)pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
+        PageContentBudget colorSpaceBudget = pageContentBudget;
+        IReadOnlyDictionary<string, PdfPageColorSpace> colorSpaceResources = GetDeferredColorSpaceResources(
+            resources,
+            invokedResourceNames ?? (() => GetInvokedResourceNames(
+                content, resources, cancellationCheck ?? (Action)colorSpaceBudget.CancellationToken.ThrowIfCancellationRequested)),
+            colorSpaceBudget);
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStates =
             GetGraphicsStateResources(resources, pageContentBudget, decoders, widthProviders, fonts);
+        // A missing Do token rules out forms. Otherwise the form-invocation state machine shares
+        // the text pass's tokenizer instead of scanning the content a second time.
+        TextContentParser.FormInvocationCollector? formInvocations = content.IndexOf("Do") < 0
+            ? null
+            : TextContentParser.CreateFormInvocationCollector(
+                includeHiddenOptionalContent ? null : optionalContentVisibility,
+                paintOrderBase,
+                paintOrderScale,
+                paintOrderOffset,
+                graphicsStates,
+                colorSpaceResources,
+                pageHeight,
+                initialFillColor,
+                initialFillColorSpace,
+                initialStrokeColor,
+                initialStrokeColorSpace,
+                initialFillOpacity,
+                initialStrokeOpacity,
+                initialTextRenderingMode,
+                initialClipPath,
+                initialUnsupportedTextEffect,
+                mcidForProperty: ResolveMarkedContentMcid,
+                maxOperations: _limits.MaxContentOperations,
+                maxNestingDepth: _limits.MaxContentNestingDepth,
+                maxOperands: _limits.MaxContentOperands,
+                textClippingBudget: textClippingBudget,
+                initialRenderingIntent: initialRenderingIntent,
+                initialFillColorSelection: initialFillColorSelection,
+                initialStrokeColorSelection: initialStrokeColorSelection,
+                outputIntentColorTransform: EffectiveOutputIntentColorTransform,
+                inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
+                inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
+                cancellationCheck: cancellationCheck,
+                initialTextState: initialTextState,
+                initialStrokeWidth: initialStrokeWidth, initialStrokeLineCap: initialStrokeLineCap, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit,
+                initialFillColorResolved: initialFillColorResolved, initialStrokeColorResolved: initialStrokeColorResolved, initialStrokeDashIdentity: initialStrokeDashIdentity);
         var actualTextForms = new Dictionary<int, TextContentParser.MarkedContentState>();
         spans.AddRange(TextContentParser.Parse(
             content,
@@ -1049,7 +1092,7 @@ public sealed partial class PdfReadPage {
             actualTextForProperty: ResolveActualTextProperty,
             mcidForProperty: ResolveMarkedContentMcid,
             graphicsStates: graphicsStates,
-            colorSpaces: GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget),
+            colorSpaces: colorSpaceResources,
             baseFontForResource: ResolveBaseFont,
             isType3FontResource: IsType3FontResource,
             drawingFontFamilyForResource: ResolveDrawingFontFamily,
@@ -1109,46 +1152,12 @@ public sealed partial class PdfReadPage {
             onActualTextForm: (offset, state) => actualTextForms[offset] = state,
             onCompletedDrawingActualText: onCompletedDrawingActualText,
             twoByteFontForResource: ResolveTwoByteFont,
-            retainEditingEvidence: retainEditingEvidence));
+            retainEditingEvidence: retainEditingEvidence,
+            formInvocations: formInvocations));
 
-        // Text interpretation has already validated the stream and its limits.
-        // A missing Do token rules out forms; strings containing Do simply keep
-        // the conservative second scan.
-        if (content.IndexOf("Do", StringComparison.Ordinal) < 0) return;
+        if (formInvocations is null) return;
 
-        foreach (var invocation in TextContentParser.ExtractFormInvocations(
-                     content,
-                     includeHiddenOptionalContent ? null : optionalContentVisibility,
-                     paintOrderBase,
-                     paintOrderScale,
-                     paintOrderOffset,
-                     graphicsStates,
-                     GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget),
-                     pageHeight,
-                     initialFillColor,
-                     initialFillColorSpace,
-                     initialStrokeColor,
-                     initialStrokeColorSpace,
-                     initialFillOpacity,
-                     initialStrokeOpacity,
-                     initialTextRenderingMode,
-                     initialClipPath,
-                     initialUnsupportedTextEffect,
-                     mcidForProperty: ResolveMarkedContentMcid,
-                     maxOperations: _limits.MaxContentOperations,
-                     maxNestingDepth: _limits.MaxContentNestingDepth,
-                     maxOperands: _limits.MaxContentOperands,
-                     textClippingBudget: textClippingBudget,
-                     initialRenderingIntent: initialRenderingIntent,
-                     initialFillColorSelection: initialFillColorSelection,
-                     initialStrokeColorSelection: initialStrokeColorSelection,
-                     outputIntentColorTransform: EffectiveOutputIntentColorTransform,
-                     inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
-                     inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
-                     cancellationCheck: cancellationCheck,
-                     initialTextState: initialTextState,
-                     initialStrokeWidth: initialStrokeWidth, initialStrokeLineCap: initialStrokeLineCap, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit,
-                     initialFillColorResolved: initialFillColorResolved, initialStrokeColorResolved: initialStrokeColorResolved, initialStrokeDashIdentity: initialStrokeDashIdentity)) {
+        foreach (var invocation in formInvocations.Invocations) {
             if (!TryGetFormStream(resources, invocation.Name, out int? formObjectNumber, out var formStream)) {
                 continue;
             }
@@ -2331,24 +2340,82 @@ public sealed partial class PdfReadPage {
 
     private PageContentStreamSequence GetContentStreamSequence(PageContentBudget? pageContentBudget = null) {
         pageContentBudget ??= new PageContentBudget(this);
+        // A fresh budget decodes the page streams first, so a sequence decoded under the same limits
+        // can be charged to it instead of being inflated again.
+        bool freshBudget = pageContentBudget.IsUnused;
+        PageContentStreamSequence? reusable = freshBudget ? GetReusableContentSequence() : null;
+        if (reusable is not null) {
+            pageContentBudget.ChargeReusedDecodes(reusable.DecodedStreams);
+            return reusable;
+        }
+
         List<PageContentStreamEntry> streams = GetContentStreamObjects();
+        var decodedStreams = new KeyValuePair<PdfStream, byte[]>[streams.Count];
+        PageContentStreamSequence sequence;
         if (streams.Count == 1) {
             PageContentStreamEntry entry = streams[0];
-            string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(entry.Stream));
-            return new PageContentStreamSequence(content, new[] { new PageContentStreamOffset(0, entry.ObjectNumber) });
+            byte[] decoded = pageContentBudget.Decode(entry.Stream);
+            decodedStreams[0] = new KeyValuePair<PdfStream, byte[]>(entry.Stream, decoded);
+            sequence = new PageContentStreamSequence(decoded,
+                new[] { new PageContentStreamOffset(0, entry.ObjectNumber) }, decodedStreams);
+        } else {
+            var entries = new PageContentStreamOffset[streams.Count];
+            var segments = new byte[streams.Count][];
+            int offset = 0;
+            for (int index = 0; index < streams.Count; index++) {
+                PageContentStreamEntry entry = streams[index];
+                // ISO 32000-2 Table 31 separates content-array streams with whitespace. Keep
+                // operator identities in the same logical sequence used by content mutation.
+                if (index > 0) offset = checked(offset + 1);
+                entries[index] = new PageContentStreamOffset(offset, entry.ObjectNumber);
+                byte[] decoded = pageContentBudget.Decode(entry.Stream);
+                decodedStreams[index] = new KeyValuePair<PdfStream, byte[]>(entry.Stream, decoded);
+                segments[index] = decoded;
+                offset = checked(offset + decoded.Length);
+            }
+            sequence = new PageContentStreamSequence(
+                PdfEncoding.JoinSegments(segments, (byte)PdfContentStreamSequenceDecoder.Separator), entries, decodedStreams);
         }
 
-        var builder = new System.Text.StringBuilder();
-        var entries = new List<PageContentStreamOffset>();
-        foreach (PageContentStreamEntry entry in streams) {
-            // ISO 32000-2 Table 31 separates content-array streams with whitespace. Keep
-            // operator identities in the same logical sequence used by content mutation.
-            if (entries.Count > 0) builder.Append(PdfContentStreamSequenceDecoder.Separator);
-            entries.Add(new PageContentStreamOffset(builder.Length, entry.ObjectNumber));
-            builder.Append(PdfEncoding.Latin1GetString(pageContentBudget.Decode(entry.Stream)));
-        }
+        if (freshBudget) OfferReusableContentSequence(sequence);
+        return sequence;
+    }
 
-        return new PageContentStreamSequence(builder.ToString(), entries.ToArray());
+    /// <summary>
+    /// Keeps the decoded page content while the returned scope is open, so the passes of one page
+    /// stage decode it once. Each pass is still charged for the content it reads.
+    /// </summary>
+    internal DecodedContentReuseScope ReuseDecodedContent() {
+        lock (_decodedContentReuseSync) _decodedContentReuseDepth++;
+        return new DecodedContentReuseScope(this);
+    }
+
+    private PageContentStreamSequence? GetReusableContentSequence() {
+        lock (_decodedContentReuseSync) return _decodedContentReuseDepth > 0 ? _reusableContentSequence : null;
+    }
+
+    private void OfferReusableContentSequence(PageContentStreamSequence sequence) {
+        lock (_decodedContentReuseSync) {
+            if (_decodedContentReuseDepth > 0) _reusableContentSequence ??= sequence;
+        }
+    }
+
+    private void EndDecodedContentReuse() {
+        lock (_decodedContentReuseSync) {
+            if (_decodedContentReuseDepth > 0 && --_decodedContentReuseDepth == 0) _reusableContentSequence = null;
+        }
+    }
+
+    private readonly object _decodedContentReuseSync = new();
+    private int _decodedContentReuseDepth;
+    private PageContentStreamSequence? _reusableContentSequence;
+
+    internal readonly struct DecodedContentReuseScope : IDisposable {
+        private readonly PdfReadPage? _page;
+
+        internal DecodedContentReuseScope(PdfReadPage page) => _page = page;
+
+        public void Dispose() => _page?.EndDecodedContentReuse();
     }
 
     private List<PageContentStreamEntry> GetContentStreamObjects() {
@@ -2420,12 +2487,26 @@ public sealed partial class PdfReadPage {
     private sealed class PageContentStreamSequence {
         private readonly PageContentStreamOffset[] _offsets;
 
-        internal PageContentStreamSequence(string content, PageContentStreamOffset[] offsets) {
-            Content = content;
+        private readonly byte[] _contentBytes;
+        private string? _content;
+
+        internal PageContentStreamSequence(byte[] contentBytes, PageContentStreamOffset[] offsets,
+            KeyValuePair<PdfStream, byte[]>[] decodedStreams) {
+            _contentBytes = contentBytes;
             _offsets = offsets;
+            DecodedStreams = decodedStreams;
         }
 
-        internal string Content { get; }
+        /// <summary>The decoded content bytes, read by the tokenizer without a string copy.</summary>
+        internal PdfContentSource Source => PdfContentSource.FromBytes(_contentBytes);
+
+        /// <summary>The same content as a Latin-1 string, built once for passes that still read strings.</summary>
+        internal string Content => Volatile.Read(ref _content) ??
+            Interlocked.CompareExchange(ref _content, PdfEncoding.Latin1GetString(_contentBytes), null) ??
+            _content!;
+
+        /// <summary>The page streams in processing order with their decoded bytes.</summary>
+        internal KeyValuePair<PdfStream, byte[]>[] DecodedStreams { get; }
 
         internal int? GetObjectNumber(int operatorOffset) {
             int low = 0;
@@ -2615,6 +2696,22 @@ public sealed partial class PdfReadPage {
                     (long)_page._limits.MaxPageContentBytes + 1L);
             }
             Charge(decodedLength);
+        }
+
+        /// <summary>True until this budget decodes or validates a stream.</summary>
+        internal bool IsUnused => _decodedBytes == 0L && _decodedStreams is null;
+
+        /// <summary>
+        /// Charges page streams that another pass decoded under the same fresh-budget limits, in the
+        /// order and amounts <see cref="Decode"/> would have charged them.
+        /// </summary>
+        internal void ChargeReusedDecodes(KeyValuePair<PdfStream, byte[]>[] decodedStreams) {
+            for (int index = 0; index < decodedStreams.Length; index++) {
+                CancellationToken.ThrowIfCancellationRequested();
+                KeyValuePair<PdfStream, byte[]> decoded = decodedStreams[index];
+                Charge(decoded.Value.LongLength);
+                (_decodedStreams ??= new Dictionary<PdfStream, byte[]>())[decoded.Key] = decoded.Value;
+            }
         }
 
         private void Charge(long decodedBytes) {

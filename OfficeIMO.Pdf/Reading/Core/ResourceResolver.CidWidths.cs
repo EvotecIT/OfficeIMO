@@ -69,6 +69,16 @@ namespace OfficeIMO.Pdf {
             }
         }
 
+        // A cached font resource always belongs to the same font dictionary, so its table is built once.
+        private static CidWidthMap? GetCidWidthMap(PdfFontResource fontResource, PdfDictionary type0Font, Dictionary<int, PdfIndirectObject> objects) {
+            PdfFontResource.CidWidthSlot slot = fontResource.CidWidths;
+            if (Volatile.Read(ref slot.IsBuilt)) return (CidWidthMap?)slot.Value;
+            TryBuildCidWidthMap(type0Font, objects, out CidWidthMap? map);
+            slot.Value = map;
+            Volatile.Write(ref slot.IsBuilt, true);
+            return map;
+        }
+
         private static bool TryBuildCidWidthMap(PdfDictionary type0Font, Dictionary<int, PdfIndirectObject> objects, out CidWidthMap? map) {
             map = null;
             if (!type0Font.Items.TryGetValue("DescendantFonts", out PdfObject? descendants)) return false;

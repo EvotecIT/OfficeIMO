@@ -377,55 +377,76 @@ internal static class PdfIndexedImageNormalizer {
                 3,
                 maxDecodedStreamBytes,
                 out _,
-                out int scanlineBytes)) {
+                out _)) {
             return false;
         }
 
         long sourceRowLengthLong = ((long)width * bitsPerComponent + 7) / 8;
         long expectedLengthLong = sourceRowLengthLong * height;
-        long outputRowLengthLong = (long)width * 3;
-        if (sourceRowLengthLong > int.MaxValue ||
-            expectedLengthLong > int.MaxValue ||
-            outputRowLengthLong > int.MaxValue) {
+        if (sourceRowLengthLong > int.MaxValue || expectedLengthLong > int.MaxValue) {
             return false;
         }
 
         int sourceRowLength = (int)sourceRowLengthLong;
         int expectedLength = (int)expectedLengthLong;
-        int outputRowLength = (int)outputRowLengthLong;
         if (indexedPixels.Length < expectedLength) {
             return false;
         }
 
-        byte[] scanlines = new byte[scanlineBytes];
+        // Keep the source palette instead of expanding every sample to RGB: a page-sized 1-bit scan
+        // stays a 1-bit indexed PNG rather than a 24-bit image. Decoded colors are identical.
         int paletteEntryCount = rgbPalette.Length / 3;
+        int sampleCount = 1 << bitsPerComponent;
+        var indexMap = new byte[sampleCount];
+        bool identity = true;
+        int highestIndex = 0;
+        for (int sample = 0; sample < sampleCount; sample++) {
+            int paletteIndex = decodeTransform is null
+                ? sample
+                : decodeTransform.TransformIndexedSample(sample, bitsPerComponent, paletteEntryCount - 1);
+            paletteIndex = ClampPaletteIndex(paletteIndex, paletteEntryCount);
+            indexMap[sample] = (byte)paletteIndex;
+            identity &= paletteIndex == sample;
+            if (paletteIndex > highestIndex) highestIndex = paletteIndex;
+        }
+
+        int outputBitDepth = highestIndex < sampleCount ? bitsPerComponent : 8;
+        int outputPaletteEntries = Math.Min(paletteEntryCount, 1 << outputBitDepth);
+        byte[] outputPalette = rgbPalette;
+        if (outputPaletteEntries != paletteEntryCount) {
+            outputPalette = new byte[outputPaletteEntries * 3];
+            Buffer.BlockCopy(rgbPalette, 0, outputPalette, 0, outputPalette.Length);
+        }
+
+        int outputRowLength = (int)(((long)width * outputBitDepth + 7) / 8);
+        byte[] scanlines = new byte[checked((outputRowLength + 1) * height)];
+        bool copyRows = identity && outputBitDepth == bitsPerComponent;
         for (int row = 0; row < height; row++) {
             cancellationToken.ThrowIfCancellationRequested();
-            int outputRow = row * (1 + outputRowLength);
+            int outputRow = row * (1 + outputRowLength) + 1;
             int sourceRow = row * sourceRowLength;
-            scanlines[outputRow] = 0;
+            if (copyRows) {
+                Buffer.BlockCopy(indexedPixels, sourceRow, scanlines, outputRow, sourceRowLength);
+                continue;
+            }
 
             for (int pixel = 0; pixel < width; pixel++) {
                 if ((pixel & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
-                int paletteIndex = ReadIndexedPixel(indexedPixels, sourceRow, pixel, bitsPerComponent);
-                if (decodeTransform is not null) {
-                    paletteIndex = decodeTransform.TransformIndexedSample(paletteIndex, bitsPerComponent, paletteEntryCount - 1);
+                int paletteIndex = indexMap[ReadIndexedPixel(indexedPixels, sourceRow, pixel, bitsPerComponent)];
+                if (outputBitDepth == 8) {
+                    scanlines[outputRow + pixel] = (byte)paletteIndex;
+                } else {
+                    int bitOffset = pixel * outputBitDepth;
+                    scanlines[outputRow + bitOffset / 8] |= (byte)(paletteIndex << (8 - outputBitDepth - bitOffset % 8));
                 }
-                paletteIndex = ClampPaletteIndex(paletteIndex, paletteEntryCount);
-
-                int paletteOffset = paletteIndex * 3;
-                int outputPixel = outputRow + 1 + pixel * 3;
-                scanlines[outputPixel] = rgbPalette[paletteOffset];
-                scanlines[outputPixel + 1] = rgbPalette[paletteOffset + 1];
-                scanlines[outputPixel + 2] = rgbPalette[paletteOffset + 2];
             }
         }
 
-        pngBytes = OfficePngWriter.EncodeScanlines(
+        pngBytes = OfficePngWriter.EncodeIndexedScanlines(
             width,
             height,
-            8,
-            2,
+            outputBitDepth,
+            outputPalette,
             scanlines,
             OfficePngCompression.Stored);
         return true;

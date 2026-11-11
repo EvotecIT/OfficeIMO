@@ -38,12 +38,12 @@ internal static partial class HtmlPdfRenderedConverter {
         HtmlRenderLogicalText.TryResolveReorderedText(visuals, out logicalText);
     private static void AddLogicalTextGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderLogicalTextGroup group, RegisteredWebFonts webFonts, PdfImageResourceCache imageResources, PdfCore.PdfConversionReport conversionReport, double surfaceWidth, double surfaceHeight, bool interactiveFormControls, CancellationToken cancellationToken, bool textAsSpan, ClipBounds? activeClip, bool logicalTextOwned, HtmlPdfPagePaintContext? pagePaint) {
         void AddChildren(PdfCore.PdfPageCanvas target) {
-            foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
+            foreach (HtmlRenderVisual child in InPaintOrder(group.Visuals)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 AddVisual(target, child, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, activeClip, logicalTextOwned: true, pagePaint: pagePaint);
             }
         }
-        if (!group.Visuals.Any(child => ContainsPdfRenderableVisual(child, webFonts, surfaceWidth, surfaceHeight, activeClip, cancellationToken))) {
+        if (!ContainsPdfRenderableChild(group.Visuals, webFonts, surfaceWidth, surfaceHeight, activeClip, cancellationToken)) {
             AddChildren(canvas);
             return;
         }

@@ -110,14 +110,20 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
         internal static LegacyXlsExternSheetTable CreateDirectTabular(string sheetName) {
             ArgumentException.ThrowIfNullOrEmpty(sheetName);
+            return CreateStreaming([sheetName]);
+        }
 
+        /// <summary>Creates the self-reference table for formula-free worksheets with no external links.</summary>
+        internal static LegacyXlsExternSheetTable CreateStreaming(IReadOnlyList<string> sheetNames) {
+            var entries = new List<ExternSheetEntry>(sheetNames.Count);
+            for (int i = 0; i < sheetNames.Count; i++) entries.Add(new ExternSheetEntry(0, checked((ushort)i), checked((ushort)i)));
             return new LegacyXlsExternSheetTable(
-                [sheetName],
+                sheetNames.ToArray(),
                 new Dictionary<string, ushort>(StringComparer.Ordinal),
                 new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase),
                 new Dictionary<string, ExternalNameIndex>(StringComparer.OrdinalIgnoreCase),
-                [new SupportingLinkRecord(0x01ae, BuildSelfSupBookPayload(1))],
-                BuildPayload([new ExternSheetEntry(0, 0, 0)]));
+                [new SupportingLinkRecord(0x01ae, BuildSelfSupBookPayload(checked((ushort)sheetNames.Count)))],
+                BuildPayload(entries));
         }
 
         internal static bool SupportsDeclaredExternalWorkbookLinks(WorkbookPart workbookPart, out string? reason) {

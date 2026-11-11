@@ -486,7 +486,6 @@ internal static partial class PdfTextDiagnostics {
 
     private static List<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayoutCore(string text, string source, int indexOffset) {
         var diagnostics = new List<PdfTextShapingDiagnostic>();
-        var reportedCodes = new HashSet<string>(StringComparer.Ordinal);
 
         for (int index = 0; index < text.Length;) {
             int scalarStart = index;
@@ -494,9 +493,8 @@ internal static partial class PdfTextDiagnostics {
             int scalar = ReadScalar(text, ref index);
 
             if (OfficeTextElements.IsRightToLeftScalar(scalar)) {
-                AddDiagnostic(
+                AddFirstDiagnostic(
                     diagnostics,
-                    reportedCodes,
                     source,
                     sourceIndex,
                     scalar,
@@ -506,9 +504,8 @@ internal static partial class PdfTextDiagnostics {
             }
 
             if (TryGetComplexScriptName(scalar, out string complexScript)) {
-                AddDiagnostic(
+                AddFirstDiagnostic(
                     diagnostics,
-                    reportedCodes,
                     source,
                     sourceIndex,
                     scalar,
@@ -518,9 +515,8 @@ internal static partial class PdfTextDiagnostics {
             }
 
             if (IsCombiningMarkOrJoiner(scalar)) {
-                AddDiagnostic(
+                AddFirstDiagnostic(
                     diagnostics,
-                    reportedCodes,
                     source,
                     sourceIndex,
                     scalar,
@@ -530,9 +526,8 @@ internal static partial class PdfTextDiagnostics {
             }
 
             if (TryGetScriptLineBreakingName(scalar, out string lineBreakingScript)) {
-                AddDiagnostic(
+                AddFirstDiagnostic(
                     diagnostics,
-                    reportedCodes,
                     source,
                     sourceIndex,
                     scalar,
@@ -543,6 +538,15 @@ internal static partial class PdfTextDiagnostics {
         }
 
         return diagnostics;
+    }
+
+    // Each code is reported once per text. The list holds exactly the codes reported so far, so it
+    // serves as the duplicate check and plain text needs no set.
+    private static void AddFirstDiagnostic(List<PdfTextShapingDiagnostic> diagnostics, string source, int index, int scalar, string script, string code, string message) {
+        for (int i = 0; i < diagnostics.Count; i++) {
+            if (string.Equals(diagnostics[i].Code, code, StringComparison.Ordinal)) return;
+        }
+        diagnostics.Add(new PdfTextShapingDiagnostic(source, index, scalar, script, code, message, false));
     }
 
     /// <summary>

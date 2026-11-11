@@ -46,7 +46,7 @@ internal static class HtmlRenderFontFaceLoader {
                 continue;
             }
 
-            foreach (HtmlCssFontFaceDefinition definition in HtmlResourcePipeline.ExtractFontFaces(styleElement.TextContent, pipelineOptions)) {
+            foreach (HtmlCssFontFaceDefinition definition in HtmlResourcePipeline.ExtractFontFaces(HtmlStyleElementText.Read(styleElement), pipelineOptions)) {
                 LoadDefinition(
                     definition,
                     baseUri,

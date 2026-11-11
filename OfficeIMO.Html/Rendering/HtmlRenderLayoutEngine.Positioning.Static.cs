@@ -4,9 +4,16 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private void RecordNormalFlowPlacement(IElement element, IElement parent, double x, double y, HtmlRenderBoxStyle style) {
-        if (!IsFirstColumnSourceFragment(element) && _normalFlowPlacements.ContainsKey(element)) return;
-        _normalFlowPlacements[element] = new NormalFlowPlacement(parent, x, y, style.Clone());
-        _layoutStyles[element] = style.Clone();
+        if (RecordsNormalFlowPlacement(element)) StoreNormalFlowPlacement(element, parent, x, y, style.Clone());
+    }
+
+    private bool RecordsNormalFlowPlacement(IElement element) =>
+        IsFirstColumnSourceFragment(element) || !_normalFlowPlacements.ContainsKey(element);
+
+    /// <summary>Both records keep the caller's snapshot, which nothing changes afterwards; a later change clones it first.</summary>
+    private void StoreNormalFlowPlacement(IElement element, IElement parent, double x, double y, HtmlRenderBoxStyle snapshot) {
+        _normalFlowPlacements[element] = new NormalFlowPlacement(parent, x, y, snapshot);
+        _layoutStyles[element] = snapshot;
     }
 
     private void RemoveNormalFlowTopMargin(IElement element) {
@@ -14,7 +21,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style = placement.Style.Clone();
         style.MarginTop = 0D;
         _normalFlowPlacements[element] = new NormalFlowPlacement(placement.Parent, placement.X, placement.Y, style);
-        _layoutStyles[element] = style.Clone();
+        _layoutStyles[element] = style;
     }
 
     private PositionedPoint ResolvePositionedStaticPoint(

@@ -34,7 +34,8 @@ internal static partial class PdfWriter {
         Dictionary<byte[], IOfficeBoundedFontProgram> fontCache, PdfCreateOptions? encodingOptions = null,
         PdfTextShowCommand? paintCommand = null,
         Func<IOfficeBoundedFontProgram, int, double, GlyphPaintPlacement, List<List<OfficePoint>>?>? glyphOutline = null,
-        Action? fontCacheCleared = null, CancellationToken cancellationToken = default) {
+        Action? fontCacheCleared = null, Func<LayoutContext.DiagnosticPaintBounds, bool>? nominalContained = null,
+        CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(text)) yield break;
         PdfTextShowCommand command = paintCommand ?? (text == segment.Text && segment.KerningCommand != null ? segment.KerningCommand
             : EncodeTextShowCommand(text, segment.Font, segment.NamedFont, encodingOptions ?? options, segment.FeatureSettings,
@@ -56,6 +57,13 @@ internal static partial class PdfWriter {
                     double glyphLeft = x + cursor + left * size / 1000D * scale;
                     double glyphRight = glyphLeft + (right - left) * size / 1000D * scale;
                     double glyphBottom = baseline + bottom * size / 1000D, glyphTop = baseline + top * size / 1000D;
+                    // A diagnostic caller proves containment from the rectangle's extrema, as it does for
+                    // cached outline bounds, so a glyph that loses no paint needs no contour list.
+                    var nominalBounds = new LayoutContext.DiagnosticPaintBounds(glyphLeft, glyphBottom, glyphRight, glyphTop);
+                    if (nominalContained != null && nominalBounds.IsFinite && nominalContained(nominalBounds)) {
+                        cursor += GetRichGlyphAdvance(segment, text, command, index, options);
+                        continue;
+                    }
                     yield return (new List<List<OfficePoint>> { new() {
                         new(glyphLeft, glyphBottom), new(glyphRight, glyphBottom), new(glyphRight, glyphTop), new(glyphLeft, glyphTop)
                     } }, true);

@@ -22,30 +22,24 @@ public sealed class WordFontPhysicalLengthsTests {
 
     [Fact]
     public void ParagraphStyleWritesNativeTwipsAndHalfPointsAndReadsThemAsLengths() {
-        var definition = new WordParagraphStyleDefinition("PhysicalStyle") {
-            FontSize = global::OfficeIMO.OfficeLength.Points(11.25),
-            LeftIndent = global::OfficeIMO.OfficeLength.Points(-1.03),
-            SpacingBefore = global::OfficeIMO.OfficeLength.Points(2.03),
-            SpacingAfter = global::OfficeIMO.OfficeLength.Zero
-        };
-        var native = definition.ToOpenXml();
+        using WordDocument document = WordDocument.Create();
+        WordStyle style = document.Styles.AddParagraphStyle("PhysicalStyle");
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(11.25);
+        style.IndentationBefore = global::OfficeIMO.OfficeLength.Points(-1.03);
+        style.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(2.03);
+        style.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+        var native = style.Element;
         Assert.Equal("23", native.StyleRunProperties!.FontSize!.Val!.Value);
         Assert.Equal("-21", native.StyleParagraphProperties!.Indentation!.Left!.Value);
         Assert.Equal("41", native.StyleParagraphProperties.SpacingBetweenLines!.Before!.Value);
         Assert.Equal("0", native.StyleParagraphProperties.SpacingBetweenLines.After!.Value);
-        using WordDocument document = WordDocument.Create();
-        document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(native);
-        document.AddParagraph("Styled text").SetStyleId("PhysicalStyle");
+        document.AddParagraph("Styled text").SetStyle(style);
         using var stream = new MemoryStream(document.ToBytes());
         using WordDocument reopened = WordDocument.Load(stream);
-        var saved = System.Linq.Enumerable.Single(
-            reopened._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
-                .Elements<DocumentFormat.OpenXml.Wordprocessing.Style>(),
-            style => style.StyleId == "PhysicalStyle");
-        var readback = new WordParagraphStyleDefinition(saved);
+        WordStyle readback = reopened.Styles["PhysicalStyle"];
         Assert.Equal(global::OfficeIMO.OfficeLength.Points(11.5), readback.FontSize);
-        Assert.Equal(global::OfficeIMO.OfficeLength.Points(-1.05), readback.LeftIndent);
-        Assert.Equal(global::OfficeIMO.OfficeLength.Points(2.05), readback.SpacingBefore);
-        Assert.Equal(global::OfficeIMO.OfficeLength.Zero, readback.SpacingAfter);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(-1.05), readback.IndentationBefore);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(2.05), readback.LineSpacingBefore);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Zero, readback.LineSpacingAfter);
     }
 }

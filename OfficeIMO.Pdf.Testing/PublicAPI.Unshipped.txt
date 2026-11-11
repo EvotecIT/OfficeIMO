@@ -1,0 +1,24 @@
+#nullable enable
+OfficeIMO.Pdf.Testing.PdfSnapshot
+OfficeIMO.Pdf.Testing.PdfSnapshotMismatchException
+OfficeIMO.Pdf.Testing.PdfSnapshotMismatchException.ReceivedFiles.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Pdf.Testing.PdfSnapshotMismatchException.ReviewPath.get -> string?
+OfficeIMO.Pdf.Testing.PdfSnapshotMismatchException.SnapshotName.get -> string!
+OfficeIMO.Pdf.Testing.PdfSnapshotOptions
+OfficeIMO.Pdf.Testing.PdfSnapshotOptions.AllowHostFonts.get -> bool
+OfficeIMO.Pdf.Testing.PdfSnapshotOptions.AllowHostFonts.set -> void
+OfficeIMO.Pdf.Testing.PdfSnapshotOptions.Directory.get -> string?
+OfficeIMO.Pdf.Testing.PdfSnapshotOptions.Directory.set -> void
+OfficeIMO.Pdf.Testing.PdfSnapshotOptions.Pdf.get -> OfficeIMO.Pdf.Testing.PdfSnapshotPdfMode
+OfficeIMO.Pdf.Testing.PdfSnapshotOptions.Pdf.set -> void
+OfficeIMO.Pdf.Testing.PdfSnapshotOptions.PdfSnapshotOptions() -> void
+OfficeIMO.Pdf.Testing.PdfSnapshotOptions.Visual.get -> OfficeIMO.Pdf.PdfVisualComparisonOptions!
+OfficeIMO.Pdf.Testing.PdfSnapshotPdfMode
+OfficeIMO.Pdf.Testing.PdfSnapshotPdfMode.Exact = 2 -> OfficeIMO.Pdf.Testing.PdfSnapshotPdfMode
+OfficeIMO.Pdf.Testing.PdfSnapshotPdfMode.None = 0 -> OfficeIMO.Pdf.Testing.PdfSnapshotPdfMode
+OfficeIMO.Pdf.Testing.PdfSnapshotPdfMode.Store = 1 -> OfficeIMO.Pdf.Testing.PdfSnapshotPdfMode
+const OfficeIMO.Pdf.Testing.PdfSnapshot.AcceptEnvironmentVariable = "OFFICEIMO_PDF_SNAPSHOT_ACCEPT" -> string!
+static OfficeIMO.Pdf.Testing.PdfSnapshot.Accept(string! directory) -> int
+static OfficeIMO.Pdf.Testing.PdfSnapshot.Verify(OfficeIMO.Pdf.PdfDocument! document, string! name, OfficeIMO.Pdf.Testing.PdfSnapshotOptions? options = null, string! callerFilePath = "") -> void
+static OfficeIMO.Pdf.Testing.PdfSnapshot.Verify(System.IO.Stream! pdf, string! name, OfficeIMO.Pdf.Testing.PdfSnapshotOptions? options = null, string! callerFilePath = "") -> void
+static OfficeIMO.Pdf.Testing.PdfSnapshot.Verify(byte[]! pdf, string! name, OfficeIMO.Pdf.Testing.PdfSnapshotOptions? options = null, string! callerFilePath = "") -> void

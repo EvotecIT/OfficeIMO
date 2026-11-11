@@ -63,6 +63,12 @@ namespace OfficeIMO.Excel {
                 ref bool loaded = ref _currentValueLoaded[ordinal];
                 if (loaded || _owner._opt.CellValueConverter != null) return false;
                 bool numericAsDecimal = _owner._opt.NumericAsDecimal;
+                if (numericAsDecimal && _utf8Source.TryGetDecodedDecimalAt(ordinal + _utf8SourceOrdinalOffset, out value)) {
+                    GetValidatedOrdinalSlot(_currentPrimitiveKinds, ordinal) = XmlDataReaderPrimitiveKind.Decimal;
+                    GetValidatedOrdinalSlot(_currentDecimalValues, ordinal) = value;
+                    loaded = true;
+                    return true;
+                }
 #if NET8_0_OR_GREATER
                 bool tryLiteral = true;
 #else
@@ -167,6 +173,7 @@ namespace OfficeIMO.Excel {
                 value = default;
                 number = default;
                 int cellIndex = _currentRowOffset + ordinal;
+                if (allowRounded && TryGetDecodedDecimal(cellIndex, out value)) return true;
                 if (_cellKinds![cellIndex] != (byte)Utf8CellKind.Number
                     || _formulaLengths != null && _formulaLengths[cellIndex] >= 0
                     || _valueLengths![cellIndex] < 0) return false;
@@ -176,11 +183,7 @@ namespace OfficeIMO.Excel {
                 if (token.IsEmpty) return false;
                 bool negative = token[0] == (byte)'-';
                 if (token.Length > (negative ? 17 : 16)) {
-#if NET8_0_OR_GREATER
                     return allowRounded && ExcelUtf8NumberParser.TryParseRoundedFixedPointDecimal(token, out value);
-#else
-                    return false;
-#endif
                 }
                 int index = negative ? 1 : 0;
                 int digits = 0, scale = 0;
@@ -226,6 +229,7 @@ namespace OfficeIMO.Excel {
                 value = default;
                 dateStyle = false;
                 int cellIndex = _currentRowOffset + ordinal;
+                if (TryGetDecodedDouble(cellIndex, out value)) return true;
                 byte encodedKind = _cellKinds![cellIndex];
                 if ((encodedKind & CellKindMask) != (byte)Utf8CellKind.Number
                     || _formulaLengths != null && _formulaLengths[cellIndex] >= 0
@@ -247,6 +251,7 @@ namespace OfficeIMO.Excel {
             internal bool TryGetDateTime(int ordinal, out DateTime value) {
                 EnsureNotDisposed();
                 value = default;
+                if (TryGetDecodedDateTime(_currentRowOffset + ordinal, out value)) return true;
                 byte encodedKind = _cellKinds![_currentRowOffset + ordinal];
                 if ((encodedKind & DateStyleCellKindFlag) == 0
                     || !TryGetNumber(ordinal, out double number, out _)) {
@@ -267,6 +272,7 @@ namespace OfficeIMO.Excel {
                 EnsureNotDisposed();
                 value = default;
                 int cellIndex = _currentRowOffset + ordinal;
+                if (TryGetDecodedInt32(cellIndex, out value)) return true;
                 if (_cellKinds![cellIndex] != (byte)Utf8CellKind.Number
                     || _formulaLengths != null && _formulaLengths[cellIndex] >= 0
                     || _valueLengths![cellIndex] < 0) {

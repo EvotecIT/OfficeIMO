@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Email;
@@ -15,7 +16,7 @@ internal static class MimeTextCodec {
     }
 
     internal static bool ContainsEncodedWord(string value) =>
-        !string.IsNullOrEmpty(value) && EncodedWordPattern.IsMatch(value);
+        !string.IsNullOrEmpty(value) && value.IndexOf("=?", StringComparison.Ordinal) >= 0 && EncodedWordPattern.IsMatch(value);
 
     internal static string DecodeHeader(string value, IList<EmailDiagnostic> diagnostics, string location) {
         if (string.IsNullOrEmpty(value) || value.IndexOf("=?", StringComparison.Ordinal) < 0) return value;
@@ -168,13 +169,14 @@ internal static class MimeTextCodec {
     }
 
     internal static byte[] DecodeTransfer(byte[] bytes, int offset, int count, long decodedLength,
-        string? transferEncoding, IList<EmailDiagnostic> diagnostics, string location) {
+        string? transferEncoding, IList<EmailDiagnostic> diagnostics, string location,
+        OfficeBase64.MimeAnalysis? base64Analysis = null) {
         string normalized = (transferEncoding ?? string.Empty).Trim().ToLowerInvariant();
         switch (normalized) {
             case "base64":
-                return DecodeBase64(bytes, offset, count, decodedLength, diagnostics, location);
+                return DecodeBase64(bytes, offset, count, decodedLength, diagnostics, location, base64Analysis);
             case "quoted-printable":
-                return DecodeQuotedPrintable(Copy(bytes, offset, count), false, diagnostics, location);
+                return DecodeQuotedPrintable(bytes, offset, count, checked((int)decodedLength), false, diagnostics, location);
             case "7bit":
             case "8bit":
             case "binary":
@@ -189,17 +191,26 @@ internal static class MimeTextCodec {
     }
 
     internal static long GetDecodedLength(byte[] bytes, int offset, int count, string? transferEncoding,
+        IList<EmailDiagnostic>? diagnostics = null, string? location = null) =>
+        GetDecodedLength(bytes, offset, count, transferEncoding, out _, diagnostics, location);
+
+    internal static long GetDecodedLength(byte[] bytes, int offset, int count, string? transferEncoding,
+        out OfficeBase64.MimeAnalysis? base64Analysis,
         IList<EmailDiagnostic>? diagnostics = null, string? location = null) {
+        base64Analysis = null;
         string normalized = (transferEncoding ?? string.Empty).Trim().ToLowerInvariant();
         switch (normalized) {
             case "base64":
-                long base64Length = GetBase64DecodedLength(bytes, offset, count,
-                    out bool validBase64, out bool recoveredPadding);
-                if (diagnostics != null && !validBase64) {
+                var analysis = new OfficeBase64.MimeAnalysis();
+                analysis.Append(bytes, offset, count);
+                base64Analysis = analysis;
+                long base64Length = OfficeBase64.GetMimeDecodedLength(bytes, offset, count,
+                    out _, out _, analysis);
+                if (diagnostics != null && !analysis.IsValid) {
                     diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_INVALID",
                         "The invalid Base64 payload was preserved without decoding.",
                         EmailDiagnosticSeverity.Error, location));
-                } else if (diagnostics != null && recoveredPadding) {
+                } else if (diagnostics != null && analysis.RecoveredPadding) {
                     diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_PADDING_RECOVERED",
                         "Missing Base64 padding was recovered.", EmailDiagnosticSeverity.Warning, location));
                 }
@@ -225,65 +236,27 @@ internal static class MimeTextCodec {
         }
     }
 
-    private static long GetBase64DecodedLength(byte[] bytes, int offset, int count,
-        out bool valid, out bool recoveredPadding) {
-        int compactLength = 0;
-        int padding = 0;
-        bool sawPadding = false;
-        valid = true;
-        recoveredPadding = false;
-        for (int index = offset; index < offset + count; index++) {
-            byte value = bytes[index];
-            if (IsAsciiWhiteSpace(value)) continue;
-            compactLength++;
-            if (value == '=') {
-                sawPadding = true;
-                padding++;
-            } else if (sawPadding || !IsBase64Character(value)) {
-                valid = false;
-                return count;
-            }
-        }
-        if (compactLength == 0) return 0;
-        int remainder = compactLength % 4;
-        if (padding > 2 || (padding > 0 && remainder != 0) || (padding == 0 && remainder == 1)) {
-            valid = false;
-            return count;
-        }
-        if (padding > 0) return (long)(compactLength / 4) * 3 - padding;
-        recoveredPadding = remainder == 2 || remainder == 3;
-        return (long)(compactLength / 4) * 3 + (remainder == 2 ? 1 : remainder == 3 ? 2 : 0);
-    }
-
     private static long GetQuotedPrintableDecodedLength(byte[] bytes, int offset, int count, out bool invalid) {
-        long length = 0;
-        int end = offset + count;
+        long length = count;
+        int end = checked(offset + count);
         invalid = false;
         for (int index = offset; index < end; index++) {
-            if (bytes[index] != '=') {
-                length++;
-            } else if (index + 1 < end && bytes[index + 1] == '\n') {
+            index = Array.IndexOf(bytes, (byte)'=', index, end - index);
+            if (index < 0) break;
+            if (index + 1 < end && bytes[index + 1] == '\n') {
+                length -= 2;
                 index++;
             } else if (index + 2 < end && bytes[index + 1] == '\r' && bytes[index + 2] == '\n') {
+                length -= 3;
                 index += 2;
             } else if (index + 2 < end && TryHex(bytes[index + 1], out _) && TryHex(bytes[index + 2], out _)) {
-                length++;
+                length -= 2;
                 index += 2;
             } else {
-                length++;
                 invalid = true;
             }
         }
         return length;
-    }
-
-    private static bool IsBase64Character(byte value) {
-        return (value >= 'A' && value <= 'Z') || (value >= 'a' && value <= 'z') ||
-            (value >= '0' && value <= '9') || value == '+' || value == '/';
-    }
-
-    private static bool IsAsciiWhiteSpace(byte value) {
-        return value == ' ' || value == '\t' || value == '\r' || value == '\n' || value == '\f' || value == '\v';
     }
 
     internal static byte[] DecodeBase64(string value, IList<EmailDiagnostic> diagnostics, string location) {
@@ -308,207 +281,65 @@ internal static class MimeTextCodec {
     }
 
     private static byte[] DecodeBase64(byte[] input, int offset, int count, long decodedLength,
-        IList<EmailDiagnostic> diagnostics, string location) {
+        IList<EmailDiagnostic> diagnostics, string location, OfficeBase64.MimeAnalysis? analysis) {
         if (decodedLength == 0) return Array.Empty<byte>();
-#if NET8_0_OR_GREATER
-        return DecodeBase64Modern(input, offset, count, decodedLength, diagnostics, location);
-#else
         byte[] output = new byte[checked((int)decodedLength)];
-        int outputIndex = 0;
-        int quartetCount = 0;
-        int first = 0;
-        int second = 0;
-        int third = 0;
-        int fourth = 0;
-        bool invalid = false;
-        bool sawPadding = false;
+        bool decoded = OfficeBase64.TryDecodeMime(input, offset, count, output,
+            out int written, out bool recoveredPadding, analysis);
+#if NET8_0_OR_GREATER
+        bool reportRecovery = decoded && written == output.Length && recoveredPadding;
+#else
+        // Legacy decoding reports a recovered partial quartet even when the final length is invalid.
+        bool reportRecovery = recoveredPadding;
+#endif
+        if (reportRecovery) {
+            diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_PADDING_RECOVERED",
+                "Missing Base64 padding was recovered.", EmailDiagnosticSeverity.Warning, location));
+        }
+        if (decoded && written == output.Length) return output;
+        diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_INVALID",
+            "The invalid Base64 payload was preserved without decoding.",
+            EmailDiagnosticSeverity.Error, location));
+        if (output.Length != count) output = new byte[count];
+        Buffer.BlockCopy(input, offset, output, 0, count);
+        return output;
+    }
+
+    internal static byte[] DecodeQuotedPrintable(byte[] input, bool headerMode,
+        IList<EmailDiagnostic> diagnostics, string location) =>
+        DecodeQuotedPrintable(input, 0, input.Length,
+            checked((int)GetQuotedPrintableDecodedLength(input, 0, input.Length, out _)),
+            headerMode, diagnostics, location);
+
+    private static byte[] DecodeQuotedPrintable(byte[] input, int offset, int count, int decodedLength,
+        bool headerMode, IList<EmailDiagnostic> diagnostics, string location) {
+        var output = new byte[decodedLength];
+        int written = 0;
         int end = checked(offset + count);
-
-        for (int index = offset; index < end; index++) {
-            byte current = input[index];
-            if (IsAsciiWhiteSpace(current)) continue;
-            int value;
-            if (current == '=') {
-                value = -2;
-                sawPadding = true;
+        while (offset < end) {
+            int equals = Array.IndexOf(input, (byte)'=', offset, end - offset);
+            if (equals < 0) equals = end;
+            int run = equals - offset;
+            Buffer.BlockCopy(input, offset, output, written, run);
+            written += run;
+            offset = equals;
+            if (offset == end) break;
+            if (offset + 1 < end && input[offset + 1] == '\n') {
+                offset += 2;
+            } else if (offset + 2 < end && input[offset + 1] == '\r' && input[offset + 2] == '\n') {
+                offset += 3;
+            } else if (offset + 2 < end && TryHex(input[offset + 1], out int high) && TryHex(input[offset + 2], out int low)) {
+                output[written++] = (byte)(high << 4 | low);
+                offset += 3;
             } else {
-                if (sawPadding || !TryBase64Value(current, out value)) {
-                    invalid = true;
-                    break;
-                }
-            }
-
-            switch (quartetCount++) {
-                case 0: first = value; break;
-                case 1: second = value; break;
-                case 2: third = value; break;
-                default:
-                    fourth = value;
-                    if (!WriteBase64Quartet(output, ref outputIndex, first, second, third, fourth)) {
-                        invalid = true;
-                    }
-                    quartetCount = 0;
-                    break;
-            }
-            if (invalid) break;
-        }
-
-        if (!invalid && quartetCount > 0) {
-            if (quartetCount == 2) {
-                third = -2;
-                fourth = -2;
-            } else if (quartetCount == 3) {
-                fourth = -2;
-            } else {
-                invalid = true;
-            }
-            if (!invalid && !WriteBase64Quartet(output, ref outputIndex, first, second, third, fourth)) {
-                invalid = true;
-            }
-            if (!invalid) {
-                diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_PADDING_RECOVERED",
-                    "Missing Base64 padding was recovered.", EmailDiagnosticSeverity.Warning, location));
-            }
-        }
-
-        if (!invalid && outputIndex == output.Length) return output;
-        diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_INVALID",
-            "The invalid Base64 payload was preserved without decoding.",
-            EmailDiagnosticSeverity.Error, location));
-        if (output.Length != count) output = new byte[count];
-        Buffer.BlockCopy(input, offset, output, 0, count);
-        return output;
-#endif
-    }
-
-#if NET8_0_OR_GREATER
-    private static byte[] DecodeBase64Modern(byte[] input, int offset, int count, long decodedLength,
-        IList<EmailDiagnostic> diagnostics, string location) {
-        byte[] output = new byte[checked((int)decodedLength)];
-        byte[] compact = System.Buffers.ArrayPool<byte>.Shared.Rent(checked(count + 3));
-        try {
-            int compactLength = 0;
-            int end = checked(offset + count);
-            for (int index = offset; index < end; index++) {
-                byte current = input[index];
-                if (!IsAsciiWhiteSpace(current)) compact[compactLength++] = current;
-            }
-            int padding = (4 - compactLength % 4) % 4;
-            for (int index = 0; index < padding; index++) compact[compactLength++] = (byte)'=';
-            if (TryDecodeBase64Block(compact, compactLength, output, out int written) &&
-                written == output.Length) {
-                if (padding > 0) {
-                    diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_PADDING_RECOVERED",
-                        "Missing Base64 padding was recovered.", EmailDiagnosticSeverity.Warning, location));
-                }
-                return output;
-            }
-        } finally {
-            System.Buffers.ArrayPool<byte>.Shared.Return(compact);
-        }
-
-        diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_INVALID",
-            "The invalid Base64 payload was preserved without decoding.",
-            EmailDiagnosticSeverity.Error, location));
-        if (output.Length != count) output = new byte[count];
-        Buffer.BlockCopy(input, offset, output, 0, count);
-        return output;
-    }
-#endif
-
-    // Decodes a whitespace-free, padded block into caller-owned bounded storage.
-    internal static bool TryDecodeBase64Block(byte[] input, int count, byte[] output, out int written) {
-#if NET8_0_OR_GREATER
-        System.Buffers.OperationStatus status = System.Buffers.Text.Base64.DecodeFromUtf8(
-            input.AsSpan(0, count), output, out int consumed, out written);
-        return status == System.Buffers.OperationStatus.Done && consumed == count;
-#else
-        written = 0;
-        if (count % 4 != 0) return false;
-        for (int index = 0; index < count; index += 4) {
-            int first, second, third, fourth;
-            if (!TryBase64Value(input[index], out first) || !TryBase64Value(input[index + 1], out second)) return false;
-            if (input[index + 2] == '=') third = -2;
-            else if (!TryBase64Value(input[index + 2], out third)) return false;
-            if (input[index + 3] == '=') fourth = -2;
-            else if (!TryBase64Value(input[index + 3], out fourth)) return false;
-            if (!WriteBase64Quartet(output, ref written, first, second, third, fourth)) return false;
-            if ((third == -2 || fourth == -2) && index + 4 != count) return false;
-        }
-        return true;
-#endif
-    }
-
-    private static bool WriteBase64Quartet(byte[] output, ref int outputIndex,
-        int first, int second, int third, int fourth) {
-        if (first < 0 || second < 0 || third == -2 && fourth != -2) return false;
-        if (outputIndex >= output.Length) return false;
-        output[outputIndex++] = (byte)((first << 2) | (second >> 4));
-        if (third == -2) return true;
-        if (third < 0 || outputIndex >= output.Length) return false;
-        output[outputIndex++] = (byte)((second << 4) | (third >> 2));
-        if (fourth == -2) return true;
-        if (fourth < 0 || outputIndex >= output.Length) return false;
-        output[outputIndex++] = (byte)((third << 6) | fourth);
-        return true;
-    }
-
-    private static bool TryBase64Value(byte value, out int result) {
-        if (value >= 'A' && value <= 'Z') {
-            result = value - 'A';
-            return true;
-        }
-        if (value >= 'a' && value <= 'z') {
-            result = value - 'a' + 26;
-            return true;
-        }
-        if (value >= '0' && value <= '9') {
-            result = value - '0' + 52;
-            return true;
-        }
-        if (value == '+') {
-            result = 62;
-            return true;
-        }
-        if (value == '/') {
-            result = 63;
-            return true;
-        }
-        result = 0;
-        return false;
-    }
-
-    internal static byte[] DecodeQuotedPrintable(byte[] input, bool headerMode, IList<EmailDiagnostic> diagnostics, string location) {
-        using (MemoryStream output = new MemoryStream(input.Length)) {
-            for (int i = 0; i < input.Length; i++) {
-                byte current = input[i];
-                if (current != '=') {
-                    output.WriteByte(current);
-                    continue;
-                }
-
-                if (i + 1 < input.Length && input[i + 1] == '\n') {
-                    i++;
-                    continue;
-                }
-                if (i + 2 < input.Length && input[i + 1] == '\r' && input[i + 2] == '\n') {
-                    i += 2;
-                    continue;
-                }
-                if (i + 2 < input.Length && TryHex(input[i + 1], out int high) && TryHex(input[i + 2], out int low)) {
-                    output.WriteByte((byte)((high << 4) | low));
-                    i += 2;
-                    continue;
-                }
-
-                output.WriteByte(current);
+                output[written++] = input[offset++];
                 if (!headerMode) {
                     diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_QUOTED_PRINTABLE_INVALID",
                         "An invalid quoted-printable escape was preserved.", EmailDiagnosticSeverity.Warning, location));
                 }
             }
-            return output.ToArray();
         }
+        return output;
     }
 
     private static string RemoveWhiteSpace(string value) {

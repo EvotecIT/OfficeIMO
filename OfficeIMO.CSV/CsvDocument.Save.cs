@@ -8,11 +8,12 @@ public sealed partial class CsvDocument
     /// <summary>
     /// Saves the document to the specified path.
     /// </summary>
+    /// <remarks>Without options, a <c>.tsv</c> or <c>.tab</c> path (optionally compressed) uses <see cref="CsvProfile.Tsv"/>.</remarks>
     public void Save(string path, CsvSaveOptions? options = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        options = ResolveSaveOptions(options);
+        options = ResolveSaveOptions(options, path);
 
         WritePath(path, options, writer => CsvWriter.Write(writer, this, options));
         FilePath = Path.GetFullPath(path);
@@ -79,7 +80,7 @@ public sealed partial class CsvDocument
     public async Task SaveAsync(string path, CsvSaveOptions? options = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        options = ResolveSaveOptions(options);
+        options = ResolveSaveOptions(options, path);
         cancellationToken.ThrowIfCancellationRequested();
         string fullPath = Path.GetFullPath(path);
         if (options.NoClobber && File.Exists(fullPath)) throw new IOException($"The file '{fullPath}' already exists.");
@@ -194,18 +195,34 @@ public sealed partial class CsvDocument
             UseUtc = source.UseUtc,
             FormulaInjectionPolicy = source.FormulaInjectionPolicy,
             QuoteMode = source.QuoteMode,
+            EscapeMode = source.EscapeMode,
+            WriteUnquotedFieldsLiterally = source.WriteUnquotedFieldsLiterally,
             QuoteFields = source.QuoteFields
         };
     }
 
-    private CsvSaveOptions ResolveSaveOptions(CsvSaveOptions? options)
+    private CsvSaveOptions ResolveSaveOptions(CsvSaveOptions? options, string? path = null)
     {
-        return options ?? new CsvSaveOptions
+        if (options is not null) return options;
+        if (path is not null && CsvProfiles.IsTabSeparatedPath(path))
+        {
+            var tsv = CsvProfiles.CreateSaveOptions(CsvProfile.Tsv);
+            tsv.Culture = _culture;
+            // Keep an encoding chosen for the document (WithEncoding or a non-default load encoding).
+            if (_encoding is not UTF8Encoding || _encoding.GetPreamble().Length != 0) tsv.Encoding = _encoding;
+            tsv.EscapeMode = _unquotedEscapeMode ?? CsvEscapeMode.None;
+            return tsv;
+        }
+
+        return new CsvSaveOptions
         {
             Delimiter = _delimiter,
             DelimiterText = _delimiterText,
             Culture = _culture,
-            Encoding = _encoding
+            Encoding = _encoding,
+            // A document read with quotes as data saves in the same unquoted dialect.
+            QuoteMode = _unquotedEscapeMode is null ? CsvQuoteMode.AsNeeded : CsvQuoteMode.Never,
+            EscapeMode = _unquotedEscapeMode ?? CsvEscapeMode.None
         };
     }
 

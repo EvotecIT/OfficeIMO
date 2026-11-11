@@ -342,16 +342,14 @@ dotnet run -c Release -f net10.0 --project .\OfficeIMO.Email.Benchmarks.Comparis
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Email.Benchmarks.Comparisons -- --evidence --repeat 3 --json .benchmark-artifacts\email\memory-evidence.json
 ```
 
-The full Windows run is recorded in
-[`officeimo.email-mime-2026-08-24.md`](officeimo.email-mime-2026-08-24.md).
-All read and write lanes are within 2x for both mean time and managed allocation;
-validated OfficeIMO output is 1.07-1.08x the MimeKit byte size. The comparison
-project stays outside `OfficeIMO.slnx`, so MimeKit remains benchmark-only. The
-same evidence note records the separate 16.9x PST scale-test improvement from
-removing disk-journal setup for single-block data trees. The isolated runner
-also places retained heap, managed-heap peak, and absolute process peak within
-2x for every read and write scale; normal-write allocation at 1.52x remains the
-next optimization margin.
+The current MimeKit 5.0.0 comparison is recorded in
+[`officeimo.email-mime-2026-11-11.md`](officeimo.email-mime-2026-11-11.md).
+The final ARM64 application-policy cohort has faster reads and writes with lower
+managed allocation on both scales. The note includes before/after tables,
+source hashes, serialized-byte equality and the earlier variable runs. The
+comparison project stays outside `OfficeIMO.slnx`, so MimeKit remains benchmark-only.
+The [historical Windows run](officeimo.email-mime-2026-08-24.md) preserves the
+MimeKit 4.17 numbers, retained/peak-memory measurements and separate PST evidence.
 
 ## MHTML archive comparisons
 

@@ -2,7 +2,7 @@
 
 Render Mermaid fences as static diagrams in OfficeIMO Markdown workflows. This optional adapter uses [ChartForgeX.Markup.Mermaid](https://github.com/EvotecIT/ChartForgeX) for parsing, layout, SVG and PNG rendering. Word, PDF and PowerPoint engines keep their own document and image-placement behavior.
 
-The adapter uses the ChartForgeX 3.1 Mermaid package. It renders through the common static artifact contract and does not add Visuals or Stories dependencies to ordinary OfficeIMO converters.
+The adapter uses the ChartForgeX Mermaid package. It renders through the common static artifact contract and does not add Visuals or Stories dependencies to ordinary OfficeIMO converters.
 
 ## Word and PDF
 
@@ -22,7 +22,7 @@ word.Save("report.docx");
 document.SaveAsPdf("report.pdf");
 ```
 
-The transform replaces Mermaid fences with embedded PNG images, including fences inside lists, quotes and other Markdown containers. The Word example uses the existing context-width image policy so wide diagrams fit the page, including list and quote indentation. It preserves captions and supplies alternative text from the rendered artifact. Other fence languages remain unchanged. Invalid or unsupported diagrams retain their source fence and report diagnostics through the supplied callback.
+Diagrams are embedded as SVG by default: PDF draws each one as vector content, and Word stores the SVG together with a PNG fallback picture for older Word versions and other viewers. Pass `MermaidMarkdownImageFormat.Png` for consumers that handle SVG poorly, such as HTML email or document import services. The transform replaces Mermaid fences with embedded images, including fences inside lists, quotes and other Markdown containers. The Word example uses the existing context-width image policy so wide diagrams fit the page, including list and quote indentation. It preserves captions and supplies alternative text from the rendered artifact. Other fence languages remain unchanged. Invalid or unsupported diagrams retain their source fence and report diagnostics through the supplied callback.
 
 For a converter that accepts `MarkdownLoadOptions`, add `MermaidMarkdownAdapter.CreateTransform()` to `DocumentTransforms`. Each application renders its own document, so the same transform can be reused.
 
@@ -65,7 +65,7 @@ The parser preserves transformed fences within list items, slide bodies and dire
 
 For Word markup, select `OfficeMarkupProfile.Document` and import `OfficeIMO.Markup.Word`, then call `parsed.Document.ToWord()`. Word markup fits unsized embedded images to the current section and honors explicit image dimensions. Both markup exporters expose `AllowDataUriImages` and `MaximumDataUriImageBytes` in their options.
 
-The PowerPoint exporter embeds the generated PNG bytes in process, preserves their aspect ratio and alternative text, and includes image captions. PNG and JPEG data URI images are enabled by default, with a 16 MiB decoded-image limit. Set `MarkupPowerPointExportOptions.AllowDataUriImages` or `MaximumDataUriImageBytes` to apply a stricter policy. Existing file-path access rules continue to apply to file images.
+The PowerPoint exporter embeds the generated image bytes in process, preserves their aspect ratio and alternative text, and includes image captions. With the default SVG format, the slide picture is the SVG itself, without a PNG fallback; pass `MermaidMarkdownImageFormat.Png` to `CreateTransform` when the presentation must open in PowerPoint versions or viewers without SVG support. PNG, JPEG and SVG data URI images are enabled by default, with a 16 MiB decoded-image limit. Set `MarkupPowerPointExportOptions.AllowDataUriImages` or `MaximumDataUriImageBytes` to apply a stricter policy. Existing file-path access rules continue to apply to file images.
 
 ## Rendering limits
 

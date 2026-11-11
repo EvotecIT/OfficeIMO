@@ -584,6 +584,21 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                     stream,
                     cancellationToken: cancellationToken).ConfigureAwait(false)) { }
                 break;
+            case ".odt":
+                using (FileStream stream = OpenStagedArtifact(stagingPath))
+                using (OfficeIMO.OpenDocument.OdtDocument document = await OfficeIMO.OpenDocument.OdtDocument.LoadAsync(
+                    stream, cancellationToken: cancellationToken).ConfigureAwait(false)) { }
+                break;
+            case ".ods":
+                using (FileStream stream = OpenStagedArtifact(stagingPath))
+                using (OfficeIMO.OpenDocument.OdsDocument document = await OfficeIMO.OpenDocument.OdsDocument.LoadAsync(
+                    stream, cancellationToken: cancellationToken).ConfigureAwait(false)) { }
+                break;
+            case ".odp":
+                using (FileStream stream = OpenStagedArtifact(stagingPath))
+                using (OfficeIMO.OpenDocument.OdpPresentation document = await OfficeIMO.OpenDocument.OdpPresentation.LoadAsync(
+                    stream, cancellationToken: cancellationToken).ConfigureAwait(false)) { }
+                break;
             case ".html":
                 // The output byte limit bounds this artifact. Ingestion size budgets would reject valid large output.
                 HtmlConversionLimits htmlLimits = HtmlConversionLimits.UntrustedDefaults;

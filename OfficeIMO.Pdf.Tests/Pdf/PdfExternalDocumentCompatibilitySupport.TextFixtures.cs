@@ -69,6 +69,24 @@ public partial class PdfExternalDocumentCompatibilityTests {
         return BuildPdf(objects, rootObjectNumber: 1);
     }
 
+    private static byte[] BuildExternalToUnicodePdf(string shownHex, string bfRanges) {
+        byte[] content = Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n" + shownHex + " Tj\nET\n");
+        string cmap = "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n" +
+            "1 beginbfrange\n" + bfRanges + "\nendbfrange\n" +
+            "endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n";
+
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F13 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /AAAAAA+Helvetica /Encoding /WinAnsiEncoding /ToUnicode 6 0 R >>\nendobj",
+            BuildStreamObject(5, content),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes(cmap))
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
     private static byte[] BuildExternalToUnicodeBfRangeArrayPdf() {
         byte[] content = Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n<010203> Tj\nET\n");
         const string cmap = "/CIDInit /ProcSet findresource begin\n" +

@@ -10,32 +10,17 @@ internal static partial class TextContentParser {
     internal sealed partial class MarkedContentState {
         private readonly bool _allowExactGlyphMapping;
         internal bool PreserveAnchorGeometry { get; }
-        private List<PdfTextSpan>? _invisibleAnchorOwner;
-        private int _invisibleAnchorIndex;
-        private List<PdfTextSpan>? _logicalLayoutOwner;
-        private int _logicalLayoutIndex;
-        private string? _logicalLayoutText;
-        private int _logicalPaintCharacters;
-        private bool _logicalPaintRejected;
-        private bool _hasLogicalPaint;
-        private string? _logicalPaintFont;
-        private double _logicalPaintSize;
-        private int? _logicalPaintStream;
-        private Matrix2D _logicalPaintTransform;
-        private PdfPageClipPath? _logicalPaintClip;
-        private double _logicalPaintX, _logicalPaintY, _logicalPaintAlongX, _logicalPaintAlongY;
-        private double _logicalPaintLastOrigin, _logicalPaintExtent;
 
         /// <summary>Remembers the logical span without changing its painted selection geometry.</summary>
         internal void RememberLogicalLayoutSpan(List<PdfTextSpan> owner, int index) {
             RememberLogicalBaselineSpan(owner, index);
-            if (PreserveAnchorGeometry || _logicalPaintRejected || _logicalLayoutOwner != null) return;
-            _logicalLayoutOwner = owner;
-            _logicalLayoutIndex = index;
-            _logicalLayoutText = owner[index].SourceActualText;
+            if (PreserveAnchorGeometry || L._logicalPaintRejected || L._logicalLayoutOwner != null) return;
+            L._logicalLayoutOwner = owner;
+            L._logicalLayoutIndex = index;
+            L._logicalLayoutText = owner[index].SourceActualText;
         }
 
-        internal void RejectLogicalPaintExtent() => _logicalPaintRejected = true;
+        internal void RejectLogicalPaintExtent() => L._logicalPaintRejected = true;
 
         /// <summary>
         /// Accumulates a complete forward, same-baseline replacement from already decoded paint.
@@ -44,24 +29,24 @@ internal static partial class TextContentParser {
         internal void ObserveLogicalPaint(List<PdfTextSpan> owner, int? stream, string font, double size,
             double x, double y, double endX, double endY, Matrix2D transform, PdfPageClipPath? clip, double pageHeight,
             string paintedText, bool incompatiblePaint, bool invisibleAnchor, int lineBreaks) {
-            if (PreserveAnchorGeometry || _logicalPaintRejected) return;
+            if (PreserveAnchorGeometry || L._logicalPaintRejected) return;
             if (incompatiblePaint) { RejectLogicalPaintExtent(); return; }
             // The writer's initial and terminal semantic spaces do not paint a glyph.
             if (invisibleAnchor) return;
-            if (!ReferenceEquals(owner, _logicalLayoutOwner) || _logicalLayoutText == null ||
+            if (!ReferenceEquals(owner, L._logicalLayoutOwner) || L._logicalLayoutText == null ||
                 paintedText.Length == 0 || size <= 0D || !IsFinite(size) ||
                 !IsFinite(x) || !IsFinite(y) || !IsFinite(endX) || !IsFinite(endY) ||
                 !ContainsBaselineSegment(clip, x, y, endX, endY, pageHeight)) {
                 RejectLogicalPaintExtent();
                 return;
             }
-            if (_logicalPaintCharacters > _logicalLayoutText.Length - paintedText.Length ||
-                string.CompareOrdinal(_logicalLayoutText, _logicalPaintCharacters, paintedText, 0, paintedText.Length) != 0) {
+            if (L._logicalPaintCharacters > L._logicalLayoutText.Length - paintedText.Length ||
+                string.CompareOrdinal(L._logicalLayoutText, L._logicalPaintCharacters, paintedText, 0, paintedText.Length) != 0) {
                 RejectLogicalPaintExtent();
                 return;
             }
-            if (!_hasLogicalPaint) {
-                PdfTextSpan first = owner[_logicalLayoutIndex];
+            if (!L._hasLogicalPaint) {
+                PdfTextSpan first = owner[L._logicalLayoutIndex];
                 double alongLength = Math.Sqrt(transform.A * transform.A + transform.B * transform.B);
                 if (!first.IsVisible || first.ContentStreamObjectNumber != stream ||
                     Math.Abs(first.X - x) > 0.0001D || Math.Abs(first.Y - y) > 0.0001D ||
@@ -70,39 +55,40 @@ internal static partial class TextContentParser {
                     RejectLogicalPaintExtent();
                     return;
                 }
-                _hasLogicalPaint = true;
-                _logicalPaintX = x; _logicalPaintY = y;
-                _logicalPaintAlongX = transform.A / alongLength;
-                _logicalPaintAlongY = transform.B / alongLength;
-                _logicalPaintFont = font; _logicalPaintSize = size; _logicalPaintStream = stream;
-                _logicalPaintTransform = transform; _logicalPaintClip = clip;
-            } else if (stream != _logicalPaintStream || font != _logicalPaintFont ||
-                Math.Abs(size - _logicalPaintSize) > 0.000001D || lineBreaks > 0 ||
-                !SameLinearTransform(transform, _logicalPaintTransform) || !CompatibleClipFrames(clip, _logicalPaintClip)) {
+                L._hasLogicalPaint = true;
+                L._logicalPaintX = x; L._logicalPaintY = y;
+                L._logicalPaintAlongX = transform.A / alongLength;
+                L._logicalPaintAlongY = transform.B / alongLength;
+                L._logicalPaintFont = font; L._logicalPaintSize = size; L._logicalPaintStream = stream;
+                L._logicalPaintTransform = transform; L._logicalPaintClip = clip;
+            } else if (stream != L._logicalPaintStream || font != L._logicalPaintFont ||
+                Math.Abs(size - L._logicalPaintSize) > 0.000001D || lineBreaks > 0 ||
+                !SameLinearTransform(transform, L._logicalPaintTransform) || !CompatibleClipFrames(clip, L._logicalPaintClip)) {
                 RejectLogicalPaintExtent();
                 return;
             }
-            double along = (x - _logicalPaintX) * _logicalPaintAlongX + (y - _logicalPaintY) * _logicalPaintAlongY;
-            double normal = -(x - _logicalPaintX) * _logicalPaintAlongY + (y - _logicalPaintY) * _logicalPaintAlongX;
-            double endAlong = (endX - _logicalPaintX) * _logicalPaintAlongX + (endY - _logicalPaintY) * _logicalPaintAlongY;
-            double endNormal = -(endX - _logicalPaintX) * _logicalPaintAlongY + (endY - _logicalPaintY) * _logicalPaintAlongX;
+            double along = (x - L._logicalPaintX) * L._logicalPaintAlongX + (y - L._logicalPaintY) * L._logicalPaintAlongY;
+            double normal = -(x - L._logicalPaintX) * L._logicalPaintAlongY + (y - L._logicalPaintY) * L._logicalPaintAlongX;
+            double endAlong = (endX - L._logicalPaintX) * L._logicalPaintAlongX + (endY - L._logicalPaintY) * L._logicalPaintAlongY;
+            double endNormal = -(endX - L._logicalPaintX) * L._logicalPaintAlongY + (endY - L._logicalPaintY) * L._logicalPaintAlongX;
             if (Math.Abs(normal) > 0.0001D || Math.Abs(endNormal) > 0.0001D ||
-                along < _logicalPaintLastOrigin - 0.0001D || endAlong < along ||
+                along < L._logicalPaintLastOrigin - 0.0001D || endAlong < along ||
                 !IsFinite(along) || !IsFinite(normal) || !IsFinite(endAlong) || !IsFinite(endNormal)) {
                 RejectLogicalPaintExtent();
                 return;
             }
-            _logicalPaintCharacters += paintedText.Length;
-            _logicalPaintLastOrigin = along;
-            _logicalPaintExtent = Math.Max(_logicalPaintExtent, endAlong);
+            L._logicalPaintCharacters += paintedText.Length;
+            L._logicalPaintLastOrigin = along;
+            L._logicalPaintExtent = Math.Max(L._logicalPaintExtent, endAlong);
         }
 
         /// <summary>Commits only a closed, completely mapped replacement in its original stream.</summary>
         internal void CompleteLogicalPaintExtent(List<PdfTextSpan> owner) {
-            if (!_logicalPaintRejected && _hasLogicalPaint && ReferenceEquals(owner, _logicalLayoutOwner) &&
-                _logicalLayoutText != null && _logicalPaintCharacters == _logicalLayoutText.Length) {
-                PdfTextSpan span = owner[_logicalLayoutIndex];
-                if (_logicalPaintExtent > span.Advance) span.SetLogicalLayoutAdvance(_logicalPaintExtent);
+            if (_layout is null) return;
+            if (!L._logicalPaintRejected && L._hasLogicalPaint && ReferenceEquals(owner, L._logicalLayoutOwner) &&
+                L._logicalLayoutText != null && L._logicalPaintCharacters == L._logicalLayoutText.Length) {
+                PdfTextSpan span = owner[L._logicalLayoutIndex];
+                if (L._logicalPaintExtent > span.Advance) span.SetLogicalLayoutAdvance(L._logicalPaintExtent);
                 // A closed inline scope can repeat an already mapped ligature without replacing it.
                 // Extra shows, nested replacements and different logical text reject this proof above.
                 if (_allowExactGlyphMapping && span.Text.Length > 0 &&
@@ -183,30 +169,30 @@ internal static partial class TextContentParser {
 
         internal void RememberInvisibleAnchor(List<PdfTextSpan> owner, int index) {
             if (PreserveAnchorGeometry) return;
-            _invisibleAnchorOwner = owner;
-            _invisibleAnchorIndex = index;
+            L._invisibleAnchorOwner = owner;
+            L._invisibleAnchorIndex = index;
         }
 
         internal bool TryGetInvisibleAnchorText(List<PdfTextSpan> owner, out string? text) {
             // Form parsing shares replacement ownership, but its span list has a
             // separate lifetime. Never replace an already returned parent stream.
-            if (!ReferenceEquals(owner, _invisibleAnchorOwner)) {
+            if (!ReferenceEquals(owner, L._invisibleAnchorOwner)) {
                 text = null;
                 return false;
             }
-            PdfTextSpan anchor = owner[_invisibleAnchorIndex];
+            PdfTextSpan anchor = owner[L._invisibleAnchorIndex];
             text = anchor.SourceActualText ?? anchor.Text;
             return true;
         }
 
         internal void ReplaceInvisibleAnchor(List<PdfTextSpan> owner, PdfTextSpan paint) {
-            if (!ReferenceEquals(owner, _invisibleAnchorOwner))
+            if (!ReferenceEquals(owner, L._invisibleAnchorOwner))
                 throw new InvalidOperationException("ActualText geometry must belong to the current content stream.");
             // Geometry promotion spans multiple text objects and keeps a separate
             // semantic carrier. Removing just the paint object cannot safely edit
             // that replacement or preserve graphics state consumed later.
-            owner[_invisibleAnchorIndex] = paint.WithCanRestamp(false);
-            _invisibleAnchorOwner = null;
+            owner[L._invisibleAnchorIndex] = paint.WithCanRestamp(false);
+            L._invisibleAnchorOwner = null;
         }
     }
 }

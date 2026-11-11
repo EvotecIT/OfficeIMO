@@ -212,6 +212,22 @@ document.Save();
 - Front matter that is not valid YAML stays in the document as text. `Yaml` is `null`, and `Diagnostics` holds a `markdown-front-matter-invalid-yaml` error with its Markdown line and column. The rest of the document is still parsed.
 - Front matter is read with `YamlLoadOptions.UntrustedDefaults` limits. Repeated keys are reported in `Diagnostics`, and the last one wins.
 
+### TeX math
+
+Math is an opt-in reader profile, so dollar signs in ordinary prose keep their meaning by default:
+
+```csharp
+var document = MarkdownDocument.Parse("""
+Energy is $E = mc^2$.
+
+$$
+\frac{a + b}{\sqrt{c^2 + d^2}}
+$$
+""", new MarkdownLoadOptions { Math = true });
+```
+
+`$...$` and `$$...$$` inside a paragraph become `MathInline`, a block delimited by `$$` lines becomes `MathBlock`, and a ```` ```math ```` fence becomes a `SemanticFencedBlock` whose `SemanticKind` is `math`. An opening `$` must precede a non-space character and a closing `$` must follow one and not precede a digit, so `$5 and $10` stay text; write `\$` for a literal dollar sign. Each node keeps the TeX source and its source span, and `ToMarkdown()` writes it back with the same delimiters. HTML output keeps `\(...\)` and `\[...\]` for client-side renderers, while the PDF and Word converters lay the math out themselves.
+
 ### HTML fragments, full documents, and parts
 
 ```csharp

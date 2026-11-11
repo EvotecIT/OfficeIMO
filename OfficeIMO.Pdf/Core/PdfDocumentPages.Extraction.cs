@@ -208,7 +208,7 @@ public sealed partial class PdfDocumentPages {
         }
 
         PdfArtifactInfo inputArtifact = _document.Pipeline.Output ??
-            PdfArtifactInfo.Capture(input, _document.ReadOptions, cancellationToken);
+            PdfArtifactInfo.CaptureOwned(input, _document.ReadOptions, out _, cancellationToken);
         var documents = new PdfDocument[outputs.Count];
         for (int i = 0; i < outputs.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -233,7 +233,7 @@ public sealed partial class PdfDocumentPages {
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfArtifactInfo inputArtifact = _document.Pipeline.Output ??
-            PdfArtifactInfo.Capture(input, _document.ReadOptions, cancellationToken);
+            PdfArtifactInfo.CaptureOwned(input, _document.ReadOptions, out _, cancellationToken);
         return _document.WithCanonicalBytesKnownPageCount(
             input,
             inputArtifact,

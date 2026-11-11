@@ -80,7 +80,9 @@ public sealed partial class PdfDocument {
 
         byte[][] bytes = sources.Select(document => document.GetBytesForOperation(cancellationToken)).ToArray();
         PdfLoadOptions[] readOptions = sources.Select(static document => document.ReadOptions).ToArray();
-        return PdfMerger.MergeResult(options, bytes, readOptions, cancellationToken);
+        // Loaded sources already own a canonical parse; merging reuses it instead of parsing the bytes again.
+        Func<PdfReadDocument>?[] readDocuments = sources.Select(document => document.GetOpenedReadDocumentFactory(cancellationToken)).ToArray();
+        return PdfMerger.MergeResult(options, bytes, readOptions, readDocuments, cancellationToken);
     }
 
     /// <summary>

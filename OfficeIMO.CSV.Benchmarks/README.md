@@ -38,6 +38,28 @@ keeps this work consistent with the other CSV comparisons.
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks -- --filter "*CsvQuotedFieldPositionBenchmarks*" --inProcess --warmupCount 12 --iterationCount 12 --invocationCount 16 --unrollFactor 1 --outliers DontRemove
 ```
 
+## PackageAssets shapes
+
+`PackageAssetsCsvBenchmarks` reads the 50,000-line NCsvPerf PackageAssets input
+that Sep publishes results for. The source file is pinned by commit and SHA-256
+and expanded in memory exactly like Sep's line cache: no header, 25 columns,
+CRLF line endings. The `Plain` shape is the original rows; `Quotes` wraps every
+column except 0, 1 and 4 in quotes. OfficeIMO, Sep, Sylvan and CsvHelper 33.1.0
+read the same UTF-8 bytes from a memory stream and return an owned, unescaped
+string for every field. Setup and every timed call compare row and cell counts,
+decoded characters and an ordered checksum with values computed from the
+source rows.
+
+`PackageAssetsSpacesQuotesCsvBenchmarks` adds one space outside and inside each
+quote and reads with whitespace outside quotes trimmed, so quoted values keep
+their inner spaces. Sylvan has no trimming option and is not part of that lane.
+The CsvHelper 34 versions of these lanes are in the
+[current comparisons](../OfficeIMO.CSV.Benchmarks.Modern/README.md#packageassets-shapes).
+
+```sh
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks -- --filter "*PackageAssets*" --inProcess --warmupCount 6 --iterationCount 12 --invocationCount 8 --unrollFactor 1 --outliers DontRemove
+```
+
 ## Typed CSV comparisons
 
 `CsvTypedSequentialBenchmarks` compares complete typed objects from OfficeIMO,

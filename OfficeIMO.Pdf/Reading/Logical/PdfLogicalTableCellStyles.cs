@@ -58,11 +58,12 @@ internal static class PdfLogicalTableCellStyleAnalysis {
         internal bool HasText => TotalWeight > 0D;
     }
 
-    internal static void Assign(PdfReadPage page, IReadOnlyList<PdfLogicalTable> tables, CancellationToken cancellationToken) {
+    internal static void Assign(PdfReadPage page, IReadOnlyList<PdfLogicalTable> tables,
+        PdfReadPage.IdentityVisualPrimitiveMemo primitives, CancellationToken cancellationToken) {
         if (tables.Count == 0 || !tables.Any(static table => table.SourceLines.Count > 0 && table.Columns.Count > 0 && table.Rows.Count > 0)) return;
         List<FillRectangle> fills;
         try {
-            fills = CollectFills(page, cancellationToken);
+            fills = CollectFills(page, primitives);
         } catch (Exception exception) when (exception is not OperationCanceledException && exception is not PdfReadLimitException) {
             // Styling is best effort; the table content itself is already reconstructed.
             fills = new List<FillRectangle>();
@@ -75,11 +76,11 @@ internal static class PdfLogicalTableCellStyleAnalysis {
         }
     }
 
-    private static List<FillRectangle> CollectFills(PdfReadPage page, CancellationToken cancellationToken) {
+    private static List<FillRectangle> CollectFills(PdfReadPage page, PdfReadPage.IdentityVisualPrimitiveMemo primitives) {
         (double width, double height) = page.GetVisualPageSize();
         double pageArea = Math.Max(1D, width * height);
         var result = new List<FillRectangle>();
-        foreach (PdfPageVisualPrimitive primitive in page.GetIdentityVisualPrimitives(cancellationToken)) {
+        foreach (PdfPageVisualPrimitive primitive in primitives.Get()) {
             if (primitive.Kind is not (PdfPageVisualPrimitiveKind.Rectangle or PdfPageVisualPrimitiveKind.Path)) continue;
             if (!primitive.FillColor.HasValue || primitive.FillGradient != null || primitive.FillRadialGradient != null) continue;
             if (primitive.FillOpacity is double opacity && opacity < 0.5D) continue;

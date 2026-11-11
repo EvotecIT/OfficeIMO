@@ -132,8 +132,11 @@ namespace OfficeIMO.Core.Internal {
 #endif
         }
 
-        internal static void ApplyDefaultUnixCreationMode(string path) {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        internal static void ApplyDefaultCreationPermissions(string path) {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                ApplyInheritedWindowsPermissions(path);
+                return;
+            }
 
             string? directory = Path.GetDirectoryName(path);
             string probePath = Path.Combine(

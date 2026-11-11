@@ -43,6 +43,10 @@ internal static partial class WordRunFormatting {
         ResolveThemeColor(border.ThemeColor?.InnerText, border.ThemeTint?.Value, border.ThemeShade?.Value,
             GetLiveColorScheme(document)) ?? border.Color?.Value;
 
+    /// <summary>Resolves a theme colour selector with its tint and shade against the document's current theme.</summary>
+    internal static string? ResolveThemeColorHex(string? themeColor, string? tint, string? shade, WordDocument? document) =>
+        ResolveThemeColor(themeColor, tint, shade, GetLiveColorScheme(document));
+
     private static A.ColorScheme? GetLiveColorScheme(WordDocument? document) =>
         document?._wordprocessingDocument?.MainDocumentPart?.ThemePart?.Theme?.ThemeElements?.ColorScheme;
 

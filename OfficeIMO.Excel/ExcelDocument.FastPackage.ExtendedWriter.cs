@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel {
                     stageWatch.Restart();
                 }
 
-                using var archive = new ZipArchive(destination, ZipArchiveMode.Create, leaveOpen: true);
+                using ExcelPackageArchive archive = ExcelPackageArchive.Create(destination);
                 DirectDataSetWorkbookWriter.ExtendedDirectWritePlan? directWritePlan = null;
                 bool useMixedDirectWorksheetEntries = CanUseMixedDirectWorksheetEntries(model);
                 if ((useMixedDirectWorksheetEntries || CanUseDirectWorksheetEntries(model))

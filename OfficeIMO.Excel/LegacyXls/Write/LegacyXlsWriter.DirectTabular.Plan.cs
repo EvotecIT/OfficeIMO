@@ -1,4 +1,3 @@
-using System.Buffers;
 
 namespace OfficeIMO.Excel.LegacyXls.Write {
     internal static partial class LegacyXlsWriter {
@@ -21,7 +20,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
             var lastColumns = new ushort[totalRows];
             var nonEmptyCellCounts = new ushort[totalRows];
-            var sharedStrings = new LegacyXlsDirectSharedStringBuilder();
+            LegacyXlsDirectSharedStringBuilder sharedStrings = LeaseDirectSharedStrings();
+            bool releaseSharedStrings = true;
             int cellSlotCount = checked(totalRows * columnCount);
             int cachedCellSlotCount = cellSlotCount <= DirectMaximumCachedCellSlots
                 ? cellSlotCount
@@ -29,18 +29,17 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             ulong[] rowFingerprints = cachedCellSlotCount == 0
                 ? new ulong[totalRows]
                 : Array.Empty<ulong>();
-            byte[] cellKinds = cachedCellSlotCount == 0
-                ? Array.Empty<byte>()
-                : ArrayPool<byte>.Shared.Rent(cachedCellSlotCount);
-            ulong[] cellPayloads = cachedCellSlotCount == 0
-                ? Array.Empty<ulong>()
-                : ArrayPool<ulong>.Shared.Rent(cachedCellSlotCount);
+            byte[] cellKinds = Array.Empty<byte>();
+            ulong[] cellPayloads = Array.Empty<ulong>();
+            if (cachedCellSlotCount != 0) RentDirectCellCaches(cachedCellSlotCount, out cellKinds, out cellPayloads);
             bool returnCellCache = cachedCellSlotCount != 0;
             object?[]? flatValues = rows.TryGetFlatValues(out object?[] candidateValues, out int flatColumnCount)
                 && flatColumnCount == columnCount
                 && candidateValues.Length == checked(rows.RowCount * columnCount)
                     ? candidateValues
                     : null;
+            ExcelTabularCellValues? typedCells = flatValues == null ? ExcelDocument.GetTypedTabularCells(rows) : null;
+            if (typedCells != null && (typedCells.ColumnCount != columnCount || typedCells.RowCount != rows.RowCount)) typedCells = null;
             int nonEmptyCellCount = 0;
             bool hasDates = false;
             uint? firstDataRow = null;
@@ -80,17 +79,22 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     int directRow = row + rowOffset;
                     ulong rowFingerprint = DirectRowFingerprintOffset;
                     object?[]? bufferedRow = flatValues == null
+                        && typedCells == null
                         && rows.TryGetBufferedRow(row, out object?[]? candidateRow)
                         && candidateRow?.Length == columnCount
                             ? candidateRow
                             : null;
                     for (int column = 0; column < columnCount; column++) {
-                        object? rawValue = flatValues != null
-                            ? flatValues[checked((row * columnCount) + column)]
-                            : bufferedRow != null
-                                ? bufferedRow[column]
-                                : rows.GetValue(row, column);
-                        ExcelDirectTabularValue value = ExcelDirectTabularValue.Normalize(rawValue, dateSystem, source.PreserveMissingValues);
+                        ExcelDirectTabularValue value = typedCells != null
+                            ? typedCells.Normalize((row * columnCount) + column, dateSystem, source.PreserveMissingValues)
+                            : ExcelDirectTabularValue.Normalize(
+                                flatValues != null
+                                    ? flatValues[checked((row * columnCount) + column)]
+                                    : bufferedRow != null
+                                        ? bufferedRow[column]
+                                        : rows.GetValue(row, column),
+                                dateSystem,
+                                source.PreserveMissingValues);
                         if (value.Kind == ExcelDirectTabularValueKind.Unsupported) {
                             plan = null!;
                             return false;
@@ -167,34 +171,71 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     nonEmptyCellCount,
                     populatedRowCount,
                     workbookStreamCapacity,
-                    sharedStrings.Build(),
+                    sharedStrings,
                     rows,
                     flatValues,
+                    typedCells,
                     rowOffset,
                     source.PreserveMissingValues,
                     dateSystem,
                     hasDates,
                     cancellationToken);
                 returnCellCache = false;
+                releaseSharedStrings = false;
                 return true;
             } finally {
                 if (returnCellCache) {
-                    ClearAndReturnDirectCellCaches(cellKinds, cellPayloads);
+                    ReturnDirectCellCaches(cellKinds, cellPayloads, cachedCellSlotCount);
+                }
+                if (releaseSharedStrings) {
+                    ReleaseDirectSharedStrings(sharedStrings);
                 }
             }
         }
 
-        internal static void ClearAndReturnDirectCellCaches(
-            byte[] cellKinds,
-            ulong[] cellPayloads,
-            ArrayPool<byte>? cellKindPool = null,
-            ArrayPool<ulong>? cellPayloadPool = null) {
-            Array.Clear(cellKinds, 0, cellKinds.Length);
-            Array.Clear(cellPayloads, 0, cellPayloads.Length);
-            (cellKindPool ?? ArrayPool<byte>.Shared).Return(cellKinds);
-            (cellPayloadPool ?? ArrayPool<ulong>.Shared).Return(cellPayloads);
+        // Like the cell caches, one cleared shared-string workspace is kept for the next direct save, so its
+        // dictionary and entry arrays are not allocated again for every workbook.
+        private static LegacyXlsDirectSharedStringBuilder? _retainedDirectSharedStrings;
+
+        private static LegacyXlsDirectSharedStringBuilder LeaseDirectSharedStrings() =>
+            Interlocked.Exchange(ref _retainedDirectSharedStrings, null) ?? new LegacyXlsDirectSharedStringBuilder();
+
+        /// <summary>Clears the workspace's text before keeping it; a workspace above the reuse bound is dropped.</summary>
+        private static void ReleaseDirectSharedStrings(LegacyXlsDirectSharedStringBuilder sharedStrings) {
+            if (sharedStrings.ClearForReuse()) {
+                Interlocked.CompareExchange(ref _retainedDirectSharedStrings, sharedStrings, null);
+            }
         }
 
+        // One cleared set of cell caches is kept for the next save. The shared array pool would release arrays
+        // this large under memory pressure and trim them on the finalizer thread, so every save would allocate
+        // them again; caches above the bound are left to the garbage collector instead of being retained.
+        private const int MaximumRetainedCellSlots = 262_144;
+        private static DirectCellCaches? _retainedCellCaches;
+
+        private sealed class DirectCellCaches(byte[] kinds, ulong[] payloads) {
+            internal byte[] Kinds { get; } = kinds;
+            internal ulong[] Payloads { get; } = payloads;
+        }
+
+        private static void RentDirectCellCaches(int slots, out byte[] kinds, out ulong[] payloads) {
+            DirectCellCaches? retained = Interlocked.Exchange(ref _retainedCellCaches, null);
+            if (retained != null && retained.Kinds.Length >= slots) {
+                kinds = retained.Kinds;
+                payloads = retained.Payloads;
+                return;
+            }
+            kinds = new byte[slots];
+            payloads = new ulong[slots];
+        }
+
+        /// <summary>Clears the slots a save used, then keeps the caches for the next save when they are within the bound.</summary>
+        private static void ReturnDirectCellCaches(byte[] kinds, ulong[] payloads, int usedSlots) {
+            if (kinds.Length == 0 || kinds.Length > MaximumRetainedCellSlots) return;
+            Array.Clear(kinds, 0, usedSlots);
+            Array.Clear(payloads, 0, usedSlots);
+            Interlocked.CompareExchange(ref _retainedCellCaches, new DirectCellCaches(kinds, payloads), null);
+        }
         private static void IncludeDirectCell(
             ushort[] firstColumns,
             ushort[] lastColumns,
@@ -222,6 +263,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private sealed class DirectTabularPlan : IDisposable {
+            private readonly LegacyXlsDirectSharedStringBuilder _sharedStringWorkspace;
             private int _disposed;
 
             internal DirectTabularPlan(
@@ -240,9 +282,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 int nonEmptyCellCount,
                 int populatedRowCount,
                 int workbookStreamCapacity,
-                LegacyXlsSharedStringTable sharedStrings,
+                LegacyXlsDirectSharedStringBuilder sharedStrings,
                 IExcelSheetTabularRowSource rows,
                 object?[]? flatValues,
+                ExcelTabularCellValues? typedCells,
                 int rowOffset,
                 bool preserveMissingValues,
                 ExcelDateSystem dateSystem,
@@ -263,9 +306,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 NonEmptyCellCount = nonEmptyCellCount;
                 PopulatedRowCount = populatedRowCount;
                 WorkbookStreamCapacity = workbookStreamCapacity;
-                SharedStrings = sharedStrings;
+                _sharedStringWorkspace = sharedStrings;
+                // The table borrows the workspace's entry buffer; both are released together on disposal.
+                SharedStrings = sharedStrings.Build(reuseEntries: true);
                 Rows = rows;
                 FlatValues = flatValues;
+                TypedCells = typedCells;
                 RowOffset = rowOffset;
                 PreserveMissingValues = preserveMissingValues;
                 DateSystem = dateSystem;
@@ -292,6 +338,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             internal LegacyXlsSharedStringTable SharedStrings { get; }
             internal IExcelSheetTabularRowSource Rows { get; }
             internal object?[]? FlatValues { get; }
+            internal ExcelTabularCellValues? TypedCells { get; }
             internal int RowOffset { get; }
             internal bool PreserveMissingValues { get; }
             internal ExcelDateSystem DateSystem { get; }
@@ -306,8 +353,9 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             public void Dispose() {
-                if (CellSlotCount == 0 || Interlocked.Exchange(ref _disposed, 1) != 0) return;
-                ClearAndReturnDirectCellCaches(CellKinds, CellPayloads);
+                if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+                if (CellSlotCount != 0) ReturnDirectCellCaches(CellKinds, CellPayloads, CellSlotCount);
+                ReleaseDirectSharedStrings(_sharedStringWorkspace);
             }
         }
 
@@ -324,6 +372,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             int sourceRow = directRow - plan.RowOffset;
             object?[]? bufferedRow = sourceRow >= 0
                 && plan.FlatValues == null
+                && plan.TypedCells == null
                 && plan.Rows.TryGetBufferedRow(sourceRow, out object?[]? candidateRow)
                 && candidateRow?.Length == plan.ColumnCount
                     ? candidateRow
@@ -333,6 +382,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 ExcelDirectTabularValue value;
                 if (sourceRow < 0) {
                     value = ExcelDirectTabularValue.Normalize(plan.Rows.GetColumnName(column));
+                } else if (plan.TypedCells != null) {
+                    value = plan.TypedCells.Normalize((sourceRow * plan.ColumnCount) + column, plan.DateSystem, plan.PreserveMissingValues);
                 } else {
                     object? rawValue = plan.FlatValues != null
                         ? plan.FlatValues[checked((sourceRow * plan.ColumnCount) + column)]

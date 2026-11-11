@@ -29,8 +29,9 @@ internal sealed class HtmlPdfPagePaintContext {
         return paint;
     }
 
-    private void Collect(IEnumerable<HtmlRenderVisual> visuals) {
-        foreach (HtmlRenderVisual visual in visuals) {
+    private void Collect(IReadOnlyList<HtmlRenderVisual> visuals) {
+        for (int index = 0; index < visuals.Count; index++) {
+            HtmlRenderVisual visual = visuals[index];
             if (visual is HtmlRenderLogicalTextGroup logical && logical.LogicalScope is { } scope) {
                 if (!_logicalGroups.TryGetValue(scope, out List<HtmlRenderLogicalTextGroup>? groups)) {
                     groups = new List<HtmlRenderLogicalTextGroup>();
@@ -38,7 +39,7 @@ internal sealed class HtmlPdfPagePaintContext {
                 }
                 groups.Add(logical);
             }
-            IEnumerable<HtmlRenderVisual>? children = visual switch {
+            IReadOnlyList<HtmlRenderVisual>? children = visual switch {
                 HtmlRenderSemanticGroup semantic => semantic.Visuals,
                 HtmlRenderLogicalTextGroup text => text.Visuals,
                 HtmlRenderLayoutRegion region => region.Visuals,

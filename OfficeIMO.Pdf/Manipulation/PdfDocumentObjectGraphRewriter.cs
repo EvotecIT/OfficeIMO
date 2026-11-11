@@ -23,7 +23,7 @@ internal static class PdfDocumentObjectGraphRewriter {
             outputEncryption,
             mutateObjectGraph,
             maximumOutputBytes,
-            preserveSourceEncryption, captureObjectNumbers, getGeneratedOutputGrowth, cancellationToken);
+            preserveSourceEncryption, captureObjectNumbers, getGeneratedOutputGrowth, fileVersionOverride: null, cancellationToken);
 
     internal static byte[] Rewrite(
         byte[] sourcePdf,
@@ -35,6 +35,7 @@ internal static class PdfDocumentObjectGraphRewriter {
         bool preserveSourceEncryption = true,
         Action<IReadOnlyDictionary<int, int>>? captureObjectNumbers = null,
         Func<PdfGeneratedOutputGrowth>? getGeneratedOutputGrowth = null,
+        PdfFileVersion? fileVersionOverride = null,
         CancellationToken cancellationToken = default) => RewriteCore(
             sourcePdf,
             sourceDocument,
@@ -42,7 +43,7 @@ internal static class PdfDocumentObjectGraphRewriter {
             outputEncryption,
             mutateObjectGraph,
             maximumOutputBytes,
-            preserveSourceEncryption, captureObjectNumbers, getGeneratedOutputGrowth, cancellationToken);
+            preserveSourceEncryption, captureObjectNumbers, getGeneratedOutputGrowth, fileVersionOverride, cancellationToken);
 
     private static byte[] RewriteCore(
         byte[] sourcePdf,
@@ -52,7 +53,8 @@ internal static class PdfDocumentObjectGraphRewriter {
         Func<Dictionary<int, PdfIndirectObject>, PdfDocumentSecurityInfo, int?>? mutateObjectGraph,
         long? maximumOutputBytes,
         bool preserveSourceEncryption, Action<IReadOnlyDictionary<int, int>>? captureObjectNumbers,
-        Func<PdfGeneratedOutputGrowth>? getGeneratedOutputGrowth, CancellationToken cancellationToken) {
+        Func<PdfGeneratedOutputGrowth>? getGeneratedOutputGrowth, PdfFileVersion? fileVersionOverride,
+        CancellationToken cancellationToken) {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
         cancellationToken.ThrowIfCancellationRequested();
         if (maximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
@@ -65,9 +67,8 @@ internal static class PdfDocumentObjectGraphRewriter {
                 sourcePdf,
                 sourceReadOptions,
                 includeParsedDetails: false,
-                out string decodedText,
                 cancellationToken);
-            var parsed = PdfSyntax.ParseObjects(sourcePdf, sourceReadOptions, out PdfRepairReport repairReport, out _, decodedText, cancellationToken);
+            var parsed = PdfSyntax.ParseObjects(sourcePdf, sourceReadOptions, out PdfRepairReport repairReport, out _, cancellationToken);
             objects = parsed.Map;
             trailerRaw = parsed.TrailerRaw;
             security = PdfSyntax.ReadDocumentSecurityInfo(
@@ -123,7 +124,10 @@ internal static class PdfDocumentObjectGraphRewriter {
                 string.Equals(dictionary.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal) &&
                 dictionary.Get<PdfName>("Tabs") is not null);
         PdfFileVersion minimumVersion = requiresPdf20 ? PdfFileVersion.Pdf20 : requiresPdf16 ? PdfFileVersion.Pdf16 : requiresPdf15 ? PdfFileVersion.Pdf15 : PdfFileVersion.Pdf14;
-        if (fileVersion < minimumVersion && !CatalogDeclaresAtLeast(root.Value as PdfDictionary, objects, minimumVersion)) {
+        if (fileVersionOverride.HasValue) {
+            // The caller owns the version contract, for example a PDF/A part that fixes the PDF version.
+            fileVersion = fileVersionOverride.Value;
+        } else if (fileVersion < minimumVersion && !CatalogDeclaresAtLeast(root.Value as PdfDictionary, objects, minimumVersion)) {
             fileVersion = PdfFileAssembler.RequireAtLeast(fileVersion, minimumVersion);
             if (root.Value is PdfDictionary catalog && catalog.Items.ContainsKey("Version")) {
                 catalog.Items["Version"] = new PdfName(PdfFileAssembler.GetHeaderVersion(minimumVersion));

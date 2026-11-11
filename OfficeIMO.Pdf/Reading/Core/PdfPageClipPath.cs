@@ -154,6 +154,13 @@ internal readonly partial struct PdfPageClipPath {
         PdfPageClipPath rectangleClip,
         PdfPageClipPath intersection,
         PdfTextClippingBudget? textClippingBudget) {
+        // A rectangle that encloses the path's control-point bounds removes nothing, so the path is the exact intersection.
+        if (rectangleClip.X <= pathClip.X && rectangleClip.Y <= pathClip.Y &&
+            pathClip.X + pathClip.Width <= rectangleClip.X + rectangleClip.Width &&
+            pathClip.Y + pathClip.Height <= rectangleClip.Y + rectangleClip.Height) {
+            return pathClip;
+        }
+
         textClippingBudget?.ChargeLinearIntersectionWork(pathClip.Commands.Count);
         textClippingBudget?.ChargeLinearIntersectionWork(CountFlattenedPathVertices(pathClip.Commands));
         List<OfficePathCommand> clippedCommands = ClipPathCommandsToRectangle(pathClip.Commands, rectangleClip, textClippingBudget);
@@ -247,11 +254,20 @@ internal readonly partial struct PdfPageClipPath {
             }
             : FlattenPathContours(clipped.Commands);
         if (sourceContours.Count == 0 || clippedContours.Count == 0) return false;
+        // Clipping keeps unclipped source edges exactly; only edges the clip introduced need the containment test.
+        var sourceEdges = new HashSet<(OfficePoint Start, OfficePoint End)>();
+        for (int contourIndex = 0; contourIndex < sourceContours.Count; contourIndex++) {
+            List<OfficePoint> contour = sourceContours[contourIndex];
+            for (int pointIndex = 0; pointIndex < contour.Count; pointIndex++) {
+                sourceEdges.Add((contour[pointIndex], contour[(pointIndex + 1) % contour.Count]));
+            }
+        }
         for (int contourIndex = 0; contourIndex < clippedContours.Count; contourIndex++) {
             List<OfficePoint> contour = clippedContours[contourIndex];
             for (int pointIndex = 0; pointIndex < contour.Count; pointIndex++) {
                 OfficePoint start = contour[pointIndex];
                 OfficePoint end = contour[(pointIndex + 1) % contour.Count];
+                if (sourceEdges.Contains((start, end))) continue;
                 if (!IsSegmentWithinFilledArea(sourceContours, source.FillRule, start, end, textClippingBudget)) return false;
             }
         }
@@ -763,11 +779,15 @@ internal readonly partial struct PdfPageClipPath {
             return false;
         }
 
-        var points = new List<OfficePoint>(commands.Count - 1) { commands[0].Point };
+        // Curves and later subpaths rule out a rectangle before any point list is built.
         for (int i = 1; i < commands.Count - 1; i++) {
             if (commands[i].Kind != OfficePathCommandKind.LineTo) {
                 return false;
             }
+        }
+
+        var points = new List<OfficePoint>(commands.Count - 1) { commands[0].Point };
+        for (int i = 1; i < commands.Count - 1; i++) {
 
             OfficePoint point = commands[i].Point;
             OfficePoint previous = points[points.Count - 1];
@@ -845,7 +865,7 @@ internal readonly partial struct PdfPageClipPath {
         Math.Abs(left - right) <= 0.0000001D;
 
     private static List<OfficePathCommand> CloseFilledSubpaths(IReadOnlyList<OfficePathCommand> commands) {
-        var closed = new List<OfficePathCommand>(commands.Count + 4);
+        var closed = new List<OfficePathCommand>(commands.Count + CountImplicitCloses(commands));
         bool hasOpenSubpath = false;
         bool subpathHasDraw = false;
         for (int i = 0; i < commands.Count; i++) {
@@ -877,6 +897,30 @@ internal readonly partial struct PdfPageClipPath {
         }
 
         return closed;
+    }
+
+    // Mirrors CloseFilledSubpaths so its list is allocated once at the final size.
+    private static int CountImplicitCloses(IReadOnlyList<OfficePathCommand> commands) {
+        int closes = 0;
+        bool hasOpenSubpath = false;
+        bool subpathHasDraw = false;
+        for (int i = 0; i < commands.Count; i++) {
+            OfficePathCommandKind kind = commands[i].Kind;
+            if (kind == OfficePathCommandKind.MoveTo) {
+                if (hasOpenSubpath && subpathHasDraw) closes++;
+                hasOpenSubpath = true;
+                subpathHasDraw = false;
+            } else if (kind == OfficePathCommandKind.Close) {
+                hasOpenSubpath = false;
+                subpathHasDraw = false;
+            } else if (kind == OfficePathCommandKind.LineTo ||
+                kind == OfficePathCommandKind.QuadraticBezierTo ||
+                kind == OfficePathCommandKind.CubicBezierTo) {
+                subpathHasDraw = true;
+            }
+        }
+        if (hasOpenSubpath && subpathHasDraw) closes++;
+        return closes;
     }
 
     public double X { get; }

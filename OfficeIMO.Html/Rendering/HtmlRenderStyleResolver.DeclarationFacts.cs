@@ -14,7 +14,9 @@ internal sealed partial class HtmlRenderStyleResolver {
                 !pair.Key.StartsWith("--", StringComparison.Ordinal) && ContainsCharacterUnit(pair.Value)),
             computed.HasCascadeStateMatching(IsLogicalPropertyName),
             computed.HasCascadeStateMatching(IsOptionalLayoutGroupProperty),
-            computed.HasCascadeStateMatching(IsPaintProperty));
+            computed.HasCascadeStateMatching(IsPaintProperty),
+            computed.Properties.Any(pair =>
+                !pair.Key.StartsWith("--", StringComparison.Ordinal) && pair.Value.IndexOf('%') >= 0));
         if (_declarationFacts.Count < MaximumDeclarationFacts) _declarationFacts.Add(identity, facts);
         return facts;
     }
@@ -53,5 +55,6 @@ internal sealed partial class HtmlRenderStyleResolver {
         || UnimplementedProperties.Contains(name, StringComparer.OrdinalIgnoreCase);
 
     private readonly record struct DeclarationFacts(
-        bool HasCharacterUnits, bool HasLogicalProperties, bool HasOptionalLayoutGroups, bool HasPaintState);
+        bool HasCharacterUnits, bool HasLogicalProperties, bool HasOptionalLayoutGroups, bool HasPaintState,
+        bool HasPercentages);
 }

@@ -102,17 +102,17 @@ internal static partial class CsvParser
                         continue;
                     }
 
-                    var quoted = first.Text.IndexOf('"') >= 0;
+                    var quoted = !_options.QuotesAreData && first.Text.IndexOf('"') >= 0;
                     List<string> fields = _fields;
                     try
                     {
                         if (!quoted)
                         {
                             if (delimiter.Length == 1)
-                                TrySplitUnquotedRecord(first.Text, delimiter[0], _options.TrimWhitespace, fields);
+                                TrySplitUnquotedRecord(first.Text, delimiter[0], _options.TrimWhitespace, _options.QuotesAreData, fields);
                             else
                             {
-                                TrySplitUnquotedRecord(first.Text, delimiter, _options.TrimWhitespace, out string[] values);
+                                TrySplitUnquotedRecord(first.Text, delimiter, _options.TrimWhitespace, _options.QuotesAreData, out string[] values);
                                 fields.Clear();
                                 fields.AddRange(values);
                             }
@@ -190,7 +190,7 @@ internal static partial class CsvParser
 
         private async ValueTask SkipCommentAsync(CsvLine first, string delimiter, bool asynchronous, CancellationToken token)
         {
-            if (TryParse(first.Text, delimiter, false, first.PhysicalLineNumber, out _)) return;
+            if (_options.QuotesAreData || TryParse(first.Text, delimiter, false, first.PhysicalLineNumber, out _)) return;
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_options.MaxCommentContinuationLines, nameof(_options.MaxCommentContinuationLines));
             var state = new QuotedRecordState();
             UpdateState(first.Text, delimiter, ref state);

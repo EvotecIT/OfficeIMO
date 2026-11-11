@@ -32,12 +32,15 @@ For .NET code:
 - **Conversions** are called on the source: `SaveAs{Target}(path or stream)` writes the file and returns `OfficeConversionReport`; `To{Target}()` returns the target model. The throwing and `...Result` pairs merge. `OfficeConverter` is the entry point for file-to-file and batch work.
 - **Units and colors.** Geometry takes `OfficeLength` (`OfficeLength.Centimeters(2.5)`, `OfficeLength.Parse("12pt")`) instead of raw EMUs, twips or unit-suffixed parameters. `OfficeColor` is the only color type and moves to the `OfficeIMO` namespace.
 - **Packages.** Format packages no longer carry other format engines, and `OfficeIMO.Word.Pdf` and `OfficeIMO.PowerPoint.Pdf` change direction. See [.NET packages](#net-packages).
-- **Word style catalogues.** Loading and saving preserves the source catalogue. Creating or restyling content adds the selected styles and their dependencies; merging imports only styles used by the appended content. Code that edits raw Open XML must supply its own style definitions rather than relying on every built-in table preset being installed. `new WordLoadOptions { OverrideStyles = true }` opts into the full table catalogue and replaces matching table, note, header/footer, `NoList` and registered custom definitions. Other authored styles, such as `Heading1`, remain unchanged.
+- **Word style catalogues.** Loading and saving preserves the source catalogue. Creating or restyling content adds the selected styles and their dependencies; merging imports only styles used by the appended content. Code that edits raw Open XML must supply its own style definitions rather than relying on every built-in table preset being installed. `new WordLoadOptions { OverrideStyles = true }` opts into the full table catalogue and replaces matching table, note, header/footer and `NoList` definitions. Other authored styles, such as `Heading1`, remain unchanged.
+- **Word styles and theme.** `WordParagraphStyle.RegisterCustomStyle`, `RegisterFontStyle`, `CreateFontStyle`, `OverrideBuiltInStyle`, `GetStyleDefinition` and `WordParagraphStyleDefinition` are removed: their process-wide registry added styles to every document created afterwards. Create and edit styles in the document that uses them through `document.Styles` (`AddParagraphStyle`, `AddCharacterStyle`, `AddTableStyle`, `GetOrAdd`, `Remove` and `Import` from another document or template), and apply them with `SetStyle` or `SetCharacterStyle`. `document.Theme` reads and changes the colour scheme and heading and body fonts. HTML import uses a `Quote` style or a `StyleMissingHandler` style from the target document, so create the style there and call `document.AddHtml`.
 - **Conversion limits.** Lists deeper than `MarkdownLoadOptions.MaxNestingDepth` (default 64) now throw `InvalidDataException`; raise the option if you parse deeper lists. `WordHtmlExportOptions.AdditionalLinkTags` now follow the hyperlink URL policy, so `file:` and `data:` entries such as an embedded favicon are dropped with an `unsafe-link-dropped` diagnostic; serve them over `https:` or add them to the page after export.
+- **Email PDF.** The `email-pdf` conversion renders the styled message (header block, HTML or plain body, inline images and attachment list) instead of the Reader text projection, in `OfficeConverter`, `OfficeIMO.Workflows`, `officeimo convert` and PSWriteOffice. Set `OfficeConversionOptions.OutputProfile = OfficeConversionProfile.TextOnly`, or pass `--text-only` to `officeimo convert`, to keep the previous text output. `ReaderPdf` settings apply only to that text profile; use `OfficeConversionOptions.EmailPdf` for the styled output.
 - **Conversion checkpoints.** Checkpoints written before 3.6 can no longer be resumed: `ConvertAsync` rejects them with `InvalidDataException`. Start the job with a new `ResumeFrom` manifest and a new output folder.
 - **Renames in option and inspection types.** `OfficeWorkflowLimits` is now `OfficeOperationLimits` with the same properties, and `ExcelDocument.CreateInspectionSnapshot` is now `ExcelDocument.Inspect`, which takes `ExcelReaderOptions` and returns `ExcelWorkbookInfo`.
 - **Excel text and table headers.** `GetFormattedText()` now applies stored number and text formats; use `GetValue<T>()` for raw values. Writing a table header through the cell API also updates its column name and structured references. Header names use the existing schema validation, so blank or duplicate names are rejected; use `SetTableSchema` for a coordinated rename of several columns. Clearing values retains table header labels. Formula-writing ranges must exclude headers.
 - **Excel empty tables.** `AddTable("A1:B1")` keeps a header-only range instead of extending it to `A1:B2`. It has zero data records and its first append starts at row 2. Include the blank data row explicitly in the table range if it represents a real record; the native `insertRow` flag does not turn a declared data row into a placeholder.
+- **PDF image payloads.** `PdfExtractedImage.Bytes` for an Indexed image is a palette PNG at the source bit depth, and a 1-, 2- or 4-bit DeviceGray image is a gray PNG at its source depth, instead of 8-bit RGB or gray. Decoded colors are unchanged. Code that read the PNG header or raw scanlines must decode the image instead.
 - **Argument validation.** Nonblank string guards use the .NET throw helpers: null values throw `ArgumentNullException`, while empty or whitespace-only values throw `ArgumentException`. If you match exact exception types or messages, handle null separately and check `ParamName` instead of localized message text. Catching `ArgumentException` still catches both.
 
 ### Common jobs
@@ -1526,7 +1529,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Word
 
 <details>
-<summary>453 changes</summary>
+<summary>458 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -1660,6 +1663,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Authoring | `OfficeIMO.Word.WordDocument.AsFluent()` | Removed | &mdash; | Use the WordDocument object model directly. |
 | Authoring | `OfficeIMO.Word.WordDocument.DifferentFirstPage` | Moved | `OfficeIMO.Word.WordDocument.PageSetup.DifferentFirstPage` | document.PageSetup.DifferentFirstPage |
 | Authoring | `OfficeIMO.Word.WordDocument.DifferentOddAndEvenPages` | Moved | `OfficeIMO.Word.WordDocument.PageSetup.DifferentOddAndEvenPages` | document.PageSetup.DifferentOddAndEvenPages |
+| Authoring | `OfficeIMO.Word.WordDocument.EmbedFont(string fontPath, string styleId, string styleName = null)` | Changed | `OfficeIMO.Word.WordDocument.EmbedFont(string fontPath, string styleId, string styleName = null) : WordStyle` | The paragraph style is created in this document only and returned; an existing style with the identifier is updated to use the font. |
 | Authoring | `OfficeIMO.Word.WordDocument.Footer : WordFooters?` | Changed | `OfficeIMO.Word.WordDocument.PageSetup.Footer / FirstPageFooter / EvenPageFooter` | document.Footer.Default -&gt; document.PageSetup.Footer; .First -&gt; FirstPageFooter; .Even -&gt; EvenPageFooter; inspect without creating with document.PageSetup.GetFooter(type). |
 | Authoring | `OfficeIMO.Word.WordDocument.Header : WordHeaders?` | Changed | `OfficeIMO.Word.WordDocument.PageSetup.Header / FirstPageHeader / EvenPageHeader` | document.Header.Default -&gt; document.PageSetup.Header; .First -&gt; FirstPageHeader; .Even -&gt; EvenPageHeader; inspect without creating with document.PageSetup.GetHeader(type). |
 | Authoring | `OfficeIMO.Word.WordDocument.Margins : WordMargins` | Moved | `OfficeIMO.Word.WordDocument.PageSetup.Margins` | document.PageSetup.Margins (no setter; edit the margin values or Margins.Type). |
@@ -1711,8 +1715,12 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Authoring | `OfficeIMO.Word.WordParagraph.SetSubScript()` | Renamed | `OfficeIMO.Word.WordParagraph.SetSubscript()` | Use one formatting vocabulary on the native object model. |
 | Authoring | `OfficeIMO.Word.WordParagraph.SetSuperScript()` | Renamed | `OfficeIMO.Word.WordParagraph.SetSuperscript()` | Use one formatting vocabulary on the native object model. |
 | Authoring | `OfficeIMO.Word.WordParagraph.Strike` | Renamed | `OfficeIMO.Word.WordParagraph.Strikethrough` | Use one formatting vocabulary on the native object model. |
-| Authoring | `OfficeIMO.Word.WordParagraphStyle.CreateFontStyle(string styleId, string fontName, string? styleName = null)` | Changed | `OfficeIMO.Word.WordParagraphStyle.CreateFontStyle(string styleId, string fontFamily, string? styleName = null)` | Use FontFamily for typeface names across authoring and design models. |
-| Authoring | `OfficeIMO.Word.WordParagraphStyle.RegisterFontStyle(string styleId, string fontName, string? styleName = null)` | Changed | `OfficeIMO.Word.WordParagraphStyle.RegisterFontStyle(string styleId, string fontFamily, string? styleName = null)` | Use FontFamily for typeface names across authoring and design models. |
+| Authoring | `OfficeIMO.Word.WordParagraphStyle.CreateFontStyle(string styleId, string fontName, string styleName = null)` | Removed | &mdash; | Create the style in the document with document.Styles.AddParagraphStyle and set FontFamily. |
+| Authoring | `OfficeIMO.Word.WordParagraphStyle.GetStyleDefinition(WordParagraphStyles style)` | Merged | `OfficeIMO.Word.WordStyleCollection.GetOrAdd(WordParagraphStyles style) : WordStyle` | Read the document's definition with document.Styles\["Heading1"\], document.Styles.Get(idOrName) or document.Styles.GetOrAdd(WordParagraphStyles.Heading1). |
+| Authoring | `OfficeIMO.Word.WordParagraphStyle.OverrideBuiltInStyle(WordParagraphStyles style, WordParagraphStyleDefinition styleDefinition)` | Merged | `OfficeIMO.Word.WordStyleCollection.GetOrAdd(WordParagraphStyles style) : WordStyle` | Edit the document's own definition: document.Styles.GetOrAdd(WordParagraphStyles.Normal).Bold = true; or import a template's styles with document.Styles.Import(template, WordStyleConflictMode.Overwrite). |
+| Authoring | `OfficeIMO.Word.WordParagraphStyle.RegisterCustomStyle(string styleId, WordParagraphStyleDefinition styleDefinition)` | Merged | `OfficeIMO.Word.WordStyleCollection.AddParagraphStyle(string styleId, string name = null) : WordStyle` | Create the style in the document that uses it: document.Styles.AddParagraphStyle("MyStyle") and set its properties on the returned WordStyle. |
+| Authoring | `OfficeIMO.Word.WordParagraphStyle.RegisterFontStyle(string styleId, string fontName, string styleName = null)` | Merged | `OfficeIMO.Word.WordStyleCollection.AddParagraphStyle(string styleId, string name = null) : WordStyle` | document.Styles.AddParagraphStyle(styleId, styleName).FontFamily = fontName; |
+| Authoring | `OfficeIMO.Word.WordParagraphStyleDefinition` | Merged | `OfficeIMO.Word.WordStyle` | WordStyle edits a style in place in its document. LeftIndent is IndentationBefore, SpacingBefore and SpacingAfter are LineSpacingBefore and LineSpacingAfter, and Alignment is ParagraphAlignment, matching WordParagraph. |
 | Authoring | `OfficeIMO.Word.WordRunInfo.DoubleStrike` | Renamed | `OfficeIMO.Word.WordRunInfo.DoubleStrikethrough` | Use one formatting vocabulary on the native object model. |
 | Authoring | `OfficeIMO.Word.WordRunInfo.Strike` | Renamed | `OfficeIMO.Word.WordRunInfo.Strikethrough` | Use one formatting vocabulary on the native object model. |
 | Authoring | `OfficeIMO.Word.WordSection.AddHeadersAndFooters()` | Changed | `OfficeIMO.Word.WordSection.AddHeadersAndFooters() : (WordHeader Header, WordFooter Footer)` | Add\* methods return the created object. |
@@ -3508,7 +3516,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Pdf
 
 <details>
-<summary>306 changes</summary>
+<summary>309 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -3758,6 +3766,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Visibility | `OfficeIMO.Pdf.PdfTextPreflight` | Internal | &mdash; | Use the documented document, options and result APIs. |
 | behavior | `OfficeIMO.Pdf.PdfDocumentRedactions.Apply(IEnumerable<PdfRedactionArea>)` | Changed | `OfficeIMO.Pdf.PdfDocumentRedactions.Apply(IEnumerable<PdfRedactionArea>)` | Area-based removal now throws InvalidOperationException when logical content or its inspection plan cannot be read safely, instead of proceeding without complete image and annotation matches. Keep the source and handle the refusal; no partially redacted result is returned. |
 | behavior | `OfficeIMO.Pdf.PdfDocumentRedactions.Search(PdfRedactionSearchOptions)` | Changed | `OfficeIMO.Pdf.PdfDocumentRedactions.Search(PdfRedactionSearchOptions)` | Whole-block search refuses edits that would remove an unselected glyph. A matching form field name also refuses the plan with redaction-search-field-name-unsupported. Inspect IsReviewable and Findings before applying; a successful search does not guarantee an applicable plan. |
+| behavior | `OfficeIMO.Pdf.PdfDocumentRenderer.Pages(PdfPageSelection, PdfPageRenderOptions, CancellationToken)` | Changed | `OfficeIMO.Pdf.PdfDocumentRenderer.Pages(PdfPageSelection, PdfPageRenderOptions, CancellationToken)` | PNG rendering of a user-password document no longer requires content-copy permission, matching DisplayPage and PDF viewers. SVG output, a custom ImageCodec, a TextShapingProvider, or a font in Fonts loaded through a FontProgramProvider still require extraction permission because they expose text or source images. Check permissions yourself if your application relied on the old refusal. |
 | behavior | `OfficeIMO.Pdf.PdfRedactionMatch.Text` | Changed | `OfficeIMO.Pdf.PdfRedactionMatch.Text` | Search-driven TextBlock matches now return null instead of retaining text containing the searched value. Use the plan geometry, search criteria and verification report; FormField matches expose the field name, never its value. |
 | behavior | `OfficeIMO.Pdf.PdfRedactionMatchKind` | Changed | `OfficeIMO.Pdf.PdfRedactionMatchKind` | FormField = 4 identifies form-value redaction. Update exhaustive match-kind switches; filling values, alternate field labels, widget contents, metadata and historical revisions must not retain the searched text in a verified output. |
 | cancellation | `OfficeIMO.Pdf.PdfAnnotationCreateOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
@@ -3812,6 +3821,8 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | images | `OfficeIMO.Pdf.PdfContentBuilder.Image(...)` | Renamed | `OfficeIMO.Pdf.PdfDocument.AddImage(...) : PdfImage / PdfContentBuilder.AddImage(...)` | AddImage appends at the current flow position; there is no positional insert in PDF authoring. |
 | images | `OfficeIMO.Pdf.PdfImageStyle.AlternativeText` | Renamed | `OfficeIMO.Pdf.PdfImageStyle.AltText` | Image alt text is AltText in Word, PowerPoint, Markdown and PDF. |
 | images | `OfficeIMO.Pdf.PdfInlineElement.AlternativeText; PdfInlineImage(..., string? alternativeText, ...); PdfInlineBox(..., string? alternativeText, ...)` | Renamed | `OfficeIMO.Pdf.PdfInlineElement.AltText; altText parameters` | Image alt text is AltText in Word, PowerPoint, Markdown and PDF. |
+| reading | `OfficeIMO.Pdf.PdfArtifactInfo.Sha256` | Changed | `OfficeIMO.Pdf.PdfArtifactInfo.Sha256` | Artifacts captured from bytes a PdfDocument owns (loaded input, page extraction, split and other in-memory mutation outputs) compute the digest on first read of Sha256 instead of during Load or the operation. The value is unchanged. Until it is read, the pipeline report keeps the artifact bytes alive; reading Sha256 releases them. The first read is not cancellable. |
+| reading | `OfficeIMO.Pdf.PdfLoadOptions.ParsingMode` | Changed | `OfficeIMO.Pdf.PdfLoadOptions.ParsingMode` | Opening a PDF no longer reads every document-level feature. With Lenient parsing, outlines, named destinations, XMP metadata, the attachment inventory, AcroForm fields, tagged structure and portfolio data are read when first used, so a damaged or over-limit feature throws on first use (and on every later use) instead of failing Load. Strict parsing still reads them while loading and fails there. |
 | search | `OfficeIMO.Pdf.PdfTextSearchOptions.MatchCase / WholeWords` | Moved | `OfficeIMO.OfficeTextSearchOptions.MatchCase / WholeWords (inherited by PdfTextSearchOptions)` | No source change: PdfTextSearchOptions derives from OfficeTextSearchOptions, so options.MatchCase and options.WholeWords still compile with the same defaults. Recompile against the new package. |
 | selection | `OfficeIMO.Pdf.PdfPageSelector` | Moved | `OfficeIMO.OfficePageSelector` | The same ordered, one-based selector is shared by image adapters through OfficeImageExportOptions.PageSelector. PDF manipulation retains ResolveSelection through a PDF extension method. |
 | tables | `OfficeIMO.Pdf.PdfContentBuilder.Table<T>(IEnumerable<T> rows, OfficeTableOptions? options) with OfficeTableOptions.Name rendered as the caption` | Changed | `OfficeIMO.Pdf.PdfContentBuilder.Table<T>(IEnumerable<T> rows, OfficeTableOptions? options)` | Set Caption instead of Name for the visible PDF table caption. A non-null Name now throws NotSupportedException. |
@@ -5228,6 +5239,74 @@ Handle `PdfRedactionMatchKind.BookmarkTitle` when switching on match kinds; its 
 Search redaction output for accepted object-stream and cross-reference-stream PDFs is always classic. If your code inspects saved structure, expect no object-stream or cross-reference-stream objects, no `/Prev` trailer entry, and null in place of references to free or missing objects.
 
 
+## PSWriteOffice 3.6 parameter aliases
+
+PSWriteOffice 3.6 dropped parameter aliases along with the parameter renames in the reference tables above. A script that uses a dropped alias fails with "A parameter cannot be found that matches parameter name".
+
+These aliases are available again, so scripts written for 3.0 to 3.5 keep working:
+
+- `-FilePath` for `-Path` on `Export-OfficeExcel`, `Import-OfficeExcel`, `Copy-OfficeExcelSheet`, `Edit-OfficeExcelRow`, `Find-OfficeExcel`, `Update-OfficeExcelText`, the `Get-OfficeExcel*` query commands that read a workbook path, and `New-OfficeEpub`, `New-OfficeExcel`, `New-OfficeMarkdown`, `New-OfficeOpenDocument`, `New-OfficePdf`, `New-OfficePowerPoint`, `New-OfficeVisio` and `New-OfficeWord`.
+- `-WorksheetName` for `-Sheet` on `Export-OfficeExcel`, `Import-OfficeExcel`, `Copy-OfficeExcelSheet`, `Edit-OfficeExcelRow`, `Find-OfficeExcel`, `Update-OfficeExcelText`, `Add-OfficeExcelPageBreak`, `Add-OfficeExcelTableRow`, `Move-OfficeExcelSheet` and the `Get-OfficeExcel*` query commands that take `-Sheet`.
+
+`-AutoFit` and `-Force` are not restored on `Export-OfficeExcel`. Fitted columns are the default, and `-NoAutoFit` turns them off. `Export-OfficeExcel` never had `-Force`; it replaces an existing file unless you add `-NoClobber`.
+
+These parameter aliases stay removed. Command aliases such as `ExcelExport` are listed in the [PowerShell reference](#powershell-reference).
+
+| Alias | Use instead | Commands |
+|---|---|---|
+| `-AutoSize` | Nothing; fitted columns are the default (`-NoAutoFit` turns them off) | `Export-OfficeExcel` |
+| `-Bookmark` | `-Anchor` | `Get-OfficeWordHyperlink` |
+| `-CatalogName` | `-Catalog` | `Add-OfficeVisioStencilShape` |
+| `-Cell` | `-Address` | `Add-OfficeExcelImage` |
+| `-CellFill` | The replacement for `-FillColor` in the reference tables | `New-OfficePdfTableCell`, `New-OfficeWordTableCell` |
+| `-CheckBoxes` | The replacement for `-CheckBox` in the reference tables | `New-OfficePdfTableCell` |
+| `-Column` | `-StartColumn` | `Set-OfficeExcelColumnGroup` |
+| `-ColumnLetter` | The replacement for `-StartColumnName` in the reference tables | `Set-OfficeExcelColumnGroup` |
+| `-ColumnName` | `-Header` | `Set-OfficeExcelAutoFilter` |
+| `-ColumnName` | The replacement for `-StartColumnName` in the reference tables | `Set-OfficeExcelColumnGroup` |
+| `-Data` | `-InputObject` | `Add-OfficeExcelReportTable`, `Add-OfficeExcelTable`, `Add-OfficeExcelTableRow`, `Add-OfficePowerPointChart`, `Add-OfficePowerPointTable` |
+| `-Data` | `-Value` | `Add-OfficePowerPointTableRow` |
+| `-Data` | The replacement for `-Values` in the reference tables | `Add-OfficeWordTableRow` |
+| `-DataTable` | `-InputObject` | `Add-OfficeExcelTable` |
+| `-DestinationSheet` | The replacement for `-NewName` in the reference tables | `Copy-OfficeExcelSheet` |
+| `-EndColumnLetter` | The replacement for `-EndColumnName` in the reference tables | `Set-OfficeExcelColumnGroup` |
+| `-Extensions` | `-Extension` | `Search-OfficeDocument` |
+| `-FilePath` | The replacement for `-Path` in the reference tables | `Add-OfficeExcelPageBreak`, `Add-OfficeExcelSlicer`, `Add-OfficeExcelTableOfContents`, `Add-OfficeExcelTableRow`, `Close-OfficePowerPoint`, `Compare-OfficeExcelRange`, `Invoke-OfficeExcelTemplate`, `Move-OfficeExcelSheet`, `Set-OfficeExcelRefreshOnOpen`, `Set-OfficeExcelTheme`, `Update-OfficeExcelComment` |
+| `-FilePath` | `-Path` | `Add-OfficePdfImage`, `Add-OfficePdfStamp`, `Copy-OfficePdfPage`, `Get-OfficeMarkdownFrontMatter`, `Get-OfficeMarkdownHeading`, `Get-OfficeMarkdownNode`, `Get-OfficeMarkdownTable`, `Get-OfficePdfAnnotation`, `Get-OfficePdfAttachment`, `Get-OfficePdfCompliance`, `Get-OfficePdfDiagnostic`, `Get-OfficePdfFont`, `Get-OfficePdfFormField`, `Get-OfficePdfImage`, `Get-OfficePdfRedactionPlan`, `Get-OfficePdfSignature`, `Get-OfficeWordBookmark`, `Get-OfficeWordContentControl`, `Get-OfficeWordDocumentProperty`, `Get-OfficeWordEndnote`, `Get-OfficeWordField`, `Get-OfficeWordFootnote`, `Get-OfficeWordHyperlink`, `Get-OfficeWordImage`, `Get-OfficeWordList`, `Get-OfficeWordParagraph`, `Get-OfficeWordSection`, `Get-OfficeWordShape`, `Get-OfficeWordTable`, `Get-OfficeWordTableOfContents`, `Get-OfficeWordText`, `Import-OfficeCsv`, `Move-OfficePdfPage`, `New-OfficePdfSignature`, `New-OfficeRtf`, `Remove-OfficePdfAnnotation`, `Remove-OfficePdfPage`, `Save-OfficeMarkdown`, `Save-OfficePdf`, `Save-OfficePowerPoint`, `Save-OfficeWord`, `Search-OfficeDocument`, `Set-OfficePdfAnnotation`, `Set-OfficePdfMetadata`, `Set-OfficePdfPage`, `Set-OfficePdfSignature` |
+| `-FontColor` | The replacement for `-TextColor` in the reference tables | `New-OfficePdfTableCell`, `New-OfficeWordTableCell` |
+| `-FontFamily` | The replacement for `-FontName` in the reference tables | `Add-OfficeWordText` |
+| `-FormFields` | The replacement for `-FormField` in the reference tables | `New-OfficePdfTableCell` |
+| `-HeaderName` | `-Header` | `Set-OfficeExcelAutoFilter` |
+| `-Headers` | The replacement for `-Header` in the reference tables | `Add-OfficePowerPointTable` |
+| `-Headers` | `-Header` | `Add-OfficeExcelReportLegend` |
+| `-Images` | The replacement for `-Image` in the reference tables | `New-OfficePdfTableCell` |
+| `-InputPath` | The replacement for `-Path` in the reference tables | `Add-OfficeExcelPageBreak`, `Add-OfficeExcelSlicer`, `Add-OfficeExcelTableOfContents`, `Add-OfficeExcelTableRow`, `Compare-OfficeExcelRange`, `Invoke-OfficeExcelTemplate`, `Move-OfficeExcelSheet`, `Set-OfficeExcelRefreshOnOpen`, `Set-OfficeExcelTheme`, `Update-OfficeExcelComment` |
+| `-InputPath` | `-Path` | `Copy-OfficeExcelSheet`, `Edit-OfficeExcelRow`, `Find-OfficeExcel`, `Get-OfficeExcelComment`, `Get-OfficeExcelDataModel`, `Get-OfficeExcelDocumentProperty`, `Get-OfficeExcelNamedRange`, `Get-OfficeExcelPageBreak`, `Get-OfficeExcelPivotTable`, `Get-OfficeExcelRichText`, `Get-OfficeExcelTable`, `Get-OfficeExcelTemplateMarker`, `Get-OfficeMarkdownFrontMatter`, `Get-OfficeMarkdownHeading`, `Get-OfficeMarkdownNode`, `Get-OfficeMarkdownTable`, `Get-OfficeWordBookmark`, `Get-OfficeWordContentControl`, `Get-OfficeWordDocumentProperty`, `Get-OfficeWordEndnote`, `Get-OfficeWordField`, `Get-OfficeWordFootnote`, `Get-OfficeWordHyperlink`, `Get-OfficeWordImage`, `Get-OfficeWordList`, `Get-OfficeWordParagraph`, `Get-OfficeWordSection`, `Get-OfficeWordShape`, `Get-OfficeWordTable`, `Get-OfficeWordTableOfContents`, `Get-OfficeWordText`, `Import-OfficeExcel`, `Update-OfficeExcelText` |
+| `-Left` | `-X` | `Add-OfficePdfCanvasText` |
+| `-LeftPath` | The replacement for `-Path` in the reference tables | `Compare-OfficeExcelRange` |
+| `-Letter` | The replacement for `-StartColumnName` in the reference tables | `Set-OfficeExcelColumnGroup` |
+| `-LP` | `-LiteralPath` | `Import-OfficeCsv` |
+| `-MaxResultsPerDocument` | `-MaximumResults` | `Search-OfficeDocument` |
+| `-Name` | The replacement for `-TableName` in the reference tables | `Add-OfficeExcelTableRow` |
+| `-OutputPath` | `-Path` | `New-OfficeMarkdown`, `New-OfficeRtf`, `New-OfficeWord` |
+| `-Permissions` | `-Permission` | `New-OfficePdf`, `Save-OfficePdf` |
+| `-ReaderOptions` | `-Options` | `Get-OfficeMarkdownFrontMatter`, `Get-OfficeMarkdownHeading`, `Get-OfficeMarkdownNode`, `Get-OfficeMarkdownTable` |
+| `-Rows` | `-InputObject` | `Add-OfficeExcelReportLegend` |
+| `-Runs` | The replacement for `-Run` in the reference tables | `Add-OfficePdfCanvasText`, `Add-OfficePdfText`, `Add-OfficePowerPointTextBox`, `Add-OfficeWordParagraph`, `Add-OfficeWordTableCell`, `Add-OfficeWordText`, `New-OfficePdfTableCell`, `New-OfficeWordTableCell`, `Set-OfficePowerPointShapeText`, `Set-OfficePowerPointTableCell`, `Update-OfficeExcelComment` |
+| `-SheetNames` | The replacement for `-SheetName` in the reference tables | `New-OfficeExcelPdfOptions` |
+| `-SheetObject` | The replacement for `-Worksheet` in the reference tables | `Add-OfficeExcelTable`, `Set-OfficeExcelCell` |
+| `-Show` | The replacement for `-Open` in the reference tables | `Close-OfficeExcel`, `Close-OfficePowerPoint` |
+| `-StartColumnLetter` | The replacement for `-StartColumnName` in the reference tables | `Set-OfficeExcelColumnGroup` |
+| `-TargetIndex` | The replacement for `-Index` in the reference tables | `Move-OfficeExcelSheet` |
+| `-Top` | `-Y` | `Add-OfficePdfCanvasText` |
+| `-Type` | `-Style` | `Add-OfficeWordList` |
+| `-Typeface` | The replacement for `-FontName` in the reference tables | `Add-OfficeWordText` |
+| `-Uri` | `-Url` | `Get-OfficeWordHyperlink` |
+| `-Url` | `-Uri` | `Get-OfficeExcelNamedRange`, `Get-OfficeExcelTable`, `Import-OfficeExcel` |
+| `-UserPassword` | `-Password` | `New-OfficePdf`, `Save-OfficePdf` |
+| `-Values` | `-InputObject` | `Add-OfficeExcelTableRow` |
+| `-Values` | `-Value` | `Add-OfficePowerPointTableRow`, `Get-OfficeExcelTemplateMarker`, `Invoke-OfficeExcelTemplate`, `Set-OfficeExcelAutoFilter` |
+
 ## PDF reads omit undecodable native text
 
 `PdfDocument.Read()` previously allowed missing font resources, raw Identity CIDs,
@@ -5248,6 +5327,29 @@ Raw parser span inspection retains its mapping evidence, and unsupported encodin
 that already failed with `PdfUnsupportedTextMappingException` continue to fail.
 Search redaction cannot use omitted or unmapped paint as proof that searched text is
 absent.
+
+## CSV reads .tsv files as tab-separated values
+
+TSV has no quoting: a quote character is ordinary data and every line is one record.
+`CsvProfile.Tsv` applies that rule, and these entry points now use it:
+
+- `CsvDocument.Load`, `LoadAsync`, `OpenReader`, `OpenReaderAsync`, `Save`, `SaveAsync`,
+  `WriteDataReader`, `WriteDataReaderParallel`, `SaveObjects` and `CsvRowWriter.CreateFile`
+  when the path ends in `.tsv` or `.tab` (optionally compressed, such as `.tsv.gz`) and you
+  pass no options. Previously these used comma-separated CSV defaults for any extension.
+- The `OfficeIMO.Reader.Csv` adapter for `.tsv` files and streams.
+- `ImportCsvFile` and `SaveAsCsv` in `OfficeIMO.Excel.Csv` for `.tsv` paths without options,
+  and `officeimo tabular` for `.tsv` input or output without `--delimiter`.
+
+A TSV field that starts with `"` used to be parsed as a quoted CSV field, which could merge
+lines. It is now read literally. To keep CSV quoting for a tab-delimited file, pass options:
+`new CsvLoadOptions { Delimiter = '\t' }`. The profile also rejects rows whose field count
+differs from the header; set `ColumnCountMismatchPolicy` to pad or ignore instead.
+
+Writing with `CsvQuoteMode.Never` now throws `CsvException` when a field contains the delimiter,
+a carriage return or a line feed, instead of writing output that cannot be read back. Use
+`CsvQuoteMode.AsNeeded`, or set `EscapeMode = CsvEscapeMode.Backslash` to write `\t`, `\n`, `\r`
+and `\\` escapes. PSWriteOffice's `-UseQuotes Never` keeps PowerShell's literal output.
 
 ## Excel tables reject captions
 
@@ -5581,6 +5683,10 @@ the plan; a matching clipping-mode span requires a supported redaction strategy.
 
 `CopyWorksheet`, `CopyWorksheetFrom` with `ExcelWorksheetCopyMode.Package` and package-mode `MergeWorkbookFrom` now keep the copied sheet's images, charts, shapes, legacy and threaded comments, header/footer images, background picture and external hyperlinks. Earlier versions removed them. Copied threaded comments receive new ids, and the people they mention are added to the target workbook. Code that removed these features after copying, or that expected the copy to have none, should remove them explicitly with the sheet's comment, image and hyperlink APIs. See the [worksheet copy contract](OfficeIMO.Excel/COMPATIBILITY.md#workbook-capabilities).
 
+## Excel worksheet copies keep sheet visibility
+
+`CopyWorksheet`, `CopyWorksheetFrom` and `MergeWorkbookFrom`, in both copy modes, now give each copy the hidden or very hidden state of its source worksheet. Earlier versions made every copy visible. When a copy leaves the active worksheet hidden, for example when an empty workbook imports a hidden sheet first, the first visible worksheet becomes active. A copy that would leave no visible sheet stays visible, so a hidden worksheet copied alone into an empty workbook is shown. To keep it hidden, import it together with a visible worksheet through `MergeWorkbookFrom`, or call `SetHidden(true)` once a visible worksheet exists. Code that needs a visible copy calls `SetHidden(false)` on it.
+
 ## Word document append
 
 `WordDocument.AppendDocument` now keeps the page setup of each document: the destination's final section properties become a section break before the appended content, which starts in its own section (a new page unless the source section says otherwise). To continue the appended content in the destination's section, as a workaround that moved the destination's closing `w:sectPr` did before, pass `new WordDocumentMergeOptions { SectionMode = WordMergeSectionMode.UseDestinationSections }`.
@@ -5841,6 +5947,7 @@ PDF page rendering to PNG, JPEG, WebP, TIFF and Drawing follows PDF viewer conve
 - Embedded CFF, Type1C, CIDFontType0C, OpenType/CFF and Type 1 fonts render from their own outlines instead of a substituted system font, so the `font-cff-substitution` and `font-substitution` diagnostics no longer appear for them. Text in the standard Symbol and ZapfDingbats fonts extracts as Greek, mathematical and dingbat characters rather than ASCII letters.
 - Text render modes 1, 2, 5 and 6 stroke glyph outlines. Text clipping modes 4–7 still do not clip later painting.
 - Function-based (type 1) and mesh (types 4–7) shadings render. Axial and radial shadings without `/Extend` leave their ends unpainted.
+- JPEG 2000 (`JPXDecode`) images render and extract with the managed decoder; `PdfPageRenderOptions.ImageCodec` is no longer needed for them and the `render.resource.image-codec-optional` diagnostic is removed. Images whose dictionary adds colour spaces, masks, `SMaskInData` or output intents now extract as normalized PNG instead of the raw `.jp2`/`.j2c` payload; JPEG 2000 alpha applies only with `SMaskInData` 1 or 2. Huffman-coded JBIG2 symbol dictionaries and text regions, custom Huffman tables, and JBIG2 pattern and halftone regions decode instead of reporting `render.resource.image-unsupported`.
 - Images with 1, 2, 4 or 16 bits per component, resized or non-8-bit soft masks, `/Matte`, and JBIG2 images render. JBIG2 direct regions honour the page combination policy, and arithmetic symbol dictionaries reuse retained generic and refinement bitmap contexts, including global dictionaries. Regenerate previews of these images that used the earlier context reset. Soft masks with a `/TR` transfer function apply it. Undecodable images report `render.resource.image-unsupported` instead of being omitted silently, and knockout groups report `render.resource.knockout-group-simplified`.
 - Widgets without appearance streams, and text and choice widgets under `/NeedAppearances`, render a transient synthesized appearance reported as `render.annotation.appearance-synthesized` instead of `render.resource.annotation-appearance-missing`. The source document is not changed. List boxes retain visible `/Opt` rows, export/display labels, all selected highlights, and `/TI` scrolling; combo boxes retain their single selected display value. Filling and incremental appearance regeneration use the same list-row paint and clear selection without hiding the options. Incremental text and choice appearances preserve inherited Type0 glyph encoding and apply the caller's decoded-stream limit while reading their font maps.
 
@@ -6278,6 +6385,14 @@ this value and version. Versions 5 through 9 remain readable; they cannot carry
 XPS input kinds. Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the current
 artifact. Native logical order is retained in `ReaderLocation.LogicalOrder`; physical
 page citations remain separate. Null order values retain existing container order.
+
+## TOML Reader identity and transport
+
+Register `.AddTomlHandler()` from `OfficeIMO.Reader.Toml`, or use `AddAllOfficeIMOHandlers()`, to ingest `.toml` files as path, type and value rows.
+Reader results use `ReaderInputKind.Toml` (`31`), which requires document transport schema version 15.
+Update exhaustive input-kind switches and transport bindings. Schemas 5 through 14 remain readable but cannot carry TOML input kinds.
+Without the handler, `.toml` files are detected as `application/toml` and read as plain text.
+Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the current artifact.
 
 ## Publisher Reader identity and transport
 
@@ -7869,11 +7984,10 @@ table-only projection and the matching structured table scope is present.
 
 ### Rendering loss and gallery evidence
 
-Scanned PDF rendering no longer returns a blank successful page when a CCITT or
-JPEG 2000 image cannot be projected. Check `PdfPageRenderResult.Succeeded` and
+Scanned PDF rendering no longer returns a blank successful page when a CCITT,
+JBIG2 or JPEG 2000 image cannot be decoded. Check `PdfPageRenderResult.Succeeded` and
 `Diagnostics`, or handle the rendering exception when using fail-fast rendering
-or OCR. Supply `PdfPageRenderOptions.ImageCodec` or `PdfOcrMergeOptions.ImageCodec`
-for supported JPEG 2000 images. OCR page diagnostics now retain rendering warnings;
+or OCR. OCR page diagnostics now retain rendering warnings;
 applications that present or count diagnostics should include that additional evidence.
 
 PDF warnings now retain the existing `OfficeConversionLossKind` classification
@@ -9648,6 +9762,7 @@ PDF paragraph font sizes, indents, spacing and tab positions/widths now use `Off
 - Header-only tables, such as `AddTable` with an empty `DataTable` or a range like `A1:B1`, get a blank data row, so `GetTableRange` reports `A1:B2`. The row below the header must not belong to another table; stacking header-only tables directly on top of each other now throws `InvalidOperationException` for the overlap. Leave a free row between them.
 - File-backed documents (`ExcelLoadOptions.FileBacked`) read through a private copy of their temporary package, so reads can use about twice the temporary disk space of the workbook. Size temporary storage for that.
 - `ExcelDocument.CreateWriter` and `ExcelWriterOptions.RequireStreaming` accept `AutoFit = true` instead of throwing `ArgumentException`. The writer spools each worksheet's rows to a temporary file to measure the columns before writing them, so it needs temporary disk space for the largest sheet.
+- `ExcelDocument.CreateWriter(ExcelFileFormat.Xls, ...)` with `UseSharedStrings = false`, which is the default when you pass no options, writes text of up to 255 characters as inline BIFF8 `LABEL` records instead of shared-string entries. Readers get the same values, but a sheet that repeats the same strings many times can be larger. Pass `new ExcelWriterOptions { UseSharedStrings = true }` to keep the shared-string table.
 
 ## PowerPoint text formatting and line breaks
 
@@ -9693,3 +9808,7 @@ A `data-officeimo-value` error value is written as an error cell only when it is
 - **Removed.** The public parameterless `FrontMatterBlock()` constructor, which created a block that could not be filled, is removed. Use `FrontMatterBlock.FromObject`.
 - **Converters.** The PDF front matter table lists nested mappings as dotted keys, such as `author.name`. Markdown-to-AsciiDoc writes them as hyphen-joined attributes, such as `:author-name:`, and reports the flattening. Invalid front matter is reported and omitted from the attributes.
 - **PowerShell.** `Get-OfficeMarkdownFrontMatter` returns objects with `Key`, `Value`, `Node` and `SourceSpan`. `Value` is a plain .NET value: a string, number or boolean, a dictionary for a mapping, or a list for a sequence. `Node` is the `YamlNode`.
+
+## Excel non-finite numbers
+
+`NaN`, `PositiveInfinity` and `NegativeInfinity` written as cell values (`double` or `float`, through `SetValue`, `WriteData`, tabular imports or `CreateWriter`) are stored as the `#NUM!` error in XLSX, XLSB and XLS, which is what Excel shows for a number it cannot represent. Reading such a cell back returns the `#NUM!` error, not a number. Before, XLSX saves wrote an invalid number that Excel refused to open, XLSB saves stored `#NULL!`, and the XLS and XLSB `CreateWriter` streaming writers threw `ArgumentException`. Check the value before writing it if you need a blank cell or text instead.

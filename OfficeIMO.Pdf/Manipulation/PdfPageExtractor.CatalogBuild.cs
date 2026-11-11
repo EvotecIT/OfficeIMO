@@ -169,9 +169,10 @@ internal static partial class PdfPageExtractor {
     private static PdfObject? BuildOutlines(
         Dictionary<int, PdfIndirectObject> sourceObjects,
         PdfObject? outlines,
+        bool structureTreeOwnsElements,
         CancellationToken cancellationToken = default) {
         return outlines is not null &&
-            IsSupportedOutlineGraph(sourceObjects, outlines, new HashSet<int>(), cancellationToken)
+            PdfSyntax.IsSupportedOutlineGraph(sourceObjects, outlines, new HashSet<int>(), structureTreeOwnsElements, cancellationToken)
             ? outlines
             : null;
     }

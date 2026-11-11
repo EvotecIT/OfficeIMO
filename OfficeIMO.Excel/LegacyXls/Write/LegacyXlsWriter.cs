@@ -1117,8 +1117,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
         }
 
-        private static byte[] BuildBoundSheetPayload(int streamOffset, ExcelSheet sheet) {
-            string sheetName = string.IsNullOrEmpty(sheet.Name) ? "Sheet1" : sheet.Name;
+        private static byte[] BuildBoundSheetPayload(int streamOffset, ExcelSheet sheet) =>
+            BuildBoundSheetPayload(streamOffset, sheet.Name, sheet.VeryHidden ? (byte)2 : sheet.Hidden ? (byte)1 : (byte)0);
+
+        private static byte[] BuildBoundSheetPayload(int streamOffset, string? name, byte visibility) {
+            string sheetName = string.IsNullOrEmpty(name) ? "Sheet1" : name!;
             if (sheetName.Length > 31) {
                 throw new NotSupportedException("Native XLS saving supports worksheet names up to 31 characters.");
             }
@@ -1126,7 +1129,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             byte[] nameBytes = EncodeShortUnicodeString(sheetName, out byte flags);
             byte[] payload = new byte[checked(8 + nameBytes.Length)];
             WriteUInt32(payload, 0, unchecked((uint)streamOffset));
-            payload[4] = sheet.VeryHidden ? (byte)2 : sheet.Hidden ? (byte)1 : (byte)0;
+            payload[4] = visibility;
             payload[5] = 0;
             payload[6] = checked((byte)sheetName.Length);
             payload[7] = flags;
@@ -2025,6 +2028,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static void WriteNumberCellRecord(Stream stream, byte[] buffer, ushort row, ushort column, double value, ushort styleIndex) {
+            if (double.IsNaN(value) || double.IsInfinity(value)) {
+                // BIFF8 has no NaN or infinite number; Excel shows #NUM! (error 0x24) for such a result.
+                WriteBoolErrorCellRecord(stream, buffer, row, column, 0x24, isError: true, styleIndex);
+                return;
+            }
             // A number with an exact RK form uses the shorter RK record, as Excel does.
             if (BiffRkNumberReader.TryEncodeRkNumber(value, out uint rk)) {
                 WriteFixedCellRecordHeader(buffer, 0x027e, payloadLength: 10, row, column, styleIndex);

@@ -82,6 +82,50 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void EmbeddedEncodingCMapDecodesThroughTheDescendantCollectionWithoutToUnicode() {
+            // An embedded Adobe-Korea1 CMap (as in the veraPDF composite-font case) selects CIDs; Korea1 CIDs 1-95 are ASCII.
+            const string cmap = "/CIDInit /ProcSet findresource begin 12 dict begin begincmap\n" +
+                "/CMapName /Adobe-Korea1-2 def /CMapType 1 def\n1 begincodespacerange\n<0000> <47FF>\nendcodespacerange\n" +
+                "1 begincidrange\n<0000> <00ff> 0\nendcidrange\nendcmap CMapName currentdict /CMap defineresource pop end end";
+            const string content = "BT /F1 18 Tf 72 700 Td <00290046004D004D0050> Tj ET";
+            byte[] pdf = BuildPdf(new[] {
+                "<< /Type /Catalog /Pages 2 0 R >>",
+                "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 6 0 R >>",
+                "<< /Type /Font /Subtype /Type0 /BaseFont /AdobeGothicStd-Bold /Encoding 7 0 R /DescendantFonts [5 0 R] >>",
+                "<< /Type /Font /Subtype /CIDFontType0 /BaseFont /AdobeGothicStd-Bold /CIDSystemInfo << /Registry (Adobe) /Ordering (Korea1) /Supplement 2 >> /DW 1000 >>",
+                "<< /Length " + content.Length + " >>\nstream\n" + content + "\nendstream",
+                "<< /Type /CMap /CMapName /Adobe-Korea1-2 /CIDSystemInfo << /Registry (Adobe) /Ordering (Korea1) /Supplement 2 >> /Length " + cmap.Length + " >>\nstream\n" + cmap + "\nendstream"
+            });
+
+            Assert.Contains("Hello", PdfReadDocument.Open(pdf).Pages[0].ExtractText(), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void UnreadableEmbeddedEncodingCMapKeepsCodeWidthsForToUnicodeText() {
+            // usecmap parents are not followed, so the embedded CMap selects no CIDs; widths must not collapse to CID 0.
+            const string cmap = "/CIDInit /ProcSet findresource begin 12 dict begin begincmap /Adobe-Korea1-2 usecmap\n" +
+                "1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\nendcmap end end";
+            const string unicode = "1 beginbfchar <0029> <0041> endbfchar";
+            const string content = "BT /F1 18 Tf 72 700 Td <0029> Tj ET";
+            byte[] pdf = BuildPdf(new[] {
+                "<< /Type /Catalog /Pages 2 0 R >>",
+                "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 6 0 R >>",
+                "<< /Type /Font /Subtype /Type0 /BaseFont /AdobeGothicStd-Bold /Encoding 7 0 R /DescendantFonts [5 0 R] /ToUnicode 8 0 R >>",
+                "<< /Type /Font /Subtype /CIDFontType0 /BaseFont /AdobeGothicStd-Bold /CIDSystemInfo << /Registry (Adobe) /Ordering (Korea1) /Supplement 2 >> /DW 1000 /W [41 [500]] >>",
+                "<< /Length " + content.Length + " >>\nstream\n" + content + "\nendstream",
+                "<< /Type /CMap /CMapName /Custom /Length " + cmap.Length + " >>\nstream\n" + cmap + "\nendstream",
+                "<< /Length " + unicode.Length + " >>\nstream\n" + unicode + "\nendstream"
+            });
+
+            PdfTextSpan span = Assert.Single(PdfReadDocument.Open(pdf).Pages[0].GetTextSpans());
+
+            Assert.Equal("A", span.Text);
+            Assert.Equal(9D, span.Advance, 5);
+        }
+
+        [Fact]
         public void PredefinedCodesEnforceDecodedOutputBudgetAndRejectSurrogates() {
             PdfPredefinedCMap mapping = PdfPredefinedCMap.Find("UniJIS-UCS2-H", "Adobe", "Japan1")!.Value;
             Assert.Throws<PdfReadLimitException>(() => mapping.TryDecode(Encoding.BigEndianUnicode.GetBytes("AB"), 1, out _));

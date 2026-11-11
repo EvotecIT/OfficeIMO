@@ -1,5 +1,5 @@
 <Project>
-  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'OfficeIMO.Core' Or '$(MSBuildProjectName)' == 'OfficeIMO.Word' Or '$(MSBuildProjectName)' == 'OfficeIMO.Excel' Or '$(MSBuildProjectName)' == 'OfficeIMO.PowerPoint' Or '$(MSBuildProjectName)' == 'OfficeIMO.Pdf' Or '$(MSBuildProjectName)' == 'OfficeIMO.Markdown' Or '$(MSBuildProjectName)' == 'OfficeIMO.Yaml' Or '$(MSBuildProjectName)' == 'OfficeIMO'">
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'OfficeIMO.Core' Or '$(MSBuildProjectName)' == 'OfficeIMO.Word' Or '$(MSBuildProjectName)' == 'OfficeIMO.Excel' Or '$(MSBuildProjectName)' == 'OfficeIMO.PowerPoint' Or '$(MSBuildProjectName)' == 'OfficeIMO.Pdf' Or '$(MSBuildProjectName)' == 'OfficeIMO.Pdf.Testing' Or '$(MSBuildProjectName)' == 'OfficeIMO.Markdown' Or '$(MSBuildProjectName)' == 'OfficeIMO.Yaml' Or '$(MSBuildProjectName)' == 'OfficeIMO'">
     <OfficeIMOTrackPublicApi>true</OfficeIMOTrackPublicApi>
   </PropertyGroup>
   <ItemGroup Condition="'$(OfficeIMOTrackPublicApi)' == 'true'">

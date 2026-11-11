@@ -60,6 +60,28 @@ namespace OfficeIMO.Excel {
         /// </remarks>
         public bool EnableWorksheetPrefetch { get; set; }
 
+        /// <summary>
+        /// Returns XLSX and XLSB rows from the forward-only data reader while the rest of the worksheet
+        /// is still being decompressed and validated, instead of validating the whole worksheet before
+        /// the first row. Defaults to <c>false</c>.
+        /// </summary>
+        /// <remarks>
+        /// Every returned row has been fully parsed and checked, but the rows before an invalid cell
+        /// may already have been delivered when the reader reaches that cell. It then raises the same
+        /// exception, naming the same cell, that the default mode raises before its first row.
+        /// Problems found only by the final check of the worksheet are raised by the last <c>Read</c>.
+        /// A valid worksheet that single-pass reading cannot return with the default mode's columns and
+        /// values raises <see cref="NotSupportedException"/> at the row concerned: in XLSX, later content
+        /// the fast reader cannot index; in XLSB, a later cell outside the header row's columns.
+        /// The option applies on .NET 8 and later to worksheets of 1 MB or more, when no diagnostics or
+        /// diagnostic callbacks are requested, parallelism is not capped at one and the execution policy
+        /// allows background work, with <see cref="A1Range"/> and <see cref="CellValueConverter"/> not set:
+        /// XLSX worksheets of up to 256 MB that declare their dimension, and XLSB worksheets of up to 64 MB read with a
+        /// header row. Larger worksheets use the default mode. On .NET Framework and .NET Standard, with a sequential execution policy,
+        /// for other worksheets and in the XLS reader, the reader always validates before the first row.
+        /// </remarks>
+        public bool EnableSinglePassReading { get; set; }
+
         /// <summary>Gets or sets the maximum rows sampled when schema inference is enabled.</summary>
         public int SchemaSampleRows {
             get => _schemaSampleRows;

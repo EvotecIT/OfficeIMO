@@ -116,7 +116,7 @@ public sealed class PdfStringRewritePreservationTests {
         var lookup = Assert.IsType<PdfStringObj>(colorSpace.Items[3]);
         Assert.Equal(new byte[] { 160, 64, 64 }, lookup.RawBytes);
         PdfExtractedImage extracted = Assert.Single(PdfImageExtractor.ExtractImages(bytes));
-        Assert.Equal(new byte[] { 0, 160, 64, 64 }, PdfPngTestImages.DecodePngIdat(extracted.Bytes));
+        Assert.Equal(new byte[] { 160, 64, 64 }, PdfPngTestImages.DecodeRgb(extracted.Bytes));
     }
 
     private static byte[] BuildIndexedImagePdf() {

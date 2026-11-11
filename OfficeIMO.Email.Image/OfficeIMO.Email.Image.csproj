@@ -1,13 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>HTML-backed image rendering for OfficeIMO email documents.</Description>
+    <Description>HTML-backed image and PDF rendering for OfficeIMO email documents.</Description>
     <VersionPrefix>3.6.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageTags>email;html;rtf;image;png;jpeg;tiff;svg;webp;officeimo</PackageTags>
+    <PackageTags>email;html;rtf;image;pdf;png;jpeg;tiff;svg;webp;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>

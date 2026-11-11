@@ -42,3 +42,21 @@ OfficeIMO.Markdown.FrontMatterBlock.Mapping.get -> OfficeIMO.Yaml.YamlMapping?
 OfficeIMO.Markdown.FrontMatterBlock.Select(string! path) -> OfficeIMO.Yaml.YamlNode?
 OfficeIMO.Markdown.FrontMatterBlock.Yaml.get -> OfficeIMO.Yaml.YamlDocument?
 OfficeIMO.Markdown.MarkdownNativeFrontMatterBlock.Values.get -> System.Collections.Generic.IReadOnlyDictionary<string!, OfficeIMO.Yaml.YamlNode!>!
+OfficeIMO.Markdown.MarkdownLoadOptions.Math.get -> bool
+OfficeIMO.Markdown.MarkdownLoadOptions.Math.set -> void
+OfficeIMO.Markdown.MarkdownSyntaxKind.InlineMath = 130 -> OfficeIMO.Markdown.MarkdownSyntaxKind
+OfficeIMO.Markdown.MarkdownSyntaxKind.InlineMathContent = 131 -> OfficeIMO.Markdown.MarkdownSyntaxKind
+OfficeIMO.Markdown.MarkdownSyntaxKind.MathBlock = 132 -> OfficeIMO.Markdown.MarkdownSyntaxKind
+OfficeIMO.Markdown.MarkdownSyntaxKind.MathBlockContent = 134 -> OfficeIMO.Markdown.MarkdownSyntaxKind
+OfficeIMO.Markdown.MarkdownSyntaxKind.MathBlockDelimiter = 133 -> OfficeIMO.Markdown.MarkdownSyntaxKind
+OfficeIMO.Markdown.MathBlock
+OfficeIMO.Markdown.MathBlock.ClosingDelimiterSourceSpan.get -> OfficeIMO.Markdown.MarkdownSourceSpan?
+OfficeIMO.Markdown.MathBlock.Content.get -> string!
+OfficeIMO.Markdown.MathBlock.ContentSourceSpan.get -> OfficeIMO.Markdown.MarkdownSourceSpan?
+OfficeIMO.Markdown.MathBlock.MathBlock(string! content) -> void
+OfficeIMO.Markdown.MathBlock.OpeningDelimiterSourceSpan.get -> OfficeIMO.Markdown.MarkdownSourceSpan?
+OfficeIMO.Markdown.MathInline
+OfficeIMO.Markdown.MathInline.ContentSourceSpan.get -> OfficeIMO.Markdown.MarkdownSourceSpan?
+OfficeIMO.Markdown.MathInline.IsDisplay.get -> bool
+OfficeIMO.Markdown.MathInline.MathInline(string! source, bool isDisplay = false) -> void
+OfficeIMO.Markdown.MathInline.Source.get -> string!

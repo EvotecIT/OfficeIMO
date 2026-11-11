@@ -2,21 +2,20 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 333,
-    "productionComponentCount": 161,
-    "testProjectCount": 64,
-    "benchmarkProjectCount": 39,
-    "validationProjectCount": 70,
+    "projectCount": 344,
+    "productionComponentCount": 164,
+    "testProjectCount": 66,
+    "benchmarkProjectCount": 41,
+    "validationProjectCount": 74,
     "apiReferenceCount": 129,
     "conceptualPageCount": 133,
-    "conceptualWordCount": 62133
+    "conceptualWordCount": 62553
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
-      "componentCount": 34,
+      "componentCount": 35,
       "componentIndexes": [
-        101,
         102,
         103,
         104,
@@ -49,7 +48,9 @@
         131,
         132,
         133,
-        134
+        134,
+        135,
+        136
       ]
     },
     {
@@ -78,12 +79,12 @@
         82,
         83,
         84,
-        99,
         100,
-        144,
-        145,
-        158,
-        159
+        101,
+        147,
+        148,
+        161,
+        162
       ]
     },
     {
@@ -103,8 +104,8 @@
         72,
         73,
         74,
-        98,
-        138
+        99,
+        140
       ]
     },
     {
@@ -128,32 +129,32 @@
         37,
         38,
         39,
-        91,
         92,
         93,
         94,
         95,
         96,
-        146,
-        147,
-        148,
+        97,
         149,
         150,
         151,
         152,
-        153
+        153,
+        154,
+        155,
+        156
       ]
     },
     {
       "name": "PowerShell automation",
       "componentCount": 1,
       "componentIndexes": [
-        160
+        163
       ]
     },
     {
       "name": "Publishing and conversion",
-      "componentCount": 28,
+      "componentCount": 29,
       "componentIndexes": [
         7,
         8,
@@ -180,9 +181,10 @@
         88,
         89,
         90,
-        135,
-        136,
-        137
+        91,
+        137,
+        138,
+        139
       ]
     },
     {
@@ -196,7 +198,7 @@
     },
     {
       "name": "Specialized components",
-      "componentCount": 27,
+      "componentCount": 28,
       "componentIndexes": [
         0,
         1,
@@ -215,16 +217,17 @@
         71,
         75,
         85,
-        97,
-        139,
-        140,
+        98,
         141,
         142,
         143,
-        154,
-        155,
-        156,
-        157
+        144,
+        145,
+        146,
+        157,
+        158,
+        159,
+        160
       ]
     }
   ],
@@ -470,7 +473,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 1265,
+      "sourceFileCount": 1283,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -483,7 +486,7 @@
       "description": "A fluent, strongly-typed CSV document model for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.CSV/OfficeIMO.CSV.csproj",
-      "sourceFileCount": 127,
+      "sourceFileCount": 133,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/csv/",
       "apiUrl": "/api/csv/",
@@ -600,7 +603,7 @@
       "description": "Managed email and Outlook data engine for EML, MSG/OFT, TNEF, ICS, vCard, Mbox, PST/OST, OLM, EMLX, Maildir, and Offline Address Book artifacts.",
       "kind": "package",
       "projectPath": "OfficeIMO.Email/OfficeIMO.Email.csproj",
-      "sourceFileCount": 463,
+      "sourceFileCount": 465,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/email/",
       "apiUrl": "/api/email/",
@@ -623,10 +626,10 @@
       "name": "OfficeIMO.Email.Image",
       "packageId": "OfficeIMO.Email.Image",
       "category": "Formats and interoperability",
-      "description": "HTML-backed image rendering for OfficeIMO email documents.",
+      "description": "HTML-backed image and PDF rendering for OfficeIMO email documents.",
       "kind": "package",
       "projectPath": "OfficeIMO.Email.Image/OfficeIMO.Email.Image.csproj",
-      "sourceFileCount": 4,
+      "sourceFileCount": 6,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/email/",
       "apiUrl": "/api/email-image/",
@@ -665,7 +668,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 1386,
+      "sourceFileCount": 1404,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -808,7 +811,7 @@
       "description": "HTML parsing, resource policy, CSS layout, diagnostics, and provider-neutral render scenes for OfficeIMO converters.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html/OfficeIMO.Html.csproj",
-      "sourceFileCount": 557,
+      "sourceFileCount": 560,
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html/",
@@ -1016,7 +1019,7 @@
       "description": "Markdown builder, typed reader/AST, and HTML renderer for .NET with GitHub-like output and an optional portable reader profile.",
       "kind": "package",
       "projectPath": "OfficeIMO.Markdown/OfficeIMO.Markdown.csproj",
-      "sourceFileCount": 381,
+      "sourceFileCount": 384,
       "referencingTestProjectCount": 7,
       "docsUrl": "/docs/markdown/",
       "apiUrl": "/api/markdown/",
@@ -1042,7 +1045,7 @@
       "description": "PDF converter for OfficeIMO.Markdown - Export Markdown documents to PDF using the first-party OfficeIMO.Pdf engine.",
       "kind": "package",
       "projectPath": "OfficeIMO.Markdown.Pdf/OfficeIMO.Markdown.Pdf.csproj",
-      "sourceFileCount": 24,
+      "sourceFileCount": 25,
       "referencingTestProjectCount": 7,
       "docsUrl": "/docs/markdown/",
       "apiUrl": "/api/markdown-pdf/",
@@ -1354,7 +1357,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1703,
+      "sourceFileCount": 1733,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -1400,6 +1403,19 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf.PowerPoint"
     },
     {
+      "name": "OfficeIMO.Pdf.Testing",
+      "packageId": "OfficeIMO.Pdf.Testing",
+      "category": "Publishing and conversion",
+      "description": "Framework-neutral PDF snapshot testing for OfficeIMO.Pdf: rendered pages, logical text and structure compared against approved baselines with a visual review gallery.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Pdf.Testing/OfficeIMO.Pdf.Testing.csproj",
+      "sourceFileCount": 6,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/pdf/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf.Testing"
+    },
+    {
       "name": "OfficeIMO.Pdf.Word",
       "packageId": "OfficeIMO.Pdf.Word",
       "category": "Publishing and conversion",
@@ -1419,7 +1435,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft PowerPoint PPT, PPTX, PPTM, POT, PPS, and related presentations without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
-      "sourceFileCount": 557,
+      "sourceFileCount": 566,
       "referencingTestProjectCount": 8,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/powerpoint/",
@@ -1894,6 +1910,19 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Subtitles"
     },
     {
+      "name": "OfficeIMO.Reader.Toml",
+      "packageId": "OfficeIMO.Reader.Toml",
+      "category": "Extraction and ingestion",
+      "description": "TOML adapter extensions for OfficeIMO.Reader: pyproject.toml, Cargo.toml, lock files and other TOML configuration as path, type and value chunks.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Reader.Toml/OfficeIMO.Reader.Toml.csproj",
+      "sourceFileCount": 3,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/reader/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Toml"
+    },
+    {
       "name": "OfficeIMO.Reader.Visio",
       "packageId": "OfficeIMO.Reader.Visio",
       "category": "Extraction and ingestion",
@@ -2089,13 +2118,26 @@
       "packageUrl": null
     },
     {
+      "name": "OfficeIMO.Toml",
+      "packageId": "OfficeIMO.Toml",
+      "category": "Specialized components",
+      "description": "A dependency-free TOML 1.1 engine for OfficeIMO: a low-allocation pull reader, a lossless document model that saves unchanged input byte for byte and edits with minimal diffs, and a writer.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Toml/OfficeIMO.Toml.csproj",
+      "sourceFileCount": 24,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Toml"
+    },
+    {
       "name": "OfficeIMO.Tool",
       "packageId": "OfficeIMO.Tool",
       "category": "Specialized components",
       "description": "Unified command-line interface for OfficeIMO document conversion, extraction, markup, provenance, output, intake, and capability discovery.",
       "kind": "tool",
       "projectPath": "OfficeIMO.Tool/OfficeIMO.Tool.csproj",
-      "sourceFileCount": 68,
+      "sourceFileCount": 69,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -2134,7 +2176,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 861,
+      "sourceFileCount": 872,
       "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
@@ -2186,7 +2228,7 @@
       "description": "Markdown converter for OfficeIMO.Word - Convert Word documents to/from Markdown using OfficeIMO.Markdown",
       "kind": "package",
       "projectPath": "OfficeIMO.Word.Markdown/OfficeIMO.Word.Markdown.csproj",
-      "sourceFileCount": 33,
+      "sourceFileCount": 34,
       "referencingTestProjectCount": 7,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word-markdown/",
@@ -2290,7 +2332,7 @@
       "description": "A dependency-free YAML 1.2 engine for OfficeIMO: a lossless document model that saves unchanged input byte for byte, a low-allocation pull reader with schema-aware scalar resolution, and an object serializer with a NativeAOT source generator.",
       "kind": "package",
       "projectPath": "OfficeIMO.Yaml/OfficeIMO.Yaml.csproj",
-      "sourceFileCount": 67,
+      "sourceFileCount": 70,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/yaml/",
       "apiUrl": "/api/yaml/",
@@ -2316,7 +2358,7 @@
       "description": "PSWriteOffice is a focused component in the OfficeIMO managed document platform.",
       "kind": "library",
       "projectPath": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/PSWriteOffice.csproj",
-      "sourceFileCount": 764,
+      "sourceFileCount": 765,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/pswriteoffice/",
       "apiUrl": null,

@@ -5,6 +5,10 @@ internal static partial class PdfSyntax {
         CancellationToken cancellationToken) {
         foreach (var entry in map.Values) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (entry.TryGetUnbuiltSummary(out PdfDeferredObjectSummary summary)) {
+                if (summary.HasEncryptKey) throw new NotSupportedException("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.");
+                continue;
+            }
             PdfDictionary? dictionary = entry.Value switch {
                 PdfDictionary directDictionary => directDictionary,
                 PdfStream stream => stream.Dictionary,
@@ -16,6 +20,10 @@ internal static partial class PdfSyntax {
             }
         }
     }
+
+    // Whole-document type scans skip objects that are not built yet and whose load scan recorded a different /Type.
+    private static bool IsUnbuiltWithOtherType(PdfIndirectObject entry, string type) =>
+        entry.TryGetUnbuiltSummary(out PdfDeferredObjectSummary summary) && !string.Equals(summary.KnownType, type, StringComparison.Ordinal);
 
     internal static PdfDictionary? FindCatalog(Dictionary<int, PdfIndirectObject> map, string? trailerRaw = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -39,6 +47,7 @@ internal static partial class PdfSyntax {
     private static PdfDictionary? FindCatalogByScan(Dictionary<int, PdfIndirectObject> map, CancellationToken cancellationToken) {
         foreach (var entry in map.Values) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (IsUnbuiltWithOtherType(entry, "Catalog")) continue;
             if (entry.Value is PdfDictionary dictionary &&
                 dictionary.Get<PdfName>("Type")?.Name == "Catalog") {
                 return dictionary;
@@ -57,7 +66,7 @@ internal static partial class PdfSyntax {
         int highestMatchingObjectNumber = int.MinValue;
         foreach (var entry in map.Values) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (entry.ObjectNumber <= highestMatchingObjectNumber) {
+            if (entry.ObjectNumber <= highestMatchingObjectNumber || IsUnbuiltWithOtherType(entry, "XRef")) {
                 continue;
             }
 
@@ -118,7 +127,9 @@ internal static partial class PdfSyntax {
     }
 
     private static bool IsSupportedGoToActionDictionary(Dictionary<int, PdfIndirectObject> map, PdfDictionary dictionary, CancellationToken cancellationToken = default) {
-        return dictionary.Items.Count == 2 &&
+        // The optional /Type /Action entry does not change the action.
+        int expectedEntries = dictionary.Get<PdfName>("Type")?.Name == "Action" ? 3 : 2;
+        return dictionary.Items.Count == expectedEntries &&
             dictionary.Get<PdfName>("S")?.Name == "GoTo" &&
             dictionary.Items.TryGetValue("D", out var destination) &&
             IsDestinationForKnownPage(map, destination, cancellationToken);
@@ -246,10 +257,16 @@ internal static partial class PdfSyntax {
         }
     }
 
-    private static bool IsSupportedOutlineGraph(
+    /// <summary>
+    /// Proves that an outline graph can be copied and retargeted by the page rewriters: it reaches only pages,
+    /// plain values and GoTo actions to known pages. When the document is tagged, an outline item's /SE
+    /// structure-element reference is owned by the tagged-content rewrite, so it is not walked as outline data.
+    /// </summary>
+    internal static bool IsSupportedOutlineGraph(
         Dictionary<int, PdfIndirectObject> map,
         PdfObject value,
         HashSet<int> visitedReferences,
+        bool structureTreeOwnsElements,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         switch (value) {
@@ -269,10 +286,10 @@ internal static partial class PdfSyntax {
                 }
 
                 return IsPageDictionary(indirect.Value) ||
-                    IsSupportedOutlineGraph(map, indirect.Value, visitedReferences, cancellationToken);
+                    IsSupportedOutlineGraph(map, indirect.Value, visitedReferences, structureTreeOwnsElements, cancellationToken);
             case PdfArray array:
                 foreach (var item in array.Items) {
-                    if (!IsSupportedOutlineGraph(map, item, visitedReferences, cancellationToken)) {
+                    if (!IsSupportedOutlineGraph(map, item, visitedReferences, structureTreeOwnsElements, cancellationToken)) {
                         return false;
                     }
                 }
@@ -292,8 +309,13 @@ internal static partial class PdfSyntax {
                     return false;
                 }
 
-                foreach (var item in dictionary.Items.Values) {
-                    if (!IsSupportedOutlineGraph(map, item, visitedReferences, cancellationToken)) {
+                foreach (var item in dictionary.Items) {
+                    if (structureTreeOwnsElements && item.Key == "SE" && dictionary.Items.ContainsKey("Title") &&
+                        IsStructureElementReference(map, item.Value)) {
+                        continue;
+                    }
+
+                    if (!IsSupportedOutlineGraph(map, item.Value, visitedReferences, structureTreeOwnsElements, cancellationToken)) {
                         return false;
                     }
                 }
@@ -303,6 +325,13 @@ internal static partial class PdfSyntax {
                 return false;
         }
     }
+
+    internal static bool IsStructureElementReference(Dictionary<int, PdfIndirectObject> map, PdfObject value) =>
+        value is PdfReference reference &&
+        PdfObjectLookup.TryGet(map, reference, out var indirect) &&
+        indirect.Value is PdfDictionary element &&
+        (element.Get<PdfName>("Type")?.Name == "StructElem" ||
+            element.Get<PdfName>("Type") is null && element.Get<PdfName>("S") is not null && element.Items.ContainsKey("P"));
 
     private static bool IsPageDictionary(PdfObject value) {
         return value is PdfDictionary dictionary &&
@@ -454,42 +483,27 @@ internal static partial class PdfSyntax {
         return hasNames || hasKids;
     }
 
-    private static bool ContainsPdfName(string text, string name) {
-        if (string.IsNullOrEmpty(text)) return false;
-
-        string token = "/" + name;
-        int index = 0;
-        while (index < text.Length) {
-            index = text.IndexOf(token, index, StringComparison.Ordinal);
-            if (index < 0) return false;
-
-            int after = index + token.Length;
-            if (after >= text.Length || IsPdfDelimiter(text[after]) || char.IsWhiteSpace(text[after])) {
-                return true;
-            }
-
-            index = after;
-        }
-
-        return false;
-    }
-
-    internal static bool ContainsAnyPdfName(string text, params string[] names) {
-        for (int i = 0; i < names.Length; i++) {
-            if (ContainsPdfName(text, names[i])) {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    internal static bool ContainsAnyPdfName(string text, params string[] names) =>
+        ContainsAnyPdfName(new PdfStringContentText(text), names, CancellationToken.None);
 
     internal static bool ContainsAnyPdfName(
         string text,
         CancellationToken cancellationToken,
-        params string[] names) {
+        params string[] names) =>
+        ContainsAnyPdfName(new PdfStringContentText(text), names, cancellationToken);
+
+    /// <summary>Raw name probe over the file bytes, read as Latin-1 text in place.</summary>
+    internal static bool ContainsAnyPdfName(
+        byte[] pdf,
+        CancellationToken cancellationToken,
+        params string[] names) =>
+        ContainsAnyPdfName(new PdfByteContentText(pdf), names, cancellationToken);
+
+    private static bool ContainsAnyPdfName<TText>(
+        TText text,
+        string[] names,
+        CancellationToken cancellationToken) where TText : struct, IPdfContentText {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!cancellationToken.CanBeCanceled) return ContainsAnyPdfName(text, names);
         for (int i = 0; i < names.Length; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             if (ContainsPdfName(text, names[i], cancellationToken)) return true;
@@ -497,22 +511,26 @@ internal static partial class PdfSyntax {
         return false;
     }
 
-    private static bool ContainsPdfName(
-        string text,
+    private static bool ContainsPdfName<TText>(
+        TText text,
         string name,
-        CancellationToken cancellationToken) {
-        if (string.IsNullOrEmpty(text)) return false;
+        CancellationToken cancellationToken) where TText : struct, IPdfContentText {
         string token = "/" + name;
-        int maximumStart = text.Length - token.Length;
-        for (int index = 0; index <= maximumStart; index++) {
-            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            if (text[index] != '/' ||
-                string.CompareOrdinal(text, index, token, 0, token.Length) != 0) {
+        const int window = 65536;
+        int index = 0;
+        while (index <= text.Length - token.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            // Each window overlaps the next by one token, so a match is found in the window where it starts.
+            int count = Math.Min(text.Length - index, window + token.Length - 1);
+            int found = text.IndexOf(token, index, count);
+            if (found < 0) {
+                index += window;
                 continue;
             }
 
-            int after = index + token.Length;
+            int after = found + token.Length;
             if (after >= text.Length || IsPdfDelimiter(text[after]) || char.IsWhiteSpace(text[after])) return true;
+            index = after;
         }
         cancellationToken.ThrowIfCancellationRequested();
         return false;
@@ -525,18 +543,18 @@ internal static partial class PdfSyntax {
         try {
             var (objects, trailer) = ParseObjects(pdf, options, out PdfRepairReport repairReport);
             if (FindCatalog(objects, trailer) is null)
-                return ContainsAnyPdfName(PdfEncoding.Latin1GetString(pdf), names);
+                return ContainsAnyPdfName(pdf, CancellationToken.None, names);
             return ContainsAnyDocumentPdfName(pdf, objects, repairReport, names);
         } catch (Exception ex) when (ShouldSuppressParsedPdfNameException(ex, options)) {
             // Malformed or unauthenticated input retains the conservative raw probe.
-            return ContainsAnyPdfName(PdfEncoding.Latin1GetString(pdf), names);
+            return ContainsAnyPdfName(pdf, CancellationToken.None, names);
         }
     }
 
     internal static bool ContainsAnyDocumentPdfName(byte[] pdf, IReadOnlyDictionary<int, PdfIndirectObject> objects,
         PdfRepairReport repairReport, params string[] names) =>
         ContainsAnyParsedPdfName(objects, names) ||
-        (repairReport.HasIncompleteObjectCoverage && ContainsAnyPdfName(PdfEncoding.Latin1GetString(pdf), names));
+        (repairReport.HasIncompleteObjectCoverage && ContainsAnyPdfName(pdf, CancellationToken.None, names));
 
     internal static bool ContainsAnyDocumentPdfName(byte[] pdf, IReadOnlyDictionary<int, PdfIndirectObject> objects,
         PdfRepairReport repairReport, CancellationToken cancellationToken, params string[] names) {
@@ -547,7 +565,7 @@ internal static partial class PdfSyntax {
         }
         if (CollectParsedPdfNames(objects, requested, cancellationToken).Count > 0) return true;
         return repairReport.HasIncompleteObjectCoverage &&
-            ContainsAnyPdfName(PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken), cancellationToken, names);
+            ContainsAnyPdfName(pdf, cancellationToken, names);
     }
 
     internal static bool ContainsAnyParsedPdfName(

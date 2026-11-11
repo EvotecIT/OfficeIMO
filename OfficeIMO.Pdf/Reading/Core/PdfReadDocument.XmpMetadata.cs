@@ -15,7 +15,7 @@ internal sealed partial class PdfReadDocument {
     public const int MaxXmpMetadataBytes = 4_000_000;
 
     /// <summary>Catalog XMP metadata stream discovered from /Metadata.</summary>
-    public PdfXmpMetadataInfo? XmpMetadata => ReadLogicalContent(_xmpMetadata);
+    public PdfXmpMetadataInfo? XmpMetadata => ReadLogicalFeature(_xmpMetadataFeature);
 
     private PdfXmpMetadataInfo? ExtractXmpMetadata(System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();

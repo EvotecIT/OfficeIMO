@@ -326,6 +326,7 @@ namespace OfficeIMO.PowerPoint {
             set {
                 int? rotation = value != null ? (int)Math.Round(value.Value * 60000d) : null;
                 SetRotation(rotation);
+                OnGeometryChanged();
             }
         }
 
@@ -334,7 +335,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public bool? HorizontalFlip {
             get => GetHorizontalFlip();
-            set => SetHorizontalFlip(value);
+            set {
+                SetHorizontalFlip(value);
+                OnGeometryChanged();
+            }
         }
 
         /// <summary>
@@ -342,7 +346,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public bool? VerticalFlip {
             get => GetVerticalFlip();
-            set => SetVerticalFlip(value);
+            set {
+                SetVerticalFlip(value);
+                OnGeometryChanged();
+            }
         }
 
         private int? GetRotation() {

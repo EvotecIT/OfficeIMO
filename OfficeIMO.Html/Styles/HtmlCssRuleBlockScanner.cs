@@ -50,7 +50,7 @@ internal static class HtmlCssRuleBlockScanner {
             } else if (insideUrl) {
                 if (current == ')') insideUrl = false;
             } else if (IsIdentifierCharacter(current)) {
-                AppendIdentifier(current.ToString(), ref identifierLength, ref identifierMatchesUrl);
+                AppendIdentifier(current, ref identifierLength, ref identifierMatchesUrl);
             } else if (current == '(') {
                 insideUrl = identifierMatchesUrl && identifierLength == 3;
                 ResetIdentifier(ref identifierLength, ref identifierMatchesUrl);
@@ -74,7 +74,7 @@ internal static class HtmlCssRuleBlockScanner {
         var budget = new HtmlCssProcessingBudget(limits);
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
             if (!IsCssStyleElement(styleElement)) continue;
-            string css = styleElement.TextContent;
+            string css = HtmlStyleElementText.Read(styleElement);
             if (!string.IsNullOrWhiteSpace(css)) {
                 Scan(css, budget);
             }
@@ -118,14 +118,21 @@ internal static class HtmlCssRuleBlockScanner {
         string value,
         ref int identifierLength,
         ref bool identifierMatchesUrl) {
-        const string Url = "url";
         for (int index = 0; index < value.Length; index++) {
-            if (identifierLength >= Url.Length
-                || char.ToLowerInvariant(value[index]) != Url[identifierLength]) {
-                identifierMatchesUrl = false;
-            }
-            identifierLength++;
+            AppendIdentifier(value[index], ref identifierLength, ref identifierMatchesUrl);
         }
+    }
+
+    private static void AppendIdentifier(
+        char value,
+        ref int identifierLength,
+        ref bool identifierMatchesUrl) {
+        const string Url = "url";
+        if (identifierLength >= Url.Length
+            || char.ToLowerInvariant(value) != Url[identifierLength]) {
+            identifierMatchesUrl = false;
+        }
+        identifierLength++;
     }
 
     private static void ResetIdentifier(

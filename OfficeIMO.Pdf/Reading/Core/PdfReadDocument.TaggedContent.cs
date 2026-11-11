@@ -4,7 +4,7 @@ internal sealed partial class PdfReadDocument {
     private const int MaxReadTaggedContentDepth = 256;
 
     /// <summary>Tagged PDF structure metadata discovered from /MarkInfo and /StructTreeRoot.</summary>
-    public PdfTaggedContentInfo? TaggedContent => ReadLogicalContent(_taggedContent);
+    public PdfTaggedContentInfo? TaggedContent => ReadLogicalFeature(_taggedContentFeature);
 
     /// <summary>True when a readable tagged-PDF structure tree was discovered.</summary>
     public bool HasTaggedContent => TaggedContent is not null;

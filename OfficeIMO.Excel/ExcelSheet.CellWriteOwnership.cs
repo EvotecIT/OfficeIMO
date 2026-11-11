@@ -1,3 +1,5 @@
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
@@ -9,11 +11,45 @@ namespace OfficeIMO.Excel {
         private bool HasTableDefinitions => WorksheetRoot.GetFirstChild<TableParts>()?.HasChildren == true;
 
         /// <summary>Finds a visible table header without inspecting worksheet cell payloads.</summary>
+        private (string Id, TableDefinitionPart Part)[]? _tableDefinitionParts;
+        private TableParts? _tableDefinitionPartsList;
+        private int _tableDefinitionPartsListCount;
+
+        /// <summary>
+        /// Cell writes ask for table headers once per cell. Enumerating the SDK's related parts each
+        /// time allocates and walks every relationship, so the parts are kept while the worksheet's
+        /// tableParts list is unchanged and every kept relationship id still resolves to the same part.
+        /// </summary>
+        private (string Id, TableDefinitionPart Part)[] GetTableDefinitionParts() {
+            TableParts? list = WorksheetRoot.GetFirstChild<TableParts>();
+            int count = 0;
+            if (list != null) {
+                for (OpenXmlElement? child = list.FirstChild; child != null; child = child.NextSibling()) count++;
+            }
+            (string Id, TableDefinitionPart Part)[]? cached = _tableDefinitionParts;
+            if (cached != null && ReferenceEquals(list, _tableDefinitionPartsList) && count == _tableDefinitionPartsListCount) {
+                bool current = true;
+                foreach ((string id, TableDefinitionPart part) in cached) {
+                    if (!_worksheetPart.TryGetPartById(id, out OpenXmlPart? resolved) || !ReferenceEquals(resolved, part)) {
+                        current = false;
+                        break;
+                    }
+                }
+                if (current) return cached;
+            }
+
+            cached = _worksheetPart.TableDefinitionParts.Select(part => (_worksheetPart.GetIdOfPart(part), part)).ToArray();
+            _tableDefinitionParts = cached;
+            _tableDefinitionPartsList = list;
+            _tableDefinitionPartsListCount = count;
+            return cached;
+        }
+
         private bool TryGetTableHeader(int row, int column, out Table table, out int headerIndex) {
             table = null!;
             headerIndex = -1;
             if (!HasTableDefinitions) return false;
-            foreach (var part in _worksheetPart.TableDefinitionParts) {
+            foreach ((_, TableDefinitionPart part) in GetTableDefinitionParts()) {
                 Table? candidate = part.Table;
                 if (candidate == null || (candidate.HeaderRowCount?.Value ?? 1U) == 0U
                     || !ExcelA1.TryParseRange(candidate.Reference?.Value ?? string.Empty,
@@ -75,7 +111,7 @@ namespace OfficeIMO.Excel {
 
         private bool RangeContainsTableHeader(int top, int left, int bottom, int right) {
             if (!HasTableDefinitions) return false;
-            foreach (var part in _worksheetPart.TableDefinitionParts) {
+            foreach ((_, TableDefinitionPart part) in GetTableDefinitionParts()) {
                 Table? table = part.Table;
                 if (table == null || (table.HeaderRowCount?.Value ?? 1U) == 0U
                     || !ExcelA1.TryParseRange(table.Reference?.Value ?? string.Empty,

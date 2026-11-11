@@ -499,14 +499,14 @@ public partial class PdfPageImageRendererTests {
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
-        byte[][] scanlines = EnumerateImages(drawing)
-            .Select(static item => PdfPngTestImages.DecodeStoredPngIdat(item.Bytes))
+        byte[][] pixels = EnumerateImages(drawing)
+            .Select(static item => PdfPngTestImages.DecodeRgb(item.Bytes))
             .ToArray();
 
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
-        Assert.Equal(2, scanlines.Length);
-        Assert.Contains(scanlines, bytes => bytes.SequenceEqual(new byte[] { 0, 255, 0, 0 }));
-        Assert.Contains(scanlines, bytes => bytes.SequenceEqual(new byte[] { 0, 0, 255, 0 }));
+        Assert.Equal(2, pixels.Length);
+        Assert.Contains(pixels, bytes => bytes.SequenceEqual(new byte[] { 255, 0, 0 }));
+        Assert.Contains(pixels, bytes => bytes.SequenceEqual(new byte[] { 0, 255, 0 }));
     }
 
     [Fact]
@@ -520,13 +520,13 @@ public partial class PdfPageImageRendererTests {
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, pattern, firstForm, secondForm, image);
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
-        byte[][] scanlines = EnumerateImages(PdfPageImageRenderer.RenderPage(pdf))
-            .Select(static item => PdfPngTestImages.DecodeStoredPngIdat(item.Bytes))
+        byte[][] pixels = EnumerateImages(PdfPageImageRenderer.RenderPage(pdf))
+            .Select(static item => PdfPngTestImages.DecodeRgb(item.Bytes))
             .ToArray();
 
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
-        Assert.Contains(scanlines, bytes => bytes.SequenceEqual(new byte[] { 0, 255, 0, 0 }));
-        Assert.Contains(scanlines, bytes => bytes.SequenceEqual(new byte[] { 0, 0, 255, 0 }));
+        Assert.Contains(pixels, bytes => bytes.SequenceEqual(new byte[] { 255, 0, 0 }));
+        Assert.Contains(pixels, bytes => bytes.SequenceEqual(new byte[] { 0, 255, 0 }));
     }
 
     [Fact]

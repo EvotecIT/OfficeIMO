@@ -101,7 +101,7 @@ internal static partial class CsvParser
                 continue;
             }
 
-            if (TrySplitUnquotedRecord(line, delimiter, trim, reusableRecord))
+            if (TrySplitUnquotedRecord(line, delimiter, trim, options.QuotesAreData, reusableRecord))
             {
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount) &&
                     ShouldEmitRecord(reusableRecord, allowEmpty))

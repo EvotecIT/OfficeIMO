@@ -47,7 +47,22 @@ internal static partial class ResourceResolver {
         PdfFontInspectionDiagnosticCode? failureCode = source == PdfTextDecodingSource.WinAnsiFallback &&
             font.FontSubtype == "Type0" && font.Encoding is "Identity-H" or "Identity-V"
                 ? PdfFontInspectionDiagnosticCode.UnmappableText : null;
-        return new PdfTextDecodingEvidence(source, font.Encoding, font.HasToUnicode,
-            (source is PdfTextDecodingSource.FontEncoding or PdfTextDecodingSource.WinAnsiFallback) && font.Differences is { Count: > 0 }, unmapped, failureCode: failureCode);
+        // Without unmapped bytes the evidence depends only on the font and the source, so text runs
+        // of one font share an immutable instance instead of allocating one per span.
+        if (unmapped == 0) {
+            PdfTextDecodingEvidence?[] cache = font.DecodingEvidenceBySource ??= new PdfTextDecodingEvidence?[DecodingEvidenceSourceSlots];
+            int slot = (int)source;
+            if (slot >= 0 && slot < cache.Length) {
+                return cache[slot] ??= CreateDecodingEvidence(font, source, unmapped, failureCode);
+            }
+        }
+        return CreateDecodingEvidence(font, source, unmapped, failureCode);
     }
+
+    private const int DecodingEvidenceSourceSlots = 16;
+
+    private static PdfTextDecodingEvidence CreateDecodingEvidence(PdfFontResource font, PdfTextDecodingSource source,
+        int unmapped, PdfFontInspectionDiagnosticCode? failureCode) =>
+        new PdfTextDecodingEvidence(source, font.Encoding, font.HasToUnicode,
+            (source is PdfTextDecodingSource.FontEncoding or PdfTextDecodingSource.WinAnsiFallback) && font.Differences is { Count: > 0 }, unmapped, failureCode: failureCode);
 }

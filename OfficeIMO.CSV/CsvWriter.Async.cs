@@ -16,7 +16,7 @@ internal static partial class CsvWriter
         bool defaultFormatting = delimiter.Length == 1 && options.NullValue == null
             && options.DateTimeFormat == null && !options.UseUtc
             && options.FormulaInjectionPolicy == CsvFormulaInjectionPolicy.Preserve
-            && options.QuoteMode == CsvQuoteMode.AsNeeded && quoteFields == null;
+            && options.ResolvedQuoteMode == CsvQuoteMode.AsNeeded && quoteFields == null;
         var buffer = new StringBuilder();
         using var recordWriter = new StringWriter(buffer, CultureInfo.InvariantCulture);
 
@@ -46,10 +46,10 @@ internal static partial class CsvWriter
         {
             if (delimiter.Length == 1)
                 WriteRecord(recordWriter, document.Header, delimiter[0], options.NewLine,
-                    CultureInfo.InvariantCulture, options.FormulaInjectionPolicy, options.QuoteMode, quoteFields, document.Header);
+                    CultureInfo.InvariantCulture, options.FormulaInjectionPolicy, options.ResolvedQuoteMode, quoteFields, document.Header);
             else
                 WriteRecord(recordWriter, document.Header, delimiter, options.NewLine,
-                    CultureInfo.InvariantCulture, options.FormulaInjectionPolicy, options.QuoteMode, quoteFields, document.Header);
+                    CultureInfo.InvariantCulture, options.FormulaInjectionPolicy, options.ResolvedQuoteMode, quoteFields, document.Header);
             await EmitAsync().ConfigureAwait(false);
         }
         foreach (var row in document.AsEnumerable())
@@ -59,10 +59,10 @@ internal static partial class CsvWriter
                 AppendRecordDefault(buffer, row.Values, delimiter[0], options.NewLine, options.Culture);
             else if (delimiter.Length == 1)
                 WriteRecord(recordWriter, row.Values, delimiter[0], options.NewLine, options.Culture,
-                    options.FormulaInjectionPolicy, options.QuoteMode, quoteFields, document.Header, options.DateTimeFormat, options.UseUtc, options.NullValue);
+                    options.FormulaInjectionPolicy, options.ResolvedQuoteMode, quoteFields, document.Header, options.DateTimeFormat, options.UseUtc, options.NullValue);
             else
                 WriteRecord(recordWriter, row.Values, delimiter, options.NewLine, options.Culture,
-                    options.FormulaInjectionPolicy, options.QuoteMode, quoteFields, document.Header, options.DateTimeFormat, options.UseUtc, options.NullValue);
+                    options.FormulaInjectionPolicy, options.ResolvedQuoteMode, quoteFields, document.Header, options.DateTimeFormat, options.UseUtc, options.NullValue);
             await EmitAsync().ConfigureAwait(false);
         }
 #if NET8_0_OR_GREATER

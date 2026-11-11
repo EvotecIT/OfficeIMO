@@ -467,7 +467,8 @@ public sealed class ExcelOdsDataPilotConversionTests {
             DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) }
         });
         byte[] bytes = source.ToBytes();
-        using (var stream = new MemoryStream(bytes)) {
+        using (var stream = new MemoryStream()) {
+            stream.Write(bytes, 0, bytes.Length);
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(stream, true)) {
                 var definition = package.WorkbookPart!.WorksheetParts.Single().PivotTableParts.Single().PivotTableDefinition!;
                 definition.RowFields!.AppendChild(new DocumentFormat.OpenXml.Spreadsheet.Field { Index = 0 });
@@ -824,7 +825,8 @@ public sealed class ExcelOdsDataPilotConversionTests {
             DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) }
         });
         byte[] bytes = source.ToBytes();
-        using (var stream = new MemoryStream(bytes)) {
+        using (var stream = new MemoryStream()) {
+            stream.Write(bytes, 0, bytes.Length);
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(stream, true)) {
                 var definition = package.WorkbookPart!.WorksheetParts.Single().PivotTableParts.Single().PivotTableDefinition!;
                 definition.RowFields!.AppendChild(new DocumentFormat.OpenXml.Spreadsheet.Field { Index = -2 });

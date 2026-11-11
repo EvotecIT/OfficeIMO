@@ -30,9 +30,12 @@ internal sealed partial class HtmlRenderStyleResolver {
             style.IntrinsicWidth = ReadPageMarginIntrinsicWidth("width");
             style.IntrinsicMinWidth = ReadPageMarginIntrinsicWidth("min-width");
             style.IntrinsicMaxWidth = ReadPageMarginIntrinsicWidth("max-width");
-            style.ExplicitHeight = ReadPageMarginHeight("height", out style.PageMarginIntrinsicHeight);
-            style.MinHeight = ReadPageMarginHeight("min-height", out style.PageMarginIntrinsicMinHeight);
-            style.MaxHeight = ReadPageMarginHeight("max-height", out style.PageMarginIntrinsicMaxHeight);
+            style.ExplicitHeight = ReadPageMarginHeight("height", out bool intrinsicHeight);
+            style.MinHeight = ReadPageMarginHeight("min-height", out bool intrinsicMinHeight);
+            style.MaxHeight = ReadPageMarginHeight("max-height", out bool intrinsicMaxHeight);
+            style.PageMarginIntrinsicHeight = intrinsicHeight;
+            style.PageMarginIntrinsicMinHeight = intrinsicMinHeight;
+            style.PageMarginIntrinsicMaxHeight = intrinsicMaxHeight;
             ApplyAutoMargins(computed, style);
             ApplyMarginLength(computed.GetValue("margin-left"), stripWidth, style.Font.Size, ref style.MarginLeft);
             ApplyMarginLength(computed.GetValue("margin-right"), stripWidth, style.Font.Size, ref style.MarginRight);

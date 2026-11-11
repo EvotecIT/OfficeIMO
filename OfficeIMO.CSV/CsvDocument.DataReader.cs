@@ -20,7 +20,7 @@ public sealed partial class CsvDocument
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        options = options?.Clone() ?? new CsvReaderOptions();
+        options = options?.Clone() ?? CsvProfiles.CreateDefaultReaderOptions(path);
         // OpenReader is the forward-only entry point. Reader routing remains
         // internal so callers cannot accidentally request streaming through Load.
         options.Mode = CsvLoadMode.Stream;
@@ -29,7 +29,16 @@ public sealed partial class CsvDocument
             throw new ArgumentOutOfRangeException(nameof(options), "Schema sample size must be greater than zero.");
         }
 
+        // Detect the delimiter from a sample first so the detected file can still stream.
+        options = ResolveReaderOptions(() => CsvFile.OpenTextReader(path, options, FileBufferSize), options);
+
 #if NET8_0_OR_GREATER
+        if (CanInferSchemaWhileStreaming(options) &&
+            CsvFile.ResolveCompression(options.CompressionType, path) == CsvCompressionType.None)
+        {
+            options = InferSchemaFromSample(sampling => OpenReader(path, sampling), options);
+        }
+
         if (CanUseStreamSpanDataReader(options)
             && CsvFile.ResolveCompression(options.CompressionType, path) == CsvCompressionType.None)
         {
@@ -56,10 +65,13 @@ public sealed partial class CsvDocument
                 }
             }
 
-            var spanReader = CsvFile.OpenTextReader(path, options, StreamingDataReaderFileBufferSize);
-            if (TryCreateStreamSpanDataReader(spanReader, options, out CsvDataReader? dataReader))
+            if (!CsvParser.UsesTextDelimiter(options))
             {
-                return CsvParallelDataReader.Apply(dataReader!, options);
+                var spanReader = CsvFile.OpenTextReader(path, options, StreamingDataReaderFileBufferSize);
+                if (TryCreateStreamSpanDataReader(spanReader, options, out CsvDataReader? dataReader))
+                {
+                    return CsvParallelDataReader.Apply(dataReader!, options);
+                }
             }
         }
 
@@ -70,6 +82,29 @@ public sealed partial class CsvDocument
                 boundedReader,
                 options.CancellationToken);
             return ParseText(text, options.Parsing).CreateDataReader(options);
+        }
+#else
+        if (CanInferSchemaWhileStreaming(options) &&
+            CsvFile.ResolveCompression(options.CompressionType, path) == CsvCompressionType.None)
+        {
+            options = InferSchemaFromSample(sampling => OpenReader(path, sampling), options);
+        }
+
+        if (CanUseStreamSpanDataReader(options) && CanUseUtf8StreamDataReader(options)
+            && CsvFile.ResolveCompression(options.CompressionType, path) == CsvCompressionType.None)
+        {
+            Stream utf8Stream = CsvFile.OpenReadStream(path, options, Utf8StreamingDataReaderFileBufferSize, useAsync: false);
+            if (CsvParser.CsvUtf8StreamDataReaderRowSource.TryCreate(utf8Stream, options, out var utf8Rows))
+            {
+                if (TryCreateStreamSpanDataReader(utf8Rows!, options, out CsvDataReader? utf8DataReader))
+                {
+                    return CsvParallelDataReader.Apply(utf8DataReader!, options);
+                }
+            }
+            else
+            {
+                utf8Stream.Dispose();
+            }
         }
 #endif
 
@@ -163,6 +198,47 @@ public sealed partial class CsvDocument
         }
 
         long startPosition = stream.Position;
+        if (options.DetectDelimiter)
+        {
+            // Detect from a sample, then read the stream again from where it started.
+            options = ResolveReaderOptions(() =>
+            {
+                stream.Position = startPosition;
+                return CsvFile.OpenTextReader(stream, options, leaveOpen: true, FileBufferSize);
+            }, options);
+            stream.Position = startPosition;
+        }
+
+        if (CanInferSchemaWhileStreaming(options))
+        {
+            options = InferSchemaFromSample(sampling =>
+            {
+                stream.Position = startPosition;
+                return OpenReader(stream, sampling);
+            }, options);
+            stream.Position = startPosition;
+        }
+
+#if !NET8_0_OR_GREATER
+        if (CanUseStreamSpanDataReader(options) && CanUseUtf8StreamDataReader(options))
+        {
+            Stream utf8Stream = CsvFile.OpenReadStream(stream, options, leaveOpen: true);
+            if (CsvParser.CsvUtf8StreamDataReaderRowSource.TryCreate(utf8Stream, options, out var utf8Rows))
+            {
+                if (TryCreateStreamSpanDataReader(utf8Rows!, options, out CsvDataReader? utf8DataReader))
+                {
+                    return CsvParallelDataReader.Apply(utf8DataReader!, options);
+                }
+            }
+            else
+            {
+                utf8Stream.Dispose();
+            }
+
+            stream.Position = startPosition;
+        }
+#endif
+
         if (!CanUseSinglePassFileDataReader(options)
 #if NET8_0_OR_GREATER
             && !CanUseStreamSpanDataReader(options)
@@ -193,13 +269,21 @@ public sealed partial class CsvDocument
                 stream.Position = startPosition;
             }
 
-            var spanReader = CsvFile.OpenTextReader(stream, options, leaveOpen: true, StreamingDataReaderFileBufferSize);
-            if (TryCreateStreamSpanDataReader(spanReader, options, out CsvDataReader? dataReader))
+            if (!CsvParser.UsesTextDelimiter(options))
             {
-                return CsvParallelDataReader.Apply(dataReader!, options);
+                var spanReader = CsvFile.OpenTextReader(stream, options, leaveOpen: true, StreamingDataReaderFileBufferSize);
+                if (TryCreateStreamSpanDataReader(spanReader, options, out CsvDataReader? dataReader))
+                {
+                    return CsvParallelDataReader.Apply(dataReader!, options);
+                }
+
+                stream.Position = startPosition;
             }
 
-            stream.Position = startPosition;
+            if (!CanUseSinglePassFileDataReader(options))
+            {
+                return CreateBufferedDataReaderFromCurrentPosition(stream, startPosition, options);
+            }
         }
 #endif
 
@@ -430,6 +514,8 @@ public sealed partial class CsvDocument
         return true;
     }
 
+#endif
+
     private static bool CanUseStreamSpanDataReader(
         CsvReaderOptions options) =>
         (CanUseSinglePassFileDataReader(options)
@@ -437,26 +523,82 @@ public sealed partial class CsvDocument
                 && (options.Header is not null || !options.HasHeaderRow)
                 && options.SkipInitialRecords == 0
                 && !options.DetectDelimiter))
-        && options.Schema is null
         && !options.InferSchema
         && options.StaticColumns is null
-        && string.IsNullOrEmpty(options.DelimiterText)
-        && options.MaxFieldLength is null
-        && options.MaxQuotedFieldLength is null
+        // A multi-character delimiter is read by the UTF-8 reader only.
+        && (!CsvParser.UsesTextDelimiter(options) || CanUseUtf8StreamDataReader(options))
         // Canonical interning reports progress after yielding the current record.
         && (!options.InternStrings || options.ProgressCallback is null || options.ProgressReportInterval <= 0)
-        && !options.NormalizeQuotes;
+        && !options.NormalizeQuotes
+        && !options.Parsing.DecodesBackslashEscapes;
+
+    /// <summary>Whether an inferred schema can come from a streamed sample of the input.</summary>
+    private static bool CanInferSchemaWhileStreaming(CsvReaderOptions options)
+    {
+        if (!options.InferSchema || options.Schema is not null)
+        {
+            return false;
+        }
+
+        CsvReaderOptions sampling = options.Clone();
+        sampling.InferSchema = false;
+        return CanUseStreamSpanDataReader(sampling)
+#if !NET8_0_OR_GREATER
+            // Older targets stream through the UTF-8 reader only.
+            && CanUseUtf8StreamDataReader(sampling)
+#endif
+            ;
+    }
+
+    /// <summary>
+    /// Infers the schema from the first <see cref="CsvReaderOptions.SchemaSampleRows"/> rows of a
+    /// string reader opened by <paramref name="open"/>; the caller then reads the input again with it.
+    /// </summary>
+    private static CsvReaderOptions InferSchemaFromSample(Func<CsvReaderOptions, CsvDataReader> open, CsvReaderOptions options)
+    {
+        CsvReaderOptions sampling = options.Clone();
+        sampling.InferSchema = false;
+        sampling.ParallelProcessing = null;
+        // The final read parses the same records again; only it reports progress and parse errors.
+        sampling.ProgressCallback = null;
+        sampling.CollectParseErrors = false;
+        sampling.ParseErrors = null;
+        var columns = new List<InferredColumn>();
+        int sampledRows = 0;
+        using (CsvDataReader reader = open(sampling))
+        {
+            for (int ordinal = 0; ordinal < reader.FieldCount; ordinal++)
+            {
+                columns.Add(new InferredColumn(reader.GetName(ordinal)));
+            }
+
+            while (sampledRows < options.SchemaSampleRows && reader.Read())
+            {
+                options.CancellationToken.ThrowIfCancellationRequested();
+                for (int ordinal = 0; ordinal < columns.Count; ordinal++)
+                {
+                    columns[ordinal].Observe(reader.IsDBNull(ordinal) ? null : reader.GetString(ordinal),
+                        options.Culture, options.DateTimeFormats);
+                }
+
+                sampledRows++;
+            }
+        }
+
+        CsvReaderOptions resolved = options.Clone();
+        resolved.Schema = new CsvSchema(columns.Select(column => column.ToSchemaColumn(sampledRows)).ToList());
+        resolved.InferSchema = false;
+        return resolved;
+    }
 
     private static bool CanUseUtf8StreamDataReader(CsvReaderOptions options)
     {
-        char delimiter = CsvParser.GetDelimiterChar(options);
-        return !options.TrimWhitespace &&
-            (options.Encoding is null || options.Encoding.CodePage == Encoding.UTF8.CodePage) &&
+        string delimiterText = CsvParser.GetDelimiterText(options);
+        return (options.Encoding is null || options.Encoding.CodePage == Encoding.UTF8.CodePage) &&
             // Custom replacements can remove a record or introduce CSV syntax during decoding.
             (options.Encoding is null || options.Encoding.DecoderFallback is DecoderExceptionFallback ||
                 options.Encoding.DecoderFallback is DecoderReplacementFallback { DefaultString: "\uFFFD" }) &&
-            delimiter is > (char)0 and <= (char)127 &&
-            delimiter is not '"' and not '\r' and not '\n' &&
+            delimiterText.All(character => character is > (char)0 and <= (char)127 and not '"' and not '\r' and not '\n') &&
             options.CommentCharacter is > (char)0 and <= (char)127;
     }
 
@@ -544,6 +686,7 @@ public sealed partial class CsvDocument
         }
     }
 
+#if NET8_0_OR_GREATER
     private static bool CanUseMemoryBackedFileDataReader(
         string path,
         CsvReaderOptions options)

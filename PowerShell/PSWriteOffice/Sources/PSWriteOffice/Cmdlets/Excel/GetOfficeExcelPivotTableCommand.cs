@@ -26,6 +26,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 public sealed class GetOfficeExcelPivotTableCommand : PSCmdlet {
     /// <summary>Workbook paths resolved with filesystem wildcard support.</summary>
     [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    [Alias("FilePath")]
     public string[] Path { get; set; } = Array.Empty<string>();
 
     /// <summary>Optional pivot table name filter.</summary>
@@ -35,6 +36,7 @@ public sealed class GetOfficeExcelPivotTableCommand : PSCmdlet {
     /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
     [Parameter()]
     [OfficeSheetTransformation]
+    [Alias("WorksheetName")]
     public OfficeSheetSelector? Sheet { get; set; }
 
     /// <summary>Literal workbook paths, including FileInfo.FullName and provider PSPath.</summary>

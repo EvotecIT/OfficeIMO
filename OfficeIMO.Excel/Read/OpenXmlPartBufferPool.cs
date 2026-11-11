@@ -7,12 +7,21 @@ namespace OfficeIMO.Excel {
         private const int CapacityQuantum = 64 * 1024;
         private const int MaximumBufferSize = 256 * 1024 * 1024;
         private const long MaximumRetainedBytes = 64L * 1024 * 1024;
+        // A buffer for a whole large part helps the next read in a batch, but keeping it after the work is done would
+        // hold that much memory for as long as the process runs, so buffers above this size are only kept until the
+        // collector needs the memory.
+        private const int MaximumLongLivedBufferSize = 4 * 1024 * 1024;
         private static readonly object Sync = new object();
         private static readonly Dictionary<int, byte[]> RetainedBuffers = new Dictionary<int, byte[]>();
+        private static readonly ExcelReleasingArrayStore<byte> LargeBuffers = new ExcelReleasingArrayStore<byte>(2, MaximumRetainedBytes);
         private static long _retainedBytes;
 
         internal static byte[] Rent(int minimumLength) {
             int capacity = GetCapacity(minimumLength);
+            if (capacity > MaximumLongLivedBufferSize) {
+                return LargeBuffers.TryTake(capacity) ?? new byte[capacity];
+            }
+
             lock (Sync) {
                 if (RetainedBuffers.TryGetValue(capacity, out byte[]? retained)) {
                     RetainedBuffers.Remove(capacity);
@@ -34,6 +43,11 @@ namespace OfficeIMO.Excel {
                 || buffer.Length < CapacityQuantum
                 || buffer.Length > MaximumBufferSize
                 || buffer.Length % CapacityQuantum != 0) {
+                return;
+            }
+
+            if (buffer.Length > MaximumLongLivedBufferSize) {
+                LargeBuffers.TryAdd(buffer);
                 return;
             }
 

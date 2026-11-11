@@ -215,6 +215,115 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            /// <summary>
+            /// Writes captured selector values with the same cell output as the object paths: a column style, or the
+            /// value's own style in value-styled columns, then the value. Blank cells follow the sheet's omission rule.
+            /// </summary>
+            private static void WriteTypedCellRows(
+                TextWriter writer,
+                DirectDataSetSheetModel sheet,
+                ExcelTabularCellValues cells,
+                int startRowIndex,
+                string[] cellReferencePrefixes,
+                string?[]? styleAttributes,
+                DirectCellValueKind[] cellValueKinds,
+                bool[]? valueStyleColumns,
+                Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
+                ExcelDateSystem dateSystem,
+                DirectSharedStringTable? sharedStrings,
+                CancellationToken ct) {
+                bool canCancel = ct.CanBeCanceled;
+                bool omitBlankCells = sheet.OmitBlankCells;
+                bool useCellValueNumberFormats = sheet.UseCellValueNumberFormats;
+                int columnCount = cells.ColumnCount;
+                int rowIndex = startRowIndex;
+                byte[] kindChunk = Array.Empty<byte>();
+                long[] bitChunk = Array.Empty<long>();
+                int offset = 0;
+                for (int sourceRowIndex = 0, index = 0; sourceRowIndex < cells.RowCount; sourceRowIndex++) {
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    string rowReference = InvariantNumberText.Get(rowIndex);
+                    bool rowStarted = false;
+                    if (!omitBlankCells) {
+                        writer.Write("<row r=\"");
+                        writer.Write(rowReference);
+                        writer.Write("\">");
+                    }
+
+                    for (int c = 0; c < columnCount; c++, index++, offset++) {
+                        if (offset == kindChunk.Length) {
+                            offset = cells.GetChunk(index, out kindChunk, out bitChunk);
+                        }
+
+                        var kind = (ExcelBufferedCellKind)kindChunk[offset];
+                        long bits = bitChunk[offset];
+                        if (omitBlankCells
+                            && (kind == ExcelBufferedCellKind.Blank
+                                || (kind == ExcelBufferedCellKind.Value && cells.GetReferenceById(bits) == DBNull.Value))) {
+                            WriteSparseMissingTabularCell(writer, rowReference, cellReferencePrefixes[c], styleAttributes?[c], c == 0 || c == columnCount - 1, ref rowStarted);
+                            continue;
+                        }
+
+                        if (omitBlankCells && !rowStarted) {
+                            writer.Write("<row r=\"");
+                            writer.Write(rowReference);
+                            writer.Write("\">");
+                            rowStarted = true;
+                        }
+
+                        bool useValueStyle = valueStyleColumns?[c] ?? false;
+                        if (kind == ExcelBufferedCellKind.Value) {
+                            WriteCell(writer, rowReference, cellReferencePrefixes[c], cells.GetReferenceById(bits), styleAttributes?[c], useValueStyle, cellValueKinds[c], useCellValueNumberFormats, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
+                            continue;
+                        }
+
+                        writer.Write(cellReferencePrefixes[c]);
+                        writer.Write(rowReference);
+                        writer.Write('"');
+                        string? styleAttribute = styleAttributes?[c]
+                            ?? (useValueStyle && kind == ExcelBufferedCellKind.DateTime ? GetDateStyleAttribute(useCellValueNumberFormats) : null);
+                        if (styleAttribute != null) {
+                            writer.Write(styleAttribute);
+                        }
+
+                        switch (kind) {
+                            case ExcelBufferedCellKind.Text:
+                                WriteStringCellValue(writer, (string)cells.GetReferenceById(bits), sharedStrings);
+                                break;
+                            case ExcelBufferedCellKind.Number:
+                                WriteRawValueCell(writer, BitConverter.Int64BitsToDouble(bits));
+                                break;
+                            case ExcelBufferedCellKind.Int32:
+                                WriteRawValueCell(writer, (int)bits);
+                                break;
+                            case ExcelBufferedCellKind.Int64:
+                                WriteRawValueCell(writer, bits);
+                                break;
+                            case ExcelBufferedCellKind.DateTime:
+                                WriteDateTimeSerialCell(writer, cells.GetDateTime(index), dateSystem);
+                                break;
+                            case ExcelBufferedCellKind.Boolean:
+                                writer.Write(bits != 0L ? " t=\"b\"><v>1</v></c>" : " t=\"b\"><v>0</v></c>");
+                                break;
+                            default:
+                                writer.Write(" t=\"str\"><v/></c>");
+                                break;
+                        }
+                    }
+
+                    if (omitBlankCells) {
+                        CompleteSparseTabularRow(writer, rowReference, cellReferencePrefixes, styleAttributes, rowStarted);
+                    } else {
+                        writer.Write("</row>");
+                    }
+
+                    rowIndex++;
+                }
+            }
+
             private static void WriteDirectCellValueRowsFourColumns(
                 TextWriter writer,
                 DirectCellValueRows rows,

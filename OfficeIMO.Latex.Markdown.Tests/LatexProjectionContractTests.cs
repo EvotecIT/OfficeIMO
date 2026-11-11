@@ -93,7 +93,7 @@ public sealed class LatexProjectionContractTests {
     [Theory]
     [InlineData("\\textbf{A\\label{x}B}", "**AB**")]
     [InlineData("\\emph{A\\textbf{B\\label{x}C}D}", "**BC**")]
-    [InlineData("$A\\label{x}B$", "`AB`")]
+    [InlineData("$A\\label{x}B$", "$AB$")]
     public void TheoremLabelsDoNotSliceEnclosingInlineSyntax(string body, string expected) {
         var result = LatexDocument.Parse(Wrap("\\begin{theorem}" + body + "\\end{theorem}")).ToMarkdown(null, out OfficeIMO.OfficeConversionReport conversionReport2);
         var resultReport = (LatexToMarkdownReport)conversionReport2;

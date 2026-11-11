@@ -189,6 +189,7 @@ public sealed partial class CsvDocument
             options.MaxFieldLength is not null ||
             options.MaxQuotedFieldLength is not null ||
             options.NormalizeQuotes ||
+            options.DecodesBackslashEscapes ||
             options.InternStrings)
         {
             return false;
@@ -446,6 +447,12 @@ public sealed partial class CsvDocument
         char current = text[index];
         if (current == '"')
         {
+            // Quote-free dialects scan the same specials; their quotes are ordinary data.
+            if (options.QuotesAreData)
+            {
+                return true;
+            }
+
             if (state.InQuotes)
             {
                 if (index + 1 < text.Length && text[index + 1] == '"')

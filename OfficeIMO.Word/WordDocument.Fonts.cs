@@ -32,16 +32,27 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Embeds a font and registers a paragraph style using that font.
+        /// Embeds a font and adds a paragraph style to this document that uses it.
         /// </summary>
         /// <param name="fontPath">Path to a TrueType/OpenType font file.</param>
-        /// <param name="styleId">Style identifier to register.</param>
-        /// <param name="styleName">Optional friendly name for the style.</param>
-        public void EmbedFont(string fontPath, string styleId, string? styleName = null) {
+        /// <param name="styleId">Identifier of the paragraph style. An existing style with this identifier is updated to use the font.</param>
+        /// <param name="styleName">Optional friendly name for a new style.</param>
+        /// <returns>The paragraph style that uses the embedded font.</returns>
+        public WordStyle EmbedFont(string fontPath, string styleId, string? styleName = null) {
+            ArgumentException.ThrowIfNullOrWhiteSpace(styleId);
+            WordStyle? existing = Styles.FindById(styleId);
+            if (existing != null && existing.Type != WordStyleType.Paragraph) {
+                throw new ArgumentException($"'{styleId}' is a {existing.Type.ToString().ToLowerInvariant()} style, not a paragraph style.", nameof(styleId));
+            }
+            // Check the new style's name first, so a rejected style leaves the font table unchanged.
+            string newName = string.IsNullOrWhiteSpace(styleName) ? styleId : styleName!;
+            if (existing == null && Styles.FindByName(newName) != null) {
+                throw new ArgumentException($"The document already has a style named '{newName}'.", nameof(styleName));
+            }
             EmbedFont(fontPath);
-            var fontName = Path.GetFileNameWithoutExtension(fontPath);
-            WordParagraphStyle.RegisterFontStyle(styleId, fontName, styleName);
-            EnsureStyleDefinition(styleId);
+            WordStyle style = existing ?? Styles.AddParagraphStyle(styleId, styleName);
+            style.FontFamily = Path.GetFileNameWithoutExtension(fontPath);
+            return style;
         }
     }
 }

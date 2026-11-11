@@ -122,6 +122,7 @@ OfficeIMO.Drawing.OfficeRasterDecodeInfo.CodecUnavailableReason.get -> OfficeIMO
 OfficeIMO.Drawing.OfficeRasterDecodeInfo.DiagnosticCode.get -> string?
 OfficeIMO.Drawing.OfficeRasterImageCodecs
 OfficeIMO.OfficeConversionCapability.RequiresImageCodec.get -> bool
+OfficeIMO.OfficeConversionCapability.HostExecutable.get -> bool
 const OfficeIMO.OfficeDiagnosticCodes.ImageCodecUnavailable = "image-codec-unavailable" -> string!
 static OfficeIMO.Drawing.OfficeImageReader.NormalizeForEmbedding(byte[]! encodedBytes, OfficeIMO.Drawing.OfficeRasterDecodeOptions? options, out OfficeIMO.Drawing.OfficeImageInfo! info) -> byte[]!
 static OfficeIMO.Drawing.OfficeRasterImageCodecs.Platform.get -> OfficeIMO.Drawing.IOfficeRasterImageCodec?
@@ -151,3 +152,57 @@ const OfficeIMO.OfficeDiagnosticCodes.YamlMergeAnchorRenamed = "yaml-merge-ancho
 const OfficeIMO.OfficeDiagnosticCodes.YamlMergeKeyNotRemoved = "yaml-merge-key-not-removed" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.YamlMergeKindConflict = "yaml-merge-kind-conflict" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.MarkdownFrontMatterInvalidYaml = "markdown-front-matter-invalid-yaml" -> string!
+OfficeIMO.OfficeHiddenDataFinding
+OfficeIMO.OfficeHiddenDataFinding.Description.get -> string!
+OfficeIMO.OfficeHiddenDataFinding.Kind.get -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataFinding.Location.get -> string!
+OfficeIMO.OfficeHiddenDataFinding.Note.get -> string?
+OfficeIMO.OfficeHiddenDataFinding.Outcome.get -> OfficeIMO.OfficeHiddenDataOutcome
+OfficeIMO.OfficeHiddenDataFinding.Value.get -> string?
+OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.All = OfficeIMO.OfficeHiddenDataKind.TrackedChanges | OfficeIMO.OfficeHiddenDataKind.HiddenContent | OfficeIMO.OfficeHiddenDataKind.Default -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.Comments = 4 -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.CustomProperties = 2 -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.CustomXml = 256 -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.Default = OfficeIMO.OfficeHiddenDataKind.DocumentProperties | OfficeIMO.OfficeHiddenDataKind.CustomProperties | OfficeIMO.OfficeHiddenDataKind.Comments | OfficeIMO.OfficeHiddenDataKind.PersonalIdentities | OfficeIMO.OfficeHiddenDataKind.SpeakerNotes | OfficeIMO.OfficeHiddenDataKind.Thumbnail | OfficeIMO.OfficeHiddenDataKind.CustomXml | OfficeIMO.OfficeHiddenDataKind.ImageMetadata | OfficeIMO.OfficeHiddenDataKind.PrinterSettings | OfficeIMO.OfficeHiddenDataKind.ExternalReferences | OfficeIMO.OfficeHiddenDataKind.DocumentVariables | OfficeIMO.OfficeHiddenDataKind.RevisionIdentifiers -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.DocumentProperties = 1 -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.DocumentVariables = 4096 -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.ExternalReferences = 2048 -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.HiddenContent = 32 -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.ImageMetadata = 512 -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.None = 0 -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.PersonalIdentities = 16 -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.PrinterSettings = 1024 -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.RevisionIdentifiers = 8192 -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.SpeakerNotes = 64 -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.Thumbnail = 128 -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataKind.TrackedChanges = 8 -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataOptions
+OfficeIMO.OfficeHiddenDataOptions.AnonymousAuthor.get -> string!
+OfficeIMO.OfficeHiddenDataOptions.AnonymousAuthor.set -> void
+OfficeIMO.OfficeHiddenDataOptions.Kinds.get -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeHiddenDataOptions.Kinds.set -> void
+OfficeIMO.OfficeHiddenDataOptions.OfficeHiddenDataOptions() -> void
+OfficeIMO.OfficeHiddenDataOptions.TrackedChanges.get -> OfficeIMO.OfficeTrackedChangesAction
+OfficeIMO.OfficeHiddenDataOptions.TrackedChanges.set -> void
+OfficeIMO.OfficeHiddenDataOutcome
+OfficeIMO.OfficeHiddenDataOutcome.Accepted = 3 -> OfficeIMO.OfficeHiddenDataOutcome
+OfficeIMO.OfficeHiddenDataOutcome.Anonymized = 2 -> OfficeIMO.OfficeHiddenDataOutcome
+OfficeIMO.OfficeHiddenDataOutcome.Found = 0 -> OfficeIMO.OfficeHiddenDataOutcome
+OfficeIMO.OfficeHiddenDataOutcome.Rejected = 4 -> OfficeIMO.OfficeHiddenDataOutcome
+OfficeIMO.OfficeHiddenDataOutcome.Removed = 1 -> OfficeIMO.OfficeHiddenDataOutcome
+OfficeIMO.OfficeHiddenDataOutcome.Retained = 5 -> OfficeIMO.OfficeHiddenDataOutcome
+OfficeIMO.OfficeHiddenDataReport
+OfficeIMO.OfficeHiddenDataReport.Changed.get -> bool
+OfficeIMO.OfficeHiddenDataReport.Findings.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeHiddenDataFinding!>!
+OfficeIMO.OfficeHiddenDataReport.Format.get -> string!
+OfficeIMO.OfficeHiddenDataReport.GetFindings(OfficeIMO.OfficeHiddenDataKind kind) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeHiddenDataFinding!>!
+OfficeIMO.OfficeHiddenDataReport.HasHiddenData.get -> bool
+OfficeIMO.OfficeHiddenDataReport.Kinds.get -> OfficeIMO.OfficeHiddenDataKind
+OfficeIMO.OfficeTrackedChangesAction
+OfficeIMO.OfficeTrackedChangesAction.AcceptAll = 1 -> OfficeIMO.OfficeTrackedChangesAction
+OfficeIMO.OfficeTrackedChangesAction.Keep = 0 -> OfficeIMO.OfficeTrackedChangesAction
+OfficeIMO.OfficeTrackedChangesAction.RejectAll = 2 -> OfficeIMO.OfficeTrackedChangesAction
+override OfficeIMO.OfficeHiddenDataFinding.ToString() -> string!
+*REMOVED*const OfficeIMO.OfficeConversionCapabilityCatalog.SchemaVersion = 9 -> int
+const OfficeIMO.OfficeConversionCapabilityCatalog.SchemaVersion = 10 -> int

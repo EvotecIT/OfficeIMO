@@ -9,6 +9,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private const int BrtCellBlank = 1;
         private const int BrtCellRk = 2;
         private const int BrtCellError = 3;
+        private const byte NonFiniteNumberErrorCode = 0x24; // #NUM!
         private const int BrtCellBool = 4;
         private const int BrtCellReal = 5;
         private const int BrtCellSt = 6;
@@ -471,6 +472,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     return;
                 case XlsbWriteCellKind.Number:
                     double number = Convert.ToDouble(cell.Value, System.Globalization.CultureInfo.InvariantCulture);
+                    if (double.IsNaN(number) || double.IsInfinity(number)) {
+                        // XLSB has no NaN or infinite number; Excel shows #NUM! for such a result.
+                        WriteSimpleCellHeader(output, BrtCellError, payloadLength: 9, cell);
+                        output.WriteByte(NonFiniteNumberErrorCode);
+                        return;
+                    }
                     if (BiffRkNumberReader.TryEncodeRkNumber(number, out uint rk)) {
                         WriteSimpleCellHeader(output, BrtCellRk, payloadLength: 12, cell);
                         WriteUInt32(output, rk);

@@ -118,7 +118,7 @@ public static partial class HtmlResourcePipeline {
             }
         }
         Uri cssBase = baseUri ?? new Uri("officeimo-unresolved://manuscript/");
-        foreach (string css in document.QuerySelectorAll("style").Select(element => element.TextContent)
+        foreach (string css in document.QuerySelectorAll("style").Select(element => HtmlStyleElementText.Read(element))
             .Concat(document.QuerySelectorAll("[style]").Select(element => element.GetAttribute("style") ?? string.Empty))) {
             AddStylesheetArchiveResources(manifest, css, cssBase, options);
         }

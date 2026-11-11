@@ -167,8 +167,8 @@ public sealed class ReaderPdfManagedInspectionEvidenceTests {
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "pdf-page-unmappable-text" && diagnostic.Location?.Page == 2);
         string json = OfficeDocumentReadResultJson.Serialize(result);
         using JsonDocument parsed = JsonDocument.Parse(json);
-        Assert.Equal(14, result.SchemaVersion);
-        Assert.Equal(14, parsed.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(OfficeDocumentReadResultSchema.CurrentVersion, result.SchemaVersion);
+        Assert.Equal(OfficeDocumentReadResultSchema.CurrentVersion, parsed.RootElement.GetProperty("schemaVersion").GetInt32());
         OfficeDocumentReadResult roundTrip = OfficeDocumentReadResultJson.Deserialize(json);
         Assert.Contains(roundTrip.Metadata, entry => entry.Category == "pdf.page-outcome" && entry.Value == "UnmappableText");
         OfficeDocumentReadResult fallback = reader.ReadDocument(BuildMixedPdf(fallbackFont: true), "fallback.pdf", options);

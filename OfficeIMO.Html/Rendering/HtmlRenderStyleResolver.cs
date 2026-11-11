@@ -64,6 +64,62 @@ internal sealed partial class HtmlRenderStyleResolver {
         return ResolveCore(element, computed, containingWidth, parent, false, string.Empty);
     }
 
+    /// <summary>
+    /// Resolves like <see cref="Resolve(IElement, double, HtmlRenderBoxStyle?)"/>. When no containing width can change
+    /// the result and the resolution reported nothing, also returns the context a repeated resolve would leave.
+    /// </summary>
+    internal HtmlRenderBoxStyle Resolve(IElement element, double containingWidth, HtmlRenderBoxStyle? parent,
+        out WidthIndependentResolution? widthIndependent) {
+        HtmlComputedStyle computed = _computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? found)
+            ? found
+            : new HtmlComputedStyle(new Dictionary<string, string>());
+        int diagnosticCount = _diagnostics.Count;
+        HtmlRenderBoxStyle style = ResolveCore(element, computed, containingWidth, parent, false, string.Empty);
+        // Only percentages, the img dimension source and size containers read the containing width.
+        bool independent = _diagnostics.Count == diagnosticCount
+            && parent?.ContainerType is not ("inline-size" or "size")
+            && !element.LocalName.Equals("img", StringComparison.OrdinalIgnoreCase)
+            && (element.GetAttribute("width")?.IndexOf('%') ?? -1) < 0
+            && !GetDeclarationFacts(computed).HasPercentages;
+        widthIndependent = independent
+            ? new WidthIndependentResolution(_viewportWidth, _viewportHeight,
+                _activeContainerWidth, _activeContainerHeight, _activeCharacterAdvance, _activeUprightVerticalText)
+            : null;
+        return style;
+    }
+
+    /// <summary>
+    /// Leaves the length context that repeating a width-independent resolve would leave, or returns false
+    /// when the viewport has changed since and the style must be resolved again.
+    /// </summary>
+    internal bool TryRestoreResolution(WidthIndependentResolution resolution) {
+        if (!resolution.ViewportWidth.Equals(_viewportWidth) || !resolution.ViewportHeight.Equals(_viewportHeight)) return false;
+        _activeContainerWidth = resolution.ContainerWidth;
+        _activeContainerHeight = resolution.ContainerHeight;
+        _activeCharacterAdvance = resolution.CharacterAdvance;
+        _activeUprightVerticalText = resolution.UprightVerticalText;
+        return true;
+    }
+
+    internal sealed class WidthIndependentResolution {
+        internal WidthIndependentResolution(double viewportWidth, double viewportHeight,
+            double containerWidth, double containerHeight, double characterAdvance, bool uprightVerticalText) {
+            ViewportWidth = viewportWidth;
+            ViewportHeight = viewportHeight;
+            ContainerWidth = containerWidth;
+            ContainerHeight = containerHeight;
+            CharacterAdvance = characterAdvance;
+            UprightVerticalText = uprightVerticalText;
+        }
+
+        internal double ViewportWidth { get; }
+        internal double ViewportHeight { get; }
+        internal double ContainerWidth { get; }
+        internal double ContainerHeight { get; }
+        internal double CharacterAdvance { get; }
+        internal bool UprightVerticalText { get; }
+    }
+
     internal double? ResolvePositionedPercentageHeight(IElement element, double containingHeight, double fontSize) {
         if (!_computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed)) return null;
         string height = computed.GetValue("height");
@@ -915,15 +971,14 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.MarginRightAuto = false;
         style.MarginBottomAuto = false;
         style.MarginLeftAuto = false;
-        OverrideAutoMargin(computed.GetValue("margin-top"), ref style.MarginTopAuto);
-        OverrideAutoMargin(computed.GetValue("margin-right"), ref style.MarginRightAuto);
-        OverrideAutoMargin(computed.GetValue("margin-bottom"), ref style.MarginBottomAuto);
-        OverrideAutoMargin(computed.GetValue("margin-left"), ref style.MarginLeftAuto);
+        style.MarginTopAuto = OverrideAutoMargin(computed.GetValue("margin-top"), style.MarginTopAuto);
+        style.MarginRightAuto = OverrideAutoMargin(computed.GetValue("margin-right"), style.MarginRightAuto);
+        style.MarginBottomAuto = OverrideAutoMargin(computed.GetValue("margin-bottom"), style.MarginBottomAuto);
+        style.MarginLeftAuto = OverrideAutoMargin(computed.GetValue("margin-left"), style.MarginLeftAuto);
     }
 
-    private static void OverrideAutoMargin(string value, ref bool target) {
-        if (!string.IsNullOrWhiteSpace(value)) target = string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase);
-    }
+    private static bool OverrideAutoMargin(string value, bool current) =>
+        string.IsNullOrWhiteSpace(value) ? current : string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase);
 
     private void ApplyDimensions(
         IElement element,

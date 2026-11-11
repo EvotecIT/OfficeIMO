@@ -1,0 +1,12 @@
+{
+  "source": "https://github.com/toml-lang/toml-test",
+  "ref": "v2.2.0",
+  "commit": "ce08da1ddb075d1c7596d663c7fcba9a2ae02c5c",
+  "commitDate": "2026-04-30T17:17:03+01:00",
+  "license": "MIT",
+  "licenseSource": "https://github.com/toml-lang/toml-test/blob/ce08da1ddb075d1c7596d663c7fcba9a2ae02c5c/LICENSE",
+  "tomlVersion": "1.1.0",
+  "caseList": "files-toml-1.1.0",
+  "validCases": 214,
+  "invalidCases": 467
+}

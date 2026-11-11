@@ -23,7 +23,7 @@ internal static partial class CsvWriter
             {
                 WriteEscapedUtf8(writer, writer.Encoding.GetBytes(nullText), delimiter, options, forceQuote);
             }
-            else if (options.QuoteMode != CsvQuoteMode.Never && (options.QuoteMode == CsvQuoteMode.Always || forceQuote))
+            else if (options.ResolvedQuoteMode < CsvQuoteMode.Never && (options.ResolvedQuoteMode == CsvQuoteMode.Always || forceQuote))
             {
                 writer.Write("\"\"");
             }
@@ -34,8 +34,15 @@ internal static partial class CsvWriter
     private static void WriteEscapedUtf8(PooledUtf8TextWriter writer, ReadOnlySpan<byte> text, ReadOnlySpan<byte> delimiter, CsvSaveOptions options, bool forceQuote)
     {
         bool prefixApostrophe = options.FormulaInjectionPolicy == CsvFormulaInjectionPolicy.Escape && StartsWithFormulaTrigger(text);
-        bool quote = options.QuoteMode != CsvQuoteMode.Never
-            && (options.QuoteMode == CsvQuoteMode.Always || forceQuote || NeedsUtf8Quotes(text, delimiter, prefixApostrophe));
+        CsvQuoteMode quoteMode = options.ResolvedQuoteMode;
+        if (quoteMode >= CsvQuoteMode.Never)
+        {
+            if (prefixApostrophe) writer.Write('\'');
+            WriteUnquotedUtf8(writer, text, delimiter, quoteMode);
+            return;
+        }
+
+        bool quote = quoteMode == CsvQuoteMode.Always || forceQuote || NeedsUtf8Quotes(text, delimiter, prefixApostrophe);
         if (quote) writer.Write('"');
         if (prefixApostrophe) writer.Write('\'');
 
@@ -53,6 +60,41 @@ internal static partial class CsvWriter
             writer.Write('"');
         }
         else writer.WriteUtf8(text);
+    }
+
+    private static void WriteUnquotedUtf8(PooledUtf8TextWriter writer, ReadOnlySpan<byte> text, ReadOnlySpan<byte> delimiter, CsvQuoteMode quoteMode)
+    {
+        if (quoteMode == BackslashEscapedQuoteMode)
+        {
+            int start = 0;
+            for (int i = 0; i < text.Length; i++)
+            {
+                string? escape = text[i] switch
+                {
+                    (byte)'\\' => "\\\\",
+                    (byte)'\t' => "\\t",
+                    (byte)'\n' => "\\n",
+                    (byte)'\r' => "\\r",
+                    _ => null
+                };
+                if (escape is null) continue;
+                WriteUnquotedUtf8Segment(writer, text.Slice(start, i - start), delimiter, quoteMode);
+                writer.Write(escape);
+                start = i + 1;
+            }
+
+            WriteUnquotedUtf8Segment(writer, text.Slice(start), delimiter, quoteMode);
+            return;
+        }
+
+        WriteUnquotedUtf8Segment(writer, text, delimiter, quoteMode);
+    }
+
+    private static void WriteUnquotedUtf8Segment(PooledUtf8TextWriter writer, ReadOnlySpan<byte> text, ReadOnlySpan<byte> delimiter, CsvQuoteMode quoteMode)
+    {
+        if (quoteMode != LiteralUnquotedQuoteMode && (text.IndexOfAny((byte)'\r', (byte)'\n') >= 0 || text.IndexOf(delimiter) >= 0))
+            throw CreateUnrepresentableFieldException(quoteMode);
+        writer.WriteUtf8(text);
     }
 
     private static bool NeedsUtf8Quotes(ReadOnlySpan<byte> text, ReadOnlySpan<byte> delimiter, bool prefixApostrophe) =>

@@ -1319,7 +1319,6 @@ public sealed class PdfReverseImagePlacementSafetyTests {
 
     [Theory]
     [InlineData("/ColorSpace null")]
-    [InlineData("/ColorSpace [/DeviceRGB]")]
     [InlineData("/ColorSpace [/Indexed /DeviceRGB 1 <000000FFFFFF>]")]
     public void Jpeg2000WithUnsupportedExplicitPdfColorSpaceIsNotEmbeddedAcrossEditableAdapters(string colorSpace) {
         byte[] jpx = File.ReadAllBytes(Path.Combine(
@@ -1344,9 +1343,10 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             "Interoperability",
             "Scans",
             "red-rgb.jp2"));
-        int tilePart = Enumerable.Range(0, container.Length - 1).First(index =>
-            container[index] == 0xFF && container[index + 1] == 0x90);
-        container[tilePart + 11] = 2; // TNsot declares an absent second tile-part.
+        int size = Enumerable.Range(0, container.Length - 1).First(index =>
+            container[index] == 0xFF && container[index + 1] == 0x51);
+        container[size + 38] = 0; // Csiz declares no components, which no decoder can reconstruct.
+        container[size + 39] = 0;
         byte[] source = CreateRawImagePdf(
             "q 80 0 0 40 20 30 cm /Im1 Do Q\n",
             imageBytes: container,
