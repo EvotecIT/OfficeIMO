@@ -4,21 +4,42 @@ namespace OfficeIMO.Data.Conversions;
 
 /// <summary>
 /// Writes data as TOML through <see cref="TomlWriter"/>. TOML writes a table's key/value pairs before its sub-tables, so
-/// the sink holds the document and writes it when the source ends; TOML documents are configuration-sized. Objects become
-/// <c>[table]</c> sections and arrays whose items are all objects become <c>[[array]]</c> sections; other values stay on
-/// their key's line, with objects inside arrays as inline tables. Everything TOML cannot hold is reported: nulls are
-/// omitted, integers beyond 64 bits become strings, a root that is not an object is wrapped in
-/// <see cref="DataConversionOptions.RootName"/>, and members that precede sub-tables move after their table's values.
+/// the sink holds the document and writes it when the source ends. The held document is a flat list of node records and
+/// one character buffer, both pooled, rather than an object per value, so a large array of tables costs no garbage
+/// collection work while it is held. Objects become <c>[table]</c> sections and arrays whose items are all objects become
+/// <c>[[array]]</c> sections; other values stay on their key's line, with objects inside arrays as inline tables.
+/// Everything TOML cannot hold is reported: nulls are omitted, integers beyond 64 bits become strings, a root that is not
+/// an object is wrapped in <see cref="DataConversionOptions.RootName"/>, and members that precede sub-tables move after
+/// their table's values.
 /// </summary>
 internal sealed class TomlEventWriter : DataEventWriter {
+    private const int None = -1;
     private readonly TomlWriter _toml;
-    private readonly Stack<Node> _open = new();
-    private readonly List<Node> _documents = new();
-    private List<string>? _comments;
-    private string? _pendingKey;
-    private List<string>? _pendingKeyComments;
-    private bool _complete;
+    private readonly List<int> _documents = new();
     private readonly Dictionary<string, int> _reported = new(StringComparer.Ordinal);
+
+    // The held document: node records linked first-child/next-sibling, scalar text in one character buffer, and member
+    // keys as indexes into a table of distinct key strings.
+    private Node[] _nodes = ArrayPool<Node>.Shared.Rent(1024);
+    private int _nodeCount;
+    private char[] _chars = ArrayPool<char>.Shared.Rent(16 * 1024);
+    private int _charCount;
+    private readonly List<string> _keys = new();
+    private readonly int[] _keySlots = CreateKeySlots();
+
+    // Open containers, innermost last, with the last child attached to each.
+    private int[] _open = new int[16];
+    private int[] _openLast = new int[16];
+    private int _depth;
+
+    private int _pendingKey = None;
+    private List<string>? _pendingKeyComments;
+    private List<string>? _pendingComments;
+    // Comments above a member (a node with a key) or an item or document, and comments after a container's last child,
+    // by node.
+    private Dictionary<int, List<string>>? _comments;
+    private Dictionary<int, List<string>>? _endComments;
+    private bool _complete;
 
     private enum NodeType : byte {
         Object,
@@ -26,54 +47,31 @@ internal sealed class TomlEventWriter : DataEventWriter {
         Scalar
     }
 
-    private sealed class Node {
-        public Node(NodeType type) {
-            Type = type;
-        }
-
-        public NodeType Type { get; }
+    private struct Node {
+        public NodeType Type;
         public DataScalarKind Kind;
-        public string? Text;
-        /// <summary>A boolean (0 or 1) or an integer that fits 64 bits, when <see cref="Text"/> is null.</summary>
+        /// <summary>For an array: every item is an object.</summary>
+        public bool AllObjects;
+        /// <summary>For a scalar: <see cref="Integer"/> holds the value (a boolean as 0 or 1, or a 64-bit integer).</summary>
+        public bool Held;
+        /// <summary>The member key in the key table, or <see cref="None"/> for an array item or a document.</summary>
+        public int Key;
+        public int First;
+        public int Next;
+        public int Count;
+        public int TextStart;
+        public int TextLength;
         public long Integer;
-        public List<Member>? Members;
-        public List<Node>? Items;
-        /// <summary>Comments above this node when it is an array item.</summary>
-        public List<string>? Comments;
-        /// <summary>Comments after the last member or item.</summary>
-        public List<string>? EndComments;
-
-        public bool IsNull => Type == NodeType.Scalar && Kind == DataScalarKind.Null;
-
-        /// <summary>Whether the node is written as <c>[[name]]</c> sections: a non-empty array of objects only.</summary>
-        public bool IsTableArray {
-            get {
-                if (Type != NodeType.Array || Items!.Count == 0) return false;
-                foreach (Node item in Items) {
-                    if (item.Type != NodeType.Object) return false;
-                }
-
-                return true;
-            }
-        }
-    }
-
-    private readonly struct Member {
-        public Member(string key, Node value, List<string>? comments) {
-            Key = key;
-            Value = value;
-            Comments = comments;
-        }
-
-        public string Key { get; }
-        public Node Value { get; }
-        public List<string>? Comments { get; }
-
-        public bool IsSection => Value.Type == NodeType.Object || Value.IsTableArray;
     }
 
     public TomlEventWriter(Stream output, DataConversionContext context) : base(context) {
         _toml = new TomlWriter(output, context.Options.TomlWriter, leaveOpen: true);
+    }
+
+    private static int[] CreateKeySlots() {
+        var slots = new int[256];
+        slots.AsSpan().Fill(None);
+        return slots;
     }
 
     public override void WriteStartDocument() {
@@ -82,38 +80,55 @@ internal sealed class TomlEventWriter : DataEventWriter {
     public override void WriteEndDocument() {
     }
 
-    public override void WriteStartObject() => Open(new Node(NodeType.Object) { Members = new List<Member>() });
+    public override void WriteStartObject() => Open(NodeType.Object);
 
-    public override void WriteStartArray() => Open(new Node(NodeType.Array) { Items = new List<Node>() });
+    public override void WriteStartArray() => Open(NodeType.Array);
 
     public override void WriteEndObject() => Close();
 
     public override void WriteEndArray() => Close();
 
     public override void WritePropertyName(ReadOnlySpan<char> name) {
-        _pendingKey = KeyString(name);
-        _pendingKeyComments = _comments;
-        _comments = null;
+        _pendingKey = KeyIndex(name);
+        _pendingKeyComments = _pendingComments;
+        _pendingComments = null;
     }
 
     // Rows of records repeat the same keys, so one string per distinct key is shared across the held document.
-    private readonly string?[] _keys = new string?[256];
-
-    private string KeyString(ReadOnlySpan<char> name) {
+    private int KeyIndex(ReadOnlySpan<char> name) {
         uint hash = 2166136261;
         foreach (char c in name) hash = (hash ^ c) * 16777619;
-        ref string? slot = ref _keys[hash & 255];
-        if (slot != null && name.SequenceEqual(slot.AsSpan())) return slot;
-        return slot = name.ToString();
+        ref int slot = ref _keySlots[hash & 255];
+        if (slot != None && name.SequenceEqual(_keys[slot].AsSpan())) return slot;
+        _keys.Add(name.ToString());
+        return slot = _keys.Count - 1;
+    }
+
+    private int KeyIndex(string name) {
+        _keys.Add(name);
+        return _keys.Count - 1;
     }
 
     // Booleans and 64-bit integers are held as values; other scalars keep their text.
     public override void WriteScalar(DataScalarKind kind, ReadOnlySpan<char> text) {
-        var node = new Node(NodeType.Scalar) { Kind = kind };
-        if (kind == DataScalarKind.Boolean) node.Integer = text.Length == 4 ? 1 : 0;
-        else if (kind == DataScalarKind.Integer && TryParseInteger(text, out long integer)) node.Integer = integer;
-        else if (kind != DataScalarKind.Null) node.Text = text.ToString();
-        Attach(node);
+        int index = NewNode(NodeType.Scalar);
+        ref Node node = ref _nodes[index];
+        node.Kind = kind;
+        if (kind == DataScalarKind.Boolean) {
+            node.Held = true;
+            node.Integer = text.Length == 4 ? 1 : 0;
+        } else if (kind == DataScalarKind.Integer && TryParseInteger(text, out long integer)) {
+            node.Held = true;
+            node.Integer = integer;
+        } else if (kind != DataScalarKind.Null) {
+            if (_chars.Length - _charCount < text.Length) Grow(ref _chars, _charCount + text.Length);
+            text.CopyTo(new Span<char>(_chars, _charCount, text.Length));
+            node.TextStart = _charCount;
+            node.TextLength = text.Length;
+            _charCount += text.Length;
+        }
+
+        Attach(index);
     }
 
     private static bool TryParseInteger(ReadOnlySpan<char> text, out long value) {
@@ -131,80 +146,140 @@ internal sealed class TomlEventWriter : DataEventWriter {
         return true;
     }
 
-    public override void WriteComment(ReadOnlySpan<char> text) => (_comments ??= new List<string>()).Add(text.ToString());
+    public override void WriteComment(ReadOnlySpan<char> text) => (_pendingComments ??= new List<string>()).Add(text.ToString());
 
-    private void Open(Node node) {
-        Attach(node);
-        _open.Push(node);
+    private int NewNode(NodeType type) {
+        if (_nodeCount == _nodes.Length) Grow(ref _nodes, _nodeCount + 1);
+        int index = _nodeCount++;
+        _nodes[index] = new Node { Type = type, AllObjects = true, Key = None, First = None, Next = None };
+        return index;
+    }
+
+    private static void Grow<T>(ref T[] array, int minimum) {
+        T[] larger = ArrayPool<T>.Shared.Rent(Math.Max(minimum, array.Length * 2));
+        Array.Copy(array, larger, array.Length);
+        ArrayPool<T>.Shared.Return(array);
+        array = larger;
+    }
+
+    private void Open(NodeType type) {
+        int index = NewNode(type);
+        Attach(index);
+        if (_depth == _open.Length) {
+            Array.Resize(ref _open, _depth * 2);
+            Array.Resize(ref _openLast, _depth * 2);
+        }
+
+        _open[_depth] = index;
+        _openLast[_depth] = None;
+        _depth++;
     }
 
     private void Close() {
-        Node node = _open.Pop();
-        if (_comments != null) {
-            node.EndComments = _comments;
-            _comments = null;
+        int index = _open[--_depth];
+        if (_pendingComments != null) {
+            (_endComments ??= new Dictionary<int, List<string>>())[index] = _pendingComments;
+            _pendingComments = null;
         }
     }
 
-    private void Attach(Node node) {
-        if (_open.Count == 0) {
-            node.Comments = _comments;
-            _comments = null;
-            _documents.Add(node);
+    private void Attach(int index) {
+        if (_depth == 0) {
+            SetComments(index, _pendingComments);
+            _pendingComments = null;
+            _documents.Add(index);
             return;
         }
 
-        Node parent = _open.Peek();
-        if (parent.Type == NodeType.Object) {
-            parent.Members!.Add(new Member(_pendingKey ?? string.Empty, node, _pendingKeyComments));
-            _pendingKey = null;
+        int parent = _open[_depth - 1];
+        ref Node container = ref _nodes[parent];
+        if (container.Type == NodeType.Object) {
+            _nodes[index].Key = _pendingKey == None ? KeyIndex(string.Empty) : _pendingKey;
+            SetComments(index, _pendingKeyComments);
+            _pendingKey = None;
             _pendingKeyComments = null;
         } else {
-            node.Comments = _comments;
-            _comments = null;
-            parent.Items!.Add(node);
+            SetComments(index, _pendingComments);
+            _pendingComments = null;
+            if (_nodes[index].Type != NodeType.Object) container.AllObjects = false;
         }
+
+        int last = _openLast[_depth - 1];
+        if (last == None) container.First = index;
+        else _nodes[last].Next = index;
+        _openLast[_depth - 1] = index;
+        container.Count++;
     }
+
+    private void SetComments(int index, List<string>? comments) {
+        if (comments != null) (_comments ??= new Dictionary<int, List<string>>())[index] = comments;
+    }
+
+    private List<string>? CommentsOf(int index) => _comments != null && _comments.TryGetValue(index, out List<string>? list) ? list : null;
+
+    private List<string>? EndCommentsOf(int index) => _endComments != null && _endComments.TryGetValue(index, out List<string>? list) ? list : null;
+
+    private bool IsNull(int index) => _nodes[index].Type == NodeType.Scalar && _nodes[index].Kind == DataScalarKind.Null;
+
+    /// <summary>Whether the node is written as <c>[[name]]</c> sections: a non-empty array of objects only.</summary>
+    private bool IsTableArray(int index) => _nodes[index].Type == NodeType.Array && _nodes[index].Count > 0 && _nodes[index].AllObjects;
+
+    private bool IsSection(int index) => _nodes[index].Type == NodeType.Object || IsTableArray(index);
+
+    private string Text(int index) => new string(_chars, _nodes[index].TextStart, _nodes[index].TextLength);
 
     public override void Complete() {
         if (_complete) return;
         _complete = true;
         Context.ItemsWritten = 1;
-        Node root;
+        int root;
         if (_documents.Count == 0) {
-            root = new Node(NodeType.Object) { Members = new List<Member>() };
-        } else if (_documents.Count == 1 && _documents[0].Type == NodeType.Object) {
+            root = NewNode(NodeType.Object);
+        } else if (_documents.Count == 1 && _nodes[_documents[0]].Type == NodeType.Object) {
             root = _documents[0];
         } else {
             Context.Report(OfficeDiagnosticCodes.RootWrapped, OfficeConversionLossKind.Approximation,
                 "TOML documents are tables, so the data was wrapped in the key '" + Context.Options.RootName + "' (RootName).", null);
-            Node value;
+            int value;
             if (_documents.Count == 1) {
                 value = _documents[0];
             } else {
-                value = new Node(NodeType.Array) { Items = _documents };
+                // The documents become the items of one array; their own comments stay with them.
+                value = NewNode(NodeType.Array);
+                int previous = None;
+                foreach (int document in _documents) {
+                    if (previous == None) _nodes[value].First = document;
+                    else _nodes[previous].Next = document;
+                    previous = document;
+                    if (_nodes[document].Type != NodeType.Object) _nodes[value].AllObjects = false;
+                    _nodes[value].Count++;
+                }
             }
 
-            root = new Node(NodeType.Object) { Members = new List<Member> { new Member(Context.Options.RootName, value, value.Comments) } };
-            if (_documents.Count == 1) value.Comments = null;
+            _nodes[value].Key = KeyIndex(Context.Options.RootName);
+            root = NewNode(NodeType.Object);
+            _nodes[root].First = value;
+            _nodes[root].Count = 1;
         }
 
-        if (_comments != null) {
-            root.EndComments = root.EndComments == null ? _comments : root.EndComments.Concat(_comments).ToList();
-            _comments = null;
+        if (_pendingComments != null) {
+            List<string>? end = EndCommentsOf(root);
+            (_endComments ??= new Dictionary<int, List<string>>())[root] = end == null ? _pendingComments : end.Concat(_pendingComments).ToList();
+            _pendingComments = null;
         }
 
-        WriteComments(root.Comments);
+        // A wrapped document's comments sit above its member; only a document that is the root table writes them first.
+        if (root == (_documents.Count > 0 ? _documents[0] : None)) WriteComments(CommentsOf(root));
         WriteTable(root, new List<string>());
         _toml.Flush();
     }
 
     // ------------------------------------------------------------------ sections
 
-    private void WriteTable(Node table, List<string> path) {
+    private void WriteTable(int table, List<string> path) {
         bool sawSection = false;
-        foreach (Member member in table.Members!) {
-            if (member.IsSection) {
+        for (int member = _nodes[table].First; member != None; member = _nodes[member].Next) {
+            if (IsSection(member)) {
                 sawSection = true;
                 continue;
             }
@@ -216,47 +291,49 @@ internal sealed class TomlEventWriter : DataEventWriter {
                 sawSection = false;
             }
 
-            WriteComments(member.Comments);
-            if (member.Value.IsNull) {
-                ReportNull(path, member.Key);
+            WriteComments(CommentsOf(member));
+            string key = _keys[_nodes[member].Key];
+            if (IsNull(member)) {
+                ReportNull(path, key);
                 continue;
             }
 
-            _toml.WriteKey(member.Key);
-            WriteValue(member.Value, path, member.Key);
+            _toml.WriteKey(key);
+            WriteValue(member, path, key);
         }
 
-        foreach (Member member in table.Members) {
-            if (!member.IsSection) continue;
+        for (int member = _nodes[table].First; member != None; member = _nodes[member].Next) {
+            if (!IsSection(member)) continue;
             // The path is shared down the tree: push the key, write the section, pop it.
-            path.Add(member.Key);
+            path.Add(_keys[_nodes[member].Key]);
             string[] keys = path.ToArray();
-            if (member.Value.Type == NodeType.Object) {
-                WriteComments(member.Comments);
+            List<string>? comments = CommentsOf(member);
+            if (_nodes[member].Type == NodeType.Object) {
+                WriteComments(comments);
                 // A table that holds only sub-tables needs no header of its own: [a.b] defines a.
-                if (HasValues(member.Value) || member.Value.Members!.Count == 0 || member.Comments != null) _toml.WriteTableHeader(keys);
-                WriteTable(member.Value, path);
+                if (HasValues(member) || _nodes[member].Count == 0 || comments != null) _toml.WriteTableHeader(keys);
+                WriteTable(member, path);
             } else {
                 bool first = true;
-                foreach (Node item in member.Value.Items!) {
-                    WriteComments(first ? Merge(member.Comments, item.Comments) : item.Comments);
+                for (int item = _nodes[member].First; item != None; item = _nodes[item].Next) {
+                    WriteComments(first ? Merge(comments, CommentsOf(item)) : CommentsOf(item));
                     first = false;
                     _toml.WriteArrayOfTablesHeader(keys);
                     WriteTable(item, path);
                 }
 
-                WriteComments(member.Value.EndComments);
+                WriteComments(EndCommentsOf(member));
             }
 
             path.RemoveAt(path.Count - 1);
         }
 
-        WriteComments(table.EndComments);
+        WriteComments(EndCommentsOf(table));
     }
 
-    private static bool HasValues(Node table) {
-        foreach (Member member in table.Members!) {
-            if (!member.IsSection) return true;
+    private bool HasValues(int table) {
+        for (int member = _nodes[table].First; member != None; member = _nodes[member].Next) {
+            if (!IsSection(member)) return true;
         }
 
         return false;
@@ -287,17 +364,17 @@ internal sealed class TomlEventWriter : DataEventWriter {
 
     // ------------------------------------------------------------------ values on a key's line
 
-    private void WriteValue(Node value, List<string> path, string key) {
-        switch (value.Type) {
+    private void WriteValue(int value, List<string> path, string key) {
+        switch (_nodes[value].Type) {
             case NodeType.Scalar:
                 WriteScalar(value, path, key);
                 break;
             case NodeType.Array:
                 InlineComments(value);
                 _toml.WriteStartArray();
-                foreach (Node item in value.Items!) {
+                for (int item = _nodes[value].First; item != None; item = _nodes[item].Next) {
                     InlineComments(item);
-                    if (item.IsNull) {
+                    if (IsNull(item)) {
                         ReportNull(path, key);
                         continue;
                     }
@@ -310,15 +387,16 @@ internal sealed class TomlEventWriter : DataEventWriter {
             default:
                 InlineComments(value);
                 _toml.WriteStartInlineTable();
-                foreach (Member member in value.Members!) {
-                    if (member.Comments != null) OmitComments();
-                    if (member.Value.IsNull) {
-                        ReportNull(path, key + "." + member.Key);
+                for (int member = _nodes[value].First; member != None; member = _nodes[member].Next) {
+                    if (CommentsOf(member) != null) OmitComments();
+                    string memberKey = _keys[_nodes[member].Key];
+                    if (IsNull(member)) {
+                        ReportNull(path, key + "." + memberKey);
                         continue;
                     }
 
-                    _toml.WriteKey(member.Key);
-                    WriteValue(member.Value, path, member.Key);
+                    _toml.WriteKey(memberKey);
+                    WriteValue(member, path, memberKey);
                 }
 
                 _toml.WriteEndInlineTable();
@@ -326,24 +404,28 @@ internal sealed class TomlEventWriter : DataEventWriter {
         }
     }
 
-    private void InlineComments(Node node) {
-        if (node.Comments != null || node.EndComments != null) OmitComments();
+    // Comments above an array item, or after a value's last child, have no place in TOML 1.0 inside an array or inline
+    // table. A member's own comments sit above its key and are written there.
+    private void InlineComments(int node) {
+        if ((_nodes[node].Key == None && CommentsOf(node) != null) || EndCommentsOf(node) != null) OmitComments();
     }
 
     private void OmitComments() =>
         Context.Report(OfficeDiagnosticCodes.CommentsOmitted, OfficeConversionLossKind.Omission,
             "Comments inside arrays and inline tables were dropped, because TOML 1.0 has no place for them.", null);
 
-    private void WriteScalar(Node value, List<string> path, string key) {
-        string? text = value.Text;
-        switch (value.Kind) {
-            case DataScalarKind.Boolean:
-                _toml.WriteBoolean(value.Integer != 0);
-                break;
+    private void WriteScalar(int value, List<string> path, string key) {
+        Node node = _nodes[value];
+        if (node.Held) {
+            if (node.Kind == DataScalarKind.Boolean) _toml.WriteBoolean(node.Integer != 0);
+            else _toml.WriteInteger(node.Integer);
+            return;
+        }
+
+        string text = Text(value);
+        switch (node.Kind) {
             case DataScalarKind.Integer:
-                if (text == null) {
-                    _toml.WriteInteger(value.Integer);
-                } else if (long.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long integer)) {
+                if (long.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long integer)) {
                     _toml.WriteInteger(integer);
                 } else {
                     OutOfRange(path, key, "Integers outside the 64-bit range TOML holds were written as strings.");
@@ -352,18 +434,18 @@ internal sealed class TomlEventWriter : DataEventWriter {
 
                 break;
             case DataScalarKind.Float:
-                WriteFloat(text!, path, key);
+                WriteFloat(text, path, key);
                 break;
             case DataScalarKind.String:
-                _toml.WriteString(text!);
+                _toml.WriteString(text);
                 break;
             default:
-                if (TryParseDateTime(value.Kind, text!, out TomlDateTime date)) {
+                if (TryParseDateTime(node.Kind, text, out TomlDateTime date)) {
                     _toml.WriteDateTime(date);
                 } else {
                     Report(OfficeDiagnosticCodes.DatetimeAsString, OfficeConversionLossKind.Approximation,
                         "Date-times that are not in RFC 3339 form were written as strings.", path, key);
-                    _toml.WriteString(text!);
+                    _toml.WriteString(text);
                 }
 
                 break;
@@ -496,5 +578,16 @@ internal sealed class TomlEventWriter : DataEventWriter {
         }
     }
 
-    public override void Dispose() => _toml.Dispose();
+    public override void Dispose() {
+        _toml.Dispose();
+        if (_nodes.Length > 0) {
+            ArrayPool<Node>.Shared.Return(_nodes);
+            _nodes = Array.Empty<Node>();
+        }
+
+        if (_chars.Length > 0) {
+            ArrayPool<char>.Shared.Return(_chars);
+            _chars = Array.Empty<char>();
+        }
+    }
 }
