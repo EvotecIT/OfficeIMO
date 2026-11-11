@@ -86,6 +86,22 @@ public sealed class CsvDataReaderPackedTextTests {
         Assert.Throws<CsvParseException>(() => reader.Read());
     }
 
+    [Fact]
+    public void Utf8TrimmedReaderDropsWhitespaceBeforeAnOpeningQuoteOnlyWhenQuotingIsFlexible() {
+        // A short record is read by the exact scanner rather than the 64-byte block scanner.
+        byte[] csv = Encoding.UTF8.GetBytes("A,B\n \t\"x, y\" , \"z\"\n");
+        using (var flexible = CsvDocument.OpenReader(new MemoryStream(csv), new CsvReaderOptions { TrimWhitespace = true })) {
+            Assert.True(flexible.Read());
+            Assert.Equal("x, y", flexible.GetString(0));
+            Assert.Equal("z", flexible.GetString(1));
+            Assert.False(flexible.Read());
+        }
+
+        using var strict = CsvDocument.OpenReader(new MemoryStream(csv),
+            new CsvReaderOptions { TrimWhitespace = true, QuoteParsingMode = CsvQuoteParsingMode.Strict });
+        Assert.Throws<CsvParseException>(() => strict.Read());
+    }
+
     [Theory]
     [InlineData(',', false, 0)]
     [InlineData(',', true, 0)]
