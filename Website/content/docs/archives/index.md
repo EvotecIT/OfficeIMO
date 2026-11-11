@@ -2,7 +2,7 @@
 title: "ZIP, CAB and MSI Archives"
 description: "Inspect, verify, read and safely extract ZIP, Microsoft Cabinet and Windows Installer payloads in managed .NET with explicit resource limits."
 order: 58
-meta.seo_title: "Read and extract ZIP, CAB and MSI files in C# with OfficeIMO.Archives"
+meta.seo_title: "Read and extract ZIP, CAB and MSI files in C#"
 ---
 
 `OfficeIMO.Archives` inspects ZIP and Microsoft Cabinet archives and ordinary Windows Installer (MSI) databases, reads complete verified members into memory and extracts payloads to disk. It is fully managed, needs no native archive tools and never runs installer actions, scripts or custom actions.

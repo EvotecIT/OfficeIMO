@@ -1,6 +1,6 @@
 ---
 title: "Publisher Publications"
-description: "Read Microsoft Publisher .pub files into pages, stories, tables and images, apply supported edits, author in-memory publications, and export SVG, PDF and Reader output in .NET."
+description: "Read Publisher .pub files into pages, stories, tables and images, apply supported edits, and export SVG, PDF and Reader output in .NET."
 order: 56
 meta.seo_title: "Read and convert Microsoft Publisher files in .NET"
 ---

@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO.Access"
-description: "Read native Access MDB and ACCDB databases, inspect queries, forms and VBA, edit qualified VBA projects, and create Jet 4 or ACE table databases without Microsoft Access."
+description: "Read Access MDB and ACCDB databases, inspect queries, forms and VBA, and create Jet 4 or ACE table databases without Microsoft Access."
 layout: product
 meta.seo_title: "Access MDB and ACCDB reading and creation for .NET"
 product_color: "#a4373a"

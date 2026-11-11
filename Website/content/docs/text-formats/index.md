@@ -1,8 +1,8 @@
 ---
 title: "Text and Markup Formats"
-description: "Read, edit, and convert AsciiDoc, LaTeX, DocBook, CHM, OPML, DjVu, Atlassian Document Format, OfficeIMO Markup, and bibliography data in .NET with loss-aware reports."
+description: "Read, edit and convert AsciiDoc, LaTeX, DocBook, CHM, OPML, DjVu, ADF, OfficeIMO Markup and bibliography data in .NET with loss reports."
 order: 42
-meta.seo_title: "AsciiDoc, LaTeX, DocBook, CHM and bibliography formats in .NET"
+meta.seo_title: "AsciiDoc, LaTeX, DocBook and CHM formats in .NET"
 ---
 
 These engines cover documentation, publishing, and reference formats that sit beside Word, Excel, and PowerPoint. Each package parses with explicit input limits, does not execute embedded code or fetch remote resources during parsing, and returns diagnostics when a conversion approximates or omits content.

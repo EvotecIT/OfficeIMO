@@ -1,8 +1,8 @@
 ---
 title: "Electronic Invoices"
-description: "Create, read, convert and validate EN 16931, Factur-X/ZUGFeRD, XRechnung, Peppol BIS and Polish FA(3) invoices in .NET, render hybrid PDFs and submit FA(3) to KSeF."
+description: "Create, read and validate EN 16931, Factur-X, XRechnung, Peppol BIS and Polish FA(3) invoices in .NET and submit FA(3) to KSeF."
 order: 56
-meta.seo_title: "Create and validate e-invoices in C# with OfficeIMO.Invoicing"
+meta.seo_title: "Create and validate e-invoices in C#"
 ---
 
 `OfficeIMO.Invoicing` keeps one typed `Invoice` model for authoring, parsing, editing and converting electronic invoices. Optional packages add PDF presentation, pinned standards validation and Polish KSeF submission. The core has no external runtime dependencies and does not need a PDF engine or Java.

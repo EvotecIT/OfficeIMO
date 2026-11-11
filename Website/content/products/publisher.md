@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO.Publisher"
-description: "Read Microsoft Publisher .pub files into pages, stories, tables and images, apply supported edits, and export SVG, PDF and Reader output without Publisher installed."
+description: "Read Microsoft Publisher .pub files into pages, stories, tables and images, apply supported edits, and export SVG and PDF without Publisher."
 layout: product
 meta.seo_title: "Microsoft Publisher reading and conversion for .NET"
 product_color: "#077568"

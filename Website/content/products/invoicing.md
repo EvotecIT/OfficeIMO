@@ -2,7 +2,7 @@
 title: "OfficeIMO.Invoicing"
 description: "Create, read, convert and validate EN 16931, Factur-X/ZUGFeRD, XRechnung, Peppol BIS and Polish FA(3) electronic invoices from one typed .NET model."
 layout: product
-meta.seo_title: "Electronic invoicing for .NET: Factur-X, XRechnung, Peppol and KSeF"
+meta.seo_title: "E-invoicing for .NET: Factur-X, XRechnung and KSeF"
 product_color: "#b45309"
 product_label: "Electronic invoice engine"
 install: "dotnet add package OfficeIMO.Invoicing"

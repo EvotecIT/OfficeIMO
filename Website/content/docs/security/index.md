@@ -2,7 +2,7 @@
 title: "Signatures and Encryption"
 description: "Optional CMS, S/MIME, RFC 3161 timestamp, X.509 trust and XML Digital Signature provider for signing, verifying and encrypting with OfficeIMO packages."
 order: 59
-meta.seo_title: "Sign, verify and encrypt documents in C# with OfficeIMO.Security"
+meta.seo_title: "Sign, verify and encrypt documents in C#"
 ---
 
 `OfficeIMO.Security` is the optional cryptographic provider for OfficeIMO. It implements bounded CMS/PKCS#7 signing and verification, CMS EnvelopedData encryption, RFC 3161 timestamps, X.509 trust validation and XML Digital Signatures. Format packages such as Word, PDF and Email do not depend on it: install it when you need cryptography and pass the provider to the format API.

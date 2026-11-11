@@ -1,6 +1,6 @@
 ---
 title: "Charts, OCR and Provenance"
-description: "Place ChartForgeX charts and Mermaid diagrams in Office and PDF documents, recognize text through pluggable OCR engines, and verify or sign C2PA Content Credentials."
+description: "Place ChartForgeX charts and Mermaid diagrams in documents, recognize text with pluggable OCR engines, and verify C2PA Content Credentials."
 order: 57
 meta.seo_title: "Charts, OCR and C2PA provenance for .NET documents"
 ---

@@ -1,6 +1,6 @@
 ---
 title: "Access Databases"
-description: "Read native MDB and ACCDB tables, inspect queries, forms and VBA, edit qualified VBA projects, and create Jet 4 or ACE table databases in .NET without Microsoft Access."
+description: "Read MDB and ACCDB tables, inspect queries, forms and VBA, edit qualified VBA projects, and create Jet 4 or ACE databases in .NET."
 order: 54
 meta.seo_title: "Read and create Access MDB and ACCDB files in .NET"
 ---
