@@ -196,7 +196,14 @@ internal sealed class YamlDecimalConverter : YamlConverter<decimal> {
         return value;
     }
 
-    public override void Write(YamlWriter writer, decimal value, YamlWriteState state) => YamlScalarText.WriteInvariant(writer, value, null);
+    public override void Write(YamlWriter writer, decimal value, YamlWriteState state) {
+#if NET8_0_OR_GREATER
+        Span<char> buffer = stackalloc char[32];
+        writer.WritePlainValue(buffer.Slice(0, YamlScalarFormat.Format(value, buffer)));
+#else
+        YamlScalarText.WriteInvariant(writer, value, null);
+#endif
+    }
 }
 
 internal sealed class YamlCharConverter : YamlConverter<char> {
