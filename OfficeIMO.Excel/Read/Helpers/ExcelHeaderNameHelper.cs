@@ -33,10 +33,36 @@ namespace OfficeIMO.Excel {
         internal static string NormalizeHeader(string? header, bool normalizeHeaders) {
             string value = header ?? string.Empty;
             if (normalizeHeaders) {
-                value = System.Text.RegularExpressions.Regex.Replace(value, "\\s+", " ").Trim();
+                value = CollapseWhitespace(value);
             }
 
             return value;
+        }
+
+        // Collapses each whitespace run to one space and trims, as Regex.Replace(value, @"\s+", " ").Trim() does
+        // (both use char.IsWhiteSpace), without building a regex for every header.
+        private static string CollapseWhitespace(string value) {
+            int index = 0;
+            while (index < value.Length && (!char.IsWhiteSpace(value[index])
+                || (value[index] == ' ' && (index + 1 == value.Length || !char.IsWhiteSpace(value[index + 1]))))) {
+                index++;
+            }
+            if (index == value.Length) return value.Trim();
+
+            var builder = new System.Text.StringBuilder(value.Length);
+            builder.Append(value, 0, index);
+            bool inWhitespace = false;
+            for (; index < value.Length; index++) {
+                char current = value[index];
+                if (!char.IsWhiteSpace(current)) {
+                    builder.Append(current);
+                    inWhitespace = false;
+                } else if (!inWhitespace) {
+                    builder.Append(' ');
+                    inWhitespace = true;
+                }
+            }
+            return builder.ToString().Trim();
         }
 
         private static string MakeUnique(

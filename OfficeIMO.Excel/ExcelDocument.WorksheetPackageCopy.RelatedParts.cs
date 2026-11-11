@@ -11,17 +11,26 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private const int VmlShapeIdBlockSize = 1024;
 
-        private static readonly Regex VmlIdMapDataPattern = new Regex(
-            @"(<(?:[A-Za-z_][\w.-]*:)?idmap\b[^>]*?\bdata\s*=\s*[""'])([^""']*)([""'])",
-            RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+        private static Regex VmlIdMapDataPattern => VmlCopyPatterns.IdMapData;
 
-        private static readonly Regex VmlShapeIdPattern = new Regex(
-            @"_x0000_s(\d+)",
-            RegexOptions.CultureInvariant);
+        private static Regex VmlShapeIdPattern => VmlCopyPatterns.ShapeId;
 
-        // ISO-8859-1 maps every byte to one character, so VML (which is often not
-        // well-formed XML) round-trips byte for byte while ASCII ids are rewritten.
-        private static readonly Encoding VmlByteTransparentEncoding = Encoding.GetEncoding(28591);
+        private static Encoding VmlByteTransparentEncoding => VmlCopyPatterns.ByteTransparentEncoding;
+
+        // Only worksheet copies use these; a holder keeps them out of the workbook type's initializer.
+        private static class VmlCopyPatterns {
+            internal static readonly Regex IdMapData = new Regex(
+                @"(<(?:[A-Za-z_][\w.-]*:)?idmap\b[^>]*?\bdata\s*=\s*[""'])([^""']*)([""'])",
+                RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
+            internal static readonly Regex ShapeId = new Regex(
+                @"_x0000_s(\d+)",
+                RegexOptions.CultureInvariant);
+
+            // ISO-8859-1 maps every byte to one character, so VML (which is often not
+            // well-formed XML) round-trips byte for byte while ASCII ids are rewritten.
+            internal static readonly Encoding ByteTransparentEncoding = Encoding.GetEncoding(28591);
+        }
 
         /// <summary>
         /// Clones the parts behind drawings, legacy and threaded comments, header/footer VML,

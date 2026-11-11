@@ -9,7 +9,12 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
-        private static readonly DataSet DirectTabularSnapshotOwner = new DataSet("DirectTabularExport") { Locale = CultureInfo.InvariantCulture };
+        private static DataSet DirectTabularSnapshotOwner => DirectTabularSnapshot.Owner;
+
+        // Created on the first tabular export rather than in the workbook type's initializer.
+        private static class DirectTabularSnapshot {
+            internal static readonly DataSet Owner = new DataSet("DirectTabularExport") { Locale = CultureInfo.InvariantCulture };
+        }
 
         private sealed class DirectTabularValueSnapshotException : Exception {
             internal DirectTabularValueSnapshotException(Exception innerException)
