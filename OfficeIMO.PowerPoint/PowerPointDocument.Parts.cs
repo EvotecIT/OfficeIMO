@@ -125,15 +125,7 @@ namespace OfficeIMO.PowerPoint {
             return masterRelId;
         }
 
-        private uint GetNextSlideMasterId() {
-            SlideMasterIdList? slideMasterIdList = PresentationRoot.SlideMasterIdList;
-            if (slideMasterIdList != null && slideMasterIdList.Elements<SlideMasterId>().Any()) {
-                uint maxId = slideMasterIdList.Elements<SlideMasterId>().Max(s => s.Id?.Value ?? 0U);
-                return maxId >= 2147483648U ? maxId + 1U : 2147483648U;
-            }
-
-            return 2147483648U;
-        }
+        private uint GetNextSlideMasterId() => NextMasterOrLayoutId();
 
         private static void InsertSlideId(SlideIdList slideIdList, SlideId slideId, int index) {
             List<SlideId> ids = slideIdList.Elements<SlideId>().ToList();
@@ -224,6 +216,11 @@ namespace OfficeIMO.PowerPoint {
             SlideMasterId slideMasterId = new SlideMasterId { Id = GetNextSlideMasterId() };
             PowerPointUtils.SetRelationshipIdValue(slideMasterId, masterRelId);
             slideMasterIdList.Append(slideMasterId);
+            // Copied layout ids come from the source and can collide with this presentation's masters and layouts.
+            List<SlideLayoutId> layoutIds = targetMasterPart.SlideMaster.SlideLayoutIdList?.Elements<SlideLayoutId>().ToList()
+                ?? new List<SlideLayoutId>();
+            foreach (SlideLayoutId layoutId in layoutIds) layoutId.Id = null;
+            foreach (SlideLayoutId layoutId in layoutIds) layoutId.Id = NextMasterOrLayoutId();
             PresentationRoot.Save();
 
             return targetMasterPart;

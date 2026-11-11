@@ -24,17 +24,19 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_StyleMissing_CreateStyleOnDemand() {
             string html = "<p class=\"custom\">Text</p>";
             string styleId = "DynamicStyle";
+            using var doc = WordDocument.Create();
             var options = new HtmlWordExportOptions {
                 StyleMissingHandler = e => {
                     if (e.ClassName == "custom") {
-                        WordParagraphStyle.RegisterFontStyle(styleId, "Courier New");
+                        doc.Styles.AddParagraphStyle(styleId).FontFamily = "Courier New";
                         e.StyleId = styleId;
                     }
                 }
             };
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(options);
+            doc.AddHtml(html, options);
 
             Assert.Equal(styleId, doc.Paragraphs[0].StyleId);
+            Assert.Equal("Courier New", doc.Styles[styleId].FontFamily);
         }
     }
 }

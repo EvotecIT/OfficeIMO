@@ -361,6 +361,7 @@ public static partial class OfficeMathMarkup {
 
     private static string DelimiterToLatex(string? delimiter) {
         switch (delimiter) {
+            case "": return ".";
             case "{": return "\\{";
             case "}": return "\\}";
             case "⟨":
@@ -474,7 +475,7 @@ public static partial class OfficeMathMarkup {
                         SkipWhitespace();
                         OfficeMathExpression content = _position < _text.Length &&
                             (terminator == '\0' || _text[_position] != terminator)
-                            ? (Peek('{') ? ParseRequiredGroup() : ParseAtom())
+                            ? ParseScriptedOperand()
                             : OfficeMath.Text(string.Empty);
                         atom = OfficeMath.Nary(atom.Text!, content, subscript, superscript);
                     } else if (subscript != null && superscript != null) atom = OfficeMath.SubSuperscript(atom, subscript, superscript);
@@ -495,6 +496,23 @@ public static partial class OfficeMathMarkup {
             }
         }
 
+        // An n-ary body such as the x_i^2 in \sum x_i^2 keeps the scripts written on it.
+        private OfficeMathExpression ParseScriptedOperand() {
+            OfficeMathExpression operand = Peek('{') ? ParseRequiredGroup() : ParseAtom();
+            OfficeMathExpression? subscript = null;
+            OfficeMathExpression? superscript = null;
+            while (true) {
+                SkipWhitespace();
+                if (_position >= _text.Length || (_text[_position] != '_' && _text[_position] != '^')) break;
+                char marker = _text[_position++];
+                OfficeMathExpression script = ParseScript();
+                if (marker == '_') subscript = script; else superscript = script;
+            }
+            if (subscript != null && superscript != null) return OfficeMath.SubSuperscript(operand, subscript, superscript);
+            if (subscript != null) return OfficeMath.Subscript(operand, subscript);
+            return superscript != null ? OfficeMath.Superscript(operand, superscript) : operand;
+        }
+
         private OfficeMathExpression ParseAtom() {
             if (_position >= _text.Length) return OfficeMath.Text(string.Empty);
             char value = _text[_position++];
@@ -507,7 +525,11 @@ public static partial class OfficeMathMarkup {
             if (value == '\\') return ParseCommand();
             if (char.IsDigit(value) || value == '.') return OfficeMath.Number(ReadWhile(value, character => char.IsDigit(character) || character == '.'));
             if (char.IsLetter(value)) return OfficeMath.Identifier(ReadWhile(value, char.IsLetterOrDigit));
-            return OfficeMath.Operator(value.ToString(CultureInfo.InvariantCulture));
+            string operatorText = value.ToString(CultureInfo.InvariantCulture);
+            // TeX sizes bare fences to their own glyph; only \left and \right grow with the content.
+            return operatorText is "(" or ")" or "[" or "]" or "|"
+                ? OfficeMath.Create(OfficeMathKind.Operator, text: operatorText, stretchy: false)
+                : OfficeMath.Operator(operatorText);
         }
 
         private OfficeMathExpression ParseCommand() {
@@ -542,6 +564,14 @@ public static partial class OfficeMathMarkup {
                     string functionName = ParseRequiredGroup().ToPlainText();
                     return OfficeMath.Function(functionName, ParseFunctionArgument());
                 case "backslash": return OfficeMath.Text("\\");
+                case ",": return OfficeMath.Text("\u2009");
+                case ":":
+                case ">": return OfficeMath.Text("\u205F");
+                case ";": return OfficeMath.Text("\u2004");
+                case " ": return OfficeMath.Text(" ");
+                case "quad": return OfficeMath.Text("\u2003");
+                case "qquad": return OfficeMath.Text("\u2003\u2003");
+                case "!": return OfficeMath.Text(string.Empty);
                 case "_":
                 case "^":
                 case "{":
@@ -607,9 +637,25 @@ public static partial class OfficeMathMarkup {
                 string.Compare(_text, _position, "\\left", 0, 5, StringComparison.Ordinal) == 0;
         }
 
+        private static bool IsSupportedEnvironment(string environment) =>
+            environment == "bmatrix" || environment == "aligned" || environment == "gathered" || environment == "matrix" ||
+            TryGetEnvironmentDelimiters(environment, out _, out _);
+
+        // Delimited matrix environments keep their fences around the plain cell grid.
+        private static bool TryGetEnvironmentDelimiters(string environment, out string left, out string right) {
+            switch (environment) {
+                case "pmatrix": left = "("; right = ")"; return true;
+                case "Bmatrix": left = "{"; right = "}"; return true;
+                case "vmatrix": left = "|"; right = "|"; return true;
+                case "Vmatrix": left = "\u2016"; right = "\u2016"; return true;
+                case "cases": left = "{"; right = string.Empty; return true;
+                default: left = right = string.Empty; return false;
+            }
+        }
+
         private OfficeMathExpression ParseEnvironment() {
             string environment = ReadRequiredGroupName();
-            if (environment != "bmatrix" && environment != "aligned" && environment != "gathered") {
+            if (!IsSupportedEnvironment(environment)) {
                 throw Error("Unsupported mathematical environment '" + environment + "'.");
             }
             int end = FindMatchingEnvironmentEnd(environment);
@@ -632,7 +678,10 @@ public static partial class OfficeMathMarkup {
                 }
             }
             if (environment == "bmatrix") return OfficeMath.Matrix(rows, columns, cells.ToArray());
-            if (environment == "aligned") return OfficeMath.EquationArray(rows, columns, cells.ToArray());
+            if (environment == "aligned" || environment == "matrix") return OfficeMath.EquationArray(rows, columns, cells.ToArray());
+            if (TryGetEnvironmentDelimiters(environment, out string left, out string right)) {
+                return OfficeMath.Delimited(OfficeMath.EquationArray(rows, columns, cells.ToArray()), left, right);
+            }
             OfficeMathExpression[] stackRows = Enumerable.Range(0, rows)
                 .Select(row => CollapseRow(Enumerable.Range(0, columns).Select(column => cells[row * columns + column])))
                 .ToArray();
@@ -652,7 +701,7 @@ public static partial class OfficeMathMarkup {
 
         private bool TryParseSlashedFraction(string source, string left, string right, out OfficeMathExpression? expression) {
             expression = null;
-            if (left != "." || right != ".") return false;
+            if (left.Length != 0 || right.Length != 0) return false;
             int braceDepth = 0;
             int delimiterDepth = 0;
             for (int index = 0; index < source.Length; index++) {
@@ -932,7 +981,9 @@ public static partial class OfficeMathMarkup {
                 if (delimiter == null) throw Error("Unsupported named delimiter \\" + command + ".");
                 return delimiter;
             }
-            return _text[_position++].ToString(CultureInfo.InvariantCulture);
+            // \left. and \right. are TeX's invisible delimiters.
+            char value = _text[_position++];
+            return value == '.' ? string.Empty : value.ToString(CultureInfo.InvariantCulture);
         }
 
         private int FindMatchingRight() {

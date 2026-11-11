@@ -585,6 +585,10 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             protected override void VisitInline(Omd.MarkdownInline inline) {
+                if (inline is Omd.MathInline math && TryAddEquation(_paragraph, math.Source, math.IsDisplay, _options)) {
+                    return;
+                }
+
                 if (TryGetPlainLeafInlineText(inline, out var text)) {
                     AddRun(_paragraph, text, _fmt, _defaultFont, _defaultTextColorHex);
                     return;

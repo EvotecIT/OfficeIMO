@@ -586,3 +586,62 @@ OfficeIMO.PowerPoint.PowerPointDocument.ToImages(OfficeIMO.PowerPoint.PowerPoint
 OfficeIMO.PowerPoint.PowerPointDocument.ToImagesAsync(OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!>!
 OfficeIMO.PowerPoint.PowerPointDocument.InspectHiddenData() -> OfficeIMO.OfficeHiddenDataReport!
 OfficeIMO.PowerPoint.PowerPointDocument.RemoveHiddenData(OfficeIMO.OfficeHiddenDataOptions? options = null) -> OfficeIMO.OfficeHiddenDataReport!
+OfficeIMO.PowerPoint.PowerPointConnectionShape.EndShape.get -> OfficeIMO.PowerPoint.PowerPointShape?
+OfficeIMO.PowerPoint.PowerPointConnectionShape.EndSite.get -> int?
+OfficeIMO.PowerPoint.PowerPointConnectionShape.Kind.get -> OfficeIMO.PowerPoint.PowerPointConnectorKind?
+OfficeIMO.PowerPoint.PowerPointConnectionShape.Reroute() -> OfficeIMO.PowerPoint.PowerPointConnectionShape!
+OfficeIMO.PowerPoint.PowerPointConnectionShape.StartShape.get -> OfficeIMO.PowerPoint.PowerPointShape?
+OfficeIMO.PowerPoint.PowerPointConnectionShape.StartSite.get -> int?
+OfficeIMO.PowerPoint.PowerPointConnectionSite
+OfficeIMO.PowerPoint.PowerPointConnectionSite.Angle.get -> double
+OfficeIMO.PowerPoint.PowerPointConnectionSite.Index.get -> int
+OfficeIMO.PowerPoint.PowerPointConnectionSite.PowerPointConnectionSite() -> void
+OfficeIMO.PowerPoint.PowerPointConnectionSite.X.get -> OfficeIMO.OfficeLength
+OfficeIMO.PowerPoint.PowerPointConnectionSite.Y.get -> OfficeIMO.OfficeLength
+OfficeIMO.PowerPoint.PowerPointConnectorKind
+OfficeIMO.PowerPoint.PowerPointConnectorKind.Curved = 2 -> OfficeIMO.PowerPoint.PowerPointConnectorKind
+OfficeIMO.PowerPoint.PowerPointConnectorKind.Elbow = 1 -> OfficeIMO.PowerPoint.PowerPointConnectorKind
+OfficeIMO.PowerPoint.PowerPointConnectorKind.Straight = 0 -> OfficeIMO.PowerPoint.PowerPointConnectorKind
+OfficeIMO.PowerPoint.PowerPointDocument.AddSlide(OfficeIMO.PowerPoint.PowerPointSlideLayout! layout) -> OfficeIMO.PowerPoint.PowerPointSlide!
+OfficeIMO.PowerPoint.PowerPointDocument.AddSlideMaster(string? name = null) -> OfficeIMO.PowerPoint.PowerPointSlideMaster!
+OfficeIMO.PowerPoint.PowerPointDocument.SlideMasters.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointSlideMaster!>!
+OfficeIMO.PowerPoint.PowerPointMasterSurface
+OfficeIMO.PowerPoint.PowerPointMasterSurface.AddImage(System.IO.Stream! image, OfficeIMO.Drawing.OfficeImageFormat imageType, OfficeIMO.OfficeLength left, OfficeIMO.OfficeLength top, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height) -> OfficeIMO.PowerPoint.PowerPointImage!
+OfficeIMO.PowerPoint.PowerPointMasterSurface.AddImage(string! imagePath, OfficeIMO.OfficeLength left, OfficeIMO.OfficeLength top, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height) -> OfficeIMO.PowerPoint.PowerPointImage!
+OfficeIMO.PowerPoint.PowerPointMasterSurface.AddPlaceholder(OfficeIMO.PowerPoint.PowerPointPlaceholderType placeholderType, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, uint? index = null, string? name = null) -> OfficeIMO.PowerPoint.PowerPointTextBox!
+OfficeIMO.PowerPoint.PowerPointMasterSurface.AddShape(OfficeIMO.Drawing.OfficePresetShapeType shapeType, OfficeIMO.OfficeLength left, OfficeIMO.OfficeLength top, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
+OfficeIMO.PowerPoint.PowerPointMasterSurface.AddTextBox(string! text, OfficeIMO.OfficeLength left, OfficeIMO.OfficeLength top, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height) -> OfficeIMO.PowerPoint.PowerPointTextBox!
+OfficeIMO.PowerPoint.PowerPointMasterSurface.BackgroundColor.get -> OfficeIMO.OfficeColor?
+OfficeIMO.PowerPoint.PowerPointMasterSurface.BackgroundColor.set -> void
+OfficeIMO.PowerPoint.PowerPointMasterSurface.ClearBackground() -> void
+OfficeIMO.PowerPoint.PowerPointMasterSurface.GetPlaceholder(OfficeIMO.PowerPoint.PowerPointPlaceholderType placeholderType, uint? index = null) -> OfficeIMO.PowerPoint.PowerPointTextBox?
+OfficeIMO.PowerPoint.PowerPointMasterSurface.Name.get -> string!
+OfficeIMO.PowerPoint.PowerPointMasterSurface.Name.set -> void
+OfficeIMO.PowerPoint.PowerPointMasterSurface.Placeholders.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointTextBox!>!
+OfficeIMO.PowerPoint.PowerPointMasterSurface.SetBackgroundImage(System.IO.Stream! image, OfficeIMO.Drawing.OfficeImageFormat imageType) -> void
+OfficeIMO.PowerPoint.PowerPointMasterSurface.SetBackgroundImage(string! imagePath) -> void
+OfficeIMO.PowerPoint.PowerPointMasterSurface.Shapes.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointShape!>!
+OfficeIMO.PowerPoint.PowerPointShape.BindToPlaceholder(OfficeIMO.PowerPoint.PowerPointPlaceholderType placeholderType, uint? index = null) -> OfficeIMO.PowerPoint.PowerPointShape!
+OfficeIMO.PowerPoint.PowerPointShape.ConnectionSites.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointConnectionSite>!
+OfficeIMO.PowerPoint.PowerPointSlide.AddConnector(OfficeIMO.OfficeLength startX, OfficeIMO.OfficeLength startY, OfficeIMO.OfficeLength endX, OfficeIMO.OfficeLength endY, OfficeIMO.PowerPoint.PowerPointConnectorKind kind) -> OfficeIMO.PowerPoint.PowerPointConnectionShape!
+OfficeIMO.PowerPoint.PowerPointSlide.AddConnector(OfficeIMO.PowerPoint.PowerPointShape! from, OfficeIMO.PowerPoint.PowerPointShape! to, OfficeIMO.PowerPoint.PowerPointConnectorKind kind) -> OfficeIMO.PowerPoint.PowerPointConnectionShape!
+OfficeIMO.PowerPoint.PowerPointSlide.AddConnector(OfficeIMO.PowerPoint.PowerPointShape! from, int fromSite, OfficeIMO.PowerPoint.PowerPointShape! to, int toSite, OfficeIMO.PowerPoint.PowerPointConnectorKind kind) -> OfficeIMO.PowerPoint.PowerPointConnectionShape!
+OfficeIMO.PowerPoint.PowerPointSlide.Layout.get -> OfficeIMO.PowerPoint.PowerPointSlideLayout?
+OfficeIMO.PowerPoint.PowerPointSlide.SetLayout(OfficeIMO.PowerPoint.PowerPointSlideLayout! layout) -> void
+OfficeIMO.PowerPoint.PowerPointSlideLayout
+OfficeIMO.PowerPoint.PowerPointSlideLayout.Duplicate(string? name = null) -> OfficeIMO.PowerPoint.PowerPointSlideLayout!
+OfficeIMO.PowerPoint.PowerPointSlideLayout.Index.get -> int
+OfficeIMO.PowerPoint.PowerPointSlideLayout.LayoutType.get -> OfficeIMO.PowerPoint.PowerPointSlideLayoutType?
+OfficeIMO.PowerPoint.PowerPointSlideLayout.Master.get -> OfficeIMO.PowerPoint.PowerPointSlideMaster!
+OfficeIMO.PowerPoint.PowerPointSlideLayout.Remove() -> void
+OfficeIMO.PowerPoint.PowerPointSlideLayout.Remove(OfficeIMO.PowerPoint.PowerPointSlideLayout! replacement) -> void
+OfficeIMO.PowerPoint.PowerPointSlideLayout.ShowMasterShapes.get -> bool
+OfficeIMO.PowerPoint.PowerPointSlideLayout.ShowMasterShapes.set -> void
+OfficeIMO.PowerPoint.PowerPointSlideLayout.Slides.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointSlide!>!
+OfficeIMO.PowerPoint.PowerPointSlideMaster
+OfficeIMO.PowerPoint.PowerPointSlideMaster.AddLayout(string! name, OfficeIMO.PowerPoint.PowerPointSlideLayoutType layoutType = OfficeIMO.PowerPoint.PowerPointSlideLayoutType.Custom) -> OfficeIMO.PowerPoint.PowerPointSlideLayout!
+OfficeIMO.PowerPoint.PowerPointSlideMaster.Duplicate(string? name = null) -> OfficeIMO.PowerPoint.PowerPointSlideMaster!
+OfficeIMO.PowerPoint.PowerPointSlideMaster.GetLayout(string! name, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointSlideLayout?
+OfficeIMO.PowerPoint.PowerPointSlideMaster.Index.get -> int
+OfficeIMO.PowerPoint.PowerPointSlideMaster.Layouts.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointSlideLayout!>!
+OfficeIMO.PowerPoint.PowerPointSlideMaster.Remove() -> void
