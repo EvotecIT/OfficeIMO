@@ -125,12 +125,13 @@ namespace OfficeIMO.Visio {
             } else if (kind == "ellipse" || kind == "circle") {
                 (double centerX, double centerY) = GetPagePoint(shape, shape.WidthInches / 2D, shape.HeightInches / 2D);
                 (double cx, double cy) = ToRaster(page, centerX, centerY, canvas.Projection);
+                Func<double, double, Color>? ellipseGradient = FillBuiltinGradient(canvas, page, shape, transform, VisioShapeGeometry.CreateBuiltinEllipsePath(shape).Points);
                 canvas.DrawEllipse(
                     cx,
                     cy,
                     Math.Abs(shape.WidthInches * canvas.Projection.GeometryDensity / 2D),
                     Math.Abs(shape.HeightInches * canvas.Projection.GeometryDensity / 2D),
-                    shape.FillPattern == 0 ? Color.Transparent : shape.FillColor,
+                    shape.FillPattern == 0 || ellipseGradient != null ? Color.Transparent : shape.FillColor,
                     HasVisibleLine(shape) ? shape.LineColor : Color.Transparent,
                     Math.Max(shape.LineWeight * canvas.Projection.PhysicalDensity, canvas.Supersampling),
                     OfficeStrokeDashStyleMapper.FromVisioLinePattern(shape.LinePattern),
@@ -148,7 +149,8 @@ namespace OfficeIMO.Visio {
                     points.Add(ToRaster(page, point.X, point.Y, canvas.Projection));
                 }
 
-                canvas.FillPolygon(points, shape.FillPattern == 0 ? Color.Transparent : shape.FillColor);
+                if (FillBuiltinGradient(canvas, page, shape, transform, local) == null)
+                    canvas.FillPolygon(points, shape.FillPattern == 0 ? Color.Transparent : shape.FillColor);
                 canvas.StrokePolygon(points, HasVisibleLine(shape) ? shape.LineColor : Color.Transparent, Math.Max(shape.LineWeight * canvas.Projection.PhysicalDensity, canvas.Supersampling), OfficeStrokeDashStyleMapper.FromVisioLinePattern(shape.LinePattern));
             }
 
@@ -255,6 +257,21 @@ namespace OfficeIMO.Visio {
                 dashStyle);
             canvas.DrawEllipse(bottomX, bottomY, radiusX, radiusY, Color.Transparent, stroke, strokeWidth, dashStyle, rasterRotation, bottomX, bottomY);
             canvas.DrawEllipse(topX, topY, radiusX, radiusY, Color.Transparent, stroke, strokeWidth, dashStyle, rasterRotation, topX, topY);
+        }
+
+        // Paints a builtin outline with the cached gradient and returns its paint, or returns null for a solid fill.
+        private static Func<double, double, Color>? FillBuiltinGradient(RasterCanvas canvas, VisioPage page, VisioShape shape,
+            VisioNativeShapeTransform transform, IReadOnlyList<(double X, double Y)> local) {
+            if (shape.FillPattern == 0 || shape.FillColor.A == 0) return null;
+            Func<double, double, Color>? paint = ResolveGradientFill(page, shape, transform, canvas.Projection);
+            if (paint == null) return null;
+            var contour = new List<(double X, double Y)>(local.Count);
+            foreach ((double X, double Y) point in local) {
+                OfficePoint pagePoint = transform.PagePoint(point.X, point.Y);
+                contour.Add(ToRaster(page, pagePoint.X, pagePoint.Y, canvas.Projection));
+            }
+            canvas.FillPolygonsEvenOdd(new List<List<(double X, double Y)>> { contour }, paint);
+            return paint;
         }
 
         // Cached FillGradient stops shared with the SVG and Drawing projections.

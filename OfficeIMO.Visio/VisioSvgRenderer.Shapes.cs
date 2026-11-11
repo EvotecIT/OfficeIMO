@@ -59,7 +59,7 @@ namespace OfficeIMO.Visio {
             }
 
             if (kind == "database") {
-                WriteDatabaseGeometry(writer, page, shape, projection);
+                WriteDatabaseGeometry(writer, page, shape, projection, fillPaint);
                 return;
             }
 
@@ -71,7 +71,7 @@ namespace OfficeIMO.Visio {
             writer.WriteEndElement();
         }
 
-        private static void WriteDatabaseGeometry(XmlWriter writer, VisioPage page, VisioShape shape, VisioRenderProjection projection) {
+        private static void WriteDatabaseGeometry(XmlWriter writer, VisioPage page, VisioShape shape, VisioRenderProjection projection, string? fillPaint = null) {
             double scale = projection.GeometryDensity;
             (double centerXPage, double centerYPage) = GetPagePoint(shape, shape.LocPinXInches, shape.LocPinYInches);
             (double centerX, double centerY) = ToSvg(page, centerXPage, centerYPage, projection);
@@ -101,7 +101,7 @@ namespace OfficeIMO.Visio {
                 writer.WriteAttributeString("transform", transform);
             }
 
-            WriteShapeStyle(writer, shape, projection.PhysicalDensity);
+            WriteShapeStyle(writer, shape, projection.PhysicalDensity, fillPaint: fillPaint);
             writer.WriteEndElement();
 
             writer.WriteStartElement("path", SvgNamespace);
