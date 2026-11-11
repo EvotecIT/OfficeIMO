@@ -28,6 +28,20 @@ internal sealed class YamlCharBuffer : TextWriter {
         _buffer = ArrayPool<char>.Shared.Rent(Math.Max(capacity, 4096));
     }
 
+    /// <summary>Starts a string buffer again after <see cref="ReturnArray"/>, as a new one of this capacity would.</summary>
+    public void Reset(int capacity) {
+        _buffer = ArrayPool<char>.Shared.Rent(Math.Max(capacity, 4096));
+        _length = 0;
+    }
+
+    /// <summary>Returns a string buffer's array to the pool, keeping the object for <see cref="Reset"/>.</summary>
+    public void ReturnArray() {
+        char[] buffer = _buffer;
+        _buffer = Array.Empty<char>();
+        _length = 0;
+        if (buffer.Length > 0) ArrayPool<char>.Shared.Return(buffer);
+    }
+
     /// <summary>Gets the number of characters written, including those already encoded to a stream.</summary>
     public int Length => _flushed + _length;
 

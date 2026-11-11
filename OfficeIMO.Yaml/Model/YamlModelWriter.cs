@@ -12,6 +12,7 @@ internal static class YamlModelWriter {
         emitter.BeginSlot(YamlSlot.Inline, 0, 0);
         WriteNode(emitter, node, ownComments: false);
         emitter.EndFragment(endLine: false);
+        emitter.Release();
         return TrimFinalBreak(text.ToString());
     }
 

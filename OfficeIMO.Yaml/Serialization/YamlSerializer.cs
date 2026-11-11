@@ -163,17 +163,21 @@ public static class YamlSerializer {
     /// <summary>Writes <paramref name="value"/> with generated metadata and returns the text.</summary>
     public static string Serialize<T>(T value, YamlTypeInfo<T> typeInfo) {
         if (typeInfo is null) throw new ArgumentNullException(nameof(typeInfo));
-        using var output = new YamlCharBuffer(typeInfo.OutputLengthHint);
-        using (var writer = new YamlWriter(output, typeInfo.Options.EffectiveWriterOptions)) Write(writer, value, typeInfo);
-        return Finish(output, typeInfo);
+        YamlWriter writer = YamlWriter.RentBuffered(typeInfo.Options.EffectiveWriterOptions, typeInfo.OutputLengthHint);
+        Write(writer, value, typeInfo);
+        string text = Finish(writer.CompleteBuffered(), typeInfo);
+        writer.ReturnBuffered();
+        return text;
     }
 
     /// <summary>Writes <paramref name="value"/> with generated metadata and returns its UTF-8 bytes, without a byte-order mark.</summary>
     public static byte[] SerializeToUtf8Bytes<T>(T value, YamlTypeInfo<T> typeInfo) {
         if (typeInfo is null) throw new ArgumentNullException(nameof(typeInfo));
-        using var output = new YamlCharBuffer(typeInfo.OutputLengthHint);
-        using (var writer = new YamlWriter(output, typeInfo.Options.EffectiveWriterOptions)) Write(writer, value, typeInfo);
-        return FinishUtf8(output, typeInfo);
+        YamlWriter writer = YamlWriter.RentBuffered(typeInfo.Options.EffectiveWriterOptions, typeInfo.OutputLengthHint);
+        Write(writer, value, typeInfo);
+        byte[] bytes = FinishUtf8(writer.CompleteBuffered(), typeInfo);
+        writer.ReturnBuffered();
+        return bytes;
     }
 
     /// <summary>Writes <paramref name="value"/> with generated metadata to a UTF-8 stream, which stays open.</summary>
@@ -336,9 +340,11 @@ public static class YamlSerializer {
     }
 
     private static string SerializeBoxed(object? value, YamlTypeInfo typeInfo) {
-        using var output = new YamlCharBuffer(typeInfo.OutputLengthHint);
-        using (var writer = new YamlWriter(output, typeInfo.Options.EffectiveWriterOptions)) WriteBoxed(writer, value, typeInfo);
-        return Finish(output, typeInfo);
+        YamlWriter writer = YamlWriter.RentBuffered(typeInfo.Options.EffectiveWriterOptions, typeInfo.OutputLengthHint);
+        WriteBoxed(writer, value, typeInfo);
+        string text = Finish(writer.CompleteBuffered(), typeInfo);
+        writer.ReturnBuffered();
+        return text;
     }
 
     private static string Finish(YamlCharBuffer output, YamlTypeInfo typeInfo) {
@@ -351,9 +357,11 @@ public static class YamlSerializer {
         typeInfo.OutputLengthHint = Math.Min(output.Length, YamlTypeInfo.MaxOutputLengthHint);
 
     private static byte[] SerializeBoxedToUtf8Bytes(object? value, YamlTypeInfo typeInfo) {
-        using var output = new YamlCharBuffer(typeInfo.OutputLengthHint);
-        using (var writer = new YamlWriter(output, typeInfo.Options.EffectiveWriterOptions)) WriteBoxed(writer, value, typeInfo);
-        return FinishUtf8(output, typeInfo);
+        YamlWriter writer = YamlWriter.RentBuffered(typeInfo.Options.EffectiveWriterOptions, typeInfo.OutputLengthHint);
+        WriteBoxed(writer, value, typeInfo);
+        byte[] bytes = FinishUtf8(writer.CompleteBuffered(), typeInfo);
+        writer.ReturnBuffered();
+        return bytes;
     }
 
     private static byte[] FinishUtf8(YamlCharBuffer output, YamlTypeInfo typeInfo) {

@@ -133,6 +133,7 @@ public sealed partial class YamlDocument {
         var emitter = new YamlEmitter(text, options);
         for (int i = 0; i < _parts.Count; i++) YamlModelWriter.WritePart(emitter, _parts[i], marker: _parts[i].HasStartMarker || i > 0);
         if (_parts.Count > 0) emitter.Finish();
+        emitter.Release();
         string output = text.ToString();
         return new List<YamlTextSegment>(1) { new YamlTextSegment(output, 0, output.Length) };
     }
