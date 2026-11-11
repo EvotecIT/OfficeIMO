@@ -5,12 +5,18 @@
 
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
+    <CsvHelperBenchmarkVersion>34.0.0</CsvHelperBenchmarkVersion>
+    <SepBenchmarkVersion>0.17.1</SepBenchmarkVersion>
+    <!-- Opt-in competitor watch: -p:OfficeImoLatestCompetitors=true floats CsvHelper and Sep to their newest stable
+         versions; restore it into its own packages and artifacts folders. -->
+    <CsvHelperBenchmarkVersion Condition="'$(OfficeImoLatestCompetitors)' == 'true'">*</CsvHelperBenchmarkVersion>
+    <SepBenchmarkVersion Condition="'$(OfficeImoLatestCompetitors)' == 'true'">*</SepBenchmarkVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
-    <PackageReference Include="CsvHelper" Version="34.0.0" />
+    <PackageReference Include="CsvHelper" Version="$(CsvHelperBenchmarkVersion)" />
     <PackageReference Include="FourLambda.Csv" Version="1.1.0" />
-    <PackageReference Include="Sep" Version="0.17.1" />
+    <PackageReference Include="Sep" Version="$(SepBenchmarkVersion)" />
     <ProjectReference Include="..\OfficeIMO.CSV\OfficeIMO.CSV.csproj" />
     <Compile Include="..\Benchmarks\BenchmarkProcessorAffinity.cs" Link="Shared\BenchmarkProcessorAffinity.cs" />
     <Compile Include="..\Benchmarks\BenchmarkProcessPriority.cs" Link="Shared\BenchmarkProcessPriority.cs" />
@@ -18,5 +24,9 @@
     <Compile Include="..\Benchmarks\CsvReadObservation.cs" Link="Shared\CsvReadObservation.cs" />
     <Compile Include="..\Benchmarks\CsvBenchmarkData.cs" Link="Shared\CsvBenchmarkData.cs" />
     <Compile Include="..\Benchmarks\PackageAssetsCsvFixture.cs" Link="Shared\PackageAssetsCsvFixture.cs" />
+    <Compile Include="..\Benchmarks\CsvWriteBenchmarkBase.cs" Link="Shared\CsvWriteBenchmarkBase.cs" />
+    <Compile Include="..\Benchmarks\CsvWriteComparisonData.cs" Link="Shared\CsvWriteComparisonData.cs" />
+    <Compile Include="..\OfficeIMO.CSV.Benchmarks\BenchmarkArrayDataReader.cs" Link="Shared\BenchmarkArrayDataReader.cs" />
+    <Compile Include="..\OfficeIMO.CSV.Benchmarks\CsvBenchmarkOutputValidator.cs" Link="Shared\CsvBenchmarkOutputValidator.cs" />
   </ItemGroup>
 </Project>

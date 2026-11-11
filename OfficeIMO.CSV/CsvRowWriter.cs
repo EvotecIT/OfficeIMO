@@ -43,6 +43,7 @@ public sealed partial class CsvRowWriter : IDisposable
     private readonly string _delimiterText;
     private readonly bool _useTextDelimiter;
     private readonly bool _useDefaultWritePath;
+    private readonly bool _useFormattedDefaultWritePath;
     private readonly bool _useAlwaysQuotedWritePath;
     private readonly bool _useFormattedValueOptions;
     private readonly bool _batchFormattedTextDataReader;
@@ -76,6 +77,13 @@ public sealed partial class CsvRowWriter : IDisposable
         _batchFormattedTextDataReader = _useTextDelimiter && _useFormattedValueOptions;
         _useDefaultWritePath = !_useTextDelimiter
             && !_useFormattedValueOptions
+            && _options.FormulaInjectionPolicy == CsvFormulaInjectionPolicy.Preserve
+            && _options.ResolvedQuoteMode == CsvQuoteMode.AsNeeded
+            && _quoteFields == null;
+        // Date formats, UTC conversion and a null marker change only how values are formatted, so typed
+        // data-reader records keep the default quoting path and format those values on the way.
+        _useFormattedDefaultWritePath = !_useTextDelimiter
+            && _useFormattedValueOptions
             && _options.FormulaInjectionPolicy == CsvFormulaInjectionPolicy.Preserve
             && _options.ResolvedQuoteMode == CsvQuoteMode.AsNeeded
             && _quoteFields == null;

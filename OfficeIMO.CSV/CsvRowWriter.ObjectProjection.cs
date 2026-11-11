@@ -18,10 +18,15 @@ public sealed partial class CsvRowWriter
     [RequiresUnreferencedCode("This compatibility method discovers properties from runtime objects. For NativeAOT, use WriteDataReader or write explicit CSV rows.")]
     private bool TryCreateProjectedObjectWriter(object item, IReadOnlyList<string> columns)
     {
-        if (!_useDefaultWritePath || _delimiter != ',' || _stringWriterBuffer != null) return false;
-        bool useSpanBuffer = _writer.GetType() == typeof(StreamWriter) || _writer is PooledUtf8TextWriter;
-        ObjectDataHelpers.PropertyWriteExpressionFactory factory = useSpanBuffer
-            ? CreatePropertySpanWriteExpression : CreatePropertyWriteExpression;
+        if (_delimiter != ',') return false;
+        bool useSpanBuffer = _writer.GetType() == typeof(StreamWriter) || _writer is PooledUtf8TextWriter || _stringWriterBuffer != null;
+        ObjectDataHelpers.PropertyWriteExpressionFactory factory;
+        if (_useDefaultWritePath)
+            factory = useSpanBuffer ? CreatePropertySpanWriteExpression : CreatePropertyWriteExpression;
+        else if (_useFormattedDefaultWritePath && useSpanBuffer)
+            factory = CreateFormattedPropertySpanWriteExpression;
+        else
+            return false;
         if (!ObjectDataHelpers.TryCreatePropertyWriter<CsvRowWriter>(item, columns, factory, out var projector)) return false;
         if (useSpanBuffer) _propertyCharacters ??= new char[1024];
         _bufferedPropertyProjector = projector;

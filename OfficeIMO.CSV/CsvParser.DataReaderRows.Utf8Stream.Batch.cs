@@ -178,7 +178,7 @@ internal static partial class CsvParser
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfCancellationRequested(_options);
             int[] ends = _batchEnds ??= CreateBatchIndex();
-            int[] rowEnds = _batchRowEnds ??= new int[BatchEntryCapacity];
+            int[] rowEnds = _batchRowEnds ??= System.Buffers.ArrayPool<int>.Shared.Rent(BatchEntryCapacity);
             ends[0] = _position - 1;
             int rows;
 #if NET9_0_OR_GREATER
@@ -206,9 +206,23 @@ internal static partial class CsvParser
 
         private int[] CreateBatchIndex()
         {
-            int[] ends = new int[BatchEntryCapacity];
+            int[] ends = System.Buffers.ArrayPool<int>.Shared.Rent(BatchEntryCapacity);
             _visitor.SetBatchIndex(ends);
             return ends;
+        }
+
+        /// <summary>
+        /// Returns the pooled batch index. The index lives as long as the reader, so pooling it keeps a
+        /// short read from promoting it to an older generation.
+        /// </summary>
+        private void ReturnBatchIndex()
+        {
+            int[]? ends = _batchEnds;
+            int[]? rowEnds = _batchRowEnds;
+            _batchEnds = _batchRowEnds = null;
+            _batchRowCount = _batchCursor = 0;
+            if (ends is not null) System.Buffers.ArrayPool<int>.Shared.Return(ends);
+            if (rowEnds is not null) System.Buffers.ArrayPool<int>.Shared.Return(rowEnds);
         }
 
         /// <summary>
