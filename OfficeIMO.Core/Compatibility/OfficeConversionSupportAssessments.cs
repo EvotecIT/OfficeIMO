@@ -31,7 +31,7 @@ internal static class OfficeConversionSupportAssessments {
         if (routeId is "visio-binary-vsdx" or "visio-binary-vssx" or "visio-binary-vstx" or "visio-binary-svg" or "visio-binary-pdf")
             return Targeted(
                 "Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
-                "Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified.");
+                "Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; PDF output uses the same vector diagram pages as VSDX. Native Microsoft Visio acceptance remains unqualified.");
         if (IsImageRoute(routeId, out string source)) return Image(source);
         if (routeId.StartsWith("email-", StringComparison.Ordinal)) {
             return Established(
@@ -156,9 +156,12 @@ internal static class OfficeConversionSupportAssessments {
         "latex-markdown" or "markdown-latex" or "latex-pdf" => Targeted(
             "Typed fixtures verify the documented bounded LaTeX subset, deterministic output, and explicit diagnostics.",
             "Macro expansion, package execution, TeX layout, arbitrary mathematics, and unsupported environments are intentionally outside the managed subset."),
-        "onenote-html" or "html-onenote" or "onenote-markdown" or "onenote-pdf" => Targeted(
+        "onenote-html" or "html-onenote" or "onenote-markdown" => Targeted(
             "Typed section-model fixtures verify common page text, hierarchy, tables, images, and deterministic projection diagnostics.",
             "The API targets the OfficeIMO section model; full .one binary fidelity, ink, embedded files, rich positioning, and OneNote application rendering remain incomplete."),
+        "onenote-pdf" => Targeted(
+            "Native .one fixtures reopen the visual PDF and verify page geometry, extracted page text, hyperlink field results with link annotations, and per-picture embedding with alternative text (OfficeIMO.OneNote.Tests).",
+            "Visual pages are vector content with searchable text, embedded subset fonts, ink, tables and math. Pictures without a native PDF image form are embedded as PNG for that picture only, with a diagnostic. Text is not tagged with paragraph structure, fonts come from the host, and encrypted revisions, embedded files and OneNote application rendering remain incomplete. The semantic profile produces reflowable PDF."),
         "odt-pdf" or "ods-pdf" or "odp-pdf" => Targeted(
             "Representative OpenDocument fixtures verify the supported typed model, fixed-layout output, and source diagnostics.",
             "Inherited styles, advanced drawings, charts, media, nested inline syntax, and exact office-suite pagination remain incomplete."),
@@ -168,9 +171,9 @@ internal static class OfficeConversionSupportAssessments {
         "odg-pdf" => Targeted(
             "Draw scene fixtures verify page dimensions, order, layer selection, searchable text, and page-qualified source and PDF diagnostics.",
             "Uses the supported Draw-to-Drawing profile. Master artwork, page backgrounds, advanced graphic styles, embedded objects, metadata and exact native typography remain incomplete."),
-        "visio-pdf" => Targeted(
-            "Typed drawing and legacy XML fixtures verify semantic reports and cached diagram pages, source dimensions, searchable text, layer selection, and source/PDF loss diagnostics.",
-            "Diagram pages use the cached Visio-to-Drawing profile. Arbitrary formula recalculation, broad native appearance and exact native typography remain unqualified; workflow defaults select diagram pages while the direct adapter defaults to a semantic report."),
+        "visio-pdf" => Established(
+            "Visio-authored template drawings and typed drawing fixtures reopen the PDF and verify one vector page per Visio page, exact arc, ellipse and Bezier segments, cached linear and radial gradients, distinct arrowhead kinds, hyperlink annotations, inherited NURBS outlines, searchable text, layer selection and source/PDF loss diagnostics (OfficeIMO.Visio.Tests, Visio.Drawing.PdfFidelity.cs).",
+            "Diagram pages are the default; a semantic text and topology report is available on request. Splines and NURBS are flattened, rectangular and path gradients are drawn as radial, theme-driven fills, shadows and unmapped arrow kinds are approximated and reported, formulas are not recalculated, and exact native typography is unqualified."),
         "publisher-pdf" => Targeted(
             "Native Contents/Quill/OfficeArt fixtures verify physical pages, searchable styled text, linked frames, native tables, embedded images and carried source/PDF diagnostics.",
             "Publisher 2002-and-later recovery uses the bounded shared drawing profile. Earlier generations, unsupported graphics, exact native text breaks and native Publisher pixel comparisons remain unqualified."),

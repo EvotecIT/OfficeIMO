@@ -9475,10 +9475,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"section.SaveAsPdf(output, options)",
-      "evidence":"Typed section-model fixtures verify common page text, hierarchy, tables, images, and deterministic projection diagnostics.",
+      "evidence":"Native .one fixtures reopen the visual PDF and verify page geometry, extracted page text, hyperlink field results with link annotations, and per-picture embedding with alternative text (OfficeIMO.OneNote.Tests).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".one",".onepkg",".onetoc2"],
-      "limitation":"The API targets the OfficeIMO section model; full .one binary fidelity, ink, embedded files, rich positioning, and OneNote application rendering remain incomplete."
+      "limitation":"Visual pages are vector content with searchable text, embedded subset fonts, ink, tables and math. Pictures without a native PDF image form are embedded as PNG for that picture only, with a diagnostic. Text is not tagged with paragraph structure, fonts come from the host, and encrypted revisions, embedded files and OneNote application rendering remain incomplete. The semantic profile produces reflowable PDF."
     },
     {
       "id":"conversion:odg-jpeg",
@@ -16590,7 +16590,7 @@
       "evidence":"Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".vsd"],
-      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified."
+      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; PDF output uses the same vector diagram pages as VSDX. Native Microsoft Visio acceptance remains unqualified."
     },
     {
       "id":"conversion:visio-binary-svg",
@@ -16604,7 +16604,7 @@
       "evidence":"Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".vsd",".vst"],
-      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified."
+      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; PDF output uses the same vector diagram pages as VSDX. Native Microsoft Visio acceptance remains unqualified."
     },
     {
       "id":"conversion:visio-binary-vssx",
@@ -16618,7 +16618,7 @@
       "evidence":"Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".vss"],
-      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified."
+      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; PDF output uses the same vector diagram pages as VSDX. Native Microsoft Visio acceptance remains unqualified."
     },
     {
       "id":"conversion:visio-binary-vstx",
@@ -16632,7 +16632,7 @@
       "evidence":"Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".vst"],
-      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified."
+      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; PDF output uses the same vector diagram pages as VSDX. Native Microsoft Visio acceptance remains unqualified."
     },
     {
       "id":"protection:opc-package-signature:visio:create",
@@ -16926,7 +16926,7 @@
       "evidence":"Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".vsd",".vst"],
-      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified."
+      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; PDF output uses the same vector diagram pages as VSDX. Native Microsoft Visio acceptance remains unqualified."
     },
     {
       "id":"conversion:visio-pdf",
@@ -16935,12 +16935,12 @@
       "targetFormatId":"PDF",
       "capabilityId":"visio-pdf",
       "operation":"Convert",
-      "state":"Partial",
+      "state":"Supported",
       "publicApi":"VisioDocument.Load(stream).SaveAsPdf(output, options)",
-      "evidence":"Typed drawing and legacy XML fixtures verify semantic reports and cached diagram pages, source dimensions, searchable text, layer selection, and source/PDF loss diagnostics.",
+      "evidence":"Visio-authored template drawings and typed drawing fixtures reopen the PDF and verify one vector page per Visio page, exact arc, ellipse and Bezier segments, cached linear and radial gradients, distinct arrowhead kinds, hyperlink annotations, inherited NURBS outlines, searchable text, layer selection and source/PDF loss diagnostics (OfficeIMO.Visio.Tests, Visio.Drawing.PdfFidelity.cs).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".vdx",".vsdx",".vtx"],
-      "limitation":"Diagram pages use the cached Visio-to-Drawing profile. Arbitrary formula recalculation, broad native appearance and exact native typography remain unqualified; workflow defaults select diagram pages while the direct adapter defaults to a semantic report."
+      "limitation":"Diagram pages are the default; a semantic text and topology report is available on request. Splines and NURBS are flattened, rectangular and path gradients are drawn as radial, theme-driven fills, shadows and unmapped arrow kinds are approximated and reported, formulas are not recalculated, and exact native typography is unqualified."
     },
     {
       "id":"protection:doc-password:word:create",
