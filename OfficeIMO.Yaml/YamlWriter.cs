@@ -23,10 +23,14 @@ public sealed class YamlWriter : IDisposable {
 
     // One writer over a string buffer per thread is reused by the serializer's string and byte results; see RentBuffered.
     [ThreadStatic] private static YamlWriter? t_buffered;
+    // And one over a stream buffer, for the serializer's stream output; see RentStreamed.
+    [ThreadStatic] private static YamlWriter? t_streamed;
 
     private readonly TextWriter _text;
     private readonly bool _ownsText;
     private readonly YamlEmitter _emitter;
+    /// <summary>A pooled writer's serialization state, reused with it.</summary>
+    internal YamlWriteState? SpareState;
     private readonly YamlNodeBuilder? _builder;
     private bool _disposed;
 
@@ -64,25 +68,43 @@ public sealed class YamlWriter : IDisposable {
         return writer;
     }
 
+    /// <summary>
+    /// Gets a writer that encodes UTF-8 into <paramref name="stream"/> in blocks sized for about
+    /// <paramref name="lengthHint"/> characters: this thread's returned one, or a new one. Pair it with
+    /// <see cref="CompleteBuffered"/>, <see cref="YamlCharBuffer.Flush"/> and <see cref="ReturnBuffered"/>.
+    /// </summary>
+    internal static YamlWriter RentStreamed(Stream stream, YamlWriterOptions options, int lengthHint) {
+        YamlWriter? writer = t_streamed;
+        if (writer is null) return new YamlWriter(new YamlCharBuffer(stream, lengthHint), options);
+        t_streamed = null;
+        ((YamlCharBuffer)writer._text).Reset(stream, lengthHint);
+        writer._emitter.Reset(options);
+        writer._disposed = false;
+        return writer;
+    }
+
     /// <summary>Ends the last line, as <see cref="Dispose"/> does, and returns the buffer holding the text.</summary>
     internal YamlCharBuffer CompleteBuffered() {
         _disposed = true;
         if (_emitter.Documents > 0 && _emitter.IsComplete) _emitter.Finish();
-        _emitter.Release();
+        _emitter.Release(keep: true);
         return (YamlCharBuffer)_text;
     }
 
     /// <summary>Drops what a stopped write left and keeps the writer for this thread's next <see cref="RentBuffered"/>.</summary>
     internal void AbandonBuffered() {
         _disposed = true;
-        _emitter.Release();
+        _emitter.Release(keep: true);
         ReturnBuffered();
     }
 
     /// <summary>Returns the buffer's array to the pool and keeps the writer for this thread's next <see cref="RentBuffered"/>.</summary>
     internal void ReturnBuffered() {
-        ((YamlCharBuffer)_text).ReturnArray();
-        t_buffered = this;
+        var buffer = (YamlCharBuffer)_text;
+        bool stream = buffer.IsStream;
+        buffer.ReturnArray();
+        if (stream) t_streamed = this;
+        else t_buffered = this;
     }
 
     /// <summary>Creates a writer that builds a detached node tree instead of text, for the serializer's node output.</summary>

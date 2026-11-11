@@ -201,11 +201,19 @@ internal sealed class YamlWriteState {
         YamlWriteState? state = t_cached;
         if (state is null) state = new YamlWriteState(options);
         else t_cached = null;
-        state.Options = options;
-        state.Preserve = options.ReferenceHandling == YamlReferenceHandling.Preserve;
-        state._quick = quickCycleCheck;
-        state.CycleSuspected = false;
-        return state;
+        return state.Start(options, quickCycleCheck);
+    }
+
+    /// <summary>Gets a state as <see cref="Rent"/> does, starting from <paramref name="spare"/> when there is one.</summary>
+    public static YamlWriteState Reuse(YamlWriteState? spare, YamlSerializerOptions options, bool quickCycleCheck) =>
+        spare is null ? Rent(options, quickCycleCheck) : spare.Start(options, quickCycleCheck);
+
+    private YamlWriteState Start(YamlSerializerOptions options, bool quickCycleCheck) {
+        Options = options;
+        Preserve = options.ReferenceHandling == YamlReferenceHandling.Preserve;
+        _quick = quickCycleCheck;
+        CycleSuspected = false;
+        return this;
     }
 
     /// <summary>Whether the quick check stopped the write at a possible cycle; the write must be repeated with the exact check.</summary>
@@ -213,6 +221,11 @@ internal sealed class YamlWriteState {
 
     /// <summary>Clears the state of a completed write and keeps it for the next write on this thread.</summary>
     public void Return() {
+        if (Clear()) t_cached = this;
+    }
+
+    /// <summary>Clears the state of a write; true when it completed, so the state can be used again.</summary>
+    public bool Clear() {
         // A completed write has left every object it entered; the deep table holds no references.
         Array.Clear(_ancestors, 0, Math.Min(_maxDepth, _ancestors.Length));
         _maxDepth = 0;
@@ -222,7 +235,7 @@ internal sealed class YamlWriteState {
         DiscriminatorKey = null;
         DiscriminatorValue = null;
         Options = null!;
-        if (_depth == 0) t_cached = this;
+        return _depth == 0;
     }
 
     public YamlSerializerOptions Options { get; private set; }

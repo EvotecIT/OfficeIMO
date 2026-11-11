@@ -182,9 +182,18 @@ public static class YamlSerializer {
     public static void Serialize<T>(Stream utf8Yaml, T value, YamlTypeInfo<T> typeInfo) {
         if (utf8Yaml is null) throw new ArgumentNullException(nameof(utf8Yaml));
         if (typeInfo is null) throw new ArgumentNullException(nameof(typeInfo));
-        using var output = new YamlCharBuffer(utf8Yaml, typeInfo.OutputLengthHint);
-        using (var writer = new YamlWriter(output, typeInfo.Options.EffectiveWriterOptions)) Write(writer, value, typeInfo);
+        YamlWriter writer = YamlWriter.RentStreamed(utf8Yaml, typeInfo.Options.EffectiveWriterOptions, typeInfo.OutputLengthHint);
+        try {
+            Write(writer, value, typeInfo);
+        } catch {
+            // As disposing the writer did: what was written reaches the stream.
+            writer.Dispose();
+            throw;
+        }
+        YamlCharBuffer output = writer.CompleteBuffered();
+        output.Flush();
         NoteLength(output, typeInfo);
+        writer.ReturnBuffered();
     }
 
     /// <summary>Writes <paramref name="value"/> with generated metadata to a text writer, which stays open.</summary>
@@ -333,7 +342,8 @@ public static class YamlSerializer {
     /// </summary>
     private static YamlWriter WriteBuffered<T>(T value, YamlTypeInfo<T> typeInfo) {
         YamlWriter writer = YamlWriter.RentBuffered(typeInfo.Options.EffectiveWriterOptions, typeInfo.OutputLengthHint);
-        YamlWriteState state = YamlWriteState.Rent(typeInfo.Options, quickCycleCheck: true);
+        YamlWriteState state = YamlWriteState.Reuse(writer.SpareState, typeInfo.Options, quickCycleCheck: true);
+        writer.SpareState = null;
         try {
             if (state.Preserve) {
                 var collector = new YamlReferenceCollector(typeInfo.Options);
@@ -344,7 +354,7 @@ public static class YamlSerializer {
         } catch (YamlCycleSuspectedException) {
         }
         if (!state.CycleSuspected) {
-            state.Return();
+            if (state.Clear()) writer.SpareState = state;
             return writer;
         }
         writer.AbandonBuffered();
@@ -356,7 +366,8 @@ public static class YamlSerializer {
     /// <inheritdoc cref="WriteBuffered{T}"/>
     private static YamlWriter WriteBufferedBoxed(object? value, YamlTypeInfo typeInfo) {
         YamlWriter writer = YamlWriter.RentBuffered(typeInfo.Options.EffectiveWriterOptions, typeInfo.OutputLengthHint);
-        YamlWriteState state = YamlWriteState.Rent(typeInfo.Options, quickCycleCheck: true);
+        YamlWriteState state = YamlWriteState.Reuse(writer.SpareState, typeInfo.Options, quickCycleCheck: true);
+        writer.SpareState = null;
         try {
             if (state.Preserve) {
                 var collector = new YamlReferenceCollector(typeInfo.Options);
@@ -367,7 +378,7 @@ public static class YamlSerializer {
         } catch (YamlCycleSuspectedException) {
         }
         if (!state.CycleSuspected) {
-            state.Return();
+            if (state.Clear()) writer.SpareState = state;
             return writer;
         }
         writer.AbandonBuffered();
@@ -417,9 +428,18 @@ public static class YamlSerializer {
 
     private static void SerializeBoxed(Stream utf8Yaml, object? value, YamlTypeInfo typeInfo) {
         if (utf8Yaml is null) throw new ArgumentNullException(nameof(utf8Yaml));
-        using var output = new YamlCharBuffer(utf8Yaml, typeInfo.OutputLengthHint);
-        using (var writer = new YamlWriter(output, typeInfo.Options.EffectiveWriterOptions)) WriteBoxed(writer, value, typeInfo);
+        YamlWriter writer = YamlWriter.RentStreamed(utf8Yaml, typeInfo.Options.EffectiveWriterOptions, typeInfo.OutputLengthHint);
+        try {
+            WriteBoxed(writer, value, typeInfo);
+        } catch {
+            // As disposing the writer did: what was written reaches the stream.
+            writer.Dispose();
+            throw;
+        }
+        YamlCharBuffer output = writer.CompleteBuffered();
+        output.Flush();
         NoteLength(output, typeInfo);
+        writer.ReturnBuffered();
     }
 
     private static void SerializeBoxed(TextWriter writer, object? value, YamlTypeInfo typeInfo) {

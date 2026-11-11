@@ -116,9 +116,12 @@ internal sealed class YamlEmitter {
         _itemPadding = options.ItemPadding;
         // The options allow only "\n" and "\r\n".
         _lineStarts = _newLine.Length == 1 ? s_lfLineStarts : s_crlfLineStarts;
-        Scratch scratch = t_scratch ?? new Scratch();
-        t_scratch = null;
-        _scratch = scratch;
+        Scratch? scratch = _scratch;
+        if (scratch is null) {
+            scratch = t_scratch ?? new Scratch();
+            t_scratch = null;
+            _scratch = scratch;
+        }
         _frames = scratch.Frames;
     }
 
@@ -137,15 +140,20 @@ internal sealed class YamlEmitter {
         Configure(options);
     }
 
-    /// <summary>Hands the reusable state to the next emitter on this thread. The emitter cannot be used afterwards.</summary>
-    public void Release() {
+    /// <summary>
+    /// Hands the reusable state to the next emitter on this thread, or, with <paramref name="keep"/>, keeps it for this
+    /// emitter's next <see cref="Reset"/>. Only a reset emitter can be used afterwards.
+    /// </summary>
+    public void Release(bool keep = false) {
         Scratch? scratch = _scratch;
         if (scratch is null) return;
-        _scratch = null;
         Frame[] frames = _frames;
-        _frames = Array.Empty<Frame>();
         _depth = 0;
-        if (frames.Length > MaxReusedFrames) return;
+        if (frames.Length > MaxReusedFrames) {
+            _scratch = null;
+            _frames = Array.Empty<Frame>();
+            return;
+        }
         int used = Math.Min(_maxDepth, frames.Length);
         Array.Clear(frames, 0, used);
         if (scratch.Anchors is not null) {
@@ -153,6 +161,9 @@ internal sealed class YamlEmitter {
             Array.Clear(scratch.Tags!, 0, Math.Min(used, scratch.Tags!.Length));
         }
         scratch.Frames = frames;
+        if (keep) return;
+        _scratch = null;
+        _frames = Array.Empty<Frame>();
         t_scratch = scratch;
     }
 
