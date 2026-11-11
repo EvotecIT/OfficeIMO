@@ -157,6 +157,23 @@ namespace OfficeIMO.Word {
                 _styleMap[sourceId] = newId;
                 _styleCopies.Add((style, newId, newName, null));
             }
+
+            // A style an overwriting style is based on may itself map onto the overwritten style (it matched and was
+            // shared). Keeping that mapping would base the new definition on itself, so such an ancestor is copied.
+            foreach ((Style overwriting, string target, _, Style? replaces) in _styleCopies.Where(copy => copy.Replaces != null).ToList()) {
+                var visited = new HashSet<string>(StringComparer.Ordinal);
+                string? ancestorId = overwriting.BasedOn?.Val?.Value;
+                while (ancestorId != null && visited.Add(ancestorId) && sourceById.TryGetValue(ancestorId, out Style? ancestor)) {
+                    if (!ReferenceEquals(ancestor, overwriting) && _styleMap.TryGetValue(ancestorId, out string? mapped) &&
+                        string.Equals(mapped, target, StringComparison.Ordinal)) {
+                        (string copyId, string copyName) = CreateUniqueStyleIdentity(ancestor, usedIds, usedNames);
+                        _styleMap[ancestorId] = copyId;
+                        _styleCopies.Add((ancestor, copyId, copyName, null));
+                    }
+
+                    ancestorId = ancestor.BasedOn?.Val?.Value;
+                }
+            }
         }
 
         /// <summary>

@@ -65,8 +65,10 @@ public partial class Word {
         Assert.Empty(new OpenXmlValidator().Validate(saved));
     }
 
-    [Fact]
-    public void MergeOverwriteReplacesEachDestinationStyleOnceInPlace() {
+    [Theory]
+    [InlineData("333333")]
+    [InlineData("111111")] // the style matched by name has the destination's definition, so it is shared with it first
+    public void MergeOverwriteReplacesEachDestinationStyleOnceInPlace(string byNameColor) {
         static WordDocument Create(Style[] styles, params (string Text, string StyleId)[] paragraphs) {
             WordDocument document = WordDocument.Create();
             MainDocumentPart main = document._wordprocessingDocument.MainDocumentPart!;
@@ -89,7 +91,7 @@ public partial class Word {
         // and the first is based on the second.
         Style byId = Paragraph("Body", "Label", "222222");
         byId.BasedOn = new BasedOn { Val = "Other" };
-        using WordDocument source = Create(new[] { byId, Paragraph("Other", "Body", "333333") },
+        using WordDocument source = Create(new[] { byId, Paragraph("Other", "Body", byNameColor) },
             ("By id", "Body"), ("By name", "Other"));
 
         destination.AppendDocument(source, new WordDocumentMergeOptions { StyleConflictMode = WordStyleConflictMode.Overwrite });
@@ -107,7 +109,7 @@ public partial class Word {
             return styles.Single(style => style.StyleId == styleId).StyleRunProperties!.Color!.Val!.Value!;
         }
         Assert.Equal("222222", ColorOf("By id"));
-        Assert.Equal("333333", ColorOf("By name"));
+        Assert.Equal(byNameColor, ColorOf("By name"));
         string color = body.StyleRunProperties!.Color!.Val!.Value!;
         Assert.Equal(color, ColorOf("Destination"));
 
