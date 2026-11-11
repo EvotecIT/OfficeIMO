@@ -50,10 +50,17 @@ public static partial class HtmlResourcePipeline {
             return definitions.AsReadOnly();
         }
 
-        HtmlCssRuleBlockScanner.ValidateStylesheet(css, options.Limits);
+        // The validation scan also yields the rule blocks that raw descriptor recovery needs.
+        IReadOnlyDictionary<int, int> closures = HtmlCssRuleBlockScanner.Scan(css, new HtmlCssProcessingBudget(options.Limits));
+        // The style cascade parses every stylesheet already; a full parse here only pays off when the
+        // text can contain an @font-face rule.
+        if (!MayContainFontFaceRule(css)) {
+            return definitions.AsReadOnly();
+        }
+
         var parser = new CssParser();
         ICssStyleSheet stylesheet = parser.ParseStyleSheet(css);
-        IReadOnlyList<IReadOnlyDictionary<string, string>> rawRules = ExtractRawFontFaceDescriptors(css);
+        IReadOnlyList<IReadOnlyDictionary<string, string>> rawRules = ExtractRawFontFaceDescriptors(css, closures);
         var rawDescriptors = new Dictionary<ICssFontFaceRule, IReadOnlyDictionary<string, string>>();
         int rawRuleIndex = 0;
         foreach (ICssRule rule in stylesheet.Rules) {
@@ -166,8 +173,28 @@ public static partial class HtmlResourcePipeline {
         }
     }
 
-    private static IReadOnlyList<IReadOnlyDictionary<string, string>> ExtractRawFontFaceDescriptors(string css) {
-        IReadOnlyDictionary<int, int> closures = HtmlCssRuleBlockScanner.Scan(css, new HtmlCssProcessingBudget(null));
+    // An at-keyword spells font-face either literally or through an escape in its name.
+    private static bool MayContainFontFaceRule(string css) {
+        const string RuleName = "font-face";
+        for (int at = css.IndexOf('@'); at >= 0; at = css.IndexOf('@', at + 1)) {
+            int name = at + 1;
+            if (string.Compare(css, name, RuleName, 0, RuleName.Length, StringComparison.OrdinalIgnoreCase) == 0) {
+                return true;
+            }
+
+            while (name < css.Length && (char.IsLetterOrDigit(css[name]) || css[name] == '-' || css[name] == '_' || css[name] >= 0x80)) {
+                name++;
+            }
+
+            if (name < css.Length && css[name] == '\\') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static IReadOnlyList<IReadOnlyDictionary<string, string>> ExtractRawFontFaceDescriptors(string css, IReadOnlyDictionary<int, int> closures) {
         var rawRules = new List<IReadOnlyDictionary<string, string>>();
         foreach (KeyValuePair<int, int> closure in closures.OrderBy(item => item.Key)) {
             int cursor = closure.Key - 1;
@@ -175,7 +202,7 @@ public static partial class HtmlResourcePipeline {
             const string RuleName = "@font-face";
             int ruleStart = cursor - RuleName.Length + 1;
             if (ruleStart < 0
-                || !css.Substring(ruleStart, RuleName.Length).Equals(RuleName, StringComparison.OrdinalIgnoreCase)
+                || string.Compare(css, ruleStart, RuleName, 0, RuleName.Length, StringComparison.OrdinalIgnoreCase) != 0
                 || ruleStart > 0 && (char.IsLetterOrDigit(css[ruleStart - 1]) || css[ruleStart - 1] == '-' || css[ruleStart - 1] == '_')) {
                 continue;
             }

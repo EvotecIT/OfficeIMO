@@ -101,8 +101,7 @@ public sealed class PdfEmbeddedFontFallbackSet {
     internal void RegisterUnoccupiedFontSlots(PdfCreateOptions options) {
         for (int index = 0; index < _candidates.Count; index++) {
             PdfStandardFont family = _fontSlots[index];
-            bool occupied = options.EmbeddedFonts.Keys.Any(font =>
-                PdfStandardFontMapper.GetFontFamily(font) == family);
+            bool occupied = options.HasEmbeddedFontInFamily(family);
             if (!occupied) {
                 PdfEmbeddedFontFallbackCandidate candidate = _candidates[index];
                 options.RegisterFallbackFontFamily(family, candidate.FontName, candidate.DataSnapshot);

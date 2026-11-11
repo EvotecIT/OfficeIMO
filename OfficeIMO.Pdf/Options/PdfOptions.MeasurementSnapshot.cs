@@ -10,6 +10,9 @@ public sealed partial class PdfCreateOptions {
         // Font definitions and their immutable owned bytes can be borrowed. Dictionary
         // membership must be private because automatic fallback may register a family.
         view._embeddedFonts = _embeddedFonts == null ? null : new Dictionary<PdfStandardFont, PdfEmbeddedFont>(_embeddedFonts);
+        // A deferred default family resolves into whichever options ask first, so the view keeps its own record.
+        view._pendingDefaultFontFamilies = ClonePendingDefaultFontFamilies();
+        view._defaultEmbeddedFontFamilies = _defaultEmbeddedFontFamilies == null ? null : new HashSet<PdfStandardFont>(_defaultEmbeddedFontFamilies);
         view._namedFontFamilies = _namedFontFamilies == null ? null : new Dictionary<string, PdfEmbeddedFontFamily>(_namedFontFamilies, StringComparer.Ordinal);
         view._namedFallbackPlanBindings = _namedFallbackPlanBindings == null ? null : new Dictionary<object, PdfEmbeddedFontFallbackCandidate>(_namedFallbackPlanBindings);
         view._embeddedFontPrograms = null;
