@@ -70,7 +70,7 @@ namespace OfficeIMO.Word {
 
         internal WordSearchResult FindInScope(string text, OfficeTextSearchOptions? options, WordSection? section) {
             OfficeTextSearch.ValidateSearchText(text, nameof(text));
-            var result = new WordSearchResult();
+            var result = new WordSearchResult(() => FindTextRanges(text, options, section));
             StringComparison comparison = OfficeTextSearch.GetComparison(options);
             bool wholeWords = options?.WholeWords == true;
             int count = 0;
@@ -94,7 +94,7 @@ namespace OfficeIMO.Word {
         internal WordSearchResult FindInScope(Regex pattern, WordSection? section) {
             ArgumentNullException.ThrowIfNull(pattern);
 
-            var result = new WordSearchResult();
+            var result = new WordSearchResult(() => FindRegexRanges(pattern, section).Select(match => match.Range).ToList());
             ForEachSearchScope((paragraphs, destination) => result.FindRegex(paragraphs, pattern, destination!), result, section);
             return result;
         }

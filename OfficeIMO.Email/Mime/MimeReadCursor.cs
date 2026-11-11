@@ -44,6 +44,18 @@ internal sealed class MimeReadCursor {
         return total;
     }
 
+    /// <summary>Reads one buffered literal quoted-printable run, leaving an escape introducer unread.</summary>
+    internal int ReadBeforeEquals(long end, byte[] output) {
+        if (_position >= end || !EnsureBuffer()) return 0;
+        int offset = (int)(_position - _bufferStart);
+        int available = (int)Math.Min(Math.Min(output.Length, _bufferLength - offset), end - _position);
+        int equals = Array.IndexOf(_buffer, (byte)'=', offset, available);
+        int count = equals < 0 ? available : equals - offset;
+        Buffer.BlockCopy(_buffer, offset, output, 0, count);
+        _position += count;
+        return count;
+    }
+
     private bool EnsureBuffer() {
         if (_position >= _bufferStart && _position - _bufferStart < _bufferLength) return true;
         _source.Position = _position;

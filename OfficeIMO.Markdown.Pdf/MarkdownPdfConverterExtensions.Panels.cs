@@ -156,7 +156,7 @@ public static partial class MarkdownPdfConverterExtensions {
             case DefinitionListBlock:
                 return true;
             case SemanticFencedBlock semantic:
-                return !IsChartSemanticFence(semantic);
+                return !IsChartSemanticFence(semantic) && !IsMathSemanticFence(semantic);
             case UnorderedListBlock unordered:
                 return CanRenderListItemsInsidePanel(unordered.Items);
             case OrderedListBlock ordered:

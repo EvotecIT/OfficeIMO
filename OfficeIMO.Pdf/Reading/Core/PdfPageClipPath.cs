@@ -779,11 +779,15 @@ internal readonly partial struct PdfPageClipPath {
             return false;
         }
 
-        var points = new List<OfficePoint>(commands.Count - 1) { commands[0].Point };
+        // Curves and later subpaths rule out a rectangle before any point list is built.
         for (int i = 1; i < commands.Count - 1; i++) {
             if (commands[i].Kind != OfficePathCommandKind.LineTo) {
                 return false;
             }
+        }
+
+        var points = new List<OfficePoint>(commands.Count - 1) { commands[0].Point };
+        for (int i = 1; i < commands.Count - 1; i++) {
 
             OfficePoint point = commands[i].Point;
             OfficePoint previous = points[points.Count - 1];
@@ -861,7 +865,7 @@ internal readonly partial struct PdfPageClipPath {
         Math.Abs(left - right) <= 0.0000001D;
 
     private static List<OfficePathCommand> CloseFilledSubpaths(IReadOnlyList<OfficePathCommand> commands) {
-        var closed = new List<OfficePathCommand>(commands.Count + 4);
+        var closed = new List<OfficePathCommand>(commands.Count + CountImplicitCloses(commands));
         bool hasOpenSubpath = false;
         bool subpathHasDraw = false;
         for (int i = 0; i < commands.Count; i++) {
@@ -893,6 +897,30 @@ internal readonly partial struct PdfPageClipPath {
         }
 
         return closed;
+    }
+
+    // Mirrors CloseFilledSubpaths so its list is allocated once at the final size.
+    private static int CountImplicitCloses(IReadOnlyList<OfficePathCommand> commands) {
+        int closes = 0;
+        bool hasOpenSubpath = false;
+        bool subpathHasDraw = false;
+        for (int i = 0; i < commands.Count; i++) {
+            OfficePathCommandKind kind = commands[i].Kind;
+            if (kind == OfficePathCommandKind.MoveTo) {
+                if (hasOpenSubpath && subpathHasDraw) closes++;
+                hasOpenSubpath = true;
+                subpathHasDraw = false;
+            } else if (kind == OfficePathCommandKind.Close) {
+                hasOpenSubpath = false;
+                subpathHasDraw = false;
+            } else if (kind == OfficePathCommandKind.LineTo ||
+                kind == OfficePathCommandKind.QuadraticBezierTo ||
+                kind == OfficePathCommandKind.CubicBezierTo) {
+                subpathHasDraw = true;
+            }
+        }
+        if (hasOpenSubpath && subpathHasDraw) closes++;
+        return closes;
     }
 
     public double X { get; }

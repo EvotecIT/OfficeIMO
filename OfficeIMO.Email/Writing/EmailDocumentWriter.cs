@@ -103,6 +103,13 @@ public sealed class EmailDocumentWriter {
             result = preparation.CreateBlockedResult();
             return Array.Empty<byte>();
         }
+#if NET8_0_OR_GREATER
+        if (format == EmailFileFormat.Eml && preparation.PreservedSource == null) {
+            using var output = new OfficePooledWriteStream();
+            result = WritePrepared(preparation, output);
+            return output.ToArray();
+        }
+#endif
         using (var output = new MemoryStream()) {
             result = WritePrepared(preparation, output);
             return output.ToArray();

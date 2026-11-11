@@ -121,6 +121,74 @@ public sealed partial class OfficeTrueTypeFont {
         return 0;
     }
 
+    /// <summary>
+    /// Reads only the table directory and name table of a standalone font file and answers false when
+    /// <see cref="HasFamilyKey"/> on the loaded face could not match <paramref name="key"/>. Collections,
+    /// unreadable files and names outside the name table answer true, leaving the decision to loading.
+    /// </summary>
+    private static bool MayHaveFamilyKey(string path, string key) {
+        try {
+            if (!File.Exists(path)) return true;
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 1);
+            long fileLength = stream.Length;
+            if (fileLength < 12) return true;
+            byte[] header = ReadFileRange(stream, 0, 12);
+            uint scaler = ReadUInt32(header, 0);
+            if (scaler == 0x74746366 || scaler == 0x4F54544F) return true;
+            int tableCount = ReadUInt16(header, 4);
+            if (tableCount == 0 || 12L + tableCount * 16L > fileLength) return true;
+            byte[] directory = ReadFileRange(stream, 12, tableCount * 16);
+            long nameOffset = -1, nameLength = 0;
+            for (int index = 0; index < tableCount; index++) {
+                int record = index * 16;
+                if (directory[record] != 'n' || directory[record + 1] != 'a' || directory[record + 2] != 'm' || directory[record + 3] != 'e') continue;
+                // A duplicate tag leaves the face unloadable; loading decides that case.
+                if (nameOffset >= 0) return true;
+                nameOffset = ReadUInt32(directory, record + 8);
+                nameLength = ReadUInt32(directory, record + 12);
+            }
+            if (nameOffset < 0) return false;
+            if (nameLength < 6 || nameLength > 4 * 1024 * 1024 || nameOffset > fileLength - nameLength) return true;
+            byte[] table = ReadFileRange(stream, nameOffset, (int)nameLength);
+            int count = ReadUInt16(table, 2);
+            int stringOffset = ReadUInt16(table, 4);
+            for (int i = 0; i < count; i++) {
+                int record = 6 + i * 12;
+                // The loaded face reads records and names from the whole file; past the table, load it.
+                if (record + 12 > table.Length) return true;
+                int nameId = ReadUInt16(table, record + 6);
+                if (nameId != 1 && nameId != 16) continue;
+                ushort platform = ReadUInt16(table, record);
+                int length = ReadUInt16(table, record + 8);
+                int offset = stringOffset + ReadUInt16(table, record + 10);
+                if (length == 0) continue;
+                if (offset + length > table.Length) return true;
+                string name = platform == 0 || platform == 3
+                    ? System.Text.Encoding.BigEndianUnicode.GetString(table, offset, length)
+                    : System.Text.Encoding.ASCII.GetString(table, offset, length);
+                if (NormalizeFontFamilyKey(name) == key) return true;
+            }
+            return false;
+        } catch (IOException) {
+        } catch (UnauthorizedAccessException) {
+        } catch (ArgumentException) {
+        } catch (NotSupportedException) {
+        }
+        return true;
+    }
+
+    private static byte[] ReadFileRange(FileStream stream, long offset, int length) {
+        stream.Position = offset;
+        var buffer = new byte[length];
+        int read = 0;
+        while (read < length) {
+            int chunk = stream.Read(buffer, read, length - read);
+            if (chunk == 0) throw new IOException("Unexpected end of font file.");
+            read += chunk;
+        }
+        return buffer;
+    }
+
     // Compares the face's family and typographic family names with a normalized family key, so Arial Narrow
     // or Arial Black is not taken for Arial.
     private bool HasFamilyKey(string key) {

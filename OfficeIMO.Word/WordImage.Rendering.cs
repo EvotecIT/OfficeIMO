@@ -21,7 +21,9 @@ namespace OfficeIMO.Word {
                     yield return OfficeStreamReader.ReadAllBytes(stream, cancellationToken);
                 }
             }
-            using Stream fallback = OpenRead();
+            ImagePart? raster = RelationshipId is string rasterId && GetContainingPart().TryGetPartById(rasterId, out OpenXmlPart? rasterPart)
+                ? rasterPart as ImagePart : null;
+            using Stream fallback = raster?.GetStream(FileMode.Open, FileAccess.Read) ?? OpenRead();
             yield return OfficeStreamReader.ReadAllBytes(fallback, cancellationToken);
         }
     }

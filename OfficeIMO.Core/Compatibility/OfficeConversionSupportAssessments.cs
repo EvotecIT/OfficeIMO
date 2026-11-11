@@ -19,7 +19,10 @@ internal static class OfficeConversionSupportAssessments {
         if (routeId is "xls-pdf" or "xlsb-pdf" or "ppt-pdf") return Targeted(
             "Native binary import and existing PDF adapter fixtures cover recovered editable content and separately reported rendering findings.",
             "Binary source projection is bounded and incomplete. Unsupported source records, preserved-only content and PDF layout approximations remain explicit findings; native application visual equivalence is not promised.");
-        if (routeId is "email-pdf" or "epub-pdf" or "reader-visio-pdf") return Targeted(
+        if (routeId == "email-pdf") return Targeted(
+            "Converter and host fixtures reopen the PDF and find the subject, sender, To and Cc recipients, date, HTML body and attachment list; the TextOnly profile keeps the Reader projection and its email policy finding.",
+            "Renders through the HTML-to-PDF engine with the shared email body sanitization, blocked remote resources and bounded inline MIME images. RTF-only bodies are approximated through HTML. Attachment payloads are listed, not embedded or rendered; signed and encrypted payloads are not verified or decrypted. Mail-client visual equivalence is not promised.");
+        if (routeId is "epub-pdf" or "reader-visio-pdf") return Targeted(
             "Reader projection fixtures cover searchable email text, EPUB chapter order, Visio semantic fallback and policy findings in reopened PDF output.",
             "Source-neutral semantic projection only. Attachments, pagination, resources, forms and source layout follow explicit projection policies and diagnostics; this route does not promise native visual equivalence.");
         if (routeId is "pages-pdf" or "numbers-pdf" or "keynote-pdf") return Targeted(

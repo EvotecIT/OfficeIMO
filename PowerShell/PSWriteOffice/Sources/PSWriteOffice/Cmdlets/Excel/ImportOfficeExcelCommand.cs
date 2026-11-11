@@ -45,6 +45,7 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet {
     /// <summary>Workbook paths resolved with filesystem wildcard support.</summary>
     [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
     [Parameter(ParameterSetName = "PathTable", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    [Alias("FilePath")]
     public string[] Path { get; set; } = Array.Empty<string>();
 
     /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
@@ -53,6 +54,7 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "Uri")]
     [Parameter(ParameterSetName = "Document")]
     [OfficeSheetTransformation]
+    [Alias("WorksheetName")]
     public OfficeSheetSelector[]? Sheet { get; set; }
 
     /// <summary>Writes data without a header row.</summary>

@@ -3,8 +3,8 @@
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <!-- Native outputs carry their runtime; service it independently of the installed SDK. -->
-    <RuntimeFrameworkVersion Condition="'$(TargetFramework)' == 'net8.0'">8.0.33</RuntimeFrameworkVersion>
-    <RuntimeFrameworkVersion Condition="'$(TargetFramework)' == 'net10.0'">10.0.14</RuntimeFrameworkVersion>
+    <RuntimeFrameworkVersion Condition="'$(TargetFramework)' == 'net8.0'">8.0.34</RuntimeFrameworkVersion>
+    <RuntimeFrameworkVersion Condition="'$(TargetFramework)' == 'net10.0'">10.0.15</RuntimeFrameworkVersion>
     <PublishAot>true</PublishAot>
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>full</TrimMode>
@@ -134,6 +134,8 @@
     <ProjectReference Include="..\OfficeIMO.Reader.Visio\OfficeIMO.Reader.Visio.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Web\OfficeIMO.Reader.Web.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Word\OfficeIMO.Reader.Word.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Toml\OfficeIMO.Reader.Toml.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Toml\OfficeIMO.Toml.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Xml\OfficeIMO.Reader.Xml.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Xps\OfficeIMO.Reader.Xps.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Yaml\OfficeIMO.Reader.Yaml.csproj" />
@@ -273,6 +275,8 @@
     <TrimmerRootAssembly Include="OfficeIMO.Reader.Visio" />
     <TrimmerRootAssembly Include="OfficeIMO.Reader.Web" />
     <TrimmerRootAssembly Include="OfficeIMO.Reader.Word" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Toml" />
+    <TrimmerRootAssembly Include="OfficeIMO.Toml" />
     <TrimmerRootAssembly Include="OfficeIMO.Reader.Xml" />
     <TrimmerRootAssembly Include="OfficeIMO.Reader.Xps" />
     <TrimmerRootAssembly Include="OfficeIMO.Reader.Yaml" />

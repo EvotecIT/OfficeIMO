@@ -1,0 +1,117 @@
+namespace OfficeIMO.Toml;
+
+/// <summary>
+/// An array value in brackets: <c>[1, 2, 3]</c>, possibly spanning lines with comments. Items can be values, arrays and
+/// inline tables, of mixed kinds.
+/// </summary>
+public sealed class TomlArray : TomlNode, IReadOnlyList<TomlNode> {
+    internal TomlNode[] _items = Array.Empty<TomlNode>();
+    internal int _count;
+    /// <summary>Loaded items removed by editing, kept so saving can delete their text.</summary>
+    internal List<TomlNode>? _removed;
+
+    internal TomlArray(TomlDocument document) : base(document) {
+    }
+
+    /// <inheritdoc />
+    public override TomlNodeKind Kind => TomlNodeKind.Array;
+
+    /// <summary>Gets the number of items.</summary>
+    public int Count => _count;
+
+    /// <summary>Gets the item at a zero-based position.</summary>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is outside the array.</exception>
+    public TomlNode this[int index] {
+        get {
+            if ((uint)index >= (uint)_count) throw new ArgumentOutOfRangeException(nameof(index), index, "The index is outside the array.");
+            return _items[index];
+        }
+    }
+
+    /// <summary>
+    /// Appends an item and returns it. On save the item is written after the last item in the array's own layout: on a
+    /// new line with the same indentation in a multi-line array, otherwise after a comma on the same line.
+    /// </summary>
+    /// <param name="value">A string, number, boolean or date-time (see <see cref="TomlValue.SetValue"/>), a sequence for a
+    /// nested array, or a dictionary with string keys for an inline table.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="value"/> is not representable in TOML.</exception>
+    public TomlNode Add(object value) => Insert(_count, value);
+
+    /// <summary>Inserts an item at a zero-based position and returns it.</summary>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is outside 0..<see cref="Count"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="value"/> is not representable in TOML.</exception>
+    public TomlNode Insert(int index, object value) {
+        if ((uint)index > (uint)_count) throw new ArgumentOutOfRangeException(nameof(index), index, "The index is outside the array.");
+        TomlNode node = TomlValueConverter.CreateNode(_document, value, nameof(value), TomlEditing.PreferredStringStyle(this));
+        InsertNode(index, node);
+        return node;
+    }
+
+    /// <summary>Appends an empty inline table and returns it, for arrays of inline tables such as <c>authors</c>.</summary>
+    public TomlTable AddInlineTable() {
+        var table = new TomlTable(_document, TomlTableKind.Inline);
+        InsertNode(_count, table);
+        return table;
+    }
+
+    /// <summary>Appends an empty nested array and returns it.</summary>
+    public TomlArray AddArray() {
+        var array = new TomlArray(_document);
+        InsertNode(_count, array);
+        return array;
+    }
+
+    /// <summary>
+    /// Replaces the item at a zero-based position and returns the item now there. A value assigned over a value is set
+    /// in place with <see cref="TomlValue.SetValue"/>, keeping its style; other replacements write the new item at the old
+    /// item's position.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is outside the array.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="value"/> is not representable in TOML.</exception>
+    public TomlNode Set(int index, object value) {
+        TomlNode current = this[index];
+        if (current is TomlValue scalar && TomlValueConverter.IsScalar(value)) return scalar.SetValue(value);
+        TomlNode node = TomlValueConverter.CreateNode(_document, value, nameof(value), TomlEditing.PreferredStringStyle(this));
+        TomlEditing.Adopt(current, node);
+        node._parent = this;
+        _items[index] = node;
+        TomlEditing.MarkChanged(this);
+        return node;
+    }
+
+    /// <summary>Removes the item at a zero-based position. On save its text and one separating comma are deleted.</summary>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is outside the array.</exception>
+    public void RemoveAt(int index) {
+        TomlNode node = this[index];
+        Array.Copy(_items, index + 1, _items, index, _count - index - 1);
+        _items[--_count] = null!;
+        TomlEditing.Detach(node, ref _removed);
+        TomlEditing.MarkChanged(this);
+    }
+
+    /// <summary>Returns an enumerator over the items.</summary>
+    public IEnumerator<TomlNode> GetEnumerator() {
+        for (int i = 0; i < _count; i++) yield return _items[i];
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    internal void InsertNode(int index, TomlNode node) {
+        if (_count == _items.Length) Array.Resize(ref _items, Math.Max(4, _count * 2));
+        if (index < _count) Array.Copy(_items, index, _items, index + 1, _count - index);
+        _items[index] = node;
+        _count++;
+        node._parent = this;
+        TomlEditing.MarkChanged(this);
+    }
+
+    /// <summary>Appends a loaded item while building the model.</summary>
+    internal void AddLoaded(TomlNode node) {
+        if (_count == _items.Length) Array.Resize(ref _items, Math.Max(4, _count * 2));
+        _items[_count++] = node;
+        node._parent = this;
+    }
+}

@@ -23,7 +23,7 @@ internal static partial class PdfPageXObjectInvocationParser {
     }
 
     public static IReadOnlyList<PdfPageXObjectInvocation> Parse(
-        string content,
+        PdfContentSource content,
         Matrix2D baseTransform,
         double pageHeight,
         IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates,
@@ -99,7 +99,7 @@ internal static partial class PdfPageXObjectInvocationParser {
         Action? operationCheck = null,
         PdfTextStateSnapshot? initialTextState = null,
         Action<string>? operatorVisitor = null) {
-        if (string.IsNullOrEmpty(content)) {
+        if (content.IsNullOrEmpty) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
@@ -111,7 +111,7 @@ internal static partial class PdfPageXObjectInvocationParser {
 
     private sealed partial class Parser {
         internal Action<string>? OperatorVisitor { get; set; }
-        private readonly string _content;
+        private readonly PdfContentSource _content;
         private readonly double _pageHeight;
         private readonly double? _pageWidth;
         private readonly Matrix2D _baseTransform;
@@ -127,7 +127,7 @@ internal static partial class PdfPageXObjectInvocationParser {
         private readonly List<PdfPageXObjectInvocation> _invocations = new List<PdfPageXObjectInvocation>();
         // Scratch state reused across parses on one thread; every parse leaves it empty.
         private readonly ParserWorkspace _workspace;
-        private readonly List<object> _args;
+        private readonly PdfContentOperands _args;
         private readonly Stack<GraphicsState> _stack;
         private readonly Stack<bool> _inexactDashStack;
         private readonly Stack<GraphicsEffectState> _graphicsEffectStack;
@@ -219,7 +219,7 @@ internal static partial class PdfPageXObjectInvocationParser {
         private string? _strokeColorSpaceResourceName;
 
         public Parser(
-            string content,
+            PdfContentSource content,
             Matrix2D baseTransform,
             double pageHeight,
             double? pageWidth,
@@ -594,16 +594,20 @@ internal static partial class PdfPageXObjectInvocationParser {
         }
 
         private void ShowTextArray(object arrayObject) {
-            if (arrayObject is not List<object> items) {
+            if (arrayObject is not IReadOnlyList<object> items) {
                 ShowText(arrayObject);
                 return;
             }
 
+            // Borrowed TJ arrays keep their strings typed; each string is read through a scratch copy.
+            PdfContentOperands? typed = items as PdfContentOperands;
             bool usesType3GlyphProgram = IsActiveType3Font();
             bool isVisible = !HasHiddenContent() && !IsCurrentPaintSuppressedBySoftMask();
             long glyphCount = 0;
             for (int i = 0; i < items.Count; i++) {
-                if (items[i] is byte[] bytes) glyphCount += bytes.Length;
+                if (typed != null) {
+                    if (typed.IsString(i)) glyphCount += typed.StringLength(i);
+                } else if (items[i] is byte[] bytes) glyphCount += bytes.Length;
             }
             if (glyphCount > int.MaxValue) {
                 _type3GlyphBudgetConsumer?.Invoke(int.MaxValue);
@@ -613,7 +617,10 @@ internal static partial class PdfPageXObjectInvocationParser {
             PdfType3PaintChannels ordinaryTextPaintChannels = ResolveTextPaintChannels(_textRenderingMode);
             bool ordinaryTextAffectsOutput = false;
             for (int i = 0; i < items.Count; i++) {
-                if (items[i] is byte[] bytes) {
+                byte[]? bytes = typed != null
+                    ? typed.IsString(i) ? ReadScratchString(typed, i) : null
+                    : items[i] as byte[];
+                if (bytes != null) {
                     (double X, double Y) advance = ProcessShownText(bytes, glyphs);
                     ordinaryTextAffectsOutput |=
                         isVisible &&
@@ -622,7 +629,7 @@ internal static partial class PdfPageXObjectInvocationParser {
                         IsOrdinaryTextFrameVisible(advance.X);
                     if (isVisible && !usesType3GlyphProgram) ApplyTextClippingPath(advance.X);
                     _textMatrix = Matrix2D.Multiply(_textMatrix, Matrix2D.Translation(advance.X, advance.Y));
-                } else if (items[i] is double kerning) {
+                } else if (TryGetArrayNumber(items, typed, i, out double kerning)) {
                     double delta = -kerning / 1000D * _textSize * _textHScale;
                     _textMatrix = Matrix2D.Multiply(_textMatrix, Matrix2D.Translation(delta, 0D));
                 }
@@ -653,6 +660,32 @@ internal static partial class PdfPageXObjectInvocationParser {
                 glyphCount > 0) {
                 _ordinaryTextPaintVisitor?.Invoke(ordinaryTextPaintChannels, _patternState.Fill, _patternState.Stroke, ordinaryTextAddsClip);
             }
+        }
+
+        private byte[]?[]? _scratchStrings;
+
+        private static bool TryGetArrayNumber(IReadOnlyList<object> items, PdfContentOperands? typed, int index, out double value) {
+            if (typed != null) return typed.TryGetNumber(index, out value);
+            if (items[index] is double number) {
+                value = number;
+                return true;
+            }
+            value = 0D;
+            return false;
+        }
+
+        // Shown text is measured synchronously and never retained, so strings of one length share a buffer.
+        private byte[] ReadScratchString(PdfContentOperands operands, int index) {
+            int length = operands.StringLength(index);
+            byte[] bytes;
+            if (length < 256) {
+                _scratchStrings ??= new byte[]?[256];
+                bytes = _scratchStrings[length] ??= new byte[length];
+            } else {
+                bytes = new byte[length];
+            }
+            operands.CopyStringTo(index, bytes, 0);
+            return bytes;
         }
 
         private void AdvertiseInheritedType3Patterns(PdfType3PaintChannels channels) {
@@ -911,12 +944,12 @@ internal static partial class PdfPageXObjectInvocationParser {
 
         private OfficePoint ToOfficePoint((double X, double Y) point) => new OfficePoint(point.X, ToTop(point.Y));
 
-        private double NumberAt(int index) => _args[index] is double value ? value : 0D;
+        private double NumberAt(int index) => _args.NumberOrZero(index);
 
         private bool HasTrailingFiniteNumbers(int count) {
             if (_args.Count < count) return false;
             for (int index = _args.Count - count; index < _args.Count; index++) {
-                if (_args[index] is not double value || double.IsNaN(value) || double.IsInfinity(value)) return false;
+                if (!_args.TryGetNumber(index, out double value) || double.IsNaN(value) || double.IsInfinity(value)) return false;
             }
             return true;
         }
@@ -1261,7 +1294,7 @@ internal static partial class PdfPageXObjectInvocationParser {
         private int CountPatternComponents() {
             int count = 0;
             for (int index = 0; index < _args.Count - 1; index++) {
-                if (_args[index] is not double) return -1;
+                if (!_args.TryGetNumber(index, out _)) return -1;
                 count++;
             }
             return count;
@@ -1333,7 +1366,7 @@ internal static partial class PdfPageXObjectInvocationParser {
                 return true;
             }
 
-            if (value is List<object> items) {
+            if (value is IReadOnlyList<object> items) {
                 var collected = new List<double>(items.Count);
                 for (int i = 0; i < items.Count; i++) {
                     if (items[i] is not double number) {
@@ -1560,7 +1593,7 @@ internal static partial class PdfPageXObjectInvocationParser {
         private const int MaximumRetainedItems = 1024;
         [ThreadStatic] private static ParserWorkspace? t_available;
 
-        internal readonly List<object> Args = new List<object>(8);
+        internal readonly PdfContentOperands Args = new PdfContentOperands();
         internal readonly Stack<GraphicsState> Stack = new Stack<GraphicsState>();
         internal readonly Stack<bool> InexactDashStack = new Stack<bool>();
         internal readonly Stack<GraphicsEffectState> GraphicsEffectStack = new Stack<GraphicsEffectState>();

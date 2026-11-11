@@ -14,7 +14,8 @@ public static partial class OfficeConverter {
         switch (FormatForExtension(extension)) {
             case OfficeDocumentFormat.Pdf: {
                 PdfCreateOptions? creation = settings.Word?.PdfOptions ?? settings.Excel?.PdfOptions ?? settings.PowerPoint?.PdfOptions
-                    ?? settings.Markdown?.PdfOptions ?? settings.Html?.PdfOptions ?? settings.PlainText?.PdfOptions ?? settings.ReaderPdf?.PdfOptions;
+                    ?? settings.Markdown?.PdfOptions ?? settings.Html?.PdfOptions ?? settings.PlainText?.PdfOptions ?? settings.ReaderPdf?.PdfOptions
+            ?? settings.EmailPdf?.Pdf.PdfOptions;
                 var options = new PdfLoadOptions { Password = creation?.Encryption?.OwnerPassword ?? creation?.Encryption?.UserPassword ?? settings.SourcePassword };
                 if (creation?.Encryption?.AesCryptographyProvider is { } cryptography)
                     options = PdfLoadOptions.WithAesCryptographyProvider(options, cryptography);

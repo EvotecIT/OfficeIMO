@@ -34,22 +34,33 @@ namespace OfficeIMO.Word {
     /// Provides access to paragraph border properties.
     /// </summary>
     public class WordParagraphBorders {
-        private readonly WordDocument _document;
-        private readonly WordParagraph _wordParagraph;
+        private readonly Func<DocumentFormat.OpenXml.OpenXmlCompositeElement?> _readProperties;
+        private readonly Func<DocumentFormat.OpenXml.OpenXmlCompositeElement> _ensureProperties;
 
-        internal WordParagraphBorders(WordDocument wordDocument, WordParagraph wordParagraph) {
-            _document = wordDocument;
-            _wordParagraph = wordParagraph;
+        internal WordParagraphBorders(WordDocument wordDocument, WordParagraph wordParagraph)
+            : this(() => wordParagraph._paragraphProperties, () => wordParagraph._paragraph.ParagraphProperties ??= new ParagraphProperties()) {
         }
 
-        private ParagraphBorders? GetParagraphBorders() => _wordParagraph._paragraphProperties?.GetFirstChild<ParagraphBorders>();
+        /// <summary>Edits the borders of any paragraph-properties container, such as a paragraph or a style.</summary>
+        internal WordParagraphBorders(Func<DocumentFormat.OpenXml.OpenXmlCompositeElement?> readProperties,
+            Func<DocumentFormat.OpenXml.OpenXmlCompositeElement> ensureProperties) {
+            _readProperties = readProperties;
+            _ensureProperties = ensureProperties;
+        }
+
+        private ParagraphBorders? GetParagraphBorders() => _readProperties()?.GetFirstChild<ParagraphBorders>();
+
+        private void SetParagraphBorders(ParagraphBorders borders) {
+            var properties = _ensureProperties();
+            properties.RemoveAllChildren<ParagraphBorders>();
+            properties.AddChild(borders, true);
+        }
 
         private ParagraphBorders GetOrCreateParagraphBorders() {
             var pageBorder = GetParagraphBorders();
             if (pageBorder == null) {
                 pageBorder = Custom;
-                var paragraphProperties = _wordParagraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
-                paragraphProperties.ParagraphBorders = pageBorder;
+                SetParagraphBorders(pageBorder);
             }
 
             return pageBorder;
@@ -467,8 +478,7 @@ namespace OfficeIMO.Word {
                 var pageBorder = GetParagraphBorders();
                 pageBorder?.Remove();
             } else {
-                var paragraphProperties = _wordParagraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
-                paragraphProperties.ParagraphBorders = ParagraphBordersettings;
+                SetParagraphBorders(ParagraphBordersettings);
             }
         }
 

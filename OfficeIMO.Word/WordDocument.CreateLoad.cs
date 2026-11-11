@@ -169,14 +169,14 @@ namespace OfficeIMO.Word {
         private static WordDocument CreateInternal(string? filePath, Stream? stream, WordprocessingDocumentType documentType, DocumentPersistenceMode persistenceMode, OfficeTheme? theme) {
             // The implicit native defaults are deterministic, so reuse a package that already carries them instead of
             // parsing, cloning and reserializing the style catalog and theme part for every new document.
-            bool themeApplied = theme == null && !WordParagraphStyle.HasRuntimeStyleRegistrations;
+            bool themeApplied = theme == null;
             return CreateInternal(filePath, stream, documentType, persistenceMode, theme,
                 themeApplied ? GetDefaultThemedPackageBytes(documentType) : GetDefaultPackageBytes(documentType),
-                themeApplied, applyStyleRegistrations: true);
+                themeApplied);
         }
 
         private static WordDocument CreateInternal(string? filePath, Stream? stream, WordprocessingDocumentType documentType, DocumentPersistenceMode persistenceMode, OfficeTheme? theme,
-            byte[] templateBytes, bool themeApplied, bool applyStyleRegistrations, bool applyDefaultTheme = true) {
+            byte[] templateBytes, bool themeApplied, bool applyDefaultTheme = true) {
             var packageStream = new MemoryStream(templateBytes.Length + 4096);
             packageStream.Write(templateBytes, 0, templateBytes.Length);
             packageStream.Position = 0;
@@ -204,7 +204,6 @@ namespace OfficeIMO.Word {
                 _tableNormalizationRequired = false
             };
             word.InitializeSdtIdState();
-            if (applyStyleRegistrations && !themeApplied) ApplyCurrentStyleRegistrations(wordDocument.MainDocumentPart!.StyleDefinitionsPart);
             InitializeNewDocumentFacade(word);
             try {
                 if (themeApplied) word._creationTheme = OfficeTheme.Default;
@@ -235,7 +234,7 @@ namespace OfficeIMO.Word {
 
         private static byte[] CreateDefaultThemedPackageBytes(WordprocessingDocumentType documentType) {
             using WordDocument document = CreateInternal(filePath: null, stream: null, documentType, DocumentPersistenceMode.Explicit,
-                null, GetDefaultPackageBytes(documentType), themeApplied: false, applyStyleRegistrations: false);
+                null, GetDefaultPackageBytes(documentType), themeApplied: false);
             using var packageStream = new MemoryStream();
             using (document._wordprocessingDocument.Clone(packageStream, true)) {
             }
@@ -521,7 +520,6 @@ namespace OfficeIMO.Word {
                 if (applyOverrideStyles) {
                     // Ensure overrides are applied after any document initialization that may touch styles
                     InitialiseStyleDefinitions(wordDocument, readOnly, overrideStyles: true);
-                    EnsureCustomStyleNames(wordDocument);
                 }
                 WordChart.InitializeAxisIdSeed(wordDocument);
 
@@ -655,7 +653,6 @@ namespace OfficeIMO.Word {
             word.LoadDocument();
             if (applyOverrideStyles) {
                 InitialiseStyleDefinitions(wordDocument, readOnly, overrideStyles: true);
-                EnsureCustomStyleNames(wordDocument);
             }
             WordChart.InitializeAxisIdSeed(wordDocument);
             WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
@@ -769,7 +766,6 @@ namespace OfficeIMO.Word {
                 document.LoadDocument();
                 if (applyOverrideStyles) {
                     InitialiseStyleDefinitions(wordDocument, readOnly, overrideStyles: true);
-                    EnsureCustomStyleNames(wordDocument);
                 }
 
                 WordChart.InitializeAxisIdSeed(wordDocument);
