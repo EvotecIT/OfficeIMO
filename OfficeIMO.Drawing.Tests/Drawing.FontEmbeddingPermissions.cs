@@ -75,6 +75,11 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(OfficeFontContainerFormat.Woff, fonts.Faces[0].ContainerFormat);
             Assert.False(fonts.Faces[0].AllowsOutlineEmbedding);
+
+            // A face whose licence cannot be read at all is not embedded either.
+            var unreadable = new OfficeFontFaceCollection { FontProgramProvider = new SfntProvider(Font()) };
+            Assert.True(unreadable.TryAdd("Unreadable", Encoding.ASCII.GetBytes("provider-specific font program bytes")));
+            Assert.False(unreadable.Faces[0].AllowsOutlineEmbedding);
         }
 
         // Supplies a program but no static sfnt data, so the face keeps the WOFF container bytes.

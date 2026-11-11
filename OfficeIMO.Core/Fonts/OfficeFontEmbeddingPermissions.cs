@@ -89,6 +89,28 @@ internal readonly struct OfficeFontEmbeddingPermissions {
     }
 
     /// <summary>
+    /// Reads fsType through the sfnt table directory alone, for a single-face program that a font engine has already
+    /// accepted but that lacks tables <see cref="OfficeOpenTypeReader"/> requires. Returns null when the directory is invalid.
+    /// </summary>
+    internal static OfficeFontEmbeddingPermissions? TryReadTableDirectory(byte[] data) {
+        ArgumentNullException.ThrowIfNull(data);
+        if (data.Length < 12) return null;
+        uint flavor = ((uint)data[0] << 24) | ((uint)data[1] << 16) | ((uint)data[2] << 8) | data[3];
+        if (flavor != 0x00010000 && flavor != 0x74727565 && flavor != 0x4F54544F) return null;
+        int count = (data[4] << 8) | data[5];
+        if (count == 0 || data.Length < 12 + count * 16) return null;
+        for (int index = 0; index < count; index++) {
+            int record = 12 + index * 16;
+            if (data[record] != 'O' || data[record + 1] != 'S' || data[record + 2] != '/' || data[record + 3] != '2') continue;
+            long offset = ((long)data[record + 8] << 24) | ((long)data[record + 9] << 16) | ((long)data[record + 10] << 8) | data[record + 11];
+            long length = ((long)data[record + 12] << 24) | ((long)data[record + 13] << 16) | ((long)data[record + 14] << 8) | data[record + 15];
+            if (offset > data.Length || length > data.Length - offset) return null;
+            return FromOs2Table(data, (int)offset, (int)length);
+        }
+        return Undeclared;
+    }
+
+    /// <summary>
     /// Reads every face of a font file that is embedded whole. A collection takes the most restrictive level and every
     /// subsetting or bitmap restriction of its readable faces. Returns null when no face is a readable OpenType face.
     /// </summary>
