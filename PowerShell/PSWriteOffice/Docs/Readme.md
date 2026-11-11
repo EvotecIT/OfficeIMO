@@ -472,6 +472,9 @@ Releases a live Visio document without saving.
 ### [Close-OfficeWord](Close-OfficeWord.md)
 Closes one or more tracked Word documents, optionally saving them.
 
+### [Close-OfficeYaml](Close-OfficeYaml.md)
+Completes a live YAML document's lifetime without saving.
+
 ### [Compare-OfficeDocument](Compare-OfficeDocument.md)
 Compares native document content or rendered pages and optionally publishes a review artifact.
 
@@ -480,6 +483,9 @@ Compares two worksheets or ranges cell by cell.
 
 ### [Convert-OfficeDocument](Convert-OfficeDocument.md)
 Converts files through OfficeIMO's native routes and portable batch engine.
+
+### [ConvertFrom-OfficeYaml](ConvertFrom-OfficeYaml.md)
+Converts YAML text to PowerShell objects, as ConvertFrom-Json does for JSON.
 
 ### [ConvertTo-OfficeCsv](ConvertTo-OfficeCsv.md)
 Converts objects or a CSV document into CSV text.
@@ -498,6 +504,9 @@ Converts CFX semantic visual-artifact input into a native editable OfficeIMO.Vis
 
 ### [ConvertTo-OfficeVisual](ConvertTo-OfficeVisual.md)
 Converts a ChartForgeX visual artifact into a reusable OfficeIMO representation.
+
+### [ConvertTo-OfficeYaml](ConvertTo-OfficeYaml.md)
+Converts PowerShell objects to YAML text, as ConvertTo-Json does for JSON.
 
 ### [Copy-OfficeExcelSheet](Copy-OfficeExcelSheet.md)
 Copies selected worksheets within a workbook or from another workbook.
@@ -549,6 +558,9 @@ Exports PowerShell objects to a Word document containing an editable table.
 
 ### [Export-OfficeWordGoogleDocument](Export-OfficeWordGoogleDocument.md)
 Plans, compiles or exports Word documents to Google Docs.
+
+### [Export-OfficeYaml](Export-OfficeYaml.md)
+Writes PowerShell objects to a YAML file; the file form of ConvertTo-OfficeYaml.
 
 ### [Find-OfficeExcel](Find-OfficeExcel.md)
 Finds cells whose values match a pattern in a workbook, sheet or range.
@@ -626,7 +638,7 @@ Lists template markers and, with -Value, which are bound.
 Gets native data validation snapshots, with worksheet and source-path metadata.
 
 ### [Get-OfficeMarkdownFrontMatter](Get-OfficeMarkdownFrontMatter.md)
-Gets YAML front matter entries from a Markdown document.
+Gets top-level YAML front matter entries from a Markdown document as Key, Value, Node and SourceSpan objects.
 
 ### [Get-OfficeMarkdownHeading](Get-OfficeMarkdownHeading.md)
 Gets heading metadata from a Markdown document.
@@ -763,6 +775,9 @@ Gets the table of contents of a document.
 ### [Get-OfficeWordText](Get-OfficeWordText.md)
 Gets the text runs of paragraphs, sections or documents.
 
+### [Get-OfficeYamlNode](Get-OfficeYamlNode.md)
+Gets nodes of a live YAML document by path, as Path, Value, Node, Line and Column objects.
+
 ### [Import-OfficeConversionReport](Import-OfficeConversionReport.md)
 Reads saved conversion run reports without executing jobs or changing outputs.
 
@@ -783,6 +798,9 @@ Imports explicitly mapped tables into a new project without changing existing do
 
 ### [Import-OfficeVisioStencilCatalog](Import-OfficeVisioStencilCatalog.md)
 Loads a stencil catalog (built-in, from .vssx/.vsdx packages or installed Visio); inside a diagram block it also registers it.
+
+### [Import-OfficeYaml](Import-OfficeYaml.md)
+Reads YAML files as PowerShell objects; the file form of ConvertFrom-OfficeYaml.
 
 ### [Invoke-OfficeExcelAutoFit](Invoke-OfficeExcelAutoFit.md)
 Fits column widths and row heights to their content.
@@ -1078,6 +1096,9 @@ Creates a discoverable Word revision filter for Resolve-OfficeWordRevision.
 ### [New-OfficeWordTableCell](New-OfficeWordTableCell.md)
 Creates a plain or recorded rich Word cell for explicit table rows.
 
+### [New-OfficeYaml](New-OfficeYaml.md)
+Creates a live YAML document, or atomically publishes a completed content block.
+
 ### [Open-OfficeAccess](Open-OfficeAccess.md)
 Reads a native database without running queries, macros, or linked connections.
 
@@ -1129,6 +1150,9 @@ Loads an existing .vsdx file as an OfficeIMO.Visio document.
 ### [Open-OfficeWord](Open-OfficeWord.md)
 Opens a Word document for explicit editing, or saves and closes a completed content block.
 
+### [Open-OfficeYaml](Open-OfficeYaml.md)
+Opens a YAML file, stream or text as a lossless live document; a file content block saves atomically.
+
 ### [Optimize-OfficePdf](Optimize-OfficePdf.md)
 Writes a smaller or sanitized copy of a PDF.
 
@@ -1170,6 +1194,9 @@ Removes selected native slides or one-based slide positions.
 
 ### [Remove-OfficeWordTableOfContents](Remove-OfficeWordTableOfContents.md)
 Removes the table of contents from a Word document.
+
+### [Remove-OfficeYamlNode](Remove-OfficeYamlNode.md)
+Removes mapping entries or sequence items from a live YAML document by path.
 
 ### [Rename-OfficeExcelNamedRange](Rename-OfficeExcelNamedRange.md)
 Renames a defined name.
@@ -1227,6 +1254,9 @@ Saves an OfficeIMO.Visio document.
 
 ### [Save-OfficeWord](Save-OfficeWord.md)
 Saves a live Word document without closing it.
+
+### [Save-OfficeYaml](Save-OfficeYaml.md)
+Saves a live YAML document and keeps it available.
 
 ### [Search-OfficeDocument](Search-OfficeDocument.md)
 Finds regular-expression or literal matches across supported files and folders.
@@ -1411,6 +1441,9 @@ Sets properties on a table of contents in a Word document.
 ### [Set-OfficeWordText](Set-OfficeWordText.md)
 Updates styling on Word text.
 
+### [Set-OfficeYamlNode](Set-OfficeYamlNode.md)
+Sets the value at a path in a live YAML document, creating missing mappings on the way.
+
 ### [Split-OfficeDocument](Split-OfficeDocument.md)
 Splits PDF files into consecutive groups, selected ranges or top-level bookmarked chapters.
 
@@ -1425,6 +1458,9 @@ Creates a proof report for user-visible signals preserved by a PDF rewrite.
 
 ### [Test-OfficePowerPoint](Test-OfficePowerPoint.md)
 Inspects a live or saved presentation without changing or reopening a supplied document.
+
+### [Test-OfficeYaml](Test-OfficeYaml.md)
+Tests whether YAML files or text load, without changing them.
 
 ### [Unprotect-OfficeDocument](Unprotect-OfficeDocument.md)
 Removes native package encryption or selected editing restrictions.

@@ -16,7 +16,7 @@ Merge-OfficeDocument [-Path] <string[]> [-OutputPath] <string> [-Password <secur
 
 ### Document
 ```powershell
-Merge-OfficeDocument [-Document] <IDisposable> [-Path] <string[]> [-OutputPath <string>] [-Password <securestring[]>] [-Options <Object[]>] [-NoClobber] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Merge-OfficeDocument [-Document] <IDisposable> [-Path] <string[]> [-OutputPath <string>] [-Password <securestring[]>] [-Options <Object[]>] [-NoClobber] [-PassThru] [-PassThruReport] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### LiteralPath
@@ -25,11 +25,15 @@ Merge-OfficeDocument [-OutputPath] <string> -LiteralPath <string[]> [-Password <
 ```
 
 ## DESCRIPTION
-Supports PDF and Open XML Word and Excel files. Binary projection and conversion are not performed.
-Word and Excel live documents can receive appended files and remain caller-owned. PDF merging creates a new
+Supports PDF, Open XML Word and Excel, and YAML files. Binary projection and conversion are not performed.
+Word, Excel and YAML live documents can receive appended files and remain caller-owned. PDF merging creates a new
 document, so live PDF targets are not supported. PassThru returns a saved FileInfo for file input or the live
-document for Document input. PassThruReport returns the native report for PDF file merges.
-Native merge options determine which content is imported.
+document for Document input. PassThruReport returns the native report for PDF file merges and one report per
+overlay for YAML merges. Native merge options determine which content is imported.
+
+YAML inputs (.yaml and .yml mix freely) are overlaid in order onto the first file or the live document, the way
+Helm combines values files: mappings merge key by key, sequences follow YamlMergeOptions.Sequences, and only the
+lines the merge changes differ from the base file.
 
 ## EXAMPLES
 
@@ -47,6 +51,12 @@ Get-ChildItem ./weekly -Filter *.docx | Sort-Object Name | Merge-OfficeDocument 
 
 ### EXAMPLE 3
 ```powershell
+Merge-OfficeDocument -Path ./values.yaml, ./values.prod.yaml -OutputPath ./values.merged.yaml -Options @{ NullRemovesKey = $true } -PassThruReport
+```
+
+
+### EXAMPLE 4
+```powershell
 Merge-OfficeDocument -Document $proposal -Path ./scope.docx, ./pricing.docx -OutputPath ./proposal.docx
 ```
 
@@ -54,7 +64,7 @@ Merge-OfficeDocument -Document $proposal -Path ./scope.docx, ./pricing.docx -Out
 ## PARAMETERS
 
 ### -Document
-A single editable Word or Excel document to append to; ownership stays with the caller.
+A single editable Word, Excel or YAML document to append to; ownership stays with the caller.
 
 ```yaml
 Type: IDisposable
@@ -150,11 +160,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThruReport
-Emit the native PDF merge report after successful publication.
+Emit the native PDF merge report, or one YAML merge report per overlay, after a successful merge.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, LiteralPath
+Parameter Sets: Path, Document, LiteralPath
 Aliases: None
 Possible values:
 
@@ -227,6 +237,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 - `OfficeIMO.Word.WordDocument`
 - `OfficeIMO.Excel.ExcelDocument`
 - `OfficeIMO.Pdf.PdfMergeReport`
+- `OfficeIMO.Yaml.YamlMergeReport`
 
 ## RELATED LINKS
 
