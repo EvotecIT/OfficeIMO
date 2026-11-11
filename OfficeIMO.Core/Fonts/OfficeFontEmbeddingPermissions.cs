@@ -69,11 +69,16 @@ internal readonly struct OfficeFontEmbeddingPermissions {
     /// <summary>Resolves an fsType value.</summary>
     internal static OfficeFontEmbeddingPermissions FromFsType(ushort fsType) => new(fsType, declared: true);
 
-    /// <summary>Reads fsType from an OS/2 table at <paramref name="os2Offset"/> whose declared length is <paramref name="os2Length"/>.</summary>
+    /// <summary>
+    /// Reads fsType from an OS/2 table at <paramref name="os2Offset"/> whose declared length is <paramref name="os2Length"/>.
+    /// OS/2 versions 0 and 1 define only bits 0–3, so their other bits are ignored, as the specification directs.
+    /// </summary>
     internal static OfficeFontEmbeddingPermissions FromOs2Table(byte[] data, int os2Offset, int os2Length) {
         ArgumentNullException.ThrowIfNull(data);
         if (os2Length < FsTypeOffset + 2 || os2Offset < 0 || os2Offset > data.Length - (FsTypeOffset + 2)) return Undeclared;
-        return FromFsType(unchecked((ushort)((data[os2Offset + FsTypeOffset] << 8) | data[os2Offset + FsTypeOffset + 1])));
+        int version = (data[os2Offset] << 8) | data[os2Offset + 1];
+        ushort fsType = unchecked((ushort)((data[os2Offset + FsTypeOffset] << 8) | data[os2Offset + FsTypeOffset + 1]));
+        return FromFsType(version < 2 ? (ushort)(fsType & 0x000F) : fsType);
     }
 
     /// <summary>Reads one face of a font or font collection, or returns null when it is not a readable OpenType face.</summary>

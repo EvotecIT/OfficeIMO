@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Text;
 using OfficeIMO.Drawing;
+using OfficeIMO.TestAssets;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -37,6 +38,11 @@ namespace OfficeIMO.Tests {
             Assert.False(undeclared.IsDeclared);
             Assert.True(undeclared.AllowsOutlineEmbedding);
 
+            // OS/2 versions 0 and 1 define only bits 0-3, so a bitmap-only bit there is ignored.
+            byte[] version1 = WithFsType(Font(), 0x0200);
+            BinaryPrimitives.WriteUInt16BigEndian(version1.AsSpan(FindTable(version1, "OS/2")), 1);
+            Assert.True(OfficeFontEmbeddingPermissions.TryRead(version1)!.Value.AllowsOutlineEmbedding);
+
             byte[] collection = Collection(Font(), WithFsType(Font(), 0x0002));
             Assert.Equal(OfficeFontEmbeddingLevel.Installable, OfficeFontEmbeddingPermissions.TryRead(collection, 0)!.Value.Level);
             Assert.Equal(OfficeFontEmbeddingLevel.Restricted, OfficeFontEmbeddingPermissions.TryRead(collection, 1)!.Value.Level);
@@ -58,6 +64,25 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(embedded, svg.Contains("@font-face", StringComparison.Ordinal));
             Assert.Contains("Licensed Face", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void ProviderKeptWoffFacesAreReadForTheirLicence() {
+            byte[] restricted = WithFsType(Font(), 0x0002);
+            var fonts = new OfficeFontFaceCollection { FontProgramProvider = new SfntProvider(restricted) };
+
+            Assert.True(fonts.TryAdd("Licensed Woff", ManagedTextShapingTestAssets.CreateWoff(restricted)));
+
+            Assert.Equal(OfficeFontContainerFormat.Woff, fonts.Faces[0].ContainerFormat);
+            Assert.False(fonts.Faces[0].AllowsOutlineEmbedding);
+        }
+
+        // Supplies a program but no static sfnt data, so the face keeps the WOFF container bytes.
+        private sealed class SfntProvider : IOfficeFontProgramProvider {
+            private readonly byte[] _sfnt;
+            internal SfntProvider(byte[] sfnt) => _sfnt = sfnt;
+            public OfficeFontProgramLoadResult? TryLoad(OfficeFontProgramLoadRequest request) =>
+                new OfficeFontProgramLoadResult(OfficeTrueTypeFont.TryLoad(_sfnt)!, _sfnt.Length);
         }
 
         internal static byte[] Font() =>

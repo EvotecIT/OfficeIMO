@@ -67,18 +67,26 @@ public sealed partial class OfficeFontFace {
 
     internal byte[] DataSnapshot => _data;
 
+    private OfficeFontEmbeddingPermissions? ReadEmbeddingPermissions() {
+        if (OfficeFontEmbeddingPermissions.TryReadFile(_data) is OfficeFontEmbeddingPermissions permissions) return permissions;
+        // A font-program provider can keep the source container when it supplies no static sfnt data.
+        if (ContainerFormat is not (OfficeFontContainerFormat.Woff or OfficeFontContainerFormat.Woff2) ||
+            !OfficeFontContainerDecoder.TryDecodeToOpenType(_data, out byte[] decoded, out _, out _)) return null;
+        return OfficeFontEmbeddingPermissions.TryReadFile(decoded);
+    }
+
     // 0 = not read, 1 = embeddable, 2 = refused by the face's OS/2 fsType.
     private int _outlineEmbedding;
 
     /// <summary>
-    /// False when the face's OS/2 fsType forbids embedding its outlines in an output document. Bytes that are not a
-    /// readable OpenType font carry no licence to check.
+    /// False when the face's OS/2 fsType forbids embedding its outlines in an output document. A face kept in its WOFF or
+    /// WOFF 2 container is decoded to read it; bytes that cannot be read as an OpenType font carry no licence to check.
     /// </summary>
     internal bool AllowsOutlineEmbedding {
         get {
             int state = _outlineEmbedding;
             if (state == 0) {
-                state = OfficeFontEmbeddingPermissions.TryReadFile(_data)?.AllowsOutlineEmbedding == false ? 2 : 1;
+                state = ReadEmbeddingPermissions()?.AllowsOutlineEmbedding == false ? 2 : 1;
                 _outlineEmbedding = state;
             }
             return state == 1;
