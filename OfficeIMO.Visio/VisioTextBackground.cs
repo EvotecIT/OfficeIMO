@@ -19,9 +19,16 @@ internal static class VisioTextBackground {
     private static VisioTextStyle? Effective(VisioTextStyle? style, OfficeColor? sheet) {
         if (style?.BackgroundColor != null || sheet == null) return style;
         VisioTextStyle copy = style?.Clone() ?? new VisioTextStyle();
-        // The sheet color already carries TextBkgndTrans in its alpha.
-        copy.BackgroundColor = sheet;
-        copy.BackgroundTransparency = null;
+        OfficeColor inherited = sheet.Value;
+        if (inherited.A > 0 && style?.BackgroundTransparency != null) {
+            // A local TextBkgndTrans overrides the sheet's transparency; the renderers apply it to the opaque color.
+            copy.BackgroundColor = OfficeColor.FromRgb(inherited.R, inherited.G, inherited.B);
+            copy.BackgroundTransparency = style.BackgroundTransparency;
+        } else {
+            // The sheet color already carries TextBkgndTrans in its alpha.
+            copy.BackgroundColor = inherited;
+            copy.BackgroundTransparency = null;
+        }
         return copy;
     }
 }
