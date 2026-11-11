@@ -294,14 +294,14 @@ public class YamlSerializerBehaviorTests {
     // Writing object-typed values uses the runtime type: dictionaries, lists and generated types.
     [Fact]
     public void ObjectValuesAreWrittenByRuntimeType() {
-        var value = new Dictionary<string, object?> {
+        var value = new Dictionary<string, object> {
             ["point"] = new Point { X = 1, Y = 2 },
             ["list"] = new[] { 1, 2 },
             ["level"] = LogLevel.Error,
             ["map"] = new System.Collections.Hashtable { ["k"] = "v" }
         };
         Assert.Equal("point:\n  X: 1\n  'Y': 2\nlist:\n- 1\n- 2\nlevel: Error\nmap:\n  k: v\n", YamlSerializer.Serialize(value, Context.DictionaryStringObject));
-        var missing = Assert.Throws<NotSupportedException>(() => YamlSerializer.Serialize(new Dictionary<string, object?> { ["x"] = new Version(1, 0) }, Context.DictionaryStringObject));
+        var missing = Assert.Throws<NotSupportedException>(() => YamlSerializer.Serialize(new Dictionary<string, object> { ["x"] = new Version(1, 0) }, Context.DictionaryStringObject));
         Assert.Contains("[YamlSerializable(typeof(Version))]", missing.Message, StringComparison.Ordinal);
     }
 
@@ -315,8 +315,8 @@ public class YamlSerializerBehaviorTests {
         Assert.Equal(System.Text.Encoding.UTF8.GetBytes(expected), stream.ToArray());
         Assert.Equal(stream.ToArray(), YamlSerializer.SerializeToUtf8Bytes(config, Context.AppConfig));
         stream.Position = 0;
-        Assert.Equal(expected, YamlSerializer.Serialize(YamlSerializer.Deserialize(stream, Context.AppConfig), Context.AppConfig));
-        Assert.Equal(expected, YamlSerializer.Serialize(YamlSerializer.Deserialize(new StringReader(expected), Context.AppConfig), Context.AppConfig));
+        Assert.Equal(expected, YamlSerializer.Serialize(YamlSerializer.Deserialize(stream, Context.AppConfig)!, Context.AppConfig));
+        Assert.Equal(expected, YamlSerializer.Serialize(YamlSerializer.Deserialize(new StringReader(expected), Context.AppConfig)!, Context.AppConfig));
 
         // A value written as one node inside a document the caller writes.
         var text = new StringWriter();

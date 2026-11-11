@@ -117,8 +117,8 @@ public class YamlSerializerInteropTests {
         int renamed = 0;
         string comparable = System.Text.RegularExpressions.Regex.Replace(yaml, "(?<=(?:^|[:-] ) *)'(null|Null|NULL|~|<<)?'(?=:|\\n)",
             _ => "'renamed-" + (++renamed).ToString(System.Globalization.CultureInfo.InvariantCulture) + "'", System.Text.RegularExpressions.RegexOptions.Multiline);
-        string expected = YamlSerializer.Serialize(YamlSerializer.Deserialize(comparable, typeInfo), typeInfo);
-        Assert.Equal(expected, YamlSerializer.Serialize(Sharp.YamlSerializer.Deserialize<T>(comparable, options), typeInfo));
+        string expected = YamlSerializer.Serialize(YamlSerializer.Deserialize(comparable, typeInfo)!, typeInfo);
+        Assert.Equal(expected, YamlSerializer.Serialize(Sharp.YamlSerializer.Deserialize<T>(comparable, options)!, typeInfo));
     }
 
     private static DotNet.Serialization.IDeserializer KubeDotNet() => new DotNet.Serialization.DeserializerBuilder()
