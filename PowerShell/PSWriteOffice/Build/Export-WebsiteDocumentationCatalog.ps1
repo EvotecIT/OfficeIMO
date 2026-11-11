@@ -123,6 +123,12 @@ $familyDefinitions = @(
         match = { param($name) $name -match 'OfficeCsv' }
     }
     [ordered]@{
+        id = 'yaml'; title = 'YAML'; description = 'Edit YAML files without losing comments or layout, merge overlays, and convert between YAML and objects.'
+        docs = 'open-text-formats'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Yaml'
+        samples = @('Open-OfficeYaml', 'Set-OfficeYamlNode', 'ConvertFrom-OfficeYaml', 'Test-OfficeYaml')
+        match = { param($name) $name -match 'OfficeYaml' }
+    }
+    [ordered]@{
         id = 'open-document'; title = 'OpenDocument'; description = 'Compose, read, convert, and save ODT, ODS, and ODP workflows.'
         docs = 'open-text-formats'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples'
         samples = @('New-OfficeOpenDocument', 'Add-OfficeOpenDocumentParagraph', 'Set-OfficeOpenDocumentCell', 'Save-OfficeOpenDocument')
