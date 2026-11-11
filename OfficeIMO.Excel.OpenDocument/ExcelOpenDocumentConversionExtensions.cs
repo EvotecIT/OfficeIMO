@@ -964,24 +964,31 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (string.IsNullOrWhiteSpace(styleName)) return false;
         if (cache.TryGetValue(styleName!, out bool paints)) return paints;
         OdfStyle? style = source.Styles.FindInPart(OdfStyleFamily.TableCell, styleName!, "content.xml");
-        paints = style == null || source.Styles.Resolve(style).Any(candidate => {
+        paints = style == null || PaintsBlankCell(source.Styles.Resolve(style)
+            .Concat(source.Styles.FindDefault(OdfStyleFamily.TableCell) is { } familyDefault
+                ? new[] { familyDefault } : Array.Empty<OdfStyle>()));
+        cache[styleName!] = paints;
+        return paints;
+    }
+
+    // The most specific style that declares a property wins, down to the table-cell family default.
+    private static bool PaintsBlankCell(IEnumerable<OdfStyle> chain) {
+        var effective = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (OdfStyle candidate in chain) {
             // Conditional maps can paint once a value is typed, and the converter maps them per cell.
             if (candidate.Element.Elements(OdfNamespaces.Style + "map").Any()) return true;
             XElement? properties = candidate.Element.Element(OdfNamespaces.Style + "table-cell-properties");
-            if (properties == null) return false;
+            if (properties == null) continue;
             if (properties.HasElements) return true;
-            return properties.Attributes().Any(attribute => {
-                string name = attribute.Name.LocalName;
-                string value = attribute.Value.Trim();
-                if (name == "background-color") return !string.Equals(value, "transparent", StringComparison.OrdinalIgnoreCase);
-                if (name.StartsWith("border", StringComparison.Ordinal) || name.StartsWith("diagonal", StringComparison.Ordinal) ||
-                    name == "shadow")
-                    return value.Length > 0 && !string.Equals(value, "none", StringComparison.OrdinalIgnoreCase);
-                return false;
-            });
-        });
-        cache[styleName!] = paints;
-        return paints;
+            foreach (XAttribute attribute in properties.Attributes()) {
+                if (!effective.ContainsKey(attribute.Name.LocalName)) effective.Add(attribute.Name.LocalName, attribute.Value.Trim());
+            }
+        }
+        return effective.Any(property => property.Key == "background-color"
+            ? !string.Equals(property.Value, "transparent", StringComparison.OrdinalIgnoreCase)
+            : (property.Key.StartsWith("border", StringComparison.Ordinal) || property.Key.StartsWith("diagonal", StringComparison.Ordinal) ||
+               property.Key == "shadow") &&
+              property.Value.Length > 0 && !string.Equals(property.Value, "none", StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool HasVisibleBlankCellStyle(OdsDocument source, string? styleName,
