@@ -188,7 +188,8 @@ public sealed partial class YamlReader : IDisposable {
             var scanner = new YamlScanner(CurrentText, c);
             ParseEvent(ref scanner, out _event);
             if (c.CommentCount > 0 && c.Comments[c.CommentHead].Start <= _event.Start) {
-                (_pending ??= new YamlEvent[1])[0] = _event;
+                _pending ??= new YamlEvent[1];
+                _pending[0] = _event;
                 _hasPending = true;
                 TakeComment();
                 return;
