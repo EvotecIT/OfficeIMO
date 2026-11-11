@@ -78,7 +78,9 @@ public static partial class HtmlResourcePipeline {
             return;
         }
 
-        IReadOnlyDictionary<IElement, HtmlComputedStyle> resolvedComputedStyles = computedStyles.Value;
+        // Most references never consult the cascade: a font-face or ordinary rule URL needs it
+        // only for custom properties or keyframes. Compute it on that first use.
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> resolvedComputedStyles = new DeferredComputedStyles(computedStyles);
         AddUsedCustomPropertyUrls(manifest, element, attributeName, css, customPropertyDefinitions, inlineSourceOrders, resolvedComputedStyles, inactiveMediaRanges, baseUri, options, document, inlineUseElement);
         foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(css)) {
             string source = DecodeCssEscapes(reference.Source);
@@ -111,4 +113,24 @@ public static partial class HtmlResourcePipeline {
         }
     }
 
+
+    /// <summary>The document's computed styles, computed only when a reference first reads them.</summary>
+    private sealed class DeferredComputedStyles : IReadOnlyDictionary<IElement, HtmlComputedStyle> {
+        private readonly Lazy<IReadOnlyDictionary<IElement, HtmlComputedStyle>> _styles;
+
+        internal DeferredComputedStyles(Lazy<IReadOnlyDictionary<IElement, HtmlComputedStyle>> styles) => _styles = styles;
+
+        public HtmlComputedStyle this[IElement key] => _styles.Value[key];
+        public IEnumerable<IElement> Keys => _styles.Value.Keys;
+        public IEnumerable<HtmlComputedStyle> Values => _styles.Value.Values;
+        public int Count => _styles.Value.Count;
+        public bool ContainsKey(IElement key) => _styles.Value.ContainsKey(key);
+        public bool TryGetValue(IElement key,
+#if NETCOREAPP3_0_OR_GREATER
+            [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)]
+#endif
+            out HtmlComputedStyle value) => _styles.Value.TryGetValue(key, out value);
+        public IEnumerator<KeyValuePair<IElement, HtmlComputedStyle>> GetEnumerator() => _styles.Value.GetEnumerator();
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+    }
 }
