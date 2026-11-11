@@ -633,6 +633,7 @@ namespace OfficeIMO.Examples {
             // Word.CompareDocuments.Example_BasicComparison(folderPath, false);
             // // Word/MergeDocuments
             // Word.MergeDocuments.Example_AppendDocument(folderPath, false);
+            // Word.MergeDocuments.Example_SplitDocument(folderPath, false);
             // // Word/ContentControls
             // Word.ContentControls.Example_AddContentControl(folderPath, false);
             // Word.ContentControls.Example_AdvancedContentControls(folderPath, false);

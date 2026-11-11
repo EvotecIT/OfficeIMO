@@ -718,3 +718,5 @@ OfficeIMO.Word.WordRange.Text.get -> string!
 OfficeIMO.Word.WordSearchResult.Ranges.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordRange!>!
 OfficeIMO.Word.WordDocumentMergeOptions.StyleConflictMode.get -> OfficeIMO.Word.WordStyleConflictMode
 OfficeIMO.Word.WordDocumentMergeOptions.StyleConflictMode.set -> void
+OfficeIMO.Word.WordDocument.SplitByHeading(int level = 1) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordDocument!>!
+OfficeIMO.Word.WordDocument.SplitBySection() -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordDocument!>!
