@@ -154,10 +154,10 @@ Describe 'YAML data conversion' {
     It 'limits nesting with Depth exactly as ConvertFrom-Json does' {
         $json = '{"a":{"b":{"c":1}}}'
         { $json | ConvertFrom-Json -Depth 2 } | Should -Throw
-        { $json | ConvertFrom-OfficeYaml -Depth 2 } | Should -Throw -ErrorId 'Yaml.Limit.Exceeded*'
+        { $json | ConvertFrom-OfficeYaml -Depth 2 } | Should -Throw -ErrorId 'yaml-limit-exceeded*'
         ($json | ConvertFrom-OfficeYaml -Depth 3).a.b.c | Should -Be 1
         $block = "a:`n  b:`n    c: 1"
-        { $block | ConvertFrom-OfficeYaml -Depth 2 } | Should -Throw -ErrorId 'Yaml.Limit.Exceeded*'
+        { $block | ConvertFrom-OfficeYaml -Depth 2 } | Should -Throw -ErrorId 'yaml-limit-exceeded*'
         ($block | ConvertFrom-OfficeYaml -Depth 3).a.b.c | Should -Be 1
     }
 
@@ -243,7 +243,7 @@ Describe 'YAML data conversion' {
 }
 
 Describe 'YAML validation' {
-    It 'returns Booleans and, with Detailed, the engine code and 1-based position' {
+    It 'returns Booleans and, with Detailed, the diagnostic code and 1-based position' {
         $bad = Join-Path $TestDrive 'bad.yaml'
         $good = Join-Path $TestDrive 'good.yaml'
         [IO.File]::WriteAllText($bad, "name: web`nports: [80, 443`n")
@@ -254,11 +254,12 @@ Describe 'YAML validation' {
         $result = Test-OfficeYaml -LiteralPath $bad -Detailed
         $result.IsValid | Should -BeFalse
         $result.Path | Should -Be $bad
-        $result.Code | Should -BeLike 'Yaml.Syntax.*'
+        $result.Code | Should -BeLike 'yaml-syntax-*'
         $result.Line | Should -Be 3
         $result.Column | Should -Be 1
+        @($result.Diagnostics.Code) | Should -Contain $result.Code
 
-        { Open-OfficeYaml -Text "ports: [80, 443`n" } | Should -Throw -ErrorId 'Yaml.Syntax.*'
+        { Open-OfficeYaml -Text "ports: [80, 443`n" } | Should -Throw -ErrorId 'yaml-syntax-*'
     }
 
     It 'applies Strict to input the default mode accepts with a warning' {

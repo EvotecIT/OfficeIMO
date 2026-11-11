@@ -7,8 +7,8 @@ namespace PSWriteOffice.Cmdlets.Yaml;
 
 /// <summary>Opens a YAML file, stream or text as a lossless live document; a file content block saves atomically.</summary>
 /// <para>Saving writes only what changed: comments, blank lines, quoting and indentation outside the edited nodes stay
-/// byte for byte. Malformed input fails with the engine's error code (for example Yaml.Syntax.UnexpectedToken) and its
-/// line and column.</para>
+/// byte for byte. Malformed input fails with a diagnostic error ID (for example yaml-syntax-unexpected-token), and the
+/// message gives the line, column and offending source line.</para>
 /// <example><summary>Change one value and keep the rest of the file as it was.</summary>
 /// <code>Open-OfficeYaml -Path ./deployment.yaml {
 ///     Set-OfficeYamlNode -Select 'spec.replicas' -Value 3

@@ -48,13 +48,9 @@ internal static class OfficeYamlDocuments {
         return result;
     }
 
-    /// <summary>
-    /// Reports a YAML failure with the engine's stable code as the error ID. The code, line and column come straight
-    /// from <see cref="YamlException"/>; when the engine's YamlException-to-OfficeDiagnostic helper lands, this is the
-    /// one place to switch over.
-    /// </summary>
+    /// <summary>Reports a YAML failure with the diagnostic code of <see cref="YamlException.ToDiagnostic"/> as the error ID.</summary>
     internal static ErrorRecord Error(Exception exception, object? input) => exception switch {
-        YamlException yaml => OfficeError.Create(yaml, yaml.Code, input, ErrorCategory.InvalidData),
+        YamlException yaml => OfficeError.Create(yaml, yaml.ToDiagnostic().Code, input, ErrorCategory.InvalidData),
         InvalidDataException => OfficeError.Create(exception, "yaml-multiple-documents", input, ErrorCategory.InvalidData),
         ItemNotFoundException => OfficeError.Create(exception, "yaml-node-not-found", input, ErrorCategory.ObjectNotFound),
         _ => OfficeError.Create(exception, "yaml-failed", input)

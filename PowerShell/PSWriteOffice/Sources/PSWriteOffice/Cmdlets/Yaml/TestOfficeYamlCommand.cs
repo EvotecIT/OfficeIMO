@@ -7,8 +7,8 @@ using PSWriteOffice.Services.Yaml;
 namespace PSWriteOffice.Cmdlets.Yaml;
 
 /// <summary>Tests whether YAML files or text load, without changing them.</summary>
-/// <para>Returns $true or $false for each input, as Test-Json does. Detailed returns a result with the engine's error
-/// code, message, 1-based line and column, and the warnings it recorded while loading. Strict applies the
+/// <para>Returns $true or $false for each input, as Test-Json does. Detailed returns a result with the error's
+/// diagnostic code, message, 1-based line and column, and the warnings the engine recorded while loading. Strict applies the
 /// specification's exact rules, and Untrusted the engine's limits for files from outside.</para>
 /// <example><summary>Gate a pipeline step on a valid file.</summary>
 /// <code>if (-not (Test-OfficeYaml -Path ./values.yaml -Strict)) { throw 'values.yaml is not valid YAML.' }</code></example>
@@ -63,9 +63,9 @@ public sealed class TestOfficeYamlCommand : OfficeCmdlet {
         OfficeYamlTestResult result;
         try {
             using YamlDocument document = load();
-            result = new OfficeYamlTestResult(path, null, document.Diagnostics);
+            result = new OfficeYamlTestResult(path, document.Diagnostics);
         } catch (YamlException error) {
-            result = new OfficeYamlTestResult(path, error, Array.Empty<OfficeDiagnostic>());
+            result = new OfficeYamlTestResult(path, Array.Empty<OfficeDiagnostic>(), error);
         }
         if (Detailed) WriteObject(result);
         else WriteObject(result.IsValid);
