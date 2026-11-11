@@ -283,6 +283,7 @@ public sealed partial class PdfCreateOptions {
     /// <summary>Embedded TrueType font mappings keyed by generated standard-font slot.</summary>
     public System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, PdfEmbeddedFont> EmbeddedFonts {
         get {
+            ResolvePendingDefaultFontFamilies();
             if (_embeddedFonts == null || _embeddedFonts.Count == 0) {
                 return new System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>();
             }
@@ -311,6 +312,7 @@ public sealed partial class PdfCreateOptions {
         }
 
         PdfFontInput.EnsureWithinLimit(data.LongLength);
+        ResolvePendingDefaultFontFamilies(font);
         // Any explicit face registration claims the whole compatibility family,
         // even when its bytes and generated name already match the current face.
         _fallbackOwnedFontFamilies?.Remove(PdfStandardFontMapper.GetFontFamily(font));
@@ -403,6 +405,7 @@ public sealed partial class PdfCreateOptions {
 
     /// <summary>Removes all embedded standard-font mappings.</summary>
     public PdfCreateOptions ClearEmbeddedStandardFonts() {
+        ResolvePendingDefaultFontFamilies();
         _embeddedFonts?.Clear();
         _embeddedFontPrograms?.Clear();
         _embeddedOpenTypeCffFontPrograms?.Clear();
@@ -860,6 +863,7 @@ public sealed partial class PdfCreateOptions {
     }
 
     internal bool TryGetEmbeddedStandardFont(PdfStandardFont font, out PdfEmbeddedFont? embeddedFont) {
+        ResolvePendingDefaultFontFamilies(font);
         if (_embeddedFonts != null && _embeddedFonts.TryGetValue(font, out PdfEmbeddedFont? value)) {
             embeddedFont = value.Clone();
             return true;
@@ -871,6 +875,7 @@ public sealed partial class PdfCreateOptions {
 
     internal bool TryGetEmbeddedStandardFontProgram(PdfStandardFont font, out PdfTrueTypeFontProgram? fontProgram) {
         Guard.StandardFont(font, nameof(font), "PDF embedded font lookup must target one of the supported standard PDF fonts.");
+        ResolvePendingDefaultFontFamilies(font);
         if (_embeddedFontPrograms != null && _embeddedFontPrograms.TryGetValue(font, out PdfTrueTypeFontProgram? cachedProgram)) {
             fontProgram = cachedProgram;
             return true;
@@ -906,6 +911,7 @@ public sealed partial class PdfCreateOptions {
 
     internal bool TryGetEmbeddedStandardFontProgramForGeneration(PdfStandardFont font, out PdfEmbeddedFont? embeddedFont, out PdfTrueTypeFontProgram? fontProgram) {
         Guard.StandardFont(font, nameof(font), "PDF embedded font lookup must target one of the supported standard PDF fonts.");
+        ResolvePendingDefaultFontFamilies(font);
         embeddedFont = null;
         if (_embeddedFonts == null || !_embeddedFonts.TryGetValue(font, out embeddedFont)) {
             fontProgram = null;
@@ -937,6 +943,7 @@ public sealed partial class PdfCreateOptions {
 
     internal bool TryGetEmbeddedStandardOpenTypeCffFontProgram(PdfStandardFont font, out PdfOpenTypeCffFontProgram? fontProgram) {
         Guard.StandardFont(font, nameof(font), "PDF embedded font lookup must target one of the supported standard PDF fonts.");
+        ResolvePendingDefaultFontFamilies(font);
         if (_embeddedOpenTypeCffFontPrograms != null && _embeddedOpenTypeCffFontPrograms.TryGetValue(font, out PdfOpenTypeCffFontProgram? cachedProgram)) {
             fontProgram = cachedProgram;
             return true;
@@ -967,6 +974,7 @@ public sealed partial class PdfCreateOptions {
 
     internal bool TryGetEmbeddedStandardOpenTypeCffFontProgramForGeneration(PdfStandardFont font, out PdfEmbeddedFont? embeddedFont, out PdfOpenTypeCffFontProgram? fontProgram) {
         Guard.StandardFont(font, nameof(font), "PDF embedded font lookup must target one of the supported standard PDF fonts.");
+        ResolvePendingDefaultFontFamilies(font);
         embeddedFont = null;
         if (_embeddedFonts == null || !_embeddedFonts.TryGetValue(font, out embeddedFont) || !IsOpenTypeCffFontData(embeddedFont.DataSnapshot)) {
             fontProgram = null;

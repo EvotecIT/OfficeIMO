@@ -430,7 +430,7 @@ Workbook paths resolved with filesystem wildcard support.
 ```yaml
 Type: String
 Parameter Sets: Create, Append, ReplaceSheet
-Aliases: None
+Aliases: FilePath
 Possible values:
 
 Required: True
@@ -478,7 +478,7 @@ Worksheet name, one-based position or native worksheet object. Multi-sheet comma
 ```yaml
 Type: OfficeSheetSelector
 Parameter Sets: Create, Append, ReplaceSheet
-Aliases: None
+Aliases: WorksheetName
 Possible values:
 
 Required: False

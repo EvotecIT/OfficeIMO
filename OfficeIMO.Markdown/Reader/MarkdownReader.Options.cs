@@ -68,6 +68,7 @@ internal static partial class MarkdownReader {
             Abbreviations = source.Abbreviations,
             GenericAttributes = source.GenericAttributes,
             CustomContainers = source.CustomContainers,
+            Math = source.Math,
             BaseUri = source.BaseUri,
             DisallowScriptUrls = source.DisallowScriptUrls,
             DisallowFileUrls = source.DisallowFileUrls,

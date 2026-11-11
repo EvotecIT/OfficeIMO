@@ -47,6 +47,12 @@ public static partial class MarkdownPdfConverterExtensions {
             case HighlightInline highlight:
                 ApplyStyle(builder, style.With(background: global::OfficeIMO.OfficeColor.FromRgb(254, 243, 199))).AddText(highlight.Text);
                 break;
+            case MathInline math when TryCreateInlineMathRun(math, style, out PdfTextRun mathRun):
+                builder.AddRuns(new[] { mathRun });
+                break;
+            case MathInline math:
+                builder.AddRuns(new[] { CreateMathSourceRun(math, style) });
+                break;
             case CodeSpanInline code:
                 ApplyStyle(builder, style.With(font: PdfCore.PdfStandardFont.Courier, background: global::OfficeIMO.OfficeColor.FromRgb(241, 245, 249), color: global::OfficeIMO.OfficeColor.FromRgb(30, 41, 59))).AddText(code.Text);
                 break;
@@ -204,6 +210,9 @@ public static partial class MarkdownPdfConverterExtensions {
                 break;
             case HighlightInline highlight:
                 runs.Add(CreateRun(highlight.Text, style.With(background: global::OfficeIMO.OfficeColor.FromRgb(254, 243, 199))));
+                break;
+            case MathInline math:
+                runs.Add(TryCreateInlineMathRun(math, style, out PdfTextRun mathRun) ? mathRun : CreateMathSourceRun(math, style));
                 break;
             case CodeSpanInline code:
                 runs.Add(CreateRun(code.Text, style.With(font: PdfCore.PdfStandardFont.Courier, background: global::OfficeIMO.OfficeColor.FromRgb(241, 245, 249), color: global::OfficeIMO.OfficeColor.FromRgb(30, 41, 59))));

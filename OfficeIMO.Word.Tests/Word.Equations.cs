@@ -78,6 +78,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(expression, equation.ToExpression());
             Assert.Contains("<m:f>", equation.Omml, StringComparison.Ordinal);
             Assert.Contains("<m:rad>", equation.Omml, StringComparison.Ordinal);
+            Assert.Contains("<m:radPr><m:degHide m:val=\"1\" /></m:radPr>", equation.Omml, StringComparison.Ordinal);
             Assert.Equal("\\frac{a}{2} + \\sqrt{x}", OfficeMathMarkup.ToLatex(equation.ToExpression()));
             Assert.NotEmpty(equation.ToDrawing().Elements);
             Assert.Equal(expression, WordMathMarkup.FromOmml(WordMathMarkup.ToOmml(expression, display: true)));

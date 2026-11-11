@@ -201,6 +201,7 @@ public static partial class OfficeRasterImageDecoder {
                 OfficeImageFormat.Webp => OfficeWebpCodec.TryDecode(
                     bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image),
                 OfficeImageFormat.JpegXr => OfficeJpegXrDecoder.TryDecode(bytes, effective, out image),
+                OfficeImageFormat.Jpeg2000 or OfficeImageFormat.Jpeg2000Codestream => OfficeJpeg2000Decoder.TryDecodeRaster(bytes, effective, out image),
                 OfficeImageFormat.Avif => OfficeAvifCodec.TryDecode(bytes, effective, out image, out avifCallerCodecEligible),
                 OfficeImageFormat.Icon => OfficeIconDecoder.TryDecode(bytes, effective, out image),
                 _ => false

@@ -10,6 +10,7 @@ public abstract class ExcelQueryCmdlet : OfficeCmdlet {
     /// <summary>Workbook paths, including filesystem wildcard patterns.</summary>
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Path")]
     [SupportsWildcards, ValidateNotNullOrEmpty]
+    [Alias("FilePath")]
     public string[] Path { get; set; } = Array.Empty<string>();
 
     /// <summary>Literal workbook paths. FileInfo.FullName and provider PSPath bind here.</summary>
@@ -23,6 +24,7 @@ public abstract class ExcelQueryCmdlet : OfficeCmdlet {
 
     /// <summary>Worksheet names, wildcard patterns, one-based positions or native worksheet objects.</summary>
     [Parameter, OfficeSheetTransformation]
+    [Alias("WorksheetName")]
     public OfficeSheetSelector[]? Sheet { get; set; }
 
     /// <inheritdoc />

@@ -43,6 +43,7 @@ public sealed class AddOfficeExcelTableRowCommand : PSCmdlet {
     /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
     [Parameter(ParameterSetName = "Default")]
     [OfficeSheetTransformation]
+    [Alias("WorksheetName")]
     public OfficeSheetSelector? Sheet { get; set; }
 
     /// <summary>Native Excel table used to resolve the source range or header.</summary>

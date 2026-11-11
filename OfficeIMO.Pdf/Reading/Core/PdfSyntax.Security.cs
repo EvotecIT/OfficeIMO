@@ -6,15 +6,7 @@ internal static partial class PdfSyntax {
         byte[] pdf,
         PdfLoadOptions? options = null,
         bool includeParsedDetails = true,
-        CancellationToken cancellationToken = default) =>
-        ReadDocumentSecurityInfo(pdf, options, includeParsedDetails, out _, cancellationToken);
-
-    internal static PdfDocumentSecurityInfo ReadDocumentSecurityInfo(
-        byte[] pdf,
-        PdfLoadOptions? options,
-        bool includeParsedDetails,
-        out string? decodedText,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         cancellationToken.ThrowIfCancellationRequested();
         PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
@@ -25,7 +17,6 @@ internal static partial class PdfSyntax {
 
         // The raw marker phase scans bytes directly. Latin-1 maps every byte to the code unit with the same value,
         // so these scans match the decoded text without materializing a second copy of the file.
-        decodedText = null;
         int? encryptObjectNumber = TryReadLastReferenceObjectNumber(pdf, "Encrypt", cancellationToken);
         bool hasEncryption = encryptObjectNumber.HasValue;
         // The detailed path below already parses the object graph and derives signature
@@ -60,7 +51,7 @@ internal static partial class PdfSyntax {
         PdfPasswordAuthenticationRole passwordAuthenticationRole = PdfPasswordAuthenticationRole.None;
 
         if (encryptObjectNumber.HasValue &&
-            TryReadObjectDictionary(decodedText = PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken), encryptObjectNumber.Value, out PdfDictionary? encryptionDictionary, cancellationToken) &&
+            TryReadObjectDictionary(pdf, encryptObjectNumber.Value, out PdfDictionary? encryptionDictionary, cancellationToken) &&
             encryptionDictionary is not null) {
             encryptionFilter = TryReadName(encryptionDictionary, "Filter");
             encryptionSubFilter = TryReadName(encryptionDictionary, "SubFilter");
@@ -157,6 +148,7 @@ internal static partial class PdfSyntax {
                 var seenFieldNames = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var entry in orderedObjects) {
                     cancellationToken.ThrowIfCancellationRequested();
+                    if (IsUnbuiltWithoutSignatureData(entry.Value)) continue;
                     PdfDictionary? dictionary = entry.Value.Value switch {
                         PdfDictionary directDictionary => directDictionary,
                         PdfStream stream => stream.Dictionary,
@@ -187,6 +179,7 @@ internal static partial class PdfSyntax {
 
                 foreach (var entry in orderedObjects) {
                     cancellationToken.ThrowIfCancellationRequested();
+                    if (IsUnbuiltWithoutSignatureData(entry.Value)) continue;
                     PdfDictionary? dictionary = entry.Value.Value switch {
                         PdfDictionary directDictionary => directDictionary,
                         PdfStream stream => stream.Dictionary,
@@ -509,37 +502,42 @@ internal static partial class PdfSyntax {
         }
     }
 
-    private static bool TryReadObjectDictionary(string text, int objectNumber, out PdfDictionary? dictionary, CancellationToken cancellationToken = default) {
+    private static readonly byte[] DictionaryStartMarker = AsciiMarker("<<");
+    private static readonly byte[] EndObjectMarker = AsciiMarker("endobj");
+
+    private static bool TryReadObjectDictionary(byte[] pdf, int objectNumber, out PdfDictionary? dictionary, CancellationToken cancellationToken = default) {
         dictionary = null;
+        byte[] objectNumberMarker = AsciiMarker(objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture));
         int searchIndex = 0;
-        while (searchIndex < text.Length) {
+        while (searchIndex < pdf.Length) {
             cancellationToken.ThrowIfCancellationRequested();
-            int candidateIndex = IndexOfSecurityMarker(text, objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture), searchIndex, cancellationToken);
+            int candidateIndex = IndexOfSecurityMarker(pdf, objectNumberMarker, searchIndex, cancellationToken);
             if (candidateIndex < 0) {
                 return false;
             }
 
             int lineStart = candidateIndex;
-            while (lineStart > 0 && text[lineStart - 1] != '\n' && text[lineStart - 1] != '\r') {
+            while (lineStart > 0 && pdf[lineStart - 1] != '\n' && pdf[lineStart - 1] != '\r') {
                 if ((lineStart & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 lineStart--;
             }
 
             int lineEnd = candidateIndex;
-            while (lineEnd < text.Length && text[lineEnd] != '\n' && text[lineEnd] != '\r') {
+            while (lineEnd < pdf.Length && pdf[lineEnd] != '\n' && pdf[lineEnd] != '\r') {
                 if ((lineEnd & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 lineEnd++;
             }
 
-            if (IsSecurityObjectHeader(text, lineStart, lineEnd, objectNumber, cancellationToken)) {
-                int dictStart = IndexOfSecurityMarker(text, "<<", lineEnd, cancellationToken);
-                int objectEnd = IndexOfSecurityMarker(text, "endobj", lineEnd, cancellationToken);
+            if (IsSecurityObjectHeader(pdf, lineStart, lineEnd, objectNumber, cancellationToken)) {
+                int dictStart = IndexOfSecurityMarker(pdf, DictionaryStartMarker, lineEnd, cancellationToken);
+                int objectEnd = IndexOfSecurityMarker(pdf, EndObjectMarker, lineEnd, cancellationToken);
                 if (dictStart >= 0 && objectEnd > dictStart) {
-                    int dictEnd = FindSecurityDictionaryEnd(text, dictStart, objectEnd, cancellationToken);
+                    int dictEnd = FindSecurityDictionaryEnd(pdf, dictStart, objectEnd, cancellationToken);
                     if (dictEnd > dictStart) {
-                        string dictText = SafeSliceCancellable(text, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000, cancellationToken);
+                        int dictTextStart = dictStart + 2;
+                        int dictTextLength = SafeSliceLength(pdf.Length, ref dictTextStart, dictEnd - (dictStart + 2), 1_000_000);
                         try {
-                            dictionary = ParseDictionary(dictText, cancellationToken: cancellationToken);
+                            dictionary = ParseDictionary(new PdfByteContentText(pdf), dictTextStart, dictTextLength, null, true, cancellationToken);
                             return true;
                         } catch (Exception ex) when (ex is not OperationCanceledException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
                             return false;
@@ -550,32 +548,32 @@ internal static partial class PdfSyntax {
 
             // A line has only one possible object header. Do not rescan a long
             // malformed line for each later occurrence of the object number.
-            searchIndex = lineEnd < text.Length ? lineEnd + 1 : text.Length;
+            searchIndex = lineEnd < pdf.Length ? lineEnd + 1 : pdf.Length;
         }
 
         return false;
     }
 
-    private static bool IsSecurityObjectHeader(string text, int lineStart, int lineEnd, int objectNumber,
+    private static bool IsSecurityObjectHeader(byte[] pdf, int lineStart, int lineEnd, int objectNumber,
         CancellationToken cancellationToken) {
         int cursor = lineStart;
-        while (cursor < lineEnd && char.IsWhiteSpace(text[cursor])) {
+        while (cursor < lineEnd && char.IsWhiteSpace((char)pdf[cursor])) {
             if ((cursor & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             cursor++;
         }
 
-        if (!TryReadNonNegativeInteger(text, ref cursor, out int foundObjectNumber, cancellationToken) ||
+        if (!TryReadNonNegativeInteger(pdf, ref cursor, out int foundObjectNumber, cancellationToken) ||
             cursor > lineEnd || foundObjectNumber != objectNumber ||
-            !TrySkipRequiredWhitespace(text, ref cursor, cancellationToken) || cursor > lineEnd ||
-            !TryReadNonNegativeInteger(text, ref cursor, out _, cancellationToken) || cursor > lineEnd ||
-            !TrySkipRequiredWhitespace(text, ref cursor, cancellationToken) || cursor > lineEnd ||
-            cursor + 3 > lineEnd || string.CompareOrdinal(text, cursor, "obj", 0, 3) != 0) {
+            !TrySkipRequiredWhitespace(pdf, ref cursor, cancellationToken) || cursor > lineEnd ||
+            !TryReadNonNegativeInteger(pdf, ref cursor, out _, cancellationToken) || cursor > lineEnd ||
+            !TrySkipRequiredWhitespace(pdf, ref cursor, cancellationToken) || cursor > lineEnd ||
+            cursor + 3 > lineEnd || pdf[cursor] != 'o' || pdf[cursor + 1] != 'b' || pdf[cursor + 2] != 'j') {
             return false;
         }
 
         int afterObjectKeyword = cursor + 3;
         return afterObjectKeyword == lineEnd ||
-            (!char.IsLetterOrDigit(text[afterObjectKeyword]) && text[afterObjectKeyword] != '_');
+            (!char.IsLetterOrDigit((char)pdf[afterObjectKeyword]) && pdf[afterObjectKeyword] != '_');
     }
 
     private static IReadOnlyList<int> ReadStartXrefOffsets(byte[] pdf, int maxRevisions, CancellationToken cancellationToken = default) {
@@ -844,12 +842,12 @@ internal static partial class PdfSyntax {
 
     private static byte[] AsciiMarker(string marker) => System.Text.Encoding.ASCII.GetBytes(marker);
 
-    private static int FindSecurityDictionaryEnd(string text, int start, int limit, CancellationToken cancellationToken) {
+    private static int FindSecurityDictionaryEnd(byte[] pdf, int start, int limit, CancellationToken cancellationToken) {
         int depth = 0;
         for (int index = start; index + 1 < limit; index++) {
             if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            char current = text[index];
-            char next = text[index + 1];
+            byte current = pdf[index];
+            byte next = pdf[index + 1];
             if (current == '<' && next == '<') { depth++; index++; continue; }
             if (current == '>' && next == '>') {
                 depth--;

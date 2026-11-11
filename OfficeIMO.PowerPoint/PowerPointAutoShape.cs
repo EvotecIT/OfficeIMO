@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -6,7 +7,7 @@ namespace OfficeIMO.PowerPoint {
     ///     Represents an auto shape without a text body.
     /// </summary>
     public class PowerPointAutoShape : PowerPointShape {
-        internal PowerPointAutoShape(Shape shape) : base(shape) {
+        internal PowerPointAutoShape(Shape shape, OpenXmlPartContainer? ownerPart = null) : base(shape, ownerPart) {
         }
 
         private Shape Shape => (Shape)Element;

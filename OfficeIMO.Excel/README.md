@@ -290,6 +290,22 @@ beginning and their original position is restored; non-seekable streams are read
 from the current position. The existing validation options control certificate
 policy and package limits, including the maximum bytes buffered from the stream.
 
+## Before sharing
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+
+using var document = ExcelDocument.Load("Budget.xlsx");
+OfficeHiddenDataReport report = document.RemoveHiddenData(new OfficeHiddenDataOptions {
+    Kinds = OfficeHiddenDataKind.Default | OfficeHiddenDataKind.HiddenContent
+});
+foreach (OfficeHiddenDataFinding finding in report.Findings) Console.WriteLine($"{finding.Outcome} {finding.Kind} at {finding.Location}");
+document.Save("Budget-shared.xlsx");
+```
+
+`InspectHiddenData()` reports properties, notes, threaded comments and their authors, hidden sheets, rows, columns and names, external links, pivot source paths, custom XML, image metadata and printer settings without changing anything. Hidden content is removed only when selected, because deleting hidden rows or sheets changes formulas that use them. See the [hidden data matrix](../Docs/officeimo.hidden-data-support-matrix.md).
+
 ## More
 
 - [Excel guide](../Docs/officeimo.excel-guide.md): styles, validation, conditional formats, pivot tables, slicers, sparklines, templates, formulas and calculation, protection, links, images, printing, legacy `.xls` and image export.

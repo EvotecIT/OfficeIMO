@@ -308,9 +308,6 @@ public partial class PdfPageImageRendererTests {
         byte[] png = PdfPageImageRenderer.RenderPageAsPng(pdf);
 
         AssertPngSignature(png);
-        Assert.DoesNotContain(
-            PdfPageImageRenderer.RenderPages(pdf).Single().CapabilityDiagnostics,
-            diagnostic => diagnostic.Code == "render.resource.image-codec-optional");
     }
 
     [Fact]
@@ -334,11 +331,10 @@ public partial class PdfPageImageRendererTests {
         Assert.True(result.Succeeded);
         Assert.False(codec.WasCalled);
         Assert.NotEmpty(result.Bytes!);
-        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == "render.resource.image-codec-optional");
     }
 
     [Fact]
-    public void RenderPages_ReportsOptionalCodecDiagnosticForJpeg2000ImageXObject() {
+    public void RenderPages_FailsForJpxImageXObjectWithoutJpeg2000Data() {
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
             CreateMinimalJpeg(1, 1),
             colorSpace: "/DeviceRGB",
@@ -348,7 +344,6 @@ public partial class PdfPageImageRendererTests {
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
 
         Assert.False(result.Succeeded);
-        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == "render.resource.image-codec-optional");
     }
 
     [Fact]
@@ -1080,21 +1075,17 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderPages_Type3Jpeg2000RequiresCodecAndRetainsGlyphImage() {
+    public void RenderPages_Type3Jpeg2000DecodesWithoutCallerCodecAndRetainsGlyphImage() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Im1 7 0 R >> >> >>\nendobj";
         string glyphA = BuildStreamObject(6, "<<", "500 0 d0 q 500 0 0 700 0 0 cm /Im1 Do Q");
         byte[] payload = ReadScanJpx("rgb");
         string image = BuildStreamObject(7, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter [/ASCIIHexDecode /JPXDecode]", BitConverter.ToString(payload).Replace("-", "") + ">");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, image);
-        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
-
-        Assert.False(result.Succeeded);
-        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.OptionalImageCodecId && diagnostic.Subject == "Im1");
         var codec = new ScanJpxCodec(payload);
         PdfPageRenderResult decoded = Assert.Single(PdfPageImageRenderer.RenderPages(pdf,
             options: new PdfPageRenderOptions { ImageCodec = codec, ContinueOnError = false }));
         Assert.True(decoded.Succeeded);
-        Assert.True(codec.Calls > 0);
+        Assert.Equal(0, codec.Calls);
         Assert.DoesNotContain(decoded.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 

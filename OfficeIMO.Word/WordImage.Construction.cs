@@ -66,7 +66,7 @@ namespace OfficeIMO.Word {
             AddExternalImage(document, paragraph, externalUri, width, height, shape.Value.ToOpenXml(), compressionQuality.Value.ToOpenXml(), description, wrapImage, allowFileUri);
         }
 
-        private Graphic GetGraphic(double emuWidth, double emuHeight, uint picturePropertiesId, string fileName, string relationshipId, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description = "", bool external = false) {
+        private Graphic GetGraphic(double emuWidth, double emuHeight, uint picturePropertiesId, string fileName, string relationshipId, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description = "", bool external = false, string? svgRelationshipId = null) {
             var shapeProperties = new ShapeProperties();
             var transform2D = new Transform2D();
             var newOffset = new Offset() { X = 0L, Y = 0L };
@@ -168,21 +168,22 @@ namespace OfficeIMO.Word {
 
             blipExtensionList.Append(blipExtension1);
 
-            if (OfficeImageReader.FromExtension(fileName) == OfficeImageFormat.Svg) {
-                // Add Office 2010 a14:svgBlip extension that points to the SVG ImagePart
+            string? svgId = svgRelationshipId ?? (OfficeImageReader.FromExtension(fileName) == OfficeImageFormat.Svg ? relationshipId : null);
+            if (svgId != null) {
+                // Office 2016 asvg:svgBlip extension: the SVG part draws in Office, while the ordinary blip
+                // carries a PNG fallback for older Word versions and other consumers.
                 var svgExt = new BlipExtension() {
                     Uri = "{96DAC541-7B7A-43D3-8B79-8F7C33B92B69}"
                 };
-                // Create unknown element with correct prefix and namespace
                 var svgBlip = new OpenXmlUnknownElement(
-                    "a14",
+                    "asvg",
                     "svgBlip",
-                    "http://schemas.microsoft.com/office/drawing/2010/main");
+                    "http://schemas.microsoft.com/office/drawing/2016/SVG/main");
                 svgBlip.SetAttribute(new OpenXmlAttribute(
                     "r",
                     "embed",
                     "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
-                    relationshipId));
+                    svgId));
                 svgExt.Append(svgBlip);
                 blipExtensionList.Append(svgExt);
             }
@@ -224,7 +225,7 @@ namespace OfficeIMO.Word {
             return graphic;
         }
 
-        private Inline GetInline(double emuWidth, double emuHeight, UInt32Value docPropertiesId, uint picturePropertiesId, string imageName, string fileName, string relationshipId, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description = "", bool external = false) {
+        private Inline GetInline(double emuWidth, double emuHeight, UInt32Value docPropertiesId, uint picturePropertiesId, string imageName, string fileName, string relationshipId, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description = "", bool external = false, string? svgRelationshipId = null) {
             var inline = new Inline() {
                 DistanceFromTop = (UInt32Value)0U,
                 DistanceFromBottom = (UInt32Value)0U,
@@ -243,7 +244,7 @@ namespace OfficeIMO.Word {
             });
             inline.Append(new DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties(
                     new GraphicFrameLocks() { NoChangeAspect = true }));
-            inline.Append(GetGraphic(emuWidth, emuHeight, picturePropertiesId, fileName, relationshipId, shape, compressionQuality, description, external));
+            inline.Append(GetGraphic(emuWidth, emuHeight, picturePropertiesId, fileName, relationshipId, shape, compressionQuality, description, external, svgRelationshipId));
 
             return inline;
         }

@@ -114,41 +114,14 @@ public sealed partial class PdfEmbeddedFontFamily {
         }
         string[] acceptedFileNamePrefixes = BuildAcceptedFileNamePrefixes(normalizedFamily);
 
-        SystemFontFaceCandidate? regularFace = null;
-        SystemFontFaceCandidate? boldFace = null;
-        SystemFontFaceCandidate? italicFace = null;
-        SystemFontFaceCandidate? boldItalicFace = null;
-
-        int inspectedFiles = 0;
-        foreach (string fontFile in fontFiles) {
-            if (inspectedFiles++ >= MaxSystemFontFilesToInspect) {
-                break;
-            }
-
-            if (!TryReadSystemFontFaces(fontFile, normalizedFamily, acceptedFileNamePrefixes, out System.Collections.Generic.List<SystemFontFaceCandidate>? candidates) ||
-                candidates == null) {
-                continue;
-            }
-
-            for (int i = 0; i < candidates.Count; i++) {
-                SystemFontFaceCandidate candidate = candidates[i];
-                switch (candidate.Kind) {
-                    case FontFaceKind.Regular:
-                        SelectBetterFace(ref regularFace, candidate);
-                        break;
-                    case FontFaceKind.Bold:
-                        SelectBetterFace(ref boldFace, candidate);
-                        break;
-                    case FontFaceKind.Italic:
-                        SelectBetterFace(ref italicFace, candidate);
-                        break;
-                    case FontFaceKind.BoldItalic:
-                        SelectBetterFace(ref boldItalicFace, candidate);
-                        break;
-                }
-            }
-        }
-
+        // A disagreement repeats the selection, so a one-pass sequence is buffered first.
+        System.Collections.Generic.IEnumerable<string> files =
+            fontFiles is System.Collections.Generic.IReadOnlyCollection<string> || fontFiles is System.Collections.Generic.ICollection<string>
+                ? fontFiles
+                : fontFiles.Take(MaxSystemFontFilesToInspect + 1).ToList();
+        SystemFontFaceCandidate?[] faces = SelectSystemFontFaces(files, normalizedFamily, acceptedFileNamePrefixes, deferFileReads: true)
+            ?? SelectSystemFontFaces(files, normalizedFamily, acceptedFileNamePrefixes, deferFileReads: false)!;
+        SystemFontFaceCandidate? regularFace = faces[(int)FontFaceKind.Regular];
         if (regularFace == null) {
             fontFamily = null;
             return false;
@@ -157,10 +130,57 @@ public sealed partial class PdfEmbeddedFontFamily {
         fontFamily = FromOwnedFaces(
             string.IsNullOrWhiteSpace(pdfFamilyName) ? familyName : pdfFamilyName!,
             regularFace.Data,
-            boldFace?.Data,
-            italicFace?.Data,
-            boldItalicFace?.Data);
+            faces[(int)FontFaceKind.Bold]?.Data,
+            faces[(int)FontFaceKind.Italic]?.Data,
+            faces[(int)FontFaceKind.BoldItalic]?.Data);
         return true;
+    }
+
+    /// <summary>
+    /// Picks the best usable face of each kind, in file order. A family can span many installed files,
+    /// such as every weight of a typeface. With <paramref name="deferFileReads"/>, a single-face file is
+    /// scored from its name and OS/2 tables and read whole only when it could replace the current choice.
+    /// Returns null when a deferred score disagrees with the file's own, so the caller repeats the
+    /// selection reading every file.
+    /// </summary>
+    private static SystemFontFaceCandidate?[]? SelectSystemFontFaces(
+        System.Collections.Generic.IEnumerable<string> fontFiles,
+        string normalizedFamily,
+        string[] acceptedFileNamePrefixes,
+        bool deferFileReads) {
+        var faces = new SystemFontFaceCandidate?[4];
+        int inspectedFiles = 0;
+        foreach (string fontFile in fontFiles) {
+            if (inspectedFiles++ >= MaxSystemFontFilesToInspect) {
+                break;
+            }
+
+            bool deferred = false;
+            FontFaceKind predictedKind = FontFaceKind.Regular;
+            int predictedScore = 0;
+            if (deferFileReads && TryScoreSingleSystemFontFace(fontFile, normalizedFamily, out bool hasCandidate, out predictedKind, out predictedScore)) {
+                if (!hasCandidate) continue;
+                SystemFontFaceCandidate? current = faces[(int)predictedKind];
+                if (current != null && predictedScore <= current.Score) continue;
+                deferred = true;
+            }
+
+            if (!TryReadSystemFontFaces(fontFile, normalizedFamily, acceptedFileNamePrefixes, out System.Collections.Generic.List<SystemFontFaceCandidate>? candidates) ||
+                candidates == null) {
+                continue;
+            }
+
+            if (deferred && (candidates.Count != 1 || candidates[0].Kind != predictedKind || candidates[0].Score != predictedScore)) {
+                return null;
+            }
+
+            for (int i = 0; i < candidates.Count; i++) {
+                SystemFontFaceCandidate candidate = candidates[i];
+                SelectBetterFace(ref faces[(int)candidate.Kind], candidate);
+            }
+        }
+
+        return faces;
     }
 
     private static bool TryReadSystemFontFaces(string path, string normalizedMetadataFamily, string[] acceptedFileNamePrefixes, out System.Collections.Generic.List<SystemFontFaceCandidate>? candidates) {
@@ -372,6 +392,11 @@ public sealed partial class PdfEmbeddedFontFamily {
         string.Equals(NormalizeFamilyKey(fontFamilyName), NormalizeFamilyKey(requestedFamilyName), System.StringComparison.Ordinal);
 
     private static FontFaceKind ClassifyMetadataFace(TrueTypeNameMetadata metadata, byte[] data, out int score) {
+        bool hasStyleFlags = TryReadSystemFontStyleFlags(data, out int weight, out bool bold, out bool italic, out bool oblique);
+        return ClassifyMetadataFace(metadata, hasStyleFlags, weight, bold, italic, oblique, out score);
+    }
+
+    private static FontFaceKind ClassifyMetadataFace(TrueTypeNameMetadata metadata, bool hasStyleFlags, int weight, bool bold, bool italic, bool oblique, out int score) {
         string primaryStyle = NormalizeFamilyKey(metadata.TypographicSubfamilyName ?? metadata.SubfamilyName ?? string.Empty);
         string fallbackStyle = NormalizeFamilyKey(
             (metadata.PostScriptName ?? string.Empty) + " " +
@@ -380,7 +405,7 @@ public sealed partial class PdfEmbeddedFontFamily {
         string style = primaryStyle.Length == 0 ? fallbackStyle : primaryStyle;
         FontFaceKind kind = ClassifyMetadataStyle(style, primaryStyle, out score);
         // Name-table style labels may be localized; OS/2 flags identify the face independently of language.
-        if (TryReadSystemFontStyleFlags(data, out int weight, out bool bold, out bool italic, out bool oblique)) {
+        if (hasStyleFlags) {
             score = 120 - System.Math.Min(80, System.Math.Abs(weight - (bold ? 700 : 400)) / 10);
             return bold
                 ? (italic || oblique ? FontFaceKind.BoldItalic : FontFaceKind.Bold)
@@ -396,10 +421,17 @@ public sealed partial class PdfEmbeddedFontFamily {
         oblique = false;
         System.Collections.Generic.Dictionary<string, FontTableRecord> tables = ReadFontTableDirectory(data);
         if (!tables.TryGetValue("OS/2", out FontTableRecord os2) || os2.Length < 64) return false;
-        int version = ReadUInt16(data, os2.Offset);
-        weight = ReadUInt16(data, os2.Offset + 4);
+        return TryReadSystemFontStyleFlags(data, os2.Offset, out weight, out bold, out italic, out oblique);
+    }
+
+    private static bool TryReadSystemFontStyleFlags(byte[] data, int os2Offset, out int weight, out bool bold, out bool italic, out bool oblique) {
+        bold = false;
+        italic = false;
+        oblique = false;
+        int version = ReadUInt16(data, os2Offset);
+        weight = ReadUInt16(data, os2Offset + 4);
         if (weight < 1 || weight > 1000) return false;
-        int selection = ReadUInt16(data, os2.Offset + 62);
+        int selection = ReadUInt16(data, os2Offset + 62);
         bold = weight >= 600 || (selection & 0x20) != 0;
         italic = (selection & 0x01) != 0;
         oblique = version >= 4 && (selection & 0x200) != 0;
@@ -478,14 +510,26 @@ public sealed partial class PdfEmbeddedFontFamily {
     }
 
     private static string NormalizeFamilyKey(string value) {
-        var builder = new System.Text.StringBuilder(value.Length);
+        // Index building normalizes every name of every installed face; most are short and many are
+        // already keys, so the common cases avoid a builder.
+        bool normalized = true;
+        foreach (char character in value) {
+            if (!char.IsLetterOrDigit(character) || char.ToLowerInvariant(character) != character) {
+                normalized = false;
+                break;
+            }
+        }
+        if (normalized) return value;
+
+        char[] buffer = new char[value.Length];
+        int length = 0;
         foreach (char character in value) {
             if (char.IsLetterOrDigit(character)) {
-                builder.Append(char.ToLowerInvariant(character));
+                buffer[length++] = char.ToLowerInvariant(character);
             }
         }
 
-        return builder.ToString();
+        return new string(buffer, 0, length);
     }
 
     private static System.Collections.Generic.IEnumerable<string> EnumerateSystemTrueTypeFontFiles() {

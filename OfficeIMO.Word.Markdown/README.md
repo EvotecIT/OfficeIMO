@@ -64,6 +64,7 @@ alignment.
 - Markdown to Word through the typed `OfficeIMO.Markdown` model.
 - Markdown image layout options such as local-image allowance and page-content-width fitting.
 - Selected AST-preserved inline HTML wrappers such as underline, superscript, and subscript into Word run formatting.
+- TeX math from `MathInline`, `MathBlock` and `math` fences (see `MarkdownLoadOptions.Math`) into native, editable Office Math. Inline math stays in its paragraph and display math gets its own centered equation. TeX that the shared math engine cannot read is kept as text and reported through `OnWarning`.
 
 ## HTML via Markdown
 
@@ -161,6 +162,8 @@ using var doc = MarkdownDocument.Parse("# Report\n\nBody").ToWord(options);
 - Images (alt/title; size hints when provided in Markdown)
 - Links and autolinks
 - Code spans/blocks
+- TeX math as native Office Math (OMML)
+- SVG images, stored with a PNG fallback picture for older Word versions and other viewers
 - AST-preserved inline HTML wrappers for underline, superscript, and subscript
 - Footnotes
 - Front matter passthrough when using OfficeIMO.Markdown model

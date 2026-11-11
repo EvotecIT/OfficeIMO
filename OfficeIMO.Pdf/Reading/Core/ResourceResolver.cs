@@ -1262,6 +1262,18 @@ internal static partial class ResourceResolver {
             extension = OfficeIMO.Drawing.OfficeImageInfo.GetDefaultExtension(format).TrimStart('.');
             mimeType = OfficeIMO.Drawing.OfficeImageInfo.GetMimeType(format);
             isImageFile = true;
+        } else if (!hasMalformedFilterDeclaration && !isImageMask && IsJpxFilterChain(stream.Dictionary, objects)) {
+            if (TryBuildJpxPngFile(stream, objects, colorSpaceObject != null ? effectiveColorSpaceObject : null, colorSpace,
+                    maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform, colorFunctionEvaluationBudget,
+                    functionResolutionContext, out byte[] jpxPngBytes, out string? jpxMaskKind, out bool jpxMaskResolved, cancellationToken)) {
+                bytes = jpxPngBytes;
+                ownsBytes = true;
+                extension = "png";
+                mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
+                isImageFile = true;
+                transparencyMaskKind = jpxMaskKind;
+                transparencyMaskResolved = jpxMaskResolved;
+            }
         } else if (!hasMalformedFilterDeclaration &&
             isImageMask &&
             TryBuildExtractedImageMaskPng(

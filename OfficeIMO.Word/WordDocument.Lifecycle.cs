@@ -214,29 +214,6 @@ namespace OfficeIMO.Word {
         internal WordSection _currentSection => this.Sections.Last();
 
 
-        private static void EnsureCustomStyleNames(WordprocessingDocument wordDocument) {
-            var stylePart = wordDocument.MainDocumentPart?.StyleDefinitionsPart;
-            var styles = stylePart?.Styles;
-            if (styles == null) return;
-            var map = WordParagraphStyle.CustomStyles
-                .Where(s => !string.IsNullOrEmpty(s.StyleId?.Value))
-                .GroupBy(s => s.StyleId!.Value!, StringComparer.Ordinal)
-                .ToDictionary(g => g.Key, g => g.Last(), StringComparer.Ordinal);
-            bool changed = false;
-            foreach (var s in styles.OfType<DocumentFormat.OpenXml.Wordprocessing.Style>()) {
-                var id = s.StyleId?.Value;
-                if (id != null && map.TryGetValue(id, out var def)) {
-                    var newName = def.StyleName?.Val ?? def.StyleId?.Value;
-                    if (!string.IsNullOrEmpty(newName)) {
-                        if (s.StyleName == null || !string.Equals(s.StyleName.Val, newName, StringComparison.Ordinal)) {
-                            s.StyleName = new DocumentFormat.OpenXml.Wordprocessing.StyleName { Val = newName };
-                            changed = true;
-                        }
-                    }
-                }
-            }
-            if (changed) styles.Save();
-        }
 
     }
 }

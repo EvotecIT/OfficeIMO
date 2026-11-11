@@ -126,50 +126,64 @@ public static partial class EmailImageExportExtensions {
         ArgumentNullException.ThrowIfNull(source);
         EmailImageExportOptions effective =
             options?.CloneEmail() ?? new EmailImageExportOptions();
-        EmailBodyProjectionResult bodyProjection = EmailBodyProjection.Create(source,
-            new EmailBodyProjectionOptions {
-                IncludeResources = effective.IncludeInlineResources,
-                SelectionPolicy = effective.PreferHtmlBody
-                    ? EmailBodySelectionPolicy.Richest
-                    : EmailBodySelectionPolicy.RtfFirst,
-                RemoteResourcePolicy = effective.RemoteResourcePolicy,
-                MaxResourceBytes = effective.MaxResourceBytes,
-                MaxResourceCount = effective.MaxInlineResourceCount,
-                MaxTotalResourceBytes = effective.MaxTotalInlineResourceBytes,
-                BaseUri = effective.BaseUri
-            });
-        var diagnostics = bodyProjection.Diagnostics.Select(MapBodyDiagnostic).ToList();
-        string body = ExtractHtmlBody(bodyProjection.Html);
-        string html = CreateDocumentHtml(source, body, effective);
-        effective.BaseUri ??= bodyProjection.Document.BaseUri ?? FallbackBaseUri;
         EmailImageExportOptions renderOptions = effective.CloneEmail();
         renderOptions.Policy = new OfficeImageExportPolicy();
-        ConfigureInlineResources(bodyProjection, renderOptions);
+        EmailMessageHtml message = PrepareMessage(source, new EmailMessageLayout(
+            effective.IncludeMessageHeaders, IncludeAttachmentList: false, Print: false, effective.PreferHtmlBody,
+            effective.IncludeInlineResources, effective.RemoteResourcePolicy, effective.MaxInlineResourceCount,
+            effective.MaxTotalInlineResourceBytes), renderOptions);
+        effective.BaseUri = renderOptions.BaseUri;
+        return new EmailRenderPreparation(
+            message.Document,
+            renderOptions,
+            effective,
+            message.Diagnostics.Select(MapBodyDiagnostic).ToList().AsReadOnly());
+    }
+
+    // Shared by image and PDF output: one body projection, header block and inline-resource policy.
+    // The render options are configured in place with the inline resolvers and effective base URI.
+    private static EmailMessageHtml PrepareMessage(EmailDocument source, EmailMessageLayout layout, HtmlRenderOptions render) {
+        ArgumentNullException.ThrowIfNull(source);
+        EmailBodyProjectionResult bodyProjection = EmailBodyProjection.Create(source,
+            new EmailBodyProjectionOptions {
+                IncludeResources = layout.IncludeInlineResources,
+                SelectionPolicy = layout.PreferHtmlBody
+                    ? EmailBodySelectionPolicy.Richest
+                    : EmailBodySelectionPolicy.RtfFirst,
+                RemoteResourcePolicy = layout.RemoteResourcePolicy,
+                MaxResourceBytes = render.MaxResourceBytes,
+                MaxResourceCount = layout.MaxInlineResourceCount,
+                MaxTotalResourceBytes = layout.MaxTotalInlineResourceBytes,
+                BaseUri = render.BaseUri
+            });
+        string body = ExtractHtmlBody(bodyProjection.Html);
+        string html = CreateDocumentHtml(source, body, layout, render.DefaultFontFamily);
+        render.BaseUri ??= bodyProjection.Document.BaseUri ?? FallbackBaseUri;
+        if (layout.IncludeInlineResources) ConfigureInlineResources(bodyProjection, render);
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             html,
             new HtmlConversionDocumentOptions {
-                BaseUri = effective.BaseUri,
-                UrlPolicy = renderOptions.UrlPolicy.Clone(),
-                ResourceUrlPolicy = renderOptions.GetResourceUrlPolicy().Clone(),
+                BaseUri = render.BaseUri,
+                UrlPolicy = render.UrlPolicy.Clone(),
+                ResourceUrlPolicy = render.GetResourceUrlPolicy().Clone(),
                 UseBodyContentsOnly = false
             });
-        return new EmailRenderPreparation(
-            document,
-            renderOptions,
-            effective,
-            diagnostics.AsReadOnly());
+        return new EmailMessageHtml(document, bodyProjection.Diagnostics);
     }
 
     private static string CreateDocumentHtml(
         EmailDocument source,
         string body,
-        EmailImageExportOptions options) {
+        EmailMessageLayout layout,
+        string fontFamily) {
         var builder = new StringBuilder();
         builder.Append("<!doctype html><html><head><meta charset=\"utf-8\"><style>")
-            .Append("html{background:#f4f6f8}body{margin:0;padding:24px;color:#172033;font-family:\"")
-            .Append(EscapeCssString(options.DefaultFontFamily))
+            .Append(layout.Print ? "html{background:#fff}body{margin:0;padding:0;color:#172033;font-family:\""
+                : "html{background:#f4f6f8}body{margin:0;padding:24px;color:#172033;font-family:\"")
+            .Append(EscapeCssString(fontFamily))
             .Append("\",sans-serif}")
-            .Append(".officeimo-email{max-width:920px;margin:0 auto;background:#fff;border:1px solid #d8dee8;border-radius:10px;padding:28px}")
+            .Append(layout.Print ? ".officeimo-email{margin:0}"
+                : ".officeimo-email{max-width:920px;margin:0 auto;background:#fff;border:1px solid #d8dee8;border-radius:10px;padding:28px}")
             .Append(".officeimo-email-header{border-bottom:1px solid #e5e9f0;margin-bottom:24px;padding-bottom:18px}")
             .Append(".officeimo-email-subject{font-size:24px;font-weight:700;margin:0 0 16px}")
             .Append(".officeimo-email-field{display:grid;grid-template-columns:72px 1fr;gap:8px;margin:5px 0;font-size:13px}")
@@ -177,13 +191,51 @@ public static partial class EmailImageExportExtensions {
             .Append(".officeimo-email-body{font-size:16px;line-height:1.45;overflow-wrap:anywhere}")
             .Append(".officeimo-email-plain{white-space:pre-wrap;font:inherit;margin:0}")
             .Append(".officeimo-email-empty{color:#667085;font-style:italic}")
+            .Append(".officeimo-email-attachments{border-top:1px solid #e5e9f0;margin-top:24px;padding-top:12px;font-size:13px}")
+            .Append(".officeimo-email-attachments h2{font-size:14px;font-weight:700;margin:0 0 8px}")
+            .Append(".officeimo-email-attachments ul{margin:0;padding-left:20px}")
+            .Append(".officeimo-email-attachment-meta{color:#667085}")
             .Append("img{max-width:100%;height:auto}table{max-width:100%}")
             .Append("</style></head><body><main class=\"officeimo-email\">");
-        if (options.IncludeMessageHeaders) AppendHeaders(builder, source);
+        if (layout.IncludeMessageHeaders) AppendHeaders(builder, source);
         builder.Append("<section class=\"officeimo-email-body\">")
             .Append(body)
-            .Append("</section></main></body></html>");
+            .Append("</section>");
+        if (layout.IncludeAttachmentList) AppendAttachments(builder, source);
+        builder.Append("</main></body></html>");
         return builder.ToString();
+    }
+
+    // Lists file attachments; hidden parts, contact photos and inline body resources are not separate attachments.
+    private static void AppendAttachments(StringBuilder builder, EmailDocument source) {
+        EmailAttachment[] attachments = source.Attachments.Where(attachment => !attachment.IsHidden && !attachment.IsContactPhoto
+            && !((attachment.IsInline || attachment.IsMimeRelated) && (!string.IsNullOrEmpty(attachment.ContentId)
+                || !string.IsNullOrEmpty(attachment.ContentLocation)))).ToArray();
+        if (attachments.Length == 0) return;
+        builder.Append("<section class=\"officeimo-email-attachments\"><h2>Attachments (")
+            .Append(attachments.Length.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            .Append(")</h2><ul>");
+        foreach (EmailAttachment attachment in attachments) {
+            string name = attachment.FileName is { Length: > 0 } fileName ? fileName
+                : attachment.EmbeddedDocument?.Subject is { Length: > 0 } subject ? subject : "(unnamed attachment)";
+            builder.Append("<li>").Append(WebUtility.HtmlEncode(name));
+            var meta = new List<string>(2);
+            if (!string.IsNullOrWhiteSpace(attachment.ContentType)) meta.Add(attachment.ContentType!);
+            long length = attachment.Length > 0 ? attachment.Length : attachment.Content?.LongLength ?? 0;
+            if (length > 0) meta.Add(FormatSize(length));
+            if (meta.Count > 0)
+                builder.Append(" <span class=\"officeimo-email-attachment-meta\">(")
+                    .Append(WebUtility.HtmlEncode(string.Join(", ", meta))).Append(")</span>");
+            builder.Append("</li>");
+        }
+        builder.Append("</ul></section>");
+    }
+
+    private static string FormatSize(long bytes) {
+        var culture = System.Globalization.CultureInfo.InvariantCulture;
+        if (bytes < 1024) return bytes.ToString(culture) + " B";
+        if (bytes < 1024 * 1024) return (bytes / 1024d).ToString("0.#", culture) + " KB";
+        return (bytes / (1024d * 1024d)).ToString("0.#", culture) + " MB";
     }
 
     private static string EscapeCssString(string value) {
@@ -264,8 +316,7 @@ public static partial class EmailImageExportExtensions {
 
     private static void ConfigureInlineResources(
         EmailBodyProjectionResult projection,
-        EmailImageExportOptions options) {
-        if (!options.IncludeInlineResources) return;
+        HtmlRenderOptions options) {
         HtmlUrlPolicy fallbackResourceUrlPolicy =
             (options.ResourceUrlPolicy ?? options.UrlPolicy).Clone();
         HtmlUrlPolicy resourcePolicy = fallbackResourceUrlPolicy.Clone();
@@ -396,6 +447,24 @@ public static partial class EmailImageExportExtensions {
         combined.AddRange(diagnostics);
         combined.AddRange(result.Diagnostics);
         return options.EnsureAccepted(result.WithDiagnostics(combined));
+    }
+
+    private sealed class EmailMessageLayout(bool IncludeMessageHeaders, bool IncludeAttachmentList, bool Print,
+        bool PreferHtmlBody, bool IncludeInlineResources, EmailRemoteResourcePolicy RemoteResourcePolicy,
+        int MaxInlineResourceCount, long MaxTotalInlineResourceBytes) {
+        internal bool IncludeMessageHeaders { get; } = IncludeMessageHeaders;
+        internal bool IncludeAttachmentList { get; } = IncludeAttachmentList;
+        internal bool Print { get; } = Print;
+        internal bool PreferHtmlBody { get; } = PreferHtmlBody;
+        internal bool IncludeInlineResources { get; } = IncludeInlineResources;
+        internal EmailRemoteResourcePolicy RemoteResourcePolicy { get; } = RemoteResourcePolicy;
+        internal int MaxInlineResourceCount { get; } = MaxInlineResourceCount;
+        internal long MaxTotalInlineResourceBytes { get; } = MaxTotalInlineResourceBytes;
+    }
+
+    private sealed class EmailMessageHtml(HtmlConversionDocument document, IReadOnlyList<EmailDiagnostic> diagnostics) {
+        internal HtmlConversionDocument Document { get; } = document;
+        internal IReadOnlyList<EmailDiagnostic> Diagnostics { get; } = diagnostics;
     }
 
     private sealed class EmailRenderPreparation {

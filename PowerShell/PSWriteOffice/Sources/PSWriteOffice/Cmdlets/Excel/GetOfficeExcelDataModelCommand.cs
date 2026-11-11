@@ -27,6 +27,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 public sealed class GetOfficeExcelDataModelCommand : PSCmdlet {
     /// <summary>Workbook paths resolved with filesystem wildcard support.</summary>
     [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    [Alias("FilePath")]
     public string[] Path { get; set; } = Array.Empty<string>();
 
     /// <summary>Literal workbook paths, including FileInfo.FullName and provider PSPath.</summary>

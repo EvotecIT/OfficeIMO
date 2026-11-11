@@ -533,6 +533,17 @@ _Dependency footprint:_ only `OfficeIMO.Core`; external schemas are identified b
 
 _Dependency footprint:_ BCL compatibility packages only; no third-party CSV parser.
 
+#### [OfficeIMO.Toml](../OfficeIMO.Toml/README.md)
+
+- [x] TOML 1.1 pull reader with full syntax checking, positioned errors and no per-token allocation
+- [x] Lossless document model: unchanged files save byte for byte, including comments, alignment, spelling and a UTF-8 BOM
+- [x] Minimal-diff editing of values, keys, tables, arrays of tables, arrays and inline tables in the file's own layout, plus comments and path `Select`/`Set`/`Remove`
+- [x] Forward-only writer whose output TOML 1.0 and 1.1 readers both accept
+- [x] Depth, node, string-length and input-size limits with `UntrustedDefaults`, and cancellation
+- [x] All toml-test 1.1.0 valid and invalid cases, and byte-exact round trips of a real-world corpus
+
+_Dependency footprint:_ only `OfficeIMO.Core`; no third-party TOML parser.
+
 #### [OfficeIMO.JavaScript.Assets](../OfficeIMO.JavaScript.Assets/README.md)
 
 - [x] Value-only tabular XLSX and CSV exports from synchronous or asynchronous JavaScript row iterables
@@ -1179,6 +1190,14 @@ _Dependency footprint:_ only `OfficeIMO.Reader.Core` and the first-party OfficeI
 - [x] Bounded cue parsing and optional markup stripping without media or transcription tooling
 
 _Dependency footprint:_ only `OfficeIMO.Reader.Core` and platform APIs; no audio codec, downloader, or model.
+
+#### [OfficeIMO.Reader.Toml](../OfficeIMO.Reader.Toml/README.md)
+
+- [x] TOML table traversal into path/type/value rows whose paths `TomlDocument.Select` accepts
+- [x] Chunked structured output and optional Markdown tables
+- [x] Path/stream dispatch and malformed-input warnings with error codes and positions
+
+_Dependency footprint:_ `OfficeIMO.Toml` plus `OfficeIMO.Reader.Core`.
 
 #### [OfficeIMO.Reader.Visio](../OfficeIMO.Reader.Visio/README.md)
 
