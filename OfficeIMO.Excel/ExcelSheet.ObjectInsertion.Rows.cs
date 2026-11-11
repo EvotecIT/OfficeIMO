@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>
         /// Owns an enumerated source until projection. Chunks avoid copying a growing
-        /// reference array, and projected rows can be released while selector boxes accumulate.
+        /// reference array, and projected rows can be released while selector values accumulate.
         /// Caller-owned indexed sources retain their ordinary per-selector indexing path.
         /// </summary>
         private sealed class ObjectExportRowSnapshot<T> : IReadOnlyList<T> {
@@ -58,14 +58,14 @@ namespace OfficeIMO.Excel {
         private static void FillOwnedObjectExportValues<T>(
             ObjectExportRowSnapshot<T> rows,
             Func<T, object?>[] selectors,
-            object?[] values,
+            ExcelTabularCellValues values,
             Type?[] inferredColumnTypes) {
             int index = 0;
             for (int row = 0; row < rows.Count; row++) {
                 T item = rows[row];
                 for (int column = 0; column < selectors.Length; column++) {
                     object? value = selectors[column](item);
-                    values[index++] = value;
+                    values.Set(index++, value);
                     UpdateObjectExportColumnType(inferredColumnTypes, column, value);
                 }
                 rows.Release(row);

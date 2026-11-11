@@ -68,7 +68,8 @@ internal static partial class PdfSyntax {
     internal static bool IsClassicRedactionOutput(byte[] pdf, PdfReadDocument document, CancellationToken cancellationToken) {
         if (HasCompressedRedactionStructures(document) || document.RepairReport.HasIncompleteObjectCoverage ||
             document.Objects.Values.Any(static item => item.Value is PdfDictionary dictionary && dictionary.Items.ContainsKey("Linearized"))) return false;
-        string text = PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        var text = new PdfByteContentText(pdf);
         return TryGetLatestStartXrefOffset(text, out int offset, cancellationToken) &&
             TryParseClassicXrefTable(text, offset, out _, out int? previous, out _, out int? hybrid, requireComplete: true, cancellationToken) &&
             !previous.HasValue && !hybrid.HasValue;

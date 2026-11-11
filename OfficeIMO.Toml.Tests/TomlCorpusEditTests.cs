@@ -52,7 +52,7 @@ public class TomlCorpusEditTests {
 
     [Fact]
     public void RemovingALockFilePackageDeletesOnlyItsSection() {
-        TomlCorpusFile file = Corpus("Uv/uv.lock");
+        TomlCorpusFile file = Corpus("Uv/uv-uv.lock");
         string original = Decode(file.Bytes);
         using TomlDocument doc = TomlDocument.Load(new MemoryStream(file.Bytes));
         TomlTableArray packages = doc.Select("package")!.AsTableArray();

@@ -7,11 +7,11 @@ internal static partial class PdfSyntax {
     /// planner has accepted the source and the canonical assembler has produced the bytes.
     /// </summary>
     internal static PdfDocumentSecurityInfo ReadRewrittenOutputSecurityInfo(
-        string decodedText,
+        byte[] pdf,
         string trailerRaw,
         PdfLoadOptions options,
         CancellationToken cancellationToken = default) {
-        Guard.NotNull(decodedText, nameof(decodedText));
+        Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(trailerRaw, nameof(trailerRaw));
         Guard.NotNull(options, nameof(options));
         cancellationToken.ThrowIfCancellationRequested();
@@ -21,7 +21,7 @@ internal static partial class PdfSyntax {
             throw new InvalidDataException("The canonical clear-text rewrite unexpectedly emitted an encryption reference.");
         }
 
-        if (!TryGetLatestStartXrefOffset(decodedText, out int startXrefOffset, cancellationToken)) {
+        if (!TryGetLatestStartXrefOffset(new PdfByteContentText(pdf), out int startXrefOffset, cancellationToken)) {
             throw new InvalidDataException("The canonical full rewrite did not contain a readable terminal cross-reference pointer.");
         }
 
@@ -233,16 +233,13 @@ internal static partial class PdfSyntax {
         PdfReference? infoReference = trailerReferences.Third;
         int? infoObjectNumber = infoReference?.ObjectNumber ?? fallback.InfoObjectNumber;
         int? infoObjectGeneration = infoReference?.Generation ?? fallback.InfoObjectGeneration;
-        string? rawFallback = null;
         bool hasSignatures = hasParsedSignatureMarker;
         if (!hasSignatures && repairReport.HasIncompleteObjectCoverage) {
-            rawFallback = PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken);
-            hasSignatures = ContainsAnyPdfName(rawFallback, cancellationToken, "ByteRange", "SigFlags", "Sig");
+            hasSignatures = ContainsAnyPdfName(pdf, cancellationToken, "ByteRange", "SigFlags", "Sig");
         }
         bool hasByteRange = byteRangeValueCount > 0 || hasParsedByteRangeMarker;
         if (!hasByteRange && hasSignatures && repairReport.HasIncompleteObjectCoverage) {
-            rawFallback ??= PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken);
-            hasByteRange = ContainsAnyPdfName(rawFallback, cancellationToken, "ByteRange");
+            hasByteRange = ContainsAnyPdfName(pdf, cancellationToken, "ByteRange");
         }
 
         cancellationToken.ThrowIfCancellationRequested();

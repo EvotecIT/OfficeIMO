@@ -14,6 +14,22 @@ public partial class ExcelReaderGeneratedBenchmarks {
         return output.ToArray();
     }
 
+    /// <summary>
+    /// The typed writer configured for the output <see cref="WriteOfficeIMOBuffered"/> produces: XLSX cells keep
+    /// their references and XLS text goes through the shared-string table. XLSB output is already the same.
+    /// </summary>
+    internal static byte[] WriteOfficeIMOMatchingBuffered(ExcelFileFormat format, int rowCount) {
+        using var output = new MemoryStream();
+        using (var writer = ExcelDocument.CreateWriter(format, output, new ExcelWriterOptions {
+            IncludeCellReferences = format == ExcelFileFormat.Xlsx,
+            UseSharedStrings = format == ExcelFileFormat.Xls
+        }, leaveOpen: true)) {
+            writer.WriteTable("Data", Generate(rowCount), Headers,
+                static (row, value) => row.Write(value.Name).Write(value.Id).Write(value.CreatedOn).Write(value.Amount));
+        }
+        return output.ToArray();
+    }
+
     internal static byte[] WriteOfficeIMOBuffered(ExcelFileFormat format, int rowCount) {
         using var output = new MemoryStream();
         using (var document = ExcelDocument.Create()) {

@@ -73,8 +73,11 @@ internal static class CoerceValueHelper {
         };
     }
 
+    /// <summary>Excel has no NaN or infinite cell value; such numbers are stored as the #NUM! error Excel shows for them.</summary>
     internal static (CellValue, CellValues) HandleNumber(double number) =>
-        (CreateNumberCellValue(number), CellValues.Number);
+        double.IsNaN(number) || double.IsInfinity(number)
+            ? (CreateTextCellValue(ExcelSheet.NonFiniteNumberErrorText), CellValues.Error)
+            : (CreateNumberCellValue(number), CellValues.Number);
 
     internal static (CellValue, CellValues) HandleDecimal(decimal value) =>
         (CreateTextCellValue(value.ToString(CultureInfo.InvariantCulture)), CellValues.Number);

@@ -14,6 +14,22 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 out XlsbValidatedRowPlan? rowPlan, progress);
             return new XlsbWorksheetDiscovery(firstColumn, lastColumn, firstRow, lastRow, rowPlan);
         }
+
+        /// <summary>Runs the same full validation for a single-pass reader, publishing each completed row.</summary>
+        internal static void DiscoverWorksheetForSinglePass(XlsbPooledPartStream part,
+            XlsbImportOptions limits, XlsbRecordReadBudget records, XlsbCellReadBudget cells,
+            ExcelSerialDateStyle[] styles, int sharedStringCount, ExcelReaderOptions options,
+            WorksheetInflationProgress progress, XlsbSinglePassGate gate) {
+            try {
+                DiscoverDataColumns(part, limits, records, cells, styles, sharedStringCount,
+                    options.TreatDatesUsingNumberFormat, options.UseCachedFormulaResult, gate.Token,
+                    out int firstColumn, out int lastColumn, out int firstRow, out int lastRow,
+                    out XlsbValidatedRowPlan? rowPlan, progress, gate);
+                gate.Complete(new XlsbWorksheetDiscovery(firstColumn, lastColumn, firstRow, lastRow, rowPlan), part.DataLength);
+            } catch (Exception exception) {
+                gate.Fail(exception);
+            }
+        }
     }
 
     /// <summary>Retains the validation result without keeping a second worksheet representation.</summary>
