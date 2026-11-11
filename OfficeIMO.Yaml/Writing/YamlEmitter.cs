@@ -847,11 +847,12 @@ internal sealed class YamlEmitter {
     private void WriteSingleQuoted(string value) {
         Write('\'');
         int start = 0;
-        for (int i = 0; i < value.Length; i++) {
-            if (value[i] != '\'') continue;
-            WriteRun(value, start, i - start + 1);
+        int quote;
+        // Each quote is doubled: write through it, then one more.
+        while ((quote = value.IndexOf('\'', start)) >= 0) {
+            WriteRun(value, start, quote - start + 1);
             Write('\'');
-            start = i + 1;
+            start = quote + 1;
         }
         WriteRun(value, start, value.Length - start);
         Write('\'');

@@ -6,28 +6,41 @@ namespace OfficeIMO.Yaml;
 /// it encodes UTF-8 in blocks whenever the buffer fills.
 /// </summary>
 internal sealed class YamlCharBuffer : TextWriter {
-    private const int StreamBlock = 16 * 1024;
+    private const int MinStreamBlock = 16 * 1024;
+#if NET8_0_OR_GREATER
+    // The shared pool keeps large arrays here, so a document up to this size reaches the stream in one write.
+    private const int MaxStreamBlock = 1 << 20;
+#else
+    private const int MaxStreamBlock = MinStreamBlock;
+#endif
     private static readonly UTF8Encoding Utf8 = new UTF8Encoding(false);
 
     private readonly Stream? _stream;
     private readonly Encoder? _encoder;
+    // Characters buffered before a stream write; a string buffer never drains.
+    private readonly int _block = int.MaxValue;
     private byte[]? _bytes;
     private char[] _buffer;
     private int _length;
+    private int _flushed;
 
     public YamlCharBuffer(int capacity = 4096) {
         _buffer = ArrayPool<char>.Shared.Rent(Math.Max(capacity, 4096));
     }
 
-    /// <summary>Gets the number of characters written to a string buffer.</summary>
-    public int Length => _length;
+    /// <summary>Gets the number of characters written, including those already encoded to a stream.</summary>
+    public int Length => _flushed + _length;
 
-    /// <summary>Creates a buffer that writes UTF-8 without a byte-order mark to a caller-owned stream.</summary>
-    public YamlCharBuffer(Stream stream) {
+    /// <summary>
+    /// Creates a buffer that writes UTF-8 without a byte-order mark to a caller-owned stream, in blocks sized for a
+    /// document of about <paramref name="lengthHint"/> characters: a document of the size seen before reaches the
+    /// stream in one write, so a growing stream such as <see cref="MemoryStream"/> sizes itself once.
+    /// </summary>
+    public YamlCharBuffer(Stream stream, int lengthHint) {
         _stream = stream;
         _encoder = Utf8.GetEncoder();
-        _buffer = ArrayPool<char>.Shared.Rent(StreamBlock + 1024);
-        _bytes = ArrayPool<byte>.Shared.Rent(Utf8.GetMaxByteCount(_buffer.Length));
+        _block = Math.Min(Math.Max(lengthHint + lengthHint / 8, MinStreamBlock), MaxStreamBlock);
+        _buffer = ArrayPool<char>.Shared.Rent(_block + 1024);
     }
 
     public override Encoding Encoding => Encoding.Unicode;
@@ -52,7 +65,7 @@ internal sealed class YamlCharBuffer : TextWriter {
 #endif
 
     public void Append(ReadOnlySpan<char> text) {
-        if (_stream is not null && _length + text.Length > StreamBlock) Drain(final: false);
+        if (_length + text.Length > _block) Drain(final: false);
         if (_buffer.Length - _length < text.Length) Grow(text.Length);
         // Most runs are a few characters (indentation, indicators, short scalars), where a loop beats a memmove call.
         if (text.Length <= 16) {
@@ -71,7 +84,7 @@ internal sealed class YamlCharBuffer : TextWriter {
     /// </summary>
     public void AppendEntry(ReadOnlySpan<char> lineStart, string key, ReadOnlySpan<char> value) {
         int total = lineStart.Length + key.Length + 2 + value.Length;
-        if (_stream is not null && _length + total > StreamBlock) Drain(final: false);
+        if (_length + total > _block) Drain(final: false);
         if (_buffer.Length - _length < total) Grow(total);
         char[] buffer = _buffer;
         int position = _length;
@@ -85,7 +98,7 @@ internal sealed class YamlCharBuffer : TextWriter {
 
     /// <summary>Appends <paramref name="count"/> spaces, the indentation of a deep line, in one step.</summary>
     public void AppendSpaces(int count) {
-        if (_stream is not null && _length + count > StreamBlock) Drain(final: false);
+        if (_length + count > _block) Drain(final: false);
         if (_buffer.Length - _length < count) Grow(count);
         _buffer.AsSpan(_length, count).Fill(' ');
         _length += count;
@@ -94,7 +107,7 @@ internal sealed class YamlCharBuffer : TextWriter {
     /// <summary>Appends a block mapping key on a new line: the line start (or padding), the key and <c>':'</c>.</summary>
     public void AppendKey(ReadOnlySpan<char> lineStart, string key) {
         int total = lineStart.Length + key.Length + 1;
-        if (_stream is not null && _length + total > StreamBlock) Drain(final: false);
+        if (_length + total > _block) Drain(final: false);
         if (_buffer.Length - _length < total) Grow(total);
         char[] buffer = _buffer;
         int position = _length;
@@ -110,7 +123,7 @@ internal sealed class YamlCharBuffer : TextWriter {
     /// </summary>
     public void AppendItem(ReadOnlySpan<char> lineStart, ReadOnlySpan<char> padding, ReadOnlySpan<char> value) {
         int total = lineStart.Length + 1 + padding.Length + value.Length;
-        if (_stream is not null && _length + total > StreamBlock) Drain(final: false);
+        if (_length + total > _block) Drain(final: false);
         if (_buffer.Length - _length < total) Grow(total);
         char[] buffer = _buffer;
         int position = _length;
@@ -148,14 +161,15 @@ internal sealed class YamlCharBuffer : TextWriter {
 
     private void Drain(bool final) {
         if (_length == 0 && !final) return;
-        byte[] bytes = _bytes!;
-        int written;
-        if (_buffer.Length > 0 && Utf8.GetMaxByteCount(_length) > bytes.Length) {
-            ArrayPool<byte>.Shared.Return(bytes);
-            _bytes = bytes = ArrayPool<byte>.Shared.Rent(Utf8.GetMaxByteCount(_length));
+        byte[]? bytes = _bytes;
+        int needed = Utf8.GetMaxByteCount(_length);
+        if (bytes is null || needed > bytes.Length) {
+            if (bytes is not null) ArrayPool<byte>.Shared.Return(bytes);
+            _bytes = bytes = ArrayPool<byte>.Shared.Rent(needed);
         }
-        written = _encoder!.GetBytes(_buffer, 0, _length, bytes, 0, flush: final);
+        int written = _encoder!.GetBytes(_buffer, 0, _length, bytes, 0, flush: final);
         _stream!.Write(bytes, 0, written);
+        _flushed += _length;
         _length = 0;
     }
 

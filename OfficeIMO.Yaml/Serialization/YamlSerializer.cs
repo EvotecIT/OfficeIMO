@@ -180,9 +180,9 @@ public static class YamlSerializer {
     public static void Serialize<T>(Stream utf8Yaml, T value, YamlTypeInfo<T> typeInfo) {
         if (utf8Yaml is null) throw new ArgumentNullException(nameof(utf8Yaml));
         if (typeInfo is null) throw new ArgumentNullException(nameof(typeInfo));
-        using var output = new YamlCharBuffer(utf8Yaml);
-        using var writer = new YamlWriter(output, typeInfo.Options.EffectiveWriterOptions);
-        Write(writer, value, typeInfo);
+        using var output = new YamlCharBuffer(utf8Yaml, typeInfo.OutputLengthHint);
+        using (var writer = new YamlWriter(output, typeInfo.Options.EffectiveWriterOptions)) Write(writer, value, typeInfo);
+        NoteLength(output, typeInfo);
     }
 
     /// <summary>Writes <paramref name="value"/> with generated metadata to a text writer, which stays open.</summary>
@@ -342,9 +342,13 @@ public static class YamlSerializer {
     }
 
     private static string Finish(YamlCharBuffer output, YamlTypeInfo typeInfo) {
-        typeInfo.OutputLengthHint = Math.Min(output.Length, YamlTypeInfo.MaxOutputLengthHint);
+        NoteLength(output, typeInfo);
         return output.ToString();
     }
+
+    /// <summary>Remembers the length written from the type as a root, so the next call starts its buffer at that size.</summary>
+    private static void NoteLength(YamlCharBuffer output, YamlTypeInfo typeInfo) =>
+        typeInfo.OutputLengthHint = Math.Min(output.Length, YamlTypeInfo.MaxOutputLengthHint);
 
     private static byte[] SerializeBoxedToUtf8Bytes(object? value, YamlTypeInfo typeInfo) {
         using var output = new YamlCharBuffer(typeInfo.OutputLengthHint);
@@ -353,15 +357,15 @@ public static class YamlSerializer {
     }
 
     private static byte[] FinishUtf8(YamlCharBuffer output, YamlTypeInfo typeInfo) {
-        typeInfo.OutputLengthHint = Math.Min(output.Length, YamlTypeInfo.MaxOutputLengthHint);
+        NoteLength(output, typeInfo);
         return output.ToUtf8Bytes();
     }
 
     private static void SerializeBoxed(Stream utf8Yaml, object? value, YamlTypeInfo typeInfo) {
         if (utf8Yaml is null) throw new ArgumentNullException(nameof(utf8Yaml));
-        using var output = new YamlCharBuffer(utf8Yaml);
-        using var writer = new YamlWriter(output, typeInfo.Options.EffectiveWriterOptions);
-        WriteBoxed(writer, value, typeInfo);
+        using var output = new YamlCharBuffer(utf8Yaml, typeInfo.OutputLengthHint);
+        using (var writer = new YamlWriter(output, typeInfo.Options.EffectiveWriterOptions)) WriteBoxed(writer, value, typeInfo);
+        NoteLength(output, typeInfo);
     }
 
     private static void SerializeBoxed(TextWriter writer, object? value, YamlTypeInfo typeInfo) {
