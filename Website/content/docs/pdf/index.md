@@ -14,7 +14,7 @@ Create, read and change PDF files in .NET with OfficeIMO's own PDF engine — no
 - **Protect** files with AES-256 passwords and permissions, or remove protection with the owner password.
 - **Sign** with certificate-based signatures (PAdES B-B and B-T) and validate existing signatures.
 - **Redact** text and areas permanently, with a verification report for every removed match.
-- **Produce standard output**: PDF/A, PDF/UA, PDF/X, Factur-X and ZUGFeRD, checked against the saved bytes.
+- **Produce standard output**: PDF/A, PDF/UA, PDF/X, Factur-X and ZUGFeRD, checked against the saved bytes, and convert existing PDFs to PDF/A with a report of every change.
 - **Render** pages to PNG, JPEG, TIFF, WebP or SVG, and compare two PDFs page by page.
 - **Print** to installed printers on Windows, macOS and Linux, with page ranges, 1, 2, 4, 6 or 9 pages per sheet, scaling, duplex and paper source, through `OfficeIMO.Workflows`.
 - **Convert** Word, Excel, PowerPoint, HTML and Markdown to PDF, and PDF back to Word, Excel, PowerPoint, HTML or Markdown.
@@ -32,7 +32,7 @@ dotnet add package OfficeIMO.Pdf
 | Goal | Guide |
 |---|---|
 | Build a PDF report, form, or positioned layout | [Authoring and layout](/docs/pdf/authoring/) |
-| Inspect, extract, merge, split, stamp, optimize, repair, redact, or print | [Inspection, extraction, and operations](/docs/pdf/operations/) |
+| Inspect, extract, merge, split, stamp, optimize, convert to PDF/A, repair, redact, or print | [Inspection, extraction, and operations](/docs/pdf/operations/) |
 | Encrypt, sign, verify, or preserve existing signed revisions | [Security and digital signatures](/docs/pdf/security/) |
 | Convert Word, Excel, PowerPoint, HTML, Markdown, or open formats | [Conversion and delivery](/docs/pdf/conversion/) |
 
