@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Data;
+using System.Data.Common;
 using System.Globalization;
 using System.IO.Compression;
 using System.Runtime.Serialization;
@@ -128,6 +129,21 @@ namespace OfficeIMO.Tests {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        /// <summary>Normalized headers collapse every run of Unicode white space to one space.</summary>
+        [Fact]
+        public void Reader_NormalizedHeadersCollapseUnicodeWhiteSpaceRuns() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue(" \tFirst \r\n Name 　Given ");
+            sheet.Cell(1, 2).SetValue("Total Amount");
+            sheet.Cell(2, 1).SetValue("Ada");
+            sheet.Cell(2, 2).SetValue(1);
+
+            using DbDataReader reader = ExcelDocument.OpenReader(document.ToBytes());
+            Assert.Equal("First Name Given", reader.GetName(0));
+            Assert.Equal("Total Amount", reader.GetName(1));
         }
 
         [Fact]

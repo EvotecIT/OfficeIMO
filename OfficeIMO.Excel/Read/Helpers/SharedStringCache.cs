@@ -13,7 +13,9 @@ namespace OfficeIMO.Excel {
         private static readonly XmlReaderSettings SharedStringXmlReaderSettings = CreateSharedStringXmlReaderSettings();
         private static readonly XmlReaderSettings SharedStringWhitespaceXmlReaderSettings = CreateSharedStringWhitespaceXmlReaderSettings();
 
-        private readonly Lazy<SharedStringTablePart?> _part;
+        // Only the SDK route has a part. The native constructors leave it null, so a native read never
+        // loads the Open XML SDK.
+        private readonly Lazy<SharedStringTablePart?>? _part;
         private readonly Func<Stream>? _openPartStream;
         private readonly Func<SharedStringTablePart, Stream?>? _openIndexedPartStream;
         private readonly bool _preferDom;
@@ -46,7 +48,6 @@ namespace OfficeIMO.Excel {
         }
 
         private SharedStringCache(Func<Stream> openPartStream, ExcelReaderOptions options) {
-            _part = new Lazy<SharedStringTablePart?>(() => null, LazyThreadSafetyMode.ExecutionAndPublication);
             _openPartStream = openPartStream ?? throw new ArgumentNullException(nameof(openPartStream));
             _preferDom = false;
             _maxSharedStringItems = options.MaxSharedStringItems;
@@ -57,7 +58,6 @@ namespace OfficeIMO.Excel {
         }
 
         private SharedStringCache(List<string> items, ExcelReaderOptions options) {
-            _part = new Lazy<SharedStringTablePart?>(() => null, LazyThreadSafetyMode.ExecutionAndPublication);
             _openPartStream = null;
             _preferDom = false;
             _maxSharedStringItems = options.MaxSharedStringItems;
@@ -144,6 +144,11 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            return LoadItemsFromPackage();
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private List<string>? LoadItemsFromPackage() {
             SharedStringTablePart? part = GetSharedStringTablePart();
             if (part == null) return new List<string>();
             if (_openIndexedPartStream != null) {
@@ -203,7 +208,7 @@ namespace OfficeIMO.Excel {
         }
 
         private SharedStringTablePart? GetSharedStringTablePart() {
-            return _part.Value;
+            return _part?.Value;
         }
 
         private bool TryLoadItemsXmlFast(SharedStringTablePart part, out List<string> items) {
