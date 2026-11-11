@@ -116,6 +116,32 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_SplitByHeadingReadsReadOnlySourceAndKeepsImportedPreamble() {
+            byte[] package;
+            using (WordDocument document = WordDocument.Create()) {
+                MainDocumentPart main = document._wordprocessingDocument.MainDocumentPart!;
+                AlternativeFormatImportPart chunk = main.AddAlternativeFormatImportPart(AlternativeFormatImportPartType.Html);
+                using (var html = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("<html><body><p>Imported</p></body></html>"))) chunk.FeedData(html);
+                Body(document).PrependChild(new AltChunk { Id = main.GetIdOfPart(chunk) });
+                document.AddParagraph("Chapter").Style = WordParagraphStyles.Heading1;
+                package = document.ToBytes();
+            }
+
+            using var stream = new MemoryStream(package, writable: false);
+            using WordDocument source = WordDocument.Load(stream, new WordLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+            IReadOnlyList<WordDocument> pieces = source.SplitByHeading();
+            try {
+                Assert.Equal(2, pieces.Count);
+                MainDocumentPart preamble = pieces[0]._wordprocessingDocument.MainDocumentPart!;
+                AltChunk kept = Assert.Single(Body(pieces[0]).Elements<AltChunk>());
+                Assert.IsType<AlternativeFormatImportPart>(preamble.GetPartById(kept.Id!.Value!));
+                Assert.Empty(pieces[1]._wordprocessingDocument.MainDocumentPart!.AlternativeFormatImportParts);
+            } finally {
+                foreach (WordDocument piece in pieces) piece.Dispose();
+            }
+        }
+
         private static MainDocumentPart Reload(WordDocument piece, out WordDocument reloaded) {
             using var stream = new MemoryStream(piece.ToBytes(), writable: false);
             reloaded = WordDocument.Load(stream);

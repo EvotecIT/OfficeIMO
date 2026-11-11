@@ -16,7 +16,7 @@ namespace OfficeIMO.Word {
         };
 
         internal static IReadOnlyList<WordDocument> Split(WordDocument source, int? headingLevel) {
-            byte[] package = source.ToBytes();
+            byte[] package = source.CreatePackageSnapshot();
             List<(int Start, int End)> ranges;
             using (var stream = new MemoryStream(package, writable: false))
             using (WordprocessingDocument document = WordprocessingDocument.Open(stream, false)) {
@@ -88,6 +88,8 @@ namespace OfficeIMO.Word {
 
         private static bool HasContent(OpenXmlElement element) =>
             element is Table ||
+            element is AltChunk ||
+            element.Descendants<AltChunk>().Any() ||
             !string.IsNullOrWhiteSpace(element.InnerText) ||
             element.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Any() ||
             element.Descendants<Picture>().Any() ||

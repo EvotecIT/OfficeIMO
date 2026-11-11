@@ -581,11 +581,12 @@ Content after a source section break keeps its own page setup. A source section 
 
 ```csharp
 using var handbook = WordDocument.Load("handbook.docx");
-foreach (WordDocument chapter in handbook.SplitByHeading(level: 1)) {
-    using (chapter) {
-        string title = chapter.Paragraphs.First(p => !string.IsNullOrWhiteSpace(p.Text)).Text;
-        chapter.Save(Path.Combine("chapters", title + ".docx"));
-    }
+IReadOnlyList<WordDocument> chapters = handbook.SplitByHeading(level: 1);
+for (int i = 0; i < chapters.Count; i++) {
+    using WordDocument chapter = chapters[i];
+    // A piece before the first heading may hold only a table or a picture.
+    string title = chapter.Paragraphs.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p.Text))?.Text ?? $"Part {i + 1}";
+    chapter.Save(Path.Combine("chapters", title + ".docx"));
 }
 ```
 
