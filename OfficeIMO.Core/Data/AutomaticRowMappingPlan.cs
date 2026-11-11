@@ -75,8 +75,7 @@ internal sealed partial class AutomaticRowMappingPlan<
                 && (constructor is null || !constructor.Contains(binding.Property)))) {
             throw new DataMappingException($"A read-only mapped property on {typeof(T).Name} has no constructor parameter.");
         }
-        var plan = new AutomaticRowMappingPlan<T>(bindings, constructor,
-            constructor is null ? CreateFastReaderMap(bindings) : null);
+        var plan = new AutomaticRowMappingPlan<T>(bindings, constructor, CreateFastReaderMap(bindings, constructor));
         if (IsHeaderShapeCacheable(headers)) {
             System.Threading.Volatile.Write(
                 ref _cachedPlan,
@@ -532,7 +531,7 @@ internal sealed partial class AutomaticRowMappingPlan<
         }
     }
 
-    private static Func<DbDataReader, T>? CreateFastReaderMap(MappingBinding[] bindings) {
+    private static Func<DbDataReader, T>? CreateFastReaderMap(MappingBinding[] bindings, ConstructorBinding? constructor) {
 #if NET8_0_OR_GREATER
         if (!RuntimeFeature.IsDynamicCodeSupported) return null;
 #endif
@@ -570,8 +569,21 @@ internal sealed partial class AutomaticRowMappingPlan<
                         Expression.Throw(fallbackException, binding.Property.ValueType))));
             }
 
-            body.Add(Expression.Assign(instance, Expression.New(typeof(T))));
+            if (constructor is null) {
+                body.Add(Expression.Assign(instance, Expression.New(typeof(T))));
+            } else {
+                Expression? construction = CreateConstructorCall(bindings, values, constructor);
+                if (construction is null) return null;
+                // A constructor that rejects the row takes the reflection path, which reports it.
+                body.Add(Expression.TryCatch(
+                    Expression.Assign(instance, construction),
+                    Expression.Catch(
+                        typeof(Exception),
+                        Expression.Throw(Expression.New(typeof(TypedReaderValueException)), typeof(T)))));
+            }
+
             for (int index = 0; index < bindings.Length; index++) {
+                if (constructor is not null && constructor.Contains(bindings[index].Property)) continue;
                 body.Add(Expression.Assign(
                     Expression.Property(instance, bindings[index].Property.Property),
                     values[index]));
@@ -587,6 +599,35 @@ internal sealed partial class AutomaticRowMappingPlan<
         } catch {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Passes the typed column values straight to the bound constructor. Returns null when a
+    /// parameter needs a conversion or a default the reflection path supplies.
+    /// </summary>
+    private static Expression? CreateConstructorCall(
+        MappingBinding[] bindings,
+        ParameterExpression[] values,
+        ConstructorBinding constructor) {
+        ParameterInfo[] parameters = constructor.Parameters;
+        var arguments = new Expression[parameters.Length];
+        for (int index = 0; index < parameters.Length; index++) {
+            ParameterInfo parameter = parameters[index];
+            if (constructor.Arguments[index] is not MappingBinding argument) {
+                if (!parameter.HasDefaultValue) return null;
+                arguments[index] = parameter.DefaultValue is null
+                    ? Expression.Default(parameter.ParameterType)
+                    : Expression.Constant(parameter.DefaultValue, parameter.ParameterType);
+                continue;
+            }
+
+            int source = Array.FindIndex(bindings, binding =>
+                binding.ColumnIndex == argument.ColumnIndex && ReferenceEquals(binding.Property, argument.Property));
+            if (source < 0 || values[source].Type != parameter.ParameterType) return null;
+            arguments[index] = values[source];
+        }
+
+        return Expression.New(constructor.Constructor, arguments);
     }
 
     internal sealed class TypedReaderValueException : Exception {
