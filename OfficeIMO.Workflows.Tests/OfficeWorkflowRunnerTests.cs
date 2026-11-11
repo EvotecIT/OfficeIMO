@@ -65,7 +65,7 @@ public sealed class OfficeWorkflowRunnerTests {
     public void CatalogProjectsCanonicalRoutesAndSupportedExecutionContracts() {
         Assert.Equal(OfficeConversionCapabilityCatalog.All.Count, OfficeWorkflowCatalog.Routes.Count);
         Assert.Equal(
-            ["book-project-epub", "chm-epub", "chm-markdown", "chm-pdf", "djvu-pdf", "doc-pdf", "docx-pdf", "heic-pdf", "html-pdf", "markdown-pdf", "odg-pdf", "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-pdf", "publisher-pdf", "rtf-pdf", "txt-pdf", "visio-pdf", "xlsx-pdf", "xps-pdf"],
+            ["book-project-epub", "chm-epub", "chm-markdown", "chm-pdf", "djvu-pdf", "doc-pdf", "docx-odt", "docx-pdf", "email-pdf", "epub-pdf", "heic-pdf", "html-docx", "html-pdf", "markdown-docx", "markdown-pdf", "odg-pdf", "odp-pdf", "odp-pptx", "ods-pdf", "ods-xlsx", "odt-docx", "odt-pdf", "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-odp", "pptx-pdf", "publisher-pdf", "rtf-docx", "rtf-pdf", "txt-pdf", "visio-pdf", "xlsx-ods", "xlsx-pdf", "xps-pdf"],
             OfficeWorkflowCatalog.ExecutableRoutes.Select(route => route.Id).OrderBy(id => id, StringComparer.Ordinal));
         Assert.All(OfficeWorkflowCatalog.Routes, route => Assert.True(route.Engine == "OfficeIMO" || route.Engine.StartsWith("OfficeIMO.", StringComparison.Ordinal)));
         Assert.All(OfficeWorkflowCatalog.Routes, route => {
@@ -76,6 +76,24 @@ public sealed class OfficeWorkflowRunnerTests {
         });
         Assert.All(OfficeWorkflowCatalog.ExecutableRoutes, route => Assert.True(route.CanExecute));
         Assert.Contains(OfficeWorkflowCatalog.Routes, route => !route.CanExecute);
+    }
+
+    [Theory]
+    [InlineData("source.md", "# Runner route marker", "markdown-docx")]
+    [InlineData("source.rtf", @"{\rtf1\ansi Runner route marker\par}", "rtf-docx")]
+    public async Task RunnerExecutesFrontDoorAndPairRoutesThroughTheSharedConverter(string name, string content, string routeId) {
+        using var scope = new TestDirectory();
+        string input = System.IO.Path.Combine(scope.Path, name), output = System.IO.Path.Combine(scope.Path, "result.docx");
+        File.WriteAllText(input, content);
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert, ConversionRouteId = routeId, InputPath = input, OutputPath = output
+        });
+
+        Assert.True(result.Status == OfficeWorkflowStatus.Completed, result.Summary);
+        Assert.NotNull(result.ConversionEvidence);
+        using WordDocument document = WordDocument.Load(output);
+        Assert.Contains(document.Paragraphs, paragraph => paragraph.Text.Contains("Runner route marker", StringComparison.Ordinal));
     }
 
     [Fact]

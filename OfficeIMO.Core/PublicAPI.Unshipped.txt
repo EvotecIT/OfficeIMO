@@ -122,6 +122,7 @@ OfficeIMO.Drawing.OfficeRasterDecodeInfo.CodecUnavailableReason.get -> OfficeIMO
 OfficeIMO.Drawing.OfficeRasterDecodeInfo.DiagnosticCode.get -> string?
 OfficeIMO.Drawing.OfficeRasterImageCodecs
 OfficeIMO.OfficeConversionCapability.RequiresImageCodec.get -> bool
+OfficeIMO.OfficeConversionCapability.HostExecutable.get -> bool
 const OfficeIMO.OfficeDiagnosticCodes.ImageCodecUnavailable = "image-codec-unavailable" -> string!
 static OfficeIMO.Drawing.OfficeImageReader.NormalizeForEmbedding(byte[]! encodedBytes, OfficeIMO.Drawing.OfficeRasterDecodeOptions? options, out OfficeIMO.Drawing.OfficeImageInfo! info) -> byte[]!
 static OfficeIMO.Drawing.OfficeRasterImageCodecs.Platform.get -> OfficeIMO.Drawing.IOfficeRasterImageCodec?
@@ -194,3 +195,5 @@ OfficeIMO.OfficeTrackedChangesAction.AcceptAll = 1 -> OfficeIMO.OfficeTrackedCha
 OfficeIMO.OfficeTrackedChangesAction.Keep = 0 -> OfficeIMO.OfficeTrackedChangesAction
 OfficeIMO.OfficeTrackedChangesAction.RejectAll = 2 -> OfficeIMO.OfficeTrackedChangesAction
 override OfficeIMO.OfficeHiddenDataFinding.ToString() -> string!
+*REMOVED*const OfficeIMO.OfficeConversionCapabilityCatalog.SchemaVersion = 9 -> int
+const OfficeIMO.OfficeConversionCapabilityCatalog.SchemaVersion = 10 -> int
