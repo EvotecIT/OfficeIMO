@@ -860,8 +860,7 @@ Build `OfficeIMO.Yaml` as an owned, dependency-free YAML 1.2 engine with lossles
 - [ ] Y5a: rebuild `OfficeIMO.Reader.Yaml` on the engine, preserve its chunk/path contract and remove YamlDotNet.
 - [ ] Y3: minimal-diff editing, sibling-style inference, `YamlWriter` and new-document emission with YAML 1.1-safe quoting; independent readers accept our output. Move Markdown front matter to the engine.
 - [ ] Y3b: deep merge of an overlay into a base document or subtree with replace, append and merge-by-key sequence rules, Helm-style null removal and a `YamlMergeReport`. Qualify on Helm values and per-environment configuration overlays: the merged file must be a minimal diff of the base, and its data must match the same merge done on the loaded data.
-- [ ] Finish the [structured-data conversion](officeimo.data-conversions-design.md) routes. JSON, JSON Lines, YAML, TOML, XML, CSV, TSV and worksheet conversions ship in `OfficeIMO.Data.Conversions`; remaining: PSWriteOffice `Convert-OfficeDocument` coverage and `ConvertFrom-/ConvertTo-OfficeToml`, and three-OS benchmark evidence.
-- [ ] Bring JSON-to-CSV, JSON-to-TSV and JSON-to-TOML ahead of CsvHelper and Tomlyn in the opt-in conversion benchmarks, where they trail. CSV and TSV need UTF-8 field text from the JSON source to use the CSV writer's UTF-8 row path, which the char-based events cannot supply; the TOML sink holds the whole document as one object per value, so large arrays of tables spend their time in garbage collection.
+- [ ] Finish the [structured-data conversion](officeimo.data-conversions-design.md) routes. JSON, JSON Lines, YAML, TOML, XML, CSV, TSV and worksheet conversions ship in `OfficeIMO.Data.Conversions`; remaining: Windows and Linux benchmark evidence alongside macOS.
 - [ ] Y4: `YamlSerializer` with a packaged source generator for trimming and NativeAOT and a reflection fallback.
 - [ ] Lead YamlDotNet and SharpYaml on parse-to-events and load-to-model elapsed time and allocation across the benchmark workloads, with Windows, Linux and macOS evidence.
 
@@ -881,8 +880,7 @@ Extend the managed shaping provider in `OfficeIMO.Core` so complex scripts and v
 - [ ] Markdown `+++` front matter: read and write Hugo-style TOML front matter in `OfficeIMO.Markdown` through `TomlDocument`, after Markdown's YAML front matter moves onto `OfficeIMO.Yaml`, so both front matter kinds share one integration shape.
 - [ ] `TomlSerializer`: object mapping with a source generator for trimming and NativeAOT, following the YAML serializer's design once that lands, so both formats share attributes, naming policies and options.
 - [ ] Stream and `TextReader` input for `TomlReader` with a pooled sliding buffer, as `YamlReader` has, for very large lock files.
-- [ ] A `ReaderInputKind.Toml` for `OfficeIMO.Reader.Toml`, so Reader results map to `OfficeDocumentFormat.Toml` instead of `Unknown` in the neutral document model.
-- [ ] PSWriteOffice commands on the same API (`New-`/`Open-`/`Save-OfficeToml`, `Get-`/`Set-`/`Remove-OfficeTomlNode -Select`, `ConvertFrom-`/`ConvertTo-OfficeToml`), following the YAML command set.
+- [ ] PSWriteOffice document commands on the same API (`New-`/`Open-`/`Save-OfficeToml`, `Get-`/`Set-`/`Remove-OfficeTomlNode -Select`), following the YAML command set.
 - [ ] An opt-in large corpus run over thousands of pinned real-world TOML files (crates.io manifests, PyPI `pyproject.toml`, lock files, Hugo sites), checking parse, byte-exact round-trip and scripted edits, plus a mutation run for hostile input.
 - [ ] Lead Tomlyn on parse and load elapsed time and allocation on every benchmark workload, with Windows and Linux evidence alongside macOS.
 

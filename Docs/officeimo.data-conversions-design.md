@@ -51,7 +51,7 @@ Each buffer is bounded by a limit and reported in the README:
 |---|---|---|
 | XML repeated siblings | Adjacent same-name siblings stream with one-sibling lookahead. Non-adjacent repeats (`a, b, a`) buffer that parent to group them | One record, or one parent |
 | YAML aliases expanded for non-YAML targets | The anchored subtree | `MaxAliasExpansion` from `YamlReaderOptions` |
-| TOML sink | Within a table, values must precede sub-tables, and an array of objects can only become `[[name]]` sections once all its items are known, so the sink holds the document and writes it at the end | The document; TOML files are configuration-sized |
+| TOML sink | Within a table, values must precede sub-tables, and an array of objects can only become `[[name]]` sections once all its items are known, so the sink holds the document and writes it at the end. It is held as pooled node records and one character buffer, not an object per value | The document; TOML files are configuration-sized |
 | TOML source | Tables can be defined in any order and duplicate-key rules span the file, so the source is loaded as a `TomlDocument` and walked | The document, bounded by `TomlLoadOptions` |
 | XML root children | A first pass reads only the root's child names; interleaved names (`a, b, a`) buffer the root to group them, otherwise records stream | One record, or the root when its children interleave |
 | Tree → table column discovery | Pass 1 scans events for column paths and type evidence; pass 2 writes rows. CSV output, which needs only the column set, scans the first `SampleRows` rows (1,000); a later row with a value at a new path fails with its name, as Miller does on a CSV schema change. Typed outputs (Excel, `StructuredDataReader`) scan every row for column types | The column set only. The input is re-read; `OfficeConverter` already captures input to re-readable bounded storage |
@@ -62,6 +62,7 @@ Each buffer is bounded by a limit and reported in the README:
 - `Utf8JsonReader`/`Utf8JsonWriter` over pooled buffers. No `JsonDocument` on the file routes.
 - No per-scalar strings unless the target needs them. YAML keys go through the engine's string cache. JSON property names that repeat (every row of an array of records) are encoded once with `JsonEncodedText`.
 - Header paths for table routes are compiled once into a write plan, so each row is a flat loop.
+- CSV and TSV cells stay UTF-8 from the source to the CSV writer's UTF-8 row path on .NET 8 and later. A JSON array of rows skips the event layer in the row pass: `Utf8JsonReader` tokens go straight into the column trie, with the same cells, findings and errors.
 - No LINQ, closures or boxing in event loops. The engines' AOT and trimming annotations carry through; no reflection anywhere in the hub.
 
 ## Packages
