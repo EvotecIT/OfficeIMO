@@ -53,5 +53,6 @@ namespace OfficeIMO.Excel {
         private bool _materializingPendingCellValueDirectSaveBuffer;
         private bool _hasCellValueDomWrites;
         private Cell? _styleScratchCell;
+        private MergeReferenceIndex? _mergeReferenceIndex;
     }
 }

@@ -70,13 +70,20 @@ namespace OfficeIMO.Tests
                 ExcelSheet sheet = document.AddSheet("Merge");
                 sheet.Range("A1:B1").Merge();
                 sheet.Range("A1:B1").Merge();
+                // Shifted and removed merges must still be recognised when the same ranges are merged again.
+                sheet.InsertRows(1);
+                sheet.Range("A2:B2").Merge();
+                sheet.Range("D1:E1").Merge().Unmerge();
+                sheet.Range("D1:E1").Merge();
+                sheet.Range("D1:E1").Merge();
                 document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
                 WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
-                MergeCell merge = Assert.Single(worksheetPart.Worksheet.Descendants<MergeCell>());
-                Assert.Equal("A1:B1", merge.Reference?.Value);
+                MergeCells merges = worksheetPart.Worksheet.Descendants<MergeCells>().Single();
+                Assert.Equal(new[] { "A2:B2", "D1:E1" }, merges.Elements<MergeCell>().Select(merge => merge.Reference?.Value));
+                Assert.Equal(2U, merges.Count?.Value);
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
