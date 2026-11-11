@@ -215,7 +215,7 @@ namespace OfficeIMO.OpenXml.Internal {
             _ => null
         };
 
-        private static string? ReadRootNamespace(CustomXmlPart part) {
+        internal static string? ReadRootNamespace(CustomXmlPart part) {
             try {
                 using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
                 using var reader = System.Xml.XmlReader.Create(stream, new System.Xml.XmlReaderSettings {

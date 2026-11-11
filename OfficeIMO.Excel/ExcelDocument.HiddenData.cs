@@ -25,6 +25,8 @@ namespace OfficeIMO.Excel {
             return report;
         }
 
+        private const string DataMashupNamespace = "http://schemas.microsoft.com/DataMashup";
+
         private OfficeHiddenDataReport CollectHiddenData(OfficeHiddenDataOptions? removal) {
             SpreadsheetDocument package = OpenXmlDocument;
             WorkbookPart workbookPart = package.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is missing.");
@@ -37,7 +39,10 @@ namespace OfficeIMO.Excel {
             OfficeOpenXmlHiddenData.InspectCustomProperties(package, collector, name => RemoveCustomDocumentProperty(name));
             CollectExcelExternalLinks(workbookPart, collector);
             CollectExcelPivotCacheSources(workbookPart, collector);
-            OfficeOpenXmlHiddenData.InspectCustomXml(workbookPart, workbookPart.CustomXmlParts, collector);
+            OfficeOpenXmlHiddenData.InspectCustomXml(workbookPart, workbookPart.CustomXmlParts, collector, part =>
+                OfficeOpenXmlHiddenData.ReadRootNamespace(part) == DataMashupNamespace
+                    ? "Power Query stores the workbook's queries here; delete the queries in Excel to remove it."
+                    : null);
             OfficeOpenXmlHiddenData.InspectThumbnail(package, collector);
             OfficeOpenXmlHiddenData.InspectImageMetadata(package, collector);
             OfficeOpenXmlHiddenData.InspectPrinterSettings(package, collector);

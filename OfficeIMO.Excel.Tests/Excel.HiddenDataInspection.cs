@@ -91,5 +91,27 @@ namespace OfficeIMO.Tests {
             Assert.Equal("tc=" + id, authors["A1"]);
             Assert.Equal("Author", authors["A2"]);
         }
+
+        [Fact]
+        public void Test_RemoveHiddenData_KeepsPowerQueryDataMashup() {
+            using ExcelDocument document = ExcelDocument.Create(Path.Combine(_directoryWithFiles, "HiddenData.DataMashup.xlsx"));
+            document.AddSheet("Data");
+            WorkbookPart workbookPart = document.OpenXmlDocument.WorkbookPart!;
+            CustomXmlPart AddCustomXml(string xml) {
+                CustomXmlPart part = workbookPart.AddCustomXmlPart(CustomXmlPartType.CustomXml);
+                using var writer = new StreamWriter(part.GetStream(FileMode.Create, FileAccess.Write));
+                writer.Write(xml);
+                return part;
+            }
+            CustomXmlPart mashup = AddCustomXml("<DataMashup xmlns=\"http://schemas.microsoft.com/DataMashup\">AAAAAA==</DataMashup>");
+            AddCustomXml("<client xmlns=\"urn:example:crm\">Private Client</client>");
+            string mashupUri = mashup.Uri.ToString();
+
+            OfficeHiddenDataReport removed = document.RemoveHiddenData();
+
+            OfficeHiddenDataFinding kept = Assert.Single(removed.GetFindings(OfficeHiddenDataKind.CustomXml), finding => finding.Location == mashupUri);
+            Assert.Equal(OfficeHiddenDataOutcome.Retained, kept.Outcome);
+            Assert.Equal(mashupUri, Assert.Single(workbookPart.CustomXmlParts).Uri.ToString());
+        }
     }
 }
