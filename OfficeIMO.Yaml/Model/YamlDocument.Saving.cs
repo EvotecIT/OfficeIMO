@@ -92,9 +92,21 @@ public sealed partial class YamlDocument {
         if (segments.Count == 1 && segments[0].Start == 0 && segments[0].Length == segments[0].Text.Length) return segments[0].Text;
         int length = 0;
         for (int i = 0; i < segments.Count; i++) length += segments[i].Length;
+#if NET8_0_OR_GREATER
+        // One allocation and one copy: a large edited document otherwise allocates its text twice on the large object heap.
+        return string.Create(length, segments, static (span, parts) => {
+            int offset = 0;
+            for (int i = 0; i < parts.Count; i++) {
+                YamlTextSegment segment = parts[i];
+                segment.Text.AsSpan(segment.Start, segment.Length).CopyTo(span.Slice(offset));
+                offset += segment.Length;
+            }
+        });
+#else
         var text = new StringBuilder(length);
         for (int i = 0; i < segments.Count; i++) text.Append(segments[i].Text, segments[i].Start, segments[i].Length);
         return text.ToString();
+#endif
     }
 
     /// <summary>

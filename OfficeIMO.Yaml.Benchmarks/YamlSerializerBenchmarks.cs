@@ -2,13 +2,14 @@ using System.Text;
 using BenchmarkDotNet.Attributes;
 using VYaml.Annotations;
 using DotNet = YamlDotNet.Serialization;
+using One = OneYaml;
 using Sharp = SharpYaml;
 
 namespace OfficeIMO.Yaml.Benchmarks;
 
 // One model set for every library: VYaml's generator needs partial [YamlObject] types, and every lane uses camelCase
-// keys (VYaml's default). OfficeIMO.Yaml and SharpYaml use their generated contexts, YamlDotNet its reflection
-// serializer, VYaml its generated formatters.
+// keys (VYaml's and OneYaml's default). OfficeIMO.Yaml and SharpYaml use their generated contexts, YamlDotNet its
+// reflection serializer, VYaml its generated formatters, and OneYaml runs with its generated context and with reflection.
 
 [YamlObject]
 public partial class BenchConfig {
@@ -121,11 +122,19 @@ public partial class BenchYamlContext : YamlSerializerContext {
 public partial class BenchSharpYamlContext : Sharp.Serialization.YamlSerializerContext {
 }
 
+// OneYaml's generator reads its own attribute; it runs beside OfficeIMO.Yaml's and SharpYaml's generators.
+[One.YamlSerializable(typeof(BenchConfig))]
+[One.YamlSerializable(typeof(List<BenchRecord>))]
+[One.YamlSerializable(typeof(List<BenchDeployment>))]
+public partial class BenchOneYamlContext : One.YamlSerializerContext {
+}
+
 /// <summary>The three serializer workloads, each with an operation per library.</summary>
 public abstract class YamlSerializerBenchmarkBase {
     protected static readonly BenchYamlContext Context = new BenchYamlContext(new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase });
     protected static readonly YamlSerializerOptions Reflection = new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase };
     protected static readonly BenchSharpYamlContext SharpContext = BenchSharpYamlContext.Default;
+    protected static readonly BenchOneYamlContext OneContext = BenchOneYamlContext.Default;
     protected static readonly DotNet.ISerializer DotNetSerializer = new DotNet.SerializerBuilder().WithNamingConvention(DotNet.NamingConventions.CamelCaseNamingConvention.Instance).Build();
     protected static readonly DotNet.IDeserializer DotNetDeserializer = new DotNet.DeserializerBuilder().WithNamingConvention(DotNet.NamingConventions.CamelCaseNamingConvention.Instance).Build();
 
@@ -166,6 +175,24 @@ public class YamlSerializeBenchmarks : YamlSerializerBenchmarkBase {
     };
 
     [Benchmark]
+    public int OneYamlGenerated() => Workload switch {
+        "SmallConfig" => One.YamlSerializer.Serialize((BenchConfig)Value, OneContext.BenchConfig).Length,
+        "LargeRecords" => One.YamlSerializer.Serialize((List<BenchRecord>)Value, OneContext.ListBenchRecord).Length,
+        _ => One.YamlSerializer.Serialize((List<BenchDeployment>)Value, OneContext.ListBenchDeployment).Length
+    };
+
+    [Benchmark]
+    public int OneYamlReflection() => One.YamlSerializer.Serialize(Value, Value.GetType()).Length;
+
+    /// <summary>UTF-8 output as a new array, OneYaml's native form.</summary>
+    [Benchmark]
+    public int OneYamlGeneratedUtf8() => Workload switch {
+        "SmallConfig" => One.YamlSerializer.SerializeToUtf8Bytes((BenchConfig)Value, OneContext.BenchConfig).Length,
+        "LargeRecords" => One.YamlSerializer.SerializeToUtf8Bytes((List<BenchRecord>)Value, OneContext.ListBenchRecord).Length,
+        _ => One.YamlSerializer.SerializeToUtf8Bytes((List<BenchDeployment>)Value, OneContext.ListBenchDeployment).Length
+    };
+
+    [Benchmark]
     public int OfficeIMOGenerated() => YamlSerializerWorkloads.SerializeOfficeIMO(Value).Length;
 
     [Benchmark]
@@ -200,6 +227,24 @@ public class YamlDeserializeBenchmarks : YamlSerializerBenchmarkBase {
     };
 
     [Benchmark]
+    public object OneYamlGenerated() => Workload switch {
+        "SmallConfig" => One.YamlSerializer.Deserialize(Text, OneContext.BenchConfig)!,
+        "LargeRecords" => One.YamlSerializer.Deserialize(Text, OneContext.ListBenchRecord)!,
+        _ => One.YamlSerializer.Deserialize(Text, OneContext.ListBenchDeployment)!
+    };
+
+    [Benchmark]
+    public object OneYamlReflection() => One.YamlSerializer.Deserialize(Text, Value.GetType())!;
+
+    /// <summary>UTF-8 input, OneYaml's native form, encoded once during setup as for VYaml.</summary>
+    [Benchmark]
+    public object OneYamlGeneratedUtf8() => Workload switch {
+        "SmallConfig" => One.YamlSerializer.Deserialize(Utf8, OneContext.BenchConfig)!,
+        "LargeRecords" => One.YamlSerializer.Deserialize(Utf8, OneContext.ListBenchRecord)!,
+        _ => One.YamlSerializer.Deserialize(Utf8, OneContext.ListBenchDeployment)!
+    };
+
+    [Benchmark]
     public object OfficeIMOGenerated() => YamlSerializer.Deserialize(Text, Value.GetType(), Context)!;
 
     [Benchmark]
@@ -230,8 +275,16 @@ internal static class YamlSerializerWorkloads {
         DotNet.ISerializer dotNetWriter = new DotNet.SerializerBuilder().WithNamingConvention(DotNet.NamingConventions.CamelCaseNamingConvention.Instance).Build();
         DotNet.IDeserializer dotNetReader = new DotNet.DeserializerBuilder().WithNamingConvention(DotNet.NamingConventions.CamelCaseNamingConvention.Instance).Build();
         var reflection = new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase };
+        BenchOneYamlContext one = BenchOneYamlContext.Default;
         var outputs = new Dictionary<string, string> {
             ["OfficeIMO reflection"] = YamlSerializer.Serialize(value, type, reflection),
+            ["OneYaml generated"] = One.YamlSerializer.Serialize(value, one.GetTypeInfo(type)!),
+            ["OneYaml reflection"] = One.YamlSerializer.Serialize(value, type),
+            ["OneYaml generated UTF-8"] = Encoding.UTF8.GetString(value switch {
+                BenchConfig config => One.YamlSerializer.SerializeToUtf8Bytes(config, one.BenchConfig),
+                List<BenchRecord> records => One.YamlSerializer.SerializeToUtf8Bytes(records, one.ListBenchRecord),
+                _ => One.YamlSerializer.SerializeToUtf8Bytes((List<BenchDeployment>)value, one.ListBenchDeployment)
+            }),
             ["YamlDotNet"] = dotNetWriter.Serialize(value),
             ["SharpYaml"] = Sharp.YamlSerializer.Serialize(value, type, sharp),
             ["VYaml"] = value switch {
@@ -252,6 +305,14 @@ internal static class YamlSerializerWorkloads {
             _ => VYaml.Serialization.YamlSerializer.Deserialize<List<BenchDeployment>>(utf8)
         };
         Check("VYaml read", expected, SerializeOfficeIMO(vyaml));
+        Check("OneYaml generated read", expected, SerializeOfficeIMO(One.YamlSerializer.Deserialize(expected, one.GetTypeInfo(type)!)!));
+        Check("OneYaml reflection read", expected, SerializeOfficeIMO(One.YamlSerializer.Deserialize(expected, type)!));
+        object oneUtf8 = value switch {
+            BenchConfig => One.YamlSerializer.Deserialize(utf8, one.BenchConfig)!,
+            List<BenchRecord> => One.YamlSerializer.Deserialize(utf8, one.ListBenchRecord)!,
+            _ => One.YamlSerializer.Deserialize(utf8, one.ListBenchDeployment)!
+        };
+        Check("OneYaml generated UTF-8 read", expected, SerializeOfficeIMO(oneUtf8));
     }
 
     private static void Check(string lane, string expected, string actual) {

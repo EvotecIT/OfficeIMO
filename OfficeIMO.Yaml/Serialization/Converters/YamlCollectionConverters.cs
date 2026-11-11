@@ -25,7 +25,7 @@ internal sealed class YamlCollectionConverter<TCollection, TElement> : YamlConve
     public override TCollection Read(YamlEventCursor cursor, YamlReadState state) {
         if (cursor.TokenType != YamlTokenType.SequenceStart) throw YamlSerializationErrors.TypeMismatch(cursor, state, typeof(TCollection));
         YamlTypeInfo<TElement> element = _element!;
-        var list = new List<TElement>();
+        var list = new List<TElement>(state.SizeHint(mapping: false));
         if (_listIsResult && state.Preserve) state.TakePendingAnchor(list);
         state.PushIndex(0);
         while (true) {
@@ -35,6 +35,7 @@ internal sealed class YamlCollectionConverter<TCollection, TElement> : YamlConve
             list.Add(element.Read(cursor, state));
         }
         state.Pop();
+        state.NoteSize(mapping: false, list.Count);
         return _listIsResult ? (TCollection)(object)list : _finish(list);
     }
 
@@ -94,10 +95,11 @@ internal sealed class YamlDictionaryConverter<TDictionary, TKey, TValue> : YamlC
 
     public override TDictionary Read(YamlEventCursor cursor, YamlReadState state) {
         if (cursor.TokenType != YamlTokenType.MappingStart) throw YamlSerializationErrors.TypeMismatch(cursor, state, typeof(TDictionary));
-        var dictionary = new Dictionary<TKey, TValue>();
+        var dictionary = new Dictionary<TKey, TValue>(state.SizeHint(mapping: true));
         if (_dictionaryIsResult && state.Preserve) state.TakePendingAnchor(dictionary);
         HashSet<TKey>? merged = null;
         ReadEntries(cursor, state, dictionary, ref merged, merging: false);
+        state.NoteSize(mapping: true, dictionary.Count);
         return _dictionaryIsResult ? (TDictionary)(object)dictionary : _finish(dictionary);
     }
 

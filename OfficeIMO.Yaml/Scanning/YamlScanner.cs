@@ -66,9 +66,11 @@ internal ref partial struct YamlScanner {
         if (c.StreamEndProduced) return false;
         // The parser peeks several times per token; candidates go stale only when the position moves.
         if (c.Base + c.Pos != c.StaleCheckedAt) StaleSimpleKeys();
+        // A level's candidate was saved before the next level opened, so token numbers grow with the level and the
+        // lowest candidate is the only one that can wait on the head token.
         YamlSimpleKey[] keys = c.SimpleKeys;
         for (int i = 0; i <= c.FlowLevel; i++) {
-            if (keys[i].Possible && keys[i].TokenNumber == c.TokensParsed) return true;
+            if (keys[i].Possible) return keys[i].TokenNumber == c.TokensParsed;
         }
         return false;
     }
@@ -493,13 +495,19 @@ internal ref partial struct YamlScanner {
         int absolute = Absolute(c.Pos);
         c.StaleCheckedAt = absolute;
         int line = c.Line;
+        // Deep flow collections hold a candidate per level; without this the check would cost the depth on every token.
+        if (line == c.StaleLine && absolute - c.StaleOldest <= MaxImplicitKeyLength) return;
+        int oldest = int.MaxValue;
         for (int i = 0; i <= c.FlowLevel; i++) {
             ref YamlSimpleKey key = ref keys[i];
             if (key.Possible && (key.Line < line || absolute - key.Offset > MaxImplicitKeyLength)) {
                 if (key.Required) ThrowStaleKey(in key);
                 key.Possible = false;
             }
+            if (key.Possible && key.Offset < oldest) oldest = key.Offset;
         }
+        c.StaleLine = line;
+        c.StaleOldest = oldest;
     }
 
     private static void ThrowStaleKey(in YamlSimpleKey key) =>
@@ -517,6 +525,7 @@ internal ref partial struct YamlScanner {
         key.Offset = Absolute(c.Pos);
         key.Line = c.Line;
         key.Column = c.Column;
+        if (key.Offset < c.StaleOldest) c.StaleOldest = key.Offset;
     }
 
     private void RemoveSimpleKey() {

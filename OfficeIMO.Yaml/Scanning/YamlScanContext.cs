@@ -49,6 +49,11 @@ internal sealed class YamlScanContext {
     // Absolute offset of the last stale implicit-key check; the check is repeated only after the position moves.
     public int StaleCheckedAt = -1;
 
+    // The line of the last full stale check and the oldest offset of an implicit-key candidate since then. While the
+    // line is unchanged and that candidate is within the key length limit, no candidate can be stale.
+    public int StaleLine = -1;
+    public int StaleOldest = int.MaxValue;
+
     // Comments, recorded only when requested.
     public bool IncludeComments;
     public YamlComment[] Comments;

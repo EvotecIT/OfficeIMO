@@ -59,6 +59,30 @@ internal sealed class YamlUntypedConverter : YamlConverter<object> {
     public override void Write(YamlWriter writer, object value, YamlWriteState state) {
         switch (value) {
             case string text: writer.WriteScalar(text); return;
+            // The shapes reading produces come first, enumerated without boxing their enumerators; plain entries and
+            // items go out in one step, as generated metadata writes them.
+            case Dictionary<string, object?> mapping:
+                if (!state.Begin(writer, value, typeof(object))) return;
+                writer.WriteStartMapping();
+                foreach (KeyValuePair<string, object?> entry in mapping) {
+                    if (TryWritePlainEntry(writer, entry.Key, entry.Value)) continue;
+                    writer.WriteKey(entry.Key);
+                    WriteValue(writer, entry.Value, state);
+                }
+                writer.WriteEndMapping();
+                state.End();
+                return;
+            case List<object?> list:
+                if (!state.Begin(writer, value, typeof(object))) return;
+                writer.WriteStartSequence();
+                for (int i = 0; i < list.Count; i++) {
+                    object? item = list[i];
+                    if (item is string itemText && writer.TryWritePlainItem(itemText)) continue;
+                    WriteValue(writer, item, state);
+                }
+                writer.WriteEndSequence();
+                state.End();
+                return;
             case bool flag: writer.WriteScalar(flag); return;
             case int number: writer.WriteScalar(number); return;
             case long number: writer.WriteScalar(number); return;
@@ -115,6 +139,13 @@ internal sealed class YamlUntypedConverter : YamlConverter<object> {
         }
         state.Options.GetTypeInfo(value.GetType()).WriteBoxed(writer, value, state);
     }
+
+    private static bool TryWritePlainEntry(YamlWriter writer, string key, object? value) => value switch {
+        string text => writer.TryWritePlainEntry(key, text, checkKey: true),
+        long number => YamlWriter.IsPlainKey(key) && writer.TryWritePlainEntry(key, number),
+        bool flag => YamlWriter.IsPlainKey(key) && writer.TryWritePlainEntry(key, flag),
+        _ => false
+    };
 
     private void WriteValue(YamlWriter writer, object? value, YamlWriteState state) {
         if (value is null) writer.WriteNull();

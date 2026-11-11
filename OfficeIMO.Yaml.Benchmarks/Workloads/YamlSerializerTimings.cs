@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using DotNet = YamlDotNet.Serialization;
+using One = OneYaml;
 using Sharp = SharpYaml;
 
 namespace OfficeIMO.Yaml.Benchmarks;
@@ -23,6 +24,7 @@ internal static class YamlSerializerTimings {
         var context = new BenchYamlContext(new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase });
         var reflection = new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase };
         BenchSharpYamlContext sharp = BenchSharpYamlContext.Default;
+        BenchOneYamlContext one = BenchOneYamlContext.Default;
         DotNet.ISerializer dotNetWriter = new DotNet.SerializerBuilder().WithNamingConvention(DotNet.NamingConventions.CamelCaseNamingConvention.Instance).Build();
         DotNet.IDeserializer dotNetReader = new DotNet.DeserializerBuilder().WithNamingConvention(DotNet.NamingConventions.CamelCaseNamingConvention.Instance).Build();
 
@@ -50,6 +52,13 @@ internal static class YamlSerializerTimings {
                     YamlSerializer.Serialize(stream, value, type, context);
                     return stream;
                 }),
+                ("Serialize", "OneYaml generated", () => One.YamlSerializer.Serialize(value, one.GetTypeInfo(type)!)),
+                ("Serialize", "OneYaml reflection", () => One.YamlSerializer.Serialize(value, type)),
+                ("Serialize", "OneYaml generated UTF-8", () => value switch {
+                    BenchConfig config => One.YamlSerializer.SerializeToUtf8Bytes(config, one.BenchConfig),
+                    List<BenchRecord> records => One.YamlSerializer.SerializeToUtf8Bytes(records, one.ListBenchRecord),
+                    _ => One.YamlSerializer.SerializeToUtf8Bytes((List<BenchDeployment>)value, one.ListBenchDeployment)
+                }),
                 ("Deserialize", "YamlDotNet", () => dotNetReader.Deserialize(text, type)!),
                 ("Deserialize", "SharpYaml", () => Sharp.YamlSerializer.Deserialize(text, type, sharp)!),
                 ("Deserialize", "VYaml", () => value switch {
@@ -58,7 +67,14 @@ internal static class YamlSerializerTimings {
                     _ => VYaml.Serialization.YamlSerializer.Deserialize<List<BenchDeployment>>(utf8)
                 }),
                 ("Deserialize", "OfficeIMO generated", () => YamlSerializer.Deserialize(text, type, context)!),
-                ("Deserialize", "OfficeIMO reflection", () => YamlSerializer.Deserialize(text, type, reflection)!)
+                ("Deserialize", "OfficeIMO reflection", () => YamlSerializer.Deserialize(text, type, reflection)!),
+                ("Deserialize", "OneYaml generated", () => One.YamlSerializer.Deserialize(text, one.GetTypeInfo(type)!)!),
+                ("Deserialize", "OneYaml reflection", () => One.YamlSerializer.Deserialize(text, type)!),
+                ("Deserialize", "OneYaml generated UTF-8", () => value switch {
+                    BenchConfig => One.YamlSerializer.Deserialize(utf8, one.BenchConfig)!,
+                    List<BenchRecord> => One.YamlSerializer.Deserialize(utf8, one.ListBenchRecord)!,
+                    _ => One.YamlSerializer.Deserialize(utf8, one.ListBenchDeployment)!
+                })
             };
             lanes.RemoveAll(entry => (only is not null && !entry.Lane.Contains(only, StringComparison.OrdinalIgnoreCase))
                 || (onlyOperation is not null && entry.Operation != onlyOperation));

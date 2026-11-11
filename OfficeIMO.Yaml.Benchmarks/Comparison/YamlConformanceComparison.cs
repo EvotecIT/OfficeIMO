@@ -28,7 +28,7 @@ internal static class YamlConformanceComparison {
 
         YamlTestSuite suite = YamlTestSuite.Load();
         IReadOnlyList<YamlCorpusFile> corpus = YamlCorpus.Load();
-        IYamlConformanceEngine[] engines = { new OfficeIMOYamlConformanceEngine(strict: true), new OfficeIMOYamlConformanceEngine(), new YamlDotNetConformanceEngine(), new SharpYamlConformanceEngine(), new SharpYamlSyntaxConformanceEngine(), new VYamlConformanceEngine() };
+        IYamlConformanceEngine[] engines = { new OfficeIMOYamlConformanceEngine(strict: true), new OfficeIMOYamlConformanceEngine(), new YamlDotNetConformanceEngine(), new SharpYamlConformanceEngine(), new SharpYamlSyntaxConformanceEngine(), new VYamlConformanceEngine(), new OneYamlConformanceEngine() };
 
         var runs = new List<EngineRun>();
         foreach (IYamlConformanceEngine engine in engines) {
@@ -59,7 +59,7 @@ internal static class YamlConformanceComparison {
         text.AppendLine();
         text.AppendLine("- yaml-test-suite " + suite.Commit.Substring(0, 12) + ": " + suite.Cases.Count + " cases (" + (suite.Cases.Count - errorCases) + " valid, " + errorCases + " error, " + jsonCases + " with JSON)");
         text.AppendLine("- Corpus: " + corpus.Count + " files, " + corpus.Sum(f => (long)f.Bytes.Length).ToString("N0", CultureInfo.InvariantCulture) + " bytes");
-        text.AppendLine("- YamlDotNet " + Version(typeof(YamlDotNet.Core.Parser)) + ", SharpYaml " + Version(typeof(SharpYaml.Parser)) + ", VYaml " + VYamlConformanceEngine.PackageVersion + ", " + RuntimeInformation.FrameworkDescription + ", " + RuntimeInformation.OSDescription);
+        text.AppendLine("- YamlDotNet " + Version(typeof(YamlDotNet.Core.Parser)) + ", SharpYaml " + Version(typeof(SharpYaml.Parser)) + ", VYaml " + VYamlConformanceEngine.PackageVersion + ", OneYaml " + OneYamlConformanceEngine.PackageVersion + ", " + RuntimeInformation.FrameworkDescription + ", " + RuntimeInformation.OSDescription);
         text.AppendLine("- Cells are pass/applicable; failures (F) are wrong output or accepted invalid input, errors (E) are exceptions or timeouts on input the check expects to work.");
         text.AppendLine();
 
