@@ -151,17 +151,23 @@ public sealed class VisioDrawingProjectionTests {
     }
 
     [Fact]
-    public void FittedTextRemainsSearchableAndImpossibleFramesReportLocatedOmission() {
+    public void FittedAndOverflowingTextRemainSearchableAndImpossibleFramesReportLocatedOmission() {
         VisioDocument source = VisioDocument.Create(); source.UseMastersByDefault = false;
         VisioPage page = source.AddPage("Fitting");
         page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(.3, page.DefaultUnit)), "Fit me fully").TextStyle = new VisioTextStyle { Size = 24 };
-        page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(.01, page.DefaultUnit)), "Cannot fit").TextStyle = new VisioTextStyle {
+        page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(.001, page.DefaultUnit)), "Cannot fit").TextStyle = new VisioTextStyle {
+            Size = 24, TopMargin = 0, BottomMargin = 0
+        };
+        // Like Visio, text taller than its block overflows it instead of disappearing.
+        page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(.1, page.DefaultUnit)), "Overflows the block").TextStyle = new VisioTextStyle {
             Size = 24, TopMargin = 0, BottomMargin = 0
         };
         foreach (VisioDocument document in Reopened(source)) {
             byte[] before = document.ToLegacyXmlResult().Value;
             var result = document.ToPdf(DiagramOptions(), out OfficeConversionReport resultReport);
-            Assert.Contains("Fit me fully", NormalizeText(PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText()));
+            string text = NormalizeText(PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText());
+            Assert.Contains("Fit me fully", text);
+            Assert.Contains("Overflows the block", text);
             Assert.Contains(resultReport.Diagnostics, item => item.Code == "VISIO_DRAWING_TEXT_CLIPPED" &&
                 item.LossKind == OfficeConversionLossKind.Omission && item.Location!.StartsWith("page:1:Fitting:shape:"));
             Assert.Equal(before, document.ToLegacyXmlResult().Value);
