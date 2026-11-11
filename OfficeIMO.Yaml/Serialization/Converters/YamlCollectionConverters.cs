@@ -20,6 +20,8 @@ internal sealed class YamlCollectionConverter<TCollection, TElement> : YamlConve
 
     public override bool IsContainer => true;
 
+    public override bool HoldsOnlyScalars => _element!.IsScalar;
+
     public override void Configure(YamlSerializerOptions options) => _element = (YamlTypeInfo<TElement>)options.GetTypeInfo(typeof(TElement));
 
     public override TCollection Read(YamlEventCursor cursor, YamlReadState state) {
@@ -49,7 +51,7 @@ internal sealed class YamlCollectionConverter<TCollection, TElement> : YamlConve
                 // String items that need no quotes go out in one step, as the element metadata would write them.
                 for (int i = 0; i < list.Count; i++) {
                     TElement item = list[i];
-                    if (Unsafe.As<TElement, string?>(ref item) is string text && writer.TryWritePlainItem(text)) continue;
+                    if (Unsafe.As<TElement, string?>(ref item) is string text && writer.TryWriteStringItem(text)) continue;
                     element.Write(writer, item, state);
                 }
             } else {
@@ -88,6 +90,8 @@ internal sealed class YamlDictionaryConverter<TDictionary, TKey, TValue> : YamlC
     }
 
     public override bool IsContainer => true;
+
+    public override bool HoldsOnlyScalars => _key!.IsScalar && _value!.IsScalar;
 
     public override void Configure(YamlSerializerOptions options) {
         _key = (YamlTypeInfo<TKey>)options.GetTypeInfo(typeof(TKey));
@@ -223,7 +227,7 @@ internal sealed class YamlDictionaryConverter<TDictionary, TKey, TValue> : YamlC
                 // String entries that need no quotes go out in one step, as WriteEntry would write them.
                 foreach (KeyValuePair<TKey, TValue> entry in dictionary) {
                     TValue item = entry.Value;
-                    if (entry.Key is string key && Unsafe.As<TValue, string?>(ref item) is string text && writer.TryWritePlainEntry(key, text, checkKey: true)) continue;
+                    if (entry.Key is string key && Unsafe.As<TValue, string?>(ref item) is string text && writer.TryWriteStringEntry(key, text, checkKey: true)) continue;
                     WriteEntry(writer, keyInfo, valueInfo, entry, state);
                 }
             } else {

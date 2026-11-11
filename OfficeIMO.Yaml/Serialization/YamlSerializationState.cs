@@ -161,20 +161,49 @@ internal sealed class YamlReadState {
 
 /// <summary>Per-call state of one serialization: anchors for shared references and the stack for cycle detection.</summary>
 internal sealed class YamlWriteState {
+    private const int ScannedAncestors = 16;
     private object[] _ancestors = new object[8];
+    private HashSet<object>? _deepAncestors;
     private int _depth;
     private Dictionary<object, string>? _anchors;
     private HashSet<object>? _shared;
     private int _nextAnchor;
 
-    public YamlWriteState(YamlSerializerOptions options) {
+    // One state per thread is reused by the next call after a completed write; a call that throws, or a nested call
+    // while one is in use, creates its own.
+    [ThreadStatic] private static YamlWriteState? t_cached;
+
+    private YamlWriteState(YamlSerializerOptions options) {
         Options = options;
         Preserve = options.ReferenceHandling == YamlReferenceHandling.Preserve;
     }
 
-    public YamlSerializerOptions Options { get; }
+    /// <summary>Gets a state for one write with the options; pair it with <see cref="Return"/> when the write completes.</summary>
+    public static YamlWriteState Rent(YamlSerializerOptions options) {
+        YamlWriteState? state = t_cached;
+        if (state is null) return new YamlWriteState(options);
+        t_cached = null;
+        state.Options = options;
+        state.Preserve = options.ReferenceHandling == YamlReferenceHandling.Preserve;
+        return state;
+    }
 
-    public bool Preserve { get; }
+    /// <summary>Clears the state of a completed write and keeps it for the next write on this thread.</summary>
+    public void Return() {
+        // A completed write has left every object it entered; the arrays hold no references.
+        _anchors = null;
+        _shared = null;
+        _nextAnchor = 0;
+        _deepAncestors?.Clear();
+        DiscriminatorKey = null;
+        DiscriminatorValue = null;
+        Options = null!;
+        if (_depth == 0) t_cached = this;
+    }
+
+    public YamlSerializerOptions Options { get; private set; }
+
+    public bool Preserve { get; private set; }
 
     /// <summary>The discriminator key and value the next object mapping writes first, for property discriminators.</summary>
     public string? DiscriminatorKey { get; set; }
@@ -220,16 +249,29 @@ internal sealed class YamlWriteState {
         if (!Preserve) Exit();
     }
 
-    /// <summary>Enters an object or collection, failing on a cycle.</summary>
+    /// <summary>
+    /// Enters an object or collection, failing on a cycle. The first <see cref="ScannedAncestors"/> ancestors are
+    /// compared one by one; deeper ones are also kept in a set, so deep nesting costs a lookup per level instead of a
+    /// scan of the whole path.
+    /// </summary>
     public void Enter(object value, Type type) {
-        for (int i = 0; i < _depth; i++) {
+        int scanned = Math.Min(_depth, ScannedAncestors);
+        for (int i = 0; i < scanned; i++) {
             if (ReferenceEquals(_ancestors[i], value)) throw YamlSerializationErrors.Cycle(type);
+        }
+        if (_depth >= ScannedAncestors) {
+            HashSet<object> deep = _deepAncestors ??= new HashSet<object>(YamlReferenceComparer.Instance);
+            if (!deep.Add(value)) throw YamlSerializationErrors.Cycle(type);
         }
         if (_depth == _ancestors.Length) Array.Resize(ref _ancestors, _depth * 2);
         _ancestors[_depth++] = value;
     }
 
-    public void Exit() => _ancestors[--_depth] = null!;
+    public void Exit() {
+        object value = _ancestors[--_depth];
+        _ancestors[_depth] = null!;
+        if (_depth >= ScannedAncestors) _deepAncestors!.Remove(value);
+    }
 }
 
 /// <summary>Walks an object graph before writing with <see cref="YamlReferenceHandling.Preserve"/> to find shared references.</summary>

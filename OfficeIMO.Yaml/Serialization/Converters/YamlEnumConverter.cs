@@ -9,6 +9,8 @@ namespace OfficeIMO.Yaml;
 /// integers are accepted. A value no member names is written as its number.
 /// </summary>
 internal sealed class YamlEnumConverter<TEnum> : YamlConverter<TEnum> where TEnum : struct, Enum {
+    public override bool IsScalar => true;
+
     private readonly Dictionary<string, TEnum> _byName;
     private readonly Dictionary<TEnum, string> _names;
     private readonly ulong[] _bits;

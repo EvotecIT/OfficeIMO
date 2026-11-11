@@ -69,16 +69,46 @@ internal sealed class YamlCharBuffer : TextWriter {
     /// Appends a block mapping entry on a new line, the line start (line break and indentation), the key, <c>": "</c>
     /// and the value, with one capacity check instead of one per piece.
     /// </summary>
-    public void AppendEntry(string lineStart, string key, ReadOnlySpan<char> value) {
+    public void AppendEntry(ReadOnlySpan<char> lineStart, string key, ReadOnlySpan<char> value) {
         int total = lineStart.Length + key.Length + 2 + value.Length;
         if (_stream is not null && _length + total > StreamBlock) Drain(final: false);
         if (_buffer.Length - _length < total) Grow(total);
         char[] buffer = _buffer;
         int position = _length;
-        Copy(lineStart.AsSpan(), buffer, ref position);
+        Copy(lineStart, buffer, ref position);
         Copy(key.AsSpan(), buffer, ref position);
         buffer[position++] = ':';
         buffer[position++] = ' ';
+        Copy(value, buffer, ref position);
+        _length = position;
+    }
+
+    /// <summary>Appends a block mapping key on a new line: the line start (or padding), the key and <c>':'</c>.</summary>
+    public void AppendKey(ReadOnlySpan<char> lineStart, string key) {
+        int total = lineStart.Length + key.Length + 1;
+        if (_stream is not null && _length + total > StreamBlock) Drain(final: false);
+        if (_buffer.Length - _length < total) Grow(total);
+        char[] buffer = _buffer;
+        int position = _length;
+        Copy(lineStart, buffer, ref position);
+        Copy(key.AsSpan(), buffer, ref position);
+        buffer[position++] = ':';
+        _length = position;
+    }
+
+    /// <summary>
+    /// Appends a block sequence item on a new line, the line start, <c>-</c>, the padding after it and the value, with
+    /// one capacity check instead of one per piece.
+    /// </summary>
+    public void AppendItem(ReadOnlySpan<char> lineStart, ReadOnlySpan<char> padding, ReadOnlySpan<char> value) {
+        int total = lineStart.Length + 1 + padding.Length + value.Length;
+        if (_stream is not null && _length + total > StreamBlock) Drain(final: false);
+        if (_buffer.Length - _length < total) Grow(total);
+        char[] buffer = _buffer;
+        int position = _length;
+        Copy(lineStart, buffer, ref position);
+        buffer[position++] = '-';
+        Copy(padding, buffer, ref position);
         Copy(value, buffer, ref position);
         _length = position;
     }

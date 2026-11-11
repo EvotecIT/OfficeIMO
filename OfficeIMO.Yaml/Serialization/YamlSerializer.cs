@@ -293,23 +293,25 @@ public static class YamlSerializer {
     }
 
     private static void Write<T>(YamlWriter writer, T value, YamlTypeInfo<T> typeInfo) {
-        var state = new YamlWriteState(typeInfo.Options);
+        YamlWriteState state = YamlWriteState.Rent(typeInfo.Options);
         if (state.Preserve) {
             var collector = new YamlReferenceCollector(typeInfo.Options);
             typeInfo.Collect(value, collector);
             state.SetShared(collector.Shared);
         }
         typeInfo.Write(writer, value, state);
+        state.Return();
     }
 
     private static void WriteBoxed(YamlWriter writer, object? value, YamlTypeInfo typeInfo) {
-        var state = new YamlWriteState(typeInfo.Options);
+        YamlWriteState state = YamlWriteState.Rent(typeInfo.Options);
         if (state.Preserve) {
             var collector = new YamlReferenceCollector(typeInfo.Options);
             typeInfo.CollectBoxed(value, collector);
             state.SetShared(collector.Shared);
         }
         typeInfo.WriteBoxed(writer, value, state);
+        state.Return();
     }
 
     private static string SerializeBoxed(object? value, YamlTypeInfo typeInfo) {

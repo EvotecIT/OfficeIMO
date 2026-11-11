@@ -47,6 +47,8 @@ internal sealed class YamlObjectConverter<T> : YamlConverter<T>, IYamlObjectConv
 
     public override bool IsObject => true;
 
+    public override bool HoldsOnlyScalars => Array.TrueForAll(_written, static property => property.IsScalar);
+
     public bool CanCreate => _create is not null || _createWithArguments is not null;
 
     private bool UsesArguments => _createWithArguments is not null;

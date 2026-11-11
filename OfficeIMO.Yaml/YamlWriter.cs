@@ -25,7 +25,9 @@ public sealed class YamlWriter : IDisposable {
     private readonly bool _ownsText;
     private readonly YamlEmitter _emitter;
     private readonly YamlNodeBuilder? _builder;
-    private readonly char[] _number = new char[48];
+    // Scratch for formatting a number before it is copied out, shared by the writers of a thread: nothing runs between
+    // formatting into it and copying from it.
+    [ThreadStatic] private static char[]? t_number;
     private bool _disposed;
 
     /// <summary>Creates a writer that encodes UTF-8 without a byte-order mark into a stream.</summary>
@@ -169,8 +171,9 @@ public sealed class YamlWriter : IDisposable {
             _builder.Scalar(new YamlScalar(value));
             return;
         }
-        int length = YamlScalarFormat.Format(value, _number);
-        _emitter.WritePlain(_number.AsSpan(0, length));
+        char[] number = t_number ??= new char[48];
+        int length = YamlScalarFormat.Format(value, number);
+        _emitter.WritePlain(number.AsSpan(0, length));
     }
 
     /// <summary>
@@ -184,8 +187,9 @@ public sealed class YamlWriter : IDisposable {
             return;
         }
 #if NET8_0_OR_GREATER
-        int length = YamlScalarFormat.Format(value, _number);
-        _emitter.WritePlain(_number.AsSpan(0, length));
+        char[] number = t_number ??= new char[48];
+        int length = YamlScalarFormat.Format(value, number);
+        _emitter.WritePlain(number.AsSpan(0, length));
 #else
         _emitter.WritePlain(YamlScalarFormat.Format(value).AsSpan());
 #endif
@@ -224,16 +228,21 @@ public sealed class YamlWriter : IDisposable {
     /// <summary>
     /// Writes a block mapping entry whose key is safe as a plain scalar everywhere (or, with <paramref name="checkKey"/>,
     /// whose key is checked for the default style) and whose string value gets its default style, as
-    /// <see cref="WritePlainKey"/> or <see cref="WriteKey(string)"/> and <see cref="WriteScalar(string?, YamlStyle)"/> would, in
-    /// one step. Returns false, having written nothing, when the position, the key or the value needs the general path.
+    /// <see cref="WritePlainKey"/> or <see cref="WriteKey(string)"/> and <see cref="WriteScalar(string?, YamlStyle)"/> would.
+    /// A plain value goes out with the key in one step; the style of any other is chosen once, not again by the scalar
+    /// path. Returns false, having written nothing, when the position or the key needs the general path.
     /// </summary>
-    internal bool TryWritePlainEntry(string key, string value, bool checkKey = false) {
+    internal bool TryWriteStringEntry(string key, string value, bool checkKey = false) {
         CheckDisposed();
         if (_builder is not null || !_emitter.AtBlockKey) return false;
         if (checkKey && !IsPlainKey(key)) return false;
         ReadOnlySpan<char> text = value.AsSpan();
-        if (!YamlScalarFormat.CanBePlain(text, flow: false) || YamlScalarFormat.IsSchemaAmbiguous(text)) return false;
-        _emitter.WriteEntry(key, text);
+        if (YamlScalarFormat.CanBePlain(text, flow: false) && !YamlScalarFormat.IsSchemaAmbiguous(text)) {
+            _emitter.WriteEntry(key, text);
+            return true;
+        }
+        _emitter.WriteSingleLine(key, YamlStyle.Plain);
+        WriteChosen(value, YamlScalarFormat.ChooseNotPlain(text, flow: false, key: false, YamlStyle.SingleQuoted), YamlStyle.None);
         return true;
     }
 
@@ -242,33 +251,39 @@ public sealed class YamlWriter : IDisposable {
 
     /// <summary>
     /// Writes a block sequence item for a string in its default style, as <see cref="WriteScalar(string?, YamlStyle)"/>
-    /// would, in one step. Returns false, having written nothing, when the position or the value needs the general path.
+    /// would; a plain item goes out in one step. Returns false, having written nothing, when the position needs the
+    /// general path.
     /// </summary>
-    internal bool TryWritePlainItem(string value) {
+    internal bool TryWriteStringItem(string value) {
         CheckDisposed();
         if (_builder is not null || !_emitter.AtBlockItem) return false;
         ReadOnlySpan<char> text = value.AsSpan();
-        if (!YamlScalarFormat.CanBePlain(text, flow: false) || YamlScalarFormat.IsSchemaAmbiguous(text)) return false;
-        _emitter.WriteItem(text);
+        if (YamlScalarFormat.CanBePlain(text, flow: false) && !YamlScalarFormat.IsSchemaAmbiguous(text)) {
+            _emitter.WriteItem(text);
+            return true;
+        }
+        WriteChosen(value, YamlScalarFormat.ChooseNotPlain(text, flow: false, key: false, YamlStyle.SingleQuoted), YamlStyle.None);
         return true;
     }
 
-    /// <summary>Writes a block mapping entry with a plain-safe key and an integer value in one step; see <see cref="TryWritePlainEntry(string, string, bool)"/>.</summary>
+    /// <summary>Writes a block mapping entry with a plain-safe key and an integer value in one step; see <see cref="TryWriteStringEntry"/>.</summary>
     internal bool TryWritePlainEntry(string key, long value) {
         CheckDisposed();
         if (_builder is not null || !_emitter.AtBlockKey) return false;
-        int length = YamlScalarFormat.Format(value, _number);
-        _emitter.WriteEntry(key, _number.AsSpan(0, length));
+        char[] number = t_number ??= new char[48];
+        int length = YamlScalarFormat.Format(value, number);
+        _emitter.WriteEntry(key, number.AsSpan(0, length));
         return true;
     }
 
-    /// <summary>Writes a block mapping entry with a plain-safe key and a floating-point value in one step; see <see cref="TryWritePlainEntry(string, string, bool)"/>.</summary>
+    /// <summary>Writes a block mapping entry with a plain-safe key and a floating-point value in one step; see <see cref="TryWriteStringEntry"/>.</summary>
     internal bool TryWritePlainEntry(string key, double value) {
         CheckDisposed();
         if (_builder is not null || !_emitter.AtBlockKey) return false;
 #if NET8_0_OR_GREATER
-        int length = YamlScalarFormat.Format(value, _number);
-        _emitter.WriteEntry(key, _number.AsSpan(0, length));
+        char[] number = t_number ??= new char[48];
+        int length = YamlScalarFormat.Format(value, number);
+        _emitter.WriteEntry(key, number.AsSpan(0, length));
 #else
         _emitter.WriteEntry(key, YamlScalarFormat.Format(value).AsSpan());
 #endif
@@ -277,26 +292,76 @@ public sealed class YamlWriter : IDisposable {
 
     /// <summary>
     /// Writes a block mapping entry with a plain-safe key and a decimal value in its invariant spelling, as the decimal
-    /// converter writes it, in one step; see <see cref="TryWritePlainEntry(string, string, bool)"/>.
+    /// converter writes it, in one step; see <see cref="TryWriteStringEntry"/>.
     /// </summary>
     internal bool TryWritePlainEntry(string key, decimal value) {
         CheckDisposed();
         if (_builder is not null || !_emitter.AtBlockKey) return false;
 #if NET8_0_OR_GREATER
         // A decimal has at most 29 digits, a sign and a point, which the number buffer holds.
-        value.TryFormat(_number, out int length, default, CultureInfo.InvariantCulture);
-        _emitter.WriteEntry(key, _number.AsSpan(0, length));
+        char[] number = t_number ??= new char[48];
+        int length = YamlScalarFormat.Format(value, number);
+        _emitter.WriteEntry(key, number.AsSpan(0, length));
 #else
         _emitter.WriteEntry(key, value.ToString(CultureInfo.InvariantCulture).AsSpan());
 #endif
         return true;
     }
 
-    /// <summary>Writes a block mapping entry with a plain-safe key and a boolean value in one step; see <see cref="TryWritePlainEntry(string, string, bool)"/>.</summary>
+    /// <summary>Writes a block mapping entry with a plain-safe key and a boolean value in one step; see <see cref="TryWriteStringEntry"/>.</summary>
     internal bool TryWritePlainEntry(string key, bool value) {
         CheckDisposed();
         if (_builder is not null || !_emitter.AtBlockKey) return false;
         _emitter.WriteEntry(key, YamlScalarFormat.Format(value).AsSpan());
+        return true;
+    }
+
+    /// <summary>Writes a block mapping entry with a plain-safe key and a null value in one step; see <see cref="TryWriteStringEntry"/>.</summary>
+    internal bool TryWriteNullEntry(string key) {
+        CheckDisposed();
+        if (_builder is not null || !_emitter.AtBlockKey) return false;
+        _emitter.WriteEntry(key, "null".AsSpan());
+        return true;
+    }
+
+    /// <summary>
+    /// Writes a block sequence item for an integer, a floating-point number, a boolean or a null, as the scalar methods
+    /// would, in one step. Returns false, having written nothing, when the position needs the general path.
+    /// </summary>
+    internal bool TryWritePlainItem(long value) {
+        CheckDisposed();
+        if (_builder is not null || !_emitter.AtBlockItem) return false;
+        char[] number = t_number ??= new char[48];
+        _emitter.WriteItem(number.AsSpan(0, YamlScalarFormat.Format(value, number)));
+        return true;
+    }
+
+    /// <inheritdoc cref="TryWritePlainItem(long)"/>
+    internal bool TryWritePlainItem(double value) {
+        CheckDisposed();
+        if (_builder is not null || !_emitter.AtBlockItem) return false;
+#if NET8_0_OR_GREATER
+        char[] number = t_number ??= new char[48];
+        _emitter.WriteItem(number.AsSpan(0, YamlScalarFormat.Format(value, number)));
+#else
+        _emitter.WriteItem(YamlScalarFormat.Format(value).AsSpan());
+#endif
+        return true;
+    }
+
+    /// <inheritdoc cref="TryWritePlainItem(long)"/>
+    internal bool TryWritePlainItem(bool value) {
+        CheckDisposed();
+        if (_builder is not null || !_emitter.AtBlockItem) return false;
+        _emitter.WriteItem(YamlScalarFormat.Format(value).AsSpan());
+        return true;
+    }
+
+    /// <inheritdoc cref="TryWritePlainItem(long)"/>
+    internal bool TryWriteNullItem() {
+        CheckDisposed();
+        if (_builder is not null || !_emitter.AtBlockItem) return false;
+        _emitter.WriteItem("null".AsSpan());
         return true;
     }
 
@@ -364,6 +429,7 @@ public sealed class YamlWriter : IDisposable {
             // Ending the last line is best effort: disposing a writer with open collections must not throw.
             if (_emitter.Documents > 0 && _emitter.IsComplete) _emitter.Finish();
         } finally {
+            _emitter.Release();
             if (_ownsText) _text.Dispose();
             else _text.Flush();
         }

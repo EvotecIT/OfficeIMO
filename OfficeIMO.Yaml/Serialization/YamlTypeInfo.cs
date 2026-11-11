@@ -20,7 +20,13 @@ public abstract class YamlTypeInfo {
     /// </summary>
     internal int OutputLengthHint;
 
+#if NET8_0_OR_GREATER
+    // The shared array pool keeps arrays up to 2^30 elements here, so a large document's buffer is reused, not grown.
+    internal const int MaxOutputLengthHint = 1 << 23;
+#else
+    // The shared array pool of older frameworks keeps arrays up to 2^20 elements; larger ones would be allocated anew.
     internal const int MaxOutputLengthHint = 1 << 20;
+#endif
 
     private protected YamlTypeInfo(Type type, YamlSerializerOptions options) {
         Type = type;
@@ -37,6 +43,9 @@ public abstract class YamlTypeInfo {
     internal virtual YamlTypeInfo NonPolymorphic => this;
 
     internal abstract bool IsObject { get; }
+
+    /// <summary>Whether values are written as one scalar by a built-in converter, so they never hold a container.</summary>
+    internal abstract bool IsScalar { get; }
 
     internal abstract object? ReadBoxed(YamlEventCursor cursor, YamlReadState state);
 
@@ -84,6 +93,8 @@ public sealed class YamlTypeInfo<T> : YamlTypeInfo {
     private readonly bool _handlesNull;
     // Untyped values share the value read for an anchor among its aliases; typed values are read again.
     private readonly bool _sharesAliases;
+    // A container of scalars only can never be its own descendant, so it needs no cycle check; set when configured.
+    private bool _holdsOnlyScalars;
 
     internal YamlTypeInfo(YamlSerializerOptions options, YamlConverter<T> converter, YamlTypeInfo? nonPolymorphic = null)
         : base(typeof(T), options) {
@@ -114,7 +125,12 @@ public sealed class YamlTypeInfo<T> : YamlTypeInfo {
 
     internal override bool IsUntyped => _sharesAliases;
 
-    private protected override void Configure() => _converter.Configure(Options);
+    internal override bool IsScalar => BuiltInScalar != YamlBuiltInScalar.None || _converter.IsScalar;
+
+    private protected override void Configure() {
+        _converter.Configure(Options);
+        _holdsOnlyScalars = _tracksReferences && _converter.HoldsOnlyScalars;
+    }
 
     /// <summary>
     /// Reads the node at the cursor and leaves the cursor on the node's last event. Aliases are expanded, or with
@@ -184,6 +200,10 @@ public sealed class YamlTypeInfo<T> : YamlTypeInfo {
             return;
         }
         if (_tracksReferences) {
+            if (_holdsOnlyScalars && !state.Preserve) {
+                _converter.Write(writer, value, state);
+                return;
+            }
             object instance = value;
             if (!state.Begin(writer, instance, typeof(T))) return;
             _converter.Write(writer, value, state);
@@ -247,6 +267,15 @@ internal abstract class YamlConverter<T> {
     /// <summary>Whether the converter reads and writes an object's members.</summary>
     public virtual bool IsObject => false;
 
+    /// <summary>Whether the converter writes every value as one scalar, never a container.</summary>
+    public virtual bool IsScalar => false;
+
+    /// <summary>
+    /// Whether a configured container converter writes only values whose metadata <see cref="YamlTypeInfo.IsScalar"/>
+    /// reports, so a value can never contain itself.
+    /// </summary>
+    public virtual bool HoldsOnlyScalars => false;
+
     public virtual void Configure(YamlSerializerOptions options) {
     }
 
@@ -308,6 +337,9 @@ public abstract class YamlPropertyInfo {
     /// <summary>Writes the key and value unless the ignore condition leaves the property out.</summary>
     internal abstract void Write(YamlWriter writer, object owner, YamlWriteState state);
 
+    /// <summary>Whether the value's metadata writes one scalar; see <see cref="YamlTypeInfo.IsScalar"/>. Valid once configured.</summary>
+    internal abstract bool IsScalar { get; }
+
     /// <summary>Reads the value at the cursor and sets it on the owner.</summary>
     internal abstract void ReadAndSet(YamlEventCursor cursor, YamlReadState state, object owner);
 
@@ -338,6 +370,8 @@ internal sealed class YamlPropertyInfo<T> : YamlPropertyInfo {
 
     private YamlTypeInfo<T> TypeInfo => _typeInfo!;
 
+    internal override bool IsScalar => TypeInfo.IsScalar;
+
     internal override void Configure(YamlSerializerOptions options) {
         _typeInfo = (YamlTypeInfo<T>)options.GetTypeInfo(typeof(T));
     }
@@ -367,7 +401,7 @@ internal sealed class YamlPropertyInfo<T> : YamlPropertyInfo {
                 if (writer.TryWritePlainEntry(Name, (decimal)(object)value!)) return;
             } else if (_isString) {
                 string? text = Unsafe.As<T, string?>(ref value);
-                if (text is not null && writer.TryWritePlainEntry(Name, text)) return;
+                if (text is not null && writer.TryWriteStringEntry(Name, text)) return;
             }
             writer.WritePlainKey(Name);
         } else {
