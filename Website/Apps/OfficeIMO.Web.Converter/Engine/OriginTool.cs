@@ -12,7 +12,7 @@ namespace OfficeIMO.Web.Converter.Engine;
 /// the records the visitor selects. Office documents take <see cref="ShareTool"/>'s hidden-data route instead.
 /// </summary>
 internal static class OriginTool {
-    internal const string Group = "Origin records";
+    internal const string Group = "Content Credentials and AI labels";
     internal const string Manifests = "manifests";
     internal const string References = "references";
     internal const string Declarations = "declarations";
@@ -43,6 +43,10 @@ internal static class OriginTool {
         var manifestEvidence = report.Evidence.Where(static evidence => evidence.Manifest != null).Take(3).ToArray();
         for (int index = 0; index < manifests.Length; index++) items.AddRange(Explain(manifests[index], index, manifests.Length, manifestEvidence[index]));
         items.AddRange(report.Diagnostics.Select((diagnostic, index) => new ToolItem("d" + index.ToString(CultureInfo.InvariantCulture), "Note", diagnostic, ToolState.Info)));
+        // Office files get the full hidden-data report; for images and PDFs only origin records are checked, so say what isn't.
+        items.Add(file.Extension == ".pdf"
+            ? new ToolItem("not-checked", "Document properties", "Author, title and other PDF properties, comments and attachments are not checked for PDFs. Only Content Credentials and AI labels are.", ToolState.Info)
+            : new ToolItem("not-checked", "Photo details", "Camera, date and GPS location details in a picture are not checked here. Only Content Credentials and AI labels are.", ToolState.Info));
 
         ToolVerdict verdict = report.Evidence.Count == 0
             ? new ToolVerdict(ToolTone.Good, "No origin records found",

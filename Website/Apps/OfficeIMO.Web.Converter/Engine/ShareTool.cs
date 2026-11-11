@@ -63,7 +63,7 @@ internal static class ShareTool {
             "Values stored by macros and templates.", true),
         new(OfficeHiddenDataKind.RevisionIdentifiers, "revision-ids", "Editing session IDs",
             "Codes Word adds for each editing session, which can link copies of a file.", true),
-        new(OfficeHiddenDataKind.Provenance, "provenance", "Content Credentials and AI labels",
+        new(OfficeHiddenDataKind.Provenance, "provenance", "Origin records",
             "Records that say how content was made, such as a picture marked as AI-generated. Kept unless you select them, because they are a disclosure to the reader.", false,
             OriginTool.Group)
     ];
@@ -211,7 +211,7 @@ internal static class ShareTool {
                 bool byChoice = !selected.Contains(category.Id);
                 string detail = byChoice
                     ? "Kept because you chose to keep it."
-                    : "Kept: " + string.Join(" ", retained.Select(static finding => finding.Note).Where(static note => !string.IsNullOrWhiteSpace(note)).Distinct().Take(3));
+                    : "Kept: " + string.Join(" ", retained.Select(static finding => Plain(finding.Note)).Where(static note => !string.IsNullOrWhiteSpace(note)).Distinct().Take(3));
                 items.Add(new ToolItem(category.Id + "-kept", Title(category, retained.Length), detail.TrimEnd(), byChoice ? ToolState.Kept : ToolState.Info, category.Group));
             }
         }
@@ -284,7 +284,8 @@ internal static class ShareTool {
         string[] samples = findings.Select(static finding => finding.Value is { Length: > 0 } value ? $"{finding.Description}: {Clip(value)}" : finding.Description)
             .Distinct(StringComparer.Ordinal).Take(3).ToArray();
         string more = findings.Count > samples.Length ? $" and {findings.Count - samples.Length} more" : string.Empty;
-        return "Found: " + string.Join("; ", samples) + more + ".";
+        string text = "Found: " + string.Join("; ", samples) + more;
+        return text.EndsWith('…') || text.EndsWith('.') ? text : text + ".";
     }
 
     private static string Outcomes(OfficeHiddenDataFinding[] findings) {
@@ -294,9 +295,16 @@ internal static class ShareTool {
             OfficeHiddenDataOutcome.Rejected => ToolFormat.Count(group.Count(), "change") + " rejected",
             _ => ToolFormat.Count(group.Count(), "item") + " removed"
         });
-        string notes = string.Join(" ", findings.Select(static finding => finding.Note).Where(static note => !string.IsNullOrWhiteSpace(note)).Distinct().Take(2));
+        string notes = string.Join(" ", findings.Select(static finding => Plain(finding.Note)).Where(static note => !string.IsNullOrWhiteSpace(note)).Distinct().Take(2));
         return (string.Join(", ", parts) + "." + (notes.Length > 0 ? " " + notes : string.Empty)).Trim();
     }
+
+    /// <summary>The engine's notes name API categories; the page names them the way its checkboxes do.</summary>
+    private static string? Plain(string? note) => note?
+        .Replace("select Provenance to remove both", "tick Content Credentials and AI labels to remove both", StringComparison.Ordinal)
+        .Replace("select Provenance to remove it", "tick Content Credentials and AI labels to remove it", StringComparison.Ordinal)
+        .Replace(" Use RemoveProvenance on the file to change only provenance.", string.Empty, StringComparison.Ordinal)
+        .Replace("Provenance was not selected", "Content Credentials and AI labels were not ticked", StringComparison.Ordinal);
 
     private static bool Mentions(OfficeHiddenDataFinding finding, string text) =>
         finding.Description.Contains(text, StringComparison.OrdinalIgnoreCase);

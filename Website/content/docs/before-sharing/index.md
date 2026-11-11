@@ -8,13 +8,11 @@ A document that leaves your team carries more than its visible text. Author and 
 
 ## Three checks
 
-| Check | What it answers | .NET | Command line |
-| --- | --- | --- | --- |
-| [Hidden data](/docs/before-sharing/hidden-data/) | What personal or internal information leaves with the file? | `InspectHiddenData()`, `RemoveHiddenData(options)` | `officeimo hidden-data` |
-| [Provenance](/docs/before-sharing/provenance/) | Does the file say how it was made, for example that an image is AI-generated? | `OfficeDocument.Inspect`, `RemoveProvenance(...)` | `officeimo provenance` |
-| [Accessibility](/docs/before-sharing/accessibility/) | Can everyone read it, including people using screen readers? | `InspectAccessibility()`, `FixAccessibility(options)` | — |
+- **[Hidden data](/docs/before-sharing/hidden-data/):** what personal or internal information leaves with the file. `InspectHiddenData()` and `RemoveHiddenData(options)`, or `officeimo hidden-data` on the command line.
+- **[Content Credentials and AI labels](/docs/before-sharing/provenance/):** does the file say how it was made, for example that a picture is AI-generated? Reported and removed as the `Provenance` category of hidden data, or on their own with `RemoveProvenance` and `officeimo provenance`.
+- **[Accessibility](/docs/before-sharing/accessibility/):** can everyone read it, including people who use a screen reader? `InspectAccessibility()` and `FixAccessibility(options)`.
 
-Hidden data and accessibility work on a loaded `WordDocument`, `ExcelDocument` or `PowerPointDocument`; the accessibility checker covers Word and PowerPoint. Provenance works on files and bytes, so it can clean a document without loading it.
+Hidden data works on a loaded `WordDocument`, `ExcelDocument` or `PowerPointDocument`, and the accessibility checker on Word and PowerPoint. `RemoveProvenance` works on files and bytes, so it can remove origin records without loading the document.
 
 ## One pass in code
 
@@ -49,12 +47,10 @@ Remove hidden data first and fix accessibility second: the scrub removes the aut
 
 `RemoveHiddenData()` with no options removes the categories that never change what readers see. Four things stay until you select them, because removing them changes the content or what the file discloses:
 
-| Kept by default | Why | How to remove |
-| --- | --- | --- |
-| Tracked changes | Accepting or rejecting them changes the text | `TrackedChanges = OfficeTrackedChangesAction.AcceptAll` or `RejectAll` |
-| Hidden text, sheets, rows, columns, slides and shapes | Readers would get different content, and deleting hidden rows or sheets can break formulas | Add `OfficeHiddenDataKind.HiddenContent` |
-| Content Credentials and AI source labels | They tell the reader how content was made, for example that an image is AI-generated | Add `OfficeHiddenDataKind.Provenance` |
-| Power Query data in a workbook | The workbook's queries live there | Delete the queries in Excel |
+- **Tracked changes.** Accepting or rejecting them changes the text. Set `TrackedChanges` to `OfficeTrackedChangesAction.AcceptAll` or `RejectAll`.
+- **Hidden text, sheets, rows, columns, slides and shapes.** Readers would get different content, and deleting hidden rows or sheets can break formulas. Add `OfficeHiddenDataKind.HiddenContent`.
+- **Content Credentials and AI labels.** They tell the reader how content was made, for example that a picture is AI-generated. Add `OfficeHiddenDataKind.Provenance`.
+- **Power Query data in a workbook.** The workbook's queries live there. Delete the queries in Excel.
 
 Two items are reported but always kept, because removing them would break the file: links that formulas or pivot refreshes depend on, and linked images and OLE links in Word. One item is always removed: Content Credentials stored for the whole package (`META-INF/content_credential.c2pa`). They cover every byte of the file, so any change invalidates them; the report says so in the finding's `Note`. To remove provenance and leave every other byte alone, use `RemoveProvenance` instead of `RemoveHiddenData`.
 

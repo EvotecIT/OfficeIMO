@@ -46,9 +46,10 @@ public sealed class OriginAttributionTests {
         session.Stage(0, SourceLabelInput(ordinary, includeAi), "sources.png");
         var inspection = ShareTool.Run(session, "inspect", new ToolOptions(new()));
         Assert.Equal(includeAi ? 1 : 0, inspection.Items.Count(item => item.Selectable));
-        Assert.Contains(inspection.Items, item => !item.Selectable && item.Detail.Contains("camera", StringComparison.OrdinalIgnoreCase) ||
-            !item.Selectable && item.Detail.Contains("software", StringComparison.OrdinalIgnoreCase) ||
-            !item.Selectable && item.Detail.Contains("captured", StringComparison.OrdinalIgnoreCase));
+        ToolItem label = Assert.Single(inspection.Items, item => item.Id == "source-labels");
+        Assert.False(label.Selectable);
+        Assert.True(label.Detail.Contains("camera", StringComparison.OrdinalIgnoreCase) || label.Detail.Contains("software", StringComparison.OrdinalIgnoreCase) ||
+            label.Detail.Contains("captured", StringComparison.OrdinalIgnoreCase), label.Detail);
         var removal = ShareTool.Run(session, "remove", new ToolOptions(new() { ["remove"] = "declarations" }));
         Assert.DoesNotContain(removal.Items, item => item.State == ToolState.Bad);
         Assert.Contains(removal.Items, item => item.State == ToolState.Kept && item.Title.Contains("source label", StringComparison.OrdinalIgnoreCase));
