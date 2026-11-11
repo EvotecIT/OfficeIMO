@@ -15,6 +15,12 @@ namespace OfficeIMO.Excel {
                 || TryParseCommonFixedPoint(value, out result)
                 || (Utf8Parser.TryParse(value, out result, out int consumed) && consumed == value.Length);
 #else
+            // The short form leans on Utf8Parser, which is slow here; the common form covers it.
+            if (TryParseCommonFixedPoint(value, out result)) {
+                // .NET Framework's parsers drop the sign of a zero literal; keep that behavior.
+                if (result == 0) result = 0;
+                return true;
+            }
             return Utf8Parser.TryParse(value, out result, out int consumed) && consumed == value.Length;
 #endif
         }
@@ -56,6 +62,7 @@ namespace OfficeIMO.Excel {
             result = negative ? -parsed : parsed;
             return true;
         }
+#endif
 
         /// <summary>
         /// Parses the common fixed-point form without entering the general-purpose floating-point
@@ -196,6 +203,5 @@ namespace OfficeIMO.Excel {
             21 => 1e21,
             _ => 1e22
         };
-#endif
     }
 }

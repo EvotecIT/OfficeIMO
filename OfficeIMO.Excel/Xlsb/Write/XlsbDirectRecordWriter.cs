@@ -10,6 +10,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
     internal sealed class XlsbDirectRecordWriter : IDisposable {
         private const int BrtCellRk = 2;
         private const int BrtCellReal = 5;
+        private const int BrtCellError = 3;
+        private const byte NumErrorCode = 0x24; // #NUM!
         private const int BufferSize = 32 * 1024;
 
         private readonly Stream _stream;
@@ -84,6 +86,15 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         internal void WriteNumberCell(int recordType, int zeroBasedColumn, double value, uint styleIndex = 0U) {
             byte[] buffer = EnsureAvailable(22);
             int offset = _position;
+            if (recordType == BrtCellReal && (double.IsNaN(value) || double.IsInfinity(value))) {
+                // BIFF12 has no NaN or infinite number; Excel shows #NUM! for such a result.
+                offset += XlsbRecordWriter.EncodeHeader(BrtCellError, payloadLength: 9, buffer, offset);
+                offset = AppendUInt32(buffer, offset, checked((uint)zeroBasedColumn));
+                offset = AppendUInt32(buffer, offset, styleIndex);
+                buffer[offset++] = NumErrorCode;
+                _position = offset;
+                return;
+            }
             // A plain number that has an exact RK form uses the 4-byte BrtCellRk payload, as Excel does.
             if (recordType == BrtCellReal && BiffRkNumberReader.TryEncodeRkNumber(value, out uint rk)) {
                 offset += XlsbRecordWriter.EncodeHeader(BrtCellRk, payloadLength: 12, buffer, offset);
