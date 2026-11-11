@@ -201,7 +201,8 @@ public static partial class OneNotePageRenderer {
                         double drawableWidth = Math.Min(item.Width, _drawing.Width - cursorX);
                         double drawableHeight = Math.Min(item.Height, _drawing.Height - cursorY);
                         if (drawableWidth > 0D && drawableHeight > 0D) {
-                            if (item.RichText.Baseline == OfficeTextBaseline.Normal) {
+                            // A linked run keeps its PDF/SVG link through the rich text path.
+                            if (item.RichText.Baseline == OfficeTextBaseline.Normal && item.RichText.LinkUri == null) {
                                 _drawing.AddText(item.Text, cursorX, cursorY, drawableWidth, drawableHeight, CreateFont(item.Run),
                                     ResolveColor(item.Run.Style.ColorArgb), OfficeTextAlignment.Left, item.Height, wrapText: false);
                             } else {
