@@ -188,3 +188,17 @@ dotnet build OfficeIMO.AI/OfficeIMO.AI.csproj -c Release
 ```
 
 This opt-in suite measures packing and local validation over 100, 1000 and 4000 captured short text blocks with 48,000- and 2,000,000-character request budgets. A no-inference executor isolates engine work. Validation compares every request's evidence with the original snapshot, checks complete coverage and enforces the transport budget. PowerForge runs two warmups and seven measurements per case and records managed allocations, sizing calls and request counts. `-Blocks`, `-RequestCharacters`, `-BinaryRoot`, `-OutputRoot` and the measurement-count parameters select other runs. These figures exclude source capture, inference and native OCR memory; compare the same inputs and runtime with other builds idle.
+
+## Excel and CSV library comparison
+
+Run the cross-platform comparison of the Excel and CSV readers and writers from PowerShell 7 with the .NET 10 SDK:
+
+```powershell
+./Build/Benchmarks/Run-ExcelCsvComparison.ps1
+```
+
+It builds `OfficeIMO.Excel.Benchmarks` and `OfficeIMO.CSV.Benchmarks` in Release and runs these BenchmarkDotNet lanes in-process: the 65K sales XLSX and XLSB reads (OfficeIMO default and single-pass against each library's primary reader), the generated 50,000-row XLSX/XLSB/XLS read and parse, the generated XLSX/XLSB/XLS writers, PackageAssets Plain, Quotes and SpacesQuotes, 65K CSV and the generated 50,000-row CSV lanes. Each lane uses the existing benchmark classes, so every library reads or writes the same data and the classes validate the output before timing. A failed validation leaves that case without results, and the lane is reported as partial. EPPlus runs only when `EPPlusLicense` holds its license declaration; otherwise the lane notes its exclusion.
+
+The XLBench read-all and 20-sheet lanes run when `-XLBenchRoot` (or `OFFICEIMO_XLBENCH_ROOT`) points to an XLBench checkout whose project accepts an `OfficeImoSource` project reference; otherwise they are skipped and marked as skipped. Fixtures are downloaded and hash-checked, or generated, by the benchmark classes. With `EVOTEC_SCRATCH_ROOT` set, output and fixtures go under `officeimo-comparison` there; otherwise they go under `Ignore/Benchmarks/ExcelCsvComparison`. `-Lane`, `-WarmupCount`, `-IterationCount` (default 3 and 12), `-Framework`, `-OutputRoot`, `-FixtureRoot`, `-SkipBuild` and `-Plan` select other runs. `-AffinityMask` pins the run on Windows and Linux; macOS has no affinity API, so runs there are unpinned.
+
+Each run writes `results.md` and `results.json` with the host, processor, vector support, runtime, commit, the status of every lane, and the mean, median, standard error and allocation of each case. `x OfficeIMO` divides a case's mean by the matching OfficeIMO lane in the same lane and parameters. Compare runs only on the same hardware class and runtime, with other work idle. The BenchmarkDotNet logs and reports stay in the output folder.

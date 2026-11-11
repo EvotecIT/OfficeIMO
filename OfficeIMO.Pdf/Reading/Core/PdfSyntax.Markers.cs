@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
     internal static void ThrowIfEncrypted(string trailerRaw) {
-        if (ContainsPdfName(trailerRaw, "Encrypt")) {
+        if (ContainsAnyPdfName(trailerRaw, "Encrypt")) {
             throw new NotSupportedException("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.");
         }
     }
@@ -291,8 +291,7 @@ internal static partial class PdfSyntax {
     internal static bool HasCatalogUriMarkers(byte[] pdf, PdfLoadOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
 
-        string text = PdfEncoding.Latin1GetString(pdf);
-        if (!ContainsPdfName(text, "URI")) {
+        if (!ContainsAnyPdfName(pdf, CancellationToken.None, "URI")) {
             return false;
         }
 

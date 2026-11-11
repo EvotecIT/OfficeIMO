@@ -60,7 +60,7 @@ internal static partial class PdfSyntax {
     private static bool ApplyClassicXrefEntries(
         Dictionary<int, PdfIndirectObject> map,
         byte[] pdf,
-        string text,
+        PdfByteContentText text,
         Dictionary<int, int> parsedOffsets,
         HashSet<int> activeObjectNumbers,
         PdfReadLimits limits,
@@ -103,7 +103,7 @@ internal static partial class PdfSyntax {
         Dictionary<int, PdfIndirectObject> map,
         byte[] pdf,
         Dictionary<int, int> parsedOffsets,
-        string text,
+        PdfByteContentText text,
         IReadOnlyList<(int ObjectNumber, int Offset, int Generation, bool InUse)> entries,
         XrefObjectScanBudget scanBudget,
         HashSet<int>? activeObjectNumbers = null,
@@ -144,7 +144,7 @@ internal static partial class PdfSyntax {
         }
     }
 
-    private static List<(int Offset, (int ObjectNumber, int Offset, int Generation, bool InUse)[] Entries, int? XrefStreamOffset)> GetClassicXrefTableChain(string text, int activeXrefOffset,
+    private static List<(int Offset, (int ObjectNumber, int Offset, int Generation, bool InUse)[] Entries, int? XrefStreamOffset)> GetClassicXrefTableChain(PdfByteContentText text, int activeXrefOffset,
         System.Threading.CancellationToken cancellationToken = default) {
         var newestToOldest = new List<(int Offset, (int ObjectNumber, int Offset, int Generation, bool InUse)[] Entries, int? XrefStreamOffset)>();
         var visited = new HashSet<int>();
@@ -165,16 +165,16 @@ internal static partial class PdfSyntax {
         return newestToOldest;
     }
 
-    private static bool TryParseClassicXrefTable(string text, int offset, out (int ObjectNumber, int Offset, int Generation, bool InUse)[] entries, out int? previousOffset, out string trailerRaw, out int? xrefStreamOffset,
+    private static bool TryParseClassicXrefTable(PdfByteContentText text, int offset, out (int ObjectNumber, int Offset, int Generation, bool InUse)[] entries, out int? previousOffset, out string trailerRaw, out int? xrefStreamOffset,
         System.Threading.CancellationToken cancellationToken = default) =>
         TryParseClassicXrefTable(text, offset, out entries, out previousOffset, out trailerRaw, out xrefStreamOffset, requireComplete: false, cancellationToken);
 
     /// <summary>Recovery keeps bounded partial entries; redaction proof requires complete sections and trailers.</summary>
-    private static bool TryParseClassicXrefTable(string text, int offset, out (int ObjectNumber, int Offset, int Generation, bool InUse)[] entries, out int? previousOffset, out string trailerRaw, out int? xrefStreamOffset,
+    private static bool TryParseClassicXrefTable(PdfByteContentText text, int offset, out (int ObjectNumber, int Offset, int Generation, bool InUse)[] entries, out int? previousOffset, out string trailerRaw, out int? xrefStreamOffset,
         bool requireComplete, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         ClassicXrefSectionMemo? memo = ClassicXrefSectionMemo.Current;
-        if (memo is null || !ReferenceEquals(memo.Text, text)) {
+        if (memo is null || !ReferenceEquals(memo.Source, text.Source)) {
             return ParseClassicXrefTable(text, offset, out entries, out previousOffset, out trailerRaw, out xrefStreamOffset, requireComplete, cancellationToken);
         }
 
@@ -191,7 +191,7 @@ internal static partial class PdfSyntax {
         return section.Parsed;
     }
 
-    private static bool ParseClassicXrefTable(string text, int offset, out (int ObjectNumber, int Offset, int Generation, bool InUse)[] entries, out int? previousOffset, out string trailerRaw, out int? xrefStreamOffset,
+    private static bool ParseClassicXrefTable(PdfByteContentText text, int offset, out (int ObjectNumber, int Offset, int Generation, bool InUse)[] entries, out int? previousOffset, out string trailerRaw, out int? xrefStreamOffset,
         bool requireComplete, System.Threading.CancellationToken cancellationToken) {
         entries = Array.Empty<(int ObjectNumber, int Offset, int Generation, bool InUse)>();
         previousOffset = null;
@@ -199,7 +199,7 @@ internal static partial class PdfSyntax {
         xrefStreamOffset = null;
         if (offset < 0 ||
             offset + 4 > text.Length ||
-            !string.Equals(text.Substring(offset, 4), "xref", StringComparison.Ordinal) ||
+            !MatchesAt(text, offset, "xref") ||
             !HasKeywordBoundary(text, offset - 1, 0, text.Length) ||
             !HasKeywordBoundary(text, offset + 4, 0, text.Length)) {
             return false;
@@ -275,7 +275,7 @@ internal static partial class PdfSyntax {
         for (long search = trailerIndex; search < trailerSearchLimit; search += searchWindow) {
             cancellationToken.ThrowIfCancellationRequested();
             int count = (int)Math.Min(trailerSearchLimit - search, searchWindow + 1L);
-            dictStart = text.IndexOf("<<", (int)search, count, StringComparison.Ordinal);
+            dictStart = text.IndexOf("<<", (int)search, count);
             if (dictStart >= 0) break;
         }
         if (requireComplete && (dictStart < 0 || dictStart != SkipWhitespaceAndComments(text, trailerIndex + 7, text.Length, cancellationToken))) return false;
@@ -285,9 +285,10 @@ internal static partial class PdfSyntax {
             int dictEnd = FindDictEnd(text, dictStart, dictionaryLimit, cancellationToken);
             if (dictEnd > dictStart) {
                 trailerRaw = SafeSliceCancellable(text, trailerIndex, dictEnd - trailerIndex, 1_000_000, cancellationToken);
-                string dictText = SafeSliceCancellable(text, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000, cancellationToken);
+                int dictTextStart = dictStart + 2;
+                int dictTextLength = SafeSliceLength(text.Length, ref dictTextStart, dictEnd - (dictStart + 2), 1_000_000);
                 try {
-                    PdfDictionary trailer = ParseDictionary(dictText, cancellationToken: cancellationToken);
+                    PdfDictionary trailer = ParseDictionary(text, dictTextStart, dictTextLength, null, true, cancellationToken);
                     if (requireComplete && trailer.HasIncompleteSyntax) return false;
                     if (requireComplete && (trailer.Items.TryGetValue("Prev", out PdfObject? prev) && !TryReadXrefInteger(prev, out _) ||
                         trailer.Items.TryGetValue("XRefStm", out PdfObject? hybrid) && !TryReadXrefInteger(hybrid, out _))) return false;
@@ -313,7 +314,7 @@ internal static partial class PdfSyntax {
         return !requireComplete || completeTrailer;
     }
 
-    private static bool TryReadXrefLine(string text, ref int position, int end, out int start, out int lineEnd,
+    private static bool TryReadXrefLine(PdfByteContentText text, ref int position, int end, out int start, out int lineEnd,
         System.Threading.CancellationToken cancellationToken) {
         start = position;
         if (position >= end) {
@@ -330,7 +331,7 @@ internal static partial class PdfSyntax {
         return true;
     }
 
-    private static bool TryReadXrefToken(string text, ref int position, int end, out int start, out int length,
+    private static bool TryReadXrefToken(PdfByteContentText text, ref int position, int end, out int start, out int length,
         System.Threading.CancellationToken cancellationToken) {
         while (position < end && char.IsWhiteSpace(text[position])) {
             if ((position & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
@@ -345,21 +346,15 @@ internal static partial class PdfSyntax {
         return length > 0;
     }
 
-    private static bool TryParseXrefInteger(string text, int start, int length, out int value) {
+    private static bool TryParseXrefInteger(PdfByteContentText text, int start, int length, out int value) {
         if (length > MaxNumericTokenCharacters) {
             value = default;
             return false;
         }
-#if NET8_0_OR_GREATER
-        return int.TryParse(text.AsSpan(start, length), System.Globalization.NumberStyles.Integer,
-            System.Globalization.CultureInfo.InvariantCulture, out value);
-#else
-        return int.TryParse(text.Substring(start, length), System.Globalization.NumberStyles.Integer,
-            System.Globalization.CultureInfo.InvariantCulture, out value);
-#endif
+        return text.TryParseInt32(start, length, out value);
     }
 
-    private static bool ApplyXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, string text, Dictionary<int, int> parsedOffsets, PdfReadLimits limits, XrefObjectScanBudget scanBudget, PdfDecodedStreamBudget decodedStreamBudget, Action reportIncompleteXref,
+    private static bool ApplyXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, PdfByteContentText text, Dictionary<int, int> parsedOffsets, PdfReadLimits limits, XrefObjectScanBudget scanBudget, PdfDecodedStreamBudget decodedStreamBudget, Action reportIncompleteXref,
         System.Threading.CancellationToken cancellationToken) {
         var xrefStreams = new List<(int ObjectNumber, int Offset, PdfStream Stream)>();
         foreach (var entry in map.Values) {
@@ -405,7 +400,7 @@ internal static partial class PdfSyntax {
         return true;
     }
 
-    private static bool ApplyCompressedXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, string text, Dictionary<int, int> parsedOffsets, PdfReadLimits limits, PdfDecodedStreamBudget decodedStreamBudget, Action<int> reportUnreadable,
+    private static bool ApplyCompressedXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, PdfByteContentText text, Dictionary<int, int> parsedOffsets, PdfReadLimits limits, PdfDecodedStreamBudget decodedStreamBudget, Action<int> reportUnreadable,
         System.Threading.CancellationToken cancellationToken) {
         var xrefStreams = new List<(int ObjectNumber, int Offset, PdfStream Stream)>();
         foreach (var entry in map.Values) {
@@ -443,7 +438,7 @@ internal static partial class PdfSyntax {
             if (table.XrefStreamOffset.HasValue) {
                 var xrefStream = xrefStreams.FirstOrDefault(item => item.Offset == table.XrefStreamOffset.Value);
                 if (xrefStream.Stream is not null)
-                    UpdateActiveCompressedEntries(activeEntries, xrefStream.Stream, map, decodedStreamBudget,
+                    UpdateActiveCompressedEntries(activeEntries, xrefStream.Stream, map, decodedStreamBudget, limits,
                         () => reportUnreadable(xrefStream.ObjectNumber), cancellationToken);
             }
             for (int i = 0; i < table.Entries.Length; i++) {
@@ -455,13 +450,19 @@ internal static partial class PdfSyntax {
             foreach (int chainOffset in activeChainOffsets) {
                 cancellationToken.ThrowIfCancellationRequested();
                 var xrefStream = xrefStreams.First(item => item.Offset == chainOffset);
-                UpdateActiveCompressedEntries(activeEntries, xrefStream.Stream, map, decodedStreamBudget, () => reportUnreadable(xrefStream.ObjectNumber), cancellationToken);
+                UpdateActiveCompressedEntries(activeEntries, xrefStream.Stream, map, decodedStreamBudget, limits, () => reportUnreadable(xrefStream.ObjectNumber), cancellationToken);
             }
         }
 
         bool applied = false;
         if (activeEntries.Count == 0) return false;
+#if NET8_0_OR_GREATER
+        // Compressed objects usually outnumber the top-level ones the scan found; grow the maps once.
+        map.EnsureCapacity(map.Count + activeEntries.Count);
+        parsedOffsets.EnsureCapacity(parsedOffsets.Count + activeEntries.Count);
+#endif
         var headerMemo = new ObjectStreamHeaderMemo();
+        var deferredScan = new DeferredObjectScan();
         foreach (XrefStreamEntry entry in activeEntries.Values) {
             cancellationToken.ThrowIfCancellationRequested();
             if (entry.Field1 < 0 ||
@@ -474,8 +475,9 @@ internal static partial class PdfSyntax {
 
             int objectStreamNumber = (int)entry.Field1;
             int objectStreamIndex = (int)entry.Field2;
-            if (TryParseObjectFromObjectStream(map, parsedOffsets, objectStreamNumber, objectStreamIndex, entry.ObjectNumber, limits, decodedStreamBudget, out PdfIndirectObject parsed, out int objectStreamOffset, headerMemo, cancellationToken)) {
-                if (parsed.Value.HasIncompleteSyntax) reportUnreadable(entry.ObjectNumber);
+            if (TryParseObjectFromObjectStream(map, parsedOffsets, objectStreamNumber, objectStreamIndex, entry.ObjectNumber, limits, decodedStreamBudget, out PdfIndirectObject parsed, out int objectStreamOffset, headerMemo, deferredScan, cancellationToken)) {
+                // A deferred object passed the complete-syntax scan, so only eagerly parsed objects can be incomplete.
+                if (parsed.IsValueBuilt && parsed.Value.HasIncompleteSyntax) reportUnreadable(entry.ObjectNumber);
                 map[entry.ObjectNumber] = parsed;
                 parsedOffsets[entry.ObjectNumber] = objectStreamOffset;
                 applied = true;
@@ -490,9 +492,17 @@ internal static partial class PdfSyntax {
         PdfStream xrefStream,
         Dictionary<int, PdfIndirectObject> map,
         PdfDecodedStreamBudget decodedStreamBudget,
+        PdfReadLimits limits,
         Action reportIncompleteXref,
         System.Threading.CancellationToken cancellationToken) {
         byte[] data = decodedStreamBudget.Decode(xrefStream, map, int.MaxValue, cancellationToken);
+#if NET8_0_OR_GREATER
+        // Grow once for the entries this stream can add. Rows alone are not a bound (/W [1 0 0] makes every byte a row),
+        // so the declared /Size caps the reservation as it does for the entry list.
+        int rows = GetXrefRowCount(xrefStream.Dictionary, data.Length);
+        int capacity = GetXrefEntryCapacity(xrefStream.Dictionary, limits, rows);
+        if (capacity > 0) activeEntries.EnsureCapacity(activeEntries.Count + capacity);
+#endif
         foreach (XrefStreamEntry entry in ReadXrefStreamEntries(xrefStream.Dictionary, data, reportIncompleteXref, cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (entry.Type == 2) {
@@ -507,7 +517,7 @@ internal static partial class PdfSyntax {
         Dictionary<int, PdfIndirectObject> map,
         byte[] pdf,
         Dictionary<int, int> parsedOffsets,
-        string text,
+        PdfByteContentText text,
         int xrefStreamOffset,
         PdfReadLimits limits,
         XrefObjectScanBudget scanBudget,
@@ -540,7 +550,7 @@ internal static partial class PdfSyntax {
         Dictionary<int, PdfIndirectObject> map,
         byte[] pdf,
         Dictionary<int, int> parsedOffsets,
-        string text,
+        PdfByteContentText text,
         PdfStream xrefStream,
         PdfReadLimits limits,
         XrefObjectScanBudget scanBudget,
@@ -601,7 +611,7 @@ internal static partial class PdfSyntax {
     }
 
     private static List<(int Offset, (int ObjectNumber, int Offset, int Generation, bool InUse)[] Entries, int? XrefStreamOffset)> GetClassicPredecessorTablesForXrefStreamChain(
-        string text,
+        PdfByteContentText text,
         List<(int ObjectNumber, int Offset, PdfStream Stream)> xrefStreams,
         int activeXrefOffset,
         System.Threading.CancellationToken cancellationToken) {
@@ -658,10 +668,10 @@ internal static partial class PdfSyntax {
         return newestToOldest;
     }
 
-    private static bool TryGetLatestStartXrefOffset(string text, out int offset,
+    private static bool TryGetLatestStartXrefOffset(PdfByteContentText text, out int offset,
         System.Threading.CancellationToken cancellationToken = default) {
         offset = 0;
-        int startXrefIndex = LastIndexOfTrailerMarker(text, "startxref", StringComparison.Ordinal, cancellationToken);
+        int startXrefIndex = LastIndexOfTrailerMarker(text, "startxref", ignoreCase: false, cancellationToken);
         if (startXrefIndex < 0) {
             return false;
         }
@@ -692,7 +702,7 @@ internal static partial class PdfSyntax {
         return true;
     }
 
-    private static bool TryParseIndirectObjectAt(byte[] pdf, string text, int offset, Dictionary<int, PdfIndirectObject> map, XrefObjectScanBudget scanBudget, out PdfIndirectObject parsed,
+    private static bool TryParseIndirectObjectAt(byte[] pdf, PdfByteContentText text, int offset, Dictionary<int, PdfIndirectObject> map, XrefObjectScanBudget scanBudget, out PdfIndirectObject parsed,
         System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         parsed = null!;
@@ -729,9 +739,10 @@ internal static partial class PdfSyntax {
             int dictEnd = FindDictEnd(text, dictStart, scanLimit, cancellationToken);
             ChargeThrough(dictEnd > dictStart ? dictEnd + 2 : scanLimit);
             if (dictEnd > dictStart) {
-                string dictText = SafeSliceCancellable(text, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000, cancellationToken);
+                int dictTextStart = dictStart + 2;
+                int dictTextLength = SafeSliceLength(text.Length, ref dictTextStart, dictEnd - (dictStart + 2), 1_000_000);
                 PdfDictionary? dict;
-                try { dict = ParseDictionary(dictText, cancellationToken: cancellationToken); }
+                try { dict = ParseDictionary(text, dictTextStart, dictTextLength, null, true, cancellationToken); }
                 catch (Exception ex) when (ex is not OutOfMemoryException and not OperationCanceledException) { dict = null; }
                 if (dict is null) {
                     return false;
@@ -744,7 +755,7 @@ internal static partial class PdfSyntax {
                 }
 
                 bool hasStream = streamKw + 6 <= scanLimit &&
-                    string.CompareOrdinal(text, streamKw, "stream", 0, 6) == 0 &&
+                    MatchesAt(text, streamKw, "stream") &&
                     HasKeywordBoundary(text, streamKw + 6, bodyStart, scanLimit);
                 if (hasStream) {
                     int dataStart = SkipEOL(text, streamKw + 6, scanLimit);
@@ -780,12 +791,13 @@ internal static partial class PdfSyntax {
         }
 
         int bodyEnd = end;
-        if (bodyEnd - 6 >= bodyStart && string.Equals(text.Substring(bodyEnd - 6, 6), "endobj", StringComparison.Ordinal)) {
+        if (bodyEnd - 6 >= bodyStart && MatchesAt(text, bodyEnd - 6, "endobj")) {
             bodyEnd -= 6;
         }
 
-        string body = SafeTrimmedSliceCancellable(text, bodyStart, bodyEnd - bodyStart, 1_000_000, cancellationToken);
-        var topLevelObject = ParseTopLevelObject(body, cancellationToken: cancellationToken);
+        int bodyWindowStart = bodyStart;
+        int bodyLength = SafeTrimmedSliceLength(text, ref bodyWindowStart, bodyEnd - bodyStart, 1_000_000, cancellationToken);
+        var topLevelObject = ParseTopLevelObject(text, bodyWindowStart, bodyLength, null, true, cancellationToken);
         if (topLevelObject is null) {
             return false;
         }
@@ -805,6 +817,7 @@ internal static partial class PdfSyntax {
         out PdfIndirectObject parsed,
         out int objectStreamOffset,
         ObjectStreamHeaderMemo? headerMemo = null,
+        DeferredObjectScan? deferredScan = null,
         System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         parsed = null!;
@@ -823,8 +836,7 @@ internal static partial class PdfSyntax {
 
         List<(int Obj, int Off)>? pairs = headerMemo?.TryGet(objectStream, data, n, first);
         if (pairs is null) {
-            string header = PdfEncoding.Latin1GetStringCancellable(data, 0, first, cancellationToken);
-            pairs = ParsePairs(header, n, out bool completeHeader, cancellationToken);
+            pairs = ParsePairs(data, first, n, out bool completeHeader, cancellationToken);
             if (!completeHeader) return false;
             headerMemo?.Add(objectStream, data, n, first, pairs);
         }
@@ -838,6 +850,13 @@ internal static partial class PdfSyntax {
             return false;
         }
 
+        objectStreamOffset = parsedOffsets.TryGetValue(objectStreamNumber, out int streamOffset) ? streamOffset : int.MaxValue;
+        if (deferredScan is not null &&
+            TryScanDeferrableObject(data, start, end - start, limits, deferredScan, out PdfDeferredObjectSummary summary, cancellationToken)) {
+            parsed = new PdfIndirectObject(expectedObjectNumber, 0, headerMemo?.GetDeferredSource(objectStream, data, limits) ?? new PdfDeferredObjectSource(data, limits), summary);
+            return true;
+        }
+
         var parsedObject = ParseTopLevelObject(
             data,
             start,
@@ -846,11 +865,11 @@ internal static partial class PdfSyntax {
             trackEncodedStringSourceSpans: false,
             cancellationToken);
         if (parsedObject is null) {
+            objectStreamOffset = int.MaxValue;
             return false;
         }
 
         parsed = new PdfIndirectObject(expectedObjectNumber, 0, parsedObject);
-        objectStreamOffset = parsedOffsets.TryGetValue(objectStreamNumber, out int offset) ? offset : int.MaxValue;
         return true;
     }
 
@@ -869,6 +888,17 @@ internal static partial class PdfSyntax {
 
         internal void Add(PdfStream stream, byte[] data, int objectCount, int firstObjectOffset, List<(int Obj, int Off)> pairs) =>
             _headers[stream] = (data, objectCount, firstObjectOffset, pairs);
+
+        private readonly Dictionary<PdfStream, PdfDeferredObjectSource> _deferredSources = new();
+
+        // Deferred objects of one object stream share its decoded bytes through a single source.
+        internal PdfDeferredObjectSource GetDeferredSource(PdfStream stream, byte[] data, PdfReadLimits limits) {
+            if (!_deferredSources.TryGetValue(stream, out PdfDeferredObjectSource? source) || !source.Holds(data)) {
+                source = new PdfDeferredObjectSource(data, limits);
+                _deferredSources[stream] = source;
+            }
+            return source;
+        }
     }
 
     // A declared /Size sizes entry collections up front; hostile values fall back to growth.
@@ -920,7 +950,7 @@ internal static partial class PdfSyntax {
         cancellationToken.ThrowIfCancellationRequested();
     }
 
-    private static bool IsWhiteSpaceRange(string text, int start, int end) {
+    private static bool IsWhiteSpaceRange(PdfByteContentText text, int start, int end) {
         for (int index = start; index < end; index++) {
             if (!char.IsWhiteSpace(text[index])) return false;
         }
@@ -945,23 +975,23 @@ internal static partial class PdfSyntax {
 
     /// <summary>
     /// Shares parsed classic xref sections among the validation, recovery, trailer and revision passes of one
-    /// object parse. The memo is scoped to that parse's text and thread, so no result outlives the parse.
+    /// object parse. The memo is scoped to that parse's bytes and thread, so no result outlives the parse.
     /// </summary>
     private sealed class ClassicXrefSectionMemo : IDisposable {
         [ThreadStatic] private static ClassicXrefSectionMemo? _current;
         private readonly ClassicXrefSectionMemo? _previous;
         private readonly Dictionary<(int Offset, bool RequireComplete), ClassicXrefSection> _sections = new();
 
-        private ClassicXrefSectionMemo(string text, ClassicXrefSectionMemo? previous) {
-            Text = text;
+        private ClassicXrefSectionMemo(object source, ClassicXrefSectionMemo? previous) {
+            Source = source;
             _previous = previous;
         }
 
         internal static ClassicXrefSectionMemo? Current => _current;
 
-        internal string Text { get; }
+        internal object Source { get; }
 
-        internal static ClassicXrefSectionMemo Enter(string text) => _current = new ClassicXrefSectionMemo(text, _current);
+        internal static ClassicXrefSectionMemo Enter(PdfByteContentText text) => _current = new ClassicXrefSectionMemo(text.Source, _current);
 
         internal bool TryGet(int offset, bool requireComplete, out ClassicXrefSection section) =>
             _sections.TryGetValue((offset, requireComplete), out section);

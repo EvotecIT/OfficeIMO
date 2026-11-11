@@ -197,6 +197,25 @@ New styles are based on the default style of their type; set `BasedOnStyleId`, `
 
 `Styles.Import(source, conflictMode)` copies styles from another loaded document or `.dotx` template, together with the styles they depend on and the lists they number with. A style matches by type and name, then by identifier, so localized built-in styles map onto their counterparts. `WordStyleConflictMode` keeps the target's style, overwrites it or imports a renamed copy; the returned `WordStyleImportReport` lists each outcome. `document.Theme.Import(source)` copies a document's theme. Text, borders and shading that select a theme colour or theme font follow theme changes in Word, PDF and HTML output, and the RGB and font names Word caches beside them are updated too. Text that names a font or colour directly, such as the Aptos body font of a new document, keeps it.
 
+## Before sharing
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Word;
+
+using var document = WordDocument.Load("Proposal.docx");
+OfficeHiddenDataReport removed = document.RemoveHiddenData(new OfficeHiddenDataOptions {
+    TrackedChanges = OfficeTrackedChangesAction.AcceptAll
+});
+WordAccessibilityReport accessibility = document.FixAccessibility(new WordAccessibilityFixOptions {
+    Title = "Proposal", Language = "en-US", MarkTableHeaderRows = true
+});
+foreach (WordAccessibilityFinding finding in accessibility.Findings) Console.WriteLine($"{finding.Severity} {finding.Code} at {finding.Location}");
+document.Save("Proposal-shared.docx");
+```
+
+`InspectHiddenData()` reports properties, comments, tracked changes, reviewer names, hidden text, variables, custom XML, image GPS and other metadata without changing anything; `RemoveHiddenData` removes the selected categories and reports what happened to each item. Hidden text and tracked changes are only changed when you ask. `InspectAccessibility()` checks alternative text, headings, tables, links, contrast, floating objects, blank-paragraph spacing, title and language. The [hidden data matrix](../Docs/officeimo.hidden-data-support-matrix.md) and the [Word guide](../Docs/officeimo.word-guide.md#accessibility-checks) list every rule.
+
 ## Convert
 
 Conversions are called on the document and return an `OfficeConversionReport` that lists anything the target could not carry:

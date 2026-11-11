@@ -436,10 +436,18 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
+                if (double.IsNaN(value) || double.IsInfinity(value)) {
+                    writer.Write(NonFiniteNumberErrorCell);
+                    return;
+                }
+
                 writer.Write("><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
             }
+
+            // SpreadsheetML has no NaN or infinite number; Excel shows #NUM! for such a result.
+            private const string NonFiniteNumberErrorCell = " t=\"e\"><v>" + ExcelSheet.NonFiniteNumberErrorText + "</v></c>";
 
             internal static void WriteDateTimeSerialCell(TextWriter writer, DateTime value, ExcelDateSystem dateSystem) {
 #if NET7_0_OR_GREATER
@@ -589,6 +597,11 @@ namespace OfficeIMO.Excel {
             }
 
             internal static void WriteRawValueCell(TextWriter writer, float value) {
+                if (float.IsNaN(value) || float.IsInfinity(value)) {
+                    writer.Write(NonFiniteNumberErrorCell);
+                    return;
+                }
+
                 writer.Write("><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");

@@ -1161,3 +1161,28 @@ static OfficeProvenanceReport InspectUploadedWord(byte[] packageBytes) =>
 ## Concealed-content inspection and cleanup
 
 `OfficeDocument.Inspect(path, new OfficeInspectOptions { ContentSafety = new OfficeContentSafetyOptions() }).ContentSafety` reports native/inherited hidden runs, deleted revisions, tiny or zero-geometry text, explicit low contrast, comments/notes, alternative text, and exact Unicode evidence. Pass reviewed finding IDs to `WordDocument.RemoveSelectedContent(...)`; the package is reopened after cleanup, and signed-document mutation fails closed by default. These findings describe ingestion risk, not AI authorship.
+
+## Hidden data and personal information
+
+`InspectHiddenData()` lists properties, comments, tracked changes, reviewer identities, hidden text, document variables, RSIDs, custom XML, image metadata, printer settings and template references. `RemoveHiddenData(options)` removes the selected categories and reports each item's outcome. The [hidden data support matrix](officeimo.hidden-data-support-matrix.md) lists what each category covers and what stays.
+
+## Accessibility checks
+
+`InspectAccessibility()` checks the document body and returns a `WordAccessibilityReport` with the same severity, code and `EnsureCompliant` shape as the PowerPoint checker:
+
+| Code | Rule | Severity |
+| --- | --- | --- |
+| `accessibility-missing-document-title` | The package has no title | Error |
+| `accessibility-missing-language` | No default language in the document defaults or the Normal style | Error |
+| `accessibility-missing-alternative-text` | An image, shape, chart, SmartArt graphic or VML picture has no description or title and is not marked decorative. Text-box shapes with text are skipped | Error |
+| `accessibility-heading-level-skipped` | A heading is more than one level below the previous heading | Warning (Error in `Strict`) |
+| `accessibility-missing-headings` | 20 or more paragraphs of text and no headings | Warning (Error in `Strict`) |
+| `accessibility-missing-table-header` | A data table with more than one row does not mark its first row as a header row | Error |
+| `accessibility-layout-table` | A single-row table, a table holding a nested table, or a borderless table holding images. `IsHeuristic` is true and the severity stays Warning | Warning |
+| `accessibility-link-text-missing`, `accessibility-unclear-link-label` | A hyperlink has no text, or text such as "click here", "here", "more" or a bare URL | Error |
+| `accessibility-low-contrast` | Text with an explicit colour is below 4.5:1 (3:1 for 18 pt, or 14 pt bold) against its highlight, run, paragraph or cell shading, or the page colour. `MeasuredValue` and `RequiredValue` carry the ratios | Error |
+| `accessibility-floating-object` | A drawing is anchored instead of inline with text | Warning (Error in `Strict`) |
+| `accessibility-blank-paragraph-spacing` | Two or more consecutive empty body paragraphs | Warning (Error in `Strict`) |
+
+Text with automatic colour is not checked, because Word picks a readable colour for it. `FixAccessibility(new WordAccessibilityFixOptions { Title = ..., Language = ..., MarkTableHeaderRows = true })` applies only the safe fixes: a missing title, a missing default language, and a header row on data tables that do not look like layout tables. It returns a fresh report.
+

@@ -166,6 +166,20 @@ beginning and their original position is restored; non-seekable streams are read
 from the current position. The existing validation options control certificate
 policy and package limits, including the maximum bytes buffered from the stream.
 
+## Before sharing
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.PowerPoint;
+
+using var presentation = PowerPointDocument.Load("Pitch.pptx");
+OfficeHiddenDataReport report = presentation.RemoveHiddenData();
+foreach (OfficeHiddenDataFinding finding in report.Findings) Console.WriteLine($"{finding.Outcome} {finding.Kind} at {finding.Location}");
+presentation.Save("Pitch-shared.pptx");
+```
+
+`RemoveHiddenData()` removes properties, comments, speaker notes, custom XML, image metadata and the thumbnail, and reports each item. Hidden slides, hidden shapes and off-slide shapes are removed only when `OfficeHiddenDataKind.HiddenContent` is selected. Comments you keep can have their authors anonymized. See the [hidden data matrix](../Docs/officeimo.hidden-data-support-matrix.md).
+
 ## More
 
 - [PowerPoint guide](../Docs/officeimo.powerpoint-guide.md): text and paragraph formatting, shapes, the full chart API, designer composition and deck plans, corporate templates, sections, transitions, review threads, SmartArt, accessibility checks, legacy `.ppt` and image export.

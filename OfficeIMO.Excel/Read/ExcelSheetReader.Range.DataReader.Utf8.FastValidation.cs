@@ -34,29 +34,8 @@ namespace OfficeIMO.Excel {
                 }
                 ct.ThrowIfCancellationRequested();
 #else
-                try {
-                    _ = StrictUtf8.GetCharCount(_buffer!, 0, _length);
-                } catch (DecoderFallbackException) {
+                if (!IsCanonicalTextValidDownLevel(ct)) {
                     return false;
-                }
-
-                for (int index = 0; index < _length; index++) {
-                    if ((index & 0xFFFF) == 0) {
-                        ct.ThrowIfCancellationRequested();
-                    }
-                    byte value = _buffer![index];
-                    if (value == (byte)'&'
-                        || value < 0x20 && value is not (byte)'\t' and not (byte)'\r' and not (byte)'\n'
-                        || value == 0xef
-                            && index + 2 < _length
-                            && _buffer[index + 1] == 0xbf
-                            && _buffer[index + 2] is 0xbe or 0xbf
-                        || value == (byte)']'
-                            && index + 2 < _length
-                            && _buffer[index + 1] == (byte)']'
-                            && _buffer[index + 2] == (byte)'>') {
-                        return false;
-                    }
                 }
 #endif
 

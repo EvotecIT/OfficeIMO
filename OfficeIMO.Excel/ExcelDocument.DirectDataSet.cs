@@ -349,6 +349,51 @@ namespace OfficeIMO.Excel {
             ArgumentNullException.ThrowIfNull(columnNames);
             ArgumentNullException.ThrowIfNull(columnTypes);
             ArgumentNullException.ThrowIfNull(values);
+            return RegisterDeferredDirectCellValuesSaveCandidate(
+                sheet, tableNameForModel, columnNames, columnTypes,
+                () => DirectDataSetTableModel.FromCellValues(columnNames, columnTypes, values, columnCount, rowCount, valuesMatchColumnTypes),
+                includeHeaders, range, tableName, createTable, tableStyle, includeAutoFilter, autoFit, useCellValueNumberFormats,
+                replacingPendingDirectCellValues, includeCellReferences, preserveMissingValues);
+        }
+
+        /// <summary>Registers selector results captured without boxing; blank cells keep the missing-value contract.</summary>
+        internal bool RegisterDeferredDirectCellValuesSaveCandidate(
+            ExcelSheet sheet,
+            string tableNameForModel,
+            IReadOnlyList<string> columnNames,
+            IReadOnlyList<Type> columnTypes,
+            ExcelTabularCellValues values,
+            bool includeHeaders,
+            string range,
+            bool includeCellReferences = true) {
+            ArgumentNullException.ThrowIfNull(values);
+            return RegisterDeferredDirectCellValuesSaveCandidate(
+                sheet, tableNameForModel, columnNames, columnTypes,
+                () => DirectDataSetTableModel.FromTypedCellValues(columnNames, columnTypes, values),
+                includeHeaders, range, tableName: null, createTable: false, ExcelTableStyle.TableStyleMedium2, includeAutoFilter: false, autoFit: false,
+                useCellValueNumberFormats: false, replacingPendingDirectCellValues: false, includeCellReferences, preserveMissingValues: true);
+        }
+
+        private bool RegisterDeferredDirectCellValuesSaveCandidate(
+            ExcelSheet sheet,
+            string tableNameForModel,
+            IReadOnlyList<string> columnNames,
+            IReadOnlyList<Type> columnTypes,
+            Func<DirectDataSetTableModel> createTableModel,
+            bool includeHeaders,
+            string range,
+            string? tableName,
+            bool createTable,
+            ExcelTableStyle tableStyle,
+            bool includeAutoFilter,
+            bool autoFit,
+            bool useCellValueNumberFormats,
+            bool replacingPendingDirectCellValues,
+            bool includeCellReferences,
+            bool preserveMissingValues) {
+            ArgumentNullException.ThrowIfNull(sheet);
+            ArgumentNullException.ThrowIfNull(columnNames);
+            ArgumentNullException.ThrowIfNull(columnTypes);
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
             }
@@ -359,7 +404,7 @@ namespace OfficeIMO.Excel {
 
             try {
                 string requestedName = string.IsNullOrWhiteSpace(tableNameForModel) ? sheet.Name : tableNameForModel;
-                var tableModel = DirectDataSetTableModel.FromCellValues(columnNames, columnTypes, values, columnCount, rowCount, valuesMatchColumnTypes);
+                var tableModel = createTableModel();
                 var model = DirectDataSetWorkbookModel.CreateSingle(
                     sheet.Name,
                     requestedName,
