@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             ref byte data = ref MemoryMarshal.GetReference(bytes.AsSpan());
             int position = _records.Position;
             int length = _records.Length;
-            while (position < length) {
+            while (position < length || ExtendStreamedRecords(position) && position < (length = _records.Length)) {
                 int firstTypeByte = Unsafe.Add(ref data, position++);
                 int recordType = firstTypeByte & 0x7F;
                 if ((firstTypeByte & 0x80) != 0) {
@@ -39,7 +39,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 }
                 if (recordType == BrtRowHdr) {
                     int rowIndex = Unsafe.ReadUnaligned<int>(ref Unsafe.Add(ref data, payloadOffset));
-                    if (rowIndex <= _lastDataRow) {
+                    if (rowIndex <= _lastDataRow || IncludesStreamedRow(rowIndex)) {
                         _pendingRowIndex = rowIndex;
                         _hasPendingRow = true;
                         _records.Position = position;

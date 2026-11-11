@@ -183,11 +183,7 @@ namespace OfficeIMO.Excel {
                 if (token.IsEmpty) return false;
                 bool negative = token[0] == (byte)'-';
                 if (token.Length > (negative ? 17 : 16)) {
-#if NET8_0_OR_GREATER
                     return allowRounded && ExcelUtf8NumberParser.TryParseRoundedFixedPointDecimal(token, out value);
-#else
-                    return false;
-#endif
                 }
                 int index = negative ? 1 : 0;
                 int digits = 0, scale = 0;

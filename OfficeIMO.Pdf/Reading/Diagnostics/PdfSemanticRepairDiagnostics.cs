@@ -173,7 +173,7 @@ internal static class PdfSemanticRepairDiagnostics {
         int firstOrphan = int.MaxValue;
         foreach (PdfIndirectObject indirect in objects.Values) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (reachable.Contains(indirect.ObjectNumber) || !IsSemanticObject(indirect.Value)) continue;
+            if (reachable.Contains(indirect.ObjectNumber) || !IsSemanticObject(indirect)) continue;
             orphanCount++;
             firstOrphan = Math.Min(firstOrphan, indirect.ObjectNumber);
         }
@@ -182,22 +182,33 @@ internal static class PdfSemanticRepairDiagnostics {
         diagnostics.Add(new PdfRepairDiagnostic("orphaned-semantic-objects", "Detected " + orphanCount + " unreachable semantic object(s), beginning with object " + firstOrphan + "; they remain available for forensic inspection and are not silently deleted during read.", firstOrphan, PdfRepairDisposition.DetectedOnly));
     }
 
+    private static bool IsSemanticObject(PdfIndirectObject indirect) =>
+        indirect.TryGetUnbuiltSummary(out PdfDeferredObjectSummary summary)
+            ? IsSemanticType(summary.KnownType, summary.KnownSubtype)
+            : IsSemanticObject(indirect.Value);
+
     private static bool IsSemanticObject(PdfObject value) {
         PdfDictionary? dictionary = value is PdfDictionary direct ? direct : value is PdfStream stream ? stream.Dictionary : null;
-        string? type = dictionary?.Get<PdfName>("Type")?.Name;
-        string? subtype = dictionary?.Get<PdfName>("Subtype")?.Name;
-        return type is "Page" or "Pages" or "Annot" or "Outlines" or "Filespec" || subtype is "Widget" or "Link" or "FileAttachment";
+        return IsSemanticType(dictionary?.Get<PdfName>("Type")?.Name, dictionary?.Get<PdfName>("Subtype")?.Name);
     }
+
+    private static bool IsSemanticType(string? type, string? subtype) =>
+        type is "Page" or "Pages" or "Annot" or "Outlines" or "Filespec" || subtype is "Widget" or "Link" or "FileAttachment";
 
     private static void TraverseReferences(Dictionary<int, PdfIndirectObject> objects, PdfObject root, HashSet<int> reachable, System.Threading.CancellationToken cancellationToken) {
         var pending = new Stack<PdfObject>(); pending.Push(root);
-        while (pending.Count > 0) {
+        // References recorded by the load scan for objects that are not built yet, packed as number and generation.
+        var pendingScanned = new Stack<long>();
+        while (pending.Count > 0 || pendingScanned.Count > 0) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (pendingScanned.Count > 0) {
+                long packed = pendingScanned.Pop();
+                VisitReference((int)(packed >> 32), (int)packed);
+                continue;
+            }
             PdfObject value = pending.Pop();
             if (value is PdfReference reference) {
-                if (!reachable.Add(reference.ObjectNumber)) continue;
-                if (PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject indirect)) pending.Push(indirect.Value);
-                else reachable.Remove(reference.ObjectNumber); // A bad generation must not hide a later valid reference.
+                VisitReference(reference.ObjectNumber, reference.Generation);
                 continue;
             }
             // Indirect references are the only way a parsed PDF object graph can
@@ -219,6 +230,17 @@ internal static class PdfSemanticRepairDiagnostics {
                 }
             }
         }
+
+        void VisitReference(int objectNumber, int generation) {
+            if (!reachable.Add(objectNumber)) return;
+            if (!objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) || indirect.Generation != generation) {
+                reachable.Remove(objectNumber); // A bad generation must not hide a later valid reference.
+            } else if (indirect.TryGetUnbuiltSummary(out PdfDeferredObjectSummary summary)) {
+                foreach (long packed in summary.References) pendingScanned.Push(packed);
+            } else {
+                pending.Push(indirect.Value);
+            }
+        }
     }
 
     private static void AddDefect(PdfLoadOptions options, List<PdfRepairDiagnostic> diagnostics, string code, string message, int? objectNumber, bool recovered) {
@@ -232,6 +254,8 @@ internal static class PdfSemanticRepairDiagnostics {
     private static int FindObjectNumber(Dictionary<int, PdfIndirectObject> objects, PdfObject value, System.Threading.CancellationToken cancellationToken) {
         foreach (PdfIndirectObject indirect in objects.Values) {
             cancellationToken.ThrowIfCancellationRequested();
+            // An object that has not been built cannot be the instance being looked up.
+            if (!indirect.IsValueBuilt) continue;
             if (ReferenceEquals(indirect.Value, value) || indirect.Value is PdfStream stream && ReferenceEquals(stream.Dictionary, value)) return indirect.ObjectNumber;
         }
         return 0;

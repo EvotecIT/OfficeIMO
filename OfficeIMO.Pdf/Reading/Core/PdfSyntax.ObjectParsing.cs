@@ -98,10 +98,18 @@ internal static partial class PdfSyntax {
         int length,
         PdfReadLimits? limits,
         bool trackEncodedStringSourceSpans,
-        System.Threading.CancellationToken cancellationToken) {
+        System.Threading.CancellationToken cancellationToken) =>
+        ParseTopLevelObject(new PdfByteContentText(data), start, length, limits, trackEncodedStringSourceSpans, cancellationToken);
+
+    private static PdfObject? ParseTopLevelObject<TText>(
+        TText text,
+        int start,
+        int length,
+        PdfReadLimits? limits,
+        bool trackEncodedStringSourceSpans,
+        System.Threading.CancellationToken cancellationToken) where TText : struct, IPdfContentText {
         cancellationToken.ThrowIfCancellationRequested();
         PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
-        var text = new PdfByteContentText(data);
         int end = start + length;
         int first = start;
         while (first < end && char.IsWhiteSpace(text[first])) first++;
@@ -144,84 +152,12 @@ internal static partial class PdfSyntax {
         return null;
     }
 
-    private static bool IsWindow(PdfByteContentText text, int start, int end, string value) {
+    private static bool IsWindow<TText>(TText text, int start, int end, string value) where TText : struct, IPdfContentText {
         if (end - start != value.Length) return false;
         for (int index = 0; index < value.Length; index++) {
             if (text[start + index] != value[index]) return false;
         }
         return true;
-    }
-
-    private static int SkipWhitespaceAndComments(PdfByteContentText text, int index, int limit,
-        System.Threading.CancellationToken cancellationToken) {
-        while (index < limit) {
-            while (index < limit && char.IsWhiteSpace(text[index])) {
-                if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-                index++;
-            }
-
-            if (index >= limit || text[index] != '%') {
-                return index;
-            }
-
-            while (index < limit && text[index] != '\r' && text[index] != '\n') {
-                if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-                index++;
-            }
-        }
-
-        return index;
-    }
-
-    // Byte-window form of FindDictEnd. A comment ends at the next line break before the limit,
-    // which the string form finds through its shared line-end index.
-    private static int FindDictEnd(PdfByteContentText text, int dictStart, int limit,
-        System.Threading.CancellationToken cancellationToken) {
-        int depth = 0;
-        bool literalsEnd = true, commentsEnd = true;
-        for (int i = dictStart; i + 1 < limit; i++) {
-            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            char c = text[i]; char n = text[i + 1];
-            if (c == '<' && n == '<') { depth++; i++; continue; }
-            if (c == '>' && n == '>') { depth--; i++; if (depth == 0) return i + 1; continue; }
-            if (depth == 0) continue;
-            int skipped = -1;
-            if (c == '<') skipped = FindHexStringEnd(text, i, limit, cancellationToken);
-            else if (c == '(' && literalsEnd) literalsEnd = (skipped = FindLiteralStringEnd(text, i, limit, cancellationToken)) > i;
-            else if (c == '%' && commentsEnd) commentsEnd = (skipped = FindLineEnd(text, i, limit, cancellationToken)) > i;
-            if (skipped > i) i = skipped - 1;
-        }
-        return -1;
-    }
-
-    private static int FindLineEnd(PdfByteContentText text, int start, int limit, System.Threading.CancellationToken cancellationToken) {
-        for (int i = start + 1; i < limit; i++) {
-            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            if (text[i] is '\r' or '\n') return i;
-        }
-        return -1;
-    }
-
-    private static int FindHexStringEnd(PdfByteContentText text, int start, int limit, System.Threading.CancellationToken cancellationToken) {
-        for (int i = start + 1; i < limit; i++) {
-            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            char c = text[i];
-            if (c == '>') return i + 1;
-            if (!Uri.IsHexDigit(c) && c is not (' ' or '\t' or '\r' or '\n' or '\f' or '\0')) return -1;
-        }
-        return -1;
-    }
-
-    private static int FindLiteralStringEnd(PdfByteContentText text, int start, int limit, System.Threading.CancellationToken cancellationToken) {
-        int depth = 0;
-        for (int i = start; i < limit; i++) {
-            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            char c = text[i];
-            if (c == '\\') { i++; continue; }
-            if (c == '(') depth++;
-            else if (c == ')' && --depth == 0) return i + 1;
-        }
-        return -1;
     }
 
     internal static bool HasFlateDecode(PdfDictionary dict) {
@@ -253,9 +189,9 @@ internal static partial class PdfSyntax {
         TText source,
         int start,
         int length,
-        PdfReadLimits? limits,
-        bool trackEncodedStringSourceSpans,
-        System.Threading.CancellationToken cancellationToken) where TText : struct, IPdfContentText {
+        PdfReadLimits? limits = null,
+        bool trackEncodedStringSourceSpans = true,
+        System.Threading.CancellationToken cancellationToken = default) where TText : struct, IPdfContentText {
         cancellationToken.ThrowIfCancellationRequested();
         PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
         if (length > effectiveLimits.MaxObjectCharacters) {

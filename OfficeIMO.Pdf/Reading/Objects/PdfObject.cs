@@ -222,8 +222,110 @@ internal sealed class PdfIndirectObject : PdfObject {
     internal int SourceRevision { get; set; } = -1;
     public int ObjectNumber { get; }
     public int Generation { get; }
-    public PdfObject Value { get; }
-    public PdfIndirectObject(int number, int generation, PdfObject value) { ObjectNumber = number; Generation = generation; Value = value; }
+
+    private PdfObject? _value;
+    // Holds the source of a value that has been validated but not built yet. Cleared once the value exists.
+    private PdfDeferredObjectSource? _deferred;
+    private readonly PdfDeferredObjectSummary? _summary;
+
+    /// <summary>The object's value. A deferred object is parsed on first access, once, and the same instance is returned afterwards.</summary>
+    public PdfObject Value => Volatile.Read(ref _value) ?? Materialize();
+
+    public PdfIndirectObject(int number, int generation, PdfObject value) { ObjectNumber = number; Generation = generation; _value = value; }
+
+    /// <summary>Creates an object whose value is parsed from <paramref name="source"/> when first read.</summary>
+    internal PdfIndirectObject(int number, int generation, PdfDeferredObjectSource source, PdfDeferredObjectSummary summary) {
+        ObjectNumber = number;
+        Generation = generation;
+        _deferred = source;
+        _summary = summary;
+    }
+
+    /// <summary>
+    /// Returns the load-time summary of a value that has not been built yet. Whole-document passes use it
+    /// in place of <see cref="Value"/> so they do not parse objects nobody reads.
+    /// </summary>
+    internal bool TryGetUnbuiltSummary(out PdfDeferredObjectSummary summary) {
+        summary = _summary!;
+        return _summary is not null && Volatile.Read(ref _value) is null;
+    }
+
+    /// <summary>True when <see cref="Value"/> is already built, so reading it cannot parse anything.</summary>
+    internal bool IsValueBuilt => Volatile.Read(ref _value) is not null;
+
+    private PdfObject Materialize() {
+        // Deferred objects are internal to the reader, so no other code locks on them.
+        lock (this) {
+            PdfObject? value = _value;
+            if (value is not null) return value;
+            value = _deferred!.Parse(_summary!.Start, _summary.Length);
+            Volatile.Write(ref _value, value);
+            _deferred = null;
+            return value;
+        }
+    }
+}
+
+/// <summary>
+/// Decoded bytes of an object stream whose objects were validated at load and are parsed only when their values are read.
+/// One instance is shared by all deferred objects of the stream.
+/// </summary>
+internal sealed class PdfDeferredObjectSource {
+    private readonly byte[] _data;
+    private readonly PdfReadLimits _limits;
+
+    internal PdfDeferredObjectSource(byte[] data, PdfReadLimits limits) {
+        _data = data;
+        _limits = limits;
+    }
+
+    internal bool Holds(byte[] data) => ReferenceEquals(_data, data);
+
+    // The load-time scan accepted these bytes under the same limits, so this parse cannot fail or exceed them.
+    internal PdfObject Parse(int start, int length) => PdfSyntax.ParseDeferredObject(_data, start, length, _limits);
+}
+
+/// <summary>
+/// What load-time passes need from an object that has not been built: its outgoing references and a few
+/// top-level facts. It is recorded only for objects whose syntax is complete and unambiguous.
+/// </summary>
+internal sealed class PdfDeferredObjectSummary {
+    internal PdfDeferredObjectSummary(int start, int length, long[] references, string? knownType, string? knownSubtype, bool hasEncryptKey, bool mayCarrySignatureData) {
+        Start = start;
+        Length = length;
+        References = references;
+        KnownType = knownType;
+        KnownSubtype = knownSubtype;
+        HasEncryptKey = hasEncryptKey;
+        MayCarrySignatureData = mayCarrySignatureData;
+    }
+
+    /// <summary>Offset of the object in its source's decoded bytes.</summary>
+    internal int Start { get; }
+
+    /// <summary>Length of the object in its source's decoded bytes.</summary>
+    internal int Length { get; }
+
+    /// <summary>Every reference in the value at any depth, as object number (high 32 bits) and generation (low 32 bits).</summary>
+    internal long[] References { get; }
+
+    /// <summary>
+    /// The direct top-level /Type name when it is one that whole-document passes look for, such as Catalog, XRef or Page.
+    /// Null for any other type, or when /Type is absent or not a direct name.
+    /// </summary>
+    internal string? KnownType { get; }
+
+    /// <summary>The direct top-level /Subtype name when it is Widget, Link or FileAttachment; otherwise null.</summary>
+    internal string? KnownSubtype { get; }
+
+    /// <summary>The value is a dictionary with a top-level /Encrypt key.</summary>
+    internal bool HasEncryptKey { get; }
+
+    /// <summary>
+    /// The value holds a /ByteRange, /Sig or /SigFlags name at any depth, or a top-level /FT or /Type given by reference.
+    /// Objects without these cannot be signature fields, signature values or signature markers.
+    /// </summary>
+    internal bool MayCarrySignatureData { get; }
 }
 
 internal static class PdfObjectLookup {
