@@ -1536,6 +1536,9 @@
       "out": "./_site/api/ocr-process",
       "title": "OfficeIMO.Ocr.Process API Reference",
       "baseUrl": "/api/ocr-process",
+      "relatedContentManifests": [
+        "./data/apidocs/related/ocr-process.json"
+      ],
       "docsHome": "/docs/capabilities/packages/",
       "format": "both",
       "legacyAliasMode": "omit",
@@ -1565,6 +1568,9 @@
       "out": "./_site/api/ocr-tesseract",
       "title": "OfficeIMO.Ocr.Tesseract API Reference",
       "baseUrl": "/api/ocr-tesseract",
+      "relatedContentManifests": [
+        "./data/apidocs/related/ocr-tesseract.json"
+      ],
       "docsHome": "/docs/capabilities/packages/",
       "format": "both",
       "legacyAliasMode": "omit",
