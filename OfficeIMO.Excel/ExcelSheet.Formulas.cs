@@ -47,7 +47,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void InvalidateFormulas() {
             WriteLock(() => {
-                foreach (var formula in WorksheetRoot.Descendants<CellFormula>()) {
+                foreach (var formula in ExcelWorksheetScan.CellFormulas(WorksheetRoot)) {
                     formula.CalculateCell = true;
                 }
             });
