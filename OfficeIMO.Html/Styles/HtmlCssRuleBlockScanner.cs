@@ -9,7 +9,14 @@ namespace OfficeIMO.Html;
 internal static class HtmlCssRuleBlockScanner {
     internal static IReadOnlyDictionary<int, int> Scan(
         string css,
-        HtmlCssProcessingBudget budget) {
+        HtmlCssProcessingBudget budget) => Scan(css, budget, out _);
+
+    /// <summary>Scans <paramref name="css"/>, also reporting the deepest block nesting it recorded.</summary>
+    internal static IReadOnlyDictionary<int, int> Scan(
+        string css,
+        HtmlCssProcessingBudget budget,
+        out int maximumDepth) {
+        maximumDepth = 0;
         var closures = new Dictionary<int, int>();
         var opens = new Stack<int>();
         char quote = '\0';
@@ -58,6 +65,7 @@ internal static class HtmlCssRuleBlockScanner {
                 ResetIdentifier(ref identifierLength, ref identifierMatchesUrl);
                 opens.Push(index);
                 budget.RecordNestingDepth(opens.Count);
+                if (opens.Count > maximumDepth) maximumDepth = opens.Count;
             } else {
                 ResetIdentifier(ref identifierLength, ref identifierMatchesUrl);
                 if (current == '}' && opens.Count > 0) {
@@ -66,6 +74,17 @@ internal static class HtmlCssRuleBlockScanner {
             }
         }
         return closures;
+    }
+
+    /// <summary>Whether the block opened at <paramref name="open"/> is introduced by a literal <c>@font-face</c> keyword.</summary>
+    internal static bool IsFontFaceBlock(string css, int open) {
+        int cursor = open - 1;
+        while (cursor >= 0 && char.IsWhiteSpace(css[cursor])) cursor--;
+        const string RuleName = "@font-face";
+        int ruleStart = cursor - RuleName.Length + 1;
+        return ruleStart >= 0
+            && string.Compare(css, ruleStart, RuleName, 0, RuleName.Length, StringComparison.OrdinalIgnoreCase) == 0
+            && !(ruleStart > 0 && (char.IsLetterOrDigit(css[ruleStart - 1]) || css[ruleStart - 1] == '-' || css[ruleStart - 1] == '_'));
     }
 
     internal static void ValidateDocument(

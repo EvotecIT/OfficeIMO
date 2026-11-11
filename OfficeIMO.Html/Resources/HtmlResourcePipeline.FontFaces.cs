@@ -50,27 +50,156 @@ public static partial class HtmlResourcePipeline {
             return definitions.AsReadOnly();
         }
 
-        // The validation scan also yields the rule blocks that raw descriptor recovery needs.
-        IReadOnlyDictionary<int, int> closures = HtmlCssRuleBlockScanner.Scan(css, new HtmlCssProcessingBudget(options.Limits));
-        // The style cascade parses every stylesheet already; a full parse here only pays off when the
-        // text can contain an @font-face rule.
-        if (!MayContainFontFaceRule(css)) {
-            return definitions.AsReadOnly();
-        }
-
-        var parser = new CssParser();
-        ICssStyleSheet stylesheet = parser.ParseStyleSheet(css);
-        IReadOnlyList<IReadOnlyDictionary<string, string>> rawRules = ExtractRawFontFaceDescriptors(css, closures);
-        var rawDescriptors = new Dictionary<ICssFontFaceRule, IReadOnlyDictionary<string, string>>();
-        int rawRuleIndex = 0;
-        foreach (ICssRule rule in stylesheet.Rules) {
-            MapRawFontFaceDescriptors(rule, rawRules, rawDescriptors, ref rawRuleIndex);
-        }
-        foreach (ICssRule rule in stylesheet.Rules) {
-            AddFontFaces(rule, options, definitions, rawDescriptors, includeInactiveResources);
-        }
-
+        FontFaceSheet sheet = FontFaceSheets.GetOrParse(css, options.Limits);
+        sheet.AddApplicable(options, includeInactiveResources, definitions);
         return definitions.AsReadOnly();
+    }
+
+    /// <summary>
+    /// The @font-face rules of one stylesheet text, independent of the media environment. A sheet
+    /// that embeds its fonts is megabytes of text, parsed again by every conversion of the same
+    /// document, so large sheets are remembered by their exact text.
+    /// </summary>
+    private sealed class FontFaceSheet {
+        private readonly int _maximumNestingDepth;
+        private readonly IReadOnlyList<(HtmlCssFontFaceDefinition Definition, FontFaceCondition[] Conditions)> _faces;
+
+        private FontFaceSheet(int maximumNestingDepth, IReadOnlyList<(HtmlCssFontFaceDefinition, FontFaceCondition[])> faces) {
+            _maximumNestingDepth = maximumNestingDepth;
+            _faces = faces;
+        }
+
+        internal static FontFaceSheet Parse(string css, HtmlConversionLimits? limits) {
+            // The validation scan also yields the rule blocks that raw descriptor recovery needs.
+            IReadOnlyDictionary<int, int> closures = HtmlCssRuleBlockScanner.Scan(
+                css, new HtmlCssProcessingBudget(limits), out int maximumDepth);
+            var faces = new List<(HtmlCssFontFaceDefinition, FontFaceCondition[])>();
+            // The style cascade parses every stylesheet already; a full parse here only pays off when the
+            // text can contain an @font-face rule.
+            if (!MayContainFontFaceRule(css)) {
+                return new FontFaceSheet(maximumDepth, faces);
+            }
+
+            var parser = new CssParser();
+            ICssStyleSheet stylesheet = parser.ParseStyleSheet(css);
+            IReadOnlyList<IReadOnlyDictionary<string, string>> rawRules = ExtractRawFontFaceDescriptors(css, closures);
+            var rawDescriptors = new Dictionary<ICssFontFaceRule, IReadOnlyDictionary<string, string>>();
+            int rawRuleIndex = 0;
+            foreach (ICssRule rule in stylesheet.Rules) {
+                MapRawFontFaceDescriptors(rule, rawRules, rawDescriptors, ref rawRuleIndex);
+            }
+            var conditions = new List<FontFaceCondition>();
+            foreach (ICssRule rule in stylesheet.Rules) {
+                CollectFontFaces(rule, faces, conditions, rawDescriptors);
+            }
+            return new FontFaceSheet(maximumDepth, faces);
+        }
+
+        /// <summary>Replays the scan's limit check, then adds the faces whose media and supports conditions apply.</summary>
+        internal void AddApplicable(HtmlResourcePipelineOptions options, bool includeInactiveResources,
+            ICollection<HtmlCssFontFaceDefinition> definitions) {
+            var budget = new HtmlCssProcessingBudget(options.Limits);
+            for (int depth = 1; depth <= _maximumNestingDepth; depth++) budget.RecordNestingDepth(depth);
+            foreach ((HtmlCssFontFaceDefinition definition, FontFaceCondition[] conditions) in _faces) {
+                if (includeInactiveResources || AllApply(conditions, options)) definitions.Add(definition);
+            }
+        }
+
+        private static bool AllApply(FontFaceCondition[] conditions, HtmlResourcePipelineOptions options) {
+            foreach (FontFaceCondition condition in conditions) {
+                if (condition.IsMedia ? !IsApplicableMedia(condition.Text, options)
+                    : !HtmlComputedStyleEngine.IsApplicableSupports(condition.Text)) return false;
+            }
+            return true;
+        }
+
+        // Mirrors the environment-dependent traversal: a face applies when every enclosing media
+        // and supports rule applies, in the same document order.
+        private static void CollectFontFaces(
+            ICssRule rule,
+            List<(HtmlCssFontFaceDefinition, FontFaceCondition[])> faces,
+            List<FontFaceCondition> conditions,
+            IReadOnlyDictionary<ICssFontFaceRule, IReadOnlyDictionary<string, string>> rawDescriptors) {
+            int added = 0;
+            if (rule is ICssMediaRule mediaRule) {
+                conditions.Add(new FontFaceCondition(true, mediaRule.ConditionText));
+                added++;
+            }
+            if (rule is ICssSupportsRule supportsRule) {
+                conditions.Add(new FontFaceCondition(false, supportsRule.ConditionText));
+                added++;
+            }
+            try {
+                if (rule is ICssFontFaceRule fontFace) {
+                    var definition = new HtmlCssFontFaceDefinition(
+                        fontFace.Family,
+                        fontFace.Source,
+                        fontFace.Weight,
+                        fontFace.Stretch,
+                        fontFace.Style,
+                        fontFace.Range);
+                    faces.Add((rawDescriptors.TryGetValue(fontFace, out IReadOnlyDictionary<string, string>? raw)
+                        ? definition.WithRawDescriptors(raw)
+                        : definition, conditions.ToArray()));
+                    return;
+                }
+
+                if (rule is ICssGroupingRule groupingRule) {
+                    foreach (ICssRule child in groupingRule.Rules) {
+                        CollectFontFaces(child, faces, conditions, rawDescriptors);
+                    }
+                }
+            } finally {
+                conditions.RemoveRange(conditions.Count - added, added);
+            }
+        }
+    }
+
+    private readonly struct FontFaceCondition {
+        internal FontFaceCondition(bool isMedia, string text) {
+            IsMedia = isMedia;
+            Text = text;
+        }
+
+        internal bool IsMedia { get; }
+        internal string Text { get; }
+    }
+
+    private static readonly FontFaceSheetCache FontFaceSheets = new();
+
+    /// <summary>Thread-safe, least-recently-used parsed sheets, bounded by the text they retain.</summary>
+    private sealed class FontFaceSheetCache {
+        // Small sheets parse quickly; only sheets that carry font or image payloads are worth keeping.
+        private const int MinimumLength = 64 * 1024;
+        private const long MaximumRetainedCharacters = 32L * 1024 * 1024;
+        private readonly Dictionary<string, LinkedListNode<(string Css, FontFaceSheet Sheet)>> _entries = new(StringComparer.Ordinal);
+        private readonly LinkedList<(string Css, FontFaceSheet Sheet)> _order = new();
+        private long _retainedCharacters;
+
+        internal FontFaceSheet GetOrParse(string css, HtmlConversionLimits? limits) {
+            if (css.Length < MinimumLength || css.Length > MaximumRetainedCharacters) return FontFaceSheet.Parse(css, limits);
+            lock (_entries) {
+                if (_entries.TryGetValue(css, out LinkedListNode<(string Css, FontFaceSheet Sheet)>? node)) {
+                    _order.Remove(node);
+                    _order.AddFirst(node);
+                    return node.Value.Sheet;
+                }
+            }
+            // A scan that exceeds this operation's limits throws here and remembers nothing.
+            FontFaceSheet sheet = FontFaceSheet.Parse(css, limits);
+            lock (_entries) {
+                if (_entries.ContainsKey(css)) return sheet;
+                while (_retainedCharacters + css.Length > MaximumRetainedCharacters && _order.Last != null) {
+                    LinkedListNode<(string Css, FontFaceSheet Sheet)> oldest = _order.Last;
+                    _order.RemoveLast();
+                    _entries.Remove(oldest.Value.Css);
+                    _retainedCharacters -= oldest.Value.Css.Length;
+                }
+                _entries.Add(css, _order.AddFirst((css, sheet)));
+                _retainedCharacters += css.Length;
+            }
+            return sheet;
+        }
     }
 
     internal static IReadOnlyList<string> ExtractFontFaceUrls(string source) {
@@ -139,40 +268,6 @@ public static partial class HtmlResourcePipeline {
         return builder.ToString();
     }
 
-    private static void AddFontFaces(
-        ICssRule rule,
-        HtmlResourcePipelineOptions options,
-        ICollection<HtmlCssFontFaceDefinition> definitions,
-        IReadOnlyDictionary<ICssFontFaceRule, IReadOnlyDictionary<string, string>> rawDescriptors, bool includeInactiveResources) {
-        if (!includeInactiveResources && rule is ICssMediaRule mediaRule && !IsApplicableMedia(mediaRule.ConditionText, options)) {
-            return;
-        }
-
-        if (!includeInactiveResources && rule is ICssSupportsRule supportsRule && !HtmlComputedStyleEngine.IsApplicableSupports(supportsRule.ConditionText)) {
-            return;
-        }
-
-        if (rule is ICssFontFaceRule fontFace) {
-            var definition = new HtmlCssFontFaceDefinition(
-                fontFace.Family,
-                fontFace.Source,
-                fontFace.Weight,
-                fontFace.Stretch,
-                fontFace.Style,
-                fontFace.Range);
-            definitions.Add(rawDescriptors.TryGetValue(fontFace, out IReadOnlyDictionary<string, string>? raw)
-                ? definition.WithRawDescriptors(raw)
-                : definition);
-            return;
-        }
-
-        if (rule is ICssGroupingRule groupingRule) {
-            foreach (ICssRule child in groupingRule.Rules) {
-                AddFontFaces(child, options, definitions, rawDescriptors, includeInactiveResources);
-            }
-        }
-    }
-
     // An at-keyword spells font-face either literally or through an escape in its name.
     private static bool MayContainFontFaceRule(string css) {
         const string RuleName = "font-face";
@@ -197,15 +292,7 @@ public static partial class HtmlResourcePipeline {
     private static IReadOnlyList<IReadOnlyDictionary<string, string>> ExtractRawFontFaceDescriptors(string css, IReadOnlyDictionary<int, int> closures) {
         var rawRules = new List<IReadOnlyDictionary<string, string>>();
         foreach (KeyValuePair<int, int> closure in closures.OrderBy(item => item.Key)) {
-            int cursor = closure.Key - 1;
-            while (cursor >= 0 && char.IsWhiteSpace(css[cursor])) cursor--;
-            const string RuleName = "@font-face";
-            int ruleStart = cursor - RuleName.Length + 1;
-            if (ruleStart < 0
-                || string.Compare(css, ruleStart, RuleName, 0, RuleName.Length, StringComparison.OrdinalIgnoreCase) != 0
-                || ruleStart > 0 && (char.IsLetterOrDigit(css[ruleStart - 1]) || css[ruleStart - 1] == '-' || css[ruleStart - 1] == '_')) {
-                continue;
-            }
+            if (!HtmlCssRuleBlockScanner.IsFontFaceBlock(css, closure.Key)) continue;
             string body = css.Substring(closure.Key + 1, closure.Value - closure.Key - 1);
             rawRules.Add(HtmlRenderCssValues.ParseInlineStyleDeclarations(body));
         }
