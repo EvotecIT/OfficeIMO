@@ -42,9 +42,7 @@ namespace OfficeIMO.Examples.Word {
 
             using (var destination = WordDocument.Load(destinationPath))
             using (var source = WordDocument.Load(sourcePath)) {
-                destination.AppendDocument(source, new WordDocumentMergeOptions {
-                    StyleMode = WordMergeStyleMode.KeepDifferentStyles
-                });
+                destination.AppendDocument(source);
                 destination.UpdateFields(new WordFieldUpdateOptions {
                     UpdateTablesOfContents = true
                 }.WithPdfLayoutPagination());

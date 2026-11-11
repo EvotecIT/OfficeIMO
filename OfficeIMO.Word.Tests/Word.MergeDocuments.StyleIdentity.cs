@@ -9,9 +9,9 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
-    [InlineData(WordMergeStyleMode.UseDestinationStyles)]
-    [InlineData(WordMergeStyleMode.KeepDifferentStyles)]
-    public void MergePreservesCaseDistinctStyleIdsAndDependencies(WordMergeStyleMode mode) {
+    [InlineData(WordStyleConflictMode.KeepTarget)]
+    [InlineData(WordStyleConflictMode.Rename)]
+    public void MergePreservesCaseDistinctStyleIdsAndDependencies(WordStyleConflictMode mode) {
         using var input = new MemoryStream();
         using (WordprocessingDocument package = WordprocessingDocument.Create(input, WordprocessingDocumentType.Document, true)) {
             MainDocumentPart mainPart = package.AddMainDocumentPart();
@@ -41,7 +41,7 @@ public partial class Word {
         using WordDocument destination = WordDocument.Create();
         destination.AddParagraph("Destination text");
 
-        destination.AppendDocument(source, new WordDocumentMergeOptions { StyleMode = mode });
+        destination.AppendDocument(source, new WordDocumentMergeOptions { StyleConflictMode = mode });
 
         Assert.Equal(sourceStylesXml, sourceMain.StyleDefinitionsPart.Styles.OuterXml);
         Assert.Equal(sourceBodyXml, sourceMain.Document.Body.OuterXml);

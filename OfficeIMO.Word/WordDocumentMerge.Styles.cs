@@ -16,7 +16,7 @@ namespace OfficeIMO.Word {
         };
 
         private readonly Dictionary<string, string> _styleMap = new(StringComparer.Ordinal);
-        private readonly List<(Style Source, string Id, string? Name)> _styleCopies = new();
+        private readonly List<(Style Source, string Id, string? Name, Style? Replaces)> _styleCopies = new();
         private Styles? _sourceStyles;
         private Styles? _destinationStyles;
         private bool _foldSourceDefaults;
@@ -46,8 +46,9 @@ namespace OfficeIMO.Word {
                 _destinationStyles.Elements<Style>().Select(_ => _.StyleName?.Val?.Value).OfType<string>(),
                 StringComparer.OrdinalIgnoreCase);
 
-            bool keepDifferent = _options.StyleMode == WordMergeStyleMode.KeepDifferentStyles;
-            _foldSourceDefaults = keepDifferent &&
+            WordStyleConflictMode mode = _options.StyleConflictMode;
+            bool keepSourceLook = mode != WordStyleConflictMode.KeepTarget;
+            _foldSourceDefaults = keepSourceLook &&
                 !string.Equals(Canonicalize(_sourceStyles.DocDefaults), Canonicalize(_destinationStyles.DocDefaults), StringComparison.Ordinal);
             HashSet<string> usedSourceStyles = CollectUsedSourceStyles(sourceById);
 
@@ -127,24 +128,30 @@ namespace OfficeIMO.Word {
                 string sourceId = id!;
                 Style? match = FindMatch(style);
                 if (match != null) {
-                    if (!keepDifferent || AreEquivalent(style, match)) {
+                    if (!keepSourceLook || AreEquivalent(style, match)) {
                         _styleMap[sourceId] = match.StyleId!.Value!;
                         continue;
                     }
-                } else if (usedIds.Add(sourceId)) {
+
+                    if (mode == WordStyleConflictMode.Overwrite) {
+                        _styleMap[sourceId] = match.StyleId!.Value!;
+                        _styleCopies.Add((style, match.StyleId!.Value!, null, match));
+                        continue;
+                    }
+                } else if (!IsNameTaken(style, usedNames) && usedIds.Add(sourceId)) {
                     string? name = style.StyleName?.Val?.Value;
                     if (name != null) {
                         usedNames.Add(name);
                     }
 
                     _styleMap[sourceId] = sourceId;
-                    _styleCopies.Add((style, sourceId, null));
+                    _styleCopies.Add((style, sourceId, null, null));
                     continue;
                 }
 
                 (string newId, string newName) = CreateUniqueStyleIdentity(style, usedIds, usedNames);
                 _styleMap[sourceId] = newId;
-                _styleCopies.Add((style, newId, newName));
+                _styleCopies.Add((style, newId, newName, null));
             }
         }
 
@@ -162,7 +169,7 @@ namespace OfficeIMO.Word {
                     .Where(_ => _.Default?.Value == true && _.Type?.Value != null)
                     .Select(_ => _.Type!.Value));
 
-            foreach ((Style source, string id, string? name) in _styleCopies) {
+            foreach ((Style source, string id, string? name, Style? replaces) in _styleCopies) {
                 var clone = (Style)source.CloneNode(true);
                 clone.StyleId = id;
                 if (name != null) {
@@ -171,7 +178,10 @@ namespace OfficeIMO.Word {
                 }
 
                 StyleValues? type = clone.Type?.Value;
-                if (clone.Default?.Value == true && (type == null || !defaultTypes.Add(type.Value))) {
+                if (replaces != null) {
+                    // The destination decides which style is its default; an overwritten definition does not move that choice.
+                    clone.Default = replaces.Default?.Value;
+                } else if (clone.Default?.Value == true && (type == null || !defaultTypes.Add(type.Value))) {
                     clone.Default = null;
                 }
 
@@ -192,7 +202,12 @@ namespace OfficeIMO.Word {
                 }
 
                 RemapNumberingReferences(clone);
-                _destinationStyles.Append(clone);
+                if (replaces != null) {
+                    replaces.InsertAfterSelf(clone);
+                    replaces.Remove();
+                } else {
+                    _destinationStyles.Append(clone);
+                }
             }
 
             // OfficeIMO reads the saved style part when it checks the style catalog, so flush the changes.
@@ -376,6 +391,15 @@ namespace OfficeIMO.Word {
             }
 
             return used;
+        }
+
+        /// <summary>
+        /// Style names are unique across style types, so a source style whose name a destination style of another
+        /// type already uses is copied under a new name.
+        /// </summary>
+        private static bool IsNameTaken(Style style, HashSet<string> usedNames) {
+            string? name = style.StyleName?.Val?.Value;
+            return name != null && usedNames.Contains(name);
         }
 
         private static (string Id, string Name) CreateUniqueStyleIdentity(Style style, HashSet<string> usedIds, HashSet<string> usedNames) {
