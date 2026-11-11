@@ -7,7 +7,7 @@ namespace OfficeIMO.Yaml;
 /// </summary>
 public sealed class YamlReaderOptions {
     private int _maxDepth = 256;
-    private int _maxNodes = 1_000_000;
+    private int _maxNodes = 10_000_000;
     private int _maxAliasExpansion = 100_000;
     private int _maxScalarLength = 16 * 1024 * 1024;
     private long? _maxInputBytes;
@@ -60,7 +60,8 @@ public sealed class YamlReaderOptions {
     }
 
     /// <summary>
-    /// Gets or sets the maximum number of nodes one document of a loaded model may hold. Defaults to 1,000,000.
+    /// Gets or sets the maximum number of nodes one document of a loaded model may hold. Defaults to 10,000,000;
+    /// <see cref="UntrustedDefaults"/> lowers it to 200,000.
     /// The forward-only reader does not enforce it, so streaming consumers can read unbounded multi-document streams.
     /// </summary>
     public int MaxNodes {
