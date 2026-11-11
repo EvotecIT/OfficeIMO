@@ -75,9 +75,8 @@ namespace OfficeIMO.Excel {
         /// the fast reader cannot index; in XLSB, a later cell outside the header row's columns.
         /// The option applies on .NET 8 and later to worksheets of 1 MB or more, when no diagnostics or
         /// diagnostic callbacks are requested, parallelism is not capped at one and the execution policy
-        /// allows background work: XLSX worksheets that declare their dimension, with <see cref="A1Range"/>
-        /// and <see cref="CellValueConverter"/> not set, and XLSB worksheets read with a header row and no
-        /// cell value converter. On .NET Framework and .NET Standard, with a sequential execution policy,
+        /// allows background work, with <see cref="A1Range"/> and <see cref="CellValueConverter"/> not set:
+        /// XLSX worksheets that declare their dimension and XLSB worksheets read with a header row. On .NET Framework and .NET Standard, with a sequential execution policy,
         /// for other worksheets and in the XLS reader, the reader always validates before the first row.
         /// </remarks>
         public bool EnableSinglePassReading { get; set; }
