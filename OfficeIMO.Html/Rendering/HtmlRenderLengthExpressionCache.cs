@@ -20,7 +20,9 @@ internal sealed class HtmlRenderLengthExpressionCache {
         // The existing parser remains the sole grammar and limit owner. Once the
         // small operation-local cache is full, other values follow the usual path.
         HtmlCssMathParseResult parsed = HtmlCssMathParser.ParseLengthPercentage(value);
-        if (eligible && parsed.IsParsed && _expressions.Count < MaximumEntries) {
+        // A rejected keyword such as a table cell's vertical-align is just as immutable as an
+        // expression, and is asked for again for every cell that inherits it.
+        if (eligible && _expressions.Count < MaximumEntries) {
             _expressions.Add(value, parsed);
         }
         return parsed;
