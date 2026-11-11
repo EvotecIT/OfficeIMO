@@ -113,3 +113,5 @@ OfficeIMO.OfficeInspectOptions.IncludeHiddenData.set -> void
 static OfficeIMO.OfficeDocument.RemoveHiddenData(string! inputPath, string! outputPath, OfficeIMO.OfficeHiddenDataOptions? options = null, OfficeIMO.OfficeSignatureMutationPolicy signatureMutationPolicy = OfficeIMO.OfficeSignatureMutationPolicy.BlockSave) -> OfficeIMO.OfficeHiddenDataReport!
 static OfficeIMO.OfficeDocument.SupportsHiddenData(string! path) -> bool
 static OfficeIMO.OfficeDocument.RemoveHiddenData(byte[]! data, string! fileName, OfficeIMO.OfficeHiddenDataOptions? options = null, OfficeIMO.OfficeSignatureMutationPolicy signatureMutationPolicy = OfficeIMO.OfficeSignatureMutationPolicy.BlockSave) -> OfficeIMO.OfficeHiddenDataResult!
+static OfficeIMO.OfficeDocument.InspectHiddenData(byte[]! data, string! fileName) -> OfficeIMO.OfficeHiddenDataReport!
+static OfficeIMO.OfficeDocument.InspectHiddenData(string! path) -> OfficeIMO.OfficeHiddenDataReport!

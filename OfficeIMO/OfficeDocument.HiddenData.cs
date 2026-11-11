@@ -106,7 +106,27 @@ public static partial class OfficeDocument {
     /// <summary>Whether hidden-data inspection and removal support a file name's extension.</summary>
     public static bool SupportsHiddenData(string path) => TryGetHiddenDataFormat(path, out _);
 
-    internal static OfficeHiddenDataReport InspectHiddenData(byte[] data, string sourceName) {
+    /// <summary>
+    /// Reports what would leave with a document file: properties, comments, hidden content, image metadata and provenance. Nothing is changed.
+    /// Only the format's own hidden-data inspection runs; use <see cref="Inspect(string, OfficeInspectOptions?)"/> for content and summaries too.
+    /// </summary>
+    /// <param name="path">A Word, Excel, PowerPoint, Visio, OpenDocument, EPUB, PDF or image file.</param>
+    public static OfficeHiddenDataReport InspectHiddenData(string path) {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        string source = Path.GetFullPath(path);
+        return InspectHiddenData(File.ReadAllBytes(source), source);
+    }
+
+    /// <summary>
+    /// Reports what would leave with encoded document bytes without touching the filesystem. <paramref name="fileName"/> chooses the format
+    /// by extension. Only the format's own hidden-data inspection runs, so no general reader is loaded.
+    /// </summary>
+    /// <param name="data">The encoded document.</param>
+    /// <param name="fileName">A file name whose extension identifies the format.</param>
+    public static OfficeHiddenDataReport InspectHiddenData(byte[] data, string fileName) {
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+        string sourceName = fileName;
         HiddenDataFormat format = GetHiddenDataFormat(sourceName);
         if (format == HiddenDataFormat.Image) {
             var collector = new OfficeHiddenDataCollector("Image", null);
