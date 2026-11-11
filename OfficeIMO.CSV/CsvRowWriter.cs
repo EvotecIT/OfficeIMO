@@ -456,7 +456,8 @@ public sealed partial class CsvRowWriter : IDisposable
     {
         if (_columns != null)
         {
-            ValidateColumns(columns, requireOrder);
+            // Rows written against the established schema pass it back; there is nothing to compare.
+            if (!ReferenceEquals(columns, _columns)) ValidateColumns(columns, requireOrder);
             return;
         }
 

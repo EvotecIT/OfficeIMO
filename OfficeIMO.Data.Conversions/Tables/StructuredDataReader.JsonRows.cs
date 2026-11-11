@@ -16,6 +16,10 @@ public sealed partial class StructuredDataReader {
     private byte[] _nameScratch = Array.Empty<byte>();
     private byte[] _valueScratch = Array.Empty<byte>();
     private long _tokenBase;
+    private byte[] _jsonBuffer = Array.Empty<byte>();
+    private ReadOnlyMemory<byte>?[] _rowValues = Array.Empty<ReadOnlyMemory<byte>?>();
+    private static readonly byte[] TrueUtf8 = "true"u8.ToArray();
+    private static readonly byte[] FalseUtf8 = "false"u8.ToArray();
     private readonly List<(string Code, OfficeConversionLossKind Loss, string Message, string? Location)> _rowReports = new();
 
     /// <summary>Whether <see cref="WriteJsonRows"/> serves this reader: one JSON document whose root array holds the rows.</summary>
@@ -31,6 +35,7 @@ public sealed partial class StructuredDataReader {
         int count = FieldCount;
         JsonReaderOptions options = _context.Options.JsonReader ?? new JsonReaderOptions { MaxDepth = 256 };
         var state = new JsonReaderState(options);
+        _rowValues = new ReadOnlyMemory<byte>?[count];
         byte[] buffer = ArrayPool<byte>.Shared.Rent(JsonBufferSize);
         int start = 0, end = 0;
         long offset = 0;
@@ -45,6 +50,7 @@ public sealed partial class StructuredDataReader {
 
                 if (!bomChecked) continue;
                 _tokenBase = offset + start;
+                _jsonBuffer = buffer;
                 var reader = new Utf8JsonReader(new ReadOnlySpan<byte>(buffer, start, end - start), final, state);
                 bool more = false;
                 try {
@@ -74,7 +80,7 @@ public sealed partial class StructuredDataReader {
                         }
 
                         EndRow();
-                        writer.WriteUtf8Row(count, this, static (rows, ordinal) => rows.GetUtf8(ordinal));
+                        writer.WriteUtf8Row(_rowValues);
                     }
                 } catch (JsonException error) {
                     throw new InvalidDataException("The JSON input is invalid near byte "
@@ -84,6 +90,8 @@ public sealed partial class StructuredDataReader {
                 if (!more) return;
             }
         } finally {
+            _jsonBuffer = Array.Empty<byte>();
+            Array.Clear(_rowValues, 0, _rowValues.Length);
             ArrayPool<byte>.Shared.Return(buffer);
         }
     }
@@ -111,9 +119,8 @@ public sealed partial class StructuredDataReader {
     }
 
     private void BeginRow() {
-        _cellLengths.AsSpan().Fill(-1);
+        Array.Clear(_rowValues, 0, _rowValues.Length);
         _cellBytesLength = 0;
-        Array.Clear(_kinds, 0, _kinds.Length);
         _rowReports.Clear();
     }
 
@@ -161,26 +168,29 @@ public sealed partial class StructuredDataReader {
                 }
             }
             case JsonTokenType.String:
-                Scalar(reader.TokenStartIndex, node, DataScalarKind.String, Unescaped(ref reader, names: false));
+                if (reader.ValueIsEscaped) Scalar(reader.TokenStartIndex, node, DataScalarKind.String, Unescaped(ref reader, names: false), null, 0);
+                else Scalar(reader.TokenStartIndex, node, DataScalarKind.String, reader.ValueSpan, _jsonBuffer, InputOffset(reader.ValueSpan));
                 return true;
             case JsonTokenType.Number: {
                 ReadOnlySpan<byte> raw = reader.ValueSpan;
-                Scalar(reader.TokenStartIndex, node, raw.IndexOfAny((byte)'.', (byte)'e', (byte)'E') < 0 ? DataScalarKind.Integer : DataScalarKind.Float, raw);
+                Scalar(reader.TokenStartIndex, node, raw.IndexOfAny((byte)'.', (byte)'e', (byte)'E') < 0 ? DataScalarKind.Integer : DataScalarKind.Float, raw, _jsonBuffer, InputOffset(raw));
                 return true;
             }
             case JsonTokenType.True:
-                Scalar(reader.TokenStartIndex, node, DataScalarKind.Boolean, "true"u8);
+                Scalar(reader.TokenStartIndex, node, DataScalarKind.Boolean, TrueUtf8, TrueUtf8, 0);
                 return true;
             case JsonTokenType.False:
-                Scalar(reader.TokenStartIndex, node, DataScalarKind.Boolean, "false"u8);
+                Scalar(reader.TokenStartIndex, node, DataScalarKind.Boolean, FalseUtf8, FalseUtf8, 0);
                 return true;
             default:
-                Scalar(reader.TokenStartIndex, node, DataScalarKind.Null, default);
+                Scalar(reader.TokenStartIndex, node, DataScalarKind.Null, default, null, 0);
                 return true;
         }
     }
 
-    private void Scalar(long token, TableColumnNode? node, DataScalarKind kind, ReadOnlySpan<byte> utf8) {
+    // A cell points at its bytes in the input buffer, which stays in place until the row is written, or at a copy when
+    // the value was unescaped.
+    private void Scalar(long token, TableColumnNode? node, DataScalarKind kind, ReadOnlySpan<byte> utf8, byte[]? source, int sourceStart) {
         if (kind == DataScalarKind.String && !System.Text.Unicode.Utf8.IsValid(utf8)) {
             throw new InvalidDataException("The JSON input has invalid text near " + Location(token) + ": a string is not valid UTF-8.");
         }
@@ -200,9 +210,8 @@ public sealed partial class StructuredDataReader {
                 "Nulls in text columns became empty fields, which read back as empty strings.", node.Path));
         }
 
-        _kinds[column] = kind;
         if (kind == DataScalarKind.Null) {
-            _cellLengths[column] = -1;
+            _rowValues[column] = null;
             return;
         }
 
@@ -211,9 +220,16 @@ public sealed partial class StructuredDataReader {
                 "Text values that look like numbers, booleans or dates read back as those types from CSV.", Location(token)));
         }
 
-        utf8.CopyTo(ReserveCell(column, utf8.Length));
-        _cellLengths[column] = utf8.Length;
+        if (source == null) {
+            utf8.CopyTo(ReserveCell(column, utf8.Length));
+            _rowValues[column] = new ReadOnlyMemory<byte>(_cellBytes, _cellStarts[column], utf8.Length);
+        } else {
+            _rowValues[column] = new ReadOnlyMemory<byte>(source, sourceStart, utf8.Length);
+        }
     }
+
+    private int InputOffset(ReadOnlySpan<byte> value) =>
+        (int)System.Runtime.CompilerServices.Unsafe.ByteOffset(ref _jsonBuffer[0], ref System.Runtime.InteropServices.MemoryMarshal.GetReference(value));
 
     private static bool LooksTyped(ReadOnlySpan<byte> utf8) {
         char[] chars = ArrayPool<char>.Shared.Rent(utf8.Length);
