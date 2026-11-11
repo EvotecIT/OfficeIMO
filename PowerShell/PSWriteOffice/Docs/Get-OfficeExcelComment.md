@@ -116,7 +116,7 @@ Workbook paths resolved with filesystem wildcard support.
 ```yaml
 Type: String[]
 Parameter Sets: Path
-Aliases: None
+Aliases: FilePath
 Possible values:
 
 Required: True
@@ -148,7 +148,7 @@ Worksheet name, one-based position or native worksheet object. Multi-sheet comma
 ```yaml
 Type: OfficeSheetSelector[]
 Parameter Sets: Document, Path, LiteralPath
-Aliases: None
+Aliases: WorksheetName
 Possible values:
 
 Required: False

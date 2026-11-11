@@ -6568,7 +6568,7 @@
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet; omission uses the current sheet.</maml:para>
@@ -6631,7 +6631,7 @@
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
         <maml:name>Sheet</maml:name>
         <maml:description>
           <maml:para>Worksheet name, one-based position or native worksheet; omission uses the current sheet.</maml:para>
@@ -14038,7 +14038,7 @@
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -14101,7 +14101,7 @@
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
         <maml:name>Sheet</maml:name>
         <maml:description>
           <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -69015,7 +69015,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="1" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="1" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Gets or sets source worksheet names or patterns, one-based positions or native worksheets.</maml:para>
@@ -69111,7 +69111,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Gets or sets target workbook paths with filesystem wildcard expansion.</maml:para>
@@ -69123,7 +69123,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="1" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="1" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Gets or sets source worksheet names or patterns, one-based positions or native worksheets.</maml:para>
@@ -69231,7 +69231,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="1" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="1" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Gets or sets source worksheet names or patterns, one-based positions or native worksheets.</maml:para>
@@ -69351,7 +69351,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Gets or sets target workbook paths with filesystem wildcard expansion.</maml:para>
@@ -69363,7 +69363,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="1" aliases="none">
+      <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="1" aliases="WorksheetName">
         <maml:name>Sheet</maml:name>
         <maml:description>
           <maml:para>Gets or sets source worksheet names or patterns, one-based positions or native worksheets.</maml:para>
@@ -70272,7 +70272,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -70311,7 +70311,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -70347,7 +70347,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -70422,7 +70422,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -70485,7 +70485,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -70521,7 +70521,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
         <maml:name>Sheet</maml:name>
         <maml:description>
           <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -78186,7 +78186,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -78210,7 +78210,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -78640,7 +78640,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -78664,7 +78664,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -79082,7 +79082,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -79118,7 +79118,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -79560,7 +79560,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -79596,7 +79596,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
         <maml:name>Sheet</maml:name>
         <maml:description>
           <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -84352,7 +84352,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -84403,7 +84403,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -84439,7 +84439,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -84526,7 +84526,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -84601,7 +84601,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -84637,7 +84637,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
         <maml:name>Sheet</maml:name>
         <maml:description>
           <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -87118,7 +87118,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -87174,7 +87174,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -87198,7 +87198,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -87278,7 +87278,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -87358,7 +87358,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -87382,7 +87382,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
         <maml:name>Sheet</maml:name>
         <maml:description>
           <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -87519,7 +87519,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet names, wildcard patterns, one-based positions or native worksheet objects.</maml:para>
@@ -87582,7 +87582,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Workbook paths, including filesystem wildcard patterns.</maml:para>
@@ -87606,7 +87606,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet names, wildcard patterns, one-based positions or native worksheet objects.</maml:para>
@@ -87693,7 +87693,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet names, wildcard patterns, one-based positions or native worksheet objects.</maml:para>
@@ -87780,7 +87780,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Workbook paths, including filesystem wildcard patterns.</maml:para>
@@ -87804,7 +87804,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
         <maml:name>Sheet</maml:name>
         <maml:description>
           <maml:para>Worksheet names, wildcard patterns, one-based positions or native worksheet objects.</maml:para>
@@ -87908,7 +87908,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
       </command:syntaxItem>
       <command:syntaxItem parameterSetName="Path">
         <maml:name>Get-OfficeExcelDataModel</maml:name>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -87962,7 +87962,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -88101,7 +88101,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -88213,7 +88213,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -88303,7 +88303,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet names, wildcard patterns, one-based positions or native worksheet objects.</maml:para>
@@ -88342,7 +88342,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Workbook paths, including filesystem wildcard patterns.</maml:para>
@@ -88354,7 +88354,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet names, wildcard patterns, one-based positions or native worksheet objects.</maml:para>
@@ -88405,7 +88405,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet names, wildcard patterns, one-based positions or native worksheet objects.</maml:para>
@@ -88468,7 +88468,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Workbook paths, including filesystem wildcard patterns.</maml:para>
@@ -88480,7 +88480,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
         <maml:name>Sheet</maml:name>
         <maml:description>
           <maml:para>Worksheet names, wildcard patterns, one-based positions or native worksheet objects.</maml:para>
@@ -88602,7 +88602,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -88629,7 +88629,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -88641,7 +88641,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -88680,7 +88680,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -88719,7 +88719,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -88794,7 +88794,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -88806,7 +88806,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
         <maml:name>Sheet</maml:name>
         <maml:description>
           <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -89018,7 +89018,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet names, wildcard patterns, one-based positions or native worksheet objects.</maml:para>
@@ -89045,7 +89045,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Workbook paths, including filesystem wildcard patterns.</maml:para>
@@ -89069,7 +89069,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet names, wildcard patterns, one-based positions or native worksheet objects.</maml:para>
@@ -89120,7 +89120,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet names, wildcard patterns, one-based positions or native worksheet objects.</maml:para>
@@ -89171,7 +89171,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Workbook paths, including filesystem wildcard patterns.</maml:para>
@@ -89195,7 +89195,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
         <maml:name>Sheet</maml:name>
         <maml:description>
           <maml:para>Worksheet names, wildcard patterns, one-based positions or native worksheet objects.</maml:para>
@@ -89299,7 +89299,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -89326,7 +89326,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -89338,7 +89338,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -89377,7 +89377,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -89428,7 +89428,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -89440,7 +89440,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
         <maml:name>Sheet</maml:name>
         <maml:description>
           <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -89529,7 +89529,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -89556,7 +89556,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -89568,7 +89568,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -89607,7 +89607,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -89658,7 +89658,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -89670,7 +89670,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
         <maml:name>Sheet</maml:name>
         <maml:description>
           <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -89959,7 +89959,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -89986,7 +89986,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -89998,7 +89998,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -90037,7 +90037,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -90076,7 +90076,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -90151,7 +90151,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -90163,7 +90163,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
         <maml:name>Sheet</maml:name>
         <maml:description>
           <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -90371,7 +90371,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -90410,7 +90410,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -90422,7 +90422,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -90473,7 +90473,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -90536,7 +90536,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -90548,7 +90548,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
         <maml:name>Sheet</maml:name>
         <maml:description>
           <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -90686,7 +90686,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet names, wildcard patterns, one-based positions or native worksheet objects.</maml:para>
@@ -90749,7 +90749,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Workbook paths, including filesystem wildcard patterns.</maml:para>
@@ -90773,7 +90773,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet names, wildcard patterns, one-based positions or native worksheet objects.</maml:para>
@@ -90860,7 +90860,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet names, wildcard patterns, one-based positions or native worksheet objects.</maml:para>
@@ -90947,7 +90947,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Workbook paths, including filesystem wildcard patterns.</maml:para>
@@ -90971,7 +90971,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
         <maml:name>Sheet</maml:name>
         <maml:description>
           <maml:para>Worksheet names, wildcard patterns, one-based positions or native worksheet objects.</maml:para>
@@ -109571,7 +109571,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -109669,7 +109669,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -109705,7 +109705,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -109803,7 +109803,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -109961,7 +109961,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -110095,7 +110095,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -110619,7 +110619,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -110655,7 +110655,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
         <maml:name>Sheet</maml:name>
         <maml:description>
           <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -115973,7 +115973,7 @@ and require an explicit save. The result reports the actual copied rows and colu
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Gets or sets a worksheet name, one-based position or native worksheet.</maml:para>
@@ -116024,7 +116024,7 @@ and require an explicit save. The result reports the actual copied rows and colu
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
         <maml:name>Sheet</maml:name>
         <maml:description>
           <maml:para>Gets or sets a worksheet name, one-based position or native worksheet.</maml:para>
@@ -120519,7 +120519,7 @@ and require an explicit save. The result reports the actual copied rows and colu
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -120646,7 +120646,7 @@ and require an explicit save. The result reports the actual copied rows and colu
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -120785,7 +120785,7 @@ and require an explicit save. The result reports the actual copied rows and colu
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -120951,7 +120951,7 @@ and require an explicit save. The result reports the actual copied rows and colu
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -121090,7 +121090,7 @@ and require an explicit save. The result reports the actual copied rows and colu
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -121253,7 +121253,7 @@ and require an explicit save. The result reports the actual copied rows and colu
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -127494,7 +127494,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -127591,7 +127591,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -127746,7 +127746,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -131425,7 +131425,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -131506,7 +131506,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -131599,7 +131599,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -132190,7 +132190,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -132622,7 +132622,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -133066,7 +133066,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -139772,7 +139772,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -140021,7 +140021,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -140282,7 +140282,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -144591,7 +144591,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -144755,7 +144755,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -144931,7 +144931,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -145717,7 +145717,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -145816,7 +145816,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -145927,7 +145927,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Optional associated destination for a live document; required when a content block saves a file.</maml:para>
@@ -201142,7 +201142,7 @@ signature and preservation policies. Only the selected files are written; other 
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -201205,7 +201205,7 @@ signature and preservation policies. Only the selected files are written; other 
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -201253,7 +201253,7 @@ signature and preservation policies. Only the selected files are written; other 
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -201364,7 +201364,7 @@ signature and preservation policies. Only the selected files are written; other 
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
             <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
@@ -201451,7 +201451,7 @@ signature and preservation policies. Only the selected files are written; other 
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>Workbook paths resolved with filesystem wildcard support.</maml:para>
@@ -201499,7 +201499,7 @@ signature and preservation policies. Only the selected files are written; other 
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
         <maml:name>Sheet</maml:name>
         <maml:description>
           <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
