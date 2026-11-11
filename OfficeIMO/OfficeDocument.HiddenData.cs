@@ -2,6 +2,7 @@ using OfficeIMO.Core.Internal;
 using OfficeIMO.Epub;
 using OfficeIMO.Excel;
 using OfficeIMO.OpenDocument;
+using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Visio;
 using OfficeIMO.Word;
@@ -30,11 +31,12 @@ public static partial class OfficeDocument {
     }
 
     /// <summary>
-    /// Removes the selected hidden data from encoded Word, Excel, PowerPoint, Visio, OpenDocument, EPUB, JPEG, PNG, WebP, GIF or TIFF bytes
+    /// Removes the selected hidden data from encoded Word, Excel, PowerPoint, Visio, OpenDocument, EPUB, PDF, JPEG, PNG, WebP, GIF or TIFF bytes
     /// without touching the filesystem. <paramref name="fileName"/> chooses the format by extension. Use the document's own
     /// <c>RemoveHiddenData</c> to clean a document you already have open, and the format's static <c>RemoveProvenance</c> to remove only provenance
     /// while leaving every other byte alone.
     /// </summary>
+    /// <remarks>PDF removal is one verified full rewrite that refuses signed PDFs whatever <paramref name="signatureMutationPolicy"/> says.</remarks>
     /// <param name="data">The encoded document.</param>
     /// <param name="fileName">A file name whose extension identifies the format.</param>
     /// <param name="options">Categories to remove; defaults to <see cref="OfficeHiddenDataKind.Default"/>.</param>
@@ -51,6 +53,10 @@ public static partial class OfficeDocument {
             var collector = new OfficeHiddenDataCollector("Image", options);
             byte[]? replacement = OfficeHiddenDataAssets.ProcessImage(data, Path.GetFileName(fileName), collector);
             return new OfficeHiddenDataResult(collector.Build(), replacement ?? (byte[])data.Clone());
+        }
+        if (format == HiddenDataFormat.Pdf) {
+            using PdfDocument pdf = PdfDocument.Load(data);
+            return pdf.RemoveHiddenData(options);
         }
         using var cleaned = new MemoryStream();
         OfficeHiddenDataReport report;
@@ -107,6 +113,10 @@ public static partial class OfficeDocument {
             OfficeHiddenDataAssets.ProcessImage(data, Path.GetFileName(sourceName), collector);
             return collector.Build();
         }
+        if (format == HiddenDataFormat.Pdf) {
+            using PdfDocument pdf = PdfDocument.Load(data);
+            return pdf.InspectHiddenData();
+        }
         using var stream = new MemoryStream(data, writable: false);
         switch (format) {
             case HiddenDataFormat.Word:
@@ -131,14 +141,15 @@ public static partial class OfficeDocument {
         VisioDocument visio => visio.InspectHiddenData(),
         OdfDocument odf => odf.InspectHiddenData(),
         EpubPublication epub => epub.InspectHiddenData(),
+        PdfDocument pdf => pdf.InspectHiddenData(),
         _ => throw new NotSupportedException("Hidden-data inspection is not available for " + document.GetType().FullName + ".")
     };
 
-    private enum HiddenDataFormat { Word, Excel, PowerPoint, Visio, OpenDocument, Epub, Image }
+    private enum HiddenDataFormat { Word, Excel, PowerPoint, Visio, OpenDocument, Epub, Pdf, Image }
 
     private static HiddenDataFormat GetHiddenDataFormat(string path) => TryGetHiddenDataFormat(path, out HiddenDataFormat format)
         ? format
-        : throw new NotSupportedException("Hidden-data inspection supports Word, Excel, PowerPoint, Visio, OpenDocument, EPUB and JPEG, PNG, WebP, GIF and TIFF image files.");
+        : throw new NotSupportedException("Hidden-data inspection supports Word, Excel, PowerPoint, Visio, OpenDocument, EPUB, PDF and JPEG, PNG, WebP, GIF and TIFF image files.");
 
     private static bool TryGetHiddenDataFormat(string path, out HiddenDataFormat format) {
         HiddenDataFormat? resolved = Path.GetExtension(path).ToLowerInvariant() switch {
@@ -148,6 +159,7 @@ public static partial class OfficeDocument {
             ".vsdx" or ".vsdm" or ".vstx" or ".vstm" or ".vssx" or ".vssm" => HiddenDataFormat.Visio,
             ".odt" or ".ods" or ".odp" or ".odg" or ".ott" or ".ots" or ".otp" or ".otg" => HiddenDataFormat.OpenDocument,
             ".epub" => HiddenDataFormat.Epub,
+            ".pdf" => HiddenDataFormat.Pdf,
             ".jpg" or ".jpeg" or ".png" or ".webp" or ".gif" or ".tif" or ".tiff" => HiddenDataFormat.Image,
             _ => null
         };

@@ -220,6 +220,9 @@ public static partial class PdfProvenance {
         attachment.Relationship == PdfAssociatedFileRelationship.C2paManifest ||
         string.Equals(attachment.MimeType, C2paMimeType, StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>Whether an attachment is a Content Credentials carrier, which hidden-data reports list as provenance.</summary>
+    internal static bool IsCarrier(PdfAttachmentInfo attachment) => IsCandidate(attachment);
+
     private static PdfC2paAssociationProfile CollectAssociationProfile(
         PdfReadDocument document,
         HashSet<int> pageTreeObjectNumbers,

@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests.Pdf {
             PdfRedactionPlan plan = source.Redactions.Plan(areas);
 
             PdfRedactionSharingResult result = source.Redactions.ApplyForSharing(plan,
-                new PdfSanitizationOptions { ContentKindsToRemove = PdfSanitizationContentKind.UserMetadata },
+                new OfficeHiddenDataOptions { Kinds = OfficeHiddenDataKind.DocumentProperties },
                 verificationOptions: new PdfRedactionVerificationOptions {
                     // Rendering counts repeated content visits; the exact source-stream budgets
                     // qualify reading and lineage here, not that separate rendering work budget.
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             Assert.True(result.ToBytes().LongLength > bytes.LongLength);
             Assert.True(result.Summary.IsVerified);
-            Assert.Contains("Retained source content", result.Sanitization.ToDocument().Read().Text);
+            Assert.Contains("Retained source content", PdfDocument.Load(result.ToBytes()).Read().Text);
             Assert.Equal(bytes.LongLength, options.Limits.MaxInputBytes);
             Assert.Equal(bytes, source.ToBytes());
         }
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests.Pdf {
             PdfRedactionVerificationOptions verification = CreateVerification(validator);
 
             PdfRedactionSharingResult result = source.Redactions.ApplyForSharing(plan,
-                new PdfSanitizationOptions { ContentKindsToRemove = PdfSanitizationContentKind.UserMetadata },
+                new OfficeHiddenDataOptions { Kinds = OfficeHiddenDataKind.DocumentProperties },
                 verificationOptions: verification);
 
             Assert.True(result.Summary.IsVerified);
@@ -68,14 +68,14 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
-        public void SharingClearsMatchingMetadataEvenWhenSanitizationRetainsMetadata() {
+        public void SharingClearsMatchingMetadataEvenWhenHiddenDataRemovalRetainsMetadata() {
             PdfDocument source = CreateSource();
             byte[] original = source.ToBytes();
             PdfRedactionPlan plan = source.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("PRIVATE-MARKER"));
             PdfRedactionVerificationOptions verification = CreateVerification();
 
-            PdfRedactionSharingResult result = source.Redactions.ApplyForSharing(plan, new PdfSanitizationOptions {
-                ContentKindsToRemove = PdfSanitizationContentKind.EmbeddedFiles
+            PdfRedactionSharingResult result = source.Redactions.ApplyForSharing(plan, new OfficeHiddenDataOptions {
+                Kinds = OfficeHiddenDataKind.Attachments
             }, verificationOptions: verification);
 
             Assert.True(result.Summary.IsVerified);
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests.Pdf {
             FinalArtifactValidator validator = new FinalArtifactValidator { Accept = false };
 
             Assert.Throws<InvalidOperationException>(() => source.Redactions.ApplyForSharing(plan,
-                new PdfSanitizationOptions { ContentKindsToRemove = PdfSanitizationContentKind.UserMetadata },
+                new OfficeHiddenDataOptions { Kinds = OfficeHiddenDataKind.DocumentProperties },
                 verificationOptions: CreateVerification(validator)));
 
             Assert.Equal(1, validator.Calls);

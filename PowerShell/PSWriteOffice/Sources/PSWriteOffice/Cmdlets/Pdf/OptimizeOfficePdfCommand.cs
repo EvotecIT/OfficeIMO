@@ -120,13 +120,14 @@ public sealed class OptimizeOfficePdfCommand : OfficeCmdlet {
     [Parameter(ParameterSetName = "LiteralPathSanitize", Mandatory = true)]
     [Parameter(ParameterSetName = "LiteralPathSanitizeDirectory", Mandatory = true)]
     public SwitchParameter Sanitize { get; set; }
-    /// <summary>SanitizationOptions for this operation.</summary>
+    /// <summary>Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</summary>
     [Parameter(ParameterSetName = "PathSanitize")]
     [Parameter(ParameterSetName = "PathSanitizeDirectory")]
     [Parameter(ParameterSetName = "LiteralPathSanitize")]
     [Parameter(ParameterSetName = "LiteralPathSanitizeDirectory")]
-    [OfficeOptionsTransformation(typeof(PdfSanitizationOptions))]
-    public PdfSanitizationOptions? SanitizationOptions { get; set; }
+    [Alias("SanitizationOptions")]
+    [OfficeOptionsTransformation(typeof(OfficeHiddenDataOptions))]
+    public OfficeHiddenDataOptions? HiddenDataOptions { get; set; }
     /// <summary>LiteralPath for this operation.</summary>
     [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
     [Parameter(ParameterSetName = "LiteralPathDirectory", Mandatory = true, ValueFromPipelineByPropertyName = true)]
@@ -146,9 +147,11 @@ public sealed class OptimizeOfficePdfCommand : OfficeCmdlet {
             if (!ShouldProcess(pair.Output, "Optimize PDF")) continue;
             using var document = PdfDocument.Load(pair.Input, PdfCommandUtilities.CreateReadOptions(LoadOptions, Password, IgnorePermissionRestrictions));
             if (Sanitize) {
-                var result = document.Sanitize(SanitizationOptions);
+                var result = document.RemoveHiddenData(HiddenDataOptions ?? new OfficeHiddenDataOptions {
+                    Kinds = OfficeHiddenDataKind.ActiveContent | OfficeHiddenDataKind.Attachments
+                });
                 PdfCommandUtilities.EnsureDirectory(pair.Output);
-                OfficeIMO.Core.Internal.OfficeFileOutput.Write(pair.Output, !NoClobber, temporary => File.WriteAllBytes(temporary, result.ToBytes()));
+                OfficeIMO.Core.Internal.OfficeFileOutput.Write(pair.Output, !NoClobber, temporary => File.WriteAllBytes(temporary, result.ToArray()));
                 WriteObject(PassThru ? (object)result : new FileInfo(pair.Output));
             } else {
                 var result = document.Optimization.Apply(new PdfOptimizationOptions {

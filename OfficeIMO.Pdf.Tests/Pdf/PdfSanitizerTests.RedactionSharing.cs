@@ -1,3 +1,4 @@
+using OfficeIMO;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -16,13 +17,10 @@ public partial class PdfSanitizerTests {
             RequireCompleteStreamInspection = true, CheckManagedRendering = true
         }.RequireRemovedText("VISIBLE-PAGE-CONTENT").RequireRetainedText("VISIBLE-AFTER-LAYER-FLATTEN");
         PdfRedactionSharingResult result = source.Redactions.ApplyForSharing(plan,
-            new PdfSanitizationOptions {
-                ContentKindsToRemove = PdfSanitizationContentKind.All,
-                ActionKindsToRemove = PdfSanitizationActionKind.All
-            }, verificationOptions: verification);
+            new OfficeHiddenDataOptions { Kinds = OfficeHiddenDataKind.All }, verificationOptions: verification);
 
         Assert.True(result.Summary.IsVerified);
-        Assert.True(result.Summary.SanitizedItemCount > 0);
+        Assert.True(result.Summary.RemovedHiddenDataCount > 0);
         PdfDocument final = PdfDocument.Load(result.ToBytes());
         Assert.Null(final.Inspect().Metadata.Author);
         Assert.Empty(final.Inspect().Attachments);
@@ -40,6 +38,6 @@ public partial class PdfSanitizerTests {
     public void RedactionForSharingDoesNotBypassActiveContentMutationGate() {
         PdfDocument source = PdfDocument.Load(BuildBeforeSharingPdf());
         PdfRedactionPlan plan = source.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("VISIBLE-PAGE-CONTENT"));
-        Assert.Throws<PdfMutationBlockedException>(() => source.Redactions.ApplyForSharing(plan, new PdfSanitizationOptions()));
+        Assert.Throws<PdfMutationBlockedException>(() => source.Redactions.ApplyForSharing(plan, new OfficeHiddenDataOptions()));
     }
 }

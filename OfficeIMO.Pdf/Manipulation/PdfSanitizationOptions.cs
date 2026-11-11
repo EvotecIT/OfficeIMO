@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Explicit policy for removing active content and embedded payloads from a PDF.</summary>
-public sealed class PdfSanitizationOptions : IPdfOperationCancellation {
+internal sealed class PdfSanitizationOptions : IPdfOperationCancellation {
     private PdfSanitizationActionKind? _actionKindsToRemove;
     private PdfSanitizationContentKind? _contentKindsToRemove;
 
@@ -59,6 +59,13 @@ public sealed class PdfSanitizationOptions : IPdfOperationCancellation {
     /// <summary>When true, rich-media and payload-bearing annotations are removed from page annotation arrays.</summary>
     public bool RemoveRichMedia { get; set; } = true;
 
+    /// <summary>
+    /// Hidden-data selection: rich-media annotations (RichMedia, Movie, Sound, Screen and 3D) belong to the selected
+    /// <see cref="PdfSanitizationContentKind.Actions"/> category, as active content, instead of comments and markup;
+    /// file attachment annotations belong to <see cref="PdfSanitizationContentKind.EmbeddedFiles"/>.
+    /// </summary>
+    internal bool SeparateRichMediaFromComments { get; set; }
+
     internal bool IsActionAllowed(string actionType) => AllowedActionTypes.Contains(actionType);
 
     internal bool ShouldRemoveContent(PdfSanitizationContentKind kind) => ContentKindsToRemove.HasValue
@@ -92,10 +99,16 @@ public sealed class PdfSanitizationOptions : IPdfOperationCancellation {
     internal bool ShouldRemoveCommentAnnotation(string subtype) => ShouldRemoveCommentsAndMarkup &&
         !string.Equals(subtype, "Link", StringComparison.Ordinal) &&
         !string.Equals(subtype, "Widget", StringComparison.Ordinal) &&
-        !string.Equals(subtype, "FileAttachment", StringComparison.Ordinal);
+        !string.Equals(subtype, "FileAttachment", StringComparison.Ordinal) &&
+        !(SeparateRichMediaFromComments && PdfSanitizer.IsRichAnnotationSubtype(subtype));
 
-    internal bool ShouldRemoveLegacyRichAnnotation(string subtype) =>
-        !ContentKindsToRemove.HasValue && RemoveRichMedia && PdfSanitizer.IsRichAnnotationSubtype(subtype);
+    internal bool ShouldRemoveRichAnnotation(string subtype) => RemovesRichAnnotations &&
+        PdfSanitizer.IsRichAnnotationSubtype(subtype) &&
+        !(SeparateRichMediaFromComments && string.Equals(subtype, "FileAttachment", StringComparison.Ordinal));
+
+    /// <summary>Whether rich-media annotations are removed: always under the legacy policy, and with selected actions for a hidden-data selection.</summary>
+    internal bool RemovesRichAnnotations => RemoveRichMedia &&
+        (!ContentKindsToRemove.HasValue || (SeparateRichMediaFromComments && ShouldRemoveContent(PdfSanitizationContentKind.Actions)));
 
     internal static PdfSanitizationActionKind GetActionKind(string actionType) => actionType switch {
         "JavaScript" => PdfSanitizationActionKind.JavaScript,
