@@ -147,6 +147,7 @@ internal sealed class ExcelZipWriter : ExcelPackageArchive {
     public override void Dispose() {
         if (_closed) return;
         _closed = true;
+        AbandonCompression();
         if (_current != null || _faulted) return;
         long directoryStart = _offset;
         using var directory = new MemoryStream(64 + _parts.Count * 80);

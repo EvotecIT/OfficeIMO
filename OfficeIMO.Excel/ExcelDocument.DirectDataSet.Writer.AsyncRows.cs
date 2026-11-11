@@ -30,7 +30,7 @@ namespace OfficeIMO.Excel {
                 try {
                     stream = archive.OpenEntry(entryName, CompressionLevel.Fastest);
                     if (ExcelExecutionPolicy.SupportsBackgroundProcessing)
-                        compression = new StreamingWorksheetCompression(stream);
+                        compression = new StreamingWorksheetCompression(stream, archive);
                     writer = new PooledUtf8TextWriter(compression ?? stream, Utf8NoBom, XmlWriterBufferSize, leaveOpen: true);
 
                     writer.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");

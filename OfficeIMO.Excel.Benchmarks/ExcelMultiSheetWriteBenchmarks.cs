@@ -15,6 +15,7 @@ namespace OfficeIMO.Excel.Benchmarks;
 [MemoryDiagnoser]
 public class ExcelMultiSheetWriteBenchmarks {
     private static readonly string[] Headers = ["Name", "Id", "CreatedOn", "Amount"];
+    private static readonly ExcelWriterOptions NoTable = new() { CreateTable = false };
     private static readonly XlsxStyle LargeXlsxDateStyle = XlsxStyle.Default.With(new XlsxNumberFormat("yyyy-mm-dd"));
 
     [Params(10, 50)]
@@ -30,6 +31,7 @@ public class ExcelMultiSheetWriteBenchmarks {
         _rows = new GeneratedRecord[RowsPerSheet];
         for (int index = 0; index < _rows.Length; index++) _rows[index] = ExcelReaderGeneratedBenchmarks.CreateRecord(index);
         Validate(nameof(OfficeIMO_Typed), OfficeIMO_Typed());
+        Validate(nameof(OfficeIMO_TypedNoTable), OfficeIMO_TypedNoTable());
         Validate(nameof(OfficeIMO_Editable), OfficeIMO_Editable());
         Validate(nameof(SpreadCheetah), SpreadCheetah());
         Validate(nameof(ExcelReaderNet), ExcelReaderNet());
@@ -41,6 +43,19 @@ public class ExcelMultiSheetWriteBenchmarks {
     public byte[] OfficeIMO_Typed() {
         using var output = new MemoryStream();
         using (var writer = ExcelDocument.CreateWriter(ExcelFileFormat.Xlsx, output, leaveOpen: true)) {
+            for (int sheet = 0; sheet < SheetCount; sheet++) {
+                writer.WriteTable(SheetName(sheet), _rows, Headers,
+                    static (row, value) => row.Write(value.Name).Write(value.Id).Write(value.CreatedOn).Write(value.Amount));
+            }
+        }
+        return output.ToArray();
+    }
+
+    /// <summary>The row writer without its default native table, the same parts the other writers produce.</summary>
+    [Benchmark]
+    public byte[] OfficeIMO_TypedNoTable() {
+        using var output = new MemoryStream();
+        using (var writer = ExcelDocument.CreateWriter(ExcelFileFormat.Xlsx, output, NoTable, leaveOpen: true)) {
             for (int sheet = 0; sheet < SheetCount; sheet++) {
                 writer.WriteTable(SheetName(sheet), _rows, Headers,
                     static (row, value) => row.Write(value.Name).Write(value.Id).Write(value.CreatedOn).Write(value.Amount));

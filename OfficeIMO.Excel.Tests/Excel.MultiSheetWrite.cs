@@ -77,6 +77,22 @@ public partial class Excel {
         }
     }
 
+    [Fact]
+    public void RowWriter_FailureInALaterLargeSheet_SurfacesTheCallersError() {
+        var rows = Enumerable.Range(0, 20_000).ToArray();
+        using var output = new MemoryStream();
+        var writer = ExcelDocument.CreateWriter(output, leaveOpen: true);
+        writer.WriteTable("First", rows, ["Value", "Text"], static (row, value) => row.Write(value).Write("Row text " + value));
+
+        var error = Assert.Throws<InvalidOperationException>(() => writer.WriteTable("Second", rows, ["Value", "Text"], static (row, value) => {
+            if (value == 15_000) throw new InvalidOperationException("Row 15000 failed.");
+            row.Write(value).Write("Row text " + value);
+        }));
+
+        Assert.Equal("Row 15000 failed.", error.Message);
+        writer.Dispose();
+    }
+
     [Theory]
     [InlineData("Q1::Sales//North", "Q1_Sales_North")]
     [InlineData("__Totals__", "Totals")]
