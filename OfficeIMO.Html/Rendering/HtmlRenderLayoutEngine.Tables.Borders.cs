@@ -20,36 +20,44 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double[] rowOffsets = new double[rows.Count + 1];
         for (int row = 1; row < rowOffsets.Length; row++) rowOffsets[row] = rowOffsets[row - 1] + rows[row - 1].Height;
         string source = HtmlRenderStyleResolver.DescribeSource(table) + ":collapsed-border";
-        foreach (KeyValuePair<CollapsedBorderKey, CollapsedBorderCandidate> entry in borderLayout.Winners
-            .OrderBy(pair => pair.Key.Horizontal ? 0 : 1)
-            .ThenBy(pair => pair.Key.Boundary)
-            .ThenBy(pair => pair.Key.Segment)) {
-            CheckCancellation();
-            HtmlRenderBorderSide border = entry.Value.Border;
-            if (!border.IsPainted) continue;
-            CollapsedBorderKey key = entry.Key;
-            if (key.Horizontal) {
-                if (key.Boundary >= rowOffsets.Length || key.Segment >= columnWidths.Count) continue;
+        var shapes = new HtmlRenderShape.CollapsedBorderStrokeShapes();
+        IReadOnlyDictionary<CollapsedBorderKey, CollapsedBorderCandidate> winners = borderLayout.Winners;
+        // Visit the grid in its paint order, horizontal rules first, then by boundary and segment.
+        // Only these in-range keys paint, so no sorted copy of the winners is needed.
+        for (int boundary = 0; boundary < rowOffsets.Length; boundary++) {
+            for (int segment = 0; segment < columnWidths.Count; segment++) {
+                if (!winners.TryGetValue(new CollapsedBorderKey(true, boundary, segment), out CollapsedBorderCandidate winner)) continue;
+                CheckCancellation();
+                HtmlRenderBorderSide border = winner.Border;
+                if (!border.IsPainted) continue;
                 AddCollapsedBorderLine(
                     visuals,
                     horizontal: true,
-                    x + (rtl ? gridWidth - columnOffsets[key.Segment] - columnWidths[key.Segment] : columnOffsets[key.Segment]),
-                    y + rowOffsets[key.Boundary],
-                    columnWidths[key.Segment],
+                    x + (rtl ? gridWidth - columnOffsets[segment] - columnWidths[segment] : columnOffsets[segment]),
+                    y + rowOffsets[boundary],
+                    columnWidths[segment],
                     border,
-                    source + "-h-" + key.Boundary + "-" + key.Segment);
-            } else {
-                if (key.Boundary > columnOffsets.Count || key.Segment >= rows.Count) continue;
-                double logicalBoundaryX = key.Boundary == columnWidths.Count ? gridWidth : columnOffsets[key.Boundary];
+                    source + "-h-" + boundary + "-" + segment,
+                    shapes);
+            }
+        }
+        for (int boundary = 0; boundary <= columnOffsets.Count; boundary++) {
+            for (int segment = 0; segment < rows.Count; segment++) {
+                if (!winners.TryGetValue(new CollapsedBorderKey(false, boundary, segment), out CollapsedBorderCandidate winner)) continue;
+                CheckCancellation();
+                HtmlRenderBorderSide border = winner.Border;
+                if (!border.IsPainted) continue;
+                double logicalBoundaryX = boundary == columnWidths.Count ? gridWidth : columnOffsets[boundary];
                 double boundaryX = x + (rtl ? gridWidth - logicalBoundaryX : logicalBoundaryX);
                 AddCollapsedBorderLine(
                     visuals,
                     horizontal: false,
                     boundaryX,
-                    y + rowOffsets[key.Segment],
-                    rows[key.Segment].Height,
+                    y + rowOffsets[segment],
+                    rows[segment].Height,
                     border,
-                    source + "-v-" + key.Boundary + "-" + key.Segment);
+                    source + "-v-" + boundary + "-" + segment,
+                    shapes);
             }
         }
     }
@@ -287,7 +295,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double y,
         double length,
         HtmlRenderBorderSide border,
-        string source) {
+        string source,
+        HtmlRenderShape.CollapsedBorderStrokeShapes? shapes = null) {
         if (length <= 0.0001D || border.Width <= 0D) return;
         if (IsThreeDimensionalStroke(border.Style)) {
             HtmlBorderEdge edge = horizontal ? HtmlBorderEdge.Top : HtmlBorderEdge.Left;
@@ -295,7 +304,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 AddCollapsedBorderStroke(
                     visuals, horizontal, x, y, length,
                     ResolveThreeDimensionalColor(border.Color, border.Style, edge, inner: false),
-                    border.Width, "solid", source);
+                    border.Width, "solid", source, shapes: shapes);
                 return;
             }
 
@@ -304,23 +313,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AddCollapsedBorderStroke(
                 visuals, horizontal, horizontal ? x : x - offset, horizontal ? y - offset : y, length,
                 ResolveThreeDimensionalColor(border.Color, border.Style, edge, inner: false),
-                threeDimensionalStrokeWidth, "solid", source + "-outer", y);
+                threeDimensionalStrokeWidth, "solid", source + "-outer", y, shapes);
             AddCollapsedBorderStroke(
                 visuals, horizontal, horizontal ? x : x + offset, horizontal ? y + offset : y, length,
                 ResolveThreeDimensionalColor(border.Color, border.Style, edge, inner: true),
-                threeDimensionalStrokeWidth, "solid", source + "-inner", y);
+                threeDimensionalStrokeWidth, "solid", source + "-inner", y, shapes);
             return;
         }
         if (border.Style != "double") {
-            AddCollapsedBorderStroke(visuals, horizontal, x, y, length, border.Color, border.Width, border.Style, source);
+            AddCollapsedBorderStroke(visuals, horizontal, x, y, length, border.Color, border.Width, border.Style, source, shapes: shapes);
             return;
         }
         double strokeWidth = Math.Max(0.01D, border.Width / 3D);
         double doubleOffset = border.Width / 3D;
         AddCollapsedBorderStroke(visuals, horizontal, horizontal ? x : x - doubleOffset, horizontal ? y - doubleOffset : y,
-            length, border.Color, strokeWidth, "solid", source + "-outer", y);
+            length, border.Color, strokeWidth, "solid", source + "-outer", y, shapes);
         AddCollapsedBorderStroke(visuals, horizontal, horizontal ? x : x + doubleOffset, horizontal ? y + doubleOffset : y,
-            length, border.Color, strokeWidth, "solid", source + "-inner", y);
+            length, border.Color, strokeWidth, "solid", source + "-inner", y, shapes);
     }
 
     private static void AddCollapsedBorderStroke(
@@ -333,10 +342,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         string style,
         string source,
-        double? horizontalBoundaryY = null) {
+        double? horizontalBoundaryY = null,
+        HtmlRenderShape.CollapsedBorderStrokeShapes? shapes = null) {
         visuals.Add(HtmlRenderShape.CreateCollapsedBorderStroke(horizontal, x, y, length, color, width,
             MapStrokeDashStyle(style), style == "dotted" ? OfficeStrokeLineCap.Round : OfficeStrokeLineCap.Butt,
-            visuals.Count, source, horizontalBoundaryY));
+            visuals.Count, source, horizontalBoundaryY, shapes));
     }
 
     private enum CollapsedBorderOrigin {
