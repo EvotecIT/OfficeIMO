@@ -46,6 +46,7 @@ internal static partial class OfficeJpeg2000Decoder {
             else stored[index] = true;
         }
         long pixels = (long)codestream.Width * codestream.Height;
+        bool complete = codestream.Tiles.Count == (long)codestream.TilesWide * codestream.TilesHigh;
         for (int index = 0; index < planes.Length; index++) {
             ComponentPlane plane = planes[index];
             if (stored[index]) AllocatePlane(plane, budget);
@@ -54,7 +55,9 @@ internal static partial class OfficeJpeg2000Decoder {
             plane.OutputChannels = count;
             plane.OutputIndexes = direct[index].ToArray();
             plane.OutputLookups = Array.ConvertAll(plane.OutputIndexes, c => layout.Lookups[c]);
-            // Missing tiles keep the level-shifted zero, the mid-grey of an unsigned component.
+            // Missing tiles keep the level-shifted zero, the mid-grey of an unsigned component. Present tiles store
+            // every sample of their area.
+            if (complete) continue;
             foreach (int c in plane.OutputIndexes) {
                 byte value = layout.Lookups[c][1 << (plane.Precision - 1)];
                 byte[] samples = layout.Samples;

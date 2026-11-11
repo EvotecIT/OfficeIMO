@@ -180,13 +180,34 @@ internal static partial class OfficeJpeg2000Decoder {
         int channels = plane.OutputChannels;
         int[] indexes = plane.OutputIndexes;
         byte[][] lookups = plane.OutputLookups;
+        bool single = output != null && indexes.Length == 1;
+        int channel = single ? indexes[0] : 0;
+        byte[] lookup = single ? lookups[0] : Array.Empty<byte>();
         for (int y = first; y < end; y++) {
             int planeY = top + y;
             if ((uint)planeY >= (uint)plane.Height) continue;
             int sourceRow = source.Offset(y);
             int target = planeY * plane.Width + left;
+            if (single) {
+                // One output channel: the common case, kept free of per-sample branches on the storage kind.
+                byte[] samples = output!;
+                if (ints != null) {
+                    for (int x = from, pixel = (target + from) * channels + channel; x < to; x++, pixel += channels) {
+                        int value = ints[sourceRow + x] + shift;
+                        value = value < minimum ? minimum : value > maximum ? maximum : value;
+                        samples[pixel] = lookup[value + storageOffset];
+                    }
+                } else {
+                    for (int x = from, pixel = (target + from) * channels + channel; x < to; x++, pixel += channels) {
+                        int value = RoundHalfUp(floats![sourceRow + x]) + shift;
+                        value = value < minimum ? minimum : value > maximum ? maximum : value;
+                        samples[pixel] = lookup[value + storageOffset];
+                    }
+                }
+                continue;
+            }
             for (int x = from; x < to; x++) {
-                int value = ints != null ? ints[sourceRow + x] : (int)Math.Floor(floats![sourceRow + x] + 0.5);
+                int value = ints != null ? ints[sourceRow + x] : RoundHalfUp(floats![sourceRow + x]);
                 value += shift;
                 value = value < minimum ? minimum : value > maximum ? maximum : value;
                 value += storageOffset;
@@ -200,5 +221,13 @@ internal static partial class OfficeJpeg2000Decoder {
                 }
             }
         }
+    }
+
+    // (int)Math.Floor(value + 0.5) without the library call for values well inside the integer range.
+    private static int RoundHalfUp(float value) {
+        double shifted = value + 0.5;
+        if (!(shifted > -2147483648.0 && shifted < 2147483647.0)) return (int)Math.Floor(shifted);
+        int truncated = (int)shifted;
+        return truncated > shifted ? truncated - 1 : truncated;
     }
 }

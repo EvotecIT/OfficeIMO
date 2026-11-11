@@ -88,20 +88,20 @@ internal static partial class OfficeJpeg2000Decoder {
         internal int End { get; private set; }
         internal int[]? Ints;
         internal float[]? Floats;
+        private int _base; // buffer row holding First; rows are moved to the front only when the buffer is full
 
-        internal int Offset(int row) => (row - First) * Width;
+        /// <summary>Buffer row of a held row.</summary>
+        internal int RowIndex(int row) => row - First + _base;
+
+        internal int Offset(int row) => (row - First + _base) * Width;
 
         /// <summary>Makes rows <paramref name="first"/> to <paramref name="last"/> available.</summary>
         internal void Ensure(int first, int last, Workspace workspace) {
             if (first < First || first > last || last >= Height) throw new Jpeg2000Exception("The JPEG 2000 wavelet rows were requested out of order.");
             int drop = Math.Min(first, End) - First;
             if (drop > 0) {
-                int kept = (End - First - drop) * Width;
-                if (kept > 0) {
-                    if (Ints != null) Array.Copy(Ints, drop * Width, Ints, 0, kept);
-                    else if (Floats != null) Array.Copy(Floats, drop * Width, Floats, 0, kept);
-                }
                 First += drop;
+                _base = First == End ? 0 : _base + drop;
             }
             if (Width == 0) {
                 // Empty rows carry no samples and no code-blocks.
@@ -119,28 +119,40 @@ internal static partial class OfficeJpeg2000Decoder {
         /// <summary>Appends rows from <see cref="End"/> onwards, covering at least <paramref name="last"/>; returns the new end.</summary>
         protected abstract int Produce(int last, Workspace workspace);
 
-        /// <summary>Grows the buffer to hold rows from <see cref="First"/> up to <paramref name="end"/>.</summary>
+        /// <summary>Makes room for rows from <see cref="First"/> up to <paramref name="end"/>.</summary>
         protected void Reserve(int end, SamplePool pool) {
             long needed = (long)(end - First) * Width;
             if (needed > int.MaxValue) throw new Jpeg2000Exception("The JPEG 2000 tile-component is too wide.");
-            int held = (End - First) * Width;
+            long used = (long)(end - First + _base) * Width;
+            int start = _base * Width, held = (End - First) * Width;
             if (Reversible) {
-                if (Ints != null && Ints.Length >= needed) return;
-                int[] next = pool.RentIntegers((int)Math.Max(needed, Math.Min(int.MaxValue, needed * 3 / 2)));
-                if (Ints != null) {
-                    Array.Copy(Ints, next, held);
-                    pool.Return(Ints);
+                int length = Ints?.Length ?? 0;
+                if (used <= length) return;
+                if (needed <= length) {
+                    Array.Copy(Ints!, start, Ints!, 0, held);
+                } else {
+                    int[] next = pool.RentIntegers((int)Math.Max(needed, Math.Min(int.MaxValue, needed * 3 / 2)));
+                    if (Ints != null) {
+                        Array.Copy(Ints, start, next, 0, held);
+                        pool.Return(Ints);
+                    }
+                    Ints = next;
                 }
-                Ints = next;
             } else {
-                if (Floats != null && Floats.Length >= needed) return;
-                float[] next = pool.RentFloats((int)Math.Max(needed, Math.Min(int.MaxValue, needed * 3 / 2)));
-                if (Floats != null) {
-                    Array.Copy(Floats, next, held);
-                    pool.Return(Floats);
+                int length = Floats?.Length ?? 0;
+                if (used <= length) return;
+                if (needed <= length) {
+                    Array.Copy(Floats!, start, Floats!, 0, held);
+                } else {
+                    float[] next = pool.RentFloats((int)Math.Max(needed, Math.Min(int.MaxValue, needed * 3 / 2)));
+                    if (Floats != null) {
+                        Array.Copy(Floats, start, next, 0, held);
+                        pool.Return(Floats);
+                    }
+                    Floats = next;
                 }
-                Floats = next;
             }
+            _base = 0;
         }
 
         internal virtual void Return(SamplePool pool) {
@@ -148,6 +160,7 @@ internal static partial class OfficeJpeg2000Decoder {
             pool.Return(Floats);
             Ints = null;
             Floats = null;
+            _base = 0;
         }
     }
 
@@ -219,7 +232,7 @@ internal static partial class OfficeJpeg2000Decoder {
             for (int index = _rowStarts[row]; index < _rowStarts[row + 1]; index++) {
                 CodeBlock block = _blocks[index];
                 if (!decoder.Decode(block, _band, _style, workspace.Source)) continue;
-                int left = block.X0 - _band.X0, top = block.Y0 - _band.Y0 - First;
+                int left = block.X0 - _band.X0, top = RowIndex(block.Y0 - _band.Y0);
                 if (Ints != null) decoder.WriteIntegers(Ints, Width, left, top, _regionShift);
                 else decoder.WriteFloats(Floats!, Width, left, top, _regionShift, _band.StepSize);
             }
@@ -358,11 +371,9 @@ internal static partial class OfficeJpeg2000Decoder {
 
     // 2D_INTERLEAVE along one row: low-pass samples sit at even absolute coordinates.
     private static void Interleave<T>(T[] lowSource, int lowStart, T[] highSource, int highStart, int count, int origin, T[] line) {
-        int low = lowStart, high = highStart;
-        for (int index = 0; index < count; index++) {
-            bool even = ((origin + index) & 1) == 0;
-            line[4 + index] = even ? lowSource[low++] : highSource[high++];
-        }
+        int firstLow = origin & 1;
+        for (int index = 4 + firstLow, source = lowStart; index < 4 + count; index += 2, source++) line[index] = lowSource[source];
+        for (int index = 5 - firstLow, source = highStart; index < 4 + count; index += 2, source++) line[index] = highSource[source];
     }
 
     // Periodic symmetric extension (F.3.7).
