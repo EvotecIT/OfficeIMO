@@ -5693,6 +5693,8 @@ the plan; a matching clipping-mode span requires a supported redaction strategy.
 
 Source styles now match destination styles by name before id, so a source style with a different id but the same name (for example a localized `Heading 1`) uses the destination style instead of being copied alongside it. Appended footnotes, endnotes and comments are copied with renumbered ids, and source bookmarks whose names already exist in the destination are renamed with a numeric suffix (`Intro` becomes `Intro_1`); hyperlinks and fields in the appended content follow the new name.
 
+Appended content now keeps its look by default. A source style with the same name as a destination style but a different definition is copied under a new id and name (`Heading1_0` / `heading 1_0`) instead of taking the destination's definition. To format appended content with the destination's styles as before, pass `new WordDocumentMergeOptions { StyleConflictMode = WordStyleConflictMode.KeepTarget }`. `StyleConflictMode` uses the same `WordStyleConflictMode` values as `document.Styles.Import`, including `Overwrite`.
+
 `WordTableOfContent.RefreshEntries()` also includes paragraphs whose style, or a style it is based on, sets an outline level 1-9 when the TOC uses `\u` (as Word's default TOC does), and heading styles copied by a merge such as `heading 1_0`.
 
 ## JavaScript CanopyX pivot captures
