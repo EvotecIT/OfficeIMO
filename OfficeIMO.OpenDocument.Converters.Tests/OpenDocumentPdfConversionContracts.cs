@@ -92,7 +92,7 @@ public sealed class OpenDocumentPdfConversionContracts {
             NormalizedText(reopened.Pages[0].ExtractText()));
         Assert.Equal("Quarterly header Closing page Confidential footer", NormalizedText(reopened.Pages[1].ExtractText()));
         Assert.Single(reopened.ExtractImages());
-        Assert.False(report.HasLoss);
+        AssertNoLossBeyondHostFontSubstitution(report);
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public sealed class OpenDocumentPdfConversionContracts {
         PdfDocument reopened = PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes()));
 
         Assert.Equal("Row 1 0 Row 2 10 Row 3 20", NormalizedText(Assert.Single(reopened.Pages).ExtractText()));
-        Assert.False(report.HasLoss);
+        AssertNoLossBeyondHostFontSubstitution(report);
     }
 
     [Fact]
@@ -135,11 +135,18 @@ public sealed class OpenDocumentPdfConversionContracts {
         Assert.Equal("Quarterly overview Region Revenue North 1200", NormalizedText(reopened.Pages[0].ExtractText()));
         Assert.Equal("Second slide details", NormalizedText(reopened.Pages[1].ExtractText()));
         Assert.Single(reopened.ExtractImages());
-        Assert.False(report.HasLoss);
+        AssertNoLossBeyondHostFontSubstitution(report);
     }
 
     private static readonly byte[] OnePixelPng = Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC");
+
+    // Hosts without the Office default fonts (Linux CI) substitute them and report it; any other loss fails.
+    private static void AssertNoLossBeyondHostFontSubstitution(OfficeConversionReport report) =>
+        Assert.Empty(report.Diagnostics
+            .Where(diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None &&
+                diagnostic.Code != "font-family-substitution")
+            .Select(diagnostic => diagnostic.Code + " at " + diagnostic.Location + ": " + diagnostic.Message));
 
     private static string NormalizedText(string text) =>
         System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ").Trim();
