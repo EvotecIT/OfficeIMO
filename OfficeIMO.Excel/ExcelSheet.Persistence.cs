@@ -52,6 +52,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Flushes deferred payloads before a transaction captures the package streams for rollback.</summary>
         private void FlushPendingPartsBeforeMutationSnapshot() {
+            _excelDocument.CommitPendingStylesheet();
             foreach (ExcelSheet sheet in _excelDocument.GetSheetsForLockedOperation()) sheet.CommitPendingPartChanges();
         }
 

@@ -374,7 +374,10 @@ namespace OfficeIMO.Excel {
         public SpreadsheetDocument OpenXmlDocument {
             get {
                 _openXmlDocumentExposed = true;
-                return _spreadSheetDocument;
+                SpreadsheetDocument document = _spreadSheetDocument;
+                CommitPendingStylesheet();
+                ExcelSheet.MarkPackageExposed(document);
+                return document;
             }
         }
         private bool _openXmlDocumentExposed;

@@ -49,6 +49,7 @@ namespace OfficeIMO.Excel {
 
             // Writing the package only to read its parts back here compresses every part, so that waits for a stream
             // that outlives this save.
+            CommitPendingStylesheet();
             if (_packageStream != null || _usesFileBackedPackage) _spreadSheetDocument.Save();
             byte[]? package = ExcelPackageEntrySplicer.TryEdit(source, SpliceLivePackage);
             if (package == null) return null;
