@@ -18,7 +18,9 @@ namespace OfficeIMO.Visio {
             bool currentNoFill = noFill;
             bool currentNoLine = noLine;
             List<XElement> rows = section.Elements(ns + "Row").ToList();
+            var recorder = new SegmentRecorder();
             for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+                recorder.Sync(points);
                 XElement row = rows[rowIndex];
                 if (IsDeleted(row)) {
                     continue;
@@ -44,7 +46,12 @@ namespace OfficeIMO.Visio {
                         return false;
                     }
 
-                    AppendEllipse(points, (centerX, centerY), (point1X, point1Y), (point2X, point2Y));
+                    var ellipseCubics = new List<VisioGeometrySegment>();
+                    AppendEllipse(points, (centerX, centerY), (point1X, point1Y), (point2X, point2Y), ellipseCubics);
+                    if (ellipseCubics.Count > 0) {
+                        recorder.Sync(new List<(double X, double Y)> { points[0] });
+                        recorder.AddExact(ellipseCubics, points);
+                    }
                     closedPrimitive = true;
                     handledStandaloneGeometry = true;
                     continue;
@@ -73,7 +80,9 @@ namespace OfficeIMO.Visio {
                         return false;
                     }
 
-                    AppendArc(points, points[points.Count - 1], arcEnd, arcHeight);
+                    var arcCubics = new List<VisioGeometrySegment>();
+                    AppendArc(points, points[points.Count - 1], arcEnd, arcHeight, arcCubics);
+                    recorder.AddExact(arcCubics, points);
                     continue;
                 }
 
@@ -87,7 +96,9 @@ namespace OfficeIMO.Visio {
 
                     double angle = TryReadCell(row, ns, "C", shape, out double rawAngle) ? rawAngle : 0D;
                     double ratio = TryReadCell(row, ns, "D", shape, out double rawRatio) ? rawRatio : 1D;
-                    AppendEllipticalArc(points, points[points.Count - 1], arcEnd, (controlX, controlY), angle, ratio);
+                    var ellipticalCubics = new List<VisioGeometrySegment>();
+                    AppendEllipticalArc(points, points[points.Count - 1], arcEnd, (controlX, controlY), angle, ratio, ellipticalCubics);
+                    recorder.AddExact(ellipticalCubics, points);
                     continue;
                 }
 
@@ -101,7 +112,9 @@ namespace OfficeIMO.Visio {
 
                     double angle = TryReadCell(row, ns, "C", shape, out double rawAngle) ? rawAngle : 0D;
                     double ratio = TryReadCell(row, ns, "D", shape, out double rawRatio) ? rawRatio : 1D;
-                    AppendEllipticalArc(points, points[points.Count - 1], arcEnd, (controlX, controlY), angle, ratio);
+                    var ellipticalCubics = new List<VisioGeometrySegment>();
+                    AppendEllipticalArc(points, points[points.Count - 1], arcEnd, (controlX, controlY), angle, ratio, ellipticalCubics);
+                    recorder.AddExact(ellipticalCubics, points);
                     continue;
                 }
 
@@ -118,6 +131,7 @@ namespace OfficeIMO.Visio {
                     }
 
                     AppendNurbs(points, nurbsCurve!);
+                    recorder.MarkFlattened();
                     continue;
                 }
 
@@ -153,6 +167,7 @@ namespace OfficeIMO.Visio {
                     }
 
                     AppendSpline(points, splinePoints, degree);
+                    if (degree > 1 && splinePoints.Count > 2) recorder.MarkFlattened();
                     continue;
                 }
 
@@ -167,6 +182,7 @@ namespace OfficeIMO.Visio {
                     }
 
                     AppendCubicBezier(points, points[points.Count - 1], (control1X, control1Y), (control2X, control2Y), end);
+                    recorder.AddExact(new List<VisioGeometrySegment> { VisioGeometrySegment.Cubic((control1X, control1Y), (control2X, control2Y), end) }, points);
                     continue;
                 }
 
@@ -181,6 +197,7 @@ namespace OfficeIMO.Visio {
                     }
 
                     AppendCubicBezier(points, points[points.Count - 1], (control1X, control1Y), (control2X, control2Y), end);
+                    recorder.AddExact(new List<VisioGeometrySegment> { VisioGeometrySegment.Cubic((control1X, control1Y), (control2X, control2Y), end) }, points);
                     continue;
                 }
 
@@ -192,7 +209,9 @@ namespace OfficeIMO.Visio {
                         return false;
                     }
 
+                    List<VisioGeometrySegment> quadratic = CubicFromQuadratic(points[points.Count - 1], (controlX, controlY), end);
                     AppendQuadraticBezier(points, points[points.Count - 1], (controlX, controlY), end);
+                    recorder.AddExact(quadratic, points);
                     continue;
                 }
 
@@ -204,7 +223,9 @@ namespace OfficeIMO.Visio {
                         return false;
                     }
 
+                    List<VisioGeometrySegment> quadratic = CubicFromQuadratic(points[points.Count - 1], (controlX, controlY), end);
                     AppendQuadraticBezier(points, points[points.Count - 1], (controlX, controlY), end);
+                    recorder.AddExact(quadratic, points);
                     continue;
                 }
 
@@ -249,11 +270,13 @@ namespace OfficeIMO.Visio {
                 }
 
                 if (isMove && points.Count > 0) {
-                    if (!TryAddGeometryPath(paths, points, currentNoFill, currentNoLine, closedPrimitive, fillGroup)) {
+                    recorder.Sync(points);
+                    if (!TryAddGeometryPath(paths, points, currentNoFill, currentNoLine, closedPrimitive, fillGroup, recorder)) {
                         return false;
                     }
 
                     points = new List<(double X, double Y)>();
+                    recorder.Reset();
                     closedPrimitive = false;
                     currentNoFill = noFill;
                     currentNoLine = noLine;
@@ -272,7 +295,8 @@ namespace OfficeIMO.Visio {
                 points.Add(point);
             }
 
-            return TryAddGeometryPath(paths, points, currentNoFill, currentNoLine, closedPrimitive, fillGroup);
+            recorder.Sync(points);
+            return TryAddGeometryPath(paths, points, currentNoFill, currentNoLine, closedPrimitive, fillGroup, recorder);
         }
 
         private static bool TryAddGeometryPath(
@@ -281,7 +305,8 @@ namespace OfficeIMO.Visio {
             bool noFill,
             bool noLine,
             bool closedPrimitive,
-            int fillGroup) {
+            int fillGroup,
+            SegmentRecorder? recorder = null) {
             bool explicitlyClosed = points.Count > 1 && NearlyEqual(points[0], points[points.Count - 1]);
             // Fill closes implicitly; only native closure may join the stroke's endpoints.
             bool renderClosedPath = closedPrimitive || explicitlyClosed;
@@ -290,15 +315,18 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
+            List<VisioGeometrySegment>? segments = recorder?.HasCurves == true ? recorder.Segments : null;
             if (renderClosedPath && explicitlyClosed) {
                 points.RemoveAt(points.Count - 1);
+                // A curve that returns to the start keeps its shape; only a closing line is redundant.
+                if (segments != null && segments.Count > 1 && !segments[segments.Count - 1].IsCubic) segments.RemoveAt(segments.Count - 1);
             }
 
             if (points.Count < minimumPointCount) {
                 return false;
             }
 
-            paths.Add(new VisioShapeGeometryPath(points, noFill, noLine, renderClosedPath, fillGroup));
+            paths.Add(new VisioShapeGeometryPath(points, noFill, noLine, renderClosedPath, fillGroup, segments, recorder?.Flattened == true));
             return true;
         }
 

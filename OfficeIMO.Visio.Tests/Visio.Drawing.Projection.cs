@@ -88,7 +88,7 @@ public sealed class VisioDrawingProjectionTests {
     [Fact]
     public void LocatedSourceLossSurvivesPdfResultsAndStrictSavingLeavesDestinationsUntouched() {
         VisioDocument document = VisioDocument.Create();
-        document.AddPage("Page").AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), "Label").AddHyperlink("https://example.com");
+        document.AddPage("Page").AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), "Label").SetShapeData("Owner", "Operations");
         var options = new VisioPdfExportOptions { Mode = VisioPdfProjectionMode.DiagramPages, SourceName = "source.vdx" };
         using (document.ToPdf(options, out OfficeConversionReport resultReport)) {
             Assert.Contains(resultReport.Diagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_METADATA" && diagnostic.LossKind == OfficeConversionLossKind.Omission && diagnostic.Location!.StartsWith("page:1:Page:shape:"));
