@@ -390,7 +390,7 @@ internal ref partial struct YamlScanner {
         YamlScanContext c = _c;
         scalar = default;
         if (!StartToken()) return false;
-        if (c.TokenCount != 0 || c.Column != c.Indent || !c.SimpleKeyAllowed || !YamlChars.IsAlphanumeric(At(c.Pos))) {
+        if (c.TokenCount != 0 || c.Column != c.Indent || !c.SimpleKeyAllowed || !StartsBlockPlain()) {
             DispatchToken();
             return false;
         }
@@ -432,13 +432,23 @@ internal ref partial struct YamlScanner {
         YamlScanContext c = _c;
         scalar = default;
         if (!StartToken()) return false;
-        if (c.TokenCount != 0 || c.FlowLevel != 0 || c.SimpleKeyAllowed || c.LastLine != c.Line || !YamlChars.IsAlphanumeric(At(c.Pos))) {
+        if (c.TokenCount != 0 || c.FlowLevel != 0 || c.SimpleKeyAllowed || c.LastLine != c.Line) {
             DispatchToken();
             return false;
         }
-        c.InDocument = true;
-        c.AdjacentValue = false;
-        scalar = ScanPlainScalar();
+        char ch = At(c.Pos);
+        if (ch is '\'' or '"') {
+            c.InDocument = true;
+            scalar = ScanFlowScalar(single: ch == '\'');
+            c.AdjacentValue = true;
+        } else if (StartsBlockPlain()) {
+            c.InDocument = true;
+            c.AdjacentValue = false;
+            scalar = ScanPlainScalar();
+        } else {
+            DispatchToken();
+            return false;
+        }
         Track(in scalar);
         c.TokensParsed++;
         return true;
@@ -454,15 +464,27 @@ internal ref partial struct YamlScanner {
         YamlScanContext c = _c;
         scalar = default;
         if (!StartToken()) return false;
-        if (c.TokenCount != 0 || c.FlowLevel != 0 || !c.SimpleKeyAllowed || c.LastLine != c.Line || !YamlChars.IsAlphanumeric(At(c.Pos))) {
+        if (c.TokenCount != 0 || c.FlowLevel != 0 || !c.SimpleKeyAllowed || c.LastLine != c.Line) {
+            DispatchToken();
+            return false;
+        }
+        char first = At(c.Pos);
+        bool quoted = first is '\'' or '"';
+        if (!quoted && !StartsBlockPlain()) {
             DispatchToken();
             return false;
         }
         c.InDocument = true;
         SaveSimpleKey();
         c.SimpleKeyAllowed = false;
-        c.AdjacentValue = false;
-        YamlToken token = ScanPlainScalar();
+        YamlToken token;
+        if (quoted) {
+            token = ScanFlowScalar(single: first == '\'');
+            c.AdjacentValue = true;
+        } else {
+            c.AdjacentValue = false;
+            token = ScanPlainScalar();
+        }
         if (token.EndLine == token.StartLine) {
             ref YamlSimpleKey key = ref c.SimpleKeys[0];
             int p = c.Pos;
@@ -475,10 +497,22 @@ internal ref partial struct YamlScanner {
                 scalar = token;
                 return true;
             }
-            if (SettleBlockKey(ref token)) return false;
+            // A quoted candidate waits for its ':' through the queue, as fetching it there does.
+            if (!quoted && SettleBlockKey(ref token)) return false;
         }
         Finish(ref token);
         return false;
+    }
+
+    /// <summary>
+    /// Whether a plain scalar starts at the current position in block context: <see cref="DispatchToken"/> would fetch
+    /// one. A '-' or '.' at the start of a line may be a document marker and is left to it.
+    /// </summary>
+    private bool StartsBlockPlain() {
+        char ch = At(_c.Pos);
+        if (YamlChars.IsAlphanumeric(ch)) return true;
+        if (_c.Column == 0 && ch is '-' or '.') return false;
+        return CanStartPlain(ch, At(_c.Pos + 1), flow: false);
     }
 
     // ---------------------------------------------------------------- whitespace, comments, line breaks
