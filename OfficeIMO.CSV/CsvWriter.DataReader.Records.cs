@@ -110,6 +110,126 @@ internal static partial class CsvWriter
         output.Write(newLine);
     }
 
+    /// <summary>True when every field is a kind <see cref="AppendInvariantRecord"/> writes.</summary>
+    internal static bool HasOnlyInvariantRecordKinds(DataReaderFieldKind[] fieldKinds)
+    {
+        foreach (DataReaderFieldKind kind in fieldKinds)
+        {
+            if (kind is not (DataReaderFieldKind.String or DataReaderFieldKind.Int32 or DataReaderFieldKind.Int64
+                or DataReaderFieldKind.Double or DataReaderFieldKind.Decimal or DataReaderFieldKind.Boolean or DataReaderFieldKind.DateTime))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Appends a record of strings, integers, doubles, decimals, booleans and dates for comma output in the
+    /// invariant culture without value formatting options, as <see cref="AppendDataReaderRecord"/> writes it,
+    /// in one pass with no per-field exception handling. A reader that rejects a typed read throws out of here;
+    /// the caller then rewinds the row and writes it through <see cref="AppendDataReaderRecord"/>.
+    /// </summary>
+    internal static void AppendInvariantRecord<TFields>(RecordBuffer output, ref TFields fields, DataReaderFieldKind[] fieldKinds, string newLine)
+        where TFields : struct, IRecordFields
+    {
+        for (var i = 0; i < fieldKinds.Length; i++)
+        {
+            if (i > 0)
+            {
+                output.Write(',');
+            }
+
+            if (fields.IsNull(i))
+            {
+                continue;
+            }
+
+            switch (fieldKinds[i])
+            {
+                case DataReaderFieldKind.String:
+                    AppendEscapedRecordText(output, fields.GetString(i), ',');
+                    break;
+                case DataReaderFieldKind.Int32:
+                    AppendInvariantScalar(output, fields.GetInt32(i));
+                    break;
+                case DataReaderFieldKind.Int64:
+                    AppendInvariantScalar(output, fields.GetInt64(i));
+                    break;
+                case DataReaderFieldKind.Double:
+                    AppendInvariantScalar(output, fields.GetDouble(i));
+                    break;
+                case DataReaderFieldKind.Decimal:
+                    AppendInvariantScalar(output, fields.GetDecimal(i));
+                    break;
+                case DataReaderFieldKind.Boolean:
+                    output.Write(fields.GetBoolean(i) ? "True" : "False");
+                    break;
+                default:
+                    AppendInvariantScalar(output, fields.GetDateTime(i));
+                    break;
+            }
+        }
+
+        output.Write(newLine);
+    }
+
+    /// <summary>Field reads for <see cref="AppendInvariantRecord"/>; <see cref="IsNull"/> comes first for each field.</summary>
+    internal interface IRecordFields
+    {
+        bool IsNull(int ordinal);
+        string GetString(int ordinal);
+        int GetInt32(int ordinal);
+        long GetInt64(int ordinal);
+        double GetDouble(int ordinal);
+        decimal GetDecimal(int ordinal);
+        bool GetBoolean(int ordinal);
+        DateTime GetDateTime(int ordinal);
+    }
+
+    /// <summary>Typed reads, after a null check.</summary>
+    internal readonly struct TypedRecordFields(IDataRecord reader) : IRecordFields
+    {
+        public bool IsNull(int ordinal) => reader.IsDBNull(ordinal);
+        public string GetString(int ordinal) => reader.GetString(ordinal);
+        public int GetInt32(int ordinal) => reader.GetInt32(ordinal);
+        public long GetInt64(int ordinal) => reader.GetInt64(ordinal);
+        public double GetDouble(int ordinal) => reader.GetDouble(ordinal);
+        public decimal GetDecimal(int ordinal) => reader.GetDecimal(ordinal);
+        public bool GetBoolean(int ordinal) => reader.GetBoolean(ordinal);
+        public DateTime GetDateTime(int ordinal) => reader.GetDateTime(ordinal);
+    }
+
+    /// <summary>
+    /// One boxed read per field for a data table reader, which looks the row up on every call; a table column
+    /// holds only its declared type or DBNull, and any other value fails the cast.
+    /// </summary>
+    internal struct BoxedRecordFields(IDataRecord reader) : IRecordFields
+    {
+        private object? _value;
+
+        public bool IsNull(int ordinal) => (_value = reader.GetValue(ordinal)) is DBNull;
+        public readonly string GetString(int ordinal) => (string)_value!;
+        public readonly int GetInt32(int ordinal) => (int)_value!;
+        public readonly long GetInt64(int ordinal) => (long)_value!;
+        public readonly double GetDouble(int ordinal) => (double)_value!;
+        public readonly decimal GetDecimal(int ordinal) => (decimal)_value!;
+        public readonly bool GetBoolean(int ordinal) => (bool)_value!;
+        public readonly DateTime GetDateTime(int ordinal) => (DateTime)_value!;
+    }
+
+    /// <summary>Invariant text of these scalars never needs quotes after a comma.</summary>
+    private static void AppendInvariantScalar<T>(RecordBuffer output, T value) where T : ISpanFormattable
+    {
+        if (!TryFormatInvariant(value, output.GetSpan(64), out int written))
+        {
+            throw new NotSupportedException("The value does not fit the record buffer.");
+        }
+
+        output.Length += written;
+    }
+
     /// <summary>Writes the common kinds directly; false leaves the value to the general appenders.</summary>
     private static bool TryAppendRecordValue(
         RecordBuffer output,

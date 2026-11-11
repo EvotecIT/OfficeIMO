@@ -234,6 +234,52 @@ public class CsvDataReaderWriterRegressionTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void WriteDataReader_InvariantRecordsMatchRowWriting(bool rejectTypedRead)
+    {
+        string[] pieces = { "a", "Zż", " ", ",", ";", "\"", "\r", "\n", "\r\n", "😀", "1.5", "x" };
+        var random = new Random(20261114);
+        string Text() => string.Concat(Enumerable.Range(0, random.Next(0, 10)).Select(_ => pieces[random.Next(pieces.Length)]));
+        string[] headers = { "Text", "Int", "Long", "Double", "Decimal", "Bool", "Date" };
+        var rows = new object?[2500][];
+        for (int row = 0; row < rows.Length; row++)
+        {
+            rows[row] = new object?[] {
+                Text(), random.Next(int.MinValue, int.MaxValue), ((long)random.Next() << 32) | (uint)random.Next(),
+                random.NextDouble() * Math.Pow(10, random.Next(-8, 20)), random.Next(-10_000_000, 10_000_000) / 1000m, random.Next(2) == 0,
+                new DateTime(2020, 1, 1).AddSeconds(random.Next())
+            };
+            if (row > 0)
+            {
+                for (int column = 0; column < headers.Length; column++) if (random.Next(9) == 0) rows[row][column] = DBNull.Value;
+            }
+        }
+        if (rejectTypedRead) rows[1700][1] = 5L;
+        var options = new CsvSaveOptions { NewLine = "\r\n" };
+
+        using var expected = new StringWriter(CultureInfo.InvariantCulture);
+        using (var writer = new CsvRowWriter(expected, options, leaveOpen: true))
+        {
+            foreach (object?[] row in rows) writer.WriteRow(headers, row);
+        }
+        using var text = new StringWriter(CultureInfo.InvariantCulture);
+        using (var reader = new ThrowingGetValuesDataReader(headers, rows)) CsvDocument.WriteDataReader(text, reader, options);
+        using var stream = new MemoryStream();
+        using (var reader = new ThrowingGetValuesDataReader(headers, rows)) CsvDocument.WriteDataReader(stream, reader, options, leaveOpen: true);
+        using var table = new DataTable();
+        Type[] types = { typeof(string), typeof(int), typeof(long), typeof(double), typeof(decimal), typeof(bool), typeof(DateTime) };
+        for (int column = 0; column < headers.Length; column++) table.Columns.Add(headers[column], types[column]);
+        foreach (object?[] row in rows) table.Rows.Add(row);
+        using var tableStream = new MemoryStream();
+        using (var reader = table.CreateDataReader()) CsvDocument.WriteDataReader(tableStream, reader, options, leaveOpen: true);
+
+        Assert.Equal(expected.ToString(), text.ToString());
+        Assert.Equal(new UTF8Encoding(false).GetBytes(expected.ToString()), stream.ToArray());
+        Assert.Equal(new UTF8Encoding(false).GetBytes(expected.ToString()), tableStream.ToArray());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void WriteDataReader_StreamKeepsOnlyCompletedRowsAfterFailure(bool cancel)
     {
         using var cancellation = new CancellationTokenSource();

@@ -17,6 +17,8 @@ public sealed partial class CsvRowWriter
         using var output = new CsvWriter.RecordBuffer();
         var completed = 0;
         bool boxedValues = reader.GetType() == typeof(DataTableReader);
+        bool invariantRows = !_useFormattedDefaultWritePath && _delimiter == ','
+            && ReferenceEquals(_options.Culture, CultureInfo.InvariantCulture) && CsvWriter.HasOnlyInvariantRecordKinds(fieldKinds);
         try
         {
             while (true)
@@ -28,8 +30,16 @@ public sealed partial class CsvRowWriter
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
-                CsvWriter.AppendDataReaderRecord(output, scratch, reader, fieldKinds, _delimiter, _options.NewLine,
-                    _options.Culture, _useFormattedDefaultWritePath, _options.DateTimeFormat, _options.UseUtc, _options.NullValue, boxedValues);
+                if (!invariantRows || !(boxedValues
+                        ? TryAppendInvariantRecord(output, new CsvWriter.BoxedRecordFields(reader), fieldKinds)
+                        : TryAppendInvariantRecord(output, new CsvWriter.TypedRecordFields(reader), fieldKinds)))
+                {
+                    // After a rejected typed read every later row takes the per-field path, as before.
+                    invariantRows = false;
+                    CsvWriter.AppendDataReaderRecord(output, scratch, reader, fieldKinds, _delimiter, _options.NewLine,
+                        _options.Culture, _useFormattedDefaultWritePath, _options.DateTimeFormat, _options.UseUtc, _options.NullValue, boxedValues);
+                }
+
                 completed = output.Length;
                 if (completed >= CsvWriter.DataReaderFlushThreshold)
                 {
@@ -52,6 +62,23 @@ public sealed partial class CsvRowWriter
             }
 
             throw;
+        }
+    }
+
+    /// <summary>Writes one row through the one-pass invariant path; false rewinds it for the per-field path.</summary>
+    private bool TryAppendInvariantRecord<TFields>(CsvWriter.RecordBuffer output, TFields fields, CsvWriter.DataReaderFieldKind[] fieldKinds)
+        where TFields : struct, CsvWriter.IRecordFields
+    {
+        int rowStart = output.Length;
+        try
+        {
+            CsvWriter.AppendInvariantRecord(output, ref fields, fieldKinds, _options.NewLine);
+            return true;
+        }
+        catch (Exception exception) when (exception is InvalidCastException or NotSupportedException or NotImplementedException)
+        {
+            output.Length = rowStart;
+            return false;
         }
     }
 }
