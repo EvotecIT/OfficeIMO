@@ -23,11 +23,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var shapes = new HtmlRenderShape.CollapsedBorderStrokeShapes();
         IReadOnlyDictionary<CollapsedBorderKey, CollapsedBorderCandidate> winners = borderLayout.Winners;
         // Visit the grid in its paint order, horizontal rules first, then by boundary and segment.
-        // Only these in-range keys paint, so no sorted copy of the winners is needed.
+        // Only these in-range keys paint, so no sorted copy of the winners is needed. A resolved
+        // grid has a winner for nearly every slot, so the scan costs about the same as the winners;
+        // cancellation is still checked for every slot, including empty ones.
         for (int boundary = 0; boundary < rowOffsets.Length; boundary++) {
             for (int segment = 0; segment < columnWidths.Count; segment++) {
-                if (!winners.TryGetValue(new CollapsedBorderKey(true, boundary, segment), out CollapsedBorderCandidate winner)) continue;
                 CheckCancellation();
+                if (!winners.TryGetValue(new CollapsedBorderKey(true, boundary, segment), out CollapsedBorderCandidate winner)) continue;
                 HtmlRenderBorderSide border = winner.Border;
                 if (!border.IsPainted) continue;
                 AddCollapsedBorderLine(
@@ -43,8 +45,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         for (int boundary = 0; boundary <= columnOffsets.Count; boundary++) {
             for (int segment = 0; segment < rows.Count; segment++) {
-                if (!winners.TryGetValue(new CollapsedBorderKey(false, boundary, segment), out CollapsedBorderCandidate winner)) continue;
                 CheckCancellation();
+                if (!winners.TryGetValue(new CollapsedBorderKey(false, boundary, segment), out CollapsedBorderCandidate winner)) continue;
                 HtmlRenderBorderSide border = winner.Border;
                 if (!border.IsPainted) continue;
                 double logicalBoundaryX = boundary == columnWidths.Count ? gridWidth : columnOffsets[boundary];
