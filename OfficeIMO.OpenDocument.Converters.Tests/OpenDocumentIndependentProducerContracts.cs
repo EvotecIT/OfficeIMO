@@ -141,6 +141,21 @@ public sealed class OpenDocumentIndependentProducerContracts {
         Assert.Throws<OfficeConversionException>(() => source.ToPdf(new OdpPdfExportOptions { FailOnLoss = true }, out _));
     }
 
+    [Theory]
+    [InlineData("libreoffice-calc-basic.ods")]
+    [InlineData("microsoft-excel-basic.ods")]
+    public void ProducerOdsImagesRenderEverySheetAndCarryBridgeLoss(string fixture) {
+        OdsDocument source = OdsDocument.Load(FixturePath(fixture));
+
+        IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult> images =
+            source.ToImages(OfficeIMO.Drawing.OfficeImageExportFormat.Png);
+
+        Assert.Equal(new[] { "Sheet1", "Sheet2", "DifferentTest", "Sheet3" }, images.Select(image => image.Name));
+        Assert.All(images, image => Assert.Contains(image.Diagnostics, diagnostic =>
+            diagnostic.Code == "ODF_IMAGE_BLANK_CELL_TAIL_STYLES_UNSUPPORTED" &&
+            diagnostic.LossKind != OfficeConversionLossKind.None));
+    }
+
     private static readonly string[] ExpectedWorkbookText = {
         "Sheet1!A1=This is test",
         "Sheet1!B2=Another Test",

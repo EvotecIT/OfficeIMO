@@ -73,17 +73,17 @@ public static partial class OfficeOperationCapabilityCatalog {
         AddNativeLifecycle(rows, "publisher-model", "OfficeIMO.Publisher", "Publisher.Model",
             "PublisherDocument.Create / AddPage / AddTextFrame / AddImage / AddTable / ToSvg / ToImages",
             "OfficeIMO.Publisher.Tests PublisherAuthoringTests, PublisherPageSizeCreationTests, PublisherPictureCreationTests, PublisherTableMergingTests and PublisherImageConversionTests source-free authoring and rendering contracts",
-            new[] { ".svg", ".png", ".jpeg", ".tiff", ".webp" }, Array.Empty<OfficeOperationKind>(),
+            Array.Empty<string>(), Array.Empty<OfficeOperationKind>(),
             limitedSupported: new[] { OfficeOperationKind.Create },
             limitation: "Source-free publications with pages, masters, text frames, pictures, primitives and tables render to SVG, raster images and, through OfficeIMO.Publisher.Pdf, PDF. The model cannot be saved as a native .pub file.");
         AddNativeLifecycle(rows, "xps-native", "OfficeIMO.Xps", "Xps.Native",
             "XpsDocument.Create / Load / Save; page, document and story-fragment editing",
             "OfficeIMO.Xps.Tests XpsDocumentTests, XpsContentEditingTests, NativeSaveLifecycleTests, XpsInterleavingTests, XpsLogicalStructureTests and XpsMicrosoftProducerTests",
             new[] { ".xps", ".oxps" },
-            new[] { OfficeOperationKind.Read, OfficeOperationKind.Inspect },
-            limitedSupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Edit },
+            new[] { OfficeOperationKind.Inspect },
+            limitedSupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit },
             partial: new[] { OfficeOperationKind.Preserve },
-            limitation: "Microsoft XPS and OpenXPS. Creation is a bounded fixed-page profile; edits cover page and document insertion, reordering and removal, resource replacement and story fragments. Saves keep the original dialect and opaque parts, but ZIP metadata and XML bytes may change, interleaved parts are normalized and signed or protected packages cannot be rewritten. See OfficeIMO.Xps/SUPPORT.md.");
+            limitation: "Microsoft XPS and OpenXPS are loaded fully into memory; protected packages cannot be loaded. Creation is a bounded fixed-page profile; edits cover page and document insertion, reordering and removal, resource replacement and story fragments. Saves keep the original dialect and opaque parts, but ZIP metadata and XML bytes may change, interleaved parts are normalized and signed or protected packages cannot be rewritten. See OfficeIMO.Xps/SUPPORT.md.");
         AddNativeLifecycle(rows, "pdf-native", "OfficeIMO.Pdf", "Pdf.Native",
             "PdfDocument.Create / Load / Save / Inspect",
             "OfficeIMO.Pdf.Tests authoritative interoperability read, render, diagnostics, and mutation contracts",

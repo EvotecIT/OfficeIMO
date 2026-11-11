@@ -8260,7 +8260,7 @@
       "evidence":"LibreOffice Calc and Microsoft Excel ODS exports, Excel-produced chart and pivot workbooks, and converter contracts verify values, formulas, annotations, styles, validations, conditional formatting, charts, pivot and DataPilot tables, ODS print ranges and strict loss reports in reopened workbooks (OpenDocumentIndependentProducerContracts, SpreadsheetChartConversionTests, ExcelOdsDataPilotConversionTests).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".fods",".ods"],
-      "limitation":"Conditional formatting covers up to 16 numeric cell-value rules per style with direct fills or fonts. Charts cover column, bar, line, pie and doughnut types with copied values, title and approximate placement. Pivots need one standard aggregate and a same-sheet source and output. Borders, value-dependent alignment, blank cells styled only by defaults, advanced validation, external links, macros, and Excel print-area names written to ODS remain explicit loss."
+      "limitation":"Conditional formatting covers up to 16 numeric cell-value rules per style with direct fills or fonts. Charts cover column, bar, line, pie and doughnut types with copied values, title and approximate placement. Pivots need one standard aggregate and a same-sheet source and output. Borders, value-dependent alignment, blank cells styled only by defaults, advanced validation, external links, macros, and Excel print-area names written to ODS remain explicit loss. LibreOffice and Excel files also report their page masters and the text formatting on row padding (blank-cell-tail-styles), so ThrowOnSkippedOrUnsupported and FailOnLoss reject ordinary producer files."
     },
     {
       "id":"conversion:ods-jpeg",
@@ -8271,7 +8271,7 @@
       "operation":"Export",
       "state":"Supported",
       "publicApi":"OdsDocument.Load(stream).ToImages(format, options)",
-      "evidence":"OpenDocumentImageExportContracts render ODS sheets through the ODS-to-Excel bridge and the same Excel renderer as XLSX images in all five encodings, retaining bridge diagnostics.",
+      "evidence":"OpenDocumentImageExportContracts render ODS sheets in order through the ODS-to-Excel bridge and the same Excel renderer as XLSX images, in all five encodings. LibreOffice Calc and Microsoft Excel spreadsheets render every sheet with the bridge's loss findings attached (OpenDocumentIndependentProducerContracts).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".ods"],
       "limitation":"Image output is intentionally flattened. Inherits the ODS-to-XLSX conversion limits; unsupported source structure remains reported."
@@ -8285,7 +8285,7 @@
       "operation":"Export",
       "state":"Supported",
       "publicApi":"OdsDocument.Load(stream).ToImages(format, options)",
-      "evidence":"OpenDocumentImageExportContracts render ODS sheets through the ODS-to-Excel bridge and the same Excel renderer as XLSX images in all five encodings, retaining bridge diagnostics.",
+      "evidence":"OpenDocumentImageExportContracts render ODS sheets in order through the ODS-to-Excel bridge and the same Excel renderer as XLSX images, in all five encodings. LibreOffice Calc and Microsoft Excel spreadsheets render every sheet with the bridge's loss findings attached (OpenDocumentIndependentProducerContracts).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".ods"],
       "limitation":"Image output is intentionally flattened. Inherits the ODS-to-XLSX conversion limits; unsupported source structure remains reported."
@@ -8299,7 +8299,7 @@
       "operation":"Export",
       "state":"Supported",
       "publicApi":"OdsDocument.Load(stream).ToImages(format, options)",
-      "evidence":"OpenDocumentImageExportContracts render ODS sheets through the ODS-to-Excel bridge and the same Excel renderer as XLSX images in all five encodings, retaining bridge diagnostics.",
+      "evidence":"OpenDocumentImageExportContracts render ODS sheets in order through the ODS-to-Excel bridge and the same Excel renderer as XLSX images, in all five encodings. LibreOffice Calc and Microsoft Excel spreadsheets render every sheet with the bridge's loss findings attached (OpenDocumentIndependentProducerContracts).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".ods"],
       "limitation":"Image output is intentionally flattened. Inherits the ODS-to-XLSX conversion limits; unsupported source structure remains reported."
@@ -8313,7 +8313,7 @@
       "operation":"Export",
       "state":"Supported",
       "publicApi":"OdsDocument.Load(stream).ToImages(format, options)",
-      "evidence":"OpenDocumentImageExportContracts render ODS sheets through the ODS-to-Excel bridge and the same Excel renderer as XLSX images in all five encodings, retaining bridge diagnostics.",
+      "evidence":"OpenDocumentImageExportContracts render ODS sheets in order through the ODS-to-Excel bridge and the same Excel renderer as XLSX images, in all five encodings. LibreOffice Calc and Microsoft Excel spreadsheets render every sheet with the bridge's loss findings attached (OpenDocumentIndependentProducerContracts).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".ods"],
       "limitation":"Image output is intentionally flattened. Inherits the ODS-to-XLSX conversion limits; unsupported source structure remains reported."
@@ -8327,7 +8327,7 @@
       "operation":"Export",
       "state":"Supported",
       "publicApi":"OdsDocument.Load(stream).ToImages(format, options)",
-      "evidence":"OpenDocumentImageExportContracts render ODS sheets through the ODS-to-Excel bridge and the same Excel renderer as XLSX images in all five encodings, retaining bridge diagnostics.",
+      "evidence":"OpenDocumentImageExportContracts render ODS sheets in order through the ODS-to-Excel bridge and the same Excel renderer as XLSX images, in all five encodings. LibreOffice Calc and Microsoft Excel spreadsheets render every sheet with the bridge's loss findings attached (OpenDocumentIndependentProducerContracts).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".ods"],
       "limitation":"Image output is intentionally flattened. Inherits the ODS-to-XLSX conversion limits; unsupported source structure remains reported."
@@ -8344,7 +8344,7 @@
       "evidence":"LibreOffice Calc and Microsoft Excel ODS exports, Excel-produced chart and pivot workbooks, and converter contracts verify values, formulas, annotations, styles, validations, conditional formatting, charts, pivot and DataPilot tables, ODS print ranges and strict loss reports in reopened workbooks (OpenDocumentIndependentProducerContracts, SpreadsheetChartConversionTests, ExcelOdsDataPilotConversionTests).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
-      "limitation":"Conditional formatting covers up to 16 numeric cell-value rules per style with direct fills or fonts. Charts cover column, bar, line, pie and doughnut types with copied values, title and approximate placement. Pivots need one standard aggregate and a same-sheet source and output. Borders, value-dependent alignment, blank cells styled only by defaults, advanced validation, external links, macros, and Excel print-area names written to ODS remain explicit loss."
+      "limitation":"Conditional formatting covers up to 16 numeric cell-value rules per style with direct fills or fonts. Charts cover column, bar, line, pie and doughnut types with copied values, title and approximate placement. Pivots need one standard aggregate and a same-sheet source and output. Borders, value-dependent alignment, blank cells styled only by defaults, advanced validation, external links, macros, and Excel print-area names written to ODS remain explicit loss. LibreOffice and Excel files also report their page masters and the text formatting on row padding (blank-cell-tail-styles), so ThrowOnSkippedOrUnsupported and FailOnLoss reject ordinary producer files."
     },
     {
       "id":"conversion:xls-pdf",
@@ -9898,7 +9898,7 @@
       "evidence":"Renders through the ODS-to-Excel bridge and the Excel PDF engine. LibreOffice Calc and Microsoft Excel ODS exports print one page per used sheet with searchable cell text and carried loss findings; contracts verify sheet print ranges and strict loss policy (OpenDocumentIndependentProducerContracts, OpenDocumentPdfConversionContracts).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".fods",".ods"],
-      "limitation":"Inherits the ODS-to-XLSX limits and the Excel PDF print layout. Charts, pivots, conditional formatting outside the mapped subset and exact LibreOffice or Excel page breaks are approximated or reported."
+      "limitation":"Inherits the ODS-to-XLSX limits and the Excel PDF print layout. FailOnLoss therefore rejects ordinary LibreOffice and Excel files, which report page masters and row-padding styles. Charts, pivots, conditional formatting outside the mapped subset and exact LibreOffice or Excel page breaks are approximated or reported."
     },
     {
       "id":"conversion:pdf-ods",
@@ -15719,7 +15719,7 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdpPresentation.Load(stream).ToImages(format, options)",
-      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer and ODP through the PowerPoint renderer used for DOCX and PPTX images, in all five encodings, retaining bridge diagnostics and aggregate loss policy.",
+      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer with bridge loss diagnostics and aggregate loss policy, and ODP through the PowerPoint renderer in slide order, both in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odp"],
       "limitation":"Image output is intentionally flattened. Inherits the Targeted ODT-to-DOCX and ODP-to-PPTX conversion limits; unsupported source structure remains approximated or reported."
@@ -15733,7 +15733,7 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdpPresentation.Load(stream).ToImages(format, options)",
-      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer and ODP through the PowerPoint renderer used for DOCX and PPTX images, in all five encodings, retaining bridge diagnostics and aggregate loss policy.",
+      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer with bridge loss diagnostics and aggregate loss policy, and ODP through the PowerPoint renderer in slide order, both in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odp"],
       "limitation":"Image output is intentionally flattened. Inherits the Targeted ODT-to-DOCX and ODP-to-PPTX conversion limits; unsupported source structure remains approximated or reported."
@@ -15747,7 +15747,7 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdpPresentation.Load(stream).ToImages(format, options)",
-      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer and ODP through the PowerPoint renderer used for DOCX and PPTX images, in all five encodings, retaining bridge diagnostics and aggregate loss policy.",
+      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer with bridge loss diagnostics and aggregate loss policy, and ODP through the PowerPoint renderer in slide order, both in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odp"],
       "limitation":"Image output is intentionally flattened. Inherits the Targeted ODT-to-DOCX and ODP-to-PPTX conversion limits; unsupported source structure remains approximated or reported."
@@ -15761,7 +15761,7 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdpPresentation.Load(stream).ToImages(format, options)",
-      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer and ODP through the PowerPoint renderer used for DOCX and PPTX images, in all five encodings, retaining bridge diagnostics and aggregate loss policy.",
+      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer with bridge loss diagnostics and aggregate loss policy, and ODP through the PowerPoint renderer in slide order, both in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odp"],
       "limitation":"Image output is intentionally flattened. Inherits the Targeted ODT-to-DOCX and ODP-to-PPTX conversion limits; unsupported source structure remains approximated or reported."
@@ -15775,7 +15775,7 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdpPresentation.Load(stream).ToImages(format, options)",
-      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer and ODP through the PowerPoint renderer used for DOCX and PPTX images, in all five encodings, retaining bridge diagnostics and aggregate loss policy.",
+      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer with bridge loss diagnostics and aggregate loss policy, and ODP through the PowerPoint renderer in slide order, both in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odp"],
       "limitation":"Image output is intentionally flattened. Inherits the Targeted ODT-to-DOCX and ODP-to-PPTX conversion limits; unsupported source structure remains approximated or reported."
@@ -16239,7 +16239,7 @@
       "publicApi":"PublisherDocument.Create / AddPage / AddTextFrame / AddImage / AddTable / ToSvg / ToImages",
       "evidence":"OfficeIMO.Publisher.Tests PublisherAuthoringTests, PublisherPageSizeCreationTests, PublisherPictureCreationTests, PublisherTableMergingTests and PublisherImageConversionTests source-free authoring and rendering contracts::Create",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
-      "extensions":[".jpeg",".png",".svg",".tiff",".webp"],
+      "extensions":[],
       "limitation":"Source-free publications with pages, masters, text frames, pictures, primitives and tables render to SVG, raster images and, through OfficeIMO.Publisher.Pdf, PDF. The model cannot be saved as a native .pub file."
     },
     {
@@ -20339,7 +20339,7 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdtDocument.Load(stream).ToImages(format, options)",
-      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer and ODP through the PowerPoint renderer used for DOCX and PPTX images, in all five encodings, retaining bridge diagnostics and aggregate loss policy.",
+      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer with bridge loss diagnostics and aggregate loss policy, and ODP through the PowerPoint renderer in slide order, both in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odt"],
       "limitation":"Image output is intentionally flattened. Inherits the Targeted ODT-to-DOCX and ODP-to-PPTX conversion limits; unsupported source structure remains approximated or reported."
@@ -20353,7 +20353,7 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdtDocument.Load(stream).ToImages(format, options)",
-      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer and ODP through the PowerPoint renderer used for DOCX and PPTX images, in all five encodings, retaining bridge diagnostics and aggregate loss policy.",
+      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer with bridge loss diagnostics and aggregate loss policy, and ODP through the PowerPoint renderer in slide order, both in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odt"],
       "limitation":"Image output is intentionally flattened. Inherits the Targeted ODT-to-DOCX and ODP-to-PPTX conversion limits; unsupported source structure remains approximated or reported."
@@ -20367,7 +20367,7 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdtDocument.Load(stream).ToImages(format, options)",
-      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer and ODP through the PowerPoint renderer used for DOCX and PPTX images, in all five encodings, retaining bridge diagnostics and aggregate loss policy.",
+      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer with bridge loss diagnostics and aggregate loss policy, and ODP through the PowerPoint renderer in slide order, both in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odt"],
       "limitation":"Image output is intentionally flattened. Inherits the Targeted ODT-to-DOCX and ODP-to-PPTX conversion limits; unsupported source structure remains approximated or reported."
@@ -20381,7 +20381,7 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdtDocument.Load(stream).ToImages(format, options)",
-      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer and ODP through the PowerPoint renderer used for DOCX and PPTX images, in all five encodings, retaining bridge diagnostics and aggregate loss policy.",
+      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer with bridge loss diagnostics and aggregate loss policy, and ODP through the PowerPoint renderer in slide order, both in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odt"],
       "limitation":"Image output is intentionally flattened. Inherits the Targeted ODT-to-DOCX and ODP-to-PPTX conversion limits; unsupported source structure remains approximated or reported."
@@ -20395,7 +20395,7 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdtDocument.Load(stream).ToImages(format, options)",
-      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer and ODP through the PowerPoint renderer used for DOCX and PPTX images, in all five encodings, retaining bridge diagnostics and aggregate loss policy.",
+      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer with bridge loss diagnostics and aggregate loss policy, and ODP through the PowerPoint renderer in slide order, both in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odt"],
       "limitation":"Image output is intentionally flattened. Inherits the Targeted ODT-to-DOCX and ODP-to-PPTX conversion limits; unsupported source structure remains approximated or reported."
@@ -20846,7 +20846,7 @@
       "evidence":"OfficeIMO.Xps.Tests XpsDocumentTests, XpsContentEditingTests, NativeSaveLifecycleTests, XpsInterleavingTests, XpsLogicalStructureTests and XpsMicrosoftProducerTests::Create",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".oxps",".xps"],
-      "limitation":"Microsoft XPS and OpenXPS. Creation is a bounded fixed-page profile; edits cover page and document insertion, reordering and removal, resource replacement and story fragments. Saves keep the original dialect and opaque parts, but ZIP metadata and XML bytes may change, interleaved parts are normalized and signed or protected packages cannot be rewritten. See OfficeIMO.Xps/SUPPORT.md."
+      "limitation":"Microsoft XPS and OpenXPS are loaded fully into memory; protected packages cannot be loaded. Creation is a bounded fixed-page profile; edits cover page and document insertion, reordering and removal, resource replacement and story fragments. Saves keep the original dialect and opaque parts, but ZIP metadata and XML bytes may change, interleaved parts are normalized and signed or protected packages cannot be rewritten. See OfficeIMO.Xps/SUPPORT.md."
     },
     {
       "id":"native:xps-native:read",
@@ -20860,7 +20860,7 @@
       "evidence":"OfficeIMO.Xps.Tests XpsDocumentTests, XpsContentEditingTests, NativeSaveLifecycleTests, XpsInterleavingTests, XpsLogicalStructureTests and XpsMicrosoftProducerTests::Read",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".oxps",".xps"],
-      "limitation":""
+      "limitation":"Microsoft XPS and OpenXPS are loaded fully into memory; protected packages cannot be loaded. Creation is a bounded fixed-page profile; edits cover page and document insertion, reordering and removal, resource replacement and story fragments. Saves keep the original dialect and opaque parts, but ZIP metadata and XML bytes may change, interleaved parts are normalized and signed or protected packages cannot be rewritten. See OfficeIMO.Xps/SUPPORT.md."
     },
     {
       "id":"native:xps-native:edit",
@@ -20874,7 +20874,7 @@
       "evidence":"OfficeIMO.Xps.Tests XpsDocumentTests, XpsContentEditingTests, NativeSaveLifecycleTests, XpsInterleavingTests, XpsLogicalStructureTests and XpsMicrosoftProducerTests::Edit",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".oxps",".xps"],
-      "limitation":"Microsoft XPS and OpenXPS. Creation is a bounded fixed-page profile; edits cover page and document insertion, reordering and removal, resource replacement and story fragments. Saves keep the original dialect and opaque parts, but ZIP metadata and XML bytes may change, interleaved parts are normalized and signed or protected packages cannot be rewritten. See OfficeIMO.Xps/SUPPORT.md."
+      "limitation":"Microsoft XPS and OpenXPS are loaded fully into memory; protected packages cannot be loaded. Creation is a bounded fixed-page profile; edits cover page and document insertion, reordering and removal, resource replacement and story fragments. Saves keep the original dialect and opaque parts, but ZIP metadata and XML bytes may change, interleaved parts are normalized and signed or protected packages cannot be rewritten. See OfficeIMO.Xps/SUPPORT.md."
     },
     {
       "id":"native:xps-native:preserve",
@@ -20888,7 +20888,7 @@
       "evidence":"OfficeIMO.Xps.Tests XpsDocumentTests, XpsContentEditingTests, NativeSaveLifecycleTests, XpsInterleavingTests, XpsLogicalStructureTests and XpsMicrosoftProducerTests::Preserve",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".oxps",".xps"],
-      "limitation":"Microsoft XPS and OpenXPS. Creation is a bounded fixed-page profile; edits cover page and document insertion, reordering and removal, resource replacement and story fragments. Saves keep the original dialect and opaque parts, but ZIP metadata and XML bytes may change, interleaved parts are normalized and signed or protected packages cannot be rewritten. See OfficeIMO.Xps/SUPPORT.md."
+      "limitation":"Microsoft XPS and OpenXPS are loaded fully into memory; protected packages cannot be loaded. Creation is a bounded fixed-page profile; edits cover page and document insertion, reordering and removal, resource replacement and story fragments. Saves keep the original dialect and opaque parts, but ZIP metadata and XML bytes may change, interleaved parts are normalized and signed or protected packages cannot be rewritten. See OfficeIMO.Xps/SUPPORT.md."
     },
     {
       "id":"native:xps-native:inspect",
