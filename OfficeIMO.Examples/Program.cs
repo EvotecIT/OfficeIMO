@@ -288,6 +288,11 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--word-styles")) {
+                Word.Styles.Example_DocumentStylesAndTheme(folderPath, HasArgument(args, "--open-word"));
+                return;
+            }
+
             if (HasArgument(args, "--word-market-readiness")) {
                 Word.MarketReadinessProofGallery.Example_GenerateWordMarketReadinessProof(folderPath, HasArgument(args, "--open-word"));
                 return;
@@ -677,6 +682,7 @@ namespace OfficeIMO.Examples {
             // Word.FindAndReplace.Example_FindAndReplace02(folderPath, false);
             // Word.FindAndReplace.Example_FindAndReplace03(folderPath, false);
             // Word.FindAndReplace.Example_ReplaceTextWithHtmlFragment(folderPath, false);
+            // Word.FindAndReplace.Example_TextRanges(folderPath, false);
             // // Word/Fluent
             // Word.FluentDocument.Example_FluentDocument(folderPath, false);
             // Word.FluentDocument.Example_FluentHeadersAndFooters(folderPath, false);
@@ -784,9 +790,7 @@ namespace OfficeIMO.Examples {
             // Word.Paragraphs.Example_MultipleParagraphsViaDifferentWays(folderPath, false);
             // Word.Paragraphs.Example_RunCharacterStylesSimple(folderPath, false);
             // Word.Paragraphs.Example_RunCharacterStylesAdvanced(folderPath, false);
-            // Word.Paragraphs.Example_RegisterCustomParagraphStyle(folderPath, false);
-            // Word.Paragraphs.Example_MultipleCustomParagraphStyles(folderPath, false);
-            // Word.Paragraphs.Example_OverrideBuiltInParagraphStyle(folderPath, false);
+            // Word.Styles.Example_DocumentStylesAndTheme(folderPath, false);
             // Word.Paragraphs.Example_Word_Fluent_Paragraph_TextAndFormatting(folderPath, false);
             // // Word/Pdf
             // Word.Pdf.Example_HeaderFooterImages(folderPath, false);
