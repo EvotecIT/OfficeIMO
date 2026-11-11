@@ -34,6 +34,8 @@ internal sealed class TomlEventWriter : DataEventWriter {
         public NodeType Type { get; }
         public DataScalarKind Kind;
         public string? Text;
+        /// <summary>A boolean (0 or 1) or an integer that fits 64 bits, when <see cref="Text"/> is null.</summary>
+        public long Integer;
         public List<Member>? Members;
         public List<Node>? Items;
         /// <summary>Comments above this node when it is an array item.</summary>
@@ -89,13 +91,45 @@ internal sealed class TomlEventWriter : DataEventWriter {
     public override void WriteEndArray() => Close();
 
     public override void WritePropertyName(ReadOnlySpan<char> name) {
-        _pendingKey = name.ToString();
+        _pendingKey = KeyString(name);
         _pendingKeyComments = _comments;
         _comments = null;
     }
 
-    public override void WriteScalar(DataScalarKind kind, ReadOnlySpan<char> text) =>
-        Attach(new Node(NodeType.Scalar) { Kind = kind, Text = kind == DataScalarKind.Null ? null : text.ToString() });
+    // Rows of records repeat the same keys, so one string per distinct key is shared across the held document.
+    private readonly string?[] _keys = new string?[256];
+
+    private string KeyString(ReadOnlySpan<char> name) {
+        uint hash = 2166136261;
+        foreach (char c in name) hash = (hash ^ c) * 16777619;
+        ref string? slot = ref _keys[hash & 255];
+        if (slot != null && name.SequenceEqual(slot.AsSpan())) return slot;
+        return slot = name.ToString();
+    }
+
+    // Booleans and 64-bit integers are held as values; other scalars keep their text.
+    public override void WriteScalar(DataScalarKind kind, ReadOnlySpan<char> text) {
+        var node = new Node(NodeType.Scalar) { Kind = kind };
+        if (kind == DataScalarKind.Boolean) node.Integer = text.Length == 4 ? 1 : 0;
+        else if (kind == DataScalarKind.Integer && TryParseInteger(text, out long integer)) node.Integer = integer;
+        else if (kind != DataScalarKind.Null) node.Text = text.ToString();
+        Attach(node);
+    }
+
+    private static bool TryParseInteger(ReadOnlySpan<char> text, out long value) {
+        value = 0;
+        bool negative = text.Length > 0 && text[0] == '-';
+        int start = negative ? 1 : 0;
+        if (text.Length == start || text.Length - start > 18) return false;
+        for (int i = start; i < text.Length; i++) {
+            char c = text[i];
+            if (c < '0' || c > '9') return false;
+            value = value * 10 + (c - '0');
+        }
+
+        if (negative) value = -value;
+        return true;
+    }
 
     public override void WriteComment(ReadOnlySpan<char> text) => (_comments ??= new List<string>()).Add(text.ToString());
 
@@ -194,25 +228,27 @@ internal sealed class TomlEventWriter : DataEventWriter {
 
         foreach (Member member in table.Members) {
             if (!member.IsSection) continue;
-            var childPath = new List<string>(path) { member.Key };
-            string[] keys = childPath.ToArray();
+            // The path is shared down the tree: push the key, write the section, pop it.
+            path.Add(member.Key);
+            string[] keys = path.ToArray();
             if (member.Value.Type == NodeType.Object) {
                 WriteComments(member.Comments);
                 // A table that holds only sub-tables needs no header of its own: [a.b] defines a.
                 if (HasValues(member.Value) || member.Value.Members!.Count == 0 || member.Comments != null) _toml.WriteTableHeader(keys);
-                WriteTable(member.Value, childPath);
-                continue;
+                WriteTable(member.Value, path);
+            } else {
+                bool first = true;
+                foreach (Node item in member.Value.Items!) {
+                    WriteComments(first ? Merge(member.Comments, item.Comments) : item.Comments);
+                    first = false;
+                    _toml.WriteArrayOfTablesHeader(keys);
+                    WriteTable(item, path);
+                }
+
+                WriteComments(member.Value.EndComments);
             }
 
-            bool first = true;
-            foreach (Node item in member.Value.Items!) {
-                WriteComments(first ? Merge(member.Comments, item.Comments) : item.Comments);
-                first = false;
-                _toml.WriteArrayOfTablesHeader(keys);
-                WriteTable(item, childPath);
-            }
-
-            WriteComments(member.Value.EndComments);
+            path.RemoveAt(path.Count - 1);
         }
 
         WriteComments(table.EndComments);
@@ -299,13 +335,15 @@ internal sealed class TomlEventWriter : DataEventWriter {
             "Comments inside arrays and inline tables were dropped, because TOML 1.0 has no place for them.", null);
 
     private void WriteScalar(Node value, List<string> path, string key) {
-        string text = value.Text!;
+        string? text = value.Text;
         switch (value.Kind) {
             case DataScalarKind.Boolean:
-                _toml.WriteBoolean(text.Length == 4);
+                _toml.WriteBoolean(value.Integer != 0);
                 break;
             case DataScalarKind.Integer:
-                if (long.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long integer)) {
+                if (text == null) {
+                    _toml.WriteInteger(value.Integer);
+                } else if (long.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long integer)) {
                     _toml.WriteInteger(integer);
                 } else {
                     OutOfRange(path, key, "Integers outside the 64-bit range TOML holds were written as strings.");
@@ -314,18 +352,18 @@ internal sealed class TomlEventWriter : DataEventWriter {
 
                 break;
             case DataScalarKind.Float:
-                WriteFloat(text, path, key);
+                WriteFloat(text!, path, key);
                 break;
             case DataScalarKind.String:
-                _toml.WriteString(text);
+                _toml.WriteString(text!);
                 break;
             default:
-                if (TryParseDateTime(value.Kind, text, out TomlDateTime date)) {
+                if (TryParseDateTime(value.Kind, text!, out TomlDateTime date)) {
                     _toml.WriteDateTime(date);
                 } else {
                     Report(OfficeDiagnosticCodes.DatetimeAsString, OfficeConversionLossKind.Approximation,
                         "Date-times that are not in RFC 3339 form were written as strings.", path, key);
-                    _toml.WriteString(text);
+                    _toml.WriteString(text!);
                 }
 
                 break;
