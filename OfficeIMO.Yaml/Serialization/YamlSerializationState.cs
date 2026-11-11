@@ -18,30 +18,61 @@ internal sealed class YamlReadState {
         public int Index;
     }
 
-    private PathStep[] _path = new PathStep[4];
+    [ThreadStatic] private static YamlReadState? t_spare;
+
+    private PathStep[] _path = new PathStep[8];
     private int _depth;
     private Dictionary<string, object?>? _references;
     private Dictionary<YamlRecording, object?>? _shared;
 
     public YamlReadState(YamlSerializerOptions options, bool untypedRoot = false) {
         Options = options;
+        Reset(options, untypedRoot);
+    }
+
+    /// <summary>
+    /// Takes this thread's returned state, or creates one. A stream of many small documents then reads each one without
+    /// a state of its own; pair it with <see cref="Return"/> once the value is read.
+    /// </summary>
+    public static YamlReadState Rent(YamlSerializerOptions options, bool untypedRoot) {
+        YamlReadState? spare = t_spare;
+        if (spare is null) return new YamlReadState(options, untypedRoot);
+        t_spare = null;
+        spare.Reset(options, untypedRoot);
+        return spare;
+    }
+
+    /// <summary>Clears the state and keeps it for this thread's next read. The caller drops its reference.</summary>
+    public void Return() {
+        Array.Clear(_path, 0, _path.Length);
+        _depth = 0;
+        _references = null;
+        _shared = null;
+        if (_sizes is not null) Array.Clear(_sizes, 0, _sizes.Length);
+        PendingAnchor = null;
+        Options = null!;
+        t_spare = this;
+    }
+
+    private void Reset(YamlSerializerOptions options, bool untypedRoot) {
+        Options = options;
         Preserve = options.ReferenceHandling == YamlReferenceHandling.Preserve;
         SharesAliases = !Preserve && !options.CopyAliases;
         SharedTree = SharesAliases && untypedRoot;
     }
 
-    public YamlSerializerOptions Options { get; }
+    public YamlSerializerOptions Options { get; private set; }
 
-    public bool Preserve { get; }
+    public bool Preserve { get; private set; }
 
     /// <summary>Whether an alias read as <see cref="object"/> returns the value read for its anchor; see <see cref="YamlSerializerOptions.CopyAliases"/>.</summary>
-    public bool SharesAliases { get; }
+    public bool SharesAliases { get; private set; }
 
     /// <summary>
     /// Whether the whole value is read as <see cref="object"/> with shared aliases, so every alias to a collection
     /// returns its shared value and nothing replays it: its events need not be kept.
     /// </summary>
-    public bool SharedTree { get; }
+    public bool SharedTree { get; private set; }
 
     /// <summary>Keeps the value read for an anchored node, for the aliases to it read later.</summary>
     public void Share(YamlRecording anchor, object? value) => (_shared ??= new Dictionary<YamlRecording, object?>())[anchor] = value;
@@ -130,7 +161,7 @@ internal sealed class YamlReadState {
 
 /// <summary>Per-call state of one serialization: anchors for shared references and the stack for cycle detection.</summary>
 internal sealed class YamlWriteState {
-    private object[] _ancestors = new object[16];
+    private object[] _ancestors = new object[8];
     private int _depth;
     private Dictionary<object, string>? _anchors;
     private HashSet<object>? _shared;

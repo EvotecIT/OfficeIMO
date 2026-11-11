@@ -68,10 +68,14 @@ internal sealed class YamlEventCursor {
         public bool CountsExpansion;
     }
 
-    private readonly YamlReader? _reader;
-    private readonly bool _mergeKeysByDefault;
-    private readonly bool _strict;
-    private readonly int _maxExpansion;
+    // A log longer than this is dropped instead of kept with a cursor returned for reuse.
+    private const int MaxKeptLog = 4096;
+    [ThreadStatic] private static YamlEventCursor? t_spare;
+
+    private YamlReader? _reader;
+    private bool _mergeKeysByDefault;
+    private bool _strict;
+    private int _maxExpansion;
     // Replay frames exist only for aliases, merges and recorded trees, so a live read allocates none.
     private Frame[] _frames = Array.Empty<Frame>();
     private int _frameCount;
@@ -94,7 +98,41 @@ internal sealed class YamlEventCursor {
     private int _currentLogIndex = -1;
 
     /// <summary>Creates a cursor over a reader; it starts on the reader's current event.</summary>
-    public YamlEventCursor(YamlReader reader) {
+    public YamlEventCursor(YamlReader reader) => Attach(reader);
+
+    /// <summary>
+    /// Takes this thread's returned cursor, or creates one, over a reader. A stream of many small documents then reads
+    /// each one without a cursor of its own; pair it with <see cref="Return"/> once the value is read.
+    /// </summary>
+    public static YamlEventCursor Rent(YamlReader reader) {
+        YamlEventCursor? spare = t_spare;
+        if (spare is null) return new YamlEventCursor(reader);
+        t_spare = null;
+        spare.Attach(reader);
+        return spare;
+    }
+
+    /// <summary>Clears the cursor and keeps it for this thread's next read. The caller drops its reference.</summary>
+    public void Return() {
+        _reader = null;
+        Array.Clear(_frames, 0, _frames.Length);
+        _frameCount = 0;
+        _current = default;
+        _expanded = 0;
+        _depth = 0;
+        _recordedWeight = 0;
+        _logging = 0;
+        _liveDefined = null;
+        _anchors?.Clear();
+        if (_log is { Capacity: > MaxKeptLog }) _log = null;
+        else _log?.Clear();
+        _open?.Clear();
+        _captures?.Clear();
+        _currentLogIndex = -1;
+        t_spare = this;
+    }
+
+    private void Attach(YamlReader reader) {
         _reader = reader;
         YamlReaderOptions options = reader.Options;
         _maxExpansion = options.MaxAliasExpansion;

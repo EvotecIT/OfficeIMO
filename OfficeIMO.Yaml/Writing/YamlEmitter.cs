@@ -54,7 +54,7 @@ internal sealed class YamlEmitter {
     // Line break plus indentation per indentation, shared by every emitter with the same line break.
     private static readonly string?[] s_lfLineStarts = new string?[LineStartCacheSize];
     private static readonly string?[] s_crlfLineStarts = new string?[LineStartCacheSize];
-    private Frame[] _frames = new Frame[16];
+    private Frame[] _frames = new Frame[8];
     private int _depth;
     private int _column;
     private int _documents;

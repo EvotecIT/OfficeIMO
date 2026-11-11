@@ -78,6 +78,7 @@ internal sealed class YamlDictionaryConverter<TDictionary, TKey, TValue> : YamlC
     private readonly Func<Dictionary<TKey, TValue>, TDictionary> _finish;
     private readonly bool _dictionaryIsResult;
     private readonly bool _stringValues = typeof(TValue) == typeof(string);
+    private readonly bool _stringKeys = typeof(TKey) == typeof(string);
     private YamlTypeInfo<TKey>? _key;
     private YamlTypeInfo<TValue>? _value;
 
@@ -116,8 +117,11 @@ internal sealed class YamlDictionaryConverter<TDictionary, TKey, TValue> : YamlC
                 continue;
             }
             if (cursor.IsNullScalar) throw YamlSerializationErrors.TypeMismatch(cursor, state, typeof(TKey), "a mapping key cannot be null here");
-            string keyText = cursor.TokenType == YamlTokenType.Scalar ? cursor.GetString() : string.Empty;
-            TKey key = keyInfo.Read(cursor, state);
+            bool scalarKey = cursor.TokenType == YamlTokenType.Scalar;
+            string keyText = scalarKey ? cursor.GetString() : string.Empty;
+            // A string key is the scalar's text, which the key metadata would read again; anchored keys under
+            // Preserve still register through it.
+            TKey key = _stringKeys && scalarKey && !state.Preserve ? Unsafe.As<string, TKey>(ref keyText) : keyInfo.Read(cursor, state);
             if (!cursor.Read()) throw YamlSerializationErrors.UnexpectedEnd(cursor);
             state.PushKey(keyText);
             if (merging) {

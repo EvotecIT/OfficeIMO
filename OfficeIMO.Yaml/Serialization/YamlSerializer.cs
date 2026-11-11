@@ -368,7 +368,7 @@ public static class YamlSerializer {
     private static object? DeserializeBoxed(YamlReader reader, YamlTypeInfo typeInfo) {
         if (reader is null) throw new ArgumentNullException(nameof(reader));
         if (!MoveToValue(reader, out bool document)) return null;
-        object? value = typeInfo.ReadBoxed(Begin(reader), new YamlReadState(typeInfo.Options, typeInfo.IsUntyped));
+        object? value = ReadValueBoxed(reader, typeInfo);
         if (document) ReadDocumentEnd(reader);
         return value;
     }
@@ -382,7 +382,7 @@ public static class YamlSerializer {
 
     private static T? ReadDocument<T>(YamlReader reader, YamlTypeInfo<T> typeInfo) {
         if (!MoveToValue(reader, out _)) return ReadEmpty(typeInfo);
-        T value = typeInfo.Read(Begin(reader), new YamlReadState(typeInfo.Options, typeInfo.IsUntyped));
+        T value = ReadValue(reader, typeInfo);
         ReadDocumentEnd(reader);
         RequireStreamEnd(reader);
         return value;
@@ -390,7 +390,7 @@ public static class YamlSerializer {
 
     private static object? ReadDocumentBoxed(YamlReader reader, YamlTypeInfo typeInfo) {
         if (!MoveToValue(reader, out _)) return null;
-        object? value = typeInfo.ReadBoxed(Begin(reader), new YamlReadState(typeInfo.Options, typeInfo.IsUntyped));
+        object? value = ReadValueBoxed(reader, typeInfo);
         ReadDocumentEnd(reader);
         RequireStreamEnd(reader);
         return value;
@@ -398,7 +398,7 @@ public static class YamlSerializer {
 
     private static T? ReadNext<T>(YamlReader reader, YamlTypeInfo<T> typeInfo) {
         if (!MoveToValue(reader, out bool document)) return ReadEmpty(typeInfo);
-        T value = typeInfo.Read(Begin(reader), new YamlReadState(typeInfo.Options, typeInfo.IsUntyped));
+        T value = ReadValue(reader, typeInfo);
         if (document) ReadDocumentEnd(reader);
         return value;
     }
@@ -411,10 +411,28 @@ public static class YamlSerializer {
         return default;
     }
 
-    private static YamlEventCursor Begin(YamlReader reader) {
-        var cursor = new YamlEventCursor(reader);
+    /// <summary>
+    /// Reads the node the reader is on. The cursor and state are reused per thread, so a stream of many small documents
+    /// reads each without creating them; a read that throws leaves them to the garbage collector.
+    /// </summary>
+    private static T ReadValue<T>(YamlReader reader, YamlTypeInfo<T> typeInfo) {
+        YamlEventCursor cursor = YamlEventCursor.Rent(reader);
         cursor.Begin();
-        return cursor;
+        YamlReadState state = YamlReadState.Rent(typeInfo.Options, typeInfo.IsUntyped);
+        T value = typeInfo.Read(cursor, state);
+        state.Return();
+        cursor.Return();
+        return value;
+    }
+
+    private static object? ReadValueBoxed(YamlReader reader, YamlTypeInfo typeInfo) {
+        YamlEventCursor cursor = YamlEventCursor.Rent(reader);
+        cursor.Begin();
+        YamlReadState state = YamlReadState.Rent(typeInfo.Options, typeInfo.IsUntyped);
+        object? value = typeInfo.ReadBoxed(cursor, state);
+        state.Return();
+        cursor.Return();
+        return value;
     }
 
     /// <summary>
