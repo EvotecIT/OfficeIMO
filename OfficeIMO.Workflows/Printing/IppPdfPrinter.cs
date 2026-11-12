@@ -218,11 +218,8 @@ internal static class IppPdfPrinter {
             plan.ColorSpace = (grayscale && gray) || !rgb ? PwgRasterColorSpace.Gray8 : PwgRasterColorSpace.Rgb8;
             plan.SheetBack = printer.PwgRasterSheetBack;
         } else {
-            // Sheets are composed at their paper size; the printer must not scale them again.
+            // Sheets are composed at their paper size and orientation; the printer must not scale or rotate them again.
             if (printer.PrintScaling.Contains("none")) job.PrintScaling = "none";
-            IppOrientation? orientation = sheets.Sheets.All(sheet => sheet.PaperSize.Width.ToPoints() > sheet.PaperSize.Height.ToPoints()) ? IppOrientation.Landscape
-                : sheets.Sheets.All(sheet => sheet.PaperSize.Width.ToPoints() <= sheet.PaperSize.Height.ToPoints()) ? IppOrientation.Portrait : null;
-            if (orientation is { } value && printer.Orientations.Contains(value)) job.Orientation = value;
         }
         string colorMode = grayscale ? "monochrome" : "color";
         if (printer.ColorModes.Contains(colorMode)) job.ColorMode = colorMode;

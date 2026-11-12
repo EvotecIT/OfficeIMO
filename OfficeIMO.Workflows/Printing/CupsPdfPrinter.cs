@@ -149,12 +149,8 @@ internal static partial class CupsPdfPrinter {
         if (plan.Sheets.All(sheet => PdfPrinterMediaNames.SameSize(sheet.PaperSize, first))) {
             string keyword = PdfPrinterMediaNames.Match(media, defaultMedia, first)?.Id ?? PdfPrinterMediaNames.TryGetKeyword(first) ?? CustomMedia(first);
             arguments.Add("-o"); arguments.Add("media=" + keyword);
-            if (plan.Sheets.All(sheet => sheet.PaperSize.Width.ToPoints() > sheet.PaperSize.Height.ToPoints())) {
-                arguments.Add("-o"); arguments.Add("orientation-requested=4");
-            } else if (plan.Sheets.All(sheet => sheet.PaperSize.Width.ToPoints() <= sheet.PaperSize.Height.ToPoints())) {
-                arguments.Add("-o"); arguments.Add("orientation-requested=3");
-            }
         }
+        // Each composed PDF page already has its sheet's orientation. orientation-requested would ask CUPS to rotate it again.
         if (options.Duplex != PdfPrintDuplex.PrinterDefault) {
             arguments.Add("-o");
             arguments.Add("sides=" + (options.Duplex == PdfPrintDuplex.SingleSided ? "one-sided" : options.Duplex == PdfPrintDuplex.LongEdge ? "two-sided-long-edge" : "two-sided-short-edge"));

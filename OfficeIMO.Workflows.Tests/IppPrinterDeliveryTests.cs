@@ -35,7 +35,7 @@ public sealed class IppPrinterDeliveryTests {
     }
 
     [Fact]
-    public void ColorVectorJobsSendPdfWithMediaOrientationAndNoScaling() {
+    public void ColorVectorJobsSendPdfWithMediaAndNoScaling() {
         IppDeliveryPlan plan = Plan(Sheets(PdfPageSizes.A4.Width, PdfPageSizes.A4.Height, 2), PdfPrintContentKind.Vector,
             new PdfPrintDeliveryOptions { PrinterName = "p", Copies = 3, Duplex = PdfPrintDuplex.LongEdge }, PdfAndRaster);
 
@@ -44,7 +44,7 @@ public sealed class IppPrinterDeliveryTests {
         Assert.Equal(3, plan.JobOptions.Copies);
         Assert.Equal("two-sided-long-edge", plan.JobOptions.Sides);
         Assert.Equal("iso_a4_210x297mm", plan.JobOptions.Media);
-        Assert.Equal(IppOrientation.Portrait, plan.JobOptions.Orientation);
+        Assert.Null(plan.JobOptions.Orientation); // the composed PDF pages carry their own orientation
         Assert.Equal("none", plan.JobOptions.PrintScaling);
         Assert.Equal("color", plan.JobOptions.ColorMode);
         Assert.Empty(plan.Ignored);
@@ -96,7 +96,6 @@ public sealed class IppPrinterDeliveryTests {
         Assert.Null(plan.JobOptions.Sides);
         Assert.Null(plan.JobOptions.Media);
         Assert.Equal(new IppMedia(21000, 29700) { SizeName = "iso_a4_210x297mm", Source = "main" }, plan.JobOptions.MediaCol);
-        Assert.Null(plan.JobOptions.Orientation); // the printer lists no orientation support
         Assert.Throws<ArgumentException>(() => Plan(Sheets(PdfPageSizes.A4.Width, PdfPageSizes.A4.Height, 1), PdfPrintContentKind.Vector,
             new PdfPrintDeliveryOptions { PrinterName = "p", PaperSourceId = "by-pass-tray" }, simplex));
     }
