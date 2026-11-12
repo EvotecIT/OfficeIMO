@@ -135,7 +135,7 @@ public class CsvDataReaderWriterRegressionTests
             bool empty = index % 5 == 3;
             rows.Add(new FormattedObjectRow {
                 Id = index,
-                Name = empty ? null : index % 7 == 0 ? "a,\"b\"" : "name" + index,
+                Name = empty ? null : index % 7 == 0 ? "a,\"b\"" : index % 11 == 0 ? new string('n', 70) + "\r\n\"" + index : "name" + index,
                 Created = new DateTime(2026, 3, 4, 5, 6, 7, DateTimeKind.Local).AddMinutes(index * 37),
                 Due = empty ? null : new DateTime(2024, 2, 29, 0, 0, 0, DateTimeKind.Utc).AddHours(index),
                 Offset = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.FromHours(2)).AddDays(index),
