@@ -36,13 +36,24 @@ internal sealed class WorkflowArguments {
     internal PdfPrintAlignment Alignment { get; private set; } = PdfPrintAlignment.Center;
     internal PdfPrintPageSubset PageSubset { get; private set; }
     internal PdfPrintColorMode ColorMode { get; private set; }
+    internal string? PasswordEnvironmentVariable { get; private set; }
 
     internal PdfPrintPlanRequest CreatePrintRequest() => new() {
         InputPath = Path.GetFullPath(Inputs[0]), Pages = Pages, PaperSize = PaperSize,
         Orientation = Orientation, PagesPerSheet = PagesPerSheet, ScaleMode = ScaleMode, Margin = Margin,
         MarginLeft = MarginLeft, MarginTop = MarginTop, MarginRight = MarginRight, MarginBottom = MarginBottom,
-        CustomScalePercent = CustomScalePercent, Alignment = Alignment, PageSubset = PageSubset, ColorMode = ColorMode
+        CustomScalePercent = CustomScalePercent, Alignment = Alignment, PageSubset = PageSubset, ColorMode = ColorMode,
+        PdfPassword = ReadPassword()
     };
+
+    /// <summary>Reads the source password through the shared environment-variable binding; passwords never appear on the command line.</summary>
+    private string? ReadPassword() {
+        try {
+            return new OfficeIMO.Tool.Agent.PdfWorkflowSettings { PasswordEnvironmentVariable = PasswordEnvironmentVariable }.Password();
+        } catch (OfficeIMO.Tool.Agent.AgentUsageException error) {
+            throw new WorkflowUsageException("--password-env: " + error.Message);
+        }
+    }
 
     internal static WorkflowArguments Parse(string[] args) {
         if (args.Length == 0 || IsHelp(args[0])) return new WorkflowArguments { Command = WorkflowCommandKind.Help };
@@ -87,6 +98,10 @@ internal sealed class WorkflowArguments {
                 case "--no-recursive":
                     EnsureCommand(parsed.Command, token, WorkflowCommandKind.Assemble);
                     parsed.IncludeSubdirectories = false;
+                    break;
+                case "--password-env":
+                    EnsureCommand(parsed.Command, token, WorkflowCommandKind.PrintPlan);
+                    parsed.PasswordEnvironmentVariable = ReadValue(args, ref index, token);
                     break;
                 case "--paper":
                     EnsureCommand(parsed.Command, token, WorkflowCommandKind.PrintPlan);
