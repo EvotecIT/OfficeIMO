@@ -27,14 +27,14 @@ public enum OfficeWorkflowOperation {
     RemovePdfProtection,
     /// <summary>Create a separate PDF with a cryptographically verified certificate signature.</summary>
     SignPdf,
-    /// <summary>Create a separate PDF/A copy, or report every reason the source cannot be converted without changing its content.</summary>
-    ConvertToPdfA,
     /// <summary>Create an explicitly reviewed raster PDF from prepared scan pages.</summary>
     ScanCleanup,
     /// <summary>Analyze Word embedded-image candidates without publishing an artifact.</summary>
     AnalyzeWordImages,
     /// <summary>Optimize embedded Word media and publish a separate Word or PDF copy.</summary>
-    OptimizeWordImages
+    OptimizeWordImages,
+    /// <summary>Create a separate PDF/A copy, or report every reason the source cannot be converted without changing its content.</summary>
+    ConvertToPdfA
 }
 
 /// <summary>Terminal state of one workflow request.</summary>

@@ -93,7 +93,7 @@ File-writing operations create output in authorized folders. OCR providers are s
 | `officeimo_convert` | Write Markdown/Reader JSON, run a catalog conversion route such as Office, OpenDocument, email, EPUB or Visio to PDF and Markdown/HTML/RTF to DOCX, or convert an iWork ZIP file or authorized directory package to matching Office output or PDF, with source hashes and workflow evidence |
 | `officeimo_capabilities` | Discover format and operation support |
 | `officeimo_pdf` | Extract, owner-authorized decrypt, acknowledged raster flatten, optimize, or sanitize into a separate PDF |
-| `officeimo_pdf_convert_to_pdfa` | Convert to PDF/A in a separate file, listing every change or every violation |
+| `officeimo_pdf_convert_to_pdfa` | Convert to PDF/A in a separate file, reporting its changes or violations with exact counts |
 | `officeimo_pdf_split` | Split consecutive pages into a separate validated folder |
 | `officeimo_pdf_assemble` | Assemble ordered explicit PDF and raster-image files |
 | `officeimo_pdf_export_pages` | Export selected page images into a separate folder |

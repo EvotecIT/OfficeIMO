@@ -133,7 +133,7 @@
     { "name": "officeimo_capabilities", "writes": false, "detail": "Which formats and operations are supported" },
     { "name": "officeimo_convert", "writes": true, "detail": "Write a document as Markdown or Reader JSON, or convert it through a catalog route such as DOCX, ODT, email, EPUB or Visio to PDF" },
     { "name": "officeimo_pdf", "writes": true, "detail": "Extract pages, decrypt with the owner's password, flatten, optimize or sanitize into a new PDF" },
-    { "name": "officeimo_pdf_convert_to_pdfa", "writes": true, "detail": "Convert a PDF to PDF/A, listing every change or every reason it can't be converted" },
+    { "name": "officeimo_pdf_convert_to_pdfa", "writes": true, "detail": "Convert a PDF to PDF/A, reporting its changes or the reasons it can't be converted" },
     { "name": "officeimo_pdf_split", "writes": true, "detail": "Split a PDF into parts in a new folder" },
     { "name": "officeimo_pdf_assemble", "writes": true, "detail": "Combine PDFs and images, in order, into one PDF" },
     { "name": "officeimo_pdf_export_pages", "writes": true, "detail": "Save chosen pages as images" },

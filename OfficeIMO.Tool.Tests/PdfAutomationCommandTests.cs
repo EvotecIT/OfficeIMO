@@ -186,6 +186,43 @@ public sealed class PdfAutomationCommandTests {
     }
 
     [Fact]
+    public async Task PdfAConversionEitherFitsItsBudgetOrIsRefusedBeforeWritingAndKeepsTheCompleteReport() {
+        using var scope = new DirectoryScope();
+        string source = scope.File("source.pdf"); await File.WriteAllBytesAsync(source, PdfWithAttachment());
+        var service = new OfficeImoAgentService(new AgentPathPolicy([scope.Root]));
+        // The smallest budget a short destination needs, plus half the path growth the loop adds.
+        int budget = 512;
+        while (true) {
+            try { await service.ConvertToPdfAAsync(source, scope.File("b" + budget + ".pdf"), new PdfAWorkflowSettings(), new(), budget); break; }
+            catch (AgentUsageException) { budget += 8; }
+        }
+        budget += 240;
+        int converted = 0;
+        // Destinations of growing length cross the point where only the PDF/A report no longer fits.
+        int refused = 0;
+        for (int length = 1; length <= 480; length += 3) {
+            string folder = Directory.CreateDirectory(scope.File(length + new string('d', Math.Max(0, length - 240)))).FullName;
+            string destination = Path.Combine(folder, new string('a', Math.Min(length, 240)) + ".pdf");
+            AgentPdfAReport? complete = null;
+            AgentPdfWorkflowResult result;
+            try {
+                result = await service.ConvertToPdfAAsync(source, destination, new PdfAWorkflowSettings(), new(), budget, report => complete = report);
+            } catch (AgentUsageException) {
+                Assert.False(File.Exists(destination));
+                refused++;
+                continue;
+            }
+            converted++;
+            Assert.True(result.Succeeded);
+            Assert.True(AgentJson.Serialize(result).Length <= budget);
+            Assert.NotNull(complete);
+            Assert.Equal(complete!.ChangeCount, complete.Changes.Count);
+            Assert.Equal(complete.ChangeCount, result.PdfA!.ChangeCount);
+        }
+        Assert.True(converted > 0 && refused > 0, $"converted={converted} refused={refused} budget={budget}");
+    }
+
+    [Fact]
     public async Task PdfAConversionThroughMcpReadsFontsOnlyWithinAllowedRoots() {
         using var scope = new DirectoryScope();
         string allowed = Directory.CreateDirectory(scope.File("allowed")).FullName;

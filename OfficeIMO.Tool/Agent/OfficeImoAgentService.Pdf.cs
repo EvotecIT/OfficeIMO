@@ -46,7 +46,8 @@ internal sealed partial class OfficeImoAgentService {
     }
 
     internal async Task<AgentPdfWorkflowResult> ConvertToPdfAAsync(string path, string outputPath, PdfAWorkflowSettings pdfA,
-        PdfWorkflowSettings settings, int maxOutputCharacters = 4000, CancellationToken cancellationToken = default) {
+        PdfWorkflowSettings settings, int maxOutputCharacters = 4000, Action<AgentPdfAReport>? completeReport = null,
+        CancellationToken cancellationToken = default) {
         settings.Validate(); pdfA.Validate(); maxOutputCharacters = ValidateOutputBudget(maxOutputCharacters);
         if (settings.Pages is not null) throw new AgentUsageException("PDF/A conversion converts the whole document.");
         string input = ResolvePdfInput(path);
@@ -63,9 +64,16 @@ internal sealed partial class OfficeImoAgentService {
             ConflictPolicy = settings.ConflictPolicy, Limits = settings.Limits(), PublicationGuard = new PdfRootPublicationGuard(_pathPolicy, sources)
         };
         OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(request, cancellationToken: cancellationToken).ConfigureAwait(false);
+        AgentPdfAReport? report = PdfAReport(result);
+        if (report is not null) completeReport?.Invoke(report);
+        // The JSON result is bounded, so it trims a copy and leaves the complete report intact.
+        AgentPdfAReport? bounded = report is null ? null : new AgentPdfAReport {
+            Profile = report.Profile, ChangeCount = report.ChangeCount, ViolationCount = report.ViolationCount,
+            Changes = report.Changes.ToList(), Violations = report.Violations.ToList()
+        };
         return PdfResult("convert-to-pdfa", result.Status, result.FailureKind, result.OutputPath, result.OutputBytes,
             result.OutputPath is null ? [] : [new AgentPdfArtifact { Path = result.OutputPath, SizeBytes = result.OutputBytes }],
-            result.Diagnostics, maxOutputCharacters, pdfA: PdfAReport(result));
+            result.Diagnostics, maxOutputCharacters, pdfA: bounded);
     }
 
     private static AgentPdfAReport? PdfAReport(OfficeWorkflowResult result) {
@@ -175,6 +183,8 @@ internal sealed partial class OfficeImoAgentService {
             throw new AgentUsageException("Output already exists. Choose a new path or explicitly enable overwrite.");
         // Required fields must fit before any operation writes output. Artifact samples and diagnostic codes are trimmed later.
         var minimal = new AgentPdfWorkflowResult { Operation = operation, Status = "Completed", FailureKind = "OperationFailed", Succeeded = true, OutputPath = destination, Truncated = true };
+        // A PDF/A result always carries its report, which keeps the profile and counts when every entry is trimmed.
+        if (operation == "convert-to-pdfa") minimal.PdfA = new AgentPdfAReport { Profile = new string('x', 16), ChangeCount = int.MaxValue, ViolationCount = int.MaxValue };
         if (AgentJson.Measure(minimal) + 64 > maximumCharacters)
             throw new AgentUsageException("Increase maxOutputCharacters to include the required output path.");
         return destination;

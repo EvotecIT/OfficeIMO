@@ -31,7 +31,10 @@ Passwords are read only from --password-env, never from command-line values or r
 All writes require a separate explicit output. Existing outputs are refused unless --force is supplied.
 Flattening renders page appearances only: native text, forms, links, signatures, and attachments are omitted.
 OCR adds searchable text to the source pages; recognition confidence is provider evidence, not a correctness guarantee.
-PDF/A conversion writes a PDF/A copy and lists every change, or refuses with every violation (exit 4) and writes nothing.
+PDF/A conversion writes a PDF/A copy, or refuses (exit 4) and writes nothing. Standard error lists every change or
+violation; the JSON pdfA report keeps exact counts and is trimmed to the output budget (truncated=true).
+--attachments defaults to remove; pass --attachments refuse to keep a source with embedded files unconverted.
+Each supplied --font family needs a regular face.
 An encrypted source needs its owner password. Supplied fonts are tried before installed fonts unless
 --font-substitution none; a face is embedded only when its glyph widths match the page and its licence allows it.
 Optional OCR provider assemblies and executable settings must be trusted by the invoking host.
@@ -53,15 +56,17 @@ JSON results contain bounded artifact metadata and diagnostic codes, never docum
             if (parsed.Operation == "providers") {
                 await output.WriteLineAsync(AgentJson.Serialize(service.PdfOcrProviders().ToArray())).ConfigureAwait(false); return 0;
             }
+            AgentPdfAReport? completeReport = null;
             AgentPdfWorkflowResult result = parsed.Operation switch {
                 "split" => await service.SplitPdfAsync(parsed.Input!, parsed.Output!, parsed.PagesPerDocument, parsed.Settings, cancellationToken: cancellationToken).ConfigureAwait(false),
                 "convert-to-pdfa" => await service.ConvertToPdfAAsync(parsed.Input!, parsed.Output!, parsed.PdfA, parsed.Settings,
-                    maxOutputCharacters: 64000, cancellationToken: cancellationToken).ConfigureAwait(false),
+                    maxOutputCharacters: 64000, completeReport: report => completeReport = report, cancellationToken: cancellationToken).ConfigureAwait(false),
                 "ocr" => await service.SearchablePdfAsync(parsed.Input!, parsed.Output!, parsed.Provider!, parsed.Settings, parsed.Language, parsed.Confidence, cancellationToken: cancellationToken).ConfigureAwait(false),
                 _ => await service.PdfAsync(parsed.Input!, parsed.Output!, parsed.Operation, parsed.Settings, cancellationToken: cancellationToken).ConfigureAwait(false)
             };
             await output.WriteLineAsync(AgentJson.Serialize(result)).ConfigureAwait(false);
-            if (result.PdfA is { } report) await WritePdfAReportAsync(report, error).ConfigureAwait(false);
+            // Standard error lists the complete report; the JSON report is bounded with exact counts.
+            if (completeReport is { } report) await WritePdfAReportAsync(report, error).ConfigureAwait(false);
             if (result.Succeeded) return 0;
             await error.WriteLineAsync("PDF " + parsed.Operation + " " + result.Status.ToLowerInvariant() + "; " + string.Join(", ", result.Diagnostics.Select(item => item.Code))).ConfigureAwait(false);
             return WorkflowCommand.MapStatus(Enum.Parse<OfficeWorkflowStatus>(result.Status), Enum.Parse<OfficeWorkflowFailureKind>(result.FailureKind));

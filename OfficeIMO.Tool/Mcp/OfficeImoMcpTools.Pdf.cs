@@ -60,7 +60,7 @@ internal sealed partial class OfficeImoMcpTools {
 
     [McpServerTool(Name = "officeimo_pdf_convert_to_pdfa", Title = "Create a PDF/A copy", ReadOnly = false,
         Destructive = true, Idempotent = true, OpenWorld = false, UseStructuredContent = true, OutputSchemaType = typeof(AgentPdfWorkflowResult))]
-    [Description("Convert a PDF to PDF/A in a separate explicit destination. Conversion fixes what it can without moving page content and lists every change; when the source cannot be made compliant it writes nothing and lists every violation by location and object number. Fonts and ICC profiles must be files within allowed roots.")]
+    [Description("Convert a PDF to PDF/A in a separate explicit destination. Conversion fixes what it can without moving page content and reports its changes; when the source cannot be made compliant it writes nothing and reports the violations by location and object number. Counts are exact; entries are trimmed to maxOutputCharacters and truncated is true when any are left out. Fonts and ICC profiles must be files within allowed roots.")]
     public Task<CallToolResult> ConvertToPdfAAsync(
         [Description("Local source PDF within allowed roots.")] string path,
         [Description("Separate destination .pdf within allowed roots.")] string outputPath,
@@ -80,7 +80,7 @@ internal sealed partial class OfficeImoMcpTools {
                 Profile = profile, Attachments = attachments, Fonts = fonts ?? [], FontSubstitution = fontSubstitution,
                 OutputIntent = outputIntent, OutputConditionIdentifier = outputConditionIdentifier
             },
-            Settings(null, passwordEnvironmentVariable, overwrite, 100, 150, maximumInputBytes, maximumOutputBytes), maxOutputCharacters, cancellationToken));
+            Settings(null, passwordEnvironmentVariable, overwrite, 100, 150, maximumInputBytes, maximumOutputBytes), maxOutputCharacters, cancellationToken: cancellationToken));
 
     [McpServerTool(Name = "officeimo_pdf_split", Title = "Split a PDF into separate parts", ReadOnly = false,
         Destructive = true, Idempotent = true, OpenWorld = false, UseStructuredContent = true, OutputSchemaType = typeof(AgentPdfWorkflowResult))]
