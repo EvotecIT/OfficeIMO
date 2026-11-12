@@ -143,7 +143,7 @@ Accept wildcard characters: False
 ```
 
 ### -Orientation
-Paper orientation.
+Paper orientation. When omitted, each sheet takes the orientation that places its pages largest, so two-up and six-up sheets of portrait pages print in landscape.
 
 ```yaml
 Type: OfficePageOrientation
