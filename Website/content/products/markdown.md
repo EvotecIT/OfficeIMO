@@ -25,7 +25,7 @@ OfficeIMO.Markdown is a purpose-built Markdown engine for .NET. It gives you a s
 - **Fluent document builder** — construct Markdown documents programmatically with a chainable API
 - **Typed block & inline AST model** — headings, paragraphs, lists, tables, code blocks, emphasis, links, and images as strongly typed objects
 - **Source spans for every node** — line, column, and offset tracking for diagnostics and editor support
-- **Multiple reader profiles** — OfficeIMO, CommonMark, GFM, and Portable profiles with configurable strictness
+- **Multiple reader profiles** — OfficeIMO, CommonMark, GFM, and Portable profiles with configurable strictness; CommonMark 0.31.2: 652/652 spec examples
 - **HTML rendering** — emit fragment or full-page HTML with customizable templates
 - **Front matter support** — read, edit and write YAML front matter, including nested values, through OfficeIMO.Yaml without losing comments or formatting
 - **TOC helpers & callouts** — generate table of contents from headings and render note/warning/tip callouts
@@ -79,6 +79,8 @@ foreach (var block in parsed.DescendantsAndSelf())
 | .NET 8.0          | Yes       |
 | .NET Standard 2.0 | Yes       |
 | .NET Framework 4.7.2 | Yes   |
+
+The CommonMark profile matches all 652 examples of the official CommonMark 0.31.2 specification, and the GFM profile passes all 52 tracked cmark-gfm extension fixtures. The [compatibility matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.markdown.compatibility-matrix.md) lists every extension family and its exact boundary.
 
 OfficeIMO.Markdown runs on Windows, Linux, and macOS. Its checked-in NativeAOT smoke publishes and executes fluent composition and rendering; use the deployment guide to reproduce that baseline and then add the exact extensions your application needs.
 

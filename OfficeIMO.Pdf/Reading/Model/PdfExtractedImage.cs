@@ -104,10 +104,14 @@ public sealed partial class PdfExtractedImage {
     /// <summary>Copies extracted image bytes without creating another in-memory payload.</summary>
     public void CopyTo(Stream destination, CancellationToken cancellationToken = default) {
         Guard.NotNull(destination, nameof(destination));
+        if (_bytes.Length == 0) return;
+        // Repeated placements can share one payload, so the destination only ever sees a chunk copy it may change.
+        byte[] chunk = new byte[Math.Min(64 * 1024, _bytes.Length)];
         for (int offset = 0; offset < _bytes.Length;) {
             cancellationToken.ThrowIfCancellationRequested();
-            int length = Math.Min(64 * 1024, _bytes.Length - offset);
-            destination.Write(_bytes, offset, length);
+            int length = Math.Min(chunk.Length, _bytes.Length - offset);
+            Buffer.BlockCopy(_bytes, offset, chunk, 0, length);
+            destination.Write(chunk, 0, length);
             offset += length;
         }
     }

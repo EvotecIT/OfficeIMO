@@ -269,7 +269,7 @@ public partial class WordDocument {
         return borders.Elements<W.BorderType>().All(border => border.Val == null || border.Val.Value == W.BorderValues.None || border.Val.Value == W.BorderValues.Nil);
     }
 
-    private static int GetHeadingLevel(W.Paragraph paragraph, Dictionary<string, W.Style> styles) {
+    internal static int GetHeadingLevel(W.Paragraph paragraph, Dictionary<string, W.Style> styles) {
         int? outline = paragraph.ParagraphProperties?.OutlineLevel?.Val?.Value;
         string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
         var visited = new HashSet<string>(StringComparer.Ordinal);

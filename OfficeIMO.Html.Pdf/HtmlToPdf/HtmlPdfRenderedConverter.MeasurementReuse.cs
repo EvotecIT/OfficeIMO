@@ -4,7 +4,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Html.Pdf;
 
 internal static partial class HtmlPdfRenderedConverter {
-    private const int MaximumReusedTextMeasurements = 1024;
+    private const int MaximumReusedTextMeasurements = 4096;
     private const int MaximumReusedMeasurementTextLength = 256;
 
     /// <summary>Reuses short built-in measurements within one prepared conversion and font configuration.</summary>
@@ -21,10 +21,7 @@ internal static partial class HtmlPdfRenderedConverter {
         var results = new Dictionary<(string Text, OfficeFontInfo Font, OfficeFontFaceDescriptor Face), TValue>();
         PdfCore.PdfCreateOptions? fontSnapshot = null;
         return (text, font, descriptor) => {
-            // Once bounded reuse is exhausted, the ordinary callback avoids
-            // repeated font-identity scans and unsuccessful key lookups.
-            if (results.Count >= MaximumReusedTextMeasurements
-                || text.Length > MaximumReusedMeasurementTextLength
+            if (text.Length > MaximumReusedMeasurementTextLength
                 || font.FamilyName.Length > MaximumReusedMeasurementTextLength) {
                 return measure(text, font, descriptor);
             }
@@ -36,7 +33,10 @@ internal static partial class HtmlPdfRenderedConverter {
             // Fallback planning may have registered a face while measuring. Never
             // keep earlier decisions across that change, even within one request.
             RefreshFontSnapshot();
-            if (value.HasValue && results.Count < MaximumReusedTextMeasurements) {
+            if (value.HasValue) {
+                // A long table measures more distinct strings than one bounded generation holds.
+                // Start a new generation rather than stop reusing, so later width passes still hit.
+                if (results.Count >= MaximumReusedTextMeasurements) results.Clear();
                 results[key] = value.Value;
             }
             return value;
