@@ -7240,8 +7240,8 @@ XML and YAML values within their configured limits retain their full normalized 
 
 ## Reader JSON and TOML limits
 
-JSON extraction adds `JsonReadOptions.MaxNodes` (200,000) and `MaxScalarLength` (1,048,576)
-beside `MaxDepth` (32). Exceeding any of the three, including `MaxDepth`, now throws
+JSON extraction adds `JsonReadOptions.MaxNodes` (1,000,000) and `MaxScalarLength` (1,048,576)
+and raises the `MaxDepth` default from 32 to 64, matching System.Text.Json. Exceeding any of the three, including `MaxDepth`, now throws
 `ReaderResourceLimitException` instead of returning a `json-warning-0000` parse warning, and a
 limit below 1 throws `ArgumentOutOfRangeException` instead of being raised to 1. Raise the
 relevant option for trusted larger inputs; malformed JSON still produces the warning chunk.

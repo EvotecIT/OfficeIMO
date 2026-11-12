@@ -75,8 +75,8 @@ var chunks = reader.Enumerate(stream, "payload.json", new ReaderOptions {
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `ChunkRows` | 200 | Rows per emitted chunk. |
-| `MaxDepth` | 32 | Maximum nesting of objects and arrays, with the root container at depth one. |
-| `MaxNodes` | 200,000 | Maximum JSON values: objects, arrays, strings, numbers, booleans and nulls. |
+| `MaxDepth` | 64 | Maximum nesting of objects and arrays, with the root container at depth one. |
+| `MaxNodes` | 1,000,000 | Maximum JSON values: objects, arrays, strings, numbers, booleans and nulls. |
 | `MaxScalarLength` | 1,048,576 | Maximum characters in one decoded string or property name, or in one number as written. |
 | `IncludeMarkdown` | `true` | Adds a Markdown table projection to each chunk. |
 
