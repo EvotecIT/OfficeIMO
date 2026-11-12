@@ -48,7 +48,7 @@ officeimo convert deck.pptx --output deck.pdf --force
 officeimo convert brochure.pub brochure.pdf
 ```
 
-The extension selects the same first-party Word, Excel, PowerPoint, or Publisher PDF adapter used by .NET applications. The source is opened read-only, diagnostics go to standard error, and an existing destination is not replaced unless `--force` is explicit. The command is intentionally a thin package dispatcher; format-specific fidelity and warning contracts remain in the owning adapters linked above.
+The extension selects the same first-party Word, Excel, PowerPoint, or Publisher PDF adapter used by .NET applications. The source is opened read-only, diagnostics go to standard error, and an existing destination is not replaced unless `--force` is explicit. The command is intentionally a thin package dispatcher; format-specific fidelity and warning contracts remain in the owning adapters linked above. [Convert documents with the CLI](/docs/cli/convert/) lists every command-line route and its options, and [batch conversion](/docs/cli/batch-and-jobs/) covers folders, checkpoints and saved jobs.
 
 ## PowerShell routes are documented separately
 
