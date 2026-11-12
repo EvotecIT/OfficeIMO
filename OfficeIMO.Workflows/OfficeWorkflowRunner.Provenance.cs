@@ -64,6 +64,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
 
         try {
             cancellationToken.ThrowIfCancellationRequested();
+            if (_registeredConversionsOnly)
+                throw new ArgumentException("This runner runs only its registered conversions; provenance operations are not available.", nameof(request));
             validated = ValidateProvenanceRequest(request);
             if (validated.Operation == OfficeProvenanceWorkflowOperation.Assess) checks = checks with {
                 TextIntegrity = !validated.Assessment.InspectTextIntegrity ? OfficeProvenanceCheckStatus.Disabled : OfficeProvenanceCheckStatus.NotRequested,

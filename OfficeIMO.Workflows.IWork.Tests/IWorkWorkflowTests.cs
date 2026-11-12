@@ -187,6 +187,13 @@ public sealed partial class IWorkWorkflowTests {
         OfficeWorkflowResult rejected = await runner.RunAsync(request);
         Assert.Equal(OfficeWorkflowFailureKind.ValidationFailed, rejected.FailureKind);
         Assert.False(File.Exists(builtIn.Output));
+
+        string provenanceOutput = Path.ChangeExtension(builtIn.Output, ".copy.xlsx");
+        var provenance = await runner.RunProvenanceAsync(new OfficeProvenanceWorkflowRequest {
+            Operation = OfficeProvenanceWorkflowOperation.Remove, InputPath = files.Output, OutputPath = provenanceOutput
+        });
+        Assert.Equal(OfficeWorkflowFailureKind.ValidationFailed, provenance.FailureKind);
+        Assert.False(File.Exists(provenanceOutput));
     }
 
     [Fact]
