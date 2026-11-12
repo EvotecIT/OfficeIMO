@@ -23,7 +23,6 @@ public sealed class PrintDeliveryTests {
             await model.RefreshPrintersCommand.ExecuteAsync(null);
             model.Pages = "1";
             model.SelectedPaper = new("Small fixture", new PdfPageSize(OfficeIMO.OfficeLength.Points(100),OfficeIMO.OfficeLength.Points(120)));
-            model.PrintDpi = 72;
             await model.BuildPreviewCommand.ExecuteAsync(null);
             Assert.True(model.CanPrint, model.Status);
             switch (change) {
@@ -118,6 +117,9 @@ public sealed class PrintDeliveryTests {
             model.Copies = 2;
             model.SelectedPaperSource = model.PaperSourceChoices.Single(choice => choice.Id == "tray-2");
             model.SelectedDuplex = model.DuplexChoices.Single(choice => choice.Value == PdfPrintDuplex.LongEdge);
+            // The raster limit only affects delivery, so the reviewed job stays ready.
+            model.PrintDpi = model.PrintDpiChoices.Min();
+            Assert.True(model.CanPrint, model.Status);
             await model.PrintCommand.ExecuteAsync(null);
             Assert.Equal(1, reads);
             Assert.NotNull(printer.Document);
@@ -125,14 +127,11 @@ public sealed class PrintDeliveryTests {
             Assert.Equal(2, printer.Options!.Copies);
             Assert.Equal("tray-2", printer.Options.PaperSourceId);
             Assert.Equal(PdfPrintDuplex.LongEdge, printer.Options.Duplex);
+            Assert.Equal(model.PrintDpiChoices.Min(), printer.Options.MaximumRasterDpi);
             Assert.Contains("Printer accepted job test-7", model.Status);
             Assert.False(history.Entries[0].HasOutput);
             Assert.False(history.Entries[0].IsActive);
-            byte[] copy = printer.Document.Sheets[0].GetPng();
-            byte original = copy[0];
-            copy[0] ^= 255;
-            Assert.Equal(original, printer.Document.Sheets[0].GetPng()[0]);
-            model.PrintDpi = 300;
+            model.SelectedPagesPerSheet = model.PagesPerSheetChoices.Single(choice => choice.Value == 1);
             Assert.False(model.HasPreview);
             Assert.False(model.CanPrint);
             return true;
@@ -184,7 +183,7 @@ public sealed class PrintDeliveryTests {
             Assert.True(model.CanPrint, model.Status);
             await model.PrintCommand.ExecuteAsync(null);
             Assert.NotNull(printer.Document);
-            Assert.Single(printer.Document.Sheets);
+            Assert.Single(printer.Document.Plan.Sheets);
             return true;
         }, CancellationToken.None);
     }
@@ -249,7 +248,7 @@ public sealed class PrintDeliveryTests {
         }, printers: printer, jobHistory: history) { InputPath = Path.Combine(Path.GetTempPath(), "reviewed-snapshot.pdf") };
 
     private sealed class RecordingPrinter : IPdfPrinterService {
-        public PdfPreparedPrintDocument? Document { get; private set; }
+        public PdfPrintJob? Document { get; private set; }
         public PdfPrintDeliveryOptions? Options { get; private set; }
         public bool WaitForCancellation { get; init; }
         public string? CleanupWarning { get; init; }
@@ -259,13 +258,16 @@ public sealed class PrintDeliveryTests {
         public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public Task<IReadOnlyList<PdfPrinterInfo>> GetPrintersAsync(CancellationToken cancellationToken = default) =>
             PrinterDiscovery?.Task ?? Task.FromResult<IReadOnlyList<PdfPrinterInfo>>([new("Test queue", true, false)]);
-        public Task<IReadOnlyList<PdfPaperSourceInfo>> GetPaperSourcesAsync(string printerName, CancellationToken cancellationToken = default) {
-            if (!DelayPaperSources) return Task.FromResult<IReadOnlyList<PdfPaperSourceInfo>>([new("tray-2", "Lower tray")]);
-            var completion = new TaskCompletionSource<IReadOnlyList<PdfPaperSourceInfo>>(TaskCreationOptions.RunContinuationsAsynchronously);
-            Sources.Add(printerName, completion);
-            return completion.Task; // Deliberately model a driver that ignores cancellation.
+        public async Task<PdfPrinterCapabilities> GetCapabilitiesAsync(string printerName, CancellationToken cancellationToken = default) {
+            IReadOnlyList<PdfPaperSourceInfo> sources = [new("tray-2", "Lower tray")];
+            if (DelayPaperSources) {
+                var completion = new TaskCompletionSource<IReadOnlyList<PdfPaperSourceInfo>>(TaskCreationOptions.RunContinuationsAsynchronously);
+                Sources.Add(printerName, completion);
+                sources = await completion.Task; // Deliberately model a driver that ignores cancellation.
+            }
+            return new PdfPrinterCapabilities { PrinterName = printerName, PaperSources = sources };
         }
-        public async Task<PdfPrintSubmission> SubmitAsync(PdfPreparedPrintDocument document, PdfPrintDeliveryOptions options, CancellationToken cancellationToken = default) {
+        public async Task<PdfPrintSubmission> SubmitAsync(PdfPrintJob document, PdfPrintDeliveryOptions options, CancellationToken cancellationToken = default) {
             Document = document;
             Options = options;
             Started.TrySetResult();
@@ -273,7 +275,7 @@ public sealed class PrintDeliveryTests {
                 try { await Task.Delay(Timeout.Infinite, cancellationToken); }
                 catch (OperationCanceledException error) { throw new PdfPrintDeliveryException("test-7", error); }
             }
-            return new(options.PrinterName, "test-7", document.Sheets.Count, options.Copies, null) { CleanupWarning = CleanupWarning };
+            return new(options.PrinterName, "test-7", document.Plan.Sheets.Count, options.Copies, null) { CleanupWarning = CleanupWarning };
         }
     }
 }

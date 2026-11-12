@@ -7,106 +7,112 @@ using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Workflows;
 
-internal static class CupsPdfPrinter {
-    internal static async Task<IReadOnlyList<PdfPaperSourceInfo>> GetPaperSourcesAsync(string printerName, CancellationToken token) {
+internal static partial class CupsPdfPrinter {
+    internal static async Task<PdfPrinterCapabilities> GetCapabilitiesAsync(string printerName, CancellationToken token) {
         if (!(await GetPrintersAsync(token).ConfigureAwait(false)).Any(printer => printer.Name == printerName))
             throw new ArgumentException("The selected printer queue is not available.", nameof(printerName));
-        var result = await RunAsync("lpoptions", ["-p", printerName, "-l"], token).ConfigureAwait(false);
-        if (result.ExitCode != 0) throw new IOException(result.Error.Trim());
-        return ParsePaperSources(result.Output);
+        return await ReadCapabilitiesAsync(printerName, token).ConfigureAwait(false);
     }
 
-    internal static IReadOnlyList<PdfPaperSourceInfo> ParsePaperSources(string output) {
-        foreach (string line in output.Split('\n')) {
-            int separator = line.IndexOf(':');
-            if (separator <= 0) continue;
-            string key = line.Substring(0, separator).Split('/')[0];
-            if (key is not ("InputSlot" or "media-source")) continue;
-            var sources = new List<PdfPaperSourceInfo>();
-            foreach (string item in line.Substring(separator + 1).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)) {
-                string choice = item.TrimStart('*');
-                if (choice.Length is 0 or > 128 || !choice.All(character => OfficeRuntimeCompatibility.IsAsciiLetterOrDigit(character) || character is '-' or '_' or '.')) continue;
-                sources.Add(new(key + "=" + choice, choice));
-            }
-            return sources.DistinctBy(source => source.Id).ToArray();
-        }
-        return [];
+    private static async Task<PdfPrinterCapabilities> ReadCapabilitiesAsync(string printerName, CancellationToken token) {
+        var choices = await RunAsync("lpoptions", ["-p", printerName, "-l"], token).ConfigureAwait(false);
+        if (choices.ExitCode != 0) throw new IOException(choices.Error.Trim());
+        var destination = await RunAsync("lpoptions", ["-p", printerName], token).ConfigureAwait(false);
+        if (destination.ExitCode != 0) throw new IOException(destination.Error.Trim());
+        return ParseCapabilities(printerName, choices.Output, destination.Output);
     }
 
     internal static async Task<IReadOnlyList<PdfPrinterInfo>> GetPrintersAsync(CancellationToken token) {
         var queues = await RunAsync("lpstat", ["-e"], token).ConfigureAwait(false);
         if (queues.ExitCode != 0) throw new IOException(queues.Error.Trim());
         var current = await RunAsync("lpstat", ["-d"], token).ConfigureAwait(false);
-        const string prefix = "system default destination: ";
-        string? defaultName = current.Output.Trim().StartsWith(prefix, StringComparison.Ordinal)
-            ? current.Output.Trim().Substring(prefix.Length) : null;
-        return queues.Output.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(name => name.Trim()).Where(name => name.Length != 0)
-            .Distinct(StringComparer.Ordinal).Select(name => new PdfPrinterInfo(name, name == defaultName, false))
+        return ParsePrinters(queues.Output, current.Output);
+    }
+
+    /// <summary>Reads <c>lpstat -e</c> and <c>lpstat -d</c>. macOS localizes the messages regardless of the locale variables, so the default is recognized by its queue name.</summary>
+    internal static IReadOnlyList<PdfPrinterInfo> ParsePrinters(string queues, string defaultDestination) {
+        string[] names = queues.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(name => name.Trim()).Where(name => name.Length != 0)
+            .Distinct(StringComparer.Ordinal).ToArray();
+        string current = defaultDestination.Trim();
+        int separator = current.LastIndexOf(": ", StringComparison.Ordinal);
+        string? defaultName = separator < 0 ? null : current.Substring(separator + 2).Trim();
+        return names.Select(name => new PdfPrinterInfo(name, name == defaultName, false))
             .OrderByDescending(printer => printer.IsDefault).ThenBy(printer => printer.Name, StringComparer.Ordinal).ToArray();
     }
 
-    internal static async Task<PdfPrintSubmission> SubmitAsync(PdfPreparedPrintDocument document, PdfPrintDeliveryOptions options, CancellationToken token) {
+    /// <summary>Finds the job identifier <c>queue-number</c> in localized <c>lp</c> output.</summary>
+    internal static string? ParseJobId(string output, string printerName) {
+        Match receipt = Regex.Match(output, @"(?<![^\s(])" + Regex.Escape(printerName) + @"-\d+(?![^\s),.])",
+            RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+        return receipt.Success ? receipt.Value : null;
+    }
+
+    internal static async Task<PdfPrintSubmission> SubmitAsync(PdfPrintJob job, PdfPrintDeliveryOptions options, CancellationToken token) {
         if (!(options.OutputFilePath == null || string.IsNullOrWhiteSpace(options.OutputFilePath))) throw new NotSupportedException("CUPS file output is controlled by the selected printer queue.");
         if (!(await GetPrintersAsync(token).ConfigureAwait(false)).Any(printer => printer.Name == options.PrinterName))
             throw new ArgumentException("The selected printer queue is not available.", nameof(options));
-        if (options.PaperSourceId is not null && !(await GetPaperSourcesAsync(options.PrinterName, token).ConfigureAwait(false)).Any(source => source.Id == options.PaperSourceId))
+        PdfPrinterCapabilities capabilities = await ReadCapabilitiesAsync(options.PrinterName, token).ConfigureAwait(false);
+        if (options.PaperSourceId is not null && !capabilities.PaperSources.Any(source => source.Id == options.PaperSourceId))
             throw new ArgumentException("The selected paper source is no longer available on this printer.", nameof(options));
-        PdfPageSize paper = document.Sheets[0].Plan.PaperSize;
-        double width = Math.Min(paper.Width.ToPoints(), paper.Height.ToPoints()), height = Math.Max(paper.Width.ToPoints(), paper.Height.ToPoints());
-        if (document.Sheets.Any(sheet => Math.Abs(Math.Min(sheet.Plan.PaperSize.Width.ToPoints(), sheet.Plan.PaperSize.Height.ToPoints()) - width) > 1 ||
-            Math.Abs(Math.Max(sheet.Plan.PaperSize.Width.ToPoints(), sheet.Plan.PaperSize.Height.ToPoints()) - height) > 1))
-            throw new NotSupportedException("One CUPS job must use a single paper size.");
-        var pages = new List<PdfDocument>();
-        foreach (PdfRenderedPrintSheet sheet in document.Sheets) {
-            token.ThrowIfCancellationRequested();
-            pages.Add(PdfDocument.CreateFromImages([new PdfImageDocumentSource(sheet.Png)],
-                new PdfImageImportOptions { FixedPageSize = sheet.Plan.PaperSize, Margin = OfficeLength.Zero, Fit = OfficeImageFit.Stretch }, token));
-        }
-        byte[] bytes = SerializeSpool(pages, token);
-        return await SubmitSpoolAsync(document, options, bytes, token, RunAsync).ConfigureAwait(false);
+        // The vector content keeps source colors, so grayscale jobs send the same pixels the preview shows.
+        using Stream content = job.Plan.ColorMode == PdfPrintColorMode.Grayscale
+            ? new MemoryStream(RasterizeSheets(job, options.MaximumRasterDpi, token), writable: false)
+            : job.OpenContent();
+        return await SubmitSpoolAsync(job.Plan, options, CreateArguments(job.Plan, options, capabilities.Media, capabilities.DefaultMedia), content, token, RunAsync).ConfigureAwait(false);
     }
 
-    internal static byte[] SerializeSpool(IReadOnlyList<PdfDocument> pages, CancellationToken token) {
-        byte[] bytes = (pages.Count == 1 ? pages[0] : PdfDocument.Merge(pages, token)).ToBytes(new PdfSaveOptions { AllowLoss = true }, token);
-        if (bytes.LongLength > 256L * 1024 * 1024) throw new InvalidOperationException("The CUPS spool document exceeds its byte limit.");
-        return bytes;
+    internal static byte[] RasterizeSheets(PdfPrintJob job, double maximumDpi, CancellationToken token) =>
+        PdfPrintJobComposer.WrapRasterSheets(job.Plan.Sheets, sheet => {
+            double dpi = PdfPrintRaster.ResolveDpi(maximumDpi, maximumDpi, sheet.PaperSize.Width.ToPoints(), sheet.PaperSize.Height.ToPoints(), job.MaximumPixelsPerImage);
+            return OfficePngWriter.Encode(job.RenderRaster(sheet.SheetNumber, dpi, job.MaximumPixelsPerImage, token).Raster, token);
+        }, 256L * 1024 * 1024, token);
+
+    /// <summary>Builds lp options. One media keyword applies to the whole job, so mixed-size jobs leave media selection to each PDF page.</summary>
+    internal static List<string> CreateArguments(PdfPrintPlan plan, PdfPrintDeliveryOptions options, IReadOnlyList<PdfPrinterMedia> media, PdfPrinterMedia? defaultMedia) {
+        var arguments = new List<string> {
+            "-d", options.PrinterName, "-n", options.Copies.ToString(CultureInfo.InvariantCulture), "-t", options.DocumentName,
+            "-o", "print-scaling=none", "-o", "number-up=1", "-o", "Collate=True"
+        };
+        PdfPageSize first = plan.Sheets[0].PaperSize;
+        if (plan.Sheets.All(sheet => PdfPrinterMediaNames.SameSize(sheet.PaperSize, first))) {
+            string keyword = PdfPrinterMediaNames.Match(media, defaultMedia, first)?.Id ?? PdfPrinterMediaNames.TryGetKeyword(first) ?? CustomMedia(first);
+            arguments.Add("-o"); arguments.Add("media=" + keyword);
+            if (plan.Sheets.All(sheet => sheet.PaperSize.Width.ToPoints() > sheet.PaperSize.Height.ToPoints())) {
+                arguments.Add("-o"); arguments.Add("orientation-requested=4");
+            } else if (plan.Sheets.All(sheet => sheet.PaperSize.Width.ToPoints() <= sheet.PaperSize.Height.ToPoints())) {
+                arguments.Add("-o"); arguments.Add("orientation-requested=3");
+            }
+        }
+        if (options.Duplex != PdfPrintDuplex.PrinterDefault) {
+            arguments.Add("-o");
+            arguments.Add("sides=" + (options.Duplex == PdfPrintDuplex.SingleSided ? "one-sided" : options.Duplex == PdfPrintDuplex.LongEdge ? "two-sided-long-edge" : "two-sided-short-edge"));
+        }
+        if (options.PaperSourceId is not null) {
+            arguments.Add("-o"); arguments.Add(options.PaperSourceId);
+        }
+        return arguments;
     }
+
+    private static string CustomMedia(PdfPageSize paper) => string.Format(CultureInfo.InvariantCulture, "Custom.{0:0.###}x{1:0.###}pt",
+        Math.Min(paper.Width.ToPoints(), paper.Height.ToPoints()), Math.Max(paper.Width.ToPoints(), paper.Height.ToPoints()));
 
     internal delegate Task<(int ExitCode, string Output, string Error)> CupsCommandRunner(
         string command, IReadOnlyList<string> arguments, CancellationToken token, Action? started);
 
-    internal static async Task<PdfPrintSubmission> SubmitSpoolAsync(PdfPreparedPrintDocument document,
-        PdfPrintDeliveryOptions options, byte[] bytes, CancellationToken token, CupsCommandRunner run) {
+    internal static async Task<PdfPrintSubmission> SubmitSpoolAsync(PdfPrintPlan plan, PdfPrintDeliveryOptions options,
+        IReadOnlyList<string> lpOptions, Stream content, CancellationToken token, CupsCommandRunner run) {
         token.ThrowIfCancellationRequested();
-        PdfPageSize paper = document.Sheets[0].Plan.PaperSize;
-        double width = Math.Min(paper.Width.ToPoints(), paper.Height.ToPoints()), height = Math.Max(paper.Width.ToPoints(), paper.Height.ToPoints());
         string directory = OfficeIMO.Core.Internal.OfficeTemporaryDirectory.Create("officeimo-print-");
         bool submissionUncertain = false;
         string? jobId = null;
         Exception? failure = null;
         PdfPrintSubmission? submission = null;
         try {
-            string path = Path.Combine(directory, "sheets.pdf");
+            string path = Path.Combine(directory, "job.pdf");
             using (FileStream spool = OfficeIMO.Core.Internal.OfficeTemporaryFile.CreateAtPath(path, 81920, FileOptions.Asynchronous)) {
-                await spool.WriteAsync(bytes, token).ConfigureAwait(false);
+                await content.CopyToAsync(spool, 81920, token).ConfigureAwait(false);
             }
-            var arguments = new List<string> {
-                "-d", options.PrinterName, "-n", options.Copies.ToString(CultureInfo.InvariantCulture), "-t", options.DocumentName,
-                "-o", "media=" + Media(width, height), "-o", "print-scaling=none", "-o", "number-up=1", "-o", "Collate=True"
-            };
-            if (document.Sheets.All(sheet => sheet.Plan.PaperSize.Width.ToPoints() > sheet.Plan.PaperSize.Height.ToPoints())) {
-                arguments.Add("-o"); arguments.Add("orientation-requested=4");
-            } else if (document.Sheets.All(sheet => sheet.Plan.PaperSize.Width.ToPoints() <= sheet.Plan.PaperSize.Height.ToPoints())) {
-                arguments.Add("-o"); arguments.Add("orientation-requested=3");
-            }
-            if (options.Duplex != PdfPrintDuplex.PrinterDefault) {
-                arguments.Add("-o");
-                arguments.Add("sides=" + (options.Duplex == PdfPrintDuplex.SingleSided ? "one-sided" : options.Duplex == PdfPrintDuplex.LongEdge ? "two-sided-long-edge" : "two-sided-short-edge"));
-            }
-            if (options.PaperSourceId is not null) {
-                arguments.Add("-o"); arguments.Add(options.PaperSourceId);
-            }
-            arguments.Add("--"); arguments.Add(path);
+            var arguments = new List<string>(lpOptions) { "--", path };
             var result = await run("lp", arguments, token, () => submissionUncertain = true).ConfigureAwait(false);
             if (result.ExitCode != 0) {
                 // A missing destination is diagnosed before lp creates a job. Other exit-1
@@ -119,10 +125,9 @@ internal static class CupsPdfPrinter {
                 throw new IOException((result.Error == null || string.IsNullOrWhiteSpace(result.Error))
                     ? $"The print command failed with exit code {result.ExitCode}." : result.Error.Trim());
             }
-            Match receipt = Regex.Match(result.Output, @"request id is (\S+-\d+)", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
-            if (!receipt.Success) throw new IOException("The print command returned no recognizable job acknowledgement.");
-            jobId = receipt.Groups[1].Value;
-            submission = new(options.PrinterName, jobId, document.Sheets.Count, options.Copies, null);
+            jobId = ParseJobId(result.Output, options.PrinterName)
+                ?? throw new IOException("The print command returned no recognizable job acknowledgement.");
+            submission = new(options.PrinterName, jobId, plan.Sheets.Count, options.Copies, null);
         } catch (Exception error) {
             failure = error;
             if (submissionUncertain) throw new PdfPrintDeliveryException(jobId, error);
@@ -145,14 +150,6 @@ internal static class CupsPdfPrinter {
             throw detail;
         }
         return receipt;
-    }
-
-    private static string Media(double width, double height) {
-        if (Math.Abs(width - PdfPageSizes.A4.Width.ToPoints()) < 1 && Math.Abs(height - PdfPageSizes.A4.Height.ToPoints()) < 1) return "A4";
-        if (Math.Abs(width - PdfPageSizes.A3.Width.ToPoints()) < 1 && Math.Abs(height - PdfPageSizes.A3.Height.ToPoints()) < 1) return "A3";
-        if (Math.Abs(width - PdfPageSizes.Letter.Width.ToPoints()) < 1 && Math.Abs(height - PdfPageSizes.Letter.Height.ToPoints()) < 1) return "Letter";
-        if (Math.Abs(width - PdfPageSizes.Legal.Width.ToPoints()) < 1 && Math.Abs(height - PdfPageSizes.Legal.Height.ToPoints()) < 1) return "Legal";
-        return string.Format(CultureInfo.InvariantCulture, "Custom.{0:0.###}x{1:0.###}pt", width, height);
     }
 
     private static async Task<(int ExitCode, string Output, string Error)> RunAsync(string command, IReadOnlyList<string> arguments, CancellationToken token, Action? started = null) {

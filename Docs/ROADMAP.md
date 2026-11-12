@@ -94,15 +94,15 @@ Completion evidence: a visitor can choose a task, find the supported surface, in
 
 ## Printing
 
-Printing lives in `OfficeIMO.Workflows/Printing`, outside the PDF engine. It renders pages itself, so no PDF viewer or file association is involved. Windows delivery uses GDI; macOS and Linux use the CUPS command-line tools. Each sheet is currently delivered as a raster image, prepared in full before submission. These milestones make printing vector-first, independent of installed tools, and available for every document format OfficeIMO converts. Apart from the Windows vector spike, they ship as one PR from `feature/printing-everywhere`.
+Printing lives in `OfficeIMO.Workflows/Printing`, outside the PDF engine. It renders pages itself, so no PDF viewer or file association is involved. Jobs carry vector PDF content. Windows delivery rasterizes one sheet at a time through GDI; macOS and Linux send the PDF through the CUPS command-line tools. These milestones make printing vector-first, independent of installed tools, and available for every document format OfficeIMO converts. Apart from the Windows vector spike, they ship as one PR from `feature/printing-everywhere`.
 
 ### Vector jobs and printer capabilities
 
-- [ ] Separate job content from delivery. A print job carries vector PDF content (page selection, N-up through `PdfDocumentPages.ImposeNUp`, scaling and orientation). Raster sheets are a per-transport fallback. Preview renders the same job content that is delivered.
-- [ ] Send vector PDF to CUPS instead of image-wrapped sheets, including jobs that mix paper sizes and orientations.
-- [ ] Discover printer capabilities: supported and default media, duplex, colour, resolutions, collation, copies and trays. Use `DeviceCapabilities` on Windows and the CUPS queue options elsewhere. Default the paper to the printer's own default rather than A4.
-- [ ] Windows raster delivery: rasterize at the device resolution (bounded) one sheet at a time, apply grayscale as a fast, row-based conversion, and use driver copies and collation when the driver reports them, so copies aren't spooled again.
-- [ ] Stream preparation so large jobs don't retain every sheet. Replace the 100-page limit with a bounded working set.
+- [x] Separate job content from delivery. A print job carries vector PDF content (page selection, N-up through `PdfDocumentPages.ImposeNUp`, scaling and orientation). Raster sheets are a per-transport fallback. Preview renders the same job content that is delivered.
+- [x] Send vector PDF to CUPS instead of image-wrapped sheets, including jobs that mix paper sizes and orientations.
+- [x] Discover printer capabilities: supported and default media, duplex, colour, resolutions, collation, copies and trays. Use `DeviceCapabilities` on Windows and the CUPS queue options elsewhere. Default the paper to the printer's own default rather than A4.
+- [x] Windows raster delivery: rasterize at the device resolution (bounded) one sheet at a time, apply grayscale as a fast, row-based conversion, and use driver copies and collation when the driver reports them, so copies aren't spooled again.
+- [x] Stream preparation so large jobs don't retain every sheet. Replace the 100-page limit with a bounded working set.
 
 ### Managed IPP client and job lifecycle
 

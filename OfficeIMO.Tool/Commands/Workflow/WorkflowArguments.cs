@@ -23,6 +23,7 @@ internal sealed class WorkflowArguments {
     internal bool Force { get; private set; }
     internal bool IncludeSubdirectories { get; private set; } = true;
     internal PdfPageSize PaperSize { get; private set; } = PdfPageSizes.A4;
+    internal bool PaperSpecified { get; private set; }
     internal PdfPrintOrientation Orientation { get; private set; } = PdfPrintOrientation.Automatic;
     internal int PagesPerSheet { get; private set; } = 1;
     internal PdfPrintScaleMode ScaleMode { get; private set; } = PdfPrintScaleMode.Fit;
@@ -90,6 +91,7 @@ internal sealed class WorkflowArguments {
                 case "--paper":
                     EnsureCommand(parsed.Command, token, WorkflowCommandKind.PrintPlan);
                     parsed.PaperSize = ParsePaper(ReadValue(args, ref index, token));
+                    parsed.PaperSpecified = true;
                     break;
                 case "--orientation":
                     EnsureCommand(parsed.Command, token, WorkflowCommandKind.PrintPlan);

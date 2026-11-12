@@ -12,8 +12,8 @@ namespace OfficeIMO.Workflows;
 #endif
 internal static partial class WindowsPdfPrinter {
     internal static Task<IReadOnlyList<PdfPrinterInfo>> GetPrintersAsync(CancellationToken token) => Task.Run(() => GetPrinters(token), token);
-    internal static Task<PdfPrintSubmission> SubmitAsync(PdfPreparedPrintDocument document, PdfPrintDeliveryOptions options, CancellationToken token) =>
-        Task.Run(() => Submit(document, options, token), CancellationToken.None);
+    internal static Task<PdfPrintSubmission> SubmitAsync(PdfPrintJob job, PdfPrintDeliveryOptions options, CancellationToken token) =>
+        Task.Run(() => Submit(job, options, token), CancellationToken.None);
 
     internal static IReadOnlyList<PdfPrinterInfo> GetPrinters(CancellationToken token) => GetPrinterDetails(token).Select(printer => printer.Info).ToArray();
 
@@ -55,12 +55,16 @@ internal static partial class WindowsPdfPrinter {
         } finally { Marshal.FreeHGlobal(buffer); }
     }
 
-    internal static PdfPrintSubmission Submit(PdfPreparedPrintDocument document, PdfPrintDeliveryOptions options, CancellationToken token) {
-        PdfPrinterInfo printer = GetPrinters(token).FirstOrDefault(item => string.Equals(item.Name, options.PrinterName, StringComparison.OrdinalIgnoreCase))
-            ?? throw new ArgumentException("The selected printer is not installed.", nameof(options));
-        string? output = ValidateOutput(document.SourcePath, printer, options.OutputFilePath);
-        if (options.PaperSourceId is not null && !GetPaperSources(printer.Name, token).Any(source => source.Id == options.PaperSourceId))
+    internal static PdfPrintSubmission Submit(PdfPrintJob job, PdfPrintDeliveryOptions options, CancellationToken token) {
+        PrinterDetails details = FindPrinter(options.PrinterName, token);
+        PdfPrinterInfo printer = details.Info;
+        string? output = ValidateOutput(job.SourcePath, printer, options.OutputFilePath);
+        PdfPrinterCapabilities capabilities = WindowsPrinterSettings.BuildCapabilities(printer.Name, ReadDriverCapabilities(details, token));
+        if (options.PaperSourceId is not null && !capabilities.PaperSources.Any(source => source.Id == options.PaperSourceId))
             throw new ArgumentException("The selected paper source is no longer available on this printer.", nameof(options));
+        IReadOnlyList<PdfPrintSheet> sheets = job.Plan.Sheets;
+        bool singlePaper = sheets.All(sheet => SamePaper(sheet.PaperSize, sheets[0].PaperSize));
+        short driverCopies = WindowsPrinterSettings.DriverCopies(options.Copies, capabilities, singlePaper);
         if (!Native.OpenPrinter(printer.Name, out IntPtr printerHandle, IntPtr.Zero)) throw new Win32Exception();
         IntPtr mode = IntPtr.Zero, dc = IntPtr.Zero;
         int jobId = 0;
@@ -71,42 +75,40 @@ internal static partial class WindowsPdfPrinter {
             if (modeBytes < 102 || modeBytes > 1024 * 1024) throw new InvalidOperationException("The printer did not return valid settings.");
             mode = Marshal.AllocHGlobal(modeBytes);
             if (Native.DocumentProperties(IntPtr.Zero, printerHandle, printer.Name, mode, IntPtr.Zero, 2) != 1) throw new Win32Exception();
-            ConfigureMode(mode, printerHandle, printer.Name, document.Sheets[0].Plan.PaperSize, options);
-            bool duplex = Marshal.ReadInt16(mode, 94) is 2 or 3;
+            var driverDefaults = new byte[modeBytes];
+            Marshal.Copy(mode, driverDefaults, 0, modeBytes);
+            WindowsPrinterSettings.DevModeRequest Request(PdfPageSize paper, short copies) =>
+                new(paper, WindowsPrinterSettings.ResolvePaperCode(paper, capabilities.Media), options.Duplex, options.PaperSourceId, copies);
+            if (driverCopies > 1 && !TryConfigureMode(mode, driverDefaults, printerHandle, printer.Name, Request(sheets[0].PaperSize, driverCopies), out _))
+                driverCopies = 1; // The driver declined to produce the copies; repeat the sheets instead.
+            ConfigureMode(mode, driverDefaults, printerHandle, printer.Name, Request(sheets[0].PaperSize, driverCopies));
+            PdfPageSize currentPaper = sheets[0].PaperSize;
+            bool duplex = Marshal.ReadInt16(mode, WindowsPrinterSettings.DevModeDuplex) is 2 or 3;
             dc = Native.CreateDC("WINSPOOL", printer.Name, null, mode);
             if (dc == IntPtr.Zero) throw new Win32Exception();
-            ValidatePaper(dc, document.Sheets[0].Plan.PaperSize);
+            ValidatePaper(dc, currentPaper);
             if (Native.SetAbortProc(dc, abort) <= 0) throw new Win32Exception();
             token.ThrowIfCancellationRequested();
             var info = new Native.DocInfo { Size = Marshal.SizeOf<Native.DocInfo>(), DocumentName = options.DocumentName, Output = output };
             jobId = Native.StartDoc(dc, ref info);
             if (jobId <= 0) throw new Win32Exception();
-            for (int copy = 0; copy < options.Copies; copy++) {
-                foreach (PdfRenderedPrintSheet sheet in document.Sheets) {
+            int softwareCopies = options.Copies / driverCopies;
+            for (int copy = 0; copy < softwareCopies; copy++) {
+                foreach (PdfPrintSheet sheet in sheets) {
                     token.ThrowIfCancellationRequested();
-                    ConfigureMode(mode, printerHandle, printer.Name, sheet.Plan.PaperSize, options);
-                    IntPtr reset = Native.ResetDC(dc, mode);
-                    if (reset == IntPtr.Zero) throw new Win32Exception();
-                    dc = reset;
-                    if (Native.SetAbortProc(dc, abort) <= 0) throw new Win32Exception();
-                    ValidatePaper(dc, sheet.Plan.PaperSize);
-                    OfficeRasterImage raster = sheet.Decode(token);
-                    byte[] pixels = raster.GetPixels();
-                    for (int index = 0; index < pixels.Length; index += 4) (pixels[index], pixels[index + 2]) = (pixels[index + 2], pixels[index]);
-                    var bitmap = new Native.BitmapInfo {
-                        Size = 40, Width = raster.Width, Height = -raster.Height, Planes = 1, BitCount = 32,
-                        ImageSize = checked((uint)pixels.Length)
-                    };
-                    token.ThrowIfCancellationRequested();
-                    if (Native.StartPage(dc) <= 0) throw new Win32Exception();
-                    int drawn = Native.StretchDIBits(dc, -Native.GetDeviceCaps(dc, 112), -Native.GetDeviceCaps(dc, 113),
-                        Native.GetDeviceCaps(dc, 110), Native.GetDeviceCaps(dc, 111), 0, 0, raster.Width, raster.Height,
-                        pixels, ref bitmap, 0, 0x00CC0020);
-                    if (drawn == 0 || drawn == -1) throw new Win32Exception();
-                    if (Native.EndPage(dc) <= 0) throw new Win32Exception();
+                    if (!SamePaper(sheet.PaperSize, currentPaper)) {
+                        ConfigureMode(mode, driverDefaults, printerHandle, printer.Name, Request(sheet.PaperSize, driverCopies));
+                        IntPtr reset = Native.ResetDC(dc, mode);
+                        if (reset == IntPtr.Zero) throw new Win32Exception();
+                        dc = reset;
+                        if (Native.SetAbortProc(dc, abort) <= 0) throw new Win32Exception();
+                        ValidatePaper(dc, sheet.PaperSize);
+                        currentPaper = sheet.PaperSize;
+                    }
+                    DrawSheet(dc, job, sheet, options.MaximumRasterDpi, token);
                 }
                 // Start each collated copy on a fresh physical sheet when duplex leaves an unused back side.
-                if (duplex && document.Sheets.Count % 2 != 0 && copy + 1 < options.Copies) {
+                if (duplex && sheets.Count % 2 != 0 && copy + 1 < softwareCopies) {
                     token.ThrowIfCancellationRequested();
                     if (Native.StartPage(dc) <= 0 || Native.EndPage(dc) <= 0) throw new Win32Exception();
                 }
@@ -114,7 +116,7 @@ internal static partial class WindowsPdfPrinter {
             token.ThrowIfCancellationRequested();
             if (Native.EndDoc(dc) <= 0) throw new Win32Exception();
             completed = true;
-            return new(printer.Name, jobId.ToString(CultureInfo.InvariantCulture), document.Sheets.Count, options.Copies, output);
+            return new(printer.Name, jobId.ToString(CultureInfo.InvariantCulture), sheets.Count, options.Copies, output);
         } catch (Exception error) when (jobId > 0) {
             throw new PdfPrintDeliveryException(jobId.ToString(CultureInfo.InvariantCulture), error);
         } finally {
@@ -127,6 +129,31 @@ internal static partial class WindowsPdfPrinter {
             GC.KeepAlive(abort);
         }
     }
+
+    /// <summary>Rasterizes one sheet at the device resolution, within the caller and pixel limits, and sends it to the page.</summary>
+    private static void DrawSheet(IntPtr dc, PdfPrintJob job, PdfPrintSheet sheet, double maximumDpi, CancellationToken token) {
+        int deviceDpi = Math.Min(Native.GetDeviceCaps(dc, LogPixelsX), Native.GetDeviceCaps(dc, LogPixelsY));
+        double dpi = PdfPrintRaster.ResolveDpi(deviceDpi, maximumDpi, sheet.PaperSize.Width.ToPoints(), sheet.PaperSize.Height.ToPoints(), job.MaximumPixelsPerImage);
+        OfficeRasterImage raster = job.RenderRaster(sheet.SheetNumber, dpi, job.MaximumPixelsPerImage, token).Raster;
+        byte[] pixels = raster.PixelBuffer;
+        PdfPrintRaster.ConvertRows(pixels, raster.Width, raster.Height, grayscale: false, toBgra: true, token);
+        var bitmap = new Native.BitmapInfo {
+            Size = 40, Width = raster.Width, Height = -raster.Height, Planes = 1, BitCount = 32,
+            ImageSize = checked((uint)pixels.Length)
+        };
+        token.ThrowIfCancellationRequested();
+        if (Native.StartPage(dc) <= 0) throw new Win32Exception();
+        int drawn = Native.StretchDIBits(dc, -Native.GetDeviceCaps(dc, PhysicalOffsetX), -Native.GetDeviceCaps(dc, PhysicalOffsetY),
+            Native.GetDeviceCaps(dc, PhysicalWidth), Native.GetDeviceCaps(dc, PhysicalHeight), 0, 0, raster.Width, raster.Height,
+            pixels, ref bitmap, 0, 0x00CC0020);
+        if (drawn == 0 || drawn == -1) throw new Win32Exception();
+        if (Native.EndPage(dc) <= 0) throw new Win32Exception();
+    }
+
+    private const int LogPixelsX = 88, LogPixelsY = 90, PhysicalWidth = 110, PhysicalHeight = 111, PhysicalOffsetX = 112, PhysicalOffsetY = 113;
+
+    private static bool SamePaper(PdfPageSize first, PdfPageSize second) =>
+        Math.Abs(first.Width.ToPoints() - second.Width.ToPoints()) < 0.01 && Math.Abs(first.Height.ToPoints() - second.Height.ToPoints()) < 0.01;
 
     private static string? ValidateOutput(string sourcePath, PdfPrinterInfo printer, string? outputPath) {
         if (!printer.RequiresOutputFile) {
@@ -143,51 +170,27 @@ internal static partial class WindowsPdfPrinter {
         return output;
     }
 
-    private static void ConfigureMode(IntPtr mode, IntPtr printer, string name, PdfPageSize paper, PdfPrintDeliveryOptions options) {
-        // Public DEVMODEW offsets; preserve the driver's complete private trailing data.
-        if ((ushort)Marshal.ReadInt16(mode, 68) < 102) throw new InvalidOperationException("Unsupported printer settings layout.");
-        bool landscape = paper.Width.ToPoints() > paper.Height.ToPoints();
-        double width = Math.Min(paper.Width.ToPoints(), paper.Height.ToPoints()), height = Math.Max(paper.Width.ToPoints(), paper.Height.ToPoints());
-        short paperCode = PaperCode(width, height);
-        int fields = Marshal.ReadInt32(mode, 72) | 1 | 2 | 0x10 | 0x100;
-        Marshal.WriteInt16(mode, 76, landscape ? (short)2 : (short)1);
-        Marshal.WriteInt16(mode, 78, paperCode);
-        if (paperCode == 256) {
-            fields |= 4 | 8;
-            Marshal.WriteInt16(mode, 80, checked((short)Math.Round(height * 254 / 72)));
-            Marshal.WriteInt16(mode, 82, checked((short)Math.Round(width * 254 / 72)));
-        } else fields &= ~(4 | 8);
-        Marshal.WriteInt16(mode, 84, 100);
-        Marshal.WriteInt16(mode, 86, 1); // Software supplies collated copies exactly once.
-        if (options.PaperSourceId is not null) {
-            fields |= 0x200;
-            Marshal.WriteInt16(mode, 88, unchecked((short)ushort.Parse(options.PaperSourceId, CultureInfo.InvariantCulture)));
-        }
-        if (options.Duplex != PdfPrintDuplex.PrinterDefault) {
-            fields |= 0x1000;
-            Marshal.WriteInt16(mode, 94, (short)options.Duplex);
-        }
-        Marshal.WriteInt32(mode, 72, fields);
-        if (Native.DocumentProperties(IntPtr.Zero, printer, name, mode, mode, 10) != 1) throw new Win32Exception();
-        if (Marshal.ReadInt16(mode, 86) != 1 || (options.Duplex != PdfPrintDuplex.PrinterDefault && Marshal.ReadInt16(mode, 94) != (short)options.Duplex))
-            throw new InvalidOperationException("The printer did not accept the requested copy or duplex settings.");
-        if (options.PaperSourceId is not null && ((Marshal.ReadInt32(mode, 72) & 0x200) == 0 ||
-            unchecked((ushort)Marshal.ReadInt16(mode, 88)).ToString(CultureInfo.InvariantCulture) != options.PaperSourceId))
-            throw new InvalidOperationException("The printer did not accept the selected paper source.");
+    private static void ConfigureMode(IntPtr mode, byte[] driverDefaults, IntPtr printer, string name, WindowsPrinterSettings.DevModeRequest request) {
+        if (!TryConfigureMode(mode, driverDefaults, printer, name, request, out string? rejected))
+            throw new InvalidOperationException("The printer did not accept the requested " + rejected + " setting.");
     }
 
-    private static short PaperCode(double width, double height) {
-        if (Math.Abs(width - PdfPageSizes.A4.Width.ToPoints()) < 1 && Math.Abs(height - PdfPageSizes.A4.Height.ToPoints()) < 1) return 9;
-        if (Math.Abs(width - PdfPageSizes.A3.Width.ToPoints()) < 1 && Math.Abs(height - PdfPageSizes.A3.Height.ToPoints()) < 1) return 8;
-        if (Math.Abs(width - PdfPageSizes.Letter.Width.ToPoints()) < 1 && Math.Abs(height - PdfPageSizes.Letter.Height.ToPoints()) < 1) return 1;
-        if (Math.Abs(width - PdfPageSizes.Legal.Width.ToPoints()) < 1 && Math.Abs(height - PdfPageSizes.Legal.Height.ToPoints()) < 1) return 5;
-        return 256;
+    /// <summary>Starts from the driver defaults, applies the request, lets the driver merge it, and checks the merged result.</summary>
+    private static bool TryConfigureMode(IntPtr mode, byte[] driverDefaults, IntPtr printer, string name,
+        WindowsPrinterSettings.DevModeRequest request, out string? rejected) {
+        byte[] composed = (byte[])driverDefaults.Clone();
+        WindowsPrinterSettings.ComposeDevMode(composed, request);
+        Marshal.Copy(composed, 0, mode, composed.Length);
+        if (Native.DocumentProperties(IntPtr.Zero, printer, name, mode, mode, 10) != 1) throw new Win32Exception();
+        Marshal.Copy(mode, composed, 0, composed.Length);
+        rejected = WindowsPrinterSettings.FindRejectedSetting(composed, request);
+        return rejected is null;
     }
 
     private static void ValidatePaper(IntPtr dc, PdfPageSize paper) {
-        int dpiX = Native.GetDeviceCaps(dc, 88), dpiY = Native.GetDeviceCaps(dc, 90);
-        if (dpiX <= 0 || dpiY <= 0 || Math.Abs(Native.GetDeviceCaps(dc, 110) * 72D / dpiX - paper.Width.ToPoints()) > 3 ||
-            Math.Abs(Native.GetDeviceCaps(dc, 111) * 72D / dpiY - paper.Height.ToPoints()) > 3)
+        int dpiX = Native.GetDeviceCaps(dc, LogPixelsX), dpiY = Native.GetDeviceCaps(dc, LogPixelsY);
+        if (dpiX <= 0 || dpiY <= 0 || Math.Abs(Native.GetDeviceCaps(dc, PhysicalWidth) * 72D / dpiX - paper.Width.ToPoints()) > 3 ||
+            Math.Abs(Native.GetDeviceCaps(dc, PhysicalHeight) * 72D / dpiY - paper.Height.ToPoints()) > 3)
             throw new InvalidOperationException("The selected printer did not accept the reviewed paper size and orientation.");
     }
 }
