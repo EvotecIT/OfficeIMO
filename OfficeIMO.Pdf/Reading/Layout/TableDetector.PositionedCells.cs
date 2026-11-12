@@ -430,7 +430,9 @@ internal static partial class TableDetector {
         bool useCompactGapThreshold = false) {
         if (line.Spans.Count < 2) return null;
         var cells = new List<PositionedCell>();
-        var builder = new System.Text.StringBuilder();
+        // Only whether the cell has text and its last character decide spacing; the text itself comes from ComposeCell.
+        int cellLength = 0;
+        char cellLastCharacter = '\0';
         var sourceRuns = new List<PdfTextSpan>();
         double from = 0D;
         double to = 0D;
@@ -450,21 +452,26 @@ internal static partial class TableDetector {
 
             if (split) {
                 cells.Add(new PositionedCell(from, to, lastSpanStart, ComposeCell(sourceRuns, line.ReadingDirection), sourceRuns.ToArray()));
-                builder.Clear();
+                cellLength = 0;
                 sourceRuns.Clear();
-            } else if (gap > 1D && builder.Length > 0 && builder[builder.Length - 1] != ' ') {
-                builder.Append(' ');
+            } else if (gap > 1D && cellLength > 0 && cellLastCharacter != ' ') {
+                cellLength++;
+                cellLastCharacter = ' ';
             }
 
-            if (builder.Length == 0) from = span.X;
-            builder.Append(span.Text);
+            if (cellLength == 0) from = span.X;
+            string text = span.Text;
+            if (!string.IsNullOrEmpty(text)) {
+                cellLength += text.Length;
+                cellLastCharacter = text[text.Length - 1];
+            }
             sourceRuns.Add(span);
             to = span.X + Math.Max(0D, span.Advance);
             lastSpanStart = span.X;
             if (cells.Count == MaximumPositionedRecoveryColumns) return null;
         }
 
-        if (builder.Length > 0) cells.Add(new PositionedCell(from, to, lastSpanStart, ComposeCell(sourceRuns, line.ReadingDirection), sourceRuns.ToArray()));
+        if (cellLength > 0) cells.Add(new PositionedCell(from, to, lastSpanStart, ComposeCell(sourceRuns, line.ReadingDirection), sourceRuns.ToArray()));
         return cells.Count is >= 2 and <= MaximumPositionedRecoveryColumns
             ? new PositionedRow(line.Y, cells)
             : null;

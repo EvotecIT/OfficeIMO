@@ -49,7 +49,7 @@ namespace OfficeIMO.Visio {
                     connector.Label!,
                     x,
                     y,
-                    connector.TextStyle,
+                    VisioTextBackground.Effective(connector),
                     defaultSize: 9D,
                     projection.PhysicalDensity,
                     rotateRadians: VisioConnectorLabelFrame.ResolveAngle(connector),

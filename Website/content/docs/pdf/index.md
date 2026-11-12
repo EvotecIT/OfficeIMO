@@ -16,6 +16,7 @@ Create, read and change PDF files in .NET with OfficeIMO's own PDF engine — no
 - **Redact** text and areas permanently, with a verification report for every removed match.
 - **Produce standard output**: PDF/A, PDF/UA, PDF/X, Factur-X and ZUGFeRD, checked against the saved bytes.
 - **Render** pages to PNG, JPEG, TIFF, WebP or SVG, and compare two PDFs page by page.
+- **Print** to installed printers on Windows, macOS and Linux, with page ranges, 1, 2, 4, 6 or 9 pages per sheet, scaling, duplex and paper source, through `OfficeIMO.Workflows`.
 - **Convert** Word, Excel, PowerPoint, HTML and Markdown to PDF, and PDF back to Word, Excel, PowerPoint, HTML or Markdown.
 
 ## Install
@@ -31,7 +32,7 @@ dotnet add package OfficeIMO.Pdf
 | Goal | Guide |
 |---|---|
 | Build a PDF report, form, or positioned layout | [Authoring and layout](/docs/pdf/authoring/) |
-| Inspect, extract, merge, split, stamp, optimize, repair, or redact | [Inspection, extraction, and operations](/docs/pdf/operations/) |
+| Inspect, extract, merge, split, stamp, optimize, repair, redact, or print | [Inspection, extraction, and operations](/docs/pdf/operations/) |
 | Encrypt, sign, verify, or preserve existing signed revisions | [Security and digital signatures](/docs/pdf/security/) |
 | Convert Word, Excel, PowerPoint, HTML, Markdown, or open formats | [Conversion and delivery](/docs/pdf/conversion/) |
 

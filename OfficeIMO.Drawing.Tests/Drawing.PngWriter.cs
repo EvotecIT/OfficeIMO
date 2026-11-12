@@ -112,6 +112,31 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Theory]
+        [InlineData(3, 1, 0)]
+        [InlineData(65534, 1, 0)]
+        [InlineData(300, 700, 0)]
+        [InlineData(2400, 600, 3)]
+        public void StoredScanlinesWrittenInPlaceMatchTheScanlineBufferEncoding(int width, int height, int colorType) {
+            int rowLength = colorType == 3 ? (width + 7) / 8 : width;
+            var scanlines = new byte[(rowLength + 1) * height];
+            var random = new Random(width * 31 + height);
+            for (int row = 0; row < height; row++) {
+                int start = row * (rowLength + 1);
+                scanlines[start] = 0;
+                for (int index = 1; index <= rowLength; index++) scanlines[start + index] = (byte)random.Next(256);
+            }
+            byte[]? palette = colorType == 3 ? new byte[] { 0, 0, 0, 255, 255, 255 } : null;
+            byte[] expected = colorType == 3
+                ? OfficePngWriter.EncodeIndexedScanlines(width, height, 1, palette!, scanlines, OfficePngCompression.Stored)
+                : OfficePngWriter.EncodeScanlines(width, height, 8, 0, scanlines, OfficePngCompression.Stored);
+
+            byte[] written = OfficePngWriter.EncodeStoredScanlines(width, height, colorType == 3 ? 1 : 8, colorType, palette,
+                (buffer, offset) => Buffer.BlockCopy(scanlines, 0, buffer, offset, scanlines.Length));
+
+            Assert.Equal(expected, written);
+        }
+
         [Fact]
         public void OfficePngWriter_EncodesSharedPngScanlineContainers() {
             byte[] scanlines = { 0, 255, 0, 0, 128 };
