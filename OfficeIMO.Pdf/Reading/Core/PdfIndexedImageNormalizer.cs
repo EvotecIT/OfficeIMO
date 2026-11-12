@@ -419,36 +419,30 @@ internal static class PdfIndexedImageNormalizer {
         }
 
         int outputRowLength = (int)(((long)width * outputBitDepth + 7) / 8);
-        byte[] scanlines = new byte[checked((outputRowLength + 1) * height)];
         bool copyRows = identity && outputBitDepth == bitsPerComponent;
-        for (int row = 0; row < height; row++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int outputRow = row * (1 + outputRowLength) + 1;
-            int sourceRow = row * sourceRowLength;
-            if (copyRows) {
-                Buffer.BlockCopy(indexedPixels, sourceRow, scanlines, outputRow, sourceRowLength);
-                continue;
-            }
+        // Rows go straight into the PNG's stored blocks; the output starts zeroed like a fresh scanline buffer.
+        pngBytes = OfficePngWriter.EncodeStoredScanlines(width, height, outputBitDepth, 3, outputPalette, (scanlines, start) => {
+            for (int row = 0; row < height; row++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int outputRow = start + row * (1 + outputRowLength) + 1;
+                int sourceRow = row * sourceRowLength;
+                if (copyRows) {
+                    Buffer.BlockCopy(indexedPixels, sourceRow, scanlines, outputRow, sourceRowLength);
+                    continue;
+                }
 
-            for (int pixel = 0; pixel < width; pixel++) {
-                if ((pixel & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
-                int paletteIndex = indexMap[ReadIndexedPixel(indexedPixels, sourceRow, pixel, bitsPerComponent)];
-                if (outputBitDepth == 8) {
-                    scanlines[outputRow + pixel] = (byte)paletteIndex;
-                } else {
-                    int bitOffset = pixel * outputBitDepth;
-                    scanlines[outputRow + bitOffset / 8] |= (byte)(paletteIndex << (8 - outputBitDepth - bitOffset % 8));
+                for (int pixel = 0; pixel < width; pixel++) {
+                    if ((pixel & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+                    int paletteIndex = indexMap[ReadIndexedPixel(indexedPixels, sourceRow, pixel, bitsPerComponent)];
+                    if (outputBitDepth == 8) {
+                        scanlines[outputRow + pixel] = (byte)paletteIndex;
+                    } else {
+                        int bitOffset = pixel * outputBitDepth;
+                        scanlines[outputRow + bitOffset / 8] |= (byte)(paletteIndex << (8 - outputBitDepth - bitOffset % 8));
+                    }
                 }
             }
-        }
-
-        pngBytes = OfficePngWriter.EncodeIndexedScanlines(
-            width,
-            height,
-            outputBitDepth,
-            outputPalette,
-            scanlines,
-            OfficePngCompression.Stored);
+        });
         return true;
     }
 

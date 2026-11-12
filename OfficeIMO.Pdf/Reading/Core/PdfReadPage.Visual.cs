@@ -1156,7 +1156,7 @@ public sealed partial class PdfReadPage {
                 patternTextClippingBudget: patternTextClippingBudget,
                 invokedPatternIntents: invokedPatternIntents)
             : null;
-        string transformedContent = WrapContentWithTransform(content, baseTransform, out int transformedContentOffset);
+        string transformedContent = WrapReusedContentWithTransform(content, baseTransform, out int transformedContentOffset);
         Action<PdfPageVisualPrimitive> currentPrimitiveVisitor = contentOrderPrefix == null
             ? primitiveVisitor
             : primitive => primitiveVisitor(primitive.WithContentOrderKey(contentOrderPrefix.Append(primitive.SourceOperatorIndex - transformedContentOffset)));
