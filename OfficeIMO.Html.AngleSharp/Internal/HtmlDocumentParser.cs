@@ -307,7 +307,11 @@ internal static class HtmlDocumentParser {
         int next = xlink.End;
         while (next < html.Length && IsAsciiWhitespace(html[next])) next++;
         if (next < html.Length && html[next] == '=') return;
-        string xlinkText = html.Substring(xlink.NameStart, xlink.End - xlink.NameStart);
+        // "xlink:href=" with no value before '>' moves as an explicit empty value, so the
+        // text that follows it after the move cannot become its unquoted value.
+        string xlinkText = xlink.ValueStart >= 0 && xlink.ValueStart == xlink.End
+            ? html.Substring(xlink.NameStart, xlink.NameEnd - xlink.NameStart) + "=\"\""
+            : html.Substring(xlink.NameStart, xlink.End - xlink.NameStart);
         string between = html.Substring(href.NameStart, xlink.NameStart - href.NameStart);
         replacements.Add((href.NameStart, xlink.End - href.NameStart, xlinkText + " " + between + " "));
     }

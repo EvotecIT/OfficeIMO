@@ -51,6 +51,16 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
+        [InlineData("<image href='new' xlink:href=>")]
+        [InlineData("<image href='new' xlink:href= >")]
+        public void SvgHrefNormalizationKeepsHrefWhenXlinkHrefHasNoValue(string image) {
+            HtmlElement element = HtmlConversionDocument.Parse(SvgStart + image + "</image></svg>").Document.QuerySelector("image")!;
+
+            Assert.Equal("new", element.GetAttribute("href"));
+            Assert.Equal(string.Empty, element.GetAttribute(XlinkNamespace, "href"));
+        }
+
+        [Theory]
         [InlineData("script")]
         [InlineData("style")]
         [InlineData("textarea")]
