@@ -5309,6 +5309,19 @@ These parameter aliases stay removed. Command aliases such as `ExcelExport` are 
 | `-Values` | `-InputObject` | `Add-OfficeExcelTableRow` |
 | `-Values` | `-Value` | `Add-OfficePowerPointTableRow`, `Get-OfficeExcelTemplateMarker`, `Invoke-OfficeExcelTemplate`, `Set-OfficeExcelAutoFilter` |
 
+## OneNote visual PDF pages are vector
+
+`ToVisualPdf`, `SaveAsVisualPdf` and their async forms now write each OneNote page as
+vector content with real, searchable text instead of one full-page PNG. Page sizes are
+unchanged. `OneNoteVisualPdfExportOptions.RasterScale` and `MaximumRasterPixels` no
+longer affect output and are marked obsolete; remove them, and stop handling
+`ONENOTE_PDF_RASTER_SCALE_LIMITED`, which is no longer reported. Invalid
+`PageRendering` settings are now rejected before any page is rendered.
+
+Installed fonts named by the page text are embedded as subsets. A picture with no native
+PDF image form is decoded through `PageRendering.ImageCodec` and embedded as PNG for that
+picture alone, reported as `ONENOTE_PDF_IMAGE_RASTERIZED`.
+
 ## PDF reads omit undecodable native text
 
 `PdfDocument.Read()` previously allowed missing font resources, raw Identity CIDs,
@@ -7248,6 +7261,20 @@ XML extraction uses `XmlReadOptions.MaxDepth` (128), `MaxNodes` (200,000), and
 `MaxScalarLength` (1,048,576) by default. Inputs exceeding these limits throw
 `ReaderResourceLimitException`. Increase the relevant option for trusted larger inputs.
 XML and YAML values within their configured limits retain their full normalized text.
+
+## Reader JSON and TOML limits
+
+JSON extraction adds `JsonReadOptions.MaxNodes` (200,000) and `MaxScalarLength` (1,048,576)
+beside `MaxDepth` (32). Exceeding any of the three, including `MaxDepth`, now throws
+`ReaderResourceLimitException` instead of returning a `json-warning-0000` parse warning, and a
+limit below 1 throws `ArgumentOutOfRangeException` instead of being raised to 1. Raise the
+relevant option for trusted larger inputs; malformed JSON still produces the warning chunk.
+
+TOML limits exceeded during a Reader read throw `ReaderResourceLimitException` with the engine's
+`TomlLimitExceededException` as `InnerException`, instead of a `toml-warning-0000` chunk.
+`TomlReadOptions.MaxDepth`, `MaxNodes` and `MaxScalarLength` override the matching
+`LoadOptions` values when set. TOML results map to the new `OfficeDocumentFormat.Toml`
+instead of `Unknown`; update exhaustive switches over `OfficeDocumentFormat`.
 
 Path reads reject a detected source change with `IOException`. Retry against a stable file.
 Keep incremental inputs stable until enumeration finishes: a later failure cannot withdraw
@@ -9807,3 +9834,9 @@ A `data-officeimo-value` error value is written as an error cell only when it is
 ## Excel non-finite numbers
 
 `NaN`, `PositiveInfinity` and `NegativeInfinity` written as cell values (`double` or `float`, through `SetValue`, `WriteData`, tabular imports or `CreateWriter`) are stored as the `#NUM!` error in XLSX, XLSB and XLS, which is what Excel shows for a number it cannot represent. Reading such a cell back returns the `#NUM!` error, not a number. Before, XLSX saves wrote an invalid number that Excel refused to open, XLSB saves stored `#NULL!`, and the XLS and XLSB `CreateWriter` streaming writers threw `ArgumentException`. Check the value before writing it if you need a blank cell or text instead.
+
+## Visio PDF export draws the diagram
+
+`VisioDocument.ToPdf`, `SaveAsPdf` and their async forms now default to `VisioPdfProjectionMode.DiagramPages`: one PDF page per Visio page, at its physical size, drawn as vector artwork with searchable text. Before, the default was `SemanticReport`, a text and topology report. Set `Mode = VisioPdfProjectionMode.SemanticReport` to keep the report. `VisioOptions` and `ProjectionOptions` belong to the report, so options that set them without a `Mode` now throw `ArgumentException`; add the `Mode` setting.
+
+Diagram pages now keep arcs, ellipses and Bezier rows as curves, paint cached linear and radial gradient fills, draw open, filled, dot and diamond arrowheads, and turn shape and connector hyperlinks into PDF links. Text taller than its block overflows it, as in Visio, instead of being clipped. Regenerate visual baselines of Visio PDFs. `VISIO_DRAWING_METADATA` now reports only Shape Data; supported hyperlinks are no longer reported as omitted, and unsupported targets report `VISIO_DRAWING_LINKS`.

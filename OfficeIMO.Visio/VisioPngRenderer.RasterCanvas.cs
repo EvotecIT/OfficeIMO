@@ -58,6 +58,9 @@ namespace OfficeIMO.Visio {
                 _canvas.FillPolygonsEvenOdd(contours, color);
             }
 
+            internal void FillPolygonsEvenOdd(IReadOnlyList<List<(double X, double Y)>> contours, Func<double, double, Color> paint) =>
+                _canvas.FillContourPaint(contours.Select(contour => (IReadOnlyList<OfficePoint>)contour.Select(point => new OfficePoint(point.X, point.Y)).ToList()).ToList(), OfficeFillRule.EvenOdd, paint);
+
             internal void StrokePolygon(IReadOnlyList<(double X, double Y)> points, Color color, double width, OfficeStrokeDashStyle dashStyle) {
                 _canvas.DrawStyledPolygon(points, color, width, dashStyle, resetDashPatternForEachSegment: true);
             }

@@ -97,6 +97,7 @@ namespace OfficeIMO.Visio {
                 }
 
                 Color fill = shape.FillPattern == 0 ? Color.Transparent : shape.FillColor;
+                Func<double, double, Color>? gradientFill = fill.A > 0 ? ResolveGradientFill(page, shape, transform, canvas.Projection) : null;
                 Color stroke = HasVisibleLine(shape) ? shape.LineColor : Color.Transparent;
                 double strokeWidth = Math.Max(shape.LineWeight * canvas.Projection.PhysicalDensity, canvas.Supersampling);
                 for (int i = 0; i < renderedPaths.Count;) {
@@ -113,7 +114,8 @@ namespace OfficeIMO.Visio {
                         if (renderedPaths[pathIndex].Path.CanFill) contours.Add(renderedPaths[pathIndex].Points);
                     }
                     // Fill closes each eligible contour implicitly; stroke closure stays native.
-                    if (fill.A > 0 && contours.Count > 0) canvas.FillPolygonsEvenOdd(contours, fill);
+                    if (gradientFill != null && contours.Count > 0) canvas.FillPolygonsEvenOdd(contours, gradientFill);
+                    else if (fill.A > 0 && contours.Count > 0) canvas.FillPolygonsEvenOdd(contours, fill);
                     for (int pathIndex = i; pathIndex < end; pathIndex++) {
                         StrokeRenderedPreservedPath(canvas, renderedPaths[pathIndex], stroke, strokeWidth, OfficeStrokeDashStyleMapper.FromVisioLinePattern(shape.LinePattern));
                     }
@@ -123,12 +125,13 @@ namespace OfficeIMO.Visio {
             } else if (kind == "ellipse" || kind == "circle") {
                 (double centerX, double centerY) = GetPagePoint(shape, shape.WidthInches / 2D, shape.HeightInches / 2D);
                 (double cx, double cy) = ToRaster(page, centerX, centerY, canvas.Projection);
+                Func<double, double, Color>? ellipseGradient = FillBuiltinGradient(canvas, page, shape, transform, VisioShapeGeometry.CreateBuiltinEllipsePath(shape).Points);
                 canvas.DrawEllipse(
                     cx,
                     cy,
                     Math.Abs(shape.WidthInches * canvas.Projection.GeometryDensity / 2D),
                     Math.Abs(shape.HeightInches * canvas.Projection.GeometryDensity / 2D),
-                    shape.FillPattern == 0 ? Color.Transparent : shape.FillColor,
+                    shape.FillPattern == 0 || ellipseGradient != null ? Color.Transparent : shape.FillColor,
                     HasVisibleLine(shape) ? shape.LineColor : Color.Transparent,
                     Math.Max(shape.LineWeight * canvas.Projection.PhysicalDensity, canvas.Supersampling),
                     OfficeStrokeDashStyleMapper.FromVisioLinePattern(shape.LinePattern),
@@ -146,7 +149,8 @@ namespace OfficeIMO.Visio {
                     points.Add(ToRaster(page, point.X, point.Y, canvas.Projection));
                 }
 
-                canvas.FillPolygon(points, shape.FillPattern == 0 ? Color.Transparent : shape.FillColor);
+                if (FillBuiltinGradient(canvas, page, shape, transform, local) == null)
+                    canvas.FillPolygon(points, shape.FillPattern == 0 ? Color.Transparent : shape.FillColor);
                 canvas.StrokePolygon(points, HasVisibleLine(shape) ? shape.LineColor : Color.Transparent, Math.Max(shape.LineWeight * canvas.Projection.PhysicalDensity, canvas.Supersampling), OfficeStrokeDashStyleMapper.FromVisioLinePattern(shape.LinePattern));
             }
 
@@ -160,7 +164,7 @@ namespace OfficeIMO.Visio {
             }
 
             if (options.RenderText && !string.IsNullOrEmpty(shape.Text)) {
-                VisioTextStyle? style = shape.TextStyle;
+                VisioTextStyle? style = VisioTextBackground.Effective(shape);
                 VisioTextFramePlacement frame = VisioTextFramePlacement.Resolve(shape, canvas.Projection.DrawingToPhysical, transform);
                 (double x, double y) = ToRaster(page, frame.PageX, frame.PageY, canvas.Projection);
                 DrawText(
@@ -255,6 +259,31 @@ namespace OfficeIMO.Visio {
             canvas.DrawEllipse(topX, topY, radiusX, radiusY, Color.Transparent, stroke, strokeWidth, dashStyle, rasterRotation, topX, topY);
         }
 
+        // Paints a builtin outline with the cached gradient and returns its paint, or returns null for a solid fill.
+        private static Func<double, double, Color>? FillBuiltinGradient(RasterCanvas canvas, VisioPage page, VisioShape shape,
+            VisioNativeShapeTransform transform, IReadOnlyList<(double X, double Y)> local) {
+            if (shape.FillPattern == 0 || shape.FillColor.A == 0) return null;
+            Func<double, double, Color>? paint = ResolveGradientFill(page, shape, transform, canvas.Projection);
+            if (paint == null) return null;
+            var contour = new List<(double X, double Y)>(local.Count);
+            foreach ((double X, double Y) point in local) {
+                OfficePoint pagePoint = transform.PagePoint(point.X, point.Y);
+                contour.Add(ToRaster(page, pagePoint.X, pagePoint.Y, canvas.Projection));
+            }
+            canvas.FillPolygonsEvenOdd(new List<List<(double X, double Y)>> { contour }, paint);
+            return paint;
+        }
+
+        // Cached FillGradient stops shared with the SVG and Drawing projections.
+        private static Func<double, double, Color>? ResolveGradientFill(VisioPage page, VisioShape shape, VisioNativeShapeTransform transform, VisioRenderProjection projection) =>
+            VisioFillGradient.TryResolve(shape, out VisioFillGradient? gradient, out _)
+                ? gradient!.CreatePaint(shape, (x, y) => {
+                    OfficePoint point = transform.PagePoint(x, y);
+                    (double rx, double ry) = ToRaster(page, point.X, point.Y, projection);
+                    return new OfficePoint(rx, ry);
+                })
+                : null;
+
         private static void DrawConnector(RasterCanvas canvas, VisioPage page, VisioConnector connector, VisioPngSaveOptions options, VisioRenderLabelLayout? labelLayout, VisioNativeTextStyleResolver textStyles) {
             List<(double X, double Y)> pagePoints = GetConnectorPoints(connector);
             List<(double X, double Y)> points = new();
@@ -280,7 +309,7 @@ namespace OfficeIMO.Visio {
                 (double x, double y) = ToRaster(page, labelCenterX, labelCenterY, canvas.Projection);
                 double maxWidth = label.Width * canvas.Projection.GeometryDensity;
                 double maxHeight = label.Height * canvas.Projection.GeometryDensity;
-                DrawText(canvas, connector.Label!, x, y, connector.TextStyle, 9D, maxWidth, maxHeight,
+                DrawText(canvas, connector.Label!, x, y, VisioTextBackground.Effective(connector), 9D, maxWidth, maxHeight,
                     ToRasterRotation(VisioConnectorLabelFrame.ResolveAngle(connector)), true,
                     VisioRichTextProjection.Create(page, connector, canvas.Projection.PhysicalDensity, options.CancellationToken, textStyles));
             }

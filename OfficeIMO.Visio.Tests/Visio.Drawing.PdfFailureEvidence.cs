@@ -14,7 +14,7 @@ public sealed class VisioDrawingPdfFailureEvidenceTests {
     public async Task StrictDiagramFailureRetainsLocatedSourceEvidenceAndLeavesDestinationUntouched(
         bool asynchronous, bool streamDestination) {
         VisioDocument document = VisioDocument.Create();
-        document.AddPage("Page").AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), "Label").AddHyperlink("https://example.com");
+        document.AddPage("Page").AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), "Label").SetShapeData("Owner", "Operations");
         byte[] source = document.ToLegacyXmlResult().Value;
         var options = new VisioPdfExportOptions {
             Mode = VisioPdfProjectionMode.DiagramPages,

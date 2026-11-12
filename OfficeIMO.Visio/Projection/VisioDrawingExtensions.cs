@@ -14,7 +14,7 @@ public static class VisioDrawingExtensions {
         if (document.Pages.Count == 0) throw new InvalidOperationException("The Visio document has no pages. Instantiate stencil masters on a page before rendering.");
         if (document.Pages.Count > operation.MaximumPages) throw new InvalidDataException("Visio page count exceeds MaximumPages.");
         var report = new VisioDrawingConversionReport(operation.SourceName ?? document.FilePath);
-        var context = new VisioDrawingProjection(operation, report, cancellationToken);
+        var context = new VisioDrawingProjection(operation, report, cancellationToken); context.UseDocumentPages(document);
         var drawings = new List<OfficeDrawing>(document.Pages.Count);
         for (int index = 0; index < document.Pages.Count; index++) drawings.Add(context.Project(document.Pages[index], index + 1));
         if (operation.FailOnLoss) report.ThrowIfLoss();

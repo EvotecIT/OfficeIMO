@@ -59,14 +59,15 @@ internal static partial class TextLayoutEngine {
                     for (int index = 1; index < spans.Count; index++) normalSum += coordinates.Normal(spans[index]);
                     BaselineNormal = normalSum / spans.Count;
                 }
-                var along = new double[spans.Count];
-                var alongEnd = new double[spans.Count];
+                double baselineStart = double.PositiveInfinity;
+                double baselineEnd = double.NaN;
                 for (int index = 0; index < spans.Count; index++) {
-                    along[index] = coordinates.Along(spans[index]);
-                    alongEnd[index] = along[index] + Math.Max(0D, spans[index].LogicalLayoutAdvance);
+                    double along = coordinates.Along(spans[index]);
+                    baselineStart = MinimumKeepingNaN(baselineStart, along);
+                    baselineEnd = MaximumSkippingNaN(baselineEnd, along + Math.Max(0D, spans[index].LogicalLayoutAdvance));
                 }
-                BaselineStart = MinimumOf(along);
-                BaselineEnd = MaximumOf(alongEnd);
+                BaselineStart = baselineStart;
+                BaselineEnd = baselineEnd;
             }
         }
     }
@@ -350,15 +351,15 @@ internal static partial class TextLayoutEngine {
         IReadOnlyList<PdfTextSpan> textSpans = options?.ReadingDirection == PdfReadingDirection.LeftToRight
             ? visualOrder
             : PdfTextDirectionAnalysis.RestoreLogicalFragmentOrder(visualOrder, static span => span.Text, direction);
-        var starts = new double[spans.Count];
-        var ends = new double[spans.Count];
+        double xs = double.PositiveInfinity;
+        double xe = double.NaN;
         for (int index = 0; index < spans.Count; index++) {
-            starts[index] = spans[index].X;
-            ends[index] = spans[index].X + Math.Max(0D, spans[index].LogicalLayoutAdvance);
+            double start = spans[index].X;
+            xs = MinimumKeepingNaN(xs, start);
+            xe = MaximumSkippingNaN(xe, start + Math.Max(0D, spans[index].LogicalLayoutAdvance));
         }
-        double xs = MinimumOf(starts);
-        double xe = MaximumOf(ends);
-        var text = new StringBuilder();
+        StringBuilder text = t_lineText ?? new StringBuilder();
+        t_lineText = null;
         for (int i = 0; i < textSpans.Count; i++) {
             var s = textSpans[i];
             string logicalText = PdfTextDirectionAnalysis.RestoreLogicalOrderFromGlyphPaintSequence(
@@ -425,6 +426,8 @@ internal static partial class TextLayoutEngine {
             }
         }
         string outText = text.ToString();
+        text.Clear();
+        if (text.Capacity <= MaximumCachedLineTextCapacity) t_lineText = text;
         if (!IsLeaderRun(outText)) {
             // Text content cannot prove that whitespace between separately painted glyph runs is an
             // intra-word fracture. Keep word boundaries here; geometric grouping owns gap decisions.
@@ -433,6 +436,11 @@ internal static partial class TextLayoutEngine {
         return new TextLine(baseY ?? spans[0].LogicalLayoutY, xs, xe, outText, new List<PdfTextSpan>(spans),
             options?.ReadingDirection ?? PdfReadingDirection.Auto, baseNormal);
     }
+
+    // One line builder per thread; a nested build takes a fresh one while it is in use.
+    [ThreadStatic]
+    private static StringBuilder? t_lineText;
+    private const int MaximumCachedLineTextCapacity = 4096;
 
     // First span by LogicalLayoutX, keeping the earliest of equal positions.
     private static double GetLeftmostLogicalLayoutY(IReadOnlyList<PdfTextSpan> spans) {
@@ -443,42 +451,28 @@ internal static partial class TextLayoutEngine {
         return leftmost.LogicalLayoutY;
     }
 
-    // Enumerable.Min semantics for doubles: any NaN yields NaN.
-    private static double MinimumOf(double[] values) {
-        double minimum = values[0];
-        if (double.IsNaN(minimum)) return minimum;
-        for (int index = 1; index < values.Length; index++) {
-            double value = values[index];
-            if (value < minimum) minimum = value;
-            else if (double.IsNaN(value)) return value;
-        }
-        return minimum;
-    }
+    // Running Enumerable.Min semantics for doubles: any NaN yields NaN. Start from positive infinity.
+    private static double MinimumKeepingNaN(double minimum, double value) =>
+        double.IsNaN(minimum) || double.IsNaN(value) ? double.NaN : value < minimum ? value : minimum;
 
-    // Enumerable.Max semantics for doubles: NaN only when every value is NaN.
-    private static double MaximumOf(double[] values) {
-        int index = 0;
-        double maximum = values[index];
-        while (double.IsNaN(maximum)) {
-            if (++index >= values.Length) return maximum;
-            maximum = values[index];
-        }
-        for (index++; index < values.Length; index++) {
-            if (values[index] > maximum) maximum = values[index];
-        }
-        return maximum;
-    }
+    // Running Enumerable.Max semantics for doubles: NaN only when every value is NaN. Start from NaN.
+    private static double MaximumSkippingNaN(double maximum, double value) =>
+        double.IsNaN(maximum) || value > maximum ? value : maximum;
 
     // Stable ascending order along the baseline; equal positions keep their list order.
     private static List<PdfTextSpan> OrderAlongBaseline(List<PdfTextSpan> spans, PdfTextBaselineCoordinates coordinates) {
         int count = spans.Count;
         if (count == 1) return new List<PdfTextSpan>(spans);
         var keys = new double[count];
-        var order = new int[count];
+        bool alreadyOrdered = true;
         for (int index = 0; index < count; index++) {
             keys[index] = coordinates.Along(spans[index]);
-            order[index] = index;
+            if (index > 0 && keys[index - 1].CompareTo(keys[index]) > 0) alreadyOrdered = false;
         }
+        // Spans usually arrive sorted along the baseline; the stable key sort would keep them as they are.
+        if (alreadyOrdered) return new List<PdfTextSpan>(spans);
+        var order = new int[count];
+        for (int index = 0; index < count; index++) order[index] = index;
         Array.Sort(order, (left, right) => {
             int comparison = keys[left].CompareTo(keys[right]);
             return comparison != 0 ? comparison : left.CompareTo(right);

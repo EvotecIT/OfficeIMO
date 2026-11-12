@@ -50,9 +50,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         || visual.PaintPhase == HtmlRenderPaintPhase.Content
             && HtmlRenderVisualLists.Any(GetFlowPaintChildren(visual, invariantOnly: true), ContainsPositionedFlowPaint);
 
+    // Collapsed grid strokes are content-phase paint emitted after their cells, so they
+    // already follow cell backgrounds without a phase split. A table whose only paint is
+    // content keeps its existing order and needs no filtered copy of every row and cell.
     private static bool ContainsDeferredFlowPaint(HtmlRenderVisual visual) =>
         visual.PaintPhase is HtmlRenderPaintPhase.BlockBackground or HtmlRenderPaintPhase.Float or HtmlRenderPaintPhase.Outline
-        || visual is HtmlRenderShape { IsCollapsedTableBorder: true }
         || visual.PaintPhase == HtmlRenderPaintPhase.Content && visual.StackingContext == null
             && HtmlRenderVisualLists.Any(GetFlowPaintChildren(visual, invariantOnly: true), ContainsDeferredFlowPaint);
 

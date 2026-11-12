@@ -888,10 +888,16 @@ internal static partial class PdfPageXObjectInvocationParser {
                 return false;
             }
 
-            double left = _path.Min(point => point.X);
-            double right = _path.Max(point => point.X);
-            double top = _path.Min(point => ToTop(point.Y));
-            double bottom = _path.Max(point => ToTop(point.Y));
+            // Enumerable.Min/Max semantics: a NaN coordinate makes the minimum NaN and is skipped by the maximum.
+            double left = double.PositiveInfinity, right = double.NaN, top = double.PositiveInfinity, bottom = double.NaN;
+            for (int index = 0; index < _path.Count; index++) {
+                double pointX = _path[index].X;
+                double pointTop = ToTop(_path[index].Y);
+                left = MinimumKeepingNaN(left, pointX);
+                right = MaximumSkippingNaN(right, pointX);
+                top = MinimumKeepingNaN(top, pointTop);
+                bottom = MaximumSkippingNaN(bottom, pointTop);
+            }
             width = right - left;
             height = bottom - top;
             if (width <= 0D || height <= 0D) {
@@ -941,6 +947,12 @@ internal static partial class PdfPageXObjectInvocationParser {
         private (double X, double Y) TransformPoint(double x, double y) => _state.Transform.Transform(x, y);
 
         private double ToTop(double pdfY) => _pageHeight - pdfY;
+
+        private static double MinimumKeepingNaN(double current, double value) =>
+            double.IsNaN(current) || double.IsNaN(value) ? double.NaN : value < current ? value : current;
+
+        private static double MaximumSkippingNaN(double current, double value) =>
+            double.IsNaN(current) || value > current ? value : current;
 
         private OfficePoint ToOfficePoint((double X, double Y) point) => new OfficePoint(point.X, ToTop(point.Y));
 
