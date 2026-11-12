@@ -233,7 +233,11 @@ internal static partial class OfficeJpeg2000Decoder {
                         samples[pixel] = lookup[value + storageOffset];
                     }
                 } else {
-                    for (int x = from, pixel = (target + from) * channels + channel; x < to; x++, pixel += channels) {
+                    int x = from, pixel = (target + from) * channels + channel;
+#if NET8_0_OR_GREATER
+                    x = StoreRoundedVector(floats!, sourceRow, x, to, shift, minimum, maximum, storageOffset, lookup, samples, ref pixel, channels);
+#endif
+                    for (; x < to; x++, pixel += channels) {
                         int value = RoundHalfUp(floats![sourceRow + x]) + shift;
                         value = value < minimum ? minimum : value > maximum ? maximum : value;
                         samples[pixel] = lookup[value + storageOffset];
@@ -257,6 +261,36 @@ internal static partial class OfficeJpeg2000Decoder {
             }
         }
     }
+
+#if NET8_0_OR_GREATER
+    // RoundHalfUp, shift, clamp and lookup for whole vectors of samples. Rounding runs in double precision like the
+    // scalar path; a vector with a sample outside the integer range (or NaN) is left to the scalar loop.
+    private static int StoreRoundedVector(float[] source, int sourceRow, int x, int to, int shift, int minimum, int maximum,
+        int storageOffset, byte[] lookup, byte[] samples, ref int pixel, int channels) {
+        if (!Vector.IsHardwareAccelerated) return x;
+        int lanes = Vector<float>.Count;
+        var half = new Vector<double>(0.5);
+        var lowest = new Vector<double>(-2147483648.0);
+        var highest = new Vector<double>(2147483647.0);
+        var shiftVector = new Vector<int>(shift);
+        var minimumVector = new Vector<int>(minimum);
+        var maximumVector = new Vector<int>(maximum);
+        var offsetVector = new Vector<int>(storageOffset);
+        Span<int> values = stackalloc int[Vector<int>.Count];
+        for (; x <= to - lanes; x += lanes) {
+            Vector.Widen(new Vector<float>(source, sourceRow + x), out Vector<double> low, out Vector<double> high);
+            low += half;
+            high += half;
+            if (!Vector.GreaterThanAll(low, lowest) || !Vector.LessThanAll(low, highest) ||
+                !Vector.GreaterThanAll(high, lowest) || !Vector.LessThanAll(high, highest)) break;
+            Vector<int> rounded = Vector.Narrow(Vector.ConvertToInt64(Vector.Floor(low)), Vector.ConvertToInt64(Vector.Floor(high)));
+            Vector<int> value = Vector.Min(Vector.Max(rounded + shiftVector, minimumVector), maximumVector) + offsetVector;
+            value.CopyTo(values);
+            for (int lane = 0; lane < values.Length; lane++, pixel += channels) samples[pixel] = lookup[values[lane]];
+        }
+        return x;
+    }
+#endif
 
     // (int)Math.Floor(value + 0.5) without the library call for values well inside the integer range.
     private static int RoundHalfUp(float value) {

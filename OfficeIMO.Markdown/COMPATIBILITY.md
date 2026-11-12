@@ -24,8 +24,8 @@ The default profile enables OfficeIMO conveniences such as typed image blocks, c
 
 ## Current standards evidence
 
-- 316 CommonMark 0.31.2 examples are pinned as smoke fixtures.
-- The generated full CommonMark inventory reports 651 of 652 examples matching.
+- 317 CommonMark 0.31.2 examples are pinned as smoke fixtures.
+- The generated full CommonMark inventory reports all 652 examples matching.
 - The generated GFM inventory reports 52 tracked fixtures and 52 passing.
 - Focused tests cover syntax spans, native projection, source edits, HTML rendering, Markdown writing, profiles, extensions, diagnostics, and round trips.
 
@@ -50,7 +50,6 @@ Raw HTML recognition, raw HTML output, URL policy, image/resource policy, escapi
 
 ## Known limits
 
-- One CommonMark raw-HTML inventory case remains open.
 - Complete trivia/delimiter coverage and original-to-normalized mapping are not available for every node and transform.
 - General byte-preserving output after arbitrary multi-node or generated-node edits is not claimed.
 - Optional grid tables, math, media, figures, and diagram languages are not default grammar.

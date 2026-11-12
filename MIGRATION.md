@@ -1529,7 +1529,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Word
 
 <details>
-<summary>458 changes</summary>
+<summary>460 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -1671,6 +1671,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Authoring | `OfficeIMO.Word.WordDocument.ToImage(WordImageExportOptions options)` | Removed | &mdash; | Use ToImage/SaveAsImage/SaveAsImages with WordImageExportOptions. |
 | Authoring | `OfficeIMO.Word.WordDocument.ToImages()` | Removed | &mdash; | Use ToImage/SaveAsImage/SaveAsImages with WordImageExportOptions. |
 | Authoring | `OfficeIMO.Word.WordDocument.ToImages(WordImageExportOptions options)` | Removed | &mdash; | Use ToImage/SaveAsImage/SaveAsImages with WordImageExportOptions. |
+| Authoring | `OfficeIMO.Word.WordDocumentMergeOptions.StyleMode` | Renamed | `OfficeIMO.Word.WordDocumentMergeOptions.StyleConflictMode : WordStyleConflictMode` | UseDestinationStyles is KeepTarget and KeepDifferentStyles is Rename. The default is now Rename: a source style that clashes with a destination style is copied as Heading1\_0, so appended content keeps its look. Pass StyleConflictMode = WordStyleConflictMode.KeepTarget to format appended content with the destination styles as before; Overwrite replaces the destination definition. |
 | Authoring | `OfficeIMO.Word.WordFooters` | Removed | `OfficeIMO.Word.WordPageSetup` | footers.Default/First/Even -&gt; setup.GetFooter(type) or the creating Footer/FirstPageFooter/EvenPageFooter properties. |
 | Authoring | `OfficeIMO.Word.WordFormattedRun.Strike` | Renamed | `OfficeIMO.Word.WordFormattedRun.Strikethrough` | Use one formatting vocabulary on the native object model. |
 | Authoring | `OfficeIMO.Word.WordHeaders` | Removed | `OfficeIMO.Word.WordPageSetup` | headers.Default/First/Even -&gt; setup.GetHeader(WordHeaderFooterType.Default/First/Even) or the creating Header/FirstPageHeader/EvenPageHeader properties. |
@@ -1680,6 +1681,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Authoring | `OfficeIMO.Word.WordList.Strike` | Renamed | `OfficeIMO.Word.WordList.Strikethrough` | Use one formatting vocabulary on the native object model. |
 | Authoring | `OfficeIMO.Word.WordListNumbering.AddLevel(WordListLevel wordListLevel)` | Changed | `OfficeIMO.Word.WordListNumbering.AddLevel(WordListLevel wordListLevel) : WordListLevel` | Add\* methods return the created object. |
 | Authoring | `OfficeIMO.Word.WordMargins.SetMargins(WordSection, WordMargin) : WordSection` | Removed | `OfficeIMO.Word.WordMargins.Type` | section.PageSetup.Margins.Type = preset; |
+| Authoring | `OfficeIMO.Word.WordMergeStyleMode` | Merged | `OfficeIMO.Word.WordStyleConflictMode` | UseDestinationStyles is KeepTarget and KeepDifferentStyles is Rename; Overwrite is new. |
 | Authoring | `OfficeIMO.Word.WordPaperStyle.AddCover(WordDocument document, string eyebrow, string title, string subtitle)` | Changed | `OfficeIMO.Word.WordPaperStyle.AddCover(WordDocument document, string eyebrow, string title, string subtitle) : (WordParagraph Eyebrow, WordParagraph Title, WordParagraph Subtitle)` | Add\* methods return the created object. |
 | Authoring | `OfficeIMO.Word.WordPaperStyle.AddPageChrome(WordDocument document, string title, string product, string scope)` | Changed | `OfficeIMO.Word.WordPaperStyle.AddPageChrome(WordDocument document, string title, string product, string scope) : (WordParagraph DefaultHeader, WordParagraph EvenHeader, WordParagraph DefaultFooter, WordParagraph EvenFooter)` | Add\* methods return the created object. |
 | Authoring | `OfficeIMO.Word.WordParagraph.AddBookmark(string bookmarkName)` | Changed | `OfficeIMO.Word.WordParagraph.AddBookmark(...) : WordBookmark` | Add\* methods return the created object. |
@@ -7222,6 +7224,20 @@ XML extraction uses `XmlReadOptions.MaxDepth` (128), `MaxNodes` (200,000), and
 `MaxScalarLength` (1,048,576) by default. Inputs exceeding these limits throw
 `ReaderResourceLimitException`. Increase the relevant option for trusted larger inputs.
 XML and YAML values within their configured limits retain their full normalized text.
+
+## Reader JSON and TOML limits
+
+JSON extraction adds `JsonReadOptions.MaxNodes` (200,000) and `MaxScalarLength` (1,048,576)
+beside `MaxDepth` (32). Exceeding any of the three, including `MaxDepth`, now throws
+`ReaderResourceLimitException` instead of returning a `json-warning-0000` parse warning, and a
+limit below 1 throws `ArgumentOutOfRangeException` instead of being raised to 1. Raise the
+relevant option for trusted larger inputs; malformed JSON still produces the warning chunk.
+
+TOML limits exceeded during a Reader read throw `ReaderResourceLimitException` with the engine's
+`TomlLimitExceededException` as `InnerException`, instead of a `toml-warning-0000` chunk.
+`TomlReadOptions.MaxDepth`, `MaxNodes` and `MaxScalarLength` override the matching
+`LoadOptions` values when set. TOML results map to the new `OfficeDocumentFormat.Toml`
+instead of `Unknown`; update exhaustive switches over `OfficeDocumentFormat`.
 
 Path reads reject a detected source change with `IOException`. Retry against a stable file.
 Keep incremental inputs stable until enumeration finishes: a later failure cannot withdraw

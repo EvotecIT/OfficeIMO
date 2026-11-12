@@ -1,5 +1,8 @@
 #if NET8_0_OR_GREATER
 using System.Numerics;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
+using System.Runtime.Intrinsics.X86;
 #endif
 
 namespace OfficeIMO.Drawing;
@@ -493,8 +496,13 @@ internal static partial class OfficeJpeg2000Decoder {
         LiftSpan(high, highBase, ((origin - 2) & 1) != 0 ? -2 : -1, count + 2, low, highShift, IrreversibleGamma);
         LiftSpan(low, lowBase, ((origin - 1) & 1) == 0 ? -1 : 0, count + 1, high, lowShift, IrreversibleBeta);
         LiftSpan(high, highBase, (origin & 1) != 0 ? 0 : 1, count, low, highShift, IrreversibleAlpha);
-        for (int position = firstLow, k = (firstLow - lowBase) >> 1; position < count; position += 2, k++) target[targetStart + position] = low[k];
-        for (int position = firstHigh, k = (firstHigh - highBase) >> 1; position < count; position += 2, k++) target[targetStart + position] = high[k];
+        // Positions 0 and 1 hold one sample of each phase; whole vectors of pairs are interleaved first.
+        int lowIndex = (firstLow - lowBase) >> 1, highIndex = (firstHigh - highBase) >> 1;
+        int paired = firstLow == 0
+            ? InterleavePairs(low, lowIndex, high, highIndex, target, targetStart, count >> 1)
+            : InterleavePairs(high, highIndex, low, lowIndex, target, targetStart, count >> 1);
+        for (int position = firstLow + 2 * paired, k = lowIndex + paired; position < count; position += 2, k++) target[targetStart + position] = low[k];
+        for (int position = firstHigh + 2 * paired, k = highIndex + paired; position < count; position += 2, k++) target[targetStart + position] = high[k];
 
         // Periodic symmetric extension (F.3.7) keeps the parity of a position, so each side extends from itself.
         void ExtendPolyphase(int position) {
@@ -504,6 +512,29 @@ internal static partial class OfficeJpeg2000Decoder {
             if (lowPosition) low[(position - lowBase) >> 1] = value;
             else high[(position - highBase) >> 1] = value;
         }
+    }
+
+    // target[start + 2i] = even[evenStart + i], target[start + 2i + 1] = odd[oddStart + i] for whole vectors of i below
+    // `pairs`; returns how many pairs were written. A pure copy, so the samples are bit-identical.
+    private static int InterleavePairs(float[] even, int evenStart, float[] odd, int oddStart, float[] target, int targetStart, int pairs) {
+        int lanes = Vector128<float>.Count, done = 0;
+        if (pairs < lanes || evenStart + pairs > even.Length || oddStart + pairs > odd.Length || targetStart + 2 * pairs > target.Length) return 0;
+        if (AdvSimd.Arm64.IsSupported) {
+            for (; done <= pairs - lanes; done += lanes) {
+                Vector128<float> a = Vector128.Create(even.AsSpan(evenStart + done, lanes));
+                Vector128<float> b = Vector128.Create(odd.AsSpan(oddStart + done, lanes));
+                AdvSimd.Arm64.ZipLow(a, b).CopyTo(target, targetStart + 2 * done);
+                AdvSimd.Arm64.ZipHigh(a, b).CopyTo(target, targetStart + 2 * done + lanes);
+            }
+        } else if (Sse.IsSupported) {
+            for (; done <= pairs - lanes; done += lanes) {
+                Vector128<float> a = Vector128.Create(even.AsSpan(evenStart + done, lanes));
+                Vector128<float> b = Vector128.Create(odd.AsSpan(oddStart + done, lanes));
+                Sse.UnpackLow(a, b).CopyTo(target, targetStart + 2 * done);
+                Sse.UnpackHigh(a, b).CopyTo(target, targetStart + 2 * done + lanes);
+            }
+        }
+        return done;
     }
 
     private static void ScaleSpan(float[] values, int start, int end, float factor) {

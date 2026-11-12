@@ -15,6 +15,9 @@ public sealed partial class PdfLogicalPage {
         PdfIndexedSoftMaskPngMemo? indexedSoftMaskMemo = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
+        // Table styling, optional-content and visual-count passes each read the page content.
+        // Decode it once for this page; every pass is still charged for what it reads.
+        using PdfReadPage.DecodedContentReuseScope contentReuse = page.ReuseDecodedContent();
         var size = page.GetPageSize();
         PdfPageGeometry geometry = page.GetGeometry();
         List<PdfUnderstandingLine>? retainedLines = analysis is null

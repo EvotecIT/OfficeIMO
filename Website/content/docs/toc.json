@@ -384,6 +384,66 @@
     ]
   },
   {
+    "title": "Access, Publisher, and XPS",
+    "items": [
+      {
+        "title": "Access Databases",
+        "path": "access/index.md",
+        "href": "/docs/access/"
+      },
+      {
+        "title": "Publisher Publications",
+        "path": "publisher/index.md",
+        "href": "/docs/publisher/"
+      },
+      {
+        "title": "XPS and OpenXPS",
+        "path": "xps/index.md",
+        "href": "/docs/xps/"
+      }
+    ]
+  },
+  {
+    "title": "Business Documents",
+    "items": [
+      {
+        "title": "Electronic Invoices",
+        "path": "invoicing/index.md",
+        "href": "/docs/invoicing/"
+      }
+    ]
+  },
+  {
+    "title": "Text, Data, and Foundations",
+    "items": [
+      {
+        "title": "Text and Markup Formats",
+        "path": "text-formats/index.md",
+        "href": "/docs/text-formats/"
+      },
+      {
+        "title": "TOML Files",
+        "path": "toml/index.md",
+        "href": "/docs/toml/"
+      },
+      {
+        "title": "ZIP, CAB and MSI Archives",
+        "path": "archives/index.md",
+        "href": "/docs/archives/"
+      },
+      {
+        "title": "Signatures and Encryption",
+        "path": "security/index.md",
+        "href": "/docs/security/"
+      },
+      {
+        "title": "Charts, OCR and Provenance",
+        "path": "foundations/index.md",
+        "href": "/docs/foundations/"
+      }
+    ]
+  },
+  {
     "title": "Reader",
     "items": [
       {
