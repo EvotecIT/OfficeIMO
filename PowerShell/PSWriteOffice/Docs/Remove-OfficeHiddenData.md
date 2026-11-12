@@ -11,27 +11,28 @@ Writes a copy of a file without its metadata and hidden data, and reports what h
 ## SYNTAX
 ### Path (Default)
 ```powershell
-Remove-OfficeHiddenData [-Path] <string[]> [-OutputPath <string>] [-Options <OfficeHiddenDataOptions>] [-RemoveInvalidatedSignatures] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
+Remove-OfficeHiddenData [-Path] <string[]> [-OutputPath <string>] [-Options <OfficeHiddenDataOptions>] [-RemoveInvalidatedSignatures] [-NoClobber] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### PathDirectory
 ```powershell
-Remove-OfficeHiddenData [-Path] <string[]> -OutputDirectory <string> [-Options <OfficeHiddenDataOptions>] [-RemoveInvalidatedSignatures] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
+Remove-OfficeHiddenData [-Path] <string[]> -OutputDirectory <string> [-Options <OfficeHiddenDataOptions>] [-RemoveInvalidatedSignatures] [-NoClobber] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### LiteralPath
 ```powershell
-Remove-OfficeHiddenData -LiteralPath <string[]> [-OutputPath <string>] [-Options <OfficeHiddenDataOptions>] [-RemoveInvalidatedSignatures] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
+Remove-OfficeHiddenData -LiteralPath <string[]> [-OutputPath <string>] [-Options <OfficeHiddenDataOptions>] [-RemoveInvalidatedSignatures] [-NoClobber] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### LiteralPathDirectory
 ```powershell
-Remove-OfficeHiddenData -LiteralPath <string[]> -OutputDirectory <string> [-Options <OfficeHiddenDataOptions>] [-RemoveInvalidatedSignatures] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
+Remove-OfficeHiddenData -LiteralPath <string[]> -OutputDirectory <string> [-Options <OfficeHiddenDataOptions>] [-RemoveInvalidatedSignatures] [-NoClobber] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
 The input is never changed. The cleaned copy is written as <name>.cleaned<ext> beside the input unless
-OutputPath or OutputDirectory says otherwise, and an existing file is replaced only with Force.
+OutputPath or OutputDirectory says otherwise. An existing output file is replaced, as with Convert-OfficeDocument and
+Optimize-OfficePdf; NoClobber refuses it instead.
 
 Without Options the Default categories are removed: document and custom properties, comments, personal identities,
 speaker notes, the thumbnail, custom XML, image metadata, printer settings, external references, document variables,
@@ -60,27 +61,11 @@ Get-ChildItem .\Outgoing -File | Remove-OfficeHiddenData -OutputDirectory .\Shar
 ### EXAMPLE 3
 ```powershell
 PS> $options = New-OfficeHiddenDataOptions -TrackedChanges AcceptAll
-Remove-OfficeHiddenData -Path .\Contract.docx -OutputPath .\Contract-final.docx -Options $options -Force
+Remove-OfficeHiddenData -Path .\Contract.docx -OutputPath .\Contract-final.docx -Options $options -NoClobber
 ```
 
 
 ## PARAMETERS
-
-### -Force
-Replace an existing output file.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
 
 ### -LiteralPath
 Exact file paths, including FileInfo.FullName and provider PSPath pipeline properties.
@@ -95,6 +80,22 @@ Required: True
 Position: named
 Default value: None
 Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -NoClobber
+Refuse to replace an existing output file.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 

@@ -3460,8 +3460,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Security/RemoveOfficeHiddenDataCommand.cs",
-      "sourceLine": 36,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Security/RemoveOfficeHiddenDataCommand.cs#L36"
+      "sourceLine": 37,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Security/RemoveOfficeHiddenDataCommand.cs#L37"
     },
     {
       "name": "Remove-OfficePdfAnnotation",
