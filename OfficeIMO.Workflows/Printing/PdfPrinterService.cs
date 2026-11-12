@@ -27,7 +27,7 @@ public enum PdfPrintDuplex {
     ShortEdge
 }
 
-/// <summary>Delivery options applied to already reviewed print sheets.</summary>
+/// <summary>Delivery options applied to a composed print job.</summary>
 public sealed class PdfPrintDeliveryOptions {
     /// <summary>Installed queue name.</summary>
     public required string PrinterName { get; set; }
@@ -41,6 +41,9 @@ public sealed class PdfPrintDeliveryOptions {
     public string? PaperSourceId { get; set; }
     /// <summary>New local output path for a Windows file printer. Existing paths are rejected before submission.</summary>
     public string? OutputFilePath { get; set; }
+    /// <summary>Highest resolution, from 72 through 600 DPI, used when a transport rasterizes sheets. Defaults to 300.</summary>
+    /// <remarks>Windows rasterizes at the device resolution up to this limit. CUPS rasterizes only grayscale jobs.</remarks>
+    public double MaximumRasterDpi { get; set; } = 300;
 
     internal PdfPrintDeliveryOptions Snapshot() {
         if ((PrinterName == null || string.IsNullOrWhiteSpace(PrinterName))) throw new ArgumentException("A non-empty value is required.", nameof(PrinterName));
@@ -48,9 +51,10 @@ public sealed class PdfPrintDeliveryOptions {
         if (PrinterName.IndexOf('\0') >= 0 || DocumentName.IndexOf('\0') >= 0) throw new ArgumentException("Printer and document names cannot contain null characters.");
         if (Copies is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(Copies));
         if (!OfficeRuntimeCompatibility.IsDefined(Duplex)) throw new ArgumentOutOfRangeException(nameof(Duplex));
+        if (!OfficeRuntimeCompatibility.IsFinite(MaximumRasterDpi) || MaximumRasterDpi is < 72 or > 600) throw new ArgumentOutOfRangeException(nameof(MaximumRasterDpi));
         if (PaperSourceId is not null && ((PaperSourceId == null || string.IsNullOrWhiteSpace(PaperSourceId)) || PaperSourceId.Length > 256 || PaperSourceId.Any(char.IsControl)))
             throw new ArgumentException("The paper-source identifier is invalid.", nameof(PaperSourceId));
-        return new() { PrinterName = PrinterName, DocumentName = DocumentName, Copies = Copies, Duplex = Duplex, PaperSourceId = PaperSourceId, OutputFilePath = OutputFilePath };
+        return new() { PrinterName = PrinterName, DocumentName = DocumentName, Copies = Copies, Duplex = Duplex, PaperSourceId = PaperSourceId, OutputFilePath = OutputFilePath, MaximumRasterDpi = MaximumRasterDpi };
     }
 }
 
@@ -70,26 +74,26 @@ public sealed class PdfPrintDeliveryException : IOException {
     public string? JobId { get; }
 }
 
-/// <summary>Operating-system boundary for printer discovery and exact prepared-sheet delivery.</summary>
+/// <summary>Printer discovery and job delivery. Transports receive the job content and the delivery options.</summary>
 public interface IPdfPrinterService {
     /// <summary>Lists installed queues without changing printer settings.</summary>
     Task<IReadOnlyList<PdfPrinterInfo>> GetPrintersAsync(CancellationToken cancellationToken = default);
-    /// <summary>Lists the selected queue's paper sources without changing printer settings.</summary>
-    Task<IReadOnlyList<PdfPaperSourceInfo>> GetPaperSourcesAsync(string printerName, CancellationToken cancellationToken = default);
-    /// <summary>Submits reviewed sheets and returns an acceptance receipt.</summary>
-    Task<PdfPrintSubmission> SubmitAsync(PdfPreparedPrintDocument document, PdfPrintDeliveryOptions options, CancellationToken cancellationToken = default);
+    /// <summary>Reports the selected queue's media, trays and features without changing printer settings.</summary>
+    Task<PdfPrinterCapabilities> GetCapabilitiesAsync(string printerName, CancellationToken cancellationToken = default);
+    /// <summary>Submits a composed job and returns an acceptance receipt.</summary>
+    Task<PdfPrintSubmission> SubmitAsync(PdfPrintJob job, PdfPrintDeliveryOptions options, CancellationToken cancellationToken = default);
 }
 
-/// <summary>Windows GDI and macOS/Linux CUPS printer delivery.</summary>
+/// <summary>Windows GDI raster delivery and macOS/Linux CUPS PDF delivery.</summary>
 public sealed class PdfPrinterService : IPdfPrinterService {
     /// <inheritdoc />
-    public Task<IReadOnlyList<PdfPaperSourceInfo>> GetPaperSourcesAsync(string printerName, CancellationToken cancellationToken = default) {
+    public Task<PdfPrinterCapabilities> GetCapabilitiesAsync(string printerName, CancellationToken cancellationToken = default) {
         if ((printerName == null || string.IsNullOrWhiteSpace(printerName))) throw new ArgumentException("A non-empty value is required.", nameof(printerName));
         if (printerName.Contains('\0')) throw new ArgumentException("The printer name is invalid.", nameof(printerName));
         cancellationToken.ThrowIfCancellationRequested();
         return OfficeRuntimeCompatibility.IsWindows
-            ? WindowsPdfPrinter.GetPaperSourcesAsync(printerName, cancellationToken)
-            : CupsPdfPrinter.GetPaperSourcesAsync(printerName, cancellationToken);
+            ? WindowsPdfPrinter.GetCapabilitiesAsync(printerName, cancellationToken)
+            : CupsPdfPrinter.GetCapabilitiesAsync(printerName, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -99,14 +103,13 @@ public sealed class PdfPrinterService : IPdfPrinterService {
             : CupsPdfPrinter.GetPrintersAsync(cancellationToken);
 
     /// <inheritdoc />
-    public Task<PdfPrintSubmission> SubmitAsync(PdfPreparedPrintDocument document, PdfPrintDeliveryOptions options, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(document);
+    public Task<PdfPrintSubmission> SubmitAsync(PdfPrintJob job, PdfPrintDeliveryOptions options, CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(options);
         PdfPrintDeliveryOptions snapshot = options.Snapshot();
-        if (document.Sheets.Count == 0) throw new ArgumentException("There are no prepared print sheets.", nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
         return OfficeRuntimeCompatibility.IsWindows
-            ? WindowsPdfPrinter.SubmitAsync(document, snapshot, cancellationToken)
-            : CupsPdfPrinter.SubmitAsync(document, snapshot, cancellationToken);
+            ? WindowsPdfPrinter.SubmitAsync(job, snapshot, cancellationToken)
+            : CupsPdfPrinter.SubmitAsync(job, snapshot, cancellationToken);
     }
 }

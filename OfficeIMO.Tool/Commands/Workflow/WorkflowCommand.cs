@@ -36,8 +36,8 @@ Usage:
   officeimo workflow job plan <job.json>
   officeimo workflow job run <job.json> [--retry-failed] [--allow-empty] [--format json|ndjson] [--report <new-report.json>]
   officeimo workflow job report <run-report.json>
-  officeimo workflow printers [--paper-sources <queue>]
-  officeimo workflow print <input.pdf> --printer <name> [print-plan options]
+  officeimo workflow printers [--capabilities <queue> | --paper-sources <queue>]
+  officeimo workflow print <input.pdf> --printer <name> [print-plan options; --paper defaults to the printer's media]
              [--copies 1..100] [--duplex default|off|long|short] [--paper-source <id>] [--dpi 72..600]
              [--output-file <new-local-path>]
 
