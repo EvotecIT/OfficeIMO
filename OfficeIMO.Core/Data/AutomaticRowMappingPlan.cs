@@ -154,6 +154,13 @@ internal sealed partial class AutomaticRowMappingPlan<
         }
     }
 
+    private bool HasIncompatibleReaderValue(in RowReaderQualification qualification) {
+        if (qualification.RowQualification is not null) {
+            return !qualification.RowQualification.CanUseNonNullTypedGetters(qualification.RowQualificationState!);
+        }
+        return HasIncompatibleReaderValue(qualification.Reader, qualification.Compatibility);
+    }
+
     private bool HasIncompatibleReaderValue(DbDataReader reader, IDataReaderTypedMappingCompatibility? compatibility) {
         // MapReaderRow already requires the fast-value contract. Native readers can
         // prove conversion and presence together without a second virtual null probe.
@@ -187,10 +194,15 @@ internal sealed partial class AutomaticRowMappingPlan<
     /// </summary>
     internal RowReaderQualification Qualify(
         DbDataReader rowReader,
-        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter) =>
-        new(rowReader,
-            typeConverter is null && _fastReaderMap is not null && rowReader is IDataReaderFastMappingValues,
-            rowReader as IDataReaderTypedMappingCompatibility);
+        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter) {
+        bool usesFastMap = typeConverter is null && _fastReaderMap is not null && rowReader is IDataReaderFastMappingValues;
+        var compatibility = rowReader as IDataReaderTypedMappingCompatibility;
+        if (usesFastMap && compatibility is IDataReaderTypedRowQualification rowQualification) {
+            object? state = rowQualification.PrepareNonNullTypedRowQualification(_qualificationOrdinals, _qualificationTypes);
+            if (state is not null) return new(rowReader, usesFastMap, compatibility, rowQualification, state);
+        }
+        return new(rowReader, usesFastMap, compatibility, null, null);
+    }
 
     /// <summary>
     /// Maps the current row. Qualification and typed getters run on the row reader that owns the
@@ -203,8 +215,7 @@ internal sealed partial class AutomaticRowMappingPlan<
         IReadOnlyList<string>? dateTimeFormats,
         Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
         DataMappingErrorValuePolicy errorValuePolicy) {
-        if (qualification.UsesFastMap &&
-            !HasIncompatibleReaderValue(qualification.Reader, qualification.Compatibility)) {
+        if (qualification.UsesFastMap && !HasIncompatibleReaderValue(qualification)) {
             try {
                 return _fastReaderMap!(qualification.Reader);
             } catch (TypedReaderValueException) {
@@ -216,15 +227,20 @@ internal sealed partial class AutomaticRowMappingPlan<
 
     internal readonly struct RowReaderQualification {
         internal RowReaderQualification(DbDataReader reader, bool usesFastMap,
-            IDataReaderTypedMappingCompatibility? compatibility) {
+            IDataReaderTypedMappingCompatibility? compatibility,
+            IDataReaderTypedRowQualification? rowQualification, object? rowQualificationState) {
             Reader = reader;
             UsesFastMap = usesFastMap;
             Compatibility = compatibility;
+            RowQualification = rowQualification;
+            RowQualificationState = rowQualificationState;
         }
 
         internal DbDataReader Reader { get; }
         internal bool UsesFastMap { get; }
         internal IDataReaderTypedMappingCompatibility? Compatibility { get; }
+        internal IDataReaderTypedRowQualification? RowQualification { get; }
+        internal object? RowQualificationState { get; }
     }
 
     internal Func<DbDataReader, T>? GetFastReaderMap(

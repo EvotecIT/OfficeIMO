@@ -1,7 +1,66 @@
+using System.Runtime.CompilerServices;
+
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
-        private sealed partial class ExcelXmlRangeDataReader : IDataReaderFastMappingValues, IDataReaderTypedMappingCompatibility {
+        private sealed partial class ExcelXmlRangeDataReader : IDataReaderFastMappingValues, IDataReaderTypedRowQualification {
             bool IDataReaderFastMappingValues.HasOnlyNonNullFastValues => false;
+
+            object? IDataReaderTypedRowQualification.PrepareNonNullTypedRowQualification(int[] ordinals, Type[] targetTypes) {
+                if (_utf8Source == null || ordinals.Length == 0 || ordinals.Length != targetTypes.Length) return null;
+                var targets = new byte[ordinals.Length];
+                for (int index = 0; index < ordinals.Length; index++) {
+                    if ((uint)ordinals[index] >= (uint)_fieldCount) return null;
+                    targets[index] = ExcelUtf8RangeRowSource.GetTypedMappingTarget(targetTypes[index]);
+                }
+                return new TypedRowQualification(this, ordinals, targetTypes, targets);
+            }
+
+            bool IDataReaderTypedRowQualification.CanUseNonNullTypedGetters(object preparedState) {
+                var prepared = (TypedRowQualification)preparedState;
+                if (!ReferenceEquals(prepared.Reader, this)) throw new ArgumentException("The qualification belongs to another reader.", nameof(preparedState));
+                int[] ordinals = prepared.Ordinals;
+                Type[] targetTypes = prepared.TargetTypes;
+                EnsureOpenRow();
+                ExcelUtf8RangeRowSource source = _utf8Source!;
+                if (!IsCurrentStreamingRow || _currentRowIsBlank || _owner._opt.CellValueConverter != null) return false;
+                if (_owner._opt.NumericAsDecimal) {
+                    for (int index = 0; index < ordinals.Length; index++) {
+                        if (!CanUseTypedMappingGetter(ordinals[index], targetTypes[index], requireNonNull: true)) return false;
+                    }
+                    return true;
+                }
+
+                byte[] targets = prepared.Targets;
+                bool[] loaded = _currentValueLoaded;
+                for (int index = 0; index < ordinals.Length; index++) {
+                    int ordinal = ordinals[index];
+                    // Values a caller already read keep the cache-aware per-field rules.
+                    int result = loaded[ordinal]
+                        ? ExcelUtf8RangeRowSource.TypedMappingNeedsFieldCheck
+                        : source.QualifyUnloadedNonNullTypedMapping(ordinal + _utf8SourceOrdinalOffset, targets[index]);
+                    if (result == ExcelUtf8RangeRowSource.TypedMappingRejected) return false;
+                    if (result == ExcelUtf8RangeRowSource.TypedMappingNeedsFieldCheck
+                        && !CanUseTypedMappingGetter(ordinal, targetTypes[index], requireNonNull: true)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            /// <summary>Target kinds of the mapped fields, resolved once per row reader.</summary>
+            private sealed class TypedRowQualification {
+                internal TypedRowQualification(ExcelXmlRangeDataReader reader, int[] ordinals, Type[] targetTypes, byte[] targets) {
+                    Reader = reader;
+                    Ordinals = ordinals;
+                    TargetTypes = targetTypes;
+                    Targets = targets;
+                }
+
+                internal ExcelXmlRangeDataReader Reader { get; }
+                internal int[] Ordinals { get; }
+                internal Type[] TargetTypes { get; }
+                internal byte[] Targets { get; }
+            }
 
             bool IDataReaderTypedMappingCompatibility.CanUseTypedGetter(int ordinal, Type targetType) =>
                 CanUseTypedMappingGetter(ordinal, targetType, requireNonNull: false);
@@ -57,6 +116,60 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed partial class ExcelUtf8RangeRowSource {
+            internal const int TypedMappingRejected = 0;
+            internal const int TypedMappingAccepted = 1;
+            internal const int TypedMappingNeedsFieldCheck = 2;
+            private const byte TargetOther = 0;
+            private const byte TargetString = 1;
+            private const byte TargetBoolean = 2;
+            private const byte TargetNumber = 3;
+            private const byte TargetDateTime = 4;
+
+            internal static byte GetTypedMappingTarget(Type targetType) {
+                if (targetType == typeof(string)) return TargetString;
+                if (targetType == typeof(bool)) return TargetBoolean;
+                if (targetType == typeof(DateTime)) return TargetDateTime;
+                return targetType == typeof(byte) || targetType == typeof(short)
+                    || targetType == typeof(int) || targetType == typeof(long)
+                    || targetType == typeof(float) || targetType == typeof(double)
+                    || targetType == typeof(decimal) ? TargetNumber : TargetOther;
+            }
+
+            /// <summary>
+            /// Applies the non-null <see cref="CanUseTypedMappingGetter"/> rules to a field the row has
+            /// not loaded. A date cell is accepted here only when indexing already converted it; other
+            /// date cells return <see cref="TypedMappingNeedsFieldCheck"/> for the converting check.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal int QualifyUnloadedNonNullTypedMapping(int ordinal, byte target) {
+                EnsureNotDisposed();
+                int cellIndex = _currentRowOffset + ordinal;
+                if (_formulaLengths != null && _formulaLengths[cellIndex] >= 0) return TypedMappingRejected;
+                byte encodedKind = _cellKinds![cellIndex];
+                Utf8CellKind kind = (Utf8CellKind)(encodedKind & CellKindMask);
+                int valueLength = _valueLengths![cellIndex];
+                if (valueLength < 0 && !(kind == Utf8CellKind.SharedString && valueLength == SharedStringIndexValueLength)) {
+                    return TypedMappingRejected;
+                }
+                bool dateStyle = (encodedKind & DateStyleCellKindFlag) != 0;
+                switch (target) {
+                    case TargetString:
+                        return kind is Utf8CellKind.String or Utf8CellKind.InlineString
+                            or Utf8CellKind.SharedString or Utf8CellKind.Error ? TypedMappingAccepted : TypedMappingRejected;
+                    case TargetBoolean:
+                        return kind == Utf8CellKind.Boolean ? TypedMappingAccepted : TypedMappingRejected;
+                    case TargetNumber:
+                        return kind == Utf8CellKind.Number && !dateStyle ? TypedMappingAccepted : TypedMappingRejected;
+                    case TargetDateTime:
+                        if (kind != Utf8CellKind.Number || !dateStyle) return TypedMappingRejected;
+                        byte[]? tags = _decodedTags;
+                        return tags != null && (tags[cellIndex] & DecodedKindMask) == DecodedDate
+                            ? TypedMappingAccepted : TypedMappingNeedsFieldCheck;
+                    default:
+                        return TypedMappingRejected;
+                }
+            }
+
             /// <summary>Qualifies native cell kinds without materializing boxed values or changing text conversion.</summary>
             internal bool CanUseTypedMappingGetter(int ordinal, Type targetType, bool requireNonNull) {
                 EnsureNotDisposed();
