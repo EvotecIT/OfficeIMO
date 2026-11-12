@@ -225,7 +225,8 @@ public sealed class EngineToolTests {
         Assert.Equal("pdf", removed.Preview!.Kind);
         byte[] cleaned = session.Artifact(removed.Artifacts.Single(static artifact => artifact.Role == "primary").Index);
         using OfficeIMO.Pdf.PdfDocument reopened = OfficeIMO.Pdf.PdfDocument.Load(cleaned);
-        Assert.Equal("Info/Title", Assert.Single(reopened.InspectHiddenData().GetFindings(OfficeIMO.OfficeHiddenDataKind.DocumentProperties)).Location);
+        // The kept title is reported by the removal, not left behind as something still to remove.
+        Assert.Empty(reopened.InspectHiddenData().GetFindings(OfficeIMO.OfficeHiddenDataKind.DocumentProperties));
     }
 
     [Fact]
