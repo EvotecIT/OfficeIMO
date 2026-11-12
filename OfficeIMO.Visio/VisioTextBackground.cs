@@ -14,7 +14,7 @@ internal static class VisioTextBackground {
     }
 
     internal static VisioTextStyle? Effective(VisioConnector connector) =>
-        Effective(connector.TextStyle, connector.StyleSheetTextBackground);
+        Effective(connector.TextStyle, connector.StyleSheetTextBackground ?? connector.DefaultLabelBackground);
 
     private static VisioTextStyle? Effective(VisioTextStyle? style, OfficeColor? sheet) {
         if (style?.BackgroundColor != null || sheet == null) return style;
