@@ -5309,6 +5309,19 @@ These parameter aliases stay removed. Command aliases such as `ExcelExport` are 
 | `-Values` | `-InputObject` | `Add-OfficeExcelTableRow` |
 | `-Values` | `-Value` | `Add-OfficePowerPointTableRow`, `Get-OfficeExcelTemplateMarker`, `Invoke-OfficeExcelTemplate`, `Set-OfficeExcelAutoFilter` |
 
+## OneNote visual PDF pages are vector
+
+`ToVisualPdf`, `SaveAsVisualPdf` and their async forms now write each OneNote page as
+vector content with real, searchable text instead of one full-page PNG. Page sizes are
+unchanged. `OneNoteVisualPdfExportOptions.RasterScale` and `MaximumRasterPixels` no
+longer affect output and are marked obsolete; remove them, and stop handling
+`ONENOTE_PDF_RASTER_SCALE_LIMITED`, which is no longer reported. Invalid
+`PageRendering` settings are now rejected before any page is rendered.
+
+Installed fonts named by the page text are embedded as subsets. A picture with no native
+PDF image form is decoded through `PageRendering.ImageCodec` and embedded as PNG for that
+picture alone, reported as `ONENOTE_PDF_IMAGE_RASTERIZED`.
+
 ## PDF reads omit undecodable native text
 
 `PdfDocument.Read()` previously allowed missing font resources, raw Identity CIDs,
@@ -9828,3 +9841,9 @@ A `data-officeimo-value` error value is written as an error cell only when it is
 ## Excel non-finite numbers
 
 `NaN`, `PositiveInfinity` and `NegativeInfinity` written as cell values (`double` or `float`, through `SetValue`, `WriteData`, tabular imports or `CreateWriter`) are stored as the `#NUM!` error in XLSX, XLSB and XLS, which is what Excel shows for a number it cannot represent. Reading such a cell back returns the `#NUM!` error, not a number. Before, XLSX saves wrote an invalid number that Excel refused to open, XLSB saves stored `#NULL!`, and the XLS and XLSB `CreateWriter` streaming writers threw `ArgumentException`. Check the value before writing it if you need a blank cell or text instead.
+
+## Visio PDF export draws the diagram
+
+`VisioDocument.ToPdf`, `SaveAsPdf` and their async forms now default to `VisioPdfProjectionMode.DiagramPages`: one PDF page per Visio page, at its physical size, drawn as vector artwork with searchable text. Before, the default was `SemanticReport`, a text and topology report. Set `Mode = VisioPdfProjectionMode.SemanticReport` to keep the report. `VisioOptions` and `ProjectionOptions` belong to the report, so options that set them without a `Mode` now throw `ArgumentException`; add the `Mode` setting.
+
+Diagram pages now keep arcs, ellipses and Bezier rows as curves, paint cached linear and radial gradient fills, draw open, filled, dot and diamond arrowheads, and turn shape and connector hyperlinks into PDF links. Text taller than its block overflows it, as in Visio, instead of being clipped. Regenerate visual baselines of Visio PDFs. `VISIO_DRAWING_METADATA` now reports only Shape Data; supported hyperlinks are no longer reported as omitted, and unsupported targets report `VISIO_DRAWING_LINKS`.

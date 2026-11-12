@@ -238,6 +238,7 @@ public class PdfAdapterSecurityComplianceTests {
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         } }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
         "visio" => Serialize(CreateVisio(route).ToPdf(new VisioPdfExportOptions {
+            Mode = VisioPdfProjectionMode.SemanticReport,
             ProjectionOptions = new PdfCore.PdfProjectionOptions { PdfOptions = pdfOptions }
         })),
         _ => throw new ArgumentOutOfRangeException(nameof(route))

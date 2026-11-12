@@ -9,7 +9,7 @@
     "validationProjectCount": 74,
     "apiReferenceCount": 129,
     "conceptualPageCount": 142,
-    "conceptualWordCount": 71399
+    "conceptualWordCount": 71626
   },
   "categories": [
     {
@@ -1227,7 +1227,7 @@
       "description": "Managed, cross-platform Microsoft OneNote file-format engine for .one, .onetoc2, and .onepkg artifacts.",
       "kind": "package",
       "projectPath": "OfficeIMO.OneNote/OfficeIMO.OneNote.csproj",
-      "sourceFileCount": 94,
+      "sourceFileCount": 96,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/onenote/",
       "apiUrl": "/api/onenote/",
@@ -1357,7 +1357,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1733,
+      "sourceFileCount": 1735,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -2150,7 +2150,7 @@
       "description": "An Open Source cross-platform .NET library providing an easy way to create\n            Microsoft Visio documents.",
       "kind": "package",
       "projectPath": "OfficeIMO.Visio/OfficeIMO.Visio.csproj",
-      "sourceFileCount": 459,
+      "sourceFileCount": 464,
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/visio/",
       "apiUrl": "/api/visio/",

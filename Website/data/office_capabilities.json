@@ -5538,10 +5538,16 @@
           "id": "Convert",
           "states": [
             {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
+            {
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 2
+              "count": 1
             }
           ]
         }

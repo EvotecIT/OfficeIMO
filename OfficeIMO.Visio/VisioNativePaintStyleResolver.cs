@@ -29,6 +29,7 @@ namespace OfficeIMO.Visio {
             if (Number(cells, "FillPattern", out double fillPattern) && fillPattern >= 0 && fillPattern <= 255) shape.FillPattern = (int)fillPattern;
             shape.LineColor = Transparency(cells, "LineColorTrans", Color(cells, "LineColor", shape.LineColor));
             shape.FillColor = Transparency(cells, "FillForegndTrans", Color(cells, "FillForegnd", shape.FillColor));
+            shape.StyleSheetTextBackground = TextBackground(source);
         }
 
         internal void Apply(VisioConnector connector, XElement source, VisioShape? inherited = null) {
@@ -43,6 +44,27 @@ namespace OfficeIMO.Visio {
             OfficeColor color = Color(cells, "LineColor", connector.LineColor);
             if (inherited != null) color = InheritTransparency(color, inherited.LineColor);
             connector.LineColor = Transparency(cells, "LineColorTrans", color);
+            // A connector without its own text style reference uses its master's.
+            connector.StyleSheetTextBackground = source.Attribute("TextStyle") != null || inherited == null
+                ? TextBackground(source) : inherited.StyleSheetTextBackground;
+        }
+
+        /// <summary>
+        /// Resolves TextBkgnd/TextBkgndTrans inherited through the text style sheet chain when the object has no
+        /// local TextBkgnd cell (local cells are modeled on its text style). TextBkgnd 0 and 255 mean transparent;
+        /// 1-24 select palette entry n-1. Returns null when no style sheet defines it.
+        /// </summary>
+        private OfficeColor? TextBackground(XElement source) {
+            XNamespace ns = source.Name.Namespace;
+            if (source.Elements(ns + "Cell").Any(cell => (string?)cell.Attribute("N") == "TextBkgnd")) return null;
+            Dictionary<string, string> cells = Style((string?)source.Attribute("TextStyle"), "TextStyle");
+            if (!cells.TryGetValue("TextBkgnd", out string? raw)) return null;
+            OfficeColor color;
+            if (int.TryParse(raw, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int index)) {
+                if (index == 0 || index == 255) return OfficeColor.Transparent;
+                if (!_colors.TryGetValue((index - 1).ToString(System.Globalization.CultureInfo.InvariantCulture), out string? rgb) || !OfficeColor.TryParse(rgb, out color)) return null;
+            } else if (!OfficeColor.TryParse(raw, out color)) return null;
+            return Transparency(cells, "TextBkgndTrans", color);
         }
 
         private Dictionary<string, string> Cells(XElement source, params string[] bindings) {
@@ -62,8 +84,8 @@ namespace OfficeIMO.Visio {
             if (_cache.TryGetValue(key, out var cached)) return cached;
             var cells = new Dictionary<string, string>(StringComparer.Ordinal);
             var seen = new HashSet<string>(StringComparer.Ordinal);
-            string prefix = binding == "LineStyle" ? "Line" : "Fill";
-            string enabled = binding == "LineStyle" ? "EnableLineProps" : "EnableFillProps";
+            string prefix = binding == "LineStyle" ? "Line" : binding == "TextStyle" ? "TextBkgnd" : "Fill";
+            string enabled = binding == "LineStyle" ? "EnableLineProps" : binding == "TextStyle" ? "EnableTextProps" : "EnableFillProps";
             // Closest concrete caches win, including F=Inh with a native V cache.
             while (reference != null && seen.Count < 64 && seen.Add(reference) && _styles.TryGetValue(reference, out XElement? style)) {
                 XNamespace ns = style.Name.Namespace;
