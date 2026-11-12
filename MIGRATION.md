@@ -5837,6 +5837,19 @@ Other sources, such as DOCX or PDF, still write Reader JSON to a `.json` destina
 
 `tabular schema` prints `string`, `integer`, `number`, `boolean` and `datetime` instead of .NET type names such as `System.String`. Update scripts that compare the `type` column.
 
+## JSON output from workflow export-pages, assemble and print-plan
+
+`officeimo workflow export-pages`, `workflow assemble` and `workflow print-plan` now write one JSON result to standard output, like the `pdf`, `hidden-data` and `provenance` commands. The schemas are `officeimo.workflow.export-pages.v1`, `officeimo.workflow.assemble.v1` and `officeimo.workflow.print-plan.v1`. Scripts that read the previous text lines can switch to the JSON fields, or add `--format text` to keep the summary.
+
+`export-pages` takes the image format as `--image-format` because `--format` now chooses the output:
+
+```shell
+# Before
+officeimo workflow export-pages report.pdf --output pages --format webp
+# After
+officeimo workflow export-pages report.pdf --output pages --image-format webp
+```
+
 ## Removed obsolete image and HTML capability aliases
 
 Replace `WordImage.BlackWiteMode` with `WordImage.BlackWhiteMode`. The enum and

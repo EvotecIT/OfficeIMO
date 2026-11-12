@@ -9,7 +9,7 @@
     "validationProjectCount": 74,
     "apiReferenceCount": 129,
     "conceptualPageCount": 160,
-    "conceptualWordCount": 88033
+    "conceptualWordCount": 88151
   },
   "categories": [
     {
@@ -2165,7 +2165,7 @@
       "description": "Unified command-line interface for OfficeIMO document conversion, extraction, markup, provenance, output, intake, and capability discovery.",
       "kind": "tool",
       "projectPath": "OfficeIMO.Tool/OfficeIMO.Tool.csproj",
-      "sourceFileCount": 74,
+      "sourceFileCount": 75,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/cli/",
       "apiUrl": null,

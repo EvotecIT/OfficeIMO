@@ -42,9 +42,9 @@ elseif ($LASTEXITCODE -ne 0) { throw "officeimo failed with exit code $LASTEXITC
 |---|---|
 | `read`, `extract`, `reader read` without `--output` | The extracted Markdown or JSON |
 | `convert` | The output path |
-| `inspect`, `agent *`, `pdf *`, `hidden-data`, `provenance`, `invoice` | One JSON result (text with `--format text` where offered) |
+| `inspect`, `agent *`, `pdf *`, `hidden-data`, `provenance`, `invoice`, `workflow export-pages`, `workflow assemble`, `workflow print-plan` | One JSON result (text with `--format text` where offered) |
 | `workflow batch`, `workflow job run` | The batch report as JSON, or NDJSON with `--format ndjson` |
-| `workflow export-pages`, `workflow assemble`, `workflow print-plan` | A short readable summary |
+| `workflow compare`, `workflow optimize-images`, `workflow printers`, `workflow print` | A short readable summary |
 | `tabular sheets`, `tabular schema` | Tab-separated lines; schema types are `string`, `integer`, `number`, `boolean` or `datetime` |
 
 Diagnostics, progress and warnings always go to standard error, so redirecting standard output to a file or a JSON parser stays safe:
@@ -59,7 +59,7 @@ $result = officeimo hidden-data inspect proposal.docx | ConvertFrom-Json
 $result.findings | Where-Object outcome -eq 'Found' | Select-Object kind, description
 ```
 
-JSON results carry a schema identifier, such as `officeimo.conversion.batch.v2`, `officeimo.hidden-data.result.v1` or `officeimo.document.read-result`. Check it before you rely on a field.
+JSON results carry a schema identifier, such as `officeimo.conversion.batch.v2`, `officeimo.hidden-data.result.v1`, `officeimo.workflow.assemble.v1` or `officeimo.document.read-result`. Check it before you rely on a field.
 
 ## Overwrite rules
 

@@ -59,11 +59,19 @@ OCR adds a text layer to the source pages. Configure the provider with repeated 
 ## Page images
 
 ```shell
-officeimo workflow export-pages report.pdf --output report-pages --pages 1-3,last --format png
-officeimo workflow export-pages report.pdf --output thumbnails --format webp --max-dimension 400
+officeimo workflow export-pages report.pdf --output report-pages --pages 1-3,last --image-format png
+officeimo workflow export-pages report.pdf --output thumbnails --image-format webp --max-dimension 400
 ```
 
-Formats are `png`, `jpeg`, `webp`, `tiff` and `svg`, with `--dpi 36..600`. Every image is decoded and checked before the folder is published.
+Image formats are `png`, `jpeg`, `webp`, `tiff` and `svg`, with `--dpi 36..600`. Every image is decoded and checked before the folder is published.
+
+`export-pages`, `assemble` and `print-plan` write one JSON result to standard output, so a script can read the published files without listing the folder:
+
+```shell
+officeimo workflow export-pages report.pdf --output report-pages | jq -r '.files[].path'
+```
+
+The result carries a `schema` such as `officeimo.workflow.export-pages.v1`, the `status`, and the `diagnostics`. Add `--format text` for a short readable summary.
 
 ## Assemble one PDF from mixed sources
 
@@ -88,6 +96,12 @@ The comparison renders the selected pages, up to 100 per side, and pairs them by
 ```shell
 officeimo workflow print-plan complete.pdf --paper A4 --pages-per-sheet 2 --scale fit
 officeimo workflow print-plan report.pdf --pages-per-sheet 6 --page-subset odd --scale custom --custom-scale 40 --alignment bottom-right --margin 18 --color grayscale
+```
+
+The plan lists each sheet's paper size and where every page lands on it, in points:
+
+```shell
+officeimo workflow print-plan complete.pdf --pages-per-sheet 2 | jq '.sheets[] | {sheetNumber, pages: [.placements[].pageNumber]}'
 ```
 
 Both `print-plan` and `print` accept 1, 2, 4, 6 or 9 pages per sheet, `--page-subset all|odd|even`, nine alignment positions, `--margin` or per-edge margins in points, and `--scale fit|actual|fill|custom` with `--custom-scale` from 1 to 1000 percent. Odd and even refer to the original page numbers within `--pages`.

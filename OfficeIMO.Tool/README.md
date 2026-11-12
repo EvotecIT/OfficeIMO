@@ -311,13 +311,16 @@ officeimo workflow optimize-images input.docx --output optimized.docx --mode bot
 officeimo workflow optimize-images first.docx second.docx --output-directory optimized --format pdf --mode both
 
 # Export selected PDF pages to validated images
-officeimo workflow export-pages report.pdf --output .\report-pages --pages 1-3,last --format png
+officeimo workflow export-pages report.pdf --output .\report-pages --pages 1-3,last --image-format png
 
 # Assemble an ordered PDF from files, folders, images, and ZIP archives
 officeimo workflow assemble cover.png report.docx appendices .\attachments.zip --output complete.pdf
 
 # Inspect print-sheet placement without requiring a platform printer driver
 officeimo workflow print-plan complete.pdf --paper A4 --pages-per-sheet 2 --scale fit
+
+# export-pages, assemble and print-plan write versioned JSON; --format text prints a summary
+officeimo workflow print-plan complete.pdf --format text
 
 # Inspect or assess provenance with versioned JSON output
 officeimo provenance inspect report.docx
