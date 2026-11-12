@@ -101,4 +101,4 @@ The [design document](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/off
 
 ## From PowerShell and the command line
 
-PSWriteOffice runs the same routes through `Convert-OfficeDocument`, with `-FailOnLoss` and the same report. See [configuration files and data conversion](/docs/pswriteoffice/config-data-formats/). The format engines have their own guides: [YAML](/docs/yaml/), [TOML](/docs/toml/) and [CSV](/docs/csv/).
+PSWriteOffice runs the same routes through `Convert-OfficeDocument`, with `-FailOnLoss` and the same report. See [configuration files and data conversion](/docs/pswriteoffice/config-data-formats/). The `officeimo` command line runs them through `officeimo workflow batch --target`, with `--require-no-loss`. See [batch conversion and saved jobs](/docs/cli/batch-and-jobs/#structured-data). The format engines have their own guides: [YAML](/docs/yaml/), [TOML](/docs/toml/) and [CSV](/docs/csv/).
