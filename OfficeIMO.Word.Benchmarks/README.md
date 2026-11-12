@@ -72,6 +72,20 @@ drawing conclusions:
 dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*Word*ComparisonBenchmarks*'
 ```
 
+### Shared custom-data snapshots
+
+The opt-in PowerForge suite measures load, public legacy-write assessment and disposal with one
+64 KiB payload shared by the package root, main document and 0, 32 or 128
+additional parents. Setup and validation stay outside timing. Each measured sample
+checks the assessment result; setup checks the payload bytes and shared relationships. Allocation
+is recorded without a timing or memory threshold in correctness CI.
+
+```powershell
+dotnet build OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj -c Release -f net8.0
+Import-Module PSPublishModule
+Invoke-BenchmarkSuite -Path ./Build/Benchmarks/word-shared-clone.benchmark.ps1 -OutputRoot ./.benchmark-artifacts/word-shared-clone
+```
+
 ### Publishable Open XML SDK evidence
 
 The public evidence classes isolate OfficeIMO.Word and the MIT-licensed Open

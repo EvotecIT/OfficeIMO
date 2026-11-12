@@ -48,7 +48,7 @@ namespace OfficeIMO.Word {
             }
 
             using var stream = new MemoryStream();
-            using (_wordprocessingDocument.Clone(stream, true)) {
+            using (WordPackageSnapshot.Clone(_wordprocessingDocument, stream)) {
             }
 
             return stream.ToArray();
