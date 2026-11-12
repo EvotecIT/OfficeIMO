@@ -67,8 +67,9 @@ internal static class RouteConvertCommand {
             return (int)OfficeImoToolExitCode.OutputFailed;
         } catch (OfficeConversionException exception) {
             if (exception.Report is OfficeConversionReport report) await WriteDiagnosticsAsync(report, standardError).ConfigureAwait(false);
-            await standardError.WriteLineAsync(exception.Message).ConfigureAwait(false);
             IReadOnlyList<OfficeDiagnostic> findings = (exception.Report as OfficeConversionReport)?.Diagnostics ?? [];
+            if (!findings.Any(finding => finding.Message == exception.Message))
+                await standardError.WriteLineAsync(exception.Message).ConfigureAwait(false);
             if (findings.Any(finding => finding.Code == OfficeDiagnosticCodes.ConversionInputUnsupported)) return (int)OfficeImoToolExitCode.UnsupportedInput;
             if (findings.Any(finding => finding.Code == OfficeDiagnosticCodes.ConversionInputNotFound)) return (int)OfficeImoToolExitCode.InputNotFound;
             if (findings.Any(finding => finding.Code == OfficeDiagnosticCodes.ConversionRequestInvalid)) return (int)OfficeImoToolExitCode.Usage;

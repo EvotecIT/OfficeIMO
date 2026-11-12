@@ -5850,6 +5850,8 @@ officeimo workflow export-pages report.pdf --output pages --format webp
 officeimo workflow export-pages report.pdf --output pages --image-format webp
 ```
 
+`officeimo convert` with an unknown `--sheet` or a malformed `--range` now exits with code `2` instead of `5`, and the error lists the sheets the workbook has. In .NET, an `OfficeConverter` data conversion from XLSX with the same `DataConversionOptions.Sheet` or `Range` throws `OfficeConversionException` with a `conversion-request-invalid` diagnostic instead of `KeyNotFoundException` or `ArgumentException`.
+
 ## Removed obsolete image and HTML capability aliases
 
 Replace `WordImage.BlackWiteMode` with `WordImage.BlackWhiteMode`. The enum and

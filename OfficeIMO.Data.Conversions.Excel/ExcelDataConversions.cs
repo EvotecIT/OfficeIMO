@@ -193,21 +193,30 @@ public static class ExcelDataConversions {
     internal static IReadOnlyList<string> SheetNames(ExcelDocument document) => document.Sheets.Select(sheet => sheet.Name).ToArray();
 
     /// <summary>Opens a workbook file or stream for the file routes.</summary>
-    internal static DataEventReader OpenWorkbook(Stream input, DataConversionContext context) {
-        var reader = new ExcelReaderOptions { SheetName = context.Options.Sheet, A1Range = context.Options.Range };
-        IReadOnlyList<string>? names = null;
-        long start = input.Position;
-        if (context.Options.Sheet == null) {
-            using ExcelWorkbookDataReader probe = ExcelDocument.OpenReader(input, reader);
-            names = probe.SheetNames;
-            input.Position = start;
-        }
+    /// <exception cref="OfficeConversionException">The requested sheet or range does not select cells in this workbook.</exception>
+    internal static DataEventReader OpenWorkbook(Stream input, DataConversionContext context, string target) {
+        string? sheet = context.Options.Sheet, range = context.Options.Range;
+        if (range != null && !ExcelA1.TryParseRange(range, out _, out _, out _, out _))
+            throw RequestInvalid("Range '" + range + "' is not an A1 range such as A1:C20.", target);
 
+        long start = input.Position;
+        IReadOnlyList<string> names;
+        using (ExcelWorkbookDataReader probe = ExcelDocument.OpenReader(input, new ExcelReaderOptions())) names = probe.SheetNames;
+        input.Position = start;
+        if (sheet != null && !names.Contains(sheet, StringComparer.OrdinalIgnoreCase))
+            throw RequestInvalid("Sheet '" + sheet + "' was not found. The workbook has: " + string.Join(", ", names) + ".", target);
+
+        var reader = new ExcelReaderOptions { SheetName = sheet, A1Range = range };
         return new TableEventReader(() => {
             input.Position = start;
             return ExcelDocument.OpenReader(input, reader);
-        }, context.Options.InferTypes ?? false, positional: false, names, context);
+        }, context.Options.InferTypes ?? false, positional: false, sheet == null ? names : null, context);
     }
+
+    private static OfficeConversionException RequestInvalid(string message, string target) =>
+        new(message, new OfficeConversionReport("Excel", target, diagnostics: new[] {
+            new OfficeDiagnostic(OfficeDiagnosticCodes.ConversionRequestInvalid, OfficeDiagnosticSeverity.Error, message, format: "Excel")
+        }));
 
     /// <summary>Writes the rows of a tree source as a workbook through the streaming writer.</summary>
     internal static OfficeConversionReport Write(DataConversionPublishing.ReaderFactory open, long? documents, DataFormat source, Stream output, DataConversionOptions? options) {

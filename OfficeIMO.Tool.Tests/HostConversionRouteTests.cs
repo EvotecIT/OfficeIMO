@@ -148,6 +148,32 @@ public sealed class HostConversionRouteTests {
     }
 
     [Theory]
+    [InlineData("--sheet", "Missing", "Sheet 'Missing' was not found. The workbook has: Data, Summary.")]
+    [InlineData("--range", "ZZ", "Range 'ZZ' is not an A1 range")]
+    public async Task WorkbookDataRoutesRejectASheetOrRangeTheWorkbookCannotSupply(string option, string value, string expected) {
+        string directory = CreateDirectory();
+        try {
+            string source = Path.Combine(directory, "book.xlsx");
+            string target = Path.Combine(directory, "rows.json");
+            using (ExcelDocument workbook = ExcelDocument.Create(source)) {
+                workbook.AddSheet("Data").Cell(1, 1).SetValue("name");
+                workbook.AddSheet("Summary").Cell(1, 1).SetValue("total");
+                workbook.Save();
+            }
+            await using var output = new MemoryStream();
+            using var error = new StringWriter();
+
+            int exit = await OfficeImoToolApp.RunAsync(["convert", source, target, option, value], Stream.Null, output, error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.Usage, exit);
+            Assert.Contains(expected, error.ToString(), StringComparison.Ordinal);
+            Assert.DoesNotContain("Exception", error.ToString(), StringComparison.Ordinal);
+            Assert.Empty(output.ToArray());
+            Assert.False(File.Exists(target));
+        } finally { Directory.Delete(directory, true); }
+    }
+
+    [Theory]
     [InlineData("source.docx", "result.ods", null)]
     [InlineData("notes.txt", "notes.docx", null)]
     [InlineData("source.docx", "result.pdf", "--text-only")]

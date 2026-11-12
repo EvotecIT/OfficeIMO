@@ -94,7 +94,7 @@ These options shape the data:
 | `--select <path>` | Takes the rows from a path below the root, such as `data.items` or `results[0].rows`, for API responses and other wrapped data |
 | `--columns <path,...>` | Fixes the table columns and their order for CSV, TSV and XLSX output, for example `--columns name,address.city` |
 | `--root-name <name>` | Names the root element of XML output when the data has no single named root; the default is `root` |
-| `--sheet <name>`, `--range <A1:B2>` | Reads one worksheet, or one range of it, from XLSX input |
+| `--sheet <name>`, `--range <A1:B2>` | Reads one worksheet, or one range of it, from XLSX input. An unknown sheet or a malformed range exits with code `2`; the error for an unknown sheet lists the sheets the workbook has |
 
 ```shell
 officeimo convert response.json items.csv --select data.items --columns id,name,address.city
