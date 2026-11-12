@@ -84,7 +84,7 @@ internal sealed class PwgRasterWriter {
 
     private byte[] Header(PwgRasterPage page) {
         var header = new byte[HeaderSize];
-        Text(header, 0, "PWG Raster");
+        Text(header, 0, "PwgRaster"); // PWG 5102.4 section 4.3.1.1: the fixed PwgRaster field value
         if (page.MediaType is { } mediaType) Text(header, 128, mediaType);
         UInt(header, 272, page.Duplex ? 1u : 0u);
         UInt(header, 276, (uint)page.ResolutionX);

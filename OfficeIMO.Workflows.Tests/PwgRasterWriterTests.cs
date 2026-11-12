@@ -15,6 +15,8 @@ public sealed class PwgRasterWriterTests {
         byte[] raster = Write(new PwgRasterPage(4, 3, 300, 300, PwgRasterColorSpace.Gray8, pixels));
 
         Assert.Equal(new byte[] { (byte)'R', (byte)'a', (byte)'S', (byte)'2' }, raster.Take(4));
+        // PWG 5102.4 requires the NUL-terminated "PwgRaster" identifier at the start of each page header.
+        Assert.Equal("PwgRaster\0"u8.ToArray(), raster.Skip(4).Take(10));
         // Rows 1-2 repeat (count 1) as a run of four white pixels; row 3 is two literal pixels then a run of two.
         Assert.Equal(new byte[] { 1, 3, 255, 0, 255, 255, 0, 1, 255 }, raster.Skip(4 + PwgRasterWriter.HeaderSize));
     }
@@ -108,10 +110,16 @@ public sealed class PwgRasterWriterTests {
         using Process process = Process.Start(start)!;
         Task<string> error = process.StandardError.ReadToEndAsync();
         using var output = new MemoryStream();
-        process.StandardOutput.BaseStream.CopyTo(output);
-        Assert.True(process.WaitForExit(60_000), tool + " did not exit.");
+        Task copy = process.StandardOutput.BaseStream.CopyToAsync(output);
+        // Drain both pipes in the background so a stalled converter cannot block the deadline check.
+        if (!Task.WhenAll(copy, error).Wait(ConverterTimeout) || !process.WaitForExit((int)ConverterTimeout.TotalMilliseconds)) {
+            try { process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { }
+            Assert.Fail(tool + " did not finish within " + ConverterTimeout.TotalSeconds + " seconds.");
+        }
         return (process.ExitCode, output.ToArray(), error.Result);
     }
+
+    private static readonly TimeSpan ConverterTimeout = TimeSpan.FromSeconds(60);
 }
 
 /// <summary>Runs only where the named CUPS reference tools are installed (macOS and CUPS hosts).</summary>
