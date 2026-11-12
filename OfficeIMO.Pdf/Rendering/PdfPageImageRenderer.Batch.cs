@@ -130,9 +130,10 @@ internal static partial class PdfPageImageRenderer {
         options.TextShapingProvider is null &&
         options.Fonts.Faces.All(face => face.HasBuiltInProgram);
 
-    // printing paints only annotations with the Print flag, as a printed page shows them.
+    // printing paints only annotations with the Print flag, as a printed page shows them. A raster sink receives the PNG
+    // render's pixels instead of encoding them, and the result then carries no bytes.
     internal static PdfPageRenderResult RenderPage(PdfReadDocument document, int pageNumber, PdfPageRenderOptions options, CancellationToken cancellationToken, bool forDisplay = false,
-        bool printing = false) {
+        bool printing = false, Action<global::OfficeIMO.Drawing.OfficeRasterImage>? rasterSink = null) {
         var timer = Stopwatch.StartNew();
         IReadOnlyList<PdfRenderCapabilityDiagnostic> capabilityDiagnostics = Array.Empty<PdfRenderCapabilityDiagnostic>();
         try {
@@ -158,7 +159,17 @@ internal static partial class PdfPageImageRenderer {
 
             cancellationToken.ThrowIfCancellationRequested();
             byte[] bytes;
-            if (options.Format == global::OfficeIMO.Drawing.OfficeImageExportFormat.Png) {
+            if (options.Format == global::OfficeIMO.Drawing.OfficeImageExportFormat.Png && rasterSink != null) {
+                rasterSink(OfficeDrawingRasterRenderer.Render(drawing, RasterOptions(
+                    scale,
+                    options.Background,
+                    options.ImageCodec,
+                    options.MaxPixelsPerPage,
+                    options.TextShapingProvider,
+                    options.TextShapingLanguage,
+                    cancellationToken)));
+                bytes = Array.Empty<byte>();
+            } else if (options.Format == global::OfficeIMO.Drawing.OfficeImageExportFormat.Png) {
                 bytes = RenderDrawingAsPng(
                     drawing,
                     scale,
