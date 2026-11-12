@@ -115,6 +115,28 @@ public partial class PdfSanitizerTests {
         Assert.Equal("PDF/X-4", stripped.PdfXVersion);
     }
 
+    [Fact]
+    public void DefaultHiddenDataRemovalCleansATaggedPdfAndPrunesOnlyTheRemovedCommentFromItsStructure() {
+        byte[] source = BuildTaggedCommentPdf();
+
+        OfficeHiddenDataResult removal = PdfDocument.Load(source).RemoveHiddenData();
+
+        Assert.Equal(OfficeHiddenDataOutcome.Removed,
+            Assert.Single(removal.Report.GetFindings(OfficeHiddenDataKind.Comments)).Outcome);
+        PdfDocumentInfo info = PdfDocument.Load(removal.ToArray()).Inspect();
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(info.TaggedContent);
+        Assert.True(tagged.Marked);
+        Assert.Equal("en-US", info.CatalogLanguage);
+        Assert.True(info.ViewerPreferences?.GetBoolean("DisplayDocTitle"));
+        Assert.Equal(new[] { "Document", "P" }, tagged.StructureTypes);
+        Assert.Equal(1, tagged.MarkedContentReferenceCount);
+        Assert.Equal(0, tagged.ObjectReferenceCount);
+        Assert.Equal(new[] { 0 }, tagged.ParentTreeStructParentIndexes);
+        Assert.Equal("Visible", tagged.RoleMap["Para"]);
+        Assert.Empty(info.Annotations);
+        Assert.DoesNotContain("PRIVATE-", PdfEncoding.Latin1GetString(removal.ToArray()), StringComparison.Ordinal);
+    }
+
     private static bool IsKeptTitle(OfficeHiddenDataFinding finding) =>
         finding.Location is "Info/Title" or "Catalog/Metadata/dc:title" && finding.Outcome != OfficeHiddenDataOutcome.Removed;
 
@@ -152,6 +174,26 @@ public partial class PdfSanitizerTests {
             StreamObject(7, "/Type /EmbeddedFile /Subtype /text#2Fxml", invoice),
             "8 0 obj", "<< /Type /Filespec /F (factur-x.xml) /UF (factur-x.xml) /AFRelationship /Data /EF << /F 7 0 R /UF 7 0 R >> >>", "endobj",
             "trailer", "<< /Root 1 0 R /Info 6 0 R /Size 9 >>", "%%EOF"
+        }) + "\n");
+    }
+
+    private static byte[] BuildTaggedCommentPdf() {
+        const string content = "/P <</MCID 0>> BDC BT /F1 12 Tf 20 150 Td (VISIBLE-TAGGED-TEXT) Tj ET EMC";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 9 0 R /MarkInfo << /Marked true >> /Lang (en-US) /ViewerPreferences << /DisplayDocTitle true >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R /Annots [6 0 R] /StructParents 0 /Tabs /S >>", "endobj",
+            StreamObject(4, string.Empty, content),
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "6 0 obj", "<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (PRIVATE-TAGGED-COMMENT) /StructParent 1 >>", "endobj",
+            "7 0 obj", "<< /Type /StructElem /S /P /P 8 0 R /Pg 3 0 R /K 0 >>", "endobj",
+            "8 0 obj", "<< /Type /StructElem /S /Document /P 9 0 R /K [7 0 R 10 0 R] >>", "endobj",
+            "9 0 obj", "<< /Type /StructTreeRoot /K 8 0 R /ParentTree 11 0 R /ParentTreeNextKey 2 /RoleMap << /Para /Visible >> >>", "endobj",
+            "10 0 obj", "<< /Type /StructElem /S /Annot /P 8 0 R /Pg 3 0 R /K << /Type /OBJR /Obj 6 0 R /Pg 3 0 R >> >>", "endobj",
+            "11 0 obj", "<< /Nums [0 [7 0 R] 1 10 0 R] >>", "endobj",
+            "12 0 obj", "<< /Title (Tagged) /Author (PRIVATE-AUTHOR) >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Info 12 0 R /Size 13 >>", "%%EOF"
         }) + "\n");
     }
 

@@ -1179,7 +1179,10 @@ internal static class PdfMutationPlanner {
                 blocker != PdfRewriteBlockerKind.CatalogNameTrees &&
                 blocker != PdfRewriteBlockerKind.CatalogUri &&
                 blocker != PdfRewriteBlockerKind.OpenActions &&
-                blocker != PdfRewriteBlockerKind.Forms;
+                blocker != PdfRewriteBlockerKind.Forms &&
+                // The sanitizer prunes structure references to the annotations it removes, and the preservation proof
+                // compares the rest of the structure tree exactly.
+                blocker != PdfRewriteBlockerKind.TaggedContent;
         }
 
         if (operation == PdfMutationOperation.ModifyAttachments) {
