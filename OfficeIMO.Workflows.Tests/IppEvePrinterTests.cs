@@ -107,6 +107,74 @@ public sealed class IppEvePrinterTests {
         Assert.Equal(0x0406, missing.StatusCode);
     }
 
+    [ExternalToolFact(IppEvePrinterPath)]
+    public async Task ServiceReadsCapabilitiesAndSendsVectorPdfToAPrinterThatAcceptsIt() {
+        using var printer = EvePrinter.Start("-2", "-s", "10,10", "-f", "application/pdf,image/pwg-raster", "-c", "/usr/bin/true");
+        var service = new PdfPrinterService();
+        string uri = printer.Uri.AbsoluteUri;
+
+        PdfPrinterCapabilities capabilities = await service.GetCapabilitiesAsync(uri);
+        Assert.Equal(uri, capabilities.PrinterName);
+        Assert.Contains(capabilities.Media, media => media.Id == "iso_a4_210x297mm");
+        Assert.NotNull(capabilities.DefaultMedia?.Size);
+        Assert.True(capabilities.SupportsDuplex);
+        Assert.True(capabilities.SupportsColor);
+        Assert.Contains(capabilities.PaperSources, source => source.Id == "main");
+
+        PdfPrintJob job = TwoPageJob(PdfPrintColorMode.Color);
+        PdfPrintSubmission receipt = await service.SubmitAsync(job, new PdfPrintDeliveryOptions {
+            PrinterName = uri, DocumentName = "service-pdf", Duplex = PdfPrintDuplex.LongEdge, Copies = 2, PaperSourceId = "main"
+        });
+
+        Assert.Equal(uri, receipt.PrinterName);
+        Assert.Empty(receipt.IgnoredAttributes);
+        IppJobInfo finished = await WaitAsync(printer, receipt);
+        Assert.Equal(IppJobState.Completed, finished.State);
+        using var content = new MemoryStream();
+        using (Stream source = job.OpenContent()) source.CopyTo(content);
+        Assert.Equal(content.ToArray(), File.ReadAllBytes(printer.SpooledDocument(finished.Id, ".pdf")));
+    }
+
+    [ExternalToolFact(IppEvePrinterPath, PwgRasterWriterTests.IppEvePcl)]
+    public async Task ServiceSendsPwgRasterToAPrinterWithoutPdfAndForGrayscaleJobs() {
+        // ippevepcl parses each PWG raster page, so the job completes only when the raster stream is well formed.
+        string conf = Path.Combine(Path.GetTempPath(), "officeimo-pwg-only-" + Guid.NewGuid().ToString("N") + ".conf");
+        // An attribute file replaces the legacy flags; this printer accepts only color PWG raster and wants rotated back sides.
+        File.WriteAllText(conf, "ATTR mimeMediaType document-format-supported image/pwg-raster\n" +
+            "ATTR keyword pwg-raster-document-type-supported sgray_8,srgb_8\n" +
+            "ATTR resolution pwg-raster-document-resolution-supported 150dpi,300dpi\n" +
+            "ATTR keyword print-color-mode-supported auto,color,monochrome\n" +
+            "ATTR keyword sides-supported one-sided,two-sided-long-edge,two-sided-short-edge\n" +
+            "ATTR keyword pwg-raster-document-sheet-back rotated\n");
+        try {
+            using var rasterOnly = EvePrinter.Start("-a", conf, "-c", PwgRasterWriterTests.IppEvePcl);
+            using var pdfPrinter = EvePrinter.Start("-f", "application/pdf,image/pwg-raster", "-c", PwgRasterWriterTests.IppEvePcl);
+            var service = new PdfPrinterService();
+            foreach ((EvePrinter printer, PdfPrintColorMode color) in new[] { (rasterOnly, PdfPrintColorMode.Color), (pdfPrinter, PdfPrintColorMode.Grayscale) }) {
+                PdfPrintSubmission receipt = await service.SubmitAsync(TwoPageJob(color), new PdfPrintDeliveryOptions {
+                    PrinterName = printer.Uri.AbsoluteUri, DocumentName = "service-raster", Duplex = PdfPrintDuplex.LongEdge, MaximumRasterDpi = 150
+                });
+                IppJobInfo finished = await WaitAsync(printer, receipt);
+                Assert.Equal(IppJobState.Completed, finished.State);
+                byte[] spooled = File.ReadAllBytes(printer.SpooledDocument(finished.Id, ".pwg"));
+                Assert.Equal("RaS2", Encoding.ASCII.GetString(spooled, 0, 4));
+            }
+        } finally {
+            File.Delete(conf);
+        }
+    }
+
+    private static PdfPrintJob TwoPageJob(PdfPrintColorMode color) =>
+        PdfPrintJob.Create(OfficeIMO.Pdf.PdfDocument.Create(document => {
+            document.Page(page => page.Size(OfficeIMO.Pdf.PdfPageSizes.A4).Background(OfficeIMO.OfficeColor.Red));
+            document.Page(page => page.Size(OfficeIMO.Pdf.PdfPageSizes.A4).Background(OfficeIMO.OfficeColor.Blue));
+        }), new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = OfficeIMO.Pdf.PdfPageSizes.A4, ColorMode = color });
+
+    private static async Task<IppJobInfo> WaitAsync(EvePrinter printer, PdfPrintSubmission receipt) {
+        using var client = new IppPrintClient(printer.Uri);
+        return await client.WaitForJobAsync(int.Parse(receipt.JobId), JobTimeout, TimeSpan.FromMilliseconds(100));
+    }
+
     private sealed class EvePrinter : IDisposable {
         private readonly Process _process;
         private readonly string _spool;

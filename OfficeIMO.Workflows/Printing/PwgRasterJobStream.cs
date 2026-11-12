@@ -1,0 +1,134 @@
+using OfficeIMO.Drawing;
+
+namespace OfficeIMO.Workflows;
+
+/// <summary>
+/// A forward-only PWG raster document that renders one page at a time while it is read, so a large job never holds more than one sheet's pixels.
+/// </summary>
+/// <remarks>The first page is rendered on construction, so rendering failures surface before any data reaches the printer.</remarks>
+internal sealed class PwgRasterJobStream : Stream {
+    private readonly PdfPrintJob _job;
+    private readonly IppDeliveryPlan _plan;
+    private readonly CancellationToken _token;
+    private readonly int?[] _pages;
+    private readonly MemoryStream _buffer = new();
+    private readonly PwgRasterWriter _writer;
+    private int _next;
+    private int _lastWidth, _lastHeight;
+
+    public PwgRasterJobStream(PdfPrintJob job, IppDeliveryPlan plan, CancellationToken token) {
+        _job = job;
+        _plan = plan;
+        _token = token;
+        _pages = PageSequence(job.Plan.Sheets.Count, plan.SoftwareCopies, plan.Duplex);
+        _writer = new PwgRasterWriter(_buffer, _pages.Length);
+        WriteNextPage();
+    }
+
+    /// <summary>Sheet indexes for each page, repeating the sequence per copy; null is a blank back side that starts each duplex copy on a new sheet.</summary>
+    internal static int?[] PageSequence(int sheets, int copies, bool duplex) {
+        var pages = new List<int?>(sheets * copies + copies);
+        for (int copy = 0; copy < copies; copy++) {
+            for (int sheet = 0; sheet < sheets; sheet++) pages.Add(sheet);
+            if (duplex && sheets % 2 != 0 && copy + 1 < copies) pages.Add(null);
+        }
+        return pages.ToArray();
+    }
+
+    public override int Read(byte[] buffer, int offset, int count) {
+        while (_buffer.Position == _buffer.Length) {
+            if (_next >= _pages.Length) return 0;
+            _buffer.SetLength(0);
+            WriteNextPage();
+        }
+        return _buffer.Read(buffer, offset, count);
+    }
+
+    private void WriteNextPage() {
+        _token.ThrowIfCancellationRequested();
+        int index = _next++;
+        bool back = _plan.Duplex && index % 2 == 1;
+        (bool mirrorRows, bool reverseRows) = back ? BackSideTransform(_plan.SheetBack, _plan.Tumble) : (false, false);
+        int bytesPerPixel = _plan.ColorSpace == PwgRasterColorSpace.Rgb8 ? 3 : 1;
+        byte[] pixels;
+        int width, height;
+        string? mediaName = null;
+        if (_pages[index] is int sheet) {
+            OfficeRasterImage raster = _job.RenderRaster(sheet + 1, _plan.RasterDpi, _job.MaximumPixelsPerImage, _token).Raster;
+            pixels = DevicePixels(raster, bytesPerPixel, mirrorRows, reverseRows, out width, out height, _token);
+            mediaName = _plan.MediaNames.Count > sheet ? _plan.MediaNames[sheet] : null;
+        } else {
+            width = _lastWidth;
+            height = _lastHeight;
+            pixels = new byte[checked(width * height * bytesPerPixel)];
+            for (int i = 0; i < pixels.Length; i++) pixels[i] = 0xFF;
+        }
+        _lastWidth = width;
+        _lastHeight = height;
+        _buffer.SetLength(0);
+        _writer.WritePage(new PwgRasterPage(width, height, _plan.RasterDpi, _plan.RasterDpi, _plan.ColorSpace, pixels) {
+            PageSizeName = mediaName, Duplex = _plan.Duplex, Tumble = _plan.Tumble,
+            CrossFeedTransform = mirrorRows ? -1 : 1, FeedTransform = reverseRows ? -1 : 1
+        });
+        _buffer.Position = 0;
+    }
+
+    /// <summary>How a back side is mirrored for pwg-raster-document-sheet-back (PWG 5100.14): (mirror each row, reverse the row order).</summary>
+    internal static (bool MirrorRows, bool ReverseRows) BackSideTransform(string? sheetBack, bool tumble) => sheetBack switch {
+        "flipped" => tumble ? (true, false) : (false, true),
+        "rotated" => tumble ? (false, false) : (true, true),
+        "manual-tumble" => tumble ? (true, true) : (false, false),
+        _ => (false, false)
+    };
+
+    /// <summary>
+    /// Converts rendered RGBA pixels to device rows: composited on white, landscape sheets turned to the portrait feed direction
+    /// (content top along the left edge, as orientation-requested landscape prints it), then the back-side mirroring applied.
+    /// </summary>
+    internal static byte[] DevicePixels(OfficeRasterImage raster, int bytesPerPixel, bool mirrorRows, bool reverseRows,
+        out int width, out int height, CancellationToken token) {
+        int sourceWidth = raster.Width, sourceHeight = raster.Height;
+        bool rotate = sourceWidth > sourceHeight;
+        width = rotate ? sourceHeight : sourceWidth;
+        height = rotate ? sourceWidth : sourceHeight;
+        byte[] source = raster.PixelBuffer;
+        var output = new byte[checked(width * height * bytesPerPixel)];
+        for (int y = 0; y < height; y++) {
+            if ((y & 63) == 0) token.ThrowIfCancellationRequested();
+            int deviceY = reverseRows ? height - 1 - y : y;
+            for (int x = 0; x < width; x++) {
+                // A counter-clockwise turn puts the source's top row on the device's left edge and its right column on the top edge.
+                int sourceX = rotate ? sourceWidth - 1 - y : x;
+                int sourceY = rotate ? x : y;
+                int from = (sourceY * sourceWidth + sourceX) * 4;
+                int alpha = source[from + 3];
+                int r = (source[from] * alpha + 255 * (255 - alpha) + 127) / 255;
+                int g = (source[from + 1] * alpha + 255 * (255 - alpha) + 127) / 255;
+                int b = (source[from + 2] * alpha + 255 * (255 - alpha) + 127) / 255;
+                int deviceX = mirrorRows ? width - 1 - x : x;
+                int to = (deviceY * width + deviceX) * bytesPerPixel;
+                if (bytesPerPixel == 3) {
+                    output[to] = (byte)r; output[to + 1] = (byte)g; output[to + 2] = (byte)b;
+                } else {
+                    output[to] = (byte)((r * 77 + g * 150 + b * 29 + 128) >> 8);
+                }
+            }
+        }
+        return output;
+    }
+
+    public override bool CanRead => true;
+    public override bool CanSeek => false;
+    public override bool CanWrite => false;
+    public override long Length => throw new NotSupportedException();
+    public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+    public override void Flush() { }
+    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+    public override void SetLength(long value) => throw new NotSupportedException();
+    public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+    protected override void Dispose(bool disposing) {
+        if (disposing) _buffer.Dispose();
+        base.Dispose(disposing);
+    }
+}

@@ -29,7 +29,7 @@ public enum PdfPrintDuplex {
 
 /// <summary>Delivery options applied to a composed print job.</summary>
 public sealed class PdfPrintDeliveryOptions {
-    /// <summary>Installed queue name.</summary>
+    /// <summary>Installed queue name, or an <c>ipp://</c> or <c>ipps://</c> printer URI.</summary>
     public required string PrinterName { get; set; }
     /// <summary>Spooler document label.</summary>
     public string DocumentName { get; set; } = "OfficeIMO document";
@@ -42,13 +42,14 @@ public sealed class PdfPrintDeliveryOptions {
     /// <summary>New local output path for a Windows file printer. Existing paths are rejected before submission.</summary>
     public string? OutputFilePath { get; set; }
     /// <summary>Highest resolution, from 72 through 600 DPI, used when a transport rasterizes sheets. Defaults to 300.</summary>
-    /// <remarks>Windows rasterizes at the device resolution up to this limit. CUPS rasterizes only grayscale jobs.</remarks>
+    /// <remarks>Windows rasterizes at the device resolution up to this limit. IPP printers and CUPS queues receive raster sheets only for grayscale or raster jobs, or when the printer does not accept PDF.</remarks>
     public double MaximumRasterDpi { get; set; } = 300;
 
     internal PdfPrintDeliveryOptions Snapshot() {
         if ((PrinterName == null || string.IsNullOrWhiteSpace(PrinterName))) throw new ArgumentException("A non-empty value is required.", nameof(PrinterName));
         if ((DocumentName == null || string.IsNullOrWhiteSpace(DocumentName))) throw new ArgumentException("A non-empty value is required.", nameof(DocumentName));
         if (PrinterName.IndexOf('\0') >= 0 || DocumentName.IndexOf('\0') >= 0) throw new ArgumentException("Printer and document names cannot contain null characters.");
+        _ = PdfPrinterAddress.TryGetIppUri(PrinterName, nameof(PrinterName), out _);
         if (Copies is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(Copies));
         if (!OfficeRuntimeCompatibility.IsDefined(Duplex)) throw new ArgumentOutOfRangeException(nameof(Duplex));
         if (!OfficeRuntimeCompatibility.IsFinite(MaximumRasterDpi) || MaximumRasterDpi is < 72 or > 600) throw new ArgumentOutOfRangeException(nameof(MaximumRasterDpi));
@@ -58,11 +59,13 @@ public sealed class PdfPrintDeliveryOptions {
     }
 }
 
-/// <summary>Receipt proving that a job was accepted by an operating-system print queue.</summary>
+/// <summary>Receipt proving that a job was accepted by a print queue or IPP printer.</summary>
 /// <remarks>Acceptance does not prove that paper or a virtual-printer file has finished printing.</remarks>
 public sealed record PdfPrintSubmission(string PrinterName, string JobId, int SheetCount, int Copies, string? OutputFilePath) {
     /// <summary>Local staging cleanup problem after acceptance; the receipt remains valid and the job must not be resubmitted.</summary>
     public string? CleanupWarning { get; init; }
+    /// <summary>Requested job attributes, such as <c>sides</c> or <c>media</c>, that the printer ignored, substituted or does not support.</summary>
+    public IReadOnlyList<string> IgnoredAttributes { get; init; } = [];
 }
 
 /// <summary>A delivery failure after submission began; retrying may print duplicate pages.</summary>
@@ -75,22 +78,27 @@ public sealed class PdfPrintDeliveryException : IOException {
 }
 
 /// <summary>Printer discovery and job delivery. Transports receive the job content and the delivery options.</summary>
+/// <remarks>Every member that takes a printer name also accepts an <c>ipp://</c> or <c>ipps://</c> printer URI.</remarks>
 public interface IPdfPrinterService {
     /// <summary>Lists installed queues without changing printer settings.</summary>
     Task<IReadOnlyList<PdfPrinterInfo>> GetPrintersAsync(CancellationToken cancellationToken = default);
-    /// <summary>Reports the selected queue's media, trays and features without changing printer settings.</summary>
+    /// <summary>Reports the selected printer's media, trays and features without changing printer settings.</summary>
     Task<PdfPrinterCapabilities> GetCapabilitiesAsync(string printerName, CancellationToken cancellationToken = default);
     /// <summary>Submits a composed job and returns an acceptance receipt.</summary>
     Task<PdfPrintSubmission> SubmitAsync(PdfPrintJob job, PdfPrintDeliveryOptions options, CancellationToken cancellationToken = default);
 }
 
-/// <summary>Windows GDI raster delivery and macOS/Linux CUPS PDF delivery.</summary>
+/// <summary>Delivers print jobs to IPP printers by URI, to CUPS queues through the local scheduler, and to Windows queues through GDI.</summary>
+/// <remarks>
+/// IPP printers receive vector PDF when they accept <c>application/pdf</c>, and PWG raster otherwise. CUPS queues receive PDF through the CUPS command-line tools. Windows queues receive raster sheets at the device resolution.
+/// </remarks>
 public sealed class PdfPrinterService : IPdfPrinterService {
     /// <inheritdoc />
     public Task<PdfPrinterCapabilities> GetCapabilitiesAsync(string printerName, CancellationToken cancellationToken = default) {
-        if ((printerName == null || string.IsNullOrWhiteSpace(printerName))) throw new ArgumentException("A non-empty value is required.", nameof(printerName));
-        if (printerName.Contains('\0')) throw new ArgumentException("The printer name is invalid.", nameof(printerName));
+        ValidatePrinterName(printerName, nameof(printerName));
         cancellationToken.ThrowIfCancellationRequested();
+        if (PdfPrinterAddress.TryGetIppUri(printerName, nameof(printerName), out Uri? uri))
+            return IppPdfPrinter.GetCapabilitiesAsync(IppPrinterEndpoint.ForUri(printerName, uri!), cancellationToken);
         return OfficeRuntimeCompatibility.IsWindows
             ? WindowsPdfPrinter.GetCapabilitiesAsync(printerName, cancellationToken)
             : CupsPdfPrinter.GetCapabilitiesAsync(printerName, cancellationToken);
@@ -108,8 +116,29 @@ public sealed class PdfPrinterService : IPdfPrinterService {
         ArgumentNullException.ThrowIfNull(options);
         PdfPrintDeliveryOptions snapshot = options.Snapshot();
         cancellationToken.ThrowIfCancellationRequested();
+        if (PdfPrinterAddress.TryGetIppUri(snapshot.PrinterName, nameof(options), out Uri? uri))
+            return IppPdfPrinter.SubmitAsync(IppPrinterEndpoint.ForUri(snapshot.PrinterName, uri!), job, snapshot, cancellationToken);
         return OfficeRuntimeCompatibility.IsWindows
             ? WindowsPdfPrinter.SubmitAsync(job, snapshot, cancellationToken)
             : CupsPdfPrinter.SubmitAsync(job, snapshot, cancellationToken);
+    }
+
+    private static void ValidatePrinterName(string printerName, string parameter) {
+        if (printerName == null || string.IsNullOrWhiteSpace(printerName)) throw new ArgumentException("A non-empty value is required.", parameter);
+        if (printerName.IndexOf('\0') >= 0) throw new ArgumentException("The printer name is invalid.", parameter);
+    }
+}
+
+/// <summary>Recognizes printer URIs among printer names.</summary>
+internal static class PdfPrinterAddress {
+    /// <summary>Returns true for an ipp:// or ipps:// name; such a name must be a valid printer URI.</summary>
+    internal static bool TryGetIppUri(string printerName, string parameter, out Uri? uri) {
+        uri = null;
+        if (!printerName.StartsWith("ipp://", StringComparison.OrdinalIgnoreCase) && !printerName.StartsWith("ipps://", StringComparison.OrdinalIgnoreCase)) return false;
+        if (!Uri.TryCreate(printerName, UriKind.Absolute, out Uri? parsed) || string.IsNullOrEmpty(parsed.Host) ||
+            !string.IsNullOrEmpty(parsed.UserInfo) || !string.IsNullOrEmpty(parsed.Fragment) || parsed.AbsoluteUri.Length > 1023)
+            throw new ArgumentException("A printer URI needs a host and cannot contain credentials or a fragment.", parameter);
+        uri = parsed;
+        return true;
     }
 }

@@ -9,7 +9,7 @@ namespace OfficeIMO.Workflows;
 /// The client speaks IPP/2.0 and falls back to IPP/1.1 when the printer reports that 2.0 is unsupported.
 /// It does not follow HTTP redirects and does not authenticate. Instances are safe for concurrent use.
 /// </remarks>
-public sealed class IppPrintClient : IDisposable {
+internal sealed class IppPrintClient : IDisposable {
     private const int StatusVersionNotSupported = 0x0503;
     private static readonly string[] JobAttributes = {
         "job-id", "job-uri", "job-state", "job-state-reasons", "job-state-message", "job-name"
@@ -36,7 +36,7 @@ public sealed class IppPrintClient : IDisposable {
         : this(printerUri, handler ?? throw new ArgumentNullException(nameof(handler)), false, options) {
     }
 
-    private IppPrintClient(Uri printerUri, HttpMessageHandler handler, bool disposeHandler, IppPrintClientOptions? options) {
+    internal IppPrintClient(Uri printerUri, HttpMessageHandler handler, bool disposeHandler, IppPrintClientOptions? options) {
         ArgumentNullException.ThrowIfNull(printerUri);
         if (!printerUri.IsAbsoluteUri || (printerUri.Scheme != "ipp" && printerUri.Scheme != "ipps"))
             throw new ArgumentException("The printer URI must be an absolute ipp:// or ipps:// URI.", nameof(printerUri));
@@ -133,6 +133,34 @@ public sealed class IppPrintClient : IDisposable {
             if (group["job-id"]?.First is { Tag: IppValueTag.Integer } id && id.Integer > 0) jobs.Add(IppAttributeMapper.Job(group, id.Integer));
         }
         return jobs;
+    }
+
+    /// <summary>Lists the queues a CUPS scheduler hosts (CUPS-Get-Printers and CUPS-Get-Default). The client URI addresses the scheduler.</summary>
+    /// <returns>Queue names with their class flag, and the default queue name when one is set.</returns>
+    public async Task<(IReadOnlyList<(string Name, bool IsClass)> Queues, string? DefaultName)> GetCupsQueuesAsync(CancellationToken cancellationToken = default) {
+        const int CupsPrinterClass = 0x1, StatusNotFound = 0x0406;
+        var queues = new List<(string, bool)>();
+        IppMessage request = NewRequest(IppOperation.CupsGetPrinters);
+        request.Groups[0].Add("requested-attributes", Keywords("printer-name", "printer-type"));
+        try {
+            IppMessage response = await SendAsync(request, null, null, cancellationToken).ConfigureAwait(false);
+            foreach (IppAttributeGroup group in response.GroupsOf(IppGroupTag.Printer)) {
+                if (group["printer-name"]?.First?.Text is not { Length: > 0 } name) continue;
+                int type = group["printer-type"]?.First is { Tag: IppValueTag.Enum or IppValueTag.Integer } value ? value.Integer : 0;
+                queues.Add((name, (type & CupsPrinterClass) != 0));
+            }
+        } catch (IppException error) when (error.StatusCode == StatusNotFound) {
+            // CUPS answers "No destinations added." with not-found.
+        }
+        string? defaultName = null;
+        IppMessage defaultRequest = NewRequest(IppOperation.CupsGetDefault);
+        defaultRequest.Groups[0].Add("requested-attributes", Keywords("printer-name"));
+        try {
+            IppMessage response = await SendAsync(defaultRequest, null, null, cancellationToken).ConfigureAwait(false);
+            defaultName = response.FirstGroup(IppGroupTag.Printer)?["printer-name"]?.First?.Text;
+        } catch (IppException error) when (error.StatusCode == StatusNotFound) {
+        }
+        return (queues, defaultName);
     }
 
     /// <summary>Cancels a job (Cancel-Job).</summary>
@@ -241,6 +269,7 @@ internal static class IppAttributeMapper {
             MediaDefault = Text(printer["media-default"]),
             MediaSizes = (printer["media-col-database"]?.Values ?? new List<IppValue>()).Select(Media).OfType<IppMedia>().ToArray(),
             MediaColDefault = printer["media-col-default"]?.First is { } mediaDefault ? Media(mediaDefault) : null,
+            MediaSources = Strings(printer["media-source-supported"]),
             Sides = Strings(printer["sides-supported"]),
             SidesDefault = Text(printer["sides-default"]),
             ColorModes = Strings(printer["print-color-mode-supported"]),
@@ -254,6 +283,7 @@ internal static class IppAttributeMapper {
             PageRangesSupported = printer["page-ranges-supported"]?.First is { Tag: IppValueTag.Boolean, Boolean: true },
             PwgRasterResolutions = Resolutions(printer["pwg-raster-document-resolution-supported"]),
             PwgRasterTypes = Strings(printer["pwg-raster-document-type-supported"]),
+            PwgRasterSheetBack = Text(printer["pwg-raster-document-sheet-back"]),
             IppVersions = Strings(printer["ipp-versions-supported"])
         };
     }

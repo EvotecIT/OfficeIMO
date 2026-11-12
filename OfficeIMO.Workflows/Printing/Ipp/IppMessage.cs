@@ -55,7 +55,9 @@ internal enum IppOperation : short {
     CancelJob = 0x0008,
     GetJobAttributes = 0x0009,
     GetJobs = 0x000A,
-    GetPrinterAttributes = 0x000B
+    GetPrinterAttributes = 0x000B,
+    CupsGetDefault = 0x4001,
+    CupsGetPrinters = 0x4002
 }
 
 /// <summary>One attribute value. Which members are meaningful depends on <see cref="Tag"/>.</summary>

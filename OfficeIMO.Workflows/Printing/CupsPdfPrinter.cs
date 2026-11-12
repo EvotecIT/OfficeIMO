@@ -56,16 +56,10 @@ internal static partial class CupsPdfPrinter {
             throw new ArgumentException("The selected paper source is no longer available on this printer.", nameof(options));
         // The vector content keeps source colors, so grayscale jobs send the same pixels the preview shows.
         using Stream content = job.Plan.ColorMode == PdfPrintColorMode.Grayscale
-            ? new MemoryStream(RasterizeSheets(job, options.MaximumRasterDpi, token), writable: false)
+            ? new MemoryStream(job.RasterizeToPdf(options.MaximumRasterDpi, token), writable: false)
             : job.OpenContent();
         return await SubmitSpoolAsync(job.Plan, options, CreateArguments(job.Plan, options, capabilities.Media, capabilities.DefaultMedia), content, token, RunAsync).ConfigureAwait(false);
     }
-
-    internal static byte[] RasterizeSheets(PdfPrintJob job, double maximumDpi, CancellationToken token) =>
-        PdfPrintJobComposer.WrapRasterSheets(job.Plan.Sheets, sheet => {
-            double dpi = PdfPrintRaster.ResolveDpi(maximumDpi, maximumDpi, sheet.PaperSize.Width.ToPoints(), sheet.PaperSize.Height.ToPoints(), job.MaximumPixelsPerImage);
-            return OfficePngWriter.Encode(job.RenderRaster(sheet.SheetNumber, dpi, job.MaximumPixelsPerImage, token).Raster, token);
-        }, 256L * 1024 * 1024, token);
 
     /// <summary>Builds lp options. One media keyword applies to the whole job, so mixed-size jobs leave media selection to each PDF page.</summary>
     internal static List<string> CreateArguments(PdfPrintPlan plan, PdfPrintDeliveryOptions options, IReadOnlyList<PdfPrinterMedia> media, PdfPrinterMedia? defaultMedia) {
