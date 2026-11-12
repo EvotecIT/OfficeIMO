@@ -223,6 +223,27 @@ Body
 
     [Theory]
     [MemberData(nameof(CalloutPlacementProfiles))]
+    public void Callout_Header_Inside_Quoted_Fence_In_List_Item_Stays_Code(string profile) {
+        var document = MarkdownDocument.Parse("- item\n\n  > ```text\n  > [!NOTE]\n  > example\n  > ```\n", CreateCalloutPlacementOptions(profile));
+
+        var item = Assert.Single(Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks)).Items);
+        var quote = Assert.IsType<QuoteBlock>(Assert.Single(item.NestedBlocks));
+        var code = Assert.IsType<CodeBlock>(Assert.Single(quote.ChildBlocks));
+        Assert.Equal("[!NOTE]\nexample", code.Content.Replace("\r\n", "\n"));
+    }
+
+    [Theory]
+    [MemberData(nameof(CalloutPlacementProfiles))]
+    public void Callout_Header_Inside_Quoted_Fence_Stays_Code(string profile) {
+        var document = MarkdownDocument.Parse("> ```text\n> [!NOTE]\n> example\n> ```\n", CreateCalloutPlacementOptions(profile));
+
+        var quote = Assert.IsType<QuoteBlock>(Assert.Single(document.Blocks));
+        var code = Assert.IsType<CodeBlock>(Assert.Single(quote.ChildBlocks));
+        Assert.Equal("[!NOTE]\nexample", code.Content.Replace("\r\n", "\n"));
+    }
+
+    [Theory]
+    [MemberData(nameof(CalloutPlacementProfiles))]
     public void Callout_At_Top_Level_With_Up_To_Three_Spaces_Is_Still_A_Callout(string profile) {
         foreach (string markdown in new[] { "> [!NOTE]\n> body\n", "   > [!NOTE] Custom title\n   > body\n" }) {
             var document = MarkdownDocument.Parse(markdown, CreateCalloutPlacementOptions(profile));
