@@ -81,6 +81,33 @@ public class CsvValueTextTests
             Assert.Equal(value.ToString(CultureInfo.InvariantCulture), text[..written].ToString());
         }
     }
+    [Fact]
+    public void InvariantIntegerTextMatchesTheRuntime()
+    {
+        var values = new List<long> { 0, 1, -1, 9, -9, 10, -10, int.MaxValue, int.MinValue, long.MaxValue, long.MinValue, long.MinValue + 1 };
+        for (long power = 1; power <= 1_000_000_000_000_000_000; power *= 10)
+        {
+            values.AddRange(new[] { power - 1, power, power + 1, -(power - 1), -power, -(power + 1) });
+        }
+        var random = new Random(20261114);
+        for (var sample = 0; sample < 100_000; sample++)
+        {
+            values.Add(random.NextInt64(long.MinValue, long.MaxValue) >> random.Next(0, 63));
+        }
+
+        Span<char> text = stackalloc char[64];
+        foreach (long value in values)
+        {
+            Assert.True(CsvWriter.TryFormatInvariant(value, text, out int written));
+            Assert.Equal(value.ToString(CultureInfo.InvariantCulture), text[..written].ToString());
+            if (value is >= int.MinValue and <= int.MaxValue)
+            {
+                Assert.True(CsvWriter.TryFormatInvariant((int)value, text, out written));
+                Assert.Equal(((int)value).ToString(CultureInfo.InvariantCulture), text[..written].ToString());
+            }
+        }
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("de-DE")]

@@ -1,6 +1,8 @@
 #if NET8_0_OR_GREATER
 using System.Globalization;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace OfficeIMO.CSV;
 
@@ -22,13 +24,19 @@ internal static class CsvShortestDouble
     internal const int MaximumLength = 25;
     private const string TwoDigits = "00010203040506070809101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990919293949596979899";
     private static readonly ulong[] PowersOfTen = CreatePowersOfTen();
+    /// <summary>The characters "00" to "99", each pair read as one 32-bit value in the machine's byte order.</summary>
+    private static readonly uint[] DigitPairs = MemoryMarshal.Cast<char, uint>(TwoDigits.AsSpan()).ToArray();
+    /// <summary>The same pairs as UTF-8, each read as one 16-bit value.</summary>
+    private static readonly ushort[] DigitPairBytes = MemoryMarshal.Cast<byte, ushort>(System.Text.Encoding.ASCII.GetBytes(TwoDigits)).ToArray();
 
     /// <summary>5^i, normalised to its top <see cref="Pow5Bits"/> bits.</summary>
     private static readonly UInt128[] Pow5 = CreatePow5Table();
     /// <summary>2^j / 5^i rounded up, where j keeps <see cref="Pow5InverseBits"/> significant bits.</summary>
     private static readonly UInt128[] Pow5Inverse = CreatePow5InverseTable();
 
-    internal static bool TryFormat(double value, Span<char> destination, out int written)
+    /// <summary>Writes the text in UTF-16 or UTF-8 units; false for zero, infinities, NaN and a short destination.</summary>
+    internal static bool TryFormat<TChar>(double value, Span<TChar> destination, out int written)
+        where TChar : unmanaged
     {
         written = 0;
         if (!double.IsFinite(value) || value == 0 || destination.Length < MaximumLength)
@@ -47,7 +55,7 @@ internal static class CsvShortestDouble
         int position = 0;
         if ((long)bits < 0)
         {
-            destination[position++] = '-';
+            destination[position++] = Unit<TChar>('-');
         }
 
         int digitCount = CountDigits(digits);
@@ -55,17 +63,17 @@ internal static class CsvShortestDouble
         if (scientificExponent is < -4 or >= 17)
         {
             position = WriteDigits(destination, position, digits, digitCount, digitCount - 1);
-            destination[position++] = 'E';
-            destination[position++] = scientificExponent < 0 ? '-' : '+';
+            destination[position++] = Unit<TChar>('E');
+            destination[position++] = Unit<TChar>(scientificExponent < 0 ? '-' : '+');
             int magnitude = Math.Abs(scientificExponent);
             if (magnitude >= 100)
             {
-                destination[position++] = (char)('0' + magnitude / 100);
+                destination[position++] = Unit<TChar>((char)('0' + magnitude / 100));
                 magnitude %= 100;
             }
 
-            destination[position++] = (char)('0' + magnitude / 10);
-            destination[position++] = (char)('0' + magnitude % 10);
+            destination[position++] = Unit<TChar>((char)('0' + magnitude / 10));
+            destination[position++] = Unit<TChar>((char)('0' + magnitude % 10));
             written = position;
             return true;
         }
@@ -73,7 +81,7 @@ internal static class CsvShortestDouble
         if (exponent >= 0)
         {
             position = WriteDigits(destination, position, digits, digitCount, 0);
-            destination.Slice(position, exponent).Fill('0');
+            destination.Slice(position, exponent).Fill(Unit<TChar>('0'));
             written = position + exponent;
             return true;
         }
@@ -85,9 +93,9 @@ internal static class CsvShortestDouble
             return true;
         }
 
-        destination[position++] = '0';
-        destination[position++] = '.';
-        destination.Slice(position, -integerDigits).Fill('0');
+        destination[position++] = Unit<TChar>('0');
+        destination[position++] = Unit<TChar>('.');
+        destination.Slice(position, -integerDigits).Fill(Unit<TChar>('0'));
         written = WriteDigits(destination, position - integerDigits, digits, digitCount, 0);
         return true;
     }
@@ -97,53 +105,98 @@ internal static class CsvShortestDouble
     /// point before the last <paramref name="fractionDigits"/> of them, two digits at a time from the end, and
     /// returns the position after them.
     /// </summary>
-    private static int WriteDigits(Span<char> destination, int start, ulong value, int digitCount, int fractionDigits)
+    internal static int WriteDigits<TChar>(Span<TChar> destination, int start, ulong value, int digitCount, int fractionDigits)
+        where TChar : unmanaged
     {
         bool point = fractionDigits > 0;
         int end = start + digitCount + (point ? 1 : 0);
+        if ((uint)end > (uint)destination.Length || start < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(destination));
+        }
+
+        ref TChar first = ref MemoryMarshal.GetReference(destination);
         int position = end;
         for (; fractionDigits >= 2; fractionDigits -= 2)
         {
             position -= 2;
-            value = WritePair(destination, position, value);
+            value = WritePair(ref first, position, value);
         }
 
         if (fractionDigits == 1)
         {
             ulong quotient = value / 10;
-            destination[--position] = (char)('0' + (int)(value - quotient * 10));
+            Unsafe.Add(ref first, --position) = Unit<TChar>((char)('0' + (int)(value - quotient * 10)));
             value = quotient;
         }
 
         if (point)
         {
-            destination[--position] = '.';
+            Unsafe.Add(ref first, --position) = Unit<TChar>('.');
         }
 
+        while (value > uint.MaxValue && position - start >= 2)
+        {
+            position -= 2;
+            value = WritePair(ref first, position, value);
+        }
+
+        // The rest fits in 32 bits, where dividing by 100 is cheaper.
+        uint rest = (uint)value;
         while (position - start >= 2)
         {
             position -= 2;
-            value = WritePair(destination, position, value);
+            uint quotient = rest / 100;
+            WritePairText(ref first, position, rest - quotient * 100);
+            rest = quotient;
         }
 
         if (position > start)
         {
-            destination[start] = (char)('0' + (int)value);
+            Unsafe.Add(ref first, start) = Unit<TChar>((char)('0' + (int)rest));
         }
 
         return end;
     }
 
-    private static ulong WritePair(Span<char> destination, int position, ulong value)
+    private static ulong WritePair<TChar>(ref TChar first, int position, ulong value)
+        where TChar : unmanaged
     {
         ulong quotient = value / 100;
-        int pair = (int)(value - quotient * 100) * 2;
-        destination[position] = TwoDigits[pair];
-        destination[position + 1] = TwoDigits[pair + 1];
+        WritePairText(ref first, position, (uint)(value - quotient * 100));
         return quotient;
     }
 
-    private static int CountDigits(ulong value)
+    /// <summary>Stores the two digits of a value below 100 with one write.</summary>
+    private static void WritePairText<TChar>(ref TChar first, int position, uint pair)
+        where TChar : unmanaged
+    {
+        ref byte target = ref Unsafe.As<TChar, byte>(ref Unsafe.Add(ref first, position));
+        if (typeof(TChar) == typeof(byte))
+        {
+            Unsafe.WriteUnaligned(ref target, Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(DigitPairBytes), (nint)pair));
+        }
+        else
+        {
+            Unsafe.WriteUnaligned(ref target, Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(DigitPairs), (nint)pair));
+        }
+    }
+
+    /// <summary>An ASCII character as a UTF-16 or UTF-8 code unit.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static TChar Unit<TChar>(char value)
+        where TChar : unmanaged
+    {
+        if (typeof(TChar) == typeof(byte))
+        {
+            byte narrow = (byte)value;
+            return Unsafe.As<byte, TChar>(ref narrow);
+        }
+
+        return Unsafe.As<char, TChar>(ref value);
+    }
+
+    internal static int CountDigits(ulong value)
     {
         int estimate = ((64 - BitOperations.LeadingZeroCount(value | 1)) * 1233) >> 12;
         return estimate + (value >= PowersOfTen[estimate] ? 1 : 0);
