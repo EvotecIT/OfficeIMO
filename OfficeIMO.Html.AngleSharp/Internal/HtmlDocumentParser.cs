@@ -208,9 +208,16 @@ internal static class HtmlDocumentParser {
             cancellationToken.ThrowIfCancellationRequested();
             int markup = html.IndexOf('<', cursor);
             if (markup < 0 || markup == html.Length - 1) break;
-            if (markup <= html.Length - 4 && string.CompareOrdinal(html, markup, "<!--", 0, 4) == 0) {
-                int commentEnd = html.IndexOf("-->", markup + 4, StringComparison.Ordinal);
-                cursor = commentEnd < 0 ? html.Length : commentEnd + 3;
+            if (StartsWithOrdinal(html, markup, "<!--")) {
+                int commentEnd = FindCommentEnd(html, markup + 4);
+                cursor = commentEnd < 0 ? html.Length : commentEnd;
+                continue;
+            }
+            if (StartsWithOrdinal(html, markup, "<![CDATA[") &&
+                openElements.Count > 0 && openElements[openElements.Count - 1].Namespace != SourceNamespace.Html) {
+                // Only foreign content has CDATA sections; elsewhere this is a bogus comment ending at '>'.
+                int cdataEnd = html.IndexOf("]]>", markup + 9, StringComparison.Ordinal);
+                cursor = cdataEnd < 0 ? html.Length : cdataEnd + 3;
                 continue;
             }
             int nameStart = markup + 1;
@@ -304,6 +311,22 @@ internal static class HtmlDocumentParser {
         string between = html.Substring(href.NameStart, xlink.NameStart - href.NameStart);
         replacements.Add((href.NameStart, xlink.End - href.NameStart, xlinkText + " " + between + " "));
     }
+
+    private static int FindCommentEnd(string html, int contentStart) {
+        // "<!-->" and "<!--->" close immediately; otherwise "-->" or "--!>" closes the comment.
+        if (StartsWithOrdinal(html, contentStart, ">")) return contentStart + 1;
+        if (StartsWithOrdinal(html, contentStart, "->")) return contentStart + 2;
+        int dashes = contentStart;
+        while ((dashes = html.IndexOf("--", dashes, StringComparison.Ordinal)) >= 0) {
+            if (StartsWithOrdinal(html, dashes + 2, ">")) return dashes + 3;
+            if (StartsWithOrdinal(html, dashes + 2, "!>")) return dashes + 4;
+            dashes++;
+        }
+        return -1;
+    }
+
+    private static bool StartsWithOrdinal(string value, int offset, string prefix) =>
+        offset <= value.Length - prefix.Length && string.CompareOrdinal(value, offset, prefix, 0, prefix.Length) == 0;
 
     private static int FindTagNameEnd(string html, int start) {
         int index = start;

@@ -64,6 +64,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SvgHrefNormalizationLeavesCommentsAndCdataUnchanged() {
+            const string comment = " <svg><image href='new' xlink:href='old'/></svg> ";
+            const string cdata = " a > b <image href='new' xlink:href='old'/> ";
+
+            HtmlConversionDocument document = HtmlConversionDocument.Parse(
+                "<div><!--" + comment + "--></div><svg><![CDATA[" + cdata + "]]></svg>");
+
+            HtmlNode commentNode = Assert.Single(document.Document.QuerySelector("div")!.ChildNodes);
+            Assert.Equal(HtmlNodeKind.Comment, commentNode.Kind);
+            Assert.Equal(comment, commentNode.TextContent);
+            Assert.Equal(cdata, document.Document.QuerySelector("svg")!.TextContent);
+        }
+
+        [Theory]
+        [InlineData("<!-->")]
+        [InlineData("<!--->")]
+        [InlineData("<!-- x --!>")]
+        public void SvgHrefNormalizationResumesAfterShortCommentClosers(string comment) {
+            HtmlElement element = HtmlConversionDocument.Parse(
+                comment + SvgStart + "<image href='new' xlink:href='old'/></svg><!-- -->").Document.QuerySelector("image")!;
+
+            Assert.Equal("new", element.GetAttribute("href"));
+            Assert.Equal("old", element.GetAttribute(XlinkNamespace, "href"));
+        }
+
+        [Fact]
         public void SvgHrefNormalizationReadsOnlyTheRealAnnotationXmlEncoding() {
             HtmlElement element = HtmlConversionDocument.Parse(
                 "<math><annotation-xml data-note=\" encoding=x \" encoding='text/html'><section><svg>" +
