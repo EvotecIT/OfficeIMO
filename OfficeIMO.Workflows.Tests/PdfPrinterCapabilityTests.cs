@@ -158,6 +158,16 @@ public sealed class PdfPrinterCapabilityTests {
         Assert.Throws<InvalidOperationException>(() => WindowsPrinterSettings.ComposeDevMode(new byte[100], request));
     }
 
+    [Fact]
+    public void GdiFailuresNameTheCallAndReportOnlyARealWin32Error() {
+        Exception silent = WindowsPrinterSettings.GdiFailure("StartPage", 0);
+        Assert.IsType<InvalidOperationException>(silent);
+        Assert.Contains("StartPage", silent.Message);
+        var accessDenied = Assert.IsType<System.ComponentModel.Win32Exception>(WindowsPrinterSettings.GdiFailure("StartDoc", 5));
+        Assert.Equal(5, accessDenied.NativeErrorCode);
+        Assert.Contains("StartDoc", accessDenied.Message);
+    }
+
     [Theory]
     [InlineData(3, true, 999, true, 3)]
     [InlineData(3, true, 2, true, 1)]
