@@ -22,8 +22,6 @@ namespace OfficeIMO.CSV.Benchmarks;
 [MemoryDiagnoser]
 [RankColumn]
 public class MarkPflug65KCsvBenchmarks {
-    private const ulong ChecksumOffset = 14695981039346656037UL;
-    private const ulong ChecksumPrime = 1099511628211UL;
     private CsvReadObservation _expected;
 
     [GlobalSetup]
@@ -55,10 +53,8 @@ public class MarkPflug65KCsvBenchmarks {
     [Benchmark]
     public CsvReadObservation ExcelReaderNet() {
         using ExcelReaderNetCsvReader reader = ExcelReaderApi.FromCsvFile(MarkPflug65KFixture.CsvPath);
+        var values = new CsvObservationAccumulator();
         int rows = 0;
-        int cells = 0;
-        long characters = 0;
-        ulong checksum = ChecksumOffset;
         bool header = true;
 #if NET10_0_OR_GREATER
         foreach (Row row in reader.FirstSheet) {
@@ -70,36 +66,26 @@ public class MarkPflug65KCsvBenchmarks {
                 continue;
             }
 
+            int count = row.ColumnCount;
+            for (int column = 0; column < count; column++) values.Add(row[column].GetString());
             rows++;
-            for (int column = 0; column < row.ColumnCount; column++) {
-                cells++;
-                string decoded = row[column].GetString();
-                characters += decoded.Length;
-                AddValue(ref checksum, decoded);
-            }
         }
 
-        return new CsvReadObservation(rows, cells, characters, checksum);
+        return values.ToObservation(rows);
     }
 
     [Benchmark]
     public CsvReadObservation Sep() {
         using var reader = SepLib.Reader().FromFile(MarkPflug65KFixture.CsvPath);
+        var values = new CsvObservationAccumulator();
         int rows = 0;
-        int cells = 0;
-        long characters = 0;
-        ulong checksum = ChecksumOffset;
         foreach (var row in reader) {
+            int count = row.ColCount;
+            for (int column = 0; column < count; column++) values.Add(row[column].ToString());
             rows++;
-            for (int column = 0; column < row.ColCount; column++) {
-                cells++;
-                string decoded = row[column].ToString();
-                characters += decoded.Length;
-                AddValue(ref checksum, decoded);
-            }
         }
 
-        return new CsvReadObservation(rows, cells, characters, checksum);
+        return values.ToObservation(rows);
     }
 
     [Benchmark]
@@ -117,22 +103,15 @@ public class MarkPflug65KCsvBenchmarks {
         reader.Read();
         reader.ReadHeader();
 
+        var values = new CsvObservationAccumulator();
         int rows = 0;
-        int cells = 0;
-        long characters = 0;
-        ulong checksum = ChecksumOffset;
         while (reader.Read()) {
-            rows++;
             int count = reader.Parser.Count;
-            for (int column = 0; column < count; column++) {
-                cells++;
-                string decoded = reader.GetField(column) ?? string.Empty;
-                characters += decoded.Length;
-                AddValue(ref checksum, decoded);
-            }
+            for (int column = 0; column < count; column++) values.Add(reader.GetField(column));
+            rows++;
         }
 
-        return new CsvReadObservation(rows, cells, characters, checksum);
+        return values.ToObservation(rows);
     }
 
     [Benchmark]
@@ -156,53 +135,29 @@ public class MarkPflug65KCsvBenchmarks {
         int fieldCount,
         Func<bool> read,
         Func<int, string> value) {
+        var values = new CsvObservationAccumulator();
         int rows = 0;
-        int cells = 0;
-        long characters = 0;
-        ulong checksum = ChecksumOffset;
         while (read()) {
+            for (int column = 0; column < fieldCount; column++) values.Add(value(column));
             rows++;
-            for (int column = 0; column < fieldCount; column++) {
-                cells++;
-                string decoded = value(column);
-                characters += decoded.Length;
-                AddValue(ref checksum, decoded);
-            }
         }
 
-        return new CsvReadObservation(rows, cells, characters, checksum);
+        return values.ToObservation(rows);
     }
 
     // Inlined into each benchmark so every reader gets its own monomorphic call sites. A shared body would let
     // tiered PGO devirtualize GetString only for whichever reader the setup profiled first.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static CsvReadObservation Observe(DbDataReader reader) {
-        int fieldCount = reader.FieldCount;
+        var values = new CsvObservationAccumulator();
         int rows = 0;
-        int cells = 0;
-        long characters = 0;
-        ulong checksum = ChecksumOffset;
         while (reader.Read()) {
+            int count = reader.FieldCount;
+            for (int column = 0; column < count; column++) values.Add(reader.GetString(column));
             rows++;
-            for (int column = 0; column < fieldCount; column++) {
-                cells++;
-                string decoded = reader.GetString(column);
-                characters += decoded.Length;
-                AddValue(ref checksum, decoded);
-            }
         }
 
-        return new CsvReadObservation(rows, cells, characters, checksum);
-    }
-
-    private static void AddValue(ref ulong checksum, string value) {
-        foreach (char character in value) {
-            checksum ^= character;
-            checksum *= ChecksumPrime;
-        }
-
-        checksum ^= (ulong)value.Length;
-        checksum *= ChecksumPrime;
+        return values.ToObservation(rows);
     }
 
     private void Validate(string library, CsvReadObservation actual) {
