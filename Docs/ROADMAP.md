@@ -92,6 +92,36 @@ The governing algorithms are [Unicode bidi](https://www.unicode.org/reports/tr9/
 
 Completion evidence: a visitor can choose a task, find the supported surface, inspect a real example and its limitations, and reach the matching runnable tool or install path. Public comparisons and result summaries link to current sources or immutable evidence. Website templates remain consumers of the shared catalogs and PowerForge generation pipeline.
 
+## Printing
+
+Printing lives in `OfficeIMO.Workflows/Printing`, outside the PDF engine. It renders pages itself, so no PDF viewer or file association is involved. Windows delivery uses GDI; macOS and Linux use the CUPS command-line tools. Each sheet is currently delivered as a raster image, prepared in full before submission. These milestones make printing vector-first, independent of installed tools, and available for every document format OfficeIMO converts. Apart from the Windows vector spike, they ship as one PR from `feature/printing-everywhere`.
+
+### Vector jobs and printer capabilities
+
+- [ ] Separate job content from delivery. A print job carries vector PDF content (page selection, N-up through `PdfDocumentPages.ImposeNUp`, scaling and orientation). Raster sheets are a per-transport fallback. Preview renders the same job content that is delivered.
+- [ ] Send vector PDF to CUPS instead of image-wrapped sheets, including jobs that mix paper sizes and orientations.
+- [ ] Discover printer capabilities: supported and default media, duplex, colour, resolutions, collation, copies and trays. Use `DeviceCapabilities` on Windows and the CUPS queue options elsewhere. Default the paper to the printer's own default rather than A4.
+- [ ] Windows raster delivery: rasterize at the device resolution (bounded) one sheet at a time, apply grayscale as a fast, row-based conversion, and use driver copies and collation when the driver reports them, so copies aren't spooled again.
+- [ ] Stream preparation so large jobs don't retain every sheet. Replace the 100-page limit with a bounded working set.
+
+### Managed IPP client and job lifecycle
+
+- [ ] Add an own IPP/2.0 client over HTTP (`ipp://`, `ipps://`) with Get-Printer-Attributes, Validate-Job, Print-Job, Get-Job-Attributes, Get-Jobs and Cancel-Job. Use a bounded, fuzzed attribute codec. Send `application/pdf` when the printer supports it, and PWG raster or URF otherwise.
+- [ ] Print to a printer by URI on any OS or container, with no installed queue or CUPS tools. Route CUPS queues through IPP to the local scheduler, so the `/usr/bin/lp` dependency becomes a fallback.
+- [ ] Track jobs across transports: query state, wait for completion with a timeout, and cancel (IPP, Windows `GetJob`/`SetJob`). Queue acceptance remains a separate contract from completion.
+- [ ] Qualify against the independent `ippeveprinter` IPP Everywhere reference printer (PDF, PWG raster, duplex, media, cancellation, job states) and against CUPS queues.
+
+### Print any document
+
+- [ ] Print any format the conversion catalog can turn into PDF in one call, in memory, carrying conversion fidelity notes in the receipt.
+- [ ] Add PowerShell `Send-OfficePrinter` for any document, `Get-OfficePrinterCapability`, `Get-OfficePrintJob` and `Stop-OfficePrintJob`. Expose the full planner options: grayscale, odd/even, and 1/2/4/6/9 pages per sheet. Keep `Send-OfficePdfPrinter` as a compatibility alias recorded in `MIGRATION.md`. Add CLI `workflow print` for any format.
+- [ ] Add source-password admission to CLI `workflow print-plan` and `workflow print` through the existing password environment-variable binding and `PdfPrintPlanRequest.PdfPassword`. Cover printing-permitted, copying-denied user access, incorrect passwords and denied printing; preserve authenticated Studio snapshots and MCP planning.
+
+### Windows vector delivery
+
+- [ ] Choose a Windows vector path from measured evidence: XPS passthrough for XPS-capable drivers through the existing `OfficeIMO.Xps` writer, GDI vector drawing from the page scene, PDF passthrough to printers that accept PDF over IPP, or the Print Document Package API. Compare fidelity, spool size, driver coverage and service-context support; keep raster delivery as the fallback.
+- [ ] Qualify printer delivery on native macOS and physical Windows/CUPS printers, including duplex, trays, margins and driver failures. Preserve queue acceptance as a separate contract from confirmed physical delivery.
+
 ## Image engine
 
 - [ ] Retain native sixteen-bit samples through raster decoding, editing, and transcoding. `OfficePngWriter.EncodeRgba64` writes supplied sixteen-bit samples, but `OfficeRasterImage` is still an eight-bit model; decoding to that model first loses source precision. Coordinate the model and document-image preparation changes before expanding this contract.
@@ -122,8 +152,6 @@ Completion evidence: a visitor can choose a task, find the supported surface, in
 
 - [ ] Render EPUB-to-PDF chapters through the HTML-to-PDF engine instead of the Reader text projection, reusing the chapter, stylesheet and container-resource resolution in [`OfficeIMO.Epub.Image`](../OfficeIMO.Epub.Image/README.md). Merge chapters in spine order with continuous pagination, a navigation-derived outline and per-chapter diagnostics, and keep the Reader projection as the explicit `TextOnly` profile, as the styled email route does.
 - [ ] Qualify the DOC/DOCX/TXT archive workflow with a representative large mixed-format producer corpus, including interruption/restart, source/output integrity, diagnostics, throughput and peak memory. Keep the existing per-file limits separate from archive-capacity claims.
-- [ ] Qualify printer delivery on native macOS and physical Windows/CUPS printers, including duplex, trays, margins and driver failures. Preserve queue acceptance as a separate contract from confirmed physical delivery.
-- [ ] Add source-password admission to CLI `workflow print-plan` and `workflow print` through the existing password environment-variable binding and `PdfPrintPlanRequest.PdfPassword`. Cover printing-permitted, copying-denied user access, incorrect passwords and denied printing; preserve authenticated Studio snapshots and MCP planning.
 - [ ] Extend cooperative cancellation and caller-selected read limits to page imposition, including N-up and booklet output. Preserve current-position stream reads, caller ownership and staged file-output guarantees through planning, rendering and saved-file readback.
 - [ ] Qualify a tagged reading-order policy for page interleaving, including forms and repeated structure identifiers. Keep the current rejection for tagged inputs until saved page ownership and reading order pass independent validation.
 - [ ] Extend tagged merges to drop or combine metadata and bookmarks, and rewrite attachments, through catalog editors that preserve semantic ownership and attachment references. Keep the explicit policy checks until saved structure and conformance evidence qualify these edits.
