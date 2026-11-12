@@ -431,7 +431,7 @@ internal static partial class MarkdownReader {
         return tableLines.Count > 0 && StartsTable(tableLines.ToArray(), 0, options, state);
     }
 
-    private static bool TryParseNestedQuoteBlock(string[] lines, ref int index, int itemLevelAbs, int continuationIndent, MarkdownLoadOptions options, MarkdownReaderState state, out QuoteBlock? quote) {
+    private static bool TryParseNestedQuoteBlock(string[] lines, ref int index, int itemLevelAbs, int continuationIndent, MarkdownLoadOptions options, MarkdownReaderState state, out IMarkdownBlock? quote) {
         quote = null;
         if (lines == null || index < 0 || index >= lines.Length) return false;
 
@@ -447,6 +447,7 @@ internal static partial class MarkdownReader {
         var collectedSourceLines = new List<MarkdownSourceLineSlice>();
         bool sawQuotedLine = false;
         string? lastQuoteContent = null;
+        var nestedQuoteOptions = GetNestedListQuoteOptions(options);
         while (j < lines.Length) {
             string raw = lines[j] ?? string.Empty;
             if (string.IsNullOrWhiteSpace(raw)) {
@@ -470,6 +471,13 @@ internal static partial class MarkdownReader {
                 }
 
                 string collectedLine = "> " + quoteContent;
+                // A callout header starts its own block, as it does at the top level.
+                if (collected.Count > 0
+                    && nestedQuoteOptions.Callouts
+                    && IsCalloutHeader(collectedLine, nestedQuoteOptions, out _, out _)) {
+                    break;
+                }
+
                 collected.Add(collectedLine);
                 collectedSourceLines.Add(new MarkdownSourceLineSlice(
                     collectedLine,
@@ -501,10 +509,9 @@ internal static partial class MarkdownReader {
 
         if (collected.Count == 0) return false;
 
-        var nestedQuoteOptions = GetNestedListQuoteOptions(options);
         var (blocks, _) = ParseNestedMarkdownBlocks(collectedSourceLines, nestedQuoteOptions, state);
-        if (blocks.Count > 0 && blocks[0] is QuoteBlock parsedQuote) {
-            quote = parsedQuote;
+        if (blocks.Count > 0 && blocks[0] is QuoteBlock or CalloutBlock) {
+            quote = blocks[0];
             index = j;
             return true;
         }

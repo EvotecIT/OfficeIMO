@@ -182,5 +182,65 @@ Body
         Assert.Contains("> ```text", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("System.", markdown, StringComparison.Ordinal);
     }
+
+    public static IEnumerable<object[]> CalloutPlacementProfiles() {
+        yield return new object[] { "officeimo" };
+        yield return new object[] { "commonmark-with-callouts" };
+    }
+
+    [Theory]
+    [MemberData(nameof(CalloutPlacementProfiles))]
+    public void Callout_Header_Indented_Four_Columns_Stays_Indented_Code(string profile) {
+        foreach (string markdown in new[] { "Text\n\n    > [!NOTE]\n    > example\n", "Text\n\n\t> [!NOTE]\n\t> example\n" }) {
+            var document = MarkdownDocument.Parse(markdown, CreateCalloutPlacementOptions(profile));
+
+            Assert.Collection(
+                document.Blocks,
+                block => Assert.IsType<ParagraphBlock>(block),
+                block => Assert.Equal("> [!NOTE]\n> example", Assert.IsType<CodeBlock>(block).Content.Replace("\r\n", "\n")));
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(CalloutPlacementProfiles))]
+    public void Callout_Inside_List_Item_Stays_In_The_Item(string profile) {
+        var document = MarkdownDocument.Parse("- item\n\n  > [!NOTE]\n  > nested\n", CreateCalloutPlacementOptions(profile));
+
+        var item = Assert.Single(Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks)).Items);
+        var callout = Assert.IsType<CalloutBlock>(Assert.Single(item.NestedBlocks));
+        Assert.Equal("note", callout.Kind);
+        Assert.Equal("nested", Assert.IsType<ParagraphBlock>(Assert.Single(callout.ChildBlocks)).Inlines.RenderMarkdown());
+    }
+
+    [Theory]
+    [MemberData(nameof(CalloutPlacementProfiles))]
+    public void Adjacent_Callouts_Inside_List_Item_Are_Both_Kept(string profile) {
+        var document = MarkdownDocument.Parse("- item\n\n  > [!NOTE]\n  > first\n  > [!TIP]\n  > second\n", CreateCalloutPlacementOptions(profile));
+
+        var item = Assert.Single(Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks)).Items);
+        Assert.Equal(new[] { "note", "tip" }, item.NestedBlocks.Select(block => Assert.IsType<CalloutBlock>(block).Kind).ToArray());
+    }
+
+    [Theory]
+    [MemberData(nameof(CalloutPlacementProfiles))]
+    public void Callout_At_Top_Level_With_Up_To_Three_Spaces_Is_Still_A_Callout(string profile) {
+        foreach (string markdown in new[] { "> [!NOTE]\n> body\n", "   > [!NOTE] Custom title\n   > body\n" }) {
+            var document = MarkdownDocument.Parse(markdown, CreateCalloutPlacementOptions(profile));
+
+            Assert.Equal("note", Assert.IsType<CalloutBlock>(Assert.Single(document.Blocks)).Kind);
+        }
+    }
+
+    private static MarkdownLoadOptions CreateCalloutPlacementOptions(string profile) {
+        if (profile == "officeimo") return new MarkdownLoadOptions();
+
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
+        options.Tables = true;
+        options.TaskLists = true;
+        options.FrontMatter = true;
+        options.Callouts = true;
+        MarkdownReaderBuiltInExtensions.AddCallouts(options);
+        return options;
+    }
 }
 
