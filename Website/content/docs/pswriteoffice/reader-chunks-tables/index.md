@@ -14,6 +14,6 @@ Reader extraction turns supported files into stable intermediate structures. Tha
 
 `Read-OfficeDocument -As Tables` returns structured tables. Add `-Bundle` for CSV, Markdown, and JSON representations in memory. `Export-OfficeDocumentAsset -Type Table -OutputDirectory .\Tables` writes deterministic sidecars. Use `Read-OfficeDocument -As Assets` to inspect embedded assets and `Export-OfficeDocumentAsset -OutputDirectory .\Assets` to materialize them.
 
-The [extract-tables recipe](https://github.com/EvotecIT/OfficeIMO/blob/998b04c715ece070e76bc5cf203aaed821eab37b/PowerShell/PSWriteOffice/Examples/Reader/Recipe-Reader-ExtractTables.ps1) creates a Markdown table, reads it as structured data, writes its sidecars, and returns semantic chunks.
+The [extract-tables recipe](https://github.com/EvotecIT/OfficeIMO/blob/154778a661f6bbb4db6927a08cb94e0e2c122df8/PowerShell/PSWriteOffice/Examples/Reader/Recipe-Reader-ExtractTables.ps1) creates a Markdown table, reads it as structured data, writes its sidecars, and returns semantic chunks.
 
 Choose limits from the downstream contract. A search preview, an embedding pipeline, and a complete archival export need different chunk and table bounds.
