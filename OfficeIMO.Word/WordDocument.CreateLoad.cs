@@ -706,7 +706,8 @@ namespace OfficeIMO.Word {
                 : LoadFromStream(stream, options, captureSourcePackageSecurity: true);
 
         private static WordDocument LoadFromStream(Stream stream, WordLoadOptions? options,
-            bool captureSourcePackageSecurity, bool detectXml = true, CancellationToken cancellationToken = default) {
+            bool captureSourcePackageSecurity, bool detectXml = true, CancellationToken cancellationToken = default,
+            OpenSettings? packageSettings = null) {
             ArgumentNullException.ThrowIfNull(stream);
             cancellationToken.ThrowIfCancellationRequested();
             if (!stream.CanRead) {
@@ -718,7 +719,7 @@ namespace OfficeIMO.Word {
             bool readOnly = resolved.AccessMode == DocumentAccessMode.ReadOnly;
             bool saveOnDispose = resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
             OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
-            var effectiveOpenSettings = CreateOpenSettings(resolved.OpenSettings);
+            var effectiveOpenSettings = packageSettings ?? CreateOpenSettings(resolved.OpenSettings);
             byte[] sourceBytes = ReadSourceBytes(stream, resolved);
             cancellationToken.ThrowIfCancellationRequested();
             if (detectXml && TryLoadWordXml(sourceBytes, null, resolved) is { } xmlDocument)

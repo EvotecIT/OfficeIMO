@@ -103,26 +103,7 @@ public partial class Word {
     [InlineData(true, false)]
     [InlineData(true, true)]
     public void SharedPackageCloning_StrictInputsKeepLazyXmlReadable(bool redline, bool sharedFirst) {
-        using var input = new MemoryStream();
-        byte[] original = CreateSharedCloneInput(sharedFirst);
-        input.Write(original, 0, original.Length);
-        using (var archive = new ZipArchive(input, ZipArchiveMode.Update, leaveOpen: true)) {
-            foreach (ZipArchiveEntry entry in archive.Entries.ToArray()) {
-                if (!entry.FullName.EndsWith(".xml", StringComparison.Ordinal) &&
-                    !entry.FullName.EndsWith(".rels", StringComparison.Ordinal)) continue;
-                string xml;
-                using (var reader = new StreamReader(entry.Open())) xml = reader.ReadToEnd();
-                xml = xml.Replace("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "http://purl.oclc.org/ooxml/wordprocessingml/main")
-                    .Replace("http://schemas.openxmlformats.org/officeDocument/2006/extended-properties", "http://purl.oclc.org/ooxml/officeDocument/extendedProperties")
-                    .Replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "http://purl.oclc.org/ooxml/officeDocument/relationships")
-                    .Replace("http://purl.oclc.org/ooxml/officeDocument/relationships/extended-properties", "http://purl.oclc.org/ooxml/officeDocument/relationships/extendedProperties");
-                using Stream output = entry.Open();
-                output.SetLength(0);
-                using var writer = new StreamWriter(output);
-                writer.Write(xml);
-            }
-        }
-        input.Position = 0;
+        using var input = new MemoryStream(CreateStrictSharedCloneInput(sharedFirst));
         using WordDocument target = WordDocument.Load(input);
         WordprocessingDocument live = target.OpenXmlDocument;
         Assert.True(live.StrictRelationshipFound);
@@ -143,6 +124,32 @@ public partial class Word {
         }
         Assert.False(live.ExtendedFilePropertiesPart.IsRootElementLoaded);
         AssertSharedData(live);
+    }
+
+    private static byte[] CreateStrictSharedCloneInput(bool sharedFirst, int propertiesPadding = 0) {
+        using var input = new MemoryStream();
+        byte[] original = CreateSharedCloneInput(sharedFirst);
+        input.Write(original, 0, original.Length);
+        using (var archive = new ZipArchive(input, ZipArchiveMode.Update, leaveOpen: true)) {
+            foreach (ZipArchiveEntry entry in archive.Entries.ToArray()) {
+                if (!entry.FullName.EndsWith(".xml", StringComparison.Ordinal) &&
+                    !entry.FullName.EndsWith(".rels", StringComparison.Ordinal)) continue;
+                string xml;
+                using (var reader = new StreamReader(entry.Open())) xml = reader.ReadToEnd();
+                if (entry.FullName == "docProps/app.xml" && propertiesPadding > 0) {
+                    xml = xml.Replace("</Properties>", new string(' ', propertiesPadding) + "</Properties>");
+                }
+                xml = xml.Replace("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "http://purl.oclc.org/ooxml/wordprocessingml/main")
+                    .Replace("http://schemas.openxmlformats.org/officeDocument/2006/extended-properties", "http://purl.oclc.org/ooxml/officeDocument/extendedProperties")
+                    .Replace("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "http://purl.oclc.org/ooxml/officeDocument/relationships")
+                    .Replace("http://purl.oclc.org/ooxml/officeDocument/relationships/extended-properties", "http://purl.oclc.org/ooxml/officeDocument/relationships/extendedProperties");
+                using Stream output = entry.Open();
+                output.SetLength(0);
+                using var writer = new StreamWriter(output);
+                writer.Write(xml);
+            }
+        }
+        return input.ToArray();
     }
 
     private static byte[] CreateSharedCloneInput(bool sharedFirst) {

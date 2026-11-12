@@ -103,7 +103,7 @@ namespace OfficeIMO.Word {
             using var snapshot = new MemoryStream();
             using (WordPackageSnapshot.Clone(targetDocument._wordprocessingDocument, snapshot)) { }
             snapshot.Position = 0;
-            using WordDocument document = WordDocument.Load(snapshot, new WordLoadOptions { PersistenceMode = DocumentPersistenceMode.Explicit });
+            using WordDocument document = WordDocument.LoadPackageSnapshot(snapshot, targetDocument._wordprocessingDocument);
             WordTable.CopyGridNormalizationState(targetDocument._wordprocessingDocument, document._wordprocessingDocument);
             HashSet<int> rewrittenParagraphs = ApplyParagraphFindings(
                 sourceDocument._wordprocessingDocument,

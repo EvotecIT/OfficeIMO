@@ -8,7 +8,7 @@ internal static partial class WordPackageSnapshot {
     /// <summary>
     /// Copies physical OPC parts once, retaining shared relationships, opaque payloads and pending XML edits.
     /// Unlike SDK 3.5.1 Clone, this does not independently import each package-root relationship's subgraph.
-    /// Only already-loaded roots are serialized; the source package is neither saved nor normalized.
+    /// Only already-loaded roots are serialized into the copy; the source DOM is neither saved nor normalized.
     /// </summary>
 #pragma warning disable OOXML0001
     internal static WordprocessingDocument Clone(WordprocessingDocument source, Stream destination) {
@@ -18,6 +18,9 @@ internal static partial class WordPackageSnapshot {
         string? strictMainId = source.StrictRelationshipFound && source.MainDocumentPart != null
             ? source.GetIdOfPart(source.MainDocumentPart) : null;
         IPackage package = source.GetPackage();
+        // Flush already-written streams and pending .rels before the Framework URI adapter enumerates them.
+        // Saving the Open XML document here would also persist/normalize its loaded DOMs.
+        if (package.FileOpenAccess == FileAccess.ReadWrite) package.Save();
         using (Package copy = Package.Open(destination, FileMode.Create, FileAccess.ReadWrite)) {
             foreach (IPackagePart part in package.GetParts()) {
                 // Relationship collections include pending changes; raw .rels streams may still be stale.
@@ -47,7 +50,7 @@ internal static partial class WordPackageSnapshot {
             }
         }
         destination.Position = 0;
-        WordprocessingDocument clone = WordprocessingDocument.Open(destination, true);
+        WordprocessingDocument clone = WordprocessingDocument.Open(destination, true, CreateOpenSettings(source, autoSave: true));
         try {
             OfficeOpenXmlPackagePayload.CopyCoreProperties(source, clone);
             return clone;
@@ -56,5 +59,16 @@ internal static partial class WordPackageSnapshot {
             throw;
         }
     }
+    /// <summary>Retains parsing policy when opening a writable snapshot or reopening its saved bytes.</summary>
+    internal static OpenSettings CreateOpenSettings(WordprocessingDocument source, bool autoSave) {
+        MarkupCompatibilityProcessSettings compatibility = source.MarkupCompatibilityProcessSettings;
+        return new OpenSettings {
+            AutoSave = autoSave,
+            MaxCharactersInPart = source.MaxCharactersInPart,
+            MarkupCompatibilityProcessSettings = new MarkupCompatibilityProcessSettings(
+                compatibility.ProcessMode, compatibility.TargetFileFormatVersions)
+        };
+    }
+
 #pragma warning restore OOXML0001
 }

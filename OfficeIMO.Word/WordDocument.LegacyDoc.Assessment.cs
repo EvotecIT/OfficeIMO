@@ -45,9 +45,7 @@ namespace OfficeIMO.Word {
             using var cloneStream = new MemoryStream();
             using (var packageClone = WordPackageSnapshot.Clone(_wordprocessingDocument, cloneStream)) { }
             cloneStream.Position = 0;
-            using WordDocument writableClone = Load(cloneStream, new WordLoadOptions {
-                MaxInputBytes = Math.Max(WordLoadOptions.DefaultMaxInputBytes, cloneStream.Length)
-            });
+            using WordDocument writableClone = LoadPackageSnapshot(cloneStream, _wordprocessingDocument);
             CopyLegacyDocAssessmentStateTo(writableClone);
             return writableClone.AssessLegacyDocWriteCore(options);
         }
