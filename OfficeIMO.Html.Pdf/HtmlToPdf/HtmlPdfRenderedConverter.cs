@@ -868,19 +868,11 @@ internal static partial class HtmlPdfRenderedConverter {
         double drawingY = Math.Max(0D, y);
         OfficeTransform transform = OfficeTransform.Translate(Math.Min(0D, x), Math.Min(0D, y));
         bool fragmentLink = !suppressLink && IsFragmentLink(visual.LinkUri);
-        Action<PdfCore.PdfPageCanvas> addDrawing = target => target.DrawingSnapshot(
-            drawing,
-            global::OfficeIMO.OfficeLength.Points(drawingX),
-            global::OfficeIMO.OfficeLength.Points(drawingY),
-            global::OfficeIMO.OfficeLength.Points(visual.Width * PointsPerCssPixel),
-            global::OfficeIMO.OfficeLength.Points(visual.Height * PointsPerCssPixel),
-            style: new PdfCore.PdfDrawingStyle { Decorative = true },
-            linkUri: suppressLink || fragmentLink ? null : visual.LinkUri,
-            linkContents: suppressLink || visual.LinkUri == null || fragmentLink ? null : visual.Source);
         if (transform == OfficeTransform.Identity) {
-            addDrawing(canvas);
+            // Most box and grid paint lies on the page; add it without a deferred callback per shape.
+            AddShapeDrawing(canvas, drawing, drawingX, drawingY, visual, suppressLink, fragmentLink);
         } else {
-            canvas.Effect(transform, 1D, addDrawing);
+            AddTransformedShapeDrawing(canvas, transform, drawing, drawingX, drawingY, visual, suppressLink, fragmentLink);
         }
         if (fragmentLink) {
             canvas.LinkToNamedDestination(
@@ -892,6 +884,23 @@ internal static partial class HtmlPdfRenderedConverter {
                 visual.Source);
         }
     }
+
+    // Captures live here so the ordinary untransformed path allocates no closure.
+    private static void AddTransformedShapeDrawing(PdfCore.PdfPageCanvas canvas, OfficeTransform transform, OfficeDrawing drawing,
+        double drawingX, double drawingY, HtmlRenderShape visual, bool suppressLink, bool fragmentLink) =>
+        canvas.Effect(transform, 1D, target => AddShapeDrawing(target, drawing, drawingX, drawingY, visual, suppressLink, fragmentLink));
+
+    private static void AddShapeDrawing(PdfCore.PdfPageCanvas target, OfficeDrawing drawing, double drawingX, double drawingY,
+        HtmlRenderShape visual, bool suppressLink, bool fragmentLink) =>
+        target.DrawingSnapshot(
+            drawing,
+            global::OfficeIMO.OfficeLength.Points(drawingX),
+            global::OfficeIMO.OfficeLength.Points(drawingY),
+            global::OfficeIMO.OfficeLength.Points(visual.Width * PointsPerCssPixel),
+            global::OfficeIMO.OfficeLength.Points(visual.Height * PointsPerCssPixel),
+            style: new PdfCore.PdfDrawingStyle { Decorative = true },
+            linkUri: suppressLink || fragmentLink ? null : visual.LinkUri,
+            linkContents: suppressLink || visual.LinkUri == null || fragmentLink ? null : visual.Source);
 
     private static bool IsFragmentLink(string? link) =>
         link != null && link.Length > 1 && link[0] == '#';

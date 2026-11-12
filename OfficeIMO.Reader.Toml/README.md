@@ -35,6 +35,21 @@ Every value becomes one row with three columns:
 | `Type` | `string`, `integer`, `float`, `boolean`, `datetime`, `datetime-local`, `date-local` or `time-local`; empty tables and arrays appear as `table` (`{}`) and `array` (`[]`). |
 | `Value` | The decoded string, or the value as written for other types (`0xFF`, `1979-05-27`). |
 
-Rows are emitted in document order, `ChunkRows` per chunk, with plain-text and Markdown table projections and the source lines each chunk covers. Invalid TOML produces a single warning chunk with the error code, line and column instead of throwing.
+Rows are emitted in document order, `ChunkRows` per chunk, with plain-text and Markdown table projections and the source lines each chunk covers. Projected into the neutral `OfficeDocumentModel`, for example for PDF output, a TOML result reports `OfficeDocumentFormat.Toml`.
 
-Files are loaded with `TomlLoadOptions.UntrustedDefaults` unless `TomlReadOptions.LoadOptions` sets other limits; `ReaderOptions.MaxInputBytes` applies as well.
+## Options
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `ChunkRows` | 200 | Rows per emitted chunk. |
+| `IncludeMarkdown` | `true` | Adds a Markdown table projection to each chunk. |
+| `MaxDepth` | `null` (64) | Maximum nesting of tables, arrays and inline tables, counting each key of a dotted key or header. |
+| `MaxNodes` | `null` (200,000) | Maximum tables, arrays and values in the document. |
+| `MaxScalarLength` | `null` (1,048,576) | Maximum source length of one string or key in UTF-16 code units, including its quotes (`TomlLoadOptions.MaxStringLength`). |
+| `LoadOptions` | `null` | Engine settings used as the base for the limits above, and the place to set `MaxInputBytes`. |
+
+## Limits and diagnostics
+
+Limits start from `LoadOptions`, or from `TomlLoadOptions.UntrustedDefaults` when it is `null`; the defaults in brackets come from there. `MaxDepth`, `MaxNodes` and `MaxScalarLength` replace the matching base value when set, so `new TomlReadOptions { LoadOptions = custom, MaxNodes = 500_000 }` keeps the other values of `custom`. `ReaderOptions.MaxInputBytes` applies as well and wins when it is lower. Values below 1 throw `ArgumentOutOfRangeException`.
+
+Exceeding a limit throws `ReaderResourceLimitException` whose `LimitName` is the `TomlReadOptions` property (`MaxDepth`, `MaxNodes`, `MaxScalarLength`) or `MaxInputBytes`, with the engine's `TomlLimitExceededException`, including its position, as `InnerException`. Raise the limit for trusted larger files. Invalid TOML produces a single warning chunk with the error code, line and column instead of throwing.

@@ -2277,7 +2277,7 @@ jobs:
 
   aot-windows-scenarios:
     needs: changes
-    name: 'NativeAOT Windows / ${{ matrix.group }}'
+    name: 'NativeAOT Windows / ${{ matrix.label }}'
     if: needs.changes.outputs.full == 'true'
     runs-on: windows-latest
     # Windows surfaces reached Studio native compilation at 84 minutes.
@@ -2285,7 +2285,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group: [libraries, iwork, surfaces]
+        include:
+          - group: libraries
+            label: libraries
+            framework: ''
+          - group: iwork
+            label: iwork / net8.0
+            framework: net8.0
+          - group: iwork
+            label: iwork / net10.0
+            framework: net10.0
+          - group: surfaces
+            label: surfaces
+            framework: ''
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -2302,13 +2314,13 @@ jobs:
         shell: pwsh
         run: |
           ./Build/Test-AotProjectCoverage.ps1 -JsonOutputPath ./artifacts/aot/project-matrix.json
-          ./Build/Test-AotScenarios.ps1 -RuntimeIdentifier win-x64 -Configuration ${{ env.BUILD_CONFIGURATION }} -ScenarioGroup '${{ matrix.group }}' -JsonOutputPath './artifacts/aot/win-x64-${{ matrix.group }}.json'
+          ./Build/Test-AotScenarios.ps1 -RuntimeIdentifier win-x64 -Configuration ${{ env.BUILD_CONFIGURATION }} -ScenarioGroup '${{ matrix.group }}' -TargetFramework '${{ matrix.framework }}' -JsonOutputPath './artifacts/aot/win-x64-${{ matrix.group }}${{ matrix.framework }}.json'
 
       - name: Upload Windows NativeAOT evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: nativeaot-win-x64-${{ matrix.group }}
+          name: nativeaot-win-x64-${{ matrix.group }}${{ matrix.framework }}
           path: artifacts/aot/*.json
 
   aot-windows:

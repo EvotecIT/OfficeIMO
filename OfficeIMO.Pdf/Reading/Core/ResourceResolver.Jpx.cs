@@ -119,14 +119,16 @@ internal static partial class ResourceResolver {
             stream.Dictionary.Get<PdfNumber>("Height")?.Value is double declaredHeight && declaredHeight != height) return false;
         long pixels = (long)width * height;
         if (pixels * colorCount > maximumBytes) return false;
-        var samples = new byte[pixels * colorCount];
         byte[]? alpha = null;
         int smaskInData = stream.Dictionary.Items.TryGetValue("SMaskInData", out PdfObject? smaskInDataObject) &&
             PdfObjectLookup.ResolveChain(objects, smaskInDataObject) is PdfNumber number ? (int)number.Value : 0;
         bool hasSoftMask = PdfImageMaskSemantics.HasSoftMask(stream.Dictionary, objects);
         if (smaskInData != 0 && image.HasAlpha && !hasSoftMask) alpha = new byte[pixels];
         int channels = image.Channels;
-        for (long pixel = 0; pixel < pixels; pixel++) {
+        // Without alpha and with every colour channel kept, the decoded samples already are the normalized stream.
+        bool copyAll = !image.HasAlpha && colorCount == channels && image.Samples.LongLength == pixels * colorCount;
+        byte[] samples = copyAll ? image.Samples : new byte[pixels * colorCount];
+        for (long pixel = 0; !copyAll && pixel < pixels; pixel++) {
             if ((pixel & 0xFFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             long source = pixel * channels, target = pixel * colorCount;
             byte opacity = image.HasAlpha ? image.Samples[source + image.ColorChannels] : (byte)255;

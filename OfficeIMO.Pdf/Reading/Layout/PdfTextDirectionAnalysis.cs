@@ -4,9 +4,28 @@ namespace OfficeIMO.Pdf;
 
 internal static class PdfTextDirectionAnalysis {
     internal static T[] RestoreLogicalFragmentOrder<T>(IReadOnlyList<T> visualFragments,
-        Func<T, string> getText, PdfReadingDirection direction, System.Threading.CancellationToken token = default) =>
-        OfficeBidiTextResolver.RestoreLogicalFragmentOrder(visualFragments, getText,
+        Func<T, string> getText, PdfReadingDirection direction, System.Threading.CancellationToken token = default) {
+        if (direction != PdfReadingDirection.RightToLeft && !HasRightToLeftFragment(visualFragments, getText, token)) {
+            // A left-to-right base with no right-to-left fragment resolves every fragment left to right,
+            // which keeps the visual order; skip the bidi resolution and its buffers.
+            var ordered = new T[visualFragments.Count];
+            for (int index = 0; index < ordered.Length; index++) ordered[index] = visualFragments[index];
+            return ordered;
+        }
+        return OfficeBidiTextResolver.RestoreLogicalFragmentOrder(visualFragments, getText,
             direction == PdfReadingDirection.RightToLeft ? OfficeTextDirection.RightToLeft : OfficeTextDirection.LeftToRight, token);
+    }
+
+    private static bool HasRightToLeftFragment<T>(IReadOnlyList<T> fragments, Func<T, string> getText,
+        System.Threading.CancellationToken token) {
+        for (int index = 0; index < fragments.Count; index++) {
+            if ((index & 255) == 0) token.ThrowIfCancellationRequested();
+            string text = getText(fragments[index]);
+            if (text is "\u061C" or "\u200F" ||
+                OfficeTextElements.ResolveBaseDirection(text) == OfficeTextDirection.RightToLeft) return true;
+        }
+        return false;
+    }
 
     internal static PdfReadingDirection Resolve(
         PdfReadingDirection requested,
