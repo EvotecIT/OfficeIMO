@@ -112,7 +112,14 @@ internal static class PdfHiddenData {
     private static void Record(OfficeHiddenDataCollector collector, PdfSanitizationReport inventory, PdfSanitizationContentKind source, OfficeHiddenDataKind kind) {
         foreach (PdfSanitizationItem item in inventory.Items) {
             // Content Credentials stored as an attachment are reported once, as provenance.
-            if (item.Kind == source && !item.IsProvenanceCarrier) RecordEngineItem(collector, kind, item.Location, item.Description, item.Value);
+            if (item.Kind != source || item.IsProvenanceCarrier) continue;
+            if (item.IsRetained) {
+                OfficeHiddenDataOutcome outcome = collector.Resolve(kind, removed: false, OfficeHiddenDataReason.NeededByDocument, out OfficeHiddenDataReason reason);
+                string? note = reason == OfficeHiddenDataReason.NeededByDocument ? item.RetainedNote : null;
+                collector.Record(kind, item.Location, item.Description, item.Value, outcome, note, reason: reason);
+            } else {
+                RecordEngineItem(collector, kind, item.Location, item.Description, item.Value);
+            }
         }
     }
 

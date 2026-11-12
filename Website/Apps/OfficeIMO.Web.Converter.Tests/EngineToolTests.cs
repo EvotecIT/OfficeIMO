@@ -224,7 +224,7 @@ public sealed class EngineToolTests {
         Assert.Equal("pdf", removed.Preview!.Kind);
         byte[] cleaned = session.Artifact(removed.Artifacts.Single(static artifact => artifact.Role == "primary").Index);
         using OfficeIMO.Pdf.PdfDocument reopened = OfficeIMO.Pdf.PdfDocument.Load(cleaned);
-        Assert.Empty(reopened.InspectHiddenData().GetFindings(OfficeIMO.OfficeHiddenDataKind.DocumentProperties));
+        Assert.Equal("Info/Title", Assert.Single(reopened.InspectHiddenData().GetFindings(OfficeIMO.OfficeHiddenDataKind.DocumentProperties)).Location);
     }
 
     [Fact]

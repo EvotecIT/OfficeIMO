@@ -59,14 +59,20 @@ internal static partial class PdfSanitizer {
             foreach (string key in info.Items.Keys) {
                 if (TechnicalInfoKeys.Contains(key)) continue;
                 TryGetString(objects, info, key, out string? value);
-                items.Add(new PdfSanitizationItem(PdfSanitizationContentKind.UserMetadata, "Info/" + key, "Document information " + key, value));
+                items.Add(new PdfSanitizationItem(PdfSanitizationContentKind.UserMetadata, "Info/" + key, "Document information " + key, value,
+                    retainedNote: key == TitleInfoKey ? RetainedTitleNote : null));
             }
         }
         if (security.RootObjectNumber.HasValue &&
             objects.TryGetValue(security.RootObjectNumber.Value, out PdfIndirectObject? rootObject) &&
             rootObject.Value is PdfDictionary catalog &&
-            catalog.Items.ContainsKey("Metadata")) {
-            items.Add(new PdfSanitizationItem(PdfSanitizationContentKind.UserMetadata, "Catalog/Metadata", "XMP metadata packet", null));
+            catalog.Items.TryGetValue("Metadata", out PdfObject? metadata)) {
+            PdfXmpReduction reduction = ReduceXmpMetadata(objects, metadata);
+            if (reduction.RemovesProperties) {
+                items.Add(new PdfSanitizationItem(PdfSanitizationContentKind.UserMetadata, "Catalog/Metadata",
+                    reduction.Packet is null ? "XMP metadata packet" : "XMP metadata other than the title and conformance identification", null));
+            }
+            items.AddRange(reduction.Retained);
         }
     }
 
@@ -221,7 +227,7 @@ internal static partial class PdfSanitizer {
         if (policy.ShouldRemoveUserMetadata && security.InfoObjectNumber.HasValue &&
             objects.TryGetValue(security.InfoObjectNumber.Value, out PdfIndirectObject? infoObject) &&
             infoObject.Value is PdfDictionary info) {
-            foreach (string key in info.Items.Keys.Where(static key => !TechnicalInfoKeys.Contains(key)).ToArray()) {
+            foreach (string key in info.Items.Keys.Where(static key => !TechnicalInfoKeys.Contains(key) && key != TitleInfoKey).ToArray()) {
                 info.Items.Remove(key);
             }
         }
@@ -233,9 +239,13 @@ internal static partial class PdfSanitizer {
         }
 
         if (policy.ShouldRemoveUserMetadata && catalog.Items.TryGetValue("Metadata", out PdfObject? metadata)) {
-            RemoveSelectedMetadataAliases(objects, metadata);
-            NeutralizeReferencedStream(objects, metadata);
-            catalog.Items.Remove("Metadata");
+            PdfXmpReduction reduction = ReduceXmpMetadata(objects, metadata);
+            if (reduction.RemovesProperties &&
+                (reduction.Packet is null || !TryReplaceMetadataStream(objects, metadata, reduction.Packet))) {
+                RemoveSelectedMetadataAliases(objects, metadata);
+                NeutralizeReferencedStream(objects, metadata);
+                catalog.Items.Remove("Metadata");
+            }
         }
         if (policy.ShouldRemoveBookmarks) {
             if (catalog.Items.TryGetValue("Outlines", out PdfObject? outlines)) ClearOutlineTree(objects, outlines, policy.CancellationToken);
