@@ -11,6 +11,7 @@ slug: index
 - [Workflow Finder](/docs/workflows/) maps inputs and outcomes to focused .NET packages and PowerShell commands.
 - [Database reporting](/docs/workflows/database-reporting/) connects DbaClientX query and bulk-write paths to Excel and CSV artifacts.
 - [Content publishing](/docs/workflows/content-publishing/) covers Markdown, HTML, RTF, OneNote, OpenDocument, Office, and PDF routes.
+- [Before sharing](/docs/before-sharing/) removes author names, comments, hidden content and photo locations, handles Content Credentials and AI labels, and checks accessibility.
 - [Generated output gallery](/showcase/) shows committed document previews tied to examples and tests.
 - [Reports across PowerShell modules](/docs/integrations/) turns HTML tables and event snapshots into editable reports and local email packages.
 - [PSWriteOffice benchmarks](/docs/workflows/powershell-benchmarks/) explains the comparison contract and provides reproducible commands.

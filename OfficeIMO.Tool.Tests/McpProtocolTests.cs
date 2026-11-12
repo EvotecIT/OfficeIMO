@@ -131,6 +131,7 @@ public sealed class McpProtocolTests {
                 "officeimo_fetch",
                 "officeimo_inspect",
                 "officeimo_inspect_email",
+                "officeimo_inspect_hidden_data",
                 "officeimo_pdf",
                 "officeimo_pdf_assemble",
                 "officeimo_pdf_compare",
@@ -139,6 +140,7 @@ public sealed class McpProtocolTests {
                 "officeimo_pdf_ocr_providers",
                 "officeimo_pdf_print_plan",
                 "officeimo_pdf_split",
+                "officeimo_remove_hidden_data",
                 "officeimo_search",
                 "officeimo_search_email"
             },

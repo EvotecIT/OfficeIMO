@@ -21,12 +21,12 @@ Optimize-OfficePdf [-Path] <string[]> -OutputDirectory <string> [-NoCompressStre
 
 ### PathSanitize
 ```powershell
-Optimize-OfficePdf [-Path] <string[]> -OutputPath <string> -Sanitize [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-NoClobber] [-PassThru] [-SanitizationOptions <PdfSanitizationOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Optimize-OfficePdf [-Path] <string[]> -OutputPath <string> -Sanitize [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-NoClobber] [-PassThru] [-HiddenDataOptions <OfficeHiddenDataOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### PathSanitizeDirectory
 ```powershell
-Optimize-OfficePdf [-Path] <string[]> -OutputDirectory <string> -Sanitize [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-NoClobber] [-PassThru] [-SanitizationOptions <PdfSanitizationOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Optimize-OfficePdf [-Path] <string[]> -OutputDirectory <string> -Sanitize [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-NoClobber] [-PassThru] [-HiddenDataOptions <OfficeHiddenDataOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### LiteralPath
@@ -36,7 +36,7 @@ Optimize-OfficePdf -OutputPath <string> -LiteralPath <string[]> [-NoCompressStre
 
 ### LiteralPathSanitize
 ```powershell
-Optimize-OfficePdf -OutputPath <string> -Sanitize -LiteralPath <string[]> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-NoClobber] [-PassThru] [-SanitizationOptions <PdfSanitizationOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Optimize-OfficePdf -OutputPath <string> -Sanitize -LiteralPath <string[]> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-NoClobber] [-PassThru] [-HiddenDataOptions <OfficeHiddenDataOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### LiteralPathDirectory
@@ -46,7 +46,7 @@ Optimize-OfficePdf -OutputDirectory <string> -LiteralPath <string[]> [-NoCompres
 
 ### LiteralPathSanitizeDirectory
 ```powershell
-Optimize-OfficePdf -OutputDirectory <string> -Sanitize -LiteralPath <string[]> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-NoClobber] [-PassThru] [-SanitizationOptions <PdfSanitizationOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Optimize-OfficePdf -OutputDirectory <string> -Sanitize -LiteralPath <string[]> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-NoClobber] [-PassThru] [-HiddenDataOptions <OfficeHiddenDataOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -286,13 +286,13 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SanitizationOptions
-SanitizationOptions for this operation.
+### -HiddenDataOptions
+Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.
 
 ```yaml
-Type: PdfSanitizationOptions
+Type: OfficeHiddenDataOptions
 Parameter Sets: PathSanitize, PathSanitizeDirectory, LiteralPathSanitize, LiteralPathSanitizeDirectory
-Aliases: None
+Aliases: SanitizationOptions
 Possible values:
 
 Required: False

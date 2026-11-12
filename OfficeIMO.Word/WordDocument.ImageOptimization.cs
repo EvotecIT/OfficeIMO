@@ -26,7 +26,7 @@ public partial class WordDocument {
         WordImageOptimizationOptions policy = (options ?? new WordImageOptimizationOptions()).Clone();
         if (apply) {
             if (FileOpenAccess == FileAccess.Read) throw new InvalidOperationException("A read-only document cannot be optimized.");
-            EnsureSignedDocumentSaveAllowed(new WordSaveOptions { SignedDocumentPolicy = policy.SignedDocumentPolicy }, "OptimizeImages");
+            EnsureSignatureMutationAllowed(policy.SignatureMutationPolicy, "OptimizeImages");
         }
         var inventory = WordImageOptimizationInventory.Build(_wordprocessingDocument, policy, token);
         var items = new List<WordImageOptimizationItem>();

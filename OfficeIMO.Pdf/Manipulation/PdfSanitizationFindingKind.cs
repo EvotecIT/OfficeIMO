@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Potentially unsafe PDF feature reported by the sanitization engine.</summary>
-public enum PdfSanitizationFindingKind {
+internal enum PdfSanitizationFindingKind {
     /// <summary>An active action such as JavaScript, Launch, GoToR, SubmitForm, or ImportData.</summary>
     ActiveAction,
 

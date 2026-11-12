@@ -143,7 +143,7 @@ namespace OfficeIMO.PowerPoint {
         ///     <see cref="EncodeBytes(PowerPointFileFormat, PowerPointSaveOptions?)"/>
         ///     with <see cref="PowerPointFileFormat.Pptm"/> to retain VBA.
         /// </summary>
-        internal byte[] EncodeBytes() => CreatePackageBytesForSave();
+        internal byte[] EncodeBytes() => CreatePackageBytesForSave(options: null);
 
         /// <summary>Encodes the presentation in the requested PowerPoint format.</summary>
         internal byte[] EncodeBytes(PowerPointFileFormat format, PowerPointSaveOptions? options = null) {
@@ -155,6 +155,7 @@ namespace OfficeIMO.PowerPoint {
                     ? PresentationDocumentType.MacroEnabledPresentation
                     : PresentationDocumentType.Presentation;
             return CreatePackageBytesForSave(
+                options,
                 preserveVbaProject: IsMacroEnabledDocumentType(
                     destinationType),
                 destinationType: destinationType);
@@ -220,10 +221,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private byte[] CreatePackageBytesForSave(
+            PowerPointSaveOptions? options,
             bool preserveVbaProject = false,
             PresentationDocumentType? destinationType = null) {
             EnsureWritableForSave();
-            ApplySignatureMutationPolicy();
+            ApplySignatureMutationPolicy(options);
             PersistFooterDefinitions();
             RefreshFooterFields();
             foreach (PowerPointSlide slide in _slides) {
@@ -289,6 +291,7 @@ namespace OfficeIMO.PowerPoint {
             PresentationDocumentType destinationType =
                 GetPresentationDocumentType(filePath);
             return CreatePackageBytesForSave(
+                options,
                 preserveVbaProject:
                     IsMacroEnabledDocumentType(destinationType),
                 destinationType: destinationType);
@@ -347,7 +350,7 @@ namespace OfficeIMO.PowerPoint {
                     AnalyzeLegacyPptWrite(), options);
                 return originalEncryptedBytes;
             }
-            ApplySignatureMutationPolicy();
+            ApplySignatureMutationPolicy(options);
             byte[] plainBytes = CreatePlainLegacyPptBytesForSave(options);
             string password = _legacyPptPackage.EncryptionPassword
                 ?? throw new InvalidOperationException(
@@ -371,7 +374,7 @@ namespace OfficeIMO.PowerPoint {
                     AnalyzeLegacyPptWrite(), options);
                 return originalBytes;
             }
-            ApplySignatureMutationPolicy();
+            ApplySignatureMutationPolicy(options);
             foreach (PowerPointSlide slide in _slides) slide.Save();
             PresentationRoot.Save();
             _document!.Save();
@@ -470,7 +473,7 @@ namespace OfficeIMO.PowerPoint {
             byte[] encryptedBytes = IsLegacyBinaryFormat(SourceFormat)
                 ? CreateEncryptedLegacyPptBytes(password, options: null)
                 : OfficeEncryption.EncryptPackage(
-                    CreatePackageBytesForSave(), password);
+                    CreatePackageBytesForSave(options: null), password);
             OfficeStreamWriter.WriteAllBytes(destination, encryptedBytes);
         }
 
@@ -509,7 +512,7 @@ namespace OfficeIMO.PowerPoint {
 
         private byte[] CreateEncryptedLegacyPptBytes(string password,
             PowerPointSaveOptions? options) {
-            ApplySignatureMutationPolicy();
+            ApplySignatureMutationPolicy(options);
             byte[] plainBytes = CreatePlainLegacyPptBytesForSave(options);
             return LegacyPptRc4CryptoApi.EncryptPackage(plainBytes, password,
                 options?.ResolveLegacyKeySize(_legacyPptPackage?.EncryptionKeySizeBits) ?? _legacyPptPackage?.EncryptionKeySizeBits ?? 128,

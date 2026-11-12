@@ -125,8 +125,11 @@ internal static partial class PdfSanitizer {
             foreach (string subtype in originalInfo.AnnotationSubtypeCounts.Keys) {
                 if (policy.ShouldRemoveCommentAnnotation(subtype)) preservationOptions.ExcludedAnnotationSubtypes.Add(subtype);
             }
-        } else if (!policy.ContentKindsToRemove.HasValue && policy.RemoveRichMedia) {
-            foreach (string subtype in RichAnnotationSubtypes) preservationOptions.ExcludedAnnotationSubtypes.Add(subtype);
+        }
+        if (policy.RemovesRichAnnotations) {
+            foreach (string subtype in RichAnnotationSubtypes) {
+                if (policy.ShouldRemoveRichAnnotation(subtype)) preservationOptions.ExcludedAnnotationSubtypes.Add(subtype);
+            }
         }
         for (int i = 0; i < originalInfo.LinkAnnotations.Count; i++) {
             string? uri = originalInfo.LinkAnnotations[i].Uri;

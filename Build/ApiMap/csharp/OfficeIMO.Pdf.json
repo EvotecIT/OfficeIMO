@@ -4314,6 +4314,133 @@
       "reason": "Artifacts captured from bytes a PdfDocument owns (loaded input, page extraction, split and other in-memory mutation outputs) compute the digest on first read of Sha256 instead of during Load or the operation. The value is unchanged. Until it is read, the pipeline report keeps the artifact bytes alive; reading Sha256 releases them. The first read is not cancellable.",
       "file": "OfficeIMO.Pdf/Core/PdfArtifactSnapshot.cs",
       "category": "reading"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.InspectSanitization(PdfSanitizationOptions options = null, CancellationToken cancellationToken = default)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.InspectHiddenData(CancellationToken cancellationToken = default) : OfficeHiddenDataReport",
+      "replacement": "Call InspectHiddenData() and read OfficeHiddenDataReport.Findings or GetFindings(kind). Metadata is DocumentProperties, comments and markup are Comments, layers are HiddenContent, attachments are Attachments, actions, unsafe links and rich media are ActiveContent, the outline is Bookmarks, and Content Credentials are Provenance.",
+      "reason": "PDF joins the shared hidden-data contract that Word, Excel, PowerPoint, Visio, OpenDocument and EPUB use, so one report type and one option set describe what leaves with every file. The sanitization engine stays as internal engine detail.",
+      "category": "lifecycle",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Sanitize(PdfSanitizationOptions options = null, CancellationToken cancellationToken = default)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.RemoveHiddenData(OfficeHiddenDataOptions options = null, CancellationToken cancellationToken = default) : OfficeHiddenDataResult",
+      "replacement": "Call RemoveHiddenData(new OfficeHiddenDataOptions { Kinds = ... }) and write result.ToArray(). The old default (attachments and active content) is Kinds = OfficeHiddenDataKind.ActiveContent | OfficeHiddenDataKind.Attachments. Verification failures throw instead of returning IsSanitized = false.",
+      "reason": "PDF joins the shared hidden-data contract that Word, Excel, PowerPoint, Visio, OpenDocument and EPUB use, so one report type and one option set describe what leaves with every file. The sanitization engine stays as internal engine detail.",
+      "category": "lifecycle",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfSanitizer.Sanitize(byte[] pdf | Stream stream | string inputPath, PdfSanitizationOptions options = null, CancellationToken cancellationToken = default)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeDocument.RemoveHiddenData(byte[] data, string fileName, OfficeHiddenDataOptions options = null) : OfficeHiddenDataResult; OfficeIMO.OfficeDocument.RemoveHiddenData(string inputPath, string outputPath, OfficeHiddenDataOptions options = null)",
+      "replacement": "Load the PDF and call RemoveHiddenData, or use OfficeDocument.RemoveHiddenData with a .pdf file name.",
+      "reason": "PDF joins the shared hidden-data contract that Word, Excel, PowerPoint, Visio, OpenDocument and EPUB use, so one report type and one option set describe what leaves with every file. The sanitization engine stays as internal engine detail.",
+      "category": "lifecycle",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfSanitizationOptions",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeHiddenDataOptions",
+      "replacement": "ContentKindsToRemove becomes OfficeHiddenDataOptions.Kinds: UserMetadata = DocumentProperties, CommentsAndMarkup = Comments, OptionalContent = HiddenContent, EmbeddedFiles = Attachments, Actions = ActiveContent, Bookmarks = Bookmarks. AllowedUriSchemes, AllowedActionTypes, ActionKindsToRemove, EmbeddedFiles quarantine, RemoveRichMedia and MaximumOutputBytes have no public replacement: active content removal keeps http, https, mailto and tel links and removes every unsafe action kind with rich media. Extract attachments with PdfDocument.Attachments before removal to keep a copy.",
+      "reason": "PDF joins the shared hidden-data contract that Word, Excel, PowerPoint, Visio, OpenDocument and EPUB use, so one report type and one option set describe what leaves with every file. The sanitization engine stays as internal engine detail. No caller in this repository set the per-action, URI-scheme, quarantine or rich-media switches, so they are not carried over.",
+      "category": "lifecycle",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfSanitizationResult",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeHiddenDataResult",
+      "replacement": "ToBytes() is ToArray(); RemovedFindings and the category and action counts are Report.Findings with Outcome Removed, grouped by Kind. RemainingFindings, IsSanitized and PreservationReport are gone because a result is only returned after the output passed both checks. ToDocument() is PdfDocument.Load(result.ToArray()).",
+      "reason": "PDF joins the shared hidden-data contract that Word, Excel, PowerPoint, Visio, OpenDocument and EPUB use, so one report type and one option set describe what leaves with every file. The sanitization engine stays as internal engine detail.",
+      "category": "lifecycle",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfSanitizationReport",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeHiddenDataReport",
+      "reason": "PDF joins the shared hidden-data contract that Word, Excel, PowerPoint, Visio, OpenDocument and EPUB use, so one report type and one option set describe what leaves with every file. The sanitization engine stays as internal engine detail.",
+      "category": "lifecycle",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfSanitizationFinding",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeHiddenDataFinding",
+      "replacement": "Path is Location and Detail is Description or Value.",
+      "reason": "PDF joins the shared hidden-data contract that Word, Excel, PowerPoint, Visio, OpenDocument and EPUB use, so one report type and one option set describe what leaves with every file. The sanitization engine stays as internal engine detail.",
+      "category": "lifecycle",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfSanitizationFindingKind; OfficeIMO.Pdf.PdfSanitizationContentKind; OfficeIMO.Pdf.PdfSanitizationActionKind",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeHiddenDataKind",
+      "replacement": "ActiveAction, UnsafeUri, RichMedia and every action kind are ActiveContent; EmbeddedFile is Attachments.",
+      "reason": "PDF joins the shared hidden-data contract that Word, Excel, PowerPoint, Visio, OpenDocument and EPUB use, so one report type and one option set describe what leaves with every file. The sanitization engine stays as internal engine detail.",
+      "category": "lifecycle",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfSanitizationCategoryCounts; OfficeIMO.Pdf.PdfSanitizationActionCounts",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeHiddenDataReport.GetFindings(OfficeHiddenDataKind kind)",
+      "replacement": "Count the findings of a kind: report.GetFindings(OfficeHiddenDataKind.Attachments).Count.",
+      "reason": "PDF joins the shared hidden-data contract that Word, Excel, PowerPoint, Visio, OpenDocument and EPUB use, so one report type and one option set describe what leaves with every file. The sanitization engine stays as internal engine detail.",
+      "category": "lifecycle",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfEmbeddedFileSanitizationMode",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Extract attachments with PdfDocument.Attachments before removing them with OfficeHiddenDataKind.Attachments.",
+      "reason": "Quarantine returned decoded attachments next to the cleaned bytes; no caller used it, and extraction before removal does the same through the attachment API.",
+      "category": "lifecycle",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocumentRedactions.ApplyForSharing(PdfRedactionPlan plan, PdfSanitizationOptions sanitizationOptions, PdfRedactionApplyOptions applyOptions = null, PdfRedactionVerificationOptions verificationOptions = null, CancellationToken cancellationToken = default)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocumentRedactions.ApplyForSharing(PdfRedactionPlan plan, OfficeHiddenDataOptions hiddenDataOptions, PdfRedactionApplyOptions applyOptions = null, PdfRedactionVerificationOptions verificationOptions = null, CancellationToken cancellationToken = default)",
+      "replacement": "Pass OfficeHiddenDataOptions with the categories to remove after redaction.",
+      "reason": "PDF joins the shared hidden-data contract that Word, Excel, PowerPoint, Visio, OpenDocument and EPUB use, so one report type and one option set describe what leaves with every file. The sanitization engine stays as internal engine detail.",
+      "category": "lifecycle",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfRedactionSharingResult.Sanitization",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfRedactionSharingResult.HiddenData : OfficeHiddenDataResult",
+      "reason": "PDF joins the shared hidden-data contract that Word, Excel, PowerPoint, Visio, OpenDocument and EPUB use, so one report type and one option set describe what leaves with every file. The sanitization engine stays as internal engine detail.",
+      "category": "naming",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfRedactionShareableSummary.SanitizedItemCount",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfRedactionShareableSummary.RemovedHiddenDataCount",
+      "reason": "The count is the number of hidden-data findings removed after redaction.",
+      "category": "naming",
+      "applied": true
     }
   ],
   "packageMoves": [

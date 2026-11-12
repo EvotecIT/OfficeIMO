@@ -7,6 +7,12 @@ namespace OfficeIMO.PowerPoint {
         internal OfficeConversionLossPolicy LossPolicy { get => AllowLoss ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block; set => AllowLoss = value == OfficeConversionLossPolicy.Allow; }
         /// <summary>Physical output format for streams and byte encoding.</summary>
         public PowerPointFileFormat Format { get; set; } = PowerPointFileFormat.Pptx;
+
+        /// <summary>
+        /// Gets or sets how saving handles digital signatures that rewriting the presentation would invalidate.
+        /// The default blocks the save.
+        /// </summary>
+        public OfficeSignatureMutationPolicy SignatureMutationPolicy { get; set; } = OfficeSignatureMutationPolicy.BlockSave;
         private string? _password;
         private bool _passwordSpecified;
         private int _legacyKeySize = 128;

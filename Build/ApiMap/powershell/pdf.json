@@ -12261,7 +12261,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Writes a smaller or sanitized copy of a PDF.",
-      "outputType": "PdfOptimizationActionResult, PdfSanitizationResult",
+      "outputType": "PdfOptimizationActionResult, OfficeHiddenDataResult",
       "parameterSets": [
         {
           "name": "Path",
@@ -12452,10 +12452,14 @@
               "pipeline": "none"
             },
             {
-              "name": "SanitizationOptions",
-              "type": "PdfSanitizationOptions",
+              "name": "HiddenDataOptions",
+              "type": "OfficeHiddenDataOptions",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "aliases": [
+                "SanitizationOptions"
+              ],
+              "notes": "Hidden-data categories that -Sanitize removes. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media."
             },
             {
               "name": "Password",
@@ -12516,10 +12520,14 @@
               "pipeline": "none"
             },
             {
-              "name": "SanitizationOptions",
-              "type": "PdfSanitizationOptions",
+              "name": "HiddenDataOptions",
+              "type": "OfficeHiddenDataOptions",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "aliases": [
+                "SanitizationOptions"
+              ],
+              "notes": "Hidden-data categories that -Sanitize removes. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media."
             },
             {
               "name": "Password",
@@ -12753,10 +12761,14 @@
               "pipeline": "none"
             },
             {
-              "name": "SanitizationOptions",
-              "type": "PdfSanitizationOptions",
+              "name": "HiddenDataOptions",
+              "type": "OfficeHiddenDataOptions",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "aliases": [
+                "SanitizationOptions"
+              ],
+              "notes": "Hidden-data categories that -Sanitize removes. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media."
             },
             {
               "name": "Password",
@@ -12820,10 +12832,14 @@
               "pipeline": "none"
             },
             {
-              "name": "SanitizationOptions",
-              "type": "PdfSanitizationOptions",
+              "name": "HiddenDataOptions",
+              "type": "OfficeHiddenDataOptions",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "aliases": [
+                "SanitizationOptions"
+              ],
+              "notes": "Hidden-data categories that -Sanitize removes. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media."
             },
             {
               "name": "Password",
@@ -12861,7 +12877,7 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "Replaces ConvertTo-OfficePdfOptimized (lossless size) and ConvertTo-OfficePdfSanitized (active content removal with proof). -PassThru returns the action/sanitization result (replaces -PassThruReport; Sanitized always returned it). Read-only analysis is Get-OfficePdfDiagnostic -Type Optimization. -OutputPath writes one file and takes a single input; -OutputDirectory writes one file per input, named after it (G15).",
+      "notes": "Replaces ConvertTo-OfficePdfOptimized (lossless size) and ConvertTo-OfficePdfSanitized (active content removal with proof). -PassThru returns the optimization result or, with -Sanitize, the OfficeHiddenDataResult (replaces -PassThruReport; Sanitized always returned it). -Sanitize uses the shared hidden-data contract; -HiddenDataOptions (alias -SanitizationOptions) selects the categories. Read-only analysis is Get-OfficePdfDiagnostic -Type Optimization. -OutputPath writes one file and takes a single input; -OutputDirectory writes one file per input, named after it (G15).",
       "examples": [
         {
           "title": "Make a PDF smaller",
@@ -19186,7 +19202,7 @@
       "new": "Optimize-OfficePdf",
       "parameterSet": "PathSanitize",
       "parameters": {
-        "Options": "SanitizationOptions",
+        "Options": "HiddenDataOptions",
         "ReadOptions": "LoadOptions"
       },
       "hint": "Optimize-OfficePdf -Path .\\In.pdf -OutputPath .\\Clean.pdf -Sanitize -PassThru",

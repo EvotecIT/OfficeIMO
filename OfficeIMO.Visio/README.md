@@ -94,7 +94,7 @@ OfficeConversionReport pdfReport = imported.Value.SaveAsPdf("floorplan.pdf");
 Cached paint styles and transparency feed the shared model. Geometryless native
 master children remain text-only in previews. Non-solid fill patterns use a
 foreground-color approximation in managed SVG and PDF; the modern package retains
-the cached pattern cells. Cached `FillGradient` stops, resolved through the master, paint linear and radial gradients in SVG, PNG and PDF alike. Text backgrounds inherited from text style sheets (`TextBkgnd`, `TextBkgndTrans`) are painted; when no cell or style sheet sets one, text stays transparent as in Visio, while SVG and PNG previews keep their translucent connector-label box.
+the cached pattern cells. Cached `FillGradient` stops, resolved through the master, paint linear and radial gradients in SVG, PNG and PDF alike. Text backgrounds inherited from text style sheets (`TextBkgnd`, `TextBkgndTrans`) are painted; when no cell or style sheet sets one, text stays transparent as in Visio, in SVG, PNG and PDF alike. Connector labels added through the API save the opaque white background of Visio's Connector style unless their text style sets one.
 Exact native appearance remains unqualified.
 
 This is a lossy conversion. Native page/master/shape names use stable fallback
@@ -681,6 +681,20 @@ OfficeConversionReport pages = document.SaveAsImages("pipeline-pages", imageOpti
 ```
 
 `SaveAsImages(folder, options)` and its async form return `OfficeConversionReport`. The options carry the output format, selection, deadlines, resource limits and file conflict policy. Use the `ToImages` consumer overloads to process each image with its sequence metadata and diagnostics.
+
+## Before sharing
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Visio;
+
+VisioDocument drawing = VisioDocument.Load("Network.vsdx");
+OfficeHiddenDataReport report = drawing.RemoveHiddenData();
+foreach (OfficeHiddenDataFinding finding in report.Findings) Console.WriteLine($"{finding.Outcome} {finding.Kind} at {finding.Location}");
+drawing.Save("Network-shared.vsdx");
+```
+
+`RemoveHiddenData()` removes the author, comments and image metadata, anonymizes the authors of comments you keep, and reports each item. Hyperlinks to files, hidden pages and hidden layers are reported and kept. Saving writes a new package from the drawing, so other package properties, thumbnails and package-level Content Credentials of a loaded file are not saved. Provenance, such as an image's AI-generated declaration, is kept unless `OfficeHiddenDataKind.Provenance` is selected. See the [hidden data matrix](../Docs/officeimo.hidden-data-support-matrix.md).
 
 ## Content provenance
 

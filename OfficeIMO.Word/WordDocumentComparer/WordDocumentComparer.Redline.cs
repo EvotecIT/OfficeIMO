@@ -122,7 +122,7 @@ namespace OfficeIMO.Word {
             AppendInPlaceFeatureAndReviewFindings(document, result, options);
 
             document.Save(outputPath,
-                new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
+                new WordSaveOptions { SignatureMutationPolicy = OfficeSignatureMutationPolicy.PreserveSignatureMarkup });
         }
 
         private static bool HasTrackedText(WordComparisonFinding finding) {

@@ -49,7 +49,6 @@ public sealed partial class PowerPointDocument {
         if (selected.Count == 0) return new OfficeContentCleanupResult((byte[])presentationBytes.Clone(), before, before, Array.Empty<OfficeContentCleanupChange>());
 
         using PowerPointDocument presentation = LoadContentSafetyDocument(presentationBytes, fileName, readOnly: false);
-        presentation.SignatureMutationPolicy = options.SignatureMutationPolicy;
         var targets = new Dictionary<string, PowerPointCleanupTarget>(StringComparer.Ordinal);
         OfficeContentSafetyReport current = InspectContentSafetyDocument(presentation, options.Inspection, targets);
         IReadOnlyList<OfficeContentSafetyFinding> currentSelection = OfficeContentSafetyBuilder.ResolveSelection(current, selection);
@@ -57,7 +56,8 @@ public sealed partial class PowerPointDocument {
             .OrderByDescending(item => item.SourceTextOffset ?? -1)
             .GroupBy(item => targets[item.Id])) group.Key.Remove();
 
-        byte[] output = presentation.EncodeBytes(presentation.SourceFormat, new PowerPointSaveOptions());
+        byte[] output = presentation.EncodeBytes(presentation.SourceFormat,
+            new PowerPointSaveOptions { SignatureMutationPolicy = options.SignatureMutationPolicy });
         OfficeContentSafetyReport after = InspectContentSafety(output, fileName, options.Inspection);
         OfficeContentCleanupChange[] changes = selected.Select(item => new OfficeContentCleanupChange(item.Id, item.Location, item.CleanupCapability)).ToArray();
         return new OfficeContentCleanupResult(output, before, after, changes);

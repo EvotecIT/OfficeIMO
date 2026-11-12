@@ -541,16 +541,16 @@ public class PdfPermissionPolicyTests {
     }
 
     [Fact]
-    public void AuthenticatedSanitizationMetadataAndRewriteProofUseDocumentReadOptions() {
+    public void AuthenticatedHiddenDataRemovalMetadataAndRewriteProofUseDocumentReadOptions() {
         byte[] source = CreateRestrictedPdf("owner-open", "owner-password", "Protected content");
         var options = new PdfLoadOptions {
             Password = "owner-open",
             PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
         };
 
-        PdfSanitizationResult sanitized = PdfDocument.Load(source, options).Sanitize();
+        OfficeHiddenDataResult cleaned = PdfDocument.Load(source, options).RemoveHiddenData();
         PdfDocument updated = PdfDocument.Load(source, options).UpdateProperties(title: "Authenticated title");
-        Assert.True(sanitized.IsSanitized);
+        Assert.True(cleaned.Length > 0);
         Assert.Equal("Authenticated title", updated.Reader.Metadata().Title);
 
         byte[] rewrittenBytes = CreateRestrictedPdf("rewrite-open", "rewrite-owner", "Protected content");

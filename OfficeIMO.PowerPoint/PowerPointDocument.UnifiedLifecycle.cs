@@ -84,7 +84,6 @@ public sealed partial class PowerPointDocument {
             OpenSettings = new OfficeOpenXmlLoadSettings { MaxCharactersInPart = _maximumSlideXmlCharacters },
             PersistenceMode = DocumentPersistenceMode.Explicit
         });
-        snapshot.SignatureMutationPolicy = SignatureMutationPolicy;
         var effective = options?.Clone() ?? new PowerPointSaveOptions();
         if (!effective.HasPasswordOverride) effective.Password = ResolveSavePassword(options);
         return snapshot.ToBytes(effective);

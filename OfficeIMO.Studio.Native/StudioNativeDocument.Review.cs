@@ -130,10 +130,12 @@ internal sealed partial class StudioNativeDocument {
                     return (result.ToBytes(), string.Create(CultureInfo.InvariantCulture, $"Repaired {result.SourceRepairReport.RepairCount} structural problem(s)."));
                 }
                 default: {
-                    PdfSanitizationResult result = PdfDocument.Load(new MemoryStream(input), options).Sanitize(new PdfSanitizationOptions(), cancellationToken: cancellationToken);
-                    if (!result.IsSanitized || !result.PreservationReport.IsPreserved) throw new InvalidOperationException("The sanitized copy couldn't be verified, so it wasn't written.");
-                    return (result.ToBytes(), string.Create(CultureInfo.InvariantCulture,
-                        $"Removed {result.RemovedFindings.Count} item(s) such as scripts, actions and attachments; {result.RemainingFindings.Count} remain."));
+                    // Removal throws when the rewritten copy still holds a selected item or changed anything else.
+                    OfficeHiddenDataResult result = PdfDocument.Load(new MemoryStream(input), options).RemoveHiddenData(
+                        new OfficeHiddenDataOptions { Kinds = OfficeHiddenDataKind.ActiveContent | OfficeHiddenDataKind.Attachments }, cancellationToken);
+                    int removed = result.Report.Findings.Count(static finding => finding.Outcome == OfficeHiddenDataOutcome.Removed);
+                    return (result.ToArray(), string.Create(CultureInfo.InvariantCulture,
+                        $"Removed {removed} item(s) such as scripts, actions and attachments; 0 remain."));
                 }
             }
         }, cancellationToken).ConfigureAwait(false);
@@ -194,12 +196,12 @@ internal sealed partial class StudioNativeDocument {
             }
             if (planned.Count == 0) throw new ArgumentException("Mark at least one area to redact.", nameof(request));
             PdfRedactionPlan plan = await _workspace.PlanRedactionsAsync(planned, cancellationToken).ConfigureAwait(false);
-            PdfSanitizationOptions? sanitization = apply.Sanitize ? new PdfSanitizationOptions {
-                ContentKindsToRemove = PdfSanitizationContentKind.UserMetadata | PdfSanitizationContentKind.EmbeddedFiles |
-                    PdfSanitizationContentKind.Actions | PdfSanitizationContentKind.CommentsAndMarkup
+            OfficeHiddenDataOptions? sanitization = apply.Sanitize ? new OfficeHiddenDataOptions {
+                Kinds = OfficeHiddenDataKind.DocumentProperties | OfficeHiddenDataKind.Attachments |
+                    OfficeHiddenDataKind.ActiveContent | OfficeHiddenDataKind.Comments
             } : null;
             PdfVerifiedRedactionResult verified = await _workspace.ApplyVerifiedRedactionAsync(plan, expectedRevision,
-                string.IsNullOrWhiteSpace(apply.RemovedText) ? null : apply.RemovedText, cancellationToken, sanitizationOptions: sanitization).ConfigureAwait(false);
+                string.IsNullOrWhiteSpace(apply.RemovedText) ? null : apply.RemovedText, cancellationToken, hiddenDataOptions: sanitization).ConfigureAwait(false);
             PdfRedactionEvidenceReport evidence = verified.Evidence;
             return new StudioNativeRedactionResult(StudioNativeAbi.Version, _workspace.Revision, Verification: new StudioNativeRedactionVerification(
                 evidence.IsVerified, evidence.VerifiedAbsentCount, evidence.ResidualCount, evidence.InconclusiveCount, evidence.AffectedPageNumbers.ToArray()));

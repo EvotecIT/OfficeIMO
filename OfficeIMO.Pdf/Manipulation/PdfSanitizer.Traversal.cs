@@ -572,7 +572,7 @@ internal static partial class PdfSanitizer {
         out string? subtype) {
         subtype = null;
         if (Resolve(objects, dictionary.Get<PdfObject>("Subtype")) is not PdfName name ||
-            !policy.ShouldRemoveLegacyRichAnnotation(name.Name)) {
+            !policy.ShouldRemoveRichAnnotation(name.Name)) {
             return false;
         }
 

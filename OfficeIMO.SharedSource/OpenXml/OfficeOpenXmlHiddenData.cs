@@ -1,13 +1,14 @@
 using System.Globalization;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.CustomProperties;
+using DocumentFormat.OpenXml.Experimental;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Core.Internal;
-using OfficeIMO.Drawing;
+using System.IO.Packaging;
 using Ext = DocumentFormat.OpenXml.ExtendedProperties;
 
 namespace OfficeIMO.OpenXml.Internal {
-    /// <summary>Package-level hidden data shared by Word, Excel and PowerPoint: properties, thumbnail, custom XML, image metadata and printer settings.</summary>
+    /// <summary>Package-level hidden data shared by Word, Excel and PowerPoint: properties, thumbnail, custom XML, provenance, image metadata and printer settings.</summary>
     internal static class OfficeOpenXmlHiddenData {
         internal const string CorePropertiesLocation = "/docProps/core.xml";
         internal const string ExtendedPropertiesLocation = "/docProps/app.xml";
@@ -84,38 +85,98 @@ namespace OfficeIMO.OpenXml.Internal {
             return properties?.DataStoreItem?.ItemId?.Value;
         }
 
-        /// <summary>Exif, GPS, XMP and IPTC metadata in embedded images, stripped in place without re-encoding pixels.</summary>
-        internal static void InspectImageMetadata(OpenXmlPackage package, OfficeHiddenDataCollector collector) {
-            foreach (ImagePart image in EnumerateParts(package).Select(pair => pair.Part).OfType<ImagePart>().Distinct().ToList()) {
-                byte[] bytes;
-                using (Stream stream = image.GetStream(FileMode.Open, FileAccess.Read)) {
-                    using var buffer = new MemoryStream();
-                    stream.CopyTo(buffer);
-                    bytes = buffer.ToArray();
-                }
+        /// <summary>Provenance and image metadata in the package and its images, through the shared asset engine.</summary>
+        internal static void InspectImagesAndProvenance(OpenXmlPackage package, OfficeHiddenDataCollector collector) {
+            InspectPackageProvenance(package, collector);
+            var related = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (OpenXmlPart part in EnumerateParts(package).Select(pair => pair.Part).Distinct().ToList()) {
+                related.Add(part.Uri.OriginalString);
+                if (part is not ImagePart image) continue;
+                byte[] original;
+                using (Stream stream = image.GetStream(FileMode.Open, FileAccess.Read)) original = OfficeHiddenDataAssets.ReadAll(stream);
+                byte[]? replacement = OfficeHiddenDataAssets.ProcessImage(original, image.Uri.ToString(), collector);
+                if (replacement != null) image.FeedData(new MemoryStream(replacement, writable: false));
+            }
+            InspectUnusedImages(package, related, collector);
+        }
 
-                OfficeImageMetadata metadata;
+        /// <summary>
+        /// Pictures stored in the package that no relationship reaches. Nothing shows them, but their metadata and provenance still leave with
+        /// the file, so they are reported and cleaned like any other picture.
+        /// </summary>
+        private static void InspectUnusedImages(OpenXmlPackage package, HashSet<string> related, OfficeHiddenDataCollector collector) {
+#pragma warning disable OOXML0001
+            IPackage opc = package.GetPackage();
+            RegisterUnwrittenRelationshipParts(opc, related);
+            List<IPackagePart> parts = opc.GetParts().ToList();
+            foreach (IPackagePart part in parts) {
+                string uri = part.Uri.OriginalString;
+                if (related.Contains(uri) || !part.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) continue;
+                byte[] original;
+                using (Stream stream = part.GetStream(FileMode.Open, FileAccess.Read)) original = OfficeHiddenDataAssets.ReadAll(stream);
+                byte[]? replacement = OfficeHiddenDataAssets.ProcessImage(original, uri, collector, unused: true);
+                if (replacement == null) continue;
+                using Stream target = part.GetStream(FileMode.Create, FileAccess.Write);
+                target.Write(replacement, 0, replacement.Length);
+            }
+#pragma warning restore OOXML0001
+        }
+
+        /// <summary>
+        /// On .NET Framework a part's relationship part is created when a relationship is added but stays empty until the package is
+        /// flushed. The SDK reads each part's relationships the first time the package hands that part out, so enumerating the package
+        /// fails on the empty one. Handing each such part out once while its relationship part holds an empty, valid list records it as
+        /// read; the relationship part is then restored, and the flush writes the real list as before.
+        /// </summary>
+#pragma warning disable OOXML0001
+        private static void RegisterUnwrittenRelationshipParts(IPackage opc, HashSet<string> related) {
+            if (!opc.FileOpenAccess.HasFlag(FileAccess.Write)) return;
+            foreach (string location in related) {
+                var partUri = new Uri(location, UriKind.Relative);
+                Uri relationshipUri = PackUriHelper.GetRelationshipPartUri(partUri);
+                if (!opc.PartExists(relationshipUri) || !opc.PartExists(partUri)) continue;
+                IPackagePart relationships = opc.GetPart(relationshipUri);
+                byte[] existing;
+                using (Stream probe = relationships.GetStream(FileMode.Open, FileAccess.Read)) existing = OfficeHiddenDataAssets.ReadAll(probe);
+                if (existing.Any(value => !char.IsWhiteSpace((char)value))) continue;
+                using (Stream write = relationships.GetStream(FileMode.Create, FileAccess.Write)) {
+                    byte[] empty = System.Text.Encoding.UTF8.GetBytes("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"/>");
+                    write.Write(empty, 0, empty.Length);
+                }
                 try {
-                    metadata = OfficeImageMetadata.Read(bytes);
-                } catch (Exception exception) when (exception is FormatException or NotSupportedException or ArgumentException) {
-                    continue;
+                    opc.GetPart(partUri);
+                } finally {
+                    using Stream restore = relationships.GetStream(FileMode.Create, FileAccess.Write);
+                    restore.SetLength(0);
+                    restore.Write(existing, 0, existing.Length);
                 }
+            }
+        }
+#pragma warning restore OOXML0001
 
-                string? description = DescribePrivateImageMetadata(metadata);
-                if (description == null) continue;
-                byte[]? stripped = null;
-                if (collector.Removes(OfficeHiddenDataKind.ImageMetadata)) {
-                    try {
-                        stripped = StripPrivateImageMetadata(bytes, metadata);
-                    } catch (Exception exception) when (exception is FormatException or NotSupportedException or ArgumentException) {
-                        stripped = null;
+        /// <summary>A package-level C2PA manifest part. Saving a loaded package does not carry an unreferenced part, so removal deletes it.</summary>
+        private static void InspectPackageProvenance(OpenXmlPackage package, OfficeHiddenDataCollector collector) {
+#pragma warning disable OOXML0001
+            IPackage opc = package.GetPackage();
+            string location = "/" + OfficeHiddenDataAssets.PackageManifestPath;
+            var uri = new Uri(location, UriKind.Relative);
+            if (!opc.PartExists(uri)) return;
+            byte[] manifest;
+            using (Stream stream = opc.GetPart(uri).GetStream(FileMode.Open, FileAccess.Read)) manifest = OfficeHiddenDataAssets.ReadAll(stream);
+            if (!OfficeHiddenDataAssets.ProcessPackageManifest(manifest, location, collector)) return;
+            IdPartPair related = package.Parts.FirstOrDefault(pair => pair.OpenXmlPart.Uri.OriginalString == location);
+            if (related.OpenXmlPart != null) {
+                package.DeletePart(related.RelationshipId);
+            } else {
+                foreach (IPackageRelationship relationship in opc.Relationships.ToList()) {
+                    if (relationship.TargetMode == TargetMode.Internal &&
+                        relationship.TargetUri.OriginalString.TrimStart('/') == OfficeHiddenDataAssets.PackageManifestPath) {
+                        opc.Relationships.Remove(relationship.Id);
                     }
                 }
-
-                collector.Add(OfficeHiddenDataKind.ImageMetadata, image.Uri.ToString(), description, null,
-                    stripped == null ? null : () => image.FeedData(new MemoryStream(stripped, writable: false)),
-                    "This image container does not support removing metadata without re-encoding.");
             }
+            if (opc.PartExists(uri)) opc.DeletePart(uri);
+#pragma warning restore OOXML0001
         }
 
         /// <summary>Embedded printer settings parts and the elements that point to them.</summary>
@@ -172,34 +233,6 @@ namespace OfficeIMO.OpenXml.Internal {
         private static bool IsPrinterSettings(OpenXmlPart part) =>
             part.ContentType.EndsWith(".printerSettings", StringComparison.OrdinalIgnoreCase);
 
-        private static string? DescribePrivateImageMetadata(OfficeImageMetadata metadata) {
-            var profiles = new List<string>();
-            bool hasGps = false;
-            bool hasExif = false;
-            foreach (OfficeExifValue value in metadata.ExifValues) {
-                if (value.Tag.Directory == OfficeExifDirectory.Gps) hasGps = true;
-                else if (!IsOrientation(value.Tag)) hasExif = true;
-            }
-
-            if (hasExif) profiles.Add("Exif");
-            if (hasGps) profiles.Add("GPS location");
-            if (metadata.XmpProfile != null) profiles.Add("XMP");
-            if (metadata.IptcProfile != null) profiles.Add("IPTC");
-            return profiles.Count == 0 ? null : "Image metadata: " + string.Join(", ", profiles);
-        }
-
-        /// <summary>Rewrites only the metadata containers; ICC colour, density and orientation stay so the image looks the same.</summary>
-        private static byte[] StripPrivateImageMetadata(byte[] bytes, OfficeImageMetadata metadata) {
-            OfficeExifValue? orientation = metadata.GetExifValue(OfficeExifTag.Orientation);
-            OfficeImageMetadata stripped = metadata.Clone();
-            stripped.ClearExif();
-            stripped.XmpProfile = null;
-            stripped.IptcProfile = null;
-            if (orientation != null) stripped.SetExifValue(OfficeExifTag.Orientation, orientation.Value);
-            return OfficeImageMetadata.Apply(bytes, stripped);
-        }
-
-        private static bool IsOrientation(OfficeExifTag tag) => tag.Equals(OfficeExifTag.Orientation);
 
         private static Ext.Properties? GetExtendedProperties(OpenXmlPackage package) => package switch {
             WordprocessingDocument word => word.ExtendedFilePropertiesPart?.Properties,

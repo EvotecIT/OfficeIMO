@@ -102,7 +102,7 @@ namespace OfficeIMO.PowerPoint {
         private readonly List<PowerPointPerceptualProof> _perceptualProofs = new();
 
         internal PowerPointVisualProofReport(string sourceKind, IList<PowerPointVisualSlideProof> slides,
-            PowerPointAccessibilityReport accessibility) {
+            OfficeAccessibilityReport accessibility) {
             SourceKind = sourceKind;
             Slides = new ReadOnlyCollection<PowerPointVisualSlideProof>(
                 new List<PowerPointVisualSlideProof>(slides));
@@ -116,7 +116,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Per-slide proof.</summary>
         public IReadOnlyList<PowerPointVisualSlideProof> Slides { get; }
         /// <summary>Accessibility proof produced with the default CI profile.</summary>
-        public PowerPointAccessibilityReport Accessibility { get; }
+        public OfficeAccessibilityReport Accessibility { get; }
         /// <summary>Caller-recorded package and conversion artifacts.</summary>
         public IReadOnlyList<PowerPointVisualProofArtifact> Artifacts => _artifacts.AsReadOnly();
         /// <summary>Caller-recorded perceptual comparisons.</summary>
@@ -237,7 +237,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Creates structural, extraction, accessibility, PNG, SVG, and snapshot proof for every slide.</summary>
         public PowerPointVisualProofReport InspectVisuals(string sourceKind = "generated") {
             ArgumentException.ThrowIfNullOrWhiteSpace(sourceKind);
-            PowerPointAccessibilityReport accessibility = InspectAccessibility();
+            OfficeAccessibilityReport accessibility = InspectAccessibility();
             List<PowerPointExtractChunk> chunks = this.ExtractMarkdownChunks(
                 new PowerPointExtractionExtensions.PowerPointExtractOptions {
                     IncludeHiddenShapes = true,
@@ -252,10 +252,10 @@ namespace OfficeIMO.PowerPoint {
                 byte[] png = OfficeDrawingRasterRenderer.ToPng(snapshot.Drawing);
                 byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(snapshot.Drawing);
                 int shapeCount = slide.GetInheritedShapesForExport().Count + slide.Shapes.Count;
-                int slideErrors = accessibility.Findings.Count(finding => finding.SlideIndex == index &&
-                    finding.Severity == PowerPointAccessibilitySeverity.Error);
-                int slideWarnings = accessibility.Findings.Count(finding => finding.SlideIndex == index &&
-                    finding.Severity == PowerPointAccessibilitySeverity.Warning);
+                int slideErrors = accessibility.Findings.Count(finding => finding.LocationIndex == index &&
+                    finding.Severity == OfficeAccessibilitySeverity.Error);
+                int slideWarnings = accessibility.Findings.Count(finding => finding.LocationIndex == index &&
+                    finding.Severity == OfficeAccessibilitySeverity.Warning);
                 string extraction = index < chunks.Count ? chunks[index].Markdown ?? chunks[index].Text : string.Empty;
                 slides.Add(new PowerPointVisualSlideProof(index + 1, shapeCount, extraction, snapshot, png, svg,
                     slideErrors, slideWarnings));

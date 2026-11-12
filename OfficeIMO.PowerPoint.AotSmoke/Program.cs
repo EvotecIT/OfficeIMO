@@ -68,6 +68,18 @@ try {
     }
 
     Console.WriteLine("PASS | PowerPoint chart and generic-only dictionary table create, duplicate, save, and reload");
+
+    PowerPointTable headerless = reopened.Slides[0].Tables.Single();
+    headerless.HeaderRow = false;
+    OfficeAccessibilityReport accessibility = reopened.InspectAccessibility();
+    OfficeAccessibilityFinding? tableHeader = accessibility.Findings.FirstOrDefault(finding =>
+        finding.Code == "accessibility-missing-table-header" && finding.ObjectId == headerless.Id);
+    if (tableHeader == null || tableHeader.Location != "Slide 1" ||
+        !accessibility.ToJson(indented: false).Contains("\"code\":\"accessibility-missing-table-header\"")) {
+        throw new InvalidOperationException("PowerPoint accessibility inspection did not report the headerless table under NativeAOT.");
+    }
+
+    Console.WriteLine("PASS | PowerPoint accessibility inspection and JSON report");
 } finally {
     if (File.Exists(path)) File.Delete(path);
     if (File.Exists(mastersPath)) File.Delete(mastersPath);
