@@ -107,7 +107,7 @@ internal static class OneNoteSemanticHtmlRenderer {
         }
         string tag = HeadingTag(paragraph.Style.StyleId);
         html.Append('<').Append(tag).Append(ParagraphStyle(paragraph.Style)).Append('>');
-        foreach (OneNoteTextRun run in paragraph.Runs) AppendRun(html, run);
+        foreach (OneNoteTextRun run in OneNoteFieldCodes.ResolveRuns(paragraph.Runs)) AppendRun(html, run);
         html.Append("</").Append(tag).Append('>');
         AppendElements(html, paragraph.Children, options, depth + 1);
     }
@@ -153,7 +153,7 @@ internal static class OneNoteSemanticHtmlRenderer {
         int? previousOrdinal = null;
         foreach (OneNoteParagraph paragraph in paragraphs) {
             int? ordinal = AppendListItemStart(html, paragraph.List!, previousOrdinal);
-            foreach (OneNoteTextRun run in paragraph.Runs) AppendRun(html, run);
+            foreach (OneNoteTextRun run in OneNoteFieldCodes.ResolveRuns(paragraph.Runs)) AppendRun(html, run);
             AppendElements(html, paragraph.Children, options, depth + 1);
             html.Append("</li>");
             previousOrdinal = ordinal;
@@ -198,7 +198,7 @@ internal static class OneNoteSemanticHtmlRenderer {
             if (list.Level != level || list.Ordered != first.Ordered) break;
 
             int? ordinal = AppendListItemStart(html, list, previousOrdinal);
-            foreach (OneNoteTextRun run in paragraph.Runs) AppendRun(html, run);
+            foreach (OneNoteTextRun run in OneNoteFieldCodes.ResolveRuns(paragraph.Runs)) AppendRun(html, run);
             AppendElements(html, paragraph.Children, options, depth + 1);
             index++;
             while (index < paragraphs.Count && paragraphs[index].List!.Level > level) {

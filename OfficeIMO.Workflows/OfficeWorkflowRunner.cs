@@ -65,7 +65,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             Report(progress, validated.Id, "execute", DescribeOperation(validated.Operation), 0.18D);
             failureStage = WorkflowFailureStage.Operation;
             artifact = await Task.Run(
-                () => Execute(validated, diagnostics, cancellationToken),
+                () => _execute(validated, diagnostics, cancellationToken),
                 cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
 

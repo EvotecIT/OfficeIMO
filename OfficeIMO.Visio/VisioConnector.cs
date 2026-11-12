@@ -54,6 +54,8 @@ namespace OfficeIMO.Visio {
         internal string? PersistedId { get; set; }
         internal VisioNativeCellMetadata? NativeCellMetadata { get; set; }
         internal VisioNativeStyleReferences? NativeStyleReferences { get; set; }
+        /// <summary>Render-only text background inherited from the text style sheet chain; never serialized.</summary>
+        internal OfficeIMO.OfficeColor? StyleSheetTextBackground { get; set; }
 
         internal bool PreserveDynamicConnectorMaster { get; set; }
 

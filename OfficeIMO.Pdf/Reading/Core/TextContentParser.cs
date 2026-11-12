@@ -5,6 +5,15 @@ using System.Text;
 namespace OfficeIMO.Pdf;
 
 internal static partial class TextContentParser {
+    // Retained glyph codes are read-only evidence, so every one-byte code shares one array.
+    private static readonly byte[][] SingleByteGlyphCodes = CreateSingleByteGlyphCodes();
+
+    private static byte[][] CreateSingleByteGlyphCodes() {
+        var codes = new byte[256][];
+        for (int code = 0; code < codes.Length; code++) codes[code] = new[] { (byte)code };
+        return codes;
+    }
+
     [Flags]
     private enum PersistentGraphicsStateFlags {
         None = 0,
@@ -490,6 +499,33 @@ internal static partial class TextContentParser {
         double miterLimit = initialMiterLimit;
         string strokeDashIdentity = initialStrokeDashIdentity;
         var outlineDashCache = new Dictionary<(string Identity, double Scale), (IReadOnlyList<double>? Pattern, double Phase)>();
+        // Consecutive spans usually share their paint state, so the identity text is formatted once per state.
+        (int FillColor, int StrokeColor, (bool, long) FillOpacity, (bool, long) StrokeOpacity, OfficeBlendMode BlendMode, bool HasSoftMask,
+            bool HasUnsupportedEffect, bool UsesStroke, long StrokeWidth, int StrokeLineCap, int StrokeLineJoin, long MiterLimit,
+            string StrokeDash)? visualPaintIdentityKey = null;
+        string visualPaintIdentity = string.Empty;
+        string GetVisualPaintIdentity() {
+            bool usesStroke = UsesStrokeTextPaint(textRenderingMode);
+            var key = (PackColor(fillColor), PackColor(strokeColor), PackOptional(fillOpacity), PackOptional(strokeOpacity), blendMode, hasSoftMask,
+                hasUnsupportedEffect, usesStroke, usesStroke ? BitConverter.DoubleToInt64Bits(strokeWidth) : 0L,
+                usesStroke ? strokeLineCap : 0, usesStroke ? strokeLineJoin : 0, usesStroke ? BitConverter.DoubleToInt64Bits(miterLimit) : 0L,
+                usesStroke ? strokeDashIdentity : string.Empty);
+            if (visualPaintIdentityKey is { } previous && previous.Equals(key)) return visualPaintIdentity;
+            visualPaintIdentityKey = key;
+            return visualPaintIdentity = string.Join(",", new[] {
+                        fillColor.R.ToString(CultureInfo.InvariantCulture), fillColor.G.ToString(CultureInfo.InvariantCulture), fillColor.B.ToString(CultureInfo.InvariantCulture), fillColor.A.ToString(CultureInfo.InvariantCulture),
+                        strokeColor.R.ToString(CultureInfo.InvariantCulture), strokeColor.G.ToString(CultureInfo.InvariantCulture), strokeColor.B.ToString(CultureInfo.InvariantCulture), strokeColor.A.ToString(CultureInfo.InvariantCulture),
+                        fillOpacity?.ToString("R", CultureInfo.InvariantCulture) ?? "null", strokeOpacity?.ToString("R", CultureInfo.InvariantCulture) ?? "null",
+                        ((int)blendMode).ToString(CultureInfo.InvariantCulture), hasSoftMask ? "1" : "0", hasUnsupportedEffect ? "1" : "0",
+                        UsesStrokeTextPaint(textRenderingMode) ? strokeWidth.ToString("R", CultureInfo.InvariantCulture) : "none",
+                        UsesStrokeTextPaint(textRenderingMode) ? strokeLineCap.ToString(CultureInfo.InvariantCulture) : "none",
+                        UsesStrokeTextPaint(textRenderingMode) ? strokeLineJoin.ToString(CultureInfo.InvariantCulture) : "none",
+                        UsesStrokeTextPaint(textRenderingMode) ? miterLimit.ToString("R", CultureInfo.InvariantCulture) : "none",
+                        UsesStrokeTextPaint(textRenderingMode) ? strokeDashIdentity : "none"
+                    });
+        }
+        static int PackColor(OfficeColor color) => (color.R << 24) | (color.G << 16) | (color.B << 8) | color.A;
+        static (bool, long) PackOptional(double? value) => (value.HasValue, value.HasValue ? BitConverter.DoubleToInt64Bits(value.Value) : 0L);
         if (fillColorSelection != null) {
             fillColorResolved = fillColorSelection.TryConvert(renderingIntent, out OfficeColor selectedFillColor);
             if (fillColorResolved) {
@@ -1179,7 +1215,7 @@ internal static partial class TextContentParser {
                 int step = twoByte ? (idx + 1 < bytes.Length ? 2 : 1) : 1;
                 byte[] g;
                 if (retainGlyphAndPaintEvidence) {
-                    g = step == 1 ? new byte[] { bytes[idx] } : new byte[] { bytes[idx], bytes[idx + 1] };
+                    g = step == 1 ? SingleByteGlyphCodes[bytes[idx]] : new byte[] { bytes[idx], bytes[idx + 1] };
                 } else if (step == 1) {
                     g = reusableSingleByteCode ??= new byte[1];
                     g[0] = bytes[idx];
@@ -1449,17 +1485,7 @@ internal static partial class TextContentParser {
                     currentContentStreamObjectNumber,
                     currentTextObjectOrderKey,
                     Matrix2D.Multiply(ctm, spanTextMatrix),
-                    retainGlyphAndPaintEvidence ? string.Join(",", new[] {
-                        fillColor.R.ToString(CultureInfo.InvariantCulture), fillColor.G.ToString(CultureInfo.InvariantCulture), fillColor.B.ToString(CultureInfo.InvariantCulture), fillColor.A.ToString(CultureInfo.InvariantCulture),
-                        strokeColor.R.ToString(CultureInfo.InvariantCulture), strokeColor.G.ToString(CultureInfo.InvariantCulture), strokeColor.B.ToString(CultureInfo.InvariantCulture), strokeColor.A.ToString(CultureInfo.InvariantCulture),
-                        fillOpacity?.ToString("R", CultureInfo.InvariantCulture) ?? "null", strokeOpacity?.ToString("R", CultureInfo.InvariantCulture) ?? "null",
-                        ((int)blendMode).ToString(CultureInfo.InvariantCulture), hasSoftMask ? "1" : "0", hasUnsupportedEffect ? "1" : "0",
-                        UsesStrokeTextPaint(textRenderingMode) ? strokeWidth.ToString("R", CultureInfo.InvariantCulture) : "none",
-                        UsesStrokeTextPaint(textRenderingMode) ? strokeLineCap.ToString(CultureInfo.InvariantCulture) : "none",
-                        UsesStrokeTextPaint(textRenderingMode) ? strokeLineJoin.ToString(CultureInfo.InvariantCulture) : "none",
-                        UsesStrokeTextPaint(textRenderingMode) ? miterLimit.ToString("R", CultureInfo.InvariantCulture) : "none",
-                        UsesStrokeTextPaint(textRenderingMode) ? strokeDashIdentity : "none"
-                    }) : null,
+                    retainGlyphAndPaintEvidence ? GetVisualPaintIdentity() : null,
                     retainGlyphAndPaintEvidence && !hasUndecodableGlyph && spanGlyphCharacterLengths.Sum() == paintedText.Length
                         ? spanGlyphCharacterLengths
                         : null,

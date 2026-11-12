@@ -96,6 +96,7 @@ OfficeIMO.OfficeConversionResult<T, TReport>.Report.get -> TReport!
 *REMOVED*OfficeIMO.OfficeConversionResult<TValue, TReport>.OfficeConversionResult(TValue! value, TReport! report) -> void
 *REMOVED*OfficeIMO.OfficeConversionResult<TValue, TReport>.Report.get -> TReport!
 *REMOVED*OfficeIMO.OfficeConversionResult<TValue, TReport>.Value.get -> TValue!
+OfficeIMO.OfficeDocumentFormat.Toml = 30 -> OfficeIMO.OfficeDocumentFormat
 *REMOVED*OfficeIMO.OfficeLegacyImportReport.FidelityDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeConversionFidelityDiagnostic!>!
 *REMOVED*OfficeIMO.OfficeLegacyImportReport.HasLoss.get -> bool
 *REMOVED*OfficeIMO.OfficeLegacyImportReport.RequireNoLoss() -> void

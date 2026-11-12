@@ -1,0 +1,3 @@
+[
+  {"title":"Charts, OCR and Provenance","url":"/docs/foundations/","summary":"Place ChartForgeX charts and Mermaid diagrams in documents, recognize text with pluggable OCR engines, and verify C2PA Content Credentials.","kind":"guide","targets":["OfficeIMO.Ocr.Process.ProcessOcrEngine","OfficeIMO.Ocr.Process.ProcessOcrEngineOptions"]}
+]

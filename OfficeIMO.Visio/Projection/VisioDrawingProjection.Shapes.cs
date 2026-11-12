@@ -1,4 +1,3 @@
-using System.Xml.Linq;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio;
@@ -30,61 +29,104 @@ internal sealed partial class VisioDrawingProjection {
             if (!string.IsNullOrEmpty(shape.Text)) {
                 VisioTextFramePlacement frame = VisioTextFramePlacement.Resolve(shape, projection.DrawingToPhysical, transform);
                 (double x, double y) = projection.PagePoint(frame.PageX, frame.PageY);
-                ProjectText(drawing, shape.Text!, shape.TextStyle,
+                ProjectText(drawing, shape.Text!, VisioTextBackground.Effective(shape),
                     VisioRichTextProjection.Create(page, shape, 72D, _token, styles),
                     x, y, frame.ContentWidth * projection.GeometryDensity, frame.ContentHeight * projection.GeometryDensity,
                     frame.Angle, 10D, location);
             }
-            ReportMetadata(shape.ShapeData.Count + shape.Data.Count, shape.Hyperlinks.Count, location);
-            if (shape.PreservedShapeChildren.Any(entry => entry.RawElement != null && entry.RawElement.Name.LocalName != "ForeignData"))
+            ProjectLinks(drawing, shape.Hyperlinks, ShapeCorners(shape, projection, transform), location);
+            ReportShapeData(shape.ShapeData.Count + shape.Data.Count, location);
+            if (shape.PreservedShapeChildren.Any(entry => entry.RawElement != null && entry.RawElement.Name.LocalName != "ForeignData"
+                && !IsProjectedSection(entry.RawElement)))
                 _report.Add("VISIO_DRAWING_SHAPE_CONTENT", "Opaque shape children are retained in the source but are not projected.", OfficeConversionLossKind.Omission, location);
         } catch (ArgumentException exception) {
             _report.Add("VISIO_DRAWING_SHAPE_INVALID", exception.Message, OfficeConversionLossKind.Omission, location);
         }
     }
 
+    // Cached gradient stops are painted; other opaque children remain reported.
+    private static bool IsProjectedSection(System.Xml.Linq.XElement element) =>
+        element.Name.LocalName == "Section" && (string?)element.Attribute("N") == "FillGradient";
+
     private void ProjectGeometry(OfficeDrawing drawing, VisioShape shape, VisioRenderProjection projection, VisioNativeShapeTransform transform, string location) {
         bool native = VisioShapeGeometry.TryGetRenderClosedPaths(shape, out List<VisioShapeGeometryPath> paths);
         if (!native) {
             string kind = VisioShapeGeometry.ResolveRenderKind(shape);
-            List<(double X, double Y)> points = kind is "ellipse" or "circle"
-                ? OfficeGeometry.CreateEllipticalArcPointsAsTuples(shape.WidthInches / 2D, shape.HeightInches / 2D,
-                    shape.WidthInches / 2D, shape.HeightInches / 2D, 0, Math.PI * 2D, 64).ToList()
-                : VisioShapeGeometry.GetBuiltinClosedPath(shape, kind);
-            paths.Add(new VisioShapeGeometryPath(points, false, false, true, 0));
+            paths.Add(kind is "ellipse" or "circle"
+                ? VisioShapeGeometry.CreateBuiltinEllipsePath(shape)
+                : new VisioShapeGeometryPath(VisioShapeGeometry.GetBuiltinClosedPath(shape, kind), false, false, true, 0));
             _report.Add("VISIO_DRAWING_GEOMETRY_FALLBACK", "A named builtin outline or rectangular fallback replaces unavailable native geometry.", OfficeConversionLossKind.Approximation, location);
-        } else if (HasCurveRows(shape.PreservedGeometrySections.Concat((shape.MasterShape ?? shape.Master?.Shape)?.PreservedGeometrySections ?? Enumerable.Empty<XElement>()))) {
-            _report.Add("VISIO_DRAWING_CURVES", "Cached curve rows are flattened by the shared Visio geometry owner.", OfficeConversionLossKind.Approximation, location);
         }
-        var rendered = new List<(VisioShapeGeometryPath Path, List<OfficePoint> Points)>();
+        if (paths.Any(path => path.HasFlattenedCurves))
+            _report.Add("VISIO_DRAWING_CURVES", "Spline and NURBS rows are flattened by the shared Visio geometry owner; lines, arcs, ellipses and Bezier rows remain exact curves.", OfficeConversionLossKind.Approximation, location);
+        OfficePoint Map(double x, double y) {
+            OfficePoint page = transform.PagePoint(x, y);
+            (double px, double py) = projection.PagePoint(page.X, page.Y);
+            return new OfficePoint(px, py);
+        }
+        var rendered = new List<(VisioShapeGeometryPath Path, List<OfficePathCommand> Commands)>();
         foreach (VisioShapeGeometryPath path in paths) {
             ChargePoints(path.Points.Count);
-            rendered.Add((path, path.Points.Select(point => {
-                OfficePoint page = transform.PagePoint(point.X, point.Y);
-                (double x, double y) = projection.PagePoint(page.X, page.Y);
-                return new OfficePoint(x, y);
-            }).ToList()));
+            rendered.Add((path, CreateCommands(path, Map, path.IsClosed)));
         }
         bool fill = shape.FillPattern != 0 && shape.FillColor.A > 0;
         bool stroke = shape.LinePattern != 0 && shape.LineWeight > 0 && shape.LineColor.A > 0;
-        if (fill && shape.FillPattern != 1)
-            _report.Add("VISIO_DRAWING_FILL_PATTERN", "The cached foreground color replaces a non-solid fill pattern.", OfficeConversionLossKind.Approximation, location);
+        FillPaint paint = fill ? ResolveFill(shape, Map, location) : default;
         foreach (var group in rendered.GroupBy(item => item.Path.FillGroup)) {
             if (fill) {
                 var commands = new List<OfficePathCommand>();
-                foreach (var item in group.Where(item => item.Path.CanFill)) AppendPath(commands, item.Points, true);
-                if (commands.Count > 0) AddPath(drawing, commands, shape.FillColor, null, 0, OfficeStrokeDashStyle.Solid);
+                foreach (var item in group.Where(item => item.Path.CanFill)) AppendFillContour(commands, item.Path, item.Commands);
+                if (commands.Count > 0) AddPath(drawing, commands, paint, null, 0, OfficeStrokeDashStyle.Solid);
             }
-            if (stroke) foreach (var item in group.Where(item => !item.Path.NoLine && item.Points.Count >= 2)) {
-                var commands = new List<OfficePathCommand>(); AppendPath(commands, item.Points, item.Path.IsClosed);
-                AddPath(drawing, commands, null, shape.LineColor, shape.LineWeight * projection.PhysicalDensity,
+            if (stroke) foreach (var item in group.Where(item => !item.Path.NoLine && item.Path.Points.Count >= 2)) {
+                AddPath(drawing, item.Commands, default, shape.LineColor, shape.LineWeight * projection.PhysicalDensity,
                     OfficeStrokeDashStyleMapper.FromVisioLinePattern(shape.LinePattern));
             }
         }
     }
 
-    private static bool HasCurveRows(IEnumerable<XElement> sections) => sections.SelectMany(section => section.Elements())
-        .Any(row => ((string?)row.Attribute("T")) is not (null or "MoveTo" or "LineTo" or "RelMoveTo" or "RelLineTo"));
+    private FillPaint ResolveFill(VisioShape shape, Func<double, double, OfficePoint> map, string location) {
+        if (VisioFillGradient.TryResolve(shape, out VisioFillGradient? gradient, out bool unreadable)) {
+            if (gradient!.TryPlace(shape, map, out OfficePoint start, out OfficePoint end, out OfficeTransform frame)) {
+                if (gradient.IsLinear)
+                    return new FillPaint(null, OfficeLinearGradient.CreateImported(start.X, start.Y, end.X, end.Y, gradient.Stops), null, default);
+                if (gradient.Direction != 1)
+                    _report.Add("VISIO_DRAWING_FILL_GRADIENT", "The " + VisioFillGradient.Describe(gradient.Direction) + " gradient is drawn as a centred radial gradient.", OfficeConversionLossKind.Approximation, location);
+                return new FillPaint(null, null, new OfficeRadialGradient(0.5, 0.5, 0, 0.5, 0.5, 0.5, gradient.Stops), frame);
+            }
+        } else if (unreadable) {
+            _report.Add("VISIO_DRAWING_FILL_GRADIENT", "The cached foreground color replaces a gradient whose stops are not cached literal colors.", OfficeConversionLossKind.Approximation, location);
+        }
+        if (shape.FillPattern != 1)
+            _report.Add("VISIO_DRAWING_FILL_PATTERN", "The cached foreground color replaces a non-solid fill pattern.", OfficeConversionLossKind.Approximation, location);
+        return new FillPaint(shape.FillColor, null, null, default);
+    }
+
+    /// <summary>Builds move, line and cubic commands; flattened points are used only where no exact segment exists.</summary>
+    private static List<OfficePathCommand> CreateCommands(VisioShapeGeometryPath path, Func<double, double, OfficePoint> map, bool close) {
+        var commands = new List<OfficePathCommand>();
+        if (path.Segments is { Count: > 1 } segments) {
+            commands.Add(OfficePathCommand.MoveTo(map(segments[0].End.X, segments[0].End.Y)));
+            for (int index = 1; index < segments.Count; index++) {
+                VisioGeometrySegment segment = segments[index];
+                commands.Add(segment.IsCubic
+                    ? OfficePathCommand.CubicBezierTo(map(segment.Control1.X, segment.Control1.Y), map(segment.Control2.X, segment.Control2.Y), map(segment.End.X, segment.End.Y))
+                    : OfficePathCommand.LineTo(map(segment.End.X, segment.End.Y)));
+            }
+        } else if (path.Points.Count >= 2) {
+            commands.Add(OfficePathCommand.MoveTo(map(path.Points[0].X, path.Points[0].Y)));
+            for (int index = 1; index < path.Points.Count; index++) commands.Add(OfficePathCommand.LineTo(map(path.Points[index].X, path.Points[index].Y)));
+        }
+        if (close && commands.Count > 0) commands.Add(OfficePathCommand.Close());
+        return commands;
+    }
+
+    // Fill closes open contours implicitly, as the native fill does.
+    private static void AppendFillContour(List<OfficePathCommand> commands, VisioShapeGeometryPath path, List<OfficePathCommand> outline) {
+        if (outline.Count == 0) return;
+        commands.AddRange(outline);
+        if (!path.IsClosed) commands.Add(OfficePathCommand.Close());
+    }
 
     private static void AppendPath(List<OfficePathCommand> commands, IReadOnlyList<OfficePoint> points, bool close) {
         if (points.Count < 2) return;
@@ -93,19 +135,34 @@ internal sealed partial class VisioDrawingProjection {
         if (close) commands.Add(OfficePathCommand.Close());
     }
 
-    private static void AddPath(OfficeDrawing drawing, List<OfficePathCommand> commands, OfficeColor? fill,
+    private static IEnumerable<OfficePoint> CommandPoints(IEnumerable<OfficePathCommand> commands) {
+        foreach (OfficePathCommand command in commands) {
+            if (command.Kind == OfficePathCommandKind.Close) continue;
+            if (command.Kind == OfficePathCommandKind.CubicBezierTo) { yield return command.ControlPoint1; yield return command.ControlPoint2; }
+            else if (command.Kind == OfficePathCommandKind.QuadraticBezierTo) yield return command.ControlPoint1;
+            yield return command.Point;
+        }
+    }
+
+    private static void AddPath(OfficeDrawing drawing, List<OfficePathCommand> commands, FillPaint fill,
         OfficeColor? stroke, double weight, OfficeStrokeDashStyle dash, bool rounded = false) {
-        // Cached geometry is flattened to move/line commands. Keep off-page coordinates
-        // in the placement transform so each path has valid, non-negative local bounds.
-        OfficePoint[] points = commands.Where(command => command.Kind != OfficePathCommandKind.Close)
-            .Select(command => command.Point).ToArray();
+        if (commands.Count == 0) return;
+        // Keep off-page coordinates in the placement transform so each path has valid, non-negative local
+        // bounds. A curve lies inside its control polygon, so control points bound it too.
+        OfficePoint[] points = CommandPoints(commands).ToArray();
         bool overflow = points.Any(point => point.X < 0 || point.Y < 0 || point.X > drawing.Width || point.Y > drawing.Height);
         double x = overflow ? points.Min(point => point.X) : 0D;
         double y = overflow ? points.Min(point => point.Y) : 0D;
         double width = overflow ? Math.Max(1D, points.Max(point => point.X) - x) : drawing.Width;
         double height = overflow ? Math.Max(1D, points.Max(point => point.Y) - y) : drawing.Height;
         OfficeShape geometry = OfficeShape.Path(width, height, overflow ? commands.Select(command => command.Translate(x, y)) : commands);
-        geometry.FillColor = fill; geometry.StrokeColor = stroke; geometry.StrokeWidth = weight;
+        geometry.FillColor = fill.Color; geometry.StrokeColor = stroke; geometry.StrokeWidth = weight;
+        if (fill.Linear != null || fill.Radial != null) {
+            // Gradients are defined in page coordinates; express them in the path's normalized local box.
+            OfficeTransform pageToBox = OfficeTransform.Translate(-x, -y).Then(OfficeTransform.Scale(1D / width, 1D / height));
+            geometry.FillGradient = fill.Linear?.TransformCoordinates(pageToBox);
+            geometry.FillRadialGradient = fill.Radial?.TransformCoordinates(fill.RadialFrame.Then(pageToBox));
+        }
         geometry.StrokeDashStyle = dash; geometry.FillRule = OfficeFillRule.EvenOdd;
         if (rounded) { geometry.StrokeLineCap = OfficeStrokeLineCap.Round; geometry.StrokeLineJoin = OfficeStrokeLineJoin.Round; }
         if (overflow) {
@@ -118,8 +175,33 @@ internal sealed partial class VisioDrawingProjection {
         } else drawing.AddShape(geometry, 0, 0);
     }
 
-    private void ReportMetadata(int dataCount, int links, string location) {
-        if (dataCount > 0 || links > 0)
-            _report.Add("VISIO_DRAWING_METADATA", "Shape data and hyperlink actions are retained in the source but are not included in diagram page content.", OfficeConversionLossKind.Omission, location);
+    private static IReadOnlyList<OfficePoint> ShapeCorners(VisioShape shape, VisioRenderProjection projection, VisioNativeShapeTransform transform) {
+        var corners = new List<OfficePoint>(4);
+        foreach ((double X, double Y) local in new[] { (0D, 0D), (shape.WidthInches, 0D), (shape.WidthInches, shape.HeightInches), (0D, shape.HeightInches) }) {
+            OfficePoint page = transform.PagePoint(local.X, local.Y);
+            (double x, double y) = projection.PagePoint(page.X, page.Y);
+            corners.Add(new OfficePoint(x, y));
+        }
+        return corners;
+    }
+
+    private void ReportShapeData(int dataCount, string location) {
+        if (dataCount > 0)
+            _report.Add("VISIO_DRAWING_METADATA", "Shape data is retained in the source but is not included in diagram page content.", OfficeConversionLossKind.Omission, location);
+    }
+
+    /// <summary>Fill paint in drawing coordinates: a solid color, a linear gradient, or a radial gradient with its unit frame.</summary>
+    private readonly struct FillPaint {
+        internal FillPaint(OfficeColor? color, OfficeLinearGradient? linear, OfficeRadialGradient? radial, OfficeTransform radialFrame) {
+            Color = color; Linear = linear; Radial = radial; RadialFrame = radialFrame;
+        }
+
+        internal OfficeColor? Color { get; }
+
+        internal OfficeLinearGradient? Linear { get; }
+
+        internal OfficeRadialGradient? Radial { get; }
+
+        internal OfficeTransform RadialFrame { get; }
     }
 }
