@@ -25,6 +25,6 @@ $options = New-OfficeWordMarkdownOptions -ImageExportMode File -ImageDirectory .
 Convert-OfficeDocument -Path .\Review.docx -To Markdown -OutputPath .\Review.md -Options $options
 ```
 
-The [Word round-trip recipe](https://github.com/EvotecIT/OfficeIMO/blob/15d71340482668a9cf0e669dfc6ee0ea0bfdbf99/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-WordRoundTrip.ps1) creates Markdown, converts it to DOCX, and converts the Word file back to Markdown.
+The [Word round-trip recipe](https://github.com/EvotecIT/OfficeIMO/blob/945cb285f954b745c0f4ebfce0849c0726a76fa1/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-WordRoundTrip.ps1) creates Markdown, converts it to DOCX, and converts the Word file back to Markdown.
 
 For heavily designed Word templates, define which semantic elements must survive before promising a round-trip. Tables, headings, lists, links, and basic emphasis are a better contract than exact pagination.

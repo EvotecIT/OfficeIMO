@@ -52,4 +52,18 @@ Before choosing a format, see [pipeline, object, and DSL workflows](/docs/pswrit
 - [Extract chunks, tables, and assets](/docs/pswriteoffice/reader-chunks-tables/)
 - [Build bounded ingestion pipelines](/docs/pswriteoffice/reader-ingest-pipelines/)
 
+## Configuration files and data
+
+- [Edit YAML without losing comments](/docs/pswriteoffice/config-data-formats/#edit-yaml-without-rewriting-it)
+- [Merge YAML overlays](/docs/pswriteoffice/config-data-formats/#merge-overlays)
+- [Validate YAML before deploying](/docs/pswriteoffice/config-data-formats/#validate-before-deploying)
+- [Read and write TOML](/docs/pswriteoffice/config-data-formats/#read-and-write-toml)
+- [Convert between JSON, YAML, TOML, XML, CSV, and Excel](/docs/pswriteoffice/config-data-formats/#convert-between-data-formats)
+
+## Project, Access, and EPUB
+
+- [Build and schedule a project](/docs/pswriteoffice/project-access-epub/#project-schedules)
+- [Create and read Access tables](/docs/pswriteoffice/project-access-epub/#access-table-databases)
+- [Compose an EPUB book](/docs/pswriteoffice/project-access-epub/#epub-publications)
+
 The [DSL cookbook](/docs/pswriteoffice/dsl-cookbook/) teaches composition syntax. The generated [command reference](/api/powershell/) remains the source of truth for exact parameters.

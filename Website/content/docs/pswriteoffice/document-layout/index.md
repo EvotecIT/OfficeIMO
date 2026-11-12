@@ -53,4 +53,4 @@ Use the chart height that supports the message. A five-category chart in a one-p
 
 ## Check the delivered file
 
-Run the [patch compliance recipe](https://github.com/EvotecIT/OfficeIMO/blob/15d71340482668a9cf0e669dfc6ee0ea0bfdbf99/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-PatchCompliance.ps1), open the DOCX and inspect the exported PDF. Check every page for clipped text, split headings, table widths and chart labels. Native PDF conversion can paginate differently from a desktop Word editor; the PDF is the delivery copy when its layout is the agreed result.
+Run the [patch compliance recipe](https://github.com/EvotecIT/OfficeIMO/blob/945cb285f954b745c0f4ebfce0849c0726a76fa1/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-PatchCompliance.ps1), open the DOCX and inspect the exported PDF. Check every page for clipped text, split headings, table widths and chart labels. Native PDF conversion can paginate differently from a desktop Word editor; the PDF is the delivery copy when its layout is the agreed result.

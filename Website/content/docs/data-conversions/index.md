@@ -35,9 +35,11 @@ JsonNode response = JsonNode.Parse(File.ReadAllText("response.json"))!;
 response.SaveAsCsv("items.csv", new DataConversionOptions { Select = "data.items" });
 ```
 
-`OfficeConverter` runs the same routes by file extension, which suits code that receives paths:
+With the `OfficeIMO` package, `OfficeConverter` runs the same routes by file extension, which suits code that receives paths:
 
 ```csharp
+using OfficeIMO;
+
 OfficeConverter.Convert("app.yaml", "app.json");
 ```
 

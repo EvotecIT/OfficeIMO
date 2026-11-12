@@ -8,8 +8,8 @@
     "benchmarkProjectCount": 42,
     "validationProjectCount": 74,
     "apiReferenceCount": 129,
-    "conceptualPageCount": 146,
-    "conceptualWordCount": 75610
+    "conceptualPageCount": 149,
+    "conceptualWordCount": 78216
   },
   "categories": [
     {
@@ -516,7 +516,7 @@
       "projectPath": "OfficeIMO.Data.Conversions/OfficeIMO.Data.Conversions.csproj",
       "sourceFileCount": 37,
       "referencingTestProjectCount": 1,
-      "docsUrl": "/docs/capabilities/packages/",
+      "docsUrl": "/docs/data-conversions/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Data.Conversions"
     },
@@ -529,7 +529,7 @@
       "projectPath": "OfficeIMO.Data.Conversions.Excel/OfficeIMO.Data.Conversions.Excel.csproj",
       "sourceFileCount": 2,
       "referencingTestProjectCount": 1,
-      "docsUrl": "/docs/capabilities/packages/",
+      "docsUrl": "/docs/data-conversions/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Data.Conversions.Excel"
     },

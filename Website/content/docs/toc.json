@@ -755,6 +755,16 @@
         "title": "Readable document layouts",
         "path": "pswriteoffice/document-layout/index.md",
         "href": "/docs/pswriteoffice/document-layout/"
+      },
+      {
+        "title": "Configuration Files and Data Conversion",
+        "path": "pswriteoffice/config-data-formats/index.md",
+        "href": "/docs/pswriteoffice/config-data-formats/"
+      },
+      {
+        "title": "Project Schedules, Access Databases, and EPUB",
+        "path": "pswriteoffice/project-access-epub/index.md",
+        "href": "/docs/pswriteoffice/project-access-epub/"
       }
     ]
   },

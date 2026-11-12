@@ -14,7 +14,7 @@ Merge-OfficeDocument `
     -OutputPath '.\Delivery-Pack.docx'
 ```
 
-The [merge-documents recipe](https://github.com/EvotecIT/OfficeIMO/blob/15d71340482668a9cf0e669dfc6ee0ea0bfdbf99/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-MergeDocuments.ps1) creates a cover, detail document, and appendix, then combines them in order.
+The [merge-documents recipe](https://github.com/EvotecIT/OfficeIMO/blob/945cb285f954b745c0f4ebfce0849c0726a76fa1/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-MergeDocuments.ps1) creates a cover, detail document, and appendix, then combines them in order.
 
 ## Fill merge fields
 
@@ -28,7 +28,7 @@ WordParagraph {
 Invoke-OfficeWordMailMerge -InputObject @{ FirstName = 'Ada' }
 ```
 
-The [mail-merge letters recipe](https://github.com/EvotecIT/OfficeIMO/blob/15d71340482668a9cf0e669dfc6ee0ea0bfdbf99/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-MailMergeLetters.ps1) generates two personalized order confirmations from ordinary PowerShell hashtables.
+The [mail-merge letters recipe](https://github.com/EvotecIT/OfficeIMO/blob/945cb285f954b745c0f4ebfce0849c0726a76fa1/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-MailMergeLetters.ps1) generates two personalized order confirmations from ordinary PowerShell hashtables.
 
 ## Which merge should you use?
 
