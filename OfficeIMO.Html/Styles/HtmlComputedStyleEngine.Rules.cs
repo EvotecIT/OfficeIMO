@@ -100,6 +100,8 @@ public static partial class HtmlComputedStyleEngine {
         var builder = new System.Text.StringBuilder(css.Length);
         int cursor = 0;
         foreach ((int start, int end) in payloads) {
+            // Malformed nested @font-face blocks can report the same payload twice.
+            if (start < cursor) continue;
             builder.Append(css, cursor, start - cursor).Append("AAAA");
             cursor = end;
         }

@@ -79,11 +79,20 @@ internal static class HtmlCssRuleBlockScanner {
     /// <summary>Whether the block opened at <paramref name="open"/> is introduced by a literal <c>@font-face</c> keyword.</summary>
     internal static bool IsFontFaceBlock(string css, int open) {
         int cursor = open - 1;
-        while (cursor >= 0 && char.IsWhiteSpace(css[cursor])) cursor--;
+        while (true) {
+            while (cursor >= 0 && char.IsWhiteSpace(css[cursor])) cursor--;
+            // A comment between the keyword and its block is a token boundary, like whitespace.
+            if (cursor < 3 || css[cursor] != '/' || css[cursor - 1] != '*') break;
+            int commentStart = css.LastIndexOf("/*", cursor - 2, StringComparison.Ordinal);
+            if (commentStart < 0) return false;
+            cursor = commentStart - 1;
+        }
         const string RuleName = "@font-face";
         int ruleStart = cursor - RuleName.Length + 1;
         return ruleStart >= 0
             && string.Compare(css, ruleStart, RuleName, 0, RuleName.Length, StringComparison.OrdinalIgnoreCase) == 0
+            // An escaped '@' belongs to an identifier such as the class selector .x\@font-face.
+            && !IsEscaped(css, ruleStart)
             && !(ruleStart > 0 && (char.IsLetterOrDigit(css[ruleStart - 1]) || css[ruleStart - 1] == '-' || css[ruleStart - 1] == '_'));
     }
 
