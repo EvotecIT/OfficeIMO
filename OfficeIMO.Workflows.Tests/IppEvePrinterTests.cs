@@ -221,6 +221,48 @@ public sealed class IppEvePrinterTests {
         Assert.Equal(new Uri("ipp://localhost/classes/a%20b"), CupsScheduler.FromEnvironment(null, path => path == "/run/cups/cups.sock").Queue("a b", isClass: true).PrinterUri);
     }
 
+    [ExternalToolFact(IppEvePrinterPath)]
+    public async Task PrintsAWordDocumentByUriWithItsConversionReport() {
+        using var printer = EvePrinter.Start("-f", "application/pdf,image/pwg-raster", "-c", "/usr/bin/true");
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-print-any-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string docx = Path.Combine(directory, "Letter.docx"), pdf = Path.Combine(directory, "Letter.pdf");
+            using (OfficeIMO.Word.WordDocument document = OfficeIMO.Word.WordDocument.Create(docx)) {
+                document.AddParagraph("Printed straight from Word");
+                document.Save();
+            }
+            OfficeIMO.Pdf.PdfDocument.Create(builder => builder.Page(page => page.Size(OfficeIMO.Pdf.PdfPageSizes.A4))).Save(pdf);
+            var service = new PdfPrinterService();
+
+            OfficePrintResult word = await service.PrintAsync(new OfficePrintRequest {
+                Layout = new PdfPrintPlanRequest { InputPath = docx, PagesPerSheet = 2 }, UsePrinterPaper = true,
+                Delivery = new PdfPrintDeliveryOptions { PrinterName = printer.Uri.AbsoluteUri, DocumentName = "Letter.docx" }
+            });
+            OfficePrintResult direct = await service.PrintAsync(new OfficePrintRequest {
+                Layout = new PdfPrintPlanRequest { InputPath = pdf },
+                Delivery = new PdfPrintDeliveryOptions { PrinterName = printer.Uri.AbsoluteUri, DocumentName = "Letter.pdf" }
+            });
+
+            Assert.NotNull(word.Conversion);
+            Assert.Equal(PdfPrintContentKind.Vector, word.ContentKind);
+            Assert.Null(direct.Conversion);
+            foreach (OfficePrintResult result in new[] { word, direct }) {
+                Assert.Equal(PdfPrintJobState.Completed, (await WaitAsync(service, result.Submission)).State);
+                Assert.StartsWith("%PDF", Encoding.ASCII.GetString(File.ReadAllBytes(printer.SpooledDocument(Number(result.Submission), ".pdf")), 0, 4));
+            }
+            // The printer's default media is US Letter, so the converted document was laid out on it.
+            OfficeIMO.Pdf.PdfPageLayoutInfo sheet = OfficeIMO.Pdf.PdfDocument.Load(printer.SpooledDocument(Number(word.Submission), ".pdf")).GetPrintablePageLayouts()[0];
+            Assert.Equal((612, 792), (Math.Round(Math.Min(sheet.Width, sheet.Height)), Math.Round(Math.Max(sheet.Width, sheet.Height))));
+            await Assert.ThrowsAsync<ArgumentException>(() => service.PrintAsync(new OfficePrintRequest {
+                Layout = new PdfPrintPlanRequest { InputPath = docx, PdfPassword = "secret" },
+                Delivery = new PdfPrintDeliveryOptions { PrinterName = printer.Uri.AbsoluteUri }
+            }));
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     private static PdfPrintJob TwoPageJob(PdfPrintColorMode color) =>
         PdfPrintJob.Create(OfficeIMO.Pdf.PdfDocument.Create(document => {
             document.Page(page => page.Size(OfficeIMO.Pdf.PdfPageSizes.A4).Background(OfficeIMO.OfficeColor.Red));
