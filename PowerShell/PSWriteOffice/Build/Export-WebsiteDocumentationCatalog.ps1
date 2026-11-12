@@ -51,6 +51,12 @@ $familyDefinitions = @(
         match = { param($name) $name -match 'OfficeConversion' -or $name -in 'Convert-OfficeDocument', 'Compare-OfficeDocument', 'Get-OfficeDocumentCapability', 'Get-OfficeDocumentInfo', 'Merge-OfficeDocument', 'Split-OfficeDocument', 'Test-OfficeDocument', 'Repair-OfficeDocument', 'Protect-OfficeDocument', 'Unprotect-OfficeDocument' }
     }
     [ordered]@{
+        id = 'before-sharing'; title = 'Before sharing'; description = 'Find and remove comments, authors, hidden content and image metadata, and check Content Credentials and AI labels before a file leaves your team.'
+        docs = 'before-sharing'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Workflows'
+        samples = @('Get-OfficeHiddenData', 'Remove-OfficeHiddenData', 'New-OfficeHiddenDataOptions', 'Get-OfficeDocumentProvenance')
+        match = { param($name) $name -match 'OfficeHiddenData|OfficeDocumentProvenance' }
+    }
+    [ordered]@{
         id = 'word'; title = 'Word'; description = 'Create, inspect, update, review, merge, protect, and convert DOC and DOCX documents.'
         docs = 'word'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Word'
         samples = @('New-OfficeWord', 'Add-OfficeWordTable', 'Get-OfficeWordReview', 'Invoke-OfficeWordMailMerge', 'Convert-OfficeDocument')

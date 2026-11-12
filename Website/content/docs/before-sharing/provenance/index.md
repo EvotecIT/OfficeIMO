@@ -99,6 +99,8 @@ officeimo provenance audit .\documents --format sarif > provenance.sarif
 
 The commands cover the same formats as the libraries plus images, PDF, HTML and Markdown. Results use the `officeimo.provenance.result.v2` schema, shared with Studio. The [command guide](https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Tool#provenance-workflows) lists every option, including verification with `c2patool`.
 
+In PowerShell, `Get-OfficeDocumentProvenance` reports the same evidence, and `Remove-OfficeHiddenData` with `New-OfficeHiddenDataOptions -Kind Default, Provenance` removes it together with other hidden data. See [Clean files before sharing](/docs/pswriteoffice/before-sharing/#content-credentials-and-ai-labels).
+
 ## In the browser
 
 [Clean a file before sharing](/browser/clean-before-sharing/) shows Content Credentials and AI labels in the same report as the rest of the hidden data, for Word, Excel, PowerPoint, PDF, JPEG, PNG and WebP files up to 25 MB. For each Content Credentials record it explains what the record claims:
