@@ -57,11 +57,14 @@ internal static partial class WindowsPrinterSettings {
     }
 
     /// <summary>Describes the first setting the driver changed while merging the request, or null when it accepted all of them.</summary>
+    /// <remarks>A driver that clears a requested setting's dmFields flag ignores the value, so that setting counts as rejected.</remarks>
     internal static string? FindRejectedSetting(byte[] mode, DevModeRequest request) {
-        if (ReadInt16(mode, DevModeCopies) != request.Copies) return "copies";
-        if (request.Copies > 1 && ((ReadInt32(mode, DevModeFields) & FieldCollate) == 0 || ReadInt16(mode, DevModeCollate) != 1)) return "collation";
-        if (request.Duplex != PdfPrintDuplex.PrinterDefault && ReadInt16(mode, DevModeDuplex) != (short)request.Duplex) return "duplex";
-        if (request.PaperSourceId is not null && ((ReadInt32(mode, DevModeFields) & FieldDefaultSource) == 0 ||
+        int fields = ReadInt32(mode, DevModeFields);
+        if (ReadInt16(mode, DevModeCopies) != request.Copies || (request.Copies > 1 && (fields & FieldCopies) == 0)) return "copies";
+        if (request.Copies > 1 && ((fields & FieldCollate) == 0 || ReadInt16(mode, DevModeCollate) != 1)) return "collation";
+        if (request.Duplex != PdfPrintDuplex.PrinterDefault &&
+            ((fields & FieldDuplex) == 0 || ReadInt16(mode, DevModeDuplex) != (short)request.Duplex)) return "duplex";
+        if (request.PaperSourceId is not null && ((fields & FieldDefaultSource) == 0 ||
             unchecked((ushort)ReadInt16(mode, DevModeDefaultSource)).ToString(CultureInfo.InvariantCulture) != request.PaperSourceId)) return "paper source";
         return null;
     }

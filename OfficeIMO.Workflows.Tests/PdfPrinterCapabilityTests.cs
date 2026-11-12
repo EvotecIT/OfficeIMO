@@ -153,6 +153,8 @@ public sealed class PdfPrinterCapabilityTests {
         byte[] source = (byte[])mode.Clone();
         source[WindowsPrinterSettings.DevModeDefaultSource] = 8;
         Assert.Equal("paper source", WindowsPrinterSettings.FindRejectedSetting(source, request));
+        Assert.Equal("copies", WindowsPrinterSettings.FindRejectedSetting(WithoutField(mode, WindowsPrinterSettings.FieldCopies), request));
+        Assert.Equal("duplex", WindowsPrinterSettings.FindRejectedSetting(WithoutField(mode, WindowsPrinterSettings.FieldDuplex), request));
         Assert.Throws<InvalidOperationException>(() => WindowsPrinterSettings.ComposeDevMode(new byte[100], request));
     }
 
@@ -165,6 +167,13 @@ public sealed class PdfPrinterCapabilityTests {
     public void DriverCopiesRequireCollationCapacityAndOnePaper(int requested, bool collates, int maximum, bool singlePaper, short expected) {
         var capabilities = new PdfPrinterCapabilities { PrinterName = "Office", SupportsCollation = collates, MaximumCopies = maximum };
         Assert.Equal(expected, WindowsPrinterSettings.DriverCopies(requested, capabilities, singlePaper));
+    }
+
+    /// <summary>A merged DEVMODE whose driver kept the value but cleared the setting's dmFields flag.</summary>
+    private static byte[] WithoutField(byte[] mode, int field) {
+        byte[] copy = (byte[])mode.Clone();
+        BitConverter.GetBytes(BitConverter.ToInt32(copy, WindowsPrinterSettings.DevModeFields) & ~field).CopyTo(copy, WindowsPrinterSettings.DevModeFields);
+        return copy;
     }
 
     private static byte[] DriverDefaults(int fields) {
