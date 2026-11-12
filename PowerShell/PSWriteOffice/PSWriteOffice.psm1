@@ -344,6 +344,74 @@ namespace PSWriteOffice.DevelopmentModuleLoadContext
 
                         return $null
                     }
+                    # PowerShell's accelerator catalog is process-wide, including across module ALCs and runspaces.
+                    # This lock coordinates this helper's callers; external catalog writes can still race registration or removal.
+                    $PowerForgeAcceleratorOwnersKey = 'PowerForge.TypeAcceleratorOwners.v1'
+                    $PowerForgeAcceleratorDomain = [AppDomain]::CurrentDomain
+                    [Threading.Monitor]::Enter($PowerForgeAcceleratorDomain)
+                    try {
+                        $PowerForgeAcceleratorOwners = $PowerForgeAcceleratorDomain.GetData($PowerForgeAcceleratorOwnersKey)
+                        if ($null -eq $PowerForgeAcceleratorOwners) {
+                            $PowerForgeAcceleratorOwners = [hashtable]::Synchronized(@{})
+                            $PowerForgeAcceleratorDomain.SetData($PowerForgeAcceleratorOwnersKey, $PowerForgeAcceleratorOwners)
+                        }
+                    } finally {
+                        [Threading.Monitor]::Exit($PowerForgeAcceleratorDomain)
+                    }
+                    if ($null -eq $script:PowerForgeAcceleratorOwnerId) {
+                        $script:PowerForgeAcceleratorOwnerId = [Guid]::NewGuid().ToString('N')
+                    }
+                    $PowerForgeAcceleratorOwnerId = $script:PowerForgeAcceleratorOwnerId
+                    $RegisteredPowerForgeTypeAccelerators = $script:PowerForgeRegisteredAssemblyTypeAccelerators
+                    # A type named SyncRoot is a valid key; keep the underlying monitor fixed across mutations.
+                    $PowerForgeAcceleratorOwnersSyncRoot = $PowerForgeAcceleratorOwners.PSBase.SyncRoot
+
+                    $RegisterPowerForgeTypeAcceleratorOwner = {
+                        param([string] $Name, [type] $Type)
+                        [Threading.Monitor]::Enter($PowerForgeAcceleratorOwnersSyncRoot)
+                        try {
+                            $Catalog = $GetTypeAccelerators.GetValue($null)
+                            if ($Catalog.ContainsKey($Name)) {
+                                if (-not [object]::ReferenceEquals($Catalog[$Name], $Type)) { return }
+                            } else {
+                                $AddTypeAccelerator.Invoke($null, @($Name, $Type)) | Out-Null
+                                $PreviousEntry = $PowerForgeAcceleratorOwners[$Name]
+                                if ($null -eq $PreviousEntry -or -not [object]::ReferenceEquals($PreviousEntry.Type, $Type)) {
+                                    $PowerForgeAcceleratorOwners[$Name] = @{ Type = $Type; Owners = @{} }
+                                }
+                            }
+                            $Entry = $PowerForgeAcceleratorOwners[$Name]
+                            if ($null -ne $Entry -and [object]::ReferenceEquals($Entry.Type, $Type)) {
+                                $Entry.Owners[$PowerForgeAcceleratorOwnerId] = $true
+                                $RegisteredPowerForgeTypeAccelerators[$Name] = $Type
+                            }
+                        } finally {
+                            [Threading.Monitor]::Exit($PowerForgeAcceleratorOwnersSyncRoot)
+                        }
+                    }.GetNewClosure()
+
+                    $UnregisterPowerForgeTypeAcceleratorOwners = {
+                        [Threading.Monitor]::Enter($PowerForgeAcceleratorOwnersSyncRoot)
+                        try {
+                            $Catalog = $GetTypeAccelerators.GetValue($null)
+                            $RemoveTypeAccelerator = $TypeAccelerators.GetMethod('Remove', [type[]]@([string]))
+                            foreach ($Owned in @($RegisteredPowerForgeTypeAccelerators.GetEnumerator())) {
+                                $Entry = $PowerForgeAcceleratorOwners[$Owned.Key]
+                                if ($null -eq $Entry -or -not [object]::ReferenceEquals($Entry.Type, $Owned.Value)) { continue }
+                                $Entry.Owners.Remove($PowerForgeAcceleratorOwnerId)
+                                if ($Entry.Owners.Count -eq 0) {
+                                    if ($Catalog.ContainsKey($Owned.Key) -and [object]::ReferenceEquals($Catalog[$Owned.Key], $Owned.Value)) {
+                                        $RemoveTypeAccelerator.Invoke($null, @($Owned.Key)) | Out-Null
+                                    }
+                                    $PowerForgeAcceleratorOwners.Remove($Owned.Key)
+                                }
+                            }
+                            $RegisteredPowerForgeTypeAccelerators.Clear()
+                        } finally {
+                            [Threading.Monitor]::Exit($PowerForgeAcceleratorOwnersSyncRoot)
+                        }
+                    }.GetNewClosure()
+
 
                     $AddPowerForgeTypeAccelerator = {
                         param([Parameter(Mandatory = $true)][type] $Type)
@@ -357,6 +425,7 @@ namespace PSWriteOffice.DevelopmentModuleLoadContext
                         if ($Existing.ContainsKey($Name)) {
                             $ExistingType = $Existing[$Name]
                             if ([object]::ReferenceEquals($ExistingType, $Type)) {
+                                & $RegisterPowerForgeTypeAcceleratorOwner $Name $Type
                                 return
                             } else {
                                 $ExistingAssemblyName = $ExistingType.Assembly.GetName()
@@ -373,13 +442,12 @@ namespace PSWriteOffice.DevelopmentModuleLoadContext
                         }
 
                         try {
-                            $AddTypeAccelerator.Invoke($null, @($Name, $Type)) | Out-Null
+                            & $RegisterPowerForgeTypeAcceleratorOwner $Name $Type
                         } catch {
                             Write-Warning -Message "Type accelerator '$Name' could not be registered from $($Type.Assembly.GetName().Name): $($_.Exception.Message)"
                             return
                         }
 
-                        $script:PowerForgeRegisteredAssemblyTypeAccelerators[$Name] = $Type
                     }
 
                     if ($Mode -eq 'Assembly' -or $Mode -eq 'Enums') {
@@ -423,23 +491,7 @@ namespace PSWriteOffice.DevelopmentModuleLoadContext
                         $PreviousPowerForgeOnRemove = $ExecutionContext.SessionState.Module.OnRemove
                         $ExecutionContext.SessionState.Module.OnRemove = {
                             try {
-                                $TypeAccelerators = [psobject].Assembly.GetType('System.Management.Automation.TypeAccelerators')
-                                if ($null -eq $TypeAccelerators -or $null -eq $RegisteredPowerForgeTypeAccelerators) {
-                                    return
-                                }
-
-                                $GetTypeAccelerators = $TypeAccelerators.GetProperty('Get', [System.Reflection.BindingFlags] 'Static,Public,NonPublic')
-                                $RemoveTypeAccelerator = $TypeAccelerators.GetMethod('Remove', [type[]]@([string]))
-                                if ($null -eq $GetTypeAccelerators -or $null -eq $RemoveTypeAccelerator) {
-                                    return
-                                }
-
-                                $Existing = $GetTypeAccelerators.GetValue($null)
-                                foreach ($Entry in @($RegisteredPowerForgeTypeAccelerators.GetEnumerator())) {
-                                    if ($Existing.ContainsKey($Entry.Key) -and [object]::ReferenceEquals($Existing[$Entry.Key], $Entry.Value)) {
-                                        $RemoveTypeAccelerator.Invoke($null, @($Entry.Key)) | Out-Null
-                                    }
-                                }
+                                & $UnregisterPowerForgeTypeAcceleratorOwners
                             } finally {
                                 if ($null -ne $PreviousPowerForgeOnRemove) {
                                     & $PreviousPowerForgeOnRemove @args
@@ -516,7 +568,7 @@ namespace PSWriteOffice.DevelopmentModuleLoadContext
                         # A Script/ScriptPacked entry point, including one dot-sourced by another module, must not mutate
                         # that caller's export table. The imported inner module's commands remain available to this script.
                     } elseif ($null -ne $AddExportedCmdlet) {
-                        foreach ($Cmd in $PowerForgeDevelopmentInnerModule.ExportedCmdlets.Values) {
+                        foreach ($Cmd in $PowerForgeDevelopmentInnerModule.ExportedCmdlets.get_Values()) {
                             $AddExportedCmdlet.Invoke($PowerForgeOuterModule, @(, $Cmd)) | Out-Null
                         }
                         $AddExportedAlias = [System.Management.Automation.PSModuleInfo].GetMethod(
@@ -524,7 +576,7 @@ namespace PSWriteOffice.DevelopmentModuleLoadContext
                             [System.Reflection.BindingFlags]'Instance, NonPublic'
                         )
                         if ($null -ne $AddExportedAlias) {
-                            foreach ($Alias in $PowerForgeDevelopmentInnerModule.ExportedAliases.Values) {
+                            foreach ($Alias in $PowerForgeDevelopmentInnerModule.ExportedAliases.get_Values()) {
                                 $AliasTarget = if ([string]::IsNullOrWhiteSpace($Alias.Definition)) { $Alias.ResolvedCommandName } else { $Alias.Definition }
                                 try {
                                     # The alias must exist in this module scope before the private export table can reference it.
@@ -799,6 +851,74 @@ namespace PSWriteOffice.DevelopmentModuleLoadContext
 
                         return $null
                     }
+                    # PowerShell's accelerator catalog is process-wide, including across module ALCs and runspaces.
+                    # This lock coordinates this helper's callers; external catalog writes can still race registration or removal.
+                    $PowerForgeAcceleratorOwnersKey = 'PowerForge.TypeAcceleratorOwners.v1'
+                    $PowerForgeAcceleratorDomain = [AppDomain]::CurrentDomain
+                    [Threading.Monitor]::Enter($PowerForgeAcceleratorDomain)
+                    try {
+                        $PowerForgeAcceleratorOwners = $PowerForgeAcceleratorDomain.GetData($PowerForgeAcceleratorOwnersKey)
+                        if ($null -eq $PowerForgeAcceleratorOwners) {
+                            $PowerForgeAcceleratorOwners = [hashtable]::Synchronized(@{})
+                            $PowerForgeAcceleratorDomain.SetData($PowerForgeAcceleratorOwnersKey, $PowerForgeAcceleratorOwners)
+                        }
+                    } finally {
+                        [Threading.Monitor]::Exit($PowerForgeAcceleratorDomain)
+                    }
+                    if ($null -eq $script:PowerForgeAcceleratorOwnerId) {
+                        $script:PowerForgeAcceleratorOwnerId = [Guid]::NewGuid().ToString('N')
+                    }
+                    $PowerForgeAcceleratorOwnerId = $script:PowerForgeAcceleratorOwnerId
+                    $RegisteredPowerForgeTypeAccelerators = $script:PowerForgeRegisteredAssemblyTypeAccelerators
+                    # A type named SyncRoot is a valid key; keep the underlying monitor fixed across mutations.
+                    $PowerForgeAcceleratorOwnersSyncRoot = $PowerForgeAcceleratorOwners.PSBase.SyncRoot
+
+                    $RegisterPowerForgeTypeAcceleratorOwner = {
+                        param([string] $Name, [type] $Type)
+                        [Threading.Monitor]::Enter($PowerForgeAcceleratorOwnersSyncRoot)
+                        try {
+                            $Catalog = $GetTypeAccelerators.GetValue($null)
+                            if ($Catalog.ContainsKey($Name)) {
+                                if (-not [object]::ReferenceEquals($Catalog[$Name], $Type)) { return }
+                            } else {
+                                $AddTypeAccelerator.Invoke($null, @($Name, $Type)) | Out-Null
+                                $PreviousEntry = $PowerForgeAcceleratorOwners[$Name]
+                                if ($null -eq $PreviousEntry -or -not [object]::ReferenceEquals($PreviousEntry.Type, $Type)) {
+                                    $PowerForgeAcceleratorOwners[$Name] = @{ Type = $Type; Owners = @{} }
+                                }
+                            }
+                            $Entry = $PowerForgeAcceleratorOwners[$Name]
+                            if ($null -ne $Entry -and [object]::ReferenceEquals($Entry.Type, $Type)) {
+                                $Entry.Owners[$PowerForgeAcceleratorOwnerId] = $true
+                                $RegisteredPowerForgeTypeAccelerators[$Name] = $Type
+                            }
+                        } finally {
+                            [Threading.Monitor]::Exit($PowerForgeAcceleratorOwnersSyncRoot)
+                        }
+                    }.GetNewClosure()
+
+                    $UnregisterPowerForgeTypeAcceleratorOwners = {
+                        [Threading.Monitor]::Enter($PowerForgeAcceleratorOwnersSyncRoot)
+                        try {
+                            $Catalog = $GetTypeAccelerators.GetValue($null)
+                            $RemoveTypeAccelerator = $TypeAccelerators.GetMethod('Remove', [type[]]@([string]))
+                            foreach ($Owned in @($RegisteredPowerForgeTypeAccelerators.GetEnumerator())) {
+                                $Entry = $PowerForgeAcceleratorOwners[$Owned.Key]
+                                if ($null -eq $Entry -or -not [object]::ReferenceEquals($Entry.Type, $Owned.Value)) { continue }
+                                $Entry.Owners.Remove($PowerForgeAcceleratorOwnerId)
+                                if ($Entry.Owners.Count -eq 0) {
+                                    if ($Catalog.ContainsKey($Owned.Key) -and [object]::ReferenceEquals($Catalog[$Owned.Key], $Owned.Value)) {
+                                        $RemoveTypeAccelerator.Invoke($null, @($Owned.Key)) | Out-Null
+                                    }
+                                    $PowerForgeAcceleratorOwners.Remove($Owned.Key)
+                                }
+                            }
+                            $RegisteredPowerForgeTypeAccelerators.Clear()
+                        } finally {
+                            [Threading.Monitor]::Exit($PowerForgeAcceleratorOwnersSyncRoot)
+                        }
+                    }.GetNewClosure()
+
 
                     $AddPowerForgeDesktopTypeAccelerator = {
                         param([Parameter(Mandatory = $true)][type] $Type)
@@ -812,6 +932,7 @@ namespace PSWriteOffice.DevelopmentModuleLoadContext
                         if ($Existing.ContainsKey($Name)) {
                             $ExistingType = $Existing[$Name]
                             if ([object]::ReferenceEquals($ExistingType, $Type)) {
+                                & $RegisterPowerForgeTypeAcceleratorOwner $Name $Type
                                 return
                             }
 
@@ -820,13 +941,12 @@ namespace PSWriteOffice.DevelopmentModuleLoadContext
                         }
 
                         try {
-                            $AddTypeAccelerator.Invoke($null, @($Name, $Type)) | Out-Null
+                            & $RegisterPowerForgeTypeAcceleratorOwner $Name $Type
                         } catch {
                             Write-Warning -Message "Type accelerator '$Name' could not be registered from $($Type.Assembly.GetName().Name): $($_.Exception.Message)"
                             return
                         }
 
-                        $script:PowerForgeRegisteredAssemblyTypeAccelerators[$Name] = $Type
                     }
 
                     if ($Mode -eq 'Assembly' -or $Mode -eq 'Enums') {
@@ -870,23 +990,7 @@ namespace PSWriteOffice.DevelopmentModuleLoadContext
                         $PreviousPowerForgeOnRemove = $ExecutionContext.SessionState.Module.OnRemove
                         $ExecutionContext.SessionState.Module.OnRemove = {
                             try {
-                                $TypeAccelerators = [psobject].Assembly.GetType('System.Management.Automation.TypeAccelerators')
-                                if ($null -eq $TypeAccelerators -or $null -eq $RegisteredPowerForgeTypeAccelerators) {
-                                    return
-                                }
-
-                                $GetTypeAccelerators = $TypeAccelerators.GetProperty('Get', [System.Reflection.BindingFlags] 'Static,Public,NonPublic')
-                                $RemoveTypeAccelerator = $TypeAccelerators.GetMethod('Remove', [type[]]@([string]))
-                                if ($null -eq $GetTypeAccelerators -or $null -eq $RemoveTypeAccelerator) {
-                                    return
-                                }
-
-                                $Existing = $GetTypeAccelerators.GetValue($null)
-                                foreach ($Entry in @($RegisteredPowerForgeTypeAccelerators.GetEnumerator())) {
-                                    if ($Existing.ContainsKey($Entry.Key) -and [object]::ReferenceEquals($Existing[$Entry.Key], $Entry.Value)) {
-                                        $RemoveTypeAccelerator.Invoke($null, @($Entry.Key)) | Out-Null
-                                    }
-                                }
+                            & $UnregisterPowerForgeTypeAcceleratorOwners
                             } finally {
                                 if ($null -ne $PreviousPowerForgeOnRemove) {
                                     & $PreviousPowerForgeOnRemove @args
