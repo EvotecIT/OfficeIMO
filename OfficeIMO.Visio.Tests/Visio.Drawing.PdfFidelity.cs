@@ -65,7 +65,7 @@ public sealed class VisioDrawingPdfFidelityTests {
     }
 
     [Fact]
-    public void TextBackgroundFromTheTextStyleSheetIsPaintedAndAnUnsetOneStaysTransparent() {
+    public void ConnectorLabelBackgroundFollowsTheFileInPdfSvgAndPng() {
         string root = OfficeIMO.Tests.RepositoryTestPaths.Find();
         // The Jenkins dynamic connector master uses the Connector style sheet, whose TextBkgnd is white.
         VisioDocument styled = VisioDocument.Load(Path.Combine(root, "Assets", "VisioTemplates", "DrawingWithJenkinsDiagram.vsdx"));
@@ -76,7 +76,41 @@ public sealed class VisioDrawingPdfFidelityTests {
 
         Assert.Contains(LabelBackings(styled.ToDrawings().Value[0], "Styled label"), color => color.R == 255 && color.G == 255 && color.B == 255 && color.A == 255);
         Assert.Empty(LabelBackings(unset.ToDrawings().Value[0], "auth"));
+
+        System.Xml.Linq.XElement styledLabel = SvgConnector(styled.Pages[0], connector.Id);
+        Assert.Contains(styledLabel.Elements(), element => (string?)element.Attribute("data-officeimo-connector-label-background") == "true"
+            && string.Equals((string?)element.Attribute("fill"), "#FFFFFF", StringComparison.OrdinalIgnoreCase) && element.Attribute("fill-opacity") == null);
+        Assert.DoesNotContain("data-officeimo-connector-label-background", unset.Pages[0].ToSvg(), StringComparison.Ordinal);
+
+        Assert.True(LinePixelsCoveredByLabelBackings(styled.Pages[0]) > 0);
+        Assert.Equal(0, LinePixelsCoveredByLabelBackings(unset.Pages[0]));
     }
+
+    private static System.Xml.Linq.XElement SvgConnector(VisioPage page, string id) =>
+        System.Xml.Linq.XDocument.Parse(page.ToSvg(new VisioSvgSaveOptions { ResolveConnectorLabelOverlaps = false })).Descendants()
+            .Single(element => (string?)element.Attribute("data-visio-connector-id") == id);
+
+    // Drawn pixels that turn much lighter once connector labels are drawn: a label backing covers them. Text only darkens.
+    private static int LinePixelsCoveredByLabelBackings(VisioPage page) {
+        OfficeRasterImage withoutLabels = Raster(page, labels: false), withLabels = Raster(page, labels: true);
+        int covered = 0;
+        for (int y = 0; y < withLabels.Height; y++) {
+            for (int x = 0; x < withLabels.Width; x++) {
+                if (Brightness(withLabels.GetPixel(x, y)) - Brightness(withoutLabels.GetPixel(x, y)) > 60) covered++;
+            }
+        }
+        return covered;
+    }
+
+    private static OfficeRasterImage Raster(VisioPage page, bool labels) {
+        byte[] png = page.ToImage(new VisioImageExportOptions {
+            TargetDpi = 96, Supersampling = 1, RenderConnectorLabels = labels, ResolveConnectorLabelOverlaps = false
+        }).Bytes;
+        Assert.True(OfficeRasterImageDecoder.TryDecode(png, out OfficeRasterImage? image));
+        return image!;
+    }
+
+    private static int Brightness(OfficeColor color) => color.R + color.G + color.B;
 
     [Fact]
     public void WorldMapContinentsWithDegenerateContoursAndInheritedNurbsCellsKeepTheirNativeOutline() {

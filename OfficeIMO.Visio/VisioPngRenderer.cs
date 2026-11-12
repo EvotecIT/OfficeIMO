@@ -177,7 +177,6 @@ namespace OfficeIMO.Visio {
                     Math.Max(canvas.Supersampling * 12D, frame.ContentWidth * canvas.Projection.GeometryDensity),
                     Math.Max(canvas.Supersampling * 8D, frame.ContentHeight * canvas.Projection.GeometryDensity),
                     ToRasterRotation(frame.Angle),
-                    false,
                     VisioRichTextProjection.Create(page, shape, canvas.Projection.PhysicalDensity, options.CancellationToken, textStyles));
             }
 
@@ -310,7 +309,7 @@ namespace OfficeIMO.Visio {
                 double maxWidth = label.Width * canvas.Projection.GeometryDensity;
                 double maxHeight = label.Height * canvas.Projection.GeometryDensity;
                 DrawText(canvas, connector.Label!, x, y, VisioTextBackground.Effective(connector), 9D, maxWidth, maxHeight,
-                    ToRasterRotation(VisioConnectorLabelFrame.ResolveAngle(connector)), true,
+                    ToRasterRotation(VisioConnectorLabelFrame.ResolveAngle(connector)),
                     VisioRichTextProjection.Create(page, connector, canvas.Projection.PhysicalDensity, options.CancellationToken, textStyles));
             }
         }

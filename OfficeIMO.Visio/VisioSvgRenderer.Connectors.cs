@@ -55,7 +55,7 @@ namespace OfficeIMO.Visio {
                     rotateRadians: VisioConnectorLabelFrame.ResolveAngle(connector),
                     maxWidth,
                     maxHeight,
-                    drawLabelBackground: true,
+                    connectorLabel: true,
                     labelAdjusted: label.Adjusted,
                     richText: VisioRichTextProjection.Create(page, connector, projection.PhysicalDensity, options.CancellationToken, textStyles),
                     cancellationToken: options.CancellationToken);

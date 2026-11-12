@@ -137,6 +137,22 @@ public sealed class ReaderJsonModularTests {
         ReaderResourceLimitException error = Assert.Throws<ReaderResourceLimitException>(() => read());
         Assert.Equal(limit, error.LimitName);
         Assert.Equal(value, error.Maximum);
+        Assert.Contains("Raise " + limit, error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void JsonDefaultsReadLargeDeepExports() {
+        var json = new StringBuilder();
+        for (int level = 0; level < 39; level++) json.Append("{\"n\":");
+        json.Append('[');
+        for (int item = 0; item < 300_000; item++) json.Append(item == 0 ? "0" : ",0");
+        json.Append(']').Append('}', 39);
+
+        var reader = new OfficeDocumentReaderBuilder().AddJsonHandler().Build();
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(json.ToString()), "export.json", new ReaderOptions { ComputeHashes = false });
+
+        Assert.Empty(result.Diagnostics);
+        Assert.NotEmpty(result.Tables);
     }
 
     [Fact]
