@@ -64,9 +64,9 @@ internal static class PrintJobPolling {
     }
 
     /// <summary>
-    /// Queries until <paramref name="isTerminal"/> holds. Each query receives a token that expires at the deadline; a query that
-    /// expires, or a terminal answer that arrives after the deadline, raises <see cref="TimeoutException"/>. Caller cancellation
-    /// raises <see cref="OperationCanceledException"/>.
+    /// Queries until <paramref name="isTerminal"/> holds. Each query receives a token that expires at the deadline, and the wait
+    /// stops at the deadline even when a query ignores its token; a query that expires, or a terminal answer that arrives after
+    /// the deadline, raises <see cref="TimeoutException"/>. Caller cancellation raises <see cref="OperationCanceledException"/>.
     /// </summary>
     public static async Task<T> WaitAsync<T>(Func<CancellationToken, Task<T>> query, Func<T, bool> isTerminal, Func<T, string> describe,
         string jobId, TimeSpan timeout, TimeSpan interval, CancellationToken cancellationToken) {
@@ -82,8 +82,21 @@ internal static class PrintJobPolling {
                 if (remaining <= TimeSpan.Zero) throw Expired(jobId, timeout, lastState);
                 using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 deadline.CancelAfter(remaining);
+                Task<T> pending = query(deadline.Token);
+                if (!pending.IsCompleted) {
+                    using var stopTimer = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    Task timer = Task.Delay(remaining, stopTimer.Token);
+                    if (await Task.WhenAny(pending, timer).ConfigureAwait(false) != pending) {
+                        // The query ignored its token. Stop waiting for it, but observe its eventual failure.
+                        _ = pending.ContinueWith(static task => _ = task.Exception, CancellationToken.None,
+                            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+                        cancellationToken.ThrowIfCancellationRequested();
+                        throw Expired(jobId, timeout, lastState);
+                    }
+                    stopTimer.Cancel();
+                }
                 try {
-                    result = await query(deadline.Token).ConfigureAwait(false);
+                    result = await pending.ConfigureAwait(false);
                 } catch (OperationCanceledException error) when (!cancellationToken.IsCancellationRequested && deadline.IsCancellationRequested) {
                     throw Expired(jobId, timeout, lastState, error);
                 }

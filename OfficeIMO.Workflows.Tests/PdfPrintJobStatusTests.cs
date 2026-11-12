@@ -55,9 +55,22 @@ public sealed class PdfPrintJobStatusTests {
         using var canceled = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => stalled.WaitForJobAsync("queue", "1", TimeSpan.FromMinutes(5), cancellationToken: canceled.Token));
 
+        // A query that ignores its token cannot hold the wait open past the deadline, and caller cancellation still wins over it.
+        var unresponsive = new FakeService(_ => new TaskCompletionSource<PdfPrintJobStatus>().Task);
+        await WithinSeconds(Assert.ThrowsAsync<TimeoutException>(() => unresponsive.WaitForJobAsync("queue", "1", TimeSpan.FromMilliseconds(100))));
+        using var canceledUnresponsive = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+        Exception canceledError = await WithinSeconds(Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            unresponsive.WaitForJobAsync("queue", "1", TimeSpan.FromMinutes(5), cancellationToken: canceledUnresponsive.Token)));
+        Assert.IsNotType<TimeoutException>(canceledError);
+
         var pending = new FakeService(_ => Task.FromResult(new PdfPrintJobStatus("queue", "1", PdfPrintJobState.Processing)));
         TimeoutException timeout = await Assert.ThrowsAsync<TimeoutException>(() => pending.WaitForJobAsync("queue", "1", TimeSpan.FromMilliseconds(150), TimeSpan.FromMilliseconds(20)));
         Assert.Contains("Processing", timeout.Message);
+    }
+
+    private static async Task<T> WithinSeconds<T>(Task<T> wait) {
+        Assert.Same(wait, await Task.WhenAny(wait, Task.Delay(TimeSpan.FromSeconds(10))));
+        return await wait;
     }
 
     private sealed class FakeService(Func<CancellationToken, Task<PdfPrintJobStatus>> query) : IPdfPrinterService {
