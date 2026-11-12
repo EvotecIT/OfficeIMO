@@ -368,6 +368,7 @@ internal static partial class PdfStamper {
             content.TransformMatrix(rotation.M11, rotation.M12, rotation.M21, rotation.M22, rotation.OffsetX, rotation.OffsetY, preciseCoordinates: true);
         }
         if (options.Fit == PdfPageOverlayFit.Cover) content.Rectangle(frameX, frameY, frameWidth, frameHeight).ClipPath().EndPath();
+        if (options.ClipRectangle is { } clip) content.Rectangle(clip.Left, clip.Bottom, clip.Right - clip.Left, clip.Top - clip.Bottom).ClipPath().EndPath();
         if (graphicsStateResourceName != null) content.GraphicsState(graphicsStateResourceName);
         content.TransformMatrix(drawWidth / sourceWidth, 0D, 0D, drawHeight / sourceHeight, drawX, drawY)
             .XObject(formResourceName)

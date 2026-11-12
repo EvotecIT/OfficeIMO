@@ -14,6 +14,8 @@ public sealed class PdfPageOverlayOptions : IPdfOperationCancellation {
 
     internal string? ContentIdentifier { get; set; }
     internal PdfWatermarkOptions? WatermarkSettings { get; set; }
+    /// <summary>Optional clip in the normalized target-page frame, applied before the imported page is drawn.</summary>
+    internal PdfPageRectangle? ClipRectangle { get; set; }
     private int _sourcePageNumber = 1;
     private double? _x;
     private double? _y;
@@ -111,6 +113,7 @@ public sealed class PdfPageOverlayOptions : IPdfOperationCancellation {
         CancellationToken = CancellationToken,
         ContentIdentifier = ContentIdentifier,
         WatermarkSettings = WatermarkSettings?.Clone(),
+        ClipRectangle = ClipRectangle,
         SourcePageNumber = SourcePageNumber,
         TargetPages = TargetPages,
         Fit = Fit,
