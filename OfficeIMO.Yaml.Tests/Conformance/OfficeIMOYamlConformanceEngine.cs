@@ -1,0 +1,158 @@
+using System.Globalization;
+
+namespace OfficeIMO.Yaml.Tests.Conformance;
+
+/// <summary>
+/// OfficeIMO.Yaml over raw bytes, so its own encoding detection handles byte order marks, UTF-16 and UTF-32: events come
+/// from <see cref="YamlReader"/>, loading and round-tripping from <see cref="YamlDocument"/>.
+/// </summary>
+public sealed class OfficeIMOYamlConformanceEngine : IYamlConformanceEngine {
+    private readonly YamlReaderOptions _readerOptions;
+    private readonly YamlLoadOptions _loadOptions;
+    private readonly YamlLoadOptions _roundTripOptions;
+
+    /// <summary>Creates the adapter in the default mode, or with <see cref="YamlReaderOptions.Strict"/> for the specification's exact rules.</summary>
+    public OfficeIMOYamlConformanceEngine(bool strict = false) {
+        Strict = strict;
+        _readerOptions = new YamlReaderOptions { Strict = strict };
+        _loadOptions = new YamlLoadOptions { Strict = strict };
+        _roundTripOptions = new YamlLoadOptions { Strict = strict, DuplicateKeys = YamlDuplicateKeyPolicy.LastWins };
+    }
+
+    /// <summary>Whether the adapter reads with the specification's exact rules.</summary>
+    public bool Strict { get; }
+
+    /// <inheritdoc />
+    public string Name => Strict ? "OfficeIMO.Yaml (strict)" : "OfficeIMO.Yaml";
+
+    /// <inheritdoc />
+    public YamlEngineFeatures Features => YamlEngineFeatures.Events | YamlEngineFeatures.Load | YamlEngineFeatures.RoundTrip | YamlEngineFeatures.Lossless | YamlEngineFeatures.Emit;
+
+    /// <inheritdoc />
+    public IReadOnlyList<YamlTestEvent> Parse(byte[] yaml) {
+        var events = new List<YamlTestEvent>();
+        using var reader = new YamlReader(new MemoryStream(yaml, writable: false), _readerOptions);
+        while (reader.Read()) {
+            YamlTestEvent? converted = Convert(reader);
+            if (converted != null) events.Add(converted);
+        }
+
+        return events;
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<YamlConformanceNode> Load(byte[] yaml) {
+        YamlDocument document = YamlDocument.Load(new MemoryStream(yaml, writable: false), _loadOptions);
+        var documents = new List<YamlConformanceNode>(document.Documents.Count);
+        foreach (YamlDocumentPart part in document.Documents) documents.Add(ToConformance(part.Root));
+        return documents;
+    }
+
+    /// <summary>
+    /// Loads and saves the stream without edits. Duplicate keys are admitted (last wins): the suite's valid cases are
+    /// valid syntax, and a lossless editor must open files that repeat a key.
+    /// </summary>
+    public byte[] RoundTrip(byte[] yaml) {
+        YamlDocument document = YamlDocument.Load(new MemoryStream(yaml, writable: false), _roundTripOptions);
+        var output = new MemoryStream();
+        document.Save(output);
+        return output.ToArray();
+    }
+
+    /// <summary>Replays the events through <see cref="YamlWriter"/>, keeping each scalar's style as a request.</summary>
+    public byte[] Emit(IReadOnlyList<YamlTestEvent> events) {
+        var output = new MemoryStream();
+        using (var writer = new YamlWriter(output)) Replay(events, writer);
+        return output.ToArray();
+    }
+
+    /// <summary>Writes suite events through a writer: document markers, collections, scalars with their style, anchors, tags and aliases.</summary>
+    public static void Replay(IReadOnlyList<YamlTestEvent> events, YamlWriter writer) {
+        foreach (YamlTestEvent item in events) {
+            switch (item.Kind) {
+                case YamlTestEventKind.DocumentStart:
+                    if (item.IsExplicit) writer.WriteDocumentStart();
+                    break;
+                case YamlTestEventKind.DocumentEnd:
+                    if (item.IsExplicit) writer.WriteDocumentEnd();
+                    break;
+                case YamlTestEventKind.MappingStart:
+                case YamlTestEventKind.SequenceStart:
+                case YamlTestEventKind.Scalar:
+                    if (item.Anchor != null) writer.WriteAnchor(item.Anchor);
+                    if (item.Tag != null) writer.WriteTag(item.Tag);
+                    if (item.Kind == YamlTestEventKind.MappingStart) writer.WriteStartMapping(item.IsFlow ? YamlStyle.Flow : YamlStyle.Block);
+                    else if (item.Kind == YamlTestEventKind.SequenceStart) writer.WriteStartSequence(item.IsFlow ? YamlStyle.Flow : YamlStyle.Block);
+                    else writer.WriteScalar(item.Value ?? string.Empty, ToStyle(item.Style));
+                    break;
+                case YamlTestEventKind.MappingEnd:
+                    writer.WriteEndMapping();
+                    break;
+                case YamlTestEventKind.SequenceEnd:
+                    writer.WriteEndSequence();
+                    break;
+                case YamlTestEventKind.Alias:
+                    writer.WriteAlias(item.Value!);
+                    break;
+            }
+        }
+    }
+
+    private static YamlStyle ToStyle(YamlTestScalarStyle style) => style switch {
+        YamlTestScalarStyle.SingleQuoted => YamlStyle.SingleQuoted,
+        YamlTestScalarStyle.DoubleQuoted => YamlStyle.DoubleQuoted,
+        YamlTestScalarStyle.Literal => YamlStyle.Literal,
+        YamlTestScalarStyle.Folded => YamlStyle.Folded,
+        _ => YamlStyle.Plain
+    };
+
+    /// <summary>Converts a node through the model's public typed view, resolving aliases.</summary>
+    public static YamlConformanceNode ToConformance(YamlNode node) {
+        switch (node) {
+            case YamlAlias alias:
+                return ToConformance(alias.Target);
+            case YamlSequence sequence: {
+                var items = new List<YamlConformanceNode>(sequence.Count);
+                foreach (YamlNode item in sequence) items.Add(ToConformance(item));
+                return YamlConformanceNode.Sequence(items);
+            }
+            case YamlMapping mapping: {
+                var entries = new List<KeyValuePair<YamlConformanceNode, YamlConformanceNode>>(mapping.Count);
+                foreach (YamlMappingEntry entry in mapping) entries.Add(new(ToConformance(entry.Key), ToConformance(entry.Value)));
+                return YamlConformanceNode.Mapping(entries);
+            }
+            default:
+                if (node.IsNull) return YamlConformanceNode.Null;
+                if (node.TryGetValue(out bool flag)) return YamlConformanceNode.Boolean(flag);
+                if (node.TryGetValue(out long integer)) return YamlConformanceNode.Integer(integer.ToString(CultureInfo.InvariantCulture));
+                if (node.TryGetValue(out double number)) return YamlConformanceNode.Float(FormatFloat(number));
+                return YamlConformanceNode.String(node.AsString());
+        }
+    }
+
+    private static string FormatFloat(double value) =>
+        double.IsPositiveInfinity(value) ? "Infinity" : double.IsNegativeInfinity(value) ? "-Infinity" : double.IsNaN(value) ? "NaN" : value.ToString("R", CultureInfo.InvariantCulture);
+
+    /// <summary>Converts the reader's current event; comments have no suite equivalent and return null.</summary>
+    public static YamlTestEvent? Convert(YamlReader reader) => reader.TokenType switch {
+        YamlTokenType.StreamStart => YamlTestEvent.StreamStart(),
+        YamlTokenType.StreamEnd => YamlTestEvent.StreamEnd(),
+        YamlTokenType.DocumentStart => YamlTestEvent.DocumentStart(!reader.IsImplicit),
+        YamlTokenType.DocumentEnd => YamlTestEvent.DocumentEnd(!reader.IsImplicit),
+        YamlTokenType.MappingStart => YamlTestEvent.MappingStart(reader.Style == YamlStyle.Flow, reader.Anchor, reader.Tag),
+        YamlTokenType.MappingEnd => YamlTestEvent.MappingEnd(),
+        YamlTokenType.SequenceStart => YamlTestEvent.SequenceStart(reader.Style == YamlStyle.Flow, reader.Anchor, reader.Tag),
+        YamlTokenType.SequenceEnd => YamlTestEvent.SequenceEnd(),
+        YamlTokenType.Scalar => YamlTestEvent.Scalar(reader.GetString(), Style(reader.Style), reader.Anchor, reader.Tag),
+        YamlTokenType.Alias => YamlTestEvent.Alias(reader.GetString()),
+        _ => null
+    };
+
+    private static YamlTestScalarStyle Style(YamlStyle style) => style switch {
+        YamlStyle.SingleQuoted => YamlTestScalarStyle.SingleQuoted,
+        YamlStyle.DoubleQuoted => YamlTestScalarStyle.DoubleQuoted,
+        YamlStyle.Literal => YamlTestScalarStyle.Literal,
+        YamlStyle.Folded => YamlTestScalarStyle.Folded,
+        _ => YamlTestScalarStyle.Plain
+    };
+}

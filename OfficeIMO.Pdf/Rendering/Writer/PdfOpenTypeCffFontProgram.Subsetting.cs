@@ -35,6 +35,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
     /// falling back to the OpenType wrapper when the charstrings cannot be proven complete.
     /// </param>
     internal PdfOpenTypeCffCompactFontFile BuildCompactOpenTypeFontFilePlan(bool allowCidKeyedCff = false) {
+        if (SubsettingForbidden) return BuildWholeOpenTypeFontFilePlan();
         var tables = new List<SubsetTable>();
         IReadOnlyList<int> usedGlyphIds = GetUsedGlyphIds();
         PdfCffCharStringSubset? charStringSubset = null;
@@ -100,6 +101,11 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
                 charStringSubset);
         }
 
+        return BuildWholeOpenTypeFontFilePlan();
+    }
+
+    private PdfOpenTypeCffCompactFontFile BuildWholeOpenTypeFontFilePlan() {
+        string[] originalTables = _tables.Keys.OrderBy(tag => tag, StringComparer.Ordinal).ToArray();
         return new PdfOpenTypeCffCompactFontFile(
             _data.ToArray(),
             isCompact: false,

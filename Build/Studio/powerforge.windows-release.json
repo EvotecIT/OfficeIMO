@@ -27,6 +27,17 @@
     "ReuseExistingRelease": false,
     "ReplaceExistingAssets": false
   },
+  "Scoop": {
+    "Name": "officeimo-studio",
+    "Description": "Desktop workspace for reading, editing, and converting documents locally.",
+    "Homepage": "https://officeimo.com/studio/",
+    "License": "MIT",
+    "Executable": "OfficeIMO.Studio.exe",
+    "ShortcutName": "OfficeIMO Studio",
+    "Target": "Studio.Windows",
+    "Runtimes": [ "win-x64", "win-arm64" ],
+    "UrlTemplate": "https://github.com/EvotecIT/OfficeIMO/releases/download/Studio-v$version/OfficeIMO-Studio-$version-{Runtime}-portable.zip"
+  },
   "Winget": {
     "Enabled": true,
     "Submit": false,

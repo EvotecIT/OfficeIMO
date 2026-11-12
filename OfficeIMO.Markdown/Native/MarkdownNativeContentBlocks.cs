@@ -379,10 +379,9 @@ public sealed class MarkdownNativeFrontMatterBlock : MarkdownNativeBlock {
         : base(MarkdownNativeBlockKind.FrontMatter, frontMatter, syntaxNode) {
         FrontMatter = frontMatter;
         Entries = frontMatter.Entries;
-        Values = frontMatter.Entries.ToDictionary(
-            static entry => entry.Key,
-            static entry => entry.Value,
-            StringComparer.OrdinalIgnoreCase);
+        var values = new Dictionary<string, global::OfficeIMO.Yaml.YamlNode>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < Entries.Count; i++) values[Entries[i].Key] = Entries[i].Value;
+        Values = values;
         RawYaml = frontMatter.RawYaml;
         BodySourceSpan = frontMatter.BodySourceSpan;
         OpeningFenceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.FrontMatterOpeningFence);
@@ -395,8 +394,8 @@ public sealed class MarkdownNativeFrontMatterBlock : MarkdownNativeBlock {
     /// <summary>Structured front matter entries in source order.</summary>
     public IReadOnlyList<FrontMatterBlock.Entry> Entries { get; }
 
-    /// <summary>Front matter values by key.</summary>
-    public IReadOnlyDictionary<string, object?> Values { get; }
+    /// <summary>Top-level front matter values by key; when keys repeat, the last one wins.</summary>
+    public IReadOnlyDictionary<string, global::OfficeIMO.Yaml.YamlNode> Values { get; }
 
     /// <summary>Raw YAML payload between the front matter fence markers when parsed from markdown.</summary>
     public string? RawYaml { get; }

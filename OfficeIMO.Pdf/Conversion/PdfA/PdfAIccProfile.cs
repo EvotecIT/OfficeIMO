@@ -35,7 +35,7 @@ internal readonly struct PdfAIccProfile {
         string colorSpace = Encoding.ASCII.GetString(data, 16, 4);
         profile = new PdfAIccProfile(major, deviceClass, colorSpace);
         if (major < 2 || major > 4) {
-            error = "ICC version " + major.ToString(System.Globalization.CultureInfo.InvariantCulture) + " is outside the versions PDF/A-2 and PDF/A-3 allow";
+            error = "ICC version " + major.ToString(System.Globalization.CultureInfo.InvariantCulture) + " is outside the versions PDF/A allows";
             return false;
         }
         if (profile.Components == 0) {

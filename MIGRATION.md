@@ -3,7 +3,7 @@
 <!-- officeimo-api-map:begin -->
 ## OfficeIMO and PSWriteOffice 3.6
 
-OfficeIMO 3.6 and PSWriteOffice 3.6 change the public API in both languages and are released together. Nothing keeps a compatibility wrapper, so update scripts and code with the rules and tables below. PSWriteOffice goes from 594 commands and 383 aliases to 482 commands and 176 aliases; every job that worked before still works, usually through fewer commands. The [API design](Docs/officeimo.api-design.md) explains the rules.
+OfficeIMO 3.6 and PSWriteOffice 3.6 change the public API in both languages and are released together. Nothing keeps a compatibility wrapper, so update scripts and code with the rules and tables below. PSWriteOffice goes from 594 commands and 383 aliases to 494 commands and 176 aliases; every job that worked before still works, usually through fewer commands. The [API design](Docs/officeimo.api-design.md) explains the rules.
 
 ### What changed
 
@@ -5568,6 +5568,30 @@ or letterforms. Set `PdfTextEditOptions.Font` to choose a standard face explicit
 Unsupported shaping and text outside both encodings still fail before returning
 an edited document; the source remains unchanged.
 
+## Font embedding permissions
+
+Every OfficeIMO component that embeds a font program reads the font's OS/2 `fsType`
+licence the same way. When a font sets more than one of Restricted License, Preview & Print
+and Editable, the least restrictive one applies. A font with no OS/2 table declares no restriction.
+
+- **Word.** `WordDocument.EmbedFont` now throws `ArgumentException` for a font whose licence
+  forbids embedding (Restricted License alone) or allows only bitmap embedding. It used to embed
+  any file. Preview & Print and Editable fonts are still embedded; for a collection, every face
+  must allow it.
+- **XPS.** `XpsDocument.AddFont` applies the same check and throws `ArgumentException` with
+  `ParamName` `fontBytes`.
+- **PDF.** Fonts that combine Restricted License with Preview & Print or Editable, such as the
+  macOS ZapfDingbats face, are now embedded instead of being replaced by a fallback. Bitmap-only
+  fonts are now refused like Restricted ones: writing a document that uses one as a registered
+  font family throws `NotSupportedException`, and an installed fallback face like that is skipped. A font that
+  forbids subsetting is embedded whole, without a subset tag, so the output grows by the size of
+  the font.
+- **SVG.** Drawing SVG export leaves out the `@font-face` rule for a face whose licence forbids
+  embedding, so the text names its family and a viewer uses an installed copy.
+
+Data that is not a readable OpenType font or collection carries no licence to check and is
+handled as before.
+
 ## PDF adapter package direction
 
 `OfficeIMO.Word.Pdf` now exports Word to PDF, and `OfficeIMO.PowerPoint.Pdf`
@@ -9839,6 +9863,37 @@ PDF and image conversions no longer throw `HtmlConversionException` when no avai
 ## HTML-to-Excel error values
 
 A `data-officeimo-value` error value is written as an error cell only when it is one of `#NULL!`, `#DIV/0!`, `#VALUE!`, `#REF!`, `#NAME?`, `#NUM!` or `#N/A`. Any other text, including `#CALC!` and `#SPILL!`, is imported as the visible cell text and reported with `HtmlConversionDiagnosticCodes.SemanticValueInvalid`. Before, such text became an invalid error cell and XLSB saves threw.
+
+## YAML reader adapter
+
+`OfficeIMO.Reader.Yaml` reads YAML with the `OfficeIMO.Yaml` engine and no longer depends on YamlDotNet.
+
+- **Options.** `YamlReadOptions.MaxDepth`, `MaxNodes`, `MaxParseEvents` and `MaxScalarLength` are removed. Set limits through `YamlReadOptions.LoadOptions = new YamlLoadOptions { ... }`. `MaxNodes` now counts the nodes of each document instead of the whole stream, `MaxScalarLength` counts a scalar's source text, and the engine defaults (depth 256, 1,000,000 nodes per document, 100,000 alias-expanded nodes, 16 MiB scalars) apply when `LoadOptions` is null. There is no parse-event limit; `MaxNodes` and `ReaderOptions.MaxInputBytes` bound the work.
+- **Large files.** Streams over the old 20,000-node total, such as large OpenAPI documents, are now read instead of returning a limit warning.
+- **Paths.** Key text is exact: `"a  b": 1` reports `$["a  b"]` instead of `$["a b"]`, `" a ": 1` reports `$[" a "]` instead of `$.a`, and keys longer than 512 characters are no longer cut to `...`. A path selects its node with `YamlDocument.Select`, except where two keys differ only in type, such as `1` and `"1"`, which share the path `$["1"]`. Collection keys use their source text, such as `$["[one, two]"]` instead of `$["[one,two]"]`.
+- **Values.** Plain scalars keep their decoded text; `key: a  b` reports `a  b` instead of `a b`.
+- **Types.** Scalars resolve through the document's schema. Under the default YAML 1.2 core schema `1_000` is now `string` (was `number`) and `.inf`/`.nan` are `number` (were `string`); under `%YAML 1.1`, `yes`/`no`/`on`/`off` are `boolean`. Scalars with custom tags such as `!Ref 123` are `string`.
+- **Chunks.** Each document of a multi-document stream starts a new chunk, so one chunk never mixes `$[0]` and `$[1]` rows. Chunks carry `Location.StartLine` and `EndLine`; rows from an alias report the alias's lines.
+- **Errors.** Malformed input reports `YAML parse error (<code>): <message> (line L, column C)` with the stable `YamlErrorCodes` value, followed by the offending source line and a caret under the column. For example, `YAML parse error (Yaml.Syntax.InvalidValue): A mapping value is not allowed here. (line 10, column 31)` replaces `YAML parse error: SemanticErrorException.` Exceeded limits use the same form with `Yaml.Limit.Exceeded` and the limit name, replacing `YAML parse limit exceeded: maximum ... reached.` Match warnings on the code, not on the whole text.
+- **Keys and aliases.** Duplicate keys compare as YAML values, so `1` and `0x1` are duplicates while `1` and `"1"` are not. Repeated keys no longer fail the read: the last one wins, as in PyYAML, only the entry a lookup returns is reported, and each duplicate becomes a chunk warning. Set `YamlLoadOptions.Strict = true` or `DuplicateKeys = YamlDuplicateKeyPolicy.Error` to fail instead, or `FirstWins` to keep the first. An alias inside its own anchor, which produced depth-limited rows, is now a `Yaml.Limit.Exceeded` warning. The `depth-limit` and `node-limit` row types are no longer emitted.
+- **Encoding.** UTF-16 and UTF-32 input is detected without a byte-order mark, and bytes that are invalid in the detected encoding report `Yaml.Encoding.Invalid` instead of being replaced with U+FFFD.
+
+## Markdown front matter on the YAML engine
+
+`OfficeIMO.Markdown` reads and writes front matter with `OfficeIMO.Yaml` and now depends on that package. Nested mappings and lists, which the earlier flat reader split into wrong entries, read correctly, and unedited front matter is written back byte for byte.
+
+- **Values.** `FrontMatterBlock.Entry.Value` is a `YamlNode` instead of `object?`. Replace `entry.Value as string` with `entry.Value.AsString()`, a `bool` or `double` cast with `entry.Value.GetValue<bool>()` or `GetValue<double>()`, and a list cast with `entry.Value.AsSequence()`. `MarkdownNativeFrontMatterBlock.Values` is an `IReadOnlyDictionary<string, YamlNode>`.
+- **Typed reads.** `FrontMatterBlock.TryGetValue<T>` and `MarkdownDocument.TryGetFrontMatterValue<T>` read scalars through the YAML schema. They support `string`, `bool`, `int`, `long`, `double`, `float`, `decimal` and their nullable forms, and throw `NotSupportedException` for other types, such as `IEnumerable<string>`. A `string` read returns the text of any scalar, so `title: 2024` reads as `"2024"`. Read lists with `FindEntry(key)?.Value.AsSequence()` and nested values with `Select("author.name")`.
+- **New members.** `FrontMatterBlock.Yaml` is the lossless `YamlDocument`, and edits through it rewrite only the changed text when the Markdown is saved. `Mapping` is its root mapping, `Select(path)` reads nested values and `Diagnostics` holds reading findings.
+- **Invalid YAML.** Front matter that is not valid YAML stays in the document as text instead of becoming partial entries. `Yaml` is `null`, `Entries` is empty, and `Diagnostics` holds a `markdown-front-matter-invalid-yaml` error with its Markdown line and column.
+- **Repeated keys.** `Entries` lists every entry. `FindEntry` and `TryGetValue` return the last one, as before, and each repeat is a `yaml-duplicate-key` warning in `Diagnostics`.
+- **Empty front matter.** A `---` line directly followed by another `---` line is now empty front matter, as Jekyll reads it, instead of two thematic breaks.
+- **Source spans.** A block scalar's `ValueSourceSpan` starts at its `|` or `>` header instead of its first content line. An entry's span ends at its value instead of the end of the line.
+- **Fences.** An opening or closing fence with trailing spaces, such as `--- `, is written back as it was read.
+- **Built front matter.** `FrontMatter(...)` and `FrontMatterBlock.FromObject` write through the YAML writer. Strings such as `yes`, `on`, `1.0` or `2024-01-02` are quoted, so YAML readers keep them as strings. Nested dictionaries, collections and, with `FromObject(object)`, objects become YAML mappings and sequences, and `YamlNode` values are used as they are. `DateTime` and `DateTimeOffset` values are written as ISO 8601 timestamps instead of culture-specific text.
+- **Removed.** The public parameterless `FrontMatterBlock()` constructor, which created a block that could not be filled, is removed. Use `FrontMatterBlock.FromObject`.
+- **Converters.** The PDF front matter table lists nested mappings as dotted keys, such as `author.name`. Markdown-to-AsciiDoc writes them as hyphen-joined attributes, such as `:author-name:`, and reports the flattening. Invalid front matter is reported and omitted from the attributes.
+- **PowerShell.** `Get-OfficeMarkdownFrontMatter` returns objects with `Key`, `Value`, `Node` and `SourceSpan`. `Value` is a plain .NET value: a string, number or boolean, a dictionary for a mapping, or a list for a sequence. `Node` is the `YamlNode`.
 
 ## Excel non-finite numbers
 

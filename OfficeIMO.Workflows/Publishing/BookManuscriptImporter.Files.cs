@@ -63,7 +63,7 @@ public static partial class BookManuscriptImporter {
         if (extension is ".md" or ".markdown") {
             using var reader = new StreamReader(stream, new System.Text.UTF8Encoding(false, true), detectEncodingFromByteOrderMarks: true);
             using MarkdownDocument parsed = MarkdownDocument.Parse(await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false));
-            if (parsed.FindFrontMatterEntry("title")?.Value is not string title || (title == null || string.IsNullOrWhiteSpace(title)))
+            if (string.IsNullOrWhiteSpace(MarkdownFrontMatterText.Get(parsed, "title")))
                 operation.Title ??= fallbackTitle;
             return await ImportMarkdownAsync(parsed, operation, htmlOptions, cancellationToken).ConfigureAwait(false);
         }

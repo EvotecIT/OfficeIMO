@@ -64,6 +64,44 @@ internal sealed partial class PdfAConverter {
         }
     }
 
+    /// <summary>
+    /// PDF/A-4 (6.2.10.7) forbids ToUnicode values of U+0000, U+FEFF and U+FFFE. PDF/A-4 does not require Unicode values, so
+    /// the map is rewritten without those entries; the glyphs drawn are unchanged.
+    /// </summary>
+    private void RemoveInvalidUnicodeValues(FontUse use, string location) {
+        PdfDictionary font = use.Font;
+        if (Resolve(font.Items.TryGetValue("ToUnicode", out PdfObject? value) ? value : null) is not PdfStream) return;
+        bool composite = GetName(font, "Subtype") == "Type0";
+        if (composite && GetName(font, "Encoding") is not ("Identity-H" or "Identity-V")) return;
+        ToUnicodeCMap? cmap;
+        try {
+            cmap = ResourceResolver.CreateFontResource(use.ResourceName, font, _objects).CMap;
+        } catch (Exception exception) when (exception is InvalidDataException or NotSupportedException or ArgumentException or IndexOutOfRangeException or PdfReadLimitException) {
+            return;
+        }
+        if (cmap is null) return;
+        int codeBytes = composite ? 2 : 1;
+        int invalid = 0;
+        foreach (KeyValuePair<string, string> entry in cmap.Mappings) {
+            if (entry.Key.Length == codeBytes * 2 && HasForbiddenUnicodeValue(entry.Value)) invalid++;
+        }
+        if (invalid == 0) return;
+        if (Change(PdfAConversionChangeKind.ToUnicodeAdded, location,
+                "Removed " + invalid.ToString(CultureInfo.InvariantCulture) + " ToUnicode value(s) of U+0000, U+FEFF or U+FFFE, which PDF/A-4 forbids; those codes have no text value now.",
+                font, OfficeConversionLossKind.Omission)) {
+            // Keep every other value, including U+FFFD, which PDF/A-4 allows.
+            font.Items["ToUnicode"] = AddObject(BuildToUnicodeStream(new SortedDictionary<int, string>(), codeBytes, cmap,
+                static mapped => !string.IsNullOrEmpty(mapped) && !HasForbiddenUnicodeValue(mapped!)));
+        }
+    }
+
+    private static bool HasForbiddenUnicodeValue(string value) {
+        foreach (char character in value) {
+            if (character is '\0' or '\uFEFF' or '\uFFFE') return true;
+        }
+        return false;
+    }
+
     private static bool IsValidUnicode(string? value) {
         if (string.IsNullOrEmpty(value)) return false;
         foreach (char character in value!) {
@@ -72,13 +110,15 @@ internal sealed partial class PdfAConverter {
         return true;
     }
 
-    private PdfStream BuildToUnicodeStream(SortedDictionary<int, string> mapping, int codeBytes, ToUnicodeCMap? existing) {
+    private PdfStream BuildToUnicodeStream(SortedDictionary<int, string> mapping, int codeBytes, ToUnicodeCMap? existing,
+        Func<string?, bool>? keepExisting = null) {
+        keepExisting ??= IsValidUnicode;
         var all = new SortedDictionary<int, string>(mapping);
         if (existing is not null) {
             foreach (KeyValuePair<string, string> entry in existing.Mappings) {
                 if (entry.Key.Length != codeBytes * 2 ||
                     !int.TryParse(entry.Key, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int code) ||
-                    all.ContainsKey(code) || !IsValidUnicode(entry.Value)) continue;
+                    all.ContainsKey(code) || !keepExisting(entry.Value)) continue;
                 all[code] = entry.Value;
             }
         }

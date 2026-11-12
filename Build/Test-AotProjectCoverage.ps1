@@ -159,6 +159,10 @@ $buildAnalyzers = @(
         name = 'OfficeIMO.Data.Generators'
         evidence = 'The analyzer generates an explicit row-mapping plan that compiles into and executes from the main NativeAOT host; the analyzer itself is a build-time component, not a runtime assembly.'
     }
+    [ordered]@{
+        name = 'OfficeIMO.Yaml.SourceGeneration'
+        evidence = 'The generator emits YamlSerializer metadata that compiles into and executes from the OfficeIMO.Yaml.AotSmoke NativeAOT host; the generator itself is a build-time component, not a runtime assembly.'
+    }
 )
 
 if ($securityRootedLibraries.Count -ne 1 -or $securityRootedLibraries[0] -ne 'OfficeIMO.Security') {

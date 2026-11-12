@@ -263,23 +263,16 @@ internal static partial class MarkdownReader {
             // immediately below. Avoid an otherwise duplicate object-only traversal here.
             using (doc.DeferObjectTreeBinding(completeBindingOnDispose: false)) {
                 // Front matter (YAML) only if it's the very first thing in the file
-                if (allowFrontMatter && options.FrontMatter && i < lines.Length && lines[i].Trim() == "---") {
-                    int start = i + 1;
-                    int end = -1;
-                    for (int j = start; j < lines.Length; j++) { if (lines[j].Trim() == "---") { end = j; break; } }
-                    if (end > start) {
-                        var frontMatter = ParseFrontMatterBlock(lines, start, end - 1, state);
-                        if (frontMatter.Entries.Count > 0 || frontMatter.RawYaml != null) {
-                            doc.Add(frontMatter);
-                            if (syntaxNodes != null) {
-                                syntaxNodes.Add(((ISyntaxMarkdownBlock)frontMatter).BuildSyntaxNode(
-                                    CreateLineSpan(state, lineOffset + i + 1, lineOffset + end + 1)));
-                            }
-                        }
-                        i = end + 1;
-                        // optional blank line after front matter
-                        if (i < lines.Length && string.IsNullOrWhiteSpace(lines[i])) i++;
+                if (allowFrontMatter && options.FrontMatter && TryLocateFrontMatter(lines, out int closingIndex)) {
+                    var frontMatter = ParseFrontMatterBlock(lines, closingIndex, state);
+                    doc.Add(frontMatter);
+                    if (syntaxNodes != null) {
+                        syntaxNodes.Add(((ISyntaxMarkdownBlock)frontMatter).BuildSyntaxNode(
+                            CreateLineSpan(state, lineOffset + 1, lineOffset + closingIndex + 1)));
                     }
+                    i = closingIndex + 1;
+                    // optional blank line after front matter
+                    if (i < lines.Length && string.IsNullOrWhiteSpace(lines[i])) i++;
                 }
 
                 var pipeline = MarkdownReaderPipeline.Default(options);

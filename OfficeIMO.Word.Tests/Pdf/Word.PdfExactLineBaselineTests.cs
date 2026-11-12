@@ -23,7 +23,7 @@ public partial class Word {
         table.LayoutMode = WordTableLayoutMode.Fixed;
         table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(columns ? 2040 : 4800) * 635)));
         WordTableCell cell = table.Rows[0].Cells[0];
-        cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(table.Width?.ToNativeValue()) * 635)));
+        cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)table.Width!.Value.ToNativeValue() * 635)));
         cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
         cell.MarginLeft = global::OfficeIMO.OfficeLength.Zero; cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
         WordParagraph paragraph = cell.Paragraphs[0];

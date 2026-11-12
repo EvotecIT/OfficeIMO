@@ -896,6 +896,24 @@ OfficeIMO.Pdf.PdfPageReadStatus.DamagedContentStream = 3 -> OfficeIMO.Pdf.PdfPag
 static OfficeIMO.Pdf.PdfVisualComparer.CompareImages(System.Collections.Generic.IReadOnlyList<byte[]!>! expectedPagePngs, System.Collections.Generic.IReadOnlyList<byte[]!>! actualPagePngs, OfficeIMO.Pdf.PdfVisualComparisonOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfVisualComparisonReport!
 OfficeIMO.Pdf.PdfVisualComparisonOptions.IgnoreAntialiasing.get -> bool
 OfficeIMO.Pdf.PdfVisualComparisonOptions.IgnoreAntialiasing.set -> void
+OfficeIMO.Pdf.PdfAAttachmentPolicy
+OfficeIMO.Pdf.PdfAAttachmentPolicy.Refuse = 1 -> OfficeIMO.Pdf.PdfAAttachmentPolicy
+OfficeIMO.Pdf.PdfAAttachmentPolicy.Remove = 0 -> OfficeIMO.Pdf.PdfAAttachmentPolicy
+OfficeIMO.Pdf.PdfAConversionOptions.Attachments.get -> OfficeIMO.Pdf.PdfAAttachmentPolicy
+OfficeIMO.Pdf.PdfAConversionOptions.Attachments.set -> void
+OfficeIMO.Pdf.PdfAConversionOptions.FontSubstitution.get -> OfficeIMO.Pdf.PdfAFontSubstitution!
+OfficeIMO.Pdf.PdfAConversionOptions.FontSubstitution.set -> void
+OfficeIMO.Pdf.PdfAConversionOptions.OutputIntent.get -> OfficeIMO.Pdf.PdfOutputIntent?
+OfficeIMO.Pdf.PdfAConversionOptions.OutputIntent.set -> void
+OfficeIMO.Pdf.PdfAConversionResult.Save(System.IO.Stream! stream, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
+OfficeIMO.Pdf.PdfAFontSubstitution
+OfficeIMO.Pdf.PdfAFontSubstitution.Families.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfEmbeddedFontFamily!>!
+OfficeIMO.Pdf.PdfAFontSubstitution.ThenInstalledFonts() -> OfficeIMO.Pdf.PdfAFontSubstitution!
+OfficeIMO.Pdf.PdfAFontSubstitution.UsesInstalledFonts.get -> bool
+OfficeIMO.Pdf.PdfDocument.SaveAsPdfA(System.IO.Stream! stream, OfficeIMO.Pdf.PdfAConversionOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfAConversionReport!
+static OfficeIMO.Pdf.PdfAFontSubstitution.InstalledFonts.get -> OfficeIMO.Pdf.PdfAFontSubstitution!
+static OfficeIMO.Pdf.PdfAFontSubstitution.None.get -> OfficeIMO.Pdf.PdfAFontSubstitution!
+static OfficeIMO.Pdf.PdfAFontSubstitution.Supplied(params OfficeIMO.Pdf.PdfEmbeddedFontFamily![]! families) -> OfficeIMO.Pdf.PdfAFontSubstitution!
 OfficeIMO.Pdf.PdfAConversionChange
 OfficeIMO.Pdf.PdfAConversionChange.Kind.get -> OfficeIMO.Pdf.PdfAConversionChangeKind
 OfficeIMO.Pdf.PdfAConversionChange.Location.get -> string!
@@ -925,24 +943,13 @@ OfficeIMO.Pdf.PdfAConversionChangeKind.XObjectUpdated = 14 -> OfficeIMO.Pdf.PdfA
 OfficeIMO.Pdf.PdfAConversionException
 OfficeIMO.Pdf.PdfAConversionException.Report.get -> OfficeIMO.Pdf.PdfAConversionReport!
 OfficeIMO.Pdf.PdfAConversionOptions
-OfficeIMO.Pdf.PdfAConversionOptions.EmbedSubstituteFonts.get -> bool
-OfficeIMO.Pdf.PdfAConversionOptions.EmbedSubstituteFonts.set -> void
-OfficeIMO.Pdf.PdfAConversionOptions.OutputConditionIdentifier.get -> string?
-OfficeIMO.Pdf.PdfAConversionOptions.OutputConditionIdentifier.set -> void
-OfficeIMO.Pdf.PdfAConversionOptions.OutputIntentProfile.get -> byte[]?
-OfficeIMO.Pdf.PdfAConversionOptions.OutputIntentProfile.set -> void
-OfficeIMO.Pdf.PdfAConversionOptions.Password.get -> string?
-OfficeIMO.Pdf.PdfAConversionOptions.Password.set -> void
 OfficeIMO.Pdf.PdfAConversionOptions.PdfAConversionOptions() -> void
 OfficeIMO.Pdf.PdfAConversionOptions.Profile.get -> OfficeIMO.Pdf.PdfComplianceProfile
 OfficeIMO.Pdf.PdfAConversionOptions.Profile.set -> void
-OfficeIMO.Pdf.PdfAConversionOptions.RemoveEmbeddedFiles.get -> bool
-OfficeIMO.Pdf.PdfAConversionOptions.RemoveEmbeddedFiles.set -> void
 OfficeIMO.Pdf.PdfAConversionRefusalReason
 OfficeIMO.Pdf.PdfAConversionReport
 OfficeIMO.Pdf.PdfAConversionReport.Changes.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfAConversionChange!>!
 OfficeIMO.Pdf.PdfAConversionReport.Profile.get -> OfficeIMO.Pdf.PdfComplianceProfile
-OfficeIMO.Pdf.PdfAConversionReport.Succeeded.get -> bool
 OfficeIMO.Pdf.PdfAConversionReport.Violations.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfAConversionViolation!>!
 OfficeIMO.Pdf.PdfAConversionResult
 OfficeIMO.Pdf.PdfAConversionResult.Report.get -> OfficeIMO.Pdf.PdfAConversionReport!
@@ -1083,3 +1090,4 @@ OfficeIMO.Pdf.PdfDocument.RemoveHiddenData(OfficeIMO.OfficeHiddenDataOptions? op
 OfficeIMO.Pdf.PdfDocumentRedactions.ApplyForSharing(OfficeIMO.Pdf.PdfRedactionPlan! plan, OfficeIMO.OfficeHiddenDataOptions! hiddenDataOptions, OfficeIMO.Pdf.PdfRedactionApplyOptions? applyOptions = null, OfficeIMO.Pdf.PdfRedactionVerificationOptions? verificationOptions = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfRedactionSharingResult!
 OfficeIMO.Pdf.PdfRedactionShareableSummary.RemovedHiddenDataCount.get -> int?
 OfficeIMO.Pdf.PdfRedactionSharingResult.HiddenData.get -> OfficeIMO.OfficeHiddenDataResult!
+OfficeIMO.Pdf.PdfAConversionRefusalReason.EmbeddedFileRequired = 22 -> OfficeIMO.Pdf.PdfAConversionRefusalReason

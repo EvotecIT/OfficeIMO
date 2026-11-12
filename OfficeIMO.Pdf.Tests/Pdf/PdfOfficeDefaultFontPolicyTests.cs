@@ -160,7 +160,7 @@ public class PdfOfficeDefaultFontPolicyTests {
                     warning.Details["fontName"].Replace(" ", string.Empty).StartsWith(expected.Replace(" ", string.Empty), StringComparison.Ordinal));
                 using var reopened = UglyToad.PdfPig.PdfDocument.Open(bytes);
                 Assert.All(reopened.GetPage(1).Letters, letter =>
-                    Assert.Contains(expected.Replace(" ", string.Empty), letter.FontName.Replace(" ", string.Empty), StringComparison.Ordinal));
+                    Assert.Contains(expected.Replace(" ", string.Empty), letter.FontName!.Replace(" ", string.Empty), StringComparison.Ordinal));
             }
         }
     }

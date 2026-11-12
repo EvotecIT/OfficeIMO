@@ -10,6 +10,7 @@ public static partial class OfficeDrawingSvgExporter {
         if (fonts.Faces.Count == 0) return svg;
         var families = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var face in fonts.Faces) {
+            if (!face.AllowsOutlineEmbedding) continue;
             families[face.ResourceFamilyName] = prefix + face.ResourceFamilyName;
             families[face.FamilyName] = prefix + face.FamilyName;
         }

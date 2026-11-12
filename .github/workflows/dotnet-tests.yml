@@ -680,6 +680,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $feed | Out-Null
           $projects = @(
             'OfficeIMO.Core/OfficeIMO.Core.csproj',
+            'OfficeIMO.Yaml/OfficeIMO.Yaml.csproj',
             'OfficeIMO.Markdown/OfficeIMO.Markdown.csproj',
             'OfficeIMO.Rtf/OfficeIMO.Rtf.csproj',
             'OfficeIMO.Email/OfficeIMO.Email.csproj',
@@ -749,6 +750,7 @@ jobs:
           $localMapping.SetAttribute('key', 'OfficeIMOLocal')
           foreach ($packageId in @(
             'OfficeIMO.Core',
+            'OfficeIMO.Yaml',
             'OfficeIMO.Markdown',
             'OfficeIMO.Rtf',
             'OfficeIMO.Email',
@@ -861,6 +863,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $feed | Out-Null
           $projects = @(
             'OfficeIMO.Core/OfficeIMO.Core.csproj',
+            'OfficeIMO.Yaml/OfficeIMO.Yaml.csproj',
             'OfficeIMO.Markdown/OfficeIMO.Markdown.csproj',
             'OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj',
             'OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj',
@@ -889,6 +892,7 @@ jobs:
           }
           $packageIds = @(
             'OfficeIMO.Core',
+            'OfficeIMO.Yaml',
             'OfficeIMO.Markdown',
             'OfficeIMO.Html.Core',
             'OfficeIMO.Html.AngleSharp',

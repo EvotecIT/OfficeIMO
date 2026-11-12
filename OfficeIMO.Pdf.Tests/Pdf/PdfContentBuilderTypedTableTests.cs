@@ -93,7 +93,7 @@ public sealed class PdfContentBuilderTypedTableTests {
         int scalarCalls = 0;
         var options = new PdfTableOptions { Projection = new ObjectFlattenerOptions { CollectionMode = CollectionMode.ExpandRows } };
         options.Formatters["Tags"] = value => "[" + value + "]";
-        options.Formatters["Name"] = value => { scalarCalls++; return value?.ToString()?.ToUpperInvariant(); };
+        options.Formatters["Name"] = value => { scalarCalls++; return value?.ToString()?.ToUpperInvariant()!; };
         using var document = PdfDocument.Create(builder => builder.Content(content => content.AddTable(source, options)));
         var block = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
         Assert.Equal(new[] { "ADA", "[one]" }, block.Rows[1]);

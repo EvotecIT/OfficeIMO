@@ -261,7 +261,7 @@ internal static class MarkdownNativeSnapshotFactory {
         }
 
         for (var i = 0; i < frontMatter.Entries.Count; i++) {
-            fields[frontMatter.Entries[i].Key] = frontMatter.Entries[i].Value?.ToString();
+            fields[frontMatter.Entries[i].Key] = FrontMatterBlock.FormatValue(frontMatter.Entries[i].Value);
         }
 
         return fields;
