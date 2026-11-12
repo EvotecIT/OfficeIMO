@@ -181,7 +181,7 @@
     <g data-visio-connector-id="alert">
       <path d="M 418.08 273.6 L 138.72 273.6" fill="none" stroke="#93C5FD" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" />
       <path data-officeimo-connector-arrow="end" d="M 138.72 273.6 L 145.928 270.129 L 145.928 277.071 Z" fill="#93C5FD" stroke="none" />
-      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="222.48" y="249.04" width="111.84" height="18.4" fill="#FFFFFF" fill-opacity="0.902" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="222.48" y="249.04" width="111.84" height="18.4" fill="#FFFFFF" />
       <text x="278.4" y="257.04" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#1E293B">
         <tspan x="278.4" dy="0">Alert: timeout spike</tspan>
       </text>
@@ -189,7 +189,7 @@
     <g data-visio-connector-id="check">
       <path d="M 138.72 344.64 L 701.28 344.64" fill="none" stroke="#93C5FD" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" />
       <path data-officeimo-connector-arrow="end" d="M 701.28 344.64 L 694.072 348.111 L 694.072 341.169 Z" fill="#93C5FD" stroke="none" />
-      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="239.52" y="320.08" width="77.76" height="18.4" fill="#FFFFFF" fill-opacity="0.902" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="239.52" y="320.08" width="77.76" height="18.4" fill="#FFFFFF" />
       <text x="278.4" y="328.08" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#1E293B">
         <tspan x="278.4" dy="0">Check health</tspan>
       </text>
@@ -197,7 +197,7 @@
     <g data-visio-connector-id="message-3">
       <path d="M 701.28 415.68 L 138.72 415.68" fill="none" stroke="#D8B4FE" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7.68 3.84" />
       <path data-officeimo-connector-arrow="end" d="M 138.72 415.68 L 145.928 412.209 L 145.928 419.151 Z" fill="#D8B4FE" stroke="none" />
-      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="512.82" y="391.12" width="97.56" height="18.4" fill="#FFFFFF" fill-opacity="0.902" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="512.82" y="391.12" width="97.56" height="18.4" fill="#FFFFFF" />
       <text x="561.6" y="399.12" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#1E293B">
         <tspan x="561.6" dy="0">Gateway latency</tspan>
       </text>
@@ -205,7 +205,7 @@
     <g data-visio-connector-id="pause">
       <path d="M 138.72 486.72 L 984.48 486.72" fill="none" stroke="#5EEAD4" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" />
       <path data-officeimo-connector-arrow="end" d="M 984.48 486.72 L 977.272 490.191 L 977.272 483.249 Z" fill="#5EEAD4" stroke="none" />
-      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="522.66" y="462.16" width="77.88" height="18.4" fill="#FFFFFF" fill-opacity="0.902" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="522.66" y="462.16" width="77.88" height="18.4" fill="#FFFFFF" />
       <text x="561.6" y="470.16" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#1E293B">
         <tspan x="561.6" dy="0">Pause retries</tspan>
       </text>
@@ -213,7 +213,7 @@
     <g data-visio-connector-id="verify">
       <path d="M 705.12 557.76 L 1267.68 557.76" fill="none" stroke="#93C5FD" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" />
       <path data-officeimo-connector-arrow="end" d="M 1267.68 557.76 L 1260.472 561.231 L 1260.472 554.289 Z" fill="#93C5FD" stroke="none" />
-      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="795.9" y="533.2" width="97.8" height="18.4" fill="#FFFFFF" fill-opacity="0.902" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="795.9" y="533.2" width="97.8" height="18.4" fill="#FFFFFF" />
       <text x="844.8" y="541.2" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#1E293B">
         <tspan x="844.8" dy="0">Verify settlement</tspan>
       </text>
@@ -221,7 +221,7 @@
     <g data-visio-connector-id="message-6">
       <path d="M 1267.68 628.8 L 705.12 628.8" fill="none" stroke="#D8B4FE" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7.68 3.84" />
       <path data-officeimo-connector-arrow="end" d="M 705.12 628.8 L 712.328 625.329 L 712.328 632.271 Z" fill="#D8B4FE" stroke="none" />
-      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="812.88" y="604.24" width="63.84" height="18.4" fill="#FFFFFF" fill-opacity="0.902" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="812.88" y="604.24" width="63.84" height="18.4" fill="#FFFFFF" />
       <text x="844.8" y="612.24" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#1E293B">
         <tspan x="844.8" dy="0">Consistent</tspan>
       </text>
@@ -229,7 +229,7 @@
     <g data-visio-connector-id="resume">
       <path d="M 984.48 699.84 L 705.12 699.84" fill="none" stroke="#5EEAD4" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" />
       <path data-officeimo-connector-arrow="end" d="M 705.12 699.84 L 712.328 696.369 L 712.328 703.311 Z" fill="#5EEAD4" stroke="none" />
-      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="775.74" y="675.28" width="138.12" height="18.4" fill="#FFFFFF" fill-opacity="0.902" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="775.74" y="675.28" width="138.12" height="18.4" fill="#FFFFFF" />
       <text x="844.8" y="683.28" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#1E293B">
         <tspan x="844.8" dy="0">Resume controlled drain</tspan>
       </text>
@@ -237,7 +237,7 @@
     <g data-visio-connector-id="record">
       <path d="M 138.72 770.88 L 208.8 770.88 L 208.8 805.44 L 138.72 805.44" fill="none" stroke="#93C5FD" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" />
       <path data-officeimo-connector-arrow="end" d="M 138.72 805.44 L 145.928 801.969 L 145.928 808.911 Z" fill="#93C5FD" stroke="none" />
-      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="238.86" y="776.56" width="91.08" height="32.8" fill="#FFFFFF" fill-opacity="0.902" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="238.86" y="776.56" width="91.08" height="32.8" fill="#FFFFFF" />
       <text x="284.4" y="784.56" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#1E293B">
         <tspan x="284.4" dy="0">Update incident</tspan>
         <tspan x="284.4" dy="14.4">record</tspan>

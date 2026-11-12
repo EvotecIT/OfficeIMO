@@ -196,6 +196,20 @@
         {
           "registry": "nuget",
           "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Yaml",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Yaml",
+          "title": "OfficeIMO.Yaml",
+          "summary": "Lossless YAML 1.2 document model with path edits, overlay merging, streaming reader and writer, and a source-generated serializer.",
+          "best_for": "configuration edits that keep comments, Helm-style overlays, and typed YAML in trimmed or NativeAOT apps",
+          "install": "dotnet add package OfficeIMO.Yaml",
+          "product_url": "/products/yaml/",
+          "docs_url": "/docs/yaml/",
+          "api_url": "/api/yaml/",
+          "accent": "#facc15"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
           "registry_package": "OfficeIMO.Visio",
           "registry_url": "https://www.nuget.org/packages/OfficeIMO.Visio",
           "title": "OfficeIMO.Visio",

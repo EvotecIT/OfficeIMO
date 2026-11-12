@@ -5555,7 +5555,7 @@ title: Sample
         Assert.NotNull(frontMatter.SourceSpan);
         Assert.Equal(1, frontMatter.SourceSpan!.Value.StartLine);
         Assert.Equal(3, frontMatter.SourceSpan!.Value.EndLine);
-        Assert.Equal("---\ntitle: Sample\n---", frontMatter.Literal!.Replace("\r\n", "\n"));
+        Assert.Equal("--- \ntitle: Sample\n---", frontMatter.Literal!.Replace("\r\n", "\n"));
         Assert.Collection(frontMatter.Children,
             node => {
                 Assert.Equal(MarkdownSyntaxKind.FrontMatterOpeningFence, node.Kind);

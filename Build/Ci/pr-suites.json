@@ -326,7 +326,8 @@
       "OfficeIMO.Tool.Tests",
       "OfficeIMO.VerifyTests",
       "OfficeIMO.Visio.Tests",
-      "OfficeIMO.Xps.Tests"
+      "OfficeIMO.Xps.Tests",
+      "OfficeIMO.Yaml.Tests"
     ]
   },
   "windows": [
@@ -477,6 +478,10 @@
     {
       "name": "Word",
       "project": "OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj"
+    },
+    {
+      "name": "Yaml",
+      "project": "OfficeIMO.Yaml.Tests/OfficeIMO.Yaml.Tests.csproj"
     }
   ]
 }

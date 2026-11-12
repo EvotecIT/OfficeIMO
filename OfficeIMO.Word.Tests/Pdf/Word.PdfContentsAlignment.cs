@@ -21,7 +21,7 @@ public sealed class WordPdfContentsAlignmentTests {
         var entries = new[] { "Root", "Child", "Leaf" }
             .Select(title => lines.Single(line => line.Text.Contains(title))).ToArray();
         double[] left = entries.Select(entry => entry.Letters[0].StartBaseLine.X).ToArray();
-        double[] right = entries.Select(entry => Assert.Single(entry.Letters, letter => letter.Value == "2").GlyphRectangle.Right).ToArray();
+        double[] right = entries.Select(entry => Assert.Single(entry.Letters, letter => letter.Value == "2").BoundingBox.Right).ToArray();
         Assert.True(left[0] < left[1] && left[1] < left[2]);
         Assert.All(right, value => Assert.InRange(Math.Abs(value - right[0]), 0D, 0.1D));
     }

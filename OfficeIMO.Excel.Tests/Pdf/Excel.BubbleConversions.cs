@@ -149,8 +149,8 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
         Assert.InRange(canvas.NumberOfPages, 1, 4);
         var page = Assert.Single(canvas.GetPages(), candidate => candidate.Text.Contains("Tail", StringComparison.Ordinal));
         Assert.All(page.Letters, letter => {
-            Assert.InRange(letter.GlyphRectangle.Bottom, 0D, page.Height);
-            Assert.InRange(letter.GlyphRectangle.Top, 0D, page.Height);
+            Assert.InRange(letter.BoundingBox.Bottom, 0D, page.Height);
+            Assert.InRange(letter.BoundingBox.Top, 0D, page.Height);
         });
     }
 

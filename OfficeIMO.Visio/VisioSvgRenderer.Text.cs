@@ -21,7 +21,6 @@ namespace OfficeIMO.Visio {
                 rotateRadians: frame.Angle,
                 maxWidth: Math.Max(12D, frame.ContentWidth * projection.GeometryDensity),
                 maxHeight: Math.Max(8D, frame.ContentHeight * projection.GeometryDensity),
-                drawLabelBackground: false,
                 richText: VisioRichTextProjection.Create(page, shape, projection.PhysicalDensity, options.CancellationToken, textStyles),
                 cancellationToken: options.CancellationToken);
         }
@@ -39,13 +38,13 @@ namespace OfficeIMO.Visio {
             double rotateRadians,
             double maxWidth = 0D,
             double maxHeight = 0D,
-            bool drawLabelBackground = false,
+            bool connectorLabel = false,
             bool labelAdjusted = false,
             VisioRichTextProjection? richText = null,
             System.Threading.CancellationToken cancellationToken = default) {
             if (richText != null) {
                 WriteRichText(writer, richText, x, y, style, rotateRadians, maxWidth, maxHeight,
-                    drawLabelBackground, labelAdjusted, cancellationToken);
+                    connectorLabel, labelAdjusted, cancellationToken);
                 return;
             }
             text = ResolveSvgDisplayText(text, style);
@@ -74,7 +73,7 @@ namespace OfficeIMO.Visio {
             fontSize = plan.Layout.FontSize;
             double renderedFontSize = fontSize * baselineScale;
 
-            Color? backgroundColor = ResolveTextBackground(style, drawLabelBackground);
+            Color? backgroundColor = ResolveTextBackground(style);
             double padX = Math.Max(3D, renderedFontSize * 0.22D);
             double padY = Math.Max(2D, renderedFontSize * 0.16D);
             OfficeTextBlockRenderer.WriteSvgTextBox(
@@ -93,7 +92,7 @@ namespace OfficeIMO.Visio {
                 padX,
                 padY,
                 textWriter => ConfigureSvgTextAttributes(textWriter, style, labelAdjusted),
-                backgroundWriter => ConfigureTextBackgroundAttributes(backgroundWriter, drawLabelBackground, labelAdjusted),
+                backgroundWriter => ConfigureTextBackgroundAttributes(backgroundWriter, connectorLabel, labelAdjusted),
                 strikethrough: style?.Strikethrough == true,
                 underlineStyle: style?.UnderlineStyle ?? OfficeTextDecorationStyle.None,
                 strikethroughStyle: style?.StrikethroughStyle ?? OfficeTextDecorationStyle.None,
@@ -157,13 +156,9 @@ namespace OfficeIMO.Visio {
         private static bool IsFinitePositive(double value) =>
             value > 0D && !double.IsNaN(value) && !double.IsInfinity(value);
 
-        private static Color? ResolveTextBackground(VisioTextStyle? style, bool drawLabelBackground) {
-            if (style?.BackgroundColor.HasValue == true) {
-                return ApplyBackgroundTransparency(style.BackgroundColor.Value, style.BackgroundTransparency);
-            }
-
-            return drawLabelBackground ? Color.FromRgba(255, 255, 255, 230) : null;
-        }
+        // Text has a background only when the file states one, as in Visio.
+        private static Color? ResolveTextBackground(VisioTextStyle? style) =>
+            style?.BackgroundColor is Color background ? ApplyBackgroundTransparency(background, style.BackgroundTransparency) : null;
 
         private static string ResolveSvgDisplayText(string text, VisioTextStyle? style) => style?.Capitalization switch {
             VisioTextCapitalization.AllCaps => OfficeTextCaseTransformer.Apply(text, OfficeTextCase.Uppercase, CultureInfo.InvariantCulture),

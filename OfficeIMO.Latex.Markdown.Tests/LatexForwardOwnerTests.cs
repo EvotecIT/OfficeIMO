@@ -19,16 +19,16 @@ public sealed class LatexForwardOwnerTests {
         Assert.Null(result.FindFrontMatterEntry("title"));
         Assert.Null(result.FindFrontMatterEntry("author"));
         Assert.Null(result.FindFrontMatterEntry("date"));
-        Assert.Equal("article", result.FindFrontMatterEntry("documentclass")?.Value);
+        Assert.Equal("article", result.FindFrontMatterEntry("documentclass")?.Value.AsString());
         Assert.Empty(result.Blocks.OfType<HeadingBlock>());
         string text = PdfDocument.Load(new System.IO.MemoryStream(LatexDocument.Parse(Wrap("Public") + trailer).ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText();
         Assert.Contains("Public", text, StringComparison.Ordinal);
         Assert.DoesNotContain("PRIVATE", text, StringComparison.Ordinal);
         Assert.DoesNotContain("INERT", text, StringComparison.Ordinal);
         MarkdownDocument active = LatexDocument.Parse("\\title{Active}\\author{Author}\\date{Today}" + Wrap("Body") + trailer).ToMarkdown();
-        Assert.Equal("Active", active.FindFrontMatterEntry("title")?.Value);
-        Assert.Equal("Author", active.FindFrontMatterEntry("author")?.Value);
-        Assert.Equal("Today", active.FindFrontMatterEntry("date")?.Value);
+        Assert.Equal("Active", active.FindFrontMatterEntry("title")?.Value.AsString());
+        Assert.Equal("Author", active.FindFrontMatterEntry("author")?.Value.AsString());
+        Assert.Equal("Today", active.FindFrontMatterEntry("date")?.Value.AsString());
     }
 
     [Theory]

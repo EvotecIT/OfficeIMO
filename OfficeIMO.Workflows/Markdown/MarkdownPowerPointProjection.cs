@@ -13,9 +13,9 @@ internal static partial class MarkdownPowerPointProjection {
         bool HasContent() => current.Title != null || current.Blocks.Count > 0 || !string.IsNullOrEmpty(current.Notes);
         void Finish() { if (HasContent()) target.Blocks.Add(current); current = new OfficeMarkupSlideBlock(); }
         if (options.RenderFrontMatter) {
-            string? title = source.FindFrontMatterEntry("title")?.Value as string;
-            string? subtitle = source.FindFrontMatterEntry("subtitle")?.Value as string;
-            string? author = source.FindFrontMatterEntry("author")?.Value as string;
+            string? title = MarkdownFrontMatterText.Get(source, "title");
+            string? subtitle = MarkdownFrontMatterText.Get(source, "subtitle");
+            string? author = MarkdownFrontMatterText.Get(source, "author");
             if (title is { Length: > 0 }) { current.Title = title; target.Metadata["title"] = title; }
             if (subtitle is { Length: > 0 }) current.Blocks.Add(new OfficeMarkupParagraphBlock(subtitle));
             if (author is { Length: > 0 }) { current.Blocks.Add(new OfficeMarkupParagraphBlock(author)); target.Metadata["author"] = author; }

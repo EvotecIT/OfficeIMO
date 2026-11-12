@@ -56,6 +56,8 @@ public sealed class VisioArcGeometryContractTests {
                 source.Pages[0].Connectors[0].Label = "Arc";
                 source.Pages[0].Connectors[0].PlaceLabel(.5, width: .4, height: .2);
                 source.Pages[0].Connectors[0].EndArrow = EndArrow.Triangle;
+                // The loaded connector states no label background; give it one so the SVG backing locates the label.
+                (source.Pages[0].Connectors[0].TextStyle ??= new VisioTextStyle()).BackgroundColor = OfficeColor.White;
             }
             XElement originalGeometry = SavedGeometry(source).Single();
             foreach (VisioDocument document in new[] {

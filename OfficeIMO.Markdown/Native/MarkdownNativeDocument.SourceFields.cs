@@ -577,7 +577,7 @@ public sealed partial class MarkdownNativeDocument {
             }
 
             if (entry.ValueSourceSpan.HasValue) {
-                yield return new MarkdownNativeBlockSourceField("frontMatterValue", FrontMatterBlock.FormatSyntaxValue(entry.Value), entry.ValueSourceSpan.Value, frontMatter, i);
+                yield return new MarkdownNativeBlockSourceField("frontMatterValue", FrontMatterBlock.FormatValue(entry.Value), entry.ValueSourceSpan.Value, frontMatter, i);
             }
         }
 

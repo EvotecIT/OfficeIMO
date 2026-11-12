@@ -89,23 +89,11 @@ Describe 'Command map foundations' {
             }
         }
     }
-    It 'exports one format-prefixed singular DSL alias per command without built-in collisions' {
-        $builtIns = @(& pwsh -NoProfile -Command 'Get-Command -CommandType Cmdlet,Function,Alias | ForEach-Object Name')
-        $aliases = @($module.ExportedAliases.Values)
-        @($aliases | Group-Object ResolvedCommandName | Where-Object Count -gt 1).Count | Should -Be 0
-        $prefixes = 'Word|Excel|PowerPoint|Pdf|Markdown|Visio|Html|Rtf|OpenDocument|Csv|Email|Project|Access|Epub|OneNote|IWork|AsciiDoc|Latex|Confluence'
-        foreach ($alias in $aliases) {
-            $alias.Name | Should -Match "^($prefixes)[A-Z][A-Za-z0-9]*$"
-            $alias.Name | Should -Not -Match '-'
-            $builtIns | Should -Not -Contain $alias.Name
-            # The reviewed map owns domain spelling, including the agreed Markdown shortcuts.
-            $target = @($maps.commands | Where-Object name -eq $alias.ResolvedCommandName)
-            $target.Count | Should -Be 1
-            $alias.Name | Should -BeExactly $target[0].alias
-        }
-        foreach ($target in $maps.commands | Where-Object alias) {
-            @($aliases | Where-Object ResolvedCommandName -eq $target.name).Count | Should -Be 1
-        }
+    It 'exports exactly the aliases the reviewed map declares' {
+        # Test-ApiMap.ps1 owns the alias naming and built-in collision rules; this checks the module matches the map.
+        $actual = @($module.ExportedAliases.Values | ForEach-Object { "$($_.Name) -> $($_.ResolvedCommandName)" } | Sort-Object)
+        $expected = @($maps.commands | Where-Object alias | ForEach-Object { "$($_.alias) -> $($_.name)" } | Sort-Object)
+        Compare-Object $actual $expected -CaseSensitive | Should -BeNullOrEmpty
     }
 }
 
