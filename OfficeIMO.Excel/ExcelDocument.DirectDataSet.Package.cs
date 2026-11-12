@@ -39,6 +39,7 @@ namespace OfficeIMO.Excel {
                     RemoveReservedTableName(tableName!);
                 }
 
+                InvalidateTableLayouts();
                 worksheetPart.DeletePart(tablePart);
             }
 

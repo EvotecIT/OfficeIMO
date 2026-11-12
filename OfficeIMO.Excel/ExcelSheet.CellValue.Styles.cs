@@ -759,14 +759,15 @@ namespace OfficeIMO.Excel {
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-            var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
-            var namedFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetFontName(font, fontName));
-            ApplyCellFormatOverride(stylesheet, cell, format => {
-                format.FontId = namedFontId;
-                format.ApplyFont = true;
+            ApplyDerivedCellFormat(stylesPart, stylesheet, cell, "font-name", fontName, () => {
+                uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+                var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
+                var namedFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetFontName(font, fontName));
+                ApplyCellFormatOverride(stylesheet, cell, format => {
+                    format.FontId = namedFontId;
+                    format.ApplyFont = true;
+                });
             });
-            SaveStylesheet(stylesPart);
         }
 
         private void ApplyFontSize(Cell cell, double fontSize) {
@@ -778,14 +779,15 @@ namespace OfficeIMO.Excel {
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-            var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
-            var fontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetFontSize(font, fontSize));
-            ApplyCellFormatOverride(stylesheet, cell, format => {
-                format.FontId = fontId;
-                format.ApplyFont = true;
+            ApplyDerivedCellFormat(stylesPart, stylesheet, cell, "font-size", fontSize.ToString("R", CultureInfo.InvariantCulture), () => {
+                uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+                var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
+                var fontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetFontSize(font, fontSize));
+                ApplyCellFormatOverride(stylesheet, cell, format => {
+                    format.FontId = fontId;
+                    format.ApplyFont = true;
+                });
             });
-            SaveStylesheet(stylesPart);
         }
 
         private static string NormalizeHexColor(string hex) {
@@ -873,11 +875,17 @@ namespace OfficeIMO.Excel {
             Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            ApplyCellFormatOverride(stylesheet, cell, format => {
-                format.NumberFormatId = builtInFormatId;
-                format.ApplyNumberFormat = true;
+            string argument = builtInFormatId switch {
+                14U => "14",
+                46U => "46",
+                _ => builtInFormatId.ToString(CultureInfo.InvariantCulture)
+            };
+            ApplyDerivedCellFormat(stylesPart, stylesheet, cell, "built-in-number-format", argument, () => {
+                ApplyCellFormatOverride(stylesheet, cell, format => {
+                    format.NumberFormatId = builtInFormatId;
+                    format.ApplyNumberFormat = true;
+                });
             });
-            SaveStylesheet(stylesPart);
         }
 
         private void FormatCellCore(Cell cell, int row, int column, string numberFormat) {

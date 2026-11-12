@@ -30,6 +30,25 @@ internal abstract class ExcelPackageArchive : IDisposable {
     internal void WriteEntry(string name, string content, CompressionLevel level) =>
         WriteEntry(name, new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetBytes(content), level);
 
+    private WorksheetCompressionPipeline? _compression;
+
+    /// <summary>
+    /// Returns the package's background compressor aimed at <paramref name="destination"/>. Entries are written one
+    /// after another, so one worker and its buffers serve every sheet; each entry drains it before closing.
+    /// </summary>
+    internal WorksheetCompressionPipeline AcquireCompression(Stream destination) {
+        if (_compression == null) _compression = new WorksheetCompressionPipeline(destination);
+        else _compression.Retarget(destination);
+        return _compression;
+    }
+
+    /// <summary>Stops the compressor after an entry failed; the next entry starts a new one.</summary>
+    internal void AbandonCompression() {
+        WorksheetCompressionPipeline? compression = _compression;
+        _compression = null;
+        compression?.Dispose();
+    }
+
     public abstract void Dispose();
 
     private sealed class PlatformArchive : ExcelPackageArchive {
@@ -49,6 +68,9 @@ internal abstract class ExcelPackageArchive : IDisposable {
             return entry.Open();
         }
 
-        public override void Dispose() => _archive.Dispose();
+        public override void Dispose() {
+            AbandonCompression();
+            _archive.Dispose();
+        }
     }
 }

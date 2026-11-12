@@ -87,36 +87,106 @@ internal static partial class CsvWriter
         return fieldKinds;
     }
 
-    internal static void AppendDataReaderRecordBufferedDefault(
+    private static bool TryAppendFormattedTypedDataReaderValue(
         StringBuilder buffer,
         IDataRecord reader,
-        DataReaderFieldKind[] fieldKinds,
+        int ordinal,
+        DataReaderFieldKind fieldKind,
         char delimiter,
-        string newLine,
-        CultureInfo culture)
+        CultureInfo culture,
+        string? format,
+        bool useUtc,
+        string? nullValue)
     {
-        for (var i = 0; i < fieldKinds.Length; i++)
+        try
         {
-            if (i > 0)
+            if (reader.IsDBNull(ordinal))
             {
-                buffer.Append(delimiter);
+                AppendNullMarkerDefault(buffer, nullValue, delimiter);
+                return true;
             }
 
-            var fieldKind = fieldKinds[i];
-            if (fieldKind == DataReaderFieldKind.Object || !TryAppendTypedDataReaderValue(
-                    buffer,
-                    reader,
-                    i,
-                    fieldKind,
-                    delimiter,
-                    culture))
+            if (fieldKind == DataReaderFieldKind.DateTime)
             {
-                fieldKinds[i] = DataReaderFieldKind.Object;
-                AppendDataReaderObjectValue(buffer, reader.GetValue(i), delimiter, culture);
+                AppendFormattedDateDefault(buffer, reader.GetDateTime(ordinal), format, useUtc, delimiter, culture);
+                return true;
             }
         }
+        catch (InvalidCastException)
+        {
+            return false;
+        }
+        catch (NotSupportedException)
+        {
+            return false;
+        }
+        catch (NotImplementedException)
+        {
+            return false;
+        }
 
-        buffer.Append(newLine);
+        // Other kinds ignore the date and null options once the value is known not to be null.
+        return fieldKind != DataReaderFieldKind.DateTimeOffset
+            && TryAppendTypedDataReaderValue(buffer, reader, ordinal, fieldKind, delimiter, culture);
+    }
+
+    private static void AppendFormattedDataReaderObjectValue(
+        StringBuilder buffer,
+        object? value,
+        char delimiter,
+        CultureInfo culture,
+        string? dateTimeFormat,
+        bool useUtc,
+        string? nullValue)
+    {
+        if (value is null || ReferenceEquals(value, DBNull.Value))
+        {
+            AppendNullMarkerDefault(buffer, nullValue, delimiter);
+        }
+        else if (value is DateTime dateTime)
+        {
+            AppendFormattedDateDefault(buffer, dateTime, string.IsNullOrEmpty(dateTimeFormat) ? null : dateTimeFormat, useUtc, delimiter, culture);
+        }
+        else if (value is DateTimeOffset)
+        {
+            WriteEscapedDefault(buffer, FormatValue(value, culture, dateTimeFormat, useUtc, nullValue), delimiter);
+        }
+        else
+        {
+            AppendEscapedValueDefault(buffer, value, delimiter, culture);
+        }
+    }
+
+    private static void AppendNullMarkerDefault(StringBuilder buffer, string? nullValue, char delimiter)
+    {
+        if (nullValue is not null)
+        {
+            WriteEscapedDefault(buffer, nullValue, delimiter);
+        }
+    }
+
+    private static void AppendFormattedDateDefault(
+        StringBuilder buffer,
+        DateTime value,
+        string? format,
+        bool useUtc,
+        char delimiter,
+        CultureInfo culture)
+    {
+        if (useUtc)
+        {
+            value = value.ToUniversalTime();
+        }
+
+        Span<char> destination = stackalloc char[64];
+        if (TryFormatDate(value, destination, out var charsWritten, format, culture))
+        {
+            AppendEscapedSpanDefault(buffer, destination[..charsWritten], delimiter);
+        }
+        else
+        {
+            WriteEscapedDefault(buffer, value.ToString(format, culture), delimiter);
+        }
     }
 
     private static bool TryAppendTypedDataReaderValue(
@@ -252,13 +322,26 @@ internal static partial class CsvWriter
         CultureInfo culture)
         where T : ISpanFormattable
     {
-        if (delimiter == ',' && ReferenceEquals(culture, CultureInfo.InvariantCulture))
+        Span<char> destination = stackalloc char[128];
+        if (ReferenceEquals(culture, CultureInfo.InvariantCulture))
         {
-            buffer.Append(CultureInfo.InvariantCulture, $"{value}");
+            if (!TryFormatInvariant(value, destination, out var invariantWritten))
+            {
+                WriteEscapedDefault(buffer, FormatValue(value, culture), delimiter);
+            }
+            else if (delimiter == ',')
+            {
+                // Invariant scalars contain no comma, quote or line break.
+                buffer.Append(destination[..invariantWritten]);
+            }
+            else
+            {
+                AppendEscapedSpanDefault(buffer, destination[..invariantWritten], delimiter);
+            }
+
             return;
         }
 
-        Span<char> destination = stackalloc char[128];
         if (!value.TryFormat(destination, out var charsWritten, default, culture))
         {
             WriteEscapedDefault(buffer, FormatValue(value, culture), delimiter);

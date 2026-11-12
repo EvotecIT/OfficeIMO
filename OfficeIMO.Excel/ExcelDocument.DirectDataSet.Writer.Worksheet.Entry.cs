@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel {
                 bool completed = false;
                 try {
                     stream = archive.OpenEntry(entryName, CompressionLevel.Fastest);
-                    if (allowBackgroundCompression) compression = new StreamingWorksheetCompression(stream);
+                    if (allowBackgroundCompression) compression = new StreamingWorksheetCompression(stream, archive);
                     writer = new PooledUtf8TextWriter(compression ?? stream, Utf8NoBom, XmlWriterBufferSize, leaveOpen: true);
                     WriteWorksheetContents(writer, sheet, dateTimeOffsetWriteStrategy, dateSystem,
                         sharedStrings, stylePlan, columnWritePlan, ct, tableRelationshipId);

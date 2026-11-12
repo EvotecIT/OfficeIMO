@@ -41,9 +41,13 @@ namespace OfficeIMO.Excel {
                     return _value = StylesCache.Build(stream, cancellationToken);
                 }
 
-                return _value = StylesCache.Build(_doc!, cancellationToken);
+                return _value = BuildFromDocument(cancellationToken);
             }
         }
+
+        // Kept apart so compiling the native route does not load the Open XML SDK.
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private StylesCache BuildFromDocument(CancellationToken cancellationToken) => StylesCache.Build(_doc!, cancellationToken);
     }
 
     internal sealed class StylesCache {

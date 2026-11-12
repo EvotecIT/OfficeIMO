@@ -21,9 +21,6 @@ namespace OfficeIMO.Excel {
 
         /// <summary>The grid loader applies neither a part size limit nor markup-compatibility processing, as the streaming readers do not.</summary>
         internal bool AllowsWorksheetGridLoader => _readSnapshotAllowed && FileOpenAccess != FileAccess.Read;
-        private static readonly System.Text.RegularExpressions.Regex _multipleUnderscoresRegex =
-            new System.Text.RegularExpressions.Regex("_+", System.Text.RegularExpressions.RegexOptions.Compiled);
-
         private static readonly Lazy<byte[]> DefaultThemeBytes = new(CreateDefaultThemeBytes);
         // Allocated only when an operation actually needs a serialized apply stage.
         // Publication must be atomic because the first operation may itself be concurrent.
@@ -362,7 +359,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         internal SpreadsheetDocument _spreadSheetDocument {
             get {
-                if (_pendingRowDeletes != null) FlushPendingRowDeletes();
+                FlushPendingPackageEditsIfAny();
                 return _spreadSheetDocumentValue;
             }
             set => _spreadSheetDocumentValue = value;
@@ -374,14 +371,17 @@ namespace OfficeIMO.Excel {
         public SpreadsheetDocument OpenXmlDocument {
             get {
                 _openXmlDocumentExposed = true;
-                return _spreadSheetDocument;
+                SpreadsheetDocument document = _spreadSheetDocument;
+                CommitPendingStylesheet();
+                ExcelSheet.MarkPackageExposed(document);
+                return document;
             }
         }
         private bool _openXmlDocumentExposed;
         internal bool IsOpenXmlDocumentExposed => _openXmlDocumentExposed;
         private WorkbookPart _workBookPart {
             get {
-                if (_pendingRowDeletes != null) FlushPendingRowDeletes();
+                FlushPendingPackageEditsIfAny();
                 return _workBookPartValue;
             }
             set => _workBookPartValue = value;

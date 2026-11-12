@@ -435,7 +435,12 @@ namespace OfficeIMO.Excel {
             return id;
         }
 
-        private static readonly string NoneFillKey = BuildStyleKey(new Fill(new PatternFill { PatternType = PatternValues.None }));
+        private static string NoneFillKey => StyleMergeKeys.NoneFill;
+
+        // Built on the first style merge rather than in the workbook type's initializer.
+        private static class StyleMergeKeys {
+            internal static readonly string NoneFill = BuildStyleKey(new Fill(new PatternFill { PatternType = PatternValues.None }));
+        }
 
         /// <summary>
         /// Builds the key a font, fill, border or dxf is matched by. Forms that are written differently but draw nothing

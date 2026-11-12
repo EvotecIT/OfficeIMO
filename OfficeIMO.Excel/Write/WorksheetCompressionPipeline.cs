@@ -4,18 +4,21 @@ using System.Runtime.ExceptionServices;
 
 namespace OfficeIMO.Excel {
     /// <summary>
-    /// Overlaps one private worksheet entry's compression with caller-side serialization.
+    /// Overlaps a private worksheet entry's compression with caller-side serialization.
     /// Four owned buffers bound the handoff. Completion publishes all bytes; disposal
     /// after a failed producer aborts and joins before clearing pooled storage.
+    /// A package reuses one pipeline for its entries: <see cref="Drain"/> ends an entry and
+    /// <see cref="Retarget"/> starts the next, so the worker and buffers outlive a sheet.
     /// </summary>
     internal sealed class WorksheetCompressionPipeline : Stream {
         // Large chunks keep thread hand-offs rare; a busy host can take milliseconds to wake the consumer.
         internal const int ChunkSize = 256 * 1024;
         private const int BufferCount = 4;
-        private readonly Stream _destination;
+        private Stream _destination;
         private readonly BlockingCollection<byte[]> _available = new(BufferCount);
         private readonly BlockingCollection<Chunk> _ready = new(1);
         private readonly CancellationTokenSource _stop = new();
+        private readonly ManualResetEventSlim _drained = new(false);
         private readonly byte[][] _owned = new byte[BufferCount][];
         private readonly Task _worker;
         private byte[]? _current;
@@ -49,6 +52,11 @@ namespace OfficeIMO.Excel {
         private void Consume() {
             try {
                 foreach (Chunk item in _ready.GetConsumingEnumerable(_stop.Token)) {
+                    if (item.Buffer == null) {
+                        _drained.Set();
+                        continue;
+                    }
+
                     _destination.Write(item.Buffer, 0, item.Count);
                     _available.Add(item.Buffer, _stop.Token);
                 }
@@ -80,6 +88,29 @@ namespace OfficeIMO.Excel {
                 if (_count == ChunkSize) Publish();
             }
         }
+        /// <summary>
+        /// Waits until every accepted byte reached the current destination, keeping the worker for the next entry.
+        /// Surfaces the original worker failure.
+        /// </summary>
+        internal void Drain() {
+            if (_disposed || _complete) throw new ObjectDisposedException(nameof(WorksheetCompressionPipeline));
+            ThrowFailure();
+            Publish();
+            try {
+                _drained.Reset();
+                _ready.Add(default, _stop.Token);
+                _drained.Wait(_stop.Token);
+            } catch (OperationCanceledException) { ThrowFailure(); throw; }
+            ThrowFailure();
+        }
+
+        /// <summary>Sends later bytes to <paramref name="destination"/>; valid only after <see cref="Drain"/>.</summary>
+        internal void Retarget(Stream destination) {
+            if (_disposed || _complete) throw new ObjectDisposedException(nameof(WorksheetCompressionPipeline));
+            ThrowFailure();
+            _destination = destination;
+        }
+
         /// <summary>Drains all accepted bytes and surfaces the original worker failure.</summary>
         internal void Complete() {
             if (_disposed) throw new ObjectDisposedException(nameof(WorksheetCompressionPipeline));
@@ -102,6 +133,7 @@ namespace OfficeIMO.Excel {
                 _available.Dispose();
                 _ready.Dispose();
                 _stop.Dispose();
+                _drained.Dispose();
             }
             base.Dispose(disposing);
         }

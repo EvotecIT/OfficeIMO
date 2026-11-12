@@ -77,6 +77,10 @@ internal sealed partial class AutomaticRowMappingPlan<T> {
             _arguments = arguments;
         }
 
+        internal ConstructorInfo Constructor => _constructor;
+        internal ParameterInfo[] Parameters => _parameters;
+        internal MappingBinding?[] Arguments => _arguments;
+
         internal bool Contains(AutomaticPropertySetter property) =>
             _arguments.Any(argument => argument.HasValue && ReferenceEquals(argument.Value.Property, property));
 

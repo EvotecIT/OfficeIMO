@@ -30,6 +30,16 @@ dotnet run -c Release --project .\OfficeIMO.Excel.Benchmarks.NPOI\OfficeIMO.Exce
 dotnet run -c Release --project .\OfficeIMO.Excel.Benchmarks.NPOI\OfficeIMO.Excel.Benchmarks.NPOI.csproj -- --paired-xls-write --rows 25000 --warmup 12 --iterations 40 --affinity 0xFFFF0000 --priority High
 ```
 
+Use the paired XLS read runner to compare reading existing workbooks, such as the
+65K sales fixture or the generated four-column workbook the Excel benchmark project
+reads. Both engines read every cell of the first worksheet, and the run stops
+unless they produce the same checksum over each cell's position and value:
+
+```powershell
+dotnet run -c Release --project .\OfficeIMO.Excel.Benchmarks.NPOI\OfficeIMO.Excel.Benchmarks.NPOI.csproj -- --write-generated-xls .\generated-50000.xls --rows 50000
+dotnet run -c Release --project .\OfficeIMO.Excel.Benchmarks.NPOI\OfficeIMO.Excel.Benchmarks.NPOI.csproj -- --paired-xls-read --input .\65K_Records_Data.xls,.\generated-50000.xls --warmup 3 --iterations 10 --affinity 0xFFFF
+```
+
 The first lanes are deliberately plain workbook operations:
 
 - `xlsx-write-cellvalues`: plain row/cell writes to `.xlsx`.

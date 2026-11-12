@@ -18,6 +18,44 @@ namespace OfficeIMO.Excel {
         public void SetValues(IEnumerable<(int Row, int Column, object Value)> cells, ExcelExecutionMode? mode = null, CancellationToken ct = default) =>
             CellValuesCore(cells, mode, ct, preserveMissingValues: false);
 
+        /// <summary>
+        /// Writes a row-major batch on an empty sheet into the pending cell buffer, the same route single
+        /// <see cref="CellValue(int, int, object)"/> calls take, so a sheet that cannot own the workbook's direct
+        /// tabular model (any sheet after the first) still skips the cell DOM. Missing values stay blank.
+        /// </summary>
+        private bool TryBufferFreshSheetCellValues(IReadOnlyList<(int Row, int Column, object Value)> list, bool preserveMissingValues, CancellationToken ct) {
+            if (_pendingCellValueDirectSaveBuffer != null || !CanAcceptPendingDirectCell()) return false;
+
+            int previousRow = 0, previousColumn = 0;
+            for (int i = 0; i < list.Count; i++) {
+                var (row, column, value) = list[i];
+                if (row <= 0 || column <= 0 || column > ExcelA1.MaxColumns
+                    || row < previousRow || (row == previousRow && column <= previousColumn)) return false;
+                previousRow = row;
+                previousColumn = column;
+                if (value is null || value is DBNull) {
+                    if (!preserveMissingValues) return false;
+                    continue;
+                }
+                if (value is DateTimeOffset) continue;
+                if (!CanBufferDirectCell(ExcelBufferedCell.FromValue(value))) return false;
+            }
+
+            for (int i = 0; i < list.Count; i++) {
+                ct.ThrowIfCancellationRequested();
+                var (row, column, value) = list[i];
+                if (value is null || value is DBNull) continue;
+                if (!TrySetPendingDirectCell(row, column, ExcelBufferedCell.FromValue(value))) {
+                    // Cells already written are rewritten with the same values by the DOM route.
+                    MaterializePendingDirectCellValues(ct);
+                    return false;
+                }
+            }
+
+            ClearHeaderCache();
+            return true;
+        }
+
         private void CellValuesCore(IEnumerable<(int Row, int Column, object Value)> cells, ExcelExecutionMode? mode, CancellationToken ct, bool preserveMissingValues) {
             ArgumentNullException.ThrowIfNull(cells);
             var list = cells as IReadOnlyList<(int Row, int Column, object Value)> ?? cells.ToList();
@@ -28,7 +66,17 @@ namespace OfficeIMO.Excel {
             DirectCellValuesSaveCandidate? appendSaveCandidate = null;
 
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
-                _excelDocument.MaterializeDeferredDataSetImport();
+                // Other sheets' pending cell buffers stay pending, as they do for single cell writes;
+                // only this sheet's cells and the workbook's direct tabular model must reach the DOM first.
+                if (_excelDocument.HasUnmaterializedDirectDataSetRows) {
+                    _excelDocument.MaterializeDeferredDataSetImport();
+                } else if (_pendingCellValueDirectSaveBuffer != null) {
+                    if (HasCellValueWriteAccess) {
+                        MaterializePendingDirectCellValues(ct);
+                    } else {
+                        Locking.ExecuteWrite(_excelDocument.EnsureLock(), () => MaterializePendingDirectCellValues(ct));
+                    }
+                }
             }
 
             list = PrepareTableHeaderValueWrites(list, ct);
@@ -54,6 +102,12 @@ namespace OfficeIMO.Excel {
             if (appendSaveCandidate != null
                 && _excelDocument.CanDeferDirectCellValuesAppendCandidate
                 && RegisterDeferredDirectCellValuesSaveCandidateIfPossible(appendSaveCandidate, preserveMissingValues)) {
+                return;
+            }
+
+            if (list.Count >= PendingDirectCellValueMinimumCellCount
+                && SpillOwnership.WriteRanges.Count == 0
+                && TryBufferFreshSheetCellValues(list, preserveMissingValues, ct)) {
                 return;
             }
 

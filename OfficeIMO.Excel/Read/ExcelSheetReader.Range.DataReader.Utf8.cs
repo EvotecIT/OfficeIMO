@@ -523,15 +523,23 @@ namespace OfficeIMO.Excel {
             }
 
             private bool TryIndexRowsCore(int firstRow, int lastRow, CancellationToken ct) {
+                // The loop lives in the overload, so the JIT can start it at the quick tier.
+                Span<int> namespacePrefixStarts = stackalloc int[MaximumFastXmlAttributes];
+                Span<int> namespacePrefixLengths = stackalloc int[MaximumFastXmlAttributes];
+                Span<int> namespaceUriStarts = stackalloc int[MaximumFastXmlAttributes];
+                Span<int> namespaceUriLengths = stackalloc int[MaximumFastXmlAttributes];
+                return TryIndexRowsCore(firstRow, lastRow, ct,
+                    namespacePrefixStarts, namespacePrefixLengths, namespaceUriStarts, namespaceUriLengths);
+            }
+
+            private bool TryIndexRowsCore(int firstRow, int lastRow, CancellationToken ct,
+                Span<int> namespacePrefixStarts, Span<int> namespacePrefixLengths,
+                Span<int> namespaceUriStarts, Span<int> namespaceUriLengths) {
                 ct.ThrowIfCancellationRequested();
                 if (!HasSupportedUtf8Encoding()) {
                     return false;
                 }
 
-                Span<int> namespacePrefixStarts = stackalloc int[MaximumFastXmlAttributes];
-                Span<int> namespacePrefixLengths = stackalloc int[MaximumFastXmlAttributes];
-                Span<int> namespaceUriStarts = stackalloc int[MaximumFastXmlAttributes];
-                Span<int> namespaceUriLengths = stackalloc int[MaximumFastXmlAttributes];
                 int namespacePrefixCount = 0;
                 bool hasCanonicalRootNamespaces = false;
                 int position = 0;

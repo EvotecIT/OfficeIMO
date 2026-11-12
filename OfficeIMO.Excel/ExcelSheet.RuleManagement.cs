@@ -655,17 +655,7 @@ namespace OfficeIMO.Excel {
                     }));
 
             DifferentialFormats differentialFormats = stylesPart.Stylesheet.DifferentialFormats ??= new DifferentialFormats();
-            var existing = differentialFormats.Elements<DifferentialFormat>()
-                .Select((format, index) => new { format, index })
-                .FirstOrDefault(entry => string.Equals(entry.format.OuterXml, candidate.OuterXml, StringComparison.Ordinal));
-            if (existing != null) {
-                return (uint)existing.index;
-            }
-
-            differentialFormats.Append(candidate);
-            differentialFormats.Count = (uint)differentialFormats.Count();
-            SaveStylesheet(stylesPart);
-            return differentialFormats.Count!.Value - 1U;
+            return GetOrAppendDifferentialFormat(stylesPart, differentialFormats, candidate);
         }
 
         private static uint? ReadDifferentialFormatId(ConditionalFormattingRule rule) {

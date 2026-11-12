@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Opt-in comparison runner, outside the solution: editable-workbook workloads at scale (large writes, many styles,
+    merges, conditional formatting and validation, names and tables, recalculation, autofit, preserving charts,
+    images and pivot caches) against the libraries that do the same work. Each run measures one library and one
+    workload in its own process, so the reported peak working set belongs to that workload.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <RunAnalyzers>false</RunAnalyzers>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <AcceptNPOIOSMFLicense>true</AcceptNPOIOSMFLicense>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.105.1" />
+    <PackageReference Include="EPPlus" Version="8.7.2" />
+    <PackageReference Include="NPOI" Version="2.8.1" />
+    <PackageReference Include="XLibur.Bundle" Version="0.800.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../OfficeIMO.Excel/OfficeIMO.Excel.csproj" />
+  </ItemGroup>
+</Project>

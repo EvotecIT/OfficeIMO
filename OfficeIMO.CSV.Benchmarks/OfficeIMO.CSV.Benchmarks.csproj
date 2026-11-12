@@ -8,18 +8,29 @@
     <IsPackable>false</IsPackable>
     <ExcelReaderBenchmarkVersion Condition="'$(TargetFramework)' == 'net8.0'">3.1.0</ExcelReaderBenchmarkVersion>
     <ExcelReaderBenchmarkVersion Condition="'$(TargetFramework)' != 'net8.0'">7.5.0</ExcelReaderBenchmarkVersion>
+    <!-- Opt-in competitor watch: -p:OfficeImoLatestCompetitors=true floats the compared libraries to their newest
+         stable NuGet versions. Restore it into its own packages and artifacts folders; net8.0 keeps the older
+         ExcelReader.NET API line its lanes are written for. -->
+    <ExcelReaderBenchmarkVersion Condition="'$(OfficeImoLatestCompetitors)' == 'true' And '$(TargetFramework)' != 'net8.0'">*</ExcelReaderBenchmarkVersion>
+    <CsvHelperBenchmarkVersion>33.1.0</CsvHelperBenchmarkVersion>
+    <SepBenchmarkVersion>0.17.1</SepBenchmarkVersion>
+    <SylvanCsvBenchmarkVersion>1.4.4</SylvanCsvBenchmarkVersion>
+    <!-- CsvHelper 34 replaced the APIs these lanes use; it floats in OfficeIMO.CSV.Benchmarks.Modern instead. -->
+    <CsvHelperBenchmarkVersion Condition="'$(OfficeImoLatestCompetitors)' == 'true'">33.*</CsvHelperBenchmarkVersion>
+    <SepBenchmarkVersion Condition="'$(OfficeImoLatestCompetitors)' == 'true'">*</SepBenchmarkVersion>
+    <SylvanCsvBenchmarkVersion Condition="'$(OfficeImoLatestCompetitors)' == 'true'">*</SylvanCsvBenchmarkVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
-    <PackageReference Include="CsvHelper" Version="33.1.0" />
+    <PackageReference Include="CsvHelper" Version="$(CsvHelperBenchmarkVersion)" />
     <PackageReference Include="Dataplat.Dbatools.Csv" Version="1.1.15" />
       <!-- Runtime APIs are benchmarked directly. The source generator targets a newer Roslyn than the repository SDK ships. -->
       <PackageReference Include="ExcelReader.NET" Version="$(ExcelReaderBenchmarkVersion)" ExcludeAssets="analyzers" />
     <PackageReference Include="LumenWorksCsvReader2" Version="4.4.0" />
     <PackageReference Include="RecordParser" Version="2.3.0" />
-    <PackageReference Include="Sep" Version="0.17.1" />
-    <PackageReference Include="Sylvan.Data.Csv" Version="1.4.4" />
+    <PackageReference Include="Sep" Version="$(SepBenchmarkVersion)" />
+    <PackageReference Include="Sylvan.Data.Csv" Version="$(SylvanCsvBenchmarkVersion)" />
   </ItemGroup>
 
   <ItemGroup>
@@ -33,11 +44,13 @@
     <Compile Include="..\Benchmarks\CsvReadObservation.cs" Link="Shared\CsvReadObservation.cs" />
     <Compile Include="..\Benchmarks\CsvBenchmarkData.cs" Link="Shared\CsvBenchmarkData.cs" />
     <Compile Include="..\Benchmarks\PackageAssetsCsvFixture.cs" Link="Shared\PackageAssetsCsvFixture.cs" />
+    <Compile Include="..\Benchmarks\CsvWriteBenchmarkBase.cs" Link="Shared\CsvWriteBenchmarkBase.cs" />
+    <Compile Include="..\Benchmarks\CsvWriteComparisonData.cs" Link="Shared\CsvWriteComparisonData.cs" />
   </ItemGroup>
 
   <Target Name="RemoveIncompatibleExcelReaderGenerator" BeforeTargets="CoreCompile">
     <ItemGroup>
-      <Analyzer Remove="$(NuGetPackageRoot)excelreader.net\$(ExcelReaderBenchmarkVersion)\analyzers\dotnet\cs\ExcelReader.Generator.dll" />
+      <Analyzer Remove="@(Analyzer)" Condition="'%(Filename)%(Extension)' == 'ExcelReader.Generator.dll'" />
     </ItemGroup>
   </Target>
 

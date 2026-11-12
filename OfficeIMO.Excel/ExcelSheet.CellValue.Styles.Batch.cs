@@ -58,13 +58,42 @@ namespace OfficeIMO.Excel {
         private static StyleBatch WriterFor(Stylesheet stylesheet) =>
             BatchFor(stylesheet) ?? StyleWriters.GetValue(stylesheet, static target => new StyleBatch(target));
 
-        /// <summary>Persists style changes immediately or joins the active matching workbook's style batch.</summary>
+        /// <summary>Records a style change, joining the active matching workbook's style batch when there is one.</summary>
         internal static void SaveStylesheet(WorkbookStylesPart stylesPart) {
             if (stylesPart.Stylesheet is { } stylesheet && BatchFor(stylesheet) is { } batch) {
                 batch.MarkModified();
                 return;
             }
-            stylesPart.Stylesheet?.Save();
+            if (stylesPart.Stylesheet != null) DeferStylesheetSave(stylesPart);
+        }
+
+        // Serializing the whole stylesheet after every new format made styling many cells quadratic. Everything in
+        // the library that reads styles uses the loaded stylesheet; the part stream is written once, before a save,
+        // a package copy or a snapshot reads it and before the package is handed out (ExcelDocument.CommitPendingStylesheet).
+        // A package already handed out can be read at any time, so its stylesheet is still written on every change.
+        private static readonly ConditionalWeakTable<WorkbookStylesPart, object> PendingStylesheetSaves = new();
+        private static readonly ConditionalWeakTable<OpenXmlPackage, object> ExposedPackages = new();
+        private static readonly object PendingStylesheetSave = new();
+
+        /// <summary>Whether a caller holds this package through <see cref="ExcelDocument.OpenXmlDocument"/> and may edit it directly.</summary>
+        internal static bool IsPackageExposed(OpenXmlPackage package) => ExposedPackages.TryGetValue(package, out _);
+
+        private static void DeferStylesheetSave(WorkbookStylesPart stylesPart) {
+            if (IsPackageExposed(stylesPart.OpenXmlPackage)) {
+                stylesPart.Stylesheet?.Save();
+                return;
+            }
+            PendingStylesheetSaves.GetValue(stylesPart, static _ => PendingStylesheetSave);
+        }
+
+        /// <summary>Writes every later stylesheet change of <paramref name="package"/> at once, because a caller holds it.</summary>
+        internal static void MarkPackageExposed(OpenXmlPackage package) => ExposedPackages.GetValue(package, static _ => PendingStylesheetSave);
+
+        /// <summary>Writes a stylesheet whose save was deferred to its part.</summary>
+        internal static void CommitPendingStylesheet(WorkbookStylesPart? stylesPart) {
+            if (stylesPart == null || !PendingStylesheetSaves.TryGetValue(stylesPart, out _)) return;
+            PendingStylesheetSaves.Remove(stylesPart);
+            if (stylesPart.IsRootElementLoaded) stylesPart.Stylesheet?.Save();
         }
 
         private sealed class StyleBatch : IDisposable {
@@ -325,7 +354,7 @@ namespace OfficeIMO.Excel {
                 if (_parent?.Matches(_stylesheet) == true) {
                     _parent.MarkModified();
                 } else {
-                    _stylesheet.Save();
+                    DeferStylesheetSave(_workbookPart.WorkbookStylesPart!);
                 }
             }
         }

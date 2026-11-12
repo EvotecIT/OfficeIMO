@@ -311,7 +311,7 @@ namespace OfficeIMO.Excel {
             int maxColumn = 0;
 
             try {
-                foreach (var tablePart in _wsPart.TableDefinitionParts) {
+                foreach (var tablePart in SdkWorksheetPart.TableDefinitionParts) {
                     ct.ThrowIfCancellationRequested();
                     string? tableReference = TryGetTableReferenceXmlFast(tablePart, out string xmlTableReference, ct)
                         ? xmlTableReference
