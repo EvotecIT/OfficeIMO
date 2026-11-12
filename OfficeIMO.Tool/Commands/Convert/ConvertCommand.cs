@@ -67,12 +67,6 @@ Markdown and JSON output use the OfficeIMO Reader pipeline.
                 cancellationToken).ConfigureAwait(false);
         }
 
-        if (!route.Force && File.Exists(route.OutputPath)) {
-            await standardError.WriteLineAsync(
-                "Output already exists. Use --force to replace it: " + route.OutputPath).ConfigureAwait(false);
-            return (int)OfficeImoToolExitCode.OutputFailed;
-        }
-
         using var readerOutput = new StreamWriter(
             standardOutput,
             new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
@@ -83,8 +77,7 @@ Markdown and JSON output use the OfficeIMO Reader pipeline.
             standardInput,
             readerOutput,
             standardError,
-            cancellationToken,
-            overwriteSingleOutput: route.Force).ConfigureAwait(false);
+            cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task WriteUtf8Async(Stream output, string value, CancellationToken cancellationToken) {
@@ -105,8 +98,6 @@ internal sealed class ConvertRoute {
 
     internal bool Help { get; private init; }
     internal ConvertOutputFormat Format { get; private init; }
-    internal string? OutputPath { get; private init; }
-    internal bool Force { get; private init; }
     internal string[] ReaderArguments { get; private init; } = [];
 
     internal static ConvertRoute Parse(string[] args) {
@@ -230,11 +221,10 @@ internal sealed class ConvertRoute {
             readerArguments.Add("--max-input-bytes");
             readerArguments.Add(maxInputBytes);
         }
+        if (force) readerArguments.Add("--force");
 
         return new ConvertRoute {
             Format = format,
-            OutputPath = outputPath,
-            Force = force,
             ReaderArguments = readerArguments.ToArray()
         };
     }

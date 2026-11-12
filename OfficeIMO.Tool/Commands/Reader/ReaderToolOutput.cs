@@ -90,6 +90,7 @@ internal static class ReaderToolOutput {
         IReadOnlyList<string> paths,
         IReadOnlyList<OfficeDocumentReadResult> documents,
         ReaderToolOutputFormat format,
+        bool overwrite,
         CancellationToken cancellationToken) {
         if (File.Exists(outputRoot)) {
             throw new ReaderToolOutputException("Output path '" + outputRoot + "' is a file.");
@@ -139,6 +140,10 @@ internal static class ReaderToolOutput {
                 throw new ReaderToolOutputException(
                     "Primary output path is a directory: " + Path.GetFullPath(outputPath));
             }
+            if (!overwrite && File.Exists(outputPath)) {
+                throw new ReaderToolOutputException(
+                    "Output already exists. Use --force to replace it: " + Path.GetFullPath(outputPath));
+            }
             ProbeWritableFilePath(outputPath);
 
             string? assetDirectory = assetDirectories[index];
@@ -146,7 +151,7 @@ internal static class ReaderToolOutput {
                 PrepareAssetsOutput(
                     documents[index],
                     assetDirectory,
-                    overwrite: true,
+                    overwrite,
                     outputPath,
                     paths[index],
                     cancellationToken);
@@ -160,7 +165,7 @@ internal static class ReaderToolOutput {
             await WriteFileAsync(
                     outputPath,
                     FormatDocument(documents[index], format),
-                    overwrite: true,
+                    overwrite,
                     cancellationToken)
                 .ConfigureAwait(false);
 
@@ -169,7 +174,7 @@ internal static class ReaderToolOutput {
                 WriteAssets(
                     documents[index],
                     assetDirectory,
-                    overwrite: true,
+                    overwrite,
                     cancellationToken,
                     outputPath,
                     paths[index]);
