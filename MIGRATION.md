@@ -7225,6 +7225,20 @@ XML extraction uses `XmlReadOptions.MaxDepth` (128), `MaxNodes` (200,000), and
 `ReaderResourceLimitException`. Increase the relevant option for trusted larger inputs.
 XML and YAML values within their configured limits retain their full normalized text.
 
+## Reader JSON and TOML limits
+
+JSON extraction adds `JsonReadOptions.MaxNodes` (200,000) and `MaxScalarLength` (1,048,576)
+beside `MaxDepth` (32). Exceeding any of the three, including `MaxDepth`, now throws
+`ReaderResourceLimitException` instead of returning a `json-warning-0000` parse warning, and a
+limit below 1 throws `ArgumentOutOfRangeException` instead of being raised to 1. Raise the
+relevant option for trusted larger inputs; malformed JSON still produces the warning chunk.
+
+TOML limits exceeded during a Reader read throw `ReaderResourceLimitException` with the engine's
+`TomlLimitExceededException` as `InnerException`, instead of a `toml-warning-0000` chunk.
+`TomlReadOptions.MaxDepth`, `MaxNodes` and `MaxScalarLength` override the matching
+`LoadOptions` values when set. TOML results map to the new `OfficeDocumentFormat.Toml`
+instead of `Unknown`; update exhaustive switches over `OfficeDocumentFormat`.
+
 Path reads reject a detected source change with `IOException`. Retry against a stable file.
 Keep incremental inputs stable until enumeration finishes: a later failure cannot withdraw
 chunks already delivered to the consumer.

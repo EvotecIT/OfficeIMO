@@ -50,7 +50,9 @@ internal static class JsonReaderAdapter {
         string? parseError = null;
         try {
             try {
-                doc = JsonDocument.Parse(parseStream, new JsonDocumentOptions {
+                ReadOnlyMemory<byte> json = ReadUtf8Payload(parseStream, cancellationToken);
+                EnforceLimits(json, options, cancellationToken);
+                doc = JsonDocument.Parse(json, new JsonDocumentOptions {
                     AllowTrailingCommas = true,
                     CommentHandling = JsonCommentHandling.Skip,
                     MaxDepth = options.MaxDepth
@@ -66,7 +68,7 @@ internal static class JsonReaderAdapter {
 
             using (doc) {
                 var rows = new List<StructuredRow>(capacity: 1024);
-                TraverseJson(doc!.RootElement, "$", depth: 0, options.MaxDepth, rows, cancellationToken);
+                TraverseJson(doc!.RootElement, "$", rows, cancellationToken);
 
                 foreach (var chunk in BuildStructuredChunks(source, rows, options, effectiveReaderOptions.ComputeHashes, cancellationToken)) {
                     yield return chunk;
@@ -133,19 +135,83 @@ internal static class JsonReaderAdapter {
         }
     }
 
+    private static ReadOnlyMemory<byte> ReadUtf8Payload(Stream stream, CancellationToken cancellationToken) {
+        long remaining = stream.Length - stream.Position;
+        if (remaining > int.MaxValue) throw new ReaderResourceLimitException("MaxInputBytes", int.MaxValue);
+
+        var buffer = new byte[(int)remaining];
+        int offset = 0;
+        while (offset < buffer.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int read = stream.Read(buffer, offset, Math.Min(81_920, buffer.Length - offset));
+            if (read == 0) break;
+            offset += read;
+        }
+
+        int start = offset >= 3 && buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF ? 3 : 0;
+        return new ReadOnlyMemory<byte>(buffer, start, offset - start);
+    }
+
+    /// <summary>
+    /// Checks depth, value count and scalar length in one forward pass, before the document is built.
+    /// Syntax errors surface as <see cref="JsonException"/> and become the usual parse warning.
+    /// </summary>
+    private static void EnforceLimits(ReadOnlyMemory<byte> json, JsonReadOptions options, CancellationToken cancellationToken) {
+        var reader = new Utf8JsonReader(json.Span, new JsonReaderOptions {
+            AllowTrailingCommas = true,
+            CommentHandling = JsonCommentHandling.Skip,
+            // One level of headroom so the adapter, not the tokenizer, reports the configured depth.
+            MaxDepth = options.MaxDepth == int.MaxValue ? int.MaxValue : options.MaxDepth + 1
+        });
+        int depth = 0;
+        int nodes = 0;
+        int tokens = 0;
+        while (reader.Read()) {
+            if ((++tokens & 0x3FF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            switch (reader.TokenType) {
+                case JsonTokenType.StartObject:
+                case JsonTokenType.StartArray:
+                    if (++depth > options.MaxDepth) throw new ReaderResourceLimitException(nameof(JsonReadOptions.MaxDepth), options.MaxDepth);
+                    CountNode(ref nodes, options.MaxNodes);
+                    break;
+                case JsonTokenType.EndObject:
+                case JsonTokenType.EndArray:
+                    depth--;
+                    break;
+                case JsonTokenType.PropertyName:
+                    CheckScalarLength(ref reader, options.MaxScalarLength);
+                    break;
+                case JsonTokenType.String:
+                case JsonTokenType.Number:
+                    CheckScalarLength(ref reader, options.MaxScalarLength);
+                    CountNode(ref nodes, options.MaxNodes);
+                    break;
+                case JsonTokenType.True:
+                case JsonTokenType.False:
+                case JsonTokenType.Null:
+                    CountNode(ref nodes, options.MaxNodes);
+                    break;
+            }
+        }
+    }
+
+    private static void CountNode(ref int nodes, int maxNodes) {
+        if (++nodes > maxNodes) throw new ReaderResourceLimitException(nameof(JsonReadOptions.MaxNodes), maxNodes);
+    }
+
+    private static void CheckScalarLength(ref Utf8JsonReader reader, int maxScalarLength) {
+        // UTF-8 and escape sequences never decode to more UTF-16 units than source bytes, so short tokens need no decoding.
+        if (reader.ValueSpan.Length <= maxScalarLength) return;
+        int length = reader.TokenType == JsonTokenType.Number ? reader.ValueSpan.Length : reader.GetString()!.Length;
+        if (length > maxScalarLength) throw new ReaderResourceLimitException(nameof(JsonReadOptions.MaxScalarLength), maxScalarLength);
+    }
+
     private static void TraverseJson(
         JsonElement element,
         string path,
-        int depth,
-        int maxDepth,
         List<StructuredRow> rows,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-
-        if (depth > maxDepth) {
-            rows.Add(new StructuredRow(path, "depth-limit", "(max depth reached)"));
-            return;
-        }
 
         switch (element.ValueKind) {
             case JsonValueKind.Object:
@@ -155,7 +221,7 @@ internal static class JsonReaderAdapter {
 
                 foreach (var property in element.EnumerateObject()) {
                     var childPath = AppendPropertyPath(path, property.Name);
-                    TraverseJson(property.Value, childPath, depth + 1, maxDepth, rows, cancellationToken);
+                    TraverseJson(property.Value, childPath, rows, cancellationToken);
                 }
 
                 break;
@@ -167,7 +233,7 @@ internal static class JsonReaderAdapter {
                 int index = 0;
                 foreach (var child in element.EnumerateArray()) {
                     var childPath = path + "[" + index.ToString(CultureInfo.InvariantCulture) + "]";
-                    TraverseJson(child, childPath, depth + 1, maxDepth, rows, cancellationToken);
+                    TraverseJson(child, childPath, rows, cancellationToken);
                     index++;
                 }
 
@@ -243,11 +309,14 @@ internal static class JsonReaderAdapter {
         var normalized = new JsonReadOptions {
             ChunkRows = source.ChunkRows,
             MaxDepth = source.MaxDepth,
+            MaxNodes = source.MaxNodes,
+            MaxScalarLength = source.MaxScalarLength,
             IncludeMarkdown = source.IncludeMarkdown
         };
 
         if (normalized.ChunkRows < 1) normalized.ChunkRows = 1;
-        if (normalized.MaxDepth < 1) normalized.MaxDepth = 1;
+        if (normalized.MaxDepth < 1 || normalized.MaxNodes < 1 || normalized.MaxScalarLength < 1)
+            throw new ArgumentOutOfRangeException(nameof(options), "JSON parser limits must be positive.");
 
         return normalized;
     }

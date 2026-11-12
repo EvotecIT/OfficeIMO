@@ -108,6 +108,46 @@ public sealed class ReaderJsonModularTests {
         Assert.Contains(chunks, c => (c.Markdown ?? string.Empty).Contains("$[\"service.name\"][\"port[0]\"]", StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData("MaxDepth", 2, "{\"a\":{\"b\":1}}", false)]
+    [InlineData("MaxDepth", 2, "{\"a\":{\"b\":{}}}", true)]
+    [InlineData("MaxDepth", 2, "[[[[[[[[[[1]]]]]]]]]]", true)]
+    [InlineData("MaxNodes", 4, "[1,true,null]", false)]
+    [InlineData("MaxNodes", 4, "[1,true,null,\"x\"]", true)]
+    [InlineData("MaxScalarLength", 2, "{\"k\":\"\\u0041\\u0042\"}", false)]
+    [InlineData("MaxScalarLength", 2, "{\"k\":\"abc\"}", true)]
+    [InlineData("MaxScalarLength", 2, "{\"abc\":1}", true)]
+    [InlineData("MaxScalarLength", 2, "[123]", true)]
+    public void JsonLimitsThrowTheNamedLimitOnceExceeded(string limit, int value, string json, bool exceeds) {
+        var options = new JsonReadOptions {
+            MaxDepth = limit == "MaxDepth" ? value : 32,
+            MaxNodes = limit == "MaxNodes" ? value : 200_000,
+            MaxScalarLength = limit == "MaxScalarLength" ? value : 1_048_576
+        };
+        var reader = new OfficeDocumentReaderBuilder().AddJsonHandler(options).Build();
+        Func<OfficeDocumentReadResult> read = () => reader.ReadDocument(Encoding.UTF8.GetBytes(json), "bounded.json", new ReaderOptions { ComputeHashes = false });
+
+        if (!exceeds) {
+            OfficeDocumentReadResult result = read();
+            Assert.Empty(result.Diagnostics);
+            Assert.NotEmpty(result.Tables);
+            return;
+        }
+
+        ReaderResourceLimitException error = Assert.Throws<ReaderResourceLimitException>(() => read());
+        Assert.Equal(limit, error.LimitName);
+        Assert.Equal(value, error.Maximum);
+    }
+
+    [Fact]
+    public void JsonReadStopsWhenCancelled() {
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes("{\"a\":[1,2,3]}"), writable: false);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.ThrowsAny<OperationCanceledException>(() => JsonReaderAdapter.Read(stream, "a.json", cancellationToken: cancellation.Token).ToList());
+    }
+
     [Fact]
     public void DocumentReaderJson_ReadJsonStream_TrimsLogicalSourceName() {
         const string json = "{\"agent\":{\"name\":\"OfficeIMO\"}}";
