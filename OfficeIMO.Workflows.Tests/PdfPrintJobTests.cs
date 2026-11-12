@@ -87,6 +87,56 @@ public sealed class PdfPrintJobTests {
     }
 
     [Fact]
+    public void AnnotationsMarkedNotToPrintStayOutOfTheJob() {
+        // A red square that prints and a blue square that is shown on screen only (Print flag clear).
+        PdfDocument document = PdfDocument.Create(builder => builder.Page(page => page.Size(OfficeLength.Points(200), OfficeLength.Points(200))));
+        document = PdfDocument.Load(new MemoryStream(document.Annotations.Add(new PdfAnnotationCreateOptions {
+            Subtype = "Square", Rectangle = [20, 20, 80, 80], Color = [1, 0, 0], InteriorColor = [1, 0, 0], Flags = 4
+        }).Bytes));
+        document = PdfDocument.Load(new MemoryStream(document.Annotations.Add(new PdfAnnotationCreateOptions {
+            Subtype = "Square", Rectangle = [120, 120, 180, 180], Color = [0, 0, 1], InteriorColor = [0, 0, 1], Flags = 0
+        }).Bytes));
+        byte[] source = document.ToBytes();
+
+        PdfPrintJob job = PdfPrintJob.Create(document, new PdfPrintPlanRequest { InputPath = "annotated.pdf", PaperSize = Paper(200, 200), Margin = 0, ScaleMode = PdfPrintScaleMode.ActualSize });
+
+        // Flattening would paint both squares, so the page is rendered for printing instead.
+        Assert.Equal(PdfPrintContentKind.Raster, job.ContentKind);
+        OfficeRasterImage sheet = Decode(job.RenderSheet(1, 72));
+        var printed = sheet.GetPixel(50, 150);
+        var screenOnly = sheet.GetPixel(150, 50);
+        Assert.True(printed.R > 200 && printed.B < 80, "The printing annotation is on the sheet.");
+        Assert.True(screenOnly.R > 200 && screenOnly.G > 200 && screenOnly.B > 200, "The screen-only annotation is left out.");
+        Assert.Equal(source, document.ToBytes());
+    }
+
+    [Fact]
+    public void FormFieldsMarkedNotToPrintStayOutOfTheJob() {
+        PdfDocument blank = PdfDocument.Create(builder => builder.Page(page => page.Size(OfficeLength.Points(300), OfficeLength.Points(200))));
+        PdfDocument document = PdfDocument.Load(blank.Forms.Edit(form => form
+            .Create(new PdfFormFieldCreateOptions { Name = "Printed", X = 20, Y = 140, Width = 200, Height = 24, Value = "Printed value" })
+            .Create(new PdfFormFieldCreateOptions { Name = "ScreenOnly", X = 20, Y = 40, Width = 200, Height = 24, Value = "Screen only", WidgetFlags = 0 })).ToBytes());
+
+        PdfPrintJob job = PdfPrintJob.Create(document, new PdfPrintPlanRequest { InputPath = "form.pdf", PaperSize = Paper(300, 200), Margin = 0, ScaleMode = PdfPrintScaleMode.ActualSize });
+
+        Assert.Equal(PdfPrintContentKind.Raster, job.ContentKind);
+        OfficeRasterImage sheet = Decode(job.RenderSheet(1, 72));
+        // Raster rows run top-down: the printed field covers rows 36-60 and the screen-only field rows 136-160.
+        Assert.True(InkedPixels(sheet, 20, 36, 200, 24) > 0, "The printing field is on the sheet.");
+        Assert.Equal(0, InkedPixels(sheet, 20, 136, 200, 24));
+    }
+
+    private static int InkedPixels(OfficeRasterImage raster, int left, int top, int width, int height) {
+        int count = 0;
+        for (int y = top; y < top + height; y++)
+            for (int x = left; x < left + width; x++) {
+                var pixel = raster.GetPixel(x, y);
+                if (pixel.R < 200 || pixel.G < 200 || pixel.B < 200) count++;
+            }
+        return count;
+    }
+
+    [Fact]
     public void AutomaticOrientationGivesEachContentPageItsOwnPaperOrientation() {
         PdfDocument document = PdfDocument.Create(builder => {
             builder.Page(page => page.Size(OfficeLength.Points(200), OfficeLength.Points(300)));

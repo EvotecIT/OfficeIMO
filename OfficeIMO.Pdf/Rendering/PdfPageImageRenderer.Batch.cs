@@ -130,7 +130,9 @@ internal static partial class PdfPageImageRenderer {
         options.TextShapingProvider is null &&
         options.Fonts.Faces.All(face => face.HasBuiltInProgram);
 
-    internal static PdfPageRenderResult RenderPage(PdfReadDocument document, int pageNumber, PdfPageRenderOptions options, CancellationToken cancellationToken, bool forDisplay = false) {
+    // printing paints only annotations with the Print flag, as a printed page shows them.
+    internal static PdfPageRenderResult RenderPage(PdfReadDocument document, int pageNumber, PdfPageRenderOptions options, CancellationToken cancellationToken, bool forDisplay = false,
+        bool printing = false) {
         var timer = Stopwatch.StartNew();
         IReadOnlyList<PdfRenderCapabilityDiagnostic> capabilityDiagnostics = Array.Empty<PdfRenderCapabilityDiagnostic>();
         try {
@@ -144,7 +146,7 @@ internal static partial class PdfPageImageRenderer {
             }
             var pageSize = document.Pages[pageNumber - 1].GetVisualPageSize();
             double functionScale = options.GetScale(pageSize.Width, pageSize.Height);
-            OfficeDrawing drawing = forDisplay ? document.Pages[pageNumber - 1].ToDisplayDrawing(cancellationToken, ConfigureDrawing, functionScale, options.MaxPixelsPerPage)
+            OfficeDrawing drawing = forDisplay ? document.Pages[pageNumber - 1].ToDisplayDrawing(cancellationToken, ConfigureDrawing, functionScale, options.MaxPixelsPerPage, printing: printing)
                 : document.Pages[pageNumber - 1].ToDrawing(cancellationToken, ConfigureDrawing, functionScale, options.MaxPixelsPerPage);
             double scale = options.GetScale(drawing);
             int width = checked((int)Math.Ceiling(drawing.Width * scale));

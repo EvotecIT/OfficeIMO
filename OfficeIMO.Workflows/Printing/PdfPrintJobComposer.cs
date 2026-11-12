@@ -51,7 +51,10 @@ internal static class PdfPrintJobComposer {
         PdfDocumentInfo info = PdfInspector.Inspect(source, readOptions);
         if (info.HasOptionalContent) return "Vector sheets cannot preserve the source's optional-content visibility.";
         if (!HasPrintedAnnotations(info, plan.SelectedPages)) return null;
-        // Imported pages carry content streams only, so printed annotation and form appearances are flattened first.
+        // Imported pages carry content streams only, so printed annotation and form appearances are flattened first. Flattening paints
+        // every visible annotation, so pages that also carry annotations marked not to print are rendered for printing instead.
+        if (ScreenOnlyAnnotations(info, plan.SelectedPages).Any())
+            return "Annotations marked not to print cannot be separated from printed annotations in vector content.";
         PdfDocument flattened;
         try {
             flattened = document.FlattenInteractiveContent().ToDocument();
@@ -77,6 +80,21 @@ internal static class PdfPrintJobComposer {
             }
         }
         return false;
+    }
+
+    private const int InvisibleFlag = 1, HiddenFlag = 2, PrintFlag = 4, NoViewFlag = 32;
+
+    /// <summary>Visible annotations without the Print flag that flattening would paint on the selected pages.</summary>
+    private static IEnumerable<PdfAnnotation> ScreenOnlyAnnotations(PdfDocumentInfo info, IReadOnlyList<int> pages) {
+        foreach (int page in pages.Distinct()) {
+            foreach (PdfAnnotation annotation in info.Pages[page - 1].Annotations) {
+                int flags = annotation.Flags ?? 0;
+                if ((flags & PrintFlag) != 0 || (flags & (InvisibleFlag | HiddenFlag | NoViewFlag)) != 0) continue;
+                // Links and popups without an appearance never paint.
+                if (annotation.Subtype is "Link" or "Popup" && !annotation.HasNormalAppearance) continue;
+                yield return annotation;
+            }
+        }
     }
 
     private static byte[] ComposeVector(byte[] source, PdfLoadOptions readOptions, PdfPrintPlan plan, long maximumBytes, CancellationToken token) {
