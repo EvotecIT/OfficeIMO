@@ -1,6 +1,6 @@
 ---
-title: "Project Schedules, Access Databases, and EPUB"
-description: "Create and read Microsoft Project schedules, Access MDB and ACCDB table databases, and EPUB publications from PowerShell, without Project, Access, or a desktop publishing tool installed."
+title: "Project, Access, and EPUB Files"
+description: "Create and read Microsoft Project schedules, Access databases and EPUB books from PowerShell, without Project or Access installed."
 layout: docs
 ---
 
@@ -90,7 +90,7 @@ To publish an EPUB as PDF or another format, use [`Convert-OfficeDocument`](/doc
 
 ## Runnable example
 
-The [native document families example](https://github.com/EvotecIT/OfficeIMO/blob/e1f1a881f6839bedb64756d935de253ac2f5cb27/PowerShell/PSWriteOffice/Examples/Workflows/Example-NativeDocumentFamilies.ps1) creates all three files in one run:
+The [native document families example](https://github.com/EvotecIT/OfficeIMO/blob/2cc38c5921c25533d50306e7bd8a41159cc326ce/PowerShell/PSWriteOffice/Examples/Workflows/Example-NativeDocumentFamilies.ps1) creates all three files in one run:
 
 ```powershell
 .\Example-NativeDocumentFamilies.ps1 -OutputDirectory .\out

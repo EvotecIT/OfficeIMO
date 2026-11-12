@@ -1,6 +1,6 @@
 ---
 title: "PSWriteOffice Documentation"
-description: "Workflow guides for the PowerShell command surface across Office, PDF, Reader, Confluence Cloud, Visio, Project, Access, EPUB, configuration files, data conversion, and open formats."
+description: "PowerShell guides for Office, PDF, Reader, Confluence, Visio, Project, Access, EPUB, configuration files and data conversion."
 layout: docs
 ---
 
@@ -60,5 +60,5 @@ PSWriteOffice is the PowerShell surface for OfficeIMO. Use these guides to choos
 ## Notes
 
 - The [command reference](/api/powershell/) is generated from the module manifest and external help.
-- The [scenario-driven example library](https://github.com/EvotecIT/OfficeIMO/blob/e1f1a881f6839bedb64756d935de253ac2f5cb27/PowerShell/PSWriteOffice/Examples/README.md) maps practical recipes and larger showcases to each format.
+- The [scenario-driven example library](https://github.com/EvotecIT/OfficeIMO/blob/2cc38c5921c25533d50306e7bd8a41159cc326ce/PowerShell/PSWriteOffice/Examples/README.md) maps practical recipes and larger showcases to each format.
 - The family totals shown on the site come from `PSWriteOffice.psd1`; documentation validation fails if an exported command is left uncategorized.

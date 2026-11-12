@@ -1,6 +1,6 @@
 ---
 title: "Clean Files Before Sharing"
-description: "Find and remove comments, author names, speaker notes, image metadata and AI labels from Word, Excel, PowerPoint, PDF and image files with PowerShell, and check what is left."
+description: "Remove comments, author names, speaker notes, image metadata and AI labels from Office, PDF and image files with PowerShell."
 layout: docs
 ---
 
@@ -16,7 +16,7 @@ A file that leaves your team carries more than its visible text: author and comp
 
 `Get-OfficeHiddenData` and `Remove-OfficeHiddenData` work on Word, Excel, PowerPoint, Visio, OpenDocument, EPUB and PDF files, and on JPEG, PNG, WebP, GIF and TIFF images. They are the PowerShell form of `officeimo hidden-data inspect` and `officeimo hidden-data remove`, and they use the same engine.
 
-The outputs below come from a folder with four files: a Word proposal with a reviewer comment, a custom property and a picture labelled as AI-generated; an Excel budget with a cell comment; a PowerPoint briefing with speaker notes; and a PDF summary with an attached cost model. The [clean-before-sharing recipe](https://github.com/EvotecIT/OfficeIMO/blob/e1f1a881f6839bedb64756d935de253ac2f5cb27/PowerShell/PSWriteOffice/Examples/Workflows/Recipe-CleanBeforeSharing.ps1) builds similar files and runs the whole check.
+The outputs below come from a folder with four files: a Word proposal with a reviewer comment, a custom property and a picture labelled as AI-generated; an Excel budget with a cell comment; a PowerPoint briefing with speaker notes; and a PDF summary with an attached cost model. The [clean-before-sharing recipe](https://github.com/EvotecIT/OfficeIMO/blob/2cc38c5921c25533d50306e7bd8a41159cc326ce/PowerShell/PSWriteOffice/Examples/Workflows/Recipe-CleanBeforeSharing.ps1) builds similar files and runs the whole check.
 
 ## See what would leave with a file
 
