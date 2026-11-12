@@ -47,6 +47,7 @@ public partial class Word {
             Assert.NotEmpty(comparison.Findings);
             using WordprocessingDocument saved = WordprocessingDocument.Open(output, false);
             AssertSharedData(saved);
+            Assert.Equal("Shared custom-data fixture", saved.PackageProperties.Creator);
             Assert.Equal(partsBefore, SharedClonePartUris(saved));
             Assert.Contains("Pending target text", saved.MainDocumentPart!.Document.InnerText);
             Assert.NotEmpty(saved.MainDocumentPart.Document.Descendants<W.InsertedRun>());
