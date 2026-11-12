@@ -216,6 +216,7 @@ internal static partial class PdfWriter {
             double rowSize = GetTableRowFontSize(style, rowIndex, headerRowCount, footerStartRowIndex, fontSize);
             PdfStandardFont rowStandardFont = GetTableRowFont(options, GetTableRowBold(style, rowIndex, headerRowCount, footerStartRowIndex));
             var measurementStyle = measurer.CreateStyle(ToOfficeFontInfo(rowStandardFont, rowSize));
+            Func<string, double> measureRowFont = value => EstimateSimpleTextWidthForOptions(value, rowStandardFont, rowSize, options);
             var cells = GetTableCellLayouts(table, rowIndex, cols);
             for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
                 TableCellLayout cell = cells[cellIndex];
@@ -315,12 +316,14 @@ internal static partial class PdfWriter {
                             style.AutoFitCellPreferredWidthPoints?.ContainsKey((rowIndex, cell.Column)) == true));
                     continue;
                 }
+                AutoFitRunFontMeasure? runFonts = AutoFitRunFontMeasure.TryCreate(cell.Runs, cell.Text, rowStandardFont, rowSize, options);
+                Func<string, double> measureRowText = runFonts != null ? runFonts.Measure : measureRowFont;
                 double tokenWidth = 0D;
                 if (tokens.Length == 0) {
-                    tokenWidth = EstimateSimpleTextWidthForOptions(cell.Text, rowStandardFont, rowSize, options);
+                    tokenWidth = measureRowText(cell.Text);
                 } else {
                     for (int tokenIndex = 0; tokenIndex < tokens.Length; tokenIndex++) {
-                        tokenWidth = Math.Max(tokenWidth, EstimateSimpleTextWidthForOptions(tokens[tokenIndex], rowStandardFont, rowSize, options));
+                        tokenWidth = Math.Max(tokenWidth, measureRowText(tokens[tokenIndex]));
                     }
                 }
 
@@ -337,12 +340,12 @@ internal static partial class PdfWriter {
                     double runSize = run.FontSize?.ToPoints() ?? rowSize;
                     if (PdfStandardFontMapper.GetFontFamily(runFont) == PdfStandardFont.Courier) {
                         foreach (string codeToken in GetAutoFitCodeRunTokens(run.Text)) {
-                            codeTokenWidth = Math.Max(codeTokenWidth, EstimateSimpleTextWidthForOptions(codeToken, runFont, runSize, options));
+                            codeTokenWidth = Math.Max(codeTokenWidth, runFonts?.MeasureRunToken(runIndex, codeToken) ?? EstimateSimpleTextWidthForOptions(codeToken, runFont, runSize, options));
                         }
                         continue;
                     }
                     foreach (string runToken in GetAutoFitMinimumWidthTokens(run.Text, splitCamelCase: splitMinimumCamelCase)) {
-                        tokenWidth = Math.Max(tokenWidth, EstimateSimpleTextWidthForOptions(runToken, runFont, runSize, options));
+                        tokenWidth = Math.Max(tokenWidth, runFonts?.MeasureRunToken(runIndex, runToken) ?? EstimateSimpleTextWidthForOptions(runToken, runFont, runSize, options));
                     }
                 }
                 codeTokenWidth = Math.Min(codeTokenWidth, rowSize * AutoFitMaximumCodeTokenEms);
@@ -355,7 +358,7 @@ internal static partial class PdfWriter {
                 bool shortCamelCaseText = textProfile.IsShortCamelCase;
                 if (camelCaseText) {
                     if (!shortCamelCaseText || !useLargeDenseDelimitedCodeCap) {
-                        double wholeCamelCaseWidth = EstimateSimpleTextWidthForOptions(cell.Text, rowStandardFont, rowSize, options);
+                        double wholeCamelCaseWidth = measureRowText(cell.Text);
                         tokenWidth = Math.Max(tokenWidth, shortCamelCaseText ? wholeCamelCaseWidth : wholeCamelCaseWidth * 0.75D);
                     }
                 }
@@ -364,12 +367,12 @@ internal static partial class PdfWriter {
                 if (singleLetterNumericDelimitedCodeList) {
                     singleLetterNumericDelimitedSegmentWidth = MeasureSingleLetterNumericDelimitedSegmentWidth(
                         cell.Text,
-                        value => EstimateSimpleTextWidthForOptions(value, rowStandardFont, rowSize, options));
+                        measureRowText);
                     tokenWidth = Math.Max(tokenWidth, singleLetterNumericDelimitedSegmentWidth);
                 } else if (singleLetterNumericDelimitedCode) {
                     singleLetterNumericDelimitedSegmentWidth = MeasureSingleLetterNumericDelimitedMinimumWidth(
                         cell.Text,
-                        value => EstimateSimpleTextWidthForOptions(value, rowStandardFont, rowSize, options));
+                        measureRowText);
                     tokenWidth = Math.Max(tokenWidth, singleLetterNumericDelimitedSegmentWidth);
                 }
 
@@ -381,7 +384,7 @@ internal static partial class PdfWriter {
                 }
 
                 if (qualifiedIdentifierText) {
-                    double wholeQualifiedIdentifierWidth = EstimateSimpleTextWidthForOptions(cell.Text, rowStandardFont, rowSize, options);
+                    double wholeQualifiedIdentifierWidth = measureRowText(cell.Text);
                     maximumTokenWidth = Math.Max(maximumTokenWidth, wholeQualifiedIdentifierWidth * 0.65D);
                 }
 
