@@ -16,7 +16,7 @@ A file that leaves your team carries more than its visible text: author and comp
 
 `Get-OfficeHiddenData` and `Remove-OfficeHiddenData` work on Word, Excel, PowerPoint, Visio, OpenDocument, EPUB and PDF files, and on JPEG, PNG, WebP, GIF and TIFF images. They are the PowerShell form of `officeimo hidden-data inspect` and `officeimo hidden-data remove`, and they use the same engine.
 
-The outputs below come from a folder with four files: a Word proposal with a reviewer comment, a custom property and a picture labelled as AI-generated; an Excel budget with a cell comment; a PowerPoint briefing with speaker notes; and a PDF summary with an attached cost model. The [clean-before-sharing recipe](https://github.com/EvotecIT/OfficeIMO/blob/b15295cf7e8c59ff528f282a331022a39f167a95/PowerShell/PSWriteOffice/Examples/Workflows/Recipe-CleanBeforeSharing.ps1) builds similar files and runs the whole check.
+The outputs below come from a folder with four files: a Word proposal with a reviewer comment, a custom property and a picture labelled as AI-generated; an Excel budget with a cell comment; a PowerPoint briefing with speaker notes; and a PDF summary with an attached cost model. The [clean-before-sharing recipe](https://github.com/EvotecIT/OfficeIMO/blob/a0abd1c0e95b75c0c91ad57b607038477a98462c/PowerShell/PSWriteOffice/Examples/Workflows/Recipe-CleanBeforeSharing.ps1) builds similar files and runs the whole check.
 
 ## See what would leave with a file
 
@@ -87,7 +87,7 @@ PS> ($report.Findings | Where-Object Outcome -EQ Retained).Note
 Kept because this category wasn't chosen for removal.
 ```
 
-The copy is written as `<name>.cleaned<ext>` beside the input. Use `-OutputPath` to name it, or `-OutputDirectory` to write every copy into one folder under its original name. An existing output is never replaced silently: running the same command again fails with "The output already exists", and `-Force` replaces it. `-WhatIf` shows which files would be written without reading or writing anything.
+The copy is written as `<name>.cleaned<ext>` beside the input. Use `-OutputPath` to name it, or `-OutputDirectory` to write every copy into one folder under its original name. Running the command again replaces an earlier cleaned copy, the same as `Convert-OfficeDocument` and `Optimize-OfficePdf`. Add `-NoClobber` to keep an existing copy instead; the command then reports "The output already exists" for that file and moves on. `-WhatIf` shows which files would be written without reading or writing anything.
 
 Every finding has an `Outcome`: `Removed`, `Anonymized`, `Accepted`, `Rejected` or `Retained`. A retained finding has a `Reason` code and a `Note` sentence. Here the AI label on the picture stayed because provenance is not one of the default categories. Inspecting the copy shows what is left:
 
@@ -138,7 +138,7 @@ ZipPackage           False                       True
 Selecting `Provenance` removes the label from the picture inside the proposal:
 
 ```powershell
-PS> $report = Remove-OfficeHiddenData -Path .\Proposal.docx -Options $options -Force
+PS> $report = Remove-OfficeHiddenData -Path .\Proposal.docx -Options $options
 PS> $report.Findings | Where-Object Kind -EQ Provenance | Select-Object Outcome, Description, Part
 
 Outcome Description                                  Part
