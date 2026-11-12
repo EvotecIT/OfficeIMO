@@ -15,10 +15,11 @@ internal static partial class PdfWriter {
         private readonly double[] _sizes;
         private readonly OfficeTextFeatureSettings?[] _features;
         private readonly PdfCreateOptions _options;
+        private readonly int[]? _sourceRunStarts;
         private System.Collections.Generic.Dictionary<int, int>? _firstRunByScalar;
 
         private AutoFitRunFontMeasure(string text, int[] runStarts, PdfStandardFont[] fonts, PdfNamedFontFace?[] namedFonts,
-            double[] sizes, OfficeTextFeatureSettings?[] features, PdfCreateOptions options) {
+            double[] sizes, OfficeTextFeatureSettings?[] features, PdfCreateOptions options, int[]? sourceRunStarts) {
             _text = text;
             _runStarts = runStarts;
             _fonts = fonts;
@@ -26,6 +27,7 @@ internal static partial class PdfWriter {
             _sizes = sizes;
             _features = features;
             _options = options;
+            _sourceRunStarts = sourceRunStarts;
         }
 
         /// <summary>
@@ -34,7 +36,7 @@ internal static partial class PdfWriter {
         /// </summary>
         internal static AutoFitRunFontMeasure? TryCreate(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs,
             string cellText, PdfStandardFont rowFont, double rowSize, PdfCreateOptions options) {
-            if (!NeedsRunFontMeasurement(runs, cellText)) return null;
+            if (!NeedsRunFontMeasurement(runs, cellText, rowFont, options)) return null;
 
             System.Collections.Generic.IReadOnlyList<PdfTextRun> normalized = NormalizeFallbackRuns(runs, rowFont, options);
             var builder = new System.Text.StringBuilder();
@@ -59,10 +61,41 @@ internal static partial class PdfWriter {
                 features.Add(run.FeatureSettings);
             }
 
-            return ownFace
-                ? new AutoFitRunFontMeasure(builder.ToString(), starts.ToArray(), fonts.ToArray(), namedFonts.ToArray(),
-                    sizes.ToArray(), features.ToArray(), options)
-                : null;
+            if (!ownFace) return null;
+            string text = builder.ToString();
+            return new AutoFitRunFontMeasure(text, starts.ToArray(), fonts.ToArray(), namedFonts.ToArray(),
+                sizes.ToArray(), features.ToArray(), options, MapSourceRunStarts(runs, text));
+        }
+
+        /// <summary>
+        /// Measures a word of one source run in that run's own faces and size,
+        /// even when the same word appears earlier in another run.
+        /// </summary>
+        internal double MeasureRunToken(int sourceRunIndex, string? token) {
+            if (string.IsNullOrEmpty(token)) return 0D;
+            if (_sourceRunStarts != null) {
+                int start = _sourceRunStarts[sourceRunIndex];
+                int end = sourceRunIndex + 1 < _sourceRunStarts.Length ? _sourceRunStarts[sourceRunIndex + 1] : _text.Length;
+                int found = end - start >= token!.Length ? _text.IndexOf(token, start, end - start, StringComparison.Ordinal) : -1;
+                if (found >= 0) return MeasureSlice(found, token.Length);
+            }
+            return Measure(token);
+        }
+
+        // Fallback planning splits runs without changing their text, so each
+        // source run keeps a contiguous range of the combined text.
+        private static int[]? MapSourceRunStarts(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, string text) {
+            var starts = new int[runs.Count];
+            int offset = 0;
+            for (int index = 0; index < runs.Count; index++) {
+                starts[index] = offset;
+                PdfTextRun run = runs[index];
+                if (run.InlineElement != null || string.IsNullOrEmpty(run.Text)) continue;
+                if (offset + run.Text.Length > text.Length ||
+                    string.CompareOrdinal(text, offset, run.Text, 0, run.Text.Length) != 0) return null;
+                offset += run.Text.Length;
+            }
+            return offset == text.Length ? starts : null;
         }
 
         internal double Measure(string? value) {
@@ -134,12 +167,25 @@ internal static partial class PdfWriter {
         private double MeasurePiece(int run, string text) =>
             EstimateSimpleTextWidthForOptions(text, _fonts[run], _namedFonts[run], _sizes[run], _options, _features[run]);
 
-        private static bool NeedsRunFontMeasurement(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, string cellText) {
+        private static bool NeedsRunFontMeasurement(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, string cellText,
+            PdfStandardFont rowFont, PdfCreateOptions options) {
             for (int index = 0; index < runs.Count; index++)
                 if (runs[index].InlineElement == null && runs[index].FontFamily != null) return true;
-            // Fallback runs replace only glyphs outside the row font's Latin repertoire.
             foreach (char ch in cellText)
                 if (ch > '\u007f') return true;
+            // ASCII text can still need a fallback when an embedded row face lacks a glyph.
+            for (int index = 0; index < runs.Count; index++) {
+                PdfTextRun run = runs[index];
+                if (run.InlineElement != null || string.IsNullOrEmpty(run.Text)) continue;
+                PdfStandardFont font = ResolvePageTextRunFont(run, rowFont);
+                if (options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? trueType) && trueType != null) {
+                    foreach (char ch in run.Text)
+                        if (ch >= ' ' && !trueType.TryGetGlyphId(ch, out _)) return true;
+                } else if (options.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out PdfOpenTypeCffFontProgram? cff) && cff != null) {
+                    foreach (char ch in run.Text)
+                        if (ch >= ' ' && !cff.TryGetGlyphId(ch, out _)) return true;
+                }
+            }
             return false;
         }
 

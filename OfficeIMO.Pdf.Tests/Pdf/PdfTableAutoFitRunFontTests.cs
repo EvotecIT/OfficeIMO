@@ -47,4 +47,24 @@ public class PdfTableAutoFitRunFontTests {
             Assert.Contains("+Emoji", emoji.FontName ?? string.Empty, StringComparison.Ordinal);
         }
     }
+
+    [Fact]
+    public void AutoFitMeasuresAsciiGlyphMissingFromEmbeddedRowFontInItsFallback() {
+        int[] latinWithoutZ = Enumerable.Range(32, 95).Where(scalar => scalar != 'Z').ToArray();
+        byte[] rowFont = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, latinWithoutZ);
+        var options = new PdfCreateOptions()
+            .EmbedStandardFont(PdfStandardFont.Helvetica, rowFont, "RowFont")
+            .EmbedStandardFont(PdfStandardFont.HelveticaBold, rowFont, "RowFont-Bold")
+            .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(new[] {
+                new PdfEmbeddedFontFallbackCandidate("Zed", ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, ' ', 'Z'))
+            }));
+
+        byte[] pdf = PdfDocument.Create(document => document.Page(page => page.Content(content =>
+            content.Item(item => item.AddTable(new[] { new[] { PdfTableCell.RichTextCell(new[] { PdfTextRun.Normal("AZ") }) } },
+                global::OfficeIMO.OfficeAlignment.Left)))), options).ToBytes();
+
+        using var independent = UglyToad.PdfPig.PdfDocument.Open(pdf);
+        var zed = Assert.Single(independent.GetPage(1).Letters, letter => letter.Value == "Z");
+        Assert.Contains("+Zed", zed.FontName ?? string.Empty, StringComparison.Ordinal);
+    }
 }

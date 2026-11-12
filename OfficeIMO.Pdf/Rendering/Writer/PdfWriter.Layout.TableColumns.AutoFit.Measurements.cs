@@ -340,12 +340,12 @@ internal static partial class PdfWriter {
                     double runSize = run.FontSize?.ToPoints() ?? rowSize;
                     if (PdfStandardFontMapper.GetFontFamily(runFont) == PdfStandardFont.Courier) {
                         foreach (string codeToken in GetAutoFitCodeRunTokens(run.Text)) {
-                            codeTokenWidth = Math.Max(codeTokenWidth, runFonts?.Measure(codeToken) ?? EstimateSimpleTextWidthForOptions(codeToken, runFont, runSize, options));
+                            codeTokenWidth = Math.Max(codeTokenWidth, runFonts?.MeasureRunToken(runIndex, codeToken) ?? EstimateSimpleTextWidthForOptions(codeToken, runFont, runSize, options));
                         }
                         continue;
                     }
                     foreach (string runToken in GetAutoFitMinimumWidthTokens(run.Text, splitCamelCase: splitMinimumCamelCase)) {
-                        tokenWidth = Math.Max(tokenWidth, runFonts?.Measure(runToken) ?? EstimateSimpleTextWidthForOptions(runToken, runFont, runSize, options));
+                        tokenWidth = Math.Max(tokenWidth, runFonts?.MeasureRunToken(runIndex, runToken) ?? EstimateSimpleTextWidthForOptions(runToken, runFont, runSize, options));
                     }
                 }
                 codeTokenWidth = Math.Min(codeTokenWidth, rowSize * AutoFitMaximumCodeTokenEms);
