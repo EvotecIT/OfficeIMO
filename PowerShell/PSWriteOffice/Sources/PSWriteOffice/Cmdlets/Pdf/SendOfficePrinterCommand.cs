@@ -35,7 +35,7 @@ public sealed class SendOfficePrinterCommand : AsyncPSCmdlet {
     /// <summary>Installed queue from Get-OfficePrinter, or an ipp:// or ipps:// printer URI.</summary>
     [Parameter(Mandatory = true)] public string PrinterName { get; set; } = string.Empty;
     /// <summary>Page selection such as 1-3,last.</summary>
-    [Parameter, OfficePageSelectorTransformation] public OfficePageSelector? Page { get; set; }
+    [Parameter, Alias("Pages"), OfficePageSelectorTransformation] public OfficePageSelector? Page { get; set; }
     /// <summary>Source pages per sheet, in row-major order.</summary>
     [Parameter] [ValidateSet("1", "2", "4", "6", "9")] public int PagesPerSheet { get; set; } = 1;
     /// <summary>Keep all selected pages, or only odd or even original page numbers.</summary>
@@ -50,7 +50,7 @@ public sealed class SendOfficePrinterCommand : AsyncPSCmdlet {
     /// <summary>Paper source identifier reported by Get-OfficePrinterCapability.</summary>
     [Parameter] public string? PaperSourceId { get; set; }
     /// <summary>New destination file for a Windows file printer.</summary>
-    [Parameter] public string? OutputPath { get; set; }
+    [Parameter, Alias("OutputFilePath")] public string? OutputPath { get; set; }
     /// <summary>Highest resolution used when sheets are rasterized for delivery.</summary>
     [Parameter] [ValidateRange(72d, 600d)] public double Dpi { get; set; } = 300;
     /// <summary>Printable margin in points.</summary>
@@ -78,14 +78,15 @@ public sealed class SendOfficePrinterCommand : AsyncPSCmdlet {
         var inputs = OfficePath.ResolveInputs(this, literal ? LiteralPath : Path, literal);
         string? output = OutputPath == null ? null : PdfCommandUtilities.ResolvePath(this, OutputPath);
         if (output != null && inputs.Count != 1) throw new PSArgumentException("A file printer OutputPath requires one document.");
+        // Every input is checked before the first job is submitted, so an invalid request never leaves a partial print run.
+        if (Password != null && inputs.Any(input => !string.Equals(System.IO.Path.GetExtension(input), ".pdf", StringComparison.OrdinalIgnoreCase)))
+            throw new PSArgumentException("Password applies only to PDF documents.", nameof(Password));
         var work = new System.Collections.Generic.List<string>();
         foreach (string input in inputs)
             if (ShouldProcess(PrinterName, "Submit " + input + " as a print job")) work.Add(input);
         string? password = Password.ToPlainText();
         var service = new PdfPrinterService();
         foreach (string input in work) {
-            bool pdf = string.Equals(System.IO.Path.GetExtension(input), ".pdf", StringComparison.OrdinalIgnoreCase);
-            if (password != null && !pdf) throw new PSArgumentException("Password applies only to PDF documents.", nameof(Password));
             OfficePrintResult result = await service.PrintAsync(new OfficePrintRequest {
                 Layout = new PdfPrintPlanRequest {
                     InputPath = input, Pages = Page?.ToString(), PagesPerSheet = PagesPerSheet, Margin = Margin.ToPoints(),
