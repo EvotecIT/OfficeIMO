@@ -5,6 +5,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <VersionPrefix>3.6.0</VersionPrefix>
     <Description>Provider-neutral document AI operations with bounded evidence, source citations and validated extraction.</Description>
+    <PackageTags>ai;llm;document-ai;extraction;citations;officeimo</PackageTags>
     <Authors>Przemyslaw Klys</Authors>
     <Company>Evotec</Company>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
