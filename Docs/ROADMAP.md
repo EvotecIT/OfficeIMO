@@ -106,7 +106,8 @@ Printing lives in `OfficeIMO.Workflows/Printing`, outside the PDF engine. It ren
 
 ### Managed IPP client and job lifecycle
 
-- [ ] Add an own IPP/2.0 client over HTTP (`ipp://`, `ipps://`) with Get-Printer-Attributes, Validate-Job, Print-Job, Get-Job-Attributes, Get-Jobs and Cancel-Job. Use a bounded, fuzzed attribute codec. Send `application/pdf` when the printer supports it, and PWG raster or URF otherwise.
+- [x] Add an own IPP/2.0 client over HTTP (`ipp://`, `ipps://`) with Get-Printer-Attributes, Validate-Job, Print-Job, Get-Job-Attributes, Get-Jobs and Cancel-Job. Use a bounded, fuzzed attribute codec.
+- [ ] Send `application/pdf` when the printer supports it, and PWG raster (the internal `PwgRasterWriter`) or URF otherwise.
 - [ ] Print to a printer by URI on any OS or container, with no installed queue or CUPS tools. Route CUPS queues through IPP to the local scheduler, so the `/usr/bin/lp` dependency becomes a fallback.
 - [ ] Track jobs across transports: query state, wait for completion with a timeout, and cancel (IPP, Windows `GetJob`/`SetJob`). Queue acceptance remains a separate contract from completion.
 - [ ] Qualify against the independent `ippeveprinter` IPP Everywhere reference printer (PDF, PWG raster, duplex, media, cancellation, job states) and against CUPS queues.

@@ -2084,6 +2084,32 @@ Print preparation enforces PDF printing permissions, page and raster limits, can
 
 To check placement without a printer driver, call `PdfPrintPlanner.Create` and read `PdfPrintPlan.Sheets`. The [command line](../OfficeIMO.Tool/README.md#file-batches-and-printing) exposes the same steps as `officeimo workflow printers`, `print-plan` and `print`.
 
+### Print to an IPP printer by URI
+
+`IppPrintClient` talks to any IPP printer or print server directly, so it needs no installed queue, driver or CUPS tools and works the same on Windows, macOS, Linux and in containers:
+
+```csharp
+using var printer = new IppPrintClient(new Uri("ipp://printer.local/ipp/print"));
+
+IppPrinterCapabilities capabilities = await printer.GetCapabilitiesAsync();
+if (!capabilities.DocumentFormats.Contains("application/pdf")) throw new NotSupportedException("The printer does not accept PDF.");
+
+using FileStream pdf = File.OpenRead("report.pdf");
+IppSubmission submission = await printer.PrintAsync(pdf, "application/pdf", new IppJobOptions {
+    JobName = "Quarterly report",
+    Sides = "two-sided-long-edge",
+    Media = "iso_a4_210x297mm"
+});
+IppJobInfo job = await printer.WaitForJobAsync(submission.Job.Id, TimeSpan.FromMinutes(5));
+Console.WriteLine($"Job {job.Id}: {job.State}");
+```
+
+`ipp://` uses HTTP and `ipps://` uses HTTPS, on port 631 unless the URI names another. `GetCapabilitiesAsync` reads document formats, media and media sizes, sides, colour modes, resolutions, copies, orientations, scaling, page-range support, PWG raster resolutions and types, and the printer state. `IppJobOptions` uses the same IPP keywords, and unset options keep the printer defaults. `ValidateJobAsync` checks options without printing; both it and `PrintAsync` report attributes the printer ignored. `GetJobAsync`, `GetJobsAsync` and `CancelJobAsync` follow and cancel jobs, and `WaitForJobAsync` polls until the job is completed, canceled or aborted, or throws `TimeoutException`.
+
+Documents stream from the caller's stream: seekable streams are sent with a length, others with chunked transfer. A rejection before printing throws `IppException` with the printer's `StatusCode`; unreachable printers, timeouts and malformed or oversized responses throw `IppException` without one. If the connection fails, times out or is canceled after the document started streaming, `PrintAsync` throws `PdfPrintDeliveryException` because the job may still print. `IppSubmission` records acceptance, not completion; follow the job to a terminal state.
+
+The client speaks IPP/2.0 and falls back to IPP/1.1 when a printer rejects 2.0. It refuses HTTP redirects, does not use a system proxy, and does not authenticate. For an `ipps://` printer with a self-signed certificate, pass your own `HttpClientHandler` with the certificate check you trust to the `IppPrintClient(Uri, HttpMessageHandler, IppPrintClientOptions?)` constructor. `IppPrintClientOptions` sets `RequestingUserName`, the per-request `Timeout` (five minutes by default) and `MaxResponseBytes`.
+
 ## Save protected or unencrypted PDF copies
 
 ```csharp
