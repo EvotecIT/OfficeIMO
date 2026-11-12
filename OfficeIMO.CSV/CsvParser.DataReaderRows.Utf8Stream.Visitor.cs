@@ -44,6 +44,8 @@ internal static partial class CsvParser
         private int[]? _indexEnds;
         private int _indexFirst;
         private bool _indexed;
+        /// <summary>The current record is indexed and all of its batch is ASCII: the field fast path's one test.</summary>
+        private bool _indexedAscii;
         private bool _mayHaveEscapedQuotes;
         // Quote-free dialects store every field as plain text, including one that starts with a quote.
         private readonly bool _quotesAreData;
@@ -94,6 +96,7 @@ internal static partial class CsvParser
         {
             FieldCount = 0;
             _indexed = false;
+            _indexedAscii = false;
         }
 
         /// <summary>Sets the batch index that indexed records read; it is kept for the reader's lifetime.</summary>
@@ -103,6 +106,7 @@ internal static partial class CsvParser
         internal void SetIndexedRecord(int first, int count)
         {
             _indexed = true;
+            _indexedAscii = false;
             _indexFirst = first;
             FieldCount = count;
         }
@@ -145,6 +149,7 @@ internal static partial class CsvParser
             }
 
             _indexed = false;
+            _indexedAscii = false;
         }
 
         internal void SetBuffer(byte[] buffer) => _buffer = buffer;
@@ -268,6 +273,7 @@ internal static partial class CsvParser
             }
 
             _allFieldsAscii = allFieldsAscii;
+            _indexedAscii = _indexed && allFieldsAscii;
             _mayHaveEscapedQuotes = mayHaveEscapedQuotes;
             if (sourceColumnCount > fieldCount)
             {
@@ -336,25 +342,34 @@ internal static partial class CsvParser
         private readonly string GetFieldString(int ordinal)
         {
 #if NET8_0_OR_GREATER
-            // Batch-indexed ASCII text of two or more characters, unquoted or quoted in a batch without
-            // escaped quotes, goes straight from the index to a new string; everything else takes the
-            // general path below. The batch indexer only admits quoted fields that close their quotes.
-            if (_indexed && _allFieldsAscii && BitConverter.IsLittleEndian && Vector128.IsHardwareAccelerated)
+            // Batch-indexed ASCII text, unquoted or quoted in a batch without escaped quotes, goes straight
+            // from the index to its string; everything else takes the general path below. The batch
+            // indexer only admits quoted fields that close their quotes, so a two-byte quoted field is "".
+            if (_indexedAscii && BitConverter.IsLittleEndian && Vector128.IsHardwareAccelerated)
             {
                 ref int end = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_indexEnds!), _indexFirst + ordinal);
                 int fieldStart = Unsafe.Add(ref end, -1) + 1;
                 int fieldLength = end - fieldStart;
-                if (fieldLength >= 2)
+                if (fieldLength == 0)
                 {
-                    if (_buffer[fieldStart] != (byte)'"' || _quotesAreData)
-                    {
-                        return CreateAsciiString(_buffer, fieldStart, fieldLength);
-                    }
+                    return string.Empty;
+                }
 
-                    if (!_mayHaveEscapedQuotes && fieldLength >= 4)
-                    {
-                        return CreateAsciiString(_buffer, fieldStart + 1, fieldLength - 2);
-                    }
+                // Index entries are separator offsets inside the scanned buffer.
+                byte first = Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_buffer), fieldStart);
+                if (first != (byte)'"' || _quotesAreData)
+                {
+                    return fieldLength == 1 ? SingleCharacterStrings[first] : CreateAsciiString(_buffer, fieldStart, fieldLength);
+                }
+
+                if (fieldLength == 2)
+                {
+                    return string.Empty;
+                }
+
+                if (!_mayHaveEscapedQuotes && fieldLength >= 4)
+                {
+                    return CreateAsciiString(_buffer, fieldStart + 1, fieldLength - 2);
                 }
             }
 #endif
@@ -504,10 +519,15 @@ internal static partial class CsvParser
                 return Encoding.Latin1.GetString(buffer.AsSpan(start, length));
             }
 
-            return string.Create(length, (buffer, start), static (characters, state) => WidenAscii(
-                ref state.buffer[state.start], ref Unsafe.As<char, byte>(ref MemoryMarshal.GetReference(characters)), characters.Length));
+            return string.Create(length, (buffer, start), WidenAsciiAction);
 #endif
         }
+
+#if NET8_0_OR_GREATER
+        // A static readonly delegate is a constant to the JIT, so the per-field call skips the lazy cache check.
+        private static readonly SpanAction<char, (byte[] Buffer, int Start)> WidenAsciiAction = static (characters, state) => WidenAscii(
+            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(state.Buffer), state.Start), ref Unsafe.As<char, byte>(ref MemoryMarshal.GetReference(characters)), characters.Length);
+#endif
 
 #if NET8_0_OR_GREATER
         /// <summary>Widens two or more validated ASCII bytes into <paramref name="destination"/>.</summary>
