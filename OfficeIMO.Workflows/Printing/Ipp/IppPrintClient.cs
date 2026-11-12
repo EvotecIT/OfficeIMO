@@ -181,23 +181,9 @@ internal sealed class IppPrintClient : IDisposable {
     /// <exception cref="TimeoutException">The job was not terminal when the timeout elapsed.</exception>
     public async Task<IppJobInfo> WaitForJobAsync(int jobId, TimeSpan timeout, TimeSpan? pollInterval = null, CancellationToken cancellationToken = default) {
         if (jobId < 1) throw new ArgumentOutOfRangeException(nameof(jobId));
-        if (timeout < TimeSpan.Zero && timeout != Timeout.InfiniteTimeSpan) throw new ArgumentOutOfRangeException(nameof(timeout));
-        TimeSpan interval = pollInterval ?? TimeSpan.FromSeconds(1);
-        if (interval <= TimeSpan.Zero || interval > TimeSpan.FromHours(1)) throw new ArgumentOutOfRangeException(nameof(pollInterval));
-        var clock = System.Diagnostics.Stopwatch.StartNew();
-        while (true) {
-            IppJobInfo job = await GetJobAsync(jobId, cancellationToken).ConfigureAwait(false);
-            if (job.IsTerminal) return job;
-            TimeSpan delay = interval;
-            if (timeout != Timeout.InfiniteTimeSpan) {
-                TimeSpan remaining = timeout - clock.Elapsed;
-                if (remaining <= TimeSpan.Zero) {
-                    throw new TimeoutException($"Job {jobId} was still {job.State} after {timeout}.");
-                }
-                if (remaining < delay) delay = remaining;
-            }
-            await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
-        }
+        TimeSpan interval = PrintJobPolling.Interval(timeout, pollInterval);
+        return await PrintJobPolling.WaitAsync(token => GetJobAsync(jobId, token), job => job.IsTerminal, job => job.State.ToString(),
+            jobId.ToString(System.Globalization.CultureInfo.InvariantCulture), timeout, interval, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />

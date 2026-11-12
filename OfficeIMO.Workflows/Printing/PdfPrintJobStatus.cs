@@ -47,20 +47,60 @@ public static partial class PdfPrinterServiceExtensions {
     public static async Task<PdfPrintJobStatus> WaitForJobAsync(this IPdfPrinterService printers, string printerName, string jobId, TimeSpan timeout,
         TimeSpan? pollInterval = null, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(printers);
+        TimeSpan interval = PrintJobPolling.Interval(timeout, pollInterval);
+        return await PrintJobPolling.WaitAsync(token => printers.GetJobAsync(printerName, jobId, token), status => status.IsTerminal,
+            status => status.State.ToString(), jobId, timeout, interval, cancellationToken).ConfigureAwait(false);
+    }
+}
+
+/// <summary>Polls a job query until it reports a terminal state, bounding every query by the remaining wait.</summary>
+internal static class PrintJobPolling {
+    /// <summary>Validates the wait arguments and returns the poll interval (one second by default).</summary>
+    public static TimeSpan Interval(TimeSpan timeout, TimeSpan? pollInterval) {
         if (timeout < TimeSpan.Zero && timeout != Timeout.InfiniteTimeSpan) throw new ArgumentOutOfRangeException(nameof(timeout));
         TimeSpan interval = pollInterval ?? TimeSpan.FromSeconds(1);
         if (interval <= TimeSpan.Zero || interval > TimeSpan.FromHours(1)) throw new ArgumentOutOfRangeException(nameof(pollInterval));
+        return interval;
+    }
+
+    /// <summary>
+    /// Queries until <paramref name="isTerminal"/> holds. Each query receives a token that expires at the deadline; a query that
+    /// expires, or a terminal answer that arrives after the deadline, raises <see cref="TimeoutException"/>. Caller cancellation
+    /// raises <see cref="OperationCanceledException"/>.
+    /// </summary>
+    public static async Task<T> WaitAsync<T>(Func<CancellationToken, Task<T>> query, Func<T, bool> isTerminal, Func<T, string> describe,
+        string jobId, TimeSpan timeout, TimeSpan interval, CancellationToken cancellationToken) {
+        bool bounded = timeout != Timeout.InfiniteTimeSpan;
         var clock = System.Diagnostics.Stopwatch.StartNew();
+        string? lastState = null;
         while (true) {
-            PdfPrintJobStatus status = await printers.GetJobAsync(printerName, jobId, cancellationToken).ConfigureAwait(false);
-            if (status.IsTerminal) return status;
-            TimeSpan delay = interval;
-            if (timeout != Timeout.InfiniteTimeSpan) {
+            T result;
+            if (!bounded) {
+                result = await query(cancellationToken).ConfigureAwait(false);
+            } else {
                 TimeSpan remaining = timeout - clock.Elapsed;
-                if (remaining <= TimeSpan.Zero) throw new TimeoutException($"Job {jobId} was still {status.State} after {timeout}.");
+                if (remaining <= TimeSpan.Zero) throw Expired(jobId, timeout, lastState);
+                using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                deadline.CancelAfter(remaining);
+                try {
+                    result = await query(deadline.Token).ConfigureAwait(false);
+                } catch (OperationCanceledException error) when (!cancellationToken.IsCancellationRequested && deadline.IsCancellationRequested) {
+                    throw Expired(jobId, timeout, lastState, error);
+                }
+                if (clock.Elapsed > timeout) throw Expired(jobId, timeout, describe(result));
+            }
+            if (isTerminal(result)) return result;
+            lastState = describe(result);
+            TimeSpan delay = interval;
+            if (bounded) {
+                TimeSpan remaining = timeout - clock.Elapsed;
+                if (remaining <= TimeSpan.Zero) throw Expired(jobId, timeout, lastState);
                 if (remaining < delay) delay = remaining;
             }
             await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
         }
     }
+
+    private static TimeoutException Expired(string jobId, TimeSpan timeout, string? state, Exception? inner = null) =>
+        new(state is null ? $"Job {jobId} did not report a terminal state within {timeout}." : $"Job {jobId} was still {state} after {timeout}.", inner);
 }

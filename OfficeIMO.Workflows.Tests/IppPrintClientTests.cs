@@ -105,6 +105,37 @@ public sealed class IppPrintClientTests {
     }
 
     [Fact]
+    public async Task WaitingBoundsEachStatusRequestByTheRemainingTime() {
+        // The request timeout is minutes long; a stalled status query must still end at the wait deadline.
+        var stalled = FakeHandler.Http(async (_, token) => {
+            await Task.Delay(Timeout.Infinite, token);
+            throw new InvalidOperationException();
+        });
+        using var client = new IppPrintClient(Printer, stalled, new IppPrintClientOptions { Timeout = TimeSpan.FromMinutes(5) });
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+
+        await Assert.ThrowsAsync<TimeoutException>(() => client.WaitForJobAsync(3, TimeSpan.FromMilliseconds(200)));
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(30));
+
+        using var canceled = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => client.WaitForJobAsync(3, TimeSpan.FromMinutes(5), cancellationToken: canceled.Token));
+    }
+
+    [Fact]
+    public async Task WaitingRejectsATerminalAnswerThatArrivesAfterTheDeadline() {
+        var late = FakeHandler.Http(async (request, _) => {
+            IppMessage message = await Decode(request);
+            await Task.Delay(400); // ignores cancellation, like a slow printer that answers anyway
+            var content = new ByteArrayContent(IppCodec.Encode(Reply(message, 0, job => job.Add("job-id", IppValue.OfInteger(3)).Add("job-state", IppValue.OfEnum(9)))));
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/ipp");
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
+        });
+        using var client = new IppPrintClient(Printer, late);
+
+        await Assert.ThrowsAsync<TimeoutException>(() => client.WaitForJobAsync(3, TimeSpan.FromMilliseconds(100)));
+    }
+
+    [Fact]
     public async Task AcceptanceWithoutAJobIdIsUncertainDelivery() {
         var handler = FakeHandler.Ipp(async request => Reply(await Decode(request), 0, null));
         using var client = new IppPrintClient(Printer, handler);
