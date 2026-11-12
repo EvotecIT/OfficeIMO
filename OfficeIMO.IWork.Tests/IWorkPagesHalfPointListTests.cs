@@ -13,16 +13,23 @@ public sealed class IWorkPagesHalfPointListTests {
         IWorkPagesMixedSizeListTests.CheckWord(source);
     }
 
-    [Fact]
-    public void Mixed_half_point_runs_keep_first_run_markers_nine_levels_and_resumed_counters() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Mixed_half_point_runs_keep_first_run_markers_nine_levels_and_resumed_counters(bool nativeSaved) {
         var document = Example(); byte[] bytes = document.ToBytes();
         Assert.Equal(bytes, document.ToBytes());
-        var source = IWorkSourceDocument.Load(bytes); var projection = source.ReadPages();
+        var source = nativeSaved
+            ? IWorkSourceDocument.Load(Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus",
+                "native-exports", "pages-halfpoint-saved-v15.4.pages"))
+            : IWorkSourceDocument.Load(bytes);
+        var projection = source.ReadPages();
         Assert.True(projection.Body.IsFormattingComplete);
         Assert.Empty(projection.Diagnostics); Assert.Empty(projection.SourceDeclarationIssues);
         Assert.Empty(projection.SourceReferenceIssues);
         var authored = document.Paragraphs.Where(item => item.NumberedList != null).ToArray();
         var items = projection.Body.Paragraphs.Where(item => item.ListNumber.HasValue).ToArray();
+        Assert.Equal(authored.Select(item => item.Text), items.Select(item => item.Text));
         Assert.Equal(authored.Select(item => item.ListNumber), items.Select(item => item.ListNumber));
         Assert.Equal(authored.Select(item => item.ListLevel), items.Select(item => item.ListLevel));
         for (int index = 0; index < items.Length; index++) {
