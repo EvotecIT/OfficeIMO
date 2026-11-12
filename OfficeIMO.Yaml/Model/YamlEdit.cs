@@ -37,7 +37,7 @@ internal static class YamlEdit {
         bool key = IsKey(scalar, out YamlMapping? keyOf);
         if (key && kind == YamlScalarKind.String) {
             int existing = keyOf!.IndexOf(text);
-            if (existing >= 0 && !ReferenceEquals(keyOf._entries[existing].Key, scalar)) throw new ArgumentException("The mapping already has the key '" + text + "'.", nameof(text));
+            if (existing >= 0 && !ReferenceEquals(keyOf.EntryAt(existing).Key, scalar)) throw new ArgumentException("The mapping already has the key '" + text + "'.", nameof(text));
         }
         bool flow = InFlow(scalar);
         YamlStyle style;
@@ -107,7 +107,7 @@ internal static class YamlEdit {
 
     /// <summary>Puts a node at a collection position, updating a scalar in place when a plain new scalar replaces one.</summary>
     public static YamlNode ReplaceValue(YamlNode collection, int index, YamlNode node) {
-        YamlNode old = collection is YamlMapping mapping ? mapping._entries[index].Value : ((YamlSequence)collection)._items[index];
+        YamlNode old = collection is YamlMapping mapping ? mapping.EntryAt(index).Value : ((YamlSequence)collection).ItemAt(index);
         if (ReferenceEquals(old, node)) return old;
         if (old is YamlScalar oldScalar && node is YamlScalar newScalar && newScalar._part is null && newScalar._parent is null
             && newScalar._properties is null && (newScalar._state & YamlNodeState.New) != 0) {
@@ -118,6 +118,7 @@ internal static class YamlEdit {
         RequireDetached(node);
         CheckRemovable(old);
         bool hadRegion = old._start >= 0 && collection.HasSourceSpan;
+        bool replacesBlock = hadRegion && old is YamlMapping or YamlSequence && old._style == YamlStyle.Block;
         int start = old._start, end = old._end;
         if (old.HasSourceSpan) Materialize(old);
         // The replacement takes over the old value's line, and with it the comment at its end.
@@ -129,14 +130,14 @@ internal static class YamlEdit {
             properties.Comment = oldEdits.Comment;
         }
         old._parent = null;
-        if (collection is YamlMapping map) map._entries[index] = new YamlMappingEntry(map._entries[index].Key, node);
-        else ((YamlSequence)collection)._items[index] = node;
+        if (collection is YamlMapping map) map._entries![index] = new YamlMappingEntry(map.EntryAt(index).Key, node);
+        else ((YamlSequence)collection)._items![index] = node;
         node._index = index;
         Adopt(node, collection);
         if (hadRegion) {
             node._start = start;
             node._end = end;
-            MarkChanged(node, YamlNodeState.Dirty);
+            MarkChanged(node, replacesBlock ? YamlNodeState.Dirty | YamlNodeState.ReplacedBlock : YamlNodeState.Dirty);
         } else {
             MarkChanged(collection, YamlNodeState.None);
         }
@@ -152,9 +153,15 @@ internal static class YamlEdit {
             throw new ArgumentException("The mapping already has the key '" + keyText + "'.", nameof(key));
         }
         Snapshot(mapping);
-        if (mapping._entries.Length == mapping._count) Array.Resize(ref mapping._entries, Math.Max(4, mapping._count * 2));
-        Array.Copy(mapping._entries, index, mapping._entries, index + 1, mapping._count - index);
-        mapping._entries[index] = new YamlMappingEntry(key, value);
+        // Entries without objects move with their slots.
+        if (mapping.Slots.Length == mapping._count) {
+            int size = Math.Max(4, mapping._count * 2);
+            Array.Resize(ref mapping._entries, size);
+            if (mapping._slots is not null) Array.Resize(ref mapping._slots, size);
+        }
+        Array.Copy(mapping._entries!, index, mapping._entries!, index + 1, mapping._count - index);
+        if (mapping._slots is { } slots) Array.Copy(slots, index, slots, index + 1, mapping._count - index);
+        mapping._entries![index] = new YamlMappingEntry(key, value);
         mapping._count++;
         mapping.Renumber(index);
         mapping.ResetIndex();
@@ -169,9 +176,15 @@ internal static class YamlEdit {
     public static YamlNode InsertItem(YamlSequence sequence, int index, YamlNode item) {
         RequireDetached(item);
         Snapshot(sequence);
-        if (sequence._items.Length == sequence._count) Array.Resize(ref sequence._items, Math.Max(4, sequence._count * 2));
-        Array.Copy(sequence._items, index, sequence._items, index + 1, sequence._count - index);
-        sequence._items[index] = item;
+        // Items without objects move with their slots.
+        if (sequence.Slots.Length == sequence._count) {
+            int size = Math.Max(4, sequence._count * 2);
+            Array.Resize(ref sequence._items, size);
+            if (sequence._slots is not null) Array.Resize(ref sequence._slots, size);
+        }
+        Array.Copy(sequence._items!, index, sequence._items!, index + 1, sequence._count - index);
+        if (sequence._slots is { } slots) Array.Copy(slots, index, slots, index + 1, sequence._count - index);
+        sequence._items![index] = item;
         sequence._count++;
         sequence.Renumber(index);
         Adopt(item, sequence);
@@ -182,27 +195,29 @@ internal static class YamlEdit {
 
     public static void RemoveChild(YamlNode collection, int index) {
         if (collection is YamlMapping mapping) {
-            YamlMappingEntry entry = mapping._entries[index];
+            YamlMappingEntry entry = mapping.EntryAt(index);
             CheckRemovable(entry.Key);
             CheckRemovable(entry.Value);
             Snapshot(mapping);
             // Removed nodes keep their values and comments, so they can be inspected or added elsewhere.
             if (entry.Value.HasSourceSpan) Materialize(entry.Value);
             if (entry.Key.HasSourceSpan) Materialize(entry.Key);
-            Array.Copy(mapping._entries, index + 1, mapping._entries, index, mapping._count - index - 1);
-            mapping._entries[--mapping._count] = default;
+            Array.Copy(mapping._entries!, index + 1, mapping._entries!, index, mapping._count - index - 1);
+            if (mapping._slots is { } slots) Array.Copy(slots, index + 1, slots, index, mapping._count - index - 1);
+            mapping._entries![--mapping._count] = default;
             mapping.Renumber(index);
             mapping.ResetIndex();
             entry.Key._parent = null;
             entry.Value._parent = null;
         } else {
             var sequence = (YamlSequence)collection;
-            YamlNode item = sequence._items[index];
+            YamlNode item = sequence.ItemAt(index);
             CheckRemovable(item);
             Snapshot(sequence);
             if (item.HasSourceSpan) Materialize(item);
-            Array.Copy(sequence._items, index + 1, sequence._items, index, sequence._count - index - 1);
-            sequence._items[--sequence._count] = null!;
+            Array.Copy(sequence._items!, index + 1, sequence._items!, index, sequence._count - index - 1);
+            if (sequence._slots is { } slots) Array.Copy(slots, index + 1, slots, index, sequence._count - index - 1);
+            sequence._items![--sequence._count] = null;
             sequence.Renumber(index);
             item._parent = null;
         }
@@ -222,7 +237,7 @@ internal static class YamlEdit {
             int index = mapping.IndexOfNode(collection, out bool isKey);
             if (!isKey) {
                 string source = collection.Document!._source;
-                int colon = YamlTrivia.ColonEnd(source, mapping._entries[index].Key._end);
+                int colon = YamlTrivia.ColonEnd(source, mapping.EntryAt(index).Key._end);
                 int lineEnd = YamlTrivia.LineContentEnd(source, colon);
                 for (int i = colon; i < lineEnd; i++) {
                     if (source[i] != '#' || (source[i - 1] != ' ' && source[i - 1] != '\t')) continue;
@@ -237,7 +252,7 @@ internal static class YamlEdit {
     }
 
     public static void ReplaceRoot(YamlDocumentPart part, YamlNode node) {
-        YamlNode? old = part._root;
+        YamlNode? old = part.RootNode;
         if (ReferenceEquals(old, node)) return;
         RequireDetached(node);
         int start = -1, end = -1;
@@ -247,7 +262,7 @@ internal static class YamlEdit {
             end = old._end;
             if (old.HasSourceSpan) Materialize(old);
         }
-        part._root = node;
+        part.RootNode = node;
         Adopt(node, null, part);
         if (!part._new && start >= 0) {
             node._start = start;
@@ -257,22 +272,31 @@ internal static class YamlEdit {
         part._document._partsDirty = true;
     }
 
-    /// <summary>Records the loaded children's spans before the first insertion or removal.</summary>
+    /// <summary>
+    /// Records the loaded children's spans before the first insertion or removal. Children without objects are read
+    /// from the node table and stay without them.
+    /// </summary>
     private static void Snapshot(YamlNode collection) {
         if (!collection.HasSourceSpan || (collection._state & YamlNodeState.Restructured) != 0) return;
         if (collection is YamlMapping mapping) {
             var spans = new int[mapping._count * 2];
             for (int i = 0; i < mapping._count; i++) {
-                spans[2 * i] = mapping._entries[i].Key._start;
-                spans[2 * i + 1] = mapping._entries[i].Value._end;
+                if (mapping.IsLoaded(i)) {
+                    YamlMappingEntry entry = mapping.EntryAt(i);
+                    spans[2 * i] = entry.Key._start;
+                    spans[2 * i + 1] = entry.Value._end;
+                } else {
+                    spans[2 * i] = mapping.KeyStart(i);
+                    spans[2 * i + 1] = mapping.ValueEnd(i);
+                }
             }
             mapping._original = spans;
         } else {
             var sequence = (YamlSequence)collection;
             var spans = new int[sequence._count * 2];
             for (int i = 0; i < sequence._count; i++) {
-                spans[2 * i] = sequence._items[i]._start;
-                spans[2 * i + 1] = sequence._items[i]._end;
+                spans[2 * i] = sequence.ItemStart(i);
+                spans[2 * i + 1] = sequence.ItemEnd(i);
             }
             sequence._original = spans;
         }
@@ -281,7 +305,7 @@ internal static class YamlEdit {
     // ------------------------------------------------------------------ attaching and detaching
 
     private static void RequireDetached(YamlNode node) {
-        if (node._parent is not null || (node._part is not null && ReferenceEquals(node._part._root, node))) {
+        if (node._parent is not null || (node._part is not null && ReferenceEquals(node._part.RootNode, node))) {
             throw new InvalidOperationException("The node already belongs to a document; remove it from its collection first.");
         }
         if (node.HasSourceSpan) Materialize(node);
@@ -305,14 +329,14 @@ internal static class YamlEdit {
         YamlDocument document = part._document;
         HashSet<string>? anchors = null;
         foreach (YamlNode node in root.Descendants()) {
-            if (node is YamlAlias alias && alias.Target._part is not null && !ReferenceEquals(alias.Target._part, part) && alias.Target._part._root is not null) {
+            if (node is YamlAlias alias && alias.Target._part is not null && !ReferenceEquals(alias.Target._part, part) && alias.Target._part.RootNode is not null) {
                 throw new ArgumentException("The alias *" + alias.Name + " refers to an anchor in another document.");
             }
             if (node.Anchor is { } anchor) (anchors ??= new HashSet<string>(StringComparer.Ordinal)).Add(anchor);
         }
         if (anchors is not null) {
             // A repeated anchor name would capture aliases after it on the next load.
-            foreach (YamlNode existing in part._root?.Descendants() ?? default) {
+            foreach (YamlNode existing in part.RootNode?.Descendants() ?? default) {
                 if (existing.Anchor is { } name && anchors.Contains(name) && !IsInside(existing, root)) {
                     throw new ArgumentException("The document already has an anchor named '" + name + "'.");
                 }
@@ -370,12 +394,12 @@ internal static class YamlEdit {
             int index = mapping.IndexOfNode(scalar, out _);
             for (int i = Math.Max(0, index - 8); i < Math.Min(mapping._count, index + 9); i++) {
                 if (i == index) continue;
-                Count(key ? mapping._entries[i].Key : mapping._entries[i].Value);
+                Count(key ? mapping.EntryAt(i).Key : mapping.EntryAt(i).Value);
             }
         } else if (parent is YamlSequence sequence) {
             int index = sequence.IndexOf(scalar);
             for (int i = Math.Max(0, index - 8); i < Math.Min(sequence._count, index + 9); i++) {
-                if (i != index) Count(sequence._items[i]);
+                if (i != index) Count(sequence.ItemAt(i));
             }
         }
         if (single + @double + plain == 0 && scalar._part is not null) {
@@ -430,20 +454,26 @@ internal static class YamlEdit {
         }
     }
 
-    private static void CaptureComments(YamlNode node) {
-        if (ReferenceEquals(YamlTrivia.Owner(node), node) && !YamlTrivia.InFlow(node)) {
-            string? before = YamlTrivia.GetCommentBefore(node);
-            bool space = YamlTrivia.GetSpaceBefore(node);
+    private static void CaptureComments(YamlNode node) => CopyComments(node, node);
+
+    /// <summary>
+    /// Gives <paramref name="target"/> the comments <paramref name="source"/> owns: the comment lines and blank line above
+    /// its entry and the comment at the end of its line. A merge uses it to carry an overlay node's comments to its copy.
+    /// </summary>
+    public static void CopyComments(YamlNode source, YamlNode target) {
+        if (ReferenceEquals(YamlTrivia.Owner(source), source) && !YamlTrivia.InFlow(source)) {
+            string? before = YamlTrivia.GetCommentBefore(source);
+            bool space = YamlTrivia.GetSpaceBefore(source);
             if (before is not null || space) {
-                YamlNodeProperties properties = node._properties ??= new YamlNodeProperties();
+                YamlNodeProperties properties = target._properties ??= new YamlNodeProperties();
                 properties.CommentBeforeSet = true;
                 properties.CommentBefore = before;
                 properties.SpaceBeforeSet = true;
                 properties.SpaceBefore = space;
             }
         }
-        if (ReferenceEquals(YamlTrivia.TrailingTarget(node), node) && YamlTrivia.GetComment(node) is { } comment) {
-            YamlNodeProperties properties = node._properties ??= new YamlNodeProperties();
+        if (ReferenceEquals(YamlTrivia.TrailingTarget(source), source) && YamlTrivia.GetComment(source) is { } comment) {
+            YamlNodeProperties properties = target._properties ??= new YamlNodeProperties();
             properties.CommentSet = true;
             properties.Comment = comment;
         }
@@ -548,7 +578,7 @@ internal static class YamlEdit {
         }
         if (target._parent is YamlMapping mapping) {
             int index = mapping.IndexOfNode(target, out bool isKey);
-            YamlNode value = mapping._entries[index].Value;
+            YamlNode value = mapping.EntryAt(index).Value;
             if (isKey && !(value is YamlMapping or YamlSequence && value._style == YamlStyle.Block)) {
                 throw new InvalidOperationException("The comment after a key whose value is on the same line belongs to the value; set it on the value.");
             }
@@ -609,7 +639,7 @@ internal static class YamlEdit {
         }
     }
 
-    private static YamlNodeWalk AllNodes(YamlDocumentPart part) => part._root is null ? default : part._root.Descendants();
+    private static YamlNodeWalk AllNodes(YamlDocumentPart part) => part.RootNode is null ? default : part.RootNode.Descendants();
 
     /// <summary>
     /// Records a diagnostic, once per anchored node, when an edit changes a node that aliases share: the change shows

@@ -133,6 +133,7 @@ Install a format package for that format alone. Conversion adapters are named `O
 | OpenDocument `.odt`, `.ods`, `.odp` | [OfficeIMO.OpenDocument](OfficeIMO.OpenDocument/README.md) | | `.OpenDocument.Odt.Pdf`, `.Ods.Pdf`, `.Odp.Pdf` |
 | EPUB | [OfficeIMO.Epub](OfficeIMO.Epub/README.md) | `EpubDocument` | `.Epub.Image` |
 | CSV | [OfficeIMO.CSV](OfficeIMO.CSV/README.md) | | `.Excel.Csv` |
+| YAML | [OfficeIMO.Yaml](OfficeIMO.Yaml/README.md) | `YamlDocument` | |
 | Apple Pages, Numbers, Keynote | [OfficeIMO.IWork](OfficeIMO.IWork/README.md) | | `.Word.IWork`, `.Excel.IWork`, `.PowerPoint.IWork` |
 | AsciiDoc, LaTeX | [OfficeIMO.AsciiDoc](OfficeIMO.AsciiDoc/README.md), [OfficeIMO.Latex](OfficeIMO.Latex/README.md) | | `.Markdown`, `.Pdf` |
 | Publisher, XPS, DjVu, CHM, DocBook, OPML | [OfficeIMO.Publisher](OfficeIMO.Publisher/README.md), [OfficeIMO.Xps](OfficeIMO.Xps/README.md), [OfficeIMO.DjVu](OfficeIMO.DjVu/README.md), [OfficeIMO.Chm](OfficeIMO.Chm/README.md), [OfficeIMO.DocBook](OfficeIMO.DocBook/README.md), [OfficeIMO.Opml](OfficeIMO.Opml/README.md) | | `.Pdf` where listed |
@@ -146,6 +147,7 @@ Shared and cross-format packages:
 | Read, search and chunk any format for indexing and AI ingestion | [OfficeIMO.Reader.All](OfficeIMO.Reader.All/README.md), or one `OfficeIMO.Reader.{Format}` |
 | OCR for scanned pages and images | [OfficeIMO.Ocr](OfficeIMO.Ocr/README.md), [OfficeIMO.Ocr.Tesseract](OfficeIMO.Ocr.Tesseract/README.md), [OfficeIMO.Pdf.Ocr](OfficeIMO.Pdf.Ocr/README.md) |
 | Certificate signatures for Word, PDF and email | [OfficeIMO.Security](OfficeIMO.Security/README.md) |
+| Print PDFs to installed printers on Windows, macOS and Linux, with sheet preview | [OfficeIMO.Workflows](OfficeIMO.Workflows/README.md#print-a-pdf) |
 | Snapshot tests for generated PDFs | [OfficeIMO.Pdf.Testing](OfficeIMO.Pdf.Testing/README.md) |
 | ZIP, CAB and MSI extraction | [OfficeIMO.Archives](OfficeIMO.Archives/README.md) |
 | Google Docs, Sheets, Slides and Drive | [OfficeIMO.GoogleWorkspace](OfficeIMO.GoogleWorkspace/README.md) |

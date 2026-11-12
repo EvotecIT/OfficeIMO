@@ -2708,6 +2708,14 @@
       ]
     },
     {
+      "oldCode": "markdown-front-matter-invalid-yaml",
+      "catalogCode": "markdown-front-matter-invalid-yaml",
+      "member": "MarkdownFrontMatterInvalidYaml",
+      "origins": [
+        "OfficeIMO.Markdown/Reader/MarkdownReader.Blocks.FrontMatter.cs"
+      ]
+    },
+    {
       "oldCode": "MarkdownToWordWarning",
       "catalogCode": "markdown-to-word-warning",
       "member": "MarkdownToWordWarning",
@@ -11237,6 +11245,38 @@
       "origins": [
         "OfficeIMO.Yaml/Model/YamlTreeBuilder.cs"
       ]
+    },
+    {
+      "oldCode": "yaml-merge-alias-expanded",
+      "catalogCode": "yaml-merge-alias-expanded",
+      "member": "YamlMergeAliasExpanded",
+      "origins": [
+        "OfficeIMO.Yaml/Model/YamlMerge.cs"
+      ]
+    },
+    {
+      "oldCode": "yaml-merge-anchor-renamed",
+      "catalogCode": "yaml-merge-anchor-renamed",
+      "member": "YamlMergeAnchorRenamed",
+      "origins": [
+        "OfficeIMO.Yaml/Model/YamlMerge.cs"
+      ]
+    },
+    {
+      "oldCode": "yaml-merge-key-not-removed",
+      "catalogCode": "yaml-merge-key-not-removed",
+      "member": "YamlMergeKeyNotRemoved",
+      "origins": [
+        "OfficeIMO.Yaml/Model/YamlMerge.cs"
+      ]
+    },
+    {
+      "oldCode": "yaml-merge-kind-conflict",
+      "catalogCode": "yaml-merge-kind-conflict",
+      "member": "YamlMergeKindConflict",
+      "origins": [
+        "OfficeIMO.Yaml/Model/YamlMerge.cs"
+      ]
     }
   ],
   "dynamicPatterns": [
@@ -11265,6 +11305,12 @@
       "oldPattern": "RewriteBlocker.{kind}",
       "catalogPattern": "rewrite-blocker-{kind}",
       "source": "OfficeIMO.Pdf/Diagnostics/PdfDiagnostics.cs"
+    },
+    {
+      "oldPattern": "Yaml.{area}.{rule}",
+      "catalogPattern": "yaml-{area}-{rule}",
+      "source": "OfficeIMO.Yaml/YamlException.cs",
+      "notes": "YamlException.ToDiagnostic converts the stable YamlErrorCodes values, such as Yaml.Syntax.InvalidIndentation to yaml-syntax-invalid-indentation. Yaml.Load.DuplicateKey keeps its literal entry, yaml-duplicate-key."
     }
   ],
   "dynamicForwardingSites": [

@@ -34,7 +34,7 @@ dotnet run -c Release -f net10.0 --project ./OfficeIMO.Yaml.Benchmarks -- --vali
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.Yaml.Benchmarks -- --filter "*YamlParseEventsBenchmarks*"
 ```
 
-Four benchmark classes cover the operations, each with YamlDotNet as the baseline:
+Four benchmark classes cover the document operations, each with YamlDotNet as the baseline:
 
 - `YamlParseEventsBenchmarks`: parse to events without building a tree. The OfficeIMO.Yaml lane reads every scalar value, alias name, anchor and tag as a string, matching the reference parsers' events, which carry them.
 - `YamlLoadTreeBenchmarks`: load the representation tree. OfficeIMO.Yaml decodes scalar values on first use, so its tree lane leaves them undecoded; the `OfficeIMOYamlWithValues` lane also reads every scalar value as a string, which the reference trees do while loading.
@@ -59,6 +59,47 @@ Generated inputs are built at run time and never committed. Setup validates each
 
 Compare rows within one class and workload. Ratios use YamlDotNet as the baseline; allocation columns come from the memory diagnoser. Runs depend on the host, so keep them as opt-in evidence rather than pull-request gates.
 
+## Serializer
+
+```sh
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Yaml.Benchmarks -- --filter "*YamlSerializeBenchmarks*" "*YamlDeserializeBenchmarks*" --job short
+```
+
+`YamlSerializeBenchmarks` and `YamlDeserializeBenchmarks` convert objects to and from YAML with each library, with YamlDotNet's reflection serializer as the baseline. OfficeIMO.Yaml runs twice: with its generated context and with reflection metadata. SharpYaml uses its generated context, and VYaml its generated formatters. All lanes share one model set with camelCase keys. VYaml writes and reads UTF-8 bytes, and the other libraries use strings.
+
+| Workload | Input |
+| --- | --- |
+| `SmallConfig` | one configuration object with scalars, a list, a dictionary and a nested object |
+| `LargeRecords` | 10,000 flat order records |
+| `KubernetesNested` | 200 Deployment-shaped objects nesting metadata, label dictionaries, containers, ports, environment and resources |
+
+Setup checks every lane before timing:
+
+- each library's output reads back with OfficeIMO.Yaml into the workload's objects;
+- each library reads OfficeIMO.Yaml's output into the same objects;
+- objects are compared through OfficeIMO.Yaml's deterministic output.
+
+`--validate-workloads` runs the same checks.
+
+On a busy machine, separate BenchmarkDotNet processes see different load. As a cross-check, `--serializer-timings` times every lane in one process:
+
+```sh
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Yaml.Benchmarks -- --serializer-timings --rounds 15
+```
+
+- Each lane warms up for a second first, so tiered compilation finishes before timing.
+- Lanes then run round-robin in rounds of about 50 ms, so a load change affects all of them alike.
+- It reports the median elapsed time, the median process processor time and the allocation per operation.
+- `--workload`, `--operation` and `--lane` select a subset; use them to profile one lane.
+
+## Merge
+
+```sh
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Yaml.Benchmarks -- --filter "*YamlMergeBenchmarks*" --job short
+```
+
+`YamlMergeBenchmarks` merges a staging overlay into an umbrella chart's values file and saves the result. The base nests the committed Bitnami nginx values under eight subchart keys (about 400 KB) and the overlay repeats the committed staging overlay under each. The YamlDotNet baseline loads both files into `YamlStream` trees, merges them by Helm's rules (maps recursively, everything else replaces) and serializes the result; the OfficeIMO.Yaml lane loads both, calls `YamlDocument.Merge` and saves. Setup checks that both outputs load in YamlDotNet to the data an independent Helm-rules merge computes. The OfficeIMO.Yaml output is also a minimal diff of the base, which YamlDotNet's serializer does not attempt.
+
 ## Large real-world corpus
 
 The committed corpus is small enough for every test run. A larger corpus of about 13,000 files from CI systems, Kubernetes and Helm, Compose, OpenAPI, Ansible, CloudFormation and SAM, Home Assistant, documentation front matter and application configuration is pinned in [`sources.json`](../OfficeIMO.TestAssets/Yaml/LargeCorpus/sources.json) and fetched into a local cache:
@@ -67,10 +108,13 @@ The committed corpus is small enough for every test run. A larger corpus of abou
 pwsh ./OfficeIMO.TestAssets/Yaml/LargeCorpus/Update-YamlLargeCorpus.ps1
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.Yaml.Benchmarks -- --large-corpus
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.Yaml.Benchmarks -- --mutations --seed 20261110
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Yaml.Benchmarks -- --merge-corpus
 ```
 
 The fetcher checks out only the selected files of each source at its pinned commit, records each file's size and SHA-256 in `index.json` and records templated files (Helm Go templates, conda Jinja recipes), Markdown without YAML front matter and out-of-bounds files as excluded with a reason. The cache is `OFFICEIMO_YAML_CORPUS_CACHE` or `yaml-corpus` under the temporary folder; `--cache` overrides it for both runs, and nothing from it is committed.
 
 `--large-corpus` parses, loads and round-trips every indexed file with each library. It classifies each file by acceptance: a file OfficeIMO.Yaml rejects is invalid when YamlDotNet and SharpYaml also reject it, and a file to investigate when either accepts it. It compares events and loaded YAML 1.2 core values with each reference, counts how many files a YAML 1.1 loader would read differently, compares the default mode with `Strict` (files only the default mode parses, its indentation warnings and merge-key notes, and whether each merge key names a mapping), and totals throughput. It writes `large-corpus.md` and `large-corpus-failures.tsv` to `reports` in the cache, or to `--output-dir`.
+
+`--merge-corpus` merges a synthetic overlay into every Helm `values*.yaml` file of the cache and runs the committed merge pairs' checks on each: the diff touches only reported paths, YamlDotNet loads the result to the Helm-rules reference merge, SharpYaml and OfficeIMO.Yaml load it alike, and a second merge writes the same bytes. Each overlay is derived from its base through YamlDotNet: every scalar leaf takes a new value of the same type, every mapping gets one new key, and sequences are restated with their changed items. It writes `merge-corpus.md` and `merge-corpus-failures.tsv`; `--limit` caps the file count.
 
 `--mutations` truncates, flips bytes, edits lines and indentation, injects deep nesting, alias bombs, huge scalars, node floods, invalid UTF-8, control characters and encoding changes in a seeded sample of corpus files. It runs each mutant through the reader and the model with a per-stage timeout. A mutant passes when only `YamlException`, `YamlLimitExceededException` or `OperationCanceledException` escapes, nothing hangs and allocation stays within budget. Mutants depend only on the seed, file, kind and variant, so `--file` and `--kind` reproduce one exactly. Failing mutants are saved next to `mutations.md`.

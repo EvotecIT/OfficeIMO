@@ -3,13 +3,16 @@
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <PublishAot>true</PublishAot>
-    <!-- Keep the complete .NET 8 Linux workflow within hosted-runner memory budgets. -->
-    <OptimizationPreference Condition="'$(TargetFramework)' == 'net8.0' and '$(RuntimeIdentifier)' == 'linux-x64'">Size</OptimizationPreference>
+    <OptimizationPreference Condition="'$(TargetFramework)' == 'net8.0'">Size</OptimizationPreference>
     <!-- Native debug data exceeds the Windows PDB limit and Linux hosted-runner memory in this .NET 8 correctness smoke. -->
     <DebugType Condition="'$(TargetFramework)' == 'net8.0' and ('$(RuntimeIdentifier)' == 'win-x64' or '$(RuntimeIdentifier)' == 'linux-x64')">none</DebugType>
     <IsPackable>false</IsPackable>
 
   </PropertyGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <!-- Keep whole-program scanning and optimized native code, but initialize static data at runtime. -->
+    <IlcArg Include="--nopreinitstatics" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../OfficeIMO.Workflows.IWork/OfficeIMO.Workflows.IWork.csproj" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-edited-v15.4.pages" Link="Corpus/pages-created-edited-v15.4.pages" CopyToOutputDirectory="PreserveNewest" />

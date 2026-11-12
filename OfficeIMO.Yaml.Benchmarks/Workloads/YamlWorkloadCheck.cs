@@ -20,12 +20,21 @@ internal static class YamlWorkloadCheck {
             failures += Check(vyaml.Name + " parse", () => YamlWorkloadValidation.ValidateParse(vyaml, workload, inputs));
             failures += Check(vyaml.Name + " load", () => YamlWorkloadValidation.ValidateLoad(vyaml, workload, inputs));
 
+            IYamlReferenceLibrary oneYaml = OneYamlLibrary.Instance;
+            failures += Check(oneYaml.Name + " load", () => YamlWorkloadValidation.ValidateLoad(oneYaml, workload, inputs));
+            failures += Check(oneYaml.Name + " load-and-save", () => YamlWorkloadValidation.ValidateLoadAndSave(oneYaml, workload, inputs));
+            failures += Check(oneYaml.Name + " edit-and-save", () => YamlWorkloadValidation.ValidateEditAndSave(oneYaml, workload, inputs));
+
             IYamlReferenceLibrary officeImo = YamlReferenceLibraries.OfficeIMOYaml;
             failures += Check(officeImo.Name + " parse", () => YamlWorkloadValidation.ValidateParse(officeImo, workload, inputs));
             failures += Check(officeImo.Name + " load", () => YamlWorkloadValidation.ValidateLoad(officeImo, workload, inputs));
             failures += Check(officeImo.Name + " load-and-save", () => YamlWorkloadValidation.ValidateLoadAndSave(officeImo, workload, inputs));
             failures += Check(officeImo.Name + " emit", () => YamlWorkloadValidation.ValidateEmit(officeImo, workload, inputs, inputs.Select(officeImo.CaptureEvents).ToArray()));
             failures += Check(officeImo.Name + " edit-and-save", () => YamlWorkloadValidation.ValidateEditAndSave(officeImo, workload, inputs));
+        }
+
+        foreach (string workload in new[] { "SmallConfig", "LargeRecords", "KubernetesNested" }) {
+            failures += Check("Serializers " + workload, () => YamlSerializerWorkloads.Validate(YamlSerializerWorkloads.Create(workload)));
         }
 
         return failures == 0 ? 0 : 1;

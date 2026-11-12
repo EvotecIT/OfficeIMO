@@ -46,7 +46,8 @@ internal sealed class YamlSaveWalk {
                 continue;
             }
             if (part._commentBeforeSet) EmitPartComments(part, header: true);
-            if (part._root is not null) Visit(part._root);
+            if (part._commentSet) EmitMarkerComment(part);
+            if (part.RootNode is not null) Visit(part.RootNode);
             if (part._commentAfterSet) EmitPartComments(part, header: false);
         }
         Copy(_source.Length);
@@ -78,16 +79,21 @@ internal sealed class YamlSaveWalk {
                 Restructured(mapping);
                 return;
             }
+            // Entries without objects are untouched source; the copy covers them.
             for (int i = 0; i < mapping._count; i++) {
-                Visit(mapping._entries[i].Key);
-                Visit(mapping._entries[i].Value);
+                if (!mapping.IsLoaded(i)) continue;
+                YamlMappingEntry entry = mapping.EntryAt(i);
+                Visit(entry.Key);
+                Visit(entry.Value);
             }
         } else if (node is YamlSequence sequence) {
             if (sequence._original is not null) {
                 Restructured(sequence);
                 return;
             }
-            for (int i = 0; i < sequence._count; i++) Visit(sequence._items[i]);
+            for (int i = 0; i < sequence._count; i++) {
+                if (sequence.IsLoaded(i)) Visit(sequence.ItemAt(i));
+            }
         }
     }
 
@@ -176,7 +182,7 @@ internal sealed class YamlSaveWalk {
         int gap = index > 0 ? spans[2 * index - 1] : CollectionGap(collection, out bool documentStart);
         bool atDocumentStart = index == 0 && IsDocumentStart(collection);
         // Blank lines above the entry go with it, except below a document header, which needs them to stay a header.
-        YamlTrivia.RegionAt(_source, gap, atDocumentStart, linePosition, out int blankStart, out int commentStart, out _);
+        YamlTrivia.RegionAt(_source, gap, linePosition, out int blankStart, out int commentStart, out _);
         Skip(atDocumentStart ? commentStart : blankStart, end);
     }
 
@@ -188,13 +194,13 @@ internal sealed class YamlSaveWalk {
         int gap = index > 0 ? spans[2 * index - 1] : CollectionGap(collection, out _);
         bool atDocumentStart = index == 0 && IsDocumentStart(collection);
         // New entries go above the next entry's blank lines and comments, which stay with that entry.
-        YamlTrivia.RegionAt(_source, gap, atDocumentStart, linePosition, out int blankStart, out int commentStart, out _);
+        YamlTrivia.RegionAt(_source, gap, linePosition, out int blankStart, out int commentStart, out _);
         return atDocumentStart ? commentStart : blankStart;
     }
 
     private void InsertBlockChildren(YamlNode collection, int from, int to, int point, int indent, bool inline) {
         Copy(point);
-        bool needBreak = point > 0 && !YamlTrivia.AtLineStart(_source, point) && !inline;
+        bool needBreak = !inline && !OutputAtLineStart();
         YamlEmitter emitter = Emitter();
         if (needBreak) _text.Write(_newLine);
         emitter.BeginEntries(collection is YamlMapping, indent, inline ? indent : 0);
@@ -258,12 +264,12 @@ internal sealed class YamlSaveWalk {
 
     private string RenderFlowChild(YamlNode collection, int index) {
         if (collection is YamlMapping mapping) {
-            YamlNode key = mapping._entries[index].Key, value = mapping._entries[index].Value;
+            YamlNode key = mapping.EntryAt(index).Key, value = mapping.EntryAt(index).Value;
             string keyText = RenderSlot(key, YamlSlot.Flow, 0, 0);
             if (value is YamlScalar { _style: YamlStyle.Plain } scalar && scalar.Value.Length == 0 && scalar._properties is null) return keyText;
             return keyText + (key is YamlAlias ? " : " : ": ") + RenderSlot(value, YamlSlot.Flow, 0, 0);
         }
-        return RenderSlot(((YamlSequence)collection)._items[index], YamlSlot.Flow, 0, 0);
+        return RenderSlot(((YamlSequence)collection).ItemAt(index), YamlSlot.Flow, 0, 0);
     }
 
     // ------------------------------------------------------------------ replacements
@@ -283,7 +289,7 @@ internal sealed class YamlSaveWalk {
                 Replace(start, end, keyText);
                 return false;
             }
-            YamlNode key = mapping._entries[index].Key;
+            YamlNode key = mapping.EntryAt(index).Key;
             int colonEnd = ColonEnd(key._end);
             bool hasColon = colonEnd > key._end;
             if (parent._style == YamlStyle.Flow) {
@@ -313,11 +319,12 @@ internal sealed class YamlSaveWalk {
             int keyIndent = Column(key._start);
             bool oldInline = !ContainsBreak(colonEnd, start);
             string inline = RenderSlot(node, start == colonEnd ? YamlSlot.MappingValue : YamlSlot.Inline, keyIndent, Column(start));
-            if (oldInline && !endsAtLineStart && !ContainsBreak(inline)) {
+            bool block = node is YamlMapping or YamlSequence && node._style == YamlStyle.Block;
+            if (oldInline && !endsAtLineStart && !block && !ContainsBreak(inline)) {
                 Replace(start, end, inline);
                 return false;
             }
-            if (!oldInline && !endsAtLineStart && start > colonEnd && node is YamlScalar or YamlAlias) {
+            if (!oldInline && !endsAtLineStart && start > colonEnd && node is YamlScalar or YamlAlias && (node._state & YamlNodeState.ReplacedBlock) == 0) {
                 // A value on its own line below the key stays there when it fits on one line.
                 string below = RenderSlot(node, YamlSlot.Inline, keyIndent, Column(start));
                 if (!ContainsBreak(below)) {
@@ -422,7 +429,7 @@ internal sealed class YamlSaveWalk {
         }
         if (node._parent is YamlMapping mapping) {
             int index = mapping.IndexOfNode(node, out _);
-            Insert(ColonEnd(mapping._entries[index].Key._end), " " + properties);
+            Insert(ColonEnd(mapping.EntryAt(index).Key._end), " " + properties);
             return;
         }
         Insert(start, properties + _newLine + new string(' ', Column(start)));
@@ -493,12 +500,30 @@ internal sealed class YamlSaveWalk {
         string footer = CommentLines(text, 0);
         if (first < 0) {
             if (text is null) return;
-            int point = Math.Max(from, _cursor);
-            if (point > 0 && !YamlTrivia.AtLineStart(_source, point)) footer = _newLine + footer;
-            Insert(point, footer);
+            Copy(Math.Max(from, _cursor));
+            if (!OutputAtLineStart()) footer = _newLine + footer;
+            Write(footer);
             return;
         }
         Replace(Math.Max(first, _cursor), LastCommentLineEnd(first, to), footer);
+    }
+
+    /// <summary>Rewrites the rest of the <c>---</c> line, which holds only blanks and the comment being replaced.</summary>
+    private void EmitMarkerComment(YamlDocumentPart part) {
+        int hash = YamlTrivia.MarkerHash(part, out int lineEnd);
+        string? text = part._comment;
+        if (hash < 0) {
+            if (text is not null) Replace(Math.Max(part._markerEnd, _cursor), lineEnd, " " + CommentText(text));
+            return;
+        }
+        if (text is not null) {
+            // A replaced comment keeps the spacing before it.
+            Replace(Math.Max(hash, _cursor), lineEnd, CommentText(text));
+            return;
+        }
+        int start = hash;
+        while (start > part._markerEnd && (_source[start - 1] == ' ' || _source[start - 1] == '\t')) start--;
+        Skip(Math.Max(start, _cursor), lineEnd);
     }
 
     private int FirstCommentLine(int from, int to) {
@@ -545,7 +570,7 @@ internal sealed class YamlSaveWalk {
     private void WriteNewPart(YamlDocumentPart part, int index) {
         Copy(_source.Length);
         YamlEmitter emitter = Emitter();
-        if (_source.Length > 0 && !YamlTrivia.AtLineStart(_source, _source.Length) && _segments.Count > 0) _text.Write(_newLine);
+        if (!OutputAtLineStart()) _text.Write(_newLine);
         bool marker = part.HasStartMarker || index > 0;
         YamlModelWriter.WritePart(emitter, part, marker && (index > 0 || part.HasStartMarker));
         emitter.Finish();
@@ -557,22 +582,22 @@ internal sealed class YamlSaveWalk {
     private static int ChildCount(YamlNode collection) => collection is YamlMapping m ? m._count : ((YamlSequence)collection)._count;
 
     private static int ChildStart(YamlNode collection, int index) =>
-        collection is YamlMapping m ? (m._entries[index].Key._start >= 0 && m._entries[index].Key._part is not null ? m._entries[index].Key._start : -1)
-        : ((YamlSequence)collection)._items[index]._start;
+        collection is YamlMapping m ? m.KeyStart(index) : ((YamlSequence)collection).ItemStart(index);
 
     private void VisitChild(YamlNode collection, int index) {
         if (collection is YamlMapping mapping) {
-            Visit(mapping._entries[index].Key);
-            Visit(mapping._entries[index].Value);
-        } else {
-            Visit(((YamlSequence)collection)._items[index]);
+            if (!mapping.IsLoaded(index)) return;
+            Visit(mapping.EntryAt(index).Key);
+            Visit(mapping.EntryAt(index).Value);
+        } else if (((YamlSequence)collection).IsLoaded(index)) {
+            Visit(((YamlSequence)collection).ItemAt(index));
         }
     }
 
     private static void WriteChildren(YamlEmitter emitter, YamlNode collection, int from, int to) {
         for (int i = from; i < to; i++) {
             if (collection is YamlMapping mapping) {
-                YamlNode key = mapping._entries[i].Key, value = mapping._entries[i].Value;
+                YamlNode key = mapping.EntryAt(i).Key, value = mapping.EntryAt(i).Value;
                 YamlModelWriter.CommentLines(emitter, key);
                 YamlModelWriter.WriteNode(emitter, key, ownComments: false);
                 if (value is YamlMapping { _count: > 0, _style: YamlStyle.Block } || value is YamlSequence { _count: > 0, _style: YamlStyle.Block }) {
@@ -580,7 +605,7 @@ internal sealed class YamlSaveWalk {
                 }
                 YamlModelWriter.WriteNode(emitter, value, ownComments: true);
             } else {
-                YamlNode item = ((YamlSequence)collection)._items[i];
+                YamlNode item = ((YamlSequence)collection).ItemAt(i);
                 YamlModelWriter.CommentLines(emitter, item);
                 YamlModelWriter.WriteNode(emitter, item, ownComments: true);
             }
@@ -651,6 +676,7 @@ internal sealed class YamlSaveWalk {
             if (node is YamlMapping or YamlSequence && node._style == YamlStyle.Block && ChildCount(node) > 0) { } else emitter.SetTrailingComment(comment);
         }
         emitter.EndFragment(endLine);
+        emitter.Release();
         string text = _text.ToString();
         _text.GetStringBuilder().Clear();
         if (comment is not null && node is YamlMapping or YamlSequence && node._style == YamlStyle.Block && ChildCount(node) > 0) {
@@ -679,6 +705,20 @@ internal sealed class YamlSaveWalk {
         string text = _text.ToString();
         _text.GetStringBuilder().Clear();
         if (text.Length > 0) _segments.Add(new YamlTextSegment(text, 0, text.Length));
+    }
+
+    /// <summary>
+    /// Whether the text written so far ends a line. Removed source can have taken the text up to a break that the
+    /// source position alone does not show, as when the last entry of a text without a final line break goes.
+    /// </summary>
+    private bool OutputAtLineStart() {
+        StringBuilder pending = _text.GetStringBuilder();
+        if (pending.Length > 0) return YamlTrivia.IsBreak(pending[pending.Length - 1]);
+        for (int i = _segments.Count - 1; i >= 0; i--) {
+            YamlTextSegment segment = _segments[i];
+            if (segment.Length > 0) return YamlTrivia.IsBreak(segment.Text[segment.Start + segment.Length - 1]);
+        }
+        return true;
     }
 
     private void Copy(int to) {

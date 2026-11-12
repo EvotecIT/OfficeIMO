@@ -17,12 +17,13 @@ public sealed class YamlScalar : YamlNode {
     internal YamlTokenFlags _flags;
     internal string? _value;
 
-    internal YamlScalar(YamlDocumentPart part, in YamlEvent ev) : base(part, ev.Style, ev.Start, ev.End) {
-        _valueStart = ev.ValueStart;
-        _valueEnd = ev.ValueEnd;
-        _indent = ev.Indent;
-        _chomping = ev.Chomping;
-        _flags = ev.Flags;
+    internal YamlScalar(YamlDocumentPart part, YamlStyle style, int start, int end, int valueStart, int valueEnd, int indent, YamlChomping chomping, YamlTokenFlags flags)
+        : base(part, style, start, end) {
+        _valueStart = valueStart;
+        _valueEnd = valueEnd;
+        _indent = indent;
+        _chomping = chomping;
+        _flags = flags;
     }
 
     /// <summary>
@@ -109,9 +110,6 @@ public sealed class YamlScalar : YamlNode {
     /// <summary>Gets the decoded value, decoding it on first use.</summary>
     internal string Value => _value ??= Decode();
 
-    /// <summary>Stores a value decoded during the load, such as a mapping key from the shared key cache.</summary>
-    internal void SetDecodedValue(string value) => _value = value;
-
     /// <summary>
     /// Gets the decoded value as a span without allocating when the raw text already is the value (single-line plain and
     /// quoted scalars without escapes).
@@ -149,12 +147,15 @@ public sealed class YamlScalar : YamlNode {
         return _valueEnd - _valueStart == 2 && source[_valueStart] == '<' && source[_valueStart + 1] == '<';
     }
 
-    private string Decode() {
-        ReadOnlySpan<char> raw = Document!._source.AsSpan(_valueStart, _valueEnd - _valueStart);
-        if (YamlScalarDecoder.IsVerbatim(_style, _flags)) return raw.Length == 0 ? string.Empty : raw.ToString();
+    private string Decode() => DecodeValue(Document!._source, _valueStart, _valueEnd, _style, _flags, _chomping, _indent);
+
+    /// <summary>Decodes a loaded scalar's raw text into its value.</summary>
+    internal static string DecodeValue(string source, int valueStart, int valueEnd, YamlStyle style, YamlTokenFlags flags, YamlChomping chomping, int indent) {
+        ReadOnlySpan<char> raw = source.AsSpan(valueStart, valueEnd - valueStart);
+        if (YamlScalarDecoder.IsVerbatim(style, flags)) return raw.Length == 0 ? string.Empty : raw.ToString();
         char[] buffer = ArrayPool<char>.Shared.Rent(raw.Length + 1);
         try {
-            int length = YamlScalarDecoder.Decode(raw, _style, _chomping, _indent, buffer);
+            int length = YamlScalarDecoder.Decode(raw, style, chomping, indent, buffer);
             return new string(buffer, 0, length);
         } finally {
             ArrayPool<char>.Shared.Return(buffer);

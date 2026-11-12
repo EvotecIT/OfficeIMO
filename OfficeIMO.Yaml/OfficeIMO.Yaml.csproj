@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>A dependency-free YAML 1.2 engine for OfficeIMO: a lossless document model that saves unchanged input byte for byte, and a low-allocation pull reader with schema-aware scalar resolution.</Description>
+    <Description>A dependency-free YAML 1.2 engine for OfficeIMO: a lossless document model that saves unchanged input byte for byte, a low-allocation pull reader with schema-aware scalar resolution, and an object serializer with a NativeAOT source generator.</Description>
 
     <VersionPrefix>3.6.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0;net472</TargetFrameworks>
@@ -41,7 +41,23 @@
       <Pack>True</Pack>
       <PackagePath>README.md</PackagePath>
     </None>
+    <None Include="buildTransitive\OfficeIMO.Yaml.targets" Pack="true" PackagePath="buildTransitive\OfficeIMO.Yaml.targets" />
+    <None Include="buildTransitive\OfficeIMO.Yaml.targets" Pack="true" PackagePath="build\OfficeIMO.Yaml.targets" />
   </ItemGroup>
+
+  <!-- The serializer's source generator ships in this package as an analyzer, so it always matches the runtime. -->
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Yaml.SourceGeneration\OfficeIMO.Yaml.SourceGeneration.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+  </ItemGroup>
+
+  <Target Name="PackYamlSourceGenerator" BeforeTargets="_GetPackageFiles">
+    <MSBuild Projects="..\OfficeIMO.Yaml.SourceGeneration\OfficeIMO.Yaml.SourceGeneration.csproj" Targets="GetTargetPath" Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" ItemName="_OfficeIMOYamlGenerator" />
+    </MSBuild>
+    <ItemGroup>
+      <None Include="@(_OfficeIMOYamlGenerator)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    </ItemGroup>
+  </Target>
 
   <ItemGroup>
     <Using Include="System.Buffers" />

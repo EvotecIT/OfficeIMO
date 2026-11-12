@@ -197,6 +197,34 @@ New styles are based on the default style of their type; set `BasedOnStyleId`, `
 
 `Styles.Import(source, conflictMode)` copies styles from another loaded document or `.dotx` template, together with the styles they depend on and the lists they number with. A style matches by type and name, then by identifier, so localized built-in styles map onto their counterparts. `WordStyleConflictMode` keeps the target's style, overwrites it or imports a renamed copy; the returned `WordStyleImportReport` lists each outcome. `document.Theme.Import(source)` copies a document's theme. Text, borders and shading that select a theme colour or theme font follow theme changes in Word, PDF and HTML output, and the RGB and font names Word caches beside them are updated too. Text that names a font or colour directly, such as the Aptos body font of a new document, keeps it.
 
+`EmbedFont(path)` embeds a TrueType or OpenType file in the document, and `EmbedFont(path, styleId)` also adds a paragraph style that uses it. The font's OS/2 `fsType` licence is checked first, the least restrictive way when several permissions are set: a font that forbids embedding or allows only bitmaps throws `ArgumentException`, while Preview & Print, Editable and installable fonts are embedded, as Word embeds them. For a collection, every face must allow embedding.
+
+## Merge and split documents
+
+`AppendDocument` adds another document's content at the end, with the styles, lists, images, hyperlinks, headers, footers, footnotes, endnotes and comments it uses. List, note, comment, bookmark, drawing and content-control identifiers are renumbered so nothing collides with the destination, and a list never continues one of the destination's lists. The appended content starts in its own section with its own page setup and headers.
+
+```csharp
+using var pack = WordDocument.Load("Cover.docx");
+using var chapter = WordDocument.Load("Chapter.docx");
+pack.AppendDocument(chapter, new WordDocumentMergeOptions {
+    StyleConflictMode = WordStyleConflictMode.Rename   // the default: appended text keeps its look
+});
+pack.Save("Pack.docx");
+```
+
+When a source style has the same name as a destination style but a different definition, `WordStyleConflictMode.Rename` copies it as `Heading1_0` / `heading 1_0`, `KeepTarget` formats the appended text with the destination's style, and `Overwrite` replaces the destination's definition. `WordMergeSectionMode.UseDestinationSections` continues the appended content in the destination's last section instead.
+
+`SplitBySection` and `SplitByHeading` cut a document into new documents. Each piece keeps the page setup and headers in effect where its content sits, and only the styles, lists, images, notes and comments it uses:
+
+```csharp
+using var report = WordDocument.Load("Report.docx");
+IReadOnlyList<WordDocument> chapters = report.SplitByHeading(level: 1);
+for (int i = 0; i < chapters.Count; i++) {
+    using WordDocument chapter = chapters[i];
+    chapter.Save($"Chapter{i + 1}.docx");
+}
+```
+
 ## Before sharing
 
 ```csharp

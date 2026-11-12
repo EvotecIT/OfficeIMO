@@ -35,7 +35,7 @@ internal sealed class VYamlConformanceEngine : IYamlConformanceEngine {
         var parser = YamlParser.FromBytes(yaml);
         parser.MaxDepth = MaxDepth;
         var documents = new List<YamlConformanceNode>();
-        foreach (object? document in YamlSerializer.DeserializeMultipleDocuments<object?>(ref parser)) documents.Add(ToNode(document, 0));
+        foreach (object? document in VYaml.Serialization.YamlSerializer.DeserializeMultipleDocuments<object?>(ref parser)) documents.Add(ToNode(document, 0));
         return documents;
     }
 

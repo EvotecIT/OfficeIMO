@@ -1,0 +1,14 @@
+<Project>
+  <!-- Reflection-based YAML serialization is off by default in trimmed and NativeAOT applications, which use generated
+       YamlSerializerContext metadata instead. Set YamlSerializerIsReflectionEnabledByDefault to override. -->
+  <PropertyGroup>
+    <YamlSerializerIsReflectionEnabledByDefault Condition="'$(YamlSerializerIsReflectionEnabledByDefault)' == '' And ('$(PublishAot)' == 'true' Or '$(PublishTrimmed)' == 'true')">false</YamlSerializerIsReflectionEnabledByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="OfficeIMO.Yaml.YamlSerializer.IsReflectionEnabledByDefault"
+                                    Condition="'$(YamlSerializerIsReflectionEnabledByDefault)' != ''"
+                                    Value="$(YamlSerializerIsReflectionEnabledByDefault)"
+                                    Trim="true" />
+  </ItemGroup>
+</Project>

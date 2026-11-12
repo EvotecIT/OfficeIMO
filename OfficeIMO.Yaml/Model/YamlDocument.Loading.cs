@@ -15,7 +15,7 @@ public sealed partial class YamlDocument {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, FileBufferSize, FileOptions.SequentialScan);
         YamlDocument document = Load(stream, options, cancellationToken);
-        document._path = path;
+        document._path = Path.GetFullPath(path);
         return document;
     }
 
@@ -30,7 +30,7 @@ public sealed partial class YamlDocument {
     public static YamlDocument Load(Stream stream, YamlLoadOptions? options = null, CancellationToken cancellationToken = default) {
         RequireReadable(stream);
         options ??= YamlLoadOptions.Default;
-        byte[] buffer = ArrayPool<byte>.Shared.Rent(InitialCapacity(stream));
+        byte[]? buffer = ArrayPool<byte>.Shared.Rent(InitialCapacity(stream));
         try {
             int count = 0;
             while (true) {
@@ -41,9 +41,11 @@ public sealed partial class YamlDocument {
                 count += read;
                 CheckInputSize(count, options);
             }
-            return FromBytes(buffer, count, options, cancellationToken);
+            YamlDocument document = FromBytes(buffer, count, options, cancellationToken);
+            if (document._utf8 == buffer) buffer = null;
+            return document;
         } finally {
-            ArrayPool<byte>.Shared.Return(buffer);
+            if (buffer is not null) ArrayPool<byte>.Shared.Return(buffer);
         }
     }
 
@@ -56,7 +58,7 @@ public sealed partial class YamlDocument {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, FileBufferSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
         YamlDocument document = await LoadAsync(stream, options, cancellationToken).ConfigureAwait(false);
-        document._path = path;
+        document._path = Path.GetFullPath(path);
         return document;
     }
 
@@ -68,7 +70,7 @@ public sealed partial class YamlDocument {
     public static async Task<YamlDocument> LoadAsync(Stream stream, YamlLoadOptions? options = null, CancellationToken cancellationToken = default) {
         RequireReadable(stream);
         options ??= YamlLoadOptions.Default;
-        byte[] buffer = ArrayPool<byte>.Shared.Rent(InitialCapacity(stream));
+        byte[]? buffer = ArrayPool<byte>.Shared.Rent(InitialCapacity(stream));
         try {
             int count = 0;
             while (true) {
@@ -78,9 +80,11 @@ public sealed partial class YamlDocument {
                 count += read;
                 CheckInputSize(count, options);
             }
-            return FromBytes(buffer, count, options, cancellationToken);
+            YamlDocument document = FromBytes(buffer, count, options, cancellationToken);
+            if (document._utf8 == buffer) buffer = null;
+            return document;
         } finally {
-            ArrayPool<byte>.Shared.Return(buffer);
+            if (buffer is not null) ArrayPool<byte>.Shared.Return(buffer);
         }
     }
 
@@ -97,19 +101,35 @@ public sealed partial class YamlDocument {
         return Build(yaml, YamlTextEncoding.Utf8, byteOrderMark: false, options ?? YamlLoadOptions.Default, cancellationToken);
     }
 
+    /// <summary>
+    /// Decodes and loads a pooled byte buffer. A UTF-8 document keeps the buffer, which <see cref="Dispose"/> returns,
+    /// so an unchanged save writes the input bytes as they are and an edited save of ASCII text copies its untouched
+    /// ranges instead of encoding them again.
+    /// </summary>
     private static YamlDocument FromBytes(byte[] buffer, int count, YamlLoadOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         string text = YamlEncodingDetector.Decode(buffer, count, out YamlTextEncoding encoding, out bool byteOrderMark);
-        return Build(text, encoding, byteOrderMark, options, cancellationToken);
+        YamlDocument document = Build(text, encoding, byteOrderMark, options, cancellationToken);
+        if (encoding == YamlTextEncoding.Utf8) {
+            document._utf8 = buffer;
+            document._utf8Length = count;
+        }
+        return document;
     }
 
     private static YamlDocument Build(string text, YamlTextEncoding encoding, bool byteOrderMark, YamlLoadOptions options, CancellationToken cancellationToken) {
-        var document = new YamlDocument(text, encoding, byteOrderMark, options.DuplicateKeys, options.Strict);
+        var document = new YamlDocument(text, encoding, byteOrderMark, options.EffectiveDuplicateKeys, options.Strict);
+        var table = new YamlNodeTable(text);
+        document._table = table;
+        bool built = false;
         try {
             using var reader = new YamlReader(text.AsMemory(), options.ReaderOptions, cancellationToken);
-            new YamlTreeBuilder(document, options).Run(reader);
+            new YamlTreeBuilder(document, options, table).Run(reader);
+            built = true;
         } catch (YamlException exception) when (exception.AttachSource(text)) {
             throw;
+        } finally {
+            if (!built) table.Release();
         }
         return document;
     }

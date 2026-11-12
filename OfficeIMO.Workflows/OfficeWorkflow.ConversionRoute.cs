@@ -35,7 +35,7 @@ public static partial class OfficeWorkflow {
                         MaximumOutputBytes = options.MaximumOutputBytes, MaximumXmlCharactersInPart = options.MaximumXmlCharactersInPart }
                 };
                 var runner = Registration == null ? new OfficeWorkflowRunner()
-                    : new OfficeWorkflowRunner(null, null, conversions: new[] { Registration });
+                    : OfficeWorkflowRunner.ForRegisteredConversions(new[] { Registration });
                 OfficeWorkflowResult result = await runner.RunAsync(request, cancellationToken: cancellationToken).ConfigureAwait(false);
                 OfficeConversionReport report = PdfConversionEvidence.CreateReport(options.SourceName!,
                     result.ConversionEvidence == null ? Array.Empty<OfficeConversionReport>() : new OfficeConversionReport[] { result.ConversionEvidence },

@@ -6,6 +6,37 @@ namespace OfficeIMO.Tests;
 
 public sealed class Base64CodecTests {
     [Theory]
+    [InlineData("AB==", 1)]
+    [InlineData("AAB=", 2)]
+    [InlineData("AB", 1)]
+    [InlineData("AAB", 2)]
+    public void RetainedLengthCountsTheWholeRawRangeWhenTheByteDecoderRejectsItsFinalQuantum(
+        string tail, int terminalBytes) {
+        const int quanta = 4096;
+        string payload = "\r\n" + new string('A', quanta * 4) + " \t" + tail + "\v\f";
+        byte[] input = Encoding.ASCII.GetBytes("prefix:" + payload + ":suffix");
+        bool retainsRaw = false;
+#if NET8_0_OR_GREATER
+        var target = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<
+            System.Runtime.Versioning.TargetFrameworkAttribute>(typeof(OfficeBase64).Assembly)!;
+        if (target.FrameworkName.StartsWith(".NETCoreApp", StringComparison.Ordinal)) {
+            // The platform byte decoder's policy differs from Convert and from the scalar codec.
+            byte[] paddedTail = Encoding.ASCII.GetBytes(tail.PadRight(4, '='));
+            retainsRaw = System.Buffers.Text.Base64.DecodeFromUtf8(paddedTail, new byte[3],
+                out _, out _) != System.Buffers.OperationStatus.Done;
+        }
+#endif
+        long expected = retainsRaw ? payload.Length : quanta * 3 + terminalBytes;
+
+        long charged = OfficeBase64.GetMimeDecodedLength(input, 7, payload.Length,
+            out bool valid, out bool recovered);
+
+        Assert.Equal(expected, charged);
+        Assert.Equal(!retainsRaw, valid);
+        Assert.Equal(!retainsRaw && tail.IndexOf('=') < 0, recovered);
+    }
+
+    [Theory]
     [InlineData("AQIDBA==")]
     [InlineData(" A\tQ\rI\nDBA= = ")]
     public void PlainStringSlicesKeepConvertWhitespacePaddingAndPayloadRules(string value) {

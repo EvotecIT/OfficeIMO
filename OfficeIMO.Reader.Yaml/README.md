@@ -72,16 +72,16 @@ var chunks = reader.Enumerate(stream, "values.yaml", new ReaderOptions {
 - Types follow the document's schema: YAML 1.2 core by default, YAML 1.1 for `%YAML 1.1` documents, and explicit tags such as `!!str`.
 - Chunks of `ChunkRows` rows with source `StartLine`/`EndLine`; each document of a multi-document stream starts a new chunk.
 - Path and stream dispatch.
-- A warning chunk with the engine's error code, message, line and column for malformed YAML or an exceeded limit, and chunk warnings for duplicate keys admitted by a lenient `YamlDuplicateKeyPolicy`.
+- A warning chunk with the engine's error code, message, line and column for malformed YAML or an exceeded limit, followed by the offending source line with a caret under the column. Findings of a successful load, such as each repeated key (the last one wins unless `YamlLoadOptions` is strict or sets `DuplicateKeys`) or YAML that only the default mode accepts, become warnings on the first chunk.
 
 ## Limits
 
-`YamlReadOptions.LoadOptions` takes the engine's `YamlLoadOptions`: `MaxDepth`, `MaxNodes` (per document), `MaxAliasExpansion`, `MaxScalarLength`, `MaxInputBytes`, `DuplicateKeys` and `Schema`. Without it the engine defaults apply. `ReaderOptions.MaxInputBytes` is applied as well, and the lower value wins.
+`YamlReadOptions.LoadOptions` takes the engine's `YamlLoadOptions`: `MaxDepth`, `MaxNodes` (per document), `MaxAliasExpansion`, `MaxScalarLength`, `MaxInputBytes`, `Strict`, `DuplicateKeys` and `Schema`. Without it the engine defaults apply; use `YamlLoadOptions.UntrustedDefaults` for files from outside. `ReaderOptions.MaxInputBytes` is applied as well, and the lower value wins.
 
 ## Boundaries
 
 - Reader adapter configuration belongs here.
-- YAML object serialization/deserialization is intentionally out of scope.
+- Object serialization, editing and merging belong to [`OfficeIMO.Yaml`](../OfficeIMO.Yaml/README.md).
 - Shared extraction contracts belong in `OfficeIMO.Reader.Core`.
 
 ## Targets and license

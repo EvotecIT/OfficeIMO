@@ -17,6 +17,24 @@ public class YamlDocumentEditingTests {
         Assert.Equal("debug: TRUE\nport: 8080\nname: 'web'\n", document.ToString());
     }
 
+    // Tools that point users at a node (validation messages, editors) read its loaded line and whether edits changed it.
+    [Fact]
+    public void NodesReportTheirLoadedPositionAndWhetherEditingChangedThem() {
+        YamlDocument document = YamlDocument.Parse("spec:\n  replicas: 1\n  image: web\n");
+        YamlNode replicas = document.Select("spec.replicas")!, image = document.Select("spec.image")!, spec = document.Select("spec")!;
+        Assert.Equal((2, 13), (replicas.Start.Line, replicas.Start.Column));
+        Assert.False(document.Root!.IsModified);
+
+        document.Set("spec.replicas", 3);
+        Assert.True(replicas.IsModified);
+        Assert.Equal(0, replicas.Start.Line);
+        Assert.True(spec.IsModified);
+        Assert.True(document.Root!.IsModified);
+        Assert.False(image.IsModified);
+        Assert.Equal((3, 10), (image.Start.Line, image.Start.Column));
+        Assert.True(spec.AsMapping().Add("paused", false).IsModified);
+    }
+
     [Fact]
     public void ChangedStringsKeepTheirStyleWhenItFitsAndAreQuotedWhenAmbiguous() {
         YamlDocument document = YamlDocument.Parse("a: plain # note\nb: \"double\"\nc: |\n  line\n");
@@ -43,6 +61,44 @@ public class YamlDocumentEditingTests {
         YamlDocument document = YamlDocument.Parse("a: 1 # about a\n\n# about b\nb: 2 # trailing b\n# about c\nc: 3\n");
         document.Root!.AsMapping().Remove("b");
         Assert.Equal("a: 1 # about a\n# about c\nc: 3\n", document.ToString());
+    }
+
+    [Fact]
+    public void RemovingAnEntryKeepsACommentBlockThatABlankLineSeparatesFromIt() {
+        // The shape of Helm values: a commented-out example under one key, then the next key's own note.
+        const string yaml = "affinity: {}\n#   nodeAffinity:\n#     required: true\n\n# Annotations to be added to pods\npodAnnotations:\n  # Fix for slow upgrades\n  safe-to-evict: \"true\"\n\n# Extra labels\npodLabels: {}\n";
+        YamlDocument document = YamlDocument.Parse(yaml);
+        document.Root!.AsMapping().Remove("podAnnotations");
+        Assert.Equal("affinity: {}\n#   nodeAffinity:\n#     required: true\n\n# Extra labels\npodLabels: {}\n", document.ToString());
+    }
+
+    // Removing the last entry of a text without a final line break leaves the text ending at the previous entry's
+    // break; whatever is written after it starts on that line instead of below a blank one.
+    [Theory]
+    [InlineData("a: 1\nb: 2", "a: 1\nc: 3\n", "a: 1\n")]
+    [InlineData("a: 1\nb: 2\n", "a: 1\nc: 3\n", "a: 1\n")]
+    [InlineData("a: 1\r\nb: 2", "a: 1\r\nc: 3\r\n", "a: 1\r\n")]
+    [InlineData("x: 0\n---\na: 1\nb: 2", "x: 0\n---\na: 1\nc: 3\n", "x: 0\n---\na: 1\n")]
+    public void RemovingTheLastEntryBeforeTheEndOfTheTextLeavesNoBlankLine(string yaml, string replaced, string removed) {
+        YamlDocument document = YamlDocument.Parse(yaml);
+        Assert.Equal(yaml, document.ToString());
+        YamlMapping root = document.Documents[document.Documents.Count - 1].Root!.AsMapping();
+        root.Remove("b");
+        Assert.Equal(removed, document.ToString());
+        root.Add("c", 3);
+        Assert.Equal(replaced, document.ToString());
+
+        document = YamlDocument.Parse(yaml);
+        document.Documents[document.Documents.Count - 1].Root!.AsMapping().Remove("b");
+        document.Documents[document.Documents.Count - 1].SetCommentAfter("end");
+        document.AddDocument(new YamlSequence { 1 });
+        string nl = yaml.Contains("\r\n") ? "\r\n" : "\n";
+        Assert.Equal(removed + "# end" + nl + "---" + nl + "- 1" + nl, document.ToString());
+
+        YamlDocument nested = YamlDocument.Parse("x:\n  - 1\n  - 2");
+        nested.Remove("x[1]");
+        nested.Add("x", 3);
+        Assert.Equal("x:\n  - 1\n  - 3\n", nested.ToString());
     }
 
     [Fact]

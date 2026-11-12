@@ -23,8 +23,12 @@ public sealed partial class YamlDocument : IDisposable {
     private HashSet<YamlNode>? _sharedEdits;
     /// <summary>Set by any edit; an unedited document saves as one copy of its source.</summary>
     internal bool _partsDirty;
-    /// <summary>The file the document was loaded from, which <see cref="Save()"/> writes back to.</summary>
-    internal string? _path;
+    private string? _path;
+    /// <summary>The loaded nodes; null for a document created in memory.</summary>
+    internal YamlNodeTable? _table;
+    /// <summary>The pooled UTF-8 input, byte-order mark included, of a document loaded from bytes; null otherwise.</summary>
+    internal byte[]? _utf8;
+    internal int _utf8Length;
 
     private YamlDocument(string source, YamlTextEncoding encoding, bool byteOrderMark, YamlDuplicateKeyPolicy duplicateKeys, bool strict) {
         _source = source;
@@ -48,7 +52,25 @@ public sealed partial class YamlDocument : IDisposable {
     /// doc.Save("service.yaml");
     /// </code>
     /// </example>
-    public static YamlDocument Create() => new YamlDocument(string.Empty, YamlTextEncoding.Utf8, byteOrderMark: false, YamlDuplicateKeyPolicy.Error, strict: false);
+    public static YamlDocument Create() => new YamlDocument(string.Empty, YamlTextEncoding.Utf8, byteOrderMark: false, YamlDuplicateKeyPolicy.LastWins, strict: false);
+
+    /// <summary>
+    /// Creates an empty document in memory associated with a path, without writing a file. <see cref="Save()"/> writes
+    /// it there.
+    /// </summary>
+    /// <param name="path">The file the document will be saved to.</param>
+    public static YamlDocument Create(string path) {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        YamlDocument document = Create();
+        document._path = System.IO.Path.GetFullPath(path);
+        return document;
+    }
+
+    /// <summary>
+    /// Gets the full path that <see cref="Save()"/> writes to: the path of <see cref="Create(string)"/>, or of the last
+    /// file load or save. Documents parsed from text or loaded from a stream have none until they are saved to a path.
+    /// </summary>
+    public string? FilePath => _path;
 
     /// <summary>Gets the policy the document was loaded with; lookups among equal keys follow it.</summary>
     internal YamlDuplicateKeyPolicy DuplicateKeys { get; }
@@ -73,7 +95,7 @@ public sealed partial class YamlDocument : IDisposable {
 
     /// <summary>
     /// Gets findings recorded while loading and editing, with a line and column as the location: each duplicate key a
-    /// lenient <see cref="YamlDuplicateKeyPolicy"/> admitted (<see cref="OfficeDiagnosticCodes.YamlDuplicateKey"/>), each
+    /// non-strict load or a lenient <see cref="YamlDuplicateKeyPolicy"/> admitted (<see cref="OfficeDiagnosticCodes.YamlDuplicateKey"/>), each
     /// indentation the specification rejects that a non-strict load accepted (<see cref="OfficeDiagnosticCodes.YamlLenientIndentation"/>),
     /// one note per document part that uses <c>&lt;&lt;</c> merge keys without a <c>%YAML 1.1</c> directive
     /// (<see cref="OfficeDiagnosticCodes.YamlMergeKeyWithoutDirective"/>), and each edit of a node that aliases share
@@ -117,6 +139,34 @@ public sealed partial class YamlDocument : IDisposable {
     /// <exception cref="InvalidOperationException">The path goes through a scalar, or aliases refer to an anchor inside the removed node.</exception>
     public bool Remove(string path) => YamlPath.Remove(this, path);
 
+    /// <summary>
+    /// Deep-merges an overlay document into this one, document part by part in order, the way Helm combines values files.
+    /// Mappings merge key by key; overlay scalars are assigned, so an equal value keeps this document's spelling;
+    /// sequences follow <see cref="YamlMergeOptions.Sequences"/>; new keys are appended with the overlay's comments in this
+    /// document's layout. When a value changes kind (a mapping over a scalar, for example) the overlay wins and the
+    /// conflict is reported. The overlay is not changed, and saving writes only what the merge touched.
+    /// </summary>
+    /// <remarks>
+    /// <para>An overlay value that lands on an alias edits the anchored node, as any edit through an alias does, and is
+    /// reported. Overlay anchors and aliases are copied with their names; a name the document already uses is renamed and
+    /// reported. <c>&lt;&lt;</c> merge keys follow the typed view: the overlay's merged entries count as its entries, and a
+    /// key this document gets only from a merge receives an entry of its own; merge keys are never flattened.</para>
+    /// <para>Overlay parts beyond this document's are added. An empty overlay part changes nothing. A merge is not
+    /// transactional: when an edit fails, the edits before it stay.</para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// using var values = YamlDocument.Load("values.yaml");
+    /// using var production = YamlDocument.Load("values.prod.yaml");
+    /// YamlMergeReport report = values.Merge(production, new YamlMergeOptions { NullRemovesKey = true });
+    /// values.Save("values.merged.yaml");
+    /// </code>
+    /// </example>
+    /// <returns>The added, replaced and removed paths and the findings of the merge.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="overlay"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="overlay"/> is this document.</exception>
+    public YamlMergeReport Merge(YamlDocument overlay, YamlMergeOptions? options = null) => YamlMerge.Merge(this, overlay, options);
+
     /// <summary>Adds a document with the given root at the end of the stream, after a <c>---</c> marker when it is not the first.</summary>
     /// <returns>The new document part.</returns>
     public YamlDocumentPart AddDocument(YamlNode root) {
@@ -133,8 +183,14 @@ public sealed partial class YamlDocument : IDisposable {
         return part;
     }
 
-    /// <summary>Releases nothing: the document holds only managed memory. It is disposable so <c>using</c> works as for every OfficeIMO document.</summary>
+    /// <summary>
+    /// Returns the document's pooled storage: its node table and, for a document loaded from a file or stream, its input
+    /// bytes. The document holds only managed memory. Do not use the document after disposing it: nodes reached before
+    /// keep their values, and reaching any other node throws <see cref="ObjectDisposedException"/>.
+    /// </summary>
     public void Dispose() {
+        _table?.Release();
+        if (Interlocked.Exchange(ref _utf8, null) is { } bytes) ArrayPool<byte>.Shared.Return(bytes);
     }
 
     /// <summary>The layout conventions new nodes follow, read from the source on first use.</summary>
@@ -160,6 +216,29 @@ public sealed partial class YamlDocument : IDisposable {
             else high = mid - 1;
         }
         return new YamlPosition(offset, low + 1, offset - lines[low] + 1);
+    }
+
+    /// <summary>
+    /// Returns what <see cref="GetPosition"/> returns without building the line table, by counting the line breaks
+    /// before the offset: for a single position needed while loading, such as a note's, which the table would cost a
+    /// pass over the whole source for.
+    /// </summary>
+    internal YamlPosition FindPosition(int offset) {
+        if (_lineStarts is not null) return GetPosition(offset);
+        string text = _source;
+        ReadOnlySpan<char> before = text.AsSpan(0, offset);
+        int line = 0, lineStart = 0;
+        for (int i = 0; ;) {
+            int index = before.Slice(i).IndexOfAny('\n', '\r');
+            if (index < 0) break;
+            i += index;
+            if (text[i] == '\n' || i + 1 == text.Length || text[i + 1] != '\n') {
+                line++;
+                lineStart = i + 1;
+            }
+            i++;
+        }
+        return new YamlPosition(offset, line + 1, offset - lineStart + 1);
     }
 
     private static int[] BuildLineStarts(string text) {

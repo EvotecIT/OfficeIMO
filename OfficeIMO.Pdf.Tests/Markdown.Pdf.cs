@@ -775,7 +775,9 @@ Content.
         string markdown = """
 ---
 title: PDF Roadmap
-author: OfficeIMO
+author:
+  name: OfficeIMO
+tags: [pdf, yaml]
 ---
 # Visible Heading
 """;
@@ -791,6 +793,8 @@ author: OfficeIMO
         Assert.Contains("Value", text);
         Assert.Contains("title", text);
         Assert.Contains("PDF Roadmap", text);
+        Assert.Contains("author.name", text);
+        Assert.Contains("pdf, yaml", text);
         Assert.Contains("Visible Heading", text);
     }
 

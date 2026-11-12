@@ -8,8 +8,6 @@ internal enum YamlNodeState : ushort {
     Dirty = 1,
     /// <summary>A descendant has an edit: saving walks into the node instead of copying its span whole.</summary>
     ContainsDirty = 2,
-    /// <summary>The collection is still being loaded; an alias to it would make the graph cyclic.</summary>
-    Open = 4,
     /// <summary>At least one alias refers to the node.</summary>
     Aliased = 8,
     /// <summary>The node's content comes from the model, not the source: created, re-valued or moved by editing.</summary>
@@ -19,17 +17,17 @@ internal enum YamlNodeState : ushort {
     /// <summary>A comment or blank line owned by the node changed.</summary>
     CommentsDirty = 64,
     /// <summary>Entries or items were inserted or removed; the collection keeps a snapshot of its loaded children.</summary>
-    Restructured = 128
+    Restructured = 128,
+    /// <summary>The node took the region of a block collection, so it starts on the key's line rather than below it.</summary>
+    ReplacedBlock = 256
 }
 
 /// <summary>
-/// Anchor, tag, alias-expansion size and comment edits of a node. Most nodes have none of these, so they share no object.
+/// Anchor, tag and comment edits of a node. Most nodes have none of these, so they share no object.
 /// </summary>
 internal sealed class YamlNodeProperties {
     public string? Anchor;
     public string? Tag;
-    /// <summary>Nodes the anchored node stands for when every alias inside it is resolved, saturating.</summary>
-    public long ExpandedSize;
     public bool CommentBeforeSet;
     public string? CommentBefore;
     public bool CommentSet;
@@ -61,6 +59,8 @@ public abstract class YamlNode {
     internal int _end;
     /// <summary>The node's position in its parent, a hint that makes finding its entry constant time.</summary>
     internal int _index;
+    /// <summary>The node's row in the document's <see cref="YamlNodeTable"/>, or -1 for a node created by editing.</summary>
+    internal int _record = -1;
     internal YamlStyle _style;
     internal YamlNodeState _state;
 
@@ -99,9 +99,15 @@ public abstract class YamlNode {
     public YamlNode? Parent => _parent;
 
     /// <summary>
-    /// Gets where the node starts in the loaded source: its first property (anchor or tag) when present, otherwise its
-    /// content. Nodes created by editing have no source position and return the default value.
+    /// Gets where the node starts in the loaded source, with its offset and one-based line and column: its first property
+    /// (anchor or tag) when present, otherwise its content. Nodes whose content comes from editing (created, re-valued
+    /// or moved) have no source position and return the default value, whose <see cref="YamlPosition.Line"/> is 0.
     /// </summary>
+    /// <remarks>
+    /// Positions refer to the text as loaded; edits elsewhere never shift them. The first position read builds the
+    /// document's line table once; nodes store only offsets. <see cref="IsModified"/> tells whether the node's text in
+    /// a save would still be the text at this position.
+    /// </remarks>
     public YamlPosition Start => HasSourceSpan ? _part!._document.GetPosition(_start) : default;
 
     /// <summary>
@@ -109,6 +115,15 @@ public abstract class YamlNode {
     /// is zero-width at the point where the omitted node would be. Nodes created by editing return the default value.
     /// </summary>
     public YamlPosition End => HasSourceSpan ? _part!._document.GetPosition(_end) : default;
+
+    /// <summary>
+    /// Gets whether editing changed the node or anything inside it since the document was loaded: its value, anchor,
+    /// tag or comments, or a descendant's, or entries or items added or removed. It is <see langword="true"/> for nodes
+    /// created by editing, and <see langword="false"/> for an untouched loaded node, whose source text between
+    /// <see cref="Start"/> and <see cref="End"/> is what saving writes for it.
+    /// </summary>
+    public bool IsModified => !HasSourceSpan || (_state & (YamlNodeState.Dirty | YamlNodeState.ContainsDirty | YamlNodeState.PropertiesDirty
+        | YamlNodeState.CommentsDirty | YamlNodeState.Restructured)) != 0;
 
     /// <summary>
     /// Gets whether the node resolves to null under its document's schema: an untagged plain scalar such as <c>null</c>,
@@ -183,27 +198,38 @@ public abstract class YamlNode {
     /// Returns the node a path addresses from here, or <see langword="null"/> when nothing matches. Paths share their
     /// grammar with the paths <c>OfficeIMO.Reader.Yaml</c> reports:
     /// <list type="bullet">
-    /// <item><description><c>.name</c> selects a mapping value by key text; a name runs to the next <c>.</c> or <c>[</c>,
-    /// and the leading dot of the first step may be omitted (<c>spec.replicas</c>).</description></item>
-    /// <item><description><c>["key"]</c> selects a key containing dots, brackets or other characters, with JSON escapes
-    /// (<c>\"</c>, <c>\\</c>, <c>\n</c>, <c>\uXXXX</c>...).</description></item>
-    /// <item><description><c>[n]</c> selects the zero-based item of a sequence.</description></item>
-    /// <item><description>A leading <c>$</c> stands for this node.</description></item>
+    /// <item><description><c>.name</c> selects a mapping value by key text. A name runs to the next <c>.</c> or <c>[</c>
+    /// and may contain any other character, spaces included; the leading dot of the first step may be omitted
+    /// (<c>spec.replicas</c>).</description></item>
+    /// <item><description><c>["key"]</c> selects any key, and is needed for keys that contain <c>.</c> or <c>[</c>, are
+    /// empty, or start with <c>$</c>. The text is JSON-quoted: <c>\"</c>, <c>\\</c>, <c>\/</c>, <c>\b</c>, <c>\f</c>,
+    /// <c>\n</c>, <c>\r</c>, <c>\t</c> and <c>\uXXXX</c> (<c>labels["app.kubernetes.io/name"]</c>,
+    /// <c>["say \"hi\""]</c>).</description></item>
+    /// <item><description><c>[n]</c> selects the zero-based item of a sequence. A mapping key that is a number is a key
+    /// step: <c>.0</c> or <c>["0"]</c>.</description></item>
+    /// <item><description>A leading <c>$</c> stands for this node. On a <see cref="YamlDocument"/> with several
+    /// documents, a leading <c>$[n]</c> picks the document.</description></item>
     /// </list>
-    /// Key steps match scalar keys by decoded text and follow aliases and, under the YAML 1.1 schema, <c>&lt;&lt;</c>
-    /// merge keys. Paths address nodes; they do not evaluate expressions. Because steps match text, a path cannot reach
-    /// values under collection keys (<c>[a, b]: x</c>), and of two keys with the same text but different types
-    /// (<c>1</c> and <c>"1"</c>) it finds the one the document's duplicate-key policy picks; enumerate
-    /// <see cref="YamlMapping"/> entries to reach those. <see cref="YamlDocument.Set"/>,
-    /// <see cref="YamlDocument.Add"/> and <see cref="YamlDocument.Remove"/> edit by the same paths.
+    /// <para>Key steps compare the step text with each scalar key's decoded value, whatever its style or type: <c>'a'</c>,
+    /// <c>"a"</c> and <c>a</c> are all <c>.a</c>, and the integer key <c>0x1F</c> is <c>.0x1F</c>. They follow aliases and
+    /// <c>&lt;&lt;</c> merge keys where merges apply. When no scalar key matches, a step matches a collection key by
+    /// its YAML text, the form <see cref="ToString"/> returns and <c>OfficeIMO.Reader.Yaml</c> reports:
+    /// <c>["[a, b]"]</c> for <c>[a, b]: x</c>. Keys with equal text resolve as lookups do, by the duplicate-key policy
+    /// (by default the last); enumerate <see cref="YamlMapping"/> entries to reach the others, such as <c>1</c> next to
+    /// <c>"1"</c>.</para>
+    /// <para>Paths address nodes; they do not evaluate expressions or wildcards. <see cref="GetPath"/> returns the path
+    /// of a node, and <see cref="YamlDocument.Set"/>, <see cref="YamlDocument.Add"/> and <see cref="YamlDocument.Remove"/>
+    /// edit by the same paths.</para>
     /// </summary>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="path"/> is malformed.</exception>
     public YamlNode? Select(string path) => YamlPath.Select(this, path, 0);
 
     /// <summary>Returns the path of this node from its document root, in the grammar <see cref="Select"/> reads.</summary>
-    /// <remarks>Keys that are not plain names (dots, brackets, quotes) use the <c>["key"]</c> form.</remarks>
-    /// <exception cref="InvalidOperationException">The node is a mapping key, or sits under a collection key; see <see cref="Select"/>.</exception>
+    /// <remarks>Keys that are not plain names (empty, starting with <c>$</c>, or containing dots, brackets, quotes,
+    /// backslashes, whitespace or control characters) use the <c>["key"]</c> form; a value under a collection key uses
+    /// the key's YAML text.</remarks>
+    /// <exception cref="InvalidOperationException">The node is a mapping key; paths address values.</exception>
     public string GetPath() => YamlPath.Format(this);
 
     /// <summary>
@@ -214,10 +240,11 @@ public abstract class YamlNode {
     /// <para>The comments belong to the line where the node's entry starts. A mapping value shares them with its key, and
     /// the first entry of a block collection that is a sequence item or the document root shares them with that
     /// collection; reading or setting them through any of these nodes reaches the same lines.</para>
-    /// <para>They are the own-line comments between the previous content (the previous entry, the key line of the parent,
-    /// or the start of the document) and the entry. Above the first entry of a document, comments separated from it by a
-    /// blank line belong to the document instead (<see cref="YamlDocumentPart.CommentBefore"/>). Comments inside flow
-    /// collections are kept in the source but not reported.</para>
+    /// <para>They are the own-line comments directly above the entry, with no blank line between. Comments that a blank
+    /// line separates from the entry belong to no entry, such as a commented-out example, and stay when the entry is
+    /// removed; above the first entry of a document they are the document's header
+    /// (<see cref="YamlDocumentPart.CommentBefore"/>). Comments inside flow collections are kept in the source but not
+    /// reported.</para>
     /// </remarks>
     public string? CommentBefore => YamlTrivia.GetCommentBefore(this);
 

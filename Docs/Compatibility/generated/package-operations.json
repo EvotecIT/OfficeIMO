@@ -3819,10 +3819,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"EmailDocument.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OfficeIMO.Html.Tests Html.EmailImageExport renders message chrome, plain, HTML and RTF bodies and inline content-ID images through the HTML renderer in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".eml"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Remote resources are blocked, attachments are listed rather than rendered, and mail-client layout is not reproduced."
     },
     {
       "id":"conversion:email-png",
@@ -3833,10 +3833,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"EmailDocument.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OfficeIMO.Html.Tests Html.EmailImageExport renders message chrome, plain, HTML and RTF bodies and inline content-ID images through the HTML renderer in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".eml"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Remote resources are blocked, attachments are listed rather than rendered, and mail-client layout is not reproduced."
     },
     {
       "id":"conversion:email-svg",
@@ -3847,10 +3847,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"EmailDocument.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OfficeIMO.Html.Tests Html.EmailImageExport renders message chrome, plain, HTML and RTF bodies and inline content-ID images through the HTML renderer in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".eml"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Remote resources are blocked, attachments are listed rather than rendered, and mail-client layout is not reproduced."
     },
     {
       "id":"conversion:email-tiff",
@@ -3861,10 +3861,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"EmailDocument.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OfficeIMO.Html.Tests Html.EmailImageExport renders message chrome, plain, HTML and RTF bodies and inline content-ID images through the HTML renderer in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".eml"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Remote resources are blocked, attachments are listed rather than rendered, and mail-client layout is not reproduced."
     },
     {
       "id":"conversion:email-webp",
@@ -3875,10 +3875,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"EmailDocument.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OfficeIMO.Html.Tests Html.EmailImageExport renders message chrome, plain, HTML and RTF bodies and inline content-ID images through the HTML renderer in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".eml"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Remote resources are blocked, attachments are listed rather than rendered, and mail-client layout is not reproduced."
     },
     {
       "id":"protection:epub-font-obfuscation:epub:create",
@@ -4197,10 +4197,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"EpubDocument.Load(stream, readOptions).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OfficeIMO.Html.Tests Html.EpubImageExport, Html.EpubFallbackImageExport and Html.EpubEmptyImageExport render chapters through the HTML renderer with fallback and empty-publication handling.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".epub"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Reader pagination, scripts and missing resources remain approximated or diagnosed."
     },
     {
       "id":"conversion:epub-png",
@@ -4211,10 +4211,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"EpubDocument.Load(stream, readOptions).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OfficeIMO.Html.Tests Html.EpubImageExport, Html.EpubFallbackImageExport and Html.EpubEmptyImageExport render chapters through the HTML renderer with fallback and empty-publication handling.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".epub"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Reader pagination, scripts and missing resources remain approximated or diagnosed."
     },
     {
       "id":"conversion:epub-svg",
@@ -4225,10 +4225,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"EpubDocument.Load(stream, readOptions).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OfficeIMO.Html.Tests Html.EpubImageExport, Html.EpubFallbackImageExport and Html.EpubEmptyImageExport render chapters through the HTML renderer with fallback and empty-publication handling.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".epub"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Reader pagination, scripts and missing resources remain approximated or diagnosed."
     },
     {
       "id":"conversion:epub-tiff",
@@ -4239,10 +4239,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"EpubDocument.Load(stream, readOptions).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OfficeIMO.Html.Tests Html.EpubImageExport, Html.EpubFallbackImageExport and Html.EpubEmptyImageExport render chapters through the HTML renderer with fallback and empty-publication handling.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".epub"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Reader pagination, scripts and missing resources remain approximated or diagnosed."
     },
     {
       "id":"conversion:epub-webp",
@@ -4253,10 +4253,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"EpubDocument.Load(stream, readOptions).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OfficeIMO.Html.Tests Html.EpubImageExport, Html.EpubFallbackImageExport and Html.EpubEmptyImageExport render chapters through the HTML renderer with fallback and empty-publication handling.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".epub"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Reader pagination, scripts and missing resources remain approximated or diagnosed."
     },
     {
       "id":"conversion:dbf-xlsx",
@@ -8955,12 +8955,12 @@
       "targetFormatId":"XLSX",
       "capabilityId":"ods-xlsx",
       "operation":"Convert",
-      "state":"Partial",
+      "state":"Supported",
       "publicApi":"OdsDocument.Load(stream) or LoadFlatXml(stream).SaveAsExcel(output, options)",
-      "evidence":"Reopen tests verify typed values, formulas, annotations, basic styles, tables, and validation subsets with diagnostics.",
+      "evidence":"LibreOffice Calc and Microsoft Excel ODS exports, Excel-produced chart and pivot workbooks, and converter contracts verify values, formulas, annotations, styles, validations, conditional formatting, charts, pivot and DataPilot tables, ODS print ranges and strict loss reports in reopened workbooks (OpenDocumentIndependentProducerContracts, SpreadsheetChartConversionTests, ExcelOdsDataPilotConversionTests).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".fods",".ods"],
-      "limitation":"Advanced validation, conditional formatting, charts, pivots, external links, macros, and complex styles remain incomplete."
+      "limitation":"Conditional formatting covers up to 16 numeric cell-value rules per style with direct fills or fonts. Charts cover column, bar, line, pie and doughnut types with copied values, title and approximate placement. Pivots need one standard aggregate and a same-sheet source and output. Borders, value-dependent alignment, blank cells styled only by defaults, advanced validation, external links, macros, and Excel print-area names written to ODS remain explicit loss. LibreOffice and Excel files also report their page masters and the text formatting on row padding (blank-cell-tail-styles), so ThrowOnSkippedOrUnsupported and FailOnLoss reject ordinary producer files."
     },
     {
       "id":"conversion:ods-jpeg",
@@ -8969,12 +8969,12 @@
       "targetFormatId":"JPEG",
       "capabilityId":"ods-jpeg",
       "operation":"Export",
-      "state":"Partial",
+      "state":"Supported",
       "publicApi":"OdsDocument.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OpenDocumentImageExportContracts render ODS sheets in order through the ODS-to-Excel bridge and the same Excel renderer as XLSX images, in all five encodings. LibreOffice Calc and Microsoft Excel spreadsheets render every sheet with the bridge's loss findings attached (OpenDocumentIndependentProducerContracts).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".ods"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Inherits the ODS-to-XLSX conversion limits; unsupported source structure remains reported."
     },
     {
       "id":"conversion:ods-png",
@@ -8983,12 +8983,12 @@
       "targetFormatId":"PNG",
       "capabilityId":"ods-png",
       "operation":"Export",
-      "state":"Partial",
+      "state":"Supported",
       "publicApi":"OdsDocument.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OpenDocumentImageExportContracts render ODS sheets in order through the ODS-to-Excel bridge and the same Excel renderer as XLSX images, in all five encodings. LibreOffice Calc and Microsoft Excel spreadsheets render every sheet with the bridge's loss findings attached (OpenDocumentIndependentProducerContracts).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".ods"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Inherits the ODS-to-XLSX conversion limits; unsupported source structure remains reported."
     },
     {
       "id":"conversion:ods-svg",
@@ -8997,12 +8997,12 @@
       "targetFormatId":"SVG",
       "capabilityId":"ods-svg",
       "operation":"Export",
-      "state":"Partial",
+      "state":"Supported",
       "publicApi":"OdsDocument.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OpenDocumentImageExportContracts render ODS sheets in order through the ODS-to-Excel bridge and the same Excel renderer as XLSX images, in all five encodings. LibreOffice Calc and Microsoft Excel spreadsheets render every sheet with the bridge's loss findings attached (OpenDocumentIndependentProducerContracts).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".ods"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Inherits the ODS-to-XLSX conversion limits; unsupported source structure remains reported."
     },
     {
       "id":"conversion:ods-tiff",
@@ -9011,12 +9011,12 @@
       "targetFormatId":"TIFF",
       "capabilityId":"ods-tiff",
       "operation":"Export",
-      "state":"Partial",
+      "state":"Supported",
       "publicApi":"OdsDocument.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OpenDocumentImageExportContracts render ODS sheets in order through the ODS-to-Excel bridge and the same Excel renderer as XLSX images, in all five encodings. LibreOffice Calc and Microsoft Excel spreadsheets render every sheet with the bridge's loss findings attached (OpenDocumentIndependentProducerContracts).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".ods"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Inherits the ODS-to-XLSX conversion limits; unsupported source structure remains reported."
     },
     {
       "id":"conversion:ods-webp",
@@ -9025,12 +9025,12 @@
       "targetFormatId":"WebP",
       "capabilityId":"ods-webp",
       "operation":"Export",
-      "state":"Partial",
+      "state":"Supported",
       "publicApi":"OdsDocument.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OpenDocumentImageExportContracts render ODS sheets in order through the ODS-to-Excel bridge and the same Excel renderer as XLSX images, in all five encodings. LibreOffice Calc and Microsoft Excel spreadsheets render every sheet with the bridge's loss findings attached (OpenDocumentIndependentProducerContracts).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".ods"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Inherits the ODS-to-XLSX conversion limits; unsupported source structure remains reported."
     },
     {
       "id":"conversion:xlsx-ods",
@@ -9039,12 +9039,12 @@
       "targetFormatId":"ODS",
       "capabilityId":"xlsx-ods",
       "operation":"Convert",
-      "state":"Partial",
+      "state":"Supported",
       "publicApi":"ExcelDocument.Load(stream).SaveAsOpenDocument(output, options)",
-      "evidence":"Reopen tests verify typed values, formulas, annotations, basic styles, tables, and validation subsets with diagnostics.",
+      "evidence":"LibreOffice Calc and Microsoft Excel ODS exports, Excel-produced chart and pivot workbooks, and converter contracts verify values, formulas, annotations, styles, validations, conditional formatting, charts, pivot and DataPilot tables, ODS print ranges and strict loss reports in reopened workbooks (OpenDocumentIndependentProducerContracts, SpreadsheetChartConversionTests, ExcelOdsDataPilotConversionTests).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
-      "limitation":"Advanced validation, conditional formatting, charts, pivots, external links, macros, and complex styles remain incomplete."
+      "limitation":"Conditional formatting covers up to 16 numeric cell-value rules per style with direct fills or fonts. Charts cover column, bar, line, pie and doughnut types with copied values, title and approximate placement. Pivots need one standard aggregate and a same-sheet source and output. Borders, value-dependent alignment, blank cells styled only by defaults, advanced validation, external links, macros, and Excel print-area names written to ODS remain explicit loss. LibreOffice and Excel files also report their page masters and the text formatting on row padding (blank-cell-tail-styles), so ThrowOnSkippedOrUnsupported and FailOnLoss reject ordinary producer files."
     },
     {
       "id":"conversion:xls-pdf",
@@ -9741,7 +9741,7 @@
       "operation":"Create",
       "state":"Supported",
       "publicApi":"MhtmlDocument / Load / Save / ConfigureRenderOptions",
-      "evidence":"OfficeIMO.Mhtml.Tests MIME archive, embedded-resource, bounded remote-policy, editing, and deterministic-write contracts::Create",
+      "evidence":"OfficeIMO.Html.Tests Mhtml/MhtmlDocumentTests, MhtmlEmbeddedImageConversionTests and MhtmlRenderResourcePolicyTests MIME archive, embedded-resource, bounded remote-policy, editing, and deterministic-write contracts::Create",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".mht",".mhtml"],
       "limitation":""
@@ -9755,7 +9755,7 @@
       "operation":"Read",
       "state":"Supported",
       "publicApi":"MhtmlDocument / Load / Save / ConfigureRenderOptions",
-      "evidence":"OfficeIMO.Mhtml.Tests MIME archive, embedded-resource, bounded remote-policy, editing, and deterministic-write contracts::Read",
+      "evidence":"OfficeIMO.Html.Tests Mhtml/MhtmlDocumentTests, MhtmlEmbeddedImageConversionTests and MhtmlRenderResourcePolicyTests MIME archive, embedded-resource, bounded remote-policy, editing, and deterministic-write contracts::Read",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".mht",".mhtml"],
       "limitation":""
@@ -9769,7 +9769,7 @@
       "operation":"Edit",
       "state":"Supported",
       "publicApi":"MhtmlDocument / Load / Save / ConfigureRenderOptions",
-      "evidence":"OfficeIMO.Mhtml.Tests MIME archive, embedded-resource, bounded remote-policy, editing, and deterministic-write contracts::Edit",
+      "evidence":"OfficeIMO.Html.Tests Mhtml/MhtmlDocumentTests, MhtmlEmbeddedImageConversionTests and MhtmlRenderResourcePolicyTests MIME archive, embedded-resource, bounded remote-policy, editing, and deterministic-write contracts::Edit",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".mht",".mhtml"],
       "limitation":"Typed HTML and embedded resources are reserialized as deterministic multipart/related MIME; unsupported MIME details or edited HTML are not promised byte-identical preservation."
@@ -9783,7 +9783,7 @@
       "operation":"Preserve",
       "state":"Partial",
       "publicApi":"MhtmlDocument / Load / Save / ConfigureRenderOptions",
-      "evidence":"OfficeIMO.Mhtml.Tests MIME archive, embedded-resource, bounded remote-policy, editing, and deterministic-write contracts::Preserve",
+      "evidence":"OfficeIMO.Html.Tests Mhtml/MhtmlDocumentTests, MhtmlEmbeddedImageConversionTests and MhtmlRenderResourcePolicyTests MIME archive, embedded-resource, bounded remote-policy, editing, and deterministic-write contracts::Preserve",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".mht",".mhtml"],
       "limitation":"Typed HTML and embedded resources are reserialized as deterministic multipart/related MIME; unsupported MIME details or edited HTML are not promised byte-identical preservation."
@@ -9797,7 +9797,7 @@
       "operation":"Inspect",
       "state":"Supported",
       "publicApi":"MhtmlDocument / Load / Save / ConfigureRenderOptions",
-      "evidence":"OfficeIMO.Mhtml.Tests MIME archive, embedded-resource, bounded remote-policy, editing, and deterministic-write contracts::Inspect",
+      "evidence":"OfficeIMO.Html.Tests Mhtml/MhtmlDocumentTests, MhtmlEmbeddedImageConversionTests and MhtmlRenderResourcePolicyTests MIME archive, embedded-resource, bounded remote-policy, editing, and deterministic-write contracts::Inspect",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".mht",".mhtml"],
       "limitation":""
@@ -9811,7 +9811,7 @@
       "operation":"Validate",
       "state":"Supported",
       "publicApi":"MhtmlDocument / Load / Save / ConfigureRenderOptions",
-      "evidence":"OfficeIMO.Mhtml.Tests MIME archive, embedded-resource, bounded remote-policy, editing, and deterministic-write contracts::Validate",
+      "evidence":"OfficeIMO.Html.Tests Mhtml/MhtmlDocumentTests, MhtmlEmbeddedImageConversionTests and MhtmlRenderResourcePolicyTests MIME archive, embedded-resource, bounded remote-policy, editing, and deterministic-write contracts::Validate",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".mht",".mhtml"],
       "limitation":"Typed HTML and embedded resources are reserialized as deterministic multipart/related MIME; unsupported MIME details or edited HTML are not promised byte-identical preservation."
@@ -9839,10 +9839,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"MhtmlDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format })",
-      "evidence":"Direct image bridge contracts exercise the existing PDF conversion owner, source diagnostics, shared selection and bounded image persistence.",
+      "evidence":"OfficeIMO.Html.Tests Mhtml/MhtmlRenderResourcePolicyTests render archives through the MHTML PDF layout and the PDF rasterizer with embedded-resource and remote-resource policies.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".mht",".mhtml"],
-      "limitation":"Uses the source owner's semantic PDF layout. Native Office pagination and unsupported source structures remain subject to reported conversion loss."
+      "limitation":"Uses the MHTML semantic PDF layout. Browser layout, scripts and unsupported archive structures remain subject to reported conversion loss."
     },
     {
       "id":"conversion:mhtml-png",
@@ -9853,10 +9853,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"MhtmlDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format })",
-      "evidence":"Direct image bridge contracts exercise the existing PDF conversion owner, source diagnostics, shared selection and bounded image persistence.",
+      "evidence":"OfficeIMO.Html.Tests Mhtml/MhtmlRenderResourcePolicyTests render archives through the MHTML PDF layout and the PDF rasterizer with embedded-resource and remote-resource policies.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".mht",".mhtml"],
-      "limitation":"Uses the source owner's semantic PDF layout. Native Office pagination and unsupported source structures remain subject to reported conversion loss."
+      "limitation":"Uses the MHTML semantic PDF layout. Browser layout, scripts and unsupported archive structures remain subject to reported conversion loss."
     },
     {
       "id":"conversion:mhtml-svg",
@@ -9867,10 +9867,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"MhtmlDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format })",
-      "evidence":"Direct image bridge contracts exercise the existing PDF conversion owner, source diagnostics, shared selection and bounded image persistence.",
+      "evidence":"OfficeIMO.Html.Tests Mhtml/MhtmlRenderResourcePolicyTests render archives through the MHTML PDF layout and the PDF rasterizer with embedded-resource and remote-resource policies.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".mht",".mhtml"],
-      "limitation":"Uses the source owner's semantic PDF layout. Native Office pagination and unsupported source structures remain subject to reported conversion loss."
+      "limitation":"Uses the MHTML semantic PDF layout. Browser layout, scripts and unsupported archive structures remain subject to reported conversion loss."
     },
     {
       "id":"conversion:mhtml-tiff",
@@ -9881,10 +9881,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"MhtmlDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format })",
-      "evidence":"Direct image bridge contracts exercise the existing PDF conversion owner, source diagnostics, shared selection and bounded image persistence.",
+      "evidence":"OfficeIMO.Html.Tests Mhtml/MhtmlRenderResourcePolicyTests render archives through the MHTML PDF layout and the PDF rasterizer with embedded-resource and remote-resource policies.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".mht",".mhtml"],
-      "limitation":"Uses the source owner's semantic PDF layout. Native Office pagination and unsupported source structures remain subject to reported conversion loss."
+      "limitation":"Uses the MHTML semantic PDF layout. Browser layout, scripts and unsupported archive structures remain subject to reported conversion loss."
     },
     {
       "id":"conversion:mhtml-webp",
@@ -9895,10 +9895,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"MhtmlDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format })",
-      "evidence":"Direct image bridge contracts exercise the existing PDF conversion owner, source diagnostics, shared selection and bounded image persistence.",
+      "evidence":"OfficeIMO.Html.Tests Mhtml/MhtmlRenderResourcePolicyTests render archives through the MHTML PDF layout and the PDF rasterizer with embedded-resource and remote-resource policies.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".mht",".mhtml"],
-      "limitation":"Uses the source owner's semantic PDF layout. Native Office pagination and unsupported source structures remain subject to reported conversion loss."
+      "limitation":"Uses the MHTML semantic PDF layout. Browser layout, scripts and unsupported archive structures remain subject to reported conversion loss."
     },
     {
       "id":"protection:onenote-encrypted-revision:onenote:create",
@@ -9993,10 +9993,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OneNoteSection.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OneNoteRenderingTests and OneNote.TextFormatting render typed sections through the shared SVG and raster renderer.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".one"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Ink, embedded files, rich positioning and OneNote application rendering remain approximated or diagnosed."
     },
     {
       "id":"conversion:onenote-png",
@@ -10007,10 +10007,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OneNoteSection.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OneNoteRenderingTests and OneNote.TextFormatting render typed sections through the shared SVG and raster renderer.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".one"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Ink, embedded files, rich positioning and OneNote application rendering remain approximated or diagnosed."
     },
     {
       "id":"conversion:onenote-svg",
@@ -10021,10 +10021,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OneNoteSection.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OneNoteRenderingTests and OneNote.TextFormatting render typed sections through the shared SVG and raster renderer.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".one"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Ink, embedded files, rich positioning and OneNote application rendering remain approximated or diagnosed."
     },
     {
       "id":"conversion:onenote-tiff",
@@ -10035,10 +10035,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OneNoteSection.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OneNoteRenderingTests and OneNote.TextFormatting render typed sections through the shared SVG and raster renderer.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".one"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Ink, embedded files, rich positioning and OneNote application rendering remain approximated or diagnosed."
     },
     {
       "id":"conversion:onenote-webp",
@@ -10049,10 +10049,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OneNoteSection.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OneNoteRenderingTests and OneNote.TextFormatting render typed sections through the shared SVG and raster renderer.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".one"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Ink, embedded files, rich positioning and OneNote application rendering remain approximated or diagnosed."
     },
     {
       "id":"native:onenote-native:create",
@@ -10175,10 +10175,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"section.SaveAsPdf(output, options)",
-      "evidence":"Typed section-model fixtures verify common page text, hierarchy, tables, images, and deterministic projection diagnostics.",
+      "evidence":"Native .one fixtures reopen the visual PDF and verify page geometry, extracted page text, hyperlink field results with link annotations, and per-picture embedding with alternative text (OfficeIMO.OneNote.Tests).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".one",".onepkg",".onetoc2"],
-      "limitation":"The API targets the OfficeIMO section model; full .one binary fidelity, ink, embedded files, rich positioning, and OneNote application rendering remain incomplete."
+      "limitation":"SaveAsPdf writes the semantic profile: reflowable PDF in reading order that flattens the free-form canvas. SaveAsVisualPdf, or the route's OneNoteVisualPdf setting, writes visual pages as vector content with searchable text, embedded subset fonts, ink, tables and math. Pictures without a native PDF image form are embedded as PNG for that picture only, with a diagnostic. Text is not tagged with paragraph structure, fonts come from the host, and encrypted revisions, embedded files and OneNote application rendering remain incomplete."
     },
     {
       "id":"conversion:odg-jpeg",
@@ -10189,10 +10189,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdgDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
-      "evidence":"Native projection and shared image contracts cover page dimensions, selection, encoding, source evidence and persistence.",
+      "evidence":"OfficeIMO.OpenDocument.Tests OpenDocument.Odg.ImageConversion covers page dimensions, selection, encoding, source evidence and persistence through the Draw scene projection.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odg"],
-      "limitation":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
+      "limitation":"Uses the existing Draw-to-Drawing projection. Unsupported native paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
     },
     {
       "id":"conversion:odg-png",
@@ -10203,10 +10203,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdgDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
-      "evidence":"Native projection and shared image contracts cover page dimensions, selection, encoding, source evidence and persistence.",
+      "evidence":"OfficeIMO.OpenDocument.Tests OpenDocument.Odg.ImageConversion covers page dimensions, selection, encoding, source evidence and persistence through the Draw scene projection.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odg"],
-      "limitation":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
+      "limitation":"Uses the existing Draw-to-Drawing projection. Unsupported native paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
     },
     {
       "id":"conversion:odg-svg",
@@ -10217,10 +10217,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdgDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
-      "evidence":"Native projection and shared image contracts cover page dimensions, selection, encoding, source evidence and persistence.",
+      "evidence":"OfficeIMO.OpenDocument.Tests OpenDocument.Odg.ImageConversion covers page dimensions, selection, encoding, source evidence and persistence through the Draw scene projection.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odg"],
-      "limitation":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
+      "limitation":"Uses the existing Draw-to-Drawing projection. Unsupported native paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
     },
     {
       "id":"conversion:odg-tiff",
@@ -10231,10 +10231,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdgDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
-      "evidence":"Native projection and shared image contracts cover page dimensions, selection, encoding, source evidence and persistence.",
+      "evidence":"OfficeIMO.OpenDocument.Tests OpenDocument.Odg.ImageConversion covers page dimensions, selection, encoding, source evidence and persistence through the Draw scene projection.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odg"],
-      "limitation":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
+      "limitation":"Uses the existing Draw-to-Drawing projection. Unsupported native paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
     },
     {
       "id":"conversion:odg-webp",
@@ -10245,10 +10245,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdgDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
-      "evidence":"Native projection and shared image contracts cover page dimensions, selection, encoding, source evidence and persistence.",
+      "evidence":"OfficeIMO.OpenDocument.Tests OpenDocument.Odg.ImageConversion covers page dimensions, selection, encoding, source evidence and persistence through the Draw scene projection.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odg"],
-      "limitation":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
+      "limitation":"Uses the existing Draw-to-Drawing projection. Unsupported native paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
     },
     {
       "id":"protection:odf-package-signature:opendocument:create",
@@ -10567,10 +10567,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"OdpPresentation.Load(stream) or LoadFlatXml(stream).SaveAsPdf(output, options)",
-      "evidence":"Representative OpenDocument fixtures verify the supported typed model, fixed-layout output, and source diagnostics.",
+      "evidence":"Renders through the ODP-to-PowerPoint bridge and the PowerPoint PDF engine. Contracts verify slide-sized pages in slide order, text, tables, images and animation loss; LibreOffice Impress and Microsoft PowerPoint ODP exports produce slide-sized pages that carry the bridge's loss findings (OpenDocumentPdfConversionContracts, OpenDocumentIndependentProducerContracts).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".fodp",".odp"],
-      "limitation":"Inherited styles, advanced drawings, charts, media, nested inline syntax, and exact office-suite pagination remain incomplete."
+      "limitation":"Inherits the ODP-to-PPTX limits: master and layout drawing content, placeholder geometry, theme effects, charts, media and animations are omitted or reported. LibreOffice and PowerPoint slide composition is not reproduced exactly."
     },
     {
       "id":"conversion:pdf-odp",
@@ -10593,12 +10593,12 @@
       "targetFormatId":"PDF",
       "capabilityId":"ods-pdf",
       "operation":"Convert",
-      "state":"Partial",
+      "state":"Supported",
       "publicApi":"OdsDocument.Load(stream) or LoadFlatXml(stream).SaveAsPdf(output, options)",
-      "evidence":"Representative OpenDocument fixtures verify the supported typed model, fixed-layout output, and source diagnostics.",
+      "evidence":"Renders through the ODS-to-Excel bridge and the Excel PDF engine. LibreOffice Calc and Microsoft Excel ODS exports print one page per used sheet with searchable cell text and carried loss findings; contracts verify sheet print ranges and strict loss policy (OpenDocumentIndependentProducerContracts, OpenDocumentPdfConversionContracts).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".fods",".ods"],
-      "limitation":"Inherited styles, advanced drawings, charts, media, nested inline syntax, and exact office-suite pagination remain incomplete."
+      "limitation":"Inherits the ODS-to-XLSX limits and the Excel PDF print layout. FailOnLoss therefore rejects ordinary LibreOffice and Excel files, which report page masters and row-padding styles. Charts, pivots, conditional formatting outside the mapped subset and exact LibreOffice or Excel page breaks are approximated or reported."
     },
     {
       "id":"conversion:pdf-ods",
@@ -10623,10 +10623,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"OdtDocument.Load(stream) or LoadFlatXml(stream).SaveAsPdf(output, options)",
-      "evidence":"Representative OpenDocument fixtures verify the supported typed model, fixed-layout output, and source diagnostics.",
+      "evidence":"Renders through the ODT-to-Word bridge and the Word PDF engine. Contracts verify running headers and footers, tables, images, page breaks and strict loss policy; LibreOffice Writer and Microsoft Word ODT exports produce searchable PDF that carries the bridge's loss findings (OpenDocumentPdfConversionContracts, OpenDocumentIndependentProducerContracts).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".fodt",".odt"],
-      "limitation":"Inherited styles, advanced drawings, charts, media, nested inline syntax, and exact office-suite pagination remain incomplete."
+      "limitation":"Inherits the ODT-to-DOCX limits: headers and footers come from the first master page, and tracked changes, section-specific layout, other fields and nested inline markup are approximated or reported. Pagination follows the Word layout engine, not LibreOffice or Word."
     },
     {
       "id":"conversion:pdf-odt",
@@ -16405,10 +16405,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"OdpPresentation.Load(stream) or LoadFlatXml(stream).SaveAsPowerPoint(output, options)",
-      "evidence":"Reopen tests verify common slide text, tables, basic shapes, images, and page geometry with explicit approximation diagnostics.",
+      "evidence":"Converter contracts reopen slide size and order, hidden slides, text boxes and runs, hyperlinks, images and crops, tables and merges, basic shapes, solid and master backgrounds, common transitions, plain speaker notes, master and layout associations and placeholder roles. LibreOffice Impress and Microsoft PowerPoint ODP exports keep slide geometry and placeholders (OpenDocumentIndependentProducerContracts).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".fodp",".odp"],
-      "limitation":"Masters, advanced DrawingML, SmartArt, media, transitions, animations, and theme inheritance remain incomplete."
+      "limitation":"Master and layout drawing content, placeholder geometry, theme and effect appearance, table styles, charts, SmartArt, media, note drawings, advanced animations and unsupported transition families remain explicit loss. The independent producer fixtures contain only placeholder slides, so complex producer decks remain unqualified."
     },
     {
       "id":"conversion:odp-jpeg",
@@ -16419,10 +16419,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdpPresentation.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer with bridge loss diagnostics and aggregate loss policy, and ODP through the PowerPoint renderer in slide order, both in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odp"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Inherits the Targeted ODT-to-DOCX and ODP-to-PPTX conversion limits; unsupported source structure remains approximated or reported."
     },
     {
       "id":"conversion:odp-png",
@@ -16433,10 +16433,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdpPresentation.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer with bridge loss diagnostics and aggregate loss policy, and ODP through the PowerPoint renderer in slide order, both in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odp"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Inherits the Targeted ODT-to-DOCX and ODP-to-PPTX conversion limits; unsupported source structure remains approximated or reported."
     },
     {
       "id":"conversion:odp-svg",
@@ -16447,10 +16447,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdpPresentation.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer with bridge loss diagnostics and aggregate loss policy, and ODP through the PowerPoint renderer in slide order, both in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odp"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Inherits the Targeted ODT-to-DOCX and ODP-to-PPTX conversion limits; unsupported source structure remains approximated or reported."
     },
     {
       "id":"conversion:odp-tiff",
@@ -16461,10 +16461,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdpPresentation.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer with bridge loss diagnostics and aggregate loss policy, and ODP through the PowerPoint renderer in slide order, both in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odp"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Inherits the Targeted ODT-to-DOCX and ODP-to-PPTX conversion limits; unsupported source structure remains approximated or reported."
     },
     {
       "id":"conversion:odp-webp",
@@ -16475,10 +16475,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdpPresentation.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer with bridge loss diagnostics and aggregate loss policy, and ODP through the PowerPoint renderer in slide order, both in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odp"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Inherits the Targeted ODT-to-DOCX and ODP-to-PPTX conversion limits; unsupported source structure remains approximated or reported."
     },
     {
       "id":"conversion:pptx-odp",
@@ -16489,10 +16489,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"PowerPointDocument.Load(stream).SaveAsOpenDocument(output, options)",
-      "evidence":"Reopen tests verify common slide text, tables, basic shapes, images, and page geometry with explicit approximation diagnostics.",
+      "evidence":"Converter contracts reopen slide size and order, hidden slides, text boxes and runs, hyperlinks, images and crops, tables and merges, basic shapes, solid and master backgrounds, common transitions, plain speaker notes, master and layout associations and placeholder roles. LibreOffice Impress and Microsoft PowerPoint ODP exports keep slide geometry and placeholders (OpenDocumentIndependentProducerContracts).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".potm",".potx",".ppam",".ppsm",".ppsx",".pptm",".pptx"],
-      "limitation":"Masters, advanced DrawingML, SmartArt, media, transitions, animations, and theme inheritance remain incomplete."
+      "limitation":"Master and layout drawing content, placeholder geometry, theme and effect appearance, table styles, charts, SmartArt, media, note drawings, advanced animations and unsupported transition families remain explicit loss. The independent producer fixtures contain only placeholder slides, so complex producer decks remain unqualified."
     },
     {
       "id":"conversion:ppt-pdf",
@@ -16867,10 +16867,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"PublisherDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
-      "evidence":"Native projection and shared image contracts cover page dimensions, selection, encoding, source evidence and persistence.",
+      "evidence":"PublisherImageConversionTests cover page dimensions, selection, encoding, source evidence and persistence through the reconstructed Publisher drawing scene.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".pub"],
-      "limitation":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
+      "limitation":"Uses the existing Publisher drawing projection. Unsupported native paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
     },
     {
       "id":"conversion:publisher-png",
@@ -16881,10 +16881,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"PublisherDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
-      "evidence":"Native projection and shared image contracts cover page dimensions, selection, encoding, source evidence and persistence.",
+      "evidence":"PublisherImageConversionTests cover page dimensions, selection, encoding, source evidence and persistence through the reconstructed Publisher drawing scene.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".pub"],
-      "limitation":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
+      "limitation":"Uses the existing Publisher drawing projection. Unsupported native paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
     },
     {
       "id":"conversion:publisher-svg",
@@ -16895,10 +16895,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"PublisherDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
-      "evidence":"Native projection and shared image contracts cover page dimensions, selection, encoding, source evidence and persistence.",
+      "evidence":"PublisherImageConversionTests cover page dimensions, selection, encoding, source evidence and persistence through the reconstructed Publisher drawing scene.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".pub"],
-      "limitation":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
+      "limitation":"Uses the existing Publisher drawing projection. Unsupported native paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
     },
     {
       "id":"conversion:publisher-tiff",
@@ -16909,10 +16909,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"PublisherDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
-      "evidence":"Native projection and shared image contracts cover page dimensions, selection, encoding, source evidence and persistence.",
+      "evidence":"PublisherImageConversionTests cover page dimensions, selection, encoding, source evidence and persistence through the reconstructed Publisher drawing scene.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".pub"],
-      "limitation":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
+      "limitation":"Uses the existing Publisher drawing projection. Unsupported native paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
     },
     {
       "id":"conversion:publisher-webp",
@@ -16923,10 +16923,24 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"PublisherDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
-      "evidence":"Native projection and shared image contracts cover page dimensions, selection, encoding, source evidence and persistence.",
+      "evidence":"PublisherImageConversionTests cover page dimensions, selection, encoding, source evidence and persistence through the reconstructed Publisher drawing scene.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".pub"],
-      "limitation":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
+      "limitation":"Uses the existing Publisher drawing projection. Unsupported native paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
+    },
+    {
+      "id":"native:publisher-model:create",
+      "packageId":"OfficeIMO.Publisher",
+      "formatId":"Publisher.Model",
+      "targetFormatId":"",
+      "capabilityId":"publisher-model",
+      "operation":"Create",
+      "state":"Supported",
+      "publicApi":"PublisherDocument.Create / AddPage / AddTextFrame / AddImage / AddTable / ToSvg / ToImages",
+      "evidence":"OfficeIMO.Publisher.Tests PublisherAuthoringTests, PublisherPageSizeCreationTests, PublisherPictureCreationTests, PublisherTableMergingTests and PublisherImageConversionTests source-free authoring and rendering contracts::Create",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[],
+      "limitation":"Source-free publications with pages, masters, text frames, pictures, primitives and tables render to SVG, raster images and, through OfficeIMO.Publisher.Pdf, PDF. The model cannot be saved as a native .pub file."
     },
     {
       "id":"native:publisher-native:create",
@@ -16940,7 +16954,7 @@
       "evidence":"OfficeIMO.Publisher.Tests independent native fixtures, editable model, exact source copies, and bounded native source-save contracts::Create",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".pub"],
-      "limitation":"Publisher 2002-and-later publications support managed recovery, documented source edits, and exact unchanged-source copies. Create builds an in-memory model for rendering. Template-free native output and earlier-generation lifecycle support remain unavailable."
+      "limitation":"Publisher 2002-and-later publications support managed recovery, documented source edits, and exact unchanged-source copies. Template-free native .pub output and earlier-generation lifecycle support remain unavailable; source-free Create builds a model for rendering only (see Publisher.Model)."
     },
     {
       "id":"native:publisher-native:read",
@@ -16954,7 +16968,7 @@
       "evidence":"OfficeIMO.Publisher.Tests independent native fixtures, editable model, exact source copies, and bounded native source-save contracts::Read",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".pub"],
-      "limitation":"Publisher 2002-and-later publications support managed recovery, documented source edits, and exact unchanged-source copies. Create builds an in-memory model for rendering. Template-free native output and earlier-generation lifecycle support remain unavailable."
+      "limitation":"Publisher 2002-and-later publications support managed recovery, documented source edits, and exact unchanged-source copies. Template-free native .pub output and earlier-generation lifecycle support remain unavailable; source-free Create builds a model for rendering only (see Publisher.Model)."
     },
     {
       "id":"native:publisher-native:edit",
@@ -16968,7 +16982,7 @@
       "evidence":"OfficeIMO.Publisher.Tests independent native fixtures, editable model, exact source copies, and bounded native source-save contracts::Edit",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".pub"],
-      "limitation":"Publisher 2002-and-later publications support managed recovery, documented source edits, and exact unchanged-source copies. Create builds an in-memory model for rendering. Template-free native output and earlier-generation lifecycle support remain unavailable."
+      "limitation":"Publisher 2002-and-later publications support managed recovery, documented source edits, and exact unchanged-source copies. Template-free native .pub output and earlier-generation lifecycle support remain unavailable; source-free Create builds a model for rendering only (see Publisher.Model)."
     },
     {
       "id":"native:publisher-native:preserve",
@@ -16982,7 +16996,7 @@
       "evidence":"OfficeIMO.Publisher.Tests independent native fixtures, editable model, exact source copies, and bounded native source-save contracts::Preserve",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".pub"],
-      "limitation":"Publisher 2002-and-later publications support managed recovery, documented source edits, and exact unchanged-source copies. Create builds an in-memory model for rendering. Template-free native output and earlier-generation lifecycle support remain unavailable."
+      "limitation":"Publisher 2002-and-later publications support managed recovery, documented source edits, and exact unchanged-source copies. Template-free native .pub output and earlier-generation lifecycle support remain unavailable; source-free Create builds a model for rendering only (see Publisher.Model)."
     },
     {
       "id":"conversion:publisher-pdf",
@@ -17217,10 +17231,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"RtfDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format })",
-      "evidence":"Direct image bridge contracts exercise the existing PDF conversion owner, source diagnostics, shared selection and bounded image persistence.",
+      "evidence":"RtfImageConversionTests render through the RTF PDF layout and the PDF rasterizer, covering page selection, saved encoding, carried source loss, strict rejection before publication and cancellation.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".rtf"],
-      "limitation":"Uses the source owner's semantic PDF layout. Native Office pagination and unsupported source structures remain subject to reported conversion loss."
+      "limitation":"Uses the RTF semantic PDF layout rather than the Word renderer behind DOCX images. Only PNG output is exercised directly; the other encoders come from the PDF image owner. Native Office pagination and unsupported source structures remain subject to reported conversion loss."
     },
     {
       "id":"conversion:rtf-png",
@@ -17231,10 +17245,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"RtfDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format })",
-      "evidence":"Direct image bridge contracts exercise the existing PDF conversion owner, source diagnostics, shared selection and bounded image persistence.",
+      "evidence":"RtfImageConversionTests render through the RTF PDF layout and the PDF rasterizer, covering page selection, saved encoding, carried source loss, strict rejection before publication and cancellation.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".rtf"],
-      "limitation":"Uses the source owner's semantic PDF layout. Native Office pagination and unsupported source structures remain subject to reported conversion loss."
+      "limitation":"Uses the RTF semantic PDF layout rather than the Word renderer behind DOCX images. Only PNG output is exercised directly; the other encoders come from the PDF image owner. Native Office pagination and unsupported source structures remain subject to reported conversion loss."
     },
     {
       "id":"conversion:rtf-svg",
@@ -17245,10 +17259,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"RtfDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format })",
-      "evidence":"Direct image bridge contracts exercise the existing PDF conversion owner, source diagnostics, shared selection and bounded image persistence.",
+      "evidence":"RtfImageConversionTests render through the RTF PDF layout and the PDF rasterizer, covering page selection, saved encoding, carried source loss, strict rejection before publication and cancellation.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".rtf"],
-      "limitation":"Uses the source owner's semantic PDF layout. Native Office pagination and unsupported source structures remain subject to reported conversion loss."
+      "limitation":"Uses the RTF semantic PDF layout rather than the Word renderer behind DOCX images. Only PNG output is exercised directly; the other encoders come from the PDF image owner. Native Office pagination and unsupported source structures remain subject to reported conversion loss."
     },
     {
       "id":"conversion:rtf-tiff",
@@ -17259,10 +17273,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"RtfDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format })",
-      "evidence":"Direct image bridge contracts exercise the existing PDF conversion owner, source diagnostics, shared selection and bounded image persistence.",
+      "evidence":"RtfImageConversionTests render through the RTF PDF layout and the PDF rasterizer, covering page selection, saved encoding, carried source loss, strict rejection before publication and cancellation.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".rtf"],
-      "limitation":"Uses the source owner's semantic PDF layout. Native Office pagination and unsupported source structures remain subject to reported conversion loss."
+      "limitation":"Uses the RTF semantic PDF layout rather than the Word renderer behind DOCX images. Only PNG output is exercised directly; the other encoders come from the PDF image owner. Native Office pagination and unsupported source structures remain subject to reported conversion loss."
     },
     {
       "id":"conversion:rtf-webp",
@@ -17273,10 +17287,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"RtfDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format })",
-      "evidence":"Direct image bridge contracts exercise the existing PDF conversion owner, source diagnostics, shared selection and bounded image persistence.",
+      "evidence":"RtfImageConversionTests render through the RTF PDF layout and the PDF rasterizer, covering page selection, saved encoding, carried source loss, strict rejection before publication and cancellation.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".rtf"],
-      "limitation":"Uses the source owner's semantic PDF layout. Native Office pagination and unsupported source structures remain subject to reported conversion loss."
+      "limitation":"Uses the RTF semantic PDF layout rather than the Word renderer behind DOCX images. Only PNG output is exercised directly; the other encoders come from the PDF image owner. Native Office pagination and unsupported source structures remain subject to reported conversion loss."
     },
     {
       "id":"conversion:visio-binary-vsdx",
@@ -17290,7 +17304,7 @@
       "evidence":"Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".vsd"],
-      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified."
+      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports. Native Microsoft Visio acceptance remains unqualified."
     },
     {
       "id":"conversion:visio-binary-svg",
@@ -17304,7 +17318,7 @@
       "evidence":"Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".vsd",".vst"],
-      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified."
+      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports. Native Microsoft Visio acceptance remains unqualified."
     },
     {
       "id":"conversion:visio-binary-vssx",
@@ -17318,7 +17332,7 @@
       "evidence":"Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".vss"],
-      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified."
+      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports. Native Microsoft Visio acceptance remains unqualified."
     },
     {
       "id":"conversion:visio-binary-vstx",
@@ -17332,7 +17346,7 @@
       "evidence":"Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".vst"],
-      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified."
+      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports. Native Microsoft Visio acceptance remains unqualified."
     },
     {
       "id":"protection:opc-package-signature:visio:create",
@@ -17626,7 +17640,7 @@
       "evidence":"Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".vsd",".vst"],
-      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified."
+      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports. PDF output uses the same vector diagram pages as VSDX. Native Microsoft Visio acceptance remains unqualified."
     },
     {
       "id":"conversion:visio-pdf",
@@ -17635,12 +17649,12 @@
       "targetFormatId":"PDF",
       "capabilityId":"visio-pdf",
       "operation":"Convert",
-      "state":"Partial",
+      "state":"Supported",
       "publicApi":"VisioDocument.Load(stream).SaveAsPdf(output, options)",
-      "evidence":"Typed drawing and legacy XML fixtures verify semantic reports and cached diagram pages, source dimensions, searchable text, layer selection, and source/PDF loss diagnostics.",
+      "evidence":"Visio-authored template drawings and typed drawing fixtures reopen the PDF and verify one vector page per Visio page, exact arc, ellipse and Bezier segments, cached linear and radial gradients, distinct arrowhead kinds, hyperlink annotations, inherited NURBS outlines, searchable text, layer selection and source/PDF loss diagnostics (OfficeIMO.Visio.Tests, Visio.Drawing.PdfFidelity.cs).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".vdx",".vsdx",".vtx"],
-      "limitation":"Diagram pages use the cached Visio-to-Drawing profile. Arbitrary formula recalculation, broad native appearance and exact native typography remain unqualified; workflow defaults select diagram pages while the direct adapter defaults to a semantic report."
+      "limitation":"Diagram pages are the default; a semantic text and topology report is available on request. Splines and NURBS are flattened, rectangular and path gradients are drawn as radial, theme-driven fills, shadows and unmapped arrow kinds are approximated and reported, formulas are not recalculated, and exact native typography is unqualified."
     },
     {
       "id":"protection:doc-password:word:create",
@@ -20997,10 +21011,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"WordDocument.Load(stream).SaveAsOpenDocument(output, options)",
-      "evidence":"Reopen tests verify common paragraphs, runs, lists, tables, links, and basic images with explicit approximation diagnostics.",
+      "evidence":"Converter contracts reopen headings, paragraph and run formatting, lists, tables and merges, inline images, page layout and breaks, bookmarks, default, first-page and even-page headers and footers, footnotes and endnotes, and PAGE, NUMPAGES, DATE and TIME fields. LibreOffice Writer and Microsoft Word ODT exports convert with body order and tables intact (OpenDocumentIndependentProducerContracts).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".docm",".docx",".dotm",".dotx"],
-      "limitation":"Fields, notes, section-specific layout, advanced drawings, nested styles, and producer-specific extensions remain incomplete."
+      "limitation":"Headers and footers come from the first section and first master page only. Tracked changes, section-specific layout, page-number restarts, header/footer tables, charts, content controls, other field instructions, note numbering and placement, and nested inline markup are approximated or reported as loss. The independent producer fixtures are minimal, so complex LibreOffice and Word documents remain unqualified."
     },
     {
       "id":"conversion:odt-docx",
@@ -21011,10 +21025,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"OdtDocument.Load(stream) or LoadFlatXml(stream).SaveAsWord(output, options)",
-      "evidence":"Reopen tests verify common paragraphs, runs, lists, tables, links, and basic images with explicit approximation diagnostics.",
+      "evidence":"Converter contracts reopen headings, paragraph and run formatting, lists, tables and merges, inline images, page layout and breaks, bookmarks, default, first-page and even-page headers and footers, footnotes and endnotes, and PAGE, NUMPAGES, DATE and TIME fields. LibreOffice Writer and Microsoft Word ODT exports convert with body order and tables intact (OpenDocumentIndependentProducerContracts).",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".fodt",".odt"],
-      "limitation":"Fields, notes, section-specific layout, advanced drawings, nested styles, and producer-specific extensions remain incomplete."
+      "limitation":"Headers and footers come from the first section and first master page only. Tracked changes, section-specific layout, page-number restarts, header/footer tables, charts, content controls, other field instructions, note numbering and placement, and nested inline markup are approximated or reported as loss. The independent producer fixtures are minimal, so complex LibreOffice and Word documents remain unqualified."
     },
     {
       "id":"conversion:odt-jpeg",
@@ -21025,10 +21039,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdtDocument.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer with bridge loss diagnostics and aggregate loss policy, and ODP through the PowerPoint renderer in slide order, both in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odt"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Inherits the Targeted ODT-to-DOCX and ODP-to-PPTX conversion limits; unsupported source structure remains approximated or reported."
     },
     {
       "id":"conversion:odt-png",
@@ -21039,10 +21053,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdtDocument.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer with bridge loss diagnostics and aggregate loss policy, and ODP through the PowerPoint renderer in slide order, both in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odt"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Inherits the Targeted ODT-to-DOCX and ODP-to-PPTX conversion limits; unsupported source structure remains approximated or reported."
     },
     {
       "id":"conversion:odt-svg",
@@ -21053,10 +21067,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdtDocument.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer with bridge loss diagnostics and aggregate loss policy, and ODP through the PowerPoint renderer in slide order, both in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odt"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Inherits the Targeted ODT-to-DOCX and ODP-to-PPTX conversion limits; unsupported source structure remains approximated or reported."
     },
     {
       "id":"conversion:odt-tiff",
@@ -21067,10 +21081,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdtDocument.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer with bridge loss diagnostics and aggregate loss policy, and ODP through the PowerPoint renderer in slide order, both in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odt"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Inherits the Targeted ODT-to-DOCX and ODP-to-PPTX conversion limits; unsupported source structure remains approximated or reported."
     },
     {
       "id":"conversion:odt-webp",
@@ -21081,10 +21095,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"OdtDocument.Load(stream).ToImages(format, options)",
-      "evidence":"Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+      "evidence":"OpenDocumentImageExportContracts render ODT through the Word renderer with bridge loss diagnostics and aggregate loss policy, and ODP through the PowerPoint renderer in slide order, both in all five encodings.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".odt"],
-      "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+      "limitation":"Image output is intentionally flattened. Inherits the Targeted ODT-to-DOCX and ODP-to-PPTX conversion limits; unsupported source structure remains approximated or reported."
     },
     {
       "id":"conversion:docx-pdf",
@@ -21459,10 +21473,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"XpsDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
-      "evidence":"Native projection and shared image contracts cover page dimensions, selection, encoding, source evidence and persistence.",
+      "evidence":"XpsImageConversionTests and XpsUnboundedRadialSpreadTests cover page dimensions, selection, encoding, source evidence and persistence through the native drawing projection.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".oxps",".xps"],
-      "limitation":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
+      "limitation":"Uses the existing XPS drawing projection. Unsupported native paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
     },
     {
       "id":"conversion:xps-png",
@@ -21473,10 +21487,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"XpsDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
-      "evidence":"Native projection and shared image contracts cover page dimensions, selection, encoding, source evidence and persistence.",
+      "evidence":"XpsImageConversionTests and XpsUnboundedRadialSpreadTests cover page dimensions, selection, encoding, source evidence and persistence through the native drawing projection.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".oxps",".xps"],
-      "limitation":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
+      "limitation":"Uses the existing XPS drawing projection. Unsupported native paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
     },
     {
       "id":"conversion:xps-svg",
@@ -21487,10 +21501,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"XpsDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
-      "evidence":"Native projection and shared image contracts cover page dimensions, selection, encoding, source evidence and persistence.",
+      "evidence":"XpsImageConversionTests and XpsUnboundedRadialSpreadTests cover page dimensions, selection, encoding, source evidence and persistence through the native drawing projection.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".oxps",".xps"],
-      "limitation":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
+      "limitation":"Uses the existing XPS drawing projection. Unsupported native paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
     },
     {
       "id":"conversion:xps-tiff",
@@ -21501,10 +21515,10 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"XpsDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
-      "evidence":"Native projection and shared image contracts cover page dimensions, selection, encoding, source evidence and persistence.",
+      "evidence":"XpsImageConversionTests and XpsUnboundedRadialSpreadTests cover page dimensions, selection, encoding, source evidence and persistence through the native drawing projection.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".oxps",".xps"],
-      "limitation":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
+      "limitation":"Uses the existing XPS drawing projection. Unsupported native paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
     },
     {
       "id":"conversion:xps-webp",
@@ -21515,10 +21529,80 @@
       "operation":"Export",
       "state":"Partial",
       "publicApi":"XpsDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
-      "evidence":"Native projection and shared image contracts cover page dimensions, selection, encoding, source evidence and persistence.",
+      "evidence":"XpsImageConversionTests and XpsUnboundedRadialSpreadTests cover page dimensions, selection, encoding, source evidence and persistence through the native drawing projection.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".oxps",".xps"],
-      "limitation":"Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
+      "limitation":"Uses the existing XPS drawing projection. Unsupported native paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."
+    },
+    {
+      "id":"native:xps-native:create",
+      "packageId":"OfficeIMO.Xps",
+      "formatId":"Xps.Native",
+      "targetFormatId":"",
+      "capabilityId":"xps-native",
+      "operation":"Create",
+      "state":"Supported",
+      "publicApi":"XpsDocument.Create / Load / Save; page, document and story-fragment editing",
+      "evidence":"OfficeIMO.Xps.Tests XpsDocumentTests, XpsContentEditingTests, NativeSaveLifecycleTests, XpsInterleavingTests, XpsLogicalStructureTests and XpsMicrosoftProducerTests::Create",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".oxps",".xps"],
+      "limitation":"Microsoft XPS and OpenXPS are loaded fully into memory; protected packages cannot be loaded. Creation is a bounded fixed-page profile; edits cover page and document insertion, reordering and removal, resource replacement and story fragments. Saves keep the original dialect and opaque parts, but ZIP metadata and XML bytes may change, interleaved parts are normalized and signed or protected packages cannot be rewritten. See OfficeIMO.Xps/SUPPORT.md."
+    },
+    {
+      "id":"native:xps-native:read",
+      "packageId":"OfficeIMO.Xps",
+      "formatId":"Xps.Native",
+      "targetFormatId":"",
+      "capabilityId":"xps-native",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"XpsDocument.Create / Load / Save; page, document and story-fragment editing",
+      "evidence":"OfficeIMO.Xps.Tests XpsDocumentTests, XpsContentEditingTests, NativeSaveLifecycleTests, XpsInterleavingTests, XpsLogicalStructureTests and XpsMicrosoftProducerTests::Read",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".oxps",".xps"],
+      "limitation":"Microsoft XPS and OpenXPS are loaded fully into memory; protected packages cannot be loaded. Creation is a bounded fixed-page profile; edits cover page and document insertion, reordering and removal, resource replacement and story fragments. Saves keep the original dialect and opaque parts, but ZIP metadata and XML bytes may change, interleaved parts are normalized and signed or protected packages cannot be rewritten. See OfficeIMO.Xps/SUPPORT.md."
+    },
+    {
+      "id":"native:xps-native:edit",
+      "packageId":"OfficeIMO.Xps",
+      "formatId":"Xps.Native",
+      "targetFormatId":"",
+      "capabilityId":"xps-native",
+      "operation":"Edit",
+      "state":"Supported",
+      "publicApi":"XpsDocument.Create / Load / Save; page, document and story-fragment editing",
+      "evidence":"OfficeIMO.Xps.Tests XpsDocumentTests, XpsContentEditingTests, NativeSaveLifecycleTests, XpsInterleavingTests, XpsLogicalStructureTests and XpsMicrosoftProducerTests::Edit",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".oxps",".xps"],
+      "limitation":"Microsoft XPS and OpenXPS are loaded fully into memory; protected packages cannot be loaded. Creation is a bounded fixed-page profile; edits cover page and document insertion, reordering and removal, resource replacement and story fragments. Saves keep the original dialect and opaque parts, but ZIP metadata and XML bytes may change, interleaved parts are normalized and signed or protected packages cannot be rewritten. See OfficeIMO.Xps/SUPPORT.md."
+    },
+    {
+      "id":"native:xps-native:preserve",
+      "packageId":"OfficeIMO.Xps",
+      "formatId":"Xps.Native",
+      "targetFormatId":"",
+      "capabilityId":"xps-native",
+      "operation":"Preserve",
+      "state":"Partial",
+      "publicApi":"XpsDocument.Create / Load / Save; page, document and story-fragment editing",
+      "evidence":"OfficeIMO.Xps.Tests XpsDocumentTests, XpsContentEditingTests, NativeSaveLifecycleTests, XpsInterleavingTests, XpsLogicalStructureTests and XpsMicrosoftProducerTests::Preserve",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".oxps",".xps"],
+      "limitation":"Microsoft XPS and OpenXPS are loaded fully into memory; protected packages cannot be loaded. Creation is a bounded fixed-page profile; edits cover page and document insertion, reordering and removal, resource replacement and story fragments. Saves keep the original dialect and opaque parts, but ZIP metadata and XML bytes may change, interleaved parts are normalized and signed or protected packages cannot be rewritten. See OfficeIMO.Xps/SUPPORT.md."
+    },
+    {
+      "id":"native:xps-native:inspect",
+      "packageId":"OfficeIMO.Xps",
+      "formatId":"Xps.Native",
+      "targetFormatId":"",
+      "capabilityId":"xps-native",
+      "operation":"Inspect",
+      "state":"Supported",
+      "publicApi":"XpsDocument.Create / Load / Save; page, document and story-fragment editing",
+      "evidence":"OfficeIMO.Xps.Tests XpsDocumentTests, XpsContentEditingTests, NativeSaveLifecycleTests, XpsInterleavingTests, XpsLogicalStructureTests and XpsMicrosoftProducerTests::Inspect",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".oxps",".xps"],
+      "limitation":"Microsoft XPS and OpenXPS are loaded fully into memory; protected packages cannot be loaded. Creation is a bounded fixed-page profile; edits cover page and document insertion, reordering and removal, resource replacement and story fragments. Saves keep the original dialect and opaque parts, but ZIP metadata and XML bytes may change, interleaved parts are normalized and signed or protected packages cannot be rewritten. See OfficeIMO.Xps/SUPPORT.md."
     },
     {
       "id":"conversion:xps-pdf",

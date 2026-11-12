@@ -69,7 +69,21 @@ public static partial class OfficeOperationCapabilityCatalog {
             new[] { ".pub" }, Array.Empty<OfficeOperationKind>(),
             partial: new[] { OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Preserve },
             unsupported: new[] { OfficeOperationKind.Create },
-            limitation: "Publisher 2002-and-later publications support managed recovery, documented source edits, and exact unchanged-source copies. Create builds an in-memory model for rendering. Template-free native output and earlier-generation lifecycle support remain unavailable.");
+            limitation: "Publisher 2002-and-later publications support managed recovery, documented source edits, and exact unchanged-source copies. Template-free native .pub output and earlier-generation lifecycle support remain unavailable; source-free Create builds a model for rendering only (see Publisher.Model).");
+        AddNativeLifecycle(rows, "publisher-model", "OfficeIMO.Publisher", "Publisher.Model",
+            "PublisherDocument.Create / AddPage / AddTextFrame / AddImage / AddTable / ToSvg / ToImages",
+            "OfficeIMO.Publisher.Tests PublisherAuthoringTests, PublisherPageSizeCreationTests, PublisherPictureCreationTests, PublisherTableMergingTests and PublisherImageConversionTests source-free authoring and rendering contracts",
+            Array.Empty<string>(), Array.Empty<OfficeOperationKind>(),
+            limitedSupported: new[] { OfficeOperationKind.Create },
+            limitation: "Source-free publications with pages, masters, text frames, pictures, primitives and tables render to SVG, raster images and, through OfficeIMO.Publisher.Pdf, PDF. The model cannot be saved as a native .pub file.");
+        AddNativeLifecycle(rows, "xps-native", "OfficeIMO.Xps", "Xps.Native",
+            "XpsDocument.Create / Load / Save; page, document and story-fragment editing",
+            "OfficeIMO.Xps.Tests XpsDocumentTests, XpsContentEditingTests, NativeSaveLifecycleTests, XpsInterleavingTests, XpsLogicalStructureTests and XpsMicrosoftProducerTests",
+            new[] { ".xps", ".oxps" },
+            Array.Empty<OfficeOperationKind>(),
+            limitedSupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Inspect, OfficeOperationKind.Edit },
+            partial: new[] { OfficeOperationKind.Preserve },
+            limitation: "Microsoft XPS and OpenXPS are loaded fully into memory; protected packages cannot be loaded. Creation is a bounded fixed-page profile; edits cover page and document insertion, reordering and removal, resource replacement and story fragments. Saves keep the original dialect and opaque parts, but ZIP metadata and XML bytes may change, interleaved parts are normalized and signed or protected packages cannot be rewritten. See OfficeIMO.Xps/SUPPORT.md.");
         AddNativeLifecycle(rows, "pdf-native", "OfficeIMO.Pdf", "Pdf.Native",
             "PdfDocument.Create / Load / Save / Inspect",
             "OfficeIMO.Pdf.Tests authoritative interoperability read, render, diagnostics, and mutation contracts",
@@ -116,7 +130,7 @@ public static partial class OfficeOperationCapabilityCatalog {
             limitation: "Unchanged input retains its source; edited output serializes the bounded OPML 1.0/2.0 model and retained extension attributes.");
         AddNativeLifecycle(rows, "mhtml-native", "OfficeIMO.Mhtml", "Mhtml.Native",
             "MhtmlDocument / Load / Save / ConfigureRenderOptions",
-            "OfficeIMO.Mhtml.Tests MIME archive, embedded-resource, bounded remote-policy, editing, and deterministic-write contracts",
+            "OfficeIMO.Html.Tests Mhtml/MhtmlDocumentTests, MhtmlEmbeddedImageConversionTests and MhtmlRenderResourcePolicyTests MIME archive, embedded-resource, bounded remote-policy, editing, and deterministic-write contracts",
             new[] { ".mhtml", ".mht" },
             new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Inspect },
             limitedSupported: new[] { OfficeOperationKind.Edit, OfficeOperationKind.Validate },

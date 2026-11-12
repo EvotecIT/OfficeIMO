@@ -59,6 +59,10 @@ internal static class YamlChars {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsFlowIndicator(char c) => c < 128 && (s_table[c] & FlowIndicator) != 0;
 
+    /// <summary>ASCII letters and digits: they start a plain scalar in any context.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsAlphanumeric(char c) => c < 128 && (s_table[c] & Word) != 0 && c != '-';
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsWord(char c) => c < 128 && (s_table[c] & Word) != 0;
 
@@ -90,7 +94,18 @@ internal static class YamlChars {
     /// <summary>Finds the next character that may end or interrupt a plain scalar line: ':', '#', a line break, a control character, or (in flow context) a flow indicator.</summary>
     public static int IndexOfPlainStop(ReadOnlySpan<char> s, bool flow) {
 #if NET8_0_OR_GREATER
-        return s.IndexOfAny(flow ? s_plainFlow : s_plainBlock);
+        // Most plain scalars are short keys and values; a table lookup over the first characters finds their end
+        // without the setup of a vectorized search, which takes over for longer text.
+        int mask = Control | Break | PlainStop | (flow ? FlowIndicator : 0);
+        byte[] table = s_table;
+        int head = Math.Min(s.Length, 16);
+        for (int i = 0; i < head; i++) {
+            char c = s[i];
+            if (c < 128 && (table[c] & mask) != 0) return i;
+        }
+        if (head == s.Length) return -1;
+        int index = s.Slice(head).IndexOfAny(flow ? s_plainFlow : s_plainBlock);
+        return index < 0 ? -1 : head + index;
 #else
         int mask = Control | Break | PlainStop | (flow ? FlowIndicator : 0);
         return IndexOfClass(s, (byte)mask);

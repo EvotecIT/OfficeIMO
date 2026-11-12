@@ -43,12 +43,17 @@ public class YamlDocumentCommentTests {
 
     [Theory]
     [InlineData("apiVersion", "file header")]
-    [InlineData("metadata", "above metadata")]
     [InlineData("metadata.name", "above name")]
     [InlineData("empty", "after the script")]
     public void CommentsOnTheirOwnLinesLeadTheNextKey(string key, string comment) {
         Assert.Equal(comment, Key(key).CommentBefore);
         Assert.Equal(comment, Document.Select(key)!.CommentBefore);
+    }
+
+    [Fact]
+    public void CommentsThatABlankLineSeparatesBelongToNoEntry() {
+        Assert.Null(Key("metadata").CommentBefore);
+        Assert.True(Key("metadata").SpaceBefore);
     }
 
     [Fact]
@@ -81,10 +86,25 @@ public class YamlDocumentCommentTests {
 
     [Fact]
     public void DocumentMarkersBoundTheRootsComments() {
-        YamlDocument document = YamlDocument.Parse("# before marker\n--- # on marker\n# above root\nkey: v\n");
+        YamlDocument document = YamlDocument.Parse("# before marker\n---   # on marker\n# above root\nkey: v\n");
         YamlNode key = document.Root!.AsMapping()[0].Key;
+        YamlDocumentPart part = document.Documents[0];
         Assert.Equal("above root", key.CommentBefore);
-        Assert.Equal("before marker", document.Documents[0].CommentBefore);
+        Assert.Equal("before marker", part.CommentBefore);
+        Assert.Equal("on marker", part.Comment);
+        Assert.Null(key.Comment);
+
+        part.SetCommentBefore("header").SetComment("generated");
+        document.Set("key", "w");
+        Assert.Equal("# header\n---   # generated\n# above root\nkey: w\n", document.ToString());
+        part.SetComment(null);
+        Assert.Equal("# header\n---\n# above root\nkey: w\n", document.ToString());
+
+        // A root on the '---' line owns the comment there.
+        YamlDocument inline = YamlDocument.Parse("--- value # note\n");
+        Assert.Null(inline.Documents[0].Comment);
+        Assert.Equal("note", inline.Root!.Comment);
+        Assert.Throws<InvalidOperationException>(() => inline.Documents[0].SetComment("x"));
     }
 
     [Fact]

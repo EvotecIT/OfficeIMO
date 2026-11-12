@@ -6827,7 +6827,8 @@
         "System.IO.FileInfo",
         "OfficeIMO.Word.WordDocument",
         "OfficeIMO.Excel.ExcelDocument",
-        "OfficeIMO.Pdf.PdfMergeReport"
+        "OfficeIMO.Pdf.PdfMergeReport",
+        "OfficeIMO.Yaml.YamlMergeReport"
       ],
       "shouldProcess": true,
       "parameterSets": [
@@ -7007,11 +7008,17 @@
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "PassThruReport",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
             }
           ]
         }
       ],
-      "notes": "Candidate absorptions from other areas: Join-OfficeWordDocument, Join-OfficePdf, Join-OfficeExcelWorkbook. Sheet-level Join-OfficeExcelSheet stays with Excel. For PDF input, -Options also accepts one PdfLoadOptions or New-OfficePdfReadOptions result alongside PdfMergeOptions; each source receives an independent complete read-policy snapshot and its selected password. PassThruReport returns PdfMergeReport for PDF file merges; it can be combined with PassThru to also return the saved file.",
+      "notes": "Candidate absorptions from other areas: Join-OfficeWordDocument, Join-OfficePdf, Join-OfficeExcelWorkbook. Sheet-level Join-OfficeExcelSheet stays with Excel. For PDF input, -Options also accepts one PdfLoadOptions or New-OfficePdfReadOptions result alongside PdfMergeOptions; each source receives an independent complete read-policy snapshot and its selected password. PassThruReport returns PdfMergeReport for PDF file merges and one YamlMergeReport per overlay for YAML merges; it can be combined with PassThru to also return the saved file. YAML inputs (.yaml and .yml) overlay the first file or a live YamlDocument in order, the way Helm combines values files; -Options takes YamlMergeOptions or a hashtable, and only the lines the merge changes differ from the base file.",
       "examples": [
         {
           "title": "Merge PDFs into one",
@@ -7027,6 +7034,11 @@
           "title": "Append sections to an open proposal",
           "description": "Opens a proposal cover, appends the scope and pricing documents and saves the combined proposal under a new name.",
           "code": "$proposal = Open-OfficeWord -Path .\\Proposal\\Cover.docx\nMerge-OfficeDocument -Document $proposal -Path .\\Proposal\\Scope.docx, .\\Proposal\\Pricing.docx -OutputPath .\\Proposal\\Northwind-Proposal.docx\nClose-OfficeWord -Document $proposal"
+        },
+        {
+          "title": "Layer environment values over the defaults",
+          "description": "Overlays the production values on the chart defaults, removes keys the overlay sets to null and returns the merge report.",
+          "code": "Merge-OfficeDocument -Path .\\Charts\\web\\values.yaml, .\\Charts\\web\\values.prod.yaml -OutputPath .\\Out\\values.yaml -Options @{ NullRemovesKey = $true } -PassThruReport"
         }
       ]
     },

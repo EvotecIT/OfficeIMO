@@ -11,10 +11,17 @@ public sealed partial class XpsDocument {
         var document = new XpsFixedDocument(this, NewPartName("Documents/", "/FixedDocument.fdoc"), new XElement(XName.Get("FixedDocument", XpsPackage.Namespace(Format))));
         return document.InsertNewPage(0, width, height, language, attach: true);
     }
-    /// <summary>Embeds a caller-provided font and returns its absolute package URI. The caller must have embedding rights.</summary>
+    /// <summary>Embeds a caller-provided font and returns its absolute package URI.</summary>
+    /// <remarks>
+    /// The font's OS/2 fsType embedding permission is checked first. Fonts whose licence forbids embedding (Restricted
+    /// License without Preview &amp; Print or Editable) or permits only bitmap embedding are refused; Preview &amp; Print,
+    /// Editable and Installable fonts are embedded whole. In a collection, every face must allow embedding.
+    /// </remarks>
+    /// <exception cref="ArgumentException">The data is too short to be a font, or its embedding permission forbids embedding it.</exception>
     public string AddFont(byte[] fontBytes, bool obfuscate = true) {
         ArgumentNullException.ThrowIfNull(fontBytes);
         if (fontBytes.Length < 32) throw new ArgumentException("A font program is required.", nameof(fontBytes));
+        OfficeIMO.Drawing.OfficeFontEmbeddingPermissions.EnsureFileEmbeddingAllowed(fontBytes, nameof(fontBytes));
         string name = "Resources/Fonts/" + Guid.NewGuid().ToString("D") + (obfuscate ? ".odttf" : ".ttf");
         byte[] data = (byte[])fontBytes.Clone();
         if (obfuscate) XpsFontEncoding.Toggle(data, name);

@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace OfficeIMO.Yaml;
 
 /// <summary>
@@ -18,10 +20,13 @@ namespace OfficeIMO.Yaml;
 public sealed partial class YamlReader : IDisposable {
     private readonly YamlScanContext _c;
     private readonly ReadOnlyMemory<char> _memory;
+    // A whole-string input, sliced directly: ReadOnlyMemory<char>.Span checks its backing object on every access.
+    private readonly string? _string;
     private readonly YamlReaderOptions _options;
     private readonly YamlStreamSource? _streamSource;
     private YamlEvent _event;
-    private YamlEvent _pending;
+    // The event held back while the comments before it are read; created only when comment events are requested.
+    private YamlEvent[]? _pending;
     private bool _hasPending;
     private bool _finished;
     private bool _faulted;
@@ -46,6 +51,7 @@ public sealed partial class YamlReader : IDisposable {
         _options = options ?? YamlReaderOptions.Default;
         _c = new YamlScanContext(_options, cancellationToken);
         _memory = yaml;
+        if (MemoryMarshal.TryGetString(yaml, out string? text, out int start, out int length) && start == 0 && length == text.Length) _string = text;
         if (_options.MaxInputBytes is long max && yaml.Length > max) {
             _c.Release();
             throw new YamlLimitExceededException(nameof(YamlReaderOptions.MaxInputBytes), max, new YamlPosition(max, 0, 0));
@@ -180,17 +186,18 @@ public sealed partial class YamlReader : IDisposable {
         c.RetainMark = -1;
         if (c.Source is not null) c.Compact();
         if (_hasPending) {
-            if (c.CommentCount > 0 && c.Comments[c.CommentHead].Start < _pending.Start) {
+            if (c.CommentCount > 0 && c.Comments[c.CommentHead].Start < _pending![0].Start) {
                 TakeComment();
                 return;
             }
-            _event = _pending;
+            _event = _pending![0];
             _hasPending = false;
         } else {
             var scanner = new YamlScanner(CurrentText, c);
             ParseEvent(ref scanner, out _event);
             if (c.CommentCount > 0 && c.Comments[c.CommentHead].Start <= _event.Start) {
-                _pending = _event;
+                _pending ??= new YamlEvent[1];
+                _pending[0] = _event;
                 _hasPending = true;
                 TakeComment();
                 return;
@@ -215,7 +222,7 @@ public sealed partial class YamlReader : IDisposable {
         _event.AnchorStart = _event.AnchorEnd = -1;
     }
 
-    private ReadOnlySpan<char> CurrentText => _c.Source is null ? _memory.Span : new ReadOnlySpan<char>(_c.Buffer, 0, _c.Length);
+    private ReadOnlySpan<char> CurrentText => _string is not null ? _string.AsSpan() : _c.Source is null ? _memory.Span : new ReadOnlySpan<char>(_c.Buffer, 0, _c.Length);
 
     private ReadOnlySpan<char> Slice(int start, int end) => start < 0 ? default : CurrentText.Slice(start - _c.Base, end - start);
 
@@ -252,6 +259,8 @@ public sealed partial class YamlReader : IDisposable {
         if (_disposed) return;
         _disposed = true;
         _c.Release();
+        _strings?.Release();
+        _strings = null;
         if (_scratch is not null) {
             ArrayPool<char>.Shared.Return(_scratch);
             _scratch = null;

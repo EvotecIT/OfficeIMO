@@ -260,6 +260,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string MacroValidatedSnapshotChanged = "macro-validated-snapshot-changed";
     /// <summary>Stable code: <c>macro-validation-snapshot-failed</c>.</summary>
     public const string MacroValidationSnapshotFailed = "macro-validation-snapshot-failed";
+    /// <summary>Stable code: <c>markdown-front-matter-invalid-yaml</c>.</summary>
+    public const string MarkdownFrontMatterInvalidYaml = "markdown-front-matter-invalid-yaml";
     /// <summary>Stable code: <c>markdown-pdf-warning</c>.</summary>
     public const string MarkdownPdfWarning = "markdown-pdf-warning";
     /// <summary>Stable code: <c>markdown-to-word-warning</c>.</summary>

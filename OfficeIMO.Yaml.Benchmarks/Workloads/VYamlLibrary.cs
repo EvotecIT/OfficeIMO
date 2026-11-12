@@ -57,7 +57,7 @@ internal sealed class VYamlLibrary : IYamlReferenceLibrary {
         var parser = YamlParser.FromBytes(Utf8(yaml));
         parser.MaxDepth = VYamlConformanceEngine.MaxDepth;
         int count = 0;
-        foreach (object? document in YamlSerializer.DeserializeMultipleDocuments<object?>(ref parser)) count += Count(document);
+        foreach (object? document in VYaml.Serialization.YamlSerializer.DeserializeMultipleDocuments<object?>(ref parser)) count += Count(document);
         return count;
     }
 

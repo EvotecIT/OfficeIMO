@@ -257,8 +257,8 @@ public sealed class PdfTableTextReuseTests {
             var expectedLetters = expectedPdf.GetPage(page).Letters;
             var actualLetters = actualPdf.GetPage(page).Letters;
             Assert.NotEmpty(actualLetters);
-            Assert.Equal(expectedLetters.Select(letter => (letter.Value, letter.FontName, letter.PointSize, letter.GlyphRectangle)),
-                actualLetters.Select(letter => (letter.Value, letter.FontName, letter.PointSize, letter.GlyphRectangle)));
+            Assert.Equal(expectedLetters.Select(letter => (letter.Value, letter.FontName, letter.PointSize, letter.BoundingBox)),
+                actualLetters.Select(letter => (letter.Value, letter.FontName, letter.PointSize, letter.BoundingBox)));
         }
     }
 }

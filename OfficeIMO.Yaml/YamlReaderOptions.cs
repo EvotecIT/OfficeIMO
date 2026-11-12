@@ -7,13 +7,26 @@ namespace OfficeIMO.Yaml;
 /// </summary>
 public sealed class YamlReaderOptions {
     private int _maxDepth = 256;
-    private int _maxNodes = 1_000_000;
+    private int _maxNodes = 10_000_000;
     private int _maxAliasExpansion = 100_000;
     private int _maxScalarLength = 16 * 1024 * 1024;
     private long? _maxInputBytes;
 
     /// <summary>Gets the default options. The returned instance is shared and must not be modified.</summary>
     internal static YamlReaderOptions Default { get; } = new YamlReaderOptions();
+
+    /// <summary>
+    /// Gets new options for input from outside, with the limits of <see cref="YamlLoadOptions.UntrustedDefaults"/>: input
+    /// up to 16 MiB, nesting up to 64, alias expansion up to 10,000 nodes and scalars up to 1 MiB of characters. Each
+    /// call returns a new instance.
+    /// </summary>
+    public static YamlReaderOptions UntrustedDefaults => new YamlReaderOptions {
+        MaxInputBytes = 16 * 1024 * 1024,
+        MaxDepth = 64,
+        MaxNodes = 200_000,
+        MaxAliasExpansion = 10_000,
+        MaxScalarLength = 1024 * 1024
+    };
 
     /// <summary>
     /// Gets or sets the schema used by the typed accessors. When <see langword="null"/> (the default), each document
@@ -37,14 +50,18 @@ public sealed class YamlReaderOptions {
     /// </summary>
     public bool IncludeComments { get; set; }
 
-    /// <summary>Gets or sets the maximum nesting of collections and flow brackets. Defaults to 256.</summary>
+    /// <summary>
+    /// Gets or sets the maximum nesting of collections. Block and flow collections count the same, so <c>a: {b: 1}</c>
+    /// and a block mapping inside a block mapping both nest two deep. Defaults to 256.
+    /// </summary>
     public int MaxDepth {
         get => _maxDepth;
         set => _maxDepth = RequirePositive(value, nameof(MaxDepth));
     }
 
     /// <summary>
-    /// Gets or sets the maximum number of nodes one document of a loaded model may hold. Defaults to 1,000,000.
+    /// Gets or sets the maximum number of nodes one document of a loaded model may hold. Defaults to 10,000,000;
+    /// <see cref="UntrustedDefaults"/> lowers it to 200,000.
     /// The forward-only reader does not enforce it, so streaming consumers can read unbounded multi-document streams.
     /// </summary>
     public int MaxNodes {

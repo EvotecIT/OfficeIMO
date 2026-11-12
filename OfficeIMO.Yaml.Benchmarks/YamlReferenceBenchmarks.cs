@@ -68,6 +68,13 @@ public class YamlLoadTreeBenchmarks {
     [GlobalSetup(Target = nameof(VYaml))]
     public void SetupVYaml() => Setup(VYamlLibrary.Instance);
 
+    [GlobalSetup(Target = nameof(OneYaml))]
+    public void SetupOneYaml() => Setup(OneYamlLibrary.Instance);
+
+    /// <summary>OneYaml's tree is its lossless document; this is its untyped deserialization from UTF-8 bytes.</summary>
+    [Benchmark]
+    public long OneYaml() => Run(OneYamlLibrary.Instance);
+
     /// <summary>VYaml has no representation tree; this is its dynamic deserialization into dictionaries and lists.</summary>
     [Benchmark]
     public long VYaml() => Run(VYamlLibrary.Instance);
@@ -118,11 +125,17 @@ public class YamlLoadAndSaveBenchmarks {
     [GlobalSetup(Target = nameof(OfficeIMOYaml))]
     public void SetupOfficeIMOYaml() => Setup(YamlReferenceLibraries.OfficeIMOYaml);
 
+    [GlobalSetup(Target = nameof(OneYaml))]
+    public void SetupOneYaml() => Setup(OneYamlLibrary.Instance);
+
     [Benchmark(Baseline = true)]
     public long YamlDotNet() => Run(YamlReferenceLibraries.YamlDotNet);
 
     [Benchmark]
     public long SharpYaml() => Run(YamlReferenceLibraries.SharpYaml);
+
+    [Benchmark]
+    public long OneYaml() => Run(OneYamlLibrary.Instance);
 
     [Benchmark]
     public long OfficeIMOYaml() => Run(YamlReferenceLibraries.OfficeIMOYaml);
@@ -156,11 +169,17 @@ public class YamlEditAndSaveBenchmarks {
     [GlobalSetup(Target = nameof(OfficeIMOYaml))]
     public void SetupOfficeIMOYaml() => Setup(YamlReferenceLibraries.OfficeIMOYaml);
 
+    [GlobalSetup(Target = nameof(OneYaml))]
+    public void SetupOneYaml() => Setup(OneYamlLibrary.Instance);
+
     [Benchmark(Baseline = true)]
     public long YamlDotNet() => Run(YamlReferenceLibraries.YamlDotNet);
 
     [Benchmark]
     public long SharpYaml() => Run(YamlReferenceLibraries.SharpYaml);
+
+    [Benchmark]
+    public long OneYaml() => Run(OneYamlLibrary.Instance);
 
     [Benchmark]
     public long OfficeIMOYaml() => Run(YamlReferenceLibraries.OfficeIMOYaml);

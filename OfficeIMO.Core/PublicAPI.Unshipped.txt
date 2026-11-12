@@ -63,6 +63,7 @@ OfficeIMO.OfficeConversionResult<T, TReport>.Report.get -> TReport!
 *REMOVED*OfficeIMO.OfficeConversionResult<TValue, TReport>.OfficeConversionResult(TValue! value, TReport! report) -> void
 *REMOVED*OfficeIMO.OfficeConversionResult<TValue, TReport>.Report.get -> TReport!
 *REMOVED*OfficeIMO.OfficeConversionResult<TValue, TReport>.Value.get -> TValue!
+OfficeIMO.OfficeDocumentFormat.Toml = 30 -> OfficeIMO.OfficeDocumentFormat
 *REMOVED*OfficeIMO.OfficeLegacyImportReport.FidelityDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeConversionFidelityDiagnostic!>!
 *REMOVED*OfficeIMO.OfficeLegacyImportReport.HasLoss.get -> bool
 *REMOVED*OfficeIMO.OfficeLegacyImportReport.RequireNoLoss() -> void
@@ -170,6 +171,11 @@ const OfficeIMO.OfficeDiagnosticCodes.YamlAliasedNodeEdited = "yaml-aliased-node
 const OfficeIMO.OfficeDiagnosticCodes.YamlDuplicateKey = "yaml-duplicate-key" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.YamlLenientIndentation = "yaml-lenient-indentation" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.YamlMergeKeyWithoutDirective = "yaml-merge-key-without-directive" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.YamlMergeAliasExpanded = "yaml-merge-alias-expanded" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.YamlMergeAnchorRenamed = "yaml-merge-anchor-renamed" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.YamlMergeKeyNotRemoved = "yaml-merge-key-not-removed" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.YamlMergeKindConflict = "yaml-merge-kind-conflict" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.MarkdownFrontMatterInvalidYaml = "markdown-front-matter-invalid-yaml" -> string!
 OfficeIMO.OfficeHiddenDataFinding
 OfficeIMO.OfficeHiddenDataFinding.Description.get -> string!
 OfficeIMO.OfficeHiddenDataFinding.Kind.get -> OfficeIMO.OfficeHiddenDataKind

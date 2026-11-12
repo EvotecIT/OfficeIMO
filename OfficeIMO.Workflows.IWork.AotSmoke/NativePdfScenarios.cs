@@ -7,10 +7,13 @@ using OfficeIMO.Workflows.IWork;
 using static NativePdfAssets;
 
 internal static class NativePdfScenarios {
+    // Only the iWork conversions, so the native image doesn't compile every built-in format.
+    private static OfficeWorkflowRunner Runner() => OfficeWorkflowRunner.ForRegisteredConversions(IWorkWorkflow.CreateRegistrations());
+
     internal static async Task RunAsync(string root) {
         foreach (Source source in new[] { Body, List, Slides, UnpaddedControl }) {
             OfficeWorkflowRequest request = Request(root, source, "complete-" + Path.GetFileNameWithoutExtension(source.Name), PortableSettings());
-            OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
+            OfficeWorkflowResult result = await Runner().RunAsync(request);
             Require(result.Succeeded, source.Name + ": " + result.Summary);
             VerifyEvidence(result, source);
             using PdfDocument pdf = PdfDocument.Load(request.OutputPath!);
@@ -114,7 +117,7 @@ internal static class NativePdfScenarios {
         OfficeWorkflowRequest request = Request(root, source, name, settings);
         File.WriteAllText(request.OutputPath!, "keep existing");
         if (outputLimit.HasValue) request.Limits.MaximumOutputBytes = outputLimit.Value;
-        OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
+        OfficeWorkflowResult result = await Runner().RunAsync(request);
         Require(!result.Succeeded && File.ReadAllText(request.OutputPath!) == "keep existing", name + " published invalid or partial output.");
         if (reason != null) Require(result.Summary.Contains(reason, StringComparison.OrdinalIgnoreCase), name + ": " + result.Summary);
         if (outputLimit.HasValue) Require(result.FailureKind == OfficeWorkflowFailureKind.OutputFailed,
@@ -129,7 +132,7 @@ internal static class NativePdfScenarios {
         File.WriteAllText(request.OutputPath!, "keep existing");
         using var cancellation = new CancellationTokenSource(); bool reachedPublication = false;
         if (!atPublication) cancellation.Cancel();
-        OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request, new InlineProgress(update => {
+        OfficeWorkflowResult result = await Runner().RunAsync(request, new InlineProgress(update => {
             if (update.Stage != "publish") return;
             reachedPublication = true; cancellation.Cancel();
         }), cancellation.Token);

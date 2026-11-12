@@ -29,7 +29,23 @@ internal ref partial struct YamlScanner {
     // ---------------------------------------------------------------- token queue
 
     /// <summary>Returns the next token, scanning ahead as far as implicit keys require.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref YamlToken Peek() {
+        YamlScanContext c = _c;
+        // The common case answers NeedMoreTokens inline: a queued token in block context that the one implicit-key
+        // candidate does not wait on. Without a candidate nothing can go stale; with one, it must already have been
+        // checked at this position, because a stale required key is an error.
+        if (c.TokenCount > 0 && c.FlowLevel == 0) {
+            ref YamlSimpleKey key = ref c.SimpleKeys[0];
+            if (c.StreamEndProduced || !key.Possible || (key.TokenNumber != c.TokensParsed && c.StaleCheckedAt == c.Base + c.Pos)) {
+                return ref c.Tokens[c.TokenHead];
+            }
+        }
+        return ref PeekAhead();
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private ref YamlToken PeekAhead() {
         YamlScanContext c = _c;
         while (NeedMoreTokens()) FetchNextToken();
         return ref c.Tokens[c.TokenHead];
@@ -48,10 +64,13 @@ internal ref partial struct YamlScanner {
         YamlScanContext c = _c;
         if (c.TokenCount == 0) return !c.StreamEndProduced;
         if (c.StreamEndProduced) return false;
-        StaleSimpleKeys();
+        // The parser peeks several times per token; candidates go stale only when the position moves.
+        if (c.Base + c.Pos != c.StaleCheckedAt) StaleSimpleKeys();
+        // A level's candidate was saved before the next level opened, so token numbers grow with the level and the
+        // lowest candidate is the only one that can wait on the head token.
         YamlSimpleKey[] keys = c.SimpleKeys;
         for (int i = 0; i <= c.FlowLevel; i++) {
-            if (keys[i].Possible && keys[i].TokenNumber == c.TokensParsed) return true;
+            if (keys[i].Possible) return keys[i].TokenNumber == c.TokensParsed;
         }
         return false;
     }
@@ -67,9 +86,11 @@ internal ref partial struct YamlScanner {
         YamlScanContext c = _c;
         EnsureTokenCapacity();
         int index = c.TokenHead + (tokenNumber - c.TokensParsed);
-        int tail = c.TokenHead + c.TokenCount;
-        if (index < tail) Array.Copy(c.Tokens, index, c.Tokens, index + 1, tail - index);
-        c.Tokens[index] = token;
+        YamlToken[] tokens = c.Tokens;
+        // The queue holds a few tokens, so shifting them one by one beats Array.Copy, whose fixed cost dominated
+        // reading block mappings (two inserts per key).
+        for (int i = c.TokenHead + c.TokenCount; i > index; i--) tokens[i] = tokens[i - 1];
+        tokens[index] = token;
         c.TokenCount++;
     }
 
@@ -86,12 +107,17 @@ internal ref partial struct YamlScanner {
 
     /// <summary>Records the end of a token that has a source span, for block ends, empty nodes and line tracking.</summary>
     private void Finish(ref YamlToken token) {
+        Track(in token);
+        Enqueue(token);
+    }
+
+    /// <summary>Records the end of a token as <see cref="Finish"/> does, for a token the parser takes without the queue.</summary>
+    private void Track(in YamlToken token) {
         YamlScanContext c = _c;
         c.LastEnd = token.End;
         c.LastEndLine = token.EndLine;
         c.LastEndColumn = token.EndColumn;
         c.LastLine = token.EndColumn == 0 && token.EndLine > token.StartLine ? token.EndLine - 1 : token.EndLine;
-        Enqueue(token);
     }
 
     // ---------------------------------------------------------------- character access
@@ -201,10 +227,18 @@ internal ref partial struct YamlScanner {
     // ---------------------------------------------------------------- dispatch
 
     private void FetchNextToken() {
+        if (StartToken()) DispatchToken();
+    }
+
+    /// <summary>
+    /// Moves to the next token's first character, closing block collections indented deeper than its column. Returns
+    /// false when the token was queued already: the stream start or end.
+    /// </summary>
+    private bool StartToken() {
         YamlScanContext c = _c;
         if (!c.StreamStartProduced) {
             FetchStreamStart();
-            return;
+            return false;
         }
         if (--c.CancelCountdown <= 0) {
             c.CancelCountdown = YamlScanContext.CancelInterval;
@@ -212,25 +246,37 @@ internal ref partial struct YamlScanner {
         }
 
         ScanToNextToken();
-        StaleSimpleKeys();
-        UnrollIndent(c.Column);
+        // In block context with no implicit-key candidate there is nothing to go stale, and nothing to close unless the
+        // line is indented less than the open collection.
+        if (c.FlowLevel > 0 || c.SimpleKeys[0].Possible) {
+            if (c.StaleCheckedAt != c.Base + c.Pos) StaleSimpleKeys();
+        } else {
+            c.StaleCheckedAt = c.Base + c.Pos;
+        }
+        if (c.FlowLevel == 0 && c.Indent > c.Column) UnrollIndent(c.Column);
 
         int p = c.Pos;
         char ch = At(p);
         if (ch == '\0' && !HasChar(p)) {
             FetchStreamEnd();
-            return;
+            return false;
         }
 
-        bool firstOnLine = c.LastLine != c.Line;
-        if (c.FlowLevel > 0 && firstOnLine && c.Column <= c.Indent) {
+        if (c.FlowLevel > 0 && c.LastLine != c.Line && c.Column <= c.Indent) {
             // Real files close flow collections under their key; outside strict mode that is accepted and reported.
             if (c.Strict || (c.Column == 0 && IsDocumentMarkerAt(p))) {
                 throw Error(YamlErrorCodes.InvalidIndentation, "Flow content must be indented more than the enclosing block collection.");
             }
             ReportFlowLine(Absolute(p), c.Line, c.Column);
         }
+        return true;
+    }
 
+    /// <summary>Queues the token that starts at the current position, after <see cref="StartToken"/>.</summary>
+    private void DispatchToken() {
+        YamlScanContext c = _c;
+        int p = c.Pos;
+        char ch = At(p);
         if (c.Column == 0) {
             if (ch == '%') {
                 if (c.InDocument) throw Error(YamlErrorCodes.InvalidDocument, "A directive must follow a document end marker ('...') or start the stream.");
@@ -322,12 +368,159 @@ internal ref partial struct YamlScanner {
         ch < 0x20 || ch == 0x7F || ch is '￾' or '￿' or '﻿' ? "\\u" + ((int)ch).ToString("X4", CultureInfo.InvariantCulture) : ch.ToString();
 
     private static bool CanStartPlain(char ch, char next, bool flow) {
+        if (YamlChars.IsAlphanumeric(ch)) return true;
         if (YamlChars.IsBlankOrBreakOrNul(ch)) return false;
         if (ch == '-' || ch == '?' || ch == ':') {
             return !YamlChars.IsBlankOrBreakOrNul(next) && !(flow && YamlChars.IsFlowIndicator(next));
         }
         if (YamlChars.IsIndicator(ch)) return false;
         return !YamlChars.IsNonPrintable(ch) && ch != '﻿';
+    }
+
+    // ---------------------------------------------------------------- block mapping entries without the queue
+
+    /// <summary>
+    /// Fetches the next key of the open block mapping for a parser expecting one, with the token queue empty. When the
+    /// key is a one-line plain scalar at the mapping's indentation followed by ':' on its line, the case that dominates
+    /// block files, the key and scalar tokens are taken as consumed and returned as the scalar, and the value token is
+    /// queued: what fetching and consuming them through the queue would leave. Otherwise the token is queued as
+    /// <see cref="FetchNextToken"/> queues it and the method returns false.
+    /// </summary>
+    public bool TryFetchBlockKey(out YamlToken scalar) {
+        YamlScanContext c = _c;
+        scalar = default;
+        if (!StartToken()) return false;
+        if (c.TokenCount != 0 || c.Column != c.Indent || !c.SimpleKeyAllowed || !StartsBlockPlain()) {
+            DispatchToken();
+            return false;
+        }
+        c.InDocument = true;
+        SaveSimpleKey();
+        c.SimpleKeyAllowed = false;
+        c.AdjacentValue = false;
+        YamlToken token = ScanPlainScalar();
+        if (token.EndLine == token.StartLine) {
+            ref YamlSimpleKey key = ref c.SimpleKeys[0];
+            int p = c.Pos;
+            while (YamlChars.IsBlank(At(p))) p++;
+            if (At(p) == ':' && YamlChars.IsBlankOrBreakOrNul(At(p + 1)) && Absolute(p) - key.Offset <= MaxImplicitKeyLength) {
+                // The mapping is open at this column, so no mapping start precedes the key token.
+                key.Possible = false;
+                c.TokensParsed += 2;
+                Advance(p - c.Pos);
+                int start = c.Pos, line = c.Line, column = c.Column;
+                Advance(1);
+                YamlToken value = NewToken(YamlTokenKind.Value, start, line, column);
+                Finish(ref value);
+                c.StaleCheckedAt = Absolute(c.Pos);
+                scalar = token;
+                return true;
+            }
+        }
+        // A required candidate that is no key stays queued for the general path and its error.
+        Finish(ref token);
+        return false;
+    }
+
+    /// <summary>
+    /// Fetches the value of a block mapping entry after its ':' for a parser expecting one, with the token queue empty.
+    /// A plain or quoted scalar on the indicator's line is taken as consumed and returned, as fetching and consuming it through the
+    /// queue would leave the scanner: no implicit key is possible after the indicator, so nothing waits on the next
+    /// token. Otherwise the token is queued as <see cref="FetchNextToken"/> queues it and the method returns false.
+    /// </summary>
+    public bool TryFetchBlockValue(out YamlToken scalar) {
+        YamlScanContext c = _c;
+        scalar = default;
+        if (!StartToken()) return false;
+        if (c.TokenCount != 0 || c.FlowLevel != 0 || c.SimpleKeyAllowed || c.LastLine != c.Line) {
+            DispatchToken();
+            return false;
+        }
+        char ch = At(c.Pos);
+        if (ch is '\'' or '"') {
+            c.InDocument = true;
+            scalar = ScanFlowScalar(single: ch == '\'');
+            c.AdjacentValue = true;
+        } else if (ch == '*') {
+            c.InDocument = true;
+            c.AdjacentValue = false;
+            scalar = ScanAnchor(YamlTokenKind.Alias);
+        } else if (StartsBlockPlain()) {
+            c.InDocument = true;
+            c.AdjacentValue = false;
+            scalar = ScanPlainScalar();
+        } else {
+            DispatchToken();
+            return false;
+        }
+        Track(in scalar);
+        c.TokensParsed++;
+        return true;
+    }
+
+    /// <summary>
+    /// Fetches the item of a block sequence entry after its '-' for a parser expecting one, with the token queue empty.
+    /// A one-line plain or quoted scalar on the indicator's line that is not a key is taken as consumed and returned: the rest of
+    /// its line settles its implicit-key candidate. Otherwise the tokens are queued as <see cref="FetchNextToken"/>
+    /// queues them and the method returns false.
+    /// </summary>
+    public bool TryFetchBlockItem(out YamlToken scalar) {
+        YamlScanContext c = _c;
+        scalar = default;
+        if (!StartToken()) return false;
+        if (c.TokenCount != 0 || c.FlowLevel != 0 || !c.SimpleKeyAllowed || c.LastLine != c.Line) {
+            DispatchToken();
+            return false;
+        }
+        char first = At(c.Pos);
+        bool quoted = first is '\'' or '"';
+        bool alias = first == '*';
+        if (!quoted && !alias && !StartsBlockPlain()) {
+            DispatchToken();
+            return false;
+        }
+        c.InDocument = true;
+        SaveSimpleKey();
+        c.SimpleKeyAllowed = false;
+        YamlToken token;
+        if (quoted) {
+            token = ScanFlowScalar(single: first == '\'');
+            c.AdjacentValue = true;
+        } else if (alias) {
+            c.AdjacentValue = false;
+            token = ScanAnchor(YamlTokenKind.Alias);
+        } else {
+            c.AdjacentValue = false;
+            token = ScanPlainScalar();
+        }
+        if (token.EndLine == token.StartLine) {
+            ref YamlSimpleKey key = ref c.SimpleKeys[0];
+            int p = c.Pos;
+            while (YamlChars.IsBlank(At(p))) p++;
+            char ch = At(p);
+            if (!key.Required && (ch == '#' || YamlChars.IsBreak(ch) || (ch == '\0' && !HasChar(p)))) {
+                key.Possible = false;
+                Track(in token);
+                c.TokensParsed++;
+                scalar = token;
+                return true;
+            }
+            // A quoted or alias candidate waits for its ':' through the queue, as fetching it there does.
+            if (!quoted && !alias && SettleBlockKey(ref token)) return false;
+        }
+        Finish(ref token);
+        return false;
+    }
+
+    /// <summary>
+    /// Whether a plain scalar starts at the current position in block context: <see cref="DispatchToken"/> would fetch
+    /// one. A '-' or '.' at the start of a line may be a document marker and is left to it.
+    /// </summary>
+    private bool StartsBlockPlain() {
+        char ch = At(_c.Pos);
+        if (YamlChars.IsAlphanumeric(ch)) return true;
+        if (_c.Column == 0 && ch is '-' or '.') return false;
+        return CanStartPlain(ch, At(_c.Pos + 1), flow: false);
     }
 
     // ---------------------------------------------------------------- whitespace, comments, line breaks
@@ -340,33 +533,47 @@ internal ref partial struct YamlScanner {
     private void ScanToNextToken() {
         YamlScanContext c = _c;
         int lines = 0;
+        // The position and column stay in locals while blanks and line breaks are skipped; the context is updated
+        // before anything that reads it (comments, compaction, errors) and at the end.
+        int pos = c.Pos, column = c.Column;
         while (true) {
-            if (c.Column == 0 && !c.InDocument && At(c.Pos) == '﻿') {
-                c.Pos++;
+            if (column == 0 && !c.InDocument && At(pos) == '﻿') {
+                pos++;
             }
 
             int firstTabColumn = -1;
-            int runStart = c.Pos;
+            int runStart = pos;
+            char current;
             while (true) {
-                char ch = At(c.Pos);
-                if (ch == ' ') { Advance(1); continue; }
-                if (ch == '\t') {
-                    if (firstTabColumn < 0) firstTabColumn = c.Column;
-                    Advance(1);
+                current = At(pos);
+                if (current == ' ') {
+                    pos++;
+                    column++;
+                    continue;
+                }
+                if (current == '\t') {
+                    if (firstTabColumn < 0) firstTabColumn = column;
+                    pos++;
+                    column++;
                     continue;
                 }
                 break;
             }
 
-            char current = At(c.Pos);
             // A line start separates a comment like whitespace does; only a block scalar ends exactly there.
-            if (current == '#' && (c.Pos > runStart || Absolute(c.Pos) != c.LastEnd || c.Column == 0)) {
+            if (current == '#' && (pos > runStart || Absolute(pos) != c.LastEnd || column == 0)) {
+                c.Pos = pos;
+                c.Column = column;
                 SkipComment();
-                current = At(c.Pos);
+                pos = c.Pos;
+                column = c.Column;
+                current = At(pos);
             }
 
-            if (YamlChars.IsBreak(current)) {
-                AdvanceBreak();
+            if (current == '\n' || current == '\r') {
+                pos += current == '\r' && At(pos + 1) == '\n' ? 2 : 1;
+                c.Line++;
+                column = 0;
                 if (c.FlowLevel == 0) c.SimpleKeyAllowed = true;
                 if (++lines >= 64) {
                     lines = 0;
@@ -374,11 +581,16 @@ internal ref partial struct YamlScanner {
                         c.CancelCountdown = YamlScanContext.CancelInterval;
                         c.Cancellation.ThrowIfCancellationRequested();
                     }
+                    c.Pos = pos;
+                    c.Column = 0;
                     CompactAtSafePoint();
+                    pos = c.Pos;
                 }
                 continue;
             }
 
+            c.Pos = pos;
+            c.Column = column;
             c.TabBefore = false;
             if (firstTabColumn >= 0 && !(current == '\0' && !HasChar(c.Pos))) {
                 bool firstOnLine = c.LastLine != c.Line;
@@ -447,16 +659,25 @@ internal ref partial struct YamlScanner {
         YamlScanContext c = _c;
         YamlSimpleKey[] keys = c.SimpleKeys;
         int absolute = Absolute(c.Pos);
+        c.StaleCheckedAt = absolute;
+        int line = c.Line;
+        // Deep flow collections hold a candidate per level; without this the check would cost the depth on every token.
+        if (line == c.StaleLine && absolute - c.StaleOldest <= MaxImplicitKeyLength) return;
+        int oldest = int.MaxValue;
         for (int i = 0; i <= c.FlowLevel; i++) {
             ref YamlSimpleKey key = ref keys[i];
-            if (key.Possible && (key.Line < c.Line || absolute - key.Offset > MaxImplicitKeyLength)) {
-                if (key.Required) {
-                    throw Error(YamlErrorCodes.InvalidKey, "Could not find the ':' that completes this implicit key.", key.Offset, key.Line, key.Column);
-                }
+            if (key.Possible && (key.Line < line || absolute - key.Offset > MaxImplicitKeyLength)) {
+                if (key.Required) ThrowStaleKey(in key);
                 key.Possible = false;
             }
+            if (key.Possible && key.Offset < oldest) oldest = key.Offset;
         }
+        c.StaleLine = line;
+        c.StaleOldest = oldest;
     }
+
+    private static void ThrowStaleKey(in YamlSimpleKey key) =>
+        throw Error(YamlErrorCodes.InvalidKey, "Could not find the ':' that completes this implicit key.", key.Offset, key.Line, key.Column);
 
     private void SaveSimpleKey() {
         YamlScanContext c = _c;
@@ -470,6 +691,7 @@ internal ref partial struct YamlScanner {
         key.Offset = Absolute(c.Pos);
         key.Line = c.Line;
         key.Column = c.Column;
+        if (key.Offset < c.StaleOldest) c.StaleOldest = key.Offset;
     }
 
     private void RemoveSimpleKey() {
@@ -512,7 +734,7 @@ internal ref partial struct YamlScanner {
     private bool RollIndent(int column, int tokenNumber, YamlTokenKind kind, int offset, int line) {
         YamlScanContext c = _c;
         if (c.FlowLevel > 0 || c.Indent >= column) return false;
-        if (c.FlowLevel + c.IndentCount + 1 >= c.MaxDepth) ThrowDepth();
+        if (c.FlowLevel + c.IndentCount >= c.MaxDepth) ThrowDepth();
         if (c.IndentCount >= c.Indents.Length) c.Indents = YamlScanContext.Grow(c.Indents, c.IndentCount);
         c.Indents[c.IndentCount++] = c.Indent;
         c.Indent = column;
@@ -668,6 +890,13 @@ internal ref partial struct YamlScanner {
         SaveSimpleKey();
         c.SimpleKeyAllowed = false;
         c.AdjacentValue = false;
+        YamlToken token = ScanAnchor(kind);
+        Finish(ref token);
+    }
+
+    /// <summary>Scans an anchor or alias at the current '&amp;' or '*' into a token with its name as the value.</summary>
+    private YamlToken ScanAnchor(YamlTokenKind kind) {
+        YamlScanContext c = _c;
         int start = c.Pos, line = c.Line, column = c.Column;
         Advance(1);
         int nameStart = c.Pos;
@@ -682,7 +911,7 @@ internal ref partial struct YamlScanner {
         YamlToken token = NewToken(kind, start, line, column);
         token.ValueStart = Absolute(nameStart);
         token.ValueEnd = Absolute(c.Pos);
-        Finish(ref token);
+        return token;
     }
 
     private void FetchTag() {
@@ -751,11 +980,50 @@ internal ref partial struct YamlScanner {
 
     private void FetchPlainScalar() {
         YamlScanContext c = _c;
+        // A block implicit-key candidate saved at this scalar is settled by the rest of its line.
+        bool blockCandidate = c.FlowLevel == 0 && c.SimpleKeyAllowed;
         SaveSimpleKey();
         c.SimpleKeyAllowed = false;
         c.AdjacentValue = false;
         YamlToken token = ScanPlainScalar();
+        if (blockCandidate && token.EndLine == token.StartLine && SettleBlockKey(ref token)) return;
         Finish(ref token);
+    }
+
+    /// <summary>
+    /// Settles the block implicit-key candidate of a one-line plain scalar from the rest of its line, which in block
+    /// context holds only blanks before a ':' indicator, a comment or the line end. A key is queued with its mapping
+    /// start, key, scalar and value tokens in order, as fetching the ':' would insert them; a scalar that is no key
+    /// drops its candidate, so the parser does not scan the next line before returning it. A required candidate that is
+    /// no key, a key past the length limit and anything unexpected keep the general path and its errors.
+    /// </summary>
+    private bool SettleBlockKey(ref YamlToken token) {
+        YamlScanContext c = _c;
+        ref YamlSimpleKey key = ref c.SimpleKeys[0];
+        int p = c.Pos;
+        while (YamlChars.IsBlank(At(p))) p++;
+        char ch = At(p);
+        if (ch == ':') {
+            if (!YamlChars.IsBlankOrBreakOrNul(At(p + 1)) || Absolute(p) - key.Offset > MaxImplicitKeyLength) return false;
+            bool opened = RollIndent(key.Column, -1, YamlTokenKind.BlockMappingStart, key.Offset, key.Line);
+            if (opened && key.TabBefore) {
+                throw Error(YamlErrorCodes.InvalidIndentation, "A tab character cannot indent a block mapping.", key.Offset, key.Line, key.Column);
+            }
+            Enqueue(ZeroWidth(YamlTokenKind.Key, key.Offset, key.Line, key.Column));
+            key.Possible = false;
+            Finish(ref token);
+            Advance(p - c.Pos);
+            int start = c.Pos, line = c.Line, column = c.Column;
+            Advance(1);
+            YamlToken value = NewToken(YamlTokenKind.Value, start, line, column);
+            Finish(ref value);
+            c.StaleCheckedAt = Absolute(c.Pos);
+            return true;
+        }
+        if (key.Required || !(ch == '#' || YamlChars.IsBreak(ch) || (ch == '\0' && !HasChar(p)))) return false;
+        key.Possible = false;
+        Finish(ref token);
+        return true;
     }
 
     private void FetchFlowScalar(bool single) {

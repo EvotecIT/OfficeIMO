@@ -65,7 +65,7 @@ $nativeWorkflowProfiles = @(
 )
 $iworkPdfHostPath = Join-Path $RepositoryRoot 'OfficeIMO.Workflows.IWork.AotSmoke\OfficeIMO.Workflows.IWork.AotSmoke.csproj'
 [xml] $iworkPdfHost = Get-Content -LiteralPath $iworkPdfHostPath -Raw
-$iworkPdfReferences = @($iworkPdfHost.Project.ItemGroup.ProjectReference |
+$iworkPdfReferences = @($iworkPdfHost.SelectNodes('/Project/ItemGroup/ProjectReference') |
     ForEach-Object { [System.IO.Path]::GetFileNameWithoutExtension(([string] $_.Include).Replace('\', '/')) })
 if ($iworkPdfReferences.Count -ne 1 -or $iworkPdfReferences[0] -ne 'OfficeIMO.Workflows.IWork' -or
     [string] $iworkPdfHost.Project.PropertyGroup.PublishAot -ne 'true') {
@@ -158,6 +158,10 @@ $buildAnalyzers = @(
     [ordered]@{
         name = 'OfficeIMO.Data.Generators'
         evidence = 'The analyzer generates an explicit row-mapping plan that compiles into and executes from the main NativeAOT host; the analyzer itself is a build-time component, not a runtime assembly.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.Yaml.SourceGeneration'
+        evidence = 'The generator emits YamlSerializer metadata that compiles into and executes from the OfficeIMO.Yaml.AotSmoke NativeAOT host; the generator itself is a build-time component, not a runtime assembly.'
     }
 )
 

@@ -156,12 +156,13 @@ public sealed class ReaderOneNoteModularTests {
         OfficeDocumentReadResult result = OneNoteReaderAdapter.ReadDocument(section);
         ReaderChunk chunk = Assert.Single(result.Chunks);
 
-        Assert.Contains("Alpha\nBeta??", chunk.Text, StringComparison.Ordinal);
-        Assert.Contains("Alpha<br>Beta??", chunk.Markdown, StringComparison.Ordinal);
+        Assert.Contains("Alpha\nBeta?", chunk.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Beta??", chunk.Text, StringComparison.Ordinal);
+        Assert.Contains("Alpha<br>Beta?", chunk.Markdown, StringComparison.Ordinal);
         Assert.DoesNotContain('\v', chunk.Text);
         Assert.DoesNotContain('\uFDDF', chunk.Text);
-        Assert.Equal("Page\nName?", Assert.Single(result.Pages).Name);
-        Assert.Equal("https://example.test/?", Assert.Single(result.Links).Uri);
+        Assert.Equal("Page\nName", Assert.Single(result.Pages).Name);
+        Assert.Equal("https://example.test/", Assert.Single(result.Links).Uri);
         Assert.Equal(raw, ((OneNoteParagraph)page.DirectContent[0]).Runs[0].Text);
         Assert.Equal(rawLink, ((OneNoteParagraph)page.DirectContent[0]).Runs[0].Hyperlink);
         Assert.Equal(rawTitle, page.Title);

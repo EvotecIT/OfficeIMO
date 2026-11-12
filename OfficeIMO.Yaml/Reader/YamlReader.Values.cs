@@ -2,6 +2,8 @@ namespace OfficeIMO.Yaml;
 
 public sealed partial class YamlReader {
     private const int TagCacheSize = 8;
+    // Values up to this length are shared through the string cache; longer ones are rarely repeated.
+    private const int SharedValueLength = 8;
     private string?[]? _tagCachePrefix;
     private string?[]? _tagCacheSuffix;
     private string?[]? _tagCacheValue;
@@ -45,7 +47,7 @@ public sealed partial class YamlReader {
         }
     }
 
-    private YamlStringCache Strings => _strings ??= new YamlStringCache();
+    private YamlStringCache Strings => _strings ??= YamlStringCache.Rent();
 
     /// <summary>
     /// Returns the decoded value of the current scalar (folding, escapes and block chomping applied), the text of the
@@ -71,7 +73,8 @@ public sealed partial class YamlReader {
         ReadOnlySpan<char> raw = Slice(_event.ValueStart, _event.ValueEnd);
         if (YamlScalarDecoder.IsVerbatim(_event.Style, _event.Flags)) {
             if (raw.Length == 0) return string.Empty;
-            return _event.IsKey ? Strings.Get(raw) : raw.ToString();
+            // Keys and short values repeat (enumerations, names, tags), so they come from the cache.
+            return _event.IsKey || raw.Length <= SharedValueLength ? Strings.Get(raw) : raw.ToString();
         }
         if (_scratch is null || _scratch.Length < raw.Length + 1) {
             if (_scratch is not null) ArrayPool<char>.Shared.Return(_scratch);
@@ -80,6 +83,35 @@ public sealed partial class YamlReader {
         int length = YamlScalarDecoder.Decode(raw, _event.Style, _event.Chomping, _event.Indent, _scratch);
         return new string(_scratch, 0, length);
     }
+
+    /// <summary>Gets the current scalar's decoded value as a span, without allocating when the source holds it verbatim.</summary>
+    internal ReadOnlySpan<char> ScalarValueSpan => ScalarText();
+
+    /// <summary>
+    /// Gets whether the current scalar is untagged and cannot be the plain text <c>&lt;&lt;</c>: it is not plain, or its
+    /// source is not two characters long. A plain scalar's value is its source on one line, and a value folded from
+    /// several lines contains a space, so a merge key's source is exactly <c>&lt;&lt;</c>.
+    /// </summary>
+    internal bool IsUntaggedNonMergeText => !_event.HasTag && (_event.Style != YamlStyle.Plain || _event.ValueEnd - _event.ValueStart != 2);
+
+    /// <summary>
+    /// Returns what <see cref="IsNull"/> returns for the current scalar, checking an untagged scalar's text directly
+    /// instead of resolving its kind: only plain <c>null</c> spellings and empty nodes are null without a tag.
+    /// </summary>
+    internal bool IsNullScalar() {
+        if (_event.Type != YamlTokenType.Scalar) return false;
+        if (_event.HasTag) return IsNull();
+        if (_event.Style != YamlStyle.Plain) return false;
+        ReadOnlySpan<char> text = Slice(_event.ValueStart, _event.ValueEnd);
+        if (text.Length > 4) return false;
+        return YamlSchemaResolver.IsNull(YamlScalarDecoder.IsVerbatim(_event.Style, _event.Flags) ? text : ScalarText(), _documentSchema);
+    }
+
+    /// <summary>Gets whether the current node defines an anchor, without creating its name.</summary>
+    internal bool HasAnchor => _event.AnchorStart >= 0 && _event.Type is YamlTokenType.Scalar or YamlTokenType.SequenceStart or YamlTokenType.MappingStart;
+
+    /// <summary>Gets the options the reader runs with.</summary>
+    internal YamlReaderOptions Options => _options;
 
     /// <summary>Decodes the current scalar into a span when it needs decoding; otherwise returns the raw value span.</summary>
     private ReadOnlySpan<char> ScalarText() {

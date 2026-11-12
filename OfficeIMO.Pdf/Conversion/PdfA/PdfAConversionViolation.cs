@@ -2,13 +2,13 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Identifies why PDF/A conversion refused a source.</summary>
 public enum PdfAConversionRefusalReason {
-    /// <summary>The source is encrypted and the owner password was not supplied.</summary>
+    /// <summary>The source is encrypted and was not loaded with its owner password.</summary>
     EncryptionNotAuthorized,
     /// <summary>The source is signed; rewriting it would invalidate the signatures.</summary>
     SignedDocument,
     /// <summary>The source could not be read completely.</summary>
     SourceUnreadable,
-    /// <summary>A font is not embedded and no installed substitute could be embedded without changing the page.</summary>
+    /// <summary>A font is not embedded and no substitute could be embedded without changing the page or breaking its licence.</summary>
     FontNotEmbeddable,
     /// <summary>A substitute or embedded font program has glyph widths different from those the page positions glyphs by.</summary>
     FontMetricsMismatch,
@@ -28,7 +28,7 @@ public enum PdfAConversionRefusalReason {
     AnnotationAppearanceMissing,
     /// <summary>An annotation type PDF/A forbids draws something on the page.</summary>
     ForbiddenAnnotation,
-    /// <summary>PDF/A-2 cannot carry the embedded files and their removal was not allowed.</summary>
+    /// <summary>PDF/A-2 or PDF/A-4 cannot carry the embedded files and the attachment policy is <see cref="PdfAAttachmentPolicy.Refuse"/>.</summary>
     EmbeddedFileNotAllowed,
     /// <summary>A PostScript or reference XObject draws content that cannot be kept.</summary>
     ForbiddenXObject,
@@ -45,7 +45,9 @@ public enum PdfAConversionRefusalReason {
     /// <summary>The form is a dynamic XFA form whose pages exist only in XFA.</summary>
     DynamicXfaForm,
     /// <summary>The converted file failed the post-conversion check.</summary>
-    VerificationFailed
+    VerificationFailed,
+    /// <summary>PDF/A-4f requires at least one embedded file and the source has none.</summary>
+    EmbeddedFileRequired
 }
 
 /// <summary>Describes one reason PDF/A conversion refused the source.</summary>

@@ -870,8 +870,16 @@ public static partial class OfficeDiagnosticCodes {
     public const string YamlDuplicateKey = "yaml-duplicate-key";
     /// <summary>Stable code: <c>yaml-lenient-indentation</c>.</summary>
     public const string YamlLenientIndentation = "yaml-lenient-indentation";
+    /// <summary>Stable code: <c>yaml-merge-alias-expanded</c>.</summary>
+    public const string YamlMergeAliasExpanded = "yaml-merge-alias-expanded";
+    /// <summary>Stable code: <c>yaml-merge-anchor-renamed</c>.</summary>
+    public const string YamlMergeAnchorRenamed = "yaml-merge-anchor-renamed";
+    /// <summary>Stable code: <c>yaml-merge-key-not-removed</c>.</summary>
+    public const string YamlMergeKeyNotRemoved = "yaml-merge-key-not-removed";
     /// <summary>Stable code: <c>yaml-merge-key-without-directive</c>.</summary>
     public const string YamlMergeKeyWithoutDirective = "yaml-merge-key-without-directive";
+    /// <summary>Stable code: <c>yaml-merge-kind-conflict</c>.</summary>
+    public const string YamlMergeKindConflict = "yaml-merge-kind-conflict";
     /// <summary>Stable code: <c>yaml-tag-dropped</c>.</summary>
     public const string YamlTagDropped = "yaml-tag-dropped";
 }

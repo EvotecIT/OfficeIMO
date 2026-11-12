@@ -49,26 +49,26 @@ internal static partial class ResourceResolver {
         if ((long)stride * height != packed.LongLength || packed.Length == 0 ||
             !normalization.TryConsumeEvaluationWork((long)width * height, colorFunctionEvaluationBudget)) return false;
 
-        var scanlines = new byte[checked((stride + 1) * height)];
-        for (int row = 0; row < height; row++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int source = row * stride;
-            int target = row * (stride + 1) + 1;
-            if (identity) {
-                Buffer.BlockCopy(packed, source, scanlines, target, stride);
-            } else if (inverted) {
-                for (int index = 0; index < stride; index++) scanlines[target + index] = (byte)~packed[source + index];
-            } else {
-                for (int column = 0; column < width; column++) {
-                    int bit = column * bitsPerComponent;
-                    int shift = 8 - bitsPerComponent - (bit & 7);
-                    int sample = (packed[source + (bit >> 3)] >> shift) & maximumSample;
-                    scanlines[target + (bit >> 3)] |= (byte)(map[sample] << shift);
+        // Rows go straight into the PNG's stored blocks; the output starts zeroed like a fresh scanline buffer.
+        pngBytes = OfficePngWriter.EncodeStoredScanlines(width, height, bitsPerComponent, 0, null, (scanlines, start) => {
+            for (int row = 0; row < height; row++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int source = row * stride;
+                int target = start + row * (stride + 1) + 1;
+                if (identity) {
+                    Buffer.BlockCopy(packed, source, scanlines, target, stride);
+                } else if (inverted) {
+                    for (int index = 0; index < stride; index++) scanlines[target + index] = (byte)~packed[source + index];
+                } else {
+                    for (int column = 0; column < width; column++) {
+                        int bit = column * bitsPerComponent;
+                        int shift = 8 - bitsPerComponent - (bit & 7);
+                        int sample = (packed[source + (bit >> 3)] >> shift) & maximumSample;
+                        scanlines[target + (bit >> 3)] |= (byte)(map[sample] << shift);
+                    }
                 }
             }
-        }
-
-        pngBytes = OfficePngWriter.EncodeScanlines(width, height, bitsPerComponent, 0, scanlines, OfficePngCompression.Stored);
+        });
         return true;
     }
 

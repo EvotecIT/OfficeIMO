@@ -42,14 +42,33 @@ namespace OfficeIMO.Examples.Word {
 
             using (var destination = WordDocument.Load(destinationPath))
             using (var source = WordDocument.Load(sourcePath)) {
-                destination.AppendDocument(source, new WordDocumentMergeOptions {
-                    StyleMode = WordMergeStyleMode.KeepDifferentStyles
-                });
+                destination.AppendDocument(source);
                 destination.UpdateFields(new WordFieldUpdateOptions {
                     UpdateTablesOfContents = true
                 }.WithPdfLayoutPagination());
                 destination.SaveCopy(mergedPath);
                 if (openWord) destination.OpenInApplication(mergedPath);
+            }
+        }
+
+        public static void Example_SplitDocument(string folderPath, bool openWord) {
+            Console.WriteLine("[*] Splitting a Word document by heading");
+
+            string outDir = Path.Combine(folderPath, "Word", "MergeDocuments");
+            Directory.CreateDirectory(outDir);
+
+            using var report = WordDocument.Create();
+            foreach (string chapter in new[] { "Summary", "Findings", "Next steps" }) {
+                report.AddParagraph(chapter).Style = WordParagraphStyles.Heading1;
+                report.AddParagraph($"{chapter} text.").AddFootNote($"Source for {chapter.ToLowerInvariant()}.");
+            }
+
+            IReadOnlyList<WordDocument> pieces = report.SplitByHeading(level: 1);
+            for (int i = 0; i < pieces.Count; i++) {
+                using WordDocument piece = pieces[i];
+                string path = Path.Combine(outDir, $"SplitChapter{i + 1}.docx");
+                piece.Save(path);
+                if (openWord && i == 0) piece.OpenInApplication(path);
             }
         }
     }

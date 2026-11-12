@@ -98,7 +98,10 @@ public sealed class PackageDependencyGuardrailTests {
     private static readonly Dictionary<string, HashSet<string>> ApprovedExternalCompatibilitySourceTerms =
         new(StringComparer.OrdinalIgnoreCase) {
             ["OfficeIMO.PowerPoint/PowerPointCompatibilityReport.cs"] =
-                new HashSet<string>(["LibreOffice", "soffice"], StringComparer.OrdinalIgnoreCase)
+                new HashSet<string>(["LibreOffice", "soffice"], StringComparer.OrdinalIgnoreCase),
+            // Support ratings name the independent producers whose files back them.
+            ["OfficeIMO.Core/Compatibility/OfficeConversionSupportAssessments.cs"] =
+                new HashSet<string>(["LibreOffice"], StringComparer.OrdinalIgnoreCase)
         };
 
     [Fact]
