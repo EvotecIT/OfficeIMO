@@ -30,11 +30,11 @@ internal static class NativePagesMixedSizeListSmoke {
         Require(identities.Distinct(StringComparer.Ordinal).Count() == 2, "Independent paragraph defaults collided in document identity.");
         var list = document.NumberedLists[0];
         try {
-            list.AddRichItem(new[] { new IWorkTextRunData("Fractional", "Arial", 14.5f) }, restartAt: 100);
-            throw new InvalidOperationException("Fractional numbered run bypassed the qualification boundary.");
+            list.AddRichItem(new[] { new IWorkTextRunData("Quarter-point", "Arial", 14.25f) }, restartAt: 100);
+            throw new InvalidOperationException("Quarter-point numbered run bypassed the qualification boundary.");
         } catch (ArgumentException) { }
         Require(bytes.SequenceEqual(document.ToBytes()) && list.AddItem("Next child", level: 1).ListNumber == 3,
-            "Fractional-size rejection changed native bytes or counters.");
+            "Quarter-point rejection changed native bytes or counters.");
         Console.WriteLine("PASS | native Pages mixed whole-point sizes | first-run markers, default em indents, deterministic identity, Apple edit/insertion/reopen and strict DOCX paragraph marks");
     }
 
