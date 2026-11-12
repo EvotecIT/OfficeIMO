@@ -12,7 +12,7 @@ public static partial class WordIWorkConverter {
         private readonly HashSet<int> _observedLevels = new();
         private WordList? _current;
         private string? _markerFontName;
-        private int? _markerFontSize;
+        private double? _markerFontSize;
         private int? _previousQualifiedLevel;
 
         internal IWorkNativeListCatalog(WordDocument document) {
@@ -23,7 +23,7 @@ public static partial class WordIWorkConverter {
 
         internal void Apply(WordParagraph paragraph, int level, string? label, string? fontName,
             IWorkListMarkerKind markerKind, bool startsNewList, int? qualifiedNumber,
-            int? qualifiedLeftOffset, int? qualifiedHangingOffset, int? qualifiedMarkerFontSize) {
+            int? qualifiedLeftOffset, int? qualifiedHangingOffset, double? qualifiedMarkerFontSize) {
             // Numbering run properties apply to every level of one WordList. Start
             // a new list rather than changing earlier markers when that profile changes.
             bool markerProfileChanged = qualifiedMarkerFontSize.HasValue

@@ -61,6 +61,84 @@ public sealed class ChmWorkflowTests {
         } finally { Directory.Delete(root, true); }
     }
 
+    [Theory]
+    [InlineData(".md", "chm-markdown")]
+    [InlineData(".epub", "chm-epub")]
+    [InlineData(".pdf", "chm-pdf")]
+    public async Task FailedOwnerReportRetainsEvidenceWithoutReplacingDestination(string extension, string route) {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-chm-fidelity-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string html = "<p>Bounded recovery</p>" + string.Concat(Enumerable.Range(0, 10_001)
+                .Select(index => "<img src='missing-" + index + ".png'>"));
+            byte[] source = ChmFixture.Archive(new Dictionary<string, byte[]> { ["/topic.html"] = ChmFixture.Html(html) });
+            string input = Path.Combine(root, "source.chm"), output = Path.Combine(root, "result" + extension);
+            byte[] sentinel = [3, 2, 1];
+            File.WriteAllBytes(input, source);
+            File.WriteAllBytes(output, sentinel);
+            var result = await OfficeWorkflow.RunAsync(new OfficeWorkflowRequest {
+                Operation = OfficeWorkflowOperation.Convert,
+                InputPath = input,
+                OutputPath = output,
+                ConversionRouteId = route,
+                ConflictPolicy = OfficePublicationPolicy.Replace
+            });
+            Assert.False(result.Succeeded);
+            Assert.Equal(sentinel, File.ReadAllBytes(output));
+            var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
+            Assert.Equal("ITSF", evidence.Facts["sourceContainer"]);
+            Assert.Equal("1", evidence.Facts["topicCount"]);
+            Assert.Contains(evidence.Diagnostics, item => item.LossKind == OfficeConversionLossKind.Failure);
+            Assert.Contains(result.Diagnostics, item => item.Details.TryGetValue("lossKind", out string? kind)
+                && kind == OfficeConversionLossKind.Failure.ToString() && item.Severity == OfficeWorkflowDiagnosticSeverity.Error);
+            Assert.Equal(source, File.ReadAllBytes(input));
+            Assert.Empty(Directory.GetFiles(root, ".*.tmp"));
+        } finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
+    public async Task EpubOutputLimitRetainsCompletedImportEvidenceWithoutReplacingDestination() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-chm-epub-limit-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            byte[] source = ChmFixture.Archive(new Dictionary<string, byte[]> {
+                ["/topic.html"] = ChmFixture.Html("<h1>Retained evidence</h1><script>ignored()</script>")
+            });
+            ChmDocument document = ChmDocument.Load(source);
+            int limit = document.ToEpub().Write().Value.Length / 2;
+            var publication = document.ToEpub(new ChmEpubExportOptions {
+                ConversionOptions = new ChmConversionOptions { MaxOutputBytes = limit }
+            }, out OfficeConversionReport imported);
+            Assert.Contains(imported.Diagnostics, item => item.Code == "CHM_ACTIVE_CONTENT_OMITTED");
+            Assert.Throws<InvalidDataException>(() => publication.Write(new EpubSaveOptions { MaxOutputBytes = limit }));
+
+            string input = Path.Combine(root, "source.chm"), output = Path.Combine(root, "result.epub");
+            byte[] sentinel = [3, 2, 1];
+            File.WriteAllBytes(input, source);
+            File.WriteAllBytes(output, sentinel);
+            var result = await OfficeWorkflow.RunAsync(new OfficeWorkflowRequest {
+                Operation = OfficeWorkflowOperation.Convert,
+                InputPath = input,
+                OutputPath = output,
+                ConversionRouteId = "chm-epub",
+                ConflictPolicy = OfficePublicationPolicy.Replace,
+                ConversionOptions = new() {
+                    RegisteredSettings = new OfficeWorkflowRouteSettings { Chm = new() { MaxOutputBytes = limit } }
+                }
+            });
+            Assert.False(result.Succeeded);
+            var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
+            Assert.Equal("ITSF", evidence.Facts["sourceContainer"]);
+            Assert.Equal("1", evidence.Facts["topicCount"]);
+            foreach (OfficeDiagnostic finding in imported.Diagnostics)
+                Assert.Contains(evidence.Diagnostics, item => item.Code == finding.Code && item.Message == finding.Message);
+            Assert.Contains(evidence.Diagnostics, item => item.LossKind == OfficeConversionLossKind.Failure);
+            Assert.Equal(sentinel, File.ReadAllBytes(output));
+            Assert.Equal(source, File.ReadAllBytes(input));
+            Assert.Empty(Directory.GetFiles(root, ".*.tmp"));
+        } finally { Directory.Delete(root, true); }
+    }
+
     [Fact]
     public async Task ExhaustedConversionBudgetLeavesExistingDestinationIntact() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-chm-workflow-" + Guid.NewGuid().ToString("N"));
