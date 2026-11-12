@@ -85,6 +85,21 @@ public sealed class PdfPrinterCapabilityTests {
     }
 
     [Fact]
+    public void WindowsPaperCodesStayUsableWhenTheDriverOmitsNamesOrSizes() {
+        PdfPrinterCapabilities unnamed = WindowsPrinterSettings.BuildCapabilities("Office", new WindowsPrinterSettings.DriverCapabilities {
+            PaperCodes = [1, 9], PaperSizes = [(2159, 2794), (2100, 2970)], DefaultPaperCode = 9
+        });
+        Assert.Equal(["1", "9"], unnamed.Media.Select(media => media.Name));
+        Assert.Equal(595.28, unnamed.DefaultMedia!.Size!.Value.Width.ToPoints(), 1);
+        PdfPrinterCapabilities unsized = WindowsPrinterSettings.BuildCapabilities("Office", new WindowsPrinterSettings.DriverCapabilities {
+            PaperCodes = [1, 9], PaperNames = ["Letter", "A4"]
+        });
+        Assert.Equal(["Letter", "A4"], unsized.Media.Select(media => media.Name));
+        Assert.All(unsized.Media, media => Assert.Null(media.Size));
+        Assert.Equal(9, WindowsPrinterSettings.ResolvePaperCode(PdfPageSizes.A4, unsized.Media));
+    }
+
+    [Fact]
     public void WindowsPaperCodesPreferTheDriverThenStandardCodesThenCustomSize() {
         IReadOnlyList<PdfPrinterMedia> driver = [new("120", "Vendor A4", PdfPageSizes.A4), new("256", "Custom", PdfPageSizes.A3)];
         Assert.Equal(120, WindowsPrinterSettings.ResolvePaperCode(PdfPageSizes.A4.Landscape(), driver));
