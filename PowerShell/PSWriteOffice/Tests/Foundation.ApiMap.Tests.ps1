@@ -91,7 +91,13 @@ Describe 'Command map foundations' {
     }
     It 'exports one format-prefixed singular DSL alias per command without built-in collisions' {
         $builtIns = @(& pwsh -NoProfile -Command 'Get-Command -CommandType Cmdlet,Function,Alias | ForEach-Object Name')
-        $aliases = @($module.ExportedAliases.Values)
+        # A shipped command name kept after a rename is a reviewed compatibility alias, not a DSL alias.
+        $compatibility = @{}
+        foreach ($target in $maps.commands | Where-Object { $_.PSObject.Properties['compatibilityAliases'] }) {
+            foreach ($name in $target.compatibilityAliases) { $compatibility[$name] = $target.name }
+        }
+        foreach ($name in $compatibility.Keys) { $module.ExportedAliases[$name].ResolvedCommandName | Should -BeExactly $compatibility[$name] }
+        $aliases = @($module.ExportedAliases.Values | Where-Object { -not $compatibility.ContainsKey($_.Name) })
         @($aliases | Group-Object ResolvedCommandName | Where-Object Count -gt 1).Count | Should -Be 0
         $prefixes = 'Word|Excel|PowerPoint|Pdf|Markdown|Visio|Html|Rtf|OpenDocument|Csv|Email|Project|Access|Epub|OneNote|IWork|AsciiDoc|Latex|Confluence'
         foreach ($alias in $aliases) {

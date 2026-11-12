@@ -94,7 +94,7 @@ Completion evidence: a visitor can choose a task, find the supported surface, in
 
 ## Printing
 
-Printing lives in `OfficeIMO.Workflows/Printing`, outside the PDF engine. It renders pages itself, so no PDF viewer or file association is involved. Jobs carry vector PDF content. Windows delivery rasterizes one sheet at a time through GDI; macOS and Linux send the PDF through the CUPS command-line tools. These milestones make printing vector-first, independent of installed tools, and available for every document format OfficeIMO converts. Apart from the Windows vector spike, they ship as one PR from `feature/printing-everywhere`.
+Printing lives in `OfficeIMO.Workflows/Printing`, outside the PDF engine. It renders pages itself, so no PDF viewer or file association is involved. Jobs carry vector PDF content. Windows delivery rasterizes one sheet at a time through GDI; IPP printers and CUPS queues receive PDF or PWG raster over IPP, with the CUPS command-line tools as a fallback. These milestones make printing vector-first, independent of installed tools, and available for every document format OfficeIMO converts. Apart from the Windows vector spike, they ship as one PR from `feature/printing-everywhere`.
 
 ### Vector jobs and printer capabilities
 
@@ -107,16 +107,20 @@ Printing lives in `OfficeIMO.Workflows/Printing`, outside the PDF engine. It ren
 ### Managed IPP client and job lifecycle
 
 - [x] Add an own IPP/2.0 client over HTTP (`ipp://`, `ipps://`) with Get-Printer-Attributes, Validate-Job, Print-Job, Get-Job-Attributes, Get-Jobs and Cancel-Job. Use a bounded, fuzzed attribute codec.
-- [ ] Send `application/pdf` when the printer supports it, and PWG raster (the internal `PwgRasterWriter`) or URF otherwise.
-- [ ] Print to a printer by URI on any OS or container, with no installed queue or CUPS tools. Route CUPS queues through IPP to the local scheduler, so the `/usr/bin/lp` dependency becomes a fallback.
-- [ ] Track jobs across transports: query state, wait for completion with a timeout, and cancel (IPP, Windows `GetJob`/`SetJob`). Queue acceptance remains a separate contract from completion.
-- [ ] Qualify against the independent `ippeveprinter` IPP Everywhere reference printer (PDF, PWG raster, duplex, media, cancellation, job states) and against CUPS queues.
+- [x] Send `application/pdf` when the printer supports it, and PWG raster (the internal `PwgRasterWriter`) otherwise.
+- [ ] Add a URF encoder for printers that accept only Apple raster; they are refused before submission today.
+- [x] Print to a printer by URI on any OS or container, with no installed queue or CUPS tools. Route CUPS queues through IPP to the local scheduler, so the `/usr/bin/lp` dependency becomes a fallback.
+- [x] Track jobs across transports: query state, wait for completion with a timeout, and cancel (IPP, Windows `GetJob`/`SetJob`). Queue acceptance remains a separate contract from completion.
+- [x] Qualify against the independent `ippeveprinter` IPP Everywhere reference printer (PDF, PWG raster, duplex, media, cancellation, job states).
+- [ ] Qualify submission and job tracking against real CUPS queues on macOS and Linux over the scheduler's domain socket. The local scheduler's queue listing and lookups are exercised read-only; submission is qualified only against `ippeveprinter` standing in for a queue.
+- [ ] Authenticate to IPP printers (HTTP Basic/Digest over `ipps://`, and the CUPS local certificate) and let callers trust an `ipps://` printer's self-signed certificate through the printer service. Both are rejected today.
+- [ ] Exercise the Windows spooler calls (`GetJob`, `SetJob`, `DocumentProperties`, GDI delivery) on Windows; only their pure mappings are tested on other platforms.
 
 ### Print any document
 
-- [ ] Print any format the conversion catalog can turn into PDF in one call, in memory, carrying conversion fidelity notes in the receipt.
-- [ ] Add PowerShell `Send-OfficePrinter` for any document, `Get-OfficePrinterCapability`, `Get-OfficePrintJob` and `Stop-OfficePrintJob`. Expose the full planner options: grayscale, odd/even, and 1/2/4/6/9 pages per sheet. Keep `Send-OfficePdfPrinter` as a compatibility alias recorded in `MIGRATION.md`. Add CLI `workflow print` for any format.
-- [ ] Add source-password admission to CLI `workflow print-plan` and `workflow print` through the existing password environment-variable binding and `PdfPrintPlanRequest.PdfPassword`. Cover printing-permitted, copying-denied user access, incorrect passwords and denied printing; preserve authenticated Studio snapshots and MCP planning.
+- [x] Print any format the conversion catalog can turn into PDF in one call, in memory, carrying conversion fidelity notes in the receipt.
+- [x] Add PowerShell `Send-OfficePrinter` for any document, `Get-OfficePrinterCapability`, `Get-OfficePrintJob` and `Stop-OfficePrintJob`. Expose the full planner options: grayscale, odd/even, and 1/2/4/6/9 pages per sheet. Keep `Send-OfficePdfPrinter` as a compatibility alias recorded in `MIGRATION.md`. Add CLI `workflow print` for any format.
+- [x] Add source-password admission to CLI `workflow print-plan` and `workflow print` through the existing password environment-variable binding and `PdfPrintPlanRequest.PdfPassword`. Cover printing-permitted, copying-denied user access, incorrect passwords and denied printing; preserve authenticated Studio snapshots and MCP planning.
 
 ### Windows vector delivery
 

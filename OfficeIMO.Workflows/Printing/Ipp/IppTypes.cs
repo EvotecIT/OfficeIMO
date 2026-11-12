@@ -1,7 +1,7 @@
 namespace OfficeIMO.Workflows;
 
 /// <summary>IPP job states (RFC 8011 section 5.3.7).</summary>
-public enum IppJobState {
+internal enum IppJobState {
     /// <summary>Waiting to be processed.</summary>
     Pending = 3,
     /// <summary>Held and not yet eligible for processing.</summary>
@@ -19,7 +19,7 @@ public enum IppJobState {
 }
 
 /// <summary>IPP printer states (RFC 8011 section 5.4.11).</summary>
-public enum IppPrinterState {
+internal enum IppPrinterState {
     /// <summary>Ready for new jobs.</summary>
     Idle = 3,
     /// <summary>Processing a job.</summary>
@@ -29,7 +29,7 @@ public enum IppPrinterState {
 }
 
 /// <summary>Requested page orientation (RFC 8011 section 5.2.10).</summary>
-public enum IppOrientation {
+internal enum IppOrientation {
     /// <summary>Portrait.</summary>
     Portrait = 3,
     /// <summary>Landscape, rotated 90 degrees counter-clockwise.</summary>
@@ -41,7 +41,7 @@ public enum IppOrientation {
 }
 
 /// <summary>Units of an <see cref="IppResolution"/>.</summary>
-public enum IppResolutionUnits {
+internal enum IppResolutionUnits {
     /// <summary>Dots per inch.</summary>
     DotsPerInch = 3,
     /// <summary>Dots per centimetre.</summary>
@@ -49,7 +49,7 @@ public enum IppResolutionUnits {
 }
 
 /// <summary>Which jobs Get-Jobs returns.</summary>
-public enum IppWhichJobs {
+internal enum IppWhichJobs {
     /// <summary>Jobs that have not reached a terminal state.</summary>
     NotCompleted,
     /// <summary>Jobs in a terminal state that the printer still retains.</summary>
@@ -60,7 +60,7 @@ public enum IppWhichJobs {
 /// <param name="CrossFeed">Cross-feed (horizontal) resolution.</param>
 /// <param name="Feed">Feed (vertical) resolution.</param>
 /// <param name="Units">Resolution units.</param>
-public sealed record IppResolution(int CrossFeed, int Feed, IppResolutionUnits Units) {
+internal sealed record IppResolution(int CrossFeed, int Feed, IppResolutionUnits Units) {
     /// <inheritdoc />
     public override string ToString() => CrossFeed == Feed
         ? CrossFeed + (Units == IppResolutionUnits.DotsPerInch ? "dpi" : "dpcm")
@@ -68,12 +68,12 @@ public sealed record IppResolution(int CrossFeed, int Feed, IppResolutionUnits U
 }
 
 /// <summary>An inclusive range of document page numbers, starting at 1.</summary>
-public sealed record IppPageRange(int First, int Last);
+internal sealed record IppPageRange(int First, int Last);
 
 /// <summary>A media size with optional source, type and margins, as in an IPP media-col collection.</summary>
 /// <param name="Width">Width (x-dimension) in hundredths of a millimetre.</param>
 /// <param name="Height">Height (y-dimension) in hundredths of a millimetre.</param>
-public sealed record IppMedia(int Width, int Height) {
+internal sealed record IppMedia(int Width, int Height) {
     /// <summary>PWG self-describing size name, such as iso_a4_210x297mm, when known.</summary>
     public string? SizeName { get; init; }
     /// <summary>Input tray keyword, such as main or by-pass-tray.</summary>
@@ -91,7 +91,7 @@ public sealed record IppMedia(int Width, int Height) {
 }
 
 /// <summary>Printer capabilities and state from Get-Printer-Attributes. Missing attributes yield empty lists or null.</summary>
-public sealed class IppPrinterCapabilities {
+internal sealed class IppPrinterCapabilities {
     /// <summary>printer-make-and-model.</summary>
     public string? MakeAndModel { get; init; }
     /// <summary>printer-state.</summary>
@@ -110,6 +110,8 @@ public sealed class IppPrinterCapabilities {
     public IReadOnlyList<IppMedia> MediaSizes { get; init; } = Array.Empty<IppMedia>();
     /// <summary>media-col-default.</summary>
     public IppMedia? MediaColDefault { get; init; }
+    /// <summary>media-source-supported keywords, such as main or by-pass-tray.</summary>
+    public IReadOnlyList<string> MediaSources { get; init; } = Array.Empty<string>();
     /// <summary>sides-supported keywords: one-sided, two-sided-long-edge, two-sided-short-edge.</summary>
     public IReadOnlyList<string> Sides { get; init; } = Array.Empty<string>();
     /// <summary>sides-default.</summary>
@@ -134,12 +136,14 @@ public sealed class IppPrinterCapabilities {
     public IReadOnlyList<IppResolution> PwgRasterResolutions { get; init; } = Array.Empty<IppResolution>();
     /// <summary>pwg-raster-document-type-supported, such as sgray_8 and srgb_8.</summary>
     public IReadOnlyList<string> PwgRasterTypes { get; init; } = Array.Empty<string>();
+    /// <summary>pwg-raster-document-sheet-back: how back sides of two-sided PWG raster jobs must be oriented (normal, flipped, rotated or manual-tumble).</summary>
+    public string? PwgRasterSheetBack { get; init; }
     /// <summary>ipp-versions-supported.</summary>
     public IReadOnlyList<string> IppVersions { get; init; } = Array.Empty<string>();
 }
 
 /// <summary>Job attributes for Print-Job and Validate-Job. Unset values keep the printer defaults.</summary>
-public sealed class IppJobOptions {
+internal sealed class IppJobOptions {
     /// <summary>job-name shown in the printer queue.</summary>
     public string JobName { get; set; } = "OfficeIMO document";
     /// <summary>copies, from 1 through 9999.</summary>
@@ -212,7 +216,7 @@ public sealed class IppJobOptions {
 /// <summary>A job's state as reported by the printer.</summary>
 /// <param name="Id">job-id, unique within the printer.</param>
 /// <param name="State">job-state.</param>
-public sealed record IppJobInfo(int Id, IppJobState State) {
+internal sealed record IppJobInfo(int Id, IppJobState State) {
     /// <summary>job-uri.</summary>
     public string? Uri { get; init; }
     /// <summary>job-state-reasons, such as job-printing or job-canceled-by-user, excluding "none".</summary>
@@ -229,10 +233,10 @@ public sealed record IppJobInfo(int Id, IppJobState State) {
 /// <remarks>Acceptance is not completion; use <see cref="IppPrintClient.WaitForJobAsync"/> to follow the job to a terminal state.</remarks>
 /// <param name="Job">The created job.</param>
 /// <param name="UnsupportedAttributes">Requested attributes the printer ignored or substituted.</param>
-public sealed record IppSubmission(IppJobInfo Job, IReadOnlyList<string> UnsupportedAttributes);
+internal sealed record IppSubmission(IppJobInfo Job, IReadOnlyList<string> UnsupportedAttributes);
 
 /// <summary>Connection settings for <see cref="IppPrintClient"/>.</summary>
-public sealed class IppPrintClientOptions {
+internal sealed class IppPrintClientOptions {
     /// <summary>requesting-user-name sent with each request, or null to omit it.</summary>
     public string? RequestingUserName { get; set; }
     /// <summary>Limit for each request, including the document upload and response. Defaults to five minutes.</summary>

@@ -49,7 +49,62 @@ public sealed class PdfPrintCommandTests {
         } finally { File.Delete(path); }
     }
 
+    [Theory]
+    [InlineData("reader", PdfStandardPermissions.Print | PdfStandardPermissions.HighQualityPrint, true)] // printing allowed, copying denied
+    [InlineData("wrong", PdfStandardPermissions.Print | PdfStandardPermissions.HighQualityPrint, false)]
+    [InlineData("reader", PdfStandardPermissions.CopyContents, false)] // printing denied
+    public async Task PlanAndPrintAdmitSourcePasswordsOnlyFromTheEnvironment(string password, PdfStandardPermissions permissions, bool admitted) {
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-print-locked-" + Guid.NewGuid().ToString("N") + ".pdf");
+        string variable = "OFFICEIMO_PRINT_TEST_" + Guid.NewGuid().ToString("N");
+        byte[] plain = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Protected content")).ToBytes();
+        File.WriteAllBytes(path, PdfDocument.Load(plain).Security.Encrypt(new("reader") { OwnerPassword = "owner", AllowedPermissions = permissions }).Pdf);
+        Environment.SetEnvironmentVariable(variable, password);
+        try {
+            using var planOutput = new StringWriter();
+            int planned = await WorkflowCommand.RunAsync(["print-plan", path, "--password-env", variable], planOutput, TextWriter.Null, CancellationToken.None);
+            Assert.Equal(admitted, planned == (int)OfficeImoToolExitCode.Success);
+
+            var service = new PrinterBoundary();
+            int printed = await WorkflowCommand.RunAsync(["print", path, "--printer", "Test queue", "--paper", "A4", "--password-env", variable],
+                TextWriter.Null, TextWriter.Null, CancellationToken.None, printerService: service);
+            Assert.Equal(admitted, printed == (int)OfficeImoToolExitCode.Success);
+            Assert.Equal(admitted, service.Document is not null);
+            Assert.DoesNotContain(password, planOutput.ToString());
+        } finally {
+            Environment.SetEnvironmentVariable(variable, null);
+            File.Delete(path);
+        }
+        Assert.Equal((int)OfficeImoToolExitCode.Usage, await WorkflowCommand.RunAsync(["print-plan", path, "--password-env", variable],
+            TextWriter.Null, TextWriter.Null, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task PrintConvertsOtherFormatsAndTracksJobs() {
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-print-cli-" + Guid.NewGuid().ToString("N") + ".md");
+        File.WriteAllText(path, "# Heading\n\nPrinted from Markdown.");
+        try {
+            var service = new PrinterBoundary();
+            using var output = new StringWriter();
+            int code = await WorkflowPrintCommand.RunAsync(["print", path, "--printer", "ipp://localhost:8631/ipp/print", "--paper", "A4"],
+                output, TextWriter.Null, CancellationToken.None, service);
+            Assert.Equal((int)OfficeImoToolExitCode.Success, code);
+            Assert.Equal("ipp://localhost:8631/ipp/print", service.Options!.PrinterName);
+            Assert.NotEmpty(service.Document!.Plan.Sheets);
+
+            using var status = new StringWriter();
+            Assert.Equal((int)OfficeImoToolExitCode.Success, await WorkflowPrintCommand.RunAsync(
+                ["print-job", "cancel", "--printer", "Test queue", "--job", "test-42"], status, TextWriter.Null, CancellationToken.None, service));
+            Assert.Equal("Job test-42 on Test queue: Canceled", status.ToString().Trim());
+            await Assert.ThrowsAsync<WorkflowUsageException>(() => WorkflowPrintCommand.RunAsync(
+                ["print-job", "status", "--printer", "Test queue"], TextWriter.Null, TextWriter.Null, CancellationToken.None, service));
+        } finally { File.Delete(path); }
+    }
+
     private sealed class PrinterBoundary : IPdfPrinterService {
+        public Task<PdfPrintJobStatus> GetJobAsync(string printerName, string jobId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new PdfPrintJobStatus(printerName, jobId, PdfPrintJobState.Completed));
+        public Task<PdfPrintJobStatus> CancelJobAsync(string printerName, string jobId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new PdfPrintJobStatus(printerName, jobId, PdfPrintJobState.Canceled));
         public PdfPrinterMedia? DefaultMedia { get; init; }
         public PdfPrintJob? Document { get; private set; }
         public PdfPrintDeliveryOptions? Options { get; private set; }

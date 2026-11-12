@@ -67,6 +67,13 @@ public sealed class PdfPrintJob {
         return new PdfPrintSheetImage(sheetNumber, OfficePngWriter.Encode(raster, cancellationToken), raster.Width, raster.Height, diagnostics);
     }
 
+    /// <summary>Renders every sheet with the plan's color mode and wraps the images in a PDF, one sheet at a time.</summary>
+    internal byte[] RasterizeToPdf(double maximumDpi, CancellationToken cancellationToken) =>
+        PdfPrintJobComposer.WrapRasterSheets(Plan.Sheets, sheet => {
+            double dpi = PdfPrintRaster.ResolveDpi(maximumDpi, maximumDpi, sheet.PaperSize.Width.ToPoints(), sheet.PaperSize.Height.ToPoints(), MaximumPixelsPerImage);
+            return OfficePngWriter.Encode(RenderRaster(sheet.SheetNumber, dpi, MaximumPixelsPerImage, cancellationToken).Raster, cancellationToken);
+        }, 256L * 1024 * 1024, cancellationToken);
+
     internal (OfficeRasterImage Raster, IReadOnlyList<string> Diagnostics) RenderRaster(int sheetNumber, double dpi, long maximumPixels,
         CancellationToken cancellationToken) {
         if (sheetNumber < 1 || sheetNumber > Plan.Sheets.Count) throw new ArgumentOutOfRangeException(nameof(sheetNumber));

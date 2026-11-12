@@ -44,6 +44,10 @@ internal sealed class PwgRasterPage {
     public bool Duplex { get; init; }
     /// <summary>Short-edge binding for two-sided jobs.</summary>
     public bool Tumble { get; init; }
+    /// <summary>-1 when the pixels were mirrored across the feed direction (each row reversed), otherwise 1.</summary>
+    public int CrossFeedTransform { get; init; } = 1;
+    /// <summary>-1 when the pixels were mirrored along the feed direction (row order reversed), otherwise 1.</summary>
+    public int FeedTransform { get; init; } = 1;
 
     internal int BytesPerPixel => ColorSpace == PwgRasterColorSpace.Rgb8 ? 3 : 1;
 }
@@ -98,8 +102,8 @@ internal sealed class PwgRasterWriter {
         UInt(header, 400, page.ColorSpace == PwgRasterColorSpace.Rgb8 ? ColorSpaceSrgb : ColorSpaceSGray);
         UInt(header, 420, (uint)page.BytesPerPixel); // NumColors
         UInt(header, 452, (uint)_totalPages);
-        UInt(header, 456, 1); // CrossFeedTransform
-        UInt(header, 460, 1); // FeedTransform
+        UInt(header, 456, unchecked((uint)page.CrossFeedTransform));
+        UInt(header, 460, unchecked((uint)page.FeedTransform));
         UInt(header, 472, (uint)page.Width); // ImageBoxRight
         UInt(header, 476, (uint)page.Height); // ImageBoxBottom
         UInt(header, 480, 0x00FFFFFF); // AlternatePrimary: white

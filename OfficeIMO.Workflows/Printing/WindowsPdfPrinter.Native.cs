@@ -30,6 +30,19 @@ internal static partial class WindowsPdfPrinter {
             internal int XPixelsPerMeter, YPixelsPerMeter;
             internal uint ColorsUsed, ColorsImportant;
         }
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct JobInfo1 {
+            internal uint JobId;
+            internal IntPtr PrinterName, MachineName, UserName, Document, DataType, StatusText;
+            internal uint Status, Priority, Position, TotalPages, PagesPrinted;
+            internal ushort Year, Month, DayOfWeek, Day, Hour, Minute, Second, Milliseconds;
+        }
+        [DllImport("winspool.drv", EntryPoint = "GetJobW", CharSet = CharSet.Unicode, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GetJob(IntPtr printer, uint jobId, uint level, IntPtr buffer, uint size, out uint needed);
+        [DllImport("winspool.drv", EntryPoint = "SetJobW", CharSet = CharSet.Unicode, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool SetJob(IntPtr printer, uint jobId, uint level, IntPtr job, uint command);
         [DllImport("winspool.drv", EntryPoint = "EnumPrintersW", CharSet = CharSet.Unicode, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool EnumPrinters(uint flags, string? name, uint level, IntPtr buffer, uint size, out uint needed, out uint returned);

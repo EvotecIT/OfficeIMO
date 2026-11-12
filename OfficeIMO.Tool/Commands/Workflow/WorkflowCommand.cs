@@ -17,7 +17,7 @@ Usage:
   officeimo workflow export-pages <input.pdf> --output <folder> [--pages <selection>]
              [--format png|jpeg|webp|tiff|svg] [--dpi <36-600>] [--max-dimension <pixels>] [--force]
   officeimo workflow assemble <source>... --output <output.pdf> [--no-recursive] [--force]
-  officeimo workflow print-plan <input.pdf> [--pages <selection>] [--paper A4|Letter|Legal|A3]
+  officeimo workflow print-plan <input.pdf> [--pages <selection>] [--paper A4|Letter|Legal|A3] [--password-env <name>]
              [--orientation auto|portrait|landscape] [--pages-per-sheet 1|2|4|6|9]
              [--scale fit|actual|fill|custom] [--custom-scale <percent>] [--margin <points>]
              [--margin-left <points>] [--margin-top <points>] [--margin-right <points>] [--margin-bottom <points>]
@@ -36,12 +36,15 @@ Usage:
   officeimo workflow job plan <job.json>
   officeimo workflow job run <job.json> [--retry-failed] [--allow-empty] [--format json|ndjson] [--report <new-report.json>]
   officeimo workflow job report <run-report.json>
-  officeimo workflow printers [--capabilities <queue> | --paper-sources <queue>]
-  officeimo workflow print <input.pdf> --printer <name> [print-plan options; --paper defaults to the printer's media]
+  officeimo workflow printers [--capabilities <printer> | --paper-sources <printer>]
+  officeimo workflow print <document> --printer <queue|ipp://uri> [print-plan options; --paper defaults to the printer's media]
              [--copies 1..100] [--duplex default|off|long|short] [--paper-source <id>] [--dpi 72..600]
              [--output-file <new-local-path>]
+  officeimo workflow print-job status|wait|cancel --printer <queue|ipp://uri> --job <id> [--timeout <seconds>]
 
 Page selections accept document-relative expressions such as 1-3,last.
+print accepts PDF and every format the conversion catalog turns into PDF; --password-env applies to PDF input.
+Printers are installed queue names or ipp:// and ipps:// printer URIs. Queue acceptance is not completion; use print-job.
 Folders and ZIP archives are expanded deterministically by the reusable workflow owner.
 Existing output is refused unless --force is supplied.
 Batch output defaults to the existing aggregate JSON. --format json adds per-file outcomes
@@ -57,7 +60,8 @@ Batch and saved jobs fail when no inputs are selected unless --allow-empty is su
         TextWriter standardError,
         CancellationToken cancellationToken = default,
         IOfficeOutputWorkflowRunner? runner = null,
-        Func<PdfPrintPlanRequest, CancellationToken, Task<PdfPrintPlan>>? printPlanner = null) {
+        Func<PdfPrintPlanRequest, CancellationToken, Task<PdfPrintPlan>>? printPlanner = null,
+        IPdfPrinterService? printerService = null) {
         WorkflowCommandKind activeCommand = WorkflowCommandKind.Help;
         try {
             if (args.FirstOrDefault() == "compare")
@@ -68,8 +72,8 @@ Batch and saved jobs fail when no inputs are selected unless --allow-empty is su
                 return await WorkflowBatchCommand.RunAsync(args[1..], standardOutput, standardError, cancellationToken).ConfigureAwait(false);
             if (args.FirstOrDefault() == "job")
                 return await WorkflowJobCommand.RunAsync(args[1..], standardOutput, standardError, cancellationToken).ConfigureAwait(false);
-            if (args.FirstOrDefault() is "printers" or "print")
-                return await WorkflowPrintCommand.RunAsync(args, standardOutput, standardError, cancellationToken).ConfigureAwait(false);
+            if (args.FirstOrDefault() is "printers" or "print" or "print-job")
+                return await WorkflowPrintCommand.RunAsync(args, standardOutput, standardError, cancellationToken, printerService).ConfigureAwait(false);
             WorkflowArguments parsed = WorkflowArguments.Parse(args);
             activeCommand = parsed.Command;
             if (parsed.Command == WorkflowCommandKind.Help) {

@@ -76,21 +76,27 @@ public sealed class IppEvePrinterTests {
     }
 
     [ExternalToolFact(IppEvePrinterPath)]
-    public async Task CancelsAJobThatIsStillProcessing() {
+    public async Task ServiceTracksAndCancelsAJobThatIsStillProcessing() {
         // Without a print command the reference printer simulates several seconds of processing per job.
         using var printer = EvePrinter.Start("-f", "application/pdf");
-        using var client = new IppPrintClient(printer.Uri);
+        var service = new PdfPrinterService();
+        string uri = printer.Uri.AbsoluteUri;
 
-        IppSubmission submission = await client.PrintAsync(Pdf, "application/pdf", new IppJobOptions { JobName = "ipp-cancel" });
-        IReadOnlyList<IppJobInfo> active = await client.GetJobsAsync();
-        Assert.Contains(active, job => job.Id == submission.Job.Id && !job.IsTerminal);
-        await client.CancelJobAsync(submission.Job.Id);
-        IppJobInfo finished = await client.WaitForJobAsync(submission.Job.Id, JobTimeout, TimeSpan.FromMilliseconds(100));
+        PdfPrintSubmission receipt = await service.SubmitAsync(TwoPageJob(PdfPrintColorMode.Color), new PdfPrintDeliveryOptions { PrinterName = uri, DocumentName = "ipp-cancel" });
+        PdfPrintJobStatus running = await service.GetJobAsync(uri, receipt.JobId);
+        Assert.False(running.IsTerminal);
+        Assert.Equal(receipt.JobId, running.JobId);
+        await Assert.ThrowsAsync<TimeoutException>(() => service.WaitForJobAsync(uri, receipt.JobId, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(100)));
 
-        Assert.Equal(IppJobState.Canceled, finished.State);
-        Assert.Contains("job-canceled-by-user", finished.StateReasons);
-        IppException again = await Assert.ThrowsAsync<IppException>(() => client.CancelJobAsync(submission.Job.Id));
-        Assert.NotNull(again.StatusCode);
+        PdfPrintJobStatus canceled = await service.CancelJobAsync(uri, receipt.JobId);
+        canceled = canceled.IsTerminal ? canceled : await service.WaitForJobAsync(uri, receipt.JobId, JobTimeout, TimeSpan.FromMilliseconds(100));
+        Assert.Equal(PdfPrintJobState.Canceled, canceled.State);
+        Assert.Contains("job-canceled-by-user", canceled.StateReasons);
+        // Canceling a finished job reports it instead of failing, and unknown jobs are reported as removed.
+        Assert.Equal(PdfPrintJobState.Canceled, (await service.CancelJobAsync(uri, receipt.JobId)).State);
+        Assert.Equal(PdfPrintJobState.Removed, (await service.GetJobAsync(uri, "999")).State);
+        Assert.Equal(PdfPrintJobState.Removed, (await service.CancelJobAsync(uri, "999")).State);
+        await Assert.ThrowsAsync<ArgumentException>(() => service.GetJobAsync(uri, "printer-12"));
     }
 
     [ExternalToolFact(IppEvePrinterPath)]
@@ -106,6 +112,167 @@ public sealed class IppEvePrinterTests {
         IppException missing = await Assert.ThrowsAsync<IppException>(() => client.GetJobAsync(999));
         Assert.Equal(0x0406, missing.StatusCode);
     }
+
+    [ExternalToolFact(IppEvePrinterPath)]
+    public async Task ServiceReadsCapabilitiesAndSendsVectorPdfToAPrinterThatAcceptsIt() {
+        using var printer = EvePrinter.Start("-2", "-s", "10,10", "-f", "application/pdf,image/pwg-raster", "-c", "/usr/bin/true");
+        var service = new PdfPrinterService();
+        string uri = printer.Uri.AbsoluteUri;
+
+        PdfPrinterCapabilities capabilities = await service.GetCapabilitiesAsync(uri);
+        Assert.Equal(uri, capabilities.PrinterName);
+        Assert.Contains(capabilities.Media, media => media.Id == "iso_a4_210x297mm");
+        Assert.NotNull(capabilities.DefaultMedia?.Size);
+        Assert.True(capabilities.SupportsDuplex);
+        Assert.True(capabilities.SupportsColor);
+        Assert.Contains(capabilities.PaperSources, source => source.Id == "main");
+
+        PdfPrintJob job = TwoPageJob(PdfPrintColorMode.Color);
+        PdfPrintSubmission receipt = await service.SubmitAsync(job, new PdfPrintDeliveryOptions {
+            PrinterName = uri, DocumentName = "service-pdf", Duplex = PdfPrintDuplex.LongEdge, Copies = 2, PaperSourceId = "main"
+        });
+
+        Assert.Equal(uri, receipt.PrinterName);
+        Assert.Empty(receipt.IgnoredAttributes);
+        Assert.Equal(PdfPrintJobState.Completed, (await WaitAsync(service, receipt)).State);
+        using var content = new MemoryStream();
+        using (Stream source = job.OpenContent()) source.CopyTo(content);
+        Assert.Equal(content.ToArray(), File.ReadAllBytes(printer.SpooledDocument(Number(receipt), ".pdf")));
+    }
+
+    [ExternalToolFact(IppEvePrinterPath, PwgRasterWriterTests.IppEvePcl)]
+    public async Task ServiceSendsPwgRasterToAPrinterWithoutPdfAndForGrayscaleJobs() {
+        // ippevepcl parses each PWG raster page, so the job completes only when the raster stream is well formed.
+        string conf = Path.Combine(Path.GetTempPath(), "officeimo-pwg-only-" + Guid.NewGuid().ToString("N") + ".conf");
+        // An attribute file replaces the legacy flags; this printer accepts only color PWG raster and wants rotated back sides.
+        File.WriteAllText(conf, "ATTR mimeMediaType document-format-supported image/pwg-raster\n" +
+            "ATTR keyword pwg-raster-document-type-supported sgray_8,srgb_8\n" +
+            "ATTR resolution pwg-raster-document-resolution-supported 150dpi,300dpi\n" +
+            "ATTR keyword print-color-mode-supported auto,color,monochrome\n" +
+            "ATTR keyword sides-supported one-sided,two-sided-long-edge,two-sided-short-edge\n" +
+            "ATTR keyword pwg-raster-document-sheet-back rotated\n");
+        try {
+            using var rasterOnly = EvePrinter.Start("-a", conf, "-c", PwgRasterWriterTests.IppEvePcl);
+            using var pdfPrinter = EvePrinter.Start("-f", "application/pdf,image/pwg-raster", "-c", PwgRasterWriterTests.IppEvePcl);
+            var service = new PdfPrinterService();
+            foreach ((EvePrinter printer, PdfPrintColorMode color) in new[] { (rasterOnly, PdfPrintColorMode.Color), (pdfPrinter, PdfPrintColorMode.Grayscale) }) {
+                PdfPrintSubmission receipt = await service.SubmitAsync(TwoPageJob(color), new PdfPrintDeliveryOptions {
+                    PrinterName = printer.Uri.AbsoluteUri, DocumentName = "service-raster", Duplex = PdfPrintDuplex.LongEdge, MaximumRasterDpi = 150
+                });
+                Assert.Equal(PdfPrintJobState.Completed, (await WaitAsync(service, receipt)).State);
+                byte[] spooled = File.ReadAllBytes(printer.SpooledDocument(Number(receipt), ".pwg"));
+                Assert.Equal("RaS2", Encoding.ASCII.GetString(spooled, 0, 4));
+            }
+        } finally {
+            File.Delete(conf);
+        }
+    }
+
+    [ExternalToolFact(IppEvePrinterPath)]
+    public async Task CupsQueuesAreDeliveredOverIppWithLpStyleJobIdentifiers() {
+        // The reference printer stands in for a scheduler queue: the CUPS route resolves "officeimo-test" to its URI.
+        using var printer = EvePrinter.Start("-f", "application/pdf,image/pwg-raster", "-c", "/usr/bin/true");
+        var scheduler = new CupsScheduler(new Uri(printer.Uri, "/"), null, (_, isClass) => isClass ? new Uri(printer.Uri, "/missing") : printer.Uri);
+
+        IppPrinterCapabilities attributes = (await CupsPdfPrinter.ResolveIppQueueAsync(scheduler, "officeimo-test", default)
+            ?? throw new InvalidOperationException("The queue did not resolve over IPP.")).Printer;
+        Assert.Contains("application/pdf", attributes.DocumentFormats);
+        PdfPrintSubmission receipt = await CupsPdfPrinter.SubmitAsync(scheduler, TwoPageJob(PdfPrintColorMode.Color),
+            new PdfPrintDeliveryOptions { PrinterName = "officeimo-test", DocumentName = "cups-route" }, default);
+
+        Assert.Equal("officeimo-test", receipt.PrinterName);
+        Assert.Matches(@"^officeimo-test-\d+$", receipt.JobId);
+        var tracked = new PdfPrinterService(scheduler);
+        Assert.Equal(PdfPrintJobState.Completed, (await WaitAsync(tracked, receipt)).State);
+        Assert.True(File.Exists(printer.SpooledDocument(Number(receipt), ".pdf")));
+    }
+
+    [Fact]
+    public async Task AnUnreachableSchedulerLeavesQueuesToTheCommandLineTools() {
+        var closed = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+        closed.Start();
+        int port = ((IPEndPoint)closed.LocalEndpoint).Port;
+        closed.Stop();
+        var scheduler = new CupsScheduler(new Uri("ipp://localhost:" + port + "/"), null);
+
+        Assert.Null(await CupsPdfPrinter.ResolveIppQueueAsync(scheduler, "officeimo-test", default));
+        Assert.Null(await CupsPdfPrinter.ResolveIppQueueAsync(new CupsScheduler(null, null), "officeimo-test", default));
+    }
+
+    [ExternalToolFact("/private/var/run/cupsd")]
+    public async Task TheLocalSchedulerAnswersOverItsDomainSocket() {
+        // Read-only: lists installed queues and looks up a queue that does not exist.
+        Assert.True(CupsScheduler.Local.IsAvailable);
+        using IppPrintClient client = CupsScheduler.Local.CreateSchedulerClient();
+        (IReadOnlyList<(string Name, bool IsClass)> queues, _) = await client.GetCupsQueuesAsync();
+        Assert.DoesNotContain(queues, queue => queue.Name.Length == 0);
+        Assert.Null(await CupsPdfPrinter.ResolveIppQueueAsync(CupsScheduler.Local, "officeimo-no-such-queue-" + Guid.NewGuid().ToString("N"), default));
+    }
+
+    [Theory]
+    [InlineData("print.example.com", null)]
+    [InlineData("localhost:8631", "ipp://localhost:8631/")]
+    [InlineData("[::1]:631", "ipp://localhost:631/")]
+    [InlineData(null, "ipp://localhost:631/")]
+    public void SchedulerAddressFollowsCupsServerAndStaysLocal(string? server, string? expected) {
+        CupsScheduler scheduler = CupsScheduler.FromEnvironment(server, _ => false);
+        Assert.Equal(expected is not null, scheduler.IsAvailable);
+        if (expected is not null) Assert.Equal(new Uri(expected + "printers/q"), scheduler.Queue("q", isClass: false).PrinterUri);
+        Assert.Equal(new Uri("ipp://localhost/classes/a%20b"), CupsScheduler.FromEnvironment(null, path => path == "/run/cups/cups.sock").Queue("a b", isClass: true).PrinterUri);
+    }
+
+    [ExternalToolFact(IppEvePrinterPath)]
+    public async Task PrintsAWordDocumentByUriWithItsConversionReport() {
+        using var printer = EvePrinter.Start("-f", "application/pdf,image/pwg-raster", "-c", "/usr/bin/true");
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-print-any-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string docx = Path.Combine(directory, "Letter.docx"), pdf = Path.Combine(directory, "Letter.pdf");
+            using (OfficeIMO.Word.WordDocument document = OfficeIMO.Word.WordDocument.Create(docx)) {
+                document.AddParagraph("Printed straight from Word");
+                document.Save();
+            }
+            OfficeIMO.Pdf.PdfDocument.Create(builder => builder.Page(page => page.Size(OfficeIMO.Pdf.PdfPageSizes.A4))).Save(pdf);
+            var service = new PdfPrinterService();
+
+            OfficePrintResult word = await service.PrintAsync(new OfficePrintRequest {
+                Layout = new PdfPrintPlanRequest { InputPath = docx, PagesPerSheet = 2 }, UsePrinterPaper = true,
+                Delivery = new PdfPrintDeliveryOptions { PrinterName = printer.Uri.AbsoluteUri, DocumentName = "Letter.docx" }
+            });
+            OfficePrintResult direct = await service.PrintAsync(new OfficePrintRequest {
+                Layout = new PdfPrintPlanRequest { InputPath = pdf },
+                Delivery = new PdfPrintDeliveryOptions { PrinterName = printer.Uri.AbsoluteUri, DocumentName = "Letter.pdf" }
+            });
+
+            Assert.NotNull(word.Conversion);
+            Assert.Equal(PdfPrintContentKind.Vector, word.ContentKind);
+            Assert.Null(direct.Conversion);
+            foreach (OfficePrintResult result in new[] { word, direct }) {
+                Assert.Equal(PdfPrintJobState.Completed, (await WaitAsync(service, result.Submission)).State);
+                Assert.StartsWith("%PDF", Encoding.ASCII.GetString(File.ReadAllBytes(printer.SpooledDocument(Number(result.Submission), ".pdf")), 0, 4));
+            }
+            // The printer's default media is US Letter, so the converted document was laid out on it.
+            OfficeIMO.Pdf.PdfPageLayoutInfo sheet = OfficeIMO.Pdf.PdfDocument.Load(printer.SpooledDocument(Number(word.Submission), ".pdf")).GetPrintablePageLayouts()[0];
+            Assert.Equal((612, 792), (Math.Round(Math.Min(sheet.Width, sheet.Height)), Math.Round(Math.Max(sheet.Width, sheet.Height))));
+            await Assert.ThrowsAsync<ArgumentException>(() => service.PrintAsync(new OfficePrintRequest {
+                Layout = new PdfPrintPlanRequest { InputPath = docx, PdfPassword = "secret" },
+                Delivery = new PdfPrintDeliveryOptions { PrinterName = printer.Uri.AbsoluteUri }
+            }));
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    private static PdfPrintJob TwoPageJob(PdfPrintColorMode color) =>
+        PdfPrintJob.Create(OfficeIMO.Pdf.PdfDocument.Create(document => {
+            document.Page(page => page.Size(OfficeIMO.Pdf.PdfPageSizes.A4).Background(OfficeIMO.OfficeColor.Red));
+            document.Page(page => page.Size(OfficeIMO.Pdf.PdfPageSizes.A4).Background(OfficeIMO.OfficeColor.Blue));
+        }), new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = OfficeIMO.Pdf.PdfPageSizes.A4, ColorMode = color });
+
+    private static Task<PdfPrintJobStatus> WaitAsync(IPdfPrinterService service, PdfPrintSubmission receipt) =>
+        service.WaitForJobAsync(receipt.PrinterName, receipt.JobId, JobTimeout, TimeSpan.FromMilliseconds(100));
+
+    private static int Number(PdfPrintSubmission receipt) => int.Parse(receipt.JobId.Substring(receipt.JobId.LastIndexOf('-') + 1));
 
     private sealed class EvePrinter : IDisposable {
         private readonly Process _process;
