@@ -16,13 +16,16 @@ public sealed partial class CsvRowWriter
     private void WriteDataReaderRecords(IDataReader reader, CsvWriter.DataReaderFieldKind[] fieldKinds, CancellationToken cancellationToken)
     {
         bool boxedValues = reader.GetType() == typeof(DataTableReader);
-        bool invariantRows = !_useFormattedDefaultWritePath && _delimiter == ','
-            && ReferenceEquals(_options.Culture, CultureInfo.InvariantCulture) && CsvWriter.HasOnlyInvariantRecordKinds(fieldKinds);
+        CsvWriter.InvariantRecordLayout layout = !_useFormattedDefaultWritePath && _delimiter == ','
+            && ReferenceEquals(_options.Culture, CultureInfo.InvariantCulture)
+                ? CsvWriter.GetInvariantRecordLayout(fieldKinds)
+                : CsvWriter.InvariantRecordLayout.None;
+        bool invariantRows = layout != CsvWriter.InvariantRecordLayout.None;
         bool rowPending = false;
         // Exactly UTF8Encoding: its encoder writes ASCII as is, so the bytes match what the text path would encode.
         if (invariantRows && _writer is PooledUtf8TextWriter utf8Writer && utf8Writer.Encoding.GetType() == typeof(UTF8Encoding))
         {
-            rowPending = WriteInvariantUtf8Records(reader, utf8Writer, fieldKinds, boxedValues, cancellationToken);
+            rowPending = WriteInvariantUtf8Records(reader, utf8Writer, fieldKinds, layout, boxedValues, cancellationToken);
             if (!rowPending)
             {
                 return;
@@ -50,7 +53,7 @@ public sealed partial class CsvRowWriter
                 }
 
                 rowPending = false;
-                if (!invariantRows || !TryAppendInvariantRecord(output, reader, fieldKinds, boxedValues, _options.NewLine.AsSpan(), null))
+                if (!invariantRows || !TryAppendInvariantRecord(output, reader, fieldKinds, layout, boxedValues, _options.NewLine.AsSpan(), null))
                 {
                     // After a rejected typed read every later row takes the per-field path, as before.
                     invariantRows = false;
@@ -81,7 +84,8 @@ public sealed partial class CsvRowWriter
     /// the current row, after delivering the rows before it; the caller then writes that row and the rest as text.
     /// </summary>
     private bool WriteInvariantUtf8Records(
-        IDataReader reader, PooledUtf8TextWriter writer, CsvWriter.DataReaderFieldKind[] fieldKinds, bool boxedValues, CancellationToken cancellationToken)
+        IDataReader reader, PooledUtf8TextWriter writer, CsvWriter.DataReaderFieldKind[] fieldKinds, CsvWriter.InvariantRecordLayout layout,
+        bool boxedValues, CancellationToken cancellationToken)
     {
         Encoding encoding = writer.Encoding;
         byte[] newLine = encoding.GetBytes(_options.NewLine);
@@ -98,7 +102,7 @@ public sealed partial class CsvRowWriter
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!TryAppendInvariantRecord(output, reader, fieldKinds, boxedValues, newLine, encoding))
+                if (!TryAppendInvariantRecord(output, reader, fieldKinds, layout, boxedValues, newLine, encoding))
                 {
                     Deliver(writer, output, ref completed);
                     return true;
@@ -149,8 +153,8 @@ public sealed partial class CsvRowWriter
 
     /// <summary>Writes one row through the one-pass invariant path; false rewinds it for the per-field path.</summary>
     private static bool TryAppendInvariantRecord<TChar>(
-        CsvWriter.RecordBuffer<TChar> output, IDataReader reader, CsvWriter.DataReaderFieldKind[] fieldKinds, bool boxedValues,
-        ReadOnlySpan<TChar> newLine, Encoding? encoding)
+        CsvWriter.RecordBuffer<TChar> output, IDataReader reader, CsvWriter.DataReaderFieldKind[] fieldKinds,
+        CsvWriter.InvariantRecordLayout layout, bool boxedValues, ReadOnlySpan<TChar> newLine, Encoding? encoding)
         where TChar : unmanaged
     {
         int rowStart = output.Length;
@@ -159,12 +163,12 @@ public sealed partial class CsvRowWriter
             if (boxedValues)
             {
                 var fields = new CsvWriter.BoxedRecordFields(reader);
-                CsvWriter.AppendInvariantRecord(output, ref fields, fieldKinds, newLine, encoding);
+                AppendInvariantRecord(output, ref fields, fieldKinds, layout, newLine, encoding);
             }
             else
             {
                 var fields = new CsvWriter.TypedRecordFields(reader);
-                CsvWriter.AppendInvariantRecord(output, ref fields, fieldKinds, newLine, encoding);
+                AppendInvariantRecord(output, ref fields, fieldKinds, layout, newLine, encoding);
             }
 
             return true;
@@ -173,6 +177,26 @@ public sealed partial class CsvRowWriter
         {
             output.Length = rowStart;
             return false;
+        }
+    }
+
+    private static void AppendInvariantRecord<TFields, TChar>(
+        CsvWriter.RecordBuffer<TChar> output, ref TFields fields, CsvWriter.DataReaderFieldKind[] fieldKinds,
+        CsvWriter.InvariantRecordLayout layout, ReadOnlySpan<TChar> newLine, Encoding? encoding)
+        where TFields : struct, CsvWriter.IRecordFields
+        where TChar : unmanaged
+    {
+        switch (layout)
+        {
+            case CsvWriter.InvariantRecordLayout.Text:
+                CsvWriter.AppendInvariantRecord<TFields, TChar, CsvWriter.TextRecordLayout>(output, ref fields, fieldKinds, newLine, encoding);
+                break;
+            case CsvWriter.InvariantRecordLayout.Scalar:
+                CsvWriter.AppendInvariantRecord<TFields, TChar, CsvWriter.ScalarRecordLayout>(output, ref fields, fieldKinds, newLine, encoding);
+                break;
+            default:
+                CsvWriter.AppendInvariantRecord<TFields, TChar, CsvWriter.MixedRecordLayout>(output, ref fields, fieldKinds, newLine, encoding);
+                break;
         }
     }
 }
