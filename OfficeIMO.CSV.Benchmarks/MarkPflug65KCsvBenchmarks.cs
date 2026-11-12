@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Data.Common;
+using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
 using CsvHelper.Configuration;
 using ExcelReader.Core.Reader;
@@ -150,6 +151,7 @@ public class MarkPflug65KCsvBenchmarks {
         return Observe(reader.FieldCount, read: reader.ReadNextRecord, value: ordinal => reader[ordinal]);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static CsvReadObservation Observe(
         int fieldCount,
         Func<bool> read,
@@ -171,6 +173,9 @@ public class MarkPflug65KCsvBenchmarks {
         return new CsvReadObservation(rows, cells, characters, checksum);
     }
 
+    // Inlined into each benchmark so every reader gets its own monomorphic call sites. A shared body would let
+    // tiered PGO devirtualize GetString only for whichever reader the setup profiled first.
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static CsvReadObservation Observe(DbDataReader reader) {
         int fieldCount = reader.FieldCount;
         int rows = 0;
