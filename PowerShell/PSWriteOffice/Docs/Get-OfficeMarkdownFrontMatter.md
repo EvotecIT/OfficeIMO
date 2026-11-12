@@ -30,7 +30,7 @@ Get-OfficeMarkdownFrontMatter -Text <string> [-Options <Object[]>] [-Key <string
 ```
 
 ## DESCRIPTION
-Gets top-level YAML front matter entries from a Markdown document as Key, Value, Node and SourceSpan objects.
+Gets YAML front matter entries from a Markdown document.
 
 ## EXAMPLES
 
