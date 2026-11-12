@@ -64,7 +64,9 @@ $docs = @(Get-ChildItem -LiteralPath $docsRoot -Recurse -File -Filter '*.md')
 foreach ($doc in $docs) {
     $raw = Get-Content -LiteralPath $doc.FullName -Raw
     $relativePath = [System.IO.Path]::GetRelativePath($docsRoot, $doc.FullName)
-    if ($raw -match '(?m)^#\s+') {
+    # Comment lines inside fenced code (YAML, TOML, shell) are not headings.
+    $prose = [regex]::Replace($raw, '(?ms)^(```|~~~).*?^\1', '')
+    if ($prose -match '(?m)^#\s+') {
         Add-Failure "'$relativePath' contains a body H1; the docs layout already renders the page title."
     }
     if ($raw -match '/examples/pswriteoffice/') {
