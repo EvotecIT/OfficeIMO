@@ -85,8 +85,6 @@ OfficeIMO.Word.WordDocument.ReplaceAll(string! text, string! replacement, Office
 OfficeIMO.Word.WordDocumentMergeOptions
 OfficeIMO.Word.WordDocumentMergeOptions.SectionMode.get -> OfficeIMO.Word.WordMergeSectionMode
 OfficeIMO.Word.WordDocumentMergeOptions.SectionMode.set -> void
-OfficeIMO.Word.WordDocumentMergeOptions.StyleMode.get -> OfficeIMO.Word.WordMergeStyleMode
-OfficeIMO.Word.WordDocumentMergeOptions.StyleMode.set -> void
 OfficeIMO.Word.WordDocumentMergeOptions.WordDocumentMergeOptions() -> void
 *REMOVED*OfficeIMO.Word.WordDocumentRegexExtensions
 OfficeIMO.Word.WordFieldEvaluationBasis.LayoutPagination = 6 -> OfficeIMO.Word.WordFieldEvaluationBasis
@@ -162,9 +160,6 @@ OfficeIMO.Word.WordList.Strikethrough.set -> void
 OfficeIMO.Word.WordMergeSectionMode
 OfficeIMO.Word.WordMergeSectionMode.KeepSourceSections = 0 -> OfficeIMO.Word.WordMergeSectionMode
 OfficeIMO.Word.WordMergeSectionMode.UseDestinationSections = 1 -> OfficeIMO.Word.WordMergeSectionMode
-OfficeIMO.Word.WordMergeStyleMode
-OfficeIMO.Word.WordMergeStyleMode.KeepDifferentStyles = 1 -> OfficeIMO.Word.WordMergeStyleMode
-OfficeIMO.Word.WordMergeStyleMode.UseDestinationStyles = 0 -> OfficeIMO.Word.WordMergeStyleMode
 OfficeIMO.Word.WordPageSetup
 OfficeIMO.Word.WordPageSetup.DifferentFirstPage.get -> bool
 OfficeIMO.Word.WordPageSetup.DifferentFirstPage.set -> void
@@ -708,3 +703,7 @@ OfficeIMO.Word.WordMacroProjectSigningOptions.SignatureMutationPolicy.get -> Off
 OfficeIMO.Word.WordMacroProjectSigningOptions.SignatureMutationPolicy.set -> void
 OfficeIMO.Word.WordSaveOptions.SignatureMutationPolicy.get -> OfficeIMO.OfficeSignatureMutationPolicy
 OfficeIMO.Word.WordSaveOptions.SignatureMutationPolicy.set -> void
+OfficeIMO.Word.WordDocumentMergeOptions.StyleConflictMode.get -> OfficeIMO.Word.WordStyleConflictMode
+OfficeIMO.Word.WordDocumentMergeOptions.StyleConflictMode.set -> void
+OfficeIMO.Word.WordDocument.SplitByHeading(int level = 1) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordDocument!>!
+OfficeIMO.Word.WordDocument.SplitBySection() -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordDocument!>!

@@ -555,24 +555,42 @@ Each table of contents becomes a complete TOC field with one hyperlinked entry p
 using var pack = WordDocument.Load("cover.docx");
 foreach (string brief in briefs) {
     using var source = WordDocument.Load(brief);
-    pack.AppendDocument(source, new WordDocumentMergeOptions {
-        StyleMode = WordMergeStyleMode.KeepDifferentStyles
-    });
+    pack.AppendDocument(source);
 }
 
 pack.UpdateFields(new WordFieldUpdateOptions { UpdateTablesOfContents = true }.WithPdfLayoutPagination());
 pack.Save("pack.docx");
 ```
 
-`StyleMode` decides what happens when a source style matches a destination style by name (or id):
+`StyleConflictMode` decides what happens when a source style matches a destination style by name (or id) but is defined differently. Matching styles with the same definition are shared, and styles the destination lacks are copied, in every mode:
 
-- `UseDestinationStyles` (default) uses the destination definition and copies only styles the destination lacks.
-- `KeepDifferentStyles` shares matching styles without list references and copies styles with differing definitions or list references under a new id and name, such as `Heading1_0` / `heading 1_0`, repointing the appended paragraphs, runs, tables and lists to it. When the document defaults differ, the source's root paragraph styles take a copy of the source defaults, and paragraphs without a style name the source default style explicitly.
+- `Rename` (default) keeps the appended content looking as it did: the source style is copied under a new id and name, such as `Heading1_0` / `heading 1_0`, and the appended paragraphs, runs, tables and lists point to it. Styles that number paragraphs with a list are always copied. When the document defaults differ, the source's root paragraph styles take a copy of the source defaults, and paragraphs without a style name the source default style explicitly.
+- `KeepTarget` formats the appended content with the destination's definition.
+- `Overwrite` replaces the destination's definition with the source one, so destination content using the style changes too.
 
 `SectionMode` decides how page setup is kept:
 
 - `KeepSourceSections` (default) closes the destination's last section with a section break, so each part keeps its page size, margins, orientation, headers and footers.
 - `UseDestinationSections` continues the appended content in the destination's last section and drops the source section breaks.
+
+Content after a source section break keeps its own page setup. A source section without its own header or footer would otherwise inherit the destination's last one, so it gets an empty one instead.
+
+### Split documents
+
+`SplitBySection()` returns one new document per section; `SplitByHeading(level)` starts a new document at every top-level paragraph whose heading level is `level` or higher, with any text before the first heading as its own piece. Headings are recognised by the outline level of the paragraph or its style chain, or by a `heading N` style name.
+
+```csharp
+using var handbook = WordDocument.Load("handbook.docx");
+IReadOnlyList<WordDocument> chapters = handbook.SplitByHeading(level: 1);
+for (int i = 0; i < chapters.Count; i++) {
+    using WordDocument chapter = chapters[i];
+    // A piece before the first heading may hold only a table or a picture.
+    string title = chapter.Paragraphs.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p.Text))?.Text ?? $"Part {i + 1}";
+    chapter.Save(Path.Combine("chapters", $"{i + 1:D2} {title}.docx"));
+}
+```
+
+Each piece is a copy of the source package with the rest of the body removed, so settings, theme, fonts and document properties carry over. The section the piece ends in closes it, and headers and footers the first section inherited in the source are written into it. Styles, lists, images, hyperlinks, embedded objects, headers, footers, footnotes, endnotes and comments the piece no longer uses are removed. Bookmarks and comment ranges cut by a piece boundary are dropped, and a complex field cut by a boundary is closed or loses its trailing marks so every piece opens cleanly; tables of contents keep their entries until fields are updated. The source document is not changed.
 
 ### Plain DOCX templates
 

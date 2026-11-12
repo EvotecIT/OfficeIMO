@@ -7655,6 +7655,18 @@
       "applied": "applied"
     },
     {
+      "old": "OfficeIMO.Word.WordDocumentMergeOptions.StyleMode",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordDocumentMergeOptions.StyleConflictMode : WordStyleConflictMode",
+      "replacement": "UseDestinationStyles is KeepTarget and KeepDifferentStyles is Rename. The default is now Rename: a source style that clashes with a destination style is copied as Heading1_0, so appended content keeps its look. Pass StyleConflictMode = WordStyleConflictMode.KeepTarget to format appended content with the destination styles as before; Overwrite replaces the destination definition.",
+      "reason": "Appending a document and Styles.Import resolve the same style conflicts, so they share one choice, and appended content keeps the look it had in its source.",
+      "file": "OfficeIMO.Word/WordDocumentMergeOptions.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
       "old": "OfficeIMO.Word.WordSignedDocumentSavePolicy",
       "kind": "enum",
       "action": "merge",
@@ -7687,6 +7699,18 @@
       "reason": "Word, Excel and PowerPoint use one signed-document save option: SignatureMutationPolicy of OfficeIMO.OfficeSignatureMutationPolicy, defaulting to BlockSave.",
       "file": "OfficeIMO.Word/WordMacroProjectSigning.cs",
       "category": "options",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordMergeStyleMode",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordStyleConflictMode",
+      "replacement": "UseDestinationStyles is KeepTarget and KeepDifferentStyles is Rename; Overwrite is new.",
+      "reason": "Appending a document and Styles.Import resolve the same style conflicts, so they share one choice, and appended content keeps the look it had in its source.",
+      "file": "OfficeIMO.Word/WordDocumentMergeOptions.cs",
+      "category": "authoring",
       "phase": "B",
       "applied": "applied"
     }
