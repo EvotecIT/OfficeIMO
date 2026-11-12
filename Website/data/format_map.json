@@ -3558,7 +3558,7 @@
       "source": "Visio",
       "target": "PDF",
       "package": "OfficeIMO.Visio.Pdf",
-      "support": "Targeted",
+      "support": "Established",
       "fidelity": "FixedLayout",
       "api": "VisioDocument.Load(stream).SaveAsPdf(output, options)",
       "surfaces": [
