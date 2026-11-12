@@ -20,7 +20,8 @@ internal sealed class IppPrinterEndpoint {
     public string PrinterName { get; }
     public Uri PrinterUri { get; }
 
-    public static IppPrinterEndpoint ForUri(string printerName, Uri printerUri) => new(printerName, printerUri, null, null);
+    public static IppPrinterEndpoint ForUri(string printerName, Uri printerUri, Func<HttpMessageHandler>? createHandler = null) =>
+        new(printerName, printerUri, createHandler, null);
 
     /// <summary>A CUPS queue; job identifiers take the lp form <c>queue-number</c>.</summary>
     public static IppPrinterEndpoint ForCupsQueue(string queue, Uri printerUri, Func<HttpMessageHandler>? createHandler) =>

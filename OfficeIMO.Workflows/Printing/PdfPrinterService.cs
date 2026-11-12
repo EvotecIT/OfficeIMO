@@ -90,9 +90,18 @@ public interface IPdfPrinterService {
 
 /// <summary>Delivers print jobs to IPP printers by URI, to CUPS queues through the local scheduler, and to Windows queues through GDI.</summary>
 /// <remarks>
-/// IPP printers receive vector PDF when they accept <c>application/pdf</c>, and PWG raster otherwise. CUPS queues receive PDF through the CUPS command-line tools. Windows queues receive raster sheets at the device resolution.
+/// IPP printers receive vector PDF when they accept <c>application/pdf</c>, and PWG raster otherwise. CUPS queues are reached over IPP at the
+/// local scheduler; when the scheduler is not reachable that way, or the queue is a discovered destination that the scheduler has not created yet,
+/// the CUPS command-line tools deliver the PDF instead. Windows queues receive raster sheets at the device resolution.
 /// </remarks>
 public sealed class PdfPrinterService : IPdfPrinterService {
+    private readonly CupsScheduler _cups;
+
+    /// <summary>Creates a service that uses the local CUPS scheduler where one is installed.</summary>
+    public PdfPrinterService() : this(CupsScheduler.Local) { }
+
+    internal PdfPrinterService(CupsScheduler cups) => _cups = cups;
+
     /// <inheritdoc />
     public Task<PdfPrinterCapabilities> GetCapabilitiesAsync(string printerName, CancellationToken cancellationToken = default) {
         ValidatePrinterName(printerName, nameof(printerName));
@@ -101,14 +110,14 @@ public sealed class PdfPrinterService : IPdfPrinterService {
             return IppPdfPrinter.GetCapabilitiesAsync(IppPrinterEndpoint.ForUri(printerName, uri!), cancellationToken);
         return OfficeRuntimeCompatibility.IsWindows
             ? WindowsPdfPrinter.GetCapabilitiesAsync(printerName, cancellationToken)
-            : CupsPdfPrinter.GetCapabilitiesAsync(printerName, cancellationToken);
+            : CupsPdfPrinter.GetCapabilitiesAsync(_cups, printerName, cancellationToken);
     }
 
     /// <inheritdoc />
     public Task<IReadOnlyList<PdfPrinterInfo>> GetPrintersAsync(CancellationToken cancellationToken = default) =>
         OfficeRuntimeCompatibility.IsWindows
             ? WindowsPdfPrinter.GetPrintersAsync(cancellationToken)
-            : CupsPdfPrinter.GetPrintersAsync(cancellationToken);
+            : CupsPdfPrinter.GetPrintersAsync(_cups, cancellationToken);
 
     /// <inheritdoc />
     public Task<PdfPrintSubmission> SubmitAsync(PdfPrintJob job, PdfPrintDeliveryOptions options, CancellationToken cancellationToken = default) {
@@ -120,7 +129,7 @@ public sealed class PdfPrinterService : IPdfPrinterService {
             return IppPdfPrinter.SubmitAsync(IppPrinterEndpoint.ForUri(snapshot.PrinterName, uri!), job, snapshot, cancellationToken);
         return OfficeRuntimeCompatibility.IsWindows
             ? WindowsPdfPrinter.SubmitAsync(job, snapshot, cancellationToken)
-            : CupsPdfPrinter.SubmitAsync(job, snapshot, cancellationToken);
+            : CupsPdfPrinter.SubmitAsync(_cups, job, snapshot, cancellationToken);
     }
 
     private static void ValidatePrinterName(string printerName, string parameter) {

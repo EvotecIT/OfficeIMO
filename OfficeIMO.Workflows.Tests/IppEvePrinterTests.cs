@@ -164,6 +164,59 @@ public sealed class IppEvePrinterTests {
         }
     }
 
+    [ExternalToolFact(IppEvePrinterPath)]
+    public async Task CupsQueuesAreDeliveredOverIppWithLpStyleJobIdentifiers() {
+        // The reference printer stands in for a scheduler queue: the CUPS route resolves "officeimo-test" to its URI.
+        using var printer = EvePrinter.Start("-f", "application/pdf,image/pwg-raster", "-c", "/usr/bin/true");
+        var scheduler = new CupsScheduler(new Uri(printer.Uri, "/"), null, (_, isClass) => isClass ? new Uri(printer.Uri, "/missing") : printer.Uri);
+
+        IppPrinterCapabilities attributes = (await CupsPdfPrinter.ResolveIppQueueAsync(scheduler, "officeimo-test", default)
+            ?? throw new InvalidOperationException("The queue did not resolve over IPP.")).Printer;
+        Assert.Contains("application/pdf", attributes.DocumentFormats);
+        PdfPrintSubmission receipt = await CupsPdfPrinter.SubmitAsync(scheduler, TwoPageJob(PdfPrintColorMode.Color),
+            new PdfPrintDeliveryOptions { PrinterName = "officeimo-test", DocumentName = "cups-route" }, default);
+
+        Assert.Equal("officeimo-test", receipt.PrinterName);
+        Assert.Matches(@"^officeimo-test-\d+$", receipt.JobId);
+        IppJobInfo finished = await WaitAsync(printer, receipt with { JobId = receipt.JobId.Substring("officeimo-test-".Length) });
+        Assert.Equal(IppJobState.Completed, finished.State);
+        Assert.True(File.Exists(printer.SpooledDocument(finished.Id, ".pdf")));
+    }
+
+    [Fact]
+    public async Task AnUnreachableSchedulerLeavesQueuesToTheCommandLineTools() {
+        var closed = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+        closed.Start();
+        int port = ((IPEndPoint)closed.LocalEndpoint).Port;
+        closed.Stop();
+        var scheduler = new CupsScheduler(new Uri("ipp://localhost:" + port + "/"), null);
+
+        Assert.Null(await CupsPdfPrinter.ResolveIppQueueAsync(scheduler, "officeimo-test", default));
+        Assert.Null(await CupsPdfPrinter.ResolveIppQueueAsync(new CupsScheduler(null, null), "officeimo-test", default));
+    }
+
+    [ExternalToolFact("/private/var/run/cupsd")]
+    public async Task TheLocalSchedulerAnswersOverItsDomainSocket() {
+        // Read-only: lists installed queues and looks up a queue that does not exist.
+        Assert.True(CupsScheduler.Local.IsAvailable);
+        using IppPrintClient client = CupsScheduler.Local.CreateSchedulerClient();
+        (IReadOnlyList<(string Name, bool IsClass)> queues, _) = await client.GetCupsQueuesAsync();
+        Assert.DoesNotContain(queues, queue => queue.Name.Length == 0);
+        Assert.Null(await CupsPdfPrinter.ResolveIppQueueAsync(CupsScheduler.Local, "officeimo-no-such-queue-" + Guid.NewGuid().ToString("N"), default));
+    }
+
+    [Theory]
+    [InlineData("print.example.com", null)]
+    [InlineData("localhost:8631", "ipp://localhost:8631/")]
+    [InlineData("[::1]:631", "ipp://localhost:631/")]
+    [InlineData(null, "ipp://localhost:631/")]
+    public void SchedulerAddressFollowsCupsServerAndStaysLocal(string? server, string? expected) {
+        CupsScheduler scheduler = CupsScheduler.FromEnvironment(server, _ => false);
+        Assert.Equal(expected is not null, scheduler.IsAvailable);
+        if (expected is not null) Assert.Equal(new Uri(expected + "printers/q"), scheduler.Queue("q", isClass: false).PrinterUri);
+        Assert.Equal(new Uri("ipp://localhost/classes/a%20b"), CupsScheduler.FromEnvironment(null, path => path == "/run/cups/cups.sock").Queue("a b", isClass: true).PrinterUri);
+    }
+
     private static PdfPrintJob TwoPageJob(PdfPrintColorMode color) =>
         PdfPrintJob.Create(OfficeIMO.Pdf.PdfDocument.Create(document => {
             document.Page(page => page.Size(OfficeIMO.Pdf.PdfPageSizes.A4).Background(OfficeIMO.OfficeColor.Red));
