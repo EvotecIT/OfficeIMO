@@ -284,6 +284,20 @@ Body
 
     [Theory]
     [MemberData(nameof(CalloutPlacementProfiles))]
+    public void Unquoted_Line_Ends_An_Unclosed_Quoted_Html_Block_Instead_Of_Continuing_It(string profile) {
+        var options = CreateCalloutPlacementOptions(profile);
+        options.HtmlBlocks = true;
+
+        var document = MarkdownDocument.Parse("> <!--\noutside\n", options);
+
+        Assert.Collection(
+            document.Blocks,
+            block => Assert.IsType<QuoteBlock>(block),
+            block => Assert.Equal("outside", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
+    }
+
+    [Theory]
+    [MemberData(nameof(CalloutPlacementProfiles))]
     public void Callout_At_Top_Level_With_Up_To_Three_Spaces_Is_Still_A_Callout(string profile) {
         foreach (string markdown in new[] { "> [!NOTE]\n> body\n", "   > [!NOTE] Custom title\n   > body\n" }) {
             var document = MarkdownDocument.Parse(markdown, CreateCalloutPlacementOptions(profile));

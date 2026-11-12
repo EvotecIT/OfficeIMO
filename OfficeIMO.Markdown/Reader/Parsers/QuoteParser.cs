@@ -20,7 +20,7 @@ internal static partial class MarkdownReader {
                 : null;
             int j = i;
             bool sawQuotedLine = false;
-            var literalBlock = new QuotedLiteralBlockState();
+            var literalBlock = new QuotedLiteralBlockState(state);
             while (j < lines.Length) {
                 var ln = lines[j];
                 var ltrim = ln.TrimStart();

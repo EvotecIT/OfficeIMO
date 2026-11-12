@@ -115,6 +115,8 @@ public sealed class MarkdownReaderState {
     /// <summary>Case-sensitive abbreviation definitions collected while parsing. Later definitions replace earlier ones, matching Markdig.</summary>
     internal Dictionary<string, MarkdownAbbreviationDefinition> Abbreviations { get; } = new Dictionary<string, MarkdownAbbreviationDefinition>(System.StringComparer.Ordinal);
     internal int SourceLineOffset { get; set; }
+    // The quoted content of the run of quote lines last measured for HTML blocks, shared by sibling quotes and callouts.
+    internal QuotedContentRun? QuotedContentRun { get; set; }
     // A source-line slice is already a real line, even when its text is empty.
     internal bool LastInputLineIsContent { get; set; }
     internal bool HasSyntheticTerminalLine { get; set; }

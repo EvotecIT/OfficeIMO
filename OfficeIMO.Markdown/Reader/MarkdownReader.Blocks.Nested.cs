@@ -448,7 +448,7 @@ internal static partial class MarkdownReader {
         bool sawQuotedLine = false;
         string? lastQuoteContent = null;
         var nestedQuoteOptions = GetNestedListQuoteOptions(options);
-        var literalBlock = new QuotedLiteralBlockState();
+        var literalBlock = new QuotedLiteralBlockState(state);
         while (j < lines.Length) {
             string raw = lines[j] ?? string.Empty;
             if (string.IsNullOrWhiteSpace(raw)) {

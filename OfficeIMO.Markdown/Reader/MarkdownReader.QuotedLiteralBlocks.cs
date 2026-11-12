@@ -1,22 +1,55 @@
 namespace OfficeIMO.Markdown;
 
+/// <summary>The quoted content (one '>' level stripped) of one run of quote lines in a source line array.</summary>
+internal sealed class QuotedContentRun {
+    private readonly string[] _source;
+    private readonly int _continuationIndent;
+    private readonly int _start;
+
+    internal QuotedContentRun(string[] source, int continuationIndent, int start, string[] content) {
+        _source = source;
+        _continuationIndent = continuationIndent;
+        _start = start;
+        Content = content;
+    }
+
+    internal string[] Content { get; }
+
+    /// <summary>Returns true when line <paramref name="index"/> of <paramref name="source"/> lies in this run.</summary>
+    internal bool Covers(string[] source, int continuationIndent, int index) =>
+        ReferenceEquals(_source, source)
+        && _continuationIndent == continuationIndent
+        && index >= _start
+        && index - _start < Content.Length;
+
+    internal int OffsetOf(int index) => index - _start;
+}
+
 internal static partial class MarkdownReader {
+    // Marks top-level quotes, which have no list-item continuation indent.
+    private const int TopLevelQuote = -1;
+
     /// <summary>
     /// Tracks fenced code and HTML blocks inside quoted content, whose lines are literal text: a callout-like line in
     /// them does not start a new callout, and an unquoted line does not continue them lazily.
     /// </summary>
     private sealed class QuotedLiteralBlockState {
+        private readonly MarkdownReaderState _state;
         private bool _inFence;
         private char _fenceChar;
         private int _fenceLength;
         private int _htmlLinesLeft;
+        private bool _htmlReachesRunEnd;
 
-        // The quoted content of one run of quote lines, collected once and reused for every HTML block in the run.
-        private string[]? _run;
-        private int _runStart;
+        internal QuotedLiteralBlockState(MarkdownReaderState state) {
+            _state = state;
+        }
 
-        /// <summary>True while a quoted fence or HTML block is open.</summary>
-        internal bool IsOpen => _inFence || _htmlLinesLeft > 0;
+        /// <summary>
+        /// True while a quoted fence or HTML block is open. An HTML block that runs to the last quoted line stays open
+        /// there: whether or not it closed, an unquoted line after it cannot continue it lazily, since only paragraphs do.
+        /// </summary>
+        internal bool IsOpen => _inFence || _htmlLinesLeft > 0 || _htmlReachesRunEnd;
 
         /// <summary>Returns true when the line belongs to an open fence or HTML block, closing the fence on its closing line.</summary>
         internal bool Continue(string content) {
@@ -40,31 +73,36 @@ internal static partial class MarkdownReader {
         /// <summary>Opens an HTML block that starts on the top-level quote line at <paramref name="index"/>.</summary>
         internal void TryOpenTopLevelHtmlBlock(string content, string[] lines, int index, MarkdownLoadOptions options) {
             if (!StartsHtmlBlock(content, options)) return;
-            if (!RunCovers(index)) StartRun(CollectTopLevelQuotedContent(lines, index), index);
-            OpenHtmlBlock(index, options);
+            var run = _state.QuotedContentRun;
+            if (run == null || !run.Covers(lines, TopLevelQuote, index)) {
+                run = new QuotedContentRun(lines, TopLevelQuote, index, CollectTopLevelQuotedContent(lines, index));
+                _state.QuotedContentRun = run;
+            }
+
+            OpenHtmlBlock(run, index, options);
         }
 
         /// <summary>Opens an HTML block that starts on the list-item quote line at <paramref name="index"/>.</summary>
         internal void TryOpenNestedHtmlBlock(string content, string[] lines, int index, int continuationIndent, MarkdownLoadOptions options) {
             if (!StartsHtmlBlock(content, options)) return;
-            if (!RunCovers(index)) StartRun(CollectNestedQuotedContent(lines, index, continuationIndent), index);
-            OpenHtmlBlock(index, options);
+            var run = _state.QuotedContentRun;
+            if (run == null || !run.Covers(lines, continuationIndent, index)) {
+                run = new QuotedContentRun(lines, continuationIndent, index, CollectNestedQuotedContent(lines, index, continuationIndent));
+                _state.QuotedContentRun = run;
+            }
+
+            OpenHtmlBlock(run, index, options);
         }
 
         // HTML blocks only matter for callout boundaries, so they are not measured when callouts are off.
         private static bool StartsHtmlBlock(string content, MarkdownLoadOptions options) =>
             options.Callouts && HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(content, options);
 
-        private bool RunCovers(int index) => _run != null && index >= _runStart && index - _runStart < _run.Length;
-
-        private void StartRun(string[] run, int start) {
-            _run = run;
-            _runStart = start;
-        }
-
-        private void OpenHtmlBlock(int index, MarkdownLoadOptions options) {
-            if (HtmlBlockParser.TryGetHtmlBlockLineCount(_run!, index - _runStart, options, out int lineCount)) {
+        private void OpenHtmlBlock(QuotedContentRun run, int index, MarkdownLoadOptions options) {
+            int offset = run.OffsetOf(index);
+            if (HtmlBlockParser.TryGetHtmlBlockLineCount(run.Content, offset, options, out int lineCount)) {
                 _htmlLinesLeft = lineCount - 1;
+                _htmlReachesRunEnd = offset + lineCount >= run.Content.Length;
             }
         }
     }
