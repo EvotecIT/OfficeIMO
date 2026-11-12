@@ -65,7 +65,7 @@ $nativeWorkflowProfiles = @(
 )
 $iworkPdfHostPath = Join-Path $RepositoryRoot 'OfficeIMO.Workflows.IWork.AotSmoke\OfficeIMO.Workflows.IWork.AotSmoke.csproj'
 [xml] $iworkPdfHost = Get-Content -LiteralPath $iworkPdfHostPath -Raw
-$iworkPdfReferences = @($iworkPdfHost.Project.ItemGroup.ProjectReference |
+$iworkPdfReferences = @($iworkPdfHost.SelectNodes('/Project/ItemGroup/ProjectReference') |
     ForEach-Object { [System.IO.Path]::GetFileNameWithoutExtension(([string] $_.Include).Replace('\', '/')) })
 if ($iworkPdfReferences.Count -ne 1 -or $iworkPdfReferences[0] -ne 'OfficeIMO.Workflows.IWork' -or
     [string] $iworkPdfHost.Project.PropertyGroup.PublishAot -ne 'true') {
