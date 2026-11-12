@@ -43,6 +43,13 @@ Before choosing a format, see [pipeline, object, and DSL workflows](/docs/pswrit
 - [Forms and annotations](/docs/pswriteoffice/pdf-forms-annotations/)
 - [Signatures and compliance](/docs/pswriteoffice/pdf-signatures-compliance/)
 
+## Before sharing
+
+- [See what would leave with a file](/docs/pswriteoffice/before-sharing/#see-what-would-leave-with-a-file)
+- [Write a cleaned copy](/docs/pswriteoffice/before-sharing/#write-a-cleaned-copy)
+- [Remove Content Credentials and AI labels](/docs/pswriteoffice/before-sharing/#content-credentials-and-ai-labels)
+- [Clean a folder and check the result](/docs/pswriteoffice/before-sharing/#clean-a-folder-and-check-the-result)
+
 ## Markdown and Reader
 
 - [Read and parse Markdown](/docs/pswriteoffice/markdown-read-parse/)

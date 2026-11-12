@@ -41,6 +41,7 @@ PSWriteOffice is the PowerShell surface for OfficeIMO. Use these guides to choos
   - [Search a mixed document corpus](/docs/pswriteoffice/reader-search-corpus/)
   - [Extract chunks, tables, and assets](/docs/pswriteoffice/reader-chunks-tables/)
 - [Choose a conversion route](/docs/pswriteoffice/conversion-routes/)
+- [Clean files before sharing](/docs/pswriteoffice/before-sharing/): comments, authors, hidden content, image metadata and AI labels
 - [Confluence Cloud publishing](/docs/pswriteoffice/confluence/)
 - [Visio diagrams](/docs/pswriteoffice/visio/)
 - [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/): YAML, TOML, CSV, JSON, XML, and Excel data
@@ -59,5 +60,5 @@ PSWriteOffice is the PowerShell surface for OfficeIMO. Use these guides to choos
 ## Notes
 
 - The [command reference](/api/powershell/) is generated from the module manifest and external help.
-- The [scenario-driven example library](https://github.com/EvotecIT/OfficeIMO/blob/945cb285f954b745c0f4ebfce0849c0726a76fa1/PowerShell/PSWriteOffice/Examples/README.md) maps practical recipes and larger showcases to each format.
+- The [scenario-driven example library](https://github.com/EvotecIT/OfficeIMO/blob/b15295cf7e8c59ff528f282a331022a39f167a95/PowerShell/PSWriteOffice/Examples/README.md) maps practical recipes and larger showcases to each format.
 - The family totals shown on the site come from `PSWriteOffice.psd1`; documentation validation fails if an exported command is left uncategorized.
