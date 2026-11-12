@@ -72,14 +72,43 @@ internal static class OfficeBase64 {
     }
 
     /// <summary>Returns the decoded MIME length, or the original length when malformed data must be preserved.</summary>
+    /// <remarks>Previously collected analysis may be reused only for the same unchanged input range.</remarks>
     internal static long GetMimeDecodedLength(byte[] input, int offset, int count,
-        out bool valid, out bool recoveredPadding) {
-        var analysis = new MimeAnalysis();
-        analysis.Append(input, offset, count);
+        out bool valid, out bool recoveredPadding, MimeAnalysis? validatedAnalysis = null) {
+        MimeAnalysis analysis;
+        if (validatedAnalysis.HasValue) analysis = validatedAnalysis.Value;
+        else {
+            analysis = new MimeAnalysis();
+            analysis.Append(input, offset, count);
+        }
         valid = analysis.IsValid;
-        recoveredPadding = analysis.RecoveredPadding;
+#if NET8_0_OR_GREATER
+        // Syntactically valid padding can still be rejected by the runtime byte decoder.
+        // Preflight the tail before callers charge a decoded size and retain a larger raw fallback.
+        if (valid && analysis.DecodedLength % 3 != 0)
+            valid = CanDecodeMimeTail(input.AsSpan(offset, count), analysis);
+#endif
+        recoveredPadding = valid && analysis.RecoveredPadding;
         return valid ? analysis.DecodedLength : count;
     }
+
+#if NET8_0_OR_GREATER
+    /// <summary>Checks unused tail bits with the same byte decoder that materializes the MIME payload.</summary>
+    private static bool CanDecodeMimeTail(ReadOnlySpan<byte> input, MimeAnalysis analysis) {
+        // Recovered padding has two or three source symbols; an explicit final quartet has four.
+        int length = analysis.RecoveredPadding ? (int)(analysis.DecodedLength % 3) + 1 : 4;
+        Span<byte> tail = stackalloc byte[4];
+        for (int index = length - 1; index >= 0; index--) {
+            int position = input.LastIndexOfAnyExcept(MimeWhiteSpace);
+            tail[index] = input[position];
+            input = input.Slice(0, position);
+        }
+        tail.Slice(length).Fill((byte)'=');
+        Span<byte> decoded = stackalloc byte[3];
+        return Base64.DecodeFromUtf8(tail, decoded, out int consumed, out _) == OperationStatus.Done
+            && consumed == tail.Length;
+    }
+#endif
 
     /// <summary>Copies MIME base64 without its six ASCII whitespace characters. In-place compaction is supported.</summary>
     internal static int CompactMime(byte[] input, int offset, int count, byte[] output, int outputOffset) {
