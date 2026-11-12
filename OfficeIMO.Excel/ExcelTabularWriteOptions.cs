@@ -77,7 +77,10 @@ namespace OfficeIMO.Excel {
         /// <summary>Uses the workbook's CellValue date and time number formats.</summary>
         public bool UseCellValueNumberFormats { get; set; }
 
-        /// <summary>Writes explicit row and cell references. Disable for a smaller contiguous worksheet package.</summary>
+        /// <summary>
+        /// Writes explicit row and cell references, as Excel does. Turning it off roughly halves the package and
+        /// speeds up writing; Excel still opens the file, but some other readers and tools require cell references.
+        /// </summary>
         public bool IncludeCellReferences { get; set; } = true;
 
         /// <summary>

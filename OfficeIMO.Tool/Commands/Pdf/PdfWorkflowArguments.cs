@@ -15,14 +15,16 @@ internal sealed class PdfWorkflowArguments {
     internal IList<string> ProviderAssemblies { get; } = new List<string>();
     internal Dictionary<string, string> ProviderOptions { get; } = new(StringComparer.Ordinal);
     internal PdfWorkflowSettings Settings { get; private set; } = new();
+    internal PdfAWorkflowSettings PdfA { get; private set; } = new();
 
     internal static PdfWorkflowArguments Parse(string[] args) {
         var result = new PdfWorkflowArguments();
         if (args.Length == 0 || IsHelp(args[0])) { result.Help = true; return result; }
         result.Operation = args[0].ToLowerInvariant();
-        if (result.Operation is not ("extract" or "split" or "decrypt" or "flatten" or "ocr" or "optimize" or "sanitize" or "providers"))
+        if (result.Operation is not ("extract" or "split" or "decrypt" or "flatten" or "ocr" or "optimize" or "sanitize" or "convert-to-pdfa" or "providers"))
             throw new AgentUsageException("Unknown PDF workflow '" + args[0] + "'.");
-        string? pages = null, password = null;
+        string? pages = null, password = null, profile = null, attachments = null, fontSubstitution = null, outputIntent = null, outputCondition = null;
+        var fonts = new List<string>();
         bool force = false, acknowledge = false;
         int maximumPages = 100;
         double dpi = 150;
@@ -41,6 +43,12 @@ internal sealed class PdfWorkflowArguments {
                 case "--maximum-output-bytes": outputBytes = Long(Value(args, ref index, option), option); break;
                 case "--password-env": password = Value(args, ref index, option); break;
                 case "--force": force = true; break;
+                case "--profile": Only(result.Operation, option, "convert-to-pdfa"); profile = Value(args, ref index, option); break;
+                case "--attachments": Only(result.Operation, option, "convert-to-pdfa"); attachments = Value(args, ref index, option); break;
+                case "--font": Only(result.Operation, option, "convert-to-pdfa"); fonts.Add(Value(args, ref index, option)); break;
+                case "--font-substitution": Only(result.Operation, option, "convert-to-pdfa"); fontSubstitution = Value(args, ref index, option); break;
+                case "--output-intent": Only(result.Operation, option, "convert-to-pdfa"); outputIntent = Value(args, ref index, option); break;
+                case "--output-condition-identifier": Only(result.Operation, option, "convert-to-pdfa"); outputCondition = Value(args, ref index, option); break;
                 case "--acknowledge-raster-output": Only(result.Operation, option, "flatten"); acknowledge = true; break;
                 case "--ocr-provider": Only(result.Operation, option, "ocr"); result.Provider = Value(args, ref index, option); break;
                 case "--ocr-language": Only(result.Operation, option, "ocr"); result.Language = Value(args, ref index, option); break;
@@ -59,6 +67,11 @@ internal sealed class PdfWorkflowArguments {
             MaximumInputBytes = inputBytes, MaximumOutputBytes = outputBytes
         };
         result.Settings.Validate();
+        result.PdfA = new PdfAWorkflowSettings {
+            Profile = profile ?? "2b", Attachments = attachments ?? "remove", FontSubstitution = fontSubstitution ?? "installed-fonts",
+            Fonts = fonts, OutputIntent = outputIntent, OutputConditionIdentifier = outputCondition
+        };
+        result.PdfA.Validate();
         if (result.Operation == "providers") {
             if (args.Skip(1).Where((_, index) => index % 2 == 0).Any(token => token != "--ocr-provider-assembly"))
                 throw new AgentUsageException("providers accepts only --ocr-provider-assembly options.");

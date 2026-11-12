@@ -31,7 +31,7 @@ public partial class ExcelDocument {
                     output = _archive!.OpenEntry("xl/worksheets/sheet" + (++_sheetCount).ToString(System.Globalization.CultureInfo.InvariantCulture) + ".bin", CompressionLevel.Fastest);
                     Stream records = output;
                     if (ExcelExecutionPolicy.SupportsBackgroundProcessing) {
-                        compression = new StreamingWorksheetCompression(output);
+                        compression = new StreamingWorksheetCompression(output, _archive);
                         records = compression;
                     }
                     sink = new XlsbWorksheetPartWriter.StreamingRowSink(records, headers.Length);

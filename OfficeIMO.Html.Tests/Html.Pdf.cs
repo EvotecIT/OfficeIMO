@@ -115,6 +115,21 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_InlineSvgImageUsesXlinkHrefRatherThanQuotedAttributeText() {
+        string real = Convert.ToBase64String(OfficePngWriter.Encode(new OfficeRasterImage(2, 1, OfficeColor.Red)));
+        string decoy = Convert.ToBase64String(OfficePngWriter.Encode(new OfficeRasterImage(3, 1, OfficeColor.Blue)));
+        string html = "<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'"
+            + " viewBox='0 0 40 20' style='width:80px;height:40px'>"
+            + "<image x='5' y='4' width='20' height='10' data-note=\" href='data:image/png;base64," + decoy + "' \""
+            + " xlink:href='data:image/png;base64," + real + "'/></svg>";
+
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
+
+        PdfCore.PdfExtractedImage image = Assert.Single(PdfCore.PdfReadDocument.Open(pdf).Pages[0].GetImages());
+        Assert.Equal(2, image.Width);
+    }
+
+    [Fact]
     public void HtmlToPdf_EmptyLegacyAndPercentEncodedFragmentTargetsRemainNavigable() {
         const string html = "<p><a href='#empty%20target'>Empty target</a> <a href='#legacy'>Legacy target</a></p>"
             + "<div id='empty target'></div><a name='legacy'>Legacy body</a><p>Body</p>";

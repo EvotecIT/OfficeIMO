@@ -42,7 +42,7 @@ namespace OfficeIMO.Excel {
                 100_000_000_000_000_000UL
             ];
 #endif
-            private static readonly string[] RawNonNegativeIntegerCellCache = CreateRawNonNegativeIntegerCellCache();
+            private static readonly string?[] RawNonNegativeIntegerCellCache = new string?[CachedRawIntegerCellLimit];
             private static readonly string?[] SharedStringCellCache = new string?[CachedSharedStringCellLimit];
             private static readonly string[][] CellReferencePrefixCache = CreateCellReferencePrefixCache();
 
@@ -122,19 +122,29 @@ namespace OfficeIMO.Excel {
             }
 
             internal static void WriteExtendedWorksheet(ExcelPackageArchive archive, ExtendedDirectWritePlan plan, DirectDataSetSheetModel sheet, string worksheetPath, string? tableRelationshipId, CancellationToken ct, bool allowBackgroundCompression = false) {
-                int sheetIndex = -1;
-                for (int i = 0; i < plan.Model.Sheets.Count; i++) {
+                int sheetIndex = GetExtendedSheetIndex(plan, sheet);
+                WriteWorksheet(archive, sheet, plan.Model.DateTimeOffsetWriteStrategy, plan.Model.DateSystem, plan.SharedStrings, plan.StylePlan, plan.ColumnWritePlans[sheetIndex], ct, worksheetPath, tableRelationshipId, allowBackgroundCompression);
+            }
+
+            /// <summary>
+            /// Writes the worksheet XML that <see cref="WriteExtendedWorksheet"/> puts in its entry. The plan's shared
+            /// strings and styles are only read, so sheets of one plan can be written concurrently.
+            /// </summary>
+            internal static void WriteExtendedWorksheetContents(Stream output, ExtendedDirectWritePlan plan, DirectDataSetSheetModel sheet, string? tableRelationshipId, CancellationToken ct) {
+                int sheetIndex = GetExtendedSheetIndex(plan, sheet);
+                using var writer = new PooledUtf8TextWriter(output, Utf8NoBom, XmlWriterBufferSize, leaveOpen: true);
+                WriteWorksheetContents(writer, sheet, plan.Model.DateTimeOffsetWriteStrategy, plan.Model.DateSystem,
+                    plan.SharedStrings, plan.StylePlan, plan.ColumnWritePlans[sheetIndex], ct, tableRelationshipId);
+            }
+
+            private static int GetExtendedSheetIndex(ExtendedDirectWritePlan plan, DirectDataSetSheetModel sheet) {
+                for (int i = 0; i < plan.Model.Sheets.Count && i < plan.ColumnWritePlans.Length; i++) {
                     if (ReferenceEquals(plan.Model.Sheets[i], sheet)) {
-                        sheetIndex = i;
-                        break;
+                        return i;
                     }
                 }
 
-                if (sheetIndex < 0 || sheetIndex >= plan.ColumnWritePlans.Length) {
-                    throw new InvalidOperationException("The direct worksheet is not part of the extended direct write plan.");
-                }
-
-                WriteWorksheet(archive, sheet, plan.Model.DateTimeOffsetWriteStrategy, plan.Model.DateSystem, plan.SharedStrings, plan.StylePlan, plan.ColumnWritePlans[sheetIndex], ct, worksheetPath, tableRelationshipId, allowBackgroundCompression);
+                throw new InvalidOperationException("The direct worksheet is not part of the extended direct write plan.");
             }
 
             private static void WriteContentTypes(ExcelPackageArchive archive, IReadOnlyList<DirectDataSetSheetModel> sheets, bool includeSharedStrings, bool includeTheme = false) {

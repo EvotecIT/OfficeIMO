@@ -106,7 +106,8 @@ internal static partial class PdfSanitizer {
         }
     }
 
-    private static void SanitizeObjectGraph(
+    /// <returns>The structure references removed with the selected annotations, for the preservation proof.</returns>
+    private static PdfStructureTreePruning SanitizeObjectGraph(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDocumentSecurityInfo security,
         PdfSanitizationOptions policy,
@@ -114,6 +115,12 @@ internal static partial class PdfSanitizer {
         int maximumActionNodes) {
         policy.CancellationToken.ThrowIfCancellationRequested();
         HashSet<PdfDictionary> selectedAnnotations = CollectSelectedAnnotations(objects, policy);
+        // A tagged file refers to its annotations from the structure tree; read their StructParent keys before they are cleared.
+        int[] selectedAnnotationObjects = objects
+            .Where(item => item.Value.Value is PdfDictionary dictionary && selectedAnnotations.Contains(dictionary))
+            .Select(static item => item.Key)
+            .ToArray();
+        PdfStructureTreePruning pruning = PdfStructureTreeAnnotationPruner.RemoveAnnotationReferences(objects, selectedAnnotationObjects, policy.CancellationToken);
         HashSet<PdfDictionary> selectedFileSpecifications = CollectSelectedFileSpecifications(objects, policy);
         SanitizeDocumentContainers(objects, security, policy);
         NeutralizeSelectedPayloadObjects(objects, policy);
@@ -130,6 +137,7 @@ internal static partial class PdfSanitizer {
             policy.CancellationToken.ThrowIfCancellationRequested();
             RemoveEmptyContainers(objects, item.Value);
         }
+        return pruning;
     }
 
     private static void SanitizeObject(

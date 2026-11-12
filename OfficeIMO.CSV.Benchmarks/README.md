@@ -201,6 +201,10 @@ cache topology. Keep each domain separate and retain outliers when background
 work can interrupt a run. The [2026-09-07 measurement](../Docs/benchmarks/officeimo.excel-csv-text-2026-09-07.md)
 records the long-note improvement and the limits of short-row timing on a busy PC.
 
+## Write sources, shapes and sinks
+
+`CsvWriteComparisonBenchmarks` writes the same data from typed objects, a `DataTable` and an `IDataReader`, to a UTF-8 stream and to a `TextWriter`, for quoting-heavy text, numbers, dates and a 31-column shape. It compares OfficeIMO with CsvHelper 33, Sep, Sylvan's `CsvDataWriter` and, for streams, ExcelReader.NET. Each library is driven as its users drive it: object mapping where it has one, typed field writes otherwise, the DataTable through its data reader. All lanes use the same newline (`Environment.NewLine`, which Sep always writes), the same explicit date format and invariant numbers; setup fails unless every lane writes output byte-identical to OfficeIMO's data-reader lane, which is also checked value by value against the source. CsvHelper 33 gets a `ShouldQuote` that keeps its default quoting of any CR or LF, which it drops once `NewLine` is set. Sep's object lanes need .NET 9 or later and ExcelReader.NET's lanes need .NET 10. The CsvHelper 34 lanes are in `OfficeIMO.CSV.Benchmarks.Modern`. Run them with `./Build/Benchmarks/Run-ExcelCsvComparison.ps1 -Lane CsvWrite,CsvWriteModern`.
+
 ## Document saves and compression
 
 `CsvDocumentSaveBenchmarks` measures `CsvDocument.Save(Stream)`,

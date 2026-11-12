@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
                 if (!string.IsNullOrEmpty(metadata?.SheetViewsXml)) {
                     writer.Write(metadata!.SheetViewsXml);
                 } else {
-                    writer.Write(ExcelSheet.CreateDefaultSheetViews().OuterXml);
+                    writer.Write(ExcelSheet.DefaultSheetViewsXml);
                 }
 
                 if (!string.IsNullOrEmpty(metadata?.SheetFormatPropertiesXml)) {

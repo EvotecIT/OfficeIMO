@@ -707,7 +707,7 @@ internal static partial class CsvWriter
         WriteBufferedRecordLine(writer, buffer, newLine);
     }
 
-    private static string FormatValue(object? value, CultureInfo culture, string? dateTimeFormat = null, bool useUtc = false, string? nullValue = null)
+    internal static string FormatValue(object? value, CultureInfo culture, string? dateTimeFormat = null, bool useUtc = false, string? nullValue = null)
     {
         if (value is null || ReferenceEquals(value, DBNull.Value))
         {

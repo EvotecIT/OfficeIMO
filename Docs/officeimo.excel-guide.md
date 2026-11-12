@@ -92,6 +92,12 @@ a failed or cancelled source discards the staged file. No table calls leave a
 file destination unchanged. Stream destinations support non-seekable output;
 use `leaveOpen: true` to retain the stream after completion.
 
+The writer gives every row and cell an explicit `r` reference, as Excel does. Set
+`IncludeCellReferences = false` in `ExcelWriterOptions` to leave them out: the
+package is roughly half the size, writing is faster, and Excel still opens the
+file. Some other readers and tools require cell references, so they stay on by
+default.
+
 ## Loading, cell borders and report sheets
 
 When a workbook comes from an untrusted source, pass the bounded load profile before parsing it:
@@ -739,7 +745,7 @@ decompression with workbook metadata parsing on a spare worker. It is disabled b
 retains the existing package-part limits, and can be slower for small or simple workbooks.
 Enable it only after measuring a representative workbook on the target CPU.
 
-By default an XLSX data reader validates the whole worksheet before returning its first
+By default an XLSX or XLSB data reader validates the whole worksheet before returning its first
 row, so a malformed workbook fails before any data is consumed.
 `ExcelReaderOptions.EnableSinglePassReading` instead returns rows while the rest of a large
 worksheet is still being decompressed and checked. Every returned row is fully parsed and

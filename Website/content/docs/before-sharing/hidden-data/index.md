@@ -83,7 +83,7 @@ File.WriteAllBytes("Report-shared.pdf", result.ToArray());
 - **Word:** properties, comments, tracked changes, reviewer names, hidden text, document variables, custom XML, revision save IDs (RSIDs), the attached template and picture metadata. Comments and revisions that stay keep an author, because Word requires one; `PersonalIdentities` replaces the name with `AnonymousAuthor` (`Author` by default). Bibliography sources and custom XML bound to content controls are kept.
 - **Excel:** notes, threaded comments and their authors, hidden sheets, rows, columns and names, external links, pivot cache source paths, custom XML, picture metadata and printer settings. Cached values from external workbooks are removed, but the links themselves are kept, because formulas and refreshes need them. Power Query data is kept and reported with a note. Deleting hidden sheets, rows and columns shifts or breaks formulas that refer to them, exactly as deleting them in Excel does.
 - **PowerPoint:** properties, classic and modern comments, speaker notes, the thumbnail, custom XML and picture metadata. Hidden slides, hidden shapes and shapes placed entirely off the slide count as hidden content.
-- **PDF:** document properties and XMP metadata, comments and markup, attachments, JavaScript and other actions, bookmarks, optional-content layers and Content Credentials. Signed PDFs are refused.
+- **PDF:** document properties and XMP metadata, comments and markup, attachments, JavaScript and other actions, bookmarks, optional-content layers and Content Credentials. The title stays in the document information and in XMP, as it does in Office files, because readers and screen readers announce it. The PDF/A, PDF/UA and PDF/X identification also stays, so a conforming file keeps declaring its conformance, together with the document IDs PDF/X requires. A Factur-X or ZUGFeRD invoice keeps its e-invoice identification while its invoice XML stays attached; select `Attachments` to remove both. The report lists all of these as retained. Tagged PDFs, including PDF/UA files, keep their structure tree, language and reading order; a removed comment or attachment is also removed from the tags. Signed PDFs are refused.
 - **Images:** Exif, GPS, XMP and IPTC metadata, Content Credentials and AI source labels. Pixels are not re-encoded.
 - **Visio, OpenDocument and EPUB:** properties, comments, pictures and their metadata, and provenance, as far as each format carries them.
 
@@ -95,7 +95,7 @@ The [hidden data support matrix](https://github.com/EvotecIT/OfficeIMO/blob/mast
 
 | Category | In `Default` | Covers |
 | --- | --- | --- |
-| `DocumentProperties` | Yes | Author, last modified by, last printed, revision number, company, manager, template, editing time |
+| `DocumentProperties` | Yes | Author, last modified by, last printed, revision number, company, manager, template, editing time; in PDF, document information and XMP metadata except the title and the PDF/A, PDF/UA, PDF/X and e-invoice identification |
 | `CustomProperties` | Yes | Custom document properties |
 | `Comments` | Yes | Comments, replies, notes, threaded comments and PDF markup |
 | `PersonalIdentities` | Yes | People parts, and authors on retained comments and revisions |

@@ -276,6 +276,7 @@ namespace OfficeIMO.Excel {
                     && remapped.Count > 0) {
                     string updatedReference = remapped[0];
                     if (!string.Equals(reference, updatedReference, StringComparison.OrdinalIgnoreCase)) {
+                        _excelDocument.InvalidateTableLayouts();
                         table.Reference = updatedReference;
                         changed = true;
                     }

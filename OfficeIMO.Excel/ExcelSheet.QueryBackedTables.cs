@@ -153,6 +153,7 @@ namespace OfficeIMO.Excel {
                     PutClonedCell(targetRow, targetColumn, clone);
                 }
 
+                _excelDocument.InvalidateTableLayouts();
                 table.Reference = updatedRange;
                 AutoFilter? filter = table.GetFirstChild<AutoFilter>();
                 if (filter != null && headerRowCount == 0) {

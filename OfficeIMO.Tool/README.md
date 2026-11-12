@@ -47,6 +47,7 @@ officeimo pdf decrypt protected.pdf --password-env PDF_OWNER_PASSWORD --output c
 officeimo pdf flatten report.pdf --output raster.pdf --acknowledge-raster-output --dpi 150
 officeimo pdf optimize report.pdf --output optimized.pdf
 officeimo pdf sanitize report.pdf --output sanitized.pdf
+officeimo pdf convert-to-pdfa report.pdf --output report-archive.pdf --profile 3b --attachments refuse
 officeimo pdf providers --ocr-provider-assembly ./providers/OfficeIMO.Ocr.Tesseract.dll
 officeimo pdf ocr scan.pdf --output searchable.pdf --ocr-provider tesseract-cli --ocr-provider-assembly ./providers/OfficeIMO.Ocr.Tesseract.dll --ocr-language eng
 ```
@@ -57,6 +58,23 @@ input. Existing files or folders require `--force`; a source or folder containin
 it cannot be the destination. Decryption requires the owner password in the named
 environment variable. Other protected-document operations retain the PDF engine's
 permission and signature policy.
+
+`convert-to-pdfa` writes a PDF/A-2b copy by default; `--profile` selects `2b`,
+`2u`, `3b`, `3u`, `4` or `4f`. `--attachments remove|refuse` decides what happens
+to embedded files that PDF/A-2 and PDF/A-4 cannot carry. The default is `remove`;
+pass `--attachments refuse` when losing embedded files is not acceptable. Fonts the source does
+not embed are substituted from installed fonts; repeat
+`--font <family>=<file.ttf>` (with `:bold`, `:italic` or `:bold-italic` after the
+family for other faces) to try your own faces first; each family you supply needs
+a regular face. Add
+`--font-substitution none` to use only those. A face is embedded only when its
+glyph widths match the page and its licence allows embedding. For device CMYK
+content, supply `--output-intent <profile.icc> --output-condition-identifier <id>`.
+An encrypted source needs its owner password through `--password-env`. Standard
+error lists every change, or every violation when the source cannot be converted,
+one per line with its location and object number. The JSON result's `pdfA` report
+keeps exact change and violation counts; its entries are trimmed to the output
+budget, and `truncated` is `true` when any were left out. A refused conversion writes nothing and exits with `4`.
 
 Flattening copies rendered appearances. Native text, forms, links, signatures,
 and attachments are omitted, so `--acknowledge-raster-output` is required.
@@ -570,6 +588,7 @@ The server exposes:
 - `officeimo_convert` — Markdown or Reader JSON, iWork packages, and every catalog route the CLI runs, selected by the source extension and `format`
 - `officeimo_capabilities`
 - `officeimo_pdf` — extract, decrypt, raster flatten, optimize, or sanitize into a separate PDF
+- `officeimo_pdf_convert_to_pdfa` — PDF/A copy with its changes, or the violations when the source cannot be converted; exact counts with entries bounded by the output budget
 - `officeimo_pdf_split` — validated consecutive parts in an explicit destination folder
 - `officeimo_pdf_assemble` — ordered explicit PDF and raster-image files
 - `officeimo_pdf_export_pages` — selected page images in an explicit destination folder
@@ -582,7 +601,8 @@ Tool results contain a short text summary plus compact structured content. The s
 
 PDF tools require explicit output paths within the same allowed-roots policy.
 Overwriting requires `overwrite=true`; flattening additionally requires
-`acknowledgeRasterOutput=true`. Reports honor `maxOutputCharacters`, sample at
+`acknowledgeRasterOutput=true`. PDF/A font and ICC profile files must also be
+within the allowed roots. Reports honor `maxOutputCharacters`, sample at
 most 25 artifacts, and retain the total `artifactCount` when the sample is truncated.
 MCP assembly accepts PDF and raster image files; the CLI's `workflow assemble`
 owns heterogeneous Office, folder, and archive intake. Printer queue delivery

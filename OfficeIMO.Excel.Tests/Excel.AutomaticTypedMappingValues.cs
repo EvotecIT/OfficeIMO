@@ -181,6 +181,38 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
     }
 
     [Fact]
+    public void DecimalProjectionTypedRowsMatchTheirProjectedValues() {
+        string path = CreateWorkbook(
+            "<row r=\"2\"><c r=\"A2\"><v>1234567890.123456789</v></c><c r=\"B2\"><v>42</v></c>" +
+            "<c r=\"C2\" s=\"1\"><v>45292.25</v></c><c r=\"D2\" t=\"inlineStr\"><is><t>North</t></is></c>" +
+            "<c r=\"E2\" t=\"b\"><v>1</v></c></row>",
+            new[] { "Amount", "Count", "Created", "Name", "Active" }, 2);
+        try {
+            var options = new ExcelReaderOptions { NumericAsDecimal = true };
+            object[] projected = new object[5];
+            using (var oracle = ExcelDocument.OpenReader(path, options)) {
+                Assert.True(oracle.Read());
+                oracle.GetValues(projected);
+            }
+            using var reader = ExcelDocument.OpenReader(path, options);
+            DecimalProjectionRow row = Assert.Single(reader.RowsAs<DecimalProjectionRow>());
+            Assert.Equal(Assert.IsType<decimal>(projected[0]), row.Amount);
+            Assert.Equal(Convert.ToInt32(projected[1], CultureInfo.InvariantCulture), row.Count);
+            Assert.Equal(Assert.IsType<DateTime>(projected[2]), row.Created);
+            Assert.Equal("North", row.Name);
+            Assert.True(row.Active);
+        } finally { File.Delete(path); }
+    }
+
+    private sealed class DecimalProjectionRow {
+        public decimal Amount { get; set; }
+        public int Count { get; set; }
+        public DateTime Created { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public bool Active { get; set; }
+    }
+
+    [Fact]
     public void ParallelAutomaticRowsOwnBorrowedCellArraysAcrossBatchReuse() {
         using var table = new System.Data.DataTable();
         table.Columns.Add("Id", typeof(int));
@@ -513,19 +545,13 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
             "<row r=\"4\"><c r=\"A4\"><v>3</v></c></row><row r=\"5\"><c r=\"A5\"><v>4</v></c></row>", new[] { "Id" }, 5);
         try {
             using var cancellation = new CancellationTokenSource();
-            using var secondBatch = new ManualResetEventSlim();
             using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions {
                 CancellationToken = cancellation.Token, InferSchema = inferSchema
             });
+            // The first row of the second batch cancels from caller code on a worker. Nothing here
+            // waits for another worker: the bounded degree of parallelism is not a concurrency promise.
             int MapId(int value) {
-                if (cancelWhileMapping) {
-                    if (value == 3) secondBatch.Set();
-                    else if (value == 1) {
-                        if (!secondBatch.Wait(TimeSpan.FromSeconds(10)))
-                            throw new TimeoutException("The second mapping batch did not start.");
-                        cancellation.Cancel();
-                    }
-                }
+                if (cancelWhileMapping && value == 3) cancellation.Cancel();
                 return value;
             }
             var options = new ParallelRowMappingOptions {
@@ -543,7 +569,13 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
                 Assert.Equal(1, rows.Current.Id);
                 cancellation.Cancel();
             }
-            OperationCanceledException error = Assert.ThrowsAny<OperationCanceledException>(() => rows.MoveNext());
+            var delivered = new List<int>();
+            OperationCanceledException error = Assert.ThrowsAny<OperationCanceledException>(() => {
+                while (rows.MoveNext()) delivered.Add(rows.Current.Id);
+            });
+            // Rows mapped before the request may still be delivered; the cancelling row and later rows never are.
+            Assert.Equal(Enumerable.Range(1, delivered.Count), delivered);
+            Assert.True(delivered.Count <= (cancelWhileMapping ? 2 : 0), string.Join(",", delivered));
             Assert.Equal(cancellation.Token, error.CancellationToken);
             Assert.False(reader.IsClosed);
         } finally { File.Delete(path); }

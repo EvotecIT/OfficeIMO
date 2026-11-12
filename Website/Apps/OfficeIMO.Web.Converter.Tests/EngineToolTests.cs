@@ -221,10 +221,11 @@ public sealed class EngineToolTests {
         ToolResultDocument removed = ShareTool.Run(session, "remove", Options(("remove", "properties")));
         Assert.True(removed.Verdict.Tone == "good", removed.Verdict.Title + ": " + removed.Verdict.Detail);
         Assert.Contains(removed.Items, static item => item.Id == "properties" && item.State == ToolState.Removed);
+        Assert.StartsWith("Kept because the title", Assert.Single(removed.Items, static item => item.Id == "properties-kept").Detail, StringComparison.Ordinal);
         Assert.Equal("pdf", removed.Preview!.Kind);
         byte[] cleaned = session.Artifact(removed.Artifacts.Single(static artifact => artifact.Role == "primary").Index);
         using OfficeIMO.Pdf.PdfDocument reopened = OfficeIMO.Pdf.PdfDocument.Load(cleaned);
-        Assert.Empty(reopened.InspectHiddenData().GetFindings(OfficeIMO.OfficeHiddenDataKind.DocumentProperties));
+        Assert.Equal("Info/Title", Assert.Single(reopened.InspectHiddenData().GetFindings(OfficeIMO.OfficeHiddenDataKind.DocumentProperties)).Location);
     }
 
     [Fact]

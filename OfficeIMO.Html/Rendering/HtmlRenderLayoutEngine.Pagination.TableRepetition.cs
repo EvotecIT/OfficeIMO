@@ -74,27 +74,51 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     // Detached repeats do not share their source table's isolated effect buffer.
     // Keep the original occurrence rather than leaking opaque or unclipped copies.
-    private void CollectEffectTableOwners(IEnumerable<HtmlRenderVisual> visuals, bool insideEffect,
-        List<HtmlRenderClipGroup> clips, ISet<string> owners) {
-        foreach (HtmlRenderVisual visual in visuals) {
+    // Like the footer scan below, this follows pending semantic-group translations through their
+    // offsets instead of copying the subtree; only a table's position against its clips is read.
+    private void CollectEffectTableOwners(IReadOnlyList<HtmlRenderVisual> visuals, bool insideEffect,
+        List<HtmlRenderClipGroup> clips, ISet<string> owners, HtmlRenderOffset[]? pending = null) {
+        for (int index = 0; index < visuals.Count; index++) {
+            HtmlRenderVisual visual = visuals[index];
             ChargeLayoutOperation("table repetition effect ownership");
+            HtmlRenderOffset[]? childPending = pending;
+            IReadOnlyList<HtmlRenderVisual>? children;
+            if (visual is HtmlRenderSemanticGroup semantic
+                && semantic.TryGetPendingTranslation(out IReadOnlyList<HtmlRenderVisual> source, out HtmlRenderOffset[] offsets)) {
+                children = source;
+                childPending = pending == null ? offsets : HtmlRenderOffset.Append(offsets, pending);
+            } else {
+                if (pending != null && visual is not HtmlRenderSemanticGroup && visual.PaintChildren != null) {
+                    // Other containers rebase their own geometry, so read them as a pending read would.
+                    visual = visual.TranslateThrough(pending, index);
+                    childPending = null;
+                }
+                children = GetGroupChildren(visual);
+            }
             bool hasEffect = insideEffect || visual is HtmlRenderEffectGroup or HtmlRenderPathClipGroup
                 or HtmlRenderClipGroup { LegacyClipOwnerNodeId: not null };
             bool pushedClip = visual is HtmlRenderClipGroup { IsViewportOverflow: false, IsFlowFragment: false };
             if (pushedClip) clips.Add((HtmlRenderClipGroup)visual);
             if (visual is HtmlRenderSemanticGroup table && IsTableFormattingGroup(table)
                 && table.StructureElementKey is { } owner) {
+                double tableX = table.X, tableY = table.Y;
+                if (pending != null) {
+                    foreach (HtmlRenderOffset offset in pending) {
+                        tableX += offset.X;
+                        tableY += offset.Y;
+                    }
+                }
                 bool tableHasEffect = hasEffect;
                 foreach (HtmlRenderClipGroup clip in clips) {
                     ChargeLayoutOperation("table repetition clip ownership");
-                    tableHasEffect |= clip.ClipHorizontal && (table.X < clip.ClipX - 0.0001D
-                            || table.X + table.Width > clip.ClipX + clip.ClipWidth + 0.0001D)
-                        || clip.ClipVertical && (table.Y < clip.ClipY - 0.0001D
-                            || table.Y + table.Height > clip.ClipY + clip.ClipHeight + 0.0001D);
+                    tableHasEffect |= clip.ClipHorizontal && (tableX < clip.ClipX - 0.0001D
+                            || tableX + table.Width > clip.ClipX + clip.ClipWidth + 0.0001D)
+                        || clip.ClipVertical && (tableY < clip.ClipY - 0.0001D
+                            || tableY + table.Height > clip.ClipY + clip.ClipHeight + 0.0001D);
                 }
                 if (tableHasEffect) owners.Add(owner);
             }
-            if (GetGroupChildren(visual) is { } children) CollectEffectTableOwners(children, hasEffect, clips, owners);
+            if (children != null) CollectEffectTableOwners(children, hasEffect, clips, owners, childPending);
             if (pushedClip) clips.RemoveAt(clips.Count - 1);
         }
     }

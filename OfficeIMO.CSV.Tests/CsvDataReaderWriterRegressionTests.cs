@@ -1,5 +1,6 @@
 using System.Data;
 using System.Globalization;
+using System.Text;
 using OfficeIMO.CSV;
 using Xunit;
 
@@ -70,6 +71,235 @@ public class CsvDataReaderWriterRegressionTests
                 expected.Substring(expected.IndexOf('\n') + 1);
         }
         Assert.Equal(expected, output);
+    }
+
+    [Theory]
+    [InlineData("yyyy-MM-dd, HH:mm", false, "n,a")]
+    [InlineData("O", true, null)]
+    [InlineData("", true, "NULL")]
+    [InlineData(null, false, "\"none\"")]
+    [InlineData("dddd dddd dddd dddd dddd dddd dddd dddd dddd dddd dddd dddd dddd yyyy", false, null)]
+    public void WriteDataReader_FormattedValuesMatchRowWriting(string? format, bool useUtc, string? nullValue)
+    {
+        using var table = new DataTable();
+        table.Columns.Add("Id", typeof(int));
+        table.Columns.Add("Name", typeof(string));
+        table.Columns.Add("Created", typeof(DateTime));
+        table.Columns.Add("Offset", typeof(DateTimeOffset));
+        table.Columns.Add("Any", typeof(object));
+        table.Columns.Add("Amount", typeof(decimal));
+        table.Rows.Add(1, "a,b", new DateTime(2026, 3, 4, 5, 6, 7, DateTimeKind.Local),
+            new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.FromHours(2)), new DateTime(2025, 12, 31, 23, 59, 59, DateTimeKind.Utc), 1.5m);
+        table.Rows.Add(DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value);
+        table.Rows.Add(3, "plain", new DateTime(2024, 2, 29), new DateTimeOffset(2024, 2, 29, 0, 0, 0, TimeSpan.Zero), "text", -2m);
+        var options = new CsvSaveOptions { NewLine = "\n", DateTimeFormat = format, UseUtc = useUtc, NullValue = nullValue };
+
+        using var reader = table.CreateDataReader();
+        using var typed = new StringWriter(CultureInfo.InvariantCulture);
+        CsvDocument.WriteDataReader(typed, reader, options);
+
+        using var rows = new StringWriter(CultureInfo.InvariantCulture);
+        using (var writer = new CsvRowWriter(rows, options, leaveOpen: true))
+        {
+            string[] columns = table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray();
+            foreach (DataRow row in table.Rows) writer.WriteRow(columns, row.ItemArray);
+        }
+
+        Assert.Equal(rows.ToString(), typed.ToString());
+    }
+
+    public sealed class FormattedObjectRow
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+        public DateTime Created { get; set; }
+        public DateTime? Due { get; set; }
+        public DateTimeOffset Offset { get; set; }
+        public object? Any { get; set; }
+        public double Amount { get; set; }
+        public int? Count { get; set; }
+    }
+
+    [Theory]
+    [InlineData("yyyy-MM-dd, HH:mm", false, "n,a", "", false)]
+    [InlineData("O", true, null, "", true)]
+    [InlineData("", true, "NULL", "de-DE", false)]
+    [InlineData(null, false, "\"none\"", "", true)]
+    [InlineData("dd.MM.yyyy", false, null, "de-DE", true)]
+    [InlineData("dddd dddd dddd dddd dddd dddd dddd dddd dddd dddd dddd dddd dddd yyyy", false, null, "", false)]
+    public void WriteObjects_FormattedValuesMatchRowWriting(string? format, bool useUtc, string? nullValue, string cultureName, bool utf8)
+    {
+        var rows = new List<FormattedObjectRow>();
+        for (int index = 0; index < 400; index++)
+        {
+            bool empty = index % 5 == 3;
+            rows.Add(new FormattedObjectRow {
+                Id = index,
+                Name = empty ? null : index % 7 == 0 ? "a,\"b\"" : "name" + index,
+                Created = new DateTime(2026, 3, 4, 5, 6, 7, DateTimeKind.Local).AddMinutes(index * 37),
+                Due = empty ? null : new DateTime(2024, 2, 29, 0, 0, 0, DateTimeKind.Utc).AddHours(index),
+                Offset = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.FromHours(2)).AddDays(index),
+                Any = empty ? null : index % 2 == 0 ? new DateTime(2025, 12, 31, 23, 59, 59, DateTimeKind.Utc) : "text",
+                Amount = index * 1.25,
+                Count = empty ? null : index
+            });
+        }
+        var options = new CsvSaveOptions {
+            NewLine = "\n", DateTimeFormat = format, UseUtc = useUtc, NullValue = nullValue,
+            Culture = cultureName.Length == 0 ? CultureInfo.InvariantCulture : CultureInfo.GetCultureInfo(cultureName)
+        };
+
+        string projected;
+        if (utf8)
+        {
+            using var stream = new MemoryStream();
+            using (var streamWriter = new StreamWriter(stream, new UTF8Encoding(false), 1024, leaveOpen: true))
+                CsvDocument.WriteObjects(streamWriter, rows, options);
+            projected = Encoding.UTF8.GetString(stream.ToArray());
+        }
+        else
+        {
+            using var text = new StringWriter(CultureInfo.InvariantCulture);
+            CsvDocument.WriteObjects(text, rows, options);
+            projected = text.ToString();
+        }
+
+        using var expected = new StringWriter(CultureInfo.InvariantCulture);
+        using (var writer = new CsvRowWriter(expected, options, leaveOpen: true))
+        {
+            string[] columns = { "Id", "Name", "Created", "Due", "Offset", "Any", "Amount", "Count" };
+            foreach (var row in rows)
+                writer.WriteRow(columns, new object?[] { row.Id, row.Name, row.Created, row.Due, row.Offset, row.Any, row.Amount, row.Count });
+        }
+
+        Assert.Equal(expected.ToString(), projected);
+    }
+
+    [Theory]
+    [InlineData(',', "", false)]
+    [InlineData(';', "", false)]
+    [InlineData('\t', "de-DE", false)]
+    [InlineData(',', "de-DE", false)]
+    [InlineData('|', "fr-FR", false)]
+    [InlineData(',', "", true)]
+    [InlineData(';', "de-DE", true)]
+    public void WriteDataReader_TypedRecordsMatchRowWriting(char delimiter, string cultureName, bool formatted)
+    {
+        string[] pieces = { "a", "Zż", " ", ",", ";", "\t", "|", "\"", "\r", "\n", "\r\n", "😀", "\uD800", "\uDC00", "1.5", "x" };
+        var random = new Random(20261111 + delimiter + cultureName.Length + (formatted ? 7 : 0));
+        string Text() => string.Concat(Enumerable.Range(0, random.Next(0, 12)).Select(_ => pieces[random.Next(pieces.Length)]));
+        using var table = new DataTable();
+        table.Columns.Add("Text", typeof(string));
+        table.Columns.Add("Int", typeof(int));
+        table.Columns.Add("Long", typeof(long));
+        table.Columns.Add("Double", typeof(double));
+        table.Columns.Add("Decimal", typeof(decimal));
+        table.Columns.Add("Bool", typeof(bool));
+        table.Columns.Add("Date", typeof(DateTime));
+        table.Columns.Add("Offset", typeof(DateTimeOffset));
+        table.Columns.Add("Guid", typeof(Guid));
+        table.Columns.Add("Any", typeof(object));
+        for (int row = 0; row < 3000; row++)
+        {
+            object?[] values = {
+                Text(), random.Next(int.MinValue, int.MaxValue), ((long)random.Next() << 32) | (uint)random.Next(), random.NextDouble() * Math.Pow(10, random.Next(-5, 12)),
+                random.Next(-10_000_000, 10_000_000) / 1000m, random.Next(2) == 0, new DateTime(2020, 1, 1).AddSeconds(random.Next()),
+                new DateTimeOffset(2021, 2, 3, 4, 5, 6, TimeSpan.FromHours(random.Next(-12, 13))), new Guid(random.Next(), 1, 2, new byte[8]),
+                (row % 4) switch { 0 => Text(), 1 => random.Next(), 2 => new DateTime(2022, 5, 6, 7, 8, 9), _ => new string('ż', row % 97 == 3 ? 9_000 : 3) }
+            };
+            for (int column = 0; column < values.Length; column++) if (random.Next(9) == 0) values[column] = DBNull.Value;
+            table.Rows.Add(values);
+        }
+        var options = new CsvSaveOptions {
+            Delimiter = delimiter, NewLine = "\r\n",
+            Culture = cultureName.Length == 0 ? CultureInfo.InvariantCulture : CultureInfo.GetCultureInfo(cultureName),
+            DateTimeFormat = formatted ? "yyyy-MM-dd, HH:mm" : null, UseUtc = formatted, NullValue = formatted ? "n,a" : null
+        };
+
+        using var rows = new StringWriter(CultureInfo.InvariantCulture);
+        using (var writer = new CsvRowWriter(rows, options, leaveOpen: true))
+        {
+            string[] columns = table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray();
+            foreach (DataRow row in table.Rows) writer.WriteRow(columns, row.ItemArray);
+        }
+        using var text = new StringWriter(CultureInfo.InvariantCulture);
+        using (var reader = table.CreateDataReader()) CsvDocument.WriteDataReader(text, reader, options);
+        using var stream = new MemoryStream();
+        using (var reader = table.CreateDataReader()) CsvDocument.WriteDataReader(stream, reader, options);
+
+        Assert.Equal(rows.ToString(), text.ToString());
+        Assert.Equal(new UTF8Encoding(false).GetBytes(rows.ToString()), stream.ToArray());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void WriteDataReader_InvariantRecordsMatchRowWriting(bool rejectTypedRead)
+    {
+        string[] pieces = { "a", "Zż", " ", ",", ";", "\"", "\r", "\n", "\r\n", "😀", "1.5", "x" };
+        var random = new Random(20261114);
+        string Text() => string.Concat(Enumerable.Range(0, random.Next(0, 10)).Select(_ => pieces[random.Next(pieces.Length)]));
+        string[] headers = { "Text", "Int", "Long", "Double", "Decimal", "Bool", "Date" };
+        var rows = new object?[2500][];
+        for (int row = 0; row < rows.Length; row++)
+        {
+            rows[row] = new object?[] {
+                Text(), random.Next(int.MinValue, int.MaxValue), ((long)random.Next() << 32) | (uint)random.Next(),
+                random.NextDouble() * Math.Pow(10, random.Next(-8, 20)), random.Next(-10_000_000, 10_000_000) / 1000m, random.Next(2) == 0,
+                new DateTime(2020, 1, 1).AddSeconds(random.Next())
+            };
+            if (row > 0)
+            {
+                for (int column = 0; column < headers.Length; column++) if (random.Next(9) == 0) rows[row][column] = DBNull.Value;
+            }
+        }
+        if (rejectTypedRead) rows[1700][1] = 5L;
+        var options = new CsvSaveOptions { NewLine = "\r\n" };
+
+        using var expected = new StringWriter(CultureInfo.InvariantCulture);
+        using (var writer = new CsvRowWriter(expected, options, leaveOpen: true))
+        {
+            foreach (object?[] row in rows) writer.WriteRow(headers, row);
+        }
+        using var text = new StringWriter(CultureInfo.InvariantCulture);
+        using (var reader = new ThrowingGetValuesDataReader(headers, rows)) CsvDocument.WriteDataReader(text, reader, options);
+        using var stream = new MemoryStream();
+        using (var reader = new ThrowingGetValuesDataReader(headers, rows)) CsvDocument.WriteDataReader(stream, reader, options, leaveOpen: true);
+        using var table = new DataTable();
+        Type[] types = { typeof(string), typeof(int), typeof(long), typeof(double), typeof(decimal), typeof(bool), typeof(DateTime) };
+        for (int column = 0; column < headers.Length; column++) table.Columns.Add(headers[column], types[column]);
+        foreach (object?[] row in rows) table.Rows.Add(row);
+        using var tableStream = new MemoryStream();
+        using (var reader = table.CreateDataReader()) CsvDocument.WriteDataReader(tableStream, reader, options, leaveOpen: true);
+
+        Assert.Equal(expected.ToString(), text.ToString());
+        Assert.Equal(new UTF8Encoding(false).GetBytes(expected.ToString()), stream.ToArray());
+        Assert.Equal(new UTF8Encoding(false).GetBytes(expected.ToString()), tableStream.ToArray());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void WriteDataReader_StreamKeepsOnlyCompletedRowsAfterFailure(bool cancel)
+    {
+        using var cancellation = new CancellationTokenSource();
+        string largeValue = new string('x', 40_000);
+        using var reader = new ThrowingGetValuesDataReader(
+            new[] { "Name", "Value" },
+            new[] {
+                new object?[] { "Alpha", "One" },
+                new object?[] { "Beta", cancel ? new CancelingCsvValue(cancellation, largeValue) : new ThrowingCsvValue() },
+                new object?[] { "Gamma", "Two" }
+            },
+            supportGetValues: true);
+        using var stream = new MemoryStream();
+
+        Action write = () => CsvDocument.WriteDataReader(stream, reader, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true, cancellation.Token);
+        if (cancel) Assert.Throws<OperationCanceledException>(write);
+        else Assert.Throws<InvalidOperationException>(write);
+
+        Assert.Equal(cancel ? "Name,Value\nAlpha,One\nBeta," + largeValue + "\n" : "Name,Value\nAlpha,One\n",
+            Encoding.UTF8.GetString(stream.ToArray()));
     }
 
     [Fact]

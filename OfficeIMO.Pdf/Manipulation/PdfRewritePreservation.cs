@@ -380,6 +380,7 @@ internal static partial class PdfRewritePreservation {
         if (!options.PreserveTaggedContent || original is null) {
             return;
         }
+        if (options.TaggedContentPruning is not null) original = options.TaggedContentPruning.Apply(original);
 
         if (rewritten is null) {
             issues.Add(CreateIssue("TaggedContent.Readable", "present", "missing"));
@@ -399,16 +400,47 @@ internal static partial class PdfRewritePreservation {
         CompareCounts(issues, "TaggedContent.LanguageElements", original.LanguageElementCount, rewritten.LanguageElementCount, true);
         CompareCounts(issues, "TaggedContent.AlternateTextElements", original.AlternateTextElementCount, rewritten.AlternateTextElementCount, true);
         CompareCounts(issues, "TaggedContent.FiguresWithoutAlternateText", original.FigureWithoutAlternateTextCount, rewritten.FigureWithoutAlternateTextCount, true);
-        CompareStringList(issues, "TaggedContent.StructureTypes", original.StructureTypes, rewritten.StructureTypes);
+        // A rewrite may renumber objects, so elements are compared in structure tree order rather than object order.
+        List<PdfStructureElementInfo> originalElements = InTreeOrder(original);
+        List<PdfStructureElementInfo> rewrittenElements = InTreeOrder(rewritten);
+        CompareStringList(issues, "TaggedContent.StructureTypes", StructureTypesOf(originalElements), StructureTypesOf(rewrittenElements));
         CompareStringIntDictionary(issues, "TaggedContent.StructureTypeCounts", original.StructureTypeCounts, rewritten.StructureTypeCounts);
         CompareNullableBoolean(issues, "TaggedContent.DeepEvidence", original.HasDeepTaggedPdfEvidence, rewritten.HasDeepTaggedPdfEvidence);
         CompareNullableBoolean(issues, "TaggedContent.FiguresHaveAlternateText", original.FiguresHaveAlternateText, rewritten.FiguresHaveAlternateText);
 
-        int count = Math.Min(original.StructureElements.Count, rewritten.StructureElements.Count);
+        int count = Math.Min(originalElements.Count, rewrittenElements.Count);
         for (int i = 0; i < count; i++) {
-            CompareStructureElement(issues, original.StructureElements[i], rewritten.StructureElements[i], i);
+            CompareStructureElement(issues, originalElements[i], rewrittenElements[i], i);
         }
     }
+
+    /// <summary>Structure elements depth-first from the roots in /K order, then any the tree does not reach, in object order.</summary>
+    private static List<PdfStructureElementInfo> InTreeOrder(PdfTaggedContentInfo info) {
+        var byNumber = new Dictionary<int, PdfStructureElementInfo>();
+        // Walk backwards so the first element with an object number wins.
+        for (int i = info.StructureElements.Count - 1; i >= 0; i--) byNumber[info.StructureElements[i].ObjectNumber] = info.StructureElements[i];
+        var ordered = new List<PdfStructureElementInfo>(info.StructureElements.Count);
+        var seen = new HashSet<int>();
+        var pending = new Stack<int>();
+        for (int i = info.RootElementObjectNumbers.Count - 1; i >= 0; i--) pending.Push(info.RootElementObjectNumbers[i]);
+        while (pending.Count > 0) {
+            int number = pending.Pop();
+            if (!byNumber.TryGetValue(number, out PdfStructureElementInfo? element) || !seen.Add(number)) continue;
+            ordered.Add(element);
+            for (int i = element.ChildElementObjectNumbers.Count - 1; i >= 0; i--) pending.Push(element.ChildElementObjectNumbers[i]);
+        }
+        foreach (PdfStructureElementInfo element in info.StructureElements) {
+            if (seen.Add(element.ObjectNumber)) ordered.Add(element);
+        }
+        return ordered;
+    }
+
+    private static string[] StructureTypesOf(List<PdfStructureElementInfo> elements) => elements
+        .Select(static element => element.StructureType)
+        .Where(static type => !string.IsNullOrEmpty(type))
+        .Cast<string>()
+        .Distinct(StringComparer.Ordinal)
+        .ToArray();
 
     private static void CompareStructureElement(List<PdfRewritePreservationIssue> issues, PdfStructureElementInfo original, PdfStructureElementInfo rewritten, int index) {
         string prefix = "TaggedContent.StructureElements[" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]";

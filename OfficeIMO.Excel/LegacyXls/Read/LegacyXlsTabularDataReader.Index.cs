@@ -20,6 +20,26 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             out int firstColumn,
             out int lastColumn,
             out Dictionary<int, string?>? headerValues) {
+            // The JIT compiles a method that combines stackalloc with loops fully optimized on its first
+            // call, which costs a cold read several milliseconds; the loops live in the overload.
+            Span<int> blockRows = stackalloc int[MaximumIndexedRowsPerBlock];
+            Span<int> blockFirstCells = stackalloc int[MaximumIndexedRowsPerBlock];
+            return TryDiscoverIndexed(sheetOffset, sheetEndOffset, bufferedRowOffsets, blockRows, blockFirstCells,
+                out bufferedWorksheetEndOffset, out firstRow, out lastRow, out firstColumn, out lastColumn, out headerValues);
+        }
+
+        private bool TryDiscoverIndexed(
+            int sheetOffset,
+            int sheetEndOffset,
+            int[] bufferedRowOffsets,
+            Span<int> blockRows,
+            Span<int> blockFirstCells,
+            out int bufferedWorksheetEndOffset,
+            out int firstRow,
+            out int lastRow,
+            out int firstColumn,
+            out int lastColumn,
+            out Dictionary<int, string?>? headerValues) {
             bufferedWorksheetEndOffset = -1;
             firstRow = -1;
             lastRow = -1;
@@ -115,16 +135,16 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             int previousRow = -1;
             int lastDbCellEnd = -1;
             int expectedBlockStart = cellTableStartOffset;
-            Span<int> blockRows = stackalloc int[MaximumIndexedRowsPerBlock];
-            Span<int> blockFirstCells = stackalloc int[MaximumIndexedRowsPerBlock];
 
             for (int blockIndex = 0; blockIndex < dbCellCount; blockIndex++) {
                 if (CanCancelCurrentRead) CheckCancellation();
                 uint rawDbCellOffset = ReadBufferedUInt32(
                     bytes,
                     index.PayloadOffset + 16 + (blockIndex * sizeof(uint)));
-                if (rawDbCellOffset > int.MaxValue) return false;
-                int dbCellOffset = (int)rawDbCellOffset;
+                // INDEX holds workbook stream offsets; a worksheet slice starts at _streamOffsetBase.
+                long relativeDbCellOffset = (long)rawDbCellOffset - _streamOffsetBase;
+                if (relativeDbCellOffset < 0 || relativeDbCellOffset > int.MaxValue) return false;
+                int dbCellOffset = (int)relativeDbCellOffset;
                 if (dbCellOffset < cellTableStartOffset
                     || dbCellOffset >= sheetEndOffset
                     || dbCellOffset <= lastDbCellEnd) {

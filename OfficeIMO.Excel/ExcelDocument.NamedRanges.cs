@@ -40,6 +40,7 @@ namespace OfficeIMO.Excel {
             ArgumentException.ThrowIfNullOrWhiteSpace(range);
 #endif
 
+            using DefinedNameEditScope edit = BeginDefinedNameEdit();
             name = NormalizeDefinedName(name, validationMode);
             string reference = scope == null ? NormalizeRange(range, validationMode)
                 : NormalizeLocalNamedRange(scope, range, validationMode);
@@ -205,6 +206,7 @@ namespace OfficeIMO.Excel {
 #else
             ArgumentException.ThrowIfNullOrWhiteSpace(name);
 #endif
+            using DefinedNameEditScope edit = BeginDefinedNameEdit();
             var definedNames = WorkbookRoot.DefinedNames;
             if (definedNames == null) return false;
 
@@ -230,7 +232,12 @@ namespace OfficeIMO.Excel {
             MarkFormulaInputMutation();
             // Persist freshness on the cells as well as in the in-memory version.
             // Do not set the user's explicit full-calculation-on-open policy.
-            foreach (var sheet in Sheets) sheet.InvalidateFormulas();
+            // Deferred imports materialize through Sheets first, so they keep the immediate path.
+            if (RequiresDeferredMaterialization) {
+                foreach (var sheet in Sheets) sheet.InvalidateFormulas();
+                return;
+            }
+            QueueDefinedNameEdit(PendingDefinedNameFormulaMarks);
         }
 
         private uint GetSheetIndex(ExcelSheet sheet) {
@@ -329,7 +336,8 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            WorkbookRoot.Save();
+            // The part is written before anything else reads the package; see DefinedNameEditScope.
+            QueueDefinedNameEdit(PendingWorkbookRootSave);
         }
 
         /// <summary>

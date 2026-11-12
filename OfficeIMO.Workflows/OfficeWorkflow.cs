@@ -46,6 +46,14 @@ public static partial class OfficeWorkflow {
     public static OfficeWorkflowBuilder RemovePdfProtection(string inputPath, string ownerPassword) =>
         Create(OfficeWorkflowOperation.RemovePdfProtection, inputPath).WithPdfPassword(ownerPassword).WithPdfOwnerPassword(ownerPassword);
 
+    /// <summary>
+    /// Creates a PDF/A copy with captured conversion settings, or the library defaults when <paramref name="options"/> is null.
+    /// Use <see cref="OfficeWorkflowBuilder.WithPdfPassword"/> with the owner password for an encrypted source.
+    /// </summary>
+    public static OfficeWorkflowBuilder ConvertToPdfA(string inputPath, OfficeIMO.Pdf.PdfAConversionOptions? options = null) =>
+        new(new OfficeWorkflowRequest { Operation = OfficeWorkflowOperation.ConvertToPdfA, InputPath = inputPath,
+            PdfAConversion = OfficeWorkflowRunner.SnapshotPdfAConversion(options) });
+
     /// <summary>Creates a signed PDF copy with captured appearance settings and a caller-owned signer and verifier.</summary>
     public static OfficeWorkflowBuilder SignPdf(string inputPath, OfficeIMO.Pdf.IPdfExternalSigner signer,
         OfficeIMO.Pdf.PdfExternalSignatureOptions options, OfficeIMO.Pdf.IPdfSignatureCryptographyProvider verifier) =>
@@ -160,6 +168,7 @@ public sealed class OfficeWorkflowBuilder {
             Operation = _request.Operation,
             PageNumbers = _request.PageNumbers?.ToArray(),
             OutputEncryption = _request.OutputEncryption?.Clone(),
+            PdfAConversion = OfficeWorkflowRunner.SnapshotPdfAConversion(_request.PdfAConversion),
             PdfOwnerPassword = _request.PdfOwnerPassword,
             OutputSigner = _request.OutputSigner,
             OutputSignatureOptions = OfficeWorkflowRunner.SnapshotSignatureOptions(_request.OutputSignatureOptions),

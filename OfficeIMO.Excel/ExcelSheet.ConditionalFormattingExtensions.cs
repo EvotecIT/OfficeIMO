@@ -260,10 +260,28 @@ namespace OfficeIMO.Excel {
 
         private static string? ReadOffice2010Color(X14.ColorType? color) => color?.Rgb?.Value;
 
+        /// <summary>
+        /// Looks for unknown markup below <paramref name="root"/> by following element links. Every rule is read back
+        /// when it is created, and a typed descendant search allocates its own walk state each time.
+        /// </summary>
+        private static bool ContainsUnknownElement(OpenXmlElement root) {
+            for (OpenXmlElement? element = root.FirstChild; element != null;) {
+                if (element is OpenXmlUnknownElement) return true;
+                if (element.FirstChild is { } child) {
+                    element = child;
+                    continue;
+                }
+                while (element != null && !ReferenceEquals(element, root) && element.NextSibling() is not { } sibling) element = element.Parent;
+                if (element == null || ReferenceEquals(element, root)) return false;
+                element = element.NextSibling();
+            }
+            return false;
+        }
+
         private static bool HasUnprojectedConditionalFormattingMarkup(
             OpenXmlElement rule,
             OpenXmlElement? container) {
-            if (rule.ExtendedAttributes.Any() || rule.Descendants<OpenXmlUnknownElement>().Any()) return true;
+            if (rule.ExtendedAttributes.Any() || ContainsUnknownElement(rule)) return true;
             if (container != null &&
                 (container.ExtendedAttributes.Any() ||
                  container.ChildElements.Any(child => child is OpenXmlUnknownElement ||

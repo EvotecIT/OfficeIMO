@@ -32,6 +32,14 @@ optimizes, or sanitizes. Flattening omits native text, forms, links, signatures 
 attachments; explain that result and use `acknowledgeRasterOutput=true` only when
 the user's requested raster copy covers that loss.
 
+Use `officeimo_pdf_convert_to_pdfa` for an archival PDF/A copy. Keep the default
+`profile` unless the user chose otherwise. Pass `attachments=refuse` unless the user
+agreed to lose embedded files; if the source is refused for its attachments, ask
+whether to remove them or keep them with profile `3b` or `3u`. When a conversion
+removes attachments, tell the user which ones. When the result is refused, report the `pdfA`
+violations with their locations instead of trying another tool. Supply `fonts` or an
+`outputIntent` only from files the user provided.
+
 Use `officeimo_pdf_split`, `officeimo_pdf_assemble`, and `officeimo_pdf_export_pages`
 for consecutive parts, ordered PDF/image assembly, and page images. Start with
 default limits and inspect `status`, `artifactCount`, `diagnosticCount`, and

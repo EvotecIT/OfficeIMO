@@ -82,6 +82,9 @@ public sealed class PdfRewritePreservationOptions {
     /// <summary>True when tagged PDF structure markers and readable structure metadata must not be lost.</summary>
     public bool PreserveTaggedContent { get; set; } = true;
 
+    /// <summary>Structure references the rewrite removed with deleted annotations; the rest of the structure tree must match exactly.</summary>
+    internal PdfStructureTreePruning? TaggedContentPruning { get; set; }
+
     /// <summary>True when catalog page mode, layout, language, and viewer preferences must not be lost.</summary>
     public bool PreserveCatalogViewSettings { get; set; } = true;
 

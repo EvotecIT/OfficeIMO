@@ -460,6 +460,7 @@ namespace OfficeIMO.Excel {
                 copiedTable.Name = tableName;
                 copiedTable.DisplayName = tableName;
 
+                InvalidateTableLayouts();
                 copiedTablePart.Table = copiedTable;
                 ReserveTableName(tableName);
                 copiedTables.Add(copiedTable);

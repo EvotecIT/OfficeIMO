@@ -37,18 +37,26 @@ namespace OfficeIMO.Excel {
         private WorksheetExtent? ScanWorksheet(WorksheetPart worksheet, ExcelReaderOptions options) {
             byte[]? buffer = null;
             try {
-                // The indexed reader uses this same bounded UTF-8 buffer. Keep the complete
-                // XmlReader qualification here, then transfer its bytes rather than inflating again.
+                // The indexed reader uses this same bounded UTF-8 buffer. The byte scan decides the
+                // strict common shape; everything else keeps the complete XmlReader qualification.
+                // Either way the bytes transfer to the reader rather than inflating again.
                 const int maximumBufferedBytes = 256 * 1024 * 1024;
                 if (PartBufferReader.TryGetLength(worksheet.Uri.OriginalString, out long partLength)
                     && partLength >= 1_048_576
                     && PartBufferReader.TryRead(worksheet.Uri.OriginalString, maximumBufferedBytes,
                         options.CancellationToken, out buffer, out int length,
                         ExcelSheetReader.CanBufferUtf8WorksheetPrefix)) {
-                    using var buffered = new MemoryStream(buffer!, 0, length, writable: false);
-                    using XmlReader bufferedReader = XmlReader.Create(buffered, QualificationXmlReaderSettings);
-                    WorksheetExtent? extent = ExcelSheetReader.MeasureCanonicalWorksheet(bufferedReader, options.CancellationToken,
-                        out bool validatedIndexedXml);
+                    WorksheetExtent? extent;
+                    bool validatedIndexedXml = false;
+                    if (ExcelSheetReader.TryMeasureCanonicalWorksheet(buffer!, length, options.Execution, options.CancellationToken,
+                            out WorksheetExtent measured)) {
+                        extent = measured;
+                    } else {
+                        using var buffered = new MemoryStream(buffer!, 0, length, writable: false);
+                        using XmlReader bufferedReader = XmlReader.Create(buffered, QualificationXmlReaderSettings);
+                        extent = ExcelSheetReader.MeasureCanonicalWorksheet(bufferedReader, options.CancellationToken,
+                            out validatedIndexedXml);
+                    }
                     int bufferedRows = Math.Max(
                         Math.Min(ExcelSheetReader.DataReaderChunkRows, options.MaxDataReaderChunkRows),
                         options.SchemaSampleRows);

@@ -43,6 +43,9 @@ namespace OfficeIMO.Excel {
                 bool keepsWorkbookStyles = model.DirectDataSetModel?.WorkbookStyles != null;
                 bool wroteDirectStyles = false;
                 bool wroteDirectSharedStrings = false;
+#if NET8_0_OR_GREATER
+                using PreparedDirectWorksheets? preparedWorksheets = PreparedDirectWorksheets.TryCreate(archive, model, directWritePlan, execution, ct);
+#endif
                 foreach (var part in model.Parts) {
                     ct.ThrowIfCancellationRequested();
                     if (directWritePlan != null && !keepsWorkbookStyles && part.Part is WorkbookStylesPart) {
@@ -64,6 +67,9 @@ namespace OfficeIMO.Excel {
                             }
                         }
 
+#if NET8_0_OR_GREATER
+                        if (preparedWorksheets?.TryWrite(directWorksheetPart, part.Path) != true)
+#endif
                         DirectDataSetWorkbookWriter.WriteExtendedWorksheet(archive, directWritePlan, directSheetModel, part.Path, tableRelationshipId, ct,
                             allowBackgroundCompression: execution?.AllowsBackgroundProcessing == true);
                         ReportTiming("Save.ExtendedPackage.WriteDirectWorksheet");
