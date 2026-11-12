@@ -24,17 +24,18 @@ Usage:
              [--alignment center|top-left|top|top-right|left|right|bottom-left|bottom|bottom-right]
              [--page-subset all|odd|even] [--color color|grayscale]
   officeimo workflow batch [<source>...] --output <folder> [--input-directory <folder>]
-             [--target pdf|docx|xlsx|pptx|html] [--checkpoint <folder>] [--route <id>]
+             [--target pdf|docx|xlsx|pptx|html|json|jsonl|yaml|toml|xml|csv|tsv] [--checkpoint <folder>] [--route <id>]
              [--source-extension <extension>] [--no-recursive] [--concurrency 1..32]
              [--conflict fail|rename|replace] [--retry-failed] [--text-encoding <name>] [--tab-size 1..32]
-             [--allow-legacy-loss] [--source-password <password>] [--pdf-password <password>] [--pages <selection>]
+             [--allow-legacy-loss] [--pages <selection>]
              [--profile faithful|lightweight|printready|textonly] [--maximum-files <count>]
              [--maximum-input-bytes <bytes>] [--maximum-output-bytes <bytes>]
              [--maximum-xml-characters-in-part <characters>] [--diagram-layers screen|print] [--require-no-loss]
-             [--source-password-env <name>] [--pdf-password-env <name>] [--allow-empty]
+             [--source-password-env <name>] [--pdf-password-env <name>] [--allow-empty] [--verbose]
              [--format json|ndjson] [--save-job <new-job.json>]
   officeimo workflow job plan <job.json>
-  officeimo workflow job run <job.json> [--retry-failed] [--allow-empty] [--format json|ndjson] [--report <new-report.json>]
+  officeimo workflow job run <job.json> [--retry-failed] [--allow-empty] [--verbose] [--format json|ndjson]
+             [--report <new-report.json>]
   officeimo workflow job report <run-report.json>
   officeimo workflow printers [--paper-sources <queue>]
   officeimo workflow print <input.pdf> --printer <name> [print-plan options]
@@ -47,6 +48,10 @@ Existing output is refused unless --force is supplied.
 Batch output defaults to the existing aggregate JSON. --format json adds per-file outcomes
 (up to 10,000 or 16 MiB of items with an explicit truncation marker); ndjson streams every item and a final summary.
 Batch and saved jobs fail when no inputs are selected unless --allow-empty is supplied.
+--target defaults to pdf, or to the target of --route when a route is named. Data targets (json, jsonl,
+yaml, toml, xml, csv, tsv and xlsx) run the structured-data routes.
+Files without a route to the target are skipped and counted on standard error; --verbose lists each one.
+Passwords are read only from the environment variables named by --source-password-env and --pdf-password-env.
 --save-job writes a definition without converting files. Saved jobs contain secret references only.
 --report records an attempt independently of checkpoint receipts; job report inspects it without executing work.
 """;
