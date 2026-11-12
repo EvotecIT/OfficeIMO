@@ -244,12 +244,16 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                OfficeHiddenDataFinding found = Assert.Single(document.InspectHiddenData().GetFindings(OfficeHiddenDataKind.ImageMetadata));
-                Assert.Equal("/word/media/leftover.jpeg", found.Part);
+                // An unsaved edit that adds a part with its own relationships, which .NET Framework writes only when the package is flushed.
+                document.PageSetup.Header!.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
+
+                OfficeHiddenDataFinding found = Assert.Single(document.InspectHiddenData().GetFindings(OfficeHiddenDataKind.ImageMetadata),
+                    finding => finding.Part == "/word/media/leftover.jpeg");
                 Assert.Equal(OfficeHiddenDataScope.EmbeddedImage, found.Scope);
                 Assert.Contains("not used", found.Description);
 
-                OfficeHiddenDataFinding removed = Assert.Single(document.RemoveHiddenData().GetFindings(OfficeHiddenDataKind.ImageMetadata));
+                OfficeHiddenDataFinding removed = Assert.Single(document.RemoveHiddenData().GetFindings(OfficeHiddenDataKind.ImageMetadata),
+                    finding => finding.Part == "/word/media/leftover.jpeg");
                 Assert.Equal(OfficeHiddenDataOutcome.Removed, removed.Outcome);
                 document.Save();
             }

@@ -107,14 +107,8 @@ namespace OfficeIMO.OpenXml.Internal {
         private static void InspectUnusedImages(OpenXmlPackage package, HashSet<string> related, OfficeHiddenDataCollector collector) {
 #pragma warning disable OOXML0001
             IPackage opc = package.GetPackage();
-            List<IPackagePart> parts;
-            try {
-                parts = opc.GetParts().ToList();
-            } catch (System.Xml.XmlException) {
-                // On .NET Framework, a relationship part added in this session stays empty until the package is flushed, and the SDK's
-                // part enumeration fails reading it. The sweep is skipped for this package; inspecting the saved file finds unused pictures.
-                return;
-            }
+            RegisterUnwrittenRelationshipParts(opc, related);
+            List<IPackagePart> parts = opc.GetParts().ToList();
             foreach (IPackagePart part in parts) {
                 string uri = part.Uri.OriginalString;
                 if (related.Contains(uri) || !part.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) continue;
@@ -127,6 +121,38 @@ namespace OfficeIMO.OpenXml.Internal {
             }
 #pragma warning restore OOXML0001
         }
+
+        /// <summary>
+        /// On .NET Framework a part's relationship part is created when a relationship is added but stays empty until the package is
+        /// flushed. The SDK reads each part's relationships the first time the package hands that part out, so enumerating the package
+        /// fails on the empty one. Handing each such part out once while its relationship part holds an empty, valid list records it as
+        /// read; the relationship part is then restored, and the flush writes the real list as before.
+        /// </summary>
+#pragma warning disable OOXML0001
+        private static void RegisterUnwrittenRelationshipParts(IPackage opc, HashSet<string> related) {
+            if (!opc.FileOpenAccess.HasFlag(FileAccess.Write)) return;
+            foreach (string location in related) {
+                var partUri = new Uri(location, UriKind.Relative);
+                Uri relationshipUri = PackUriHelper.GetRelationshipPartUri(partUri);
+                if (!opc.PartExists(relationshipUri) || !opc.PartExists(partUri)) continue;
+                IPackagePart relationships = opc.GetPart(relationshipUri);
+                byte[] existing;
+                using (Stream probe = relationships.GetStream(FileMode.Open, FileAccess.Read)) existing = OfficeHiddenDataAssets.ReadAll(probe);
+                if (existing.Any(value => !char.IsWhiteSpace((char)value))) continue;
+                using (Stream write = relationships.GetStream(FileMode.Create, FileAccess.Write)) {
+                    byte[] empty = System.Text.Encoding.UTF8.GetBytes("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"/>");
+                    write.Write(empty, 0, empty.Length);
+                }
+                try {
+                    opc.GetPart(partUri);
+                } finally {
+                    using Stream restore = relationships.GetStream(FileMode.Create, FileAccess.Write);
+                    restore.SetLength(0);
+                    restore.Write(existing, 0, existing.Length);
+                }
+            }
+        }
+#pragma warning restore OOXML0001
 
         /// <summary>A package-level C2PA manifest part. Saving a loaded package does not carry an unreferenced part, so removal deletes it.</summary>
         private static void InspectPackageProvenance(OpenXmlPackage package, OfficeHiddenDataCollector collector) {
