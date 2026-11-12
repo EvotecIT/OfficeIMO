@@ -12,7 +12,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordSignatureInfo InspectSignatures() {
             using var snapshot = new MemoryStream();
-            using (_wordprocessingDocument.Clone(snapshot)) { }
+            using (WordPackageSnapshot.Clone(_wordprocessingDocument, snapshot)) { }
             OfficeIMO.Security.OfficePackageSignatureInfo shared = OfficePackageSignatureService.Inspect(
                 snapshot.ToArray(), new OfficePackageSignatureInspectionOptions { VerifyDigests = false });
             return CreateWordSignatureInfo(shared,

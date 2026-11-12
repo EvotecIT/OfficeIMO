@@ -432,9 +432,8 @@ namespace OfficeIMO.Word {
                 return;
             }
             OfficeFileCommit.Write(filePath, stream => {
-                using (var clone = _wordprocessingDocument.Clone(stream)) {
+                using (var clone = WordPackageSnapshot.Clone(_wordprocessingDocument, stream)) {
                     AlignDocumentTypeWithFilePath(clone, filePath);
-                    OfficeOpenXmlPackagePayload.CopyCoreProperties(_wordprocessingDocument, clone);
                 }
 
                 stream.Seek(0, SeekOrigin.Begin);
@@ -460,11 +459,10 @@ namespace OfficeIMO.Word {
 
         private byte[] CreateClonedPackageSnapshot(string? filePath) {
             using var memoryStream = new MemoryStream();
-            using (var clone = _wordprocessingDocument.Clone(memoryStream, true)) {
+            using (var clone = WordPackageSnapshot.Clone(_wordprocessingDocument, memoryStream)) {
                 if (!string.IsNullOrEmpty(filePath)) {
                     AlignDocumentTypeWithFilePath(clone, filePath!);
                 }
-                OfficeOpenXmlPackagePayload.CopyCoreProperties(_wordprocessingDocument, clone);
             }
 
             memoryStream.Seek(0, SeekOrigin.Begin);
