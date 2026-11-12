@@ -9885,4 +9885,5 @@ JSON, JSON Lines, YAML, TOML, XML, CSV, TSV and worksheet data convert through `
 - **File extensions.** `OfficeConverter` now recognizes `.toml`, `.yaml`, `.yml`, `.jsonl` and `.ndjson` files.
 - **Conversion settings.** `OfficeConversionOptions.Data` takes a `DataConversionOptions` for the data routes (`Select`, `RootName`, `Columns`, `SampleRows`, `JsonLines` and the per-format reader and writer settings). In PowerShell, pass it to `Convert-OfficeDocument -Options`, for example `-Options @{ Select = 'package' }`.
 - **Loss reporting.** Data routes report what the target cannot hold, such as TOML nulls, YAML tags or XML attributes, as diagnostics on `OfficeConversionReport`. Set `FailOnLoss` (or `-FailOnLoss`) to stop instead.
+- **CSV UTF-8 rows.** `CsvRowWriter.WriteUtf8Row` now rejects a field that unquoted output cannot hold before writing any of that row, instead of leaving a partly written row.
 - **PowerShell TOML commands.** `ConvertFrom-OfficeToml`, `ConvertTo-OfficeToml`, `Import-OfficeToml` and `Export-OfficeToml` read and write TOML as PowerShell objects, as the JSON commands do.
