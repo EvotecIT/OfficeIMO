@@ -135,7 +135,7 @@ public class CsvDataReaderWriterRegressionTests
             bool empty = index % 5 == 3;
             rows.Add(new FormattedObjectRow {
                 Id = index,
-                Name = empty ? null : index % 7 == 0 ? "a,\"b\"" : "name" + index,
+                Name = empty ? null : index % 7 == 0 ? "a,\"b\"" : index % 11 == 0 ? new string('n', 70) + "\r\n\"" + index : "name" + index,
                 Created = new DateTime(2026, 3, 4, 5, 6, 7, DateTimeKind.Local).AddMinutes(index * 37),
                 Due = empty ? null : new DateTime(2024, 2, 29, 0, 0, 0, DateTimeKind.Utc).AddHours(index),
                 Offset = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.FromHours(2)).AddDays(index),
@@ -232,23 +232,35 @@ public class CsvDataReaderWriterRegressionTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void WriteDataReader_InvariantRecordsMatchRowWriting(bool rejectTypedRead)
+    [InlineData("Mixed", false)]
+    [InlineData("Mixed", true)]
+    [InlineData("Text", false)]
+    [InlineData("Scalar", false)]
+    public void WriteDataReader_InvariantRecordsMatchRowWriting(string layout, bool rejectTypedRead)
     {
         // A lone surrogate is invalid UTF-16; UTF-8 streams carry the replacement character the encoder gives it.
-        string[] pieces = { "a", "Zż", " ", ",", ";", "\"", "\r", "\n", "\r\n", "😀", "\uD800", "1.5", "x" };
+        string[] pieces = { "a", "Zż", " ", ",", ";", "\"", "\r", "\n", "\r\n", "😀", "\uD800", "1.5", "x", "plain" };
         var random = new Random(20261114);
-        string Text() => string.Concat(Enumerable.Range(0, random.Next(0, 10)).Select(_ => pieces[random.Next(pieces.Length)]));
-        string[] headers = { "Text", "Int", "Long", "Double", "Decimal", "Bool", "Date" };
+        // Mostly short text, with some past the short-text escaping length.
+        string Text() => string.Concat(Enumerable.Range(0, random.Next(0, random.Next(8) == 0 ? 40 : 10)).Select(_ => pieces[random.Next(pieces.Length)]));
+        string[] headers = layout switch {
+            "Text" => new[] { "Code", "Name", "Notes" },
+            "Scalar" => new[] { "Int", "Long", "Double", "Decimal", "Bool", "Date" },
+            _ => new[] { "Text", "Int", "Long", "Double", "Decimal", "Bool", "Date" }
+        };
+        object? Value(string header) => header switch {
+            "Int" => random.Next(int.MinValue, int.MaxValue),
+            "Long" => ((long)random.Next() << 32) | (uint)random.Next(),
+            "Double" => random.NextDouble() * Math.Pow(10, random.Next(-8, 20)),
+            "Decimal" => random.Next(-10_000_000, 10_000_000) / 1000m,
+            "Bool" => random.Next(2) == 0,
+            "Date" => new DateTime(2020, 1, 1).AddSeconds(random.Next()),
+            _ => Text()
+        };
         var rows = new object?[2500][];
         for (int row = 0; row < rows.Length; row++)
         {
-            rows[row] = new object?[] {
-                Text(), random.Next(int.MinValue, int.MaxValue), ((long)random.Next() << 32) | (uint)random.Next(),
-                random.NextDouble() * Math.Pow(10, random.Next(-8, 20)), random.Next(-10_000_000, 10_000_000) / 1000m, random.Next(2) == 0,
-                new DateTime(2020, 1, 1).AddSeconds(random.Next())
-            };
+            rows[row] = headers.Select(Value).ToArray();
             if (row > 0)
             {
                 for (int column = 0; column < headers.Length; column++) if (random.Next(9) == 0) rows[row][column] = DBNull.Value;
@@ -267,8 +279,7 @@ public class CsvDataReaderWriterRegressionTests
         using var stream = new MemoryStream();
         using (var reader = new ThrowingGetValuesDataReader(headers, rows)) CsvDocument.WriteDataReader(stream, reader, options, leaveOpen: true);
         using var table = new DataTable();
-        Type[] types = { typeof(string), typeof(int), typeof(long), typeof(double), typeof(decimal), typeof(bool), typeof(DateTime) };
-        for (int column = 0; column < headers.Length; column++) table.Columns.Add(headers[column], types[column]);
+        for (int column = 0; column < headers.Length; column++) table.Columns.Add(headers[column], rows[0][column]!.GetType());
         foreach (object?[] row in rows) table.Rows.Add(row);
         using var tableStream = new MemoryStream();
         using (var reader = table.CreateDataReader()) CsvDocument.WriteDataReader(tableStream, reader, options, leaveOpen: true);
