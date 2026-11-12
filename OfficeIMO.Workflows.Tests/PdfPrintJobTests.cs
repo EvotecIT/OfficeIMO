@@ -161,6 +161,19 @@ public sealed class PdfPrintJobTests {
     }
 
     [Fact]
+    public void RasterDeliveryKeepsTheCompositionContentLimit() {
+        PdfDocument document = Square(72).Canvas(canvas => canvas.Shape(OfficeShape.Rectangle(36, 36), OfficeLength.Points(10), OfficeLength.Points(10)));
+        var request = new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = PdfPageSizes.A4 };
+        PdfPrintJob unlimited = PdfPrintJob.Create(document, request);
+        long rasterBytes = unlimited.RasterizeToPdf(150, default).LongLength;
+        // A limit that admits the vector content but not its 150 DPI raster also bounds raster delivery.
+        var limits = new PdfPrintJobOptions { MaximumContentBytes = rasterBytes - 1 };
+        Assert.True(unlimited.ContentLength < limits.MaximumContentBytes);
+        PdfPrintJob limited = PdfPrintJob.Create(document, request, limits);
+        Assert.Throws<InvalidOperationException>(() => limited.RasterizeToPdf(150, default));
+    }
+
+    [Fact]
     public void CancelledCompositionStopsBeforeRendering() {
         PdfDocument document = PdfDocument.Create(c => c.Page(p => p.Size(OfficeLength.Points(200), OfficeLength.Points(300))));
         using var cancellation = new CancellationTokenSource();
