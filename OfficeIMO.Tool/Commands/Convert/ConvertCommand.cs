@@ -8,10 +8,13 @@ internal static class ConvertCommand {
 OfficeIMO.Tool - document conversion
 
 Usage:
-  officeimo convert <input> [output] [--force]
+  officeimo convert <input> [output] [--output <file>] [--force]
                     [--max-input-bytes <bytes>] [--max-output-bytes <bytes>]
                     [--max-characters-in-part <characters>]
+                    [--text-encoding <name>] [--tab-size 1..32] [--allow-legacy-loss]
                     [--diagram-layers screen|print] [--require-no-loss] [--text-only]
+  officeimo convert <data-input> <data-output> [--select <path>] [--columns <path,...>]
+                    [--root-name <name>] [--sheet <name>] [--range <A1:B2>] [--require-no-loss] [--force]
   officeimo convert <input.pages|input.numbers|input.key> [output.docx|output.xlsx|output.pptx|output.pdf]
                     [--iwork-mode auto|editable|visual] [--allow-partial]
                     [--allow-incomplete-preview] [--normalize-worksheet-names]
@@ -20,19 +23,24 @@ Usage:
                     [--assets <directory>] [--max-input-bytes <bytes>] [--force]
 
 The input and output extensions select one of the routes listed below from the shared OfficeIMO
-conversion catalog; the default output is a sibling PDF.
+conversion catalog; the default output is a sibling PDF. Existing output is refused unless --force is given.
+--text-encoding and --tab-size apply to TXT-to-PDF; --allow-legacy-loss accepts reported loss when
+reading DOC input. --require-no-loss rejects source and output fidelity losses before publishing; it is
+not available for DOC, DOCX, TXT, XLSX or PPTX to PDF.
 Email PDF renders the styled message with its header block, body, inline images and attachments;
 --text-only writes the Reader text projection instead.
 Draw PDF output keeps source page dimensions and uses print-visible layers by default.
 DjVu PDF output preserves scan pixels, page sizes and existing searchable text.
 Publisher PDF output keeps source page dimensions and reports fidelity losses.
---require-no-loss rejects source and output fidelity losses before publishing; it is not
-available for DOC, DOCX, TXT, XLSX or PPTX to PDF.
+Data routes convert between JSON, JSON Lines, YAML, TOML, XML, CSV, TSV and XLSX and report each loss
+on standard error. --select takes the rows from a path such as data.items, --columns fixes the table
+columns and their order, --root-name names the XML root, and --sheet and --range choose the XLSX cells.
 Apple Office and PDF output use the shared iWork workflow adapter and write structured JSON evidence.
 Apple PDF requires complete editable reconstruction; previews and partial policies are rejected.
 Defaults reject partial editable reconstruction and previews without known complete coverage.
 Apple workflow conversion accepts ZIP files and directory bundles.
-Markdown and JSON output use the OfficeIMO Reader pipeline.
+Markdown output, and JSON output from a source without a data route, use the OfficeIMO Reader pipeline.
+Use 'officeimo read <input> --format json' for the Reader JSON of a data file.
 """;
 
     internal static async Task<int> RunAsync(
@@ -115,6 +123,7 @@ internal sealed class ConvertRoute {
         bool hasPdfOnlyOption = false;
         bool hasAppleOnlyOption = false;
         bool hasOutputLimit = false;
+        bool hasDataOption = false;
 
         for (int index = 0; index < args.Length; index++) {
             string token = args[index];
@@ -160,6 +169,14 @@ internal sealed class ConvertRoute {
                 case "--text-only":
                     hasPdfOnlyOption = true;
                     break;
+                case "--select":
+                case "--columns":
+                case "--root-name":
+                case "--sheet":
+                case "--range":
+                    _ = NextValue(args, ref index, token);
+                    hasDataOption = true;
+                    break;
                 case "--force":
                     force = true;
                     break;
@@ -187,9 +204,9 @@ internal sealed class ConvertRoute {
 
         outputPath ??= optionOutputPath;
         bool appleInput = Path.GetExtension(Path.TrimEndingDirectorySeparator(inputPath)).ToLowerInvariant() is ".pages" or ".numbers" or ".key";
-        ConvertOutputFormat format = ParseOutputFormat(outputPath);
+        ConvertOutputFormat format = ParseOutputFormat(inputPath, outputPath);
         if (appleInput && format == ConvertOutputFormat.Route) {
-            if (assetsPath is not null || hasPdfOnlyOption) throw new ConvertUsageException("Apple workflow conversion does not accept assets or XML-part limits.");
+            if (assetsPath is not null || hasPdfOnlyOption || hasDataOption) throw new ConvertUsageException("Apple workflow conversion does not accept assets or XML-part limits.");
             return new ConvertRoute { Format = ConvertOutputFormat.IWork };
         }
         if (hasAppleOnlyOption) throw new ConvertUsageException("iWork acceptance options require an Apple-to-Office or Apple-to-PDF conversion.");
@@ -200,9 +217,9 @@ internal sealed class ConvertRoute {
             return new ConvertRoute { Format = format };
         }
 
-        if (hasPdfOnlyOption || hasOutputLimit) {
+        if (hasPdfOnlyOption || hasOutputLimit || hasDataOption) {
             throw new ConvertUsageException(
-                "Conversion route options and --max-output-bytes do not apply to Markdown or JSON output.");
+                "Conversion route options and --max-output-bytes do not apply to Reader Markdown or JSON output.");
         }
 
         var readerArguments = new List<string> {
@@ -229,15 +246,17 @@ internal sealed class ConvertRoute {
         };
     }
 
-    // Markdown and JSON use the Reader pipeline; every other destination is resolved against the shared route catalog.
-    private static ConvertOutputFormat ParseOutputFormat(string? outputPath) {
+    // A data route wins when both ends are data formats; otherwise Markdown and JSON use the Reader pipeline and every
+    // other destination is resolved against the shared route catalog.
+    private static ConvertOutputFormat ParseOutputFormat(string inputPath, string? outputPath) {
         if (string.IsNullOrWhiteSpace(outputPath)) return ConvertOutputFormat.Route;
         string extension = Path.GetExtension(outputPath).ToLowerInvariant();
+        string inputExtension = Path.GetExtension(Path.TrimEndingDirectorySeparator(inputPath)).ToLowerInvariant();
+        if (inputExtension.Length > 0 && extension.Length > 0 && ConvertRoutes.FindData(inputExtension, extension) != null) return ConvertOutputFormat.Route;
         return extension switch {
             ".md" or ".markdown" => ConvertOutputFormat.Markdown,
             ".json" => ConvertOutputFormat.Json,
-            _ when OfficeIMO.Workflows.OfficeWorkflowCatalog.ExecutableRoutes.Any(route => route.TargetExtension == extension)
-                || extension is ".docx" or ".xlsx" or ".pptx" => ConvertOutputFormat.Route,
+            _ when ConvertRoutes.IsTarget(extension) || extension is ".docx" or ".xlsx" or ".pptx" => ConvertOutputFormat.Route,
             _ => throw new ConvertUsageException(
                 "No conversion route writes '" + (extension.Length == 0 ? "(none)" : extension) + "'. Run 'officeimo convert --help' for the supported routes.")
         };
