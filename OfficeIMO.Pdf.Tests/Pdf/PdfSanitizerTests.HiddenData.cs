@@ -39,7 +39,8 @@ public partial class PdfSanitizerTests {
 
         using PdfDocument cleaned = PdfDocument.Load(removal.ToArray());
         OfficeHiddenDataReport after = cleaned.InspectHiddenData();
-        Assert.All(after.GetFindings(OfficeHiddenDataKind.DocumentProperties), static finding => Assert.True(IsKeptTitle(finding)));
+        // The kept title is not reported as something left to remove, so a "nothing left" check passes on a cleaned PDF.
+        Assert.Empty(after.GetFindings(OfficeHiddenDataKind.DocumentProperties));
         Assert.Empty(after.GetFindings(OfficeHiddenDataKind.Comments));
         Assert.Empty(after.GetFindings(OfficeHiddenDataKind.ActiveContent));
         Assert.Single(after.GetFindings(OfficeHiddenDataKind.Attachments));
