@@ -29,6 +29,8 @@ public sealed partial class OfficeWorkflowRunner {
         if ((request.InputPath == null || string.IsNullOrWhiteSpace(request.InputPath))) throw new ArgumentException("Input path cannot be empty.", nameof(request));
         _conversions.TryGetValue(request.Operation == OfficeWorkflowOperation.Convert ? request.ConversionRouteId ?? string.Empty : string.Empty,
             out OfficeWorkflowConversionRegistration? registration);
+        if (_registeredConversionsOnly && registration is null)
+            throw new ArgumentException("This runner runs only its registered conversions; choose one of its conversion routes.", nameof(request));
         var providerPackage = request.InputDirectoryPackage;
         if (providerPackage is not null && (request.InputStream is not null || registration?.DirectoryPackageInput is null))
             throw new ArgumentException("A provider directory package requires a registered package conversion and cannot also specify a stream.", nameof(request));

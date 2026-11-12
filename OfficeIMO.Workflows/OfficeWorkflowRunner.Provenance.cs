@@ -26,8 +26,18 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
     public OfficeWorkflowRunner(
         IOfficeProvenanceVerifier? provenanceVerifier,
         IEnumerable<IOfficeProvenanceSignalDetector>? provenanceSignalDetectors,
-        IEnumerable<OfficeWorkflowConversionRegistration>? conversions) {
-        (_conversions, ConversionRoutes) = SnapshotRegistrations(conversions ?? Array.Empty<OfficeWorkflowConversionRegistration>());
+        IEnumerable<OfficeWorkflowConversionRegistration>? conversions)
+        : this(provenanceVerifier, provenanceSignalDetectors, conversions, Execute, includeBuiltInOperations: true) { }
+
+    private OfficeWorkflowRunner(
+        IOfficeProvenanceVerifier? provenanceVerifier,
+        IEnumerable<IOfficeProvenanceSignalDetector>? provenanceSignalDetectors,
+        IEnumerable<OfficeWorkflowConversionRegistration>? conversions,
+        Func<ValidatedRequest, List<OfficeWorkflowDiagnostic>, CancellationToken, OperationArtifact> execute,
+        bool includeBuiltInOperations) {
+        (_conversions, ConversionRoutes) = SnapshotRegistrations(conversions ?? Array.Empty<OfficeWorkflowConversionRegistration>(), includeBuiltInOperations);
+        _execute = execute;
+        _registeredConversionsOnly = !includeBuiltInOperations;
         _provenanceVerifier = provenanceVerifier;
         _provenanceSignalDetectors = (provenanceSignalDetectors ?? Array.Empty<IOfficeProvenanceSignalDetector>())
             .Select(detector => detector ?? throw new ArgumentException(
