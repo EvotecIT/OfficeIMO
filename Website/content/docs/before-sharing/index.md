@@ -75,7 +75,7 @@ officeimo hidden-data remove proposal.docx --kinds default,provenance
 officeimo hidden-data remove photo.jpg --kinds default,provenance --keep-provenance c2pa
 ```
 
-Install [OfficeIMO.Tool](/tool/) first. The [hidden data page](/docs/before-sharing/hidden-data/#command-line) lists every option.
+Install [OfficeIMO.Tool](/tool/) first. The [hidden data page](/docs/before-sharing/hidden-data/#command-line) lists every option, and [Before sharing from the CLI](/docs/cli/before-sharing/) adds batch cleanup and CI checks.
 
 ## For AI agents
 

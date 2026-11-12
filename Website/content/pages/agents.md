@@ -26,4 +26,4 @@ Inspection, search and fetching never change a file. Conversion and the PDF tool
 | Prepare PDFs | "Combine these scans into one PDF" | Assemble, and OCR where the host registered a text-recognition provider |
 | Check a change | "Compare pages 1 to 5 of the old and new contract" | Compare |
 
-The same operations are available from the [OfficeIMO command line](/tool/) for scripts and CI.
+The same operations are available from the [OfficeIMO command line](/tool/) for scripts and CI. [MCP and agents](/docs/cli/mcp-and-agents/) documents the server options, the allowed-roots rule and the `officeimo agent` commands.
