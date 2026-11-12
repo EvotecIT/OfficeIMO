@@ -765,6 +765,11 @@
         "title": "Project Schedules, Access Databases, and EPUB",
         "path": "pswriteoffice/project-access-epub/index.md",
         "href": "/docs/pswriteoffice/project-access-epub/"
+      },
+      {
+        "title": "Clean Files Before Sharing",
+        "path": "pswriteoffice/before-sharing/index.md",
+        "href": "/docs/pswriteoffice/before-sharing/"
       }
     ]
   },

@@ -14,13 +14,14 @@ The PSWriteOffice website catalog groups every exported cmdlet into exactly one 
 | Word | 81 | [Word automation](/docs/pswriteoffice/word/) |
 | PDF | 77 | [PDF automation](/docs/pswriteoffice/pdf/) |
 | Document operations and capabilities | 11 | [Document operations and capabilities](/docs/pswriteoffice/automation-patterns/) |
+| Before sharing | 5 | [Clean files before sharing](/docs/pswriteoffice/before-sharing/) |
 | Project | 20 | [Project, Access, and EPUB](/docs/pswriteoffice/project-access-epub/) |
 | Access | 9 | [Project, Access, and EPUB](/docs/pswriteoffice/project-access-epub/) |
 | EPUB | 8 | [Project, Access, and EPUB](/docs/pswriteoffice/project-access-epub/) |
 | PowerPoint | 53 | [PowerPoint automation](/docs/pswriteoffice/powerpoint/) |
 | Markdown | 33 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | Visio | 20 | [Visio diagrams](/docs/pswriteoffice/visio/) |
-| Reader, extraction, and OCR | 11 | [Reader, extraction, and OCR](/docs/pswriteoffice/reader/) |
+| Reader, extraction, and OCR | 9 | [Reader, extraction, and OCR](/docs/pswriteoffice/reader/) |
 | Archive migration and evidence | 5 | [Automation patterns](/docs/pswriteoffice/automation-patterns/) |
 | Google Workspace | 1 | [Automation patterns](/docs/pswriteoffice/automation-patterns/) |
 | Confluence Cloud | 7 | [Confluence Cloud publishing](/docs/pswriteoffice/confluence/) |

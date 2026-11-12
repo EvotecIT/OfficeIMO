@@ -27,6 +27,7 @@ PSWriteOffice brings the OfficeIMO document engines to PowerShell. Scripts creat
 - **Office and PDF** — Word, Excel, PowerPoint, and PDF authoring, inspection, merging, comparison, protection, and conversion
 - **Configuration files and data** — edit YAML without losing comments, merge overlays, read and write TOML, and convert between JSON, YAML, TOML, XML, CSV, and Excel with a report of anything the target cannot hold
 - **Files that usually need their own app** — Project schedules, Access table databases, EPUB books, Visio diagrams, OpenDocument, and email messages
+- **Before sharing** — list and remove comments, author names, speaker notes, image metadata and AI labels from Office, PDF and image files, and keep the original untouched
 - **Search and extraction** — one Reader model for text, tables, images, and OCR across mixed document folders
 - **Readable scripts** — script-block DSLs and short aliases such as `WordParagraph`, `ExcelSheet`, and `PowerPointSlide`
 - **Windows, Linux, and macOS** — PowerShell 7.4 or newer everywhere, and Windows PowerShell 5.1 on Windows
@@ -48,6 +49,7 @@ PSWriteOffice brings the OfficeIMO document engines to PowerShell. Scripts creat
 | Review quarterly support demand in PowerPoint | {{< pswriteoffice-source kind="blob" path="Examples/Showcase/ServiceBrief.md" label="CSV-driven service brief" >}} with location totals, ticket comparisons and dated actions. |
 | Update Helm values or CI settings without losing comments | [Edit and merge YAML](/docs/pswriteoffice/config-data-formats/#edit-yaml-without-rewriting-it) |
 | Turn an API export or lock file into CSV, Excel, or YAML | [Convert between data formats](/docs/pswriteoffice/config-data-formats/#convert-between-data-formats) |
+| Remove comments, authors and AI labels before sending files | [Clean files before sharing](/docs/pswriteoffice/before-sharing/) and the {{< pswriteoffice-source kind="blob" path="Examples/Workflows/Recipe-CleanBeforeSharing.ps1" label="runnable recipe" >}} |
 | Schedule a project and publish a Gantt PDF | [Project schedules](/docs/pswriteoffice/project-access-epub/#project-schedules) |
 | Browse copyable PowerShell patterns | [PSWriteOffice recipe gallery](/docs/workflows/powershell-recipes/) |
 | Compare Excel and CSV performance | [PSWriteOffice benchmark guide](/docs/workflows/powershell-benchmarks/) |

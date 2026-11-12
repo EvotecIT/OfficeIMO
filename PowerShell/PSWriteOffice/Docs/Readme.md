@@ -646,6 +646,9 @@ Lists template markers and, with -Value, which are bound.
 ### [Get-OfficeExcelValidation](Get-OfficeExcelValidation.md)
 Gets native data validation snapshots, with worksheet and source-path metadata.
 
+### [Get-OfficeHiddenData](Get-OfficeHiddenData.md)
+Reports the metadata and hidden data that would leave with a file. The file is never changed.
+
 ### [Get-OfficeMarkdownFrontMatter](Get-OfficeMarkdownFrontMatter.md)
 Gets top-level YAML front matter entries from a Markdown document as Key, Value, Node and SourceSpan objects.
 
@@ -919,6 +922,9 @@ Creates Excel checks for Test-OfficeDocument: capability preflight and package v
 ### [New-OfficeGoogleWorkspaceSession](New-OfficeGoogleWorkspaceSession.md)
 Creates a native Google Workspace session from a service-account key.
 
+### [New-OfficeHiddenDataOptions](New-OfficeHiddenDataOptions.md)
+Chooses which hidden data Remove-OfficeHiddenData and Optimize-OfficePdf -Sanitize remove.
+
 ### [New-OfficeHtmlConversionOptions](New-OfficeHtmlConversionOptions.md)
 Creates discoverable parsing, trust, and document settings for HTML conversion.
 
@@ -1191,6 +1197,9 @@ Removes a defined name.
 
 ### [Remove-OfficeExcelPageBreak](Remove-OfficeExcelPageBreak.md)
 Removes manual print page breaks from selected open worksheets.
+
+### [Remove-OfficeHiddenData](Remove-OfficeHiddenData.md)
+Writes a copy of a file without its metadata and hidden data, and reports what happened to each item.
 
 ### [Remove-OfficePdfAnnotation](Remove-OfficePdfAnnotation.md)
 Removes native annotations selected by identity, page and subtype.

@@ -166,6 +166,17 @@ The first command reports everything without changing the file. The second write
 
 `remove` never changes the input. It writes `<name>.cleaned<ext>` unless you pass `--output`, and refuses to replace an existing file without `--force`. `--kinds` takes `default`, `all` or category names such as `hidden-content`, `image-metadata`, `attachments`, `active-content`, `bookmarks` and `provenance`. `--keep-provenance` keeps some kinds of record when `provenance` is selected: `c2pa`, `external` or `ai-source`. `--anonymous-author` sets the replacement name, and `--remove-invalidated-signatures` allows cleaning a signed package. Output is JSON in the `officeimo.hidden-data.result.v1` schema, one entry per finding with its outcome; `--format text` prints a readable list instead.
 
+## PowerShell
+
+```powershell
+Get-OfficeHiddenData -Path .\proposal.docx
+Remove-OfficeHiddenData -Path .\proposal.docx
+$options = New-OfficeHiddenDataOptions -Kind Default, Provenance -TrackedChanges AcceptAll
+Get-ChildItem .\Outgoing -File | Remove-OfficeHiddenData -OutputDirectory .\Share -Options $options
+```
+
+`Remove-OfficeHiddenData` writes `<name>.cleaned<ext>` unless you pass `-OutputPath` or `-OutputDirectory`, needs `-Force` to replace an existing file, and returns the findings with their outcomes. [Clean files before sharing](/docs/pswriteoffice/before-sharing/) shows real output for Word, Excel, PowerPoint and PDF files.
+
 ## For AI agents
 
 The [OfficeIMO MCP server](/agents/) has the same two operations:

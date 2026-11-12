@@ -18,6 +18,7 @@ The module manifest is the source of truth for exported cmdlets and aliases. The
 | Normalize many formats | Reader commands | One result model exposes documents, chunks, hierarchy, tables, visuals, assets, warnings, and provenance. |
 | Convert between formats or place reusable visuals | `Convert-OfficeDocument` and visual commands | Conversion behavior stays in the matching OfficeIMO adapter. PDF input can also be reconstructed as editable Word, Excel, or PowerPoint content. |
 | Edit configuration or move data between formats | `Open-OfficeYaml`, `Import-OfficeToml`, and `Convert-OfficeDocument` | YAML edits keep comments and layout, and data conversions report anything the target format cannot hold. See [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/). |
+| Share a file outside your team | `Get-OfficeHiddenData` and `Remove-OfficeHiddenData` | Comments, authors, speaker notes, image metadata and AI labels are listed and removed into a cleaned copy, with an outcome for every item. See [Clean files before sharing](/docs/pswriteoffice/before-sharing/). |
 | Check protected-content support before automation | `Get-OfficeDocumentCapability -Protection` | Filterable, typed capability rows show supported operations, limits, and incomplete format coverage before a workflow handles a protected file. |
 
 ## Major families
@@ -27,6 +28,7 @@ The module manifest is the source of truth for exported cmdlets and aliases. The
 - **PDF — 77 commands:** composition, structured reading, explicit Word/Excel/PowerPoint/Markdown/RTF export, editable Office reconstruction, text and image extraction, searchable OCR output, merge/split, pages, forms, annotations, attachments, signatures, compliance, redaction, optimization, visual placement, and diagnostics.
 - **PowerPoint — 53 commands:** slides, sections, shapes, charts, tables, notes, themes, layouts, transitions, visual placement, import, inspection, and HTML review.
 - **Document operations and capabilities — 11 commands:** inspect, compare, validate, repair, protect, combine, split, and convert documents with limits and reports. See [Choose a conversion route](/docs/pswriteoffice/conversion-routes/).
+- **Before sharing — 5 commands:** list and remove comments, authors, hidden content, image metadata and AI labels, and inspect Content Credentials. See [Clean files before sharing](/docs/pswriteoffice/before-sharing/).
 - **YAML — 12 commands:** edit files without losing comments or layout, merge overlays, validate, and convert to and from objects. See [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/).
 - **TOML — 4 commands:** read and write settings and lock files as PowerShell objects.
 - **CSV — 3 commands:** import and export delimited data with explicit quoting, encoding, and formula-injection rules.
@@ -39,6 +41,6 @@ The module manifest is the source of truth for exported cmdlets and aliases. The
 
 ## How the documentation fits together
 
-Conceptual guides answer which workflow to choose and how objects move through a script. The generated [command reference](/api/powershell/) owns parameter sets, accepted values, pipeline behavior, and source links. The [example gallery](https://github.com/EvotecIT/OfficeIMO/tree/945cb285f954b745c0f4ebfce0849c0726a76fa1/PowerShell/PSWriteOffice/Examples) provides copyable end-to-end scripts.
+Conceptual guides answer which workflow to choose and how objects move through a script. The generated [command reference](/api/powershell/) owns parameter sets, accepted values, pipeline behavior, and source links. The [example gallery](https://github.com/EvotecIT/OfficeIMO/tree/b15295cf7e8c59ff528f282a331022a39f167a95/PowerShell/PSWriteOffice/Examples) provides copyable end-to-end scripts.
 
 When a guide and command page appear to disagree, use the current command reference and report the guide mismatch. The catalog validation prevents command totals from drifting, while examples and help remain the executable source for exact syntax.
