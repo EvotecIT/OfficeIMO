@@ -28,19 +28,19 @@ $aliases = @($manifest.AliasesToExport) |
 $familyDefinitions = @(
     [ordered]@{
         id = 'project'; title = 'Project'; description = 'Create schedules, inspect tasks and resources, exchange mapped tables, and save qualified native or XML projects.'
-        docs = 'automation-patterns'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Workflows'
+        docs = 'project-access-epub'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Workflows'
         samples = @('New-OfficeProject', 'Invoke-OfficeProjectSchedule', 'Save-OfficeProject', 'Import-OfficeProjectTable')
         match = { param($name) $name -match 'OfficeProject' }
     }
     [ordered]@{
         id = 'access'; title = 'Access'; description = 'Read native database schemas and rows, and create qualified table databases without ACE or COM.'
-        docs = 'automation-patterns'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Workflows'
+        docs = 'project-access-epub'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Workflows'
         samples = @('New-OfficeAccess', 'Get-OfficeAccessRow', 'Add-OfficeAccessRow', 'Save-OfficeAccess')
         match = { param($name) $name -match 'OfficeAccess' }
     }
     [ordered]@{
         id = 'epub'; title = 'EPUB'; description = 'Read, create, and save EPUB publications from chapters, resources, and metadata.'
-        docs = 'automation-patterns'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Workflows'
+        docs = 'project-access-epub'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Workflows'
         samples = @('New-OfficeEpub', 'Add-OfficeEpubChapter', 'Get-OfficeEpubChapter', 'Save-OfficeEpub')
         match = { param($name) $name -match 'OfficeEpub' }
     }
@@ -118,19 +118,19 @@ $familyDefinitions = @(
     }
     [ordered]@{
         id = 'csv'; title = 'CSV'; description = 'Create, import, inspect, and export delimited data with typed options.'
-        docs = 'open-text-formats'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Csv'
+        docs = 'config-data-formats'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Csv'
         samples = @('ConvertTo-OfficeCsv', 'Import-OfficeCsv', 'Export-OfficeCsv')
         match = { param($name) $name -match 'OfficeCsv' }
     }
     [ordered]@{
         id = 'yaml'; title = 'YAML'; description = 'Edit YAML files without losing comments or layout, merge overlays, and convert between YAML and objects.'
-        docs = 'open-text-formats'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Yaml'
+        docs = 'config-data-formats'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Yaml'
         samples = @('Open-OfficeYaml', 'Set-OfficeYamlNode', 'ConvertFrom-OfficeYaml', 'Test-OfficeYaml')
         match = { param($name) $name -match 'OfficeYaml' }
     }
     [ordered]@{
         id = 'toml'; title = 'TOML'; description = 'Read and write TOML configuration and lock files as PowerShell objects.'
-        docs = 'open-text-formats'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Data'
+        docs = 'config-data-formats'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Data'
         samples = @('ConvertFrom-OfficeToml', 'Import-OfficeToml', 'Export-OfficeToml')
         match = { param($name) $name -match 'OfficeToml' }
     }

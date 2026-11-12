@@ -6,11 +6,11 @@ aliases:
   - /docs/pswriteoffice/markdown/
 ---
 
-PSWriteOffice is not limited to the three desktop Office formats. Smaller command families expose the same managed-engine approach for text, interchange, configuration, open document, and email workflows.
+PSWriteOffice is not limited to the three desktop Office formats. Smaller command families expose the same managed-engine approach for text, open document, and email workflows. Exact command counts for each family are on the [command families](/docs/pswriteoffice/command-families/) page.
 
 ## Markdown
 
-Twenty-six commands build and inspect typed Markdown. Add headings, paragraphs, lists, task lists, tables, code, callouts, details, front matter, images, quotes, definition lists, and tables of contents. Reader commands expose headings, nodes, tables, and front matter; converters bridge HTML and Word workflows.
+The Markdown commands build and inspect typed Markdown. Add headings, paragraphs, lists, task lists, tables, code, callouts, details, front matter, images, quotes, definition lists, and tables of contents. Reader commands expose headings, nodes, tables, and front matter; converters bridge HTML and Word workflows.
 
 Start with the [operations runbook](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-OperationsRunbook.ps1) for operational content or the [release notes recipe](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-ReleaseNotes.ps1) for publishable change documentation. The [DSL cookbook](/docs/pswriteoffice/dsl-cookbook/) includes both and shows how the same data can also produce Word, Excel, PowerPoint, and PDF output.
 
@@ -24,21 +24,13 @@ Use the focused Markdown guides for complete workflows:
 
 ## RTF
 
-Six canonical commands create, load, update, convert, inspect, and configure PDF export for Rich Text Format documents. Use RTF when a lightweight rich-text interchange file is the required source or destination, and keep loss-aware conversion diagnostics for complex content.
+The RTF commands create, load, update, convert, and inspect Rich Text Format documents and configure their PDF export. Use RTF when a lightweight rich-text interchange file is the required source or destination, and keep loss-aware conversion diagnostics for complex content.
 
 See [update and convert RTF](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Rtf/Recipe-Rtf-UpdateAndConvert.ps1) for an end-to-end example.
 
-## CSV
+## CSV, YAML, TOML, and data conversion
 
-Five commands convert, import, export, and inspect CSV through OfficeIMO.CSV. Use the CSV family for delimited-data contracts; use Excel when worksheet formatting, formulas, charts, or workbook structure are part of the outcome.
-
-See [safe CSV export](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Csv/Recipe-Csv-SafeExport.ps1) for delimiter, quoting, and round-trip validation choices.
-
-## YAML
-
-Twelve commands work with YAML through OfficeIMO's own engine. `Open-OfficeYaml` loads a file as a lossless document; `Set-OfficeYamlNode` and `Remove-OfficeYamlNode` edit it by path, and saving changes only the edited text, so comments, quoting, indentation and the file encoding stay as they were. `Merge-OfficeDocument` overlays `.yaml` files the way Helm combines values files and reports what it added, replaced and removed. `ConvertFrom-OfficeYaml`, `ConvertTo-OfficeYaml`, `Import-OfficeYaml` and `Export-OfficeYaml` follow the `ConvertFrom-Json` and `ConvertTo-Json` conventions for data, and `Test-OfficeYaml` validates files with the error line and column.
-
-See [edit, merge and read YAML configuration](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Yaml/Example-YamlEditMergeConvert.ps1) for an end-to-end example.
+Configuration and data files have their own guide: [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/). It covers editing YAML without losing comments, merging overlays, TOML lock files and settings, CSV with explicit quoting rules, and `Convert-OfficeDocument` between JSON, JSON Lines, YAML, TOML, XML, CSV, TSV, and Excel with a report of anything the target cannot hold.
 
 ## OpenDocument
 
@@ -64,7 +56,7 @@ Use `New-OfficeWordOpenDocumentOptions`, `New-OfficeExcelOpenDocumentOptions`, o
 
 ## Email
 
-Four artifact commands load and save messages and mailbox files through OfficeIMO.Email, and five option builders expose their safety and fidelity policies. The underlying engine covers multiple message, personal-information, store, and address-book families; exact support and diagnostics belong to the generated command/API reference.
+The Email commands load and save messages and mailbox files through OfficeIMO.Email, and their option builders expose the safety and fidelity policies. The underlying engine covers multiple message, personal-information, store, and address-book families; exact support and diagnostics belong to the generated command/API reference.
 
 The module boundary is deliberate. PSWriteOffice treats email as document content: it reads or writes supported artifacts and lets OfficeIMO.Reader normalize mail sources for mixed-format search and reporting. [Mailozaurr](https://github.com/EvotecIT/Mailozaurr) owns transport, authentication, mailbox/store lifecycle, PST/OST import and conversion, querying, export, and delivery. Workflows can use Mailozaurr to acquire or deliver content and pass ordinary paths or attachments to PSWriteOffice without either module duplicating the other's operational responsibilities. The [PDF delivery recipe](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Integrations/Recipe-Mailozaurr-PdfDelivery.ps1) is a runnable handoff: PSWriteOffice creates the attachment and Mailozaurr saves a local EML review package. Delivery occurs only when `-Send` and SMTP settings are explicitly supplied.
 
@@ -72,7 +64,7 @@ Advanced safety and fidelity controls are also PowerShell-native. Use `New-Offic
 
 ## AsciiDoc and LaTeX
 
-Each family provides four bounded interoperability commands for reading, saving, and bridging through Markdown. These are explicit profiles, not a claim to implement every extension or package in the wider AsciiDoc or TeX ecosystems.
+Each family provides a small set of bounded interoperability commands for reading, saving, and bridging through Markdown. These are explicit profiles, not a claim to implement every extension or package in the wider AsciiDoc or TeX ecosystems.
 
 ## HTML review
 

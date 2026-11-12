@@ -1,6 +1,6 @@
 ---
 title: "PSWriteOffice Documentation"
-description: "Workflow guides for the manifest-derived PowerShell command surface across Office, PDF, Reader, Confluence Cloud, Visio, and open formats."
+description: "Workflow guides for the PowerShell command surface across Office, PDF, Reader, Confluence Cloud, Visio, Project, Access, EPUB, configuration files, data conversion, and open formats."
 layout: docs
 ---
 
@@ -43,7 +43,9 @@ PSWriteOffice is the PowerShell surface for OfficeIMO. Use these guides to choos
 - [Choose a conversion route](/docs/pswriteoffice/conversion-routes/)
 - [Confluence Cloud publishing](/docs/pswriteoffice/confluence/)
 - [Visio diagrams](/docs/pswriteoffice/visio/)
-- [Markdown, RTF, CSV, OpenDocument, email, AsciiDoc, and LaTeX](/docs/pswriteoffice/open-text-formats/)
+- [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/): YAML, TOML, CSV, JSON, XML, and Excel data
+- [Project schedules, Access databases, and EPUB](/docs/pswriteoffice/project-access-epub/)
+- [Markdown, RTF, OpenDocument, email, AsciiDoc, and LaTeX](/docs/pswriteoffice/open-text-formats/)
   - [Read and parse Markdown](/docs/pswriteoffice/markdown-read-parse/)
   - [Convert and publish Markdown](/docs/pswriteoffice/markdown-convert-publish/)
   - [Convert between Markdown and Word](/docs/pswriteoffice/markdown-word-roundtrip/)
