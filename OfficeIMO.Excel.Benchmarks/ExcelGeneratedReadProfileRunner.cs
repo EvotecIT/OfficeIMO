@@ -31,7 +31,7 @@ internal static class ExcelGeneratedReadProfileRunner {
         int iterations = arguments.Length > 2 ? int.Parse(arguments[2], CultureInfo.InvariantCulture) : 200;
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(iterations);
         var fixture = new ExcelReaderGeneratedBenchmarks {
-            Format = ExcelFileFormat.Xlsx,
+            Format = arguments.Length > 4 ? Enum.Parse<ExcelFileFormat>(arguments[4], ignoreCase: true) : ExcelFileFormat.Xlsx,
             RowCount = 50_000,
             EscapedNames = arguments.Length > 3 && arguments[3] == "escaped"
         };
@@ -40,6 +40,8 @@ internal static class ExcelGeneratedReadProfileRunner {
             Func<long> run = operation switch {
                 "read" => fixture.OfficeIMO_Read,
                 "parse" => fixture.OfficeIMO_Parse,
+                "erread" => fixture.ExcelReaderNet_Read,
+                "erparse" => fixture.ExcelReaderNet_Parse,
                 "prepare" => () => {
                     using var reader = ExcelDocument.OpenReader(fixture.InputPath);
                     if (!reader.HasRows) throw new InvalidDataException("Missing rows.");
@@ -49,7 +51,15 @@ internal static class ExcelGeneratedReadProfileRunner {
             };
             for (int i = 0; i < 16; i++) run();
             long observation = 0;
-            for (int i = 0; i < iterations; i++) observation ^= run();
+            var samples = new double[iterations];
+            for (int i = 0; i < iterations; i++) {
+                long start = System.Diagnostics.Stopwatch.GetTimestamp();
+                observation ^= run();
+                samples[i] = System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+            }
+            Array.Sort(samples);
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                $"Min {samples[0]:F3} P10 {samples[iterations / 10]:F3} Median {samples[iterations / 2]:F3} ms"));
             Console.WriteLine($"Completed {iterations} {operation} operations; observation {observation}.");
         } finally {
             fixture.Cleanup();

@@ -20,6 +20,9 @@ internal sealed partial class AutomaticRowMappingPlan<
     private readonly MappingBinding[] _assignmentBindings;
     private readonly ConstructorBinding? _constructor;
     private readonly Func<DbDataReader, T>? _fastReaderMap;
+    // Per-row qualification reads these flat arrays instead of each binding's property metadata.
+    private readonly int[] _qualificationOrdinals;
+    private readonly Type[] _qualificationTypes;
     private static CacheEntry? _cachedPlan;
 
     private AutomaticRowMappingPlan(
@@ -31,6 +34,12 @@ internal sealed partial class AutomaticRowMappingPlan<
         _assignmentBindings = constructor is null ? bindings
             : bindings.Where(binding => !constructor.Contains(binding.Property)).ToArray();
         _fastReaderMap = fastReaderMap;
+        _qualificationOrdinals = new int[bindings.Length];
+        _qualificationTypes = new Type[bindings.Length];
+        for (int index = 0; index < bindings.Length; index++) {
+            _qualificationOrdinals[index] = bindings[index].ColumnIndex;
+            _qualificationTypes[index] = bindings[index].Property.ValueType;
+        }
     }
 
     internal static AutomaticRowMappingPlan<T> Create(
@@ -145,17 +154,18 @@ internal sealed partial class AutomaticRowMappingPlan<
         }
     }
 
-    private bool HasIncompatibleReaderValue(DbDataReader reader) {
+    private bool HasIncompatibleReaderValue(DbDataReader reader, IDataReaderTypedMappingCompatibility? compatibility) {
         // MapReaderRow already requires the fast-value contract. Native readers can
         // prove conversion and presence together without a second virtual null probe.
-        if (reader is IDataReaderTypedMappingCompatibility compatibility) {
-            foreach (MappingBinding binding in _bindings) {
-                if (!compatibility.CanUseNonNullTypedGetter(
-                        binding.ColumnIndex, binding.Property.ValueType)) return true;
+        int[] ordinals = _qualificationOrdinals;
+        if (compatibility is not null) {
+            Type[] types = _qualificationTypes;
+            for (int index = 0; index < ordinals.Length; index++) {
+                if (!compatibility.CanUseNonNullTypedGetter(ordinals[index], types[index])) return true;
             }
         } else {
-            foreach (MappingBinding binding in _bindings) {
-                if (reader.IsDBNull(binding.ColumnIndex)) return true;
+            for (int index = 0; index < ordinals.Length; index++) {
+                if (reader.IsDBNull(ordinals[index])) return true;
             }
         }
         return false;
@@ -167,21 +177,54 @@ internal sealed partial class AutomaticRowMappingPlan<
         IReadOnlyList<string>? dateTimeFormats,
         Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter = null,
         DataMappingErrorValuePolicy errorValuePolicy = DataMappingErrorValuePolicy.Include,
-        DbDataReader? rowReader = null) {
-        // The row reader is the one that owns the current row; qualification and typed
-        // getters run on it directly, while the conversion fallback keeps the outer reader.
-        DbDataReader fastReader = rowReader ?? reader;
-        if (typeConverter is null &&
-            _fastReaderMap is not null &&
-            fastReader is IDataReaderFastMappingValues &&
-            !HasIncompatibleReaderValue(fastReader)) {
+        DbDataReader? rowReader = null) =>
+        MapReaderRow(reader, Qualify(rowReader ?? reader, typeConverter),
+            culture, dateTimeFormats, typeConverter, errorValuePolicy);
+
+    /// <summary>
+    /// Resolves once what a row reader supports for typed mapping. The result depends only on the
+    /// reader's type and the converter, so enumeration reuses it until the row reader changes.
+    /// </summary>
+    internal RowReaderQualification Qualify(
+        DbDataReader rowReader,
+        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter) =>
+        new(rowReader,
+            typeConverter is null && _fastReaderMap is not null && rowReader is IDataReaderFastMappingValues,
+            rowReader as IDataReaderTypedMappingCompatibility);
+
+    /// <summary>
+    /// Maps the current row. Qualification and typed getters run on the row reader that owns the
+    /// current row, while the conversion fallback keeps the outer reader.
+    /// </summary>
+    internal T MapReaderRow(
+        DbDataReader reader,
+        in RowReaderQualification qualification,
+        CultureInfo culture,
+        IReadOnlyList<string>? dateTimeFormats,
+        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
+        DataMappingErrorValuePolicy errorValuePolicy) {
+        if (qualification.UsesFastMap &&
+            !HasIncompatibleReaderValue(qualification.Reader, qualification.Compatibility)) {
             try {
-                return _fastReaderMap(fastReader);
+                return _fastReaderMap!(qualification.Reader);
             } catch (TypedReaderValueException) {
             }
         }
 
         return MapReaderRowSlow(reader, culture, dateTimeFormats, typeConverter, errorValuePolicy);
+    }
+
+    internal readonly struct RowReaderQualification {
+        internal RowReaderQualification(DbDataReader reader, bool usesFastMap,
+            IDataReaderTypedMappingCompatibility? compatibility) {
+            Reader = reader;
+            UsesFastMap = usesFastMap;
+            Compatibility = compatibility;
+        }
+
+        internal DbDataReader Reader { get; }
+        internal bool UsesFastMap { get; }
+        internal IDataReaderTypedMappingCompatibility? Compatibility { get; }
     }
 
     internal Func<DbDataReader, T>? GetFastReaderMap(

@@ -19,5 +19,27 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 #endif
             return Encoding.Unicode.GetString(bytes, offset, byteCount);
         }
+
+        /// <summary>
+        /// Whether validated UTF-16LE text holds a surrogate code unit. Hosts that cannot
+        /// test this directly report true, which keeps the full decoder.
+        /// </summary>
+        internal static bool ContainsSurrogate(byte[] bytes, int offset, int byteCount) {
+#if NET8_0_OR_GREATER
+            return !BitConverter.IsLittleEndian
+                || MemoryMarshal.Cast<byte, char>(bytes.AsSpan(offset, byteCount)).IndexOfAnyInRange('\uD800', '\uDFFF') >= 0;
+#else
+            return true;
+#endif
+        }
+
+        /// <summary>Copies text that validation proved free of surrogates, matching <see cref="Decode"/>.</summary>
+        internal static string DecodeWithoutSurrogates(byte[] bytes, int offset, int byteCount) {
+#if NET8_0_OR_GREATER
+            return byteCount == 0 ? string.Empty : new string(MemoryMarshal.Cast<byte, char>(bytes.AsSpan(offset, byteCount)));
+#else
+            return Decode(bytes, offset, byteCount);
+#endif
+        }
     }
 }

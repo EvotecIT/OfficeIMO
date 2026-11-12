@@ -137,6 +137,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         internal IReadOnlyList<string> TableNames => _tableNames;
 
+        private const int PackageReadBufferSize = 64 * 1024;
+
         internal static XlsbTabularWorkbook Open(
             string path,
             ExcelReaderOptions readOptions,
@@ -146,7 +148,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             ArgumentNullException.ThrowIfNull(readOptions);
 
             cancellationToken.ThrowIfCancellationRequested();
-            var stream = File.OpenRead(path);
+            // The inflater refills its input in small reads; a larger file buffer serves
+            // them from memory instead of issuing one system read for each refill.
+            var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, PackageReadBufferSize);
             try {
                 if (stream.Length > readOptions.MaxInputBytes) {
                     throw new InvalidDataException(
