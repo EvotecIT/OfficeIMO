@@ -98,7 +98,7 @@ Printing lives in `OfficeIMO.Workflows/Printing`, outside the PDF engine. It ren
 
 ### Vector jobs and printer capabilities
 
-- [x] Separate job content from delivery. A print job carries vector PDF content (page selection, N-up through `PdfDocumentPages.ImposeNUp`, scaling and orientation). Raster sheets are a per-transport fallback. Preview renders the same job content that is delivered.
+- [x] Separate job content from delivery. A print job carries vector PDF content (page selection, N-up, scaling, orientation and slot clipping). Raster sheets are a per-transport fallback. Preview renders the same job content that is delivered.
 - [x] Send vector PDF to CUPS instead of image-wrapped sheets, including jobs that mix paper sizes and orientations.
 - [x] Discover printer capabilities: supported and default media, duplex, colour, resolutions, collation, copies and trays. Use `DeviceCapabilities` on Windows and the CUPS queue options elsewhere. Default the paper to the printer's own default rather than A4.
 - [x] Windows raster delivery: rasterize at the device resolution (bounded) one sheet at a time, apply grayscale as a fast, row-based conversion, and use driver copies and collation when the driver reports them, so copies aren't spooled again.
