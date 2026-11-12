@@ -65,4 +65,26 @@ public partial class Html {
         Assert.Equal(2, blocks.Count);
         Assert.Equal(css.IndexOf(";} b", StringComparison.Ordinal) + 1, blocks[css.IndexOf('{')]);
     }
+
+    [Theory]
+    [InlineData("@font-face { }", true)]
+    [InlineData("@font-face/**/{ }", true)]
+    [InlineData("@font-face /* a */ /* b */ { }", true)]
+    [InlineData(".x\\@font-face { }", false)]
+    [InlineData("@font-face */ { }", false)]
+    public void FontFaceBlocksAreRecognizedOnlyFromTheAtRuleToken(string css, bool expected) {
+        Assert.Equal(expected, HtmlCssRuleBlockScanner.IsFontFaceBlock(css, css.IndexOf('{')));
+    }
+
+    [Fact]
+    public void NestedMalformedFontFaceBlocksDoNotStopTheCascade() {
+        string payload = new string('A', 2_048);
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<style>@font-face{font-family:A;@font-face{src:url(data:font/ttf;base64," + payload + ")}}"
+            + " p{color:blue}</style><p>Text</p>");
+
+        HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document)[document.Document.QuerySelector("p")!];
+
+        Assert.Equal("rgba(0, 0, 255, 1)", style.GetValue("color"));
+    }
 }
