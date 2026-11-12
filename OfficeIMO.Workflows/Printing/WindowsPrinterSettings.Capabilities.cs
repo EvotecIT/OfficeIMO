@@ -19,17 +19,22 @@ internal static partial class WindowsPrinterSettings {
         internal IReadOnlyList<(int X, int Y)> Resolutions { get; init; } = [];
     }
 
-    /// <summary>Interprets DeviceCapabilities results. Negative results mean the driver did not answer.</summary>
+    /// <summary>
+    /// Interprets DeviceCapabilities results. Negative results mean the driver did not answer, and an empty paper-size or
+    /// paper-name list leaves those details unknown while the paper codes stay usable.
+    /// </summary>
     internal static PdfPrinterCapabilities BuildCapabilities(string printerName, DriverCapabilities driver) {
-        if (driver.PaperSizes.Count != driver.PaperCodes.Count || driver.PaperNames.Count != driver.PaperCodes.Count)
+        bool coded = driver.PaperCodes.Count > 0;
+        bool sized = coded && driver.PaperSizes.Count > 0, named = coded && driver.PaperNames.Count > 0;
+        if ((sized && driver.PaperSizes.Count != driver.PaperCodes.Count) || (named && driver.PaperNames.Count != driver.PaperCodes.Count))
             throw new InvalidOperationException("The printer's paper list changed during discovery. Refresh the printer list.");
         var media = new List<PdfPrinterMedia>(driver.PaperCodes.Count);
         PdfPrinterMedia? defaultMedia = null;
         for (int index = 0; index < driver.PaperCodes.Count; index++) {
             string id = driver.PaperCodes[index].ToString(CultureInfo.InvariantCulture);
             if (media.Any(item => item.Id == id)) continue;
-            (int width, int height) = driver.PaperSizes[index];
-            string name = driver.PaperNames[index].Trim();
+            (int width, int height) = sized ? driver.PaperSizes[index] : (0, 0);
+            string name = named ? driver.PaperNames[index].Trim() : string.Empty;
             var item = new PdfPrinterMedia(id, name.Length == 0 ? id : name,
                 width > 0 && height > 0 ? PdfPrinterMediaNames.Portrait(width * 72D / 254D, height * 72D / 254D) : null);
             media.Add(item);

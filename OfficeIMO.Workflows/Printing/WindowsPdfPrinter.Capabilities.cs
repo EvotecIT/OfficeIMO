@@ -39,11 +39,12 @@ internal static partial class WindowsPdfPrinter {
         token.ThrowIfCancellationRequested();
         ushort[] bins = ReadWords(name, port, DcBins);
         string[] binNames = ReadStrings(name, port, DcBinNames, 24);
-        if (bins.Length != binNames.Length) throw new InvalidOperationException("The printer's paper-source list changed during discovery. Refresh the printer list.");
+        // A driver can answer the bin list but not the names; those sources are then labelled by their identifiers.
+        if (binNames.Length > 0 && bins.Length != binNames.Length) throw new InvalidOperationException("The printer's paper-source list changed during discovery. Refresh the printer list.");
         var sources = new List<PdfPaperSourceInfo>(bins.Length);
         for (int index = 0; index < bins.Length; index++) {
             string id = bins[index].ToString(CultureInfo.InvariantCulture);
-            string label = binNames[index].Trim();
+            string label = binNames.Length > 0 ? binNames[index].Trim() : string.Empty;
             if (sources.All(source => source.Id != id)) sources.Add(new(id, label.Length == 0 ? id : label));
         }
         token.ThrowIfCancellationRequested();
@@ -70,7 +71,7 @@ internal static partial class WindowsPdfPrinter {
         IntPtr buffer = Marshal.AllocHGlobal(MaximumListEntries * 2);
         try {
             int returned = Native.DeviceCapabilities(name, port, capability, buffer, IntPtr.Zero);
-            if (returned < 0) throw new Win32Exception();
+            if (returned < 0) return []; // The driver does not report this list.
             var values = new ushort[Math.Min(returned, MaximumListEntries)];
             for (int index = 0; index < values.Length; index++) values[index] = unchecked((ushort)Marshal.ReadInt16(buffer, index * 2));
             return values;
@@ -83,7 +84,7 @@ internal static partial class WindowsPdfPrinter {
         IntPtr buffer = Marshal.AllocHGlobal(maximum * 8);
         try {
             int returned = Native.DeviceCapabilities(name, port, capability, buffer, IntPtr.Zero);
-            if (returned < 0) throw new Win32Exception();
+            if (returned < 0) return []; // The driver does not report this list.
             if (returned > maximum) throw new InvalidOperationException("The printer reported too many capability entries.");
             var values = new (int, int)[returned];
             for (int index = 0; index < returned; index++) values[index] = (Marshal.ReadInt32(buffer, index * 8), Marshal.ReadInt32(buffer, index * 8 + 4));
@@ -96,7 +97,7 @@ internal static partial class WindowsPdfPrinter {
         IntPtr buffer = Marshal.AllocHGlobal(MaximumListEntries * characters * 2);
         try {
             int returned = Native.DeviceCapabilities(name, port, capability, buffer, IntPtr.Zero);
-            if (returned < 0) throw new Win32Exception();
+            if (returned < 0) return []; // The driver does not report this list.
             var values = new string[Math.Min(returned, MaximumListEntries)];
             for (int index = 0; index < values.Length; index++)
                 values[index] = (Marshal.PtrToStringUni(IntPtr.Add(buffer, index * characters * 2), characters) ?? string.Empty).Split('\0')[0];

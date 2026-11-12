@@ -85,6 +85,21 @@ public sealed class PdfPrinterCapabilityTests {
     }
 
     [Fact]
+    public void WindowsPaperCodesStayUsableWhenTheDriverOmitsNamesOrSizes() {
+        PdfPrinterCapabilities unnamed = WindowsPrinterSettings.BuildCapabilities("Office", new WindowsPrinterSettings.DriverCapabilities {
+            PaperCodes = [1, 9], PaperSizes = [(2159, 2794), (2100, 2970)], DefaultPaperCode = 9
+        });
+        Assert.Equal(["1", "9"], unnamed.Media.Select(media => media.Name));
+        Assert.Equal(595.28, unnamed.DefaultMedia!.Size!.Value.Width.ToPoints(), 1);
+        PdfPrinterCapabilities unsized = WindowsPrinterSettings.BuildCapabilities("Office", new WindowsPrinterSettings.DriverCapabilities {
+            PaperCodes = [1, 9], PaperNames = ["Letter", "A4"]
+        });
+        Assert.Equal(["Letter", "A4"], unsized.Media.Select(media => media.Name));
+        Assert.All(unsized.Media, media => Assert.Null(media.Size));
+        Assert.Equal(9, WindowsPrinterSettings.ResolvePaperCode(PdfPageSizes.A4, unsized.Media));
+    }
+
+    [Fact]
     public void WindowsPaperCodesPreferTheDriverThenStandardCodesThenCustomSize() {
         IReadOnlyList<PdfPrinterMedia> driver = [new("120", "Vendor A4", PdfPageSizes.A4), new("256", "Custom", PdfPageSizes.A3)];
         Assert.Equal(120, WindowsPrinterSettings.ResolvePaperCode(PdfPageSizes.A4.Landscape(), driver));
@@ -138,7 +153,19 @@ public sealed class PdfPrinterCapabilityTests {
         byte[] source = (byte[])mode.Clone();
         source[WindowsPrinterSettings.DevModeDefaultSource] = 8;
         Assert.Equal("paper source", WindowsPrinterSettings.FindRejectedSetting(source, request));
+        Assert.Equal("copies", WindowsPrinterSettings.FindRejectedSetting(WithoutField(mode, WindowsPrinterSettings.FieldCopies), request));
+        Assert.Equal("duplex", WindowsPrinterSettings.FindRejectedSetting(WithoutField(mode, WindowsPrinterSettings.FieldDuplex), request));
         Assert.Throws<InvalidOperationException>(() => WindowsPrinterSettings.ComposeDevMode(new byte[100], request));
+    }
+
+    [Fact]
+    public void GdiFailuresNameTheCallAndReportOnlyARealWin32Error() {
+        Exception silent = WindowsPrinterSettings.GdiFailure("StartPage", 0);
+        Assert.IsType<InvalidOperationException>(silent);
+        Assert.Contains("StartPage", silent.Message);
+        var accessDenied = Assert.IsType<System.ComponentModel.Win32Exception>(WindowsPrinterSettings.GdiFailure("StartDoc", 5));
+        Assert.Equal(5, accessDenied.NativeErrorCode);
+        Assert.Contains("StartDoc", accessDenied.Message);
     }
 
     [Theory]
@@ -150,6 +177,13 @@ public sealed class PdfPrinterCapabilityTests {
     public void DriverCopiesRequireCollationCapacityAndOnePaper(int requested, bool collates, int maximum, bool singlePaper, short expected) {
         var capabilities = new PdfPrinterCapabilities { PrinterName = "Office", SupportsCollation = collates, MaximumCopies = maximum };
         Assert.Equal(expected, WindowsPrinterSettings.DriverCopies(requested, capabilities, singlePaper));
+    }
+
+    /// <summary>A merged DEVMODE whose driver kept the value but cleared the setting's dmFields flag.</summary>
+    private static byte[] WithoutField(byte[] mode, int field) {
+        byte[] copy = (byte[])mode.Clone();
+        BitConverter.GetBytes(BitConverter.ToInt32(copy, WindowsPrinterSettings.DevModeFields) & ~field).CopyTo(copy, WindowsPrinterSettings.DevModeFields);
+        return copy;
     }
 
     private static byte[] DriverDefaults(int fields) {

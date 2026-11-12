@@ -72,14 +72,25 @@ internal sealed class PwgRasterWriter {
         _totalPages = totalPageCount;
     }
 
-    public void WritePage(PwgRasterPage page) {
+    public void WritePage(PwgRasterPage page) => WriteEncodedPage(EncodePage(page));
+
+    /// <summary>Encodes one page's header and compressed rows, so a repeated page can be written again without encoding it twice.</summary>
+    public byte[] EncodePage(PwgRasterPage page) {
         ArgumentNullException.ThrowIfNull(page);
+        using var encoded = new MemoryStream();
+        encoded.Write(Header(page), 0, HeaderSize);
+        WriteRows(page, encoded);
+        return encoded.ToArray();
+    }
+
+    /// <summary>Writes a page produced by <see cref="EncodePage"/>, after the sync word when it is the first page.</summary>
+    public void WriteEncodedPage(byte[] encoded) {
+        ArgumentNullException.ThrowIfNull(encoded);
         if (!_syncWritten) {
             _output.Write(new[] { (byte)'R', (byte)'a', (byte)'S', (byte)'2' }, 0, 4);
             _syncWritten = true;
         }
-        _output.Write(Header(page), 0, HeaderSize);
-        WriteRows(page);
+        _output.Write(encoded, 0, encoded.Length);
     }
 
     private byte[] Header(PwgRasterPage page) {
@@ -112,7 +123,7 @@ internal sealed class PwgRasterWriter {
     }
 
     /// <summary>Line-repeat counts with run-length pixel packets (PWG 5102.4 section 4.3.1.1).</summary>
-    private void WriteRows(PwgRasterPage page) {
+    private static void WriteRows(PwgRasterPage page, Stream output) {
         int stride = page.Width * page.BytesPerPixel;
         byte[] pixels = page.Pixels;
         using var line = new MemoryStream(stride + stride / 64 + 16);
@@ -123,7 +134,7 @@ internal sealed class PwgRasterWriter {
             line.SetLength(0);
             line.WriteByte((byte)(repeat - 1));
             EncodeRow(line, pixels, row * stride, page.Width, page.BytesPerPixel);
-            _output.Write(line.GetBuffer(), 0, (int)line.Length);
+            output.Write(line.GetBuffer(), 0, (int)line.Length);
             row += repeat;
         }
     }

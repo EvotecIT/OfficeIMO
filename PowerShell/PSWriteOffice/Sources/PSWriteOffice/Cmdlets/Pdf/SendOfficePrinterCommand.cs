@@ -55,7 +55,7 @@ public sealed class SendOfficePrinterCommand : AsyncPSCmdlet {
     [Parameter] [ValidateRange(72d, 600d)] public double Dpi { get; set; } = 300;
     /// <summary>Printable margin in points.</summary>
     [Parameter, OfficeLengthTransformation] public OfficeLength Margin { get; set; } = OfficeLength.Points(18);
-    /// <summary>Paper orientation.</summary>
+    /// <summary>Paper orientation. When omitted, each sheet takes the orientation that places its pages largest, so two-up and six-up sheets of portrait pages print in landscape.</summary>
     [Parameter]
     public OfficePageOrientation? Orientation { get; set; }
     /// <summary>Scaling of source pages.</summary>

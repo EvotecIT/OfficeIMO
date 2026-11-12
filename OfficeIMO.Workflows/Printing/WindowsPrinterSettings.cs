@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Globalization;
 using OfficeIMO.Pdf;
 
@@ -57,11 +58,14 @@ internal static partial class WindowsPrinterSettings {
     }
 
     /// <summary>Describes the first setting the driver changed while merging the request, or null when it accepted all of them.</summary>
+    /// <remarks>A driver that clears a requested setting's dmFields flag ignores the value, so that setting counts as rejected.</remarks>
     internal static string? FindRejectedSetting(byte[] mode, DevModeRequest request) {
-        if (ReadInt16(mode, DevModeCopies) != request.Copies) return "copies";
-        if (request.Copies > 1 && ((ReadInt32(mode, DevModeFields) & FieldCollate) == 0 || ReadInt16(mode, DevModeCollate) != 1)) return "collation";
-        if (request.Duplex != PdfPrintDuplex.PrinterDefault && ReadInt16(mode, DevModeDuplex) != (short)request.Duplex) return "duplex";
-        if (request.PaperSourceId is not null && ((ReadInt32(mode, DevModeFields) & FieldDefaultSource) == 0 ||
+        int fields = ReadInt32(mode, DevModeFields);
+        if (ReadInt16(mode, DevModeCopies) != request.Copies || (request.Copies > 1 && (fields & FieldCopies) == 0)) return "copies";
+        if (request.Copies > 1 && ((fields & FieldCollate) == 0 || ReadInt16(mode, DevModeCollate) != 1)) return "collation";
+        if (request.Duplex != PdfPrintDuplex.PrinterDefault &&
+            ((fields & FieldDuplex) == 0 || ReadInt16(mode, DevModeDuplex) != (short)request.Duplex)) return "duplex";
+        if (request.PaperSourceId is not null && ((fields & FieldDefaultSource) == 0 ||
             unchecked((ushort)ReadInt16(mode, DevModeDefaultSource)).ToString(CultureInfo.InvariantCulture) != request.PaperSourceId)) return "paper source";
         return null;
     }
@@ -81,6 +85,14 @@ internal static partial class WindowsPrinterSettings {
         (8, 841.89, 1190.55), (9, 595.28, 841.89), (11, 419.53, 595.28), (70, 297.64, 419.53),
         (12, 728.5, 1031.81), (13, 515.91, 728.5), (20, 296.79, 684), (27, 311.81, 623.62), (28, 459.21, 649.13)
     ];
+
+    /// <summary>
+    /// Describes a failed GDI print call. StartPage, EndPage and StretchDIBits usually leave the last error at zero, so the Win32
+    /// error is reported only when the call set one.
+    /// </summary>
+    internal static Exception GdiFailure(string call, int lastError) => lastError == 0
+        ? new InvalidOperationException($"The printer driver call {call} failed.")
+        : new Win32Exception(lastError, $"The printer driver call {call} failed: {new Win32Exception(lastError).Message}");
 
     private static ushort ReadUInt16(byte[] buffer, int offset) => (ushort)(buffer[offset] | buffer[offset + 1] << 8);
     private static short ReadInt16(byte[] buffer, int offset) => unchecked((short)ReadUInt16(buffer, offset));

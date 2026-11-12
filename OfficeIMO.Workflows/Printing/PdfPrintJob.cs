@@ -82,18 +82,15 @@ public sealed class PdfPrintJob {
         if (sheetNumber < 1 || sheetNumber > Plan.Sheets.Count) throw new ArgumentOutOfRangeException(nameof(sheetNumber));
         if (!OfficeRuntimeCompatibility.IsFinite(dpi) || dpi < 36 || dpi > 600) throw new ArgumentOutOfRangeException(nameof(dpi));
         cancellationToken.ThrowIfCancellationRequested();
+        OfficeRasterImage raster;
         PdfPageRenderResult page;
         lock (_renderLock) {
             _contentDocument ??= PdfDocument.LoadOwned(_content);
-            page = _contentDocument.Render.DisplayPage(sheetNumber, new PdfPageDisplayOptions {
+            // The pixels stay in process, so they are not encoded to PNG and decoded again.
+            (raster, page) = _contentDocument.Render.DisplayRaster(sheetNumber, new PdfPageDisplayOptions {
                 Scale = dpi / 72, MaximumPixels = maximumPixels, MaximumOutputBytes = 256L * 1024 * 1024
             }, cancellationToken);
         }
-        byte[] png = page.Bytes ?? throw new InvalidOperationException("Sheet " + sheetNumber + " could not be rendered: " + string.Join("; ", page.Diagnostics));
-        if (!OfficeRasterImageDecoder.TryDecode(png, new OfficeRasterDecodeOptions {
-            MaximumDecodedPixels = Math.Max(1L, (long)page.Width * page.Height), MaximumEncodedBytes = png.Length, CancellationToken = cancellationToken
-        }, out OfficeRasterImage? raster, out _) || raster is null)
-            throw new InvalidOperationException("A rendered sheet could not be decoded.");
         if (Plan.ColorMode == PdfPrintColorMode.Grayscale) PdfPrintRaster.ApplyGrayscale(raster, cancellationToken);
         return (raster, page.Diagnostics);
     }
