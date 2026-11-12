@@ -1,6 +1,6 @@
 ---
 title: "Content Credentials and AI labels"
-description: "Find C2PA Content Credentials and IPTC AI source labels in Office, Visio, OpenDocument and EPUB files and their pictures, and remove them selectively with OfficeIMO."
+description: "Find C2PA Content Credentials and IPTC AI source labels in Office, Visio, OpenDocument and EPUB files and their pictures, and remove them selectively."
 layout: docs
 ---
 

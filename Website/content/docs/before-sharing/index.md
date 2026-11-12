@@ -1,6 +1,6 @@
 ---
 title: "Prepare a document for sharing"
-description: "Remove author names, comments, hidden content, scripts and photo locations from Office, PDF and image files, decide what happens to Content Credentials and AI labels, and check accessibility before you send a document."
+description: "Remove author names, comments, hidden content and photo locations from Office, PDF and image files, and check AI labels and accessibility before you share."
 layout: docs
 ---
 

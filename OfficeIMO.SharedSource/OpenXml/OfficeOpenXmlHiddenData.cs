@@ -107,7 +107,15 @@ namespace OfficeIMO.OpenXml.Internal {
         private static void InspectUnusedImages(OpenXmlPackage package, HashSet<string> related, OfficeHiddenDataCollector collector) {
 #pragma warning disable OOXML0001
             IPackage opc = package.GetPackage();
-            foreach (IPackagePart part in opc.GetParts().ToList()) {
+            List<IPackagePart> parts;
+            try {
+                parts = opc.GetParts().ToList();
+            } catch (System.Xml.XmlException) {
+                // On .NET Framework, a relationship part added in this session stays empty until the package is flushed, and the SDK's
+                // part enumeration fails reading it. The sweep is skipped for this package; inspecting the saved file finds unused pictures.
+                return;
+            }
+            foreach (IPackagePart part in parts) {
                 string uri = part.Uri.OriginalString;
                 if (related.Contains(uri) || !part.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) continue;
                 byte[] original;

@@ -1,6 +1,6 @@
 ---
 title: "Check accessibility"
-description: "Check Word documents and PowerPoint presentations for missing alternative text, headings, table headers, unclear links, low contrast, title and language, and apply safe fixes with OfficeIMO."
+description: "Check Word and PowerPoint files for missing alt text, headings, table headers, unclear links, low contrast, title and language, and apply safe fixes."
 layout: docs
 ---
 

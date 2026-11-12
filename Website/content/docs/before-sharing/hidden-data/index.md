@@ -1,6 +1,6 @@
 ---
 title: "Remove hidden data and metadata"
-description: "Inspect and remove document properties, comments, tracked changes, hidden content, speaker notes, attachments, scripts, custom XML and photo GPS data from Office, PDF, OpenDocument, EPUB and image files with OfficeIMO."
+description: "Inspect and remove properties, comments, tracked changes, hidden content, notes, attachments, scripts and GPS data from Office, PDF, EPUB and image files."
 layout: docs
 ---
 
