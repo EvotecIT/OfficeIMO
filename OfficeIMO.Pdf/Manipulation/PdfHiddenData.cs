@@ -15,7 +15,7 @@ internal static class PdfHiddenData {
     internal static OfficeHiddenDataReport Inspect(byte[] pdf, PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
         Guard.NotNull(pdf, nameof(pdf));
         var collector = new OfficeHiddenDataCollector(FormatName, null);
-        PdfSanitizationReport inventory = InspectInventory(pdf, readOptions, cancellationToken);
+        PdfSanitizationReport inventory = InspectInventory(pdf, readOptions, OfficeHiddenDataKind.Default, cancellationToken);
         IReadOnlyList<OfficeProvenanceEvidence> provenance = InspectProvenance(pdf, readOptions, cancellationToken);
         Record(collector, inventory);
         foreach (OfficeProvenanceEvidence evidence in provenance) RecordProvenance(collector, evidence, OfficeHiddenDataOutcome.Found);
@@ -32,7 +32,7 @@ internal static class PdfHiddenData {
         options ??= new OfficeHiddenDataOptions();
         if (maximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes), "The maximum output size must be positive.");
         var collector = new OfficeHiddenDataCollector(FormatName, options);
-        PdfSanitizationReport inventory = InspectInventory(pdf, readOptions, cancellationToken);
+        PdfSanitizationReport inventory = InspectInventory(pdf, readOptions, options.Kinds, cancellationToken);
         IReadOnlyList<OfficeProvenanceEvidence> provenance = InspectProvenance(pdf, readOptions, cancellationToken);
 
         // Content Credentials sign the file's bytes, so the rewrite below would leave them stale. They are removed first through the
@@ -90,8 +90,10 @@ internal static class PdfHiddenData {
 
     private static bool Selects(OfficeHiddenDataKind kinds, OfficeHiddenDataKind kind) => (kinds & kind) == kind;
 
-    private static PdfSanitizationReport InspectInventory(byte[] pdf, PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
+    /// <summary>Lists every category; what metadata it reports as kept follows <paramref name="removal"/>, the selection being applied or previewed.</summary>
+    private static PdfSanitizationReport InspectInventory(byte[] pdf, PdfLoadOptions? readOptions, OfficeHiddenDataKind removal, CancellationToken cancellationToken) {
         PdfSanitizationOptions everything = CreatePolicy(OfficeHiddenDataKind.All);
+        everything.KeepsElectronicInvoiceMetadata = !Selects(removal, OfficeHiddenDataKind.Attachments);
         everything.CancellationToken = cancellationToken;
         return PdfSanitizer.Inspect(pdf, everything, readOptions);
     }

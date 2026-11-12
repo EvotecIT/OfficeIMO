@@ -6,9 +6,10 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>
 /// User metadata removal keeps what identifies the document rather than the people and tools behind it: the title, which readers
-/// and screen readers announce and PDF/UA requires, and the PDF/A and PDF/UA identification, without which a conforming file stops
-/// claiming its conformance. The XMP packet is reduced to those properties plus the XMP equivalents of the technical Info entries
-/// that stay, because PDF/A requires the two to agree.
+/// and screen readers announce and PDF/UA requires, and the PDF/A, PDF/UA and PDF/X identification, without which a conforming file
+/// stops claiming its conformance. An e-invoice keeps its Factur-X or ZUGFeRD identification while its invoice data stays attached.
+/// The XMP packet is reduced to those properties plus the XMP equivalents of the technical Info entries that stay, because PDF/A
+/// requires the two to agree, and, for PDF/X, the document identifiers and metadata date PDF/X requires.
 /// </summary>
 internal static partial class PdfSanitizer {
     private const string TitleInfoKey = "Title";
@@ -19,13 +20,24 @@ internal static partial class PdfSanitizer {
     private const string PdfAIdentificationNamespace = "http://www.aiim.org/pdfa/ns/id/";
     private const string PdfAExtensionNamespace = "http://www.aiim.org/pdfa/ns/extension/";
     private const string PdfASchemaNamespace = "http://www.aiim.org/pdfa/ns/schema#";
+    private const string XmpMediaManagementNamespace = "http://ns.adobe.com/xap/1.0/mm/";
+    private const string PdfXVersionInfoKey = "GTS_PDFXVersion";
 
     internal const string RetainedTitleNote =
         "Kept because the title names the document for readers and screen readers, and accessible PDF (PDF/UA) requires it.";
     internal const string RetainedConformanceNote =
-        "Kept because the file would otherwise stop declaring the PDF/A or PDF/UA conformance it was made for.";
+        "Kept because the file would otherwise stop declaring the PDF/A, PDF/UA or PDF/X conformance it was made for.";
+    internal const string RetainedPdfXIdentifiersNote =
+        "Kept because PDF/X requires the document and instance IDs and the metadata date alongside its identification.";
+    internal const string RetainedInvoiceNote =
+        "Kept because it identifies the e-invoice data attached to this file; without it the invoice no longer reads as Factur-X or ZUGFeRD. Remove attachments too to drop both.";
 
-    private static readonly HashSet<string> RetainedXmpProperties = new(StringComparer.Ordinal) {
+    /// <summary>Info entries that declare conformance rather than describe people or tools, reported as retained.</summary>
+    private static readonly HashSet<string> ConformanceInfoKeys = new(StringComparer.Ordinal) {
+        PdfXVersionInfoKey, "GTS_PDFXConformance"
+    };
+
+    private static readonly string[] AlwaysRetainedXmpProperties = {
         DublinCoreNamespace + "title",
         PdfPropertiesNamespace + "Producer",
         PdfPropertiesNamespace + "Trapped",
@@ -33,10 +45,29 @@ internal static partial class PdfSanitizer {
         XmpBasicNamespace + "ModifyDate"
     };
 
-    private static readonly HashSet<string> RetainedXmpNamespaces = new(StringComparer.Ordinal) {
-        PdfAIdentificationNamespace,
-        PdfUaIdentification.NamespaceUri
+    private static readonly string[] PdfXRetainedXmpProperties = {
+        XmpBasicNamespace + "MetadataDate",
+        XmpMediaManagementNamespace + "DocumentID",
+        XmpMediaManagementNamespace + "InstanceID",
+        XmpMediaManagementNamespace + "VersionID",
+        XmpMediaManagementNamespace + "RenditionClass"
     };
+
+    /// <summary>Factur-X, ZUGFeRD 2 and ZUGFeRD 1 identification namespaces.</summary>
+    private static readonly string[] ElectronicInvoiceNamespaces = {
+        PdfElectronicInvoiceMetadata.FacturXNamespaceUri,
+        "urn:zugferd:pdfa:CrossIndustryDocument:invoice:2p0#",
+        "urn:ferd:pdfa:CrossIndustryDocument:invoice:1p0#"
+    };
+
+    /// <summary>The XMP properties and namespaces one reduction keeps, which depend on what the file declares and what else is removed.</summary>
+    private sealed class XmpRetention {
+        internal HashSet<string> Properties { get; } = new(StringComparer.Ordinal);
+        internal HashSet<string> Namespaces { get; } = new(StringComparer.Ordinal) { PdfAIdentificationNamespace, PdfUaIdentification.NamespaceUri };
+        internal bool KeepsPdfX { get; set; }
+
+        internal bool Keeps(XName name) => Namespaces.Contains(name.NamespaceName) || Properties.Contains(name.NamespaceName + name.LocalName);
+    }
 
     /// <summary>What user metadata removal does with the catalog XMP packet.</summary>
     private sealed class PdfXmpReduction {
@@ -49,7 +80,16 @@ internal static partial class PdfSanitizer {
         internal List<PdfSanitizationItem> Retained { get; } = new();
     }
 
-    private static PdfXmpReduction ReduceXmpMetadata(Dictionary<int, PdfIndirectObject> objects, PdfObject metadata) {
+    /// <summary>Works out what user metadata removal keeps from the catalog XMP packet and what it reports as retained.</summary>
+    /// <param name="objects">The document's objects.</param>
+    /// <param name="metadata">The catalog <c>/Metadata</c> value.</param>
+    /// <param name="infoDeclaresPdfX">Whether the Info dictionary declares PDF/X, which keeps the PDF/X production properties even when XMP lacks pdfxid.</param>
+    /// <param name="keepElectronicInvoice">Whether the embedded invoice data stays, so its Factur-X or ZUGFeRD identification must stay with it.</param>
+    private static PdfXmpReduction ReduceXmpMetadata(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject metadata,
+        bool infoDeclaresPdfX,
+        bool keepElectronicInvoice) {
         var reduction = new PdfXmpReduction { RemovesProperties = true };
         if (Resolve(objects, metadata) is not PdfStream stream ||
             !StreamDecoder.TryDecode(stream, PdfReadDocument.MaxXmpMetadataBytes, out byte[] data, objects)) {
@@ -73,6 +113,18 @@ internal static partial class PdfSanitizer {
         XElement? root = document.Descendants(rdf + "RDF").FirstOrDefault();
         if (root is null) return reduction;
 
+        var retention = new XmpRetention();
+        foreach (string property in AlwaysRetainedXmpProperties) retention.Properties.Add(property);
+        retention.KeepsPdfX = infoDeclaresPdfX || root.Descendants().Any(static element => element.Name.NamespaceName == PdfXIdentification.NamespaceUri) ||
+            root.Descendants().Attributes().Any(static attribute => attribute.Name.NamespaceName == PdfXIdentification.NamespaceUri);
+        if (retention.KeepsPdfX) {
+            retention.Namespaces.Add(PdfXIdentification.NamespaceUri);
+            foreach (string property in PdfXRetainedXmpProperties) retention.Properties.Add(property);
+        }
+        if (keepElectronicInvoice) {
+            foreach (string invoiceNamespace in ElectronicInvoiceNamespaces) retention.Namespaces.Add(invoiceNamespace);
+        }
+
         bool removes = false;
         var attributes = new List<XAttribute>();
         var elements = new List<XElement>();
@@ -84,7 +136,7 @@ internal static partial class PdfSanitizer {
             }
             foreach (XAttribute attribute in node.Attributes()) {
                 if (attribute.IsNamespaceDeclaration || attribute.Name.Namespace == rdf || attribute.Name.NamespaceName.Length == 0) continue;
-                if (IsRetainedXmpProperty(attribute.Name)) {
+                if (retention.Keeps(attribute.Name)) {
                     attributes.Add(new XAttribute(attribute));
                     RememberPrefix(node, attribute.Name.Namespace, prefixes);
                 } else {
@@ -93,8 +145,8 @@ internal static partial class PdfSanitizer {
             }
             foreach (XElement property in node.Elements()) {
                 XElement? kept = property.Name == XName.Get("schemas", PdfAExtensionNamespace)
-                    ? ReduceExtensionSchemas(property, ref removes)
-                    : IsRetainedXmpProperty(property.Name) ? new XElement(property) : null;
+                    ? ReduceExtensionSchemas(property, retention, ref removes)
+                    : retention.Keeps(property.Name) ? new XElement(property) : null;
                 if (kept is null) {
                     removes = true;
                     continue;
@@ -110,22 +162,19 @@ internal static partial class PdfSanitizer {
         }
 
         reduction.RemovesProperties = removes;
-        AddRetainedXmpItems(attributes, elements, reduction.Retained);
+        AddRetainedXmpItems(attributes, elements, retention, reduction.Retained);
         if (reduction.Retained.Count > 0) reduction.Packet = BuildRetainedXmp(attributes, elements, prefixes);
         return reduction;
     }
 
-    private static bool IsRetainedXmpProperty(XName name) =>
-        RetainedXmpNamespaces.Contains(name.NamespaceName) || RetainedXmpProperties.Contains(name.NamespaceName + name.LocalName);
-
-    /// <summary>Keeps only the extension schema descriptions for namespaces the reduced packet still uses, such as pdfuaid in PDF/A-2 and PDF/A-3.</summary>
-    private static XElement? ReduceExtensionSchemas(XElement schemas, ref bool removes) {
+    /// <summary>Keeps only the extension schema descriptions for namespaces the reduced packet still uses, such as pdfuaid and fx in PDF/A-2 and PDF/A-3.</summary>
+    private static XElement? ReduceExtensionSchemas(XElement schemas, XmpRetention retention, ref bool removes) {
         var copy = new XElement(schemas);
         XNamespace rdf = RdfNamespace;
         List<XElement> entries = copy.Elements().Elements(rdf + "li").ToList();
         foreach (XElement entry in entries) {
             string? schemaNamespace = entry.Descendants(XName.Get("namespaceURI", PdfASchemaNamespace)).FirstOrDefault()?.Value.Trim();
-            if (schemaNamespace is null || !RetainedXmpNamespaces.Contains(schemaNamespace)) {
+            if (schemaNamespace is null || !retention.Namespaces.Contains(schemaNamespace)) {
                 entry.Remove();
                 removes = true;
             }
@@ -139,7 +188,7 @@ internal static partial class PdfSanitizer {
         if (!string.IsNullOrEmpty(prefix)) prefixes[ns.NamespaceName] = prefix!;
     }
 
-    private static void AddRetainedXmpItems(List<XAttribute> attributes, List<XElement> elements, List<PdfSanitizationItem> retained) {
+    private static void AddRetainedXmpItems(List<XAttribute> attributes, List<XElement> elements, XmpRetention retention, List<PdfSanitizationItem> retained) {
         XElement? title = elements.FirstOrDefault(static element => element.Name == XName.Get("title", DublinCoreNamespace));
         if (title is not null) {
             retained.Add(new PdfSanitizationItem(PdfSanitizationContentKind.UserMetadata, "Catalog/Metadata/dc:title", "XMP title",
@@ -147,6 +196,26 @@ internal static partial class PdfSanitizer {
         }
         AddIdentification(PdfAIdentificationNamespace, "PDF/A", "XMP PDF/A identification", "Catalog/Metadata/pdfaid");
         AddIdentification(PdfUaIdentification.NamespaceUri, "PDF/UA", "XMP PDF/UA identification", "Catalog/Metadata/pdfuaid");
+        string? pdfXVersion = ReadIdentification(PdfXIdentification.NamespaceUri, "GTS_PDFXVersion");
+        if (pdfXVersion is not null) {
+            retained.Add(new PdfSanitizationItem(PdfSanitizationContentKind.UserMetadata, "Catalog/Metadata/pdfxid", "XMP PDF/X identification",
+                pdfXVersion, retainedNote: RetainedConformanceNote));
+        }
+        if (retention.KeepsPdfX) {
+            string? documentId = ReadIdentification(XmpMediaManagementNamespace, "DocumentID");
+            if (documentId is not null || ReadIdentification(XmpMediaManagementNamespace, "InstanceID") is not null) {
+                retained.Add(new PdfSanitizationItem(PdfSanitizationContentKind.UserMetadata, "Catalog/Metadata/xmpMM", "XMP document and instance IDs",
+                    documentId, retainedNote: RetainedPdfXIdentifiersNote));
+            }
+        }
+        foreach (string invoiceNamespace in ElectronicInvoiceNamespaces) {
+            if (!retention.Namespaces.Contains(invoiceNamespace)) continue;
+            string? level = ReadIdentification(invoiceNamespace, "ConformanceLevel");
+            string? fileName = ReadIdentification(invoiceNamespace, "DocumentFileName");
+            if (level is null && fileName is null) continue;
+            retained.Add(new PdfSanitizationItem(PdfSanitizationContentKind.UserMetadata, "Catalog/Metadata/invoice", "XMP e-invoice identification",
+                level is null ? fileName : fileName is null ? level : fileName + " (" + level + ")", retainedNote: RetainedInvoiceNote));
+        }
 
         void AddIdentification(string ns, string standard, string description, string location) {
             string? part = ReadIdentification(ns, "part");

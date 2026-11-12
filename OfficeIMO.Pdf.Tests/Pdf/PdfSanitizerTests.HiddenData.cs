@@ -82,8 +82,78 @@ public partial class PdfSanitizerTests {
             static finding => finding.Outcome == OfficeHiddenDataOutcome.Removed);
     }
 
+    [Fact]
+    public void DefaultHiddenDataRemovalKeepsPdfXAndInvoiceIdentificationWhileTheInvoiceStaysAttached() {
+        byte[] source = BuildPdfXInvoiceMetadataPdf();
+
+        OfficeHiddenDataResult removal = PdfDocument.Load(source).RemoveHiddenData();
+
+        foreach (string location in new[] { "Info/GTS_PDFXVersion", "Catalog/Metadata/pdfxid", "Catalog/Metadata/xmpMM", "Catalog/Metadata/invoice" }) {
+            OfficeHiddenDataFinding finding = Assert.Single(removal.Report.Findings, item => item.Location == location);
+            Assert.Equal(OfficeHiddenDataOutcome.Retained, finding.Outcome);
+            Assert.Equal(OfficeHiddenDataReason.NeededByDocument, finding.Reason);
+        }
+        PdfDocumentInfo info = PdfDocument.Load(removal.ToArray()).Inspect();
+        PdfXmpMetadataInfo xmp = Assert.IsType<PdfXmpMetadataInfo>(info.XmpMetadata);
+        Assert.Equal("PDF/X-4", info.Metadata.PdfXVersion);
+        Assert.Equal("PDF/X-4", xmp.PdfXVersion);
+        Assert.Equal("uuid:00000000-0000-0000-0000-000000000001", xmp.DocumentId);
+        Assert.Equal("default", xmp.RenditionClass);
+        Assert.NotNull(xmp.MetadataDate);
+        Assert.Equal("EN 16931", xmp.ElectronicInvoiceConformanceLevel);
+        Assert.Equal("factur-x.xml", xmp.ElectronicInvoiceDocumentFileName);
+        Assert.Contains(PdfElectronicInvoiceMetadata.FacturXNamespaceUri, xmp.RawXml, StringComparison.Ordinal);
+        Assert.Single(info.Attachments);
+        Assert.DoesNotContain("PRIVATE-", PdfEncoding.Latin1GetString(removal.ToArray()), StringComparison.Ordinal);
+
+        OfficeHiddenDataResult withAttachments = PdfDocument.Load(source).RemoveHiddenData(new OfficeHiddenDataOptions {
+            Kinds = OfficeHiddenDataKind.Default | OfficeHiddenDataKind.Attachments
+        });
+        PdfXmpMetadataInfo stripped = Assert.IsType<PdfXmpMetadataInfo>(PdfDocument.Load(withAttachments.ToArray()).Inspect().XmpMetadata);
+        Assert.Null(stripped.ElectronicInvoiceDocumentFileName);
+        Assert.DoesNotContain(withAttachments.Report.Findings, static finding => finding.Location == "Catalog/Metadata/invoice");
+        Assert.Equal("PDF/X-4", stripped.PdfXVersion);
+    }
+
     private static bool IsKeptTitle(OfficeHiddenDataFinding finding) =>
         finding.Location is "Info/Title" or "Catalog/Metadata/dc:title" && finding.Outcome != OfficeHiddenDataOutcome.Removed;
+
+    private static byte[] BuildPdfXInvoiceMetadataPdf() {
+        const string xmp =
+            "<?xpacket begin='' id='W5M0MpCehiHzreSzNTczkc9d'?><x:xmpmeta xmlns:x='adobe:ns:meta/'>" +
+            "<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>" +
+            "<rdf:Description rdf:about='' xmlns:dc='http://purl.org/dc/elements/1.1/' xmlns:xmp='http://ns.adobe.com/xap/1.0/' " +
+            "xmlns:xmpMM='http://ns.adobe.com/xap/1.0/mm/' xmlns:pdfxid='http://www.npes.org/pdfx/ns/id/' " +
+            "xmlns:fx='urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#' xmlns:pdfaid='http://www.aiim.org/pdfa/ns/id/'>" +
+            "<dc:title><rdf:Alt><rdf:li xml:lang='x-default'>Invoice 42</rdf:li></rdf:Alt></dc:title>" +
+            "<dc:creator><rdf:Seq><rdf:li>PRIVATE-XMP-AUTHOR</rdf:li></rdf:Seq></dc:creator><xmp:CreatorTool>PRIVATE-CREATOR-TOOL</xmp:CreatorTool>" +
+            "<xmp:CreateDate>2026-01-02T03:04:05Z</xmp:CreateDate><xmp:ModifyDate>2026-01-02T03:04:05Z</xmp:ModifyDate>" +
+            "<xmp:MetadataDate>2026-01-02T03:04:05Z</xmp:MetadataDate>" +
+            "<xmpMM:DocumentID>uuid:00000000-0000-0000-0000-000000000001</xmpMM:DocumentID>" +
+            "<xmpMM:InstanceID>uuid:00000000-0000-0000-0000-000000000002</xmpMM:InstanceID>" +
+            "<xmpMM:VersionID>1</xmpMM:VersionID><xmpMM:RenditionClass>default</xmpMM:RenditionClass>" +
+            "<pdfxid:GTS_PDFXVersion>PDF/X-4</pdfxid:GTS_PDFXVersion><pdfaid:part>3</pdfaid:part><pdfaid:conformance>B</pdfaid:conformance>" +
+            "<fx:DocumentType>INVOICE</fx:DocumentType><fx:DocumentFileName>factur-x.xml</fx:DocumentFileName>" +
+            "<fx:Version>1.0</fx:Version><fx:ConformanceLevel>EN 16931</fx:ConformanceLevel></rdf:Description>" +
+            "<rdf:Description rdf:about='' xmlns:pdfaExtension='http://www.aiim.org/pdfa/ns/extension/' " +
+            "xmlns:pdfaSchema='http://www.aiim.org/pdfa/ns/schema#'><pdfaExtension:schemas><rdf:Bag>" +
+            "<rdf:li rdf:parseType='Resource'><pdfaSchema:schema>Factur-X PDF/A Extension Schema</pdfaSchema:schema>" +
+            "<pdfaSchema:namespaceURI>urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#</pdfaSchema:namespaceURI><pdfaSchema:prefix>fx</pdfaSchema:prefix></rdf:li>" +
+            "</rdf:Bag></pdfaExtension:schemas></rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end='w'?>";
+        const string invoice = "<rsm:CrossIndustryInvoice xmlns:rsm='urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100'/>";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Metadata 5 0 R /Names << /EmbeddedFiles << /Names [(factur-x.xml) 8 0 R] >> >> /AF [8 0 R] >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            StreamObject(4, string.Empty, string.Empty),
+            StreamObject(5, "/Type /Metadata /Subtype /XML", xmp),
+            "6 0 obj", "<< /Title (Invoice 42) /Author (PRIVATE-AUTHOR) /GTS_PDFXVersion (PDF/X-4) /Trapped /False /CreationDate (D:20260102030405Z) /ModDate (D:20260102030405Z) >>", "endobj",
+            StreamObject(7, "/Type /EmbeddedFile /Subtype /text#2Fxml", invoice),
+            "8 0 obj", "<< /Type /Filespec /F (factur-x.xml) /UF (factur-x.xml) /AFRelationship /Data /EF << /F 7 0 R /UF 7 0 R >> >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Info 6 0 R /Size 9 >>", "%%EOF"
+        }) + "\n");
+    }
 
     private static byte[] BuildConformingMetadataPdf() {
         const string xmp =

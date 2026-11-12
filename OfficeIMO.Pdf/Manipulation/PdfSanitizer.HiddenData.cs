@@ -26,7 +26,7 @@ internal static partial class PdfSanitizer {
             readOptions,
             policy.CancellationToken);
         var items = new List<PdfSanitizationItem>();
-        if (policy.ShouldRemoveUserMetadata) CollectUserMetadataEntries(parsed.Map, security, items);
+        if (policy.ShouldRemoveUserMetadata) CollectUserMetadataEntries(parsed.Map, security, policy, items);
         if (policy.ShouldRemoveEmbeddedFiles) {
             IReadOnlyList<PdfAttachmentInfo> attachments = PdfAttachmentExtractor.InspectAttachments(
                 parsed.Map,
@@ -52,22 +52,22 @@ internal static partial class PdfSanitizer {
     private static void CollectUserMetadataEntries(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDocumentSecurityInfo security,
+        PdfSanitizationOptions policy,
         List<PdfSanitizationItem> items) {
-        if (security.InfoObjectNumber.HasValue &&
-            objects.TryGetValue(security.InfoObjectNumber.Value, out PdfIndirectObject? infoObject) &&
-            infoObject.Value is PdfDictionary info) {
+        PdfDictionary? info = FindInfo(objects, security);
+        if (info is not null) {
             foreach (string key in info.Items.Keys) {
                 if (TechnicalInfoKeys.Contains(key)) continue;
                 TryGetString(objects, info, key, out string? value);
                 items.Add(new PdfSanitizationItem(PdfSanitizationContentKind.UserMetadata, "Info/" + key, "Document information " + key, value,
-                    retainedNote: key == TitleInfoKey ? RetainedTitleNote : null));
+                    retainedNote: key == TitleInfoKey ? RetainedTitleNote : ConformanceInfoKeys.Contains(key) ? RetainedConformanceNote : null));
             }
         }
         if (security.RootObjectNumber.HasValue &&
             objects.TryGetValue(security.RootObjectNumber.Value, out PdfIndirectObject? rootObject) &&
             rootObject.Value is PdfDictionary catalog &&
             catalog.Items.TryGetValue("Metadata", out PdfObject? metadata)) {
-            PdfXmpReduction reduction = ReduceXmpMetadata(objects, metadata);
+            PdfXmpReduction reduction = ReduceXmpMetadata(objects, metadata, DeclaresPdfX(info), policy.KeepsElectronicInvoiceMetadata);
             if (reduction.RemovesProperties) {
                 items.Add(new PdfSanitizationItem(PdfSanitizationContentKind.UserMetadata, "Catalog/Metadata",
                     reduction.Packet is null ? "XMP metadata packet" : "XMP metadata other than the title and conformance identification", null));
@@ -224,10 +224,9 @@ internal static partial class PdfSanitizer {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDocumentSecurityInfo security,
         PdfSanitizationOptions policy) {
-        if (policy.ShouldRemoveUserMetadata && security.InfoObjectNumber.HasValue &&
-            objects.TryGetValue(security.InfoObjectNumber.Value, out PdfIndirectObject? infoObject) &&
-            infoObject.Value is PdfDictionary info) {
-            foreach (string key in info.Items.Keys.Where(static key => !TechnicalInfoKeys.Contains(key) && key != TitleInfoKey).ToArray()) {
+        PdfDictionary? info = FindInfo(objects, security);
+        if (policy.ShouldRemoveUserMetadata && info is not null) {
+            foreach (string key in info.Items.Keys.Where(static key => !TechnicalInfoKeys.Contains(key) && key != TitleInfoKey && !ConformanceInfoKeys.Contains(key)).ToArray()) {
                 info.Items.Remove(key);
             }
         }
@@ -239,7 +238,7 @@ internal static partial class PdfSanitizer {
         }
 
         if (policy.ShouldRemoveUserMetadata && catalog.Items.TryGetValue("Metadata", out PdfObject? metadata)) {
-            PdfXmpReduction reduction = ReduceXmpMetadata(objects, metadata);
+            PdfXmpReduction reduction = ReduceXmpMetadata(objects, metadata, DeclaresPdfX(info), policy.KeepsElectronicInvoiceMetadata);
             if (reduction.RemovesProperties &&
                 (reduction.Packet is null || !TryReplaceMetadataStream(objects, metadata, reduction.Packet))) {
                 RemoveSelectedMetadataAliases(objects, metadata);
@@ -263,6 +262,13 @@ internal static partial class PdfSanitizer {
             if (HasCatalogPageMode(objects, catalog, "UseOC")) catalog.Items.Remove("PageMode");
         }
     }
+
+    private static PdfDictionary? FindInfo(Dictionary<int, PdfIndirectObject> objects, PdfDocumentSecurityInfo security) =>
+        security.InfoObjectNumber.HasValue &&
+        objects.TryGetValue(security.InfoObjectNumber.Value, out PdfIndirectObject? infoObject) &&
+        infoObject.Value is PdfDictionary info ? info : null;
+
+    private static bool DeclaresPdfX(PdfDictionary? info) => info?.Items.ContainsKey(PdfXVersionInfoKey) == true;
 
     private static bool HasCatalogPageMode(
         Dictionary<int, PdfIndirectObject> objects,
