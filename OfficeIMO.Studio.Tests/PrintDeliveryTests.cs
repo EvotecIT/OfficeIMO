@@ -138,6 +138,40 @@ public sealed class PrintDeliveryTests {
         }, CancellationToken.None);
     }
 
+    [Fact]
+    public async Task RasterContentIsComposedAtTheSelectedResolutionAndRebuiltWhenItChanges() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var printer = new RecordingPrinter();
+            // A print-only source cannot be imported as vector content, so the job carries raster sheets.
+            var encryption = new PdfStandardEncryptionOptions("print-user") { OwnerPassword = "print-owner", AllowedPermissions = PdfStandardPermissions.Print | PdfStandardPermissions.HighQualityPrint };
+            byte[] source = PdfDocument.Create(document => document.Page(page => page.Content(content =>
+                content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Raster only"))))), new PdfCreateOptions().SetEncryption(encryption)).ToBytes();
+            using var model = new PrintPreviewViewModel(_ => Task.FromResult<string?>(null), null,
+                readSnapshot: (_, _) => Task.FromResult(PdfDocument.Load(new MemoryStream(source), new PdfLoadOptions { Password = "print-user" })),
+                printers: printer, jobHistory: new StudioJobHistory(StudioLocalization.Current)) { InputPath = Path.Combine(Path.GetTempPath(), "print-only.pdf") };
+            await model.RefreshPrintersCommand.ExecuteAsync(null);
+            model.Pages = "1";
+            model.PrintDpi = model.PrintDpiChoices.Min();
+            await model.BuildPreviewCommand.ExecuteAsync(null);
+            Assert.True(model.CanPrint, model.Status);
+            await model.PrintCommand.ExecuteAsync(null);
+            PdfPrintJob low = printer.Document!;
+            Assert.Equal(PdfPrintContentKind.Raster, low.ContentKind);
+
+            model.PrintDpi = model.PrintDpiChoices.Max();
+            Assert.False(model.HasPreview);
+            Assert.False(model.CanPrint);
+            await model.BuildPreviewCommand.ExecuteAsync(null);
+            Assert.True(model.CanPrint, model.Status);
+            await model.PrintCommand.ExecuteAsync(null);
+            Assert.NotSame(low, printer.Document);
+            Assert.InRange(SheetDpi(printer.Document!), model.PrintDpiChoices.Max() - 2, model.PrintDpiChoices.Max() + 2);
+            Assert.InRange(SheetDpi(low), model.PrintDpiChoices.Min() - 2, model.PrintDpiChoices.Min() + 2);
+            return true;
+        }, CancellationToken.None);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -233,6 +267,11 @@ public sealed class PrintDeliveryTests {
             Assert.Equal(accepted, model.Status);
             return true;
         }, default);
+    }
+
+    private static double SheetDpi(PdfPrintJob job) {
+        using Stream content = job.OpenContent();
+        return PdfDocument.Load(content).Images.Extract().Single().Width * 72D / job.Plan.Sheets[0].PaperSize.Width.ToPoints();
     }
 
     private static PrintPreviewViewModel Create(RecordingPrinter printer, StudioJobHistory history, Action? read = null) =>

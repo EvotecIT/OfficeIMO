@@ -41,6 +41,8 @@ public sealed partial class PrintPreviewViewModel {
             or nameof(SelectedScale) or nameof(SelectedPagesPerSheet)
             or nameof(CustomScalePercent) or nameof(SelectedAlignment) or nameof(SelectedPageSubset) or nameof(SelectedColor)
             or nameof(MarginLeft) or nameof(MarginTop) or nameof(MarginRight) or nameof(MarginBottom)) InvalidatePreparedSheets();
+        // Raster content is composed at the print resolution; vector content applies it only at delivery.
+        if (e.PropertyName == nameof(PrintDpi) && _preparedPrint?.ContentKind == PdfPrintContentKind.Raster) InvalidatePreparedSheets();
         if (e.PropertyName is nameof(IsBusy) or nameof(SelectedPrinter) or nameof(PrintOutputPath) or nameof(HasPreview) or nameof(IsDiscoveringPaperSources) or nameof(IsDiscoveringPrinters)) {
             OnPropertyChanged(nameof(CanChangePrintSettings));
             OnPropertyChanged(nameof(CanPrint));
