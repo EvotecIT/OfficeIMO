@@ -13,6 +13,8 @@
   <ItemGroup>
     <ProjectReference Include="../OfficeIMO.Core/OfficeIMO.Core.csproj" />
     <ProjectReference Include="../OfficeIMO.CSV/OfficeIMO.CSV.csproj" />
+    <ProjectReference Include="../OfficeIMO.Data.Conversions/OfficeIMO.Data.Conversions.csproj" />
+    <ProjectReference Include="../OfficeIMO.Data.Conversions.Excel/OfficeIMO.Data.Conversions.Excel.csproj" />
     <ProjectReference Include="../OfficeIMO.Word/OfficeIMO.Word.csproj" />
     <ProjectReference Include="../OfficeIMO.Excel/OfficeIMO.Excel.csproj" />
     <ProjectReference Include="../OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj" />

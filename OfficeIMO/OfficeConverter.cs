@@ -204,7 +204,7 @@ public static partial class OfficeConverter {
         OfficeDocumentFormat.Pdf => ".pdf", OfficeDocumentFormat.Markdown => ".md", OfficeDocumentFormat.Html => ".html",
         OfficeDocumentFormat.Rtf => ".rtf", OfficeDocumentFormat.Xps => ".xps", OfficeDocumentFormat.Publisher => ".pub",
         OfficeDocumentFormat.Text => ".txt", OfficeDocumentFormat.Email => ".eml", OfficeDocumentFormat.Epub => ".epub",
-        OfficeDocumentFormat.Csv => ".csv", OfficeDocumentFormat.Json => ".json", OfficeDocumentFormat.Xml => ".xml",
+        OfficeDocumentFormat.Csv => ".csv", OfficeDocumentFormat.Json => ".json", OfficeDocumentFormat.Xml => ".xml", OfficeDocumentFormat.Toml => ".toml",
         OfficeDocumentFormat.AsciiDoc => ".adoc", OfficeDocumentFormat.Latex => ".tex", OfficeDocumentFormat.OneNote => ".one",
         OfficeDocumentFormat.Visio => ".vsdx", _ => throw new NotSupportedException("The format requires an explicit physical filename and registered route.")
     };
@@ -219,7 +219,8 @@ public static partial class OfficeConverter {
         ".rtf" => OfficeDocumentFormat.Rtf, ".xps" or ".oxps" => OfficeDocumentFormat.Xps,
         ".pub" => OfficeDocumentFormat.Publisher, ".odg" or ".fodg" or ".odt" or ".ods" or ".odp" or ".fodt" or ".fods" or ".fodp" => OfficeDocumentFormat.OpenDocument,
         ".pages" or ".numbers" or ".key" => OfficeDocumentFormat.IWork,
-        ".csv" or ".tsv" => OfficeDocumentFormat.Csv, ".json" => OfficeDocumentFormat.Json, ".xml" => OfficeDocumentFormat.Xml,
+        ".csv" or ".tsv" => OfficeDocumentFormat.Csv, ".json" or ".jsonl" or ".ndjson" => OfficeDocumentFormat.Json, ".xml" => OfficeDocumentFormat.Xml,
+        ".yaml" or ".yml" => OfficeDocumentFormat.Yaml, ".toml" => OfficeDocumentFormat.Toml,
         ".epub" => OfficeDocumentFormat.Epub, ".vsdx" or ".vdx" or ".vtx" => OfficeDocumentFormat.Visio,
         ".adoc" or ".asciidoc" => OfficeDocumentFormat.AsciiDoc, ".tex" or ".latex" => OfficeDocumentFormat.Latex,
         ".one" or ".onepkg" or ".onetoc2" => OfficeDocumentFormat.OneNote,

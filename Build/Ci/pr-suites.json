@@ -301,6 +301,7 @@
       "OfficeIMO.ChartForgeX.Markdown.Tests",
       "OfficeIMO.ChartForgeX.Tests",
       "OfficeIMO.Confluence.Tests",
+      "OfficeIMO.Data.Conversions.Tests",
       "OfficeIMO.DjVu.Tests",
       "OfficeIMO.DocBook.Tests",
       "OfficeIMO.Drawing.CodeGlyphX.Tests",
@@ -382,6 +383,10 @@
     {
       "name": "Confluence",
       "project": "OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj"
+    },
+    {
+      "name": "Data-Conversions",
+      "project": "OfficeIMO.Data.Conversions.Tests/OfficeIMO.Data.Conversions.Tests.csproj"
     },
     {
       "name": "Drawing",

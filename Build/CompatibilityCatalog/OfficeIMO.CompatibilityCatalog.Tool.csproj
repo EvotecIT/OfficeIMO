@@ -30,6 +30,7 @@
     <ProjectReference Include="../../OfficeIMO.Workflows.IWork/OfficeIMO.Workflows.IWork.csproj" />
     <ProjectReference Include="../../OfficeIMO.Excel/OfficeIMO.Excel.csproj" />
     <ProjectReference Include="../../OfficeIMO.Excel.Csv/OfficeIMO.Excel.Csv.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Data.Conversions.Excel/OfficeIMO.Data.Conversions.Excel.csproj" />
     <ProjectReference Include="../../OfficeIMO.Excel.Html/OfficeIMO.Excel.Html.csproj" />
     <ProjectReference Include="../../OfficeIMO.Excel.OpenDocument/OfficeIMO.Excel.OpenDocument.csproj" />
     <ProjectReference Include="../../OfficeIMO.Excel.Pdf/OfficeIMO.Excel.Pdf.csproj" />

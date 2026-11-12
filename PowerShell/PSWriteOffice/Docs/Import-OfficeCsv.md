@@ -606,7 +606,7 @@ Controls whether malformed quoted fields are parsed leniently or rejected.
 Type: CsvQuoteParsingMode
 Parameter Sets: Path, PathCulture, PathDetect, LiteralPath, LiteralPathCulture, LiteralPathDetect, Text, TextCulture, TextDetect
 Aliases: None
-Possible values: Lenient, Strict
+Possible values: Lenient, Strict, None
 
 Required: False
 Position: named

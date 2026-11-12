@@ -11279,6 +11279,262 @@
       ]
     },
     {
+      "name": "ConvertFrom-OfficeToml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Converts TOML text to PowerShell objects, as ConvertFrom-Json does for JSON.",
+      "outputType": "PSCustomObject, System.Collections.Specialized.OrderedDictionary",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "InputObject",
+          "default": true,
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "AsHashtable",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Depth",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Tables become PSCustomObjects in file order (ordered hashtables with -AsHashtable), arrays and arrays of tables arrays, integers Int64, floats Double, and date-times DateTimeOffset, DateTime or TimeSpan by kind. Piped lines are joined before parsing. -Depth sets the deepest nesting accepted.",
+      "examples": [
+        {
+          "title": "Read project dependencies",
+          "description": "Reads pyproject.toml and returns its dependency list.",
+          "code": "$project = Get-Content -Path ./pyproject.toml -Raw | ConvertFrom-OfficeToml\n$project.project.dependencies"
+        },
+        {
+          "title": "List locked packages",
+          "description": "Reads Cargo.lock as hashtables and prints each package with its version.",
+          "code": "(Get-Content ./Cargo.lock | ConvertFrom-OfficeToml -AsHashtable).package | ForEach-Object { '{0} {1}' -f $_.name, $_.version }"
+        }
+      ]
+    },
+    {
+      "name": "ConvertTo-OfficeToml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Converts PowerShell objects to TOML text, as ConvertTo-Json does for JSON.",
+      "outputType": "System.String",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "InputObject",
+          "default": true,
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "object",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Depth",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "RootName",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Hashtables and object properties become tables: nested objects are written as [table] sections and lists of objects as [[array]] sections. TOML has no null, so nulls are omitted with a warning. Input that is not an object, such as several piped objects, is written under -RootName. Values deeper than -Depth (default 2) become their string form with a warning.",
+      "examples": [
+        {
+          "title": "Turn a hashtable into TOML",
+          "description": "Writes a small service definition with a nested table.",
+          "code": "[ordered]@{ name = 'web'; port = 8080; tls = [ordered]@{ enabled = $true } } | ConvertTo-OfficeToml"
+        },
+        {
+          "title": "Write piped objects as an array of tables",
+          "description": "Writes three processes as [[process]] sections.",
+          "code": "Get-Process | Select-Object -First 3 Name, Id | ConvertTo-OfficeToml -RootName process"
+        }
+      ]
+    },
+    {
+      "name": "Import-OfficeToml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Reads TOML files as PowerShell objects.",
+      "outputType": "PSCustomObject, System.Collections.Specialized.OrderedDictionary",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "AsHashtable",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Depth",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "byPropertyName",
+              "aliases": [
+                "FullName",
+                "PSPath"
+              ]
+            },
+            {
+              "name": "AsHashtable",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Depth",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "The file form of ConvertFrom-OfficeToml, with the same output parameters. A file that fails to parse writes a non-terminating error with the engine code, line and column, and the next file is read.",
+      "examples": [
+        {
+          "title": "Read a tool setting",
+          "description": "Reads the ruff settings from pyproject.toml.",
+          "code": "$ruff = (Import-OfficeToml -Path ./pyproject.toml).tool.ruff\n$ruff.'line-length'"
+        },
+        {
+          "title": "List crate names",
+          "description": "Reads every Cargo.toml under the crates folder and returns the package names.",
+          "code": "Get-ChildItem ./crates -Filter Cargo.toml -Recurse | Import-OfficeToml | ForEach-Object { $_.package.name }"
+        }
+      ]
+    },
+    {
+      "name": "Export-OfficeToml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Writes PowerShell objects to a TOML file.",
+      "outputType": "System.IO.FileInfo",
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "InputObject",
+          "default": true,
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "object",
+              "mandatory": true,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "Depth",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "RootName",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "The file form of ConvertTo-OfficeToml. Writes UTF-8 without a byte-order mark, atomically; replaces an existing file unless -NoClobber.",
+      "examples": [
+        {
+          "title": "Save settings to a file",
+          "description": "Writes a title and an owner table to a settings file.",
+          "code": "[ordered]@{ title = 'Report'; owner = [ordered]@{ name = 'Ops'; updated = Get-Date } } | Export-OfficeToml -Path ./settings.toml"
+        },
+        {
+          "title": "Export an inventory without replacing a file",
+          "description": "Writes the server list as [[server]] sections and refuses to overwrite an existing file.",
+          "code": "Import-OfficeCsv -Path ./servers.csv | Export-OfficeToml -Path ./inventory.toml -RootName server -NoClobber -PassThru"
+        }
+      ]
+    },
+    {
       "name": "New-OfficeHtmlConversionOptions",
       "alias": null,
       "status": "existing",

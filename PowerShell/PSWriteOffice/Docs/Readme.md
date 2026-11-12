@@ -484,6 +484,9 @@ Compares two worksheets or ranges cell by cell.
 ### [Convert-OfficeDocument](Convert-OfficeDocument.md)
 Converts files through OfficeIMO's native routes and portable batch engine.
 
+### [ConvertFrom-OfficeToml](ConvertFrom-OfficeToml.md)
+Converts TOML text to PowerShell objects, as ConvertFrom-Json does for JSON.
+
 ### [ConvertFrom-OfficeYaml](ConvertFrom-OfficeYaml.md)
 Converts YAML text to PowerShell objects, as ConvertFrom-Json does for JSON.
 
@@ -498,6 +501,9 @@ Converts objects into a Markdown table.
 
 ### [ConvertTo-OfficeProjectTable](ConvertTo-OfficeProjectTable.md)
 Maps PowerShell rows to a bounded project entity table.
+
+### [ConvertTo-OfficeToml](ConvertTo-OfficeToml.md)
+Converts PowerShell objects to TOML text, as ConvertTo-Json does for JSON.
 
 ### [ConvertTo-OfficeVisioVisual](ConvertTo-OfficeVisioVisual.md)
 Converts CFX semantic visual-artifact input into a native editable OfficeIMO.Visio document.
@@ -546,6 +552,9 @@ Exports objects as a designed presentation with editable tables and optional cha
 
 ### [Export-OfficeProjectReport](Export-OfficeProjectReport.md)
 Exports a captured Project report through the shared PDF, HTML, Word, Excel or PowerPoint adapters.
+
+### [Export-OfficeToml](Export-OfficeToml.md)
+Writes PowerShell objects to a TOML file; the file form of ConvertTo-OfficeToml.
 
 ### [Export-OfficeVisioStencilPreviewGallery](Export-OfficeVisioStencilPreviewGallery.md)
 Exports preview artwork from a Visio stencil package into a browsable HTML gallery.
@@ -795,6 +804,9 @@ Imports selected slides from a file or live document, preserving native relation
 
 ### [Import-OfficeProjectTable](Import-OfficeProjectTable.md)
 Imports explicitly mapped tables into a new project without changing existing documents.
+
+### [Import-OfficeToml](Import-OfficeToml.md)
+Reads TOML files as PowerShell objects; the file form of ConvertFrom-OfficeToml.
 
 ### [Import-OfficeVisioStencilCatalog](Import-OfficeVisioStencilCatalog.md)
 Loads a stencil catalog (built-in, from .vssx/.vsdx packages or installed Visio); inside a diagram block it also registers it.

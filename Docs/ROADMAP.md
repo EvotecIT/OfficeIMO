@@ -854,7 +854,7 @@ Acceptance: every adopted baseline criterion has decisive evidence, no validated
 `OfficeIMO.Yaml` is the owned YAML 1.2 engine; the [YAML engine design](officeimo.yaml-engine-design.md) and the [package README](../OfficeIMO.Yaml/README.md) own its current contract. Open work:
 
 - [ ] Move `OfficeIMO.Markup` front matter onto the engine. Its parser still reads `key: value` lines between `---` fences into a flat string dictionary, so nested values, lists, single-quoted or escaped strings and trailing comments are not read as YAML, and malformed front matter gives no diagnostic. Read it through `OfficeIMO.Markdown`'s `FrontMatterBlock`, keep profile selection and source line positions, and report invalid YAML.
-- [ ] Structured-data conversion routes between JSON, YAML, TOML, XML, CSV/TSV and Excel worksheets, using the shared `To{Target}`/`SaveAs{Target}` grammar and `Convert-OfficeDocument`. Decide one documented XML⇄JSON mapping (attributes, repeated elements, mixed content) and report every lossy mapping, such as comments, anchors and YAML tags, through `OfficeConversionReport`.
+- [ ] Finish the [structured-data conversion](officeimo.data-conversions-design.md) routes. JSON, JSON Lines, YAML, TOML, XML, CSV, TSV and worksheet conversions ship in `OfficeIMO.Data.Conversions`; remaining: Windows and Linux benchmark evidence alongside macOS.
 - [ ] Publish the comparison results for parse-to-events, load-to-model and the serializer against YamlDotNet and SharpYaml, with Windows, Linux and macOS runs, in the design's [performance section](officeimo.yaml-engine-design.md#performance).
 
 ## TOML engine
@@ -864,7 +864,7 @@ Acceptance: every adopted baseline criterion has decisive evidence, no validated
 - [ ] Markdown `+++` front matter: read and write Hugo-style TOML front matter in `OfficeIMO.Markdown` through `TomlDocument`, on the same `FrontMatterBlock` shape as YAML front matter on `OfficeIMO.Yaml`, with the same lossless save and invalid-input diagnostics.
 - [ ] `TomlSerializer`: object mapping with a source generator for trimming and NativeAOT, following `YamlSerializer`'s design, so both formats share attributes, naming policies and options.
 - [ ] Stream and `TextReader` input for `TomlReader` with a pooled sliding buffer, as `YamlReader` has, for very large lock files.
-- [ ] PSWriteOffice commands on the same API (`New-`/`Open-`/`Save-OfficeToml`, `Get-`/`Set-`/`Remove-OfficeTomlNode -Select`, `ConvertFrom-`/`ConvertTo-OfficeToml`), following the YAML command set.
+- [ ] PSWriteOffice document commands on the same API (`New-`/`Open-`/`Save-OfficeToml`, `Get-`/`Set-`/`Remove-OfficeTomlNode -Select`), following the YAML command set.
 - [ ] An opt-in large corpus run over thousands of pinned real-world TOML files (crates.io manifests, PyPI `pyproject.toml`, lock files, Hugo sites), checking parse, byte-exact round-trip and scripted edits, plus a mutation run for hostile input.
 - [ ] Lead Tomlyn on parse and load elapsed time and allocation on every benchmark workload, with Windows and Linux evidence alongside macOS.
 

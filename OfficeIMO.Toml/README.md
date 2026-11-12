@@ -80,7 +80,7 @@ writer.WriteKey("line-length");
 writer.WriteInteger(120);
 ```
 
-`TomlWriter` writes headers, keys (dotted with several arguments), values, arrays and inline tables in order and rejects calls TOML does not allow at that point. Output is deterministic. `TomlWriterOptions.NewLine` selects `\n` (the default) or `\r\n`.
+`TomlWriter` writes headers, keys (dotted with several arguments), values, arrays and inline tables in order and rejects calls TOML does not allow at that point. Output is deterministic. Comments written just before a header stay directly above it, with the blank line that separates sections above the comments. `TomlWriterOptions.NewLine` selects `\n` (the default) or `\r\n`.
 
 ## Safety and errors
 

@@ -76,6 +76,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string RhythmSameToneStreak = "rhythm-same-tone-streak";
     /// <summary>Stable code: <c>rhythm-weak-opening</c>.</summary>
     public const string RhythmWeakOpening = "rhythm-weak-opening";
+    /// <summary>Stable code: <c>root-wrapped</c>.</summary>
+    public const string RootWrapped = "root-wrapped";
     /// <summary>Stable code: <c>roundtrip-document-transformed</c>.</summary>
     public const string RoundtripDocumentTransformed = "roundtrip-document-transformed";
     /// <summary>Stable code: <c>roundtrip-original-source-slice-unavailable</c>.</summary>
@@ -92,6 +94,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string RtfWordMailMergeCompleted = "rtf-word-mail-merge-completed";
     /// <summary>Stable code: <c>rtf-word-merge-completed</c>.</summary>
     public const string RtfWordMergeCompleted = "rtf-word-merge-completed";
+    /// <summary>Stable code: <c>scalar-type-dropped</c>.</summary>
+    public const string ScalarTypeDropped = "scalar-type-dropped";
     /// <summary>Stable code: <c>section-layout-flattened</c>.</summary>
     public const string SectionLayoutFlattened = "section-layout-flattened";
     /// <summary>Stable code: <c>security-provider-required</c>.</summary>
@@ -842,8 +846,26 @@ public static partial class OfficeDiagnosticCodes {
     public const string XlsbStyleGradientPreserved = "xlsb-style-gradient-preserved";
     /// <summary>Stable code: <c>xlsb-unprojected-record</c>.</summary>
     public const string XlsbUnprojectedRecord = "xlsb-unprojected-record";
+    /// <summary>Stable code: <c>xml-array-shape</c>.</summary>
+    public const string XmlArrayShape = "xml-array-shape";
+    /// <summary>Stable code: <c>xml-character-replaced</c>.</summary>
+    public const string XmlCharacterReplaced = "xml-character-replaced";
+    /// <summary>Stable code: <c>xml-mixed-content</c>.</summary>
+    public const string XmlMixedContent = "xml-mixed-content";
+    /// <summary>Stable code: <c>xml-name-changed</c>.</summary>
+    public const string XmlNameChanged = "xml-name-changed";
+    /// <summary>Stable code: <c>xml-processing-instruction-dropped</c>.</summary>
+    public const string XmlProcessingInstructionDropped = "xml-processing-instruction-dropped";
+    /// <summary>Stable code: <c>xml-sibling-order-changed</c>.</summary>
+    public const string XmlSiblingOrderChanged = "xml-sibling-order-changed";
+    /// <summary>Stable code: <c>yaml-alias-expanded</c>.</summary>
+    public const string YamlAliasExpanded = "yaml-alias-expanded";
     /// <summary>Stable code: <c>yaml-aliased-node-edited</c>.</summary>
     public const string YamlAliasedNodeEdited = "yaml-aliased-node-edited";
+    /// <summary>Stable code: <c>yaml-complex-key</c>.</summary>
+    public const string YamlComplexKey = "yaml-complex-key";
+    /// <summary>Stable code: <c>yaml-documents-combined</c>.</summary>
+    public const string YamlDocumentsCombined = "yaml-documents-combined";
     /// <summary>Stable code: <c>yaml-duplicate-key</c>.</summary>
     public const string YamlDuplicateKey = "yaml-duplicate-key";
     /// <summary>Stable code: <c>yaml-lenient-indentation</c>.</summary>
@@ -858,4 +880,6 @@ public static partial class OfficeDiagnosticCodes {
     public const string YamlMergeKeyWithoutDirective = "yaml-merge-key-without-directive";
     /// <summary>Stable code: <c>yaml-merge-kind-conflict</c>.</summary>
     public const string YamlMergeKindConflict = "yaml-merge-kind-conflict";
+    /// <summary>Stable code: <c>yaml-tag-dropped</c>.</summary>
+    public const string YamlTagDropped = "yaml-tag-dropped";
 }

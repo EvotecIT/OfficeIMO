@@ -38,6 +38,7 @@ public sealed class TomlWriter : IDisposable {
     private readonly bool _leaveOpen;
     private readonly string _newLine;
     private readonly StringBuilder _buffer = new StringBuilder();
+    private readonly StringBuilder _comments = new StringBuilder();
     private readonly List<Context> _contexts = new List<Context>();
     private readonly List<int> _counts = new List<int>();
     private bool _keyPending;
@@ -149,7 +150,10 @@ public sealed class TomlWriter : IDisposable {
     /// <exception cref="InvalidOperationException">The innermost open value is not an inline table, or a key has no value.</exception>
     public void WriteEndInlineTable() => Close(Context.InlineTable, "}");
 
-    /// <summary>Writes a comment on its own line.</summary>
+    /// <summary>
+    /// Writes a comment on its own line. Comments written directly before a header stay attached to it: the blank line
+    /// that separates sections goes above the comments.
+    /// </summary>
     /// <exception cref="ArgumentException">The comment contains a line break or a control character.</exception>
     /// <exception cref="InvalidOperationException">A key/value pair, array or inline table is unfinished.</exception>
     public void WriteComment(string comment) {
@@ -158,17 +162,20 @@ public sealed class TomlWriter : IDisposable {
             if (TomlScalars.IsForbiddenControl(ch)) throw new ArgumentException("A comment cannot contain line breaks or control characters.", nameof(comment));
         }
         if (_keyPending || _contexts.Count > 0) throw new InvalidOperationException("A comment can only be written between key/value pairs.");
-        _buffer.Clear().Append('#');
-        if (comment.Length > 0 && comment[0] != ' ') _buffer.Append(' ');
-        _buffer.Append(comment).Append(_newLine);
-        Flush(_buffer);
+        _comments.Append('#');
+        if (comment.Length > 0 && comment[0] != ' ') _comments.Append(' ');
+        _comments.Append(comment).Append(_newLine);
     }
 
     /// <summary>Flushes buffered output to the destination.</summary>
-    public void Flush() => _writer.Flush();
+    public void Flush() {
+        WritePendingComments();
+        _writer.Flush();
+    }
 
     /// <summary>Flushes and, unless the writer was created to leave it open, disposes the destination.</summary>
     public void Dispose() {
+        WritePendingComments();
         _writer.Flush();
         if (!_leaveOpen) _writer.Dispose();
     }
@@ -218,7 +225,20 @@ public sealed class TomlWriter : IDisposable {
     }
 
     private void Flush(StringBuilder text) {
+        WritePendingComments();
+#if NETCOREAPP3_0_OR_GREATER
+        _writer.Write(text);
+#else
         _writer.Write(text.ToString());
+#endif
+        _wroteAnything = true;
+    }
+
+    // Comments wait for the next output, so a header that follows them can put its blank line above them.
+    private void WritePendingComments() {
+        if (_comments.Length == 0) return;
+        _writer.Write(_comments.ToString());
+        _comments.Clear();
         _wroteAnything = true;
     }
 
