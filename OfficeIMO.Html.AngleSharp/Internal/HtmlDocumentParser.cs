@@ -2,7 +2,6 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Html;
 
@@ -203,6 +202,7 @@ internal static class HtmlDocumentParser {
         var replacements = new List<(int Start, int Length, string Value)>();
         var openElements = new List<SourceElement>();
         var lastOpenByName = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var attributes = new List<HtmlSourceAttribute>();
         int cursor = 0;
         while (cursor < html.Length - 1) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -228,7 +228,7 @@ internal static class HtmlDocumentParser {
                         PopOpenElement(openElements, lastOpenByName);
                     }
                 }
-                int closingEnd = FindStartTagEnd(html, closingNameEnd);
+                int closingEnd = HtmlSourceTagScanner.ScanAttributes(html, closingNameEnd, attributes, out _, cancellationToken);
                 cursor = closingEnd < 0 ? html.Length : closingEnd + 1;
                 continue;
             }
@@ -238,7 +238,7 @@ internal static class HtmlDocumentParser {
             }
             int nameEnd = FindTagNameEnd(html, nameStart + 1);
             string tagName = html.Substring(nameStart, nameEnd - nameStart);
-            int tagEnd = FindStartTagEnd(html, nameEnd);
+            int tagEnd = HtmlSourceTagScanner.ScanAttributes(html, nameEnd, attributes, out bool selfClosing, cancellationToken);
             if (tagEnd < 0) break;
             if (ChildNamespace(openElements) != SourceNamespace.Html && IsForeignContentHtmlBreakout(tagName)) {
                 while (openElements.Count > 0 && ChildNamespace(openElements) != SourceNamespace.Html) {
@@ -251,27 +251,10 @@ internal static class HtmlDocumentParser {
                 tagName.Equals("feimage", StringComparison.OrdinalIgnoreCase) ||
                 tagName.Equals("use", StringComparison.OrdinalIgnoreCase) ||
                 tagName.Equals("script", StringComparison.OrdinalIgnoreCase))) {
-                string attributes = html.Substring(nameEnd, tagEnd - nameEnd);
-                MatchCollection matches = Regex.Matches(
-                    attributes,
-                    "(?:^|[\\t\\n\\f\\r ])(?<name>xlink:href|href)[\\t\\n\\f\\r ]*=[\\t\\n\\f\\r ]*(?:\"[^\"]*\"|'[^']*'|[^\\t\\n\\f\\r \"'=<>]+)",
-                    RegexOptions.IgnoreCase | RegexOptions.CultureInvariant,
-                    TimeSpan.FromMilliseconds(100));
-                Match? href = matches.Cast<Match>().FirstOrDefault(match =>
-                    match.Groups["name"].Value.Equals("href", StringComparison.OrdinalIgnoreCase));
-                Match? xlink = matches.Cast<Match>().FirstOrDefault(match =>
-                    match.Groups["name"].Value.Equals("xlink:href", StringComparison.OrdinalIgnoreCase));
-                if (href != null && xlink != null && href.Index < xlink.Index) {
-                    int start = nameEnd + href.Index;
-                    int middleStart = start + href.Length;
-                    int xlinkStart = nameEnd + xlink.Index;
-                    string middle = html.Substring(middleStart, xlinkStart - middleStart);
-                    replacements.Add((start, xlinkStart + xlink.Length - start, xlink.Value + middle + href.Value));
-                }
+                AddXlinkHrefFirstReplacement(html, attributes, replacements);
             }
-            bool selfClosing = IsSelfClosingTag(html, nameEnd, tagEnd);
             bool childrenUseHtml = elementNamespace == SourceNamespace.Html ||
-                IsHtmlIntegrationPoint(html, nameEnd, tagEnd, tagName, elementNamespace);
+                IsHtmlIntegrationPoint(html, attributes, tagName, elementNamespace);
             if (!selfClosing && !(elementNamespace == SourceNamespace.Html && IsHtmlVoidElement(tagName))) {
                 int previousSameNameIndex = lastOpenByName.TryGetValue(tagName, out int previous) ? previous : -1;
                 lastOpenByName[tagName] = openElements.Count;
@@ -298,6 +281,30 @@ internal static class HtmlDocumentParser {
         return output.ToString();
     }
 
+    /// <summary>
+    /// Moves the effective <c>xlink:href</c> ahead of the effective plain <c>href</c> so the
+    /// provider keeps both. Every other attribute, including later duplicates, keeps its order.
+    /// </summary>
+    private static void AddXlinkHrefFirstReplacement(
+        string html,
+        List<HtmlSourceAttribute> attributes,
+        List<(int Start, int Length, string Value)> replacements) {
+        int hrefIndex = HtmlSourceTagScanner.FindAttribute(html, attributes, "href");
+        int xlinkIndex = HtmlSourceTagScanner.FindAttribute(html, attributes, "xlink:href");
+        if (hrefIndex < 0 || xlinkIndex < 0 || hrefIndex > xlinkIndex) return;
+        HtmlSourceAttribute href = attributes[hrefIndex];
+        HtmlSourceAttribute xlink = attributes[xlinkIndex];
+        // A space in place of the moved attribute keeps its neighbours apart. If the next
+        // significant character is '=', removing the attribute would hand that value to the
+        // preceding name, so such input is left for the provider unchanged.
+        int next = xlink.End;
+        while (next < html.Length && IsAsciiWhitespace(html[next])) next++;
+        if (next < html.Length && html[next] == '=') return;
+        string xlinkText = html.Substring(xlink.NameStart, xlink.End - xlink.NameStart);
+        string between = html.Substring(href.NameStart, xlink.NameStart - href.NameStart);
+        replacements.Add((href.NameStart, xlink.End - href.NameStart, xlinkText + " " + between + " "));
+    }
+
     private static int FindTagNameEnd(string html, int start) {
         int index = start;
         while (index < html.Length && html[index] != '>' && html[index] != '/' && !IsAsciiWhitespace(html[index])) index++;
@@ -312,28 +319,6 @@ internal static class HtmlDocumentParser {
         else lastOpenByName[element.Name] = element.PreviousSameNameIndex;
     }
 
-    private static int FindStartTagEnd(string html, int start) {
-        char quote = '\0';
-        for (int index = start; index < html.Length; index++) {
-            char current = html[index];
-            if (quote != '\0') {
-                if (current == quote) quote = '\0';
-                continue;
-            }
-            if (current is '\'' or '"') quote = current;
-            else if (current == '>') return index;
-        }
-        return -1;
-    }
-
-    private static bool IsSelfClosingTag(string html, int start, int tagEnd) {
-        for (int index = tagEnd - 1; index >= start; index--) {
-            if (IsAsciiWhitespace(html[index])) continue;
-            return html[index] == '/';
-        }
-        return false;
-    }
-
     private static SourceNamespace ChildNamespace(List<SourceElement> elements, string? tagName = null) {
         if (elements.Count == 0 || elements[elements.Count - 1].ChildrenUseHtml) {
             if (tagName?.Equals("svg", StringComparison.OrdinalIgnoreCase) == true) return SourceNamespace.Svg;
@@ -345,8 +330,7 @@ internal static class HtmlDocumentParser {
 
     private static bool IsHtmlIntegrationPoint(
         string html,
-        int attributeStart,
-        int tagEnd,
+        List<HtmlSourceAttribute> attributes,
         string tagName,
         SourceNamespace elementNamespace) {
         if (elementNamespace == SourceNamespace.Svg) {
@@ -364,15 +348,9 @@ internal static class HtmlDocumentParser {
         }
         if (!tagName.Equals("annotation-xml", StringComparison.OrdinalIgnoreCase)) return false;
 
-        string attributes = html.Substring(attributeStart, tagEnd - attributeStart);
-        Match encoding = Regex.Match(
-            attributes,
-            "(?:^|[\\t\\n\\f\\r ])encoding[\\t\\n\\f\\r ]*=[\\t\\n\\f\\r ]*(?<value>\"[^\"]*\"|'[^']*'|[^\\t\\n\\f\\r \"'=<>]+)",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant,
-            TimeSpan.FromMilliseconds(100));
-        if (!encoding.Success) return false;
-        string value = encoding.Groups["value"].Value.Trim('\'', '"');
-        value = System.Net.WebUtility.HtmlDecode(value).Trim();
+        int encodingIndex = HtmlSourceTagScanner.FindAttribute(html, attributes, "encoding");
+        if (encodingIndex < 0) return false;
+        string value = System.Net.WebUtility.HtmlDecode(attributes[encodingIndex].Value(html)).Trim();
         return value.Equals("text/html", StringComparison.OrdinalIgnoreCase) ||
             value.Equals("application/xhtml+xml", StringComparison.OrdinalIgnoreCase);
     }
