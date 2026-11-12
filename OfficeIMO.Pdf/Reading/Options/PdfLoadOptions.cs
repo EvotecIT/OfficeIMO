@@ -88,6 +88,30 @@ public sealed partial class PdfLoadOptions {
         };
     }
 
+    /// <summary>The same options with another permission policy, for internal checks that an already authorized operation needs.</summary>
+    internal static PdfLoadOptions WithPermissionPolicy(PdfLoadOptions? options, PdfPermissionPolicy permissionPolicy) {
+        PdfLoadOptions effective = Resolve(options);
+        if (effective.PermissionPolicy == permissionPolicy) return effective;
+        return new PdfLoadOptions {
+            ParsingMode = effective.ParsingMode,
+            Profile = effective.Profile,
+            IncludeImages = effective.IncludeImages,
+            IncludeFormWidgets = effective.IncludeFormWidgets,
+            RecoverDecodableTextForInspection = effective.RecoverDecodableTextForInspection,
+            PageSelection = effective.PageSelection,
+            LayoutOptions = CloneLayoutOptions(effective.LayoutOptions),
+            Pipeline = ClonePipelineOptions(effective.Pipeline),
+            Limits = effective.Limits,
+            Password = effective.Password,
+            AesCryptographyProvider = effective.AesCryptographyProvider,
+            PermissionPolicy = permissionPolicy,
+            PreferToUnicode = effective.PreferToUnicode,
+            UseWinAnsiFallback = effective.UseWinAnsiFallback,
+            AdjustKerningFromTJ = effective.AdjustKerningFromTJ,
+            IncludeArtifactText = effective.IncludeArtifactText
+        };
+    }
+
     internal static PdfLoadOptions WithGeneratedOutputGrowth(
         PdfLoadOptions? options,
         int minimumIndirectObjects,

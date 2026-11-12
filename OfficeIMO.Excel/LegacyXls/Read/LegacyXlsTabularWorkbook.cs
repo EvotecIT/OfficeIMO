@@ -16,6 +16,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private readonly LegacyBiffSource _workbookStream;
         private readonly IReadOnlyList<SheetInfo> _sheets;
         private readonly IReadOnlyList<string> _tableNames;
+        private readonly int _globalsEnd;
+        private List<LegacyBiffSource>? _slices;
         private IReadOnlyList<string>? _sharedStrings;
         private readonly ExcelReaderOptions _globalOptions;
         private ExcelSerialDateStyle[]? _dateStyles;
@@ -33,6 +35,11 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 throw new LegacyXlsFastPathNotSupportedException("The direct XLS reader supports BIFF8 workbook streams.");
             _sheets = ParseSheetNames(workbookStream, options, options.CancellationToken);
             _tableNames = _sheets.Select(static sheet => sheet.Name).ToArray();
+            // Worksheet substreams follow the globals substream.
+            _globalsEnd = workbookStream.Length;
+            foreach (SheetInfo sheet in _sheets) {
+                if (sheet.StreamOffset < _globalsEnd) _globalsEnd = sheet.StreamOffset;
+            }
         }
 
         internal IReadOnlyList<string> TableNames => _tableNames;
@@ -86,7 +93,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             }
 
             using Stream workbookStream = OpenWorkbookStream(source, options, cancellationToken);
-            using var biffSource = new LegacyBiffSource(workbookStream, cancellationToken);
+            using var biffSource = LegacyBiffSource.OpenDeferred(workbookStream, cancellationToken);
             IReadOnlyList<SheetInfo> sheets = ParseSheetNames(biffSource, options, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return sheets.Select(static sheet => sheet.Name).ToArray();
@@ -104,7 +111,10 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 }
                 Stream workbookStream = OpenWorkbookStream(source, options, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
-                var biffSource = new LegacyBiffSource(workbookStream, cancellationToken);
+                // A reader of one worksheet loads the globals and that worksheet, not every worksheet.
+                var biffSource = options.SheetIndex.HasValue || !string.IsNullOrWhiteSpace(options.SheetName)
+                    ? LegacyBiffSource.OpenDeferred(workbookStream, cancellationToken)
+                    : new LegacyBiffSource(workbookStream, cancellationToken);
                 try {
                     return new LegacyXlsTabularWorkbook(biffSource, options);
                 } catch {
@@ -135,26 +145,41 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             }
 
             if (_sharedStrings == null) {
+                _workbookStream.LoadGlobals(_globalsEnd);
                 ParseGlobals(_workbookStream, _globalOptions.WithCancellationToken(cancellationToken),
                     out _, out IReadOnlyList<string> strings, out ExcelSerialDateStyle[] styles, out bool uses1904);
                 _sharedStrings = strings; _dateStyles = styles; _uses1904DateSystem = uses1904;
             }
             SheetInfo sheet = _sheets[sheetIndex];
+            LegacyBiffSource source = _workbookStream;
+            int sheetOffset = sheet.StreamOffset;
+            int sheetEndOffset = sheet.StreamEndOffset;
+            if (_workbookStream.IsDeferred && LegacyBiffSource.CanSlice(sheetEndOffset - sheetOffset)) {
+                // A deferred workbook buffers only this worksheet, at offset 0 of its own source.
+                source = _workbookStream.Slice(sheetOffset, sheetEndOffset);
+                (_slices ??= new List<LegacyBiffSource>()).Add(source);
+                sheetEndOffset -= sheetOffset;
+                sheetOffset = 0;
+            }
             return new LegacyXlsTabularDataReader(
-                _workbookStream,
-                sheet.StreamOffset,
-                sheet.StreamEndOffset,
+                source,
+                sheetOffset,
+                sheetEndOffset,
                 _sharedStrings,
                 _dateStyles!,
                 _uses1904DateSystem,
                 hasHeaderRow,
                 options,
-                cancellationToken);
+                cancellationToken,
+                streamOffsetBase: sheet.StreamOffset - sheetOffset);
         }
 
         public void Dispose() {
             if (_disposed) return;
             _disposed = true;
+            if (_slices != null) {
+                foreach (LegacyBiffSource slice in _slices) slice.Dispose();
+            }
             _workbookStream.Dispose();
         }
 

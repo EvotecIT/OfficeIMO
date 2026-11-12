@@ -39,6 +39,7 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 | Build | Reports, invoices, forms, labels, portfolios, and page-aware components |
 | Inspect | Text, pages, links, images, attachments, outlines, forms, revisions, and active-content diagnostics |
 | Transform | Merge, split, extract, reorder, rotate, stamp, watermark, overlay, and metadata changes |
+| Archive | Convert existing PDFs to PDF/A-2, 3 or 4, with every change listed, or every reason a file can't be converted |
 | Secure | CMS-backed signatures, timestamps, certificate validation, and revision-aware inspection through `OfficeIMO.Security` |
 | Render | Page images and format adapters used by Word, Excel, PowerPoint, HTML, RTF, and OpenDocument packages |
 | Print | Installed Windows, macOS, and Linux printers with page ranges, 1, 2, 4, 6, or 9 pages per sheet, scaling, duplex, and paper source, through `OfficeIMO.Workflows` or `officeimo workflow print`. The .NET workflow can also preview the exact rendered sheets before sending them |

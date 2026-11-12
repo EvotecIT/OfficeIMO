@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                WordAccessibilityReport report = document.InspectAccessibility();
+                OfficeAccessibilityReport report = document.InspectAccessibility();
                 var codes = report.Findings.Select(finding => finding.Code).ToList();
                 Assert.Contains(OfficeDiagnosticCodes.AccessibilityMissingDocumentTitle, codes);
                 Assert.Contains(OfficeDiagnosticCodes.AccessibilityHeadingLevelSkipped, codes);
@@ -37,15 +37,15 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(OfficeDiagnosticCodes.AccessibilityUnclearLinkLabel, codes);
                 Assert.Contains(OfficeDiagnosticCodes.AccessibilityLowContrast, codes);
                 Assert.Contains("accessibility-blank-paragraph-spacing", codes);
-                WordAccessibilityFinding layout = Assert.Single(report.Findings, finding => finding.Code == "accessibility-layout-table");
+                OfficeAccessibilityFinding layout = Assert.Single(report.Findings, finding => finding.Code == "accessibility-layout-table");
                 Assert.True(layout.IsHeuristic);
-                Assert.Equal(WordAccessibilitySeverity.Warning, layout.Severity);
-                WordAccessibilityFinding contrast = report.Findings.Single(finding => finding.Code == OfficeDiagnosticCodes.AccessibilityLowContrast);
+                Assert.Equal(OfficeAccessibilitySeverity.Warning, layout.Severity);
+                OfficeAccessibilityFinding contrast = report.Findings.Single(finding => finding.Code == OfficeDiagnosticCodes.AccessibilityLowContrast);
                 Assert.True(contrast.MeasuredValue < contrast.RequiredValue);
                 Assert.False(report.IsSuccessful);
-                Assert.Throws<WordAccessibilityException>(() => report.EnsureCompliant());
+                Assert.Throws<OfficeAccessibilityException>(() => report.EnsureCompliant());
 
-                WordAccessibilityReport fixedReport = document.FixAccessibility(new WordAccessibilityFixOptions {
+                OfficeAccessibilityReport fixedReport = document.FixAccessibility(new WordAccessibilityFixOptions {
                     Title = "Quarterly review",
                     Language = "en-GB",
                     MarkTableHeaderRows = true
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument reopened = WordDocument.Load(filePath)) {
                 Assert.Empty(reopened.ValidateDocument());
-                WordAccessibilityReport report = reopened.InspectAccessibility();
+                OfficeAccessibilityReport report = reopened.InspectAccessibility();
                 Assert.DoesNotContain(report.Findings, finding => finding.Code == OfficeDiagnosticCodes.AccessibilityMissingDocumentTitle);
                 Assert.DoesNotContain(report.Findings, finding => finding.Code == OfficeDiagnosticCodes.AccessibilityMissingLanguage);
                 Assert.DoesNotContain(report.Findings, finding => finding.Code == OfficeDiagnosticCodes.AccessibilityMissingTableHeader);
@@ -74,10 +74,10 @@ namespace OfficeIMO.Tests {
             var styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
             foreach (var language in styles.Descendants<DocumentFormat.OpenXml.Wordprocessing.Languages>().ToList()) language.Remove();
 
-            WordAccessibilityReport report = document.InspectAccessibility(new WordAccessibilityOptions { Profile = WordAccessibilityPolicyProfile.Strict });
+            OfficeAccessibilityReport report = document.InspectAccessibility(new WordAccessibilityOptions { Profile = OfficeAccessibilityPolicyProfile.Strict });
 
-            Assert.Contains(report.Findings, finding => finding.Code == OfficeDiagnosticCodes.AccessibilityMissingLanguage && finding.Severity == WordAccessibilitySeverity.Error);
-            Assert.Contains(report.Findings, finding => finding.Code == "accessibility-missing-headings" && finding.Severity == WordAccessibilitySeverity.Error);
+            Assert.Contains(report.Findings, finding => finding.Code == OfficeDiagnosticCodes.AccessibilityMissingLanguage && finding.Severity == OfficeAccessibilitySeverity.Error);
+            Assert.Contains(report.Findings, finding => finding.Code == "accessibility-missing-headings" && finding.Severity == OfficeAccessibilitySeverity.Error);
 
             document.FixAccessibility(new WordAccessibilityFixOptions { Language = "pl-PL" });
             Assert.DoesNotContain(document.InspectAccessibility().Findings, finding => finding.Code == OfficeDiagnosticCodes.AccessibilityMissingLanguage);
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph("Highlighted").SetColor(OfficeColor.Parse("#FFFFFF")).SetHighlight(WordHighlightColor.Green);
 
-            WordAccessibilityFinding contrast = Assert.Single(document.InspectAccessibility().Findings, finding => finding.Code == OfficeDiagnosticCodes.AccessibilityLowContrast);
+            OfficeAccessibilityFinding contrast = Assert.Single(document.InspectAccessibility().Findings, finding => finding.Code == OfficeDiagnosticCodes.AccessibilityLowContrast);
             Assert.True(contrast.MeasuredValue < 1.5D);
         }
     }

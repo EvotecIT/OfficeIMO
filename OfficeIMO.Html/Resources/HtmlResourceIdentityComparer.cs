@@ -10,17 +10,34 @@ internal sealed class HtmlResourceIdentityComparer : IEqualityComparer<string> {
 
     private HtmlResourceIdentityComparer() { }
 
+    // Inline data URIs can be megabytes long, and every resource-table lookup would parse and
+    // escape them again. Strings are immutable, so a long instance keeps its computed hash.
+    private const int CachedHashMinimumLength = 4096;
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<string, CachedHash> LongValueHashes = new();
+
     public bool Equals(string? left, string? right) {
         if (ReferenceEquals(left, right)) return true;
         if (left == null || right == null) return false;
+        // Parsing is deterministic, so identical text is always the same identity.
+        if (string.Equals(left, right, StringComparison.Ordinal)) return true;
         if (Uri.TryCreate(left, UriKind.Absolute, out Uri? leftUri)
             && Uri.TryCreate(right, UriKind.Absolute, out Uri? rightUri)) {
             return Equals(leftUri, rightUri);
         }
-        return string.Equals(left, right, StringComparison.Ordinal);
+        return false;
     }
 
     public int GetHashCode(string value) {
+        if (value.Length < CachedHashMinimumLength) return ComputeHashCode(value);
+        return LongValueHashes.GetValue(value, static key => new CachedHash(ComputeHashCode(key))).Value;
+    }
+
+    private sealed class CachedHash {
+        internal CachedHash(int value) => Value = value;
+        internal int Value { get; }
+    }
+
+    private static int ComputeHashCode(string value) {
         if (!Uri.TryCreate(value, UriKind.Absolute, out Uri? uri)) {
             return StringComparer.Ordinal.GetHashCode(value);
         }

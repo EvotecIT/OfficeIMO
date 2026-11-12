@@ -271,9 +271,10 @@ public partial class PdfSanitizerTests {
     }
 
     [Theory]
-    [InlineData(PdfSanitizationContentKind.EmbeddedFiles, "UseAttachments")]
-    [InlineData(PdfSanitizationContentKind.OptionalContent, "UseOC")]
-    public void SanitizationResetsPageModesWhosePanelsWereRemoved(PdfSanitizationContentKind kind, string pageMode) {
+    [InlineData((int)PdfSanitizationContentKind.EmbeddedFiles, "UseAttachments")]
+    [InlineData((int)PdfSanitizationContentKind.OptionalContent, "UseOC")]
+    public void SanitizationResetsPageModesWhosePanelsWereRemoved(int kindValue, string pageMode) {
+        var kind = (PdfSanitizationContentKind)kindValue;
         byte[] source = BuildCategoryPageModePdf(kind, pageMode);
         var policy = new PdfSanitizationOptions { ContentKindsToRemove = kind };
 
@@ -283,10 +284,11 @@ public partial class PdfSanitizerTests {
     }
 
     [Theory]
-    [InlineData(PdfSanitizationContentKind.EmbeddedFiles, "UseAttachments")]
-    [InlineData(PdfSanitizationContentKind.OptionalContent, "UseOC")]
-    [InlineData(PdfSanitizationContentKind.Bookmarks, "UseOutlines")]
-    public void SanitizationResetsIndirectPageModesWhosePanelsWereRemoved(PdfSanitizationContentKind kind, string pageMode) {
+    [InlineData((int)PdfSanitizationContentKind.EmbeddedFiles, "UseAttachments")]
+    [InlineData((int)PdfSanitizationContentKind.OptionalContent, "UseOC")]
+    [InlineData((int)PdfSanitizationContentKind.Bookmarks, "UseOutlines")]
+    public void SanitizationResetsIndirectPageModesWhosePanelsWereRemoved(int kindValue, string pageMode) {
+        var kind = (PdfSanitizationContentKind)kindValue;
         byte[] source = BuildIndirectCategoryPageModePdf(kind, pageMode);
         var policy = new PdfSanitizationOptions { ContentKindsToRemove = kind };
 
@@ -338,13 +340,14 @@ public partial class PdfSanitizerTests {
     }
 
     [Theory]
-    [InlineData(PdfSanitizationContentKind.UserMetadata)]
-    [InlineData(PdfSanitizationContentKind.EmbeddedFiles)]
-    [InlineData(PdfSanitizationContentKind.Actions)]
-    [InlineData(PdfSanitizationContentKind.CommentsAndMarkup)]
-    [InlineData(PdfSanitizationContentKind.Bookmarks)]
-    [InlineData(PdfSanitizationContentKind.OptionalContent)]
-    public void SanitizeBeforeSharingUsesAnExactContentCategorySelection(PdfSanitizationContentKind selected) {
+    [InlineData((int)PdfSanitizationContentKind.UserMetadata)]
+    [InlineData((int)PdfSanitizationContentKind.EmbeddedFiles)]
+    [InlineData((int)PdfSanitizationContentKind.Actions)]
+    [InlineData((int)PdfSanitizationContentKind.CommentsAndMarkup)]
+    [InlineData((int)PdfSanitizationContentKind.Bookmarks)]
+    [InlineData((int)PdfSanitizationContentKind.OptionalContent)]
+    public void SanitizeBeforeSharingUsesAnExactContentCategorySelection(int selectedValue) {
+        var selected = (PdfSanitizationContentKind)selectedValue;
         byte[] source = BuildBeforeSharingPdf();
         var allCategories = new PdfSanitizationOptions {
             ContentKindsToRemove = PdfSanitizationContentKind.All,
@@ -397,13 +400,14 @@ public partial class PdfSanitizerTests {
     }
 
     [Theory]
-    [InlineData(PdfSanitizationActionKind.JavaScript, 2)]
-    [InlineData(PdfSanitizationActionKind.Launch, 1)]
-    [InlineData(PdfSanitizationActionKind.SubmitForm, 1)]
-    [InlineData(PdfSanitizationActionKind.GoToR, 1)]
-    [InlineData(PdfSanitizationActionKind.GoToE, 1)]
-    [InlineData(PdfSanitizationActionKind.ImportData, 1)]
-    public void InspectSanitization_UsesAnExactActionKindSelection(PdfSanitizationActionKind selected, int expectedCount) {
+    [InlineData((int)PdfSanitizationActionKind.JavaScript, 2)]
+    [InlineData((int)PdfSanitizationActionKind.Launch, 1)]
+    [InlineData((int)PdfSanitizationActionKind.SubmitForm, 1)]
+    [InlineData((int)PdfSanitizationActionKind.GoToR, 1)]
+    [InlineData((int)PdfSanitizationActionKind.GoToE, 1)]
+    [InlineData((int)PdfSanitizationActionKind.ImportData, 1)]
+    public void InspectSanitization_UsesAnExactActionKindSelection(int selectedValue, int expectedCount) {
+        var selected = (PdfSanitizationActionKind)selectedValue;
         var policy = new PdfSanitizationOptions { ActionKindsToRemove = selected };
 
         PdfSanitizationReport report = PdfDocument.Load(BuildActiveContentPdf()).InspectSanitization(policy);

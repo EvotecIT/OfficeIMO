@@ -61,6 +61,18 @@ if (HasSwitch(args, "--paired-xls-write")) {
     return;
 }
 
+if (ParseOptionValue(args, "--write-generated-xls") is string generatedPath) {
+    XlsReadPairedRunner.WriteGenerated(generatedPath, rowCount);
+    return;
+}
+
+if (HasSwitch(args, "--paired-xls-read")) {
+    string[] inputs = ParseOptionValues(args, "--input", "--inputs");
+    if (inputs.Length == 0) throw new ArgumentException("--paired-xls-read needs at least one --input workbook.");
+    XlsReadPairedRunner.Run(inputs, warmupIterations, measuredIterations, affinityMask, priorityName);
+    return;
+}
+
 var npoiXlsx = new Lazy<byte[]>(() => WriteNpoiXlsx(records));
 var npoiXls = new Lazy<byte[]>(() => WriteNpoiXls(records));
 var npoiFormulaXls = new Lazy<byte[]>(() => WriteNpoiFormulaXls(records));

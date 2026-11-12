@@ -83,7 +83,7 @@ public class WordImageOptimizationTests {
         Assert.Throws<WordSignatureSavePolicyException>(() => word.OptimizeImages());
         Assert.Equal(before, image.ToBytes());
         using var bytes = new MemoryStream(word.ToBytes(options: new WordSaveOptions {
-            SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation
+            SignatureMutationPolicy = OfficeSignatureMutationPolicy.PreserveSignatureMarkup
         }));
         using WordDocument readOnly = WordDocument.Load(bytes, new WordLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
         Assert.Equal(1, readOnly.AnalyzeImageOptimization().OptimizedCount);

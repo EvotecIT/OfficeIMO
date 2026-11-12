@@ -39,6 +39,7 @@ public static partial class OfficeDocument {
             _ => string.Empty
         });
         PopulateSummary(result, document, settings, cancellationToken);
+        if (settings.IncludeHiddenData) result.HiddenData = InspectLoadedHiddenData(document);
         return result;
     }
 

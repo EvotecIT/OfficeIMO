@@ -7,14 +7,22 @@ namespace OfficeIMO.Epub;
 
 public sealed partial class EpubDocument {
     /// <summary>Inspects C2PA and IPTC provenance in an EPUB package and its supported embedded images.</summary>
-    public static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) {
+    internal static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         options ??= new OfficeProvenanceOptions();
         string fullPath = Path.GetFullPath(filePath);
         byte[] data;
         using (Stream stream = File.OpenRead(fullPath)) data = OfficeProvenanceBinary.ReadBounded(stream, options.MaxAssetBytes, options.CancellationToken);
-        ValidatePackage(data, fullPath, options);
-        return OfficeProvenanceInspector.Inspect(data, fullPath, options);
+        return InspectProvenance(data, fullPath, options);
+    }
+
+    /// <summary>Validates and inspects encoded EPUB package bytes without accessing the filesystem.</summary>
+    internal static OfficeProvenanceReport InspectProvenance(byte[] packageBytes, string fileName = "publication.epub", OfficeProvenanceOptions? options = null) {
+        ArgumentNullException.ThrowIfNull(packageBytes);
+        options ??= new OfficeProvenanceOptions();
+        if (packageBytes.LongLength > options.MaxAssetBytes) throw new InvalidDataException("The package exceeds the inspection byte limit.");
+        ValidatePackage(packageBytes, fileName, options);
+        return OfficeProvenanceInspector.Inspect(packageBytes, fileName, options);
     }
 
     /// <summary>Removes selected provenance and atomically writes an EPUB package.</summary>

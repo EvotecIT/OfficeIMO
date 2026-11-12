@@ -69,21 +69,24 @@ public partial class ExcelDocument {
                     AutoFitColumns[column] |= rule.AutoFit;
                 }
             }
-            var view = new SheetView { WorkbookViewId = 0U };
             int frozenRows = options.FreezeHeader && options.IncludeHeaders ? HeaderRow : 0;
             int frozenColumns = options.FreezeFirstColumn ? FirstColumn : 0;
             if (frozenRows >= ExcelA1.MaxRows || frozenColumns >= ExcelA1.MaxColumns)
                 throw new ArgumentOutOfRangeException(nameof(options.Address), "A freeze pane must leave a visible worksheet cell.");
-            if (frozenRows != 0 || frozenColumns != 0) {
-                PaneValues pane = frozenRows != 0 ? frozenColumns != 0 ? PaneValues.BottomRight : PaneValues.BottomLeft : PaneValues.TopRight;
-                view.Append(new Pane {
-                    State = PaneStateValues.Frozen, VerticalSplit = frozenRows, HorizontalSplit = frozenColumns,
-                    TopLeftCell = ExcelA1.CellReference(frozenRows + 1, frozenColumns + 1), ActivePane = pane
-                });
-                view.Append(new Selection { Pane = pane, ActiveCell = ExcelA1.CellReference(frozenRows + 1, frozenColumns + 1),
-                    SequenceOfReferences = new DocumentFormat.OpenXml.ListValue<DocumentFormat.OpenXml.StringValue> { InnerText = ExcelA1.CellReference(frozenRows + 1, frozenColumns + 1) } });
-            }
-            ViewsXml = new SheetViews(view).OuterXml;
+            ViewsXml = frozenRows != 0 || frozenColumns != 0 ? FrozenViewsXml(frozenRows, frozenColumns) : ExcelSheet.DefaultSheetViewsXml;
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static string FrozenViewsXml(int frozenRows, int frozenColumns) {
+            var view = new SheetView { WorkbookViewId = 0U };
+            PaneValues pane = frozenRows != 0 ? frozenColumns != 0 ? PaneValues.BottomRight : PaneValues.BottomLeft : PaneValues.TopRight;
+            view.Append(new Pane {
+                State = PaneStateValues.Frozen, VerticalSplit = frozenRows, HorizontalSplit = frozenColumns,
+                TopLeftCell = ExcelA1.CellReference(frozenRows + 1, frozenColumns + 1), ActivePane = pane
+            });
+            view.Append(new Selection { Pane = pane, ActiveCell = ExcelA1.CellReference(frozenRows + 1, frozenColumns + 1),
+                SequenceOfReferences = new DocumentFormat.OpenXml.ListValue<DocumentFormat.OpenXml.StringValue> { InnerText = ExcelA1.CellReference(frozenRows + 1, frozenColumns + 1) } });
+            return new SheetViews(view).OuterXml;
         }
         internal int FirstRow { get; }
         internal int FirstColumn { get; }

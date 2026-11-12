@@ -75,6 +75,10 @@ fallback on hosts without AVX2; I record that platform distinction with the resu
 All comparison dependencies remain local to
 this nonpackable executable.
 
+## Write sources, shapes and sinks
+
+`CsvWriteModernBenchmarks` runs the write comparison of `OfficeIMO.CSV.Benchmarks` against CsvHelper 34: the same records, `DataTable`, data reader, UTF-8 stream and `TextWriter` sinks, and the same byte-identity and value checks. CsvHelper 34 writes the records through its source-generated record writers, the dates through `[CsvFormat]`, and the readers through typed `WriteField` calls.
+
 ## PackageAssets shapes
 
 `PackageAssetsModernCsvBenchmarks` compares OfficeIMO, CsvHelper 34 and Sep on

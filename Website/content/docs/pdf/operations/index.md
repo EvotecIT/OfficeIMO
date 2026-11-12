@@ -1,6 +1,6 @@
 ---
 title: "PDF Inspection, Extraction, and Operations"
-description: "Preflight, repair, extract, merge, split, stamp, optimize, redact, and inspect PDFs with structured reports. Includes examples and API links."
+description: "Preflight, repair, extract, merge, split, stamp, optimize, convert to PDF/A, redact, and inspect PDFs with structured reports. Includes examples and API links."
 layout: docs
 ---
 
@@ -47,6 +47,26 @@ for (int i = 0; i < parts.Count; i++) parts[i].Save($"Review-pack-{i + 1}.pdf");
 Page operations return a new document and do not overwrite the source; save the result to a different path to keep the original. `PdfDocument.Merge(documents, options, out PdfMergeReport report)` combines several loaded documents under an explicit structure policy, and `pdf.Pages.SplitForProduction(...)` splits by page count, boundary text or target size.
 
 Stamp and watermark operations support text, images and imported pages. Annotation editors, page operations, metadata changes, and optimization produce mutation evidence where signatures or structural constraints matter.
+
+## Convert an existing PDF to PDF/A
+
+```csharp
+PdfAConversionResult archive = PdfDocument.Load("Service-review.pdf").ConvertToPdfA(new PdfAConversionOptions {
+    Profile = PdfComplianceProfile.PdfA3B,
+    Attachments = PdfAAttachmentPolicy.Refuse
+});
+if (!archive.Succeeded) {
+    foreach (PdfAConversionViolation violation in archive.Report.Violations) {
+        Console.WriteLine($"{violation.Reason} at {violation.Location}: {violation.Message}");
+    }
+} else {
+    archive.Save("Service-review-archive.pdf");
+}
+```
+
+Conversion targets PDF/A-2b, 2u, 3b, 3u, 4 or 4f. It fixes what it can without moving anything on the page and lists every change in `Report.Changes`. When something cannot be made compliant without changing the content, nothing is produced and `Report.Violations` lists every reason by location and object number. `SaveAsPdfA(path)` does the same in one call and throws `PdfAConversionException` on refusal.
+
+The same conversion is available as `OfficeWorkflow.ConvertToPdfA` in `OfficeIMO.Workflows`, as `officeimo pdf convert-to-pdfa` in the command-line tool, and as the `officeimo_pdf_convert_to_pdfa` MCP tool.
 
 ## Print to an installed printer
 

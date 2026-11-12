@@ -1874,6 +1874,8 @@ jobs:
 
       - name: Run Excel image visual gate
         shell: pwsh
+        env:
+          OFFICEIMO_EXCEL_IMAGE_STRICT_CROSS_PLATFORM_BASELINES: '1'
         run: ./Build/Test-ExcelImageVisualGate.ps1 -Configuration ${{ env.BUILD_CONFIGURATION }} -Framework net8.0 -Suite Smoke -NoRestore -NoBuild
 
   office-interoperability-gate:

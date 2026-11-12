@@ -24,7 +24,7 @@ namespace OfficeIMO.Word {
             if (FileOpenAccess == FileAccess.Read) {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
-            EnsureSignedDocumentSaveAllowed(options, "Save");
+            ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "Save");
             PreSaving();
 
             if (this._wordprocessingDocument == null) {
@@ -135,7 +135,7 @@ namespace OfficeIMO.Word {
             }
             ArgumentException.ThrowIfNullOrEmpty(filePath);
 
-            EnsureSignedDocumentSaveAllowed(options, "SaveCopy");
+            ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "SaveCopy");
             PreSaving();
 
             if (_wordprocessingDocument == null) {
@@ -174,7 +174,7 @@ namespace OfficeIMO.Word {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
 
-            EnsureSignedDocumentSaveAllowed(options, "SaveCopyAsync");
+            ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "SaveCopyAsync");
             PreSaving();
             if (_wordprocessingDocument == null) {
                 throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
@@ -204,7 +204,7 @@ namespace OfficeIMO.Word {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
 
-            EnsureSignedDocumentSaveAllowed(options, "ToBytes");
+            ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "ToBytes");
             PreSaving();
 
             if (_wordprocessingDocument == null) {
@@ -236,7 +236,7 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            EnsureSignedDocumentSaveAllowed(options, "SaveAsync");
+            ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "SaveAsync");
             PreSaving();
 
             if (this._wordprocessingDocument == null) {
@@ -338,7 +338,7 @@ namespace OfficeIMO.Word {
                 SaveEncrypted(outputStream, password, options);
                 return;
             }
-            EnsureSignedDocumentSaveAllowed(options, "Save");
+            ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "Save");
             PreSaving();
 
             if (TrySaveNativeLegacyDocToStream(outputStream, format, options)) {
@@ -381,7 +381,7 @@ namespace OfficeIMO.Word {
             if (!outputStream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(outputStream));
             if (FileOpenAccess == FileAccess.Read) throw new InvalidOperationException("Document is read only, and cannot be saved.");
 
-            EnsureSignedDocumentSaveAllowed(options, "SaveAsync");
+            ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "SaveAsync");
             PreSaving();
             cancellationToken.ThrowIfCancellationRequested();
             byte[] bytes;
@@ -560,27 +560,51 @@ namespace OfficeIMO.Word {
             return CreateOpenXmlBytesAfterSave(filePath);
         }
 
-        private void EnsureSignedDocumentSaveAllowed(WordSaveOptions? options, string operation) {
+        private void ApplySignatureMutationPolicy(OfficeSignatureMutationPolicy? requestedPolicy, string operation) {
+            if (EnsureSignatureMutationAllowed(requestedPolicy, operation)
+                == OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures) {
+                RemovePackageSignatures();
+            }
+        }
+
+        /// <summary>Blocks a signed-package mutation under <see cref="OfficeSignatureMutationPolicy.BlockSave"/> and returns the effective policy.</summary>
+        private OfficeSignatureMutationPolicy? EnsureSignatureMutationAllowed(OfficeSignatureMutationPolicy? requestedPolicy, string operation) {
             bool hasLiveSignatureSignal = _wordprocessingDocument.DigitalSignatureOriginPart != null ||
                 _wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null;
             bool hasPackageSignatureContentType = false;
             if (!hasLiveSignatureSignal) {
                 hasPackageSignatureContentType = PackageContentTypesAdvertiseXmlSignatures();
                 if (!hasPackageSignatureContentType) {
-                    return;
+                    return null;
                 }
             }
 
             WordSignatureInfo signatureInfo = InspectSignatures();
             if (!signatureInfo.HasSignatures && !hasPackageSignatureContentType) {
-                return;
+                return null;
             }
 
-            if (options?.SignedDocumentPolicy == WordSignedDocumentSavePolicy.AllowSignatureInvalidation) {
-                return;
+            OfficeSignatureMutationPolicy policy = requestedPolicy ?? OfficeSignatureMutationPolicy.BlockSave;
+            if (policy == OfficeSignatureMutationPolicy.BlockSave) {
+                throw new WordSignatureSavePolicyException(operation, signatureInfo);
             }
 
-            throw new WordSignatureSavePolicyException(operation, signatureInfo);
+            return policy;
+        }
+
+        private void RemovePackageSignatures() {
+            DigitalSignatureOriginPart? originPart = _wordprocessingDocument.DigitalSignatureOriginPart;
+            if (originPart != null) {
+                _wordprocessingDocument.DeletePart(originPart);
+            }
+
+            if (_wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
+                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DigitalSignature = null;
+                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Save();
+            }
+
+            // The rewritten package no longer carries signature parts, so its content types stop advertising them.
+            _packageContentTypesAdvertiseXmlSignatures = false;
         }
 
         private bool PackageContentTypesAdvertiseXmlSignatures() {

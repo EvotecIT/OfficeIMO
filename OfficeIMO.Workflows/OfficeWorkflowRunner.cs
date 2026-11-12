@@ -231,6 +231,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             OfficeWorkflowOperation.AnalyzeWordImages or OfficeWorkflowOperation.OptimizeWordImages => OptimizeWordImages(request, diagnostics, cancellationToken),
             OfficeWorkflowOperation.ScanCleanup => CleanScan(request, diagnostics, cancellationToken),
             OfficeWorkflowOperation.SignPdf => SignPdf(request, cancellationToken),
+            OfficeWorkflowOperation.ConvertToPdfA => ConvertToPdfA(request, diagnostics, cancellationToken),
             OfficeWorkflowOperation.ProtectPdf or OfficeWorkflowOperation.RemovePdfProtection => ChangeProtection(request, cancellationToken),
             OfficeWorkflowOperation.ExtractPages => ExtractPages(request, cancellationToken),
             OfficeWorkflowOperation.Convert => Convert(request, diagnostics, cancellationToken),
@@ -467,33 +468,34 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         byte[] input = ReadInput(request.InputPath, request.Limits, cancellationToken);
         PdfHealthSnapshot before = CreateHealthSnapshot(input, request.PdfLoadOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        PdfSanitizationResult sanitization = PdfDocument.Load(input, request.PdfLoadOptions).Sanitize(
-            new PdfSanitizationOptions {
-                MaximumOutputBytes = request.Limits.MaximumOutputBytes
-            }, cancellationToken: cancellationToken);
+        // The PDF sanitize operation removes attachments and active content (scripts, unsafe actions and links, rich media),
+        // through the shared hidden-data contract. The engine refuses to return output that still contains a selected item.
+        PdfHiddenDataRemoval removal = PdfDocument.Load(input, request.PdfLoadOptions).RemoveHiddenDataCore(
+            new OfficeHiddenDataOptions { Kinds = OfficeHiddenDataKind.ActiveContent | OfficeHiddenDataKind.Attachments },
+            request.Limits.MaximumOutputBytes,
+            cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        if (!sanitization.IsSanitized || !sanitization.PreservationReport.IsPreserved) {
-            throw new InvalidOperationException("Sanitization verification failed; no artifact will be published.");
-        }
-        byte[] output = sanitization.ToBytes();
+        byte[] output = removal.Result.ToArray();
         PdfHealthSnapshot after = CreateHealthSnapshot(output, request.OutputPdfLoadOptions, cancellationToken);
+        OfficeHiddenDataReport hiddenData = removal.Result.Report;
+        int removed = removal.RemovedCount;
+        int retained = hiddenData.Findings.Count(static finding => finding.Outcome == OfficeHiddenDataOutcome.Retained);
         var metrics = new Dictionary<string, string>(StringComparer.Ordinal) {
-            ["removedFindings"] = sanitization.RemovedFindings.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            ["remainingFindings"] = sanitization.RemainingFindings.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            ["quarantinedAttachments"] = sanitization.QuarantinedAttachments.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            ["preserved"] = sanitization.PreservationReport.IsPreserved.ToString()
+            ["removedFindings"] = removed.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["retainedFindings"] = retained.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["preserved"] = removal.Preservation.IsPreserved.ToString()
         };
         diagnostics.Add(new OfficeWorkflowDiagnostic(
             "SanitizationProof",
-            $"Removed {sanitization.RemovedFindings.Count:N0} forbidden item(s); post-save inventory found {sanitization.RemainingFindings.Count:N0} remaining.",
+            $"Removed {removed:N0} item(s); post-save inventory found none of the selected items remaining.",
             stage: "sanitize",
             details: metrics));
         var report = new PdfHealthReport(
             OfficeWorkflowOperation.Sanitize,
             before,
             after,
-            $"Sanitization removed {sanitization.RemovedFindings.Count:N0} forbidden item(s) and verified the saved artifact.",
-            sanitization.IsSanitized && sanitization.PreservationReport.IsPreserved,
+            $"Sanitization removed {removed:N0} item(s) and verified the saved artifact.",
+            removal.Preservation.IsPreserved,
             metrics);
         return new OperationArtifact(output, report.Summary, report);
     }
@@ -630,7 +632,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         FileOptions.Asynchronous | FileOptions.SequentialScan);
 
     private static void EnsureVerifiedHealthArtifact(OfficeWorkflowOperation operation, PdfHealthReport? report) {
-        if (operation is OfficeWorkflowOperation.Optimize or OfficeWorkflowOperation.Repair or OfficeWorkflowOperation.Sanitize or OfficeWorkflowOperation.ProtectPdf or OfficeWorkflowOperation.RemovePdfProtection or OfficeWorkflowOperation.SignPdf &&
+        if (operation is OfficeWorkflowOperation.Optimize or OfficeWorkflowOperation.Repair or OfficeWorkflowOperation.Sanitize or OfficeWorkflowOperation.ProtectPdf or OfficeWorkflowOperation.RemovePdfProtection or OfficeWorkflowOperation.SignPdf or OfficeWorkflowOperation.ConvertToPdfA &&
             report is not { Verified: true }) {
             throw new InvalidOperationException($"{operation} did not produce verified preservation evidence; no artifact will be published.");
         }
@@ -742,6 +744,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         OfficeWorkflowOperation.SignPdf => "Signing and verifying a separate PDF copy",
         OfficeWorkflowOperation.ProtectPdf => "Creating and verifying a protected PDF copy",
         OfficeWorkflowOperation.RemovePdfProtection => "Creating and verifying an unencrypted PDF copy",
+        OfficeWorkflowOperation.ConvertToPdfA => "Converting a separate PDF/A copy",
         OfficeWorkflowOperation.ExtractPages => "Extracting the selected PDF pages",
         OfficeWorkflowOperation.Convert => "Converting with the first-party OfficeIMO format owner",
         OfficeWorkflowOperation.Inspect => "Inspecting PDF structure and capabilities",
@@ -808,5 +811,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         int MaximumExtractedPages = 100_000,
         OfficePageSelector? ComparisonExpectedPages = null,
         OfficePageSelector? ComparisonActualPages = null,
-        OfficeConversionOptions? UnifiedConversionOptions = null);
+        OfficeConversionOptions? UnifiedConversionOptions = null,
+        PdfAConversionOptions? PdfAConversion = null);
 }

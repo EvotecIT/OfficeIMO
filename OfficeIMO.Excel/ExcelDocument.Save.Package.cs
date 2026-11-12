@@ -22,6 +22,7 @@ namespace OfficeIMO.Excel {
                 MaterializeDeferredDataSetImport();
             }
             ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.MaterializeDeferredDataSet");
+            CommitPendingStylesheet();
             using var preserveFastSaveState = _materializedDirectDataSetFastSaveModel != null
                 ? PreserveDirectDataSetFastSaveStateDuringDirtyMarks()
                 : null;

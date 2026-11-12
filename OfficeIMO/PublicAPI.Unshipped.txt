@@ -107,3 +107,11 @@ OfficeIMO.OfficePdfValidationOptions.Rewrite.set -> void
 static OfficeIMO.OfficeDocument.Validate(object! document, OfficeIMO.OfficeDocumentCheck[]? checks = null, OfficeIMO.OfficeDocumentValidationOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeValidationReport!
 OfficeIMO.OfficeConversionOptions.EmailPdf.get -> OfficeIMO.Email.EmailPdfExportOptions?
 OfficeIMO.OfficeConversionOptions.EmailPdf.set -> void
+OfficeIMO.OfficeDocumentInfo.HiddenData.get -> OfficeIMO.OfficeHiddenDataReport?
+OfficeIMO.OfficeInspectOptions.IncludeHiddenData.get -> bool
+OfficeIMO.OfficeInspectOptions.IncludeHiddenData.set -> void
+static OfficeIMO.OfficeDocument.RemoveHiddenData(string! inputPath, string! outputPath, OfficeIMO.OfficeHiddenDataOptions? options = null, OfficeIMO.OfficeSignatureMutationPolicy signatureMutationPolicy = OfficeIMO.OfficeSignatureMutationPolicy.BlockSave) -> OfficeIMO.OfficeHiddenDataReport!
+static OfficeIMO.OfficeDocument.SupportsHiddenData(string! path) -> bool
+static OfficeIMO.OfficeDocument.RemoveHiddenData(byte[]! data, string! fileName, OfficeIMO.OfficeHiddenDataOptions? options = null, OfficeIMO.OfficeSignatureMutationPolicy signatureMutationPolicy = OfficeIMO.OfficeSignatureMutationPolicy.BlockSave) -> OfficeIMO.OfficeHiddenDataResult!
+static OfficeIMO.OfficeDocument.InspectHiddenData(byte[]! data, string! fileName) -> OfficeIMO.OfficeHiddenDataReport!
+static OfficeIMO.OfficeDocument.InspectHiddenData(string! path) -> OfficeIMO.OfficeHiddenDataReport!

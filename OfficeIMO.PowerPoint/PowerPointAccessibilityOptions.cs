@@ -1,12 +1,4 @@
 namespace OfficeIMO.PowerPoint {
-    /// <summary>Built-in accessibility policy profiles.</summary>
-    public enum PowerPointAccessibilityPolicyProfile {
-        /// <summary>Practical generated-deck policy suitable for ordinary CI gates.</summary>
-        Default,
-        /// <summary>Stricter policy requiring document metadata and complete explicit semantics.</summary>
-        Strict
-    }
-
     /// <summary>Options controlling PowerPoint accessibility inspection and CI enforcement.</summary>
     public sealed class PowerPointAccessibilityOptions {
         private double _minimumTextContrastRatio = 4.5D;
@@ -29,7 +21,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Selected built-in profile. Use <see cref="ForProfile"/> to apply its defaults.</summary>
-        public PowerPointAccessibilityPolicyProfile Profile { get; set; } = PowerPointAccessibilityPolicyProfile.Default;
+        public OfficeAccessibilityPolicyProfile Profile { get; set; } = OfficeAccessibilityPolicyProfile.Default;
 
         /// <summary>Whether the package must define a document title.</summary>
         public bool RequireDocumentTitle { get; set; }
@@ -86,8 +78,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Creates options initialized for a built-in profile.</summary>
-        public static PowerPointAccessibilityOptions ForProfile(PowerPointAccessibilityPolicyProfile profile) {
-            return profile == PowerPointAccessibilityPolicyProfile.Strict
+        public static PowerPointAccessibilityOptions ForProfile(OfficeAccessibilityPolicyProfile profile) {
+            return profile == OfficeAccessibilityPolicyProfile.Strict
                 ? new PowerPointAccessibilityOptions {
                     Profile = profile,
                     RequireDocumentTitle = true,

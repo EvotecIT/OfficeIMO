@@ -491,7 +491,7 @@ namespace OfficeIMO.Tests {
             PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered, CreateData(OfficeChartType.ColumnClustered), new OfficeIMO.PowerPoint.PowerPointChartOptions { Accessibility = new PowerPointChartAccessibilityOptions() });
 
             Assert.StartsWith("Data summary:", chart.AltText, StringComparison.Ordinal);
-            PowerPointAccessibilityReport report = presentation.InspectAccessibility();
+            OfficeAccessibilityReport report = presentation.InspectAccessibility();
             Assert.DoesNotContain(report.Findings,
                 finding => finding.Code == "accessibility-chart-color-only-meaning");
         }

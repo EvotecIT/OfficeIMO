@@ -14,6 +14,7 @@ Create, read and change PDF files in .NET with OfficeIMO's own PDF engine — no
 - **Protect** files with AES-256 passwords and permissions, or remove protection with the owner password.
 - **Sign** with certificate-based signatures (PAdES B-B and B-T) and validate existing signatures.
 - **Redact** text and areas permanently, with a verification report for every removed match.
+- **Remove hidden data** before sharing: metadata, comments, scripts and other active content, attachments, bookmarks and layers, with the same `InspectHiddenData` and `RemoveHiddenData` report as the Office formats.
 - **Produce standard output**: PDF/A, PDF/UA, PDF/X, Factur-X and ZUGFeRD, checked against the saved bytes.
 - **Render** pages to PNG, JPEG, TIFF, WebP or SVG, and compare two PDFs page by page.
 - **Print** to installed printers on Windows, macOS and Linux, with page ranges, 1, 2, 4, 6 or 9 pages per sheet, scaling, duplex and paper source, through `OfficeIMO.Workflows`.

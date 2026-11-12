@@ -203,8 +203,9 @@ The reader validates the whole worksheet before returning its first row. For lar
 XLSX and XLSB worksheets, `new ExcelReaderOptions { EnableSinglePassReading = true }` returns
 rows while the rest of the sheet is still being read. An invalid cell then raises the same error,
 naming the same cell, but only after the rows before it have been returned, so use it where a
-part-way failure can be discarded. The option applies on .NET 8 and later; on .NET Framework
-and .NET Standard, and for XLS, the reader always validates first.
+part-way failure can be discarded. The option applies on .NET 8 and later to worksheets of
+1 MB or more, without `A1Range`, a cell value converter or diagnostics, and when the execution
+policy allows background work; otherwise, and for XLS, the reader always validates first.
 
 XML Spreadsheet import also limits defined names (10,000 by default). Set `ExcelSpreadsheetXmlOptions.MaxNames` for a larger trusted workbook.
 
@@ -304,7 +305,7 @@ foreach (OfficeHiddenDataFinding finding in report.Findings) Console.WriteLine($
 document.Save("Budget-shared.xlsx");
 ```
 
-`InspectHiddenData()` reports properties, notes, threaded comments and their authors, hidden sheets, rows, columns and names, external links, pivot source paths, custom XML, image metadata and printer settings without changing anything. Hidden content is removed only when selected, because deleting hidden rows or sheets changes formulas that use them. See the [hidden data matrix](../Docs/officeimo.hidden-data-support-matrix.md).
+`InspectHiddenData()` reports properties, notes, threaded comments and their authors, hidden sheets, rows, columns and names, external links, pivot source paths, custom XML, image metadata and printer settings without changing anything. Hidden content is removed only when selected, because deleting hidden rows or sheets changes formulas that use them. Provenance, such as Content Credentials and an image's AI-generated declaration, is reported and kept unless `OfficeHiddenDataKind.Provenance` is selected; `ExcelDocument.RemoveProvenance(inputPath, outputPath)` removes only provenance from a file. See the [hidden data matrix](../Docs/officeimo.hidden-data-support-matrix.md).
 
 ## More
 

@@ -39,7 +39,7 @@ public static partial class HtmlComputedStyleEngine {
             }
 
             IReadOnlyDictionary<int, int> rawRuleClosures = HtmlCssRuleBlockScanner.Scan(css, budget);
-            string parseCss = ExpandNestedConditionalRules(css);
+            string parseCss = ExpandNestedConditionalRules(ElideFontFacePayloads(css, rawRuleClosures));
             parseCss = PreserveManagedGradientFunctions(PreserveRevertLayerDeclarations(parseCss));
             parseCss = ProtectGeneratedContentFunctions(parseCss);
             parseCss = ProtectManagedPseudoElements(parseCss);
@@ -63,6 +63,55 @@ public static partial class HtmlComputedStyleEngine {
 
         return rules;
     }
+
+    private const int ElidedFontFacePayloadMinimumLength = 1024;
+
+    /// <summary>
+    /// The cascade ignores @font-face rules, whose sources can embed megabytes of base64 that every
+    /// preprocessing pass and both parsers would copy. Each long payload inside such a rule is
+    /// replaced by a short valid one; only base64 alphabet characters are removed, so no block,
+    /// string, comment or function boundary that a later pass looks for can change.
+    /// </summary>
+    private static string ElideFontFacePayloads(string css, IReadOnlyDictionary<int, int> closures) {
+        if (css.Length < ElidedFontFacePayloadMinimumLength) return css;
+        List<(int Start, int End)>? payloads = null;
+        foreach (KeyValuePair<int, int> closure in closures) {
+            if (closure.Value - closure.Key < ElidedFontFacePayloadMinimumLength
+                || !HtmlCssRuleBlockScanner.IsFontFaceBlock(css, closure.Key)) continue;
+            const string Marker = "base64,";
+            int search = closure.Key + 1;
+            while (search < closure.Value) {
+                int marker = css.IndexOf(Marker, search, closure.Value - search, StringComparison.OrdinalIgnoreCase);
+                if (marker < 0) break;
+                int start = marker + Marker.Length;
+                int end = start;
+                while (end < closure.Value && IsBase64Character(css[end])) end++;
+                // Only a payload that ends the URL is replaced; a following '*' could otherwise
+                // join its last '/' into a comment opener that the shorter text no longer has.
+                if (end - start >= ElidedFontFacePayloadMinimumLength && end < closure.Value
+                    && (css[end] == ')' || css[end] == '"' || css[end] == '\'' || char.IsWhiteSpace(css[end]))) {
+                    (payloads ??= new List<(int, int)>()).Add((start, end));
+                }
+                search = end;
+            }
+        }
+        if (payloads == null) return css;
+        payloads.Sort((left, right) => left.Start.CompareTo(right.Start));
+        var builder = new System.Text.StringBuilder(css.Length);
+        int cursor = 0;
+        foreach ((int start, int end) in payloads) {
+            // Malformed nested @font-face blocks can report the same payload twice.
+            if (start < cursor) continue;
+            builder.Append(css, cursor, start - cursor).Append("AAAA");
+            cursor = end;
+        }
+        builder.Append(css, cursor, css.Length - cursor);
+        return builder.ToString();
+    }
+
+    private static bool IsBase64Character(char value) =>
+        value >= 'A' && value <= 'Z' || value >= 'a' && value <= 'z' || value >= '0' && value <= '9'
+        || value == '+' || value == '/' || value == '=';
 
     private static bool IsEffectivelyHidden(HtmlComputedStyle style) {
         return string.Equals(style.GetValue("display"), "none", StringComparison.OrdinalIgnoreCase)

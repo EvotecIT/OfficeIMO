@@ -10,14 +10,22 @@ namespace OfficeIMO.OpenDocument;
 public abstract partial class OdfDocument {
     private const string ProvenanceManifestPath = "META-INF/content_credential.c2pa";
     /// <summary>Inspects C2PA and IPTC provenance in an ODF package and its supported embedded images.</summary>
-    public static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) {
+    internal static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         options ??= new OfficeProvenanceOptions();
         string fullPath = Path.GetFullPath(filePath);
         byte[] data;
         using (Stream stream = File.OpenRead(fullPath)) data = OfficeProvenanceBinary.ReadBounded(stream, options.MaxAssetBytes, options.CancellationToken);
-        ValidatePackageForInspection(data, fullPath, options);
-        return OfficeProvenanceInspector.Inspect(data, fullPath, options);
+        return InspectProvenance(data, fullPath, options);
+    }
+
+    /// <summary>Validates and inspects encoded ODF package bytes without accessing the filesystem.</summary>
+    internal static OfficeProvenanceReport InspectProvenance(byte[] packageBytes, string fileName = "document.odt", OfficeProvenanceOptions? options = null) {
+        ArgumentNullException.ThrowIfNull(packageBytes);
+        options ??= new OfficeProvenanceOptions();
+        if (packageBytes.LongLength > options.MaxAssetBytes) throw new InvalidDataException("The package exceeds the inspection byte limit.");
+        ValidatePackageForInspection(packageBytes, fileName, options);
+        return OfficeProvenanceInspector.Inspect(packageBytes, fileName, options);
     }
 
     /// <summary>Removes selected provenance and atomically writes an ODF package.</summary>

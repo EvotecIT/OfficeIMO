@@ -25,77 +25,76 @@ internal static partial class PdfSanitizer {
             repairReport,
             readOptions,
             policy.CancellationToken);
-        int userMetadata = policy.ShouldRemoveUserMetadata ? CountUserMetadataEntries(parsed.Map, security) : 0;
-        int embeddedFiles = policy.ShouldRemoveEmbeddedFiles
-            ? PdfAttachmentExtractor.InspectAttachments(
+        var items = new List<PdfSanitizationItem>();
+        if (policy.ShouldRemoveUserMetadata) CollectUserMetadataEntries(parsed.Map, security, items);
+        if (policy.ShouldRemoveEmbeddedFiles) {
+            IReadOnlyList<PdfAttachmentInfo> attachments = PdfAttachmentExtractor.InspectAttachments(
                 parsed.Map,
                 parsed.TrailerRaw,
                 readOptions?.Limits,
-                policy.CancellationToken).Count
-            : 0;
-        int commentsAndMarkup = policy.ShouldRemoveCommentsAndMarkup
-            ? CountSelectedCommentAnnotations(parsed.Map, policy)
-            : 0;
-        int bookmarks = policy.ShouldRemoveBookmarks
-            ? CountOutlineItems(parsed.Map, security, policy.CancellationToken)
-            : 0;
-        int optionalContent = policy.ShouldRemoveOptionalContent
-            ? CountOptionalContentGroups(parsed.Map, security)
-            : 0;
-        return new PdfSanitizationReport(
-            findings,
-            userMetadata,
-            embeddedFiles,
-            commentsAndMarkup,
-            bookmarks,
-            optionalContent);
+                policy.CancellationToken);
+            for (int index = 0; index < attachments.Count; index++) {
+                PdfAttachmentInfo attachment = attachments[index];
+                items.Add(new PdfSanitizationItem(
+                    PdfSanitizationContentKind.EmbeddedFiles,
+                    attachment.FileSpecObjectNumber > 0 ? "Object[" + attachment.FileSpecObjectNumber + "]" : attachment.Source,
+                    "Attached file (" + attachment.Source + ")",
+                    attachment.UnicodeFileName ?? attachment.FileName,
+                    PdfProvenance.IsCarrier(attachment)));
+            }
+        }
+        if (policy.ShouldRemoveCommentsAndMarkup) CollectSelectedCommentAnnotations(parsed.Map, policy, items);
+        if (policy.ShouldRemoveBookmarks) CollectOutlineItems(parsed.Map, security, items, policy.CancellationToken);
+        if (policy.ShouldRemoveOptionalContent) CollectOptionalContentGroups(parsed.Map, security, items);
+        return new PdfSanitizationReport(findings, items);
     }
 
-    private static int CountUserMetadataEntries(
+    private static void CollectUserMetadataEntries(
         Dictionary<int, PdfIndirectObject> objects,
-        PdfDocumentSecurityInfo security) {
-        int count = 0;
+        PdfDocumentSecurityInfo security,
+        List<PdfSanitizationItem> items) {
         if (security.InfoObjectNumber.HasValue &&
             objects.TryGetValue(security.InfoObjectNumber.Value, out PdfIndirectObject? infoObject) &&
             infoObject.Value is PdfDictionary info) {
             foreach (string key in info.Items.Keys) {
-                if (!TechnicalInfoKeys.Contains(key)) count++;
+                if (TechnicalInfoKeys.Contains(key)) continue;
+                TryGetString(objects, info, key, out string? value);
+                items.Add(new PdfSanitizationItem(PdfSanitizationContentKind.UserMetadata, "Info/" + key, "Document information " + key, value));
             }
         }
         if (security.RootObjectNumber.HasValue &&
             objects.TryGetValue(security.RootObjectNumber.Value, out PdfIndirectObject? rootObject) &&
             rootObject.Value is PdfDictionary catalog &&
             catalog.Items.ContainsKey("Metadata")) {
-            count++;
+            items.Add(new PdfSanitizationItem(PdfSanitizationContentKind.UserMetadata, "Catalog/Metadata", "XMP metadata packet", null));
         }
-        return count;
     }
 
-    private static int CountSelectedCommentAnnotations(
+    private static void CollectSelectedCommentAnnotations(
         Dictionary<int, PdfIndirectObject> objects,
-        PdfSanitizationOptions policy) {
-        int count = 0;
+        PdfSanitizationOptions policy,
+        List<PdfSanitizationItem> items) {
         var visited = new HashSet<PdfDictionary>();
         var counted = new HashSet<PdfDictionary>();
-        foreach (PdfIndirectObject indirect in objects.Values) {
-            CountSelectedCommentAnnotations(objects, indirect.Value, policy, visited, counted, ref count);
+        foreach (KeyValuePair<int, PdfIndirectObject> indirect in objects.OrderBy(static item => item.Key)) {
+            CollectSelectedCommentAnnotations(objects, indirect.Value.Value, policy, indirect.Key, visited, counted, items);
         }
-        return count;
     }
 
-    private static void CountSelectedCommentAnnotations(
+    private static void CollectSelectedCommentAnnotations(
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject value,
         PdfSanitizationOptions policy,
+        int objectNumber,
         HashSet<PdfDictionary> visited,
         HashSet<PdfDictionary> counted,
-        ref int count) {
+        List<PdfSanitizationItem> items) {
         policy.CancellationToken.ThrowIfCancellationRequested();
         if (value is PdfStream stream) value = stream.Dictionary;
         if (value is PdfArray array) {
             for (int i = 0; i < array.Items.Count; i++) {
                 if (array.Items[i] is not PdfReference) {
-                    CountSelectedCommentAnnotations(objects, array.Items[i], policy, visited, counted, ref count);
+                    CollectSelectedCommentAnnotations(objects, array.Items[i], policy, objectNumber, visited, counted, items);
                 }
             }
             return;
@@ -105,7 +104,7 @@ internal static partial class PdfSanitizer {
             string.Equals(type.Name, "Annot", StringComparison.Ordinal) &&
             IsSelectedCommentAnnotation(objects, dictionary, policy) &&
             counted.Add(dictionary)) {
-            count = checked(count + 1);
+            items.Add(CreateCommentItem(objects, dictionary, "Object[" + objectNumber + "]"));
         }
         if (dictionary.Items.TryGetValue("Annots", out PdfObject? annotationsObject) &&
             Resolve(objects, annotationsObject) is PdfArray annotations) {
@@ -113,31 +112,52 @@ internal static partial class PdfSanitizer {
                 if (Resolve(objects, annotations.Items[i]) is PdfDictionary annotation &&
                     IsSelectedCommentAnnotation(objects, annotation, policy) &&
                     counted.Add(annotation)) {
-                    count = checked(count + 1);
+                    string location = annotations.Items[i] is PdfReference reference
+                        ? "Object[" + reference.ObjectNumber + "]"
+                        : "Object[" + objectNumber + "]/Annots[" + i + "]";
+                    items.Add(CreateCommentItem(objects, annotation, location));
                 }
             }
         }
         foreach (PdfObject child in dictionary.Items.Values) {
             if (child is not PdfReference) {
-                CountSelectedCommentAnnotations(objects, child, policy, visited, counted, ref count);
+                CollectSelectedCommentAnnotations(objects, child, policy, objectNumber, visited, counted, items);
             }
         }
     }
 
-    private static int CountOutlineItems(
+    private static PdfSanitizationItem CreateCommentItem(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary annotation,
+        string location) {
+        string subtype = Resolve(objects, annotation.Get<PdfObject>("Subtype")) is PdfName name ? name.Name : "Unknown";
+        TryGetString(objects, annotation, "T", out string? author);
+        TryGetString(objects, annotation, "Contents", out string? contents);
+        string description = author is { Length: > 0 }
+            ? subtype + " annotation by " + author
+            : subtype + " annotation";
+        return new PdfSanitizationItem(PdfSanitizationContentKind.CommentsAndMarkup, location, description, contents);
+    }
+
+    private static void CollectOutlineItems(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDocumentSecurityInfo security,
+        List<PdfSanitizationItem> items,
         System.Threading.CancellationToken cancellationToken) {
         if (!security.RootObjectNumber.HasValue ||
             !objects.TryGetValue(security.RootObjectNumber.Value, out PdfIndirectObject? rootObject) ||
             rootObject.Value is not PdfDictionary catalog ||
             !catalog.Items.TryGetValue("Outlines", out PdfObject? outlinesObject) ||
             Resolve(objects, outlinesObject) is not PdfDictionary outlines) {
-            return 0;
+            return;
         }
+        var outlineRoot = new PdfSanitizationItem(PdfSanitizationContentKind.Bookmarks, "Catalog/Outlines", "Document outline", null);
         bool hasFirst = outlines.Items.TryGetValue("First", out PdfObject? first);
         bool hasLast = outlines.Items.TryGetValue("Last", out PdfObject? last);
-        if (!hasFirst && !hasLast) return 1;
+        if (!hasFirst && !hasLast) {
+            items.Add(outlineRoot);
+            return;
+        }
 
         int count = 0;
         var pending = new Stack<PdfObject>();
@@ -148,39 +168,50 @@ internal static partial class PdfSanitizer {
         while (pending.Count > 0) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfObject current = pending.Pop();
+            string location = "Catalog/Outlines";
             if (current is PdfReference reference) {
                 if (!visitedReferences.Add((reference.ObjectNumber, reference.Generation)) ||
                     !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect)) continue;
                 current = indirect.Value;
+                location = "Object[" + reference.ObjectNumber + "]";
             }
             if (current is not PdfDictionary item || !visitedDictionaries.Add(item)) continue;
             count = checked(count + 1);
+            TryGetString(objects, item, "Title", out string? title);
+            items.Add(new PdfSanitizationItem(PdfSanitizationContentKind.Bookmarks, location, "Bookmark", title));
             PushOutlineLinks(item, pending);
         }
-        return count == 0 ? 1 : count;
+        if (count == 0) items.Add(outlineRoot);
     }
 
-    private static int CountOptionalContentGroups(
+    private static void CollectOptionalContentGroups(
         Dictionary<int, PdfIndirectObject> objects,
-        PdfDocumentSecurityInfo security) {
+        PdfDocumentSecurityInfo security,
+        List<PdfSanitizationItem> items) {
         if (!security.RootObjectNumber.HasValue ||
             !objects.TryGetValue(security.RootObjectNumber.Value, out PdfIndirectObject? rootObject) ||
             rootObject.Value is not PdfDictionary catalog ||
             !catalog.Items.TryGetValue("OCProperties", out PdfObject? optionalContentObject) ||
             Resolve(objects, optionalContentObject) is not PdfDictionary optionalContent) {
-            return 0;
+            return;
         }
-
+        var properties = new PdfSanitizationItem(PdfSanitizationContentKind.OptionalContent, "Catalog/OCProperties", "Optional content (layer) properties", null);
         if (!optionalContent.Items.TryGetValue("OCGs", out PdfObject? groupsObject) ||
             Resolve(objects, groupsObject) is not PdfArray groups) {
-            return 1;
+            items.Add(properties);
+            return;
         }
 
         var counted = new HashSet<PdfDictionary>();
         for (int index = 0; index < groups.Items.Count; index++) {
-            if (Resolve(objects, groups.Items[index]) is PdfDictionary group) counted.Add(group);
+            if (Resolve(objects, groups.Items[index]) is not PdfDictionary group || !counted.Add(group)) continue;
+            TryGetString(objects, group, "Name", out string? name);
+            string location = groups.Items[index] is PdfReference reference
+                ? "Object[" + reference.ObjectNumber + "]"
+                : "Catalog/OCProperties/OCGs[" + index + "]";
+            items.Add(new PdfSanitizationItem(PdfSanitizationContentKind.OptionalContent, location, "Optional content group (layer)", name));
         }
-        return Math.Max(1, counted.Count);
+        if (counted.Count == 0) items.Add(properties);
     }
 
     private static void SanitizeDocumentContainers(
@@ -238,7 +269,7 @@ internal static partial class PdfSanitizer {
         if (string.Equals(subtype.Name, "FileAttachment", StringComparison.Ordinal) && policy.ShouldRemoveEmbeddedFiles) {
             return policy.ContentKindsToRemove.HasValue || policy.RemoveRichMedia;
         }
-        return policy.ShouldRemoveCommentAnnotation(subtype.Name) || policy.ShouldRemoveLegacyRichAnnotation(subtype.Name);
+        return policy.ShouldRemoveCommentAnnotation(subtype.Name) || policy.ShouldRemoveRichAnnotation(subtype.Name);
     }
 
     private static bool IsSelectedCommentAnnotation(
@@ -246,7 +277,8 @@ internal static partial class PdfSanitizer {
         PdfDictionary annotation,
         PdfSanitizationOptions policy) {
         if (Resolve(objects, annotation.Get<PdfObject>("Subtype")) is not PdfName subtype) return false;
-        return policy.ShouldRemoveCommentAnnotation(subtype.Name) || policy.ShouldRemoveLegacyRichAnnotation(subtype.Name);
+        return policy.ShouldRemoveCommentAnnotation(subtype.Name) ||
+            (!policy.SeparateRichMediaFromComments && policy.ShouldRemoveRichAnnotation(subtype.Name));
     }
 
     private static void RemoveOptionalContentAssociation(

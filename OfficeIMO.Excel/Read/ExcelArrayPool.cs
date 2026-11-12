@@ -8,7 +8,9 @@ namespace OfficeIMO.Excel {
     /// </summary>
     internal static class ExcelArrayPool {
         private const int MaximumSharedBytes = 1024 * 1024;
-        private const int MaximumPerLength = 8;
+        // Each chunk of a parallel worksheet index rents several arrays of one length, and several worksheets can be
+        // read at once; the byte limit below still bounds what is kept.
+        private const int MaximumPerLength = 64;
         private const long MaximumRetainedBytes = 256L * 1024 * 1024;
         private static readonly ExcelReleasingArrayStore<int> LargeInts =
             new ExcelReleasingArrayStore<int>(MaximumPerLength, MaximumRetainedBytes / sizeof(int));

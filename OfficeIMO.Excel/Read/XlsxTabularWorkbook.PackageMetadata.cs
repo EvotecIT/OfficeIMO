@@ -198,17 +198,6 @@ namespace OfficeIMO.Excel {
                 throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxWorksheets), _options.MaxWorksheets,
                     $"The workbook contains more than the configured {_options.MaxWorksheets} worksheet definitions.");
             }
-            if (string.IsNullOrWhiteSpace(_options.SheetName)
-                && !_options.SheetIndex.HasValue
-                && workbookSheets.Count > 1
-                && !metadataOnly) {
-                // The public multi-result reader still uses the SDK path. Stop before
-                // resolving every sheet and optional global part so that fallback does
-                // not pay the complete native metadata probe first.
-                throw new XlsxTabularFastPathNotSupportedException(
-                    "Multi-result XLSX reads retain the complete Open XML SDK path.");
-            }
-
             var sheets = new List<XlsxTabularSheet>();
             var worksheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach ((string? name, string? relationshipId) in workbookSheets) {

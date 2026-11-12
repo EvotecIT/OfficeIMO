@@ -33,7 +33,6 @@ public sealed partial class PowerPointDocument {
         PowerPointLoadOptions loadOptions = CreateConversionLoadOptions(options.LoadOptions);
         using PowerPointDocument presentation = await LoadAsync(paths.Source, loadOptions, cancellationToken)
             .ConfigureAwait(false);
-        presentation.SignatureMutationPolicy = options.SignatureMutationPolicy;
         OfficeFormatDescriptor sourceDescriptor = presentation.SourceFormatDescriptor;
         OfficeFormatDescriptor destinationDescriptor = PowerPointFormatCatalog.GetByExtension(paths.Destination);
         PowerPointFileFormat sourceFormat = presentation.SourceFormat;
@@ -100,7 +99,7 @@ public sealed partial class PowerPointDocument {
                     : null;
                 await presentation.SaveAsync(
                     stagingPath,
-                    CreateConversionSaveOptions(options.SaveOptions, allowsLoss),
+                    CreateConversionSaveOptions(options.SaveOptions, allowsLoss, options.SignatureMutationPolicy),
                     cancellationToken).ConfigureAwait(false);
                 if (embedSourceCarrier) {
                     byte[] destinationBytes = await OfficeFileConversion.ReadAllBytesAsync(
@@ -426,8 +425,10 @@ public sealed partial class PowerPointDocument {
 
     private static PowerPointSaveOptions CreateConversionSaveOptions(
         PowerPointSaveOptions? source,
-        bool allowsLoss) => new() {
+        bool allowsLoss,
+        OfficeSignatureMutationPolicy signatureMutationPolicy) => new() {
         LossPolicy = allowsLoss ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block,
+        SignatureMutationPolicy = signatureMutationPolicy,
         LegacyPptEncryptionKeySizeBits = source?.LegacyPptEncryptionKeySizeBits ?? 128,
         LegacyPptEncryptDocumentProperties = source?.LegacyPptEncryptDocumentProperties ?? true,
         LegacyPptAllowUnencryptedCompoundStreams = source?

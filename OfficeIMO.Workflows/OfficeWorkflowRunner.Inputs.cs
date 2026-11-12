@@ -106,7 +106,7 @@ public sealed partial class OfficeWorkflowRunner {
                     "Lossless PDF optimization does not support the TextOnly output profile.",
                     nameof(request));
             }
-            if (request.Operation is OfficeWorkflowOperation.Optimize or OfficeWorkflowOperation.Repair or OfficeWorkflowOperation.Sanitize or OfficeWorkflowOperation.ExtractPages or OfficeWorkflowOperation.ProtectPdf or OfficeWorkflowOperation.RemovePdfProtection or OfficeWorkflowOperation.SignPdf or OfficeWorkflowOperation.ScanCleanup) {
+            if (request.Operation is OfficeWorkflowOperation.Optimize or OfficeWorkflowOperation.Repair or OfficeWorkflowOperation.Sanitize or OfficeWorkflowOperation.ExtractPages or OfficeWorkflowOperation.ProtectPdf or OfficeWorkflowOperation.RemovePdfProtection or OfficeWorkflowOperation.SignPdf or OfficeWorkflowOperation.ScanCleanup or OfficeWorkflowOperation.ConvertToPdfA) {
                 outputPath ??= Path.Combine(
                     Path.GetDirectoryName(inputPath)!,
                     Path.GetFileNameWithoutExtension(inputPath) + "." + request.Operation.ToString().ToLowerInvariant() + ".pdf");
@@ -161,6 +161,16 @@ public sealed partial class OfficeWorkflowRunner {
                 throw new ArgumentException("Signing supports only the Faithful output profile.", nameof(request));
         } else if (request.OutputSigner is not null || signatureOptions is not null || request.OutputSignatureValidator is not null)
             throw new ArgumentException("Signature settings are valid only for SignPdf.", nameof(request));
+        bool pdfA = request.Operation == OfficeWorkflowOperation.ConvertToPdfA;
+        if (!pdfA && request.PdfAConversion is not null)
+            throw new ArgumentException("PDF/A conversion settings are valid only for ConvertToPdfA.", nameof(request));
+        OfficeIMO.Pdf.PdfAConversionOptions? pdfAConversion = SnapshotPdfAConversion(request.PdfAConversion);
+        if (pdfA) {
+            if (request.OutputProfile != OfficeConversionProfile.Faithful)
+                throw new ArgumentException("PDF/A conversion supports only the Faithful output profile.", nameof(request));
+            if (pdfAConversion is not null && (!IsPdfAProfile(pdfAConversion.Profile) || !Enum.IsDefined(typeof(OfficeIMO.Pdf.PdfAAttachmentPolicy), pdfAConversion.Attachments)))
+                throw new ArgumentException("Choose a PDF/A-2b, 2u, 3b, 3u, 4 or 4f profile and a defined attachment policy.", nameof(request));
+        }
         bool securityOutput = request.Operation is OfficeWorkflowOperation.ProtectPdf or OfficeWorkflowOperation.RemovePdfProtection;
         if (request.Operation == OfficeWorkflowOperation.ProtectPdf) {
             if (encryption is null || !OfficeRuntimeCompatibility.IsDefined(encryption.Algorithm))
@@ -179,7 +189,8 @@ public sealed partial class OfficeWorkflowRunner {
             ?? CreatePdfLoadOptions(securityOutput ? request.PdfOwnerPassword ?? request.PdfPassword : request.PdfPassword, limits.MaximumInputBytes);
         if (request.InputPdfLoadOptions is not null && request.PdfPassword is not null)
             throw new ArgumentException("Specify the PDF password in either the primary read settings or PdfPassword.", nameof(request));
-        string? outputPassword = securityOutput ? encryption?.OwnerPassword ?? encryption?.UserPassword
+        // PDF/A forbids encryption, so the converted copy reopens without the source password.
+        string? outputPassword = pdfA ? null : securityOutput ? encryption?.OwnerPassword ?? encryption?.UserPassword
             : conversionEncryption?.OwnerPassword ?? conversionEncryption?.UserPassword ?? request.PdfPassword;
         var outputOptions = CreatePdfLoadOptions(outputPassword, limits.MaximumOutputBytes);
         var outputEncryption = encryption ?? conversionEncryption;
@@ -192,7 +203,7 @@ public sealed partial class OfficeWorkflowRunner {
             : request.InputStream;
         if (localDirectoryPackage && (inputStream is null || inputStream.SnapshotKind != OfficeWorkflowSourceSnapshotKind.DirectoryPackage || inputStream.SourcePublicationGuard is null))
             throw new ArgumentException("A directory-package owner must provide a directory snapshot input and package output-separation guard.");
-        if ((request.Operation is OfficeWorkflowOperation.ExtractPages or OfficeWorkflowOperation.ScanCleanup || securityOutput || signing || registration is not null || wordImages) && inputStream is null && providerPackage is null) {
+        if ((request.Operation is OfficeWorkflowOperation.ExtractPages or OfficeWorkflowOperation.ScanCleanup || securityOutput || pdfA || signing || registration is not null || wordImages) && inputStream is null && providerPackage is null) {
             inputStream = new OfficeWorkflowStreamInput(Path.GetFileName(inputPath), token => {
                 token.ThrowIfCancellationRequested();
                 return Task.FromResult<Stream>(OfficeWorkflowInputReader.OpenLocalRead(inputPath));
@@ -215,8 +226,13 @@ public sealed partial class OfficeWorkflowRunner {
             request.PublicationGuard,
             inputStream, request.ComparisonStream, request.OutputStream, pages, encryption, request.PdfOwnerPassword ?? request.PdfPassword,
             request.OutputSigner, signatureOptions, request.OutputSignatureValidator, conversionOptions, scanCleanup, registration, registeredSettings, wordImageOptimization, providerPackage,
-            request.PageSelector, request.MaximumExtractedPages, request.ComparisonExpectedPages, request.ComparisonActualPages, unifiedOptions);
+            request.PageSelector, request.MaximumExtractedPages, request.ComparisonExpectedPages, request.ComparisonActualPages, unifiedOptions,
+            pdfAConversion);
     }
+
+    private static bool IsPdfAProfile(OfficeIMO.Pdf.PdfComplianceProfile profile) => profile is OfficeIMO.Pdf.PdfComplianceProfile.PdfA2B or
+        OfficeIMO.Pdf.PdfComplianceProfile.PdfA2U or OfficeIMO.Pdf.PdfComplianceProfile.PdfA3B or OfficeIMO.Pdf.PdfComplianceProfile.PdfA3U or
+        OfficeIMO.Pdf.PdfComplianceProfile.PdfA4 or OfficeIMO.Pdf.PdfComplianceProfile.PdfA4F;
 
     private static string ValidateInputLocation(string location, OfficeWorkflowStreamInput? stream, bool directoryPackage = false) {
         if (stream is not null) return OfficeStorageIdentity.Normalize(location);

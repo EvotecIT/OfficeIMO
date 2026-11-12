@@ -303,6 +303,23 @@ public sealed class CsvTypedRowsApiTests {
         }
     }
 
+    [Fact]
+    public void ReaderRowsAs_ConstructsPositionalRecordsAndReportsRejectedRows() {
+        byte[] csv = System.Text.Encoding.UTF8.GetBytes("Order Id,Amount,Channel\n42,165258.24,Online\n7,-1,Store\n");
+        using var reader = CsvDocument.OpenReader(new System.IO.MemoryStream(csv),
+            new CsvReaderOptions { Culture = CultureInfo.InvariantCulture });
+        using var rows = reader.RowsAs<CheckedSale>().GetEnumerator();
+
+        Assert.True(rows.MoveNext());
+        Assert.Equal(new CheckedSale(42, 165258.24m, "Online"), rows.Current);
+        DataMappingException error = Assert.Throws<DataMappingException>(() => rows.MoveNext());
+        Assert.Contains("rejected the mapped row", error.Message);
+    }
+
+    private sealed record CheckedSale(int OrderId, decimal Amount, string Channel) {
+        public decimal Amount { get; } = Amount >= 0 ? Amount : throw new ArgumentOutOfRangeException(nameof(Amount));
+    }
+
     private sealed class DateTimeRow {
         public DateTime Created { get; set; }
     }

@@ -461,7 +461,8 @@ Describe 'Expanded OfficeIMO support' {
         New-OfficePdf -Path $pdfPath { PdfParagraph 'Advanced PDF proof' } | Out-Null
 
         $sanitized = Optimize-OfficePdf -Sanitize -PassThru -Path $pdfPath -OutputPath $safePath
-        $sanitized.GetType().FullName | Should -Be 'OfficeIMO.Pdf.PdfSanitizationResult'
+        $sanitized.GetType().FullName | Should -Be 'OfficeIMO.OfficeHiddenDataResult'
+        $sanitized.Report.Format | Should -Be 'PDF'
         Test-Path -LiteralPath $safePath | Should -BeTrue
         (Export-OfficePdfXfdf -Path $pdfPath) | Should -Match '<xfdf'
         (Get-OfficePdfInteractionMap -Path $pdfPath).GetType().FullName | Should -Be 'OfficeIMO.Pdf.PdfPageInteractionMap'

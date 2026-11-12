@@ -16,8 +16,12 @@ public partial class VisioDocument {
     private const string ExtendedPropertiesContentType = "application/vnd.openxmlformats-officedocument.extended-properties+xml";
 
     /// <summary>Inspects C2PA and IPTC provenance in a saved VSDX package and its supported embedded images.</summary>
-    public static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) =>
+    internal static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) =>
         OfficeProvenancePackageMutation.InspectFile(filePath, options, ValidatePackage);
+
+    /// <summary>Validates and inspects encoded VSDX package bytes without accessing the filesystem.</summary>
+    internal static OfficeProvenanceReport InspectProvenance(byte[] packageBytes, string fileName = "drawing.vsdx", OfficeProvenanceOptions? options = null) =>
+        OfficeProvenancePackageMutation.Inspect(packageBytes, fileName, options, ValidatePackage);
 
     /// <summary>Removes selected provenance and atomically writes a VSDX package.</summary>
     public static OfficeProvenanceRemovalResult RemoveProvenance(

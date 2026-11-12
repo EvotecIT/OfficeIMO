@@ -51,8 +51,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             return OfficeCompoundFileWriter.Rewrite(
                 sourceCompoundFile,
-                streams.ToDictionary(stream => stream.Name, stream => stream.Bytes, StringComparer.OrdinalIgnoreCase));
+                streams.ToDictionary(stream => stream.Name, stream => stream.Bytes, StringComparer.OrdinalIgnoreCase),
+                options?.SignatureMutationPolicy == OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+                    ? GetSignatureEntryPaths(sourceCompoundFile)
+                    : null);
         }
+
+        private static string[] GetSignatureEntryPaths(OfficeCompoundFile sourceCompoundFile) =>
+            sourceCompoundFile.Entries
+                .Where(entry => entry.Name.Equals("_signatures", StringComparison.OrdinalIgnoreCase)
+                    || entry.Name.Equals("_xmlsignatures", StringComparison.OrdinalIgnoreCase))
+                .Select(entry => entry.Path)
+                .ToArray();
 
     }
 }

@@ -244,7 +244,7 @@ public sealed class RedactionReviewTests {
         Assert.False(model.HasError, model.ErrorMessage);
         Assert.Empty(model.RedactionMarks);
         Assert.True(model.LastRedactionSummary?.IsVerified);
-        Assert.Equal(sanitize, model.LastRedactionSummary!.SanitizedItemCount.HasValue);
+        Assert.Equal(sanitize, model.LastRedactionSummary!.RemovedHiddenDataCount.HasValue);
 
         await model.SaveVerifiedRedactionCopyCommand.ExecuteAsync(null);
         Assert.False(model.HasError, model.ErrorMessage);

@@ -26,7 +26,7 @@ namespace OfficeIMO.Excel {
         private UInt32Value _id;
         private WorksheetPart _worksheetPart {
             get {
-                _excelDocument.FlushPendingRowDeletesIfAny();
+                _excelDocument.FlushPendingPackageEditsIfAny();
                 return _worksheetPartValue;
             }
             set => _worksheetPartValue = value;
@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
         internal WorksheetPart DeferredMetadataWorksheetPart => _worksheetPart;
         private SpreadsheetDocument _spreadSheetDocument {
             get {
-                _excelDocument.FlushPendingRowDeletesIfAny();
+                _excelDocument.FlushPendingPackageEditsIfAny();
                 return _spreadSheetDocumentValue;
             }
             set => _spreadSheetDocumentValue = value;

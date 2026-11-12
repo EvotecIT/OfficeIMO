@@ -34,6 +34,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private readonly int _firstDataRow;
         private readonly int _lastDataRow;
         private readonly int _worksheetStartOffset;
+        // Workbook stream offset of position 0 in the source, for a worksheet read from its own slice.
+        private readonly int _streamOffsetBase;
         private readonly int _worksheetLimitOffset;
         private int[]? _bufferedRowOffsets;
         private readonly int _bufferedWorksheetEndOffset;
@@ -54,9 +56,11 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             bool uses1904DateSystem,
             bool hasHeaderRow,
             ExcelReaderOptions options,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken,
+            int streamOffsetBase = 0) {
             _bytes = bytes ?? throw new ArgumentNullException(nameof(bytes));
             _bufferedBytes = bytes.ContiguousBuffer;
+            _streamOffsetBase = streamOffsetBase;
             _sharedStrings = sharedStrings ?? throw new ArgumentNullException(nameof(sharedStrings));
             _dateStyles = dateStyles ?? throw new ArgumentNullException(nameof(dateStyles));
             _uses1904DateSystem = uses1904DateSystem;
@@ -523,7 +527,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             int payloadOffset = offset + 4;
             if (length > sourceLength - payloadOffset) {
                 throw new InvalidDataException(
-                    $"BIFF record 0x{type:X4} at offset {recordOffset} declares {length} payload bytes, but the stream ends early.");
+                    $"BIFF record 0x{type:X4} at offset {recordOffset + _streamOffsetBase} declares {length} payload bytes, but the stream ends early.");
             }
 
             offset = payloadOffset + length;
@@ -822,8 +826,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             }
         }
 
-        private static InvalidDataException TruncatedCell(RecordSlice record) =>
-            new($"BIFF cell record 0x{record.Type:X4} at offset {record.Offset} is truncated.");
+        private InvalidDataException TruncatedCell(RecordSlice record) =>
+            new($"BIFF cell record 0x{record.Type:X4} at offset {record.Offset + _streamOffsetBase} is truncated.");
 
         private static InvalidDataException MissingFormulaString() =>
             new("An XLS string formula is not followed by its required String record.");

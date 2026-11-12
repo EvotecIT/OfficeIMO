@@ -673,6 +673,7 @@ internal static partial class HtmlPdfRenderedConverter {
         internal HashSet<string> ReportedUnpaintableText { get; } = new(StringComparer.Ordinal);
         internal bool OutlineBudgetApproximationReported { get; set; }
         internal Dictionary<string, bool> PrivateUsePaintability { get; } = new(StringComparer.Ordinal);
+        internal Dictionary<RunPlanKey, RunPlanPart[]> RunPlans { get; } = new();
         internal HtmlDiagnosticReport Diagnostics { get; }
         internal OutlinedTextBudget OutlineBudget { get; }
         internal IOfficeTextShapingProvider? TextShapingProvider { get; }

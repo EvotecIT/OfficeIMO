@@ -40,7 +40,7 @@ namespace OfficeIMO.PowerPoint {
         public bool HasLegacyBinarySignatureStream { get; }
         /// <summary>Whether a binary PowerPoint package contains the legacy <c>_xmlsignatures</c> storage.</summary>
         public bool HasLegacyXmlSignatureStorage { get; }
-        /// <summary>Configured save policy.</summary>
+        /// <summary>Save policy the report was produced under. Inspection outside a save reports the default <see cref="OfficeSignatureMutationPolicy.BlockSave"/>.</summary>
         public OfficeSignatureMutationPolicy Policy { get; }
         /// <summary>Policy action taken.</summary>
         public PowerPointSignatureMutationAction Action { get; }
@@ -73,33 +73,30 @@ namespace OfficeIMO.PowerPoint {
     }
 
     public sealed partial class PowerPointDocument {
-        /// <summary>
-        /// Signature policy applied before save. The safe default blocks mutation of signed packages.
-        /// </summary>
-        public OfficeSignatureMutationPolicy SignatureMutationPolicy { get; set; } =
-            OfficeSignatureMutationPolicy.BlockSave;
-
         internal PowerPointSignatureReport? LastSignatureReport { get; private set; }
 
         /// <summary>Inspects package signature metadata without mutating it.</summary>
         public PowerPointSignatureReport InspectSignatures() {
             ThrowIfDisposed();
-            LastSignatureReport = CreateSignatureReport(PowerPointSignatureMutationAction.None);
+            LastSignatureReport = CreateSignatureReport(OfficeSignatureMutationPolicy.BlockSave,
+                PowerPointSignatureMutationAction.None);
             return LastSignatureReport;
         }
 
-        private void ApplySignatureMutationPolicy() {
-            PowerPointSignatureReport inspection = CreateSignatureReport(PowerPointSignatureMutationAction.None);
+        private void ApplySignatureMutationPolicy(PowerPointSaveOptions? options) {
+            OfficeSignatureMutationPolicy policy = options?.SignatureMutationPolicy
+                ?? OfficeSignatureMutationPolicy.BlockSave;
+            PowerPointSignatureReport inspection = CreateSignatureReport(policy, PowerPointSignatureMutationAction.None);
             if (!inspection.HasSignatureMetadata) {
                 LastSignatureReport = inspection;
                 return;
             }
 
-            if (SignatureMutationPolicy == OfficeSignatureMutationPolicy.BlockSave) {
-                LastSignatureReport = CreateSignatureReport(PowerPointSignatureMutationAction.Blocked);
+            if (policy == OfficeSignatureMutationPolicy.BlockSave) {
+                LastSignatureReport = CreateSignatureReport(policy, PowerPointSignatureMutationAction.Blocked);
                 throw new PowerPointSignedDocumentMutationException(LastSignatureReport);
             }
-            if (SignatureMutationPolicy == OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures) {
+            if (policy == OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures) {
                 DigitalSignatureOriginPart? origin = _document!.DigitalSignatureOriginPart;
                 if (origin != null) _document.DeletePart(origin);
                 if (_document.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
@@ -109,14 +106,15 @@ namespace OfficeIMO.PowerPoint {
                 LastSignatureReport = new PowerPointSignatureReport(inspection.HasOriginPart,
                     inspection.XmlSignaturePartCount, inspection.HasApplicationSignatureFlag,
                     inspection.HasLegacyBinarySignatureStream, inspection.HasLegacyXmlSignatureStorage,
-                    SignatureMutationPolicy, PowerPointSignatureMutationAction.Removed);
+                    policy, PowerPointSignatureMutationAction.Removed);
                 return;
             }
 
-            LastSignatureReport = CreateSignatureReport(PowerPointSignatureMutationAction.Preserved);
+            LastSignatureReport = CreateSignatureReport(policy, PowerPointSignatureMutationAction.Preserved);
         }
 
-        private PowerPointSignatureReport CreateSignatureReport(PowerPointSignatureMutationAction action) {
+        private PowerPointSignatureReport CreateSignatureReport(OfficeSignatureMutationPolicy policy,
+            PowerPointSignatureMutationAction action) {
             OfficePackageSignatureInfo? shared = null;
             // A binary presentation is projected into a temporary Open XML package. Cloning that
             // projection can materialize deferred DOM state and invalidate the exact-no-op
@@ -143,7 +141,7 @@ namespace OfficeIMO.PowerPoint {
                                 VerifyDigests = false
                             });
                         if (!shared.HasSignatures) {
-                            return CreateSignatureReport(shared, action);
+                            return CreateSignatureReport(shared, policy, action);
                         }
                     } catch (InvalidDataException) {
                         // A package that cannot be inspected from its current
@@ -164,12 +162,13 @@ namespace OfficeIMO.PowerPoint {
             }
             bool legacyBinarySignature = _legacyPptPackage?.HasBinarySignatureStream == true;
             bool legacyXmlSignature = _legacyPptPackage?.HasXmlSignatureStorage == true;
-            return CreateSignatureReport(shared, action,
+            return CreateSignatureReport(shared, policy, action,
                 legacyBinarySignature, legacyXmlSignature);
         }
 
         private PowerPointSignatureReport CreateSignatureReport(
             OfficePackageSignatureInfo? shared,
+            OfficeSignatureMutationPolicy policy,
             PowerPointSignatureMutationAction action,
             bool? hasLegacyBinarySignature = null,
             bool? hasLegacyXmlSignature = null) =>
@@ -180,6 +179,6 @@ namespace OfficeIMO.PowerPoint {
                     ?? _legacyPptPackage?.HasBinarySignatureStream == true,
                 hasLegacyXmlSignature
                     ?? _legacyPptPackage?.HasXmlSignatureStorage == true,
-                SignatureMutationPolicy, action);
+                policy, action);
     }
 }

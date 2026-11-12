@@ -483,7 +483,7 @@ internal static partial class CsvWriter
         text.IndexOf('"') >= 0 || text.IndexOf('\n') >= 0 || text.IndexOf('\r') >= 0;
 
 #if NET6_0_OR_GREATER
-    private static bool NeedsQuotes(ReadOnlySpan<char> text, char delimiter)
+    internal static bool NeedsQuotes(ReadOnlySpan<char> text, char delimiter)
     {
 #if NET8_0_OR_GREATER
         if (delimiter == ',') return text.IndexOfAny(DefaultCommaQuoteCharacters) >= 0;

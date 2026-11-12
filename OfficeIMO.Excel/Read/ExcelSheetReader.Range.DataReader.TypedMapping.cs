@@ -13,7 +13,8 @@ namespace OfficeIMO.Excel {
                 EnsureOpenRow();
                 if ((uint)ordinal >= (uint)_fieldCount) throw new IndexOutOfRangeException();
                 if (_utf8Source == null || !IsCurrentStreamingRow || _currentRowIsBlank
-                    || _owner._opt.NumericAsDecimal || _owner._opt.CellValueConverter != null
+                    || _owner._opt.CellValueConverter != null
+                    || _owner._opt.NumericAsDecimal && !CanUseTypedGetterWithDecimalNumbers(ordinal, targetType)
                     || !_utf8Source.CanUseTypedMappingGetter(
                         ordinal + _utf8SourceOrdinalOffset, targetType, requireNonNull)) {
                     return false;
@@ -36,6 +37,22 @@ namespace OfficeIMO.Excel {
                     // Generic mapping constructs the model before reporting an invalid date serial.
                     return false;
                 }
+            }
+
+            /// <summary>
+            /// With <see cref="ExcelReaderOptions.NumericAsDecimal"/>, numbers are decoded as decimals.
+            /// A typed getter qualifies only where it returns what conversion of that decimal value
+            /// returns: decimals read the same decoded value, integers must be exact integer tokens,
+            /// and text, Boolean and date cells do not depend on the numeric representation.
+            /// </summary>
+            private bool CanUseTypedGetterWithDecimalNumbers(int ordinal, Type targetType) {
+                if (targetType == typeof(decimal) || targetType == typeof(string)
+                    || targetType == typeof(bool) || targetType == typeof(DateTime)) {
+                    return true;
+                }
+
+                return targetType == typeof(int)
+                    && _utf8Source!.TryGetExactInt32(ordinal + _utf8SourceOrdinalOffset, out _);
             }
         }
 

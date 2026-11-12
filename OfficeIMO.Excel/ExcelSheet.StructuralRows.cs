@@ -954,6 +954,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            InvalidateMergeReferenceIndex();
             bool changed = false;
             uint count = 0;
             foreach (MergeCell merge in merges.Elements<MergeCell>().ToList()) {

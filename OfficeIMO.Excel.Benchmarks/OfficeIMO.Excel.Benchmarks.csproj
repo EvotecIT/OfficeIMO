@@ -8,12 +8,19 @@
     <IsPackable>false</IsPackable>
     <ExcelReaderBenchmarkVersion Condition="'$(TargetFramework)' == 'net8.0'">3.1.0</ExcelReaderBenchmarkVersion>
     <ExcelReaderBenchmarkVersion Condition="'$(TargetFramework)' != 'net8.0'">7.5.0</ExcelReaderBenchmarkVersion>
+    <!-- Opt-in competitor watch: -p:OfficeImoLatestCompetitors=true floats the compared libraries to their newest
+         stable NuGet versions. Restore it into its own packages and artifacts folders; net8.0 keeps the older
+         ExcelReader.NET API line its lanes are written for. -->
+    <ExcelReaderBenchmarkVersion Condition="'$(OfficeImoLatestCompetitors)' == 'true' And '$(TargetFramework)' != 'net8.0'">*</ExcelReaderBenchmarkVersion>
+    <SylvanExcelBenchmarkVersion>0.5.8</SylvanExcelBenchmarkVersion>
+    <SylvanExcelBenchmarkVersion Condition="'$(OfficeImoLatestCompetitors)' == 'true'">*</SylvanExcelBenchmarkVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageReference Include="ClosedXML" Version="0.105.1" />
     <PackageReference Include="ExcelDataReader" Version="3.9.0" />
+    <PackageReference Include="ExcelDataReader.DataSet" Version="3.9.0" />
     <PackageReference Include="Excel-PRIME" Version="5.2610.18" />
     <PackageReference Include="HypeLab.IO.Excel" Version="1.0.7" />
     <!-- Runtime APIs are benchmarked directly. The source generator targets a newer Roslyn than the repository SDK ships. -->
@@ -23,19 +30,23 @@
     <PackageReference Include="LargeXlsx" Version="2.0.2" />
     <PackageReference Include="MiniExcel" Version="1.46.0" />
     <PackageReference Include="SpreadCheetah" Version="1.28.0" />
-    <PackageReference Include="Sylvan.Data.Excel" Version="0.5.8" />
+    <PackageReference Include="Sylvan.Data" Version="0.2.17" />
+    <PackageReference Include="Sylvan.Data.Excel" Version="$(SylvanExcelBenchmarkVersion)" />
+    <PackageReference Include="Sylvan.Data.Csv" Version="1.4.4" />
     <PackageReference Include="XLibur.Bundle" Version="0.800.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Data.Arrow\OfficeIMO.Data.Arrow.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel.Csv\OfficeIMO.Excel.Csv.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Include="..\Benchmarks\BenchmarkProcessorAffinity.cs" Link="Shared\BenchmarkProcessorAffinity.cs" />
     <Compile Include="..\Benchmarks\BenchmarkProcessPriority.cs" Link="Shared\BenchmarkProcessPriority.cs" />
     <Compile Include="..\Benchmarks\MarkPflug65KFixture.cs" Link="Shared\MarkPflug65KFixture.cs" />
+    <Compile Include="..\Benchmarks\SalesMappingFixture.cs" Link="Shared\SalesMappingFixture.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -44,7 +55,7 @@
 
   <Target Name="RemoveIncompatibleExcelReaderGenerator" BeforeTargets="CoreCompile">
     <ItemGroup>
-      <Analyzer Remove="$(NuGetPackageRoot)excelreader.net\$(ExcelReaderBenchmarkVersion)\analyzers\dotnet\cs\ExcelReader.Generator.dll" />
+      <Analyzer Remove="@(Analyzer)" Condition="'%(Filename)%(Extension)' == 'ExcelReader.Generator.dll'" />
     </ItemGroup>
   </Target>
 

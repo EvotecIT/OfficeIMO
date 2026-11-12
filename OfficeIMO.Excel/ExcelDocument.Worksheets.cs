@@ -141,13 +141,13 @@ namespace OfficeIMO.Excel {
             // Sanitize
             string baseName = (name ?? string.Empty).Trim().Trim('\'', ' ');
             var sb = new System.Text.StringBuilder(baseName.Length > 0 ? baseName.Length : 5);
+            // Invalid characters become underscores, and runs of underscores collapse to one for nicer names.
             foreach (char c in baseName) {
-                if (c == ':' || c == '\\' || c == '/' || c == '?' || c == '*' || c == '[' || c == ']') sb.Append('_');
-                else sb.Append(c);
+                char next = c == ':' || c == '\\' || c == '/' || c == '?' || c == '*' || c == '[' || c == ']' ? '_' : c;
+                if (next == '_' && sb.Length > 0 && sb[sb.Length - 1] == '_') continue;
+                sb.Append(next);
             }
             string cleaned = sb.ToString().Trim();
-            // Collapse multiple underscores and trim leading/trailing underscores for nicer names
-            cleaned = _multipleUnderscoresRegex.Replace(cleaned, "_");
             cleaned = cleaned.Trim('_');
             if (cleaned.Length == 0) cleaned = GenerateDefaultSheetName(existing);
             if (cleaned.Length > 31) cleaned = ExcelSheetNameText.Truncate(cleaned, 31);
