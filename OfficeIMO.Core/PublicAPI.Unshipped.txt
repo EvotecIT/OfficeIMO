@@ -233,4 +233,3 @@ const OfficeIMO.OfficeConversionCapabilityCatalog.SchemaVersion = 10 -> int
 const OfficeIMO.OfficeDiagnosticCodes.KeyOrderChanged = "key-order-changed" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.NullDropped = "null-dropped" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.NumberOutOfRange = "number-out-of-range" -> string!
-OfficeIMO.OfficeDocumentFormat.Toml = 30 -> OfficeIMO.OfficeDocumentFormat
