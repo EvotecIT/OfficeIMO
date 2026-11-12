@@ -60,6 +60,8 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 ```
 <!-- /powerforge:code -->
 
+Embedded fonts follow their OS/2 `fsType` licence, read the least restrictive way when several permissions are set. A font that forbids embedding or allows only bitmaps is never embedded: writing a document that uses it as a registered font family throws `NotSupportedException`, and an installed fallback face like that is skipped. A font that forbids subsetting is embedded whole.
+
 ### Read text and tables
 
 <!-- powerforge:code source="Build/DocumentationExamples/Pdf/Program.cs" region="Read" -->

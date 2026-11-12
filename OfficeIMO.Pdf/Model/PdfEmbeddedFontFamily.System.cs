@@ -509,7 +509,7 @@ public sealed partial class PdfEmbeddedFontFamily {
         return new[] { normalizedFamily };
     }
 
-    private static string NormalizeFamilyKey(string value) {
+    internal static string NormalizeFamilyKey(string value) {
         // Index building normalizes every name of every installed face; most are short and many are
         // already keys, so the common cases avoid a builder.
         bool normalized = true;

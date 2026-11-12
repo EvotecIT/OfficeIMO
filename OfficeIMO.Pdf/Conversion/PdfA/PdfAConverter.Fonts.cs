@@ -27,6 +27,7 @@ internal sealed partial class PdfAConverter {
             }
             NormalizeFontNames(use, location);
             if (_unicode) EnsureUnicode(use, location);
+            else if (_part == 4) RemoveInvalidUnicodeValues(use, location);
         }
     }
 
@@ -73,7 +74,7 @@ internal sealed partial class PdfAConverter {
         if (descriptor is null || !HasFontProgram(descriptor)) {
             if (use.Visible) {
                 AddViolation(PdfAConversionRefusalReason.FontNotEmbeddable, location,
-                    "The composite (CID) font is not embedded. Its glyphs are addressed by CID, so no installed font can stand in without changing the page.", use.Font);
+                    "The composite (CID) font is not embedded. Its glyphs are addressed by CID, so no substitute font can stand in without changing the page.", use.Font);
             }
             return;
         }
@@ -96,12 +97,24 @@ internal sealed partial class PdfAConverter {
                 descriptor.Items.Remove("CharSet");
             }
             FixTrueTypeEncoding(use, descriptor, location);
+            AddWindowsUnicodeCmapRecord(use, descriptor, location);
             CheckEmbeddedProgram(use, location, composite: false);
             return;
         }
         int flags = descriptor is not null && Resolve(descriptor.Items.TryGetValue("Flags", out PdfObject? flagValue) ? flagValue : null) is PdfNumber flagNumber
             ? (int)flagNumber.Value : 32;
-        if (((flags & 4) == 0 && !IsSymbolicName(StripSubsetTag(baseFont))) || PdfWriter.TryGetStandardFontByBaseFontName(StripSubsetTag(baseFont), out _)) {
+        string plainBaseFont = StripSubsetTag(baseFont);
+        // Symbol and ZapfDingbats, under any of their names, select glyphs through their own encodings. PDF/A forbids
+        // referencing .notdef in invisible text too, so drawn codes are checked here, before invisible text returns.
+        if (IsStandardSymbolicName(plainBaseFont, out bool dingbats)) {
+            string?[] symbolicNames = BuildSymbolicEncoding(use.Font, PdfFontEncodingNames.Get(dingbats ? "ZapfDingbatsEncoding" : "SymbolEncoding")!);
+            var unnamed = use.Codes.Where(code => code >= symbolicNames.Length || symbolicNames[code] is null or ".notdef").ToList();
+            if (unnamed.Count > 0) {
+                AddViolation(PdfAConversionRefusalReason.FontGlyphMissing, location,
+                    "Code(s) " + FormatCodes(unnamed) + " select no glyph in the " + plainBaseFont + " encoding, so they draw .notdef, which PDF/A forbids even for invisible text.", use.Font);
+                return;
+            }
+        } else if (((flags & 4) == 0 && !IsSymbolicName(plainBaseFont)) || PdfWriter.TryGetStandardFontByBaseFontName(plainBaseFont, out _)) {
             string?[] names = BuildSimpleEncoding(use.Font);
             var notdef = use.Codes.Where(code => code >= names.Length || names[code] is null || names[code] == ".notdef").ToList();
             if (notdef.Count > 0) {
@@ -111,9 +124,9 @@ internal sealed partial class PdfAConverter {
             }
         }
         if (!use.Visible) return;
-        if (!_options.EmbedSubstituteFonts) {
+        if (_options.FontSubstitution.IsOff) {
             AddViolation(PdfAConversionRefusalReason.FontNotEmbeddable, location,
-                "The font is not embedded, and EmbedSubstituteFonts is false.", use.Font);
+                "The font is not embedded, and font substitution is off.", use.Font);
             return;
         }
         EmbedSubstitute(use, descriptor, location, baseFont);
@@ -130,6 +143,10 @@ internal sealed partial class PdfAConverter {
         bool standard = PdfWriter.TryGetStandardFontByBaseFontName(plainName, out PdfStandardFont standardFont);
         int? descriptorFlags = descriptor is not null && Resolve(descriptor.Items.TryGetValue("Flags", out PdfObject? flagValue) ? flagValue : null) is PdfNumber flagNumber
             ? (int)flagNumber.Value : null;
+        if (IsStandardSymbolicName(plainName, out bool dingbats)) {
+            EmbedSymbolicSubstitute(use, descriptor, location, plainName, dingbats);
+            return;
+        }
         bool symbolicName = IsSymbolicName(plainName);
         if (symbolicName || (!standard && descriptorFlags is int flags && (flags & 4) != 0 && (flags & 32) == 0)) {
             AddViolation(PdfAConversionRefusalReason.FontNotEmbeddable, location,
@@ -161,28 +178,28 @@ internal sealed partial class PdfAConverter {
         bool bold = PdfFontStyleEvidence.IsBold(plainName, descriptor is not null &&
             Resolve(descriptor.Items.TryGetValue("FontWeight", out PdfObject? weight) ? weight : null) is PdfNumber weightNumber ? (int)weightNumber.Value : null);
         bool italic = PdfFontStyleEvidence.IsItalic(plainName, descriptorFlags);
-        IEnumerable<string> families = standard ? StandardSubstitutes(standardFont) : FamilyCandidates(plainName);
+        IReadOnlyList<string> families = standard ? StandardSubstitutes(standardFont) : FamilyCandidates(plainName);
 
         string? lastFailure = null;
         string? firstFailure = null;
         PdfAConversionRefusalReason failureReason = PdfAConversionRefusalReason.FontNotEmbeddable;
         PdfAConversionRefusalReason firstReason = failureReason;
-        foreach (string family in families) {
+        foreach ((string family, string origin, PdfEmbeddedFontFamily substitute) in _options.FontSubstitution.Resolve(families)) {
             if (firstFailure is null && lastFailure is not null) {
                 firstFailure = lastFailure;
                 firstReason = failureReason;
             }
-            if (!PdfEmbeddedFontFamily.TryFromSystem(family, out PdfEmbeddedFontFamily? installed) || installed is null) continue;
-            byte[]? face = bold && italic ? installed.BoldItalicSnapshot : bold ? installed.BoldSnapshot : italic ? installed.ItalicSnapshot : installed.RegularSnapshot;
+            byte[]? face = bold && italic ? substitute.BoldItalicSnapshot : bold ? substitute.BoldSnapshot : italic ? substitute.ItalicSnapshot : substitute.RegularSnapshot;
             if (face is null) {
-                lastFailure ??= "the installed " + family + " family has no " + (bold ? italic ? "bold italic" : "bold" : "italic") + " face";
+                lastFailure ??= "the " + origin + " " + family + " family has no " + (bold ? italic ? "bold italic" : "bold" : "italic") + " face";
                 continue;
             }
             PdfTrueTypeFontProgram program;
             try {
                 program = PdfTrueTypeFontProgram.Parse(face);
             } catch (Exception exception) when (exception is NotSupportedException or InvalidDataException or ArgumentException or IndexOutOfRangeException) {
-                lastFailure = "the installed " + family + " face cannot be embedded: " + exception.Message;
+                lastFailure = "the " + origin + " " + family + " face cannot be embedded: " + exception.Message;
+                failureReason = PdfAConversionRefusalReason.FontNotEmbeddable;
                 continue;
             }
 
@@ -203,30 +220,30 @@ internal sealed partial class PdfAConverter {
                 }
             }
             if (missing.Count > 0) {
-                lastFailure = "the installed " + family + " face has no glyph for code(s) " + FormatCodes(missing);
+                lastFailure = "the " + origin + " " + family + " face has no glyph for code(s) " + FormatCodes(missing);
                 failureReason = PdfAConversionRefusalReason.FontGlyphMissing;
                 continue;
             }
             if (mismatched.Count > 0) {
-                lastFailure = "the installed " + family + " face has different glyph widths (" + string.Join(", ", mismatched) + ")";
+                lastFailure = "the " + origin + " " + family + " face has different glyph widths (" + string.Join(", ", mismatched) + ")";
                 failureReason = PdfAConversionRefusalReason.FontMetricsMismatch;
                 continue;
             }
             if (glyphs.Count == 0) {
-                lastFailure = "the installed " + family + " face has none of the font's glyphs";
+                lastFailure = "the " + origin + " " + family + " face has none of the font's glyphs";
                 failureReason = PdfAConversionRefusalReason.FontGlyphMissing;
                 continue;
             }
             string?[] winAnsiNames = PdfFontEncodingNames.Get("WinAnsiEncoding")!;
             if (glyphs.Keys.Any(code => !string.Equals(glyphNames[code], winAnsiNames[code], StringComparison.Ordinal)) &&
                 !HasWindowsUnicodeCmap(face)) {
-                lastFailure = "the installed " + family + " face has no Windows Unicode cmap, which PDF/A requires for the font's encoding differences";
+                lastFailure = "the " + origin + " " + family + " face has no Windows Unicode cmap, which PDF/A requires for the font's encoding differences";
                 failureReason = PdfAConversionRefusalReason.FontEncodingNotCompliant;
                 continue;
             }
 
             if (Change(PdfAConversionChangeKind.FontEmbedded, location,
-                    "Embedded the installed " + family + " face (" + program.FontName + ") for the non-embedded font " + plainName +
+                    "Embedded the " + origin + " " + family + " face (" + program.FontName + ") for the non-embedded font " + plainName +
                     "; every drawn glyph has the advance width the page already positions it by.", font, OfficeConversionLossKind.Approximation)) {
                 WriteSubstitute(font, descriptor, plainName, program, glyphNames, glyphs, standard ? standardFont : null);
             }
@@ -239,10 +256,10 @@ internal sealed partial class PdfAConverter {
         }
         if (firstFailure is not null) {
             AddViolation(firstReason, location, "The font is not embedded and cannot be substituted without changing the page: " + firstFailure +
-                (lastFailure is not null && !ReferenceEquals(firstFailure, lastFailure) ? "; other installed substitutes fail too (last: " + lastFailure + ")" : string.Empty) + ".", font);
+                (lastFailure is not null && !ReferenceEquals(firstFailure, lastFailure) ? "; other substitutes fail too (last: " + lastFailure + ")" : string.Empty) + ".", font);
         } else if (lastFailure is null) {
             AddViolation(PdfAConversionRefusalReason.FontNotEmbeddable, location,
-                "The font is not embedded and no installed substitute (" + string.Join(", ", families) + ") was found.", font);
+                "The font is not embedded and no " + SubstituteSources + " substitute (" + string.Join(", ", families) + ") was found.", font);
         } else {
             AddViolation(failureReason, location, "The font is not embedded and cannot be substituted without changing the page: " + lastFailure + ".", font);
         }
@@ -251,7 +268,8 @@ internal sealed partial class PdfAConverter {
     private void WriteSubstitute(PdfDictionary font, PdfDictionary? descriptor, string plainName, PdfTrueTypeFontProgram program,
         string?[] glyphNames, Dictionary<int, int> glyphs, PdfStandardFont? standardFont) {
         byte[] subset = program.BuildGlyphRetainingSubset(glyphs.Values.Append(0));
-        string taggedName = PdfSubsetTag.Apply(SanitizeFontName(plainName), glyphs.Values.OrderBy(static glyph => glyph), subset);
+        string taggedName = program.SubsettingForbidden ? SanitizeFontName(plainName)
+            : PdfSubsetTag.Apply(SanitizeFontName(plainName), glyphs.Values.OrderBy(static glyph => glyph), subset);
 
         var fileDictionary = new PdfDictionary();
         fileDictionary.Items["Length1"] = new PdfNumber(subset.Length);
@@ -338,6 +356,10 @@ internal sealed partial class PdfAConverter {
     /// The family the page renderer draws the standard font with comes first, so the embedded program draws what was shown;
     /// then the library's metric-compatible substitutes.
     /// </summary>
+    private string SubstituteSources => _options.FontSubstitution.UsesInstalledFonts
+        ? _options.FontSubstitution.Families.Count > 0 ? "supplied or installed" : "installed"
+        : "supplied";
+
     private static List<string> StandardSubstitutes(PdfStandardFont font) {
         (string drawn, string standard) = font switch {
             PdfStandardFont.TimesRoman or PdfStandardFont.TimesBold or PdfStandardFont.TimesItalic or PdfStandardFont.TimesBoldItalic => ("Times New Roman", "Times"),

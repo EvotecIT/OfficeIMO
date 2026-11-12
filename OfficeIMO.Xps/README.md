@@ -65,8 +65,11 @@ document.Save("report.oxps");
 ```
 
 Use `XpsFormat.Xps` for Microsoft's original dialect. File extensions do not
-change dialects. Fonts are obfuscated by default; callers must have permission
-to embed them. PNG/JPEG placement uses the image's declared resolution.
+change dialects. Fonts are obfuscated by default. `AddFont` reads the font's OS/2
+`fsType` licence and throws `ArgumentException` when it forbids embedding (Restricted
+License without Preview & Print or Editable) or allows only bitmaps; when several
+permissions are set, the least restrictive applies. PNG/JPEG placement uses the image's
+declared resolution.
 
 `GetMarkup()` returns a detached `XElement`. Edit it and call `ReplaceMarkup()`
 to change an existing page, including native features outside the rendering

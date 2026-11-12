@@ -19,16 +19,25 @@ internal sealed partial class PdfAConverter {
         "3D", "Sound", "Screen", "Movie", "RichMedia"
     };
 
+    /// <summary>
+    /// PDF/A-4 adds the PDF 2.0 Projection type and, outside PDF/A-4f, forbids FileAttachment annotations (ISO 19005-4, 6.3.1).
+    /// </summary>
+    private bool IsForbiddenAnnotationType(string subtype) {
+        if (ForbiddenAnnotationTypes.Contains(subtype)) return true;
+        if (_part == 4) {
+            if (subtype == "Projection") return false;
+            if (subtype == "FileAttachment") return !_attachmentsProfile;
+        }
+        return !KnownAnnotationTypes.Contains(subtype);
+    }
+
     private void ProcessPages() {
         IReadOnlyList<PdfReadPage> pages = _document.Pages;
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             _cancellationToken.ThrowIfCancellationRequested();
             PdfDictionary page = pages[pageIndex].PageDictionary;
             string location = "page " + (pageIndex + 1).ToString(CultureInfo.InvariantCulture);
-            if (page.Items.ContainsKey("AA") &&
-                Change(PdfAConversionChangeKind.ActionRemoved, location, "Removed page additional-actions (AA), which PDF/A forbids.", page, OfficeConversionLossKind.Omission)) {
-                page.Items.Remove("AA");
-            }
+            ProcessAdditionalActions(page, location, "page", restrictTriggers: true);
             if (page.Items.ContainsKey("PresSteps") &&
                 Change(PdfAConversionChangeKind.StructureUpdated, location, "Removed presentation steps (PresSteps), which PDF/A forbids.", page, OfficeConversionLossKind.Omission)) {
                 page.Items.Remove("PresSteps");
@@ -63,14 +72,15 @@ internal sealed partial class PdfAConverter {
         int flags = Resolve(annotation.Items.TryGetValue("F", out PdfObject? flagValue) ? flagValue : null) is PdfNumber number ? (int)number.Value : 0;
         bool hidden = (flags & (HiddenFlag | NoViewFlag)) != 0;
 
-        if (ForbiddenAnnotationTypes.Contains(subtype) || !KnownAnnotationTypes.Contains(subtype)) {
+        if (IsForbiddenAnnotationType(subtype)) {
             if (hidden || !HasVisibleAppearance(annotation)) {
                 return !Change(PdfAConversionChangeKind.AnnotationRemoved, described,
                     "Removed a " + (subtype.Length == 0 ? "untyped" : subtype) + " annotation, which PDF/A forbids; it draws nothing on the page.",
                     annotation, OfficeConversionLossKind.Omission);
             }
             AddViolation(PdfAConversionRefusalReason.ForbiddenAnnotation, described,
-                "A " + (subtype.Length == 0 ? "untyped" : subtype) + " annotation draws on the page, and PDF/A forbids this annotation type.", annotation);
+                "A " + (subtype.Length == 0 ? "untyped" : subtype) + " annotation draws on the page, and " + PdfAConversionReport.ToProfileName(_options.Profile) +
+                " forbids this annotation type" + (subtype == "FileAttachment" ? "; choose PDF/A-4f or PDF/A-3 to keep attachments." : "."), annotation);
             return true;
         }
 
@@ -92,11 +102,13 @@ internal sealed partial class PdfAConverter {
             }
         }
 
-        if (annotation.Items.ContainsKey("AA") &&
-            Change(PdfAConversionChangeKind.ActionRemoved, described, "Removed annotation additional-actions (AA), which PDF/A forbids.", annotation, OfficeConversionLossKind.Omission)) {
-            annotation.Items.Remove("AA");
-        }
-        if (annotation.Items.TryGetValue("A", out PdfObject? action)) {
+        ProcessAdditionalActions(annotation, described, subtype == "Widget" ? "widget" : "annotation", restrictTriggers: subtype != "Widget");
+        if (subtype == "Widget" && annotation.Items.ContainsKey("A")) {
+            if (Change(PdfAConversionChangeKind.ActionRemoved, described,
+                    "Removed the widget's activation action (A), which PDF/A forbids on form fields.", annotation, OfficeConversionLossKind.Omission)) {
+                annotation.Items.Remove("A");
+            }
+        } else if (annotation.Items.TryGetValue("A", out PdfObject? action)) {
             PdfObject? keptAction = SanitizeAction(action, described, 0);
             if (keptAction is null) annotation.Items.Remove("A");
             else annotation.Items["A"] = keptAction;
@@ -108,7 +120,7 @@ internal sealed partial class PdfAConverter {
 
     private void ProcessAppearance(PdfDictionary annotation, string subtype, string location) {
         PdfDictionary? appearances = ResolveDictionary(annotation.Items.TryGetValue("AP", out PdfObject? ap) ? ap : null);
-        bool exempt = subtype is "Popup" or "Link" || HasZeroAreaRect(annotation);
+        bool exempt = subtype is "Popup" or "Link" || (_part == 4 && subtype == "Projection") || HasZeroAreaRect(annotation);
         bool regenerate = subtype == "Widget" && _needAppearances && PdfFormFiller.IsVariableTextWidget(_objects, annotation);
         if ((appearances is null && !exempt) || regenerate) {
             if (TrySynthesizeAppearance(annotation, subtype, out PdfObject? synthesized)) {
