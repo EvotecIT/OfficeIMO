@@ -20,15 +20,10 @@ internal static partial class CupsPdfPrinter {
 
     /// <summary>Reads a job from the scheduler over IPP. Jobs submitted through lp are tracked the same way.</summary>
     internal static Task<PdfPrintJobStatus> GetJobAsync(CupsScheduler scheduler, string printerName, string jobId, CancellationToken token) =>
-        IppPdfPrinter.GetJobAsync(TrackingEndpoint(scheduler, printerName), jobId, token);
+        IppPdfPrinter.GetJobAsync(scheduler.JobQueue(printerName), jobId, token);
 
     internal static Task<PdfPrintJobStatus> CancelJobAsync(CupsScheduler scheduler, string printerName, string jobId, CancellationToken token) =>
-        IppPdfPrinter.CancelJobAsync(TrackingEndpoint(scheduler, printerName), jobId, token);
-
-    // The scheduler finds a job by its number; the queue path only scopes the request.
-    private static IppPrinterEndpoint TrackingEndpoint(CupsScheduler scheduler, string printerName) => scheduler.IsAvailable
-        ? scheduler.Queue(printerName, isClass: false)
-        : throw new PlatformNotSupportedException("Job tracking needs the CUPS scheduler over IPP, which is not reachable on this host.");
+        IppPdfPrinter.CancelJobAsync(scheduler.JobQueue(printerName), jobId, token);
 
     /// <summary>A queue the scheduler answered for over IPP, with the client that reached it.</summary>
     internal sealed record IppQueueRoute(IppPrinterEndpoint Endpoint, IppPrintClient Client, IppPrinterCapabilities Printer);

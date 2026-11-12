@@ -210,15 +210,44 @@ public sealed class IppEvePrinterTests {
     }
 
     [Theory]
-    [InlineData("print.example.com", null)]
     [InlineData("localhost:8631", "ipp://localhost:8631/")]
-    [InlineData("[::1]:631", "ipp://localhost:631/")]
+    [InlineData("127.0.0.2:8631", "ipp://127.0.0.2:8631/")]
+    [InlineData("[::1]:8631", "ipp://[::1]:8631/")]
+    [InlineData("[::1]", "ipp://[::1]:631/")]
+    [InlineData("::1", "ipp://[::1]:631/")]
+    [InlineData("localhost/version=1.1", "ipp://localhost:631/")]
     [InlineData(null, "ipp://localhost:631/")]
-    public void SchedulerAddressFollowsCupsServerAndStaysLocal(string? server, string? expected) {
+    public void LoopbackSchedulersKeepTheirConfiguredHostAndPort(string? server, string expected) {
         CupsScheduler scheduler = CupsScheduler.FromEnvironment(server, _ => false);
-        Assert.Equal(expected is not null, scheduler.IsAvailable);
-        if (expected is not null) Assert.Equal(new Uri(expected + "printers/q"), scheduler.Queue("q", isClass: false).PrinterUri);
+        Assert.True(scheduler.IsAvailable);
+        Assert.Equal(new Uri(expected + "printers/q"), scheduler.Queue("q", isClass: false).PrinterUri);
+        Assert.Equal(new Uri(expected + "printers/q"), scheduler.JobQueue("q").PrinterUri);
         Assert.Equal(new Uri("ipp://localhost/classes/a%20b"), CupsScheduler.FromEnvironment(null, path => path == "/run/cups/cups.sock").Queue("a b", isClass: true).PrinterUri);
+    }
+
+    [Theory]
+    [InlineData("print.example.com", "ipp://print.example.com:631/")]
+    [InlineData("print.example.com:8631", "ipp://print.example.com:8631/")]
+    [InlineData("[2001:db8::1]:631", "ipp://[2001:db8::1]:631/")]
+    public void ARemoteSchedulerSubmitsThroughLpAndTracksJobsOverIpp(string server, string expected) {
+        // Only the addresses are built here; nothing is contacted.
+        CupsScheduler scheduler = CupsScheduler.FromEnvironment(server, _ => false);
+        Assert.False(scheduler.IsAvailable);
+        Assert.Throws<PlatformNotSupportedException>(() => scheduler.Queue("q", isClass: false));
+        IppPrinterEndpoint jobs = scheduler.JobQueue("office");
+        Assert.Equal(new Uri(expected + "printers/office"), jobs.PrinterUri);
+        Assert.Equal(12, jobs.ParseJobId("office-12"));
+    }
+
+    [Theory]
+    [InlineData("localhost:0")]
+    [InlineData("localhost:http")]
+    [InlineData("[::1")]
+    [InlineData("bad host")]
+    public void UnusableCupsServerValuesLeaveJobsToTheCommandLineTools(string server) {
+        CupsScheduler scheduler = CupsScheduler.FromEnvironment(server, _ => false);
+        Assert.False(scheduler.IsAvailable);
+        Assert.Throws<PlatformNotSupportedException>(() => scheduler.JobQueue("q"));
     }
 
     [ExternalToolFact(IppEvePrinterPath)]
