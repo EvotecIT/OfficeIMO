@@ -754,6 +754,61 @@
     ]
   },
   {
+    "title": "Command Line",
+    "items": [
+      {
+        "title": "CLI Documentation",
+        "path": "cli/index.md",
+        "href": "/docs/cli/"
+      },
+      {
+        "title": "Install and Pin",
+        "path": "cli/install/index.md",
+        "href": "/docs/cli/install/"
+      },
+      {
+        "title": "Convert Documents",
+        "path": "cli/convert/index.md",
+        "href": "/docs/cli/convert/"
+      },
+      {
+        "title": "Batches and Saved Jobs",
+        "path": "cli/batch-and-jobs/index.md",
+        "href": "/docs/cli/batch-and-jobs/"
+      },
+      {
+        "title": "Extract and Inspect",
+        "path": "cli/extract-and-inspect/index.md",
+        "href": "/docs/cli/extract-and-inspect/"
+      },
+      {
+        "title": "PDF Workflows",
+        "path": "cli/pdf/index.md",
+        "href": "/docs/cli/pdf/"
+      },
+      {
+        "title": "Before Sharing",
+        "path": "cli/before-sharing/index.md",
+        "href": "/docs/cli/before-sharing/"
+      },
+      {
+        "title": "Invoices",
+        "path": "cli/invoices/index.md",
+        "href": "/docs/cli/invoices/"
+      },
+      {
+        "title": "Scripting and CI",
+        "path": "cli/scripting-and-ci/index.md",
+        "href": "/docs/cli/scripting-and-ci/"
+      },
+      {
+        "title": "MCP and Agents",
+        "path": "cli/mcp-and-agents/index.md",
+        "href": "/docs/cli/mcp-and-agents/"
+      }
+    ]
+  },
+  {
     "title": "Google Workspace",
     "items": [
       {

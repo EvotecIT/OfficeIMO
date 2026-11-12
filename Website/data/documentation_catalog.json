@@ -8,8 +8,8 @@
     "benchmarkProjectCount": 42,
     "validationProjectCount": 74,
     "apiReferenceCount": 129,
-    "conceptualPageCount": 146,
-    "conceptualWordCount": 75610
+    "conceptualPageCount": 156,
+    "conceptualWordCount": 83114
   },
   "categories": [
     {
@@ -2167,7 +2167,7 @@
       "projectPath": "OfficeIMO.Tool/OfficeIMO.Tool.csproj",
       "sourceFileCount": 73,
       "referencingTestProjectCount": 1,
-      "docsUrl": "/docs/capabilities/packages/",
+      "docsUrl": "/docs/cli/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Tool"
     },
