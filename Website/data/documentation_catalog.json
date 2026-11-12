@@ -2,22 +2,20 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 344,
-    "productionComponentCount": 164,
-    "testProjectCount": 66,
-    "benchmarkProjectCount": 41,
+    "projectCount": 348,
+    "productionComponentCount": 166,
+    "testProjectCount": 67,
+    "benchmarkProjectCount": 42,
     "validationProjectCount": 74,
     "apiReferenceCount": 129,
     "conceptualPageCount": 142,
-    "conceptualWordCount": 71626
+    "conceptualWordCount": 71712
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
       "componentCount": 35,
       "componentIndexes": [
-        102,
-        103,
         104,
         105,
         106,
@@ -50,7 +48,9 @@
         133,
         134,
         135,
-        136
+        136,
+        137,
+        138
       ]
     },
     {
@@ -64,19 +64,17 @@
         15,
         16,
         19,
-        22,
-        23,
         24,
-        28,
-        29,
+        25,
+        26,
         30,
         31,
         32,
-        55,
-        70,
-        71,
-        76,
-        77,
+        33,
+        34,
+        57,
+        72,
+        73,
         78,
         79,
         80,
@@ -85,16 +83,18 @@
         83,
         84,
         85,
-        98,
+        86,
+        87,
         100,
-        101,
-        145,
+        102,
+        103,
         147,
-        148,
-        159,
-        160,
+        149,
+        150,
         161,
-        162
+        162,
+        163,
+        164
       ]
     },
     {
@@ -104,62 +104,62 @@
         2,
         6,
         17,
-        25,
-        26,
         27,
-        66,
-        67,
+        28,
+        29,
         68,
         69,
-        72,
-        73,
+        70,
+        71,
         74,
-        99,
-        140
+        75,
+        76,
+        101,
+        142
       ]
     },
     {
       "name": "Google Workspace",
       "componentCount": 4,
       "componentIndexes": [
-        40,
-        41,
         42,
-        43
+        43,
+        44,
+        45
       ]
     },
     {
       "name": "Office documents",
       "componentCount": 21,
       "componentIndexes": [
-        33,
-        34,
         35,
         36,
         37,
         38,
         39,
-        92,
-        93,
+        40,
+        41,
         94,
         95,
         96,
         97,
-        149,
-        150,
+        98,
+        99,
         151,
         152,
         153,
         154,
         155,
-        156
+        156,
+        157,
+        158
       ]
     },
     {
       "name": "PowerShell automation",
       "componentCount": 1,
       "componentIndexes": [
-        163
+        165
       ]
     },
     {
@@ -169,8 +169,6 @@
         7,
         8,
         9,
-        44,
-        45,
         46,
         47,
         48,
@@ -180,35 +178,37 @@
         52,
         53,
         54,
-        57,
-        58,
+        55,
+        56,
         59,
         60,
         61,
         62,
-        86,
-        87,
+        63,
+        64,
         88,
         89,
         90,
         91,
-        137,
-        138,
-        139
+        92,
+        93,
+        139,
+        140,
+        141
       ]
     },
     {
       "name": "Rendering surfaces",
       "componentCount": 3,
       "componentIndexes": [
-        63,
-        64,
-        65
+        65,
+        66,
+        67
       ]
     },
     {
       "name": "Specialized components",
-      "componentCount": 18,
+      "componentCount": 20,
       "componentIndexes": [
         0,
         3,
@@ -219,15 +219,17 @@
         18,
         20,
         21,
-        56,
-        75,
-        141,
-        142,
+        22,
+        23,
+        58,
+        77,
         143,
         144,
+        145,
         146,
-        157,
-        158
+        148,
+        159,
+        160
       ]
     }
   ],
@@ -239,8 +241,8 @@
       "description": "Document conversion and resumable batches over the OfficeIMO format libraries.",
       "kind": "package",
       "projectPath": "OfficeIMO/OfficeIMO.csproj",
-      "sourceFileCount": 68,
-      "referencingTestProjectCount": 1,
+      "sourceFileCount": 69,
+      "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO"
@@ -473,7 +475,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 1283,
+      "sourceFileCount": 1284,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -504,6 +506,32 @@
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/data-arrow/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Data.Arrow"
+    },
+    {
+      "name": "OfficeIMO.Data.Conversions",
+      "packageId": "OfficeIMO.Data.Conversions",
+      "category": "Specialized components",
+      "description": "Streaming structured-data conversions between JSON, JSON Lines, YAML, TOML, XML, CSV and TSV for OfficeIMO, with loss reporting through OfficeConversionReport.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Data.Conversions/OfficeIMO.Data.Conversions.csproj",
+      "sourceFileCount": 37,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Data.Conversions"
+    },
+    {
+      "name": "OfficeIMO.Data.Conversions.Excel",
+      "packageId": "OfficeIMO.Data.Conversions.Excel",
+      "category": "Specialized components",
+      "description": "Excel worksheets in OfficeIMO structured-data conversions: worksheets and workbooks to JSON, JSON Lines, YAML, TOML and XML, and JSON, YAML, TOML and XML rows to workbooks.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Data.Conversions.Excel/OfficeIMO.Data.Conversions.Excel.csproj",
+      "sourceFileCount": 2,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Data.Conversions.Excel"
     },
     {
       "name": "OfficeIMO.Data.Generators",
@@ -1357,7 +1385,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1735,
+      "sourceFileCount": 1739,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -2358,7 +2386,7 @@
       "description": "PSWriteOffice is a focused component in the OfficeIMO managed document platform.",
       "kind": "library",
       "projectPath": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/PSWriteOffice.csproj",
-      "sourceFileCount": 765,
+      "sourceFileCount": 771,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/pswriteoffice/",
       "apiUrl": null,
