@@ -124,8 +124,10 @@ Describe 'YAML data conversion' {
     It 'reads JSON text as ConvertFrom-Json does, with or without AsHashtable' {
         $json = '{"name":"web","replicas":3,"ratio":0.5,"enabled":false,"owner":null,"tags":["a","b"],"limits":{"cpu":"500m"},"big":123456789012345678901234567890}'
 
-        $expected = $json | ConvertFrom-Json | ConvertTo-Json -Depth 5 -Compress
-        $json | ConvertFrom-OfficeYaml | ConvertTo-Json -Depth 5 -Compress | Should -BeExactly $expected
+        # Windows PowerShell 5.1 reads integers beyond Int64 as lossy doubles, so compare the rest there.
+        $parityJson = if ($PSVersionTable.PSEdition -eq 'Desktop') { $json -replace ',"big":\d+', '' } else { $json }
+        $expected = $parityJson | ConvertFrom-Json | ConvertTo-Json -Depth 5 -Compress
+        $parityJson | ConvertFrom-OfficeYaml | ConvertTo-Json -Depth 5 -Compress | Should -BeExactly $expected
 
         $table = $json | ConvertFrom-OfficeYaml -AsHashtable
         $table | Should -BeOfType [System.Collections.Specialized.OrderedDictionary]
@@ -217,7 +219,9 @@ Describe 'YAML data conversion' {
         $yaml = $value | ConvertTo-OfficeYaml -WarningVariable yamlWarning -WarningAction SilentlyContinue
 
         $yaml | Should -BeExactly "a:`n  b:`n    c: System.Collections.Hashtable`n"
-        $yamlWarning[0].Message | Should -BeExactly ($jsonWarning[0].Message -replace 'JSON', 'YAML')
+        # Windows PowerShell 5.1's ConvertTo-Json truncates without a warning; PowerShell 7 words it this way.
+        $yamlWarning[0].Message | Should -BeExactly 'Resulting YAML is truncated as serialization has exceeded the set depth of 2.'
+        if ($jsonWarning) { $yamlWarning[0].Message | Should -BeExactly ($jsonWarning[0].Message -replace 'JSON', 'YAML') }
         ($value | ConvertTo-OfficeYaml -Depth 3 -WarningVariable deeper -WarningAction SilentlyContinue) | Should -BeExactly "a:`n  b:`n    c:`n      d: 1`n"
         $deeper | Should -BeNullOrEmpty
     }
