@@ -8,7 +8,7 @@ The extraction commands turn documents into Markdown or structured JSON for sear
 
 ## Extract one document
 
-`officeimo read` and `officeimo extract` are the same command, a shortcut for `officeimo reader read`. Output goes to standard output unless you pass `--output`:
+`officeimo read` and `officeimo extract` are the same command, a shortcut for `officeimo reader read`. Output goes to standard output unless you pass `--output`; an existing output file is refused unless you add `--force`:
 
 ```shell
 officeimo read report.docx --format markdown
@@ -31,7 +31,7 @@ officeimo reader folder ./contracts --output ./contracts-md --format markdown
 officeimo reader folder ./archive --output ./archive-json --format json --concurrency 4 --max-files 5000
 ```
 
-Each source becomes `<file name>.md` or `<file name>.json` in the output folder, for example `report.docx.md`. Use `--no-recursive`, `--max-files`, `--max-total-bytes` and `--max-input-bytes` to bound the run. Apple `.pages`, `.numbers` and `.key` directory packages are read as single documents.
+Each source becomes `<file name>.md` or `<file name>.reader.json` in the output folder, for example `report.docx.md`. Existing files in the output folder are refused unless you add `--force`. Use `--no-recursive`, `--max-files`, `--max-total-bytes` and `--max-input-bytes` to bound the run. Apple `.pages`, `.numbers` and `.key` directory packages are read as single documents.
 
 ## See which formats are supported
 
@@ -44,7 +44,7 @@ The text form prints one line per handler with its identifier and extensions. Th
 
 ## Reader JSON
 
-JSON output, from `read --format json`, `reader folder --format json` or `convert <input> <output>.json`, uses one versioned envelope:
+JSON output, from `read --format json`, `reader folder --format json` or `convert <input> <output>.json` for a source without a data route, uses one versioned envelope. For YAML, TOML, XML, CSV and other data files, `convert` writes [converted data](/docs/cli/convert/#structured-data) instead, so use `read --format json` for their Reader JSON:
 
 ```json
 {
@@ -94,7 +94,7 @@ officeimo tabular schema workbook.xlsx --sheet Data
 officeimo tabular schema export.csv --delimiter ';'
 ```
 
-`sheets` prints one sheet name per line. `schema` prints a tab-separated `ordinal`, `name` and `type` table for each column. Names escape backslashes and control characters as `\\`, `\t`, `\r`, `\n` or `\uXXXX`, so each stays on one line and is safe to split in a script.
+`sheets` prints one sheet name per line. `schema` prints a tab-separated `ordinal`, `name` and `type` table for each column, with types such as `string`, `integer`, `number`, `boolean` and `datetime`. Names escape backslashes and control characters as `\\`, `\t`, `\r`, `\n` or `\uXXXX`, so each stays on one line and is safe to split in a script.
 
 ## Mail data
 

@@ -45,7 +45,7 @@ elseif ($LASTEXITCODE -ne 0) { throw "officeimo failed with exit code $LASTEXITC
 | `inspect`, `agent *`, `pdf *`, `hidden-data`, `provenance`, `invoice` | One JSON result (text with `--format text` where offered) |
 | `workflow batch`, `workflow job run` | The batch report as JSON, or NDJSON with `--format ndjson` |
 | `workflow export-pages`, `workflow assemble`, `workflow print-plan` | A short readable summary |
-| `tabular sheets`, `tabular schema` | Tab-separated lines |
+| `tabular sheets`, `tabular schema` | Tab-separated lines; schema types are `string`, `integer`, `number`, `boolean` or `datetime` |
 
 Diagnostics, progress and warnings always go to standard error, so redirecting standard output to a file or a JSON parser stays safe:
 
@@ -63,18 +63,16 @@ JSON results carry a schema identifier, such as `officeimo.conversion.batch.v2`,
 
 ## Overwrite rules
 
-Most commands refuse to replace an existing file or folder, so rerunning a script cannot silently overwrite earlier output:
+Commands refuse to replace an existing file or folder, so rerunning a script cannot silently overwrite earlier output:
 
 | Command | To replace existing output |
 |---|---|
-| `convert`, `tabular convert`, `html`, `pdf`, `hidden-data remove`, `provenance remove`, `workflow export-pages`, `assemble`, `compare`, `optimize-images` | `--force` |
+| `convert`, `read`, `extract`, `reader read`, `reader folder`, `agent convert`, `tabular convert`, `html`, `pdf`, `hidden-data remove`, `provenance remove`, `workflow export-pages`, `assemble`, `compare`, `optimize-images` | `--force` |
 | `workflow batch` | `--conflict replace`, or `--conflict rename` to keep both |
-| `agent convert` | `--overwrite` |
 | `invoice` | Not possible; choose a new path |
 | `workflow job run --report`, `--save-job` | Not possible; choose a new path |
-| `read`, `extract`, `reader read --output` | Replaced without a flag |
 
-Outputs are staged and published atomically. A conversion that fails or is rejected leaves an existing destination unchanged. `read` and `extract` write the file you name directly; use `convert <input> <output>.md` when you want the overwrite protection.
+Outputs are staged and published atomically. A conversion that fails or is rejected leaves an existing destination unchanged. The MCP `officeimo_convert` tool takes the same permission as an `overwrite` argument.
 
 ## Path safety
 

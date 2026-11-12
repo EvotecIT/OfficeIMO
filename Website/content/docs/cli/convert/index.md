@@ -1,6 +1,6 @@
 ---
 title: "Convert Documents with the CLI"
-description: "Convert one file with officeimo convert: Office, OpenDocument, Apple, email, Draw, Publisher, DjVu, HTML and text routes, Markdown and JSON extraction, workbook formats and limits."
+description: "Convert one file with officeimo convert: Office, OpenDocument, Apple, email, Draw, Publisher, DjVu, HTML and text routes, JSON, YAML, TOML, XML and CSV data, Markdown and JSON extraction, workbook formats and limits."
 layout: docs
 ---
 
@@ -13,7 +13,7 @@ officeimo convert workbook.xlsx --output published/workbook.pdf
 officeimo convert deck.pptx deck.pdf --force       # replace an existing deck.pdf
 ```
 
-The destination can be positional or passed with `--output` (`-o`), but not both. Without a destination, the tool writes a sibling `.pdf`. On success the command prints the output path on standard output; diagnostics go to standard error.
+The destination can be positional or passed with `--output` (`-o`), but not both. Without a destination, the tool writes a sibling `.pdf`. An existing destination is refused unless you pass `--force`. On success the command prints the output path on standard output; diagnostics go to standard error.
 
 ## See the routes your version runs
 
@@ -67,11 +67,46 @@ officeimo convert scan.djvu scan.pdf
 officeimo convert photo.heic photo.pdf
 ```
 
+## Structured data
+
+When both files are data formats, `convert` runs the structured-data routes between JSON, JSON Lines, YAML, TOML, XML, CSV, TSV and XLSX:
+
+```shell
+officeimo convert settings.yaml settings.json
+officeimo convert settings.json settings.toml
+officeimo convert export.xml export.yaml
+officeimo convert orders.jsonl orders.xlsx
+officeimo convert people.csv people.json
+```
+
+The [batch data conversion table](/docs/cli/batch-and-jobs/#structured-data) lists every source and target pair; `officeimo convert --help` lists the same routes. Each conversion reports what the target format could not hold on standard error. TOML has no null, for example, so null values are omitted and reported:
+
+```text
+Warning null-dropped [JSON to TOML] [note]: TOML has no null, so null values were omitted.
+```
+
+Add `--require-no-loss` to turn any reported loss into a failure. Nothing is written and the command returns exit code `5`.
+
+These options shape the data:
+
+| Option | Effect |
+|---|---|
+| `--select <path>` | Takes the rows from a path below the root, such as `data.items` or `results[0].rows`, for API responses and other wrapped data |
+| `--columns <path,...>` | Fixes the table columns and their order for CSV, TSV and XLSX output, for example `--columns name,address.city` |
+| `--root-name <name>` | Names the root element of XML output when the data has no single named root; the default is `root` |
+| `--sheet <name>`, `--range <A1:B2>` | Reads one worksheet, or one range of it, from XLSX input |
+
+```shell
+officeimo convert response.json items.csv --select data.items --columns id,name,address.city
+officeimo convert people.json people.xml --root-name people
+officeimo convert budget.xlsx budget.json --sheet Summary --range A1:D20
+```
+
 ## Route-specific options
 
 | Option | Applies to | Effect |
 |---|---|---|
-| `--require-no-loss` | Routes that report fidelity loss, such as Draw, Publisher and DjVu to PDF | Rejects the conversion before publishing when OfficeIMO reports source or output loss. Not available for DOC, DOCX, TXT, XLSX or PPTX to PDF. |
+| `--require-no-loss` | Routes that report fidelity loss, such as data routes and Draw, Publisher and DjVu to PDF | Rejects the conversion before publishing when OfficeIMO reports source or output loss. Not available for DOC, DOCX, TXT, XLSX or PPTX to PDF. |
 | `--allow-legacy-loss` | DOC input | DOC conversion blocks known legacy import loss by default; this flag accepts the reported reductions. |
 | `--text-encoding <name>`, `--tab-size 1..32` | TXT to PDF | Text input detects a Unicode BOM and otherwise uses strict UTF-8; these set the encoding and tab width explicitly. |
 | `--diagram-layers screen\|print` | ODG and FODG to PDF | Chooses visible layers. Print-visible layers are the default; source page sizes, including blank pages, are kept. |
@@ -98,7 +133,7 @@ The source is opened read-only and checked for package bombs. Output is staged a
 
 ## Markdown and JSON output
 
-A `.md`, `.markdown` or `.json` destination runs the Reader pipeline instead of a conversion route. The result is a semantic projection of the content, not a fixed-layout rendering, and every format listed by `officeimo reader capabilities` is accepted:
+A `.md` or `.markdown` destination, and a `.json` destination for a source without a data route, runs the Reader pipeline instead of a conversion route. The result is a semantic projection of the content, not a fixed-layout rendering, and every format listed by `officeimo reader capabilities` is accepted:
 
 ```shell
 officeimo convert workbook.xlsx workbook.md
@@ -106,7 +141,11 @@ officeimo convert report.docx report.json
 officeimo convert handbook.pdf handbook.md --assets handbook-assets
 ```
 
-`--assets <directory>` writes embedded images and other assets beside the Markdown. JSON output uses the `officeimo.document.read-result` schema described in [Extract and inspect](/docs/cli/extract-and-inspect/#reader-json). A `.json` destination always means Reader JSON, including for YAML, TOML or XML input; to convert structured data between formats, use [batch data conversion](/docs/cli/batch-and-jobs/#structured-data).
+`--assets <directory>` writes embedded images and other assets beside the Markdown. JSON output uses the `officeimo.document.read-result` schema described in [Extract and inspect](/docs/cli/extract-and-inspect/#reader-json). For a data file such as YAML, TOML, XML, CSV or XLSX, a `.json` destination converts the data instead; use `read` to get its Reader JSON:
+
+```shell
+officeimo read settings.yaml --format json --output settings.reader.json
+```
 
 ## Apple Pages, Numbers and Keynote
 

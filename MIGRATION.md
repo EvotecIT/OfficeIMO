@@ -5819,6 +5819,24 @@ Windows definitions before moving them to another operating system if their
 relative paths contain `\`; Unix treats that character as part of a filename.
 Run reports are optional evidence and do not change checkpoint compatibility.
 
+## Data conversion, overwrite and password rules in the CLI
+
+`officeimo convert` now runs the structured-data routes when both files are data formats (JSON, JSON Lines, YAML, TOML, XML, CSV, TSV and XLSX). A `.json` destination for a YAML, TOML, XML, CSV, TSV, JSON Lines or XLSX source therefore writes the converted data instead of Reader JSON (`officeimo.document.read-result`). For the Reader JSON of those files, use:
+
+```shell
+officeimo read settings.yaml --format json --output settings.reader.json
+```
+
+Other sources, such as DOCX or PDF, still write Reader JSON to a `.json` destination.
+
+`read`, `extract`, `reader read` and `reader folder` refuse to replace existing output files and assets. Add `--force` where a script relied on replacing them.
+
+`agent convert` takes `--force` instead of `--overwrite`. The MCP `officeimo_convert` tool keeps its `overwrite` argument.
+
+`workflow batch` rejects `--source-password` and `--pdf-password`. Put the password in an environment variable and pass its name with `--source-password-env` or `--pdf-password-env`.
+
+`tabular schema` prints `string`, `integer`, `number`, `boolean` and `datetime` instead of .NET type names such as `System.String`. Update scripts that compare the `type` column.
+
 ## Removed obsolete image and HTML capability aliases
 
 Replace `WordImage.BlackWiteMode` with `WordImage.BlackWhiteMode`. The enum and

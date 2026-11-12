@@ -18,7 +18,7 @@ officeimo hidden-data remove proposal.docx
 | Guide | Covers |
 |---|---|
 | [Install and pin the tool](/docs/cli/install/) | Global install, a repository tool manifest, updates and version checks |
-| [Convert documents](/docs/cli/convert/) | One file at a time: Office, OpenDocument, Apple, email, HTML, text and spreadsheet routes |
+| [Convert documents](/docs/cli/convert/) | One file at a time: Office, OpenDocument, Apple, email, HTML, text, spreadsheet and structured-data routes |
 | [Batch conversion and saved jobs](/docs/cli/batch-and-jobs/) | Folders, checkpoints, reusable job files, run reports and structured-data conversion |
 | [Extract and inspect](/docs/cli/extract-and-inspect/) | Markdown and JSON extraction, compact inspection, workbook schemas and the JSON contracts |
 | [PDF workflows](/docs/cli/pdf/) | Page copies, splits, decryption, OCR, page images, assembly, comparison, printing and redaction |

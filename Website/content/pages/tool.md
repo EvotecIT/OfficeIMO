@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO.Tool"
-description: "Convert, extract, inspect and clean documents from your terminal with the officeimo CLI. Install the .NET tool from NuGet and use it in scripts, CI jobs, batch conversions and MCP clients."
+description: "Convert, extract, inspect and clean documents and data files from your terminal with the officeimo CLI. Install the .NET tool from NuGet and use it in scripts, CI jobs, batch conversions and MCP clients."
 meta.seo_title: "OfficeIMO.Tool: document conversion and inspection CLI"
 layout: application
 meta.application: "tool"
@@ -27,6 +27,15 @@ officeimo workflow batch --input-directory ./Documents --output ./PDF --checkpoi
 ```
 
 Each file is converted, reopened and published independently. Rerun the same command to reuse completed work, or add `--retry-failed`. Single files use `officeimo convert report.docx`. See [Convert documents](/docs/cli/convert/) and [Batch conversion and saved jobs](/docs/cli/batch-and-jobs/).
+
+## Convert data between formats
+
+```shell
+officeimo convert settings.yaml settings.json
+officeimo convert response.json items.csv --select data.items --require-no-loss
+```
+
+JSON, JSON Lines, YAML, TOML, XML, CSV, TSV and XLSX convert into each other, and every loss is reported. See [structured data](/docs/cli/convert/#structured-data).
 
 ## Extract content for search or a model
 
