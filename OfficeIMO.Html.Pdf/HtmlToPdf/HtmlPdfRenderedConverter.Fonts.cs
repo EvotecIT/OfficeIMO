@@ -177,7 +177,9 @@ internal static partial class HtmlPdfRenderedConverter {
             }
             bool covered = analyze(program, text);
             lock (memo._answers) {
-                if (memo._answers.Count < MaximumEntries) memo._answers[text] = covered;
+                // Keep answering from a fresh generation once a large document fills the memo.
+                if (memo._answers.Count >= MaximumEntries) memo._answers.Clear();
+                memo._answers[text] = covered;
             }
             return covered;
         }
