@@ -16,7 +16,7 @@ A file that leaves your team carries more than its visible text: author and comp
 
 `Get-OfficeHiddenData` and `Remove-OfficeHiddenData` work on Word, Excel, PowerPoint, Visio, OpenDocument, EPUB and PDF files, and on JPEG, PNG, WebP, GIF and TIFF images. They are the PowerShell form of `officeimo hidden-data inspect` and `officeimo hidden-data remove`, and they use the same engine.
 
-The outputs below come from a folder with four files: a Word proposal with a reviewer comment, a custom property and a picture labelled as AI-generated; an Excel budget with a cell comment; a PowerPoint briefing with speaker notes; and a PDF summary with an attached cost model. The [clean-before-sharing recipe](https://github.com/EvotecIT/OfficeIMO/blob/a0abd1c0e95b75c0c91ad57b607038477a98462c/PowerShell/PSWriteOffice/Examples/Workflows/Recipe-CleanBeforeSharing.ps1) builds similar files and runs the whole check.
+The outputs below come from a folder with four files: a Word proposal with a reviewer comment, a custom property and a picture labelled as AI-generated; an Excel budget with a cell comment; a PowerPoint briefing with speaker notes; and a PDF summary with an attached cost model. The [clean-before-sharing recipe](https://github.com/EvotecIT/OfficeIMO/blob/e1f1a881f6839bedb64756d935de253ac2f5cb27/PowerShell/PSWriteOffice/Examples/Workflows/Recipe-CleanBeforeSharing.ps1) builds similar files and runs the whole check.
 
 ## See what would leave with a file
 
@@ -28,7 +28,7 @@ Name          Format     Findings Changed Output
 Briefing.pptx PowerPoint 4        False
 Budget.xlsx   Excel      3        False
 Proposal.docx Word       9        False
-Summary.pdf   PDF        3        False
+Summary.pdf   PDF        2        False
 ```
 
 Each result has the file `Path`, its `Format`, the categories found in `Kinds`, and a `Findings` list:
@@ -183,16 +183,27 @@ if ($left) { throw "Hidden data remains in: $($left.Path -join ', ')" }
 
 ## PDF files
 
-`Remove-OfficeHiddenData` cleans PDFs with the same categories as Office files. For a PDF the defaults remove the author-written document information and XMP metadata, comments, scripts and unsafe actions, and keep attachments, bookmarks and layers:
+`Remove-OfficeHiddenData` cleans PDFs with the same categories as Office files. For a PDF the defaults remove the author-written document information and XMP metadata, comments, scripts and unsafe actions, and keep attachments, bookmarks and layers. The title always stays, as it does for Word, Excel and PowerPoint, and so does PDF/A, PDF/UA, PDF/X and Factur-X identification, so a cleaned file keeps its conformance. Inspection doesn't list what always stays:
 
 ```powershell
 PS> (Get-OfficeHiddenData -Path .\Summary.pdf).Findings | Select-Object Kind, Description, Value
 
               Kind Description                         Value
               ---- -----------                         -----
-DocumentProperties Document information Title          Project summary
 DocumentProperties Document information Author         Jane Reviewer
        Attachments Attached file (Names/EmbeddedFiles) cost-model.txt
+```
+
+The removal report does, with the reason:
+
+```powershell
+PS> (Remove-OfficeHiddenData -Path .\Summary.pdf).Findings | Select-Object Outcome, Kind, Description
+
+ Outcome               Kind Description
+ -------               ---- -----------
+Retained DocumentProperties Document information Title
+ Removed DocumentProperties Document information Author
+Retained        Attachments Attached file (Names/EmbeddedFiles)
 ```
 
 `Optimize-OfficePdf -Sanitize` is the PDF route for removing what can run or travel with the file. Its default is attachments and active content, and it leaves the document information alone:
