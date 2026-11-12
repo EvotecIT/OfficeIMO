@@ -1295,7 +1295,7 @@ internal static partial class CsvParser
             : _visitor.GetSpan(ordinal);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public string GetString(int ordinal) => _fallback?.GetString(ordinal) ?? _visitor.GetString(ordinal);
+        public string GetString(int ordinal) => _fallback is null ? _visitor.GetString(ordinal) : _fallback.GetString(ordinal);
 
         public bool IsMissing(int ordinal) => _fallback?.IsMissing(ordinal) ?? _visitor.IsMissing(ordinal);
 

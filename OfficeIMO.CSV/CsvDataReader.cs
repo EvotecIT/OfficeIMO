@@ -58,6 +58,11 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
     private bool _hasBufferedRow;
     private bool _checkedForRows;
     private bool _hasCurrentTextRow;
+#if NET8_0_OR_GREATER
+    /// <summary>The UTF-8 row source while it holds the current row and strings are read from it directly.</summary>
+    private CsvParser.CsvUtf8StreamDataReaderRowSource? _currentUtf8TextRows;
+    private readonly CsvParser.CsvUtf8StreamDataReaderRowSource? _directUtf8TextRows;
+#endif
     private bool _readFailed;
     private bool? _hasRows;
     private bool _closed;
@@ -164,6 +169,9 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
             _useRawStringValues = false;
 #endif
         _useDirectTextSourceStrings = _useRawStringValues && _stringNullValue is null;
+#if NET8_0_OR_GREATER
+        _directUtf8TextRows = _useDirectTextSourceStrings ? _utf8StreamTextRowSource : null;
+#endif
         _useDirectValueConversion = CanUseDirectValueConversion(columns);
 #if NET8_0_OR_GREATER
         if (_asyncTextRowSource is { HasStaticValues: true })
@@ -859,7 +867,7 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
     {
         cancellationToken.ThrowIfCancellationRequested();
         _processingCancellationToken.ThrowIfCancellationRequested();
-        _hasCurrentTextRow = available;
+        SetHasCurrentTextRow(available);
         _hasRows ??= available;
         if (available) _rowIndex++;
         return available;
@@ -906,13 +914,13 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
         if (_useDirectTextSourceStrings && !_hasBufferedRow)
         {
 #if NET8_0_OR_GREATER
-            _hasCurrentTextRow = _utf8StreamTextRowSource is not null
+            SetHasCurrentTextRow(_utf8StreamTextRowSource is not null
                 ? _utf8StreamTextRowSource.Read(cancellationToken)
                 : _streamTextRowSource is not null
                     ? _streamTextRowSource.Read(cancellationToken)
-                    : _textRowSource!.Read(cancellationToken);
+                    : _textRowSource!.Read(cancellationToken));
 #else
-            _hasCurrentTextRow = _textRowSource!.Read(cancellationToken);
+            SetHasCurrentTextRow(_textRowSource!.Read(cancellationToken));
 #endif
             cancellationToken.ThrowIfCancellationRequested();
             _processingCancellationToken.ThrowIfCancellationRequested();
@@ -952,13 +960,13 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
         if (_textRowSource is not null && !_hasBufferedRow)
         {
 #if NET8_0_OR_GREATER
-            _hasCurrentTextRow = _utf8StreamTextRowSource is not null
+            SetHasCurrentTextRow(_utf8StreamTextRowSource is not null
                 ? _utf8StreamTextRowSource.Read(cancellationToken)
                 : _streamTextRowSource is not null
                     ? _streamTextRowSource.Read(cancellationToken)
-                    : _textRowSource.Read(cancellationToken);
+                    : _textRowSource.Read(cancellationToken));
 #else
-            _hasCurrentTextRow = _textRowSource.Read(cancellationToken);
+            SetHasCurrentTextRow(_textRowSource.Read(cancellationToken));
 #endif
             cancellationToken.ThrowIfCancellationRequested();
             _processingCancellationToken.ThrowIfCancellationRequested();
@@ -979,7 +987,7 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
         {
             if (_textRowSource is not null)
             {
-                _hasCurrentTextRow = true;
+                SetHasCurrentTextRow(true);
             }
             else
             {
@@ -1019,7 +1027,7 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
         }
 
         _closed = true;
-        _hasCurrentTextRow = false;
+        SetHasCurrentTextRow(false);
         _rows?.Dispose();
         _stringRows?.Dispose();
         _textRowSource?.Dispose();
@@ -1142,7 +1150,7 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
     {
         if (_textRowSource is not null)
         {
-            _hasCurrentTextRow = _textRowSource.Read();
+            SetHasCurrentTextRow(_textRowSource.Read());
             return _hasCurrentTextRow;
         }
 
@@ -1178,11 +1186,20 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
         _hasBufferedRow = false;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void SetHasCurrentTextRow(bool value)
+    {
+        _hasCurrentTextRow = value;
+#if NET8_0_OR_GREATER
+        _currentUtf8TextRows = value ? _directUtf8TextRows : null;
+#endif
+    }
+
     private void ClearCurrentRow()
     {
         _currentRawRow = null;
         _currentStringRow = null;
-        _hasCurrentTextRow = false;
+        SetHasCurrentTextRow(false);
         ClearConvertedRow();
     }
 

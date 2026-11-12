@@ -10,10 +10,12 @@ FourLambda's MPL-2.0 dependency is confined to this opt-in executable.
 The 65K comparison opens the same hash-pinned sales CSV and returns owned strings
 for every field. Each operation checks the fixed row/cell counts, decoded
 character count and ordered checksum. Setup also validates every participant.
-Four lanes use default string ownership. The fifth, `OfficeIMO_InternStrings`,
-sets `InternStrings=true` and measures per-read string reuse while returning the
-same complete observation. It is a separate option comparison; it is not the
-default reader. None of these lanes measures borrowed spans. File data is warmed by setup, so this is not cold-disk I/O.
+All four use default string ownership and read the column count once per row.
+`MarkPflug65KInternedCsvBenchmarks.OfficeIMO_InternStrings` sets `InternStrings=true`
+and measures per-read string reuse while returning the same complete observation.
+It is a separate option measurement, not the default reader, and runs in its own
+process so the comparison never executes it before the default reader is measured.
+None of these lanes measures borrowed spans. File data is warmed by setup, so this is not cold-disk I/O.
 `--validate` checks the sales readers, generated owned-string readers, typed reads
 and complete typed writes once, without collecting timings.
 

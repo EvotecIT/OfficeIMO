@@ -46,7 +46,8 @@ public class PackageAssetsCsvBenchmarks {
         var values = new CsvObservationAccumulator();
         int rows = 0;
         foreach (var row in reader) {
-            for (int column = 0; column < row.ColCount; column++) values.Add(row[column].ToString());
+            int count = row.ColCount;
+            for (int column = 0; column < count; column++) values.Add(row[column].ToString());
             rows++;
         }
         return Validate(values.ToObservation(rows));
@@ -102,7 +103,8 @@ public class PackageAssetsSpacesQuotesCsvBenchmarks {
         var values = new CsvObservationAccumulator();
         int rows = 0;
         foreach (var row in reader) {
-            for (int column = 0; column < row.ColCount; column++) values.Add(row[column].ToString());
+            int count = row.ColCount;
+            for (int column = 0; column < count; column++) values.Add(row[column].ToString());
             rows++;
         }
         return Validate(values.ToObservation(rows));
@@ -138,10 +140,10 @@ internal static class PackageAssetsCsvObservation {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static CsvReadObservation Observe(DbDataReader reader) {
         var values = new CsvObservationAccumulator();
-        int fieldCount = reader.FieldCount;
         int rows = 0;
         while (reader.Read()) {
-            for (int column = 0; column < fieldCount; column++) values.Add(reader.GetString(column));
+            int count = reader.FieldCount;
+            for (int column = 0; column < count; column++) values.Add(reader.GetString(column));
             rows++;
         }
         return values.ToObservation(rows);
