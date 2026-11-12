@@ -1,5 +1,6 @@
 using System.Data.Common;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
 using CsvHelper.Configuration;
 using nietras.SeparatedValues;
@@ -132,6 +133,9 @@ internal static class PackageAssetsCsvObservation {
         return values.ToObservation(rows);
     }
 
+    // Inlined into each benchmark so every reader gets its own monomorphic call sites. A shared body would let
+    // tiered PGO devirtualize GetString only for whichever reader the setup profiled first.
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static CsvReadObservation Observe(DbDataReader reader) {
         var values = new CsvObservationAccumulator();
         int fieldCount = reader.FieldCount;
@@ -143,6 +147,7 @@ internal static class PackageAssetsCsvObservation {
         return values.ToObservation(rows);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static CsvReadObservation Observe(CsvHelperReader reader) {
         var values = new CsvObservationAccumulator();
         int rows = 0;

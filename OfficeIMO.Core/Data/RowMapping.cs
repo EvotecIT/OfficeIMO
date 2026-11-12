@@ -207,14 +207,21 @@ public static partial class DataReaderMappingExtensions {
         }
 
         var rowSource = reader as IDataReaderMappingRowSource;
+        DbDataReader? qualifiedReader = null;
+        AutomaticRowMappingPlan<T>.RowReaderQualification qualification = default;
         while (reader.Read()) {
+            DbDataReader rowReader = rowSource?.CurrentRowReader ?? reader;
+            if (!ReferenceEquals(rowReader, qualifiedReader)) {
+                qualification = plan.Qualify(rowReader, typeConverter);
+                qualifiedReader = rowReader;
+            }
             yield return plan.MapReaderRow(
                 reader,
+                qualification,
                 culture,
                 dateTimeFormats,
                 typeConverter,
-                errorValuePolicy,
-                rowSource?.CurrentRowReader ?? reader);
+                errorValuePolicy);
         }
     }
 

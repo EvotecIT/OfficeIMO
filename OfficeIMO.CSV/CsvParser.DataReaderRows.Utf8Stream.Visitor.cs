@@ -336,8 +336,9 @@ internal static partial class CsvParser
         private readonly string GetFieldString(int ordinal)
         {
 #if NET8_0_OR_GREATER
-            // Batch-indexed ASCII text of two or more bytes that is not a quoted field, the common case,
-            // goes straight from the index to a new string; everything else takes the general path below.
+            // Batch-indexed ASCII text of two or more characters, unquoted or quoted in a batch without
+            // escaped quotes, goes straight from the index to a new string; everything else takes the
+            // general path below. The batch indexer only admits quoted fields that close their quotes.
             if (_indexed && _allFieldsAscii && BitConverter.IsLittleEndian && Vector128.IsHardwareAccelerated)
             {
                 ref int end = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_indexEnds!), _indexFirst + ordinal);
@@ -348,6 +349,11 @@ internal static partial class CsvParser
                     if (_buffer[fieldStart] != (byte)'"' || _quotesAreData)
                     {
                         return CreateAsciiString(_buffer, fieldStart, fieldLength);
+                    }
+
+                    if (!_mayHaveEscapedQuotes && fieldLength >= 4)
+                    {
+                        return CreateAsciiString(_buffer, fieldStart + 1, fieldLength - 2);
                     }
                 }
             }

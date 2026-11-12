@@ -293,9 +293,16 @@ namespace OfficeIMO.Excel {
                                 kind,
                                 out hasCachedValue,
                                 out valueStart,
+                                out valueLength)
+                            && !TryIndexCompactFormulaCell(
+                                ref position,
+                                cellIndex,
+                                kind,
+                                out hasCachedValue,
+                                out valueStart,
                                 out valueLength)) {
-                            // Formulas and other element content use the same cell indexer, and the
-                            // same full XML check, as the general row parser.
+                            // Other element content uses the same cell indexer, and the same full
+                            // XML check, as the general row parser.
                             _sheetDataSupportsFastValidation = false;
                             position = contentPosition;
                             if (!TryIndexCell(

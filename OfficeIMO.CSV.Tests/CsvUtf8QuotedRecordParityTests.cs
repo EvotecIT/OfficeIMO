@@ -49,12 +49,14 @@ public sealed class CsvUtf8QuotedRecordParityTests {
     }
 
     [Theory]
-    [InlineData(CsvQuoteParsingMode.Strict)]
-    [InlineData(CsvQuoteParsingMode.None)]
-    public void SingleLineRecordsCrossingBatchesAndRefillsKeepTheirText(CsvQuoteParsingMode quoting) {
+    [InlineData(CsvQuoteParsingMode.Strict, false)]
+    [InlineData(CsvQuoteParsingMode.None, false)]
+    [InlineData(CsvQuoteParsingMode.Strict, true)]
+    public void SingleLineRecordsCrossingBatchesAndRefillsKeepTheirText(CsvQuoteParsingMode quoting, bool asciiWithoutEscapes) {
         // Single-line records are read from a batch index; they cross index windows and buffer
         // refills, split CRLF pairs, and include records longer than a window. Without quoting,
-        // the quoted-looking fields are plain text whose comma splits them.
+        // the quoted-looking fields are plain text whose comma splits them. ASCII batches without
+        // escaped quotes take quoted values straight from the index.
         var random = new Random(20261111);
         string[] separators = { "\n", "\r\n", "\r" };
         var text = new StringBuilder();
@@ -63,7 +65,9 @@ public sealed class CsvUtf8QuotedRecordParityTests {
             for (int field = 0; field < fields; field++) {
                 if (field > 0) text.Append(',');
                 switch (random.Next(12)) {
+                    case 0 when asciiWithoutEscapes: text.Append("\"q,").Append(row).Append(" x\""); break;
                     case 0: text.Append("\"q,").Append(row).Append(" \"\"x\"\"\""); break;
+                    case 1 when asciiWithoutEscapes: text.Append('e').Append(field); break;
                     case 1: text.Append("é").Append(field); break;
                     case 2: break;
                     case 3 when random.Next(200) == 0: text.Append('w', random.Next(5_000, 9_000)); break;

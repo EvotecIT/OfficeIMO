@@ -23,6 +23,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             out int firstDataRow,
             out int lastDataRow,
             out XlsbValidatedRowPlan? validatedRowPlan,
+            out bool inlineTextFreeOfSurrogates,
             WorksheetInflationProgress? inflation = null,
             XlsbSinglePassGate? gate = null) {
             ArgumentNullException.ThrowIfNull(dateStyles);
@@ -32,6 +33,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             firstDataRow = -1;
             lastDataRow = -1;
             validatedRowPlan = null;
+            // Lets the reader copy inline text directly; any surrogate keeps the decoder's pairing rules.
+            inlineTextFreeOfSurrogates = true;
             int currentRow = -1;
             int previousCellColumn = -1;
             byte[] bytes = worksheetPart.Buffer;
@@ -200,15 +203,20 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         if (previousCellColumn > lastColumn) {
                             lastColumn = previousCellColumn;
                         }
-                        int nextRow = ValidateRowHeader(
-                            new XlsbRecordSlice(
-                                bytes,
-                                recordOffset,
-                                recordType,
-                                payloadOffset,
-                                recordSize),
-                            currentRowSpanBounds,
-                            out currentRowSpanCount);
+                        int nextRow = recordSize == SingleSpanRowHeaderSize
+                            && TryReadSingleSpanRowHeader(ref Unsafe.Add(ref data, payloadOffset),
+                                out int headerRow, out int spanFirstColumn, out int spanLastColumn)
+                            ? StoreSingleSpan(currentRowSpanBounds, spanFirstColumn, spanLastColumn,
+                                headerRow, out currentRowSpanCount)
+                            : ValidateRowHeader(
+                                new XlsbRecordSlice(
+                                    bytes,
+                                    recordOffset,
+                                    recordType,
+                                    payloadOffset,
+                                    recordSize),
+                                currentRowSpanBounds,
+                                out currentRowSpanCount);
                         if (currentRow >= 0 && nextRow <= currentRow) {
                             throw new InvalidDataException(
                                 $"The XLSB worksheet contains non-increasing row index {nextRow} after header row {currentRow}.");
@@ -274,6 +282,13 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                                 && characters <= (uint)(valueBytes - sizeof(uint)) / sizeof(char),
                             _ => false
                         };
+                        if (validFixedPayload && recordType == BrtCellSt && inlineTextFreeOfSurrogates) {
+                            int characterCount = (int)Unsafe.ReadUnaligned<uint>(
+                                ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint)));
+                            inlineTextFreeOfSurrogates = !XlsbWideText.ContainsSurrogate(
+                                bytes, payloadOffset + sizeof(int) + sizeof(uint) + sizeof(uint),
+                                characterCount * sizeof(char));
+                        }
                         if (validFixedPayload && recordType == BrtCellIsst) {
                             uint sharedStringIndex = Unsafe.ReadUnaligned<uint>(
                                 ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint)));
@@ -284,6 +299,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             }
                         }
                         if (!validFixedPayload) {
+                            if (recordType == BrtCellSt) inlineTextFreeOfSurrogates = false;
                             column = ValidateCellPayloadStructure(
                                 new XlsbRecordSlice(
                                     bytes,
@@ -296,6 +312,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                                 limits.MaxStringCharacters);
                         }
                     } else {
+                        if (recordType == BrtCellRString) inlineTextFreeOfSurrogates = false;
                         column = ValidateCellPayloadStructure(
                             new XlsbRecordSlice(
                                 bytes,
@@ -378,6 +395,41 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 : headerFirstColumn;
             schemaLastColumn = headerLastColumn;
             gate.FixSchema(headerFirstColumn, headerLastColumn, headerRow);
+        }
+
+        private const int SingleSpanRowHeaderSize = 17 + 8;
+
+        /// <summary>
+        /// Accepts exactly the one-span row headers <see cref="ValidateRowHeader"/> accepts, without
+        /// building a record slice. Anything else, including every invalid header, takes the full
+        /// validator so its errors are unchanged.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool TryReadSingleSpanRowHeader(ref byte payload, out int rowIndex,
+            out int firstColumn, out int lastColumn) {
+            uint row = Unsafe.ReadUnaligned<uint>(ref payload);
+            uint first = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref payload, 17));
+            uint last = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref payload, 21));
+            rowIndex = (int)row;
+            firstColumn = (int)first;
+            lastColumn = (int)last;
+            return row < ExcelA1.MaxRows
+                && (Unsafe.Add(ref payload, 10) & 0xFC) == 0
+                && (Unsafe.Add(ref payload, 11) & 0x80) == 0
+                && (Unsafe.Add(ref payload, 12) & 0xFE) == 0
+                && Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref payload, 13)) == 1
+                && first <= last
+                && last < ExcelA1.MaxColumns
+                && first / 1024U == last / 1024U;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int StoreSingleSpan(int[] spanBounds, int firstColumn, int lastColumn,
+            int rowIndex, out int spanCount) {
+            spanBounds[0] = firstColumn;
+            spanBounds[1] = lastColumn;
+            spanCount = 1;
+            return rowIndex;
         }
 
         private static bool IsCoveredByRowSpan(int[] spanBounds, int spanCount, int column) {

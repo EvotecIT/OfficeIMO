@@ -24,8 +24,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             if (targetType == typeof(DateTime)) {
                 // Invalid date serials must still fail after the model is constructed.
                 return kind is XlsbTabularValueKind.Date or XlsbTabularValueKind.Time
-                    && LegacyXlsDateSerialConverter.TryConvert(
-                        _numbers[ordinal], _uses1904DateSystem, out _, kind == XlsbTabularValueKind.Date);
+                    && LegacyXlsDateSerialConverter.CanConvert(
+                        _numbers[ordinal], _uses1904DateSystem, kind == XlsbTabularValueKind.Date);
             }
 
             // Date-to-number mapping retains serial validation and the original converter input.

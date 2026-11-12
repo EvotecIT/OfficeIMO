@@ -236,7 +236,8 @@ public class CsvDataReaderWriterRegressionTests
     [InlineData(true)]
     public void WriteDataReader_InvariantRecordsMatchRowWriting(bool rejectTypedRead)
     {
-        string[] pieces = { "a", "Zż", " ", ",", ";", "\"", "\r", "\n", "\r\n", "😀", "1.5", "x" };
+        // A lone surrogate is invalid UTF-16; UTF-8 streams carry the replacement character the encoder gives it.
+        string[] pieces = { "a", "Zż", " ", ",", ";", "\"", "\r", "\n", "\r\n", "😀", "\uD800", "1.5", "x" };
         var random = new Random(20261114);
         string Text() => string.Concat(Enumerable.Range(0, random.Next(0, 10)).Select(_ => pieces[random.Next(pieces.Length)]));
         string[] headers = { "Text", "Int", "Long", "Double", "Decimal", "Bool", "Date" };
