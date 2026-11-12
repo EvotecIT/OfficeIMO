@@ -1,5 +1,6 @@
 #if NET8_0_OR_GREATER
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace OfficeIMO.Excel {
@@ -10,6 +11,7 @@ namespace OfficeIMO.Excel {
             /// and all other forms retain the complete XML/HTML-decoding fallback.
             /// This recognition never substitutes for structural XML qualification.
             /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private static bool TryReadPredefinedXmlEntity(ReadOnlySpan<byte> text, out char value, out int consumed) {
                 value = default;
                 consumed = 0;
