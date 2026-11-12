@@ -115,6 +115,29 @@ public sealed class IppPrinterDeliveryTests {
     }
 
     [Fact]
+    public void SoftwareCopiesFollowThePrinterDefaultSidesWhenTheJobOmitsThem() {
+        var duplexDefault = new IppPrinterCapabilities {
+            DocumentFormats = PdfAndRaster.DocumentFormats, Media = PdfAndRaster.Media, MediaSizes = PdfAndRaster.MediaSizes, MaxCopies = 99,
+            Sides = PdfAndRaster.Sides, SidesDefault = "two-sided-short-edge",
+            PwgRasterResolutions = PdfAndRaster.PwgRasterResolutions, PwgRasterTypes = PdfAndRaster.PwgRasterTypes
+        };
+        IppDeliveryPlan plan = Plan(Sheets(PdfPageSizes.A4.Width, PdfPageSizes.A4.Height, 3, PdfPrintColorMode.Grayscale), PdfPrintContentKind.Vector,
+            new PdfPrintDeliveryOptions { PrinterName = "p", Copies = 2 }, duplexDefault);
+
+        Assert.Null(plan.JobOptions.Sides);
+        Assert.Equal(2, plan.SoftwareCopies);
+        Assert.True(plan.Duplex);
+        Assert.True(plan.Tumble);
+        // The second copy starts on a fresh sheet rather than the back of the first copy's last sheet.
+        Assert.Equal(new int?[] { 0, 1, 2, null, 0, 1, 2 }, PwgRasterJobStream.PageSequence(3, plan.SoftwareCopies, plan.Duplex));
+
+        plan = Plan(Sheets(PdfPageSizes.A4.Width, PdfPageSizes.A4.Height, 3, PdfPrintColorMode.Grayscale), PdfPrintContentKind.Vector,
+            new PdfPrintDeliveryOptions { PrinterName = "p", Copies = 2, Duplex = PdfPrintDuplex.SingleSided }, duplexDefault);
+        Assert.Equal("one-sided", plan.JobOptions.Sides);
+        Assert.False(plan.Duplex);
+    }
+
+    [Fact]
     public void DuplexCopiesStartOnANewSheetAndBackSidesFollowTheSheetBackRule() {
         Assert.Equal(new int?[] { 0, 1, 2, null, 0, 1, 2 }, PwgRasterJobStream.PageSequence(3, 2, duplex: true));
         Assert.Equal(new int?[] { 0, 1, 0, 1 }, PwgRasterJobStream.PageSequence(2, 2, duplex: true));
