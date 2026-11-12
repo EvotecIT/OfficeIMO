@@ -54,6 +54,7 @@ function Get-DocumentationUrl {
         '^OfficeIMO\.Markdown' { return '/docs/markdown/' }
         '^OfficeIMO\.Rtf' { return '/docs/rtf/' }
         '^OfficeIMO\.Epub' { return '/docs/epub/' }
+        '^OfficeIMO\.Data\.Conversions' { return '/docs/data-conversions/' }
         '^OfficeIMO\.CSV' { return '/docs/csv/' }
         '^OfficeIMO\.Yaml' { return '/docs/yaml/' }
         '^OfficeIMO\.Visio' { return '/docs/visio/' }

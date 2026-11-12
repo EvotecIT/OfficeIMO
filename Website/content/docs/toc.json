@@ -462,6 +462,11 @@
         "href": "/docs/toml/"
       },
       {
+        "title": "Data Conversions",
+        "path": "data-conversions/index.md",
+        "href": "/docs/data-conversions/"
+      },
+      {
         "title": "ZIP, CAB and MSI Archives",
         "path": "archives/index.md",
         "href": "/docs/archives/"
