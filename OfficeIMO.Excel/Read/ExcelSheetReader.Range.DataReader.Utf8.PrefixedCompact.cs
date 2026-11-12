@@ -78,8 +78,8 @@ namespace OfficeIMO.Excel {
             /// <summary>
             /// Indexes an attribute-free formula, with or without a cached value, as the general
             /// cell scan would, so it keeps the row's exact-syntax proof. Shared and array formulas
-            /// carry attributes and keep that scan. Only the row scan calls this: the canonical row
-            /// parsers reset formula metadata for the cells they index.
+            /// carry attributes and keep that scan. Callers initialize the cell's value and formula
+            /// slots first, because this writes only the parts the cell contains.
             /// </summary>
             private bool TryIndexCompactFormulaCell(
                 ref int position,

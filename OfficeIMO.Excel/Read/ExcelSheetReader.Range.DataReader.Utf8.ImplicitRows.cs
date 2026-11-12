@@ -123,19 +123,23 @@ namespace OfficeIMO.Excel {
                         if (!TryIndexCompactValueCell(
                                 ref position, cellIndex, kind,
                                 out hasCachedValue, out valueStart, out valueLength)) {
-                            // Formulas use the general cell indexer and keep the full XML check.
-                            _sheetDataSupportsFastValidation = false;
                             position = contentPosition;
-                            // The general indexer writes only the parts the cell contains.
+                            // The formula and general indexers write only the parts the cell contains.
                             _valueStarts![cellIndex] = 0;
                             _valueLengths![cellIndex] = -1;
                             if (_formulaStarts != null) {
                                 _formulaStarts[cellIndex] = 0;
                                 _formulaLengths![cellIndex] = -1;
                             }
-                            if (!TryIndexCell(ref position, cellIndex, kind,
-                                    out sharedFormulaFollower, out hasCachedValue, out valueStart, out valueLength)) {
-                                return false;
+                            if (!TryIndexCompactFormulaCell(ref position, cellIndex, kind,
+                                    out hasCachedValue, out valueStart, out valueLength)) {
+                                // Other element content uses the general cell indexer and keeps the full XML check.
+                                _sheetDataSupportsFastValidation = false;
+                                position = contentPosition;
+                                if (!TryIndexCell(ref position, cellIndex, kind,
+                                        out sharedFormulaFollower, out hasCachedValue, out valueStart, out valueLength)) {
+                                    return false;
+                                }
                             }
                             indexedFormula = _formulaLengths != null && _formulaLengths[cellIndex] >= 0;
                             generalCell = true;
