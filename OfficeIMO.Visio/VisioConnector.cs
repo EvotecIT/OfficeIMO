@@ -54,6 +54,20 @@ namespace OfficeIMO.Visio {
         internal string? PersistedId { get; set; }
         internal VisioNativeCellMetadata? NativeCellMetadata { get; set; }
         internal VisioNativeStyleReferences? NativeStyleReferences { get; set; }
+        /// <summary>Render-only text background inherited from the text style sheet chain; never serialized.</summary>
+        internal OfficeIMO.OfficeColor? StyleSheetTextBackground { get; set; }
+
+        /// <summary>
+        /// True for connectors created in the model. Their labels take the opaque white text background of Visio's
+        /// Connector style unless the text style sets one. Loaded connectors follow their file.
+        /// </summary>
+        internal bool DefaultsLabelBackground { get; set; } = true;
+
+        /// <summary>The label background this connector states in the file when its text style sets none.</summary>
+        internal OfficeIMO.OfficeColor? DefaultLabelBackground =>
+            DefaultsLabelBackground && !string.IsNullOrEmpty(Label) && TextStyle?.BackgroundColor == null && StyleSheetTextBackground == null
+                ? Color.White
+                : null;
 
         internal bool PreserveDynamicConnectorMaster { get; set; }
 

@@ -67,6 +67,41 @@ public sealed partial class OfficeFontFace {
 
     internal byte[] DataSnapshot => _data;
 
+    private OfficeFontEmbeddingPermissions? ReadEmbeddingPermissions() {
+        if (OfficeFontEmbeddingPermissions.TryReadFile(_data) is OfficeFontEmbeddingPermissions permissions) return permissions;
+        // The built-in engine accepted these bytes as an sfnt program, so its table directory is trustworthy enough to read.
+        if (HasBuiltInProgram && OfficeFontEmbeddingPermissions.TryReadTableDirectory(_data) is OfficeFontEmbeddingPermissions direct) return direct;
+        // A font-program provider can keep the source container when it supplies no static sfnt data.
+        if (ContainerFormat is not (OfficeFontContainerFormat.Woff or OfficeFontContainerFormat.Woff2)) return null;
+        byte[] decoded;
+        try {
+            if (!OfficeFontContainerDecoder.TryDecodeToOpenType(_data, out decoded, out _, out _)) return null;
+        } catch (Exception exception) when (exception is PlatformNotSupportedException or NotSupportedException or InvalidDataException) {
+            // WOFF 2 needs Brotli, which netstandard2.0 and .NET Framework lack.
+            return null;
+        }
+        return OfficeFontEmbeddingPermissions.TryReadFile(decoded);
+    }
+
+    // 0 = not read, 1 = embeddable, 2 = refused or unreadable.
+    private int _outlineEmbedding;
+
+    /// <summary>
+    /// True only when the face's OS/2 fsType could be read and allows embedding its outlines in an output document. A face
+    /// kept in its WOFF or WOFF 2 container is decoded to read it. A face whose licence cannot be read, because its bytes are
+    /// not an OpenType font or its container cannot be decoded on this platform, is not embedded.
+    /// </summary>
+    internal bool AllowsOutlineEmbedding {
+        get {
+            int state = _outlineEmbedding;
+            if (state == 0) {
+                state = ReadEmbeddingPermissions()?.AllowsOutlineEmbedding == true ? 1 : 2;
+                _outlineEmbedding = state;
+            }
+            return state == 1;
+        }
+    }
+
     internal IOfficeFontProgram ParsedFont { get; }
 
     // True when the dependency-free engine decoded this face. A provider-supplied program is caller code that

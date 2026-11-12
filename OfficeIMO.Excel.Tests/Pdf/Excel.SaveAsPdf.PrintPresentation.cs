@@ -69,9 +69,9 @@ public partial class Excel {
         var image = Assert.Single(page.GetImages());
         double baseline = FindWordStartY(page, "Scan");
         // The picture stands on the header baseline beside the text instead of hanging below it.
-        Assert.InRange(image.Bounds.Bottom, baseline - 1D, baseline + 1D);
-        Assert.True(image.Bounds.Top <= page.Height - 0.3D * 72D + 1D, "The picture starts below the 0.3 inch header margin.");
-        Assert.True(image.Bounds.Bottom >= page.Height - 0.75D * 72D, "The picture ends above the sheet.");
+        Assert.InRange(image.BoundingBox.Bottom, baseline - 1D, baseline + 1D);
+        Assert.True(image.BoundingBox.Top <= page.Height - 0.3D * 72D + 1D, "The picture starts below the 0.3 inch header margin.");
+        Assert.True(image.BoundingBox.Bottom >= page.Height - 0.75D * 72D, "The picture ends above the sheet.");
     }
 
     [Fact]

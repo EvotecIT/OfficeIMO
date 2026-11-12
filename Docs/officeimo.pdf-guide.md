@@ -586,6 +586,8 @@ Text set in a standard font slot (`Helvetica`, `Times` or `Courier`) uses an ins
 
 Set `PdfCreateOptions.EmbedDefaultFonts = false` to write the non-embedded standard PDF fonts instead. When no font file from the fallback list is installed, the document still saves with the standard font and reports a `font-not-embedded` warning without loss, because only the appearance depends on the viewer. Slots reserved by a text fallback set stay free for the fallback fonts. Office converters follow their `ResourcePolicy`: when installed fonts are not allowed, they write the standard fonts.
 
+Each embedded font follows the licence in its OS/2 `fsType` field. When a font sets more than one of Restricted License, Preview & Print and Editable, the least restrictive permission applies, so a Restricted font that also allows Preview & Print is embedded. A font that allows no embedding, or only bitmap embedding, is never embedded: writing a document that uses it as a registered font family throws `NotSupportedException` with the reason, and an installed fallback face like that is skipped for the next candidate. A font that forbids subsetting is embedded whole and without a subset tag. A font with no OS/2 table declares no restriction. PDF/A conversion applies the same rule to supplied and installed substitutes and reports a refused one as `FontNotEmbeddable`.
+
 #### Embedded-font Latin ligatures
 
 Generated PDFs use `PdfTextShapingMode.OpenTypeLigatures` by default for embedded TrueType and OpenType/CFF fonts. Measurement and painting use the same glyph run; Unicode mappings retain the source text for extraction, search, and redaction.
@@ -2140,9 +2142,21 @@ if (result.Succeeded) {
 }
 ```
 
-`ConvertToPdfA` targets PDF/A-2b, 2u, 3b and 3u. It fixes only what leaves every page drawn the same: it adds PDF/A identification in XMP and an sRGB output intent, removes encryption (`Password` takes the owner password), JavaScript and forbidden actions, sets annotation print flags, keeps only normal appearances, re-encodes LZW streams, embeds a non-embedded font from an installed face when every drawn glyph has the same width, and adds ToUnicode maps for the u-levels. PDF/A-3 keeps attachments and marks their relationship; PDF/A-2 removes them unless `RemoveEmbeddedFiles` is `false`. `Report.Changes` lists every change by object.
+`ConvertToPdfA` targets PDF/A-2b (the default), 2u, 3b, 3u, 4 and 4f. It fixes only what leaves every page drawn the same: it adds PDF/A identification in XMP and an sRGB output intent, removes encryption, JavaScript and forbidden actions, sets annotation print flags, keeps only normal appearances, re-encodes LZW streams, embeds a non-embedded font, including Symbol and ZapfDingbats, from a substitute face when every drawn glyph has the same width and the face's licence allows embedding, and adds ToUnicode maps for the u-levels. To convert an encrypted file, load it with the owner password in `PdfLoadOptions.Password`. PDF/A-3 and PDF/A-4f keep attachments and mark their relationship; PDF/A-2 and PDF/A-4 remove them, or refuse the file when `Attachments` is `PdfAAttachmentPolicy.Refuse`. PDF/A-4f requires at least one attachment. `Report.Changes` lists every change by object; `SaveAsPdfA` writes to a path or a stream.
 
-When something cannot be fixed that way, such as a composite font that is not embedded, device CMYK under an RGB output intent, or an annotation without an appearance, nothing is produced and `Report.Violations` lists every reason by object. `SaveAsPdfA(path)` throws `PdfAConversionException` in that case without creating the file. Supply a CMYK ICC profile in `OutputIntentProfile` to convert files painted in device CMYK. Validate the converted file externally before claiming conformance.
+`FontSubstitution` chooses where substitutes come from: `PdfAFontSubstitution.InstalledFonts` (the default), `None`, or your own faces with `Supplied(...)`, optionally followed by `ThenInstalledFonts()`. A supplied family is matched by its name against the font the PDF names, its standard substitutes or `Symbol` and `ZapfDingbats`, so a server without those fonts can still convert:
+
+```csharp
+var options = new PdfAConversionOptions {
+    FontSubstitution = PdfAFontSubstitution.Supplied(
+        PdfEmbeddedFontFamily.FromFiles("ZapfDingbats", "Fonts/Dingbats.ttf")).ThenInstalledFonts()
+};
+PdfDocument.Load("form.pdf").SaveAsPdfA("form-archive.pdf", options);
+```
+
+PDF/A-4 files are written as PDF 2.0. XMP is the authoritative metadata: the document information dictionary is carried into XMP and removed, or reduced to `ModDate` when the catalog has `PieceInfo`. PDF/A-4 permits JavaScript and some additional-action triggers that PDF/A-2 and PDF/A-3 forbid, so those are kept. PDF/A-4e is not supported.
+
+When something cannot be fixed that way, such as a composite font that is not embedded, device CMYK under an RGB output intent, or an annotation without an appearance, nothing is produced and `Report.Violations` lists every reason by object. `SaveAsPdfA(path)` throws `PdfAConversionException` in that case without creating the file. To convert files painted in device CMYK, set `OutputIntent` to a `PdfOutputIntent` with a CMYK ICC profile; it is written as a `GTS_PDFA1` intent, and a source that already has an output intent profile is refused. Validate the converted file externally before claiming conformance.
 
 ### Generate a fail-closed PDF/X artifact
 

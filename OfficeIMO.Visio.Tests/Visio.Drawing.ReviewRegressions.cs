@@ -50,7 +50,8 @@ public sealed class VisioDrawingReviewRegressionTests {
         byte[] narrow = ManagedTextShapingTestAssets.CreateFont('A');
         byte[] wide = WithWideAdvances(narrow);
         VisioDocument document = VisioDocument.Create(); document.UseMastersByDefault = false;
-        var shape = document.AddPage("Font override").AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(.5, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(.16, VisioMeasurementUnit.Inches)), "AAAAAAAAAA");
+        var shape = document.AddPage("Font override").AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(.5, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(.0025, VisioMeasurementUnit.Inches)), "AAAAAAAAAA");
+        // Overflow grows the .0025in block at most 64 times, to the .16in that one narrow line needs.
         shape.TextStyle = new VisioTextStyle { Size = 6, FontFamily = "Arial", LeftMargin = 0, RightMargin = 0, TopMargin = 0, BottomMargin = 0 };
         var drawingOptions = new VisioDrawingOptions(); drawingOptions.Fonts.Add("Arial", widePdf ? narrow : wide);
         var pdfOptions = new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Arial", widePdf ? wide : narrow));

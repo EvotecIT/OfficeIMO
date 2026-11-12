@@ -16,7 +16,8 @@ public partial class VisioDocument {
             startPoint ?? default, endPoint ?? default) {
             From = fromShape, To = toShape, PersistedId = persistedId,
             NativeStyleReferences = VisioNativeStyleReferences.Read(connectorElement),
-            PreserveDynamicConnectorMaster = HasDynamicConnectorIdentity(connectorElement, masters)
+            PreserveDynamicConnectorMaster = HasDynamicConnectorIdentity(connectorElement, masters),
+            DefaultsLabelBackground = false
         };
         foreach (XElement cell in connectorElement.Elements(vNs + "Cell")) {
             string? n = cell.Attribute("N")?.Value;

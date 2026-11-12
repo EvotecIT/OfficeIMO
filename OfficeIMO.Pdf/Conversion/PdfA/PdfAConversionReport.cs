@@ -14,11 +14,8 @@ public sealed class PdfAConversionReport : OfficeConversionReport {
         Violations = violations;
     }
 
-    /// <summary>Gets the requested PDF/A profile.</summary>
+    /// <summary>Gets the requested PDF/A profile: PDF/A-2b, 2u, 3b, 3u, 4 or 4f.</summary>
     public PdfComplianceProfile Profile { get; }
-
-    /// <summary>Gets whether a converted file was produced.</summary>
-    public bool Succeeded => Violations.Count == 0;
 
     /// <summary>Gets every change, by object. Empty when conversion was refused, because nothing was written.</summary>
     public IReadOnlyList<PdfAConversionChange> Changes { get; }
@@ -27,7 +24,7 @@ public sealed class PdfAConversionReport : OfficeConversionReport {
     public IReadOnlyList<PdfAConversionViolation> Violations { get; }
 
     /// <summary>Gets whether conversion was refused or removed or approximated source content.</summary>
-    public override bool HasLoss => !Succeeded || Changes.Any(static change => change.LossKind != OfficeConversionLossKind.None);
+    public override bool HasLoss => Violations.Count > 0 || Changes.Any(static change => change.LossKind != OfficeConversionLossKind.None);
 
     /// <inheritdoc />
     protected override IReadOnlyList<OfficeDiagnostic> GetDiagnostics() {
@@ -46,7 +43,7 @@ public sealed class PdfAConversionReport : OfficeConversionReport {
 
     /// <inheritdoc />
     protected override OfficeConversionException CreateLossException() =>
-        Succeeded
+        Violations.Count == 0
             ? base.CreateLossException()
             : new PdfAConversionException(this);
 
@@ -55,6 +52,8 @@ public sealed class PdfAConversionReport : OfficeConversionReport {
         PdfComplianceProfile.PdfA2U => "PDF/A-2u",
         PdfComplianceProfile.PdfA3B => "PDF/A-3b",
         PdfComplianceProfile.PdfA3U => "PDF/A-3u",
+        PdfComplianceProfile.PdfA4 => "PDF/A-4",
+        PdfComplianceProfile.PdfA4F => "PDF/A-4f",
         _ => profile.ToString()
     };
 }

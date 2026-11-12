@@ -9,9 +9,9 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
-    [InlineData(WordMergeStyleMode.UseDestinationStyles)]
-    [InlineData(WordMergeStyleMode.KeepDifferentStyles)]
-    public void MergePreservesCaseDistinctStyleIdsAndDependencies(WordMergeStyleMode mode) {
+    [InlineData(WordStyleConflictMode.KeepTarget)]
+    [InlineData(WordStyleConflictMode.Rename)]
+    public void MergePreservesCaseDistinctStyleIdsAndDependencies(WordStyleConflictMode mode) {
         using var input = new MemoryStream();
         using (WordprocessingDocument package = WordprocessingDocument.Create(input, WordprocessingDocumentType.Document, true)) {
             MainDocumentPart mainPart = package.AddMainDocumentPart();
@@ -41,7 +41,7 @@ public partial class Word {
         using WordDocument destination = WordDocument.Create();
         destination.AddParagraph("Destination text");
 
-        destination.AppendDocument(source, new WordDocumentMergeOptions { StyleMode = mode });
+        destination.AppendDocument(source, new WordDocumentMergeOptions { StyleConflictMode = mode });
 
         Assert.Equal(sourceStylesXml, sourceMain.StyleDefinitionsPart.Styles.OuterXml);
         Assert.Equal(sourceBodyXml, sourceMain.Document.Body.OuterXml);
@@ -63,5 +63,58 @@ public partial class Word {
             Assert.Equal(item.Bold, parentStyle.StyleRunProperties.Bold != null);
         }
         Assert.Empty(new OpenXmlValidator().Validate(saved));
+    }
+
+    [Theory]
+    [InlineData("333333")]
+    [InlineData("111111")] // the style matched by name has the destination's definition, so it is shared with it first
+    public void MergeOverwriteReplacesEachDestinationStyleOnceInPlace(string byNameColor) {
+        static WordDocument Create(Style[] styles, params (string Text, string StyleId)[] paragraphs) {
+            WordDocument document = WordDocument.Create();
+            MainDocumentPart main = document._wordprocessingDocument.MainDocumentPart!;
+            foreach (Style style in styles) main.StyleDefinitionsPart!.Styles!.Append(style);
+            foreach ((string text, string styleId) in paragraphs) {
+                main.Document!.Body!.Append(new Paragraph(new ParagraphProperties(new ParagraphStyleId { Val = styleId }), new Run(new Text(text))));
+            }
+            return document;
+        }
+        static Style Paragraph(string id, string name, string color) =>
+            new(new StyleName { Val = name }, new StyleRunProperties(new Color { Val = color })) { Type = StyleValues.Paragraph, StyleId = id };
+
+        using WordDocument destination = Create(new[] {
+            Paragraph("Body", "Body", "111111"),
+            new Style(new StyleName { Val = "Label" }) { Type = StyleValues.Character, StyleId = "Label" }
+        }, ("Destination", "Body"));
+        WordStyle handle = destination.Styles["Body"];
+
+        // One source style matches "Body" by id (and is named like the destination's character style), the other by name,
+        // and the first is based on the second.
+        Style byId = Paragraph("Body", "Label", "222222");
+        byId.BasedOn = new BasedOn { Val = "Other" };
+        using WordDocument source = Create(new[] { byId, Paragraph("Other", "Body", byNameColor) },
+            ("By id", "Body"), ("By name", "Other"));
+
+        destination.AppendDocument(source, new WordDocumentMergeOptions { StyleConflictMode = WordStyleConflictMode.Overwrite });
+
+        Style[] styles = destination._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Elements<Style>().ToArray();
+        Style body = Assert.Single(styles, style => style.StyleId == "Body");
+        Assert.Equal("Body", body.StyleName!.Val!.Value);
+        Assert.Equal(styles.Length, styles.Select(style => style.StyleName?.Val?.Value).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.DoesNotContain(styles, style => style.BasedOn?.Val?.Value == style.StyleId?.Value);
+
+        // The first matching source style overwrites "Body"; the other is copied, so both source paragraphs keep their look.
+        Body merged = destination._wordprocessingDocument.MainDocumentPart!.Document!.Body!;
+        string ColorOf(string text) {
+            string styleId = merged.Descendants<Paragraph>().Single(paragraph => paragraph.InnerText == text).ParagraphProperties!.ParagraphStyleId!.Val!.Value!;
+            return styles.Single(style => style.StyleId == styleId).StyleRunProperties!.Color!.Val!.Value!;
+        }
+        Assert.Equal("222222", ColorOf("By id"));
+        Assert.Equal(byNameColor, ColorOf("By name"));
+        string color = body.StyleRunProperties!.Color!.Val!.Value!;
+        Assert.Equal(color, ColorOf("Destination"));
+
+        Assert.Equal(OfficeColor.Parse("#" + color), handle.Color);
+        handle.Bold = true;
+        Assert.NotNull(body.StyleRunProperties.Bold);
     }
 }

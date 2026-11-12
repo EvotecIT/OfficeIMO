@@ -18,7 +18,7 @@ public enum PdfAConversionChangeKind {
     AnnotationFlagsUpdated,
     /// <summary>Rollover and down appearances were removed; the normal appearance is kept.</summary>
     AnnotationAppearanceUpdated,
-    /// <summary>A missing font program was embedded from an installed substitute with matching glyph widths.</summary>
+    /// <summary>A missing font program was embedded from a supplied or installed substitute with matching glyph widths.</summary>
     FontEmbedded,
     /// <summary>A font descriptor entry PDF/A does not require and the font program contradicts was removed.</summary>
     FontDescriptorUpdated,

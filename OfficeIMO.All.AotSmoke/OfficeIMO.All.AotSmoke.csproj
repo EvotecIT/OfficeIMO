@@ -139,6 +139,7 @@
     <ProjectReference Include="..\OfficeIMO.Reader.Xml\OfficeIMO.Reader.Xml.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Xps\OfficeIMO.Reader.Xps.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Yaml\OfficeIMO.Reader.Yaml.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Yaml\OfficeIMO.Yaml.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Zip\OfficeIMO.Reader.Zip.csproj" />
     <ProjectReference Include="..\OfficeIMO.Rtf\OfficeIMO.Rtf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Rtf.Markdown\OfficeIMO.Rtf.Markdown.csproj" />
@@ -280,6 +281,7 @@
     <TrimmerRootAssembly Include="OfficeIMO.Reader.Xml" />
     <TrimmerRootAssembly Include="OfficeIMO.Reader.Xps" />
     <TrimmerRootAssembly Include="OfficeIMO.Reader.Yaml" />
+    <TrimmerRootAssembly Include="OfficeIMO.Yaml" />
     <TrimmerRootAssembly Include="OfficeIMO.Reader.Zip" />
     <TrimmerRootAssembly Include="OfficeIMO.Rtf" />
     <TrimmerRootAssembly Include="OfficeIMO.Rtf.Markdown" />

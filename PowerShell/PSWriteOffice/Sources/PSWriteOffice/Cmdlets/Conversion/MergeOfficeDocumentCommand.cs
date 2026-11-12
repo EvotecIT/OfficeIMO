@@ -6,11 +6,14 @@ using PSWriteOffice.Services;
 namespace PSWriteOffice.Cmdlets.Conversion;
 
 /// <summary>Combines documents of the same native format in input order.</summary>
-/// <para>Supports PDF and Open XML Word and Excel files. Binary projection and conversion are not performed.
-/// Word and Excel live documents can receive appended files and remain caller-owned. PDF merging creates a new
+/// <para>Supports PDF, Open XML Word and Excel, and YAML files. Binary projection and conversion are not performed.
+/// Word, Excel and YAML live documents can receive appended files and remain caller-owned. PDF merging creates a new
 /// document, so live PDF targets are not supported. PassThru returns a saved FileInfo for file input or the live
-/// document for Document input. PassThruReport returns the native report for PDF file merges.
-/// Native merge options determine which content is imported.</para>
+/// document for Document input. PassThruReport returns the native report for PDF file merges and one report per
+/// overlay for YAML merges. Native merge options determine which content is imported.</para>
+/// <para>YAML inputs (.yaml and .yml mix freely) are overlaid in order onto the first file or the live document, the way
+/// Helm combines values files: mappings merge key by key, sequences follow YamlMergeOptions.Sequences, and only the
+/// lines the merge changes differ from the base file.</para>
 /// <example>
 ///   <summary>Combine PDFs in the specified order.</summary>
 ///   <code>Merge-OfficeDocument -Path ./agenda.pdf, ./minutes.pdf -OutputPath ./board-pack.pdf -PassThru</code>
@@ -20,11 +23,15 @@ namespace PSWriteOffice.Cmdlets.Conversion;
 ///   <code>Get-ChildItem ./weekly -Filter *.docx | Sort-Object Name | Merge-OfficeDocument -OutputPath ./monthly.docx</code>
 /// </example>
 /// <example>
+///   <summary>Layer per-environment YAML values over the defaults.</summary>
+///   <code>Merge-OfficeDocument -Path ./values.yaml, ./values.prod.yaml -OutputPath ./values.merged.yaml -Options @{ NullRemovesKey = $true } -PassThruReport</code>
+/// </example>
+/// <example>
 ///   <summary>Append files to a caller-owned proposal.</summary>
 ///   <code>Merge-OfficeDocument -Document $proposal -Path ./scope.docx, ./pricing.docx -OutputPath ./proposal.docx</code>
 /// </example>
 [Cmdlet("Merge", "OfficeDocument", DefaultParameterSetName = "Path", SupportsShouldProcess = true)]
-[OutputType(typeof(FileInfo), typeof(OfficeIMO.Word.WordDocument), typeof(OfficeIMO.Excel.ExcelDocument), typeof(OfficeIMO.Pdf.PdfMergeReport))]
+[OutputType(typeof(FileInfo), typeof(OfficeIMO.Word.WordDocument), typeof(OfficeIMO.Excel.ExcelDocument), typeof(OfficeIMO.Pdf.PdfMergeReport), typeof(OfficeIMO.Yaml.YamlMergeReport))]
 public sealed class MergeOfficeDocumentCommand : PSCmdlet {
     private readonly List<string> _inputs = new();
     private object? _document;
@@ -42,7 +49,7 @@ public sealed class MergeOfficeDocumentCommand : PSCmdlet {
     [ValidateNotNullOrEmpty]
     public string[] LiteralPath { get; set; } = Array.Empty<string>();
 
-    /// <summary>A single editable Word or Excel document to append to; ownership stays with the caller.</summary>
+    /// <summary>A single editable Word, Excel or YAML document to append to; ownership stays with the caller.</summary>
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Document")]
     [ValidateNotNull]
     public IDisposable Document { get; set; } = null!;
@@ -74,9 +81,8 @@ public sealed class MergeOfficeDocumentCommand : PSCmdlet {
     [Parameter]
     public SwitchParameter PassThru { get; set; }
 
-    /// <summary>Emit the native PDF merge report after successful publication.</summary>
-    [Parameter(ParameterSetName = "Path")]
-    [Parameter(ParameterSetName = "LiteralPath")]
+    /// <summary>Emit the native PDF merge report, or one YAML merge report per overlay, after a successful merge.</summary>
+    [Parameter]
     public SwitchParameter PassThruReport { get; set; }
 
     /// <summary>Open the saved result through the shell after successful publication.</summary>
@@ -102,10 +108,12 @@ public sealed class MergeOfficeDocumentCommand : PSCmdlet {
         if (_inputs.Count == 0) throw new PSArgumentException("Provide at least one input file.");
         string extension = System.IO.Path.GetExtension(_inputs[0]).ToLowerInvariant();
         var family = OfficeMergeDispatch.GetFamily(extension);
-        if (PassThruReport.IsPresent && family != OfficeMergeFamily.Pdf)
-            throw new PSArgumentException("PassThruReport is available for native PDF merges.");
+        if (PassThruReport.IsPresent && family != OfficeMergeFamily.Pdf && family != OfficeMergeFamily.Yaml)
+            throw new PSArgumentException("PassThruReport is available for native PDF and YAML merges.");
+        if (Password != null && family == OfficeMergeFamily.Yaml)
+            throw new PSArgumentException("YAML files have no password.");
         foreach (string path in _inputs) {
-            if (!extension.Equals(System.IO.Path.GetExtension(path), StringComparison.OrdinalIgnoreCase))
+            if (!OfficeMergeDispatch.SameFormat(extension, System.IO.Path.GetExtension(path)))
                 throw new PSArgumentException("All merge inputs must have the same format and extension. Convert mixed inputs separately.");
         }
         if (Password != null && Password.Length != 1 && Password.Length != _inputs.Count)
@@ -116,7 +124,7 @@ public sealed class MergeOfficeDocumentCommand : PSCmdlet {
         string? output = OutputPath == null ? null : OfficePath.ResolveOutput(SessionState, OutputPath, directory: false);
         if (output == null && NoClobber.IsPresent) throw new PSArgumentException("NoClobber requires OutputPath.");
         if (output != null) {
-            if (!extension.Equals(System.IO.Path.GetExtension(output), StringComparison.OrdinalIgnoreCase))
+            if (!OfficeMergeDispatch.SameFormat(extension, System.IO.Path.GetExtension(output)))
                 throw new PSArgumentException("OutputPath must have the same format and extension as the merge inputs.");
             // Reject source replacement even with the default overwrite policy. A merge always has a distinct destination.
             foreach (string source in _inputs) RejectSourceDestination(source, output);
@@ -126,7 +134,7 @@ public sealed class MergeOfficeDocumentCommand : PSCmdlet {
         if (!ShouldProcess(output ?? "Live " + family + " document", "Merge documents in input order")) return;
         var report = OfficeMergeDispatch.Execute(_inputs, Password, family, extension, options, _document, output, NoClobber.IsPresent, readOptions);
         if (Show.IsPresent) FileOpenService.Open(output!);
-        if (PassThruReport.IsPresent) WriteObject(report);
+        if (PassThruReport.IsPresent) WriteObject(report, enumerateCollection: report is Array);
         if (PassThru.IsPresent) WriteObject(_document ?? (object)new FileInfo(output!));
     }
 

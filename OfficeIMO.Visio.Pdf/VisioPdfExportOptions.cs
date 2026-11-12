@@ -4,16 +4,16 @@ namespace OfficeIMO.Visio.Pdf;
 
 /// <summary>Selects the PDF content contract.</summary>
 public enum VisioPdfProjectionMode {
-    /// <summary>Searchable semantic text and topology with optional preview assets.</summary>
+    /// <summary>Searchable semantic text and topology with optional preview assets instead of the drawing.</summary>
     SemanticReport,
-    /// <summary>One physical PDF page per source page, using cached diagram Drawing scenes.</summary>
+    /// <summary>One physical PDF page per source page, drawn as vector artwork from cached diagram Drawing scenes. This is the default.</summary>
     DiagramPages
 }
 
 /// <summary>Controls the loss-aware Visio-to-PDF projection.</summary>
 public sealed class VisioPdfExportOptions {
-    /// <summary>PDF content contract. Defaults to the existing semantic report.</summary>
-    public VisioPdfProjectionMode Mode { get; set; } = VisioPdfProjectionMode.SemanticReport;
+    /// <summary>PDF content contract. Defaults to <see cref="VisioPdfProjectionMode.DiagramPages"/>; select <see cref="VisioPdfProjectionMode.SemanticReport"/> explicitly for the text and topology report.</summary>
+    public VisioPdfProjectionMode Mode { get; set; } = VisioPdfProjectionMode.DiagramPages;
 
     /// <summary>Optional logical source name recorded in conversion diagnostics. Loaded documents use their associated path by default.</summary>
     public string? SourceName { get; set; }

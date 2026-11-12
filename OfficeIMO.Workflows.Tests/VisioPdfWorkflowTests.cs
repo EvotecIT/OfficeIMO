@@ -82,7 +82,7 @@ public sealed class VisioPdfWorkflowTests {
         string root = CreateDirectory();
         try {
             string input = Path.Combine(root, "source" + extension), output = Path.Combine(root, "result.pdf");
-            WriteSource(input, hyperlink: true);
+            WriteSource(input, shapeData: true);
             byte[] before = File.ReadAllBytes(input), sentinel = [1, 2, 3];
             File.WriteAllBytes(output, sentinel);
             var result = await new OfficeWorkflowRunner().RunAsync(new() {
@@ -181,7 +181,7 @@ public sealed class VisioPdfWorkflowTests {
         string root = CreateDirectory();
         string input = Directory.CreateDirectory(Path.Combine(root, "input")).FullName;
         try {
-            WriteSource(Path.Combine(input, "source.vdx"), hyperlink: true);
+            WriteSource(Path.Combine(input, "source.vdx"), shapeData: true);
             File.WriteAllText(Path.Combine(input, "literal.txt"), "Literal marker");
             var request = new OfficeBatchOptions {
                 InputDirectory = input,
@@ -245,11 +245,11 @@ public sealed class VisioPdfWorkflowTests {
 
     private static string CreateDirectory() => Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "officeimo-visio-workflow-" + Guid.NewGuid().ToString("N"))).FullName;
 
-    private static void WriteSource(string path, bool hyperlink = false) {
+    private static void WriteSource(string path, bool shapeData = false) {
         VisioDocument source = VisioDocument.Create(Path.GetExtension(path) == ".vtx" ? VisioPackageType.Template : VisioPackageType.Drawing);
         VisioPage first = source.AddPage("First"); first.Width = OfficeLength.Inches(5); first.Height = OfficeLength.Inches(3);
         VisioShape shape = first.AddRectangle(OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "WorkflowCaption");
-        if (hyperlink) shape.AddHyperlink("https://example.com");
+        if (shapeData) shape.SetShapeData("Owner", "Operations");
         VisioPage second = source.AddPage("Blank"); second.Width = OfficeLength.Inches(2); second.Height = OfficeLength.Inches(1.5);
         if (Path.GetExtension(path) == ".vsdx") source.Save(path);
         else {

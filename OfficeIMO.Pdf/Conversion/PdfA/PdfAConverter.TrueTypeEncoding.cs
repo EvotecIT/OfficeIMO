@@ -70,6 +70,23 @@ internal sealed partial class PdfAConverter {
             "The embedded TrueType font has no WinAnsi or MacRoman encoding, and its glyphs cannot be selected the same way with one.", font);
     }
 
+    /// <summary>
+    /// PDF/A-4 (6.2.10.6) requires a non-symbolic TrueType program to carry a (3,1) or (1,0) cmap. A program whose Unicode
+    /// cmap uses only the Unicode platform gets a (3,1) record pointing at that same subtable, so every glyph lookup is unchanged.
+    /// </summary>
+    private void AddWindowsUnicodeCmapRecord(FontUse use, PdfDictionary descriptor, string location) {
+        if (_part != 4 || !use.Visible || GetName(use.Font, "Subtype") != "TrueType") return;
+        int flags = Resolve(descriptor.Items.TryGetValue("Flags", out PdfObject? flagValue) ? flagValue : null) is PdfNumber number ? (int)number.Value : 0;
+        if ((flags & 4) != 0 || !descriptor.Items.TryGetValue("FontFile2", out PdfObject? fileValue) || Resolve(fileValue) is not PdfStream program ||
+            !StreamDecoder.TryDecode(program, _document.ReadOptions.Limits.MaxDecodedStreamBytes, out byte[] data, _objects)) return;
+        if (PdfTrueTypeUnicodeCmap.TryAddWindowsUnicodeRecord(data) is not byte[] patched) return;
+        if (!Change(PdfAConversionChangeKind.FontDescriptorUpdated, location,
+                "Listed the font program's Unicode cmap under the Windows Unicode platform, as PDF/A-4 requires; glyph selection is unchanged.", program)) return;
+        program.Dictionary.Items.Remove("DecodeParms");
+        program.Dictionary.Items["Length1"] = new PdfNumber(patched.Length);
+        ReplaceStreamData(program, ObjectNumberOf(fileValue), PdfFlateEncoder.Compress(patched, _cancellationToken), new PdfName("FlateDecode"));
+    }
+
     private bool HasWindowsUnicodeCmap(PdfStream program) =>
         StreamDecoder.TryDecode(program, _document.ReadOptions.Limits.MaxDecodedStreamBytes, out byte[] data, _objects) && HasWindowsUnicodeCmap(data);
 

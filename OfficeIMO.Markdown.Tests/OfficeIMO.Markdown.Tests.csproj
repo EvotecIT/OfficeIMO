@@ -44,6 +44,7 @@
 
   <ItemGroup>
     <None Include="..\OfficeIMO.TestAssets\Documents\MarkdownVisuals\**" Link="Documents\MarkdownVisuals\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Yaml\Corpus\FrontMatter\*.md" Link="Yaml\FrontMatter\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

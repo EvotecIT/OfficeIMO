@@ -38,7 +38,9 @@ public sealed partial class HtmlRenderPage {
             .OrderBy(item => item.PaintOrder)
             .ToList()
             .AsReadOnly();
-        _visuals = FlattenSemanticGroups(_scene).ToList().AsReadOnly();
+        var flattened = new List<HtmlRenderVisual>(_scene.Count);
+        FlattenSemanticGroups(_scene, flattened);
+        _visuals = flattened.AsReadOnly();
         // The renderer passes one operation-scoped snapshot to every page. Public access still clones it.
         _fonts = fonts ?? new OfficeFontFaceCollection();
         _runningStrings = runningStrings;
@@ -93,18 +95,20 @@ public sealed partial class HtmlRenderPage {
         return drawing;
     }
 
-    private static IEnumerable<HtmlRenderVisual> FlattenSemanticGroups(IEnumerable<HtmlRenderVisual> visuals) {
-        foreach (HtmlRenderVisual visual in visuals) {
+    // Appends leaves directly, so a table page needs no nested iterator per row and cell.
+    private static void FlattenSemanticGroups(IReadOnlyList<HtmlRenderVisual> visuals, List<HtmlRenderVisual> leaves) {
+        for (int index = 0; index < visuals.Count; index++) {
+            HtmlRenderVisual visual = visuals[index];
             if (visual is HtmlRenderSemanticGroup semanticGroup) {
-                foreach (HtmlRenderVisual child in FlattenSemanticGroups(semanticGroup.Visuals)) yield return child;
+                FlattenSemanticGroups(semanticGroup.Visuals, leaves);
             } else if (visual is HtmlRenderLayoutRegion layoutRegion) {
-                foreach (HtmlRenderVisual child in FlattenSemanticGroups(layoutRegion.Visuals)) yield return child;
+                FlattenSemanticGroups(layoutRegion.Visuals, leaves);
             } else if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
-                foreach (HtmlRenderVisual child in FlattenSemanticGroups(logicalTextGroup.Visuals)) yield return child;
+                FlattenSemanticGroups(logicalTextGroup.Visuals, leaves);
             } else if (visual is HtmlRenderFormField formField) {
-                foreach (HtmlRenderVisual child in FlattenSemanticGroups(formField.Visuals)) yield return child;
+                FlattenSemanticGroups(formField.Visuals, leaves);
             } else {
-                yield return visual;
+                leaves.Add(visual);
             }
         }
     }

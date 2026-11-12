@@ -6,7 +6,7 @@ namespace OfficeIMO.Visio;
 internal static partial class VisioSvgRenderer {
     private static void WriteRichText(XmlWriter writer, VisioRichTextProjection projection,
         double x, double y, VisioTextStyle? style, double rotationRadians, double width, double height,
-        bool drawLabelBackground, bool labelAdjusted, CancellationToken cancellationToken) {
+        bool connectorLabel, bool labelAdjusted, CancellationToken cancellationToken) {
         OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(new OfficeFontInfo("Arial", 10D));
         OfficeRichTextBlockLayout layout = VisioRichTextLayout.Create(projection, width, height,
             (text, size, family, fontStyle) => MeasureSvgTextWidth(measurer, text, size, family ?? "Arial", fontStyle),
@@ -14,7 +14,7 @@ internal static partial class VisioSvgRenderer {
         writer.WriteStartElement("g", SvgNamespace);
         writer.WriteAttributeString("data-officeimo-rich-text", "true");
         ConfigureSvgTextAttributes(writer, style, labelAdjusted);
-        if (ResolveTextBackground(style, drawLabelBackground) is OfficeColor background && background.A > 0) {
+        if (ResolveTextBackground(style) is OfficeColor background && background.A > 0) {
             OfficeTextBlockBackgroundBounds bounds = VisioRichTextLayout.Background(layout, projection, style,
                 x, y, width, height, 3D, 2D);
             writer.WriteStartElement("rect", SvgNamespace);
@@ -25,7 +25,7 @@ internal static partial class VisioSvgRenderer {
             OfficeSvgFormatting.WriteColorAttribute(writer, "fill", background);
             if (Math.Abs(rotationRadians) > 0.000001D)
                 writer.WriteAttributeString("transform", FormatTextRotation(rotationRadians, x, y));
-            ConfigureTextBackgroundAttributes(writer, drawLabelBackground, labelAdjusted);
+            ConfigureTextBackgroundAttributes(writer, connectorLabel, labelAdjusted);
             writer.WriteEndElement();
         }
         var markup = new StringBuilder();

@@ -38,6 +38,7 @@ public partial class PdfImageExtractorTests {
         using var destination = new BufferMutatingImageDestination();
         first.SourceImage.CopyTo(destination);
         Assert.Equal(firstBytes, destination.ToArray());
+        Assert.Equal(firstBytes, first.SourceImage.Bytes);
         Assert.Equal(firstBytes, second.SourceImage.Bytes);
     }
 

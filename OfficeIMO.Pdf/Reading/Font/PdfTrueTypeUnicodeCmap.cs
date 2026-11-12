@@ -370,6 +370,102 @@ internal static partial class PdfTrueTypeUnicodeCmap {
         return 0;
     }
 
+    /// <summary>
+    /// Returns the glyph a symbolic simple TrueType font draws for a one-byte code, the way PDF viewers select it: the (3,0)
+    /// cmap at the code or its 0xF000, 0xF100 or 0xF200 alias, then the (1,0) cmap. Returns 0 when the code maps to no glyph.
+    /// </summary>
+    internal static int ResolveSymbolicCodeGlyph(byte[] program, int code) {
+        if (code is < 0 or > 255 || !TryReadTables(program, out List<(string Tag, int Offset, int Length)> tables)) return 0;
+        int cmapIndex = tables.FindIndex(static table => string.Equals(table.Tag, "cmap", StringComparison.Ordinal));
+        if (cmapIndex < 0 ||
+            !TryReadCodeSubtables(program, tables[cmapIndex].Offset, tables[cmapIndex].Length, out int? symbolic, out int? macintosh, out int? unicode)) return 0;
+        return ResolveGlyph(program, (byte)code, symbolic, macintosh, unicode, isSymbolic: true, static _ => string.Empty);
+    }
+
+    /// <summary>
+    /// Returns the program with a (3,1) cmap record, and a (3,10) record for a format-12 subtable, pointing at its existing Unicode-platform (0,x) subtable, for
+    /// programs whose only Unicode cmap uses the Unicode platform. Glyph selection is unchanged; returns null when the
+    /// program already has a (3,1) or (1,0) subtable or has no usable Unicode subtable.
+    /// </summary>
+    internal static byte[]? TryAddWindowsUnicodeRecord(byte[] program) {
+        if (!TryReadTables(program, out List<(string Tag, int Offset, int Length)> tables)) return null;
+        int cmapIndex = tables.FindIndex(static table => string.Equals(table.Tag, "cmap", StringComparison.Ordinal));
+        if (cmapIndex < 0) return null;
+        (_, int cmap, int length) = tables[cmapIndex];
+        if (length < 4) return null;
+        int count = ReadUInt16(program, cmap + 2);
+        if (count == 0 || count + 2 > OfficeOpenTypeCmap.MaximumSubtables || 4 + count * 8 > length) return null;
+        uint? unicodeOffset = null;
+        int unicodeFormat = 0;
+        for (int index = 0; index < count; index++) {
+            int record = cmap + 4 + index * 8;
+            int platform = ReadUInt16(program, record);
+            int encoding = ReadUInt16(program, record + 2);
+            if (platform == 3 && encoding == 1 || platform == 1 && encoding == 0) return null;
+            uint offset = ReadUInt32(program, record + 4);
+            if (platform != 0 || offset > (uint)(length - 4)) continue;
+            int format = ReadUInt16(program, cmap + (int)offset);
+            // Prefer the BMP format-4 subtable, the one a (3,1) record conventionally lists.
+            if ((format == 4 || format == 12) && (unicodeOffset is null || format == 4 && unicodeFormat != 4)) {
+                unicodeOffset = offset;
+                unicodeFormat = format;
+            }
+        }
+        if (unicodeOffset is null) return null;
+        var records = new List<(int Platform, int Encoding, uint Offset)>();
+        for (int index = 0; index < count; index++) {
+            int record = cmap + 4 + index * 8;
+            records.Add((ReadUInt16(program, record), ReadUInt16(program, record + 2), ReadUInt32(program, record + 4)));
+        }
+        // PDF/A-4 requires a (3,1) record. A font with only a format-12 subtable gets (3,1) and (3,10) records for it, so
+        // the result is recognised on the next pass instead of being patched again.
+        records.Add((3, 1, unicodeOffset.Value));
+        if (unicodeFormat == 12 && !records.Any(static record => record.Platform == 3 && record.Encoding == 10)) records.Add((3, 10, unicodeOffset.Value));
+        // Every added 8-byte record moves the subtable data that follows the directory.
+        uint shift = (uint)((records.Count - count) * 8);
+        for (int index = 0; index < records.Count; index++) records[index] = (records[index].Platform, records[index].Encoding, records[index].Offset + shift);
+        records.Sort(static (left, right) => left.Platform != right.Platform ? left.Platform.CompareTo(right.Platform) : left.Encoding.CompareTo(right.Encoding));
+        using var body = new MemoryStream();
+        WriteUInt16(body, 0);
+        WriteUInt16(body, (ushort)records.Count);
+        foreach ((int platform, int encoding, uint offset) in records) {
+            WriteUInt16(body, (ushort)platform);
+            WriteUInt16(body, (ushort)encoding);
+            WriteUInt32(body, offset);
+        }
+        int subtables = 4 + count * 8;
+        body.Write(program, cmap + subtables, length - subtables);
+        var bodies = new List<(string Tag, byte[] Body)>(tables.Count);
+        foreach (var table in tables) {
+            if (string.Equals(table.Tag, "cmap", StringComparison.Ordinal)) {
+                bodies.Add((table.Tag, body.ToArray()));
+                continue;
+            }
+            var copy = new byte[table.Length];
+            Buffer.BlockCopy(program, table.Offset, copy, 0, table.Length);
+            bodies.Add((table.Tag, copy));
+        }
+        bodies.Sort(static (left, right) => string.CompareOrdinal(left.Tag, right.Tag));
+        bool cff = ReadUInt32(program, 0) == OpenTypeCffFlavor;
+        return Assemble(bodies, cff ? OpenTypeCffFlavor : 0x00010000U);
+    }
+
+    /// <summary>Builds a cmap with a single (3,0) symbol subtable mapping each code at its 0xF000 alias to a glyph.</summary>
+    internal static byte[] BuildSymbolCmap(IReadOnlyDictionary<int, int> codeGlyphs) {
+        var mappings = codeGlyphs.Where(static pair => pair.Key is >= 0 and <= 255 && pair.Value > 0)
+            .Select(static pair => new KeyValuePair<int, int>(0xF000 | pair.Key, pair.Value))
+            .OrderBy(static pair => pair.Key).ToList();
+        byte[] format4 = BuildFormat4(mappings);
+        using var output = new MemoryStream();
+        WriteUInt16(output, 0);
+        WriteUInt16(output, 1);
+        WriteUInt16(output, 3);
+        WriteUInt16(output, 0);
+        WriteUInt32(output, 12U);
+        output.Write(format4, 0, format4.Length);
+        return output.ToArray();
+    }
+
     internal static byte[] BuildUnicodeCmap(SortedDictionary<int, int> mappings) {
         var basic = mappings.Where(static mapping => mapping.Key < 0xFFFF).ToList();
         // Reserve U+FFFF for format 4's sentinel; format 12 carries an explicit mapping.

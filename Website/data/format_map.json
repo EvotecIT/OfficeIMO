@@ -2469,7 +2469,7 @@
       "source": "ODS",
       "target": "JPEG",
       "package": "OfficeIMO.Excel.OpenDocument",
-      "support": "Targeted",
+      "support": "Established",
       "fidelity": "FixedLayout",
       "api": "OdsDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
@@ -2481,7 +2481,7 @@
       "source": "ODS",
       "target": "PDF",
       "package": "OfficeIMO.OpenDocument.Ods.Pdf",
-      "support": "Targeted",
+      "support": "Established",
       "fidelity": "FixedLayout",
       "api": "OdsDocument.Load(stream) or LoadFlatXml(stream).SaveAsPdf(output, options)",
       "surfaces": [
@@ -2495,7 +2495,7 @@
       "source": "ODS",
       "target": "PNG",
       "package": "OfficeIMO.Excel.OpenDocument",
-      "support": "Targeted",
+      "support": "Established",
       "fidelity": "FixedLayout",
       "api": "OdsDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
@@ -2507,7 +2507,7 @@
       "source": "ODS",
       "target": "SVG",
       "package": "OfficeIMO.Excel.OpenDocument",
-      "support": "Targeted",
+      "support": "Established",
       "fidelity": "FixedLayout",
       "api": "OdsDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
@@ -2519,7 +2519,7 @@
       "source": "ODS",
       "target": "TIFF",
       "package": "OfficeIMO.Excel.OpenDocument",
-      "support": "Targeted",
+      "support": "Established",
       "fidelity": "FixedLayout",
       "api": "OdsDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
@@ -2531,7 +2531,7 @@
       "source": "ODS",
       "target": "WebP",
       "package": "OfficeIMO.Excel.OpenDocument",
-      "support": "Targeted",
+      "support": "Established",
       "fidelity": "FixedLayout",
       "api": "OdsDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
@@ -2543,7 +2543,7 @@
       "source": "ODS",
       "target": "XLSX",
       "package": "OfficeIMO.Excel.OpenDocument",
-      "support": "Targeted",
+      "support": "Established",
       "fidelity": "Editable",
       "api": "OdsDocument.Load(stream) or LoadFlatXml(stream).SaveAsExcel(output, options)",
       "surfaces": [
@@ -3558,7 +3558,7 @@
       "source": "Visio",
       "target": "PDF",
       "package": "OfficeIMO.Visio.Pdf",
-      "support": "Targeted",
+      "support": "Established",
       "fidelity": "FixedLayout",
       "api": "VisioDocument.Load(stream).SaveAsPdf(output, options)",
       "surfaces": [
@@ -3725,7 +3725,7 @@
       "source": "XLSX",
       "target": "ODS",
       "package": "OfficeIMO.Excel.OpenDocument",
-      "support": "Targeted",
+      "support": "Established",
       "fidelity": "Editable",
       "api": "ExcelDocument.Load(stream).SaveAsOpenDocument(output, options)",
       "surfaces": [

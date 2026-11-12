@@ -4,6 +4,7 @@ using OfficeIMO.Word;
 PhysicalFontSmoke.Run();
 HiddenDataSmoke.Run();
 StylesThemeSmoke.Run();
+MergeSplitSmoke.Run();
 
 string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-AotSmoke-" + Guid.NewGuid().ToString("N") + ".docx");
 try {

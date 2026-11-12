@@ -1,5 +1,6 @@
 using System.Text;
 using OfficeIMO.Reader;
+using OfficeIMO.Reader.All;
 using OfficeIMO.Reader.Toml;
 using OfficeIMO.Toml;
 using Xunit;
@@ -59,10 +60,53 @@ public sealed class ReaderTomlModularTests {
     }
 
     [Fact]
-    public void TheHandlerReadsTomlFilesByExtension() {
-        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddTomlHandler().Build();
+    public void TheAllPresetReadsTomlFilesByExtensionAsTheTomlFormat() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddAllOfficeIMOHandlers().Build();
         OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes("title = \"x\"\n"), "config.toml");
         Assert.Equal(ReaderInputKind.Toml, result.Kind);
         Assert.Equal("$.title", Assert.Single(result.Chunks).Tables![0].Rows[0][0]);
+        Assert.Equal(OfficeDocumentFormat.Toml, OfficeDocumentReadResultPdfExtensions.MapFormat(result.Kind));
+    }
+
+    [Theory]
+    [InlineData("MaxDepth", "a.b.c.d.e = 1\n")]
+    [InlineData("MaxNodes", "a = 1\nb = 2\nc = 3\n")]
+    [InlineData("MaxScalarLength", "a = \"0123456789\"\n")]
+    public void TomlLimitsThrowTheNamedReaderLimit(string limit, string toml) {
+        var options = new TomlReadOptions {
+            MaxDepth = limit == "MaxDepth" ? 2 : null,
+            MaxNodes = limit == "MaxNodes" ? 2 : null,
+            MaxScalarLength = limit == "MaxScalarLength" ? 8 : null
+        };
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddTomlHandler(options).Build();
+
+        ReaderResourceLimitException error = Assert.Throws<ReaderResourceLimitException>(() =>
+            reader.ReadDocument(Encoding.UTF8.GetBytes(toml), "bounded.toml", new ReaderOptions { ComputeHashes = false }));
+        Assert.Equal(limit, error.LimitName);
+        Assert.IsType<TomlLimitExceededException>(error.InnerException);
+    }
+
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData(100, false)]
+    public void ReaderLimitsOverrideTheNestedLoadOptions(int? maxNodes, bool exceeds) {
+        var options = new TomlReadOptions { LoadOptions = new TomlLoadOptions { MaxNodes = 2 }, MaxNodes = maxNodes };
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddTomlHandler(options).Build();
+        Func<OfficeDocumentReadResult> read = () => reader.ReadDocument(Encoding.UTF8.GetBytes("a = 1\nb = 2\nc = 3\n"), "nested.toml");
+
+        if (exceeds) {
+            Assert.Equal("MaxNodes", Assert.Throws<ReaderResourceLimitException>(() => read()).LimitName);
+        } else {
+            Assert.Equal(3, Assert.Single(read().Chunks).Tables![0].Rows.Count);
+        }
+    }
+
+    [Fact]
+    public void TomlReadStopsWhenCancelled() {
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(Pyproject), writable: false);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.ThrowsAny<OperationCanceledException>(() => TomlReaderAdapter.Read(stream, "pyproject.toml", cancellationToken: cancellation.Token).ToList());
     }
 }

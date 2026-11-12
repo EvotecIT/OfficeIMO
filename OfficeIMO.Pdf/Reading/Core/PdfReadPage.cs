@@ -165,7 +165,13 @@ public sealed partial class PdfReadPage {
             cancellationCheck: cancellationToken.ThrowIfCancellationRequested);
     }
 
-    private PdfPageBox GetPageBoundaryBox() => GetPageBoundaryBox(GetGeometry());
+    // Only MediaBox and CropBox decide the boundary box, so skip reading the rest of the page geometry.
+    private PdfPageBox GetPageBoundaryBox() {
+        TryReadPageBox("MediaBox", out PdfPageBox? mediaBox);
+        TryReadPageBox("CropBox", out PdfPageBox? cropBox);
+        return GetPageBoundaryBox(new PdfPageGeometry(mediaBox, cropBox, null, null, null, null, null, null, null,
+            hasMetadata: false, metadataObjectNumber: null, hasPieceInfo: false));
+    }
 
     private static PdfPageBox GetPageBoundaryBox(PdfPageGeometry geometry) {
         if (geometry.EffectiveBox is PdfPageBox effectiveBox) return effectiveBox;
@@ -770,7 +776,8 @@ public sealed partial class PdfReadPage {
         double pageHeight = GetPageSize().Height;
         var pageContentBudget = new PageContentBudget(this, cancellationToken);
 
-        string content = GetContentStreamContent(pageContentBudget);
+        // The placement parser reads the decoded bytes directly; only string-based passes need the Latin-1 copy.
+        PdfContentSource content = GetContentStreamSequence(pageContentBudget).Source;
         cancellationCheck?.Invoke();
         if (content.Length > 0) {
             Action? operationCheck = consumeWork is null && cancellationCheck is null
@@ -1255,7 +1262,7 @@ public sealed partial class PdfReadPage {
     }
 
     private void CollectImagePlacementsAndForms(
-        string content,
+        PdfContentSource content,
         PdfDictionary? resources,
         int pageNumber,
         Matrix2D baseTransform,
@@ -2402,9 +2409,41 @@ public sealed partial class PdfReadPage {
 
     private void EndDecodedContentReuse() {
         lock (_decodedContentReuseSync) {
-            if (_decodedContentReuseDepth > 0 && --_decodedContentReuseDepth == 0) _reusableContentSequence = null;
+            if (_decodedContentReuseDepth > 0 && --_decodedContentReuseDepth == 0) {
+                _reusableContentSequence = null;
+                _reusableWrappedContent = null;
+            }
         }
     }
+
+    /// <summary>
+    /// Same text as <see cref="WrapContentWithTransform(string, Matrix2D, out int)"/>. While decoded content is
+    /// reused, visual passes that wrap the same page content in the same transform share one copy.
+    /// </summary>
+    private string WrapReusedContentWithTransform(string content, Matrix2D transform, out int contentOffset) {
+        lock (_decodedContentReuseSync) {
+            if (_decodedContentReuseDepth > 0 && _reusableWrappedContent is { } reused &&
+                ReferenceEquals(reused.Content, content) && SameBits(reused.Transform, transform)) {
+                contentOffset = reused.Offset;
+                return reused.Wrapped;
+            }
+        }
+        string wrapped = WrapContentWithTransform(content, transform, out contentOffset);
+        lock (_decodedContentReuseSync) {
+            if (_decodedContentReuseDepth > 0) _reusableWrappedContent = (content, transform, contentOffset, wrapped);
+        }
+        return wrapped;
+
+        static bool SameBits(Matrix2D left, Matrix2D right) =>
+            BitConverter.DoubleToInt64Bits(left.A) == BitConverter.DoubleToInt64Bits(right.A) &&
+            BitConverter.DoubleToInt64Bits(left.B) == BitConverter.DoubleToInt64Bits(right.B) &&
+            BitConverter.DoubleToInt64Bits(left.C) == BitConverter.DoubleToInt64Bits(right.C) &&
+            BitConverter.DoubleToInt64Bits(left.D) == BitConverter.DoubleToInt64Bits(right.D) &&
+            BitConverter.DoubleToInt64Bits(left.E) == BitConverter.DoubleToInt64Bits(right.E) &&
+            BitConverter.DoubleToInt64Bits(left.F) == BitConverter.DoubleToInt64Bits(right.F);
+    }
+
+    private (string Content, Matrix2D Transform, int Offset, string Wrapped)? _reusableWrappedContent;
 
     private readonly object _decodedContentReuseSync = new();
     private int _decodedContentReuseDepth;

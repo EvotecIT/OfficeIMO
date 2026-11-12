@@ -29,7 +29,7 @@ function Get-ComponentCategory {
         '^OfficeIMO\.(Word|Excel|PowerPoint)' { return 'Office documents' }
         '^OfficeIMO\.MarkdownRenderer' { return 'Rendering surfaces' }
         '^OfficeIMO\.(Pdf|Html|Markdown|Rtf|AsciiDoc|Latex|Invoicing)' { return 'Publishing and conversion' }
-        '^OfficeIMO\.(Email|OneNote|OpenDocument|Epub|CSV|Visio|IWork|Chm|DjVu|Publisher)' { return 'Formats and interoperability' }
+        '^OfficeIMO\.(Email|OneNote|OpenDocument|Epub|CSV|Yaml|Visio|IWork|Chm|DjVu|Publisher|Access|Project|Xps|Mhtml|Toml|Opml|DocBook|Bibliography)' { return 'Formats and interoperability' }
         '^OfficeIMO\.GoogleWorkspace|Google(Docs|Sheets|Slides)$' { return 'Google Workspace' }
         '^OfficeIMO\.(Archives|Drawing|Ocr|Provenance|Security|Zip|Markup|Adf|Confluence)' { return 'Foundations and integrations' }
         default { return 'Specialized components' }
@@ -55,8 +55,18 @@ function Get-DocumentationUrl {
         '^OfficeIMO\.Rtf' { return '/docs/rtf/' }
         '^OfficeIMO\.Epub' { return '/docs/epub/' }
         '^OfficeIMO\.CSV' { return '/docs/csv/' }
+        '^OfficeIMO\.Yaml' { return '/docs/yaml/' }
         '^OfficeIMO\.Visio' { return '/docs/visio/' }
         '^OfficeIMO\.Project' { return '/docs/project/' }
+        '^OfficeIMO\.Access' { return '/docs/access/' }
+        '^OfficeIMO\.Publisher' { return '/docs/publisher/' }
+        '^OfficeIMO\.Xps' { return '/docs/xps/' }
+        '^OfficeIMO\.Invoicing' { return '/docs/invoicing/' }
+        '^OfficeIMO\.Archives' { return '/docs/archives/' }
+        '^OfficeIMO\.Security' { return '/docs/security/' }
+        '^OfficeIMO\.Toml' { return '/docs/toml/' }
+        '^OfficeIMO\.(?:AsciiDoc|Latex|DocBook|Chm|Opml|DjVu|Confluence|Adf|Markup|Bibliography)' { return '/docs/text-formats/' }
+        '^OfficeIMO\.(?:ChartForgeX|Ocr|Provenance)' { return '/docs/foundations/' }
         '^OfficeIMO\.Reader' { return '/docs/reader/' }
         '^OfficeIMO\.GoogleWorkspace|Google(Docs|Sheets|Slides)$' { return '/docs/google-workspace/' }
         default { return '/docs/capabilities/packages/' }

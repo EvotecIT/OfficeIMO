@@ -44,8 +44,8 @@ public class PdfThemeCompositionDefaultsTests {
             .ToBytes();
 
         Letter[] letters = Letters(bytes);
-        double rowBottom = Word(letters, "Lastrow").Min(letter => letter.GlyphRectangle.Bottom);
-        double headingTop = Word(letters, "Following").Max(letter => letter.GlyphRectangle.Top);
+        double rowBottom = Word(letters, "Lastrow").Min(letter => letter.BoundingBox.Bottom);
+        double headingTop = Word(letters, "Following").Max(letter => letter.BoundingBox.Top);
         Assert.True(rowBottom - headingTop >= 12, "Gap was " + (rowBottom - headingTop) + " points.");
     }
 

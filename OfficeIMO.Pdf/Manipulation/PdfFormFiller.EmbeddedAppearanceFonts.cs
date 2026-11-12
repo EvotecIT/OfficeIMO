@@ -357,7 +357,7 @@ internal static partial class PdfFormFiller {
         objects[descendantFontObjectNumber] = new PdfIndirectObject(descendantFontObjectNumber, 0, CreateCidFontType2Descendant(fontProgram, descriptorObjectNumber));
         objects[toUnicodeObjectNumber] = new PdfIndirectObject(toUnicodeObjectNumber, 0, CreateToUnicodeStream(fontProgram));
         objects[type0FontObjectNumber] = new PdfIndirectObject(type0FontObjectNumber, 0, CreateType0Font(fontProgram, descendantFontObjectNumber, toUnicodeObjectNumber));
-        ApplySubsetFontName(objects, PdfSubsetTag.Apply(fontProgram.FontName, fontProgram.GetUsedGlyphIds(), fontData),
+        ApplySubsetFontName(objects, fontProgram.SubsettingForbidden ? fontProgram.FontName : PdfSubsetTag.Apply(fontProgram.FontName, fontProgram.GetUsedGlyphIds(), fontData),
             descriptorObjectNumber, descendantFontObjectNumber, type0FontObjectNumber);
     }
 
@@ -383,7 +383,7 @@ internal static partial class PdfFormFiller {
         objects[descendantFontObjectNumber] = new PdfIndirectObject(descendantFontObjectNumber, 0, CreateCidFontType0Descendant(fontProgram, descriptorObjectNumber));
         objects[toUnicodeObjectNumber] = new PdfIndirectObject(toUnicodeObjectNumber, 0, CreateToUnicodeStream(fontProgram));
         objects[type0FontObjectNumber] = new PdfIndirectObject(type0FontObjectNumber, 0, CreateType0Font(fontProgram, descendantFontObjectNumber, toUnicodeObjectNumber));
-        ApplySubsetFontName(objects, PdfSubsetTag.Apply(fontProgram.FontName, System.Array.Empty<int>(), fontData),
+        ApplySubsetFontName(objects, fontProgram.SubsettingForbidden ? fontProgram.FontName : PdfSubsetTag.Apply(fontProgram.FontName, System.Array.Empty<int>(), fontData),
             descriptorObjectNumber, descendantFontObjectNumber, type0FontObjectNumber);
     }
 
