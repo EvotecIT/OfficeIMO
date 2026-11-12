@@ -84,6 +84,26 @@ public sealed class IppPrintClientTests {
         Assert.Null(error.StatusCode);
     }
 
+    [Theory]
+    [InlineData(HttpStatusCode.BadGateway, true)]
+    [InlineData(HttpStatusCode.ServiceUnavailable, true)]
+    [InlineData(HttpStatusCode.InternalServerError, true)]
+    [InlineData(HttpStatusCode.RequestTimeout, true)]
+    [InlineData(HttpStatusCode.BadRequest, false)]
+    [InlineData(HttpStatusCode.RequestEntityTooLarge, false)]
+    public async Task HttpErrorsAfterTheDocumentStreamedAreUncertainUnlessTheyRefuseTheRequest(HttpStatusCode status, bool uncertain) {
+        var handler = FakeHandler.Http(async (request, _) => {
+            await request.Content!.ReadAsByteArrayAsync();
+            return new HttpResponseMessage(status);
+        });
+        using var client = new IppPrintClient(Printer, handler);
+
+        Exception error = await Assert.ThrowsAnyAsync<Exception>(() => client.PrintAsync(new byte[16], "application/pdf"));
+
+        if (uncertain) Assert.IsType<IppException>(Assert.IsType<PdfPrintDeliveryException>(error).InnerException);
+        else Assert.IsType<IppException>(error);
+    }
+
     [Fact]
     public async Task AcceptanceWithoutAJobIdIsUncertainDelivery() {
         var handler = FakeHandler.Ipp(async request => Reply(await Decode(request), 0, null));

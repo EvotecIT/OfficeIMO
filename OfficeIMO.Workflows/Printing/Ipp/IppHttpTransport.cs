@@ -62,7 +62,10 @@ internal sealed class IppHttpTransport : IDisposable {
                 throw new IppException($"The printer at {HttpUri} requires authentication, which this client does not provide.", definitive: true);
             }
             if (status is < 200 or >= 300) {
-                throw new IppException($"The printer at {HttpUri} returned HTTP {status} {response.ReasonPhrase}.", definitive: true);
+                // A client error refuses the request before it is applied. A server or gateway error (or 408) can follow a body
+                // the printer already accepted, so after a Print-Job body has streamed the outcome is unknown.
+                bool refused = status is >= 400 and < 500 && status != 408;
+                throw new IppException($"The printer at {HttpUri} returned HTTP {status} {response.ReasonPhrase}.", definitive: refused);
             }
             byte[] body = await ReadBoundedAsync(response, maxResponseBytes, token).ConfigureAwait(false);
             IppMessage reply = IppCodec.Decode(body, body.Length, new IppDecodeLimits { MaxMessageBytes = maxResponseBytes }, out _);
