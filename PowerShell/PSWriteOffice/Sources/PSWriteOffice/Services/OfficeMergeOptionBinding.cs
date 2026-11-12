@@ -16,6 +16,7 @@ internal static class OfficeMergeOptionBinding {
         Type type = family switch {
             OfficeMergeFamily.Word => typeof(WordDocumentMergeOptions),
             OfficeMergeFamily.Excel => typeof(ExcelWorkbookMergeOptions),
+            OfficeMergeFamily.Yaml => typeof(OfficeIMO.Yaml.YamlMergeOptions),
             _ => typeof(PdfMergeOptions)
         };
         object result = Activator.CreateInstance(type)!;

@@ -31,7 +31,7 @@ The module manifest is the source of truth for exported cmdlets and aliases. The
 - **EPUB — 8 commands:** build publications from chapters, resources and metadata, then inspect and save the package.
 - **Archive migration and evidence — 5 commands:** inspect package security and provenance, identify iWork files, and convert iWork and offline OneNote content with explicit fidelity evidence.
 - **Confluence Cloud — 7 commands:** plan, create, update, and remove pages; preserve managed sections; and list, upload, or download attachments.
-- **Markdown, Visio, Reader, OCR, visuals, and open formats:** typed Markdown, VSDX diagrams and stencils, cross-format visual placement, normalized extraction, local image OCR, RTF, CSV, ODT/ODS/ODP, email, AsciiDoc, and LaTeX workflows.
+- **Markdown, Visio, Reader, OCR, visuals, and open formats:** typed Markdown, VSDX diagrams and stencils, cross-format visual placement, normalized extraction, local image OCR, RTF, CSV, YAML, ODT/ODS/ODP, email, AsciiDoc, and LaTeX workflows.
 
 ## How the documentation fits together
 

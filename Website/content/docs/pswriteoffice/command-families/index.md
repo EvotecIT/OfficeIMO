@@ -26,6 +26,7 @@ The PSWriteOffice website catalog groups every exported cmdlet into exactly one 
 | Confluence Cloud | 7 | [Confluence Cloud publishing](/docs/pswriteoffice/confluence/) |
 | RTF | 8 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | CSV | 3 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
+| YAML | 12 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | OpenDocument | 11 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | Email | 9 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | AsciiDoc | 3 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |

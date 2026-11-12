@@ -529,6 +529,7 @@ Qualify complete script-free HtmlForgeX reports through the shared HTML scene an
 - [ ] Add Linux/macOS evidence for Confluence managed-section replacement and reduce compatible `netstandard2.0` / .NET Framework body-construction copies beyond the current pooled-hash path. Preserve exact owner content, marker validation, UTF-8 SHA-256 hashes, Unicode boundary behavior, and deterministic output bytes.
 - [ ] Reduce MHTML large-write allocation and managed-heap peak while preserving deterministic multipart/related output, root selection, immutable decoded resources, smaller output, and cross-reader equivalence. Record absolute elapsed, allocation, managed-peak, and artifact-size budgets and add Linux/macOS evidence.
 - [ ] Extend the existing six-workload HTML layout allocation and memory gates with comparable Linux/macOS measurements before tightening their ceilings. Preserve all-page SVG, text, and diagnostic fingerprints when reducing allocations, and retain elapsed-time variability alongside measured results.
+- [ ] Audit Markdown against the CommonMark and GitHub Flavored Markdown spec suites and the Markdig comparison lane. Classify every gap as correctness, extension coverage or performance, fix them through the owning parser and renderers, and render Mermaid fences through the optional `OfficeIMO.ChartForgeX` bridge into Word, PowerPoint and PDF, with a code-block fallback and a diagnostic when the bridge is absent.
 - [ ] Reduce Markdown source-backed and explicit syntax-tree costs on the seven-corpus CommonMark gate, especially `LongNestedList`, while preserving source spans, trivia, syntax ownership, O(1) sibling navigation, and snapshot semantics. Set stable absolute elapsed, allocation, and retained-graph budgets for both lanes and add Linux/macOS evidence.
 - [ ] Reduce the remaining Reader table-heavy Markdown graph beyond the current 1.17 ms / 2.04 MB Windows public baseline and the 20-entry ZIP aggregate beyond 32.40 ms / 46.26 MB. Preserve rich tables, bound source spans, full-transform and custom-block fallbacks, heading paths, diagnostics, and bounded nested-container behavior; stabilize the ZIP elapsed lane, add Linux/macOS evidence for the Markdown/XML/YAML scaling lanes, and establish independent budgets for equivalent YAML and JSON result contracts.
 - [ ] Establish and meet cross-platform elapsed and allocation budgets for OfficeMarkup CommonMark semantic parsing. Prioritize normal-workload elapsed time and small-workload allocation, preserve lazy exact `SourceText`, and add Linux/macOS evidence.
@@ -625,6 +626,7 @@ The [Draw API](../OfficeIMO.OpenDocument/README.md#create-and-edit-draw-document
 
 ### Spreadsheet and CSV delivery order
 
+- [ ] Benchmark the DbaClientX and OfficeIMO data path end to end: SQL query results to Excel and CSV through the streaming writers, and Excel/CSV `DbDataReader` sources into DbaClientX bulk copy for SQL Server, PostgreSQL, MySQL and SQLite. Compare matched, output-validated lanes with dbatools, ExcelDataReader and ClosedXML/EPPlus pipelines. Keep DbaClientX as a benchmark-only reference, and fix bottlenecks in the owning OfficeIMO reader or writer, or report them to DbaClientX.
 - [ ] Extend [native XLS lifecycle support](officeimo.excel.legacy-xls-compatibility.md#preserve-imported-biff8-workbooks) to additional sheet kinds, broader formula grammar and editable chart content beyond the qualified worksheet, cell, style, calculation and encrypted-source profiles. Keep native carrier retention, chart editing and macro execution separate contracts; qualify each addition against independent producers and native consumers.
 - [ ] Qualify native Windows Excel production of CryptoAPI XLS with encrypted summary properties and embedded storage using the [corpus procedure and acceptance checks](../OfficeIMO.TestAssets/Documents/ExcelNativeEncryptionCorpus/README.md#remaining-windows-encrypted-summary-check). Retain the native input, FilePass/descriptor profile, producer version and load/edit/password-rotation/native SaveAs readbacks. Mac-produced embedded-storage evidence and native acceptance of OfficeIMO-produced encrypted properties do not establish this producer profile.
 
@@ -847,16 +849,33 @@ Acceptance: installed/packed consumers exercise the advertised native workflows 
 
 Acceptance: every adopted baseline criterion has decisive evidence, no validated in-scope correctness defect remains, and current source/API/package/host documentation agrees. Earlier bounded milestones may ship, but they cannot be reported as completion of OfficeIMO.Access. Source readiness, PR merge, package publication and installed/live proof remain separate gates.
 
+## YAML engine
+
+`OfficeIMO.Yaml` is the owned YAML 1.2 engine; the [YAML engine design](officeimo.yaml-engine-design.md) and the [package README](../OfficeIMO.Yaml/README.md) own its current contract. Open work:
+
+- [ ] Move `OfficeIMO.Markup` front matter onto the engine. Its parser still reads `key: value` lines between `---` fences into a flat string dictionary, so nested values, lists, single-quoted or escaped strings and trailing comments are not read as YAML, and malformed front matter gives no diagnostic. Read it through `OfficeIMO.Markdown`'s `FrontMatterBlock`, keep profile selection and source line positions, and report invalid YAML.
+- [ ] Structured-data conversion routes between JSON, YAML, TOML, XML, CSV/TSV and Excel worksheets, using the shared `To{Target}`/`SaveAs{Target}` grammar and `Convert-OfficeDocument`. Decide one documented XML⇄JSON mapping (attributes, repeated elements, mixed content) and report every lossy mapping, such as comments, anchors and YAML tags, through `OfficeConversionReport`.
+- [ ] Publish the comparison results for parse-to-events, load-to-model and the serializer against YamlDotNet and SharpYaml, with Windows, Linux and macOS runs, in the design's [performance section](officeimo.yaml-engine-design.md#performance).
+
 ## TOML engine
 
 `OfficeIMO.Toml` reads, edits and writes TOML 1.1 losslessly and passes the whole toml-test 1.1.0 suite; `OfficeIMO.Reader.Toml` ingests TOML files. The [TOML engine design](officeimo.toml-engine-design.md) owns the architecture. Open work:
 
-- [ ] Markdown `+++` front matter: read and write Hugo-style TOML front matter in `OfficeIMO.Markdown` through `TomlDocument`, after Markdown's YAML front matter moves onto `OfficeIMO.Yaml`, so both front matter kinds share one integration shape.
-- [ ] `TomlSerializer`: object mapping with a source generator for trimming and NativeAOT, following the YAML serializer's design once that lands, so both formats share attributes, naming policies and options.
+- [ ] Markdown `+++` front matter: read and write Hugo-style TOML front matter in `OfficeIMO.Markdown` through `TomlDocument`, on the same `FrontMatterBlock` shape as YAML front matter on `OfficeIMO.Yaml`, with the same lossless save and invalid-input diagnostics.
+- [ ] `TomlSerializer`: object mapping with a source generator for trimming and NativeAOT, following `YamlSerializer`'s design, so both formats share attributes, naming policies and options.
 - [ ] Stream and `TextReader` input for `TomlReader` with a pooled sliding buffer, as `YamlReader` has, for very large lock files.
 - [ ] PSWriteOffice commands on the same API (`New-`/`Open-`/`Save-OfficeToml`, `Get-`/`Set-`/`Remove-OfficeTomlNode -Select`, `ConvertFrom-`/`ConvertTo-OfficeToml`), following the YAML command set.
 - [ ] An opt-in large corpus run over thousands of pinned real-world TOML files (crates.io manifests, PyPI `pyproject.toml`, lock files, Hugo sites), checking parse, byte-exact round-trip and scripted edits, plus a mutation run for hostile input.
 - [ ] Lead Tomlyn on parse and load elapsed time and allocation on every benchmark workload, with Windows and Linux evidence alongside macOS.
+
+## Managed complex-script shaping
+
+Extend the managed shaping provider in `OfficeIMO.Core` so complex scripts and vertical text no longer depend on the optional HarfBuzz adapter. HarfBuzzSharp ships native assets only for Windows, Linux, macOS and WebAssembly, so iOS, Android, trimmed and NativeAOT hosts currently fall back for these scripts. A single managed provider also gives identical glyph output on every platform. `OfficeIMO.Drawing.HarfBuzz` remains the optional provider for AAT and Graphite fonts.
+
+- [ ] Support all GSUB/GPOS lookup flags, including ignore-marks and mark-filtering sets, plus complete mark-to-base, mark-to-ligature and mark-to-mark positioning.
+- [ ] Shape Hebrew, Thai and Lao, then add the Indic shaper, the Universal Shaping Engine, Myanmar and Khmer.
+- [ ] Shape vertical text with `vert`/`vrt2` substitutions and vertical metrics, so Drawing and PDF paint positioned vertical glyphs without the HarfBuzz adapter.
+- [ ] Qualify each script against HarfBuzz glyph IDs, clusters and positions over a provenance-recorded font and text corpus, and remove each script from the managed decline list only after it matches.
 
 ## Additional formats and product boundaries
 

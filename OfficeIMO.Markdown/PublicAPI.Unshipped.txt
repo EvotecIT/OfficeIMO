@@ -33,6 +33,15 @@ OfficeIMO.Markdown.MarkdownHtmlExportOptions.ReaderOptions.set -> void
 OfficeIMO.Markdown.MarkdownVisualTheme.SourceTheme.get -> OfficeIMO.OfficeTheme?
 OfficeIMO.Markdown.MarkdownVisualTheme.SourceTheme.set -> void
 static OfficeIMO.Markdown.MarkdownVisualTheme.FromOfficeTheme(OfficeIMO.OfficeTheme! theme) -> OfficeIMO.Markdown.MarkdownVisualTheme!
+*REMOVED*OfficeIMO.Markdown.FrontMatterBlock.Entry.Value.get -> object?
+*REMOVED*OfficeIMO.Markdown.FrontMatterBlock.FrontMatterBlock() -> void
+*REMOVED*OfficeIMO.Markdown.MarkdownNativeFrontMatterBlock.Values.get -> System.Collections.Generic.IReadOnlyDictionary<string!, object?>!
+OfficeIMO.Markdown.FrontMatterBlock.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeDiagnostic!>!
+OfficeIMO.Markdown.FrontMatterBlock.Entry.Value.get -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Markdown.FrontMatterBlock.Mapping.get -> OfficeIMO.Yaml.YamlMapping?
+OfficeIMO.Markdown.FrontMatterBlock.Select(string! path) -> OfficeIMO.Yaml.YamlNode?
+OfficeIMO.Markdown.FrontMatterBlock.Yaml.get -> OfficeIMO.Yaml.YamlDocument?
+OfficeIMO.Markdown.MarkdownNativeFrontMatterBlock.Values.get -> System.Collections.Generic.IReadOnlyDictionary<string!, OfficeIMO.Yaml.YamlNode!>!
 OfficeIMO.Markdown.MarkdownLoadOptions.Math.get -> bool
 OfficeIMO.Markdown.MarkdownLoadOptions.Math.set -> void
 OfficeIMO.Markdown.MarkdownSyntaxKind.InlineMath = 130 -> OfficeIMO.Markdown.MarkdownSyntaxKind
