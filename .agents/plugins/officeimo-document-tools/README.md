@@ -91,6 +91,8 @@ File-writing operations create output in authorized folders. OCR providers are s
 | `officeimo_search_email` | Bounded search of selected mail fields, such as bodies and recipients, with a resumable checkpoint |
 | `officeimo_fetch` | Fetch selected result content with pagination |
 | `officeimo_convert` | Write Markdown/Reader JSON, run a catalog conversion route such as Office, OpenDocument, email, EPUB or Visio to PDF and Markdown/HTML/RTF to DOCX, or convert an iWork ZIP file or authorized directory package to matching Office output or PDF, with source hashes and workflow evidence |
+| `officeimo_inspect_hidden_data` | Report properties, comments, hidden content, image metadata and provenance that would leave with an Office, Visio, OpenDocument or EPUB file |
+| `officeimo_remove_hidden_data` | Write a cleaned copy and report each finding's outcome; provenance is kept unless selected |
 | `officeimo_capabilities` | Discover format and operation support |
 | `officeimo_pdf` | Extract, owner-authorized decrypt, acknowledged raster flatten, optimize, or sanitize into a separate PDF |
 | `officeimo_pdf_split` | Split consecutive pages into a separate validated folder |

@@ -35,6 +35,7 @@ Modern Word files use the main OfficeIMO object model. Legacy files load through
 - **Content controls** — checkboxes, drop-down lists, combo boxes, date pickers, and rich text controls
 - **Model-driven templates** — bind `{{Name}}` placeholders, nested repeated blocks, conditions, images, and hyperlinks while the DOCX retains layout ownership
 - **Document protection** — read-only, password protection, and editing restrictions
+- **Before sharing** — find and remove author names, comments, tracked changes, hidden text, document variables and photo locations, and check and fix accessibility. [Prepare a document for sharing](/docs/before-sharing/)
 - **Footnotes & endnotes** — numbered references with custom formatting
 - **Sections & page numbering** — multiple sections with independent orientation, margins, and numbering
 - **Word 97–2003 DOC and DOT** — first-party import, native writing for the supported subset, bidirectional conversion, preservation-aware edits, and structured loss reports

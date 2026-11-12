@@ -235,14 +235,14 @@ using var document = WordDocument.Load("Proposal.docx");
 OfficeHiddenDataReport removed = document.RemoveHiddenData(new OfficeHiddenDataOptions {
     TrackedChanges = OfficeTrackedChangesAction.AcceptAll
 });
-WordAccessibilityReport accessibility = document.FixAccessibility(new WordAccessibilityFixOptions {
+OfficeAccessibilityReport accessibility = document.FixAccessibility(new WordAccessibilityFixOptions {
     Title = "Proposal", Language = "en-US", MarkTableHeaderRows = true
 });
-foreach (WordAccessibilityFinding finding in accessibility.Findings) Console.WriteLine($"{finding.Severity} {finding.Code} at {finding.Location}");
+foreach (OfficeAccessibilityFinding finding in accessibility.Findings) Console.WriteLine($"{finding.Severity} {finding.Code} at {finding.Location}");
 document.Save("Proposal-shared.docx");
 ```
 
-`InspectHiddenData()` reports properties, comments, tracked changes, reviewer names, hidden text, variables, custom XML, image GPS and other metadata without changing anything; `RemoveHiddenData` removes the selected categories and reports what happened to each item. Hidden text and tracked changes are only changed when you ask. `InspectAccessibility()` checks alternative text, headings, tables, links, contrast, floating objects, blank-paragraph spacing, title and language. The [hidden data matrix](../Docs/officeimo.hidden-data-support-matrix.md) and the [Word guide](../Docs/officeimo.word-guide.md#accessibility-checks) list every rule.
+`InspectHiddenData()` reports properties, comments, tracked changes, reviewer names, hidden text, variables, custom XML, image GPS and other metadata without changing anything; `RemoveHiddenData` removes the selected categories and reports what happened to each item. Hidden text and tracked changes are only changed when you ask. Provenance, such as Content Credentials and an image's AI-generated declaration, is reported and kept unless you add `OfficeHiddenDataKind.Provenance`; `WordDocument.RemoveProvenance(inputPath, outputPath)` removes only provenance from a file. `InspectAccessibility()` checks alternative text, headings, tables, links, contrast, floating objects, blank-paragraph spacing, title and language. The [hidden data matrix](../Docs/officeimo.hidden-data-support-matrix.md) and the [Word guide](../Docs/officeimo.word-guide.md#accessibility-checks) list every rule.
 
 ## Convert
 

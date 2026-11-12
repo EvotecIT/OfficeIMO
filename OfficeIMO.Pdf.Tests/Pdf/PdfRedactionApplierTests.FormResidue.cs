@@ -57,7 +57,7 @@ public partial class PdfRedactionApplierTests {
             Assert.Empty(plan.Areas);
             Assert.Contains("secret", independent.GetPage(2).Text, StringComparison.Ordinal);
             PdfRedactionSharingResult shared = source.Redactions.ApplyForSharing(plan,
-                new PdfSanitizationOptions { ContentKindsToRemove = PdfSanitizationContentKind.UserMetadata });
+                new OfficeHiddenDataOptions { Kinds = OfficeHiddenDataKind.DocumentProperties });
             Assert.True(shared.Summary.IsVerified);
             Assert.DoesNotContain("secret", shared.Verification.ExtractedText, StringComparison.Ordinal);
             return;

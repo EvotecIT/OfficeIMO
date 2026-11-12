@@ -214,13 +214,18 @@ namespace OfficeIMO.Word {
                     options.Inspection.PackageSecurity.MaxPackageBytes);
                 WordSignatureInfo existingPackageSignatures = InspectPackageSignatures(stagingPath);
                 if (existingPackageSignatures.HasSignatures &&
-                    options.ExistingPackageSignaturePolicy != WordSignedDocumentSavePolicy.AllowSignatureInvalidation) {
+                    options.SignatureMutationPolicy == OfficeSignatureMutationPolicy.BlockSave) {
                     findings.Add(Finding("existing-package-signature-invalidation-blocked", WordSignatureValidationState.Failed,
                         "VBA signing was blocked because changing VBA signature relationships would invalidate existing OPC package signatures. " +
-                        "Set ExistingPackageSignaturePolicy to AllowSignatureInvalidation only when the package will be re-signed afterward."));
+                        "Set SignatureMutationPolicy to RemoveInvalidatedSignatures, or to PreserveSignatureMarkup only when the package will be re-signed afterward."));
                     return SigningResult(fullPath, dependencies.Platform.IsWindows, false, false, null, findings);
                 }
-                if (existingPackageSignatures.HasSignatures) {
+                if (existingPackageSignatures.HasSignatures &&
+                    options.SignatureMutationPolicy == OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures) {
+                    RemovePackageSignatures(stagingPath);
+                    findings.Add(Finding("existing-package-signatures-removed", WordSignatureValidationState.NotChecked,
+                        "Existing OPC package signatures were removed because VBA signing invalidates them."));
+                } else if (existingPackageSignatures.HasSignatures) {
                     findings.Add(Finding("existing-package-signatures-will-be-invalidated", WordSignatureValidationState.NotChecked,
                         "Existing OPC package signatures are permitted to become invalid; sign the VBA project first and the OPC package last."));
                 }
@@ -497,13 +502,25 @@ namespace OfficeIMO.Word {
             if (options.MaxToolOutputCharacters <= 0 || options.MaxToolOutputCharacters > 4 * 1024 * 1024) {
                 throw new ArgumentOutOfRangeException(nameof(options.MaxToolOutputCharacters));
             }
-            if (!Enum.IsDefined(typeof(WordSignedDocumentSavePolicy), options.ExistingPackageSignaturePolicy)) {
-                throw new ArgumentOutOfRangeException(nameof(options.ExistingPackageSignaturePolicy));
+            if (!Enum.IsDefined(typeof(OfficeSignatureMutationPolicy), options.SignatureMutationPolicy)) {
+                throw new ArgumentOutOfRangeException(nameof(options.SignatureMutationPolicy));
             }
             if (options.RequireTimestamp && options.TimestampAuthorityUrl == null) {
                 throw new ArgumentException(
                     "TimestampAuthorityUrl is required when newly created VBA signatures must contain a timestamp.",
                     nameof(options));
+            }
+        }
+
+        private static void RemovePackageSignatures(string filePath) {
+            using WordprocessingDocument document = WordprocessingDocument.Open(filePath, true);
+            DigitalSignatureOriginPart? origin = document.DigitalSignatureOriginPart;
+            if (origin != null) {
+                document.DeletePart(origin);
+            }
+            if (document.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
+                document.ExtendedFilePropertiesPart.Properties.DigitalSignature = null;
+                document.ExtendedFilePropertiesPart.Properties.Save();
             }
         }
 

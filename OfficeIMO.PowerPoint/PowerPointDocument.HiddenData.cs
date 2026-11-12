@@ -33,7 +33,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeOpenXmlHiddenData.InspectCustomProperties(package, collector, null);
             OfficeOpenXmlHiddenData.InspectCustomXml(presentationPart, presentationPart.CustomXmlParts, collector);
             OfficeOpenXmlHiddenData.InspectThumbnail(package, collector);
-            OfficeOpenXmlHiddenData.InspectImageMetadata(package, collector);
+            OfficeOpenXmlHiddenData.InspectImagesAndProvenance(package, collector);
             OfficeOpenXmlHiddenData.InspectPrinterSettings(package, collector);
             return collector.Build();
         }

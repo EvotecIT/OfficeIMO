@@ -40,9 +40,19 @@ officeimo reader capabilities
 
 Conversion refuses to replace an existing destination unless you explicitly pass `--force`. Output formats have different fidelity boundaries: Markdown is a semantic projection, while PDF preserves a fixed page layout.
 
+## Clean a document before sharing
+
+```powershell
+officeimo hidden-data inspect proposal.docx
+officeimo hidden-data remove proposal.docx
+officeimo provenance inspect proposal.docx --format text
+```
+
+`hidden-data` reports and removes author names, comments, tracked changes, hidden content, speaker notes, scripts and photo locations in Office, Visio, OpenDocument, EPUB, PDF and image files. It writes a separate cleaned copy and keeps Content Credentials and AI labels unless you add `--kinds default,provenance`; `--keep-provenance c2pa` keeps the credentials and drops only AI labels. The `officeimo_inspect_hidden_data` and `officeimo_remove_hidden_data` MCP tools do the same for agents. [Prepare a document for sharing](/docs/before-sharing/) explains what is kept and why.
+
 ## More than conversion
 
-The command areas cover document reading, tabular extraction, HTML/PDF workflows, provenance inspection, PDF redaction, page-image export, document assembly, and print planning. The same executable offers bounded agent operations and an MCP server over standard input/output.
+The command areas cover document reading, tabular extraction, HTML/PDF workflows, hidden-data and provenance cleanup, PDF redaction, page-image export, document assembly, and print planning. The same executable offers bounded agent operations and an MCP server over standard input/output.
 
 ```powershell
 officeimo mcp serve --stdio

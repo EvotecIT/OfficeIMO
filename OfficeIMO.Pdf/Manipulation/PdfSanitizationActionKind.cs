@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Selectable PDF action categories understood by the sanitization engine.</summary>
 [System.Flags]
-public enum PdfSanitizationActionKind {
+internal enum PdfSanitizationActionKind {
     /// <summary>Do not select any action category.</summary>
     None = 0,
     /// <summary>JavaScript actions and document-level JavaScript name trees.</summary>

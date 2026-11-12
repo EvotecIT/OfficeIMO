@@ -239,7 +239,6 @@ OfficeIMO.Pdf.PdfDocument.AddTable(System.Collections.Generic.IEnumerable<string
 OfficeIMO.Pdf.PdfDocument.AddTable(System.Collections.Generic.IEnumerable<string![]!>! rows, OfficeIMO.OfficeAlignment align = OfficeIMO.OfficeAlignment.Left, OfficeIMO.Pdf.PdfTableStyle? style = null) -> OfficeIMO.Pdf.PdfTable!
 OfficeIMO.Pdf.PdfDocument.AddTable<T>(System.Collections.Generic.IEnumerable<T>! rows, OfficeIMO.OfficeTableOptions? options = null) -> OfficeIMO.Pdf.PdfTable!
 *REMOVED*OfficeIMO.Pdf.PdfDocument.InspectSanitization(OfficeIMO.Pdf.PdfSanitizationOptions? options = null) -> OfficeIMO.Pdf.PdfSanitizationReport!
-OfficeIMO.Pdf.PdfDocument.InspectSanitization(OfficeIMO.Pdf.PdfSanitizationOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfSanitizationReport!
 *REMOVED*OfficeIMO.Pdf.PdfDocument.Metadata.get -> OfficeIMO.Pdf.PdfMetadata!
 OfficeIMO.Pdf.PdfDocument.Properties.get -> OfficeIMO.Pdf.PdfDocumentProperties!
 *REMOVED*OfficeIMO.Pdf.PdfDocument.ReplaceMetadata(OfficeIMO.Pdf.PdfMetadata! metadata) -> OfficeIMO.Pdf.PdfDocument!
@@ -247,7 +246,6 @@ OfficeIMO.Pdf.PdfDocument.Properties.get -> OfficeIMO.Pdf.PdfDocumentProperties!
 OfficeIMO.Pdf.PdfDocument.ReplaceProperties(OfficeIMO.Pdf.PdfDocumentProperties! metadata) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocument.ReplaceProperties(OfficeIMO.Pdf.PdfDocumentProperties! metadata, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
 *REMOVED*OfficeIMO.Pdf.PdfDocument.Sanitize(OfficeIMO.Pdf.PdfSanitizationOptions? options = null) -> OfficeIMO.Pdf.PdfSanitizationResult!
-OfficeIMO.Pdf.PdfDocument.Sanitize(OfficeIMO.Pdf.PdfSanitizationOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfSanitizationResult!
 *REMOVED*OfficeIMO.Pdf.PdfDocument.UpdateMetadata(System.Threading.CancellationToken cancellationToken, string? title = null, string? author = null, string? subject = null, string? keywords = null) -> OfficeIMO.Pdf.PdfDocument!
 *REMOVED*OfficeIMO.Pdf.PdfDocument.UpdateMetadata(string? title = null, string? author = null, string? subject = null, string? keywords = null) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocument.UpdateProperties(System.Threading.CancellationToken cancellationToken, string? title = null, string? author = null, string? subject = null, string? keywords = null) -> OfficeIMO.Pdf.PdfDocument!
@@ -389,7 +387,6 @@ OfficeIMO.Pdf.PdfDocumentRedactions.Apply(OfficeIMO.Pdf.PdfRedactionPlan! plan, 
 *REMOVED*OfficeIMO.Pdf.PdfDocumentRedactions.Apply(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfRedactionArea!>! areas, OfficeIMO.Pdf.PdfRedactionApplyOptions? applyOptions = null, OfficeIMO.Pdf.PdfTextLayoutOptions? layoutOptions = null, OfficeIMO.Pdf.PdfLoadOptions? options = null) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentRedactions.Apply(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfRedactionArea!>! areas, OfficeIMO.Pdf.PdfRedactionApplyOptions? applyOptions = null, OfficeIMO.Pdf.PdfTextLayoutOptions? layoutOptions = null, OfficeIMO.Pdf.PdfLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDocument!
 *REMOVED*OfficeIMO.Pdf.PdfDocumentRedactions.ApplyForSharing(OfficeIMO.Pdf.PdfRedactionPlan! plan, OfficeIMO.Pdf.PdfSanitizationOptions! sanitizationOptions, OfficeIMO.Pdf.PdfRedactionApplyOptions? applyOptions = null, OfficeIMO.Pdf.PdfRedactionVerificationOptions? verificationOptions = null) -> OfficeIMO.Pdf.PdfRedactionSharingResult!
-OfficeIMO.Pdf.PdfDocumentRedactions.ApplyForSharing(OfficeIMO.Pdf.PdfRedactionPlan! plan, OfficeIMO.Pdf.PdfSanitizationOptions! sanitizationOptions, OfficeIMO.Pdf.PdfRedactionApplyOptions? applyOptions = null, OfficeIMO.Pdf.PdfRedactionVerificationOptions? verificationOptions = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfRedactionSharingResult!
 *REMOVED*OfficeIMO.Pdf.PdfDocumentRedactions.ApplyWithEvidence(OfficeIMO.Pdf.PdfRedactionPlan! plan, OfficeIMO.Pdf.PdfRedactionApplyOptions? applyOptions = null, OfficeIMO.Pdf.PdfRedactionVerificationOptions? verificationOptions = null, OfficeIMO.Pdf.PdfTextLayoutOptions? layoutOptions = null, OfficeIMO.Pdf.PdfLoadOptions? options = null) -> OfficeIMO.Pdf.PdfRedactionApplyResult!
 OfficeIMO.Pdf.PdfDocumentRedactions.ApplyWithEvidence(OfficeIMO.Pdf.PdfRedactionPlan! plan, OfficeIMO.Pdf.PdfRedactionApplyOptions? applyOptions = null, OfficeIMO.Pdf.PdfRedactionVerificationOptions? verificationOptions = null, OfficeIMO.Pdf.PdfTextLayoutOptions? layoutOptions = null, OfficeIMO.Pdf.PdfLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfRedactionApplyResult!
 *REMOVED*OfficeIMO.Pdf.PdfDocumentRedactions.AssertAppliedPlan(OfficeIMO.Pdf.PdfRedactionPlan! reviewedPlan, OfficeIMO.Pdf.PdfRedactionVerificationOptions! options) -> OfficeIMO.Pdf.PdfRedactionVerificationReport!
@@ -993,4 +990,104 @@ OfficeIMO.Pdf.PdfAConversionRefusalReason.SourceUnreadable = 2 -> OfficeIMO.Pdf.
 OfficeIMO.Pdf.PdfAConversionRefusalReason.UnicodeMappingUnavailable = 7 -> OfficeIMO.Pdf.PdfAConversionRefusalReason
 OfficeIMO.Pdf.PdfAConversionRefusalReason.UnsupportedStream = 17 -> OfficeIMO.Pdf.PdfAConversionRefusalReason
 OfficeIMO.Pdf.PdfAConversionRefusalReason.VerificationFailed = 21 -> OfficeIMO.Pdf.PdfAConversionRefusalReason
+*REMOVED*OfficeIMO.Pdf.PdfEmbeddedFileSanitizationMode
+*REMOVED*OfficeIMO.Pdf.PdfEmbeddedFileSanitizationMode.Quarantine = 1 -> OfficeIMO.Pdf.PdfEmbeddedFileSanitizationMode
+*REMOVED*OfficeIMO.Pdf.PdfEmbeddedFileSanitizationMode.Remove = 0 -> OfficeIMO.Pdf.PdfEmbeddedFileSanitizationMode
+*REMOVED*OfficeIMO.Pdf.PdfRedactionShareableSummary.SanitizedItemCount.get -> int?
+*REMOVED*OfficeIMO.Pdf.PdfRedactionSharingResult.Sanitization.get -> OfficeIMO.Pdf.PdfSanitizationResult!
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionCounts
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionCounts.GetCount(OfficeIMO.Pdf.PdfSanitizationActionKind kind) -> int
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionCounts.GoToE.get -> int
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionCounts.GoToR.get -> int
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionCounts.ImportData.get -> int
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionCounts.JavaScript.get -> int
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionCounts.Launch.get -> int
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionCounts.Movie.get -> int
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionCounts.Rendition.get -> int
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionCounts.RichMedia.get -> int
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionCounts.SubmitForm.get -> int
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionCounts.Total.get -> int
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionCounts.Uri.get -> int
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionKind.All = OfficeIMO.Pdf.PdfSanitizationActionKind.Uri | OfficeIMO.Pdf.PdfSanitizationActionKind.DefaultActiveContent -> OfficeIMO.Pdf.PdfSanitizationActionKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionKind.DefaultActiveContent = OfficeIMO.Pdf.PdfSanitizationActionKind.JavaScript | OfficeIMO.Pdf.PdfSanitizationActionKind.Launch | OfficeIMO.Pdf.PdfSanitizationActionKind.SubmitForm | OfficeIMO.Pdf.PdfSanitizationActionKind.GoToR | OfficeIMO.Pdf.PdfSanitizationActionKind.GoToE | OfficeIMO.Pdf.PdfSanitizationActionKind.ImportData | OfficeIMO.Pdf.PdfSanitizationActionKind.Movie | OfficeIMO.Pdf.PdfSanitizationActionKind.Rendition | OfficeIMO.Pdf.PdfSanitizationActionKind.RichMedia -> OfficeIMO.Pdf.PdfSanitizationActionKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionKind.GoToE = 32 -> OfficeIMO.Pdf.PdfSanitizationActionKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionKind.GoToR = 16 -> OfficeIMO.Pdf.PdfSanitizationActionKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionKind.ImportData = 64 -> OfficeIMO.Pdf.PdfSanitizationActionKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionKind.JavaScript = 1 -> OfficeIMO.Pdf.PdfSanitizationActionKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionKind.Launch = 4 -> OfficeIMO.Pdf.PdfSanitizationActionKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionKind.Movie = 128 -> OfficeIMO.Pdf.PdfSanitizationActionKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionKind.None = 0 -> OfficeIMO.Pdf.PdfSanitizationActionKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionKind.Rendition = 256 -> OfficeIMO.Pdf.PdfSanitizationActionKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionKind.RichMedia = 512 -> OfficeIMO.Pdf.PdfSanitizationActionKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionKind.SubmitForm = 8 -> OfficeIMO.Pdf.PdfSanitizationActionKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationActionKind.Uri = 2 -> OfficeIMO.Pdf.PdfSanitizationActionKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationCategoryCounts
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationCategoryCounts.Actions.get -> int
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationCategoryCounts.Bookmarks.get -> int
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationCategoryCounts.CommentsAndMarkup.get -> int
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationCategoryCounts.EmbeddedFiles.get -> int
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationCategoryCounts.GetCount(OfficeIMO.Pdf.PdfSanitizationContentKind kind) -> int
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationCategoryCounts.OptionalContent.get -> int
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationCategoryCounts.Total.get -> int
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationCategoryCounts.UserMetadata.get -> int
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationContentKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationContentKind.Actions = 4 -> OfficeIMO.Pdf.PdfSanitizationContentKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationContentKind.All = OfficeIMO.Pdf.PdfSanitizationContentKind.UserMetadata | OfficeIMO.Pdf.PdfSanitizationContentKind.EmbeddedFiles | OfficeIMO.Pdf.PdfSanitizationContentKind.Actions | OfficeIMO.Pdf.PdfSanitizationContentKind.CommentsAndMarkup | OfficeIMO.Pdf.PdfSanitizationContentKind.Bookmarks | OfficeIMO.Pdf.PdfSanitizationContentKind.OptionalContent -> OfficeIMO.Pdf.PdfSanitizationContentKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationContentKind.Bookmarks = 16 -> OfficeIMO.Pdf.PdfSanitizationContentKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationContentKind.CommentsAndMarkup = 8 -> OfficeIMO.Pdf.PdfSanitizationContentKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationContentKind.EmbeddedFiles = 2 -> OfficeIMO.Pdf.PdfSanitizationContentKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationContentKind.None = 0 -> OfficeIMO.Pdf.PdfSanitizationContentKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationContentKind.OptionalContent = 32 -> OfficeIMO.Pdf.PdfSanitizationContentKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationContentKind.UserMetadata = 1 -> OfficeIMO.Pdf.PdfSanitizationContentKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationFinding
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationFinding.ActionKind.get -> OfficeIMO.Pdf.PdfSanitizationActionKind?
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationFinding.Detail.get -> string!
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationFinding.Kind.get -> OfficeIMO.Pdf.PdfSanitizationFindingKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationFinding.ObjectNumber.get -> int
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationFinding.Path.get -> string!
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationFindingKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationFindingKind.ActiveAction = 0 -> OfficeIMO.Pdf.PdfSanitizationFindingKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationFindingKind.EmbeddedFile = 2 -> OfficeIMO.Pdf.PdfSanitizationFindingKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationFindingKind.RichMedia = 3 -> OfficeIMO.Pdf.PdfSanitizationFindingKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationFindingKind.UnsafeUri = 1 -> OfficeIMO.Pdf.PdfSanitizationFindingKind
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationOptions
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationOptions.ActionKindsToRemove.get -> OfficeIMO.Pdf.PdfSanitizationActionKind?
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationOptions.ActionKindsToRemove.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationOptions.AllowedActionTypes.get -> System.Collections.Generic.ISet<string!>!
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationOptions.AllowedUriSchemes.get -> System.Collections.Generic.ISet<string!>!
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationOptions.ContentKindsToRemove.get -> OfficeIMO.Pdf.PdfSanitizationContentKind?
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationOptions.ContentKindsToRemove.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationOptions.EmbeddedFiles.get -> OfficeIMO.Pdf.PdfEmbeddedFileSanitizationMode
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationOptions.EmbeddedFiles.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationOptions.MaximumOutputBytes.get -> long?
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationOptions.MaximumOutputBytes.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationOptions.PdfSanitizationOptions() -> void
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationOptions.RemoveRichMedia.get -> bool
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationOptions.RemoveRichMedia.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationReport
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationReport.ActionCounts.get -> OfficeIMO.Pdf.PdfSanitizationActionCounts!
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationReport.CategoryCounts.get -> OfficeIMO.Pdf.PdfSanitizationCategoryCounts!
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationReport.Findings.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfSanitizationFinding!>!
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationReport.TotalCount.get -> int
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationResult
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationResult.IsSanitized.get -> bool
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationResult.MutationPlan.get -> OfficeIMO.Pdf.PdfMutationPlan!
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationResult.PreservationReport.get -> OfficeIMO.Pdf.PdfRewritePreservationReport!
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationResult.QuarantinedAttachments.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfExtractedAttachment!>!
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationResult.RemainingActionCounts.get -> OfficeIMO.Pdf.PdfSanitizationActionCounts!
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationResult.RemainingCategoryCounts.get -> OfficeIMO.Pdf.PdfSanitizationCategoryCounts!
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationResult.RemainingFindings.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfSanitizationFinding!>!
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationResult.RemainingReport.get -> OfficeIMO.Pdf.PdfSanitizationReport!
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationResult.RemovedActionCounts.get -> OfficeIMO.Pdf.PdfSanitizationActionCounts!
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationResult.RemovedCategoryCounts.get -> OfficeIMO.Pdf.PdfSanitizationCategoryCounts!
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationResult.RemovedFindings.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfSanitizationFinding!>!
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationResult.RemovedReport.get -> OfficeIMO.Pdf.PdfSanitizationReport!
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationResult.ToBytes() -> byte[]!
+*REMOVED*OfficeIMO.Pdf.PdfSanitizationResult.ToDocument() -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocument.InspectHiddenData(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeHiddenDataReport!
+OfficeIMO.Pdf.PdfDocument.RemoveHiddenData(OfficeIMO.OfficeHiddenDataOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeHiddenDataResult!
+OfficeIMO.Pdf.PdfDocumentRedactions.ApplyForSharing(OfficeIMO.Pdf.PdfRedactionPlan! plan, OfficeIMO.OfficeHiddenDataOptions! hiddenDataOptions, OfficeIMO.Pdf.PdfRedactionApplyOptions? applyOptions = null, OfficeIMO.Pdf.PdfRedactionVerificationOptions? verificationOptions = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfRedactionSharingResult!
+OfficeIMO.Pdf.PdfRedactionShareableSummary.RemovedHiddenDataCount.get -> int?
+OfficeIMO.Pdf.PdfRedactionSharingResult.HiddenData.get -> OfficeIMO.OfficeHiddenDataResult!
 OfficeIMO.Pdf.PdfAConversionRefusalReason.EmbeddedFileRequired = 22 -> OfficeIMO.Pdf.PdfAConversionRefusalReason

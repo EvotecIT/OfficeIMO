@@ -12225,11 +12225,11 @@ namespace OfficeIMO.Tests {
                 document.Save(blockedOutput,new OfficeIMO.Word.WordSaveOptions{                    LossPolicy = OfficeConversionLossPolicy.Allow
 ,Format=WordFileFormat.Doc}));
 
-            Assert.Contains(nameof(WordSaveOptions.SignedDocumentPolicy), exception.Message);
+            Assert.Contains(nameof(WordSaveOptions.SignatureMutationPolicy), exception.Message);
             Assert.Equal(new byte[] { 9, 8, 7 }, blockedOutput.ToArray());
 
             using var allowedOutput = new MemoryStream();
-            document.Save(allowedOutput,new OfficeIMO.Word.WordSaveOptions{                LossPolicy = OfficeConversionLossPolicy.Allow,                SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation
+            document.Save(allowedOutput,new OfficeIMO.Word.WordSaveOptions{                LossPolicy = OfficeConversionLossPolicy.Allow,                SignatureMutationPolicy = OfficeSignatureMutationPolicy.PreserveSignatureMarkup
 ,Format=WordFileFormat.Doc});
             Assert.Equal(signaturePayload, ReadCompoundStream(allowedOutput.ToArray(), "_signatures"));
         }

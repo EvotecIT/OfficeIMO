@@ -35,7 +35,7 @@ public partial class WordDocument {
         CollectWordExternalReferences(collector);
         OfficeOpenXmlHiddenData.InspectCustomXml(main, main.CustomXmlParts, collector, part => GetRetainedCustomXmlReason(main, part));
         OfficeOpenXmlHiddenData.InspectThumbnail(_wordprocessingDocument, collector);
-        OfficeOpenXmlHiddenData.InspectImageMetadata(_wordprocessingDocument, collector);
+        OfficeOpenXmlHiddenData.InspectImagesAndProvenance(_wordprocessingDocument, collector);
         OfficeOpenXmlHiddenData.InspectPrinterSettings(_wordprocessingDocument, collector);
         return collector.Build();
     }
@@ -52,7 +52,7 @@ public partial class WordDocument {
             OfficeTrackedChangesAction.RejectAll => OfficeHiddenDataOutcome.Rejected,
             _ => collector.Removal == null ? OfficeHiddenDataOutcome.Found : OfficeHiddenDataOutcome.Retained
         };
-        string? note = outcome == OfficeHiddenDataOutcome.Retained ? "Tracked changes are kept unless TrackedChanges is AcceptAll or RejectAll." : null;
+        string? note = outcome == OfficeHiddenDataOutcome.Retained ? OfficeHiddenDataCollector.TrackedChangesKeptText : null;
         foreach (WordRevisionInfo revision in revisions) {
             string text = revision.AffectedText.Length > 0 ? revision.AffectedText : revision.LocationText;
             collector.Record(OfficeHiddenDataKind.TrackedChanges, revision.LocationKind + " " + revision.PartUri,

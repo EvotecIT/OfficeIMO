@@ -156799,6 +156799,18 @@ message gives the line, column and offending source line.</maml:para>
       </command:syntaxItem>
       <command:syntaxItem parameterSetName="PathSanitize">
         <maml:name>Optimize-OfficePdf</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="SanitizationOptions">
+          <maml:name>HiddenDataOptions</maml:name>
+          <maml:description>
+            <maml:para>Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeHiddenDataOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>IgnorePermissionRestrictions</maml:name>
           <maml:description>
@@ -156883,18 +156895,6 @@ message gives the line, column and offending source line.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SanitizationOptions</maml:name>
-          <maml:description>
-            <maml:para>SanitizationOptions for this operation.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfSanitizationOptions</command:parameterValue>
-          <dev:type>
-            <maml:name>PdfSanitizationOptions</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Sanitize</maml:name>
           <maml:description>
@@ -156910,6 +156910,18 @@ message gives the line, column and offending source line.</maml:para>
       </command:syntaxItem>
       <command:syntaxItem parameterSetName="PathSanitizeDirectory">
         <maml:name>Optimize-OfficePdf</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="SanitizationOptions">
+          <maml:name>HiddenDataOptions</maml:name>
+          <maml:description>
+            <maml:para>Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeHiddenDataOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>IgnorePermissionRestrictions</maml:name>
           <maml:description>
@@ -156990,18 +157002,6 @@ message gives the line, column and offending source line.</maml:para>
           <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
           <dev:type>
             <maml:name>String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SanitizationOptions</maml:name>
-          <maml:description>
-            <maml:para>SanitizationOptions for this operation.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfSanitizationOptions</command:parameterValue>
-          <dev:type>
-            <maml:name>PdfSanitizationOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -157168,6 +157168,18 @@ message gives the line, column and offending source line.</maml:para>
       </command:syntaxItem>
       <command:syntaxItem parameterSetName="LiteralPathSanitize">
         <maml:name>Optimize-OfficePdf</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="SanitizationOptions">
+          <maml:name>HiddenDataOptions</maml:name>
+          <maml:description>
+            <maml:para>Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeHiddenDataOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>IgnorePermissionRestrictions</maml:name>
           <maml:description>
@@ -157248,18 +157260,6 @@ message gives the line, column and offending source line.</maml:para>
           <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
             <maml:name>SecureString</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SanitizationOptions</maml:name>
-          <maml:description>
-            <maml:para>SanitizationOptions for this operation.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfSanitizationOptions</command:parameterValue>
-          <dev:type>
-            <maml:name>PdfSanitizationOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -157426,6 +157426,18 @@ message gives the line, column and offending source line.</maml:para>
       </command:syntaxItem>
       <command:syntaxItem parameterSetName="LiteralPathSanitizeDirectory">
         <maml:name>Optimize-OfficePdf</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="SanitizationOptions">
+          <maml:name>HiddenDataOptions</maml:name>
+          <maml:description>
+            <maml:para>Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeHiddenDataOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>IgnorePermissionRestrictions</maml:name>
           <maml:description>
@@ -157510,18 +157522,6 @@ message gives the line, column and offending source line.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SanitizationOptions</maml:name>
-          <maml:description>
-            <maml:para>SanitizationOptions for this operation.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfSanitizationOptions</command:parameterValue>
-          <dev:type>
-            <maml:name>PdfSanitizationOptions</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Sanitize</maml:name>
           <maml:description>
@@ -157545,6 +157545,18 @@ message gives the line, column and offending source line.</maml:para>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
           <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="SanitizationOptions">
+        <maml:name>HiddenDataOptions</maml:name>
+        <maml:description>
+          <maml:para>Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
+        <dev:type>
+          <maml:name>OfficeHiddenDataOptions</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -157701,18 +157713,6 @@ message gives the line, column and offending source line.</maml:para>
         <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
         <dev:type>
           <maml:name>String[]</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SanitizationOptions</maml:name>
-        <maml:description>
-          <maml:para>SanitizationOptions for this operation.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfSanitizationOptions</command:parameterValue>
-        <dev:type>
-          <maml:name>PdfSanitizationOptions</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>

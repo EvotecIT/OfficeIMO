@@ -160,8 +160,9 @@ encrypted.Save("protected-copy.ppt",
 ```
 
 `InspectSignatures()` detects Open XML and legacy binary signature metadata. The safe default blocks a
-mutating save of signed content; callers must explicitly choose whether invalidated signature markup should
-be removed or preserved. `SignPackage(...)` and `ValidateSignatures(...)` use an explicitly
+mutating save of signed content; callers must explicitly choose through
+`PowerPointSaveOptions.SignatureMutationPolicy` whether invalidated signature markup should be removed or
+preserved. `SignPackage(...)` and `ValidateSignatures(...)` use an explicitly
 supplied `IOfficeSecurityProvider` for OPC creation and cryptographic validation without adding a transitive
 `OfficeIMO.Security` dependency.
 
@@ -630,7 +631,7 @@ var options = new PowerPointInspectionOptions {
     InspectFeatures = true,
     InspectReviewComments = true,
     InspectAnimations = true,
-    Accessibility = PowerPointAccessibilityOptions.ForProfile(PowerPointAccessibilityPolicyProfile.Strict)
+    Accessibility = PowerPointAccessibilityOptions.ForProfile(OfficeAccessibilityPolicyProfile.Strict)
 };
 PowerPointInspectionReport inspection = presentation.Inspect(options);
 inspection.Accessibility!.SaveJson("incoming.accessibility.json");
@@ -639,9 +640,11 @@ Console.WriteLine($"{inspection.ReviewComments!.Comments.Count} comments, " +
                   $"{inspection.Animations!.Nodes.Count} timing nodes");
 ```
 
+`InspectAccessibility()` returns the same `OfficeAccessibilityReport` as the Word checker. Each `OfficeAccessibilityFinding` has a `Location` such as `Slide 3`, the zero-based slide in `LocationIndex`, and the shape's `ObjectId` and `ObjectName`. `InspectReadingOrder()` lists each slide's detected title and its shapes in reading order with their accessibility metadata.
+
 Shapes expose `Title`, `Description`, `Decorative`, `ReadingOrder`, `MoveToReadingOrder(...)`, and language helpers. Designer slides apply accessible defaults. The default report treats missing alternative text, table headers, slide titles, and resolvable contrast failures as errors; the strict profile also requires explicit document and shape metadata.
 
-Saving a signed package is blocked by default because mutation invalidates existing signatures. Choose `RemoveInvalidatedSignatures` or `PreserveSignatureMarkup` explicitly only after inspecting `InspectSignatures()`.
+Saving a signed package is blocked by default because mutation invalidates existing signatures. Set `PowerPointSaveOptions.SignatureMutationPolicy` to `RemoveInvalidatedSignatures` or `PreserveSignatureMarkup` explicitly only after inspecting `InspectSignatures()`.
 
 ### Review threads, custom shows, and VBA projects
 

@@ -1,5 +1,6 @@
 using OfficeIMO.Tool.Commands.Agent;
 using OfficeIMO.Tool.Commands.Convert;
+using OfficeIMO.Tool.Commands.HiddenData;
 using OfficeIMO.Tool.Commands.Html;
 using OfficeIMO.Tool.Commands.Invoice;
 using OfficeIMO.Tool.Commands.Markup;
@@ -31,6 +32,7 @@ Usage:
   officeimo invoice <command> [options]
   officeimo pdf <command> [options]
   officeimo provenance <command> [options]
+  officeimo hidden-data <command> [options]
   officeimo agent <command> [options]
   officeimo mcp serve --stdio
   officeimo --version
@@ -134,6 +136,14 @@ Run 'officeimo <area> --help' for area-specific commands and options.
                     return await ProvenanceCommand.RunAsync(
                         commandArguments,
                         provenanceOutput,
+                        standardError,
+                        cancellationToken).ConfigureAwait(false);
+                }
+            case "hidden-data":
+                using (var hiddenDataOutput = CreateUtf8Writer(standardOutput)) {
+                    return await HiddenDataCommand.RunAsync(
+                        commandArguments,
+                        hiddenDataOutput,
                         standardError,
                         cancellationToken).ConfigureAwait(false);
                 }

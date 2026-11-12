@@ -438,19 +438,6 @@ OfficeIMO.Word.WordEndNote.TextParagraphs.get -> System.Collections.Generic.IRea
 OfficeIMO.Word.WordFootNote.TextParagraphs.get -> System.Collections.Generic.IReadOnlyList<string!>?
 OfficeIMO.Word.WordDocument.InspectHiddenData() -> OfficeIMO.OfficeHiddenDataReport!
 OfficeIMO.Word.WordDocument.RemoveHiddenData(OfficeIMO.OfficeHiddenDataOptions? options = null) -> OfficeIMO.OfficeHiddenDataReport!
-OfficeIMO.Word.WordAccessibilityException
-OfficeIMO.Word.WordAccessibilityException.IncludedWarnings.get -> bool
-OfficeIMO.Word.WordAccessibilityException.Report.get -> OfficeIMO.Word.WordAccessibilityReport!
-OfficeIMO.Word.WordAccessibilityFinding
-OfficeIMO.Word.WordAccessibilityFinding.Code.get -> string!
-OfficeIMO.Word.WordAccessibilityFinding.IsHeuristic.get -> bool
-OfficeIMO.Word.WordAccessibilityFinding.Location.get -> string!
-OfficeIMO.Word.WordAccessibilityFinding.MeasuredValue.get -> double?
-OfficeIMO.Word.WordAccessibilityFinding.Message.get -> string!
-OfficeIMO.Word.WordAccessibilityFinding.ObjectName.get -> string?
-OfficeIMO.Word.WordAccessibilityFinding.ParagraphIndex.get -> int?
-OfficeIMO.Word.WordAccessibilityFinding.RequiredValue.get -> double?
-OfficeIMO.Word.WordAccessibilityFinding.Severity.get -> OfficeIMO.Word.WordAccessibilitySeverity
 OfficeIMO.Word.WordAccessibilityFixOptions
 OfficeIMO.Word.WordAccessibilityFixOptions.Language.get -> string?
 OfficeIMO.Word.WordAccessibilityFixOptions.Language.set -> void
@@ -474,7 +461,7 @@ OfficeIMO.Word.WordAccessibilityOptions.MinimumLargeTextContrastRatio.get -> dou
 OfficeIMO.Word.WordAccessibilityOptions.MinimumLargeTextContrastRatio.set -> void
 OfficeIMO.Word.WordAccessibilityOptions.MinimumTextContrastRatio.get -> double
 OfficeIMO.Word.WordAccessibilityOptions.MinimumTextContrastRatio.set -> void
-OfficeIMO.Word.WordAccessibilityOptions.Profile.get -> OfficeIMO.Word.WordAccessibilityPolicyProfile
+OfficeIMO.Word.WordAccessibilityOptions.Profile.get -> OfficeIMO.OfficeAccessibilityPolicyProfile
 OfficeIMO.Word.WordAccessibilityOptions.Profile.set -> void
 OfficeIMO.Word.WordAccessibilityOptions.RequireAlternativeText.get -> bool
 OfficeIMO.Word.WordAccessibilityOptions.RequireAlternativeText.set -> void
@@ -485,23 +472,8 @@ OfficeIMO.Word.WordAccessibilityOptions.RequireLanguage.set -> void
 OfficeIMO.Word.WordAccessibilityOptions.RequireTableHeaders.get -> bool
 OfficeIMO.Word.WordAccessibilityOptions.RequireTableHeaders.set -> void
 OfficeIMO.Word.WordAccessibilityOptions.WordAccessibilityOptions() -> void
-OfficeIMO.Word.WordAccessibilityPolicyProfile
-OfficeIMO.Word.WordAccessibilityPolicyProfile.Default = 0 -> OfficeIMO.Word.WordAccessibilityPolicyProfile
-OfficeIMO.Word.WordAccessibilityPolicyProfile.Strict = 1 -> OfficeIMO.Word.WordAccessibilityPolicyProfile
-OfficeIMO.Word.WordAccessibilityReport
-OfficeIMO.Word.WordAccessibilityReport.EnsureCompliant(bool includeWarnings = false) -> OfficeIMO.Word.WordAccessibilityReport!
-OfficeIMO.Word.WordAccessibilityReport.ErrorCount.get -> int
-OfficeIMO.Word.WordAccessibilityReport.Findings.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordAccessibilityFinding!>!
-OfficeIMO.Word.WordAccessibilityReport.IsSuccessful.get -> bool
-OfficeIMO.Word.WordAccessibilityReport.Profile.get -> OfficeIMO.Word.WordAccessibilityPolicyProfile
-OfficeIMO.Word.WordAccessibilityReport.WarningCount.get -> int
-OfficeIMO.Word.WordAccessibilitySeverity
-OfficeIMO.Word.WordAccessibilitySeverity.Error = 2 -> OfficeIMO.Word.WordAccessibilitySeverity
-OfficeIMO.Word.WordAccessibilitySeverity.Info = 0 -> OfficeIMO.Word.WordAccessibilitySeverity
-OfficeIMO.Word.WordAccessibilitySeverity.Warning = 1 -> OfficeIMO.Word.WordAccessibilitySeverity
-OfficeIMO.Word.WordDocument.FixAccessibility(OfficeIMO.Word.WordAccessibilityFixOptions! options) -> OfficeIMO.Word.WordAccessibilityReport!
-OfficeIMO.Word.WordDocument.InspectAccessibility(OfficeIMO.Word.WordAccessibilityOptions? options = null) -> OfficeIMO.Word.WordAccessibilityReport!
-override OfficeIMO.Word.WordAccessibilityFinding.ToString() -> string!
+OfficeIMO.Word.WordDocument.FixAccessibility(OfficeIMO.Word.WordAccessibilityFixOptions! options) -> OfficeIMO.OfficeAccessibilityReport!
+OfficeIMO.Word.WordDocument.InspectAccessibility(OfficeIMO.Word.WordAccessibilityOptions? options = null) -> OfficeIMO.OfficeAccessibilityReport!
 *REMOVED*OfficeIMO.Word.WordDocument.EmbedFont(string! fontPath, string! styleId, string? styleName = null) -> void
 *REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition
 *REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.Alignment.get -> OfficeIMO.Word.WordParagraphAlignment?
@@ -716,6 +688,21 @@ OfficeIMO.Word.WordRange.Replace(System.Action<OfficeIMO.Word.WordParagraph!>! c
 OfficeIMO.Word.WordRange.Replace(string! text) -> OfficeIMO.Word.WordRange!
 OfficeIMO.Word.WordRange.Text.get -> string!
 OfficeIMO.Word.WordSearchResult.Ranges.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordRange!>!
+*REMOVED*OfficeIMO.Word.WordImageOptimizationOptions.SignedDocumentPolicy.get -> OfficeIMO.Word.WordSignedDocumentSavePolicy
+*REMOVED*OfficeIMO.Word.WordImageOptimizationOptions.SignedDocumentPolicy.set -> void
+*REMOVED*OfficeIMO.Word.WordMacroProjectSigningOptions.ExistingPackageSignaturePolicy.get -> OfficeIMO.Word.WordSignedDocumentSavePolicy
+*REMOVED*OfficeIMO.Word.WordMacroProjectSigningOptions.ExistingPackageSignaturePolicy.set -> void
+*REMOVED*OfficeIMO.Word.WordSaveOptions.SignedDocumentPolicy.get -> OfficeIMO.Word.WordSignedDocumentSavePolicy
+*REMOVED*OfficeIMO.Word.WordSaveOptions.SignedDocumentPolicy.set -> void
+*REMOVED*OfficeIMO.Word.WordSignedDocumentSavePolicy
+*REMOVED*OfficeIMO.Word.WordSignedDocumentSavePolicy.AllowSignatureInvalidation = 1 -> OfficeIMO.Word.WordSignedDocumentSavePolicy
+*REMOVED*OfficeIMO.Word.WordSignedDocumentSavePolicy.Block = 0 -> OfficeIMO.Word.WordSignedDocumentSavePolicy
+OfficeIMO.Word.WordImageOptimizationOptions.SignatureMutationPolicy.get -> OfficeIMO.OfficeSignatureMutationPolicy
+OfficeIMO.Word.WordImageOptimizationOptions.SignatureMutationPolicy.set -> void
+OfficeIMO.Word.WordMacroProjectSigningOptions.SignatureMutationPolicy.get -> OfficeIMO.OfficeSignatureMutationPolicy
+OfficeIMO.Word.WordMacroProjectSigningOptions.SignatureMutationPolicy.set -> void
+OfficeIMO.Word.WordSaveOptions.SignatureMutationPolicy.get -> OfficeIMO.OfficeSignatureMutationPolicy
+OfficeIMO.Word.WordSaveOptions.SignatureMutationPolicy.set -> void
 OfficeIMO.Word.WordDocumentMergeOptions.StyleConflictMode.get -> OfficeIMO.Word.WordStyleConflictMode
 OfficeIMO.Word.WordDocumentMergeOptions.StyleConflictMode.set -> void
 OfficeIMO.Word.WordDocument.SplitByHeading(int level = 1) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordDocument!>!

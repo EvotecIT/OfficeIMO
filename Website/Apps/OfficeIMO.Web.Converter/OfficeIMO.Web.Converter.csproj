@@ -86,6 +86,10 @@
     <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Pdf.Word.wasm" />
     <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Pdf.Excel.wasm" />
     <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Pdf.PowerPoint.wasm" />
+    <!-- Hidden-data removal: OfficeDocument.RemoveHiddenData dispatches to these formats, so only the clean-before-sharing tool loads them. -->
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Visio.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.OpenDocument.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Epub.wasm" />
     <!-- Format bridges: small, but each belongs to only a few tools. -->
     <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Word.Pdf.wasm" />
     <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Excel.Pdf.wasm" />

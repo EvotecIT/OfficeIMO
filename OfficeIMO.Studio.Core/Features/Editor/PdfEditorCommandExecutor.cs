@@ -53,7 +53,7 @@ internal static class PdfEditorCommandExecutor {
         PdfDocument pdf,
         PdfRedactionPlan plan,
         string? removedTextMarker = null,
-        PdfSanitizationOptions? sanitizationOptions = null,
+        OfficeHiddenDataOptions? hiddenDataOptions = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(pdf);
         ArgumentNullException.ThrowIfNull(plan);
@@ -71,8 +71,8 @@ internal static class PdfEditorCommandExecutor {
         if (!string.IsNullOrWhiteSpace(removedTextMarker)) {
             verificationOptions.RequireRemovedText(removedTextMarker.Trim());
         }
-        if (sanitizationOptions is not null) {
-            PdfRedactionSharingResult sharing = source.Redactions.ApplyForSharing(plan, sanitizationOptions, applyOptions, verificationOptions, cancellationToken: cancellationToken);
+        if (hiddenDataOptions is not null) {
+            PdfRedactionSharingResult sharing = source.Redactions.ApplyForSharing(plan, hiddenDataOptions, applyOptions, verificationOptions, cancellationToken: cancellationToken);
             return new PdfVerifiedRedactionResult(sharing.ToBytes(), plan, sharing.Redaction, sharing.Summary);
         }
         PdfRedactionApplyResult applied = source.Redactions

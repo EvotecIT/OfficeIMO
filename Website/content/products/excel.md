@@ -35,6 +35,7 @@ XLS and XLSB use first-party readers and writers with explicit preservation and 
 - **Images & hyperlinks** — embed images in cells and attach hyperlinks to cells or shapes
 - **AutoFit columns** — automatically size columns to fit content width
 - **Headers, footers & print setup** — page headers, footers, margins, orientation, and print area
+- **Before sharing** — find and remove author names, notes, threaded comments, hidden sheets, rows and columns, external workbook values and photo locations. [Prepare a document for sharing](/docs/before-sharing/)
 - **XLS and XLSB workflows** — load, inspect, edit, save, and convert legacy and binary workbooks through the normal document lifecycle
 - **Compatibility policies** — choose native-only, editable, visual, best-effort, or source-preserving conversion behavior
 

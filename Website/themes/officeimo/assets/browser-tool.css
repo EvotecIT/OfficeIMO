@@ -247,6 +247,8 @@ label.bt-item__body { cursor: pointer; }
 
 .bt-commit { display: grid; gap: 12px; }
 .bt-commit__bulk { display: flex; flex-wrap: wrap; gap: 6px; }
+.bt-commit__groups { display: grid; gap: 8px; }
+.bt-commit__groups .bt-items__group:not(:first-child) { margin-top: 10px; }
 
 .bt-preview { margin: 0; display: grid; gap: 10px; }
 .bt-preview img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--imo-border); background: #fff; }

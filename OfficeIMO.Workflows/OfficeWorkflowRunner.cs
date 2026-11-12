@@ -467,33 +467,34 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         byte[] input = ReadInput(request.InputPath, request.Limits, cancellationToken);
         PdfHealthSnapshot before = CreateHealthSnapshot(input, request.PdfLoadOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        PdfSanitizationResult sanitization = PdfDocument.Load(input, request.PdfLoadOptions).Sanitize(
-            new PdfSanitizationOptions {
-                MaximumOutputBytes = request.Limits.MaximumOutputBytes
-            }, cancellationToken: cancellationToken);
+        // The PDF sanitize operation removes attachments and active content (scripts, unsafe actions and links, rich media),
+        // through the shared hidden-data contract. The engine refuses to return output that still contains a selected item.
+        PdfHiddenDataRemoval removal = PdfDocument.Load(input, request.PdfLoadOptions).RemoveHiddenDataCore(
+            new OfficeHiddenDataOptions { Kinds = OfficeHiddenDataKind.ActiveContent | OfficeHiddenDataKind.Attachments },
+            request.Limits.MaximumOutputBytes,
+            cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        if (!sanitization.IsSanitized || !sanitization.PreservationReport.IsPreserved) {
-            throw new InvalidOperationException("Sanitization verification failed; no artifact will be published.");
-        }
-        byte[] output = sanitization.ToBytes();
+        byte[] output = removal.Result.ToArray();
         PdfHealthSnapshot after = CreateHealthSnapshot(output, request.OutputPdfLoadOptions, cancellationToken);
+        OfficeHiddenDataReport hiddenData = removal.Result.Report;
+        int removed = removal.RemovedCount;
+        int retained = hiddenData.Findings.Count(static finding => finding.Outcome == OfficeHiddenDataOutcome.Retained);
         var metrics = new Dictionary<string, string>(StringComparer.Ordinal) {
-            ["removedFindings"] = sanitization.RemovedFindings.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            ["remainingFindings"] = sanitization.RemainingFindings.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            ["quarantinedAttachments"] = sanitization.QuarantinedAttachments.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            ["preserved"] = sanitization.PreservationReport.IsPreserved.ToString()
+            ["removedFindings"] = removed.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["retainedFindings"] = retained.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["preserved"] = removal.Preservation.IsPreserved.ToString()
         };
         diagnostics.Add(new OfficeWorkflowDiagnostic(
             "SanitizationProof",
-            $"Removed {sanitization.RemovedFindings.Count:N0} forbidden item(s); post-save inventory found {sanitization.RemainingFindings.Count:N0} remaining.",
+            $"Removed {removed:N0} item(s); post-save inventory found none of the selected items remaining.",
             stage: "sanitize",
             details: metrics));
         var report = new PdfHealthReport(
             OfficeWorkflowOperation.Sanitize,
             before,
             after,
-            $"Sanitization removed {sanitization.RemovedFindings.Count:N0} forbidden item(s) and verified the saved artifact.",
-            sanitization.IsSanitized && sanitization.PreservationReport.IsPreserved,
+            $"Sanitization removed {removed:N0} item(s) and verified the saved artifact.",
+            removal.Preservation.IsPreserved,
             metrics);
         return new OperationArtifact(output, report.Summary, report);
     }
