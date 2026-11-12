@@ -302,29 +302,101 @@ public sealed class ConverterTests {
     }
 
     [Fact]
-    public async Task VisualPdfPreservesPageGeometryAndLeavesCallerOwnedStreamOpen() {
+    public async Task VisualPdfWritesVectorPagesWithSearchableTextAtPageGeometry() {
         OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
         section.Pages[0].PageSize = OneNotePageSize.IndexCard;
         OneNoteImage image = Assert.Single(section.Pages[0].DirectContent.OfType<OneNoteImage>());
         image.Payload = OneNoteBinaryPayload.FromBytes(OfficePngWriter.Encode(new OfficeRasterImage(4, 4, OfficeColor.CornflowerBlue)));
-        var options = new OneNoteVisualPdfExportOptions { RasterScale = 0.5D };
+        var options = new OneNoteVisualPdfExportOptions();
 
         var result = section.ConvertToVisualPdfWithEvidence(options, default);
         byte[] bytes = result.ToBytes();
         using var stream = new MemoryStream();
         await section.SaveAsVisualPdfAsync(stream, options);
-        OfficeIMO.Pdf.PdfDocumentInfo info = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(bytes)).Inspect();
+        PdfDocument loaded = PdfDocument.Load(new System.IO.MemoryStream(bytes));
+        OfficeIMO.Pdf.PdfDocumentInfo info = loaded.Inspect();
 
-        Assert.DoesNotContain(
-            result.Diagnostics,
-            warning => warning.Code !=
-                       OfficeImageExportDiagnosticCodes.FontSubstituted);
-        Assert.Equal("%PDF", Encoding.ASCII.GetString(bytes, 0, 4));
+        Assert.DoesNotContain(result.Warnings, warning => warning.Severity == PdfConversionWarningSeverity.Error);
         Assert.Equal(1, info.PageCount);
         Assert.InRange(info.Pages[0].Width, 215.9D, 216.1D);
         Assert.InRange(info.Pages[0].Height, 359.9D, 360.1D);
+        string text = loaded.ExtractText();
+        Assert.Contains("Current page", text, StringComparison.Ordinal);
+        Assert.Contains("Bold link", text, StringComparison.Ordinal);
+        // Only the embedded 4x4 picture is an image; the page itself is not a full-page bitmap.
+        PdfExtractedImage picture = Assert.Single(loaded.ExtractImages());
+        Assert.Equal(4, picture.Width);
+        Assert.Equal(4, picture.Height);
         Assert.True(stream.CanWrite);
-        Assert.Equal("%PDF", Encoding.ASCII.GetString(stream.ToArray(), 0, 4));
+        Assert.Equal(bytes.Length, stream.Length);
+    }
+
+    [Fact]
+    public void NativeHyperlinkFieldShowsOnlyItsResultAndCarriesTheTargetAcrossOutputs() {
+        // The fixture stores "et dolore " + protected "﷟HYPERLINK \"https://example.com\"" + protected "magna".
+        OneNoteSection section = OneNoteSection.Load(Path.Combine(AppContext.BaseDirectory, "Fixtures", "handwriting_recognition.one"));
+
+        var pdf = section.ConvertToVisualPdfWithEvidence(new OneNoteVisualPdfExportOptions(), default);
+        PdfDocument loaded = PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes()));
+        string pdfText = System.Text.RegularExpressions.Regex.Replace(loaded.ExtractText(), @"\s+", " ");
+        string markdown = MarkdownText(section, null);
+        string visualHtml = section.ToVisualHtml(new OneNoteVisualHtmlExportOptions());
+
+        Assert.Contains("et dolore magna aliquyam", pdfText, StringComparison.Ordinal);
+        foreach (string output in new[] { pdfText, markdown, visualHtml }) {
+            Assert.DoesNotContain("HYPERLINK", output, StringComparison.Ordinal);
+            Assert.DoesNotContain("dolore ?", output, StringComparison.Ordinal);
+            Assert.DoesNotContain('﷟', output);
+        }
+        Assert.NotEmpty(loaded.Inspect().GetLinkAnnotationsByUri("https://example.com/"));
+        Assert.Contains("[magna](https://example.com)", markdown, StringComparison.Ordinal);
+        Assert.Contains("href=\"https://example.com/\"", visualHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void VisualPdfMarksAGlyphNoFontCoversAndKeepsTheRestSearchable() {
+        // U+0378 is unassigned, so no installed font on any host has a glyph for it.
+        var section = new OneNoteSection { Name = "Uncovered" };
+        var page = new OneNotePage { Title = "Glyphs", PageSize = OneNotePageSize.IndexCard };
+        page.DirectContent.Add(Paragraph("Covered words ͸ stay searchable"));
+        section.Pages.Add(page);
+
+        var result = section.ConvertToVisualPdfWithEvidence(new OneNoteVisualPdfExportOptions(), default);
+        PdfDocument loaded = PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes()));
+        string text = System.Text.RegularExpressions.Regex.Replace(loaded.ExtractText(), @"\s+", " ");
+
+        PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "ONENOTE_PDF_GLYPH_SUBSTITUTED");
+        Assert.Contains("U+0378", warning.Message, StringComparison.Ordinal);
+        Assert.Contains("Covered words", text, StringComparison.Ordinal);
+        Assert.Contains("stay searchable", text, StringComparison.Ordinal);
+        Assert.DoesNotContain('͸', text);
+    }
+
+    [Fact]
+    public void VisualPdfEmbedsOnlyAPictureWithoutNativePdfFormAsPng() {
+        OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
+        OneNoteImage image = Assert.Single(section.Pages[0].DirectContent.OfType<OneNoteImage>());
+        image.Payload = OneNoteBinaryPayload.FromBytes(new byte[] { 0x49, 0x49, 0xBC, 0x01, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 });
+        image.MediaType = "image/vnd.ms-photo";
+        var options = new OneNoteVisualPdfExportOptions {
+            PageRendering = new OneNotePageRenderingOptions { ImageCodec = new SolidCodec(3, 2) }
+        };
+
+        var result = section.ConvertToVisualPdfWithEvidence(options, default);
+        PdfDocument loaded = PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes()));
+
+        Assert.Contains(result.Warnings, warning => warning.Code == "ONENOTE_PDF_IMAGE_RASTERIZED");
+        PdfExtractedImage picture = Assert.Single(loaded.ExtractImages());
+        Assert.Equal(3, picture.Width);
+        Assert.Equal(2, picture.Height);
+        Assert.Contains("Bold link", loaded.ExtractText(), StringComparison.Ordinal);
+    }
+
+    private sealed class SolidCodec(int width, int height) : IOfficeRasterImageCodec {
+        public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
+            image = new OfficeRasterImage(width, height, OfficeColor.Red);
+            return true;
+        }
     }
 
     [Fact]
@@ -334,7 +406,6 @@ public sealed class ConverterTests {
         image.Payload = OneNoteBinaryPayload.FromBytes(
             OfficePngWriter.Encode(new OfficeRasterImage(4, 4, OfficeColor.CornflowerBlue)));
         var options = new OneNoteVisualPdfExportOptions {
-            RasterScale = 0.5D,
             PdfOptions = new PdfCreateOptions().SetEncryption("open", "owner")
         };
 
@@ -356,11 +427,9 @@ public sealed class ConverterTests {
             OfficePngWriter.Encode(new OfficeRasterImage(4, 4, OfficeColor.CornflowerBlue)));
 
         byte[] compressed = section.ToVisualPdf(new OneNoteVisualPdfExportOptions {
-            RasterScale = 0.5D,
             PdfOptions = new PdfCreateOptions { Language = "en-US" }
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         byte[] uncompressed = section.ToVisualPdf(new OneNoteVisualPdfExportOptions {
-            RasterScale = 0.5D,
             PdfOptions = new PdfCreateOptions { CompressContentStreams = false }
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
@@ -383,28 +452,6 @@ public sealed class ConverterTests {
             System.Text.RegularExpressions.RegexOptions.Singleline);
         Assert.True(stream.Success, "The generated page content object did not contain a stream dictionary.");
         return stream.Groups["dictionary"].Value;
-    }
-
-    [Fact]
-    public void VisualPdfMaximumRasterPixelsRemainsAHardLimitForVeryLargeCanvases() {
-        var section = new OneNoteSection { Name = "Large canvas" };
-        section.Pages.Add(new OneNotePage {
-            Title = "Large page",
-            PageSize = OneNotePageSize.Custom,
-            Width = 100000D / OneNotePageRenderer.PointsPerHalfInch,
-            Height = 100000D / OneNotePageRenderer.PointsPerHalfInch
-        });
-        var options = new OneNoteVisualPdfExportOptions {
-            RasterScale = 1D,
-            MaximumRasterPixels = 10_000L
-        };
-
-        var result = section.ConvertToVisualPdfWithEvidence(options, default);
-
-        OfficeIMO.Pdf.PdfConversionWarning warning = Assert.Single(result.Warnings, item =>
-            item.Code == "ONENOTE_PDF_RASTER_SCALE_LIMITED");
-        Assert.Contains("to 0.001", warning.Message, StringComparison.Ordinal);
-        Assert.True(result.ToBytes().Length > 100);
     }
 
     [Fact]
@@ -453,9 +500,11 @@ public sealed class ConverterTests {
         byte[] pdf = section.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Contains("Native\ntitle", text, StringComparison.Ordinal);
-        Assert.Contains("Alpha\nBeta??", text, StringComparison.Ordinal);
+        Assert.Contains("Alpha\nBeta?", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Beta??", text, StringComparison.Ordinal);
         Assert.Contains("Native<br>title", markdown, StringComparison.Ordinal);
-        Assert.Contains("Alpha<br>Beta??", markdown, StringComparison.Ordinal);
+        Assert.Contains("Alpha<br>Beta?", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("Beta??", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain('\v', html);
         Assert.DoesNotContain('\u0001', html);
         Assert.DoesNotContain('\uFDDF', html);

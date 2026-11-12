@@ -26,7 +26,7 @@ namespace OfficeIMO.Visio {
             return true;
         }
 
-        private static void AppendArc(List<(double X, double Y)> path, (double X, double Y) start, (double X, double Y) end, double sagitta) {
+        private static void AppendArc(List<(double X, double Y)> path, (double X, double Y) start, (double X, double Y) end, double sagitta, List<VisioGeometrySegment>? cubics = null) {
             double dx = end.X - start.X;
             double dy = end.Y - start.Y;
             double chord = Math.Sqrt((dx * dx) + (dy * dy));
@@ -62,6 +62,10 @@ namespace OfficeIMO.Visio {
                 startAngle,
                 sweep,
                 ArcSegmentCount));
+            if (cubics != null) {
+                AppendArcCubics(cubics, angle => (centerX + (radius * Math.Cos(angle)), centerY + (radius * Math.Sin(angle))),
+                    angle => (-radius * Math.Sin(angle), radius * Math.Cos(angle)), startAngle, sweep, end);
+            }
         }
 
         private static void AppendEllipticalArc(
@@ -70,7 +74,8 @@ namespace OfficeIMO.Visio {
             (double X, double Y) end,
             (double X, double Y) control,
             double angle,
-            double ratio) {
+            double ratio,
+            List<VisioGeometrySegment>? cubics = null) {
             if (!IsFinite(ratio) || ratio <= 0D || ratio > 1000D) {
                 path.Add(end);
                 return;
@@ -105,6 +110,14 @@ namespace OfficeIMO.Visio {
                 sweep,
                 ArcSegmentCount)) {
                 path.Add(InverseTransformEllipsePoint(point, inverseCos, inverseSin, ratio));
+            }
+
+            if (cubics != null) {
+                (double X, double Y) circleCenter = center;
+                AppendArcCubics(cubics,
+                    value => InverseTransformEllipsePoint((circleCenter.X + (radius * Math.Cos(value)), circleCenter.Y + (radius * Math.Sin(value))), inverseCos, inverseSin, ratio),
+                    value => InverseTransformEllipsePoint((-radius * Math.Sin(value), radius * Math.Cos(value)), inverseCos, inverseSin, ratio),
+                    startAngle, sweep, end);
             }
         }
 
@@ -243,7 +256,8 @@ namespace OfficeIMO.Visio {
             List<(double X, double Y)> path,
             (double X, double Y) center,
             (double X, double Y) point1,
-            (double X, double Y) point2) {
+            (double X, double Y) point2,
+            List<VisioGeometrySegment>? cubics = null) {
             double axis1X = point1.X - center.X;
             double axis1Y = point1.Y - center.Y;
             double axis2X = point2.X - center.X;
@@ -260,6 +274,13 @@ namespace OfficeIMO.Visio {
                 path.Add((
                     center.X + (Math.Cos(angle) * axis1X) + (Math.Sin(angle) * axis2X),
                     center.Y + (Math.Cos(angle) * axis1Y) + (Math.Sin(angle) * axis2Y)));
+            }
+
+            if (cubics != null) {
+                AppendArcCubics(cubics,
+                    angle => (center.X + (Math.Cos(angle) * axis1X) + (Math.Sin(angle) * axis2X), center.Y + (Math.Cos(angle) * axis1Y) + (Math.Sin(angle) * axis2Y)),
+                    angle => ((-Math.Sin(angle) * axis1X) + (Math.Cos(angle) * axis2X), (-Math.Sin(angle) * axis1Y) + (Math.Cos(angle) * axis2Y)),
+                    0D, Math.PI * 2D, path[0]);
             }
         }
 
