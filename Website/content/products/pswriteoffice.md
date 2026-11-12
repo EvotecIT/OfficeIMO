@@ -5,7 +5,7 @@ layout: product
 meta.showcase_id: "pswriteoffice-patch-report"
 product_color: "#d97706"
 product_label: "PowerShell document automation"
-runtime_label: "PowerShell 5.1 and 7+"
+runtime_label: "PowerShell 5.1 and 7.4+"
 install: "Install-Module PSWriteOffice"
 nuget: ""
 docs_url: "/docs/pswriteoffice/"
