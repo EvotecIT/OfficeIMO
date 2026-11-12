@@ -16,12 +16,12 @@ public sealed class JsonReadOptions {
     /// <summary>
     /// Maximum nesting of objects and arrays, with the root container at depth one.
     /// </summary>
-    public int MaxDepth { get; set; } = 32;
+    public int MaxDepth { get; set; } = 64;
 
     /// <summary>
     /// Maximum JSON values (objects, arrays, strings, numbers, booleans and nulls) in the document.
     /// </summary>
-    public int MaxNodes { get; set; } = 200_000;
+    public int MaxNodes { get; set; } = 1_000_000;
 
     /// <summary>
     /// Maximum characters in one decoded string value or property name, or in one number as written.

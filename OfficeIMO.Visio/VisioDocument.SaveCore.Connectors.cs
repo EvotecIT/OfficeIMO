@@ -308,7 +308,8 @@ namespace OfficeIMO.Visio {
                     }
                     return true;
                 case "TextBkgnd":
-                    WriteTextBackgroundColorCell(writer, ns, connector.TextStyle);
+                    if (connector.DefaultLabelBackground is Color labelBackground) WriteCanonicalTextBackgroundColor(writer, ns, labelBackground);
+                    else WriteTextBackgroundColorCell(writer, ns, connector.TextStyle);
                     return true;
                 case "TextBkgndTrans":
                     WriteTextBackgroundTransparencyCell(writer, ns, connector.TextStyle);

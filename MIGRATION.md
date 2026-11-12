@@ -6550,6 +6550,8 @@ Consumers inspecting VSDX/VSSX/VSTX XML directly must read `FaceName.NameU` and 
 
 Native `TextBkgnd` values `0` and `255` disable the text background. A zero-alpha `BackgroundColor` explicitly disables it; indexed native backgrounds use the document palette with the native index offset. Explicit background assignments replace the retained source cell, including its old formula and error state.
 
+SVG and PNG export no longer draw a translucent white box behind connector labels whose file states no text background. They follow `TextBkgnd` from the connector, its text style sheet or its master, like Visio and the PDF renderer. Connectors created through the API save an opaque white label background, matching Visio's Connector style, unless their text style sets one; loaded connectors keep what their file states. To give a label a box, set `connector.TextStyle.BackgroundColor` (and optionally `BackgroundTransparency`).
+
 ## Visio preview diagnostics in PDF conversion
 
 Opt-in PNG and SVG preview assets now retain rendering diagnostics in the neutral model, Reader result and PDF conversion report. `ThrowIfLoss()` rejects reported omissions such as unsupported foreign objects replaced by placeholders. Inspect `Warnings` and their `LossKind` before accepting those fallbacks. Disabled shape text and connector labels do not generate font-substitution warnings.
@@ -7264,8 +7266,8 @@ XML and YAML values within their configured limits retain their full normalized 
 
 ## Reader JSON and TOML limits
 
-JSON extraction adds `JsonReadOptions.MaxNodes` (200,000) and `MaxScalarLength` (1,048,576)
-beside `MaxDepth` (32). Exceeding any of the three, including `MaxDepth`, now throws
+JSON extraction adds `JsonReadOptions.MaxNodes` (1,000,000) and `MaxScalarLength` (1,048,576)
+and raises the `MaxDepth` default from 32 to 64, matching System.Text.Json. Exceeding any of the three, including `MaxDepth`, now throws
 `ReaderResourceLimitException` instead of returning a `json-warning-0000` parse warning, and a
 limit below 1 throws `ArgumentOutOfRangeException` instead of being raised to 1. Raise the
 relevant option for trusted larger inputs; malformed JSON still produces the warning chunk.
