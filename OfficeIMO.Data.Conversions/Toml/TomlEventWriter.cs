@@ -465,7 +465,7 @@ internal sealed class TomlEventWriter : DataEventWriter {
             return;
         }
 
-        if (SignificantDigits(text) > 15 && !SameDecimal(text, number.ToString("R", CultureInfo.InvariantCulture))) {
+        if (SignificantDigits(text) > 15 && !SameDecimal(text, ShortestRoundTrip(number))) {
             Report(OfficeDiagnosticCodes.NumberPrecision, OfficeConversionLossKind.Approximation,
                 "TOML floats are 64-bit; numbers with more significant digits were rounded.", path, key);
         }
@@ -514,6 +514,16 @@ internal sealed class TomlEventWriter : DataEventWriter {
         }
 
         return count;
+    }
+
+    // "R" is not the shortest round-trip form on .NET Framework (it can return 17 digits), so
+    // take the shortest of G15, G16 and G17 that parses back to the same double.
+    private static string ShortestRoundTrip(double number) {
+        string text = number.ToString("G15", CultureInfo.InvariantCulture);
+        if (double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture) == number) return text;
+        text = number.ToString("G16", CultureInfo.InvariantCulture);
+        if (double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture) == number) return text;
+        return number.ToString("G17", CultureInfo.InvariantCulture);
     }
 
     /// <summary>Whether two JSON number spellings denote the same decimal value.</summary>
