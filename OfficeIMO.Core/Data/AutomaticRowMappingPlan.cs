@@ -605,28 +605,25 @@ internal sealed partial class AutomaticRowMappingPlan<
             ParameterExpression reader = Expression.Parameter(typeof(DbDataReader), "reader");
             ParameterExpression instance = Expression.Variable(typeof(T), "instance");
             var values = new ParameterExpression[bindings.Length];
-            var body = new List<Expression>((bindings.Length * 2) + 2);
+            var body = new List<Expression>(bindings.Length + 3);
+            var reads = new Expression[bindings.Length + 1];
 
             for (int index = 0; index < bindings.Length; index++) {
                 MappingBinding binding = bindings[index];
                 ParameterExpression value = Expression.Variable(binding.Property.ValueType, $"value{index}");
                 values[index] = value;
-                BinaryExpression readValue = Expression.Assign(
+                reads[index] = Expression.Assign(
                     value,
                     Expression.Call(reader, getters[index], Expression.Constant(binding.ColumnIndex)));
-                NewExpression fallbackException = Expression.New(typeof(TypedReaderValueException));
-                body.Add(Expression.TryCatch(
-                    readValue,
-                    Expression.Catch(
-                        typeof(InvalidCastException),
-                        Expression.Throw(fallbackException, binding.Property.ValueType)),
-                    Expression.Catch(
-                        typeof(FormatException),
-                        Expression.Throw(fallbackException, binding.Property.ValueType)),
-                    Expression.Catch(
-                        typeof(OverflowException),
-                        Expression.Throw(fallbackException, binding.Property.ValueType))));
             }
+            // One protected region reads every column; any conversion failure takes the reflection path.
+            reads[bindings.Length] = Expression.Empty();
+            NewExpression fallbackException = Expression.New(typeof(TypedReaderValueException));
+            body.Add(Expression.TryCatch(
+                Expression.Block(reads),
+                Expression.Catch(typeof(InvalidCastException), Expression.Throw(fallbackException)),
+                Expression.Catch(typeof(FormatException), Expression.Throw(fallbackException)),
+                Expression.Catch(typeof(OverflowException), Expression.Throw(fallbackException))));
 
             if (constructor is null) {
                 body.Add(Expression.Assign(instance, Expression.New(typeof(T))));
