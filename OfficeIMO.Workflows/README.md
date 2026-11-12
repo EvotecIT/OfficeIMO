@@ -2045,7 +2045,7 @@ Applications that keep documents open can set `PublicationGuard` on `OfficeWorkf
 
 ## Print a PDF
 
-Plan the sheets, render them once for review, and send those same sheets to an installed printer:
+Lay out the pages on sheets, preview the job, and send that same job to an installed printer:
 
 ```csharp
 using OfficeIMO.Pdf;
@@ -2055,32 +2055,38 @@ var printers = new PdfPrinterService();
 foreach (PdfPrinterInfo queue in await printers.GetPrintersAsync()) {
     Console.WriteLine(queue.IsDefault ? queue.Name + " (default)" : queue.Name);
 }
+PdfPrinterCapabilities capabilities = await printers.GetCapabilitiesAsync("Office printer");
 
 PdfDocument document = await PdfDocument.LoadAsync("report.pdf");
-PdfPreparedPrintDocument prepared = PdfPrintRenderer.Prepare(document, new PdfPrintPlanRequest {
+PdfPrintJob job = PdfPrintJob.Create(document, new PdfPrintPlanRequest {
     InputPath = "report.pdf",
     Pages = "1-8",
-    PagesPerSheet = 2
+    PagesPerSheet = 2,
+    PaperSize = capabilities.DefaultMedia?.Size ?? PdfPageSizes.A4
 });
-File.WriteAllBytes("sheet-1.png", prepared.Sheets[0].GetPng());
+File.WriteAllBytes("sheet-1.png", job.RenderSheet(1, dpi: 96).GetPng());
 
-PdfPrintSubmission job = await printers.SubmitAsync(prepared, new PdfPrintDeliveryOptions {
+PdfPrintSubmission receipt = await printers.SubmitAsync(job, new PdfPrintDeliveryOptions {
     PrinterName = "Office printer",
     Copies = 2,
     Duplex = PdfPrintDuplex.LongEdge
 });
-Console.WriteLine($"Queued job {job.JobId}: {job.SheetCount} sheets");
+Console.WriteLine($"Queued job {receipt.JobId}: {receipt.SheetCount} sheets");
 ```
 
-`PdfPrintRenderer.Prepare(document, request)` turns an authenticated `PdfDocument` snapshot and its `PdfPrintPlanRequest` into immutable PNG sheets. Display `prepared.Sheets[i].GetPng()` for review, then pass that same `PdfPreparedPrintDocument` to `IPdfPrinterService.SubmitAsync` with `PdfPrintDeliveryOptions`. Delivery does not reopen the source. `PdfPrinterService.GetPrintersAsync` lists installed queues; Windows uses GDI and macOS/Linux use the installed CUPS `lpstat`, `lpoptions`, and `lp` tools. Copies are collated, and duplex defaults to the printer's setting.
+`PdfPrintJob.Create(document, request)` composes one PDF page per sheet from an authenticated `PdfDocument` snapshot. Source pages are placed as vector content, so text and line art keep the printer's full resolution, and each page carries its sheet's own paper size and orientation. `OpenContent()` returns that PDF; `RenderSheet(sheetNumber, dpi)` renders one sheet on demand for preview. Delivery uses the same content and never reopens the source. Jobs don't retain rendered sheets: `PdfPrintJobOptions` bounds the sheet count (10,000 by default), the composed content (256 MiB) and the pixels in any one raster.
+
+`ContentKind` is `Raster` when the source can't be reproduced as vector content: it denies page import (for example, print-only permission), permits only low-quality printing, uses optional-content layers, or has printed annotations without a flattenable appearance. Printed form fields and annotations are flattened into the sheet first. Raster sheets are rendered at `RasterContentDpi` (300 by default, 150 for low-quality printing), and `Diagnostics` records the reason.
 
 `PdfPrintPlanRequest.PagesPerSheet` accepts 1, 2, 4, 6, or 9 pages in row-major order. Six-up uses two columns on portrait paper and three on landscape paper; nine-up uses three columns and rows. `PageSubset` filters odd or even original source-page numbers after `Pages` is resolved, retaining that selection's order. `Margin` sets the default edge margin in points; nullable `MarginLeft`, `MarginTop`, `MarginRight`, and `MarginBottom` override individual edges. Margins must leave a positive sheet area.
 
-`ScaleMode = PdfPrintScaleMode.Custom` uses `CustomScalePercent` (1–1000, default 100) of each source page's physical size. `Alignment` anchors the page in its slot; custom-size and fill overflow is clipped at that slot. `ColorMode = PdfPrintColorMode.Grayscale` converts prepared sheet pixels, so review and delivery use the same grayscale image without changing the source PDF or requiring a color-capable driver. Color mode retains source colors; actual device output depends on the printer.
+`ScaleMode = PdfPrintScaleMode.Custom` uses `CustomScalePercent` (1–1000, default 100) of each source page's physical size. `Alignment` anchors the page in its slot; custom-size and fill overflow is clipped at that slot. `ColorMode = PdfPrintColorMode.Grayscale` is applied whenever sheets are rasterized, so preview and delivery show the same grayscale pixels without changing the source PDF or requiring a color-capable driver. Color mode retains source colors; actual device output depends on the printer.
 
-`GetPaperSourcesAsync(printerName)` lists the queue's reported paper sources. Set `PdfPrintDeliveryOptions.PaperSourceId` to one of those identifiers, or leave it null to retain the printer default. Identifiers belong to the queried queue; delivery rechecks an explicit selection before submitting. Windows reads driver bins and checks that the driver accepts the selected bin. CUPS discovers `InputSlot` or `media-source` choices exposed by `lpoptions -l`. Queues that expose no choices retain their default source.
+`GetCapabilitiesAsync(printerName)` reports the queue's media with sizes, its default media, paper sources, duplex, color, collation, maximum driver copies and resolutions. Values the queue doesn't report are null. Windows reads `DeviceCapabilities` and the driver's default settings; CUPS reads `lpoptions -p <queue> -l` and the queue's `printer-type`. Set `PdfPrintDeliveryOptions.PaperSourceId` to one of `PaperSources`, or leave it null to retain the printer default. Identifiers belong to the queried queue; delivery rechecks an explicit selection before submitting.
 
-Print preparation enforces PDF printing permissions, page and raster limits, cancellation, and a retained-output byte budget. Rendering above 150 DPI also requires high-quality print permission when restrictions apply. The output reflects the managed renderer's diagnostics and printer margins. `PdfPrintSubmission` is a queue acceptance receipt, not confirmation of physical delivery; `PdfPrintDeliveryException` means submission began and retrying could duplicate pages. Windows file-printer paths must be new local paths and are checked before submission; the driver controls the eventual write.
+On macOS and Linux, the job PDF goes to `lp` unchanged, with one media keyword when every sheet uses the same paper size and none when sizes differ, so each page selects its own media. Grayscale jobs are rasterized first. On Windows, GDI receives one sheet at a time, rasterized at the device resolution up to `MaximumRasterDpi` (300 by default). When the driver reports collation and enough copies and the job uses one paper size, the driver makes the copies; otherwise the sheets are sent once per copy. The driver must accept the requested copies, duplex and paper source, or delivery stops before the job starts.
+
+Job composition enforces PDF printing permissions, cancellation and the limits above. `PdfPrintSubmission` is a queue acceptance receipt, not confirmation of physical delivery; `PdfPrintDeliveryException` means submission began and retrying could duplicate pages. Windows file-printer paths must be new local paths and are checked before submission; the driver controls the eventual write. Layout margins don't remove printer hardware margins.
 
 To check placement without a printer driver, call `PdfPrintPlanner.Create` and read `PdfPrintPlan.Sheets`. The [command line](../OfficeIMO.Tool/README.md#file-batches-and-printing) exposes the same steps as `officeimo workflow printers`, `print-plan` and `print`.
 
