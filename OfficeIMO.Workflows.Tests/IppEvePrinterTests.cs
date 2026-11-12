@@ -1,0 +1,178 @@
+using System.Diagnostics;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+
+namespace OfficeIMO.Workflows.Tests;
+
+/// <summary>
+/// Qualifies the IPP client against CUPS's independent IPP Everywhere reference printer, started on a
+/// loopback port with a private spool directory. Skipped where ippeveprinter is not installed.
+/// </summary>
+public sealed class IppEvePrinterTests {
+    private const string IppEvePrinterPath = "/usr/bin/ippeveprinter";
+    private static readonly TimeSpan JobTimeout = TimeSpan.FromSeconds(60);
+    private static readonly byte[] Pdf = Encoding.ASCII.GetBytes(
+        "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n" +
+        "3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n");
+
+    [ExternalToolFact(IppEvePrinterPath)]
+    public async Task ReadsTheReferencePrinterCapabilities() {
+        using var printer = EvePrinter.Start("-2", "-f", "application/pdf,image/pwg-raster");
+        using var client = new IppPrintClient(printer.Uri);
+
+        IppPrinterCapabilities capabilities = await client.GetCapabilitiesAsync();
+
+        Assert.Equal(IppPrinterState.Idle, capabilities.State);
+        Assert.False(string.IsNullOrEmpty(capabilities.MakeAndModel));
+        Assert.Contains("application/pdf", capabilities.DocumentFormats);
+        Assert.Contains("image/pwg-raster", capabilities.DocumentFormats);
+        Assert.Equal(new[] { "one-sided", "two-sided-long-edge", "two-sided-short-edge" }, capabilities.Sides);
+        Assert.Contains("iso_a4_210x297mm", capabilities.Media);
+        Assert.NotNull(capabilities.MediaDefault);
+        Assert.Contains(capabilities.MediaSizes, media => media.Width == 21000 && media.Height == 29700);
+        Assert.NotNull(capabilities.MediaColDefault);
+        Assert.NotEmpty(capabilities.ColorModes);
+        Assert.NotEmpty(capabilities.Resolutions);
+        Assert.Contains(new IppResolution(300, 300, IppResolutionUnits.DotsPerInch), capabilities.PwgRasterResolutions);
+        Assert.Contains("2.0", capabilities.IppVersions);
+    }
+
+    [ExternalToolFact(IppEvePrinterPath)]
+    public async Task PrintsPdfFromBytesAndUnknownLengthStreamsAndSpoolsIdenticalBytes() {
+        using var printer = EvePrinter.Start("-2", "-f", "application/pdf,image/pwg-raster", "-c", "/usr/bin/true");
+        using var client = new IppPrintClient(printer.Uri, new IppPrintClientOptions { RequestingUserName = "officeimo" });
+        var options = new IppJobOptions { JobName = "ipp-pdf", Sides = "two-sided-long-edge", Media = "iso_a4_210x297mm", Orientation = IppOrientation.Portrait };
+
+        Assert.Empty(await client.ValidateJobAsync("application/pdf", options));
+        // The reference printer processes one job at a time, so each submission waits for the previous job.
+        var submissions = new List<IppSubmission>();
+        foreach (Stream document in new Stream[] { new MemoryStream(Pdf), new UnknownLengthStream(Pdf) }) {
+            IppSubmission submission = await client.PrintAsync(document, "application/pdf", options);
+            Assert.Empty(submission.UnsupportedAttributes);
+            IppJobInfo finished = await client.WaitForJobAsync(submission.Job.Id, JobTimeout, TimeSpan.FromMilliseconds(100));
+            Assert.Equal(IppJobState.Completed, finished.State);
+            Assert.Equal(Pdf, File.ReadAllBytes(printer.SpooledDocument(submission.Job.Id, ".pdf")));
+            submissions.Add(submission);
+        }
+        IReadOnlyList<IppJobInfo> completed = await client.GetJobsAsync(IppWhichJobs.Completed);
+        Assert.Equal(submissions.Select(s => s.Job.Id), completed.Where(job => job.Name == "ipp-pdf").Select(job => job.Id).OrderBy(id => id));
+    }
+
+    [ExternalToolFact(IppEvePrinterPath, PwgRasterWriterTests.IppEvePcl)]
+    public async Task PrintsPwgRasterThatTheReferenceConverterProcesses() {
+        // ippevepcl parses each PWG raster page; a malformed stream makes the job abort instead of complete.
+        using var printer = EvePrinter.Start("-f", "image/pwg-raster", "-c", PwgRasterWriterTests.IppEvePcl);
+        using var client = new IppPrintClient(printer.Uri);
+        byte[] raster = PwgRasterWriterTests.Write(
+            PwgRasterWriterTests.Pattern(PwgRasterColorSpace.Gray8, 2480 / 4, 3508 / 4, seed: 5),
+            PwgRasterWriterTests.Pattern(PwgRasterColorSpace.Rgb8, 2480 / 4, 3508 / 4, seed: 6));
+
+        IppSubmission submission = await client.PrintAsync(raster, "image/pwg-raster", new IppJobOptions { JobName = "ipp-raster" });
+        IppJobInfo finished = await client.WaitForJobAsync(submission.Job.Id, JobTimeout, TimeSpan.FromMilliseconds(100));
+
+        Assert.Equal(IppJobState.Completed, finished.State);
+        Assert.Equal(raster, File.ReadAllBytes(printer.SpooledDocument(submission.Job.Id, ".pwg")));
+    }
+
+    [ExternalToolFact(IppEvePrinterPath)]
+    public async Task CancelsAJobThatIsStillProcessing() {
+        // Without a print command the reference printer simulates several seconds of processing per job.
+        using var printer = EvePrinter.Start("-f", "application/pdf");
+        using var client = new IppPrintClient(printer.Uri);
+
+        IppSubmission submission = await client.PrintAsync(Pdf, "application/pdf", new IppJobOptions { JobName = "ipp-cancel" });
+        IReadOnlyList<IppJobInfo> active = await client.GetJobsAsync();
+        Assert.Contains(active, job => job.Id == submission.Job.Id && !job.IsTerminal);
+        await client.CancelJobAsync(submission.Job.Id);
+        IppJobInfo finished = await client.WaitForJobAsync(submission.Job.Id, JobTimeout, TimeSpan.FromMilliseconds(100));
+
+        Assert.Equal(IppJobState.Canceled, finished.State);
+        Assert.Contains("job-canceled-by-user", finished.StateReasons);
+        IppException again = await Assert.ThrowsAsync<IppException>(() => client.CancelJobAsync(submission.Job.Id));
+        Assert.NotNull(again.StatusCode);
+    }
+
+    [ExternalToolFact(IppEvePrinterPath)]
+    public async Task UnsupportedFormatsAreRejectedBeforeAJobExists() {
+        using var printer = EvePrinter.Start("-f", "application/pdf");
+        using var client = new IppPrintClient(printer.Uri);
+
+        IppException error = await Assert.ThrowsAsync<IppException>(() => client.PrintAsync(Pdf, "image/urf"));
+
+        // RFC 8011 allows either status for an unsupported document-format value.
+        Assert.Contains(error.StatusCode, new int?[] { 0x040A, 0x040B });
+        Assert.Empty(await client.GetJobsAsync());
+        IppException missing = await Assert.ThrowsAsync<IppException>(() => client.GetJobAsync(999));
+        Assert.Equal(0x0406, missing.StatusCode);
+    }
+
+    private sealed class EvePrinter : IDisposable {
+        private readonly Process _process;
+        private readonly string _spool;
+
+        private EvePrinter(Process process, string spool, int port) {
+            _process = process;
+            _spool = spool;
+            Uri = new Uri($"ipp://localhost:{port}/ipp/print");
+        }
+
+        public Uri Uri { get; }
+
+        public static EvePrinter Start(params string[] options) {
+            string spool = Path.Combine(Path.GetTempPath(), "officeimo-ippeve-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(spool);
+            int port = FreePort();
+            var start = new ProcessStartInfo(IppEvePrinterPath) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
+            foreach (string argument in new[] { "-p", port.ToString(), "-n", "localhost", "-r", "off", "-d", spool, "-k" }.Concat(options)) start.ArgumentList.Add(argument);
+            start.ArgumentList.Add("OfficeIMO Test " + port);
+            Process process = Process.Start(start)!;
+            process.OutputDataReceived += (_, _) => { };
+            process.ErrorDataReceived += (_, _) => { };
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+            var printer = new EvePrinter(process, spool, port);
+            var clock = Stopwatch.StartNew();
+            while (true) {
+                try {
+                    using var probe = new TcpClient();
+                    probe.Connect("localhost", port);
+                    return printer;
+                } catch (SocketException) when (clock.Elapsed < TimeSpan.FromSeconds(15) && !process.HasExited) {
+                    Thread.Sleep(100);
+                } catch {
+                    printer.Dispose();
+                    throw;
+                }
+            }
+        }
+
+        public string SpooledDocument(int jobId, string extension) =>
+            Directory.GetFiles(_spool, jobId + "-*" + extension).Single();
+
+        public void Dispose() {
+            try {
+                if (!_process.HasExited) _process.Kill();
+                _process.WaitForExit(5000);
+            } catch (InvalidOperationException) {
+            }
+            _process.Dispose();
+            try { Directory.Delete(_spool, recursive: true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+        }
+
+        private static int FreePort() {
+            var listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start();
+            int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            listener.Stop();
+            return port;
+        }
+    }
+
+    private sealed class UnknownLengthStream : MemoryStream {
+        public UnknownLengthStream(byte[] data) : base(data) { }
+        public override bool CanSeek => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => base.Position; set => throw new NotSupportedException(); }
+    }
+}
