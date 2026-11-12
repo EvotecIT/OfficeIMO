@@ -244,6 +244,34 @@ Body
 
     [Theory]
     [MemberData(nameof(CalloutPlacementProfiles))]
+    public void Callout_After_Fence_Text_Starts_Its_Own_Block_When_Fenced_Code_Is_Disabled(string profile) {
+        var options = CreateCalloutPlacementOptions(profile);
+        options.FencedCode = false;
+
+        var document = MarkdownDocument.Parse("> ```text\n> [!NOTE]\n> body\n", options);
+
+        Assert.Collection(
+            document.Blocks,
+            block => Assert.IsType<QuoteBlock>(block),
+            block => Assert.Equal("note", Assert.IsType<CalloutBlock>(block).Kind));
+    }
+
+    [Theory]
+    [MemberData(nameof(CalloutPlacementProfiles))]
+    public void Callout_After_Quoted_Html_Comment_With_Backticks_Starts_Its_Own_Block(string profile) {
+        var options = CreateCalloutPlacementOptions(profile);
+        options.HtmlBlocks = true;
+
+        var document = MarkdownDocument.Parse("> <!--\n> ```\n> -->\n> [!NOTE]\n> body\n", options);
+
+        Assert.Collection(
+            document.Blocks,
+            block => Assert.IsType<QuoteBlock>(block),
+            block => Assert.Equal("note", Assert.IsType<CalloutBlock>(block).Kind));
+    }
+
+    [Theory]
+    [MemberData(nameof(CalloutPlacementProfiles))]
     public void Callout_At_Top_Level_With_Up_To_Three_Spaces_Is_Still_A_Callout(string profile) {
         foreach (string markdown in new[] { "> [!NOTE]\n> body\n", "   > [!NOTE] Custom title\n   > body\n" }) {
             var document = MarkdownDocument.Parse(markdown, CreateCalloutPlacementOptions(profile));

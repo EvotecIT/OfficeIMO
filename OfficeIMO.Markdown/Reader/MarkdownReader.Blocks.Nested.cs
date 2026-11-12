@@ -448,9 +448,7 @@ internal static partial class MarkdownReader {
         bool sawQuotedLine = false;
         string? lastQuoteContent = null;
         var nestedQuoteOptions = GetNestedListQuoteOptions(options);
-        bool inQuotedFence = false;
-        char quotedFenceChar = '\0';
-        int quotedFenceLength = 0;
+        var literalBlock = new QuotedLiteralBlockState();
         while (j < lines.Length) {
             string raw = lines[j] ?? string.Empty;
             if (string.IsNullOrWhiteSpace(raw)) {
@@ -474,21 +472,18 @@ internal static partial class MarkdownReader {
                 }
 
                 string collectedLine = "> " + quoteContent;
-                if (inQuotedFence) {
-                    // Callout-like text inside quoted fenced code is code; only the closing fence ends it.
-                    if (IsCodeFenceClose(quoteContent, quotedFenceChar, quotedFenceLength)) {
-                        inQuotedFence = false;
-                    }
-                } else {
-                    // A callout header starts its own block, as it does at the top level.
+                // Callout-like text inside quoted fenced code or an HTML block is literal; otherwise a callout header
+                // starts its own block, as it does at the top level.
+                if (!literalBlock.Continue(quoteContent)) {
                     if (collected.Count > 0
                         && nestedQuoteOptions.Callouts
                         && IsCalloutHeader(collectedLine, nestedQuoteOptions, out _, out _)) {
                         break;
                     }
 
-                    if (IsCodeFenceOpen(quoteContent, out _, out quotedFenceChar, out quotedFenceLength)) {
-                        inQuotedFence = true;
+                    if (!literalBlock.TryOpenFence(quoteContent, nestedQuoteOptions)
+                        && QuotedLiteralBlockState.StartsHtmlBlock(quoteContent, nestedQuoteOptions)) {
+                        literalBlock.OpenHtmlBlock(CollectNestedQuotedContent(lines, j, continuationIndent), nestedQuoteOptions);
                     }
                 }
 

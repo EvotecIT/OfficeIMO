@@ -20,9 +20,7 @@ internal static partial class MarkdownReader {
                 : null;
             int j = i;
             bool sawQuotedLine = false;
-            bool inQuotedFence = false;
-            char quotedFenceChar = '\0';
-            int quotedFenceLength = 0;
+            var literalBlock = new QuotedLiteralBlockState();
             while (j < lines.Length) {
                 var ln = lines[j];
                 var ltrim = ln.TrimStart();
@@ -33,12 +31,8 @@ internal static partial class MarkdownReader {
                     var expanded = ExpandWhitespaceAfterContainerMarker(ln, ln.IndexOf('>') + 1);
                     var stripped = StripSingleQuoteMarker(expanded);
 
-                    if (inQuotedFence) {
-                        // Callout-like text inside quoted fenced code is code; only the closing fence ends it.
-                        if (IsCodeFenceClose(stripped, quotedFenceChar, quotedFenceLength)) {
-                            inQuotedFence = false;
-                        }
-                    } else {
+                    // Callout-like text inside quoted fenced code or an HTML block is literal; it does not split the quote.
+                    if (!literalBlock.Continue(stripped)) {
                         if (sawQuotedLine
                             && options.Callouts
                             && inner.Count > 0
@@ -46,8 +40,8 @@ internal static partial class MarkdownReader {
                             break;
                         }
 
-                        if (IsCodeFenceOpen(stripped, out _, out quotedFenceChar, out quotedFenceLength)) {
-                            inQuotedFence = true;
+                        if (!literalBlock.TryOpenFence(stripped, options) && QuotedLiteralBlockState.StartsHtmlBlock(stripped, options)) {
+                            literalBlock.OpenHtmlBlock(CollectTopLevelQuotedContent(lines, j), options);
                         }
                     }
 
