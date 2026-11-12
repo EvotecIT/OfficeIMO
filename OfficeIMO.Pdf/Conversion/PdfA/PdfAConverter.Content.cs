@@ -44,12 +44,16 @@ internal sealed partial class PdfAConverter {
 
     /// <summary>A place that paints with a device colour space, with the resources whose Default spaces apply.</summary>
     private sealed class DeviceColorUse {
-        internal DeviceColorUse(string family, string location, PdfObject? owner, PdfDictionary? resources) {
+        internal DeviceColorUse(string family, string location, PdfObject? owner, PdfDictionary? resources, int pageIndex) {
             Family = family;
             Location = location;
             Owner = owner;
             Resources = resources;
+            PageIndex = pageIndex;
         }
+
+        /// <summary>The page whose content painted first with this colour; PDF/A-4 lets a page carry its own output intent.</summary>
+        internal int PageIndex { get; }
 
         internal string Family { get; }
         internal string Location { get; }
@@ -64,10 +68,19 @@ internal sealed partial class PdfAConverter {
     private readonly HashSet<PdfObject> _checkedColorSpaces = new(ReferenceComparer.Instance);
     private readonly HashSet<PdfObject> _checkedType3 = new(ReferenceComparer.Instance);
 
+    private int _currentPageIndex = -1;
+
+    // True for PDF/A-4 files where a page carries its own output intent, so device colour is checked per page.
+    private bool _pageOutputIntents;
+    private readonly List<DeviceColorCapture> _deviceColorCaptures = new();
+    private readonly Dictionary<(PdfObject Content, PdfObject? Resources), DeviceColorCapture> _contentDeviceColors = new(new ContentKeyComparer());
+
     private void AnalyzeContent() {
         IReadOnlyList<PdfReadPage> pages = _document.Pages;
+        _pageOutputIntents = _part == 4 && pages.Any(page => page.PageDictionary.Items.ContainsKey("OutputIntents"));
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             _cancellationToken.ThrowIfCancellationRequested();
+            _currentPageIndex = pageIndex;
             PdfReadPage page = pages[pageIndex];
             PdfDictionary pageDictionary = page.PageDictionary;
             string location = "page " + (pageIndex + 1).ToString(CultureInfo.InvariantCulture);
@@ -114,7 +127,26 @@ internal sealed partial class PdfAConverter {
     private void WalkContent(IReadOnlyList<PdfStream> streams, PdfDictionary? resources, string location, PdfObject owner, int depth) {
         if (depth > MaximumFormDepth) return;
         PdfObject key = streams.Count == 1 ? streams[0] : owner;
-        if (!_visitedContent.Add((key, resources))) return;
+        if (!_visitedContent.Add((key, resources))) {
+            // Content shared by pages is checked once, but under PDF/A-4 page output intents each page that paints it needs its
+            // own device colour record, including the colour of forms nested in it.
+            if (_pageOutputIntents && _contentDeviceColors.TryGetValue((key, resources), out DeviceColorCapture? painted)) {
+                string page = "page " + (_currentPageIndex + 1).ToString(CultureInfo.InvariantCulture);
+                foreach (DeviceColorUse use in painted.Uses) RecordDeviceColor(use.Family, page + ", shared with " + use.Location, use.Owner, use.Resources);
+            }
+            return;
+        }
+        var captured = new DeviceColorCapture();
+        _deviceColorCaptures.Add(captured);
+        try {
+            WalkContentOnce(streams, resources, location, owner, depth);
+        } finally {
+            _deviceColorCaptures.RemoveAt(_deviceColorCaptures.Count - 1);
+        }
+        if (_pageOutputIntents) _contentDeviceColors[(key, resources)] = captured;
+    }
+
+    private void WalkContentOnce(IReadOnlyList<PdfStream> streams, PdfDictionary? resources, string location, PdfObject owner, int depth) {
         _cancellationToken.ThrowIfCancellationRequested();
         if (resources is not null) CheckResources(resources, location, depth);
 
@@ -138,7 +170,7 @@ internal sealed partial class PdfAConverter {
                 limits.MaxContentOperations,
                 operation => {
                     IReadOnlyList<object> operands = operation.Operands;
-                    if (!reportedLimit && !CheckOperandLimits(operands)) {
+                    if (_part != 4 && !reportedLimit && !CheckOperandLimits(operands)) {
                         reportedLimit = true;
                         AddViolation(PdfAConversionRefusalReason.ImplementationLimitExceeded, location,
                             "The content stream has a number, string or name beyond the PDF/A implementation limits.", owner);
@@ -147,7 +179,7 @@ internal sealed partial class PdfAConverter {
                         case "q":
                             stack.Push((font, fontName, renderMode));
                             nesting++;
-                            if (nesting > MaximumGraphicsStateNesting && !reportedNesting) {
+                            if (_part != 4 && nesting > MaximumGraphicsStateNesting && !reportedNesting) {
                                 reportedNesting = true;
                                 AddViolation(PdfAConversionRefusalReason.ImplementationLimitExceeded, location,
                                     "Graphics states are nested deeper than the PDF/A limit of 28.", owner);
@@ -161,6 +193,7 @@ internal sealed partial class PdfAConverter {
                             if (operands.Count >= 1 && operands[0] is string selected) {
                                 fontName = selected;
                                 font = ResolveResource(resources, "Font", selected);
+                                if (font is null) ReportUndefinedResource(location, owner, "font", selected);
                                 if (font is not null && GetName(font, "Subtype") == "Type3") WalkType3(font, resources, location, depth);
                             }
                             break;
@@ -195,25 +228,50 @@ internal sealed partial class PdfAConverter {
                             break;
                         case "cs":
                         case "CS":
-                            if (operands.Count >= 1 && operands[0] is string space) CheckColorSpaceName(space, resources, location, owner);
+                            if (operands.Count >= 1 && operands[0] is string space) {
+                                CheckColorSpaceName(space, resources, location, owner);
+                                if (!IsBuiltInColorSpaceName(space) && ResolveResourceObject(resources, "ColorSpace", space) is null) {
+                                    ReportUndefinedResource(location, owner, "colour space", space);
+                                }
+                            }
                             break;
                         case "sh":
                             if (operands.Count >= 1 && operands[0] is string shadingName) {
                                 PdfObject? shading = ResolveResourceObject(resources, "Shading", shadingName);
                                 if (shading is not null) CheckShading(shading, resources, location);
+                                else ReportUndefinedResource(location, owner, "shading", shadingName);
+                            }
+                            break;
+                        case "gs":
+                            if (operands.Count >= 1 && operands[0] is string stateName && ResolveResourceObject(resources, "ExtGState", stateName) is null) {
+                                ReportUndefinedResource(location, owner, "graphics state", stateName);
                             }
                             break;
                         case "Do":
-                            if (operands.Count >= 1 && operands[0] is string xobjectName &&
-                                ResolveResourceObject(resources, "XObject", xobjectName) is PdfStream xobject) {
-                                self.CheckXObject(xobject, resources, location + ", XObject " + xobjectName, depth);
+                            if (operands.Count >= 1 && operands[0] is string xobjectName) {
+                                if (ResolveResourceObject(resources, "XObject", xobjectName) is PdfStream xobject) {
+                                    self.CheckXObject(xobject, resources, location + ", XObject " + xobjectName, depth);
+                                } else {
+                                    ReportUndefinedResource(location, owner, "XObject", xobjectName);
+                                }
+                            }
+                            break;
+                        case "BDC":
+                        case "DP":
+                            if (operands.Count >= 2 && operands[1] is string propertiesName && ResolveResourceObject(resources, "Properties", propertiesName) is null) {
+                                ReportUndefinedResource(location, owner, "property list", propertiesName);
+                            } else if (_part == 4 && operands.Count >= 2 && operands[1] is PdfContentDictionary inline &&
+                                inline.Items.TryGetValue("ActualText", out object? replacement) && replacement is byte[] replacementBytes &&
+                                ContainsPrivateUse(DecodeTextString(replacementBytes))) {
+                                AddViolation(PdfAConversionRefusalReason.ContentNotCompliant, location,
+                                    "Marked content carries replacement text (ActualText) made of private-use characters, which PDF/A-4 forbids; removing it would require rewriting the page content.", owner);
                             }
                             break;
                         case "BI":
                             if (operation.InlineImage is not null) CheckInlineImage(operation.InlineImage.Dictionary, resources, location, owner);
                             break;
                         case "ri":
-                            if (operands.Count >= 1 && operands[0] is string intent && !RenderingIntents.Contains(intent)) {
+                            if (_part != 4 && operands.Count >= 1 && operands[0] is string intent && !RenderingIntents.Contains(intent)) {
                                 AddViolation(PdfAConversionRefusalReason.ContentNotCompliant, location,
                                     "The rendering intent /" + intent + " is not one PDF/A allows.", owner);
                             }
@@ -231,6 +289,22 @@ internal sealed partial class PdfAConverter {
         } catch (PdfReadLimitException exception) {
             AddViolation(PdfAConversionRefusalReason.ContentNotCompliant, location, "The content stream exceeds a reading limit: " + exception.Message, owner);
         }
+    }
+
+    private static bool IsBuiltInColorSpaceName(string name) =>
+        name is "DeviceGray" or "DeviceRGB" or "DeviceCMYK" or "Pattern" or "G" or "RGB" or "CMYK" or "I" or "Indexed";
+
+    /// <summary>PDF/A-4 (6.2.2) requires every resource a content stream names to be defined in its resources.</summary>
+    private void ReportUndefinedResource(string location, PdfObject owner, string kind, string name) {
+        if (_part != 4) return;
+        AddViolation(PdfAConversionRefusalReason.ContentNotCompliant, location,
+            "The content stream uses the " + kind + " /" + name + ", which its resources do not define; PDF/A-4 requires every named resource to be defined.", owner);
+    }
+
+    private static string DecodeTextString(byte[] bytes) {
+        if (bytes.Length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF) return Encoding.BigEndianUnicode.GetString(bytes, 2, bytes.Length - 2);
+        if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF) return Encoding.UTF8.GetString(bytes, 3, bytes.Length - 3);
+        return string.Empty;
     }
 
     private void WalkType3(PdfDictionary font, PdfDictionary? resources, string location, int depth) {
@@ -274,10 +348,13 @@ internal sealed partial class PdfAConverter {
     }
 
     private void RecordDeviceColor(string family, string location, PdfObject? owner, PdfDictionary? resources) {
+        var use = new DeviceColorUse(family, location, owner, resources, _currentPageIndex);
+        foreach (DeviceColorCapture capture in _deviceColorCaptures) capture.Add(use);
         foreach (DeviceColorUse existing in _deviceColors) {
-            if (existing.Family == family && ReferenceEquals(existing.Owner, owner) && ReferenceEquals(existing.Resources, resources)) return;
+            if (existing.Family == family && ReferenceEquals(existing.Owner, owner) && ReferenceEquals(existing.Resources, resources) &&
+                (!_pageOutputIntents || existing.PageIndex == _currentPageIndex)) return;
         }
-        _deviceColors.Add(new DeviceColorUse(family, location, owner, resources));
+        _deviceColors.Add(use);
     }
 
     private PdfDictionary? ResolveResource(PdfDictionary? resources, string category, string name) =>
@@ -365,6 +442,29 @@ internal sealed partial class PdfAConverter {
         if (double.IsNaN(number) || double.IsInfinity(number)) return true;
         if (Math.Abs(number) > 3.403e38) return true;
         return number == Math.Floor(number) && (number > int.MaxValue || number < int.MinValue);
+    }
+
+    /// <summary>
+    /// The distinct device colour uses one content stream paints, including those of nested forms. Keeping each use once
+    /// bounds the record when forms draw the same nested form many times.
+    /// </summary>
+    private sealed class DeviceColorCapture {
+        private readonly HashSet<(string Family, PdfObject? Owner, PdfDictionary? Resources)> _seen = new(new UseKeyComparer());
+
+        internal List<DeviceColorUse> Uses { get; } = new();
+
+        internal void Add(DeviceColorUse use) {
+            if (_seen.Add((use.Family, use.Owner, use.Resources))) Uses.Add(use);
+        }
+
+        private sealed class UseKeyComparer : IEqualityComparer<(string Family, PdfObject? Owner, PdfDictionary? Resources)> {
+            public bool Equals((string Family, PdfObject? Owner, PdfDictionary? Resources) x, (string Family, PdfObject? Owner, PdfDictionary? Resources) y) =>
+                x.Family == y.Family && ReferenceEquals(x.Owner, y.Owner) && ReferenceEquals(x.Resources, y.Resources);
+
+            public int GetHashCode((string Family, PdfObject? Owner, PdfDictionary? Resources) obj) =>
+                (obj.Family.GetHashCode() * 31 + (obj.Owner is null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj.Owner))) * 31 +
+                (obj.Resources is null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj.Resources));
+        }
     }
 
     private sealed class ContentKeyComparer : IEqualityComparer<(PdfObject Content, PdfObject? Resources)> {

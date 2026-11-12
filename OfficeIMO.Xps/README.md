@@ -65,8 +65,11 @@ document.Save("report.oxps");
 ```
 
 Use `XpsFormat.Xps` for Microsoft's original dialect. File extensions do not
-change dialects. Fonts are obfuscated by default; callers must have permission
-to embed them. PNG/JPEG placement uses the image's declared resolution.
+change dialects. Fonts are obfuscated by default. `AddFont` reads the font's OS/2
+`fsType` licence and throws `ArgumentException` when it forbids embedding (Restricted
+License without Preview & Print or Editable) or allows only bitmaps; when several
+permissions are set, the least restrictive applies. PNG/JPEG placement uses the image's
+declared resolution.
 
 `GetMarkup()` returns a detached `XElement`. Edit it and call `ReplaceMarkup()`
 to change an existing page, including native features outside the rendering
@@ -199,6 +202,11 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Create | 1 | 0 | 0 | 0 | 0 | 0 |
+| Read | 1 | 0 | 0 | 0 | 0 | 0 |
+| Edit | 1 | 0 | 0 | 0 | 0 | 0 |
+| Preserve | 0 | 1 | 0 | 0 | 0 | 0 |
+| Inspect | 1 | 0 | 0 | 0 | 0 | 0 |
 | Export | 0 | 5 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Xps` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

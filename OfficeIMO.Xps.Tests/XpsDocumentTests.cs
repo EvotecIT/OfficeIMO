@@ -10,6 +10,30 @@ public sealed class XpsDocumentTests {
     private static readonly XNamespace Rel = "http://schemas.openxmlformats.org/package/2006/relationships";
     private static byte[] Font => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "RobotoFlex.ttf"));
     [Theory]
+    [InlineData(0x0000, true)]
+    [InlineData(0x0004, true)]
+    [InlineData(0x000A, true)]
+    [InlineData(0x0002, false)]
+    [InlineData(0x0200, false)]
+    public void AddFontHonoursTheFontEmbeddingPermission(int fsType, bool embedded) {
+        byte[] font = Font;
+        int tableCount = (font[4] << 8) | font[5];
+        int os2 = Enumerable.Range(0, tableCount).Select(index => 12 + index * 16)
+            .Where(record => Encoding.ASCII.GetString(font, record, 4) == "OS/2")
+            .Select(record => (font[record + 8] << 24) | (font[record + 9] << 16) | (font[record + 10] << 8) | font[record + 11]).Single();
+        font[os2 + 8] = (byte)(fsType >> 8);
+        font[os2 + 9] = (byte)fsType;
+        var document = XpsDocument.Create();
+
+        if (embedded) {
+            Assert.StartsWith("/Resources/Fonts/", document.AddFont(font), StringComparison.Ordinal);
+        } else {
+            var exception = Assert.Throws<ArgumentException>(() => document.AddFont(font));
+            Assert.Contains("fsType", exception.Message, StringComparison.Ordinal);
+            Assert.Equal("fontBytes", exception.ParamName);
+        }
+    }
+    [Theory]
     [InlineData(XpsFormat.Xps)]
     [InlineData(XpsFormat.OpenXps)]
     public void CreatesReopensEditsAndPreservesNativeParts(XpsFormat format) {

@@ -2,6 +2,22 @@
 
 PowerForge owns Studio publishing, signing, checksums, portable archives, the generated Windows MSI, Debian package, and macOS application bundle. Repository-local files contain only OfficeIMO product identity and target choices.
 
+## Scoop manifest
+
+The wrapper requires a PowerForge.Build release containing [`release prepare-scoop`](https://github.com/EvotecIT/PSPublishModule/pull/1245). Do not run it with PowerForge.Build 3.0.189: that version does not support the subcommand and can start the ordinary release workflow instead. Wait for the containing PowerForge release before using these instructions.
+
+`Prepare-StudioScoop.ps1` delegates manifest generation to `powerforge release prepare-scoop`. Download `windows-release-manifest.json`, `windows-SHA256SUMS.txt`, and both Windows portable ZIPs from the selected public `Studio-v<version>` release into one directory, then run:
+
+```powershell
+./Build/Studio/Prepare-StudioScoop.ps1 -AssetRoot ./Artifacts/Studio/Downloads -OutputPath ./Artifacts/Studio/Scoop
+```
+
+PowerForge checks the manifest and archives against the release checksums, verifies `OfficeIMO.Studio.exe` is present, and writes `officeimo-studio.json` into a new output directory. The manifest selects native x64 or Arm64 archives and creates a Start menu shortcut. Studio data stays in its user profile directory across Scoop updates and ordinary uninstall.
+
+Update detection filters stable `Studio-v<version>` releases before extracting the version, so library and tool releases in this repository do not become Studio updates. Scoop's `checkver` and `autoupdate` tools maintain the download URLs and hashes. Manifest preparation does not rebuild or sign Studio, reserve a release version, publish a bucket, or submit a package request.
+
+## Build and release
+
 Studio restores package versions from the project files without checked-in package locks. Normal development and release builds use the same restore policy, so SDK servicing updates do not require a lock refresh across the referenced libraries. NuGetAudit remains enabled; dependency updates are reviewed through the normal pull-request checks.
 
 `global.json` selects the latest installed stable .NET 10 feature band, with a `10.0.100` floor. CI reads that policy through `actions/setup-dotnet`; website jobs pass `10.0.x` to the shared PowerForge workflow. Release checksums and signatures apply to the resulting artifacts. Rebuilding on a different SDK can produce different bytes.

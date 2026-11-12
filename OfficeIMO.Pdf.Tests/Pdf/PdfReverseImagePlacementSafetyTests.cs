@@ -240,7 +240,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             PdfPowerPointExportOptions.CreateEditableTables());
         using (tables.Value) {
             Assert.False(tables.HasLoss);
-            Assert.Equal(0, tables.Report.SourceScope.ImageCount);
+            Assert.Equal(0, tables.Report!.SourceScope!.ImageCount);
             Assert.DoesNotContain(tables.Report.Warnings, static warning => warning.Code == "pdf-images-not-editable");
         }
     }
@@ -965,7 +965,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             using DocumentFormat.OpenXml.Packaging.WordprocessingDocument package =
                 DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(stream, false);
             DocumentFormat.OpenXml.Drawing.Transform2D transform = Assert.Single(
-                package.MainDocumentPart!.Document.Descendants<DocumentFormat.OpenXml.Drawing.Transform2D>());
+                package.MainDocumentPart!.Document!.Descendants<DocumentFormat.OpenXml.Drawing.Transform2D>());
             Assert.Equal(pageRotation * 60000, transform.Rotation!.Value);
         }
     }

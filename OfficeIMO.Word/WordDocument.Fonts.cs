@@ -7,9 +7,17 @@ namespace OfficeIMO.Word {
         /// Embeds a font into the document.
         /// </summary>
         /// <param name="fontPath">Path to a TrueType/OpenType font file.</param>
+        /// <remarks>
+        /// The font's OS/2 fsType embedding permission is checked first. Fonts whose licence forbids embedding (Restricted
+        /// License without Preview &amp; Print or Editable) or permits only bitmap embedding are refused; Preview &amp; Print,
+        /// Editable and Installable fonts are embedded. In a collection, every face must allow embedding.
+        /// </remarks>
+        /// <exception cref="ArgumentException">The font's embedding permission forbids embedding it.</exception>
         public void EmbedFont(string fontPath) {
             if (string.IsNullOrEmpty(fontPath)) throw new ArgumentNullException(nameof(fontPath));
             if (!File.Exists(fontPath)) throw new FileNotFoundException($"Font file '{fontPath}' doesn't exist.", fontPath);
+            byte[] fontData = File.ReadAllBytes(fontPath);
+            OfficeIMO.Drawing.OfficeFontEmbeddingPermissions.EnsureFileEmbeddingAllowed(fontData, nameof(fontPath));
 
             var mainPart = _wordprocessingDocument?.MainDocumentPart ?? throw new InvalidOperationException("Main document part is missing.");
             var fontTablePart = mainPart.FontTablePart ?? mainPart.AddNewPart<FontTablePart>();
@@ -17,8 +25,8 @@ namespace OfficeIMO.Word {
 
             var fontName = Path.GetFileNameWithoutExtension(fontPath);
             var fontPart = fontTablePart.AddFontPart(FontPartType.FontTtf);
-            using (var fs = File.OpenRead(fontPath)) {
-                fontPart.FeedData(fs);
+            using (var stream = new MemoryStream(fontData, writable: false)) {
+                fontPart.FeedData(stream);
             }
             var relId = fontTablePart.GetIdOfPart(fontPart);
 
@@ -38,6 +46,7 @@ namespace OfficeIMO.Word {
         /// <param name="styleId">Identifier of the paragraph style. An existing style with this identifier is updated to use the font.</param>
         /// <param name="styleName">Optional friendly name for a new style.</param>
         /// <returns>The paragraph style that uses the embedded font.</returns>
+        /// <exception cref="ArgumentException">The font's embedding permission forbids embedding it, or the style cannot be used.</exception>
         public WordStyle EmbedFont(string fontPath, string styleId, string? styleName = null) {
             ArgumentException.ThrowIfNullOrWhiteSpace(styleId);
             WordStyle? existing = Styles.FindById(styleId);

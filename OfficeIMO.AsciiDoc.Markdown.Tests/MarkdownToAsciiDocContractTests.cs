@@ -29,6 +29,16 @@ public sealed class MarkdownToAsciiDocContractTests {
     }
 
     [Fact]
+    public void NestedFrontMatter_BecomesOneAttributePerScalar() {
+        MarkdownDocument document = MarkdownDocument.Parse("---\ntitle: Guide\nauthor:\n  name: Ada\n  email: ada@example.com\ntags: [docs, yaml]\n---\n\nBody\n");
+
+        document.ToAsciiDoc(null, out OfficeIMO.OfficeConversionReport conversionReport);
+        string source = ((MarkdownToAsciiDocReport)conversionReport).GeneratedSource;
+
+        Assert.StartsWith(":title: Guide\n:author-name: Ada\n:author-email: ada@example.com\n:tags: docs, yaml\n\n", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void StructuredTableSpans_SurviveAsciiDocMarkdownAsciiDocRoundTrip() {
         const string source = "[cols=2*,%header]\n|===\n|A |B\n2+|wide\n|===\n";
         var markdown = AsciiDocDocument.ParseResult(source).Document.ToMarkdown(null);

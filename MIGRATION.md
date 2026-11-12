@@ -3,7 +3,7 @@
 <!-- officeimo-api-map:begin -->
 ## OfficeIMO and PSWriteOffice 3.6
 
-OfficeIMO 3.6 and PSWriteOffice 3.6 change the public API in both languages and are released together. Nothing keeps a compatibility wrapper, so update scripts and code with the rules and tables below. PSWriteOffice goes from 594 commands and 383 aliases to 482 commands and 176 aliases; every job that worked before still works, usually through fewer commands. The [API design](Docs/officeimo.api-design.md) explains the rules.
+OfficeIMO 3.6 and PSWriteOffice 3.6 change the public API in both languages and are released together. Nothing keeps a compatibility wrapper, so update scripts and code with the rules and tables below. PSWriteOffice goes from 594 commands and 383 aliases to 494 commands and 176 aliases; every job that worked before still works, usually through fewer commands. The [API design](Docs/officeimo.api-design.md) explains the rules.
 
 ### What changed
 
@@ -5309,6 +5309,19 @@ These parameter aliases stay removed. Command aliases such as `ExcelExport` are 
 | `-Values` | `-InputObject` | `Add-OfficeExcelTableRow` |
 | `-Values` | `-Value` | `Add-OfficePowerPointTableRow`, `Get-OfficeExcelTemplateMarker`, `Invoke-OfficeExcelTemplate`, `Set-OfficeExcelAutoFilter` |
 
+## OneNote visual PDF pages are vector
+
+`ToVisualPdf`, `SaveAsVisualPdf` and their async forms now write each OneNote page as
+vector content with real, searchable text instead of one full-page PNG. Page sizes are
+unchanged. `OneNoteVisualPdfExportOptions.RasterScale` and `MaximumRasterPixels` no
+longer affect output and are marked obsolete; remove them, and stop handling
+`ONENOTE_PDF_RASTER_SCALE_LIMITED`, which is no longer reported. Invalid
+`PageRendering` settings are now rejected before any page is rendered.
+
+Installed fonts named by the page text are embedded as subsets. A picture with no native
+PDF image form is decoded through `PageRendering.ImageCodec` and embedded as PNG for that
+picture alone, reported as `ONENOTE_PDF_IMAGE_RASTERIZED`.
+
 ## PDF reads omit undecodable native text
 
 `PdfDocument.Read()` previously allowed missing font resources, raw Identity CIDs,
@@ -5521,6 +5534,30 @@ the detected standard substitute when its encoding covers the text. Inspect
 or letterforms. Set `PdfTextEditOptions.Font` to choose a standard face explicitly.
 Unsupported shaping and text outside both encodings still fail before returning
 an edited document; the source remains unchanged.
+
+## Font embedding permissions
+
+Every OfficeIMO component that embeds a font program reads the font's OS/2 `fsType`
+licence the same way. When a font sets more than one of Restricted License, Preview & Print
+and Editable, the least restrictive one applies. A font with no OS/2 table declares no restriction.
+
+- **Word.** `WordDocument.EmbedFont` now throws `ArgumentException` for a font whose licence
+  forbids embedding (Restricted License alone) or allows only bitmap embedding. It used to embed
+  any file. Preview & Print and Editable fonts are still embedded; for a collection, every face
+  must allow it.
+- **XPS.** `XpsDocument.AddFont` applies the same check and throws `ArgumentException` with
+  `ParamName` `fontBytes`.
+- **PDF.** Fonts that combine Restricted License with Preview & Print or Editable, such as the
+  macOS ZapfDingbats face, are now embedded instead of being replaced by a fallback. Bitmap-only
+  fonts are now refused like Restricted ones: writing a document that uses one as a registered
+  font family throws `NotSupportedException`, and an installed fallback face like that is skipped. A font that
+  forbids subsetting is embedded whole, without a subset tag, so the output grows by the size of
+  the font.
+- **SVG.** Drawing SVG export leaves out the `@font-face` rule for a face whose licence forbids
+  embedding, so the text names its family and a viewer uses an installed copy.
+
+Data that is not a readable OpenType font or collection carries no licence to check and is
+handled as before.
 
 ## PDF adapter package direction
 
@@ -6513,6 +6550,8 @@ Consumers inspecting VSDX/VSSX/VSTX XML directly must read `FaceName.NameU` and 
 
 Native `TextBkgnd` values `0` and `255` disable the text background. A zero-alpha `BackgroundColor` explicitly disables it; indexed native backgrounds use the document palette with the native index offset. Explicit background assignments replace the retained source cell, including its old formula and error state.
 
+SVG and PNG export no longer draw a translucent white box behind connector labels whose file states no text background. They follow `TextBkgnd` from the connector, its text style sheet or its master, like Visio and the PDF renderer. Connectors created through the API save an opaque white label background, matching Visio's Connector style, unless their text style sets one; loaded connectors keep what their file states. To give a label a box, set `connector.TextStyle.BackgroundColor` (and optionally `BackgroundTransparency`).
+
 ## Visio preview diagnostics in PDF conversion
 
 Opt-in PNG and SVG preview assets now retain rendering diagnostics in the neutral model, Reader result and PDF conversion report. `ThrowIfLoss()` rejects reported omissions such as unsupported foreign objects replaced by placeholders. Inspect `Warnings` and their `LossKind` before accepting those fallbacks. Disabled shape text and connector labels do not generate font-substitution warnings.
@@ -7227,8 +7266,8 @@ XML and YAML values within their configured limits retain their full normalized 
 
 ## Reader JSON and TOML limits
 
-JSON extraction adds `JsonReadOptions.MaxNodes` (200,000) and `MaxScalarLength` (1,048,576)
-beside `MaxDepth` (32). Exceeding any of the three, including `MaxDepth`, now throws
+JSON extraction adds `JsonReadOptions.MaxNodes` (1,000,000) and `MaxScalarLength` (1,048,576)
+and raises the `MaxDepth` default from 32 to 64, matching System.Text.Json. Exceeding any of the three, including `MaxDepth`, now throws
 `ReaderResourceLimitException` instead of returning a `json-warning-0000` parse warning, and a
 limit below 1 throws `ArgumentOutOfRangeException` instead of being raised to 1. Raise the
 relevant option for trusted larger inputs; malformed JSON still produces the warning chunk.
@@ -9794,6 +9833,43 @@ PDF and image conversions no longer throw `HtmlConversionException` when no avai
 
 A `data-officeimo-value` error value is written as an error cell only when it is one of `#NULL!`, `#DIV/0!`, `#VALUE!`, `#REF!`, `#NAME?`, `#NUM!` or `#N/A`. Any other text, including `#CALC!` and `#SPILL!`, is imported as the visible cell text and reported with `HtmlConversionDiagnosticCodes.SemanticValueInvalid`. Before, such text became an invalid error cell and XLSB saves threw.
 
+## YAML reader adapter
+
+`OfficeIMO.Reader.Yaml` reads YAML with the `OfficeIMO.Yaml` engine and no longer depends on YamlDotNet.
+
+- **Options.** `YamlReadOptions.MaxDepth`, `MaxNodes`, `MaxParseEvents` and `MaxScalarLength` are removed. Set limits through `YamlReadOptions.LoadOptions = new YamlLoadOptions { ... }`. `MaxNodes` now counts the nodes of each document instead of the whole stream, `MaxScalarLength` counts a scalar's source text, and the engine defaults (depth 256, 1,000,000 nodes per document, 100,000 alias-expanded nodes, 16 MiB scalars) apply when `LoadOptions` is null. There is no parse-event limit; `MaxNodes` and `ReaderOptions.MaxInputBytes` bound the work.
+- **Large files.** Streams over the old 20,000-node total, such as large OpenAPI documents, are now read instead of returning a limit warning.
+- **Paths.** Key text is exact: `"a  b": 1` reports `$["a  b"]` instead of `$["a b"]`, `" a ": 1` reports `$[" a "]` instead of `$.a`, and keys longer than 512 characters are no longer cut to `...`. A path selects its node with `YamlDocument.Select`, except where two keys differ only in type, such as `1` and `"1"`, which share the path `$["1"]`. Collection keys use their source text, such as `$["[one, two]"]` instead of `$["[one,two]"]`.
+- **Values.** Plain scalars keep their decoded text; `key: a  b` reports `a  b` instead of `a b`.
+- **Types.** Scalars resolve through the document's schema. Under the default YAML 1.2 core schema `1_000` is now `string` (was `number`) and `.inf`/`.nan` are `number` (were `string`); under `%YAML 1.1`, `yes`/`no`/`on`/`off` are `boolean`. Scalars with custom tags such as `!Ref 123` are `string`.
+- **Chunks.** Each document of a multi-document stream starts a new chunk, so one chunk never mixes `$[0]` and `$[1]` rows. Chunks carry `Location.StartLine` and `EndLine`; rows from an alias report the alias's lines.
+- **Errors.** Malformed input reports `YAML parse error (<code>): <message> (line L, column C)` with the stable `YamlErrorCodes` value, followed by the offending source line and a caret under the column. For example, `YAML parse error (Yaml.Syntax.InvalidValue): A mapping value is not allowed here. (line 10, column 31)` replaces `YAML parse error: SemanticErrorException.` Exceeded limits use the same form with `Yaml.Limit.Exceeded` and the limit name, replacing `YAML parse limit exceeded: maximum ... reached.` Match warnings on the code, not on the whole text.
+- **Keys and aliases.** Duplicate keys compare as YAML values, so `1` and `0x1` are duplicates while `1` and `"1"` are not. Repeated keys no longer fail the read: the last one wins, as in PyYAML, only the entry a lookup returns is reported, and each duplicate becomes a chunk warning. Set `YamlLoadOptions.Strict = true` or `DuplicateKeys = YamlDuplicateKeyPolicy.Error` to fail instead, or `FirstWins` to keep the first. An alias inside its own anchor, which produced depth-limited rows, is now a `Yaml.Limit.Exceeded` warning. The `depth-limit` and `node-limit` row types are no longer emitted.
+- **Encoding.** UTF-16 and UTF-32 input is detected without a byte-order mark, and bytes that are invalid in the detected encoding report `Yaml.Encoding.Invalid` instead of being replaced with U+FFFD.
+
+## Markdown front matter on the YAML engine
+
+`OfficeIMO.Markdown` reads and writes front matter with `OfficeIMO.Yaml` and now depends on that package. Nested mappings and lists, which the earlier flat reader split into wrong entries, read correctly, and unedited front matter is written back byte for byte.
+
+- **Values.** `FrontMatterBlock.Entry.Value` is a `YamlNode` instead of `object?`. Replace `entry.Value as string` with `entry.Value.AsString()`, a `bool` or `double` cast with `entry.Value.GetValue<bool>()` or `GetValue<double>()`, and a list cast with `entry.Value.AsSequence()`. `MarkdownNativeFrontMatterBlock.Values` is an `IReadOnlyDictionary<string, YamlNode>`.
+- **Typed reads.** `FrontMatterBlock.TryGetValue<T>` and `MarkdownDocument.TryGetFrontMatterValue<T>` read scalars through the YAML schema. They support `string`, `bool`, `int`, `long`, `double`, `float`, `decimal` and their nullable forms, and throw `NotSupportedException` for other types, such as `IEnumerable<string>`. A `string` read returns the text of any scalar, so `title: 2024` reads as `"2024"`. Read lists with `FindEntry(key)?.Value.AsSequence()` and nested values with `Select("author.name")`.
+- **New members.** `FrontMatterBlock.Yaml` is the lossless `YamlDocument`, and edits through it rewrite only the changed text when the Markdown is saved. `Mapping` is its root mapping, `Select(path)` reads nested values and `Diagnostics` holds reading findings.
+- **Invalid YAML.** Front matter that is not valid YAML stays in the document as text instead of becoming partial entries. `Yaml` is `null`, `Entries` is empty, and `Diagnostics` holds a `markdown-front-matter-invalid-yaml` error with its Markdown line and column.
+- **Repeated keys.** `Entries` lists every entry. `FindEntry` and `TryGetValue` return the last one, as before, and each repeat is a `yaml-duplicate-key` warning in `Diagnostics`.
+- **Empty front matter.** A `---` line directly followed by another `---` line is now empty front matter, as Jekyll reads it, instead of two thematic breaks.
+- **Source spans.** A block scalar's `ValueSourceSpan` starts at its `|` or `>` header instead of its first content line. An entry's span ends at its value instead of the end of the line.
+- **Fences.** An opening or closing fence with trailing spaces, such as `--- `, is written back as it was read.
+- **Built front matter.** `FrontMatter(...)` and `FrontMatterBlock.FromObject` write through the YAML writer. Strings such as `yes`, `on`, `1.0` or `2024-01-02` are quoted, so YAML readers keep them as strings. Nested dictionaries, collections and, with `FromObject(object)`, objects become YAML mappings and sequences, and `YamlNode` values are used as they are. `DateTime` and `DateTimeOffset` values are written as ISO 8601 timestamps instead of culture-specific text.
+- **Removed.** The public parameterless `FrontMatterBlock()` constructor, which created a block that could not be filled, is removed. Use `FrontMatterBlock.FromObject`.
+- **Converters.** The PDF front matter table lists nested mappings as dotted keys, such as `author.name`. Markdown-to-AsciiDoc writes them as hyphen-joined attributes, such as `:author-name:`, and reports the flattening. Invalid front matter is reported and omitted from the attributes.
+- **PowerShell.** `Get-OfficeMarkdownFrontMatter` returns objects with `Key`, `Value`, `Node` and `SourceSpan`. `Value` is a plain .NET value: a string, number or boolean, a dictionary for a mapping, or a list for a sequence. `Node` is the `YamlNode`.
+
 ## Excel non-finite numbers
 
 `NaN`, `PositiveInfinity` and `NegativeInfinity` written as cell values (`double` or `float`, through `SetValue`, `WriteData`, tabular imports or `CreateWriter`) are stored as the `#NUM!` error in XLSX, XLSB and XLS, which is what Excel shows for a number it cannot represent. Reading such a cell back returns the `#NUM!` error, not a number. Before, XLSX saves wrote an invalid number that Excel refused to open, XLSB saves stored `#NULL!`, and the XLS and XLSB `CreateWriter` streaming writers threw `ArgumentException`. Check the value before writing it if you need a blank cell or text instead.
+
+## Visio PDF export draws the diagram
+
+`VisioDocument.ToPdf`, `SaveAsPdf` and their async forms now default to `VisioPdfProjectionMode.DiagramPages`: one PDF page per Visio page, at its physical size, drawn as vector artwork with searchable text. Before, the default was `SemanticReport`, a text and topology report. Set `Mode = VisioPdfProjectionMode.SemanticReport` to keep the report. `VisioOptions` and `ProjectionOptions` belong to the report, so options that set them without a `Mode` now throw `ArgumentException`; add the `Mode` setting.
+
+Diagram pages now keep arcs, ellipses and Bezier rows as curves, paint cached linear and radial gradient fills, draw open, filled, dot and diamond arrowheads, and turn shape and connector hyperlinks into PDF links. Text taller than its block overflows it, as in Visio, instead of being clipped. Regenerate visual baselines of Visio PDFs. `VISIO_DRAWING_METADATA` now reports only Shape Data; supported hyperlinks are no longer reported as omitted, and unsupported targets report `VISIO_DRAWING_LINKS`.

@@ -1,0 +1,44 @@
+# Production overrides for the node exporter DaemonSet.
+image:
+  registry: registry.example.com
+  tag: v1.9.1
+
+# Rolled out with the platform release, never on its own.
+releaseLabel: true
+
+service:
+  port: 9100
+  annotations:
+    prometheus.io/scrape: "true"
+
+prometheus:
+  monitor:
+    enabled: true
+    additionalLabels:
+      release: kube-prometheus-stack
+    interval: 30s
+
+resources:
+  limits:
+    cpu: 250m
+    memory: 64Mi
+  requests:
+    cpu: 100m
+    memory: 32Mi
+
+# The GKE workaround does not apply on our clusters.
+podAnnotations: null
+
+tolerations:
+  - effect: NoSchedule
+    operator: Exists
+  - key: dedicated
+    operator: Equal
+    value: monitoring
+    effect: NoSchedule
+
+extraArgs:
+  - --collector.systemd
+  - --collector.processes
+
+priorityClassName: system-node-critical

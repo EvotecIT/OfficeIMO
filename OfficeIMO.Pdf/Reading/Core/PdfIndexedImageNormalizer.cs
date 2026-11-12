@@ -180,6 +180,16 @@ internal static class PdfIndexedImageNormalizer {
             return false;
         }
 
+        // A PNG packed earlier in this read from the same image and mask streams, under the same limit and palette,
+        // passed every decode and check below; those depend only on the streams, so it is the result here too.
+        if (decodedPixels is null && indexedSoftMaskMemo is not null &&
+            stream.Dictionary.Items.TryGetValue("SMask", out PdfObject? memoSoftMaskObject) &&
+            ResolveStream(memoSoftMaskObject, objects) is PdfStream memoSoftMask &&
+            indexedSoftMaskMemo.Find(stream, memoSoftMask, width, height, bitsPerComponent, maxDecodedStreamBytes, indexedPalette) is { } shared) {
+            pngBytes = shared;
+            return true;
+        }
+
         byte[] indexedPixels;
         if (decodedPixels is null) {
             if (!TryReadDecodedStreamBytes(stream, objects, maxDecodedStreamBytes, out indexedPixels, cancellationToken)) {
@@ -598,13 +608,7 @@ internal static class PdfIndexedImageNormalizer {
         if (!PdfImageDecodeTransform.TryCreateColor(softMask.Dictionary, 1, objects, out PdfImageDecodeTransform? alphaDecodeTransform)) {
             return false;
         }
-        // Keep both stream decodes and their limit checks on every extraction.
-        // Only the deterministic packing of the admitted samples is shared.
         cancellationToken.ThrowIfCancellationRequested();
-        if (indexedSoftMaskMemo?.Find(stream, softMask, maxDecodedStreamBytes, rgbPalette) is { } cached) {
-            pngBytes = cached;
-            return true;
-        }
 
         byte[] scanlines = new byte[scanlineBytes];
         int paletteEntryCount = rgbPalette.Length / 3;
@@ -639,7 +643,7 @@ internal static class PdfIndexedImageNormalizer {
             6,
             scanlines,
             OfficePngCompression.Stored);
-        indexedSoftMaskMemo?.Remember(stream, softMask, maxDecodedStreamBytes, rgbPalette, pngBytes);
+        indexedSoftMaskMemo?.Remember(stream, softMask, width, height, bitsPerComponent, maxDecodedStreamBytes, rgbPalette, pngBytes);
         return true;
     }
 

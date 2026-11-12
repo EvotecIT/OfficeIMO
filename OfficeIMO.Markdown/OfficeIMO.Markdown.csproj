@@ -26,6 +26,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+        <ProjectReference Include="..\OfficeIMO.Yaml\OfficeIMO.Yaml.csproj" />
         <EmbeddedResource Include="Assets\OfficeTheme.css" />
     </ItemGroup>
 

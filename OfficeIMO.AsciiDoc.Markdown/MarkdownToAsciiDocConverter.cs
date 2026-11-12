@@ -265,21 +265,50 @@ internal static class MarkdownToAsciiDocConverter {
         FrontMatterBlock source,
         MarkdownAsciiDocExportOptions options,
         List<MarkdownAsciiDocConversionDiagnostic> diagnostics) {
+        if (source.Yaml == null) {
+            diagnostics.Add(new MarkdownAsciiDocConversionDiagnostic(
+                "MDADOC002", AsciiDocMarkdownDiagnosticSeverity.Warning, AsciiDocMarkdownConversionOutcome.Omitted,
+                "front-matter-invalid-yaml", "Front matter that is not valid YAML has no document attribute equivalent.", source.BodySourceSpan));
+            return string.Empty;
+        }
+
         var output = new System.Text.StringBuilder();
         for (int index = 0; index < source.Entries.Count; index++) {
             FrontMatterBlock.Entry entry = source.Entries[index];
-            if (index > 0) output.Append(options.LineEnding);
-            string value = System.Convert.ToString(entry.Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
-            if (value.IndexOf('\r') >= 0 || value.IndexOf('\n') >= 0) {
-                value = value.Replace("\r\n", " ").Replace('\r', ' ').Replace('\n', ' ');
-                diagnostics.Add(new MarkdownAsciiDocConversionDiagnostic(
-                    "MDADOC001", AsciiDocMarkdownDiagnosticSeverity.Warning, AsciiDocMarkdownConversionOutcome.Simplified,
-                    "front-matter-multiline", "Multiline front-matter value flattened to one document attribute line.", entry.SourceSpan));
-            }
-            output.Append(':').Append(entry.Key.Replace(":", "-")).Append(':');
-            if (value.Length > 0) output.Append(' ').Append(value);
+            AppendFrontMatterAttribute(output, entry.Key, entry.Value, entry, options, diagnostics);
         }
         return output.ToString();
+    }
+
+    /// <summary>Writes one attribute per scalar; nested mappings become hyphen-joined names such as <c>author-name</c>.</summary>
+    private static void AppendFrontMatterAttribute(
+        System.Text.StringBuilder output,
+        string name,
+        OfficeIMO.Yaml.YamlNode value,
+        FrontMatterBlock.Entry entry,
+        MarkdownAsciiDocExportOptions options,
+        List<MarkdownAsciiDocConversionDiagnostic> diagnostics) {
+        if (((value as OfficeIMO.Yaml.YamlAlias)?.Target ?? value) is OfficeIMO.Yaml.YamlMapping mapping && mapping.Count > 0) {
+            diagnostics.Add(new MarkdownAsciiDocConversionDiagnostic(
+                "MDADOC001", AsciiDocMarkdownDiagnosticSeverity.Warning, AsciiDocMarkdownConversionOutcome.Simplified,
+                "front-matter-nested", "Nested front-matter mapping flattened to hyphen-joined document attribute names.", entry.SourceSpan));
+            for (int index = 0; index < mapping.Count; index++) {
+                OfficeIMO.Yaml.YamlMappingEntry child = mapping[index];
+                AppendFrontMatterAttribute(output, name + "-" + FrontMatterBlock.KeyText(child.Key), child.Value, entry, options, diagnostics);
+            }
+            return;
+        }
+
+        string text = FrontMatterBlock.FormatValue(value) ?? string.Empty;
+        if (text.IndexOf('\r') >= 0 || text.IndexOf('\n') >= 0) {
+            text = text.Replace("\r\n", " ").Replace('\r', ' ').Replace('\n', ' ');
+            diagnostics.Add(new MarkdownAsciiDocConversionDiagnostic(
+                "MDADOC001", AsciiDocMarkdownDiagnosticSeverity.Warning, AsciiDocMarkdownConversionOutcome.Simplified,
+                "front-matter-multiline", "Multiline front-matter value flattened to one document attribute line.", entry.SourceSpan));
+        }
+        if (output.Length > 0) output.Append(options.LineEnding);
+        output.Append(':').Append(name.Replace(":", "-")).Append(':');
+        if (text.Length > 0) output.Append(' ').Append(text);
     }
 
     private static string ConvertMetadata(MarkdownObject source, string? caption, string lineEnding) {

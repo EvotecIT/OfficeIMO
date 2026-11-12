@@ -190,6 +190,28 @@ var document = MarkdownDocument.Create()
 string markdown = document.ToMarkdown();
 ```
 
+### Read and edit front matter as YAML
+
+Front matter is read and written by [`OfficeIMO.Yaml`](../OfficeIMO.Yaml/README.md), so nested mappings, lists, comments and quoting behave as they do in Jekyll, Hugo and other YAML tools.
+
+```csharp
+var document = MarkdownDocument.Load("post.md");
+FrontMatterBlock header = document.DocumentHeader!;
+
+string? title = header.FindEntry("title")?.Value.AsString();
+string? author = header.Select("author.name")?.AsString();
+bool draft = header.TryGetValue("draft", out bool isDraft) && isDraft;
+
+header.Yaml!.Set("title", "Final title");   // only the title text changes
+document.Save();
+```
+
+- `Yaml` is the lossless `YamlDocument`. Unedited front matter is written back byte for byte, including comments, blank lines and quoting. Edits through `Yaml` rewrite only the text they change.
+- `Entries` lists the top-level keys with their Markdown source spans. Each `Value` is a `YamlNode`: read scalars with `AsString()` or `GetValue<T>()`, and nested values with `AsMapping()`, `AsSequence()` or `Select(path)`.
+- Front matter built with `FrontMatter(...)` is written by the YAML writer. Nested dictionaries, objects and collections become mappings and sequences. Strings that a YAML reader could take as another type, such as `yes` or `1.0`, are quoted.
+- Front matter that is not valid YAML stays in the document as text. `Yaml` is `null`, and `Diagnostics` holds a `markdown-front-matter-invalid-yaml` error with its Markdown line and column. The rest of the document is still parsed.
+- Front matter is read with `YamlLoadOptions.UntrustedDefaults` limits. Repeated keys are reported in `Diagnostics`, and the last one wins.
+
 ### TeX math
 
 Math is an opt-in reader profile, so dollar signs in ordinary prose keep their meaning by default:
@@ -285,7 +307,7 @@ File.WriteAllText("README.normalized.md", parsed.ToMarkdown());
 ## Dependency footprint
 
 - **External:** None; parsing, syntax, semantic models, and writing are first-party.
-- **OfficeIMO:** `OfficeIMO.Core`. The AST, parser, builder, transformations, and HTML renderer are first-party.
+- **OfficeIMO:** `OfficeIMO.Core` and `OfficeIMO.Yaml`, which reads and writes front matter. The AST, parser, builder, transformations, and HTML renderer are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
 

@@ -842,4 +842,20 @@ public static partial class OfficeDiagnosticCodes {
     public const string XlsbStyleGradientPreserved = "xlsb-style-gradient-preserved";
     /// <summary>Stable code: <c>xlsb-unprojected-record</c>.</summary>
     public const string XlsbUnprojectedRecord = "xlsb-unprojected-record";
+    /// <summary>Stable code: <c>yaml-aliased-node-edited</c>.</summary>
+    public const string YamlAliasedNodeEdited = "yaml-aliased-node-edited";
+    /// <summary>Stable code: <c>yaml-duplicate-key</c>.</summary>
+    public const string YamlDuplicateKey = "yaml-duplicate-key";
+    /// <summary>Stable code: <c>yaml-lenient-indentation</c>.</summary>
+    public const string YamlLenientIndentation = "yaml-lenient-indentation";
+    /// <summary>Stable code: <c>yaml-merge-alias-expanded</c>.</summary>
+    public const string YamlMergeAliasExpanded = "yaml-merge-alias-expanded";
+    /// <summary>Stable code: <c>yaml-merge-anchor-renamed</c>.</summary>
+    public const string YamlMergeAnchorRenamed = "yaml-merge-anchor-renamed";
+    /// <summary>Stable code: <c>yaml-merge-key-not-removed</c>.</summary>
+    public const string YamlMergeKeyNotRemoved = "yaml-merge-key-not-removed";
+    /// <summary>Stable code: <c>yaml-merge-key-without-directive</c>.</summary>
+    public const string YamlMergeKeyWithoutDirective = "yaml-merge-key-without-directive";
+    /// <summary>Stable code: <c>yaml-merge-kind-conflict</c>.</summary>
+    public const string YamlMergeKindConflict = "yaml-merge-kind-conflict";
 }

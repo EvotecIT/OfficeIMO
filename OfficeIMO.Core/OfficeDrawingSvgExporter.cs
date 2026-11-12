@@ -55,6 +55,8 @@ public static partial class OfficeDrawingSvgExporter {
         foreach (OfficeFontFace face in fonts.Faces) {
             if (requiredFamilies != null && !requiredFamilies.Contains(face.FamilyName) &&
                 !requiredFamilies.Contains(face.ResourceFamilyName)) continue;
+            // A face whose licence forbids embedding stays a family reference for the viewer's installed fonts.
+            if (!face.AllowsOutlineEmbedding) continue;
             if (!started) {
                 sb.Append("<defs><style type=\"text/css\">");
                 started = true;

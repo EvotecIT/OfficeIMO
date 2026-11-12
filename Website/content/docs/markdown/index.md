@@ -25,7 +25,7 @@ The package has **zero external dependencies** and targets .NET Standard 2.0, .N
 | `CalloutBlock` | Admonition / callout block (Note, Warning, Tip, etc.). |
 | `QuoteBlock` | Block quotation. |
 | `ImageBlock` | Image reference with alt text, title, and optional size hints. |
-| `FrontMatterBlock` | YAML front matter parsed into typed entries. |
+| `FrontMatterBlock` | YAML front matter as a lossless `YamlDocument`, with its top-level entries and source spans. |
 | `MarkdownHtmlExportOptions` | Configuration for the HTML rendering pipeline. |
 
 ## Creating a Markdown Document

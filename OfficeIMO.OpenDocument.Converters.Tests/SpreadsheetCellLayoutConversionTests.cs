@@ -8,6 +8,32 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class SpreadsheetCellLayoutConversionTests {
     [Fact]
+    public void RowPaddingStaysMaterializedWhenItsStyleInheritsAFamilyDefaultFill() {
+        OdsDocument source = OdsDocument.Create();
+        XElement styles = source.GetXml("styles.xml").Root!.Element(OdfNamespaces.Office + "styles")!;
+        styles.Add(new XElement(OdfNamespaces.Style + "default-style",
+            new XAttribute(OdfNamespaces.Style + "family", "table-cell"),
+            new XElement(OdfNamespaces.Style + "table-cell-properties",
+                new XAttribute(OdfNamespaces.Fo + "background-color", "#FFFF00"))));
+        source.Package.MarkXmlDirty("styles.xml");
+        OdfStyle fontOnly = source.Styles.CreateAutomatic(OdfStyleFamily.TableCell);
+        fontOnly.Element.Add(new XElement(OdfNamespaces.Style + "text-properties",
+            new XAttribute(OdfNamespaces.Fo + "color", "#FF0000")));
+        OdsSheet sheet = source.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Value");
+        sheet.Cell(0, 1).StyleName = fontOnly.Name;
+        XElement padding = source.GetXml("content.xml").Descendants(OdfNamespaces.Table + "table-cell").Last();
+        padding.SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 1023);
+        source.Package.MarkXmlDirty("content.xml");
+
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
+        using ExcelDocument output = result.Value;
+
+        Assert.Equal(1024, output.Inspect().Worksheets.Single().Cells.Count(cell => cell.Row == 1));
+        Assert.DoesNotContain(result.Report.Mappings, mapping => mapping.Feature == "blank-cell-tail-styles");
+    }
+
+    [Fact]
     public void RepeatedHiddenRowsRespectIndividualLayoutBudget() {
         OdsDocument source = OdsDocument.Create();
         OdsSheet sheet = source.AddSheet("Layout");

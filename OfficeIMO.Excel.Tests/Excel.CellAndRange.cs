@@ -153,14 +153,14 @@ namespace OfficeIMO.Tests
                     var sheet10 = document.AddSheet("Data");
 
                     var range12 = sheet10.Range(ExcelA1.CellReference(0, 1) + ":" + ExcelA1.CellReference(1, 1));
-                    range12.SetValues(null);
+                    range12.SetValues(null!);
                 });
                 Assert.Throws<ArgumentOutOfRangeException>(() =>
                 {
                     var sheet13 = document.AddSheet("Data");
 
                     var range15 = sheet13.Range(ExcelA1.CellReference(1, 0) + ":" + ExcelA1.CellReference(1, 1));
-                    range15.SetValues(null);
+                    range15.SetValues(null!);
                 });
             }
 
