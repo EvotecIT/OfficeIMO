@@ -6,7 +6,8 @@ namespace PSWriteOffice.Cmdlets.Security;
 
 /// <summary>Writes a copy of a file without its metadata and hidden data, and reports what happened to each item.</summary>
 /// <para>The input is never changed. The cleaned copy is written as &lt;name&gt;.cleaned&lt;ext&gt; beside the input unless
-/// OutputPath or OutputDirectory says otherwise, and an existing file is replaced only with Force.</para>
+/// OutputPath or OutputDirectory says otherwise. An existing output file is replaced, as with Convert-OfficeDocument and
+/// Optimize-OfficePdf; NoClobber refuses it instead.</para>
 /// <para>Without Options the Default categories are removed: document and custom properties, comments, personal identities,
 /// speaker notes, the thumbnail, custom XML, image metadata, printer settings, external references, document variables,
 /// revision identifiers and active content such as scripts. Tracked changes, hidden content, provenance, attachments and
@@ -26,10 +27,10 @@ namespace PSWriteOffice.Cmdlets.Security;
 /// Get-ChildItem .\Outgoing -File | Remove-OfficeHiddenData -OutputDirectory .\Share -Options $options</code>
 /// </example>
 /// <example>
-///   <summary>Accept tracked changes and replace an earlier cleaned copy.</summary>
+///   <summary>Accept tracked changes, and keep an earlier cleaned copy if one exists.</summary>
 ///   <prefix>PS&gt; </prefix>
 ///   <code>$options = New-OfficeHiddenDataOptions -TrackedChanges AcceptAll
-/// Remove-OfficeHiddenData -Path .\Contract.docx -OutputPath .\Contract-final.docx -Options $options -Force</code>
+/// Remove-OfficeHiddenData -Path .\Contract.docx -OutputPath .\Contract-final.docx -Options $options -NoClobber</code>
 /// </example>
 [Cmdlet(VerbsCommon.Remove, "OfficeHiddenData", DefaultParameterSetName = "Path", SupportsShouldProcess = true)]
 [OutputType(typeof(OfficeHiddenDataFileReport))]
@@ -69,9 +70,9 @@ public sealed class RemoveOfficeHiddenDataCommand : OfficeCmdlet {
     [Parameter]
     public SwitchParameter RemoveInvalidatedSignatures { get; set; }
 
-    /// <summary>Replace an existing output file.</summary>
+    /// <summary>Refuse to replace an existing output file.</summary>
     [Parameter]
-    public SwitchParameter Force { get; set; }
+    public SwitchParameter NoClobber { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
@@ -102,7 +103,7 @@ public sealed class RemoveOfficeHiddenDataCommand : OfficeCmdlet {
                 if (!string.Equals(System.IO.Path.GetExtension(input), System.IO.Path.GetExtension(output), StringComparison.OrdinalIgnoreCase))
                     throw new PSArgumentException("The cleaned copy must keep the input's extension: " + output);
                 if (!written.Add(output)) throw new IOException("Another input in this run already wrote: " + output);
-                OfficePath.ValidateDestination(output, refuseExisting: !Force);
+                OfficePath.ValidateDestination(output, refuseExisting: NoClobber);
             } catch (Exception error) when (error is ArgumentException or IOException) {
                 ItemError(error, "hidden-data-output-rejected", input);
                 continue;
@@ -113,7 +114,7 @@ public sealed class RemoveOfficeHiddenDataCommand : OfficeCmdlet {
                 string? parent = System.IO.Path.GetDirectoryName(output);
                 if (!string.IsNullOrEmpty(parent)) Directory.CreateDirectory(parent);
                 byte[] cleaned = result.ToArray();
-                OfficeOutput.WriteNew(output, stream => stream.Write(cleaned, 0, cleaned.Length), Force);
+                OfficeOutput.WriteNew(output, stream => stream.Write(cleaned, 0, cleaned.Length), !NoClobber);
                 WriteObject(new OfficeHiddenDataFileReport(result.Report, input, output));
             } catch (Exception error) when (error is not (ActionPreferenceStopException or PipelineStoppedException)) {
                 ItemError(error, "hidden-data-removal-failed", input);

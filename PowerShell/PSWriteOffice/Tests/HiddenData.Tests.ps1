@@ -35,7 +35,7 @@ Describe 'Hidden-data commands' {
         (Get-FileHash -LiteralPath $proposal).Hash | Should -Be $hash
     }
 
-    It 'writes a cleaned copy beside the input, refuses to replace it without Force and leaves the input alone' {
+    It 'writes a cleaned copy beside the input, keeps it with NoClobber and leaves the input alone' {
         $proposal = Join-Path $TestDrive 'remove.docx'
         $cleaned = Join-Path $TestDrive 'remove.cleaned.docx'
         New-ReviewedProposal $proposal
@@ -51,10 +51,10 @@ Describe 'Hidden-data commands' {
         (Get-FileHash -LiteralPath $proposal).Hash | Should -Be $hash
 
         $written = (Get-Item -LiteralPath $cleaned).LastWriteTimeUtc
-        Remove-OfficeHiddenData -Path $proposal -ErrorAction SilentlyContinue -ErrorVariable refused | Should -BeNullOrEmpty
+        Remove-OfficeHiddenData -Path $proposal -NoClobber -ErrorAction SilentlyContinue -ErrorVariable refused | Should -BeNullOrEmpty
         $refused[0].FullyQualifiedErrorId | Should -BeLike 'hidden-data-output-rejected*'
         (Get-Item -LiteralPath $cleaned).LastWriteTimeUtc | Should -Be $written
-        (Remove-OfficeHiddenData -Path $proposal -Force).OutputPath | Should -Be $cleaned
+        (Remove-OfficeHiddenData -Path $proposal).OutputPath | Should -Be $cleaned
     }
 
     It 'removes only the categories New-OfficeHiddenDataOptions selects' {

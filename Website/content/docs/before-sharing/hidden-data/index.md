@@ -175,7 +175,7 @@ $options = New-OfficeHiddenDataOptions -Kind Default, Provenance -TrackedChanges
 Get-ChildItem .\Outgoing -File | Remove-OfficeHiddenData -OutputDirectory .\Share -Options $options
 ```
 
-`Remove-OfficeHiddenData` writes `<name>.cleaned<ext>` unless you pass `-OutputPath` or `-OutputDirectory`, needs `-Force` to replace an existing file, and returns the findings with their outcomes. [Clean files before sharing](/docs/pswriteoffice/before-sharing/) shows real output for Word, Excel, PowerPoint and PDF files.
+`Remove-OfficeHiddenData` writes `<name>.cleaned<ext>` unless you pass `-OutputPath` or `-OutputDirectory`, replaces an existing output unless you pass `-NoClobber`, and returns the findings with their outcomes. [Clean files before sharing](/docs/pswriteoffice/before-sharing/) shows real output for Word, Excel, PowerPoint and PDF files.
 
 ## For AI agents
 

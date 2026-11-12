@@ -8378,11 +8378,11 @@
               "note": "Allow removal that invalidates an Office package signature. Signed PDFs are always refused."
             },
             {
-              "name": "Force",
+              "name": "NoClobber",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Replace an existing output file; without it an existing output is an error."
+              "note": "Refuse to replace an existing output file; without it an existing output is replaced."
             }
           ]
         },
@@ -8423,11 +8423,11 @@
               "note": "Allow removal that invalidates an Office package signature. Signed PDFs are always refused."
             },
             {
-              "name": "Force",
+              "name": "NoClobber",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Replace an existing output file; without it an existing output is an error."
+              "note": "Refuse to replace an existing output file; without it an existing output is replaced."
             }
           ]
         },
@@ -8465,11 +8465,11 @@
               "note": "Allow removal that invalidates an Office package signature. Signed PDFs are always refused."
             },
             {
-              "name": "Force",
+              "name": "NoClobber",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Replace an existing output file; without it an existing output is an error."
+              "note": "Refuse to replace an existing output file; without it an existing output is replaced."
             }
           ]
         },
@@ -8510,16 +8510,16 @@
               "note": "Allow removal that invalidates an Office package signature. Signed PDFs are always refused."
             },
             {
-              "name": "Force",
+              "name": "NoClobber",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Replace an existing output file; without it an existing output is an error."
+              "note": "Refuse to replace an existing output file; without it an existing output is replaced."
             }
           ]
         }
       ],
-      "notes": "Same removal as officeimo hidden-data remove: writes <name>.cleaned<ext> unless -OutputPath or -OutputDirectory is given and refuses an existing output unless -Force. The default categories keep tracked changes, hidden content, provenance, attachments and bookmarks.",
+      "notes": "Same removal as officeimo hidden-data remove: writes <name>.cleaned<ext> unless -OutputPath or -OutputDirectory is given and replaces an existing output unless -NoClobber, like Convert-OfficeDocument and Optimize-OfficePdf. The default categories keep tracked changes, hidden content, provenance, attachments and bookmarks.",
       "examples": [
         {
           "title": "Clean a proposal",
