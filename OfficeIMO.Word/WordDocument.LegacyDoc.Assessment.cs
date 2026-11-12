@@ -43,7 +43,7 @@ namespace OfficeIMO.Word {
                     "Document couldn't be saved as legacy DOC because the main document part or document body is missing.");
             }
             using var cloneStream = new MemoryStream();
-            using (var packageClone = _wordprocessingDocument.Clone(cloneStream, true)) { }
+            using (var packageClone = WordPackageSnapshot.Clone(_wordprocessingDocument, cloneStream)) { }
             cloneStream.Position = 0;
             using WordDocument writableClone = Load(cloneStream, new WordLoadOptions {
                 MaxInputBytes = Math.Max(WordLoadOptions.DefaultMaxInputBytes, cloneStream.Length)

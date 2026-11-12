@@ -236,7 +236,7 @@ namespace OfficeIMO.Word {
             using WordDocument document = CreateInternal(filePath: null, stream: null, documentType, DocumentPersistenceMode.Explicit,
                 null, GetDefaultPackageBytes(documentType), themeApplied: false);
             using var packageStream = new MemoryStream();
-            using (document._wordprocessingDocument.Clone(packageStream, true)) {
+            using (WordPackageSnapshot.Clone(document._wordprocessingDocument, packageStream)) {
             }
 
             packageStream.Position = 0;
@@ -251,7 +251,7 @@ namespace OfficeIMO.Word {
                 documentType,
                 DocumentPersistenceMode.Explicit);
             using var packageStream = new MemoryStream();
-            using (document._wordprocessingDocument.Clone(packageStream, true)) {
+            using (WordPackageSnapshot.Clone(document._wordprocessingDocument, packageStream)) {
             }
 
             packageStream.Position = 0;

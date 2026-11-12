@@ -101,7 +101,7 @@ namespace OfficeIMO.Word {
 
         private static void CreateInPlaceTargetRedlineDocument(WordDocument sourceDocument, WordDocument targetDocument, string outputPath, WordComparisonResult result, WordComparisonRedlineOptions options) {
             using var snapshot = new MemoryStream();
-            using (targetDocument._wordprocessingDocument.Clone(snapshot, true)) { }
+            using (WordPackageSnapshot.Clone(targetDocument._wordprocessingDocument, snapshot)) { }
             snapshot.Position = 0;
             using WordDocument document = WordDocument.Load(snapshot, new WordLoadOptions { PersistenceMode = DocumentPersistenceMode.Explicit });
             WordTable.CopyGridNormalizationState(targetDocument._wordprocessingDocument, document._wordprocessingDocument);
