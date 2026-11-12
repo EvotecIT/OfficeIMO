@@ -1,6 +1,6 @@
 ---
 title: YAML Documents
-description: Overview of the OfficeIMO.Yaml engine for lossless YAML editing, overlay merging, streaming and object serialization. Includes examples, options, limits and API links.
+description: OfficeIMO.Yaml engine overview: lossless YAML editing, overlay merging, streaming and object serialization, with examples, options, limits and API links.
 order: 51
 ---
 
