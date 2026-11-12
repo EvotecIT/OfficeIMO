@@ -272,6 +272,18 @@ Body
 
     [Theory]
     [MemberData(nameof(CalloutPlacementProfiles))]
+    public void Unquoted_Line_Ends_An_Open_Quoted_Fence_Instead_Of_Continuing_It(string profile) {
+        var document = MarkdownDocument.Parse("> ```\n> code\noutside\n> [!NOTE]\n> body\n", CreateCalloutPlacementOptions(profile));
+
+        Assert.Collection(
+            document.Blocks,
+            block => Assert.Equal("code", Assert.IsType<CodeBlock>(Assert.Single(Assert.IsType<QuoteBlock>(block).ChildBlocks)).Content.Replace("\r\n", "\n")),
+            block => Assert.Equal("outside", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+            block => Assert.Equal("note", Assert.IsType<CalloutBlock>(block).Kind));
+    }
+
+    [Theory]
+    [MemberData(nameof(CalloutPlacementProfiles))]
     public void Callout_At_Top_Level_With_Up_To_Three_Spaces_Is_Still_A_Callout(string profile) {
         foreach (string markdown in new[] { "> [!NOTE]\n> body\n", "   > [!NOTE] Custom title\n   > body\n" }) {
             var document = MarkdownDocument.Parse(markdown, CreateCalloutPlacementOptions(profile));

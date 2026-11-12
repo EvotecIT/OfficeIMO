@@ -40,8 +40,8 @@ internal static partial class MarkdownReader {
                             break;
                         }
 
-                        if (!literalBlock.TryOpenFence(stripped, options) && QuotedLiteralBlockState.StartsHtmlBlock(stripped, options)) {
-                            literalBlock.OpenHtmlBlock(CollectTopLevelQuotedContent(lines, j), options);
+                        if (!literalBlock.TryOpenFence(stripped, options)) {
+                            literalBlock.TryOpenTopLevelHtmlBlock(stripped, lines, j, options);
                         }
                     }
 
@@ -80,7 +80,8 @@ internal static partial class MarkdownReader {
                 // Lazy continuation: allow a non-quoted line to continue a blockquote paragraph
                 // until a blank line followed by a non-quoted line ends the blockquote.
                 if (sawQuotedLine) {
-                    if (string.IsNullOrWhiteSpace(ln)) {
+                    // Only paragraphs continue lazily; an open quoted fence or HTML block ends at an unquoted line.
+                    if (string.IsNullOrWhiteSpace(ln) || literalBlock.IsOpen) {
                         break;
                     }
 

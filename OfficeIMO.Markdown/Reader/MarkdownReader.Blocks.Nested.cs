@@ -481,9 +481,8 @@ internal static partial class MarkdownReader {
                         break;
                     }
 
-                    if (!literalBlock.TryOpenFence(quoteContent, nestedQuoteOptions)
-                        && QuotedLiteralBlockState.StartsHtmlBlock(quoteContent, nestedQuoteOptions)) {
-                        literalBlock.OpenHtmlBlock(CollectNestedQuotedContent(lines, j, continuationIndent), nestedQuoteOptions);
+                    if (!literalBlock.TryOpenFence(quoteContent, nestedQuoteOptions)) {
+                        literalBlock.TryOpenNestedHtmlBlock(quoteContent, lines, j, continuationIndent, nestedQuoteOptions);
                     }
                 }
 
@@ -499,7 +498,7 @@ internal static partial class MarkdownReader {
             }
 
             // Match the top-level quote parser's lazy continuation behavior inside list items too.
-            if (!sawQuotedLine) break;
+            if (!sawQuotedLine || literalBlock.IsOpen) break;
             if (IsNestedListLineForParentItem(raw, itemLevelAbs, continuationIndent, options)) break;
             var previousQuoteContent = lastQuoteContent;
             if (previousQuoteContent == null || previousQuoteContent.Length == 0) break;
