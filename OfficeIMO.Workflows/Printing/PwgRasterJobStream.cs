@@ -4,6 +4,7 @@ namespace OfficeIMO.Workflows;
 
 /// <summary>
 /// A forward-only PWG raster document that renders one page at a time while it is read, so a large job never holds more than one sheet's pixels.
+/// Sheets repeated for software copies are encoded once and written again from the kept page, within the job's content byte limit.
 /// </summary>
 /// <remarks>The first page is rendered on construction, so rendering failures surface before any data reaches the printer.</remarks>
 internal sealed class PwgRasterJobStream : Stream {
@@ -13,17 +14,32 @@ internal sealed class PwgRasterJobStream : Stream {
     private readonly int?[] _pages;
     private readonly MemoryStream _buffer = new();
     private readonly PwgRasterWriter _writer;
+    private readonly PrintSheetCache<EncodedPage> _encoded;
+    private readonly int[] _lastUse;
     private int _next;
     private int _lastWidth, _lastHeight;
 
-    public PwgRasterJobStream(PdfPrintJob job, IppDeliveryPlan plan, CancellationToken token) {
+    public PwgRasterJobStream(PdfPrintJob job, IppDeliveryPlan plan, CancellationToken token)
+        : this(job, plan, job.MaximumContentBytes, token) { }
+
+    internal PwgRasterJobStream(PdfPrintJob job, IppDeliveryPlan plan, long keptPageBytes, CancellationToken token) {
         _job = job;
         _plan = plan;
         _token = token;
         _pages = PageSequence(job.Plan.Sheets.Count, plan.SoftwareCopies, plan.Duplex);
         _writer = new PwgRasterWriter(_buffer, _pages.Length);
+        _encoded = new PrintSheetCache<EncodedPage>(keptPageBytes);
+        _lastUse = new int[job.Plan.Sheets.Count * 2];
+        for (int index = 0; index < _pages.Length; index++)
+            if (_pages[index] is int sheet) _lastUse[PageKey(sheet, index)] = index;
         WriteNextPage();
     }
+
+    /// <summary>Encoded pages written again instead of being rendered for another copy.</summary>
+    internal int ReusedPages => _encoded.Reused;
+
+    // A sheet's encoding depends on whether it lands on a back side, which mirrors its pixels.
+    private int PageKey(int sheet, int index) => sheet * 2 + (_plan.Duplex && index % 2 == 1 ? 1 : 0);
 
     /// <summary>Sheet indexes for each page, repeating the sequence per copy; null is a blank back side that starts each duplex copy on a new sheet.</summary>
     internal static int?[] PageSequence(int sheets, int copies, bool duplex) {
@@ -47,6 +63,14 @@ internal sealed class PwgRasterJobStream : Stream {
     private void WriteNextPage() {
         _token.ThrowIfCancellationRequested();
         int index = _next++;
+        _buffer.SetLength(0);
+        if (_pages[index] is int repeated && _encoded.TryGet(PageKey(repeated, index), out EncodedPage kept)) {
+            _lastWidth = kept.Width;
+            _lastHeight = kept.Height;
+            _writer.WriteEncodedPage(kept.Bytes);
+            _buffer.Position = 0;
+            return;
+        }
         bool back = _plan.Duplex && index % 2 == 1;
         (bool mirrorRows, bool reverseRows) = back ? BackSideTransform(_plan.SheetBack, _plan.Tumble) : (false, false);
         int bytesPerPixel = _plan.ColorSpace == PwgRasterColorSpace.Rgb8 ? 3 : 1;
@@ -65,11 +89,12 @@ internal sealed class PwgRasterJobStream : Stream {
         }
         _lastWidth = width;
         _lastHeight = height;
-        _buffer.SetLength(0);
-        _writer.WritePage(new PwgRasterPage(width, height, _plan.RasterDpi, _plan.RasterDpi, _plan.ColorSpace, pixels) {
+        byte[] encoded = _writer.EncodePage(new PwgRasterPage(width, height, _plan.RasterDpi, _plan.RasterDpi, _plan.ColorSpace, pixels) {
             PageSizeName = mediaName, Duplex = _plan.Duplex, Tumble = _plan.Tumble,
             CrossFeedTransform = mirrorRows ? -1 : 1, FeedTransform = reverseRows ? -1 : 1
         });
+        if (_pages[index] is int rendered && _lastUse[PageKey(rendered, index)] > index) _encoded.Add(PageKey(rendered, index), new EncodedPage(encoded, width, height), encoded.LongLength);
+        _writer.WriteEncodedPage(encoded);
         _buffer.Position = 0;
     }
 
@@ -116,6 +141,8 @@ internal sealed class PwgRasterJobStream : Stream {
         }
         return output;
     }
+
+    private sealed record EncodedPage(byte[] Bytes, int Width, int Height);
 
     public override bool CanRead => true;
     public override bool CanSeek => false;

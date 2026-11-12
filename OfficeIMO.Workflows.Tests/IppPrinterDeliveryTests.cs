@@ -147,6 +147,32 @@ public sealed class IppPrinterDeliveryTests {
     }
 
     [Fact]
+    public void SoftwareCopiesReuseEachEncodedSheetAndMatchRenderingItAgain() {
+        PdfDocument document = PdfDocument.Create(c => {
+            foreach (string label in new[] { "One", "Two", "Three" })
+                c.Page(p => p.Size(OfficeLength.Points(144), OfficeLength.Points(216)).Content(content => content.AddParagraph(label)));
+        });
+        PdfPrintJob job = PdfPrintJob.Create(document, new() { InputPath = "copies.pdf", ColorMode = PdfPrintColorMode.Grayscale });
+        var plan = new IppDeliveryPlan {
+            Kind = IppDocumentKind.PwgRaster, SoftwareCopies = 2, Duplex = true, SheetBack = "rotated", RasterDpi = 72, ColorSpace = PwgRasterColorSpace.Gray8
+        };
+        using var reused = new PwgRasterJobStream(job, plan, default);
+        using var rendered = new PwgRasterJobStream(job, plan, keptPageBytes: 0, default);
+        Assert.Equal(ReadAll(rendered), ReadAll(reused));
+        Assert.Equal(3, reused.ReusedPages); // 3 sheets x 2 copies render 3 times, not 6.
+        Assert.Equal(0, rendered.ReusedPages);
+
+        byte[] pixels = Enumerable.Range(0, 4096).Select(index => (byte)(index % 7 == 0 ? 0 : 255)).ToArray();
+        Assert.Equal(pixels, PackedSheetPixels.Pack(pixels, 32, 32, 300).Unpack());
+    }
+
+    private static byte[] ReadAll(Stream stream) {
+        using var copy = new MemoryStream();
+        stream.CopyTo(copy);
+        return copy.ToArray();
+    }
+
+    [Fact]
     public void LandscapeSheetsTurnToThePortraitFeedWithTheirTopOnTheLeftEdge() {
         // A 3x2 landscape raster: red top-left, blue top-right, the rest white.
         var raster = new OfficeRasterImage(3, 2);
