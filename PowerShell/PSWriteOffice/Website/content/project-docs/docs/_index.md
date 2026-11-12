@@ -1,6 +1,6 @@
 ---
 title: "PSWriteOffice Documentation"
-description: "Workflow guides for the PowerShell command surface across Office, PDF, Reader, Confluence Cloud, Visio, Project, Access, EPUB, configuration files, data conversion, and open formats."
+description: "PowerShell guides for Office, PDF, Reader, Confluence, Visio, Project, Access, EPUB, configuration files and data conversion."
 layout: docs
 ---
 

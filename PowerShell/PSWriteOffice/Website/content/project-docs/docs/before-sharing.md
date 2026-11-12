@@ -1,6 +1,6 @@
 ---
 title: "Clean Files Before Sharing"
-description: "Find and remove comments, author names, speaker notes, image metadata and AI labels from Word, Excel, PowerPoint, PDF and image files with PowerShell, and check what is left."
+description: "Remove comments, author names, speaker notes, image metadata and AI labels from Office, PDF and image files with PowerShell."
 layout: docs
 ---
 

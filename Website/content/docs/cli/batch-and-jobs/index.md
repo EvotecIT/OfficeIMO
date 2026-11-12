@@ -1,6 +1,6 @@
 ---
 title: "Batch Conversion and Saved Jobs"
-description: "Convert folders with officeimo workflow batch: checkpoints and retries, conflict policies, JSON and NDJSON reports, saved job files, run reports and JSON, YAML, TOML, XML, CSV and Excel data conversion."
+description: "Convert folders with officeimo workflow batch: checkpoints, retries, conflict policies, JSON reports, saved jobs and data conversions."
 layout: docs
 ---
 

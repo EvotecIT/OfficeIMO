@@ -1,6 +1,6 @@
 ---
 title: "MCP Server and Agent Commands"
-description: "Run officeimo as a local STDIO MCP server with explicit allowed roots, and use the compact agent commands to inspect, search, fetch and convert documents and mailboxes within a bounded output budget."
+description: "Run officeimo as a local MCP server with explicit allowed folders, and use its agent commands to inspect, search and convert documents."
 layout: docs
 ---
 

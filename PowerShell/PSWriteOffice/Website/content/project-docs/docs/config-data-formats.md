@@ -1,6 +1,6 @@
 ---
 title: "Configuration Files and Data Conversion"
-description: "Edit YAML without losing comments, read and write TOML, and convert between JSON, JSON Lines, YAML, TOML, XML, CSV, TSV, and Excel from PowerShell, with a report of anything the target cannot hold."
+description: "Edit YAML without losing comments, read and write TOML, and convert JSON, YAML, TOML, XML, CSV and Excel data from PowerShell."
 layout: docs
 ---
 

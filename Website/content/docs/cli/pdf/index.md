@@ -1,6 +1,6 @@
 ---
 title: "PDF Workflows from the CLI"
-description: "Extract, split, decrypt, flatten, optimize, sanitize and OCR PDFs, export page images, assemble mixed sources, compare revisions, plan and print sheets, and run reviewed redactions with officeimo."
+description: "Extract, split, decrypt, flatten, optimize, sanitize, OCR, assemble, compare, print and redact PDFs with the officeimo command line."
 layout: docs
 ---
 

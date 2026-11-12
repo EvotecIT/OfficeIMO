@@ -1,6 +1,6 @@
 ---
 title: "Extract and Inspect Documents"
-description: "Extract Markdown or JSON from documents and folders with officeimo read and reader, inspect files as compact JSON, read workbook schemas and rely on the versioned output contracts."
+description: "Extract Markdown or JSON from documents and folders with officeimo read, inspect files as JSON and read workbook schemas."
 layout: docs
 ---
 

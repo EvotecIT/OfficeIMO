@@ -1,6 +1,6 @@
 ---
 title: "Clean Documents Before Sharing"
-description: "Inspect and remove hidden data and metadata with officeimo hidden-data, manage Content Credentials and AI labels with officeimo provenance, and check working files in CI with SARIF output."
+description: "Remove hidden data and metadata with officeimo hidden-data, manage Content Credentials and AI labels, and check files in CI with SARIF."
 layout: docs
 ---
 

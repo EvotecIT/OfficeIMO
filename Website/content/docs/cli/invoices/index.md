@@ -1,6 +1,6 @@
 ---
 title: "Electronic Invoices from the CLI"
-description: "Inspect, validate, edit, convert and render CII and UBL electronic invoices with officeimo invoice, including Factur-X and ZUGFeRD hybrid PDFs, batches and pinned standards validation."
+description: "Inspect, validate, edit, convert and render CII and UBL invoices with officeimo invoice, including Factur-X and ZUGFeRD hybrid PDFs."
 layout: docs
 ---
 

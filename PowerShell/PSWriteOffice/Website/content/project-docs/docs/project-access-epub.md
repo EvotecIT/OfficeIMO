@@ -1,6 +1,6 @@
 ---
-title: "Project Schedules, Access Databases, and EPUB"
-description: "Create and read Microsoft Project schedules, Access MDB and ACCDB table databases, and EPUB publications from PowerShell, without Project, Access, or a desktop publishing tool installed."
+title: "Project, Access, and EPUB Files"
+description: "Create and read Microsoft Project schedules, Access databases and EPUB books from PowerShell, without Project or Access installed."
 layout: docs
 ---
 

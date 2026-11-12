@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO.Tool"
-description: "Convert, extract, inspect and clean documents and data files from your terminal with the officeimo CLI. Install the .NET tool from NuGet and use it in scripts, CI jobs, batch conversions and MCP clients."
+description: "Convert, extract, inspect and clean documents from your terminal with the officeimo CLI, in scripts, CI jobs, batches and MCP clients."
 meta.seo_title: "OfficeIMO.Tool: document conversion and inspection CLI"
 layout: application
 meta.application: "tool"

@@ -1,6 +1,6 @@
 ---
 title: "Scripting and CI with the OfficeIMO CLI"
-description: "Exit codes, overwrite rules, standard output versus files, path safety, password environment variables and resource limits for officeimo in shell scripts, PowerShell and CI jobs."
+description: "Exit codes, overwrite rules, stdout versus files, path safety, password variables and limits for officeimo in scripts and CI jobs."
 layout: docs
 ---
 

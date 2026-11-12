@@ -1,6 +1,6 @@
 ---
 title: "Convert Documents with the CLI"
-description: "Convert one file with officeimo convert: Office, OpenDocument, Apple, email, Draw, Publisher, DjVu, HTML and text routes, JSON, YAML, TOML, XML and CSV data, Markdown and JSON extraction, workbook formats and limits."
+description: "Convert one file with officeimo convert: Office, OpenDocument, Apple, email, HTML and text routes, data formats, and Markdown or JSON extraction."
 layout: docs
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO CLI Documentation"
-description: "Task guides for the officeimo command-line tool: install and pin it, convert and batch documents, extract content, work with PDFs and invoices, script it in CI, and run its MCP server."
+description: "Task guides for the officeimo CLI: install it, convert and batch documents, extract content, work with PDFs and invoices, script it in CI and run MCP."
 layout: docs
 ---
 

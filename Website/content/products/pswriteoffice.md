@@ -1,6 +1,6 @@
 ---
 title: "PSWriteOffice"
-description: "Automate Word, Excel, PowerPoint, PDF, Visio, Project, Access, EPUB, YAML, TOML, CSV, Markdown, OpenDocument, and email from PowerShell, on Windows, Linux, and macOS, without Office installed."
+description: "Automate Word, Excel, PowerPoint, PDF, Visio, Project, Access, EPUB, YAML, TOML and CSV from PowerShell on Windows, Linux and macOS."
 layout: product
 meta.showcase_id: "pswriteoffice-patch-report"
 product_color: "#d97706"
