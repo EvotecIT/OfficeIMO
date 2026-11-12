@@ -19,7 +19,7 @@ internal static partial class PdfPageImageRenderer {
             // Enlarging a low-quality print must not recover higher-resolution source detail.
             rendering.Scale = Math.Min(rendering.Scale, 150D / 72);
         }
-        PdfPageRenderResult result = RenderPage(document, pageNumber, rendering, execution.Token, forDisplay: true);
+        PdfPageRenderResult result = RenderPage(document, pageNumber, rendering, execution.Token, forDisplay: true, printing: true);
         execution.ThrowIfCancellationRequested();
         return result;
     }

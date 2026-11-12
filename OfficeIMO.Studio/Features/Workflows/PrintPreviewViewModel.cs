@@ -195,8 +195,9 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
             ProgressFraction = 0.2D;
             Status = T("Status.Rendering");
             using IDisposable? permit = _jobHistory is null ? null : await _jobHistory.EnterAsync(operation.Token).ConfigureAwait(true);
-            PdfPrintJob job = await Task.Run(() => PdfPrintJob.Create(document, request,
-                new PdfPrintJobOptions { MaximumSheets = MaximumPreviewPages }, operation.Token), operation.Token).ConfigureAwait(true);
+            // Sources that cannot print as vector content are rasterized at the selected print resolution.
+            var jobOptions = new PdfPrintJobOptions { MaximumSheets = MaximumPreviewPages, RasterContentDpi = PrintDpi };
+            PdfPrintJob job = await Task.Run(() => PdfPrintJob.Create(document, request, jobOptions, operation.Token), operation.Token).ConfigureAwait(true);
             // Thumbnails render the job content that delivery sends, at roughly twice the display width.
             var rendered = await Task.Run(() => job.Plan.Sheets.Select(sheet => {
                 double dpi = Math.Clamp(PrintPreviewSheetViewModel.MaximumPreviewWidth * 2 * 72 / sheet.PaperSize.Width.ToPoints(), 36D, 300D);

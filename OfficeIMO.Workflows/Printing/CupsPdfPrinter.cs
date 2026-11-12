@@ -20,15 +20,10 @@ internal static partial class CupsPdfPrinter {
 
     /// <summary>Reads a job from the scheduler over IPP. Jobs submitted through lp are tracked the same way.</summary>
     internal static Task<PdfPrintJobStatus> GetJobAsync(CupsScheduler scheduler, string printerName, string jobId, CancellationToken token) =>
-        IppPdfPrinter.GetJobAsync(TrackingEndpoint(scheduler, printerName), jobId, token);
+        IppPdfPrinter.GetJobAsync(scheduler.JobQueue(printerName), jobId, token);
 
     internal static Task<PdfPrintJobStatus> CancelJobAsync(CupsScheduler scheduler, string printerName, string jobId, CancellationToken token) =>
-        IppPdfPrinter.CancelJobAsync(TrackingEndpoint(scheduler, printerName), jobId, token);
-
-    // The scheduler finds a job by its number; the queue path only scopes the request.
-    private static IppPrinterEndpoint TrackingEndpoint(CupsScheduler scheduler, string printerName) => scheduler.IsAvailable
-        ? scheduler.Queue(printerName, isClass: false)
-        : throw new PlatformNotSupportedException("Job tracking needs the CUPS scheduler over IPP, which is not reachable on this host.");
+        IppPdfPrinter.CancelJobAsync(scheduler.JobQueue(printerName), jobId, token);
 
     /// <summary>A queue the scheduler answered for over IPP, with the client that reached it.</summary>
     internal sealed record IppQueueRoute(IppPrinterEndpoint Endpoint, IppPrintClient Client, IppPrinterCapabilities Printer);
@@ -149,12 +144,8 @@ internal static partial class CupsPdfPrinter {
         if (plan.Sheets.All(sheet => PdfPrinterMediaNames.SameSize(sheet.PaperSize, first))) {
             string keyword = PdfPrinterMediaNames.Match(media, defaultMedia, first)?.Id ?? PdfPrinterMediaNames.TryGetKeyword(first) ?? CustomMedia(first);
             arguments.Add("-o"); arguments.Add("media=" + keyword);
-            if (plan.Sheets.All(sheet => sheet.PaperSize.Width.ToPoints() > sheet.PaperSize.Height.ToPoints())) {
-                arguments.Add("-o"); arguments.Add("orientation-requested=4");
-            } else if (plan.Sheets.All(sheet => sheet.PaperSize.Width.ToPoints() <= sheet.PaperSize.Height.ToPoints())) {
-                arguments.Add("-o"); arguments.Add("orientation-requested=3");
-            }
         }
+        // Each composed PDF page already has its sheet's orientation. orientation-requested would ask CUPS to rotate it again.
         if (options.Duplex != PdfPrintDuplex.PrinterDefault) {
             arguments.Add("-o");
             arguments.Add("sides=" + (options.Duplex == PdfPrintDuplex.SingleSided ? "one-sided" : options.Duplex == PdfPrintDuplex.LongEdge ? "two-sided-long-edge" : "two-sided-short-edge"));

@@ -119,7 +119,8 @@ public sealed class PdfCupsSubmissionTests {
             "media/Media Size: iso_a4_210x297mm *na_letter_8.5x11in na_legal_8.5x14in\n", string.Empty);
         List<string> arguments = CupsPdfPrinter.CreateArguments(plan, new PdfPrintDeliveryOptions { PrinterName = "queue" }, capabilities.Media, capabilities.DefaultMedia);
         Assert.Contains("media=na_letter_8.5x11in", arguments);
-        Assert.Contains("orientation-requested=4", arguments);
+        // The landscape sheets are already landscape PDF pages; asking CUPS for landscape as well would rotate them again.
+        Assert.DoesNotContain(arguments, argument => argument.StartsWith("orientation-requested=", StringComparison.Ordinal));
         PdfPrintPlan custom = Plan(PdfPrintOrientation.Portrait, page => page.Size(OfficeIMO.OfficeLength.Points(200), OfficeIMO.OfficeLength.Points(300)),
             page => page.Size(OfficeIMO.OfficeLength.Points(200), OfficeIMO.OfficeLength.Points(300)), new PdfPageSize(OfficeIMO.OfficeLength.Points(250), OfficeIMO.OfficeLength.Points(400)));
         Assert.Contains("media=Custom.250x400pt", CupsPdfPrinter.CreateArguments(custom, new PdfPrintDeliveryOptions { PrinterName = "queue" }, capabilities.Media, capabilities.DefaultMedia));

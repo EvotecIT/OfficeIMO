@@ -31,10 +31,11 @@ public sealed class PdfPrintJob {
     private PdfDocument? _contentDocument;
 
     internal PdfPrintJob(string sourcePath, PdfPrintPlan plan, byte[] content, PdfPrintContentKind contentKind,
-        IReadOnlyList<string> diagnostics, long maximumPixelsPerImage) {
+        IReadOnlyList<string> diagnostics, long maximumPixelsPerImage, long maximumContentBytes) {
         SourcePath = sourcePath; Plan = plan; _content = content; ContentKind = contentKind;
         Diagnostics = Array.AsReadOnly(diagnostics.Distinct().ToArray());
         MaximumPixelsPerImage = maximumPixelsPerImage;
+        MaximumContentBytes = maximumContentBytes;
     }
 
     /// <summary>Original source identity; never used to reopen content during delivery.</summary>
@@ -48,6 +49,8 @@ public sealed class PdfPrintJob {
     /// <summary>Length of the composed PDF content in bytes.</summary>
     public long ContentLength => _content.LongLength;
     internal long MaximumPixelsPerImage { get; }
+    /// <summary>The composition byte limit, which also bounds content rasterized for delivery.</summary>
+    internal long MaximumContentBytes { get; }
 
     /// <summary>Opens a read-only stream over the composed PDF, one page per sheet at its planned paper size.</summary>
     /// <remarks>Grayscale plans are applied when sheets are rasterized; the PDF itself keeps source colors.</remarks>
@@ -72,7 +75,7 @@ public sealed class PdfPrintJob {
         PdfPrintJobComposer.WrapRasterSheets(Plan.Sheets, sheet => {
             double dpi = PdfPrintRaster.ResolveDpi(maximumDpi, maximumDpi, sheet.PaperSize.Width.ToPoints(), sheet.PaperSize.Height.ToPoints(), MaximumPixelsPerImage);
             return OfficePngWriter.Encode(RenderRaster(sheet.SheetNumber, dpi, MaximumPixelsPerImage, cancellationToken).Raster, cancellationToken);
-        }, 256L * 1024 * 1024, cancellationToken);
+        }, MaximumContentBytes, cancellationToken);
 
     internal (OfficeRasterImage Raster, IReadOnlyList<string> Diagnostics) RenderRaster(int sheetNumber, double dpi, long maximumPixels,
         CancellationToken cancellationToken) {

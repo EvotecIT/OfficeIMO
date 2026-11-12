@@ -34,4 +34,37 @@ public sealed class PdfPrintJobStatusTests {
         Assert.Equal(["job-printing"], status.StateReasons);
         Assert.Equal("Printing", status.StateMessage);
     }
+
+    [Fact]
+    public async Task WaitingPassesTheDeadlineToEachQueryAndRejectsLateResults() {
+        // A query that honours its token ends at the deadline.
+        var stalled = new FakeService(async token => {
+            await Task.Delay(Timeout.Infinite, token);
+            throw new InvalidOperationException();
+        });
+        await Assert.ThrowsAsync<TimeoutException>(() => stalled.WaitForJobAsync("queue", "1", TimeSpan.FromMilliseconds(150)));
+
+        // A terminal answer that arrives after the deadline is not accepted.
+        var late = new FakeService(async _ => {
+            await Task.Delay(300);
+            return new PdfPrintJobStatus("queue", "1", PdfPrintJobState.Completed);
+        });
+        await Assert.ThrowsAsync<TimeoutException>(() => late.WaitForJobAsync("queue", "1", TimeSpan.FromMilliseconds(100)));
+
+        // Caller cancellation stays distinct from the deadline.
+        using var canceled = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => stalled.WaitForJobAsync("queue", "1", TimeSpan.FromMinutes(5), cancellationToken: canceled.Token));
+
+        var pending = new FakeService(_ => Task.FromResult(new PdfPrintJobStatus("queue", "1", PdfPrintJobState.Processing)));
+        TimeoutException timeout = await Assert.ThrowsAsync<TimeoutException>(() => pending.WaitForJobAsync("queue", "1", TimeSpan.FromMilliseconds(150), TimeSpan.FromMilliseconds(20)));
+        Assert.Contains("Processing", timeout.Message);
+    }
+
+    private sealed class FakeService(Func<CancellationToken, Task<PdfPrintJobStatus>> query) : IPdfPrinterService {
+        public Task<PdfPrintJobStatus> GetJobAsync(string printerName, string jobId, CancellationToken cancellationToken = default) => query(cancellationToken);
+        public Task<IReadOnlyList<PdfPrinterInfo>> GetPrintersAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<PdfPrinterCapabilities> GetCapabilitiesAsync(string printerName, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<PdfPrintSubmission> SubmitAsync(PdfPrintJob job, PdfPrintDeliveryOptions options, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<PdfPrintJobStatus> CancelJobAsync(string printerName, string jobId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
 }

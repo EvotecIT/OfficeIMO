@@ -35,7 +35,7 @@ public sealed class IppPrinterDeliveryTests {
     }
 
     [Fact]
-    public void ColorVectorJobsSendPdfWithMediaOrientationAndNoScaling() {
+    public void ColorVectorJobsSendPdfWithMediaAndNoScaling() {
         IppDeliveryPlan plan = Plan(Sheets(PdfPageSizes.A4.Width, PdfPageSizes.A4.Height, 2), PdfPrintContentKind.Vector,
             new PdfPrintDeliveryOptions { PrinterName = "p", Copies = 3, Duplex = PdfPrintDuplex.LongEdge }, PdfAndRaster);
 
@@ -44,7 +44,7 @@ public sealed class IppPrinterDeliveryTests {
         Assert.Equal(3, plan.JobOptions.Copies);
         Assert.Equal("two-sided-long-edge", plan.JobOptions.Sides);
         Assert.Equal("iso_a4_210x297mm", plan.JobOptions.Media);
-        Assert.Equal(IppOrientation.Portrait, plan.JobOptions.Orientation);
+        Assert.Null(plan.JobOptions.Orientation); // the composed PDF pages carry their own orientation
         Assert.Equal("none", plan.JobOptions.PrintScaling);
         Assert.Equal("color", plan.JobOptions.ColorMode);
         Assert.Empty(plan.Ignored);
@@ -96,7 +96,6 @@ public sealed class IppPrinterDeliveryTests {
         Assert.Null(plan.JobOptions.Sides);
         Assert.Null(plan.JobOptions.Media);
         Assert.Equal(new IppMedia(21000, 29700) { SizeName = "iso_a4_210x297mm", Source = "main" }, plan.JobOptions.MediaCol);
-        Assert.Null(plan.JobOptions.Orientation); // the printer lists no orientation support
         Assert.Throws<ArgumentException>(() => Plan(Sheets(PdfPageSizes.A4.Width, PdfPageSizes.A4.Height, 1), PdfPrintContentKind.Vector,
             new PdfPrintDeliveryOptions { PrinterName = "p", PaperSourceId = "by-pass-tray" }, simplex));
     }
@@ -112,6 +111,29 @@ public sealed class IppPrinterDeliveryTests {
         Assert.Null(plan.JobOptions.Media);
         Assert.Null(plan.JobOptions.MediaCol);
         Assert.Equal(["iso_a4_210x297mm", "na_letter_8.5x11in"], plan.MediaNames);
+    }
+
+    [Fact]
+    public void SoftwareCopiesFollowThePrinterDefaultSidesWhenTheJobOmitsThem() {
+        var duplexDefault = new IppPrinterCapabilities {
+            DocumentFormats = PdfAndRaster.DocumentFormats, Media = PdfAndRaster.Media, MediaSizes = PdfAndRaster.MediaSizes, MaxCopies = 99,
+            Sides = PdfAndRaster.Sides, SidesDefault = "two-sided-short-edge",
+            PwgRasterResolutions = PdfAndRaster.PwgRasterResolutions, PwgRasterTypes = PdfAndRaster.PwgRasterTypes
+        };
+        IppDeliveryPlan plan = Plan(Sheets(PdfPageSizes.A4.Width, PdfPageSizes.A4.Height, 3, PdfPrintColorMode.Grayscale), PdfPrintContentKind.Vector,
+            new PdfPrintDeliveryOptions { PrinterName = "p", Copies = 2 }, duplexDefault);
+
+        Assert.Null(plan.JobOptions.Sides);
+        Assert.Equal(2, plan.SoftwareCopies);
+        Assert.True(plan.Duplex);
+        Assert.True(plan.Tumble);
+        // The second copy starts on a fresh sheet rather than the back of the first copy's last sheet.
+        Assert.Equal(new int?[] { 0, 1, 2, null, 0, 1, 2 }, PwgRasterJobStream.PageSequence(3, plan.SoftwareCopies, plan.Duplex));
+
+        plan = Plan(Sheets(PdfPageSizes.A4.Width, PdfPageSizes.A4.Height, 3, PdfPrintColorMode.Grayscale), PdfPrintContentKind.Vector,
+            new PdfPrintDeliveryOptions { PrinterName = "p", Copies = 2, Duplex = PdfPrintDuplex.SingleSided }, duplexDefault);
+        Assert.Equal("one-sided", plan.JobOptions.Sides);
+        Assert.False(plan.Duplex);
     }
 
     [Fact]

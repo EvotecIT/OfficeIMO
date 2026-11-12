@@ -29,18 +29,18 @@ internal static class PdfPrintJobComposer {
         if (blocker is null) {
             try {
                 byte[] vector = ComposeVector(source, readOptions, plan, maximumBytes, token);
-                return new PdfPrintJob(request.InputPath, plan, vector, PdfPrintContentKind.Vector, diagnostics, maximumPixels);
+                return new PdfPrintJob(request.InputPath, plan, vector, PdfPrintContentKind.Vector, diagnostics, maximumPixels, maximumBytes);
             } catch (Exception error) when (error is NotSupportedException or PdfPermissionDeniedException) {
                 blocker = error.Message;
             }
         }
         diagnostics.Add("print.raster-content: " + blocker + " Sheets are printed as raster images.");
         byte[] raster = ComposeRaster(document, plan, rasterDpi, maximumPixels, maximumBytes, diagnostics, token);
-        return new PdfPrintJob(request.InputPath, plan, raster, PdfPrintContentKind.Raster, diagnostics, maximumPixels);
+        return new PdfPrintJob(request.InputPath, plan, raster, PdfPrintContentKind.Raster, diagnostics, maximumPixels, maximumBytes);
     }
 
     private static string? FindVectorBlocker(ref byte[] source, ref PdfLoadOptions readOptions, PdfDocument document, PdfPrintPlan plan, CancellationToken token) {
-        PdfDocumentPreflight preflight = PdfInspector.Preflight(source, readOptions);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(source, readOptions, token);
         PdfDocumentSecurityInfo security = preflight.Probe.Security;
         if (!PdfPermissionAuthorization.CanMutate(security, preflight.PermissionPolicy, PdfMutationOperation.ExtractPages))
             return "The source does not permit page import.";
@@ -51,7 +51,10 @@ internal static class PdfPrintJobComposer {
         PdfDocumentInfo info = PdfInspector.Inspect(source, readOptions);
         if (info.HasOptionalContent) return "Vector sheets cannot preserve the source's optional-content visibility.";
         if (!HasPrintedAnnotations(info, plan.SelectedPages)) return null;
-        // Imported pages carry content streams only, so printed annotation and form appearances are flattened first.
+        // Imported pages carry content streams only, so printed annotation and form appearances are flattened first. Flattening paints
+        // every visible annotation, so pages that also carry annotations marked not to print are rendered for printing instead.
+        if (ScreenOnlyAnnotations(info, plan.SelectedPages).Any())
+            return "Annotations marked not to print cannot be separated from printed annotations in vector content.";
         PdfDocument flattened;
         try {
             flattened = document.FlattenInteractiveContent().ToDocument();
@@ -77,6 +80,21 @@ internal static class PdfPrintJobComposer {
             }
         }
         return false;
+    }
+
+    private const int InvisibleFlag = 1, HiddenFlag = 2, PrintFlag = 4, NoViewFlag = 32;
+
+    /// <summary>Visible annotations without the Print flag that flattening would paint on the selected pages.</summary>
+    private static IEnumerable<PdfAnnotation> ScreenOnlyAnnotations(PdfDocumentInfo info, IReadOnlyList<int> pages) {
+        foreach (int page in pages.Distinct()) {
+            foreach (PdfAnnotation annotation in info.Pages[page - 1].Annotations) {
+                int flags = annotation.Flags ?? 0;
+                if ((flags & PrintFlag) != 0 || (flags & (InvisibleFlag | HiddenFlag | NoViewFlag)) != 0) continue;
+                // Links and popups without an appearance never paint.
+                if (annotation.Subtype is "Link" or "Popup" && !annotation.HasNormalAppearance) continue;
+                yield return annotation;
+            }
+        }
     }
 
     private static byte[] ComposeVector(byte[] source, PdfLoadOptions readOptions, PdfPrintPlan plan, long maximumBytes, CancellationToken token) {
@@ -107,7 +125,7 @@ internal static class PdfPrintJobComposer {
                 });
             }
         }
-        byte[] output = PdfStamper.StampPages(sheets, source, overlays, maximumBytes);
+        byte[] output = PdfStamper.StampPages(sheets, source, overlays, maximumBytes, token);
         if (output.LongLength > maximumBytes) throw new InvalidOperationException("The print job exceeds its content byte limit.");
         return output;
     }
@@ -132,19 +150,25 @@ internal static class PdfPrintJobComposer {
             return OfficePngWriter.Encode(raster, token);
         }, maximumBytes, token);
 
-    /// <summary>Wraps one PNG per sheet into a PDF page at that sheet's paper size, rendering one sheet at a time.</summary>
+    /// <summary>
+    /// Wraps one PNG per sheet into a PDF page at that sheet's paper size, rendering one sheet at a time. Each page is serialized as
+    /// soon as it is wrapped, so the working set is the encoded pages, which the byte limit bounds, rather than a document per sheet.
+    /// </summary>
     internal static byte[] WrapRasterSheets(IReadOnlyList<PdfPrintSheet> sheets, Func<PdfPrintSheet, byte[]> renderPng, long maximumBytes, CancellationToken token) {
-        var pages = new List<PdfDocument>(sheets.Count);
+        var save = new PdfSaveOptions { AllowLoss = true };
+        var pages = new List<byte[]>(sheets.Count);
         long retained = 0;
         foreach (PdfPrintSheet sheet in sheets) {
             token.ThrowIfCancellationRequested();
             byte[] encoded = renderPng(sheet);
-            retained = checked(retained + encoded.LongLength);
+            if (retained + encoded.LongLength > maximumBytes) throw new InvalidOperationException("The print job exceeds its content byte limit.");
+            byte[] page = PdfDocument.CreateFromImages([new PdfImageDocumentSource(encoded)],
+                new PdfImageImportOptions { FixedPageSize = sheet.PaperSize, Margin = OfficeLength.Zero, Fit = OfficeImageFit.Stretch }, token).ToBytes(save, token);
+            retained = checked(retained + page.LongLength);
             if (retained > maximumBytes) throw new InvalidOperationException("The print job exceeds its content byte limit.");
-            pages.Add(PdfDocument.CreateFromImages([new PdfImageDocumentSource(encoded)],
-                new PdfImageImportOptions { FixedPageSize = sheet.PaperSize, Margin = OfficeLength.Zero, Fit = OfficeImageFit.Stretch }, token));
+            pages.Add(page);
         }
-        byte[] bytes = (pages.Count == 1 ? pages[0] : PdfDocument.Merge(pages, cancellationToken: token)).ToBytes(new PdfSaveOptions { AllowLoss = true }, token);
+        byte[] bytes = pages.Count == 1 ? pages[0] : PdfDocument.MergeBytes(new PdfMergeOptions(), pages, token).ToBytes(save, token);
         if (bytes.LongLength > maximumBytes) throw new InvalidOperationException("The print job exceeds its content byte limit.");
         return bytes;
     }

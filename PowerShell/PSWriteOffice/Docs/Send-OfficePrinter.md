@@ -164,7 +164,7 @@ New destination file for a Windows file printer.
 ```yaml
 Type: String
 Parameter Sets: Path, LiteralPath
-Aliases: None
+Aliases: OutputFilePath
 Possible values:
 
 Required: False
@@ -180,7 +180,7 @@ Page selection such as 1-3,last.
 ```yaml
 Type: OfficePageSelector
 Parameter Sets: Path, LiteralPath
-Aliases: None
+Aliases: Pages
 Possible values:
 
 Required: False

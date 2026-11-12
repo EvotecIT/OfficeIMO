@@ -171603,7 +171603,7 @@ document through the writer.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="OutputFilePath">
           <maml:name>OutputPath</maml:name>
           <maml:description>
             <maml:para>New destination file for a Windows file printer.</maml:para>
@@ -171615,7 +171615,7 @@ document through the writer.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Pages">
           <maml:name>Page</maml:name>
           <maml:description>
             <maml:para>Page selection such as 1-3,last.</maml:para>
@@ -171837,7 +171837,7 @@ document through the writer.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="OutputFilePath">
           <maml:name>OutputPath</maml:name>
           <maml:description>
             <maml:para>New destination file for a Windows file printer.</maml:para>
@@ -171849,7 +171849,7 @@ document through the writer.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Pages">
           <maml:name>Page</maml:name>
           <maml:description>
             <maml:para>Page selection such as 1-3,last.</maml:para>
@@ -172059,7 +172059,7 @@ document through the writer.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="OutputFilePath">
         <maml:name>OutputPath</maml:name>
         <maml:description>
           <maml:para>New destination file for a Windows file printer.</maml:para>
@@ -172071,7 +172071,7 @@ document through the writer.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Pages">
         <maml:name>Page</maml:name>
         <maml:description>
           <maml:para>Page selection such as 1-3,last.</maml:para>

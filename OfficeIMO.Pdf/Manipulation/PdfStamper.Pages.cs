@@ -24,10 +24,10 @@ internal static partial class PdfStamper {
     }
 
     internal static byte[] StampPages(byte[] targetPdf, byte[] sourcePdf, IReadOnlyList<PdfPageOverlayOptions> placements,
-        long maximumOutputBytes) {
+        long maximumOutputBytes, CancellationToken cancellationToken = default) {
         Guard.NotNull(placements, nameof(placements));
         return StampPageSetCore(targetPdf, placements.Select(options => new PageStampRequest(sourcePdf, options.Clone())).ToArray(),
-            allowVisualOnlySource: true, maximumOutputBytes: maximumOutputBytes);
+            allowVisualOnlySource: true, maximumOutputBytes: maximumOutputBytes, cancellationToken: cancellationToken);
     }
 
     /// <summary>Imports a source PDF page onto target pages read from streams.</summary>
