@@ -135,6 +135,7 @@ public sealed class McpProtocolTests {
                 "officeimo_pdf",
                 "officeimo_pdf_assemble",
                 "officeimo_pdf_compare",
+                "officeimo_pdf_convert_to_pdfa",
                 "officeimo_pdf_export_pages",
                 "officeimo_pdf_ocr",
                 "officeimo_pdf_ocr_providers",
