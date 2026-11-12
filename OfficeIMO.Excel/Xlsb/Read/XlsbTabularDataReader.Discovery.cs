@@ -23,6 +23,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             out int firstDataRow,
             out int lastDataRow,
             out XlsbValidatedRowPlan? validatedRowPlan,
+            out bool inlineTextFreeOfSurrogates,
             WorksheetInflationProgress? inflation = null,
             XlsbSinglePassGate? gate = null) {
             ArgumentNullException.ThrowIfNull(dateStyles);
@@ -32,6 +33,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             firstDataRow = -1;
             lastDataRow = -1;
             validatedRowPlan = null;
+            // Lets the reader copy inline text directly; any surrogate keeps the decoder's pairing rules.
+            inlineTextFreeOfSurrogates = true;
             int currentRow = -1;
             int previousCellColumn = -1;
             byte[] bytes = worksheetPart.Buffer;
@@ -279,6 +282,13 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                                 && characters <= (uint)(valueBytes - sizeof(uint)) / sizeof(char),
                             _ => false
                         };
+                        if (validFixedPayload && recordType == BrtCellSt && inlineTextFreeOfSurrogates) {
+                            int characterCount = (int)Unsafe.ReadUnaligned<uint>(
+                                ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint)));
+                            inlineTextFreeOfSurrogates = !XlsbWideText.ContainsSurrogate(
+                                bytes, payloadOffset + sizeof(int) + sizeof(uint) + sizeof(uint),
+                                characterCount * sizeof(char));
+                        }
                         if (validFixedPayload && recordType == BrtCellIsst) {
                             uint sharedStringIndex = Unsafe.ReadUnaligned<uint>(
                                 ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint)));
@@ -289,6 +299,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             }
                         }
                         if (!validFixedPayload) {
+                            if (recordType == BrtCellSt) inlineTextFreeOfSurrogates = false;
                             column = ValidateCellPayloadStructure(
                                 new XlsbRecordSlice(
                                     bytes,
@@ -301,6 +312,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                                 limits.MaxStringCharacters);
                         }
                     } else {
+                        if (recordType == BrtCellRString) inlineTextFreeOfSurrogates = false;
                         column = ValidateCellPayloadStructure(
                             new XlsbRecordSlice(
                                 bytes,

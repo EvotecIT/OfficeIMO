@@ -101,7 +101,8 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             int length, CancellationToken cancellationToken, Action<int>? publish = null) {
             using Stream input = entry.Open();
             int offset = 0;
-            int readBufferSize = publish == null ? PartReadBufferSize : 256 * 1024;
+            // Published prefixes stay small so validation finishes soon after the last bytes arrive.
+            int readBufferSize = publish == null ? PartReadBufferSize : 64 * 1024;
             while (offset < length) {
                 cancellationToken.ThrowIfCancellationRequested();
                 int read = input.Read(

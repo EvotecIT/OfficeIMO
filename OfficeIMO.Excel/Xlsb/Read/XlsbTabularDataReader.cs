@@ -135,6 +135,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     actualFirstDataRow = discovery.FirstDataRow;
                     actualLastDataRow = discovery.LastDataRow;
                     _validatedRowPlan = discovery.RowPlan;
+                    _inlineTextFreeOfSurrogates = discovery.InlineTextFreeOfSurrogates;
                 } else DiscoverDataColumns(
                     worksheetPart,
                     limits,
@@ -149,7 +150,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     out actualLastColumn,
                     out actualFirstDataRow,
                     out actualLastDataRow,
-                    out _validatedRowPlan);
+                    out _validatedRowPlan,
+                    out _inlineTextFreeOfSurrogates);
             } catch {
                 singlePass?.StopAndJoin();
                 worksheetPart.Dispose();

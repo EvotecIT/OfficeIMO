@@ -5,6 +5,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 #if NET8_0_OR_GREATER
         private InlineTextSlice[] _inlineTextSlices = null!;
 #endif
+        // Set when validation proved no inline string holds a surrogate code unit. Single-pass
+        // readers return rows before that proof completes and keep the per-string check.
+        private bool _inlineTextFreeOfSurrogates;
 
         /// <summary>
         /// Keeps a validated inline string in the owned worksheet until canonical text is needed.
@@ -37,8 +40,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             if (value == null && _inlineTextSlices.Length != 0) {
                 InlineTextSlice slice = _inlineTextSlices[ordinal];
                 if (slice.IsPresent) {
-                    value = XlsbWideText.Decode(
-                        _worksheetPart.Buffer, slice.Offset, slice.ByteCount);
+                    value = _inlineTextFreeOfSurrogates
+                        ? XlsbWideText.DecodeWithoutSurrogates(_worksheetPart.Buffer, slice.Offset, slice.ByteCount)
+                        : XlsbWideText.Decode(_worksheetPart.Buffer, slice.Offset, slice.ByteCount);
                     _strings[ordinal] = value;
                 }
             }
