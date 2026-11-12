@@ -38,7 +38,7 @@ public class LossReportingTests {
     [Theory]
     [MemberData(nameof(Cases))]
     public void ReportsTheDocumentedCode(string input, string source, string target, string code) {
-        (_, OfficeConversionReport report) = Convert.Run(input, Enum.Parse<DataFormat>(source), Enum.Parse<DataFormat>(target));
+        (_, OfficeConversionReport report) = Convert.Run(input, (DataFormat)Enum.Parse(typeof(DataFormat), source), (DataFormat)Enum.Parse(typeof(DataFormat), target));
         Assert.Contains(code, Convert.Codes(report));
     }
 
