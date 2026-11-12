@@ -104,6 +104,49 @@ internal static class IppPdfPrinter {
         };
     }
 
+    internal static async Task<PdfPrintJobStatus> GetJobAsync(IppPrinterEndpoint endpoint, string jobId, CancellationToken token) {
+        int id = endpoint.ParseJobId(jobId);
+        using IppPrintClient client = endpoint.CreateClient();
+        return await ReadJobAsync(endpoint, client, id, jobId, token).ConfigureAwait(false);
+    }
+
+    /// <summary>Sends Cancel-Job, then reports the job. A job that already finished or is unknown is reported, not treated as an error.</summary>
+    internal static async Task<PdfPrintJobStatus> CancelJobAsync(IppPrinterEndpoint endpoint, string jobId, CancellationToken token) {
+        int id = endpoint.ParseJobId(jobId);
+        using IppPrintClient client = endpoint.CreateClient();
+        try {
+            await client.CancelJobAsync(id, token).ConfigureAwait(false);
+        } catch (IppException error) when (error.StatusCode is StatusNotPossible or StatusGone or StatusNotFound) {
+            PdfPrintJobStatus current = await ReadJobAsync(endpoint, client, id, jobId, token).ConfigureAwait(false);
+            if (!current.IsTerminal) throw;
+            return current;
+        }
+        return await ReadJobAsync(endpoint, client, id, jobId, token).ConfigureAwait(false);
+    }
+
+    private const int StatusNotPossible = 0x0404, StatusNotFound = 0x0406, StatusGone = 0x0407;
+
+    private static async Task<PdfPrintJobStatus> ReadJobAsync(IppPrinterEndpoint endpoint, IppPrintClient client, int id, string jobId, CancellationToken token) {
+        IppJobInfo job;
+        try {
+            job = await client.GetJobAsync(id, token).ConfigureAwait(false);
+        } catch (IppException error) when (error.StatusCode is StatusNotFound or StatusGone) {
+            return new PdfPrintJobStatus(endpoint.PrinterName, jobId, PdfPrintJobState.Removed);
+        }
+        return MapJob(endpoint.PrinterName, jobId, job);
+    }
+
+    internal static PdfPrintJobStatus MapJob(string printerName, string jobId, IppJobInfo job) =>
+        new(printerName, jobId, job.State switch {
+            IppJobState.Pending => PdfPrintJobState.Pending,
+            IppJobState.Held => PdfPrintJobState.Held,
+            IppJobState.Processing => PdfPrintJobState.Processing,
+            IppJobState.Stopped => PdfPrintJobState.Stopped,
+            IppJobState.Canceled => PdfPrintJobState.Canceled,
+            IppJobState.Aborted => PdfPrintJobState.Aborted,
+            _ => PdfPrintJobState.Completed
+        }) { StateReasons = job.StateReasons, StateMessage = job.StateMessage };
+
     /// <summary>Chooses the document format and job attributes for a printer.</summary>
     internal static IppDeliveryPlan Plan(PdfPrintPlan sheets, PdfPrintContentKind contentKind, long maximumPixels, PdfPrintDeliveryOptions options,
         IppPrinterCapabilities printer, string printerName) {

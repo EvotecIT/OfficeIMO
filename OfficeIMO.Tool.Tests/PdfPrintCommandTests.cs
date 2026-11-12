@@ -50,6 +50,10 @@ public sealed class PdfPrintCommandTests {
     }
 
     private sealed class PrinterBoundary : IPdfPrinterService {
+        public Task<PdfPrintJobStatus> GetJobAsync(string printerName, string jobId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new PdfPrintJobStatus(printerName, jobId, PdfPrintJobState.Completed));
+        public Task<PdfPrintJobStatus> CancelJobAsync(string printerName, string jobId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new PdfPrintJobStatus(printerName, jobId, PdfPrintJobState.Canceled));
         public PdfPrinterMedia? DefaultMedia { get; init; }
         public PdfPrintJob? Document { get; private set; }
         public PdfPrintDeliveryOptions? Options { get; private set; }

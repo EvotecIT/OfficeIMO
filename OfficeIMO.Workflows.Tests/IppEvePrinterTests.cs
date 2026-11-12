@@ -76,21 +76,27 @@ public sealed class IppEvePrinterTests {
     }
 
     [ExternalToolFact(IppEvePrinterPath)]
-    public async Task CancelsAJobThatIsStillProcessing() {
+    public async Task ServiceTracksAndCancelsAJobThatIsStillProcessing() {
         // Without a print command the reference printer simulates several seconds of processing per job.
         using var printer = EvePrinter.Start("-f", "application/pdf");
-        using var client = new IppPrintClient(printer.Uri);
+        var service = new PdfPrinterService();
+        string uri = printer.Uri.AbsoluteUri;
 
-        IppSubmission submission = await client.PrintAsync(Pdf, "application/pdf", new IppJobOptions { JobName = "ipp-cancel" });
-        IReadOnlyList<IppJobInfo> active = await client.GetJobsAsync();
-        Assert.Contains(active, job => job.Id == submission.Job.Id && !job.IsTerminal);
-        await client.CancelJobAsync(submission.Job.Id);
-        IppJobInfo finished = await client.WaitForJobAsync(submission.Job.Id, JobTimeout, TimeSpan.FromMilliseconds(100));
+        PdfPrintSubmission receipt = await service.SubmitAsync(TwoPageJob(PdfPrintColorMode.Color), new PdfPrintDeliveryOptions { PrinterName = uri, DocumentName = "ipp-cancel" });
+        PdfPrintJobStatus running = await service.GetJobAsync(uri, receipt.JobId);
+        Assert.False(running.IsTerminal);
+        Assert.Equal(receipt.JobId, running.JobId);
+        await Assert.ThrowsAsync<TimeoutException>(() => service.WaitForJobAsync(uri, receipt.JobId, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(100)));
 
-        Assert.Equal(IppJobState.Canceled, finished.State);
-        Assert.Contains("job-canceled-by-user", finished.StateReasons);
-        IppException again = await Assert.ThrowsAsync<IppException>(() => client.CancelJobAsync(submission.Job.Id));
-        Assert.NotNull(again.StatusCode);
+        PdfPrintJobStatus canceled = await service.CancelJobAsync(uri, receipt.JobId);
+        canceled = canceled.IsTerminal ? canceled : await service.WaitForJobAsync(uri, receipt.JobId, JobTimeout, TimeSpan.FromMilliseconds(100));
+        Assert.Equal(PdfPrintJobState.Canceled, canceled.State);
+        Assert.Contains("job-canceled-by-user", canceled.StateReasons);
+        // Canceling a finished job reports it instead of failing, and unknown jobs are reported as removed.
+        Assert.Equal(PdfPrintJobState.Canceled, (await service.CancelJobAsync(uri, receipt.JobId)).State);
+        Assert.Equal(PdfPrintJobState.Removed, (await service.GetJobAsync(uri, "999")).State);
+        Assert.Equal(PdfPrintJobState.Removed, (await service.CancelJobAsync(uri, "999")).State);
+        await Assert.ThrowsAsync<ArgumentException>(() => service.GetJobAsync(uri, "printer-12"));
     }
 
     [ExternalToolFact(IppEvePrinterPath)]
@@ -128,11 +134,10 @@ public sealed class IppEvePrinterTests {
 
         Assert.Equal(uri, receipt.PrinterName);
         Assert.Empty(receipt.IgnoredAttributes);
-        IppJobInfo finished = await WaitAsync(printer, receipt);
-        Assert.Equal(IppJobState.Completed, finished.State);
+        Assert.Equal(PdfPrintJobState.Completed, (await WaitAsync(service, receipt)).State);
         using var content = new MemoryStream();
         using (Stream source = job.OpenContent()) source.CopyTo(content);
-        Assert.Equal(content.ToArray(), File.ReadAllBytes(printer.SpooledDocument(finished.Id, ".pdf")));
+        Assert.Equal(content.ToArray(), File.ReadAllBytes(printer.SpooledDocument(Number(receipt), ".pdf")));
     }
 
     [ExternalToolFact(IppEvePrinterPath, PwgRasterWriterTests.IppEvePcl)]
@@ -154,9 +159,8 @@ public sealed class IppEvePrinterTests {
                 PdfPrintSubmission receipt = await service.SubmitAsync(TwoPageJob(color), new PdfPrintDeliveryOptions {
                     PrinterName = printer.Uri.AbsoluteUri, DocumentName = "service-raster", Duplex = PdfPrintDuplex.LongEdge, MaximumRasterDpi = 150
                 });
-                IppJobInfo finished = await WaitAsync(printer, receipt);
-                Assert.Equal(IppJobState.Completed, finished.State);
-                byte[] spooled = File.ReadAllBytes(printer.SpooledDocument(finished.Id, ".pwg"));
+                Assert.Equal(PdfPrintJobState.Completed, (await WaitAsync(service, receipt)).State);
+                byte[] spooled = File.ReadAllBytes(printer.SpooledDocument(Number(receipt), ".pwg"));
                 Assert.Equal("RaS2", Encoding.ASCII.GetString(spooled, 0, 4));
             }
         } finally {
@@ -178,9 +182,9 @@ public sealed class IppEvePrinterTests {
 
         Assert.Equal("officeimo-test", receipt.PrinterName);
         Assert.Matches(@"^officeimo-test-\d+$", receipt.JobId);
-        IppJobInfo finished = await WaitAsync(printer, receipt with { JobId = receipt.JobId.Substring("officeimo-test-".Length) });
-        Assert.Equal(IppJobState.Completed, finished.State);
-        Assert.True(File.Exists(printer.SpooledDocument(finished.Id, ".pdf")));
+        var tracked = new PdfPrinterService(scheduler);
+        Assert.Equal(PdfPrintJobState.Completed, (await WaitAsync(tracked, receipt)).State);
+        Assert.True(File.Exists(printer.SpooledDocument(Number(receipt), ".pdf")));
     }
 
     [Fact]
@@ -223,10 +227,10 @@ public sealed class IppEvePrinterTests {
             document.Page(page => page.Size(OfficeIMO.Pdf.PdfPageSizes.A4).Background(OfficeIMO.OfficeColor.Blue));
         }), new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = OfficeIMO.Pdf.PdfPageSizes.A4, ColorMode = color });
 
-    private static async Task<IppJobInfo> WaitAsync(EvePrinter printer, PdfPrintSubmission receipt) {
-        using var client = new IppPrintClient(printer.Uri);
-        return await client.WaitForJobAsync(int.Parse(receipt.JobId), JobTimeout, TimeSpan.FromMilliseconds(100));
-    }
+    private static Task<PdfPrintJobStatus> WaitAsync(IPdfPrinterService service, PdfPrintSubmission receipt) =>
+        service.WaitForJobAsync(receipt.PrinterName, receipt.JobId, JobTimeout, TimeSpan.FromMilliseconds(100));
+
+    private static int Number(PdfPrintSubmission receipt) => int.Parse(receipt.JobId.Substring(receipt.JobId.LastIndexOf('-') + 1));
 
     private sealed class EvePrinter : IDisposable {
         private readonly Process _process;

@@ -60,7 +60,8 @@ public sealed class PdfPrintDeliveryOptions {
 }
 
 /// <summary>Receipt proving that a job was accepted by a print queue or IPP printer.</summary>
-/// <remarks>Acceptance does not prove that paper or a virtual-printer file has finished printing.</remarks>
+/// <remarks>Acceptance does not prove that paper or a virtual-printer file has finished printing. Pass <see cref="PrinterName"/> and <see cref="JobId"/>
+/// to <see cref="IPdfPrinterService.GetJobAsync"/> to follow the job.</remarks>
 public sealed record PdfPrintSubmission(string PrinterName, string JobId, int SheetCount, int Copies, string? OutputFilePath) {
     /// <summary>Local staging cleanup problem after acceptance; the receipt remains valid and the job must not be resubmitted.</summary>
     public string? CleanupWarning { get; init; }
@@ -77,7 +78,7 @@ public sealed class PdfPrintDeliveryException : IOException {
     public string? JobId { get; }
 }
 
-/// <summary>Printer discovery and job delivery. Transports receive the job content and the delivery options.</summary>
+/// <summary>Printer discovery, job delivery and job tracking. Transports receive the job content and the delivery options.</summary>
 /// <remarks>Every member that takes a printer name also accepts an <c>ipp://</c> or <c>ipps://</c> printer URI.</remarks>
 public interface IPdfPrinterService {
     /// <summary>Lists installed queues without changing printer settings.</summary>
@@ -86,6 +87,16 @@ public interface IPdfPrinterService {
     Task<PdfPrinterCapabilities> GetCapabilitiesAsync(string printerName, CancellationToken cancellationToken = default);
     /// <summary>Submits a composed job and returns an acceptance receipt.</summary>
     Task<PdfPrintSubmission> SubmitAsync(PdfPrintJob job, PdfPrintDeliveryOptions options, CancellationToken cancellationToken = default);
+    /// <summary>Reads the current state of a submitted job.</summary>
+    /// <param name="printerName">The receipt's <see cref="PdfPrintSubmission.PrinterName"/>.</param>
+    /// <param name="jobId">The receipt's <see cref="PdfPrintSubmission.JobId"/>.</param>
+    /// <param name="cancellationToken">Cancels the query.</param>
+    Task<PdfPrintJobStatus> GetJobAsync(string printerName, string jobId, CancellationToken cancellationToken = default);
+    /// <summary>Asks the queue to cancel a job and returns its state afterwards. A job that has already finished is reported unchanged.</summary>
+    /// <param name="printerName">The receipt's <see cref="PdfPrintSubmission.PrinterName"/>.</param>
+    /// <param name="jobId">The receipt's <see cref="PdfPrintSubmission.JobId"/>.</param>
+    /// <param name="cancellationToken">Cancels the request; the job may already be canceled.</param>
+    Task<PdfPrintJobStatus> CancelJobAsync(string printerName, string jobId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Delivers print jobs to IPP printers by URI, to CUPS queues through the local scheduler, and to Windows queues through GDI.</summary>
@@ -132,9 +143,37 @@ public sealed class PdfPrinterService : IPdfPrinterService {
             : CupsPdfPrinter.SubmitAsync(_cups, job, snapshot, cancellationToken);
     }
 
+    /// <inheritdoc />
+    public Task<PdfPrintJobStatus> GetJobAsync(string printerName, string jobId, CancellationToken cancellationToken = default) {
+        ValidateJob(printerName, jobId);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (PdfPrinterAddress.TryGetIppUri(printerName, nameof(printerName), out Uri? uri))
+            return IppPdfPrinter.GetJobAsync(IppPrinterEndpoint.ForUri(printerName, uri!), jobId, cancellationToken);
+        return OfficeRuntimeCompatibility.IsWindows
+            ? WindowsPdfPrinter.GetJobAsync(printerName, jobId, cancellationToken)
+            : CupsPdfPrinter.GetJobAsync(_cups, printerName, jobId, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<PdfPrintJobStatus> CancelJobAsync(string printerName, string jobId, CancellationToken cancellationToken = default) {
+        ValidateJob(printerName, jobId);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (PdfPrinterAddress.TryGetIppUri(printerName, nameof(printerName), out Uri? uri))
+            return IppPdfPrinter.CancelJobAsync(IppPrinterEndpoint.ForUri(printerName, uri!), jobId, cancellationToken);
+        return OfficeRuntimeCompatibility.IsWindows
+            ? WindowsPdfPrinter.CancelJobAsync(printerName, jobId, cancellationToken)
+            : CupsPdfPrinter.CancelJobAsync(_cups, printerName, jobId, cancellationToken);
+    }
+
     private static void ValidatePrinterName(string printerName, string parameter) {
         if (printerName == null || string.IsNullOrWhiteSpace(printerName)) throw new ArgumentException("A non-empty value is required.", parameter);
         if (printerName.IndexOf('\0') >= 0) throw new ArgumentException("The printer name is invalid.", parameter);
+    }
+
+    private static void ValidateJob(string printerName, string jobId) {
+        ValidatePrinterName(printerName, nameof(printerName));
+        if (jobId == null || jobId.Length is 0 or > 256 || jobId.Any(char.IsControl) || jobId.Any(char.IsWhiteSpace))
+            throw new ArgumentException("The job identifier is invalid.", nameof(jobId));
     }
 }
 

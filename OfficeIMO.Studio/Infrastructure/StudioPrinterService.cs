@@ -14,5 +14,7 @@ internal static class StudioPrinterService {
         public Task<IReadOnlyList<PdfPrinterInfo>> GetPrintersAsync(CancellationToken cancellationToken = default) => Task.FromException<IReadOnlyList<PdfPrinterInfo>>(Unavailable());
         public Task<PdfPrinterCapabilities> GetCapabilitiesAsync(string printerName, CancellationToken cancellationToken = default) => Task.FromException<PdfPrinterCapabilities>(Unavailable());
         public Task<PdfPrintSubmission> SubmitAsync(PdfPrintJob job, PdfPrintDeliveryOptions options, CancellationToken cancellationToken = default) => Task.FromException<PdfPrintSubmission>(Unavailable());
+        public Task<PdfPrintJobStatus> GetJobAsync(string printerName, string jobId, CancellationToken cancellationToken = default) => Task.FromException<PdfPrintJobStatus>(Unavailable());
+        public Task<PdfPrintJobStatus> CancelJobAsync(string printerName, string jobId, CancellationToken cancellationToken = default) => Task.FromException<PdfPrintJobStatus>(Unavailable());
     }
 }

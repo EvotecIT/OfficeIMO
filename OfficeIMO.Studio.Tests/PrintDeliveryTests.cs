@@ -248,6 +248,10 @@ public sealed class PrintDeliveryTests {
         }, printers: printer, jobHistory: history) { InputPath = Path.Combine(Path.GetTempPath(), "reviewed-snapshot.pdf") };
 
     private sealed class RecordingPrinter : IPdfPrinterService {
+        public Task<PdfPrintJobStatus> GetJobAsync(string printerName, string jobId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new PdfPrintJobStatus(printerName, jobId, PdfPrintJobState.Completed));
+        public Task<PdfPrintJobStatus> CancelJobAsync(string printerName, string jobId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new PdfPrintJobStatus(printerName, jobId, PdfPrintJobState.Canceled));
         public PdfPrintJob? Document { get; private set; }
         public PdfPrintDeliveryOptions? Options { get; private set; }
         public bool WaitForCancellation { get; init; }
