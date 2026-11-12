@@ -272,7 +272,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         public override int RecordsAffected => -1;
 
-        public override bool Read() => ReadCore(_cancellationToken);
+        public override bool Read() {
+            ThrowIfClosed();
+            _cancellationToken.ThrowIfCancellationRequested();
+            // Between calls the active token is always the reader's own, so nothing needs restoring.
+            return ReadNext();
+        }
 
         public override Task<bool> ReadAsync(CancellationToken cancellationToken) {
             try {
@@ -290,23 +295,27 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             cancellationToken.ThrowIfCancellationRequested();
             _activeReadCancellationToken = cancellationToken;
             try {
-                _hasCurrentRow = false;
-                if (_schemaRows != null && _schemaRowIndex < _schemaRows.Count) {
-                    LoadBufferedRow(_schemaRows[_schemaRowIndex++]);
-                    _hasCurrentRow = true;
-                    return true;
-                }
-
-                bool result = ReadSourceRow();
-                ThrowIfReadCancellationRequested();
-                return result;
+                return ReadNext();
             } finally {
                 _activeReadCancellationToken = _cancellationToken;
             }
         }
 
+        private bool ReadNext() {
+            _hasCurrentRow = false;
+            if (_schemaRows != null && _schemaRowIndex < _schemaRows.Count) {
+                LoadBufferedRow(_schemaRows[_schemaRowIndex++]);
+                _hasCurrentRow = true;
+                return true;
+            }
+
+            bool result = ReadSourceRow();
+            ThrowIfReadCancellationRequested();
+            return result;
+        }
+
         private bool ReadSourceRow() {
-            ResetUtf8TextState();
+            ResetRowState();
             if (!_hasPendingRow) {
                 if (_reachedEndSheetData) {
                     // Checks after the last row, such as the closing sheet records, finish here.
@@ -320,9 +329,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             // Single-pass reading proves the pending row before it or the blank rows ahead of it are returned.
             if (_gate != null) PrepareStreamedRow(_pendingRowIndex);
-            // Typed span clears avoid the general Array.Clear dispatch on every row.
-            _kinds.AsSpan().Clear();
-            _strings.AsSpan().Clear();
             if (_options.CellValueConverter != null) {
                 _customValues.AsSpan().Clear();
             }

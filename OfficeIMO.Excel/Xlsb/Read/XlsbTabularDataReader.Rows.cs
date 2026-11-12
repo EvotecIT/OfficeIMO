@@ -3,6 +3,14 @@ using System.Runtime.InteropServices;
 
 namespace OfficeIMO.Excel.Xlsb.Read {
     internal sealed partial class XlsbTabularDataReader {
+#if !NET8_0_OR_GREATER
+        private void ResetRowState() {
+            ResetUtf8TextState();
+            _kinds.AsSpan().Clear();
+            _strings.AsSpan().Clear();
+        }
+#endif
+
         private bool ReadCurrentRowRecordsFast() {
             bool checkCancellation = CanCancelCurrentRead;
             byte[] bytes = _records.Buffer;
@@ -61,6 +69,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         break;
                     case BrtCellIsst:
                         StoreValidatedSharedStringCell(bytes, payloadOffset);
+                        break;
+                    case BrtCellSt:
+                        StoreValidatedInlineTextCell(bytes, payloadOffset);
                         break;
                     default:
                         if (IsCellRecord(recordType)) {
