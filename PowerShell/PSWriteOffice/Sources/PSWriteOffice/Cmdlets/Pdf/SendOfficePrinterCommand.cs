@@ -11,24 +11,28 @@ using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
 
-/// <summary>Lays out PDF pages on sheets and submits them to an explicitly named printer. Requires PowerShell 7.4 or newer.</summary>
-/// <para>Without PaperSize, sheets use the printer's default media. The returned receipt proves queue acceptance. It does not prove physical delivery. Check the queue after an interrupted submission before retrying.</para>
+/// <summary>Prints a document of any format OfficeIMO converts to PDF on an explicitly named printer queue or IPP printer. Requires PowerShell 7.4 or newer.</summary>
+/// <para>PDF files are printed directly; other documents are converted to PDF in memory first, and conversion warnings are written as warnings. Send-OfficePdfPrinter remains an alias of this command. PrinterName accepts an installed queue name or an ipp:// or ipps:// printer URI.</para>
+/// <para>Without PaperSize, sheets use the printer's default media. The returned receipt proves queue acceptance, not physical delivery. Follow it with Get-OfficePrintJob, and check the queue after an interrupted submission before retrying.</para>
 /// <example><summary>Print selected PDF pages as two pages per sheet.</summary><prefix>PS&gt; </prefix>
-/// <code>Send-OfficePdfPrinter -Path .\Report.pdf -PrinterName 'Office printer' -Page '1-3' -PagesPerSheet 2 -Duplex LongEdge</code></example>
+/// <code>Send-OfficePrinter -Path .\Report.pdf -PrinterName 'Office printer' -Page '1-3' -PagesPerSheet 2 -Duplex LongEdge</code></example>
+/// <example><summary>Print a Word document to an IPP printer and wait for it to finish.</summary><prefix>PS&gt; </prefix>
+/// <code>Send-OfficePrinter -Path .\Letter.docx -PrinterName 'ipp://printer.local/ipp/print' | Get-OfficePrintJob -Wait</code></example>
 /// <example><summary>Print odd pages four to a sheet in grayscale.</summary><prefix>PS&gt; </prefix>
-/// <code>Send-OfficePdfPrinter -Path .\Report.pdf -PrinterName 'Office printer' -PageSubset Odd -PagesPerSheet 4 -Grayscale</code></example>
-[Cmdlet(VerbsCommunications.Send, "OfficePdfPrinter", SupportsShouldProcess = true, DefaultParameterSetName = "Path")]
+/// <code>Send-OfficePrinter -Path .\Report.pdf -PrinterName 'Office printer' -PageSubset Odd -PagesPerSheet 4 -Grayscale</code></example>
+[Cmdlet(VerbsCommunications.Send, "OfficePrinter", SupportsShouldProcess = true, DefaultParameterSetName = "Path")]
+[Alias("Send-OfficePdfPrinter")]
 #if !FRAMEWORK
 [OutputType(typeof(PdfPrintSubmission))]
 #endif
-public sealed class SendOfficePdfPrinterCommand : AsyncPSCmdlet {
-    /// <summary>Local PDF source.</summary>
+public sealed class SendOfficePrinterCommand : AsyncPSCmdlet {
+    /// <summary>Local document to print: PDF or any format OfficeIMO converts to PDF.</summary>
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Path"), SupportsWildcards]
     public string[] Path { get; set; } = Array.Empty<string>();
-    /// <summary>Literal PDF sources, including FileInfo.FullName.</summary>
+    /// <summary>Literal document paths, including FileInfo.FullName.</summary>
     [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "LiteralPath"), Alias("FullName", "PSPath")]
     public string[] LiteralPath { get; set; } = Array.Empty<string>();
-    /// <summary>Installed queue from Get-OfficePrinter.</summary>
+    /// <summary>Installed queue from Get-OfficePrinter, or an ipp:// or ipps:// printer URI.</summary>
     [Parameter(Mandatory = true)] public string PrinterName { get; set; } = string.Empty;
     /// <summary>Page selection such as 1-3,last.</summary>
     [Parameter, OfficePageSelectorTransformation] public OfficePageSelector? Page { get; set; }
@@ -43,7 +47,7 @@ public sealed class SendOfficePdfPrinterCommand : AsyncPSCmdlet {
     /// <summary>Duplex setting.</summary>
     [Parameter] [ValidateSet("PrinterDefault", "SingleSided", "LongEdge", "ShortEdge")]
     public string Duplex { get; set; } = "PrinterDefault";
-    /// <summary>Paper source identifier reported for this queue.</summary>
+    /// <summary>Paper source identifier reported by Get-OfficePrinterCapability.</summary>
     [Parameter] public string? PaperSourceId { get; set; }
     /// <summary>New destination file for a Windows file printer.</summary>
     [Parameter] public string? OutputPath { get; set; }
@@ -73,33 +77,38 @@ public sealed class SendOfficePdfPrinterCommand : AsyncPSCmdlet {
         bool literal = ParameterSetName == "LiteralPath";
         var inputs = OfficePath.ResolveInputs(this, literal ? LiteralPath : Path, literal);
         string? output = OutputPath == null ? null : PdfCommandUtilities.ResolvePath(this, OutputPath);
-        if (output != null && inputs.Count != 1) throw new PSArgumentException("A file printer OutputPath requires one PDF.");
+        if (output != null && inputs.Count != 1) throw new PSArgumentException("A file printer OutputPath requires one document.");
         var work = new System.Collections.Generic.List<string>();
         foreach (string input in inputs)
             if (ShouldProcess(PrinterName, "Submit " + input + " as a print job")) work.Add(input);
         string? password = Password.ToPlainText();
         var service = new PdfPrinterService();
-        PdfPageSize paper = new(PaperSize.Width, PaperSize.Height);
-        if (work.Count > 0 && !MyInvocation.BoundParameters.ContainsKey(nameof(PaperSize))) {
-            PdfPrinterCapabilities capabilities = await service.GetCapabilitiesAsync(PrinterName, CancelToken);
-            if (capabilities.DefaultMedia?.Size is { } printerPaper) paper = printerPaper;
-        }
         foreach (string input in work) {
-            using PdfDocument document = await PdfDocument.LoadAsync(input, new PdfLoadOptions { Password = password }, cancellationToken: CancelToken);
-            PdfPrintJob job = PdfPrintJob.Create(document, new PdfPrintPlanRequest {
-                InputPath = input, Pages = Page?.ToString(), PagesPerSheet = PagesPerSheet, Margin = Margin.ToPoints(),
-                Orientation = Orientation.HasValue ? Orientation.Value == OfficePageOrientation.Landscape ? PdfPrintOrientation.Landscape : PdfPrintOrientation.Portrait : PdfPrintOrientation.Automatic,
-                ScaleMode = (PdfPrintScaleMode)Enum.Parse(typeof(PdfPrintScaleMode), ScaleMode, true),
-                PageSubset = (PdfPrintPageSubset)Enum.Parse(typeof(PdfPrintPageSubset), PageSubset, true),
-                ColorMode = Grayscale ? PdfPrintColorMode.Grayscale : PdfPrintColorMode.Color,
-                PaperSize = paper
-            }, cancellationToken: CancelToken);
-            foreach (string diagnostic in job.Diagnostics) WriteWarning(diagnostic);
-            PdfPrintSubmission receipt = await service.SubmitAsync(job, new PdfPrintDeliveryOptions {
-                PrinterName = PrinterName, DocumentName = System.IO.Path.GetFileName(input), Copies = Copies,
-                Duplex = (PdfPrintDuplex)Enum.Parse(typeof(PdfPrintDuplex), Duplex, true), PaperSourceId = PaperSourceId, OutputFilePath = output,
-                MaximumRasterDpi = Dpi
+            bool pdf = string.Equals(System.IO.Path.GetExtension(input), ".pdf", StringComparison.OrdinalIgnoreCase);
+            if (password != null && !pdf) throw new PSArgumentException("Password applies only to PDF documents.", nameof(Password));
+            OfficePrintResult result = await service.PrintAsync(new OfficePrintRequest {
+                Layout = new PdfPrintPlanRequest {
+                    InputPath = input, Pages = Page?.ToString(), PagesPerSheet = PagesPerSheet, Margin = Margin.ToPoints(),
+                    Orientation = Orientation.HasValue ? Orientation.Value == OfficePageOrientation.Landscape ? PdfPrintOrientation.Landscape : PdfPrintOrientation.Portrait : PdfPrintOrientation.Automatic,
+                    ScaleMode = (PdfPrintScaleMode)Enum.Parse(typeof(PdfPrintScaleMode), ScaleMode, true),
+                    PageSubset = (PdfPrintPageSubset)Enum.Parse(typeof(PdfPrintPageSubset), PageSubset, true),
+                    ColorMode = Grayscale ? PdfPrintColorMode.Grayscale : PdfPrintColorMode.Color,
+                    PaperSize = new PdfPageSize(PaperSize.Width, PaperSize.Height),
+                    PdfPassword = password
+                },
+                UsePrinterPaper = !MyInvocation.BoundParameters.ContainsKey(nameof(PaperSize)),
+                Delivery = new PdfPrintDeliveryOptions {
+                    PrinterName = PrinterName, DocumentName = System.IO.Path.GetFileName(input), Copies = Copies,
+                    Duplex = (PdfPrintDuplex)Enum.Parse(typeof(PdfPrintDuplex), Duplex, true), PaperSourceId = PaperSourceId, OutputFilePath = output,
+                    MaximumRasterDpi = Dpi
+                }
             }, CancelToken);
+            if (result.Conversion is { } conversion)
+                foreach (OfficeDiagnostic diagnostic in conversion.Diagnostics)
+                    if (diagnostic.Severity != OfficeDiagnosticSeverity.Information) WriteWarning(diagnostic.Message);
+            foreach (string diagnostic in result.Diagnostics) WriteWarning(diagnostic);
+            PdfPrintSubmission receipt = result.Submission;
+            if (receipt.IgnoredAttributes.Count > 0) WriteWarning("The printer ignored: " + string.Join(", ", receipt.IgnoredAttributes) + ".");
             if (receipt.CleanupWarning != null) WriteWarning(receipt.CleanupWarning);
             WriteObject(receipt);
         }

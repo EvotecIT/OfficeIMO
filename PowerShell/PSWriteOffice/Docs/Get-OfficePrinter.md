@@ -6,7 +6,7 @@ schema: 2.0.0
 ---
 # Get-OfficePrinter
 ## SYNOPSIS
-Lists system printer queues, or the capabilities or paper sources of a named queue. Requires PowerShell 7.4 or newer.
+Lists system printer queues, or the paper sources of a named queue. Requires PowerShell 7.4 or newer.
 
 ## SYNTAX
 ### Printer (Default)
@@ -19,48 +19,26 @@ Get-OfficePrinter [[-Name] <string[]>] [<CommonParameters>]
 Get-OfficePrinter [-Name] <string[]> -PaperSource [<CommonParameters>]
 ```
 
-### Capability
-```powershell
-Get-OfficePrinter [-Name] <string[]> -Capability [<CommonParameters>]
-```
-
 ## DESCRIPTION
-Lists system printer queues, or the capabilities or paper sources of a named queue. Requires PowerShell 7.4 or newer.
+Use Get-OfficePrinterCapability for media, duplex, color and resolution details of a queue or IPP printer.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
 PS> Get-OfficePrinter
-            Get-OfficePrinter -Name 'Office printer' -Capability
             Get-OfficePrinter -Name 'Office printer' -PaperSource
 ```
 
 
 ## PARAMETERS
 
-### -Capability
-Return the media, trays, duplex, color, resolution, collation and copy capabilities of the single printer selected by Name.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Capability
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Name
-Printer name patterns; Capability and PaperSource require one exact printer name.
+Printer name patterns; PaperSource requires one exact printer name or IPP printer URI.
 
 ```yaml
 Type: String[]
-Parameter Sets: Printer, PaperSource, Capability
+Parameter Sets: Printer, PaperSource
 Aliases: None
 Possible values:
 
@@ -98,7 +76,6 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 - `OfficeIMO.Workflows.PdfPrinterInfo`
 - `OfficeIMO.Workflows.PdfPaperSourceInfo`
-- `OfficeIMO.Workflows.PdfPrinterCapabilities`
 
 ## RELATED LINKS
 
