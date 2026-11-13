@@ -20,7 +20,7 @@ namespace OfficeIMO.Excel {
                     count = await WriteAsyncSheetData(bodyWriter, sheet, dateTimeOffsetWriteStrategy, dateSystem,
                         columnWritePlan, rows, writeRow, maximumRows, sharedStrings, declaredStyles, ct).ConfigureAwait(false);
                     bodyWriter.Write("</sheetData>");
-                    await bodyWriter.FlushAsync().ConfigureAwait(false);
+                    bodyWriter.Flush();
                 }
 
                 spool.Position = 0;
@@ -32,10 +32,10 @@ namespace OfficeIMO.Excel {
                     writer.Write("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">");
                     if (sheet.StreamingLayout != null) writer.Write(sheet.StreamingLayout.ViewsXml);
                     WriteDeclaredColumns(writer, widths, declaredStyles, sheet.StreamingLayout?.FirstColumn ?? 1);
-                    await writer.FlushAsync().ConfigureAwait(false);
+                    writer.Flush();
                     await spool.CopyToAsync(stream, 64 * 1024, ct).ConfigureAwait(false);
                     WriteAsyncWorksheetEnd(writer, sheet);
-                    await writer.FlushAsync().ConfigureAwait(false);
+                    writer.Flush();
                 }
                 ct.ThrowIfCancellationRequested();
                 return count;

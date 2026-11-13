@@ -43,7 +43,7 @@ namespace OfficeIMO.Excel {
                         columnWritePlan, rows, writeRow, maximumRows, sharedStrings, declaredStyles, ct).ConfigureAwait(false);
                     writer.Write("</sheetData>");
                     WriteAsyncWorksheetEnd(writer, sheet);
-                    await writer.FlushAsync().ConfigureAwait(false);
+                    writer.Flush();
                     writer.Dispose();
                     writer = null;
                     compression?.Complete();
