@@ -194,12 +194,12 @@ internal sealed class TomlLayout {
         KeySeparator = " = ";
         KeyIndent = string.Empty;
         TomlNode? sample = FindKeyValue(document._root);
-        if (sample != null) KeySeparator = source.Substring(sample.KeyEnd, sample._start - sample.KeyEnd);
+        if (sample != null) KeySeparator = source.Substring(sample.PairKeyEnd, sample._start - sample.PairKeyEnd);
         foreach (TomlTable header in document._headers) {
             TomlNode? first = FindKeyValue(header);
             if (first != null) {
                 KeyIndent = text.Indentation(first._keyStart);
-                if (sample == null) KeySeparator = source.Substring(first.KeyEnd, first._start - first.KeyEnd);
+                if (sample == null) KeySeparator = source.Substring(first.PairKeyEnd, first._start - first.PairKeyEnd);
                 break;
             }
         }

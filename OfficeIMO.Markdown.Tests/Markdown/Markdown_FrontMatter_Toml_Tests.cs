@@ -50,7 +50,8 @@ public class Markdown_FrontMatter_Toml_Tests {
         OfficeDiagnostic diagnostic = Assert.Single(frontMatter.Diagnostics);
         Assert.Equal(OfficeDiagnosticCodes.MarkdownFrontMatterInvalidToml, diagnostic.Code);
         Assert.Equal(OfficeDiagnosticSeverity.Error, diagnostic.Severity);
-        Assert.Contains(TomlErrorCodes.DuplicateKey, diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("(toml-load-duplicate-key): The key 'title' is already defined.", diagnostic.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("(line ", diagnostic.Message, StringComparison.Ordinal);
         Assert.Equal("line 3, column 1", diagnostic.Location);
         Assert.Equal("Body", Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks)).Text);
         Assert.StartsWith("+++\ntitle = \"ok\"\ntitle = \"again\"\n+++\n", document.ToMarkdown(new MarkdownSaveOptions { OutputLineEnding = "\n" }), StringComparison.Ordinal);

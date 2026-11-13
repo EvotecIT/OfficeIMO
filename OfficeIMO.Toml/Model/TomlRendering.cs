@@ -281,7 +281,7 @@ internal sealed class TomlRendering {
             anchor = _text.LineEnd(owner._end);
         }
         string indent = last != null ? _text.Indentation(last._keyStart) : owner._tableKind == TomlTableKind.Root ? string.Empty : Layout.KeyIndent;
-        string separator = last != null ? _source.Substring(last.KeyEnd, last._start - last.KeyEnd) : Layout.KeySeparator;
+        string separator = last != null ? _source.Substring(last.PairKeyEnd, last._start - last.PairKeyEnd) : Layout.KeySeparator;
         var text = new StringBuilder();
         StartLine(text, anchor);
         foreach (TomlNode node in nodes) AppendLine(text, indent, prefix, node, separator);
@@ -527,7 +527,7 @@ internal sealed class TomlRendering {
     private string InferSeparator(List<Element> survivors, bool inline) {
         if (!inline) return " = ";
         TomlNode first = survivors[0].Node;
-        int keyEnd = first.KeyEnd;
+        int keyEnd = first.PairKeyEnd;
         return keyEnd >= 0 ? _source.Substring(keyEnd, first._start - keyEnd) : " = ";
     }
 

@@ -68,13 +68,14 @@ internal static partial class MarkdownReader {
             try {
                 toml = TomlDocument.Parse(rawText, TomlLoadOptions.UntrustedDefaults);
             } catch (TomlException exception) {
+                OfficeDiagnostic tomlDiagnostic = exception.ToDiagnostic();
                 var diagnostic = CreateFrontMatterDiagnostic(OfficeDiagnosticCodes.MarkdownFrontMatterInvalidToml, "TOML",
-                    exception.Code, WithoutPosition(exception), exception.Line, exception.Column, bodyLine);
+                    tomlDiagnostic.Code, tomlDiagnostic.Message, exception.Line, exception.Column, bodyLine);
                 return FrontMatterBlock.FromInvalid(MarkdownFrontMatterFormat.Toml, rawText, bodySpan, diagnostic, openingFence, closingFence);
             }
 
             Dictionary<string, FrontMatterBlock.EntrySpans>? keySpans = state.CaptureSyntaxTree
-                ? CreateTomlEntrySpans(rawText, bodyLine, state)
+                ? CreateTomlEntrySpans(toml, rawText, bodyLine, state)
                 : null;
             return FrontMatterBlock.FromParsed(toml, rawText, bodySpan, keySpans, openingFence, closingFence);
         }
@@ -83,7 +84,6 @@ internal static partial class MarkdownReader {
         try {
             yaml = YamlDocument.Parse(rawText, CreateFrontMatterLoadOptions());
         } catch (YamlException exception) {
-            // The YAML diagnostic's message leaves out its YAML-relative position; the location is given in Markdown lines.
             OfficeDiagnostic yamlDiagnostic = exception.ToDiagnostic();
             var diagnostic = CreateFrontMatterDiagnostic(OfficeDiagnosticCodes.MarkdownFrontMatterInvalidYaml, "YAML",
                 yamlDiagnostic.Code, yamlDiagnostic.Message, exception.Line, exception.Column, bodyLine);
@@ -98,21 +98,13 @@ internal static partial class MarkdownReader {
 
     private static OfficeDiagnostic CreateFrontMatterDiagnostic(string code, string language, string engineCode, string message,
         int engineLine, int engineColumn, int bodyLine) {
+        // The engine diagnostic's message leaves out its position; the location is given in Markdown lines.
         int line = bodyLine + Math.Max(1, engineLine) - 1;
         int column = Math.Max(1, engineColumn);
         string location = "line " + line.ToString(CultureInfo.InvariantCulture) + ", column " + column.ToString(CultureInfo.InvariantCulture);
         return new OfficeDiagnostic(code, OfficeDiagnosticSeverity.Error,
             "The front matter is not valid " + language + " and is kept as text (" + engineCode + "): " + message,
             location, "Markdown");
-    }
-
-    /// <summary>The exception's message without the TOML-relative position it ends with; the diagnostic gives Markdown lines.</summary>
-    private static string WithoutPosition(TomlException exception) {
-        string message = exception.Message;
-        if (exception.Line <= 0) return message;
-        string suffix = " (line " + exception.Line.ToString(CultureInfo.InvariantCulture) + ", column "
-            + exception.Column.ToString(CultureInfo.InvariantCulture) + ")";
-        return message.EndsWith(suffix, StringComparison.Ordinal) ? message.Substring(0, message.Length - suffix.Length) : message;
     }
 
     private static Dictionary<YamlNode, FrontMatterBlock.EntrySpans>? CreateFrontMatterEntrySpans(YamlDocument yaml, string rawText, int bodyLine, MarkdownReaderState state) {
@@ -134,86 +126,56 @@ internal static partial class MarkdownReader {
     }
 
     /// <summary>
-    /// Locates the top-level entries of TOML front matter: the key/value pairs before the first header, and the first
-    /// header of each top-level table. A dotted key or a table gets the span of its first key segment and of the pair or
-    /// header that first names it, without a value span; a plain pair also gets its value's span.
+    /// Locates the top-level entries of TOML front matter from the model's key positions. A plain key/value pair spans its
+    /// key and value; a table spans its header, and a table made by dotted keys or deeper headers spans the pair or header
+    /// that first names it, without a value span.
     /// </summary>
-    private static Dictionary<string, FrontMatterBlock.EntrySpans>? CreateTomlEntrySpans(string rawText, int bodyLine, MarkdownReaderState state) {
-        if (rawText.Length == 0) return null;
+    private static Dictionary<string, FrontMatterBlock.EntrySpans>? CreateTomlEntrySpans(TomlDocument toml, string rawText, int bodyLine, MarkdownReaderState state) {
+        if (toml.Root.Count == 0) return null;
 
         int[] lineStarts = GetLineStarts(rawText);
-        var spans = new Dictionary<string, FrontMatterBlock.EntrySpans>(StringComparer.Ordinal);
-        var reader = new TomlReader(rawText);
-        bool inHeader = false, afterHeader = false, inValue = false;
-        string? key = null;
-        long headerStart = -1, keyStart = -1, keyEnd = -1, valueStart = -1;
-        int segments = 0;
-
-        while (reader.Read()) {
-            switch (reader.TokenType) {
-                case TomlTokenType.TableHeaderStart:
-                case TomlTokenType.ArrayOfTablesHeaderStart:
-                    inHeader = true;
-                    afterHeader = true;
-                    headerStart = reader.Start.Offset;
-                    key = null;
-                    break;
-                case TomlTokenType.TableHeaderEnd:
-                case TomlTokenType.ArrayOfTablesHeaderEnd:
-                    inHeader = false;
-                    if (key != null && !spans.ContainsKey(key)) {
-                        spans[key] = new FrontMatterBlock.EntrySpans(
-                            CreateBodyRangeSpan(headerStart, reader.End.Offset - 1, rawText, lineStarts, bodyLine, state),
-                            CreateBodyRangeSpan(keyStart, keyEnd - 1, rawText, lineStarts, bodyLine, state),
-                            value: null);
-                    }
-
-                    key = null;
-                    break;
-                case TomlTokenType.Key when inHeader:
-                    if (key == null) {
-                        key = reader.GetString();
-                        keyStart = reader.Start.Offset;
-                        keyEnd = reader.End.Offset;
-                    }
-
-                    break;
-                case TomlTokenType.Key when !afterHeader && reader.Depth == 0:
-                    if (key == null) {
-                        key = reader.GetString();
-                        keyStart = reader.Start.Offset;
-                        keyEnd = reader.End.Offset;
-                        segments = 0;
-                    }
-
-                    segments++;
-                    break;
-                case TomlTokenType.Comment:
-                case TomlTokenType.Key:
-                    break;
-                default:
-                    if (key == null || afterHeader || reader.Depth != 0) break;
-                    if (!inValue) valueStart = reader.Start.Offset;
-                    if (reader.TokenType is TomlTokenType.StartArray or TomlTokenType.StartInlineTable) {
-                        inValue = true;
-                        break;
-                    }
-
-                    inValue = false;
-                    long valueEnd = InclusiveEnd(valueStart, reader.End.Offset, rawText);
-                    if (!spans.ContainsKey(key)) {
-                        spans[key] = new FrontMatterBlock.EntrySpans(
-                            CreateBodyRangeSpan(keyStart, valueEnd, rawText, lineStarts, bodyLine, state),
-                            CreateBodyRangeSpan(keyStart, keyEnd - 1, rawText, lineStarts, bodyLine, state),
-                            segments == 1 ? CreateBodyRangeSpan(valueStart, valueEnd, rawText, lineStarts, bodyLine, state) : null);
-                    }
-
-                    key = null;
-                    break;
+        var spans = new Dictionary<string, FrontMatterBlock.EntrySpans>(toml.Root.Count, StringComparer.Ordinal);
+        foreach (KeyValuePair<string, TomlNode> entry in toml.Root) {
+            TomlNode node = entry.Value;
+            TomlPosition keyStart = node.KeyStart;
+            if (keyStart.Line <= 0) continue;
+            MarkdownSourceSpan? key = CreateBodyRangeSpan(keyStart.Offset, node.KeyEnd.Offset - 1, rawText, lineStarts, bodyLine, state);
+            TomlNode defining = FirstWithSource(node);
+            if (defining.Start.Line <= 0) {
+                spans[entry.Key] = new FrontMatterBlock.EntrySpans(key, key, value: null);
+                continue;
             }
+
+            long end = InclusiveEnd(defining.Start.Offset, defining.End.Offset, rawText);
+            bool header = defining is TomlTable { TableKind: TomlTableKind.Header or TomlTableKind.ArrayItem };
+            MarkdownSourceSpan? whole = CreateBodyRangeSpan(header ? defining.Start.Offset : keyStart.Offset, end, rawText, lineStarts, bodyLine, state);
+            MarkdownSourceSpan? value = ReferenceEquals(defining, node) && !header
+                ? CreateBodyRangeSpan(node.Start.Offset, end, rawText, lineStarts, bodyLine, state)
+                : null;
+            spans[entry.Key] = new FrontMatterBlock.EntrySpans(whole, key, value);
         }
 
         return spans;
+    }
+
+    /// <summary>The node, or for a table made by dotted keys or deeper headers its first entry with source text.</summary>
+    private static TomlNode FirstWithSource(TomlNode node) {
+        while (node.Start.Line <= 0) {
+            TomlNode? next = node switch {
+                TomlTable table => FirstEntry(table),
+                TomlTableArray tables when tables.Count > 0 => tables[0],
+                _ => null
+            };
+            if (next == null) break;
+            node = next;
+        }
+
+        return node;
+    }
+
+    private static TomlNode? FirstEntry(TomlTable table) {
+        foreach (KeyValuePair<string, TomlNode> entry in table) return entry.Value;
+        return null;
     }
 
     private static long EndOf(YamlNode node, string rawText) => InclusiveEnd(node.Start.Offset, node.End.Offset, rawText);

@@ -74,6 +74,17 @@ public abstract class TomlNode {
     /// <summary>Gets where the node ends (exclusive) in the loaded text. Nodes added by editing have the default position.</summary>
     public TomlPosition End => _end < 0 ? default : _document.GetPosition(_end);
 
+    /// <summary>
+    /// Gets where the node's key starts in the loaded text: its segment of the key/value pair or <c>[header]</c> that
+    /// defines it (<c>b</c> in <c>a.b.c = 1</c> for table <c>b</c>), or, for a table made only by dotted keys or deeper
+    /// headers, its segment of the first such key. Quoted keys include their quotes. The root, array items, tables of an
+    /// array of tables and nodes added by editing have the default position.
+    /// </summary>
+    public TomlPosition KeyStart => TomlKeyLocator.TryFind(this, out int start, out _) ? _document.GetPosition(start) : default;
+
+    /// <summary>Gets where the node's key ends (exclusive) in the loaded text; see <see cref="KeyStart"/>.</summary>
+    public TomlPosition KeyEnd => TomlKeyLocator.TryFind(this, out _, out int end) ? _document.GetPosition(end) : default;
+
     internal bool IsSource => _start >= 0;
 
     /// <summary>Gets whether the node came from the loaded text, including implicit and dotted tables without a span.</summary>
@@ -86,7 +97,7 @@ public abstract class TomlNode {
     /// Gets the end of the last key segment of the key/value pair that defines this node, or -1. Only spaces, tabs and
     /// the <c>=</c> separate it from the value, so it is found from the value's start instead of being stored.
     /// </summary>
-    internal int KeyEnd {
+    internal int PairKeyEnd {
         get {
             if (_keyStart < 0) return -1;
             string source = _document._source;
