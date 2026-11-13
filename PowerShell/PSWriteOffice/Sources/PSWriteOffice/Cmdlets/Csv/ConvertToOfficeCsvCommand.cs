@@ -40,6 +40,9 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
     private readonly CsvPowerShellObjectProjector _objectProjector = new();
     private CsvPowerShellLineWriter? _lineWriter;
     private CsvRowWriter? _csvWriter;
+    private const int RecordBufferEmitThreshold = 32 * 1024;
+    private StringWriter? _recordBuffer;
+    private string _recordNewLine = Environment.NewLine;
 
     /// <summary>CSV document to serialize.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocumentDelimiter)]
@@ -138,10 +141,31 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
         if (TryGetDataTable(InputObject, out var dataTable))
         {
             EmitDataTable(dataTable);
+            EmitWrittenRecords(singleRecord: false);
             return;
         }
 
-        _objectProjector.WriteObject(InputObject, EnsureObjectWriter());
+        var writer = EnsureObjectWriter(bufferRecords: true);
+        // After the header, each object adds exactly one record.
+        var headerWritten = writer.HasRows;
+        _objectProjector.WriteObject(InputObject, writer);
+        EmitWrittenRecords(singleRecord: headerWritten);
+    }
+
+    private void EmitWrittenRecords(bool singleRecord)
+    {
+        if (_recordBuffer != null)
+        {
+            _lineWriter!.EmitRecords(_recordBuffer.GetStringBuilder(), singleRecord, _recordNewLine);
+        }
+        else if (singleRecord)
+        {
+            _lineWriter!.FlushSingleRecord(_recordNewLine);
+        }
+        else
+        {
+            _lineWriter!.Flush();
+        }
     }
 
     /// <inheritdoc />
@@ -185,7 +209,8 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
         var tableColumns = GetDataTableColumnNames(table);
         _objectProjector.UseColumns(tableColumns, validateColumns: false);
         using var reader = table.CreateDataReader();
-        EnsureObjectWriter().WriteDataReader(_objectProjector.NormalizeDataReader(reader));
+        // A table streams through the line writer so its records are emitted in chunks rather than buffered whole.
+        EnsureObjectWriter(bufferRecords: false).WriteDataReader(_objectProjector.NormalizeDataReader(reader));
     }
 
     private static string[] GetDataTableColumnNames(DataTable table)
@@ -209,6 +234,12 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
                 (Row: row, Columns: columns, Projector: _objectProjector),
                 static (state, index) => state.Projector.NormalizeCellValue(
                     TryGetDataTableValue(state.Row, state.Columns[index])));
+
+            // A table that follows object rows lands in the record buffer; emit it in bounded chunks.
+            if (_recordBuffer != null && _recordBuffer.GetStringBuilder().Length >= RecordBufferEmitThreshold)
+            {
+                EmitWrittenRecords(singleRecord: false);
+            }
         }
     }
 
@@ -280,7 +311,9 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
         return false;
     }
 
-    private CsvRowWriter EnsureObjectWriter()
+    // Object rows are written into a StringWriter, which the row writer fills through its own buffer without one
+    // TextWriter call per field, and each record is emitted from there.
+    private CsvRowWriter EnsureObjectWriter(bool bufferRecords)
     {
         if (_csvWriter != null)
         {
@@ -290,7 +323,17 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
         var options = CreateSaveOptions();
         _objectProjector.UseCsvOptions(options, MaxCollectionItems, MaxNestingDepth);
         _lineWriter = new CsvPowerShellLineWriter(this, GetDelimiterText(options), options.QuoteMode);
-        _csvWriter = new CsvRowWriter(_lineWriter, options);
+        if (bufferRecords)
+        {
+            _recordBuffer = new StringWriter(CultureInfo.InvariantCulture);
+            _csvWriter = new CsvRowWriter(_recordBuffer, options);
+        }
+        else
+        {
+            _csvWriter = new CsvRowWriter(_lineWriter, options);
+        }
+
+        _recordNewLine = options.NewLine;
         return _csvWriter;
     }
 
@@ -298,7 +341,9 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
     {
         _csvWriter?.Dispose();
         _csvWriter = null;
+        _lineWriter?.Dispose();
         _lineWriter = null;
+        _recordBuffer = null;
         _objectProjector.Reset();
     }
 

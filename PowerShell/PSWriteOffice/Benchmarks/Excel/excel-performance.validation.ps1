@@ -112,7 +112,7 @@ function Test-ExcelBenchmarkOutput {
         return
     }
 
-    $document = Get-OfficeExcel -Path $Run.Path -ReadOnly
+    $document = Open-OfficeExcel -Path $Run.Path -ReadOnly
     if ($document) {
         Close-OfficeExcel -Document $document
     }
@@ -186,6 +186,20 @@ function Test-CsvBenchmarkOutput {
     param([object] $Case, [object] $Run)
 
     $expectedRows = [int]$Run.ExpectedRows
+    if ($Case.OperationKey -eq 'ConvertToCsvText') {
+        $lines = @($Run.CsvLines)
+        Assert-BenchmarkValue $lines.Count ($expectedRows + 1) -Message "Expected one CSV string per record from '$($Case.OperationKey)'."
+        $actualRows = @($lines | ConvertFrom-Csv)
+        Test-CsvBenchmarkTabularValues -Case $Case -Run $Run -ActualRows $actualRows
+        $Run.RowsProcessed = $actualRows.Count
+        return
+    }
+    if ($Case.OperationKey -eq 'ConvertFromCsvText') {
+        Assert-BenchmarkValue ([int]$Run.ActualRows) $expectedRows -Message "Expected $expectedRows rows returned by '$($Case.OperationKey)'."
+        Test-CsvBenchmarkTabularValues -Case $Case -Run $Run -ActualRows @($Run.ConvertedRows)
+        $Run.RowsProcessed = [int]$Run.ActualRows
+        return
+    }
     if ($Case.OperationKey -in @('ReadCsvSource', 'ReadCsvDataTable', 'ReadCsvGZipDataTable', 'ReadCsvQuickSingleColumn', 'ReadCsvQuickAllColumns')) {
         Assert-BenchmarkValue ([int]$Run.ActualRows) $expectedRows -Message "Expected $expectedRows rows returned by '$($Case.OperationKey)'."
         if ($Case.OperationKey -eq 'ReadCsvQuickSingleColumn') {
@@ -232,16 +246,11 @@ function Test-CsvBenchmarkTabularValues {
     $actualColumns = @(Get-CsvBenchmarkColumnNames -Row $ActualRows[0])
     Assert-BenchmarkValue ($actualColumns -join [char]31) ($expectedColumns -join [char]31) -Message "Expected '$($Case.Scenario)' to preserve the CSV header and column order."
 
-    for ($rowIndex = 0; $rowIndex -lt $expectedRows.Count; $rowIndex++) {
-        $expectedRow = $expectedRows[$rowIndex]
-        $actualRow = $ActualRows[$rowIndex]
-        foreach ($column in $expectedColumns) {
-            $expectedValue = Get-CsvBenchmarkCellValue -Row $expectedRow -Column $column
-            $actualValue = Get-CsvBenchmarkCellValue -Row $actualRow -Column $column
-            if (-not (Test-CsvBenchmarkValueEquivalent -Expected $expectedValue -Actual $actualValue)) {
-                throw "Expected '$($Case.Scenario)' row $rowIndex column '$column' to preserve value '$expectedValue'; actual value was '$actualValue'."
-            }
-        }
+    # Every cell is still compared on every iteration; the comparison runs compiled because a scripted loop
+    # over 10,000-row outputs took seconds per iteration.
+    $mismatch = [PSWriteOfficeBenchmarks.CsvValueComparer]::FindMismatch([object[]]$expectedRows, [object[]]$ActualRows, [string[]]$expectedColumns)
+    if ($null -ne $mismatch) {
+        throw "Expected '$($Case.Scenario)' $mismatch"
     }
 }
 
@@ -255,126 +264,204 @@ function Get-CsvBenchmarkColumnNames {
     return @($Row.PSObject.Properties | ForEach-Object { [string]$_.Name })
 }
 
-function Get-CsvBenchmarkCellValue {
-    param([object] $Row, [string] $Column)
-
-    if ($Row -is [Data.DataRow]) {
-        return $Row[$Column]
-    }
-
-    return $Row.PSObject.Properties[$Column].Value
-}
 
 function Test-CsvBenchmarkValueEquivalent {
     param([AllowNull()][object] $Expected, [AllowNull()][object] $Actual)
 
-    if ($Expected -is [Management.Automation.PSObject]) {
-        $Expected = $Expected.PSObject.BaseObject
-    }
-    if ($Actual -is [Management.Automation.PSObject]) {
-        $Actual = $Actual.PSObject.BaseObject
-    }
+    [PSWriteOfficeBenchmarks.CsvValueComparer]::AreEquivalent($Expected, $Actual)
+}
 
-    if ($null -eq $Expected -or $Expected -is [DBNull]) {
-        return $null -eq $Actual -or $Actual -is [DBNull] -or [string]::IsNullOrEmpty([string]$Actual)
+if (-not ('PSWriteOfficeBenchmarks.CsvValueComparer' -as [type])) {
+    # C# 5 syntax so Windows PowerShell 5.1 can compile it.
+    # PowerShell 7 references its runtime by default; Windows PowerShell needs System.Data added.
+    $comparerReferences = @{}
+    if ($PSVersionTable.PSEdition -eq 'Desktop') {
+        $comparerReferences.ReferencedAssemblies = @('System.Data', 'System.Xml')
     }
+    Add-Type @comparerReferences -TypeDefinition @'
+using System;
+using System.Data;
+using System.Globalization;
+using System.Management.Automation;
 
-    if ($Expected -is [string]) {
-        return ([string]$Actual) -ceq $Expected
-    }
-
-    $actualText = [string]$Actual
-    if ($Expected -is [bool]) {
-        $parsed = $false
-        return [bool]::TryParse($actualText, [ref]$parsed) -and $parsed -eq $Expected
-    }
-
-    if ($Expected -is [guid]) {
-        $parsed = [guid]::Empty
-        return [guid]::TryParse($actualText, [ref]$parsed) -and $parsed -eq $Expected
-    }
-
-    $currentCulture = [Globalization.CultureInfo]::CurrentCulture
-    $invariantCulture = [Globalization.CultureInfo]::InvariantCulture
-    $cultures = if ($currentCulture.Name -eq $invariantCulture.Name) {
-        @($invariantCulture)
-    } else {
-        @($currentCulture, $invariantCulture)
-    }
-
-    if ($Expected -is [datetime]) {
-        foreach ($culture in $cultures) {
-            $parsed = [datetime]::MinValue
-            if ([datetime]::TryParse($actualText, $culture, [Globalization.DateTimeStyles]::AllowWhiteSpaces, [ref]$parsed) -and
-                $parsed.Ticks -eq $Expected.Ticks) {
-                return $true
+namespace PSWriteOfficeBenchmarks
+{
+    public static class CsvValueComparer
+    {
+        public static string FindMismatch(object[] expectedRows, object[] actualRows, string[] columns)
+        {
+            for (int rowIndex = 0; rowIndex < expectedRows.Length; rowIndex++)
+            {
+                object expectedRow = expectedRows[rowIndex];
+                object actualRow = actualRows[rowIndex];
+                foreach (string column in columns)
+                {
+                    object expected = GetCell(expectedRow, column);
+                    object actual = GetCell(actualRow, column);
+                    if (!AreEquivalent(expected, actual))
+                    {
+                        return string.Format(CultureInfo.InvariantCulture, "row {0} column '{1}' to preserve value '{2}'; actual value was '{3}'.", rowIndex, column, ToText(expected), ToText(actual));
+                    }
+                }
             }
-        }
-        return $false
-    }
 
-    if ($Expected -is [datetimeoffset]) {
-        foreach ($culture in $cultures) {
-            $parsed = [datetimeoffset]::MinValue
-            if ([datetimeoffset]::TryParse($actualText, $culture, [Globalization.DateTimeStyles]::AllowWhiteSpaces, [ref]$parsed) -and
-                $parsed.UtcTicks -eq $Expected.UtcTicks) {
-                return $true
+            return null;
+        }
+
+        private static object GetCell(object row, string column)
+        {
+            DataRow dataRow = Unwrap(row) as DataRow;
+            if (dataRow != null)
+            {
+                return dataRow[column];
             }
-        }
-        return $false
-    }
 
-    if ($Expected -is [timespan]) {
-        foreach ($culture in $cultures) {
-            $parsed = [timespan]::Zero
-            if ([timespan]::TryParse($actualText, $culture, [ref]$parsed) -and $parsed -eq $Expected) {
-                return $true
+            PSPropertyInfo property = PSObject.AsPSObject(row).Properties[column];
+            if (property == null)
+            {
+                throw new InvalidOperationException("Row has no column '" + column + "'.");
             }
-        }
-        return $false
-    }
 
-    if ($Expected -is [System.Byte] -or $Expected -is [System.SByte] -or
-        $Expected -is [System.Int16] -or $Expected -is [System.UInt16] -or
-        $Expected -is [System.Int32] -or $Expected -is [System.UInt32] -or
-        $Expected -is [System.Int64] -or $Expected -is [System.UInt64]) {
-        foreach ($culture in $cultures) {
-            $parsed = [decimal]::Zero
-            if ([decimal]::TryParse($actualText, [Globalization.NumberStyles]::Integer, $culture, [ref]$parsed) -and
-                $parsed -eq [decimal]$Expected) {
-                return $true
+            return property.Value;
+        }
+
+        private static object Unwrap(object value)
+        {
+            PSObject wrapped = value as PSObject;
+            return wrapped != null ? wrapped.BaseObject : value;
+        }
+
+        private static string ToText(object value)
+        {
+            return value == null ? string.Empty : LanguagePrimitives.ConvertTo<string>(value);
+        }
+
+        public static bool AreEquivalent(object expected, object actual)
+        {
+            expected = Unwrap(expected);
+            actual = Unwrap(actual);
+
+            if (expected == null || expected is DBNull)
+            {
+                return actual == null || actual is DBNull || string.IsNullOrEmpty(ToText(actual));
             }
-        }
-        return $false
-    }
 
-    if ($Expected -is [decimal]) {
-        foreach ($culture in $cultures) {
-            $parsed = [decimal]::Zero
-            if ([decimal]::TryParse($actualText, [Globalization.NumberStyles]::Number, $culture, [ref]$parsed) -and
-                $parsed -eq $Expected) {
-                return $true
+            if (expected is string)
+            {
+                return string.Equals(ToText(actual), (string)expected, StringComparison.Ordinal);
             }
-        }
-        return $false
-    }
 
-    if ($Expected -is [double] -or $Expected -is [single]) {
-        $expectedNumber = [double]$Expected
-        $tolerance = [math]::Max(1e-10, [math]::Abs($expectedNumber) * 1e-12)
-        foreach ($culture in $cultures) {
-            $parsed = 0.0
-            $style = [Globalization.NumberStyles]::Float -bor [Globalization.NumberStyles]::AllowThousands
-            if ([double]::TryParse($actualText, $style, $culture, [ref]$parsed) -and
-                [math]::Abs($parsed - $expectedNumber) -le $tolerance) {
-                return $true
+            string actualText = ToText(actual);
+            if (expected is bool)
+            {
+                bool parsedBool;
+                return bool.TryParse(actualText, out parsedBool) && parsedBool == (bool)expected;
             }
-        }
-        return $false
-    }
 
-    $expectedText = [string]$Expected
-    return $actualText -ceq $expectedText
+            if (expected is Guid)
+            {
+                Guid parsedGuid;
+                return Guid.TryParse(actualText, out parsedGuid) && parsedGuid == (Guid)expected;
+            }
+
+            CultureInfo current = CultureInfo.CurrentCulture;
+            CultureInfo invariant = CultureInfo.InvariantCulture;
+            CultureInfo[] cultures = current.Name == invariant.Name ? new[] { invariant } : new[] { current, invariant };
+
+            if (expected is DateTime)
+            {
+                foreach (CultureInfo culture in cultures)
+                {
+                    DateTime parsed;
+                    if (DateTime.TryParse(actualText, culture, DateTimeStyles.AllowWhiteSpaces, out parsed) && parsed.Ticks == ((DateTime)expected).Ticks)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            if (expected is DateTimeOffset)
+            {
+                foreach (CultureInfo culture in cultures)
+                {
+                    DateTimeOffset parsed;
+                    if (DateTimeOffset.TryParse(actualText, culture, DateTimeStyles.AllowWhiteSpaces, out parsed) && parsed.UtcTicks == ((DateTimeOffset)expected).UtcTicks)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            if (expected is TimeSpan)
+            {
+                foreach (CultureInfo culture in cultures)
+                {
+                    TimeSpan parsed;
+                    if (TimeSpan.TryParse(actualText, culture, out parsed) && parsed == (TimeSpan)expected)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            if (expected is byte || expected is sbyte || expected is short || expected is ushort ||
+                expected is int || expected is uint || expected is long || expected is ulong)
+            {
+                decimal expectedInteger = Convert.ToDecimal(expected, CultureInfo.InvariantCulture);
+                foreach (CultureInfo culture in cultures)
+                {
+                    decimal parsed;
+                    if (decimal.TryParse(actualText, NumberStyles.Integer, culture, out parsed) && parsed == expectedInteger)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            if (expected is decimal)
+            {
+                foreach (CultureInfo culture in cultures)
+                {
+                    decimal parsed;
+                    if (decimal.TryParse(actualText, NumberStyles.Number, culture, out parsed) && parsed == (decimal)expected)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            if (expected is double || expected is float)
+            {
+                double expectedNumber = Convert.ToDouble(expected, CultureInfo.InvariantCulture);
+                double tolerance = Math.Max(1e-10, Math.Abs(expectedNumber) * 1e-12);
+                foreach (CultureInfo culture in cultures)
+                {
+                    double parsed;
+                    if (double.TryParse(actualText, NumberStyles.Float | NumberStyles.AllowThousands, culture, out parsed) &&
+                        Math.Abs(parsed - expectedNumber) <= tolerance)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            return string.Equals(actualText, ToText(expected), StringComparison.Ordinal);
+        }
+    }
+}
+'@
 }
 
 function Test-ExcelBenchmarkOpenXml {

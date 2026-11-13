@@ -19,6 +19,11 @@ engines adjacent and alternates which engine runs first. PowerForge performs an
 explicit managed-memory cleanup after setup and data creation, outside the timed
 operation, so allocations from one engine do not become another engine's GC bill.
 
+`Export-OfficeExcel` and `Add-OfficeExcelTable` apply a table style, fitted
+columns and a frozen header row by default. The PSWriteOffice lanes keep those
+defaults, so default-export lanes do more formatting work than the plain
+`Export-Excel` and `Export-Workbook` calls they are compared with.
+
 Every read comparison uses the same PSWriteOffice-produced workbook shape for
 the selected row count. The competing readers do not benchmark files created by
 their own writers.
@@ -184,10 +189,21 @@ upstream `QuickTest` pattern and the small/medium/large reader shape by changing
 `-RowCount`. The explicit `csv-dbatools-wide-*` and `csv-dbatools-quoted-*`
 lanes cover the upstream wide 50-column and quote-all files.
 
-The `csv-read-datatable-*` lanes compare `Import-OfficeCsv -AsDataTable` with a
+The `csv-read-datatable-*` lanes compare `Import-OfficeCsv -As DataTable` with a
 native PowerShell baseline that reads via `Import-Csv` and fills a `DataTable`.
 That keeps the database/table workflow visible instead of comparing only
 PowerShell object materialization.
+
+The `csv-convertto-*` and `csv-convertfrom-*` lanes cover in-memory conversion.
+`ConvertTo-OfficeCsv` is compared with `ConvertTo-Csv` over the same objects;
+both emit one string per CSV record, and the lane validates the record count and
+every value. `Import-OfficeCsv -Text` is compared with `ConvertFrom-Csv` over the
+same CSV text string and validates every returned value.
+
+Windows PowerShell 5.1 has no `-UseQuotes`, so its native writers quote every
+field. Under 5.1 the native write lanes and the native-generated source files for
+the read lanes are therefore fully quoted; PowerShell 7 uses `-UseQuotes AsNeeded`.
+Every engine still reads the same source file within one run.
 
 The `csv-write-gzip-*` and `csv-read-gzip-datatable-*` lanes keep compressed
 CSV in the same benchmark matrix. The native baseline uses `GZipStream` with
@@ -209,12 +225,12 @@ round-trip validation.
 
 | Capability | Current PSWriteOffice / OfficeIMO.CSV support | Benchmark visibility |
 | --- | --- | --- |
-| Streaming reads | `Import-OfficeCsv` streams rows by default; `-AsDataTable` materializes one table when the next hop is tabular | Object read lanes and DataTable read lanes |
+| Streaming reads | `Import-OfficeCsv` streams rows by default; `-As DataTable` materializes one table when the next hop is tabular | Object read lanes and DataTable read lanes |
 | Streaming writes | `Export-OfficeCsv` accepts objects, `DataTable`, `DataView`, and `IDataReader` input | Object/DataTable write lanes; DbaClientX export benchmark covers direct `IDataReader` SQL export |
 | Compression | `Export-OfficeCsv` / `Import-OfficeCsv` expose `-CompressionType`; OfficeIMO.CSV supports none, auto, GZip, Deflate, and runtime-supported Brotli/ZLib | GZip write/read DataTable lanes |
 | Cancellation | OfficeIMO.CSV accepts a cancellation token; PSWriteOffice cancels it from `StopProcessing`, so Ctrl+C can stop long reads | Contract coverage, not timed by default |
 | Progress | OfficeIMO.CSV exposes progress callbacks; PSWriteOffice exposes `-ProgressInterval` and writes PowerShell progress records | Contract coverage, not timed by default |
-| Schema and typed tables | OfficeIMO.CSV supports explicit/inferred schema, `DataTable`, and `IDataReader` schema tables; PSWriteOffice exposes `Import-OfficeCsv -AsDataTable -InferSchema` and `Import-OfficeCsv -AsDataReader -ColumnType` | DataTable read lanes; DbaClientX round-trip uses schema-aware reader handoff |
+| Schema and typed tables | OfficeIMO.CSV supports explicit/inferred schema, `DataTable`, and `IDataReader` schema tables; PSWriteOffice exposes `Import-OfficeCsv -As DataTable -InferSchema` and `Import-OfficeCsv -As DataReader -ColumnType` | DataTable read lanes; DbaClientX round-trip uses schema-aware reader handoff |
 | CSV dialects | Culture/list separator, delimiter detection, multi-character delimiters, no-header/custom headers, comments, W3C headers, null values, date formats, quote modes, and selected quote fields | Default benchmark dialect plus focused command tests |
 | Robust parsing | Duplicate-header policy, row-length mismatch policy, strict/lenient quotes, parse-error collection/skip-row, max field length, decompression limits, smart-quote normalization, and string interning | Command/core tests; timed lanes stay on clean generated files |
 | Platform shape | PSWriteOffice targets Windows PowerShell/.NET Framework and PowerShell 7/.NET; Brotli/ZLib depend on runtime support, and comparison tools such as `bcp`/FastBCP/dbatools must be installed locally | Benchmarks skip unavailable optional engines |
