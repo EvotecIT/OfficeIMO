@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using OfficeIMO.Markdown;
 using Xunit;
+using static OfficeIMO.Markdown.MarkdownLoadOptions;
 
 namespace OfficeIMO.Tests.MarkdownSuite;
 
@@ -92,12 +93,14 @@ public sealed class Markdown_Reader_Pathological_Input_Tests {
         Add("unclosed links B", () => Case(Repeat("[a](b", 30000), @"(\[a\]\(b){30000}"));
         Add("unclosed <!--", () => Case("</" + Repeat("<!--", 300000), @"&lt;/(&lt;!--){300000}"));
         // A bare carriage return is not treated as a line ending, so no table is formed.
-        Add("tables", () => Case(Repeat("aaa\rbbb\n-\v\n", 30000), pattern: null, gitHubFlavored: true));
+        Add("tables", () => Case(Repeat("aaa\rbbb\n-\v\n", 30000), pattern: null, profile: MarkdownDialectProfile.GitHubFlavoredMarkdown));
         Add("reference collisions", ReferenceCollisionsCase);
         // Inputs that were quadratic in the reader before the scans were indexed.
         Add("unclosed link openers with spaces", () => Case(Repeat("[a ", 65000), @"(\[a ){64999}"));
         Add("unclosed html tag starts", () => Case(Repeat("<a ", 65000), "(&lt;a ){64999}"));
         Add("unmatched backtick runs", () => Case(Repeat("`a``", 32500), "^<p>"));
+        // The default profile checks each bare autolink candidate against its line.
+        Add("bare autolink candidates on one line", () => Case(Repeat("www.a ", 65000), "^<p>", profile: MarkdownDialectProfile.OfficeIMO));
         return cases;
     }
 
@@ -105,9 +108,7 @@ public sealed class Markdown_Reader_Pathological_Input_Tests {
     [MemberData(nameof(CmarkGfmPathologicalCases))]
     public void PathologicalInputCompletes(string name) {
         PathologicalCase pathological = Cases[name]();
-        var options = pathological.GitHubFlavored
-            ? MarkdownLoadOptions.CreateProfile(MarkdownLoadOptions.MarkdownDialectProfile.GitHubFlavoredMarkdown)
-            : MarkdownLoadOptions.CreateCommonMarkProfile();
+        var options = MarkdownLoadOptions.CreateProfile(pathological.Profile);
 
         if (pathological.RejectedByNestingLimit) {
             RunOnWorkerStack(() => Assert.Throws<InvalidDataException>(() => MarkdownDocument.Parse(pathological.Markdown, options)));
@@ -124,21 +125,21 @@ public sealed class Markdown_Reader_Pathological_Input_Tests {
     }
 
     public sealed class PathologicalCase {
-        public PathologicalCase(string markdown, string? pattern, bool rejectedByNestingLimit, bool gitHubFlavored) {
+        public PathologicalCase(string markdown, string? pattern, bool rejectedByNestingLimit, MarkdownDialectProfile profile) {
             Markdown = markdown;
             Pattern = pattern;
             RejectedByNestingLimit = rejectedByNestingLimit;
-            GitHubFlavored = gitHubFlavored;
+            Profile = profile;
         }
 
         public string Markdown { get; }
         public string? Pattern { get; }
         public bool RejectedByNestingLimit { get; }
-        public bool GitHubFlavored { get; }
+        public MarkdownDialectProfile Profile { get; }
     }
 
-    private static PathologicalCase Case(string markdown, string? pattern = null, bool rejectedByNestingLimit = false, bool gitHubFlavored = false) =>
-        new PathologicalCase(markdown, pattern, rejectedByNestingLimit, gitHubFlavored);
+    private static PathologicalCase Case(string markdown, string? pattern = null, bool rejectedByNestingLimit = false, MarkdownDialectProfile profile = MarkdownDialectProfile.CommonMark) =>
+        new PathologicalCase(markdown, pattern, rejectedByNestingLimit, profile);
 
     private static PathologicalCase ReferenceCollisionsCase() {
         // Keys whose cmark reference-map hash collides, so a hashed lookup degrades to a list scan.

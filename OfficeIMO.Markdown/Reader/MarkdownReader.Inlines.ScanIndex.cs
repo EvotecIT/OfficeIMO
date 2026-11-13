@@ -31,6 +31,7 @@ internal static partial class MarkdownReader {
                 t_bracketIndexes = null;
                 t_backtickIndexes = null;
                 t_forwardSearches = null;
+                t_lineVerdict = null;
             }
         }
 
@@ -121,6 +122,41 @@ internal static partial class MarkdownReader {
             entry.From = startIndex;
             entry.Result = result;
             return result;
+        }
+
+        [ThreadStatic] private static LineVerdict? t_lineVerdict;
+
+        private sealed class LineVerdict {
+            internal LineVerdict(string text, int lineStart, int lineEnd, bool verdict) {
+                Text = text;
+                LineStart = lineStart;
+                LineEnd = lineEnd;
+                Verdict = verdict;
+            }
+
+            internal string Text { get; }
+            internal int LineStart { get; }
+            internal int LineEnd { get; }
+            internal bool Verdict { get; }
+        }
+
+        // A position between a line's start and its terminating '\n' (or the text end) has the
+        // same line bounds, so a verdict about the line can be reused for any of them.
+        internal static bool TryGetLineVerdict(string text, int position, out bool verdict) {
+            var entry = t_scopeDepth == 0 ? null : t_lineVerdict;
+            if (entry != null && ReferenceEquals(entry.Text, text) && position >= entry.LineStart && position <= entry.LineEnd) {
+                verdict = entry.Verdict;
+                return true;
+            }
+
+            verdict = false;
+            return false;
+        }
+
+        internal static void SetLineVerdict(string text, int lineStart, int lineEnd, bool verdict) {
+            if (t_scopeDepth != 0) {
+                t_lineVerdict = new LineVerdict(text, lineStart, lineEnd, verdict);
+            }
         }
 
         private static void MoveToFront<T>(T?[] entries, int index) where T : class {
