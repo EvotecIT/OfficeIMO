@@ -134,7 +134,7 @@ internal static partial class PdfSyntax {
         var usageRightsObjectNumbers = new List<int>();
         var usageRightsFormPermissions = new List<string>();
         PdfDocumentDssInfo documentSecurityStore = PdfDocumentDssInfo.Empty;
-        KeyValuePair<int, PdfIndirectObject>[] orderedObjects = OrderSecurityObjects(objects, cancellationToken);
+        SecurityObjectOrder orderedObjects = OrderSecurityObjects(objects, cancellationToken);
         bool hasParsedSignatureMarker = false;
         bool hasParsedByteRangeMarker = false;
 

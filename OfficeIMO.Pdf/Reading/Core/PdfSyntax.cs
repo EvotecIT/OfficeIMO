@@ -88,10 +88,10 @@ internal static partial class PdfSyntax {
         var text = new PdfByteContentText(pdf);
         using ClassicXrefSectionMemo xrefSections = ClassicXrefSectionMemo.Enter(text);
         IndirectObjectHeader[] matches = FindIndirectObjectHeaders(text, parseTimer, limits, cancellationToken);
-        // The structural header scan has already enforced MaxIndirectObjects. Reserve
-        // for ordinary multi-page documents without trusting a hostile stream full
-        // of false headers to dictate an unbounded initial allocation.
-        int initialObjectCapacity = PdfCollectionSizing.BoundedInitialCapacity(matches.Length, 1024);
+        // The structural header scan has already enforced MaxIndirectObjects and holds one
+        // entry per header, so sizing the per-object maps from it stays within that bound.
+        // Growing them instead allocated every intermediate table of a large document.
+        int initialObjectCapacity = matches.Length;
         var map = new Dictionary<int, PdfIndirectObject>(initialObjectCapacity);
         var parsedOffsets = new Dictionary<int, int>(initialObjectCapacity);
         var definitionCounts = new Dictionary<(int Id, int Generation), int>(initialObjectCapacity);
