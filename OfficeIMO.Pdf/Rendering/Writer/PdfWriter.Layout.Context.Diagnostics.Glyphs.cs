@@ -9,16 +9,25 @@ internal static partial class PdfWriter {
         private IEnumerable<(List<List<OfficePoint>> Contours, bool NominalBounds)> DiagnosticGlyphContours(RichSeg segment, string text, double x, double baseline,
             Func<DiagnosticPaintBounds, bool>? contained = null) {
             if (string.IsNullOrWhiteSpace(text)) return Array.Empty<(List<List<OfficePoint>> Contours, bool NominalBounds)>();
-            List<List<OfficePoint>>? ResolveOutline(IOfficeBoundedFontProgram font, int glyph, double size, GlyphPaintPlacement placement) =>
-                DiagnosticGlyphOutline(font, glyph, size, placement, contained);
             PdfCreateOptions encodingOptions = DiagnosticTextOptions;
             PdfTextShowCommand command = DiagnosticTextCommand(segment, text);
             if (contained != null && SegmentGlyphInkContained(segment, text, x, baseline, command, contained))
                 return Array.Empty<(List<List<OfficePoint>> Contours, bool NominalBounds)>();
+            return WalkDiagnosticGlyphContours(segment, text, x, baseline, encodingOptions, command, contained);
+        }
+
+        // Kept apart so a segment proven contained allocates no outline callback.
+        private IEnumerable<(List<List<OfficePoint>> Contours, bool NominalBounds)> WalkDiagnosticGlyphContours(RichSeg segment, string text,
+            double x, double baseline, PdfCreateOptions encodingOptions, PdfTextShowCommand command, Func<DiagnosticPaintBounds, bool>? contained) {
+            List<List<OfficePoint>>? ResolveOutline(IOfficeBoundedFontProgram font, int glyph, double size, GlyphPaintPlacement placement) =>
+                DiagnosticGlyphOutline(font, glyph, size, placement, contained);
             return EnumerateGlyphPaintContours(segment, text, x, baseline, currentOpts,
                 _diagnosticFonts, encodingOptions, command, cancellationToken: cancellationToken,
-                glyphOutline: ResolveOutline, fontCacheCleared: ClearDiagnosticGlyphCache, nominalContained: contained);
+                glyphOutline: ResolveOutline, fontCacheCleared: DiagnosticGlyphCacheCleared, nominalContained: contained);
         }
+
+        private Action? _diagnosticGlyphCacheCleared;
+        private Action DiagnosticGlyphCacheCleared => _diagnosticGlyphCacheCleared ??= ClearDiagnosticGlyphCache;
 
         /// <summary>
         /// Proves for a whole segment what <see cref="DiagnosticGlyphOutline"/> proves glyph by glyph: that every
@@ -30,7 +39,7 @@ internal static partial class PdfWriter {
         private bool SegmentGlyphInkContained(RichSeg segment, string text, double x, double baseline,
             PdfTextShowCommand command, Func<DiagnosticPaintBounds, bool> contained) {
             text = WithoutOptionalBreaks(text);
-            IOfficeBoundedFontProgram? outline = GetGlyphPaintFont(segment, currentOpts, _diagnosticFonts, ClearDiagnosticGlyphCache);
+            IOfficeBoundedFontProgram? outline = GetGlyphPaintFont(segment, currentOpts, _diagnosticFonts, DiagnosticGlyphCacheCleared);
             if (outline is not OfficeTrueTypeFont) return false;
             double size = EffectiveRichFontSize(segment.FontSize, segment.Baseline);
             double scale = segment.HorizontalTextScaling / 100D;
