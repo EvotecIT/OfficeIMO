@@ -27,6 +27,7 @@ On `net10.0` the read, replace and structured-report comparisons gain a
 | Lane | Measured operation | Correctness proof |
 | --- | --- | --- |
 | Read paragraphs, `OneDocument` | `Document.Open` and the text of every `Document.Paragraphs` entry | Same paragraph count, character count and checksum as every other reader |
+| Read paragraphs, `OfficeIMOReaderText` (all targets) | `OfficeIMO.Reader` with `ReaderProjection.TextAndMetadata`, then `GetText()`, split into lines | Same observation; this is OfficeIMO's plain-text route, so it pairs with OneDocument's extractor |
 | Read paragraphs, `OneDocumentExtractText` | `Document.Open` and `ExtractText()`, OneDocument's streaming extractor, split into lines | Same observation; it skips the document model, so it is the cheaper of the two OneDocument routes |
 | Replace and save | `Document.Open`, `Document.Replace` for `{{Status}}`, `SaveAs` to a DOCX stream | Every output paragraph and Open XML SDK validation |
 | Create structured report | `Document.Create`, header and footer stories, bold 18 pt title, summary, and a two-column table built from a cell array | The same structure, formatting, header/footer and Open XML SDK checks as the other lanes |
