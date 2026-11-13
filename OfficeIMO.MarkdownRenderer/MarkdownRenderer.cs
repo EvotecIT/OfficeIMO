@@ -231,12 +231,23 @@ public static partial class MarkdownRenderer {
     private static bool HasSourceAwareRenderHooks(
         MarkdownRendererOptions options,
         MarkdownHtmlExportOptions htmlOptions,
-        MarkdownLoadOptions readerOptions) =>
-        options.FencedCodeBlockRenderers.Count > 0
-        || htmlOptions.HasCallerRenderHooks
-        // Standalone generic attributes before a fence render on the code element only when
-        // their source span was captured.
-        || readerOptions.GenericAttributes;
+        MarkdownLoadOptions readerOptions) {
+        if (htmlOptions.HasCallerRenderHooks
+            // Standalone generic attributes before a fence render on the code element only when
+            // their source span was captured.
+            || readerOptions.GenericAttributes) {
+            return true;
+        }
+
+        var renderers = options.FencedCodeBlockRenderers;
+        for (int i = 0; i < renderers.Count; i++) {
+            if (renderers[i]?.ReadsFenceContentOnly != true) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private static bool RequiresSyntaxBackedParse(MarkdownRendererOptions options, MarkdownLoadOptions readerOptions) {
         var htmlOptions = options.HtmlOptions;

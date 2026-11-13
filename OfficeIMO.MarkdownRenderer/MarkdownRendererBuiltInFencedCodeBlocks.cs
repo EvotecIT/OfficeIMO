@@ -36,7 +36,8 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
             (match, options) => options.Chart?.Enabled == true
                 ? BuildNativeVisualHtml("canvas", "omd-chart", MarkdownSemanticKinds.Chart, match.Language, match.FenceInfo, "data-chart-hash", "data-chart-config-b64", match.RawContent)
                 : null) {
-            SemanticKind = MarkdownSemanticKinds.Chart
+            SemanticKind = MarkdownSemanticKinds.Chart,
+            ReadsFenceContentOnly = true
         };
     }
 
@@ -58,7 +59,8 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
             SemanticKind = MarkdownSemanticKinds.Network,
             BuildShellHeadHtml = BuildNetworkShellHeadHtml,
             BuildBeforeContentReplaceScript = BuildNetworkBeforeReplaceScript,
-            BuildAfterContentReplaceScript = BuildNetworkAfterReplaceScript
+            BuildAfterContentReplaceScript = BuildNetworkAfterReplaceScript,
+            ReadsFenceContentOnly = true
         };
     }
 
@@ -67,7 +69,8 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
             "Built-in dataview",
             new[] { "dataview" },
             (match, _) => TryBuildDataViewHtml(match.RawContent, match.Language, match.FenceInfo, emitLegacyIxAttributes: false)) {
-            SemanticKind = MarkdownSemanticKinds.DataView
+            SemanticKind = MarkdownSemanticKinds.DataView,
+            ReadsFenceContentOnly = true
         };
     }
 
@@ -76,7 +79,8 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
             "Built-in IX dataview",
             new[] { "ix-dataview" },
             (match, _) => TryBuildDataViewHtml(match.RawContent, match.Language, match.FenceInfo, emitLegacyIxAttributes: true)) {
-            SemanticKind = MarkdownSemanticKinds.DataView
+            SemanticKind = MarkdownSemanticKinds.DataView,
+            ReadsFenceContentOnly = true
         };
     }
 
