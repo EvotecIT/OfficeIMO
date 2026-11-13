@@ -13,8 +13,9 @@ internal static partial class CsvWriter
 
     /// <summary>
     /// Appends a row of text under the default quoting rule as <see cref="AppendRecordDefault(StringBuilder, string?[], char, string)"/>
-    /// does, but escapes every field into one staging buffer and appends the row once: short fields with the one-pass
-    /// and vector escapers, longer ones with a vector search and a copy that doubles quotes eight units at a time.
+    /// does, but escapes fields into one staging buffer and appends it with as few builder calls as it can: short fields
+    /// with the one-pass and vector escapers, longer ones holding quotes with a vector search and a copy that doubles
+    /// quotes eight units at a time, and longer ones without quotes straight from the string.
     /// </summary>
     internal static void AppendRecordDefault(StringBuilder buffer, string?[] values, char delimiter, string newLine, ref char[]? staging)
     {
@@ -37,7 +38,23 @@ internal static partial class CsvWriter
         {
             if (index > 0) destination[position++] = delimiter;
             string? text = values[index];
-            if (text != null) position += WriteEscapedTextField(text, destination.Slice(position), delimiter);
+            if (text == null) continue;
+            if (text.Length > EscapedShortTextLength)
+            {
+                // Long text without quotes to double goes to the builder as it is, so it is copied once, not twice.
+                int special = IndexOfCsvSpecial(text, delimiter);
+                if (special < 0 || text.IndexOf('"', special) < 0)
+                {
+                    if (special >= 0) destination[position++] = '"';
+                    buffer.Append(destination.Slice(0, position));
+                    buffer.Append(text);
+                    position = 0;
+                    if (special >= 0) destination[position++] = '"';
+                    continue;
+                }
+            }
+
+            position += WriteEscapedTextField(text, destination.Slice(position), delimiter);
         }
 
         newLine.AsSpan().CopyTo(destination.Slice(position));
