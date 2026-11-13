@@ -82,18 +82,17 @@ public abstract class CsvWriteBenchmarkBase {
         return CompleteText(writer);
     }
 
+    /// <summary>OfficeIMO takes the table itself; the other libraries read it through its data reader, which is how they accept a table.</summary>
     [Benchmark]
     public int OfficeIMO_DataTableUtf8() {
-        using DataTableReader reader = Source.Table.CreateDataReader();
-        CsvDocument.WriteDataReader(ResetStream(), reader, OfficeOptions, leaveOpen: true);
+        CsvDocument.WriteDataTable(ResetStream(), Source.Table, OfficeOptions, leaveOpen: true);
         return CompleteUtf8();
     }
 
     [Benchmark]
     public int OfficeIMO_DataTableText() {
         StringWriter writer = NewTextWriter();
-        using DataTableReader reader = Source.Table.CreateDataReader();
-        CsvDocument.WriteDataReader(writer, reader, OfficeOptions);
+        CsvDocument.WriteDataTable(writer, Source.Table, OfficeOptions);
         return CompleteText(writer);
     }
 

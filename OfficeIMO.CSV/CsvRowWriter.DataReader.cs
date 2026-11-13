@@ -16,6 +16,18 @@ public sealed partial class CsvRowWriter
         WriteDataReader(reader, CancellationToken.None);
 
     /// <summary>
+    /// Writes the rows of a <see cref="DataTable"/> using its column names as CSV columns: the rows in order without
+    /// the deleted ones, each value from the row's current version, as writing the table's data reader does.
+    /// </summary>
+    /// <param name="table">Source table with at least one column.</param>
+    public void WriteDataTable(DataTable table)
+    {
+        ArgumentNullException.ThrowIfNull(table);
+        using var reader = new CsvDataTableRowReader(table);
+        WriteDataReader(reader, CancellationToken.None);
+    }
+
+    /// <summary>
     /// Writes all rows from an <see cref="IDataReader"/> using the reader field names as CSV columns.
     /// </summary>
     /// <param name="reader">Source data reader positioned before the first row.</param>
