@@ -42,6 +42,10 @@ internal static partial class TextLayoutEngine {
         internal double BaselineNormal { get; }
         internal double BaselineStart { get; }
         internal double BaselineEnd { get; }
+        // Table detection derives positioned cells from a line under several strategies; the line and its
+        // spans do not change, so each derivation is kept with the line (a boxed null when it has none).
+        internal object? PositionedCells;
+        internal object? CompactPositionedCells;
         public TextLine(double y, double xs, double xe, string text, List<PdfTextSpan> spans, PdfReadingDirection readingDirection = PdfReadingDirection.Auto,
             double? baselineNormal = null) {
             Y = y; XStart = xs; XEnd = xe; Text = text; Spans = spans;

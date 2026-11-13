@@ -425,9 +425,23 @@ internal static partial class TableDetector {
             sourceRuns));
     }
 
+    private static readonly object NoPositionedRow = new();
+
     private static PositionedRow? TryCreatePositionedRow(
         TextLayoutEngine.TextLine line,
         bool useCompactGapThreshold = false) {
+        object? cached = useCompactGapThreshold ? line.CompactPositionedCells : line.PositionedCells;
+        if (cached is not null) return cached as PositionedRow;
+        PositionedRow? row = CreatePositionedRow(line, useCompactGapThreshold);
+        if (useCompactGapThreshold) line.CompactPositionedCells = row ?? NoPositionedRow;
+        else line.PositionedCells = row ?? NoPositionedRow;
+        return row;
+    }
+
+    // Rows and their cells are never changed after they are built, so callers can share one.
+    private static PositionedRow? CreatePositionedRow(
+        TextLayoutEngine.TextLine line,
+        bool useCompactGapThreshold) {
         if (line.Spans.Count < 2) return null;
         var cells = new List<PositionedCell>();
         // Only whether the cell has text and its last character decide spacing; the text itself comes from ComposeCell.
