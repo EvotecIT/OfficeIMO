@@ -101,7 +101,10 @@ namespace OfficeIMO.Word.Html {
                 WordList? headingList = options.SupportsHeadingNumbering ? wordDoc.AddList(WordListStyle.Headings111) : null;
                 if (document.Body != null) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    ProcessNode(document.Body, wordDoc, section, options, null, listStack, new TextFormatting(), null, null, headingList);
+                    IElement htmlBody = document.Body;
+                    // Styling each heading would otherwise rescan the whole body for a table of contents.
+                    wordDoc.RunWithDeferredHeadingModified(
+                        () => ProcessNode(htmlBody, wordDoc, section, options, null, listStack, new TextFormatting(), null, null, headingList));
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
@@ -126,7 +129,9 @@ namespace OfficeIMO.Word.Html {
             WordList? headingList = options.SupportsHeadingNumbering ? doc.AddList(WordListStyle.Headings111) : null;
             if (document.Body != null) {
                 cancellationToken.ThrowIfCancellationRequested();
-                ProcessNode(document.Body, doc, section, options, null, listStack, new TextFormatting(), null, null, headingList);
+                IElement htmlBody = document.Body;
+                doc.RunWithDeferredHeadingModified(
+                    () => ProcessNode(htmlBody, doc, section, options, null, listStack, new TextFormatting(), null, null, headingList));
             }
             InsertTopBookmarkIfNeeded(doc);
             return WordSection.WrapBlockElements(doc,
