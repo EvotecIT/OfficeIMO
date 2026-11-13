@@ -26,7 +26,7 @@ internal static partial class MarkdownReader {
             }
 
             int j = i + 1;
-            List<MarkdownSourceLineSlice>? firstSourceLines = state.IsListBoundaryProbe || !state.CaptureSyntaxTree
+            List<MarkdownSourceLineSlice>? firstSourceLines = state.IsListBoundaryProbe
                 ? null
                 : new List<MarkdownSourceLineSlice>();
             List<string> firstLines = null!;
@@ -55,7 +55,7 @@ internal static partial class MarkdownReader {
                     initialLineIndex: i,
                     initialStartColumn: firstStartColumn,
                     state: state);
-                first = CreateListItemFromLeadLines(firstLines, isTask, done, options, state, i, firstSourceLines);
+                first = CreateListItemFromLeadLines(firstLines, isTask, done, options, state, i, GetLeadSourceLinesForParse(state, firstSourceLines));
             }
             first.Level = 0;
             if (!state.IsListBoundaryProbe) {
@@ -109,7 +109,7 @@ internal static partial class MarkdownReader {
                     startColumn = GetListLeadContentStartColumn(lines[itemStart], options, isTask2);
                 }
                 int next = itemStart + 1;
-                List<MarkdownSourceLineSlice>? itemSourceLines = state.IsListBoundaryProbe || !state.CaptureSyntaxTree
+                List<MarkdownSourceLineSlice>? itemSourceLines = state.IsListBoundaryProbe
                     ? null
                     : new List<MarkdownSourceLineSlice>();
                 List<string> itemLines = null!;
@@ -138,7 +138,7 @@ internal static partial class MarkdownReader {
                         initialLineIndex: itemStart,
                         initialStartColumn: startColumn,
                         state: state);
-                    li = CreateListItemFromLeadLines(itemLines, isTask2, done2, options, state, itemStart, itemSourceLines);
+                    li = CreateListItemFromLeadLines(itemLines, isTask2, done2, options, state, itemStart, GetLeadSourceLinesForParse(state, itemSourceLines));
                 }
                 li.Level = continuationIndentsByLevel != null
                     ? GetRelativeListItemLevel(continuationIndentsByLevel, lines[itemStart])

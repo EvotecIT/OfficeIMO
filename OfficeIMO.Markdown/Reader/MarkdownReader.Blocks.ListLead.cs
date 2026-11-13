@@ -4,6 +4,25 @@ using System.Text;
 namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
+    // A semantic parse collects source lines only to learn which lines are lazy continuations:
+    // their soft line breaks are kept by the source-line join, as in a syntax-capturing parse.
+    // Items without one keep the plain-line path.
+    private static List<MarkdownSourceLineSlice>? GetLeadSourceLinesForParse(
+        MarkdownReaderState state,
+        List<MarkdownSourceLineSlice>? sourceLines) {
+        if (sourceLines == null || state.CaptureSyntaxTree) {
+            return sourceLines;
+        }
+
+        for (int i = 0; i < sourceLines.Count; i++) {
+            if (sourceLines[i].IsLazyQuoteContinuation) {
+                return sourceLines;
+            }
+        }
+
+        return null;
+    }
+
     private static ListItem CreateListItemFromLeadLines(List<string> lines, bool isTask, bool done, MarkdownLoadOptions options, MarkdownReaderState? state, int lineOffset, List<MarkdownSourceLineSlice>? sourceLines = null) {
         if (state?.IsListBoundaryProbe == true) {
             return isTask
