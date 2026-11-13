@@ -37,12 +37,14 @@ internal static partial class CsvParser
         private const int MaterializedStart = -2;
         private bool _allFieldsAscii;
         /// <summary>
-        /// When set, the current record's fields are read from a batch index of separator offsets
-        /// instead of <see cref="_fields"/>: field <c>i</c> spans from after entry
-        /// <c>_indexFirst + i - 1</c> to entry <c>_indexFirst + i</c>.
+        /// When set, the current record's fields are read from an index of offsets instead of
+        /// <see cref="_fields"/>: field <c>i</c> spans from after entry <c>k - 1</c> to entry <c>k</c>,
+        /// where <c>k = _indexFirst + (i &lt;&lt; _indexShift)</c>. A batch index chains separator
+        /// offsets (shift 0); a trimmed record stores a start and an end entry per field (shift 1).
         /// </summary>
         private int[]? _indexEnds;
         private int _indexFirst;
+        private int _indexShift;
         private bool _indexed;
         /// <summary>The current record is indexed and all of its batch is ASCII: the field fast path's one test.</summary>
         private bool _indexedAscii;
@@ -102,12 +104,16 @@ internal static partial class CsvParser
         /// <summary>Sets the batch index that indexed records read; it is kept for the reader's lifetime.</summary>
         internal void SetBatchIndex(int[] ends) => _indexEnds = ends;
 
-        /// <summary>Publishes a record whose fields end at <paramref name="count"/> consecutive batch index entries.</summary>
-        internal void SetIndexedRecord(int first, int count)
+        /// <summary>
+        /// Publishes a record of <paramref name="count"/> indexed fields; the first ends at entry
+        /// <paramref name="first"/> and each next one <c>1 &lt;&lt; shift</c> entries later.
+        /// </summary>
+        internal void SetIndexedRecord(int first, int count, int shift)
         {
             _indexed = true;
             _indexedAscii = false;
             _indexFirst = first;
+            _indexShift = shift;
             FieldCount = count;
         }
 
@@ -120,7 +126,7 @@ internal static partial class CsvParser
             {
                 int[] ends = _indexEnds!;
                 // Indexed records are complete: every valid ordinal is below the record's field count.
-                ref int end = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(ends), _indexFirst + ordinal);
+                ref int end = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(ends), _indexFirst + (ordinal << _indexShift));
                 start = Unsafe.Add(ref end, -1) + 1;
                 length = end - start;
                 materialized = null;
@@ -342,12 +348,12 @@ internal static partial class CsvParser
         private readonly string GetFieldString(int ordinal)
         {
 #if NET8_0_OR_GREATER
-            // Batch-indexed ASCII text, unquoted or quoted in a batch without escaped quotes, goes straight
-            // from the index to its string; everything else takes the general path below. The batch
-            // indexer only admits quoted fields that close their quotes, so a two-byte quoted field is "".
+            // Indexed ASCII text, unquoted or quoted in a batch or record without escaped quotes, goes straight
+            // from the index to its string; everything else takes the general path below. The indexers
+            // only admit quoted fields that close their quotes, so a two-byte quoted field is "".
             if (_indexedAscii && BitConverter.IsLittleEndian && Vector128.IsHardwareAccelerated)
             {
-                ref int end = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_indexEnds!), _indexFirst + ordinal);
+                ref int end = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_indexEnds!), _indexFirst + (ordinal << _indexShift));
                 int fieldStart = Unsafe.Add(ref end, -1) + 1;
                 int fieldLength = end - fieldStart;
                 if (fieldLength == 0)

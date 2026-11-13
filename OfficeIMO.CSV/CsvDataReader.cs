@@ -1191,7 +1191,12 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
     {
         _hasCurrentTextRow = value;
 #if NET8_0_OR_GREATER
-        _currentUtf8TextRows = value ? _directUtf8TextRows : null;
+        // Rows usually keep the same source, and comparing first skips the write barrier.
+        CsvParser.CsvUtf8StreamDataReaderRowSource? rows = value ? _directUtf8TextRows : null;
+        if (!ReferenceEquals(_currentUtf8TextRows, rows))
+        {
+            _currentUtf8TextRows = rows;
+        }
 #endif
     }
 
