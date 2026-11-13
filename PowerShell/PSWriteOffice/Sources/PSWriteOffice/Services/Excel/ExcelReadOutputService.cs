@@ -96,6 +96,8 @@ internal static class ExcelReadOutputService
             return;
         }
 
+        var hasWorksheetName = !string.IsNullOrWhiteSpace(worksheetName);
+        var prevalidated = CanAddRowPropertiesPrevalidated(rowOutputColumnNames, hasWorksheetName);
         foreach (DataRow row in table.Rows)
         {
             if (asHashtable)
@@ -116,16 +118,16 @@ internal static class ExcelReadOutputService
             }
             else
             {
-                var psObject = new PSObject();
-                if (!string.IsNullOrWhiteSpace(worksheetName))
+                var psObject = PowerShellRowObject.Create(columnCount + (hasWorksheetName ? 1 : 0));
+                if (hasWorksheetName)
                 {
-                    psObject.Properties.Add(new PSNoteProperty("WorksheetName", worksheetName!));
+                    psObject.Properties.Add(new PSNoteProperty("WorksheetName", worksheetName!), prevalidated);
                 }
 
                 for (var columnIndex = 0; columnIndex < columnCount; columnIndex++)
                 {
                     var value = row[columnIndex];
-                    psObject.Properties.Add(new PSNoteProperty(rowOutputColumnNames[columnIndex], value is DBNull ? null : value));
+                    psObject.Properties.Add(new PSNoteProperty(rowOutputColumnNames[columnIndex], value is DBNull ? null : value), prevalidated);
                 }
 
                 cmdlet.WriteObject(psObject);
@@ -157,6 +159,8 @@ internal static class ExcelReadOutputService
 
         var rowOutputColumnNames = CreateRowOutputColumnNames(columnNames, !string.IsNullOrWhiteSpace(worksheetName));
         var values = new object[columnCount];
+        var hasWorksheetName = !string.IsNullOrWhiteSpace(worksheetName);
+        var prevalidated = CanAddRowPropertiesPrevalidated(rowOutputColumnNames, hasWorksheetName);
         while (reader.Read())
         {
             reader.GetValues(values);
@@ -178,21 +182,27 @@ internal static class ExcelReadOutputService
                 continue;
             }
 
-            var psObject = new PSObject();
-            if (!string.IsNullOrWhiteSpace(worksheetName))
+            var psObject = PowerShellRowObject.Create(columnCount + (hasWorksheetName ? 1 : 0));
+            if (hasWorksheetName)
             {
-                psObject.Properties.Add(new PSNoteProperty("WorksheetName", worksheetName!));
+                psObject.Properties.Add(new PSNoteProperty("WorksheetName", worksheetName!), prevalidated);
             }
 
             for (var columnIndex = 0; columnIndex < columnCount; columnIndex++)
             {
                 var value = values[columnIndex];
-                psObject.Properties.Add(new PSNoteProperty(rowOutputColumnNames[columnIndex], value is DBNull ? null : value));
+                psObject.Properties.Add(new PSNoteProperty(rowOutputColumnNames[columnIndex], value is DBNull ? null : value), prevalidated);
             }
 
             cmdlet.WriteObject(psObject);
         }
     }
+
+    // Validating the names once lets every row skip PowerShell's per-property duplicate lookup.
+    private static bool CanAddRowPropertiesPrevalidated(string[] rowOutputColumnNames, bool hasWorksheetName)
+        => PowerShellRowObject.CanAddPrevalidated(hasWorksheetName
+            ? rowOutputColumnNames.Prepend("WorksheetName")
+            : rowOutputColumnNames);
 
     private static string[] CreateRowOutputColumnNames(string[] columnNames, bool hasWorksheetMetadata)
     {
