@@ -103,10 +103,46 @@ public sealed partial class TomlDocument {
         try {
             text = StrictUtf8.GetString(buffer, offset, count - offset);
         } catch (DecoderFallbackException ex) {
-            int index = ex.Index >= 0 ? offset + ex.Index : offset;
+            // DecoderFallbackException.Index is not comparable across runtimes, so locate the first invalid byte with
+            // the same rules the stream reader applies.
+            int index = FirstInvalidUtf8(buffer, offset, count);
             throw new TomlException(TomlErrorCodes.InvalidEncoding, "The input is not valid UTF-8.", BytePosition(buffer, offset, index), ex);
         }
         return Build(text, bom, options, cancellationToken);
+    }
+
+    /// <summary>Returns the index of the first byte that starts an invalid or truncated UTF-8 sequence.</summary>
+    private static int FirstInvalidUtf8(byte[] buffer, int start, int end) {
+        int i = start;
+        while (i < end) {
+            byte lead = buffer[i];
+            if (lead < 0x80) {
+                i++;
+                continue;
+            }
+            int need;
+            byte low = 0x80, high = 0xBF;
+            if (lead >= 0xC2 && lead <= 0xDF) {
+                need = 1;
+            } else if (lead >= 0xE0 && lead <= 0xEF) {
+                need = 2;
+                if (lead == 0xE0) low = 0xA0;
+                else if (lead == 0xED) high = 0x9F;
+            } else if (lead >= 0xF0 && lead <= 0xF4) {
+                need = 3;
+                if (lead == 0xF0) low = 0x90;
+                else if (lead == 0xF4) high = 0x8F;
+            } else {
+                return i;
+            }
+            if (i + need >= end) return i;
+            for (int j = 1; j <= need; j++) {
+                byte next = buffer[i + j];
+                if (j == 1 ? next < low || next > high : (next & 0xC0) != 0x80) return i;
+            }
+            i += need + 1;
+        }
+        return end;
     }
 
     /// <summary>Finds the line and column of an invalid byte, counting the UTF-16 code units decoded before it.</summary>

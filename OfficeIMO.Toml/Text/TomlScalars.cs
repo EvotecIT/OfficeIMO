@@ -205,7 +205,9 @@ internal static class TomlScalars {
         }
 #if NETSTANDARD2_0 || NET472
         try {
-            return double.Parse(buffer.Slice(0, length).ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
+            double value = double.Parse(buffer.Slice(0, length).ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
+            // .NET Framework parses "-0.0" as positive zero.
+            return value == 0 && negative ? -0.0 : value;
         } catch (OverflowException) {
             // .NET Framework throws where modern .NET rounds to infinity, as IEEE 754 does.
             return negative ? double.NegativeInfinity : double.PositiveInfinity;
