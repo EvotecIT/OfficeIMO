@@ -24,8 +24,14 @@ public sealed partial class TomlDocument {
     /// <param name="options">Load settings, or <see langword="null"/> for the defaults.</param>
     /// <exception cref="TomlException">The input is not valid UTF-8 or TOML, or exceeds a limit.</exception>
     public static TomlDocument Load(Stream stream, TomlLoadOptions? options = null) {
-        RequireReadable(stream);
         options ??= TomlLoadOptions.Default;
+        string text = ReadText(stream, options, out bool bom);
+        return Build(text, bom, options, CancellationToken.None);
+    }
+
+    /// <summary>Reads a stream to its end and decodes it as <see cref="Load(Stream, TomlLoadOptions?)"/> does, without parsing it.</summary>
+    internal static string ReadText(Stream stream, TomlLoadOptions options, out bool byteOrderMark) {
+        RequireReadable(stream);
         byte[] buffer = ArrayPool<byte>.Shared.Rent(InitialCapacity(stream));
         try {
             int count = 0;
@@ -36,7 +42,7 @@ public sealed partial class TomlDocument {
                 count += read;
                 CheckInputSize(count, options);
             }
-            return FromBytes(buffer, count, options, null, CancellationToken.None);
+            return Decode(buffer, count, out byteOrderMark);
         } finally {
             ArrayPool<byte>.Shared.Return(buffer);
         }
@@ -97,18 +103,21 @@ public sealed partial class TomlDocument {
 
     private static TomlDocument FromBytes(byte[] buffer, int count, TomlLoadOptions options, string? path, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        bool bom = count >= 3 && buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF;
-        int offset = bom ? 3 : 0;
-        string text;
+        string text = Decode(buffer, count, out bool bom);
+        return Build(text, bom, options, cancellationToken);
+    }
+
+    private static string Decode(byte[] buffer, int count, out bool byteOrderMark) {
+        byteOrderMark = count >= 3 && buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF;
+        int offset = byteOrderMark ? 3 : 0;
         try {
-            text = StrictUtf8.GetString(buffer, offset, count - offset);
+            return StrictUtf8.GetString(buffer, offset, count - offset);
         } catch (DecoderFallbackException ex) {
             // DecoderFallbackException.Index is not comparable across runtimes, so locate the first invalid byte with
             // the same rules the stream reader applies.
             int index = FirstInvalidUtf8(buffer, offset, count);
             throw new TomlException(TomlErrorCodes.InvalidEncoding, "The input is not valid UTF-8.", BytePosition(buffer, offset, index), ex);
         }
-        return Build(text, bom, options, cancellationToken);
     }
 
     /// <summary>Returns the index of the first byte that starts an invalid or truncated UTF-8 sequence.</summary>

@@ -17,36 +17,29 @@ internal sealed class TomlUntypedConverter : TomlConverter<object> {
 
     public override void Configure(TomlSerializerOptions options) => _options = options;
 
-    public override object Read(TomlNode node, TomlReadState state) {
-        switch (node) {
-            case TomlTable table: {
-                var dictionary = new Dictionary<string, object?>(table._count, StringComparer.Ordinal);
-                for (int i = 0; i < table._count; i++) {
-                    TomlNode entry = table._nodes[i];
-                    dictionary.Add(entry._key!, Read(entry, state));
-                }
+    public override object Read(TomlReadNode node, TomlReadState state) {
+        switch (node.Kind) {
+            case TomlNodeKind.Table: {
+                var dictionary = new Dictionary<string, object?>(node.Count, StringComparer.Ordinal);
+                foreach (TomlReadNode entry in node.GetChildren()) dictionary.Add(entry.Key!, Read(entry, state));
                 return dictionary;
             }
-            case TomlArray array: {
-                var list = new List<object?>(array.Count);
-                for (int i = 0; i < array.Count; i++) list.Add(Read(array[i], state));
+            case TomlNodeKind.Array:
+            case TomlNodeKind.TableArray: {
+                var list = new List<object?>(node.Count);
+                foreach (TomlReadNode item in node.GetChildren()) list.Add(Read(item, state));
                 return list;
             }
-            case TomlTableArray tables: {
-                var list = new List<object?>(tables.Count);
-                for (int i = 0; i < tables.Count; i++) list.Add(Read(tables[i], state));
-                return list;
-            }
-            default: {
-                var value = (TomlValue)node;
-                return value._kind switch {
-                    TomlNodeKind.String => TomlValueText.GetString(value),
-                    TomlNodeKind.Integer => TomlValueText.GetInt64(value),
-                    TomlNodeKind.Float => TomlValueText.GetDouble(value),
-                    TomlNodeKind.Boolean => TomlValueText.GetBoolean(value),
-                    _ => TomlValueText.GetDateTime(value)
-                };
-            }
+            case TomlNodeKind.String:
+                return TomlValueText.GetString(node);
+            case TomlNodeKind.Integer:
+                return TomlValueText.GetInt64(node);
+            case TomlNodeKind.Float:
+                return TomlValueText.GetDouble(node);
+            case TomlNodeKind.Boolean:
+                return TomlValueText.GetBoolean(node);
+            default:
+                return TomlValueText.GetDateTime(node);
         }
     }
 

@@ -32,7 +32,7 @@ public abstract class TomlTypeInfo {
     /// <summary>How values of the type are written when the type alone decides it.</summary>
     internal abstract TomlShape StaticShape { get; }
 
-    internal abstract object? ReadBoxed(TomlNode node, TomlReadState state);
+    internal abstract object? ReadBoxed(TomlReadNode node, TomlReadState state);
 
     internal abstract TomlShape GetShapeBoxed(object value);
 
@@ -93,7 +93,7 @@ public sealed class TomlTypeInfo<T> : TomlTypeInfo {
     }
 
     /// <summary>Reads a node as <typeparamref name="T"/>.</summary>
-    internal T Read(TomlNode node, TomlReadState state) {
+    internal T Read(TomlReadNode node, TomlReadState state) {
         EnsureConfigured();
         return _converter.Read(node, state);
     }
@@ -140,7 +140,7 @@ public sealed class TomlTypeInfo<T> : TomlTypeInfo {
         state.Exit();
     }
 
-    internal override object? ReadBoxed(TomlNode node, TomlReadState state) => Read(node, state);
+    internal override object? ReadBoxed(TomlReadNode node, TomlReadState state) => Read(node, state);
 
     internal override TomlShape GetShapeBoxed(object value) => GetShape((T)value);
 
@@ -188,7 +188,7 @@ internal abstract class TomlConverter<T> {
     }
 
     /// <summary>Reads a node.</summary>
-    public abstract T Read(TomlNode node, TomlReadState state);
+    public abstract T Read(TomlReadNode node, TomlReadState state);
 
     /// <summary>Writes a non-null value in its inline form.</summary>
     public abstract void Write(TomlEmitter emitter, T value, TomlWriteState state);
@@ -264,10 +264,10 @@ public abstract class TomlPropertyInfo {
     internal abstract void WriteSection(TomlEmitter emitter, object owner, TomlWriteState state);
 
     /// <summary>Reads the node and sets it on the owner.</summary>
-    internal abstract void ReadAndSet(TomlNode node, TomlReadState state, object owner);
+    internal abstract void ReadAndSet(TomlReadNode node, TomlReadState state, object owner);
 
     /// <summary>Reads the node, boxed, for a constructor argument or a value set after construction.</summary>
-    internal abstract object? ReadBoxed(TomlNode node, TomlReadState state);
+    internal abstract object? ReadBoxed(TomlReadNode node, TomlReadState state);
 
     internal abstract void SetBoxed(object owner, object? value);
 }
@@ -341,9 +341,9 @@ internal sealed class TomlPropertyInfo<T> : TomlPropertyInfo {
         emitter.PopTable();
     }
 
-    internal override void ReadAndSet(TomlNode node, TomlReadState state, object owner) => _setter!(owner, TypeInfo.Read(node, state));
+    internal override void ReadAndSet(TomlReadNode node, TomlReadState state, object owner) => _setter!(owner, TypeInfo.Read(node, state));
 
-    internal override object? ReadBoxed(TomlNode node, TomlReadState state) => TypeInfo.Read(node, state);
+    internal override object? ReadBoxed(TomlReadNode node, TomlReadState state) => TypeInfo.Read(node, state);
 
     internal override void SetBoxed(object owner, object? value) => _setter!(owner, (T)value!);
 }

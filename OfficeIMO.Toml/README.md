@@ -179,7 +179,7 @@ Reading accepts every form for every type: an array of tables or an array of inl
 - **`object`:** tables read as `Dictionary<string, object?>`, arrays and arrays of tables as `List<object?>`, and values as `string`, `long`, `double`, `bool` or `TomlDateTime`, which keeps the date-time kind.
 - **Polymorphism** through `[OfficeDerivedType]` registrations on the base type. TOML has no tags, so the discriminator is the first key, `"$type" = "http"`, or the key `[OfficePolymorphic(DiscriminatorPropertyName = "kind")]` names. Reading finds it anywhere in the table; an unknown discriminator fails with `UnknownDiscriminator`.
 
-Reading loads the input as a `TomlDocument` within `TomlSerializerOptions.LoadOptions`, so every TOML rule and limit applies. A value that does not fit its type fails with `TomlException` code `TypeMismatch`, its line and column, and its path, such as `tool.ruff.lint.select[1]`. A missing required key fails with `MissingRequiredMember`; an object that contains itself fails with `ReferenceCycle`.
+Reading applies every TOML rule and the limits in `TomlSerializerOptions.LoadOptions`, as `TomlDocument` does. A value that does not fit its type fails with `TomlException` code `TypeMismatch`, its line and column, and its path, such as `tool.ruff.lint.select[1]`. A missing required key fails with `MissingRequiredMember`; an object that contains itself fails with `ReferenceCycle`.
 
 ## Safety and errors
 
