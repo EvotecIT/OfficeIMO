@@ -11,12 +11,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> Paragraphs {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.Paragraphs);
-                }
-
-                return list;
+                return WordSection.GetParagraphsOfAllSections(this);
             }
         }
 
@@ -25,12 +20,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsPageBreaks {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsPageBreaks);
-                }
-
-                return list;
+                return Paragraphs.Where(p => p.IsPageBreak).ToList();
             }
         }
 
@@ -39,12 +29,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsBreaks {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsBreaks);
-                }
-
-                return list;
+                return Paragraphs.Where(p => p.IsBreak).ToList();
             }
         }
 
@@ -53,12 +38,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsHyperLinks {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsHyperLinks);
-                }
-
-                return list;
+                return Paragraphs.Where(p => p.IsHyperLink).ToList();
             }
         }
 
@@ -67,12 +47,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsTabs {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsTabs);
-                }
-
-                return list;
+                return Paragraphs.Where(p => p.IsTab).ToList();
             }
         }
 
@@ -81,12 +56,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsTabStops {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsTabStops);
-                }
-
-                return list;
+                return Paragraphs.Where(p => p.TabStops.Count > 0).ToList();
             }
         }
 
@@ -95,12 +65,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsFields {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsFields);
-                }
-
-                return list;
+                return Paragraphs.Where(p => p.IsField).ToList();
             }
         }
 
@@ -109,12 +74,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsBookmarks {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsBookmarks);
-                }
-
-                return list;
+                return Paragraphs.Where(p => p.IsBookmark).ToList();
             }
         }
 
@@ -123,12 +83,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsEquations {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsEquations);
-                }
-
-                return list;
+                return Paragraphs.Where(p => p.IsEquation).ToList();
             }
         }
 
@@ -137,12 +92,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsStructuredDocumentTags {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsStructuredDocumentTags);
-                }
-
-                return list;
+                return Paragraphs.Where(p => p.IsStructuredDocumentTag).ToList();
             }
         }
 
@@ -151,12 +101,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsCheckBoxes {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsCheckBoxes);
-                }
-
-                return list;
+                return Paragraphs.Where(p => p.IsCheckBox).ToList();
             }
         }
 
@@ -165,12 +110,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsDatePickers {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsDatePickers);
-                }
-
-                return list;
+                return Paragraphs.Where(p => p.IsDatePicker).ToList();
             }
         }
 
@@ -179,12 +119,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsDropDownLists {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsDropDownLists);
-                }
-
-                return list;
+                return Paragraphs.Where(p => p.IsDropDownList).ToList();
             }
         }
 
@@ -193,12 +128,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsComboBoxes {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsComboBoxes);
-                }
-
-                return list;
+                return Paragraphs.Where(p => p.IsComboBox).ToList();
             }
         }
 
@@ -207,12 +137,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsPictureControls {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsPictureControls);
-                }
-
-                return list;
+                return Paragraphs.Where(p => p.IsPictureControl).ToList();
             }
         }
 
@@ -221,12 +146,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsRepeatingSections {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsRepeatingSections);
-                }
-
-                return list;
+                return Paragraphs.Where(p => p.IsRepeatingSection).ToList();
             }
         }
         /// <summary>
@@ -243,11 +163,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsEndNotes {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsEndNotes);
-                }
-                return list;
+                return Paragraphs.Where(p => p.IsEndNote).ToList();
             }
         }
 
@@ -256,11 +172,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsTextBoxes {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsTextBoxes);
-                }
-                return list;
+                return Paragraphs.Where(p => p.IsTextBox).ToList();
             }
         }
 
@@ -269,11 +181,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsShapes {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsShapes);
-                }
-                return list;
+                return Paragraphs.Where(p => p.IsShape).ToList();
             }
         }
 
@@ -282,11 +190,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsSmartArts {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsSmartArts);
-                }
-                return list;
+                return Paragraphs.Where(p => p.IsSmartArt).ToList();
             }
         }
 
@@ -295,11 +199,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsEmbeddedObjects {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsEmbeddedObjects);
-                }
-                return list;
+                return Paragraphs.Where(p => p.IsEmbeddedObject).ToList();
             }
         }
 
@@ -308,12 +208,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsFootNotes {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsFootNotes);
-                }
-
-                return list;
+                return Paragraphs.Where(p => p.IsFootNote).ToList();
             }
         }
     }

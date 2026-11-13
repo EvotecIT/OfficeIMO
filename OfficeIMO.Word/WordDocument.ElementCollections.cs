@@ -134,12 +134,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordTable> Tables {
             get {
-                List<WordTable> list = new List<WordTable>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.Tables);
-                }
-
-                return list;
+                return WordSection.GetTablesOfAllSections(this);
             }
         }
 

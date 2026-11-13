@@ -987,13 +987,37 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         private List<WordParagraph> GetParagraphsList() {
             int targetSection = GetSectionOrdinal();
-            var paragraphsBySection = Enumerable.Range(0, GetSectionCount())
+            List<List<Paragraph>>? paragraphsBySection = GroupBodyParagraphsBySection(_document);
+            return paragraphsBySection == null
+                ? new List<WordParagraph>()
+                : ConvertParagraphsToWordParagraphs(_document, paragraphsBySection[targetSection]);
+        }
+
+        /// <summary>
+        /// Returns the paragraphs of every section in section order, the same list as concatenating
+        /// each section's <see cref="Paragraphs"/>, from one pass over the body instead of one per section.
+        /// </summary>
+        internal static List<WordParagraph> GetParagraphsOfAllSections(WordDocument document) {
+            var list = new List<WordParagraph>();
+            List<List<Paragraph>>? paragraphsBySection = GroupBodyParagraphsBySection(document);
+            if (paragraphsBySection == null) {
+                return list;
+            }
+
+            for (int section = 0; section < document.Sections.Count; section++) {
+                list.AddRange(ConvertParagraphsToWordParagraphs(document, paragraphsBySection[section]));
+            }
+            return list;
+        }
+
+        private static List<List<Paragraph>>? GroupBodyParagraphsBySection(WordDocument document) {
+            var paragraphsBySection = Enumerable.Range(0, Math.Max(document.Sections.Count, 1))
                 .Select(_ => new List<Paragraph>())
                 .ToList();
 
-            var body = _document._document?.Body;
+            var body = document._document?.Body;
             if (body == null) {
-                return new List<WordParagraph>();
+                return null;
             }
 
             int currentSection = 0;
@@ -1011,7 +1035,7 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            return ConvertParagraphsToWordParagraphs(_document, paragraphsBySection[targetSection]);
+            return paragraphsBySection;
         }
 
         /// <summary>
@@ -1054,13 +1078,52 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         private List<WordTable> GetTablesList() {
             int targetSection = GetSectionOrdinal();
-            var tablesBySection = Enumerable.Range(0, GetSectionCount())
-                .Select(_ => new List<WordTable>())
+            List<List<Table>>? tablesBySection = GroupBodyTablesBySection(_document);
+            if (tablesBySection == null) {
+                return new List<WordTable>();
+            }
+
+            // Wrapping a table prepares its cells for editing, so every table is wrapped as before,
+            // not only the ones returned for this section.
+            List<WordTable> tables = new List<WordTable>();
+            for (int section = 0; section < tablesBySection.Count; section++) {
+                foreach (Table table in tablesBySection[section]) {
+                    var wordTable = new WordTable(_document, table);
+                    if (section == targetSection) {
+                        tables.Add(wordTable);
+                    }
+                }
+            }
+            return tables;
+        }
+
+        /// <summary>
+        /// Returns the tables of every section in section order, the same list as concatenating
+        /// each section's <see cref="Tables"/>, from one pass over the body instead of one per section.
+        /// </summary>
+        internal static List<WordTable> GetTablesOfAllSections(WordDocument document) {
+            var list = new List<WordTable>();
+            List<List<Table>>? tablesBySection = GroupBodyTablesBySection(document);
+            if (tablesBySection == null) {
+                return list;
+            }
+
+            for (int section = 0; section < document.Sections.Count; section++) {
+                foreach (Table table in tablesBySection[section]) {
+                    list.Add(new WordTable(document, table));
+                }
+            }
+            return list;
+        }
+
+        private static List<List<Table>>? GroupBodyTablesBySection(WordDocument document) {
+            var tablesBySection = Enumerable.Range(0, Math.Max(document.Sections.Count, 1))
+                .Select(_ => new List<Table>())
                 .ToList();
 
-            var body = _wordprocessingDocument?.MainDocumentPart?.Document?.Body;
+            var body = document._wordprocessingDocument?.MainDocumentPart?.Document?.Body;
             if (body == null) {
-                return new List<WordTable>();
+                return null;
             }
 
             int currentSection = 0;
@@ -1070,11 +1133,11 @@ namespace OfficeIMO.Word {
                         currentSection++;
                     }
                 } else if (element is Table table) {
-                    tablesBySection[currentSection].Add(new WordTable(_document, table));
+                    tablesBySection[currentSection].Add(table);
                 }
             }
 
-            return tablesBySection[targetSection];
+            return tablesBySection;
         }
 
         /// <summary>
