@@ -191,6 +191,15 @@ copies of the package a load makes.
 dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordLoadBenchmarks*'
 ```
 
+`WordRunEnumerationBenchmarks` loads a document of 1,000 or 4,000 two-run
+paragraphs, with a field in every hundredth, and enumerates `GetRuns()` for every
+entry of `Paragraphs`. Setup checks the run count. Four times the paragraphs
+should cost about four times as much.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordRunEnumerationBenchmarks*'
+```
+
 `WordSectionCollectionBenchmarks` reads the document-wide lists (`Paragraphs`,
 `Tables`, `ParagraphsHyperLinks`, `Elements`, `Fields`, `HyperLinks`,
 `Bookmarks`, `CheckBoxes`, `StructuredDocumentTags`, `FootNotes` and
