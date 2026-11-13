@@ -15,8 +15,13 @@ internal static partial class CsvParser
         /// <summary>Blocks indexed per batch; the index stays small enough to remain in the first-level cache.</summary>
         private const int BatchBlocks = 64;
         private const int BatchEntryCapacity = 1 + BatchBlocks * BlockSize + BlockSize;
-        /// <summary>A trimmed batch stores two entries per field and two row slots per record.</summary>
-        private const int TrimmedBatchEntryCapacity = 2 * BatchBlocks * BlockSize;
+        /// <summary>A trimmed batch stores two row slots per record.</summary>
+        private const int TrimmedBatchRowCapacity = 2 * BatchBlocks * BlockSize;
+        /// <summary>
+        /// Trimmed field text and one separator slot per field never take more bytes than the window they
+        /// came from; the extra block lets every copy store whole vectors.
+        /// </summary>
+        private const int TrimmedTextCapacity = BatchBlocks * BlockSize + BlockSize;
         private const int MaximumBatchBackoff = 64;
 
         /// <summary>
@@ -35,6 +40,11 @@ internal static partial class CsvParser
         private int _batchRow;
         private int _batchRowCount;
         private bool _batchAscii;
+        /// <summary>
+        /// The trimmed text of the current trimmed batch: each field without its surrounding whitespace,
+        /// followed by a separator slot, so its records use the same chained index as untrimmed input.
+        /// </summary>
+        private byte[]? _trimmedText;
         private bool _batchEscapedQuotes;
         private int _batchBackoff;
         private int _batchBackoffSize;
@@ -91,32 +101,33 @@ internal static partial class CsvParser
             }
 
             _batchCursor = next;
-            emitted = CompleteIndexedRecord(recordStart, end, first, last - first + 1, shift: 0);
+            emitted = CompleteIndexedRecord(recordStart, end, first, last - first + 1);
             return true;
         }
 
         /// <summary>
-        /// Delivers the next record of a trimmed batch, whose fields are index entry pairs. Comment
-        /// records never enter a trimmed batch.
+        /// Delivers the next record of a trimmed batch, whose fields index the batch's trimmed text.
+        /// Comment records never enter a trimmed batch.
         /// </summary>
         private bool CompleteTrimmedBatchRecord()
         {
             ref int rowSlots = ref MemoryMarshal.GetArrayDataReference(_batchRowEnds!);
             int row = _batchRow++;
-            int first = row == 0 ? 0 : Unsafe.Add(ref rowSlots, 2 * row - 2);
+            int first = row == 0 ? 1 : Unsafe.Add(ref rowSlots, 2 * row - 2) + 1;
             int last = Unsafe.Add(ref rowSlots, 2 * row);
             int next = Unsafe.Add(ref rowSlots, 2 * row + 1);
             int recordStart = _position;
             _position = next;
             _skipLineFeedAfterCarriageReturn = false;
-            return CompleteIndexedRecord(recordStart, next - 1, first + 1, (last - first) >> 1, shift: 1);
+            _visitor.SetBuffer(_trimmedText!);
+            return CompleteIndexedRecord(recordStart, next - 1, first, last - first + 1);
         }
 
         /// <summary>Publishes a batch record, which spans one physical line, as <see cref="CompleteRecord"/> does.</summary>
-        private bool CompleteIndexedRecord(int recordStart, int end, int first, int fieldCount, int shift)
+        private bool CompleteIndexedRecord(int recordStart, int end, int first, int fieldCount)
         {
             int lineNumber = ++_physicalLineSeparatorsConsumed;
-            _visitor.SetIndexedRecord(first, fieldCount, shift);
+            _visitor.SetIndexedRecord(first, fieldCount);
             if (fieldCount == 1 && IsSkippedEmptyRecord())
             {
                 return false;
@@ -203,7 +214,7 @@ internal static partial class CsvParser
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfCancellationRequested(_options);
             int[] ends = _batchEnds ??= CreateBatchIndex();
-            int[] rowEnds = _batchRowEnds ??= System.Buffers.ArrayPool<int>.Shared.Rent(_trim ? TrimmedBatchEntryCapacity : BatchEntryCapacity);
+            int[] rowEnds = _batchRowEnds ??= System.Buffers.ArrayPool<int>.Shared.Rent(_trim ? TrimmedBatchRowCapacity : BatchEntryCapacity);
             ends[0] = _position - 1;
             int rows;
             if (_trim)
@@ -245,7 +256,7 @@ internal static partial class CsvParser
 
         private int[] CreateBatchIndex()
         {
-            int[] ends = System.Buffers.ArrayPool<int>.Shared.Rent(_trim ? TrimmedBatchEntryCapacity : BatchEntryCapacity);
+            int[] ends = System.Buffers.ArrayPool<int>.Shared.Rent(BatchEntryCapacity);
             _visitor.SetBatchIndex(ends);
             return ends;
         }
@@ -258,10 +269,13 @@ internal static partial class CsvParser
         {
             int[]? ends = _batchEnds;
             int[]? rowEnds = _batchRowEnds;
+            byte[]? trimmedText = _trimmedText;
             _batchEnds = _batchRowEnds = null;
+            _trimmedText = null;
             _batchRowCount = _batchCursor = 0;
             if (ends is not null) System.Buffers.ArrayPool<int>.Shared.Return(ends);
             if (rowEnds is not null) System.Buffers.ArrayPool<int>.Shared.Return(rowEnds);
+            if (trimmedText is not null) System.Buffers.ArrayPool<byte>.Shared.Return(trimmedText);
         }
 
         /// <summary>
@@ -439,10 +453,11 @@ internal static partial class CsvParser
         }
 
         /// <summary>
-        /// Index with trimming. Field <c>i</c> of a record whose entries start at <c>k</c> spans from after
-        /// entry <c>k + 2i</c> to entry <c>k + 2i + 1</c>: its text without the surrounding whitespace, a
-        /// quoted field with its quotes, which the reader removes. Row slot <c>2r</c> is the entry count
-        /// after record <c>r</c> and slot <c>2r + 1</c> the offset where the next record starts. Indexing
+        /// Index with trimming. Each field's text without the surrounding whitespace, a quoted field with
+        /// its quotes, which the reader removes, is copied to the batch's trimmed text and followed by a
+        /// separator slot; the entries chain those slots as the untrimmed index chains separators. Row
+        /// slot <c>2r</c> is the entry of record <c>r</c>'s last field and slot <c>2r + 1</c> the input
+        /// offset where the next record starts. Indexing
         /// stops before a record whose quoting or edge whitespace the record scanner must handle, a record
         /// with a line separator inside quotes, a record that may be a skipped comment, and a carriage
         /// return whose following byte is not buffered.
@@ -452,6 +467,9 @@ internal static partial class CsvParser
             ref byte data = ref MemoryMarshal.GetArrayDataReference(_buffer);
             ref int entries = ref MemoryMarshal.GetArrayDataReference(ends);
             ref int rowSlots = ref MemoryMarshal.GetArrayDataReference(rowEnds);
+            ref byte text = ref MemoryMarshal.GetArrayDataReference(_trimmedText ??= System.Buffers.ArrayPool<byte>.Shared.Rent(TrimmedTextCapacity));
+            int bufferLength = _buffer.Length;
+            int written = 0;
             int length = _length;
             int position = _position;
             int fieldStart = position;
@@ -461,7 +479,8 @@ internal static partial class CsvParser
             int textStart = 0;
             bool textStartPending = true;
             int keptEnd = position;
-            int entry = 0;
+            entries = -1;
+            int entry = 1;
             int rows = 0;
             int fieldQuotes = 0;
             ulong insideQuotes = 0;
@@ -527,10 +546,20 @@ internal static partial class CsvParser
                         return CompleteTrimmedIndex(rows, nonAscii, escapedQuotes);
                     }
 
-                    ref int pair = ref Unsafe.Add(ref entries, entry);
-                    pair = textStart - 1;
-                    Unsafe.Add(ref pair, 1) = textEnd;
-                    entry += 2;
+                    int textLength = textEnd - textStart;
+                    if (textLength <= 2 * 16 && textStart + 2 * 16 <= bufferLength)
+                    {
+                        // Whole vectors: the stores land in the text buffer's spare block, overwritten by later fields.
+                        Vector128.LoadUnsafe(ref data, (nuint)textStart).StoreUnsafe(ref text, (nuint)written);
+                        Vector128.LoadUnsafe(ref data, (nuint)textStart + 16).StoreUnsafe(ref text, (nuint)written + 16);
+                    }
+                    else
+                    {
+                        Unsafe.CopyBlockUnaligned(ref Unsafe.Add(ref text, written), ref Unsafe.Add(ref data, textStart), (uint)textLength);
+                    }
+
+                    written += textLength;
+                    Unsafe.Add(ref entries, entry++) = written++;
                     fieldQuotes = 0;
                     fieldStart = separator + 1;
                     if ((lineSeparators & (1UL << bit)) != 0)
@@ -558,7 +587,7 @@ internal static partial class CsvParser
                         }
 
                         ref int slot = ref Unsafe.Add(ref rowSlots, 2 * rows);
-                        slot = entry;
+                        slot = entry - 1;
                         Unsafe.Add(ref slot, 1) = fieldStart;
                         rows++;
                         if (StartsSkippedComment(fieldStart))

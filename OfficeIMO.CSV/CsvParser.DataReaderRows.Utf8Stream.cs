@@ -242,6 +242,9 @@ internal static partial class CsvParser
                 {
                     continue;
                 }
+
+                // The record scanner's field offsets refer to the input buffer, not trimmed batch text.
+                _visitor.SetBuffer(_buffer);
 #endif
 
                 int recordStart = _position;
