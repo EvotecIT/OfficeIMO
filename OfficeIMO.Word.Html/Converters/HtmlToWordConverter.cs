@@ -102,9 +102,13 @@ namespace OfficeIMO.Word.Html {
                 if (document.Body != null) {
                     cancellationToken.ThrowIfCancellationRequested();
                     IElement htmlBody = document.Body;
-                    // Styling each heading would otherwise rescan the whole body for a table of contents.
-                    wordDoc.RunWithDeferredHeadingModified(
-                        () => ProcessNode(htmlBody, wordDoc, section, options, null, listStack, new TextFormatting(), null, null, headingList));
+                    // Styling each heading would otherwise rescan the whole body for a table of contents,
+                    // and each new list would scan every numbering definition for free ids.
+                    wordDoc.RunWithDeferredHeadingModified(() => {
+                        using (wordDoc.UseNumberingIdCache()) {
+                            ProcessNode(htmlBody, wordDoc, section, options, null, listStack, new TextFormatting(), null, null, headingList);
+                        }
+                    });
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
@@ -130,8 +134,11 @@ namespace OfficeIMO.Word.Html {
             if (document.Body != null) {
                 cancellationToken.ThrowIfCancellationRequested();
                 IElement htmlBody = document.Body;
-                doc.RunWithDeferredHeadingModified(
-                    () => ProcessNode(htmlBody, doc, section, options, null, listStack, new TextFormatting(), null, null, headingList));
+                doc.RunWithDeferredHeadingModified(() => {
+                    using (doc.UseNumberingIdCache()) {
+                        ProcessNode(htmlBody, doc, section, options, null, listStack, new TextFormatting(), null, null, headingList);
+                    }
+                });
             }
             InsertTopBookmarkIfNeeded(doc);
             return WordSection.WrapBlockElements(doc,
