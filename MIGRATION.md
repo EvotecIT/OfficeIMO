@@ -9945,6 +9945,8 @@ A `data-officeimo-value` error value is written as an error cell only when it is
 - **Removed.** The public parameterless `FrontMatterBlock()` constructor, which created a block that could not be filled, is removed. Use `FrontMatterBlock.FromObject`.
 - **Converters.** The PDF front matter table lists nested mappings as dotted keys, such as `author.name`. Markdown-to-AsciiDoc writes them as hyphen-joined attributes, such as `:author-name:`, and reports the flattening. Invalid front matter is reported and omitted from the attributes.
 - **PowerShell.** `Get-OfficeMarkdownFrontMatter` returns objects with `Key`, `Value`, `Node` and `SourceSpan`. `Value` is a plain .NET value: a string, number or boolean, a dictionary for a mapping, or a list for a sequence. `Node` is the `YamlNode`.
+- **TOML front matter.** A document that starts with a `+++` line and has a later `+++` line now has TOML front matter, read and written through `OfficeIMO.Toml`, instead of starting with paragraph text. `OfficeIMO.Markdown` now also depends on `OfficeIMO.Toml`. `FrontMatterBlock.Format` tells YAML from TOML, `Toml` is the lossless `TomlDocument`, and `Entries`, `Select` and `TryGetValue` read both formats. Invalid TOML is kept as text with a `markdown-front-matter-invalid-toml` error.
+- **Raw text.** `FrontMatterBlock.RawYaml` and `MarkdownNativeFrontMatterBlock.RawYaml` are now `RawText`, and the native snapshot field `rawYaml` is now `rawText`, because they hold TOML as well as YAML.
 
 ## Excel non-finite numbers
 

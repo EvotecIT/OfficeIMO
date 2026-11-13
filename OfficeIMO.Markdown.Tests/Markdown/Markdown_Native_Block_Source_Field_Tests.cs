@@ -1545,7 +1545,7 @@ summary: |
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 3), frontMatter.OpeningFenceSourceSpan);
         Assert.Equal(new MarkdownSourceSpan(2, 1, 7, 13), frontMatter.BodySourceSpan);
         Assert.Equal(new MarkdownSourceSpan(8, 1, 8, 3), frontMatter.ClosingFenceSourceSpan);
-        Assert.Contains("summary: |", frontMatter.RawYaml!, StringComparison.Ordinal);
+        Assert.Contains("summary: |", frontMatter.RawText!, StringComparison.Ordinal);
 
         Assert.Collection(frontMatter.Entries,
             entry => {
@@ -1610,7 +1610,7 @@ summary: |
         Assert.Equal("closingFence", closingFound.Name);
 
         var snapshot = native.ToSnapshot().Blocks[0];
-        Assert.Equal(frontMatter.RawYaml, snapshot.Fields["rawYaml"]);
+        Assert.Equal(frontMatter.RawText, snapshot.Fields["rawText"]);
         Assert.Equal(1, snapshot.FieldSourceSpans["openingFence"]!.StartLine);
         Assert.Equal(2, snapshot.FieldSourceSpans["frontMatterBody"]!.StartLine);
         Assert.Equal(8, snapshot.FieldSourceSpans["closingFence"]!.StartLine);

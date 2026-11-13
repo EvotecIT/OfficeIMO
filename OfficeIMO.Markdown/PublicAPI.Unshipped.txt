@@ -42,6 +42,16 @@ OfficeIMO.Markdown.FrontMatterBlock.Mapping.get -> OfficeIMO.Yaml.YamlMapping?
 OfficeIMO.Markdown.FrontMatterBlock.Select(string! path) -> OfficeIMO.Yaml.YamlNode?
 OfficeIMO.Markdown.FrontMatterBlock.Yaml.get -> OfficeIMO.Yaml.YamlDocument?
 OfficeIMO.Markdown.MarkdownNativeFrontMatterBlock.Values.get -> System.Collections.Generic.IReadOnlyDictionary<string!, OfficeIMO.Yaml.YamlNode!>!
+*REMOVED*OfficeIMO.Markdown.FrontMatterBlock.RawYaml.get -> string?
+*REMOVED*OfficeIMO.Markdown.MarkdownNativeFrontMatterBlock.RawYaml.get -> string?
+OfficeIMO.Markdown.FrontMatterBlock.Format.get -> OfficeIMO.Markdown.MarkdownFrontMatterFormat
+OfficeIMO.Markdown.FrontMatterBlock.RawText.get -> string?
+OfficeIMO.Markdown.FrontMatterBlock.Toml.get -> OfficeIMO.Toml.TomlDocument?
+OfficeIMO.Markdown.MarkdownFrontMatterFormat
+OfficeIMO.Markdown.MarkdownFrontMatterFormat.Toml = 1 -> OfficeIMO.Markdown.MarkdownFrontMatterFormat
+OfficeIMO.Markdown.MarkdownFrontMatterFormat.Yaml = 0 -> OfficeIMO.Markdown.MarkdownFrontMatterFormat
+OfficeIMO.Markdown.MarkdownNativeFrontMatterBlock.RawText.get -> string?
+static OfficeIMO.Markdown.FrontMatterBlock.FromToml(OfficeIMO.Toml.TomlDocument! document) -> OfficeIMO.Markdown.FrontMatterBlock!
 OfficeIMO.Markdown.MarkdownLoadOptions.Math.get -> bool
 OfficeIMO.Markdown.MarkdownLoadOptions.Math.set -> void
 OfficeIMO.Markdown.MarkdownSyntaxKind.InlineMath = 130 -> OfficeIMO.Markdown.MarkdownSyntaxKind
