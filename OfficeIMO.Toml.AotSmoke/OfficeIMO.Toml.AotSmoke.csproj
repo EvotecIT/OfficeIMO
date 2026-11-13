@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <PublishAot>true</PublishAot>
+    <IsPackable>false</IsPackable>
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Toml\OfficeIMO.Toml.csproj" />
+    <!-- A package consumer gets the generator and the build settings from the OfficeIMO.Toml package itself. -->
+    <ProjectReference Include="..\OfficeIMO.Toml.SourceGeneration\OfficeIMO.Toml.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <Import Project="..\OfficeIMO.Toml\buildTransitive\OfficeIMO.Toml.targets" />
+</Project>

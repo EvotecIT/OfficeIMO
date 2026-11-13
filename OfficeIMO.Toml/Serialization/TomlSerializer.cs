@@ -108,17 +108,26 @@ public static class TomlSerializer {
     /// <summary>Reads a TOML document as <paramref name="returnType"/>.</summary>
     [RequiresUnreferencedCode(TomlReflectionResolver.UnreferencedCodeMessage)]
     [RequiresDynamicCode(TomlReflectionResolver.DynamicCodeMessage)]
-    public static object Deserialize(string toml, Type returnType, TomlSerializerOptions? options = null) => ReadBoxed(Parse(toml, Info(returnType, options)), Info(returnType, options));
+    public static object Deserialize(string toml, Type returnType, TomlSerializerOptions? options = null) {
+        TomlTypeInfo info = Info(returnType, options);
+        return ReadBoxed(Parse(toml, info), info);
+    }
 
     /// <summary>Reads a UTF-8 TOML document from a stream as <paramref name="returnType"/>. The stream stays open.</summary>
     [RequiresUnreferencedCode(TomlReflectionResolver.UnreferencedCodeMessage)]
     [RequiresDynamicCode(TomlReflectionResolver.DynamicCodeMessage)]
-    public static object Deserialize(Stream utf8Toml, Type returnType, TomlSerializerOptions? options = null) => ReadBoxed(Load(utf8Toml, Info(returnType, options)), Info(returnType, options));
+    public static object Deserialize(Stream utf8Toml, Type returnType, TomlSerializerOptions? options = null) {
+        TomlTypeInfo info = Info(returnType, options);
+        return ReadBoxed(Load(utf8Toml, info), info);
+    }
 
     /// <summary>Reads a TOML document from a text reader as <paramref name="returnType"/>. The reader stays open.</summary>
     [RequiresUnreferencedCode(TomlReflectionResolver.UnreferencedCodeMessage)]
     [RequiresDynamicCode(TomlReflectionResolver.DynamicCodeMessage)]
-    public static object Deserialize(TextReader reader, Type returnType, TomlSerializerOptions? options = null) => ReadBoxed(Parse(ReadAll(reader), Info(returnType, options)), Info(returnType, options));
+    public static object Deserialize(TextReader reader, Type returnType, TomlSerializerOptions? options = null) {
+        TomlTypeInfo info = Info(returnType, options);
+        return ReadBoxed(Parse(ReadAll(reader), info), info);
+    }
 
     /// <summary>Reads a node of a loaded <see cref="TomlDocument"/> as <paramref name="returnType"/>.</summary>
     [RequiresUnreferencedCode(TomlReflectionResolver.UnreferencedCodeMessage)]

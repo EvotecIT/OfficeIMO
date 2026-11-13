@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 349,
-    "productionComponentCount": 166,
+    "projectCount": 351,
+    "productionComponentCount": 167,
     "testProjectCount": 67,
     "benchmarkProjectCount": 43,
-    "validationProjectCount": 74,
+    "validationProjectCount": 75,
     "apiReferenceCount": 129,
     "conceptualPageCount": 160,
     "conceptualWordCount": 88387
@@ -55,7 +55,7 @@
     },
     {
       "name": "Formats and interoperability",
-      "componentCount": 38,
+      "componentCount": 39,
       "componentIndexes": [
         1,
         10,
@@ -89,12 +89,13 @@
         102,
         103,
         147,
-        149,
+        148,
         150,
-        161,
+        151,
         162,
         163,
-        164
+        164,
+        165
       ]
     },
     {
@@ -145,21 +146,21 @@
         97,
         98,
         99,
-        151,
         152,
         153,
         154,
         155,
         156,
         157,
-        158
+        158,
+        159
       ]
     },
     {
       "name": "PowerShell automation",
       "componentCount": 1,
       "componentIndexes": [
-        165
+        166
       ]
     },
     {
@@ -227,9 +228,9 @@
         144,
         145,
         146,
-        148,
-        159,
-        160
+        149,
+        160,
+        161
       ]
     }
   ],
@@ -475,7 +476,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 1292,
+      "sourceFileCount": 1294,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -2149,14 +2150,27 @@
       "name": "OfficeIMO.Toml",
       "packageId": "OfficeIMO.Toml",
       "category": "Formats and interoperability",
-      "description": "A dependency-free TOML 1.1 engine for OfficeIMO: a low-allocation pull reader, a lossless document model that saves unchanged input byte for byte and edits with minimal diffs, and a writer.",
+      "description": "A dependency-free TOML 1.1 engine for OfficeIMO: a low-allocation pull reader, a lossless document model that saves unchanged input byte for byte and edits with minimal diffs, a writer, and an object serializer with a NativeAOT source generator.",
       "kind": "package",
       "projectPath": "OfficeIMO.Toml/OfficeIMO.Toml.csproj",
-      "sourceFileCount": 24,
+      "sourceFileCount": 38,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/toml/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Toml"
+    },
+    {
+      "name": "OfficeIMO.Toml.SourceGeneration",
+      "packageId": "OfficeIMO.Toml.SourceGeneration",
+      "category": "Formats and interoperability",
+      "description": "Source generator for OfficeIMO.Toml serializer contexts.",
+      "kind": "library",
+      "projectPath": "OfficeIMO.Toml.SourceGeneration/OfficeIMO.Toml.SourceGeneration.csproj",
+      "sourceFileCount": 1,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/toml/",
+      "apiUrl": null,
+      "packageUrl": null
     },
     {
       "name": "OfficeIMO.Tool",
@@ -2360,7 +2374,7 @@
       "description": "A dependency-free YAML 1.2 engine for OfficeIMO: a lossless document model that saves unchanged input byte for byte, a low-allocation pull reader with schema-aware scalar resolution, and an object serializer with a NativeAOT source generator.",
       "kind": "package",
       "projectPath": "OfficeIMO.Yaml/OfficeIMO.Yaml.csproj",
-      "sourceFileCount": 70,
+      "sourceFileCount": 69,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/yaml/",
       "apiUrl": "/api/yaml/",
@@ -2373,7 +2387,7 @@
       "description": "Source generator for OfficeIMO.Yaml serializer contexts.",
       "kind": "library",
       "projectPath": "OfficeIMO.Yaml.SourceGeneration/OfficeIMO.Yaml.SourceGeneration.csproj",
-      "sourceFileCount": 3,
+      "sourceFileCount": 1,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/yaml/",
       "apiUrl": null,

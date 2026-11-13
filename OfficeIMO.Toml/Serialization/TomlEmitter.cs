@@ -73,14 +73,40 @@ internal sealed class TomlEmitter {
         if (_depth == 0) _text.Append(_newLine);
     }
 
+    /// <summary>Writes a basic string; text without characters to escape, the usual case, is copied in one step.</summary>
     public void WriteString(string value) {
         BeforeValue();
-        TomlFormatter.AppendString(_text, value, TomlFormatter.FitStyle(value, TomlStringStyle.Basic));
+        if (NeedsEscape(value)) {
+            TomlFormatter.AppendString(_text, value, TomlStringStyle.Basic);
+            return;
+        }
+        _text.Append('"').Append(value).Append('"');
     }
+
+#if NET8_0_OR_GREATER
+    // The characters TomlFormatter escapes in a basic string: controls (tab included), DEL, the quote and the backslash.
+    private static readonly System.Buffers.SearchValues<char> Escaped = System.Buffers.SearchValues.Create(
+        "\u0000\u0001\u0002\u0003\u0004\u0005\u0006\u0007\b\t\n\u000B\f\r\u000E\u000F\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001A\u001B\u001C\u001D\u001E\u001F\"\\\u007F");
+
+    private static bool NeedsEscape(string value) => value.AsSpan().IndexOfAny(Escaped) >= 0;
+#else
+    private static bool NeedsEscape(string value) {
+        foreach (char ch in value) {
+            if (ch < 0x20 || ch == '"' || ch == '\\' || ch == '\u007F') return true;
+        }
+        return false;
+    }
+#endif
 
     public void WriteInteger(long value) {
         BeforeValue();
+#if NET8_0_OR_GREATER
+        Span<char> digits = stackalloc char[20];
+        value.TryFormat(digits, out int written, default, CultureInfo.InvariantCulture);
+        _text.Append(digits.Slice(0, written));
+#else
         TomlFormatter.AppendInteger(_text, value, TomlIntegerBase.Decimal, upperHex: false);
+#endif
     }
 
     public void WriteFloat(double value) {

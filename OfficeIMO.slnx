@@ -326,6 +326,7 @@
   <Project Path="OfficeIMO.Studio/OfficeIMO.Studio.csproj" />
   <Project Path="OfficeIMO.Tests/OfficeIMO.Tests.csproj" />
   <Project Path="OfficeIMO.Toml.Tests/OfficeIMO.Toml.Tests.csproj" />
+  <Project Path="OfficeIMO.Toml.SourceGeneration/OfficeIMO.Toml.SourceGeneration.csproj" />
   <Project Path="OfficeIMO.Toml/OfficeIMO.Toml.csproj" />
   <Project Path="OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj" />
   <Project Path="OfficeIMO.Tool/OfficeIMO.Tool.csproj" />
