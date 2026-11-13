@@ -17,7 +17,41 @@ internal static partial class WordRunFormatting {
         internal readonly CancellationToken CancellationToken;
         internal readonly Dictionary<Table, TableRunPaintState> Tables = new();
         internal readonly Dictionary<(Styles Styles, string? StyleId, StyleValues Type), Style[]> StyleChains = new();
+        internal readonly Dictionary<(RunPaintKey Run, HighlightColorValues? TableHighlight), HighlightColorValues?> RunHighlights = new();
+        internal readonly Dictionary<RunPaintKey, string?> RunShadings = new();
         internal RunPaintConversion(CancellationToken cancellationToken) => CancellationToken = cancellationToken;
+    }
+
+    /// <summary>
+    /// Identifies every input of run highlight and shading resolution: the direct run
+    /// properties, the character style, and the paragraph, which supplies the paragraph
+    /// style, the containing table cell and the document. A converter resolves the same run
+    /// several times while measuring and painting it, so a conversion answers it once.
+    /// </summary>
+    private readonly struct RunPaintKey : IEquatable<RunPaintKey> {
+        private readonly OpenXmlElement? _direct;
+        private readonly string? _characterStyleId;
+        private readonly Paragraph _paragraph;
+
+        internal RunPaintKey(OpenXmlElement? direct, string? characterStyleId, Paragraph paragraph) {
+            _direct = direct;
+            _characterStyleId = characterStyleId;
+            _paragraph = paragraph;
+        }
+
+        public bool Equals(RunPaintKey other) => ReferenceEquals(_direct, other._direct) &&
+            ReferenceEquals(_paragraph, other._paragraph) &&
+            string.Equals(_characterStyleId, other._characterStyleId, StringComparison.Ordinal);
+
+        public override bool Equals(object? obj) => obj is RunPaintKey other && Equals(other);
+
+        public override int GetHashCode() {
+            unchecked {
+                int hash = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(_paragraph);
+                hash = hash * 31 + (_direct == null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(_direct));
+                return hash * 31 + (_characterStyleId == null ? 0 : StringComparer.Ordinal.GetHashCode(_characterStyleId));
+            }
+        }
     }
 
     /// <summary>

@@ -11,7 +11,18 @@ namespace OfficeIMO.Word;
 internal static partial class WordRunFormatting {
     /// <summary>Resolves run shading, including theme colors and a blended fill for shading patterns.</summary>
     internal static string? ResolveRunShadingFillColorHex(WordParagraph paragraph) {
-        return ResolveShadingFillColorHex(ResolveRunShading(paragraph), paragraph._document);
+        RunPaintConversion? conversion = RunPaintConversions.Value;
+        if (conversion == null || paragraph._paragraph == null) {
+            return ResolveShadingFillColorHex(ResolveRunShading(paragraph), paragraph._document);
+        }
+
+        var key = new RunPaintKey(GetDirectRunProperties(paragraph), paragraph.CharacterStyleId, paragraph._paragraph);
+        lock (conversion.RunShadings) {
+            if (conversion.RunShadings.TryGetValue(key, out string? cached)) return cached;
+        }
+        string? resolved = ResolveShadingFillColorHex(ResolveRunShading(paragraph), paragraph._document);
+        lock (conversion.RunShadings) conversion.RunShadings[key] = resolved;
+        return resolved;
     }
 
     /// <summary>Resolves an authored table, cell or run fill against its document theme without changing its XML.</summary>
@@ -52,6 +63,19 @@ internal static partial class WordRunFormatting {
 
     /// <summary>Resolves direct and styled highlighting, then table style and document defaults; explicit none stops inheritance.</summary>
     internal static HighlightColorValues? ResolveRunHighlight(WordParagraph paragraph, HighlightColorValues? tableStyleHighlight = null) {
+        RunPaintConversion? conversion = RunPaintConversions.Value;
+        if (conversion == null || paragraph._paragraph == null) return ResolveRunHighlightCore(paragraph, tableStyleHighlight);
+
+        var key = (new RunPaintKey(GetDirectRunProperties(paragraph), paragraph.CharacterStyleId, paragraph._paragraph), tableStyleHighlight);
+        lock (conversion.RunHighlights) {
+            if (conversion.RunHighlights.TryGetValue(key, out HighlightColorValues? cached)) return cached;
+        }
+        HighlightColorValues? resolved = ResolveRunHighlightCore(paragraph, tableStyleHighlight);
+        lock (conversion.RunHighlights) conversion.RunHighlights[key] = resolved;
+        return resolved;
+    }
+
+    private static HighlightColorValues? ResolveRunHighlightCore(WordParagraph paragraph, HighlightColorValues? tableStyleHighlight) {
         foreach (OpenXmlCompositeElement properties in EnumerateRunPropertySources(paragraph, includeDocumentDefaults: false)) {
             HighlightColorValues? highlight = ReadRunHighlight(properties);
             if (highlight.HasValue) return highlight;
