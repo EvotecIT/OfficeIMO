@@ -49,6 +49,23 @@ public class TomlLoadingTests {
     }
 
     [Fact]
+    public void SavingToAPathMakesItTheFileLaterSavesWrite() {
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-toml-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string path = Path.Combine(directory, "out.toml");
+            using TomlDocument doc = TomlDocument.Parse("a = 1\n");
+            doc.Save(path);
+            Assert.Equal(path, doc.FilePath);
+            doc.Root.Add("b", 2);
+            doc.Save();
+            Assert.Equal("a = 1\nb = 2\n", File.ReadAllText(path));
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void InvalidUtf8ReportsTheLineOfTheBadByte() {
         byte[] bytes = Encoding.UTF8.GetBytes("a = 1\nb = \"x\"\n").Concat(new byte[] { (byte)'c', (byte)' ', (byte)'=', (byte)' ', (byte)'"', 0xC3, 0x28, (byte)'"', (byte)'\n' }).ToArray();
         TomlException ex = Assert.Throws<TomlException>(() => TomlDocument.Load(new MemoryStream(bytes)));

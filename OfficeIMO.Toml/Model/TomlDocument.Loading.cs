@@ -15,7 +15,7 @@ public sealed partial class TomlDocument {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, FileBufferSize, FileOptions.SequentialScan);
         TomlDocument document = Load(stream, options);
-        document.FilePath = path;
+        document.FilePath = Path.GetFullPath(path);
         return document;
     }
 
@@ -51,7 +51,7 @@ public sealed partial class TomlDocument {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, FileBufferSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
         TomlDocument document = await LoadAsync(stream, options, cancellationToken).ConfigureAwait(false);
-        document.FilePath = path;
+        document.FilePath = Path.GetFullPath(path);
         return document;
     }
 

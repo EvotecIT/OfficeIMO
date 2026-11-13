@@ -97,11 +97,11 @@ Describe 'TOML document commands' {
         }
     }
 
-    It 'creates a live document for a path and saves it there twice' {
+    It 'creates a live document, saves it to the path it names later and saves it there again' {
         $path = Join-Path $TestDrive 'live.toml'
-        $document = New-OfficeToml -Path $path
+        $document = New-OfficeToml
         Set-OfficeTomlNode -Document $document -Select 'name' -Value 'web'
-        (Save-OfficeToml -Document $document -PassThru).FullName | Should -Be $path
+        (Save-OfficeToml -Document $document -Path $path -PassThru).FullName | Should -Be $path
         Set-OfficeTomlNode -Document $document -Select 'replicas' -Value 3
         Save-OfficeToml -Document $document
         Close-OfficeToml -Document $document

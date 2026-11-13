@@ -169,10 +169,12 @@ public class TomlEditingTests {
         Assert.Equal(3, doc.Select("a[\"dotted.key\"]")!.GetValue<int>());
         Assert.Null(doc.Select("a.missing.deeper"));
         doc.Set("a.list[0]", 10);
+        doc.Set("a.list[2]", 3);
+        Assert.Throws<InvalidOperationException>(() => doc.Set("a.list[4]", 5));
         doc.Set("b.c.d", "new");
         Assert.True(doc.Remove("p[0]"));
         Assert.False(doc.Remove("a.missing"));
-        Assert.Equal("[a]\nlist = [10, 2]\n\"dotted.key\" = 3\n[[p]]\nn = 2\n[b.c]\nd = \"new\"\n", doc.ToString());
+        Assert.Equal("[a]\nlist = [10, 2, 3]\n\"dotted.key\" = 3\n[[p]]\nn = 2\n[b.c]\nd = \"new\"\n", doc.ToString());
         Assert.Throws<ArgumentException>(() => doc.Select("a..b"));
     }
 }

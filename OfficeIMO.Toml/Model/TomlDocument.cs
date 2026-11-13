@@ -41,10 +41,13 @@ public sealed partial class TomlDocument : IDisposable {
     /// <param name="path">The file the document saves to.</param>
     public static TomlDocument Create(string path) {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return new TomlDocument(string.Empty, byteOrderMark: false, path);
+        return new TomlDocument(string.Empty, byteOrderMark: false, Path.GetFullPath(path));
     }
 
-    /// <summary>Gets the file the document was loaded from or created for, which <see cref="Save()"/> writes; <see langword="null"/> for parsed or stream documents.</summary>
+    /// <summary>
+    /// Gets the full path of the file the document was loaded from, created for or last saved to, which <see cref="Save()"/>
+    /// writes; <see langword="null"/> for parsed or stream documents not yet saved to a file.
+    /// </summary>
     public string? FilePath { get; private set; }
 
     /// <summary>Gets the root table: the key/value pairs before the first header, and every top-level table.</summary>
@@ -61,7 +64,8 @@ public sealed partial class TomlDocument : IDisposable {
     /// <summary>
     /// Sets the value a path addresses and returns the node now there. The last step must be a key or an array index;
     /// missing tables on the way are added with <see cref="TomlTable.AddTable"/>, so
-    /// <c>Set("tool.ruff.line-length", 100)</c> works on a file without a <c>[tool.ruff]</c> table.
+    /// <c>Set("tool.ruff.line-length", 100)</c> works on a file without a <c>[tool.ruff]</c> table. An index equal to its
+    /// array's count appends.
     /// </summary>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> or <paramref name="value"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="path"/> is malformed or <paramref name="value"/> is not representable.</exception>

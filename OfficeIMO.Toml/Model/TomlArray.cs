@@ -64,14 +64,15 @@ public sealed class TomlArray : TomlNode, IReadOnlyList<TomlNode> {
     }
 
     /// <summary>
-    /// Replaces the item at a zero-based position and returns the item now there. A value assigned over a value is set
-    /// in place with <see cref="TomlValue.SetValue"/>, keeping its style; other replacements write the new item at the old
-    /// item's position.
+    /// Replaces the item at a zero-based position and returns the item now there; an index equal to <see cref="Count"/>
+    /// appends as <see cref="Add"/> does. A value assigned over a value is set in place with
+    /// <see cref="TomlValue.SetValue"/>, keeping its style; other replacements write the new item at the old item's position.
     /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is outside the array.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is outside 0..<see cref="Count"/>.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="value"/> is not representable in TOML.</exception>
     public TomlNode Set(int index, object value) {
+        if (index == _count) return Insert(index, value);
         TomlNode current = this[index];
         if (current is TomlValue scalar && TomlValueConverter.IsScalar(value)) return scalar.SetValue(value);
         TomlNode node = TomlValueConverter.CreateNode(_document, value, nameof(value), TomlEditing.PreferredStringStyle(this));

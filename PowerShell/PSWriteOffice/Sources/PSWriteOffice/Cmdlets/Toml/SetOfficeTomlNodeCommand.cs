@@ -9,8 +9,8 @@ namespace PSWriteOffice.Cmdlets.Toml;
 /// <para>Setting a value over a value changes only its text, and an equal value keeps its original spelling, so saving
 /// changes only what really changed. A new key is written after its table's last key in the indentation and spacing of
 /// its neighbors; a missing table gets a [header] section. Hashtables and objects become inline tables, and arrays
-/// become arrays. TOML has no null, so $null is an error and nulls inside a value are omitted with a warning. An array
-/// index must already exist.</para>
+/// become arrays. TOML has no null, so $null is an error and nulls inside a value are omitted with a warning. An index
+/// equal to an array's length appends.</para>
 /// <example><summary>Bump a version inside an editing block.</summary>
 /// <code>Open-OfficeToml -Path ./Cargo.toml {
 ///     Set-OfficeTomlNode -Select 'package.version' -Value '0.4.0'

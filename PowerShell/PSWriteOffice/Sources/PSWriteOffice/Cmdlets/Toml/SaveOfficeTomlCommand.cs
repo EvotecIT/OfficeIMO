@@ -10,7 +10,7 @@ namespace PSWriteOffice.Cmdlets.Toml;
 /// byte-order mark, and only edited keys, values and comments are written anew in the layout of their neighbors.</para>
 /// <example><summary>Save to the file the document was opened from.</summary>
 /// <code>Save-OfficeToml -Document $document</code></example>
-/// <example><summary>Write a copy and return the file.</summary>
+/// <example><summary>Save to a new file, which the document then saves to, and return it.</summary>
 /// <code>Save-OfficeToml -Document $document -Path ./out/pyproject.toml -PassThru</code></example>
 [Cmdlet(VerbsData.Save, "OfficeToml", SupportsShouldProcess = true, DefaultParameterSetName = "Document")]
 [OutputType(typeof(FileInfo))]
@@ -18,7 +18,7 @@ public sealed class SaveOfficeTomlCommand : OfficeCmdlet {
     /// <summary>TOML document to save.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Document"), ValidateNotNull]
     public TomlDocument Document { get; set; } = null!;
-    /// <summary>Optional destination; omission saves to the document's FilePath.</summary>
+    /// <summary>Optional destination, which becomes the document's FilePath; omission saves to its FilePath.</summary>
     [Parameter(Position = 0), ValidateNotNullOrEmpty]
     public string? Path { get; set; }
     /// <summary>Return the saved file.</summary>
