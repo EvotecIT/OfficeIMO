@@ -67,7 +67,8 @@ internal sealed partial class WordMl2003Projection {
     }
 
     private IEnumerable<OpenXmlElement> ProjectBlocks(XElement container, bool inTableCell = false) {
-        CheckAttributes(container, container.Name == Word + "hdr" || container.Name == Word + "ftr" ? "type" : "");
+        CheckAttributes(container, container.Name == Word + "hdr" || container.Name == Word + "ftr" ? "type" :
+            container.Name == Word + "footnote" || container.Name == Word + "endnote" ? "type suppressRef" : "");
         foreach (XElement child in container.Elements()) {
             _token.ThrowIfCancellationRequested();
             if (child.Name == Word + "p") yield return ProjectParagraph(child, inTableCell);
@@ -126,6 +127,10 @@ internal sealed partial class WordMl2003Projection {
                 } else if (child.Name == Word + "rPr") {
                     string mappedXml = MapProperties(child, "rPr")!.ToString(SaveOptions.DisableFormatting);
                     run.RunProperties = NormalizeMappedProperties(new RunProperties(mappedXml), mappedXml);
+                } else if (child.Name == Word + "footnote" || child.Name == Word + "endnote") {
+                    AppendNote(run, child);
+                } else if (child.Name == Word + "footnoteRef") {
+                    AppendNoteMark(run, child);
                 } else if (child.Name == Word + "pict") {
                     Picture? picture = ProjectPicture(child);
                     if (picture != null) run.AppendChild(picture);
