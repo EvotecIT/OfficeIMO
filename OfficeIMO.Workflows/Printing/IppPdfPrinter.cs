@@ -215,6 +215,14 @@ internal static class IppPdfPrinter {
             plan.RasterDpi = withinLimit.Length > 0 ? withinLimit[withinLimit.Length - 1]
                 : rasterResolutions[0] <= budget ? rasterResolutions[0]
                 : throw new InvalidOperationException("The printer's lowest PWG raster resolution exceeds the job's pixel budget.");
+            // A printer that lists only resolutions above the caller's limit, such as many lasers and CUPS queues at 600 dpi only, gets sheets
+            // rendered at the largest whole fraction of that resolution within the limit, each pixel repeated. Rendering four times the pixels
+            // would cost four times the time without the detail the caller asked for.
+            if (withinLimit.Length == 0) {
+                int device = plan.RasterDpi;
+                plan.RasterScale = Math.Max(1, Enumerable.Range(2, 7)
+                    .FirstOrDefault(scale => device % scale == 0 && device / scale <= options.MaximumRasterDpi && device / scale >= 36));
+            }
             plan.ColorSpace = (grayscale && gray) || !rgb ? PwgRasterColorSpace.Gray8 : PwgRasterColorSpace.Rgb8;
             plan.SheetBack = printer.PwgRasterSheetBack;
         } else {
@@ -272,7 +280,10 @@ internal sealed class IppDeliveryPlan {
     public bool Tumble { get; set; }
     /// <summary>PWG media name for each sheet, or null where the printer lists no matching size.</summary>
     public IReadOnlyList<string?> MediaNames { get; set; } = [];
+    /// <summary>Device resolution written to the PWG raster headers.</summary>
     public int RasterDpi { get; set; }
+    /// <summary>Device pixels per rendered pixel along each edge; sheets render at <see cref="RasterDpi"/> divided by this.</summary>
+    public int RasterScale { get; set; } = 1;
     public PwgRasterColorSpace ColorSpace { get; set; }
     /// <summary>pwg-raster-document-sheet-back, which says how back sides must be oriented.</summary>
     public string? SheetBack { get; set; }

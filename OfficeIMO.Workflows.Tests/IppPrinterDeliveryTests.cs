@@ -180,13 +180,37 @@ public sealed class IppPrinterDeliveryTests {
         raster.SetPixel(0, 0, OfficeColor.Red);
         raster.SetPixel(2, 0, OfficeColor.Blue);
 
-        byte[] rgb = PwgRasterJobStream.DevicePixels(raster, 3, false, false, out int width, out int height, default);
+        byte[] rgb = PwgRasterJobStream.DevicePixels(raster, 3, false, false, 1, out int width, out int height, default);
 
         Assert.Equal((2, 3), (width, height));
         Assert.Equal(new byte[] { 0, 0, 255 }, rgb.Take(3)); // top-left now holds the top-right corner
         Assert.Equal(new byte[] { 255, 0, 0 }, rgb.Skip((2 * width + 0) * 3).Take(3)); // bottom-left holds the top-left corner
-        byte[] mirrored = PwgRasterJobStream.DevicePixels(raster, 1, true, true, out _, out _, default);
+        byte[] mirrored = PwgRasterJobStream.DevicePixels(raster, 1, true, true, 1, out _, out _, default);
         Assert.Equal((byte)((0 * 77 + 0 * 150 + 255 * 29 + 128) >> 8), mirrored[(2 * width + 1)]); // rotated 180 degrees
+
+        // Rendered at half the printer resolution, every device pixel is repeated twice along both edges.
+        byte[] doubled = PwgRasterJobStream.DevicePixels(raster, 3, false, false, 2, out int doubledWidth, out int doubledHeight, default);
+        Assert.Equal((4, 6), (doubledWidth, doubledHeight));
+        foreach ((int x, int y) in new[] { (0, 0), (1, 0), (0, 1), (1, 1) }) Assert.Equal(new byte[] { 0, 0, 255 }, doubled.Skip((y * doubledWidth + x) * 3).Take(3));
+        Assert.Equal(new byte[] { 255, 0, 0 }, doubled.Skip((5 * doubledWidth + 1) * 3).Take(3));
+    }
+
+    [Theory]
+    [InlineData(300, 600, 2)]  // The default limit on a 600 dpi-only laser renders at 300 dpi.
+    [InlineData(250, 600, 3)]  // The largest whole fraction within the limit.
+    [InlineData(600, 600, 1)]  // A caller asking for 600 dpi gets true 600 dpi.
+    [InlineData(72, 600, 1)]   // No fraction up to an eighth fits, so the printer resolution is rendered directly.
+    public void PrintersListingOnlyHigherResolutionsRenderAtAFractionWithinTheLimit(double maximumDpi, int printerDpi, int expectedScale) {
+        IppPrinterCapabilities printer = new() {
+            DocumentFormats = ["image/pwg-raster"], Media = PdfAndRaster.Media, MediaSizes = PdfAndRaster.MediaSizes, MaxCopies = 99,
+            Sides = PdfAndRaster.Sides, PwgRasterTypes = PdfAndRaster.PwgRasterTypes,
+            PwgRasterResolutions = [new(printerDpi, printerDpi, IppResolutionUnits.DotsPerInch)]
+        };
+        IppDeliveryPlan plan = Plan(Sheets(PdfPageSizes.A4.Width, PdfPageSizes.A4.Height, 1), PdfPrintContentKind.Vector,
+            new PdfPrintDeliveryOptions { PrinterName = "p", MaximumRasterDpi = maximumDpi }, printer);
+
+        Assert.Equal(printerDpi, plan.RasterDpi);
+        Assert.Equal(expectedScale, plan.RasterScale);
     }
 
     private static IppDeliveryPlan Plan(PdfPrintPlan sheets, PdfPrintContentKind kind, PdfPrintDeliveryOptions options, IppPrinterCapabilities printer) =>
