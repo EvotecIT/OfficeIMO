@@ -87,7 +87,11 @@ public sealed partial class PdfEmbeddedFontFamily {
         // Probing in parallel and merging in enumeration order builds the same index sooner.
         var probed = new System.Collections.Generic.List<TrueTypeNameMetadata>?[fallbackFiles.Count];
         try {
-            System.Threading.Tasks.Parallel.For(0, fallbackFiles.Count, index => {
+            // Keep the probe small so a host's thread pool isn't taken over by a font scan.
+            var parallelOptions = new System.Threading.Tasks.ParallelOptions {
+                MaxDegreeOfParallelism = System.Math.Max(1, System.Math.Min(4, System.Environment.ProcessorCount))
+            };
+            System.Threading.Tasks.Parallel.For(0, fallbackFiles.Count, parallelOptions, index => {
                 if (TryReadSystemFontNameMetadata(fallbackFiles[index],
                         out System.Collections.Generic.List<TrueTypeNameMetadata>? faces, out _)) probed[index] = faces;
             });
