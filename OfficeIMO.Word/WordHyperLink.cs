@@ -51,15 +51,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public System.Uri? Uri {
             get {
-                var part = ResolveRelationshipPart();
-                var list = part?.HyperlinkRelationships ?? Enumerable.Empty<HyperlinkRelationship>();
-                foreach (var l in list) {
-                    if (l.Id == _hyperlink.Id) {
-                        return l.Uri;
-                    }
-                }
-
-                return null;
+                return FindHyperlinkRelationship(ResolveRelationshipPart(), _hyperlink.Id?.Value)?.Uri;
             }
             set {
                 if (value != null) {
@@ -96,6 +88,17 @@ namespace OfficeIMO.Word {
         internal RunProperties? _runProperties {
             get {
                 return _run?.RunProperties;
+            }
+        }
+
+        // Relationship ids are unique within their owner, which indexes them, so a lookup doesn't
+        // walk every hyperlink relationship of the part as searching HyperlinkRelationships does.
+        internal static HyperlinkRelationship? FindHyperlinkRelationship(OpenXmlPartContainer? owner, string? id) {
+            if (owner == null || string.IsNullOrEmpty(id)) return null;
+            try {
+                return owner.GetReferenceRelationship(id!) as HyperlinkRelationship;
+            } catch (KeyNotFoundException) {
+                return null;
             }
         }
 
@@ -297,7 +300,7 @@ namespace OfficeIMO.Word {
         public void RemoveHyperLink(bool includingParagraph = true) {
             if (!string.IsNullOrEmpty(_hyperlink.Id)) {
                 OpenXmlPart? part = ResolveRelationshipPart();
-                var rel = part?.HyperlinkRelationships?.FirstOrDefault(r => r.Id == _hyperlink.Id);
+                var rel = FindHyperlinkRelationship(part, _hyperlink.Id?.Value);
                 if (rel != null) {
                     part!.DeleteReferenceRelationship(rel);
                 }

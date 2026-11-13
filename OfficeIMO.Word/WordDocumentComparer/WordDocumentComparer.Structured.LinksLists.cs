@@ -306,8 +306,7 @@ namespace OfficeIMO.Word {
                 return string.Empty;
             }
 
-            HyperlinkRelationship? relationship = part.HyperlinkRelationships
-                .FirstOrDefault(item => string.Equals(item.Id, relationshipId, StringComparison.Ordinal));
+            HyperlinkRelationship? relationship = WordHyperLink.FindHyperlinkRelationship(part, relationshipId);
             return relationship?.Uri.ToString() ?? string.Empty;
         }
 

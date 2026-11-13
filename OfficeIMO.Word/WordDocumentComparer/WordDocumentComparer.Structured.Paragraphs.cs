@@ -707,7 +707,7 @@ namespace OfficeIMO.Word {
                 return relationshipId;
             }
 
-            HyperlinkRelationship? hyperlinkRelationship = part.HyperlinkRelationships.FirstOrDefault(item => item.Id == relationshipId);
+            HyperlinkRelationship? hyperlinkRelationship = WordHyperLink.FindHyperlinkRelationship(part, relationshipId);
             if (hyperlinkRelationship != null) {
                 return hyperlinkRelationship.Uri.ToString();
             }

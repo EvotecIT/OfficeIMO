@@ -173,7 +173,7 @@ namespace OfficeIMO.Word {
                 return "external:" + externalRelationship.RelationshipType + ":" + externalRelationship.Uri;
             }
 
-            HyperlinkRelationship? hyperlinkRelationship = part.HyperlinkRelationships.FirstOrDefault(item => item.Id == relationshipId);
+            HyperlinkRelationship? hyperlinkRelationship = WordHyperLink.FindHyperlinkRelationship(part, relationshipId);
             if (hyperlinkRelationship != null) {
                 return "hyperlink:" + hyperlinkRelationship.Uri + ":" + hyperlinkRelationship.IsExternal.ToString(System.Globalization.CultureInfo.InvariantCulture);
             }

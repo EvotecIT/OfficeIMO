@@ -17,7 +17,7 @@ public partial class WordImage {
             if (sourceOwner.TryGetPartById(id, out var part) && part is ImagePart imagePart) {
                 var destinationPart = destinationOwner.AddPart(imagePart);
                 mapped = destinationOwner.GetIdOfPart(destinationPart);
-            } else if (sourceOwner.HyperlinkRelationships.FirstOrDefault(item => item.Id == id) is HyperlinkRelationship hyperlink) {
+            } else if (WordHyperLink.FindHyperlinkRelationship(sourceOwner, id) is HyperlinkRelationship hyperlink) {
                 mapped = destinationOwner.AddHyperlinkRelationship(hyperlink.Uri, hyperlink.IsExternal).Id;
             } else {
                 var external = sourceOwner.ExternalRelationships.FirstOrDefault(item => item.Id == id)
