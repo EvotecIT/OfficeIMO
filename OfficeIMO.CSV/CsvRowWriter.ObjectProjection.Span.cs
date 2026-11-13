@@ -1,4 +1,5 @@
 #if NET8_0_OR_GREATER
+using System.Runtime.Intrinsics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -28,7 +29,8 @@ public sealed partial class CsvRowWriter
         if (text == null) return;
         // Projected rows are comma-separated; the room checked above holds every escaped form of the text.
         Span<char> destination = _propertyCharacters.AsSpan(_propertyCharacterCount);
-        if (CsvWriter.TryCopyPlainText(text, destination, out _))
+        // Text the vector escape handles skips the plain copy, which stops at the first character needing quotes.
+        if ((text.Length < Vector128<ushort>.Count || text.Length > CsvWriter.EscapedShortTextLength) && CsvWriter.TryCopyPlainText(text, destination, out _))
             _propertyCharacterCount += text.Length;
         else if (text.Length <= CsvWriter.EscapedShortTextLength && CsvWriter.TryWriteEscapedShortText(text, destination, out int written))
             _propertyCharacterCount += written;

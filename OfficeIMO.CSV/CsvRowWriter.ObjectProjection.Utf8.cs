@@ -1,4 +1,5 @@
 #if NET8_0_OR_GREATER
+using System.Runtime.Intrinsics;
 using System.Buffers;
 using OfficeIMO.SharedSource.IO;
 
@@ -46,7 +47,8 @@ public sealed partial class CsvRowWriter
 
             // Projected rows are comma-separated; the room checked above holds every escaped form of ASCII text.
             Span<byte> destination = _propertyBytes.AsSpan(position);
-            if (CsvWriter.TryCopyPlainText(text, destination, out _))
+            // Text the vector escape handles skips the plain copy, which stops at the first character needing quotes.
+            if ((length < Vector128<ushort>.Count || length > CsvWriter.EscapedShortTextLength) && CsvWriter.TryCopyPlainText(text, destination, out _))
             {
                 _propertyCharacterCount = position + length;
                 return;

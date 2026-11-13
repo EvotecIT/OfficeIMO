@@ -4,6 +4,7 @@ using System.Data;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using System.Text;
 
 namespace OfficeIMO.CSV;
@@ -272,7 +273,7 @@ internal static partial class CsvWriter
             }
 
             Span<TChar> destination = free.Slice(position);
-            if (!quotesExpected && TryCopyPlainText(text, destination, out _))
+            if (!quotesExpected && text.Length < Vector128<ushort>.Count && TryCopyPlainText(text, destination, out _))
             {
                 position += text.Length;
                 return;
@@ -316,6 +317,21 @@ internal static partial class CsvWriter
     internal static bool TryWriteEscapedShortText<TChar>(string text, Span<TChar> destination, out int written)
         where TChar : unmanaged
     {
+        if (Vector128.IsHardwareAccelerated && text.Length >= Vector128<ushort>.Count)
+        {
+            // Text without quote characters, the usual case, is checked and copied eight units at a time.
+            if (TryWriteEscapedUnquotedText(text, destination, out written, out bool hasQuote))
+            {
+                return true;
+            }
+
+            if (!hasQuote)
+            {
+                // Non-ASCII text in UTF-8.
+                return false;
+            }
+        }
+
         ref TChar target = ref MemoryMarshal.GetReference(destination);
         int position = 1;
         bool special = false;
@@ -354,6 +370,92 @@ internal static partial class CsvWriter
             written = position - 1;
         }
 
+        return true;
+    }
+
+    /// <summary>
+    /// The vector path of <see cref="TryWriteEscapedShortText{TChar}"/> for text of at least eight units: finds commas,
+    /// quotes, line breaks and, in UTF-8, non-ASCII characters eight at a time (the last eight overlapping the ones
+    /// before), then copies the text after an opening quote when it needs one. False with <paramref name="hasQuote"/>
+    /// set leaves text holding a quote character to the one-pass loop, which doubles it; false without it is
+    /// non-ASCII text in UTF-8, which the caller encodes.
+    /// </summary>
+    private static bool TryWriteEscapedUnquotedText<TChar>(string text, Span<TChar> destination, out int written, out bool hasQuote)
+        where TChar : unmanaged
+    {
+        written = 0;
+        hasQuote = false;
+        int length = text.Length;
+        if (destination.Length < length + 2)
+        {
+            // Left to the one-pass loop, which relies on the caller's room for the escaped text.
+            hasQuote = true;
+            return false;
+        }
+
+        ref ushort source = ref Unsafe.As<char, ushort>(ref MemoryMarshal.GetReference(text.AsSpan()));
+        nuint last = (nuint)(length - Vector128<ushort>.Count);
+        Vector128<ushort> quotes = Vector128<ushort>.Zero;
+        Vector128<ushort> specials = Vector128<ushort>.Zero;
+        Vector128<ushort> nonAscii = Vector128<ushort>.Zero;
+        for (nuint offset = 0; ; offset = Math.Min(offset + (nuint)Vector128<ushort>.Count, last))
+        {
+            Vector128<ushort> units = Vector128.LoadUnsafe(ref source, offset);
+            quotes |= Vector128.Equals(units, Vector128.Create((ushort)'"'));
+            specials |= Vector128.Equals(units, Vector128.Create((ushort)',')) | Vector128.Equals(units, Vector128.Create((ushort)'\n'))
+                | Vector128.Equals(units, Vector128.Create((ushort)'\r'));
+            if (typeof(TChar) == typeof(byte))
+            {
+                nonAscii |= Vector128.GreaterThan(units, Vector128.Create((ushort)127));
+            }
+
+            if (offset == last)
+            {
+                break;
+            }
+        }
+
+        if (typeof(TChar) == typeof(byte) && nonAscii != Vector128<ushort>.Zero)
+        {
+            return false;
+        }
+
+        if (quotes != Vector128<ushort>.Zero)
+        {
+            hasQuote = true;
+            return false;
+        }
+
+        int start = specials == Vector128<ushort>.Zero ? 0 : 1;
+        ref TChar target = ref Unsafe.Add(ref MemoryMarshal.GetReference(destination), start);
+        for (nuint offset = 0; ; offset = Math.Min(offset + (nuint)Vector128<ushort>.Count, last))
+        {
+            Vector128<ushort> units = Vector128.LoadUnsafe(ref source, offset);
+            if (typeof(TChar) == typeof(byte))
+            {
+                Unsafe.WriteUnaligned(ref Unsafe.As<TChar, byte>(ref Unsafe.Add(ref target, offset)),
+                    Vector128.Narrow(units, units).AsUInt64().ToScalar());
+            }
+            else
+            {
+                units.StoreUnsafe(ref Unsafe.As<TChar, ushort>(ref target), offset);
+            }
+
+            if (offset == last)
+            {
+                break;
+            }
+        }
+
+        if (start == 0)
+        {
+            written = length;
+            return true;
+        }
+
+        destination[0] = CsvShortestDouble.Unit<TChar>('"');
+        destination[length + 1] = CsvShortestDouble.Unit<TChar>('"');
+        written = length + 2;
         return true;
     }
 
