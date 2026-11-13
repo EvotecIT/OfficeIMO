@@ -20,6 +20,14 @@ Tomlyn (BSD-2, TOML 1.1, with a trivia-preserving syntax tree) is the main .NET 
 - **Errors:** `TomlException` carries a stable `TomlErrorCodes` code and a position. TOML has no recoverable findings, so there are no load diagnostics; every rule violation fails the load, as the specification requires.
 - **Positions:** 0-based offsets, 1-based lines and columns, like YAML.
 
+PSWriteOffice's TOML commands are built on the same public API, with `Toml` as the format name, following the YAML command set:
+
+| Command | Job |
+|---|---|
+| `New-OfficeToml` / `Open-OfficeToml` / `Save-OfficeToml` / `Close-OfficeToml` | The standard document lifecycle, including the content-block form that saves on exit |
+| `Get-OfficeTomlNode -Select` / `Set-OfficeTomlNode -Select -Value` / `Remove-OfficeTomlNode -Select` | Read and edit by path inside a live document. `-Select` uses the C# path grammar; `-Path` stays the file, as everywhere |
+| `Import-OfficeToml -Path` / `Export-OfficeToml -InputObject -Path` / `ConvertFrom-OfficeToml` / `ConvertTo-OfficeToml` | Objects from and to TOML text and files |
+
 ## Layers
 
 ```
@@ -80,6 +88,7 @@ Exceeding a limit throws `TomlLimitExceededException` with the limit's name. Loa
 |---|---|---|
 | `OfficeIMO.Toml` | `OfficeIMO.Core` | Reader, writer, model, editing |
 | `OfficeIMO.Reader.Toml` | `OfficeIMO.Reader.Core`, `OfficeIMO.Toml` | Path/type/value chunks and Markdown projection |
+| `OfficeIMO.Markdown` | `OfficeIMO.Core`, `OfficeIMO.Yaml`, `OfficeIMO.Toml` | `+++` front matter read, edited and saved through `TomlDocument` on the same `FrontMatterBlock` as YAML front matter |
 
 Targets: netstandard2.0, net472, net8.0 and net10.0, with `System.Memory` and `System.Buffers` as the only polyfills.
 

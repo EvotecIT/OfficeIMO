@@ -68,6 +68,20 @@ internal static class TomlPowerShellValue {
         return document;
     }
 
+    /// <summary>
+    /// Converts a value for Set-OfficeTomlNode: nodes and scalars as they are, hashtables and objects as inline
+    /// tables, and lists as arrays. Objects nest at most <see cref="MaxDepth"/> levels, and nested nulls are omitted
+    /// and counted, because TOML has no null.
+    /// </summary>
+    /// <exception cref="ArgumentException">The value is null.</exception>
+    internal static object ToValue(object? value, out int nulls, out bool truncated) {
+        truncated = false;
+        nulls = 0;
+        object? projected = Project(value, 0, MaxDepth, ref truncated);
+        if (projected is null) throw new ArgumentException("TOML has no null; use Remove-OfficeTomlNode to remove a value.");
+        return WithoutNulls(projected, ref nulls)!;
+    }
+
     // A table's values come before its sub-tables, as TOML requires.
     private static void WriteTable(TomlTable table, Dictionary<string, object?> members, ref int nulls) {
         foreach (KeyValuePair<string, object?> member in members) {
