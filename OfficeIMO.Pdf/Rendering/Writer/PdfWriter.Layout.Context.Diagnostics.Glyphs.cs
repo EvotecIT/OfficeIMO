@@ -11,9 +11,70 @@ internal static partial class PdfWriter {
             if (string.IsNullOrWhiteSpace(text)) return Array.Empty<(List<List<OfficePoint>> Contours, bool NominalBounds)>();
             List<List<OfficePoint>>? ResolveOutline(IOfficeBoundedFontProgram font, int glyph, double size, GlyphPaintPlacement placement) =>
                 DiagnosticGlyphOutline(font, glyph, size, placement, contained);
+            PdfCreateOptions encodingOptions = DiagnosticTextOptions;
+            PdfTextShowCommand command = DiagnosticTextCommand(segment, text);
+            if (contained != null && SegmentGlyphInkContained(segment, text, x, baseline, command, contained))
+                return Array.Empty<(List<List<OfficePoint>> Contours, bool NominalBounds)>();
             return EnumerateGlyphPaintContours(segment, text, x, baseline, currentOpts,
-                _diagnosticFonts, DiagnosticTextOptions, DiagnosticTextCommand(segment, text), cancellationToken: cancellationToken,
+                _diagnosticFonts, encodingOptions, command, cancellationToken: cancellationToken,
                 glyphOutline: ResolveOutline, fontCacheCleared: ClearDiagnosticGlyphCache, nominalContained: contained);
+        }
+
+        /// <summary>
+        /// Proves for a whole segment what <see cref="DiagnosticGlyphOutline"/> proves glyph by glyph: that every
+        /// inked glyph's placed outline extrema lie inside the paint clips. It places each glyph exactly as the
+        /// glyph walk does and asks <paramref name="contained"/> once about the union of those boxes. The clip test
+        /// maps both axes with positive scales, so the union passes exactly when every glyph would pass. Any glyph
+        /// the per-glyph route would not settle by its extrema fails the proof, and the caller walks the glyphs.
+        /// </summary>
+        private bool SegmentGlyphInkContained(RichSeg segment, string text, double x, double baseline,
+            PdfTextShowCommand command, Func<DiagnosticPaintBounds, bool> contained) {
+            text = WithoutOptionalBreaks(text);
+            IOfficeBoundedFontProgram? outline = GetGlyphPaintFont(segment, currentOpts, _diagnosticFonts, ClearDiagnosticGlyphCache);
+            if (outline is not OfficeTrueTypeFont) return false;
+            double size = EffectiveRichFontSize(segment.FontSize, segment.Baseline);
+            double scale = segment.HorizontalTextScaling / 100D;
+            if (!(scale > 0D) || double.IsInfinity(scale)) return false;
+            var advances = new RichGlyphAdvanceReader(segment, text, command, currentOpts);
+            var glyphs = command.VisualGlyphs;
+            string hex = command.GlyphHex;
+            int count = glyphs?.Count ?? hex.Length / 4;
+            bool stylesResolved = false, syntheticBold = false;
+            double widen = 0D, cursor = 0D;
+            double left = double.PositiveInfinity, top = double.PositiveInfinity;
+            double right = double.NegativeInfinity, bottom = double.NegativeInfinity;
+            bool inked = false;
+            for (int index = 0; index < count; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int glyphId = glyphs != null ? glyphs[index].GlyphId : GetGlyphPaintId(hex, index * 4);
+                if (glyphId > 0) {
+                    if (!stylesResolved) {
+                        // A sheared placement is not monotone in x, so its glyphs keep the outline walk.
+                        if (currentOpts.NeedsSyntheticOblique(segment.Font, segment.NamedFont)) return false;
+                        syntheticBold = currentOpts.NeedsSyntheticBold(segment.Font, segment.NamedFont);
+                        widen = syntheticBold ? ContentStreamBuilder.SyntheticBoldStrokeWidth(size) / 2D * (1D + 1E-9D) + 1E-9D : 0D;
+                        stylesResolved = true;
+                    }
+                    double offsetX = glyphs != null ? glyphs[index].OffsetX1000 * size / 1000D : 0D;
+                    double offsetY = glyphs != null ? glyphs[index].OffsetY1000 * size / 1000D : 0D;
+                    var placement = new GlyphPaintPlacement(x + cursor, baseline, offsetX, offsetY, scale, 0D, syntheticBold);
+                    var cached = GetDiagnosticGlyphOutline(outline, glyphId, size);
+                    if (!HasNoOutlinePoints(cached.Contours)) {
+                        if (!cached.Bounds.IsFinite) return false;
+                        OfficePoint first = placement.TransformPoint(new OfficePoint(cached.Bounds.Left, cached.Bounds.Bottom));
+                        OfficePoint second = placement.TransformPoint(new OfficePoint(cached.Bounds.Right, cached.Bounds.Top));
+                        var bounds = new DiagnosticPaintBounds(first.X - widen, first.Y - widen, second.X + widen, second.Y + widen);
+                        if (!bounds.IsFinite) return false;
+                        left = Math.Min(left, bounds.Left);
+                        top = Math.Min(top, bounds.Top);
+                        right = Math.Max(right, bounds.Right);
+                        bottom = Math.Max(bottom, bounds.Bottom);
+                        inked = true;
+                    }
+                }
+                cursor += advances.Get(index);
+            }
+            return !inked || contained(new DiagnosticPaintBounds(left, top, right, bottom));
         }
 
         private const int DiagnosticTextCommandLimit = 4096;
