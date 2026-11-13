@@ -31,17 +31,26 @@ internal static class HtmlRenderer {
         var css = BuildCss(options, out string? cssLinkTag, out string? cssToWrite, out string? extraHeadLinks);
         options._externalCssContentToWrite = cssToWrite; // pass back for SaveAsHtml
 
-        // Insert a top anchor for back-to-top links
+        // The body is written once into one builder: the optional article wrapper, theme toggle and
+        // top anchor for back-to-top links, then the blocks.
         var blocksForRendering = doc.Blocks;
-        string bodyContent = (options.BackToTopLinks ? "<a id=\"top\"></a>" : string.Empty) + RenderBody(doc, blocksForRendering, options, headingCatalog);
+        var body = new StringBuilder();
+        bool wrapInArticle = !string.IsNullOrEmpty(options.BodyClass);
+        if (wrapInArticle) {
+            body.Append("<article class=\"").Append(HtmlTextEncoder.Encode(options.BodyClass, options)).Append("\">");
+        }
         if (options.ThemeToggle) {
             const string toggle = "<button class=\"theme-toggle\" data-theme-toggle title=\"Toggle theme\" aria-label=\"Toggle theme\">🌓</button>";
-            bodyContent = toggle + bodyContent;
+            body.Append(toggle);
         }
-        if (!string.IsNullOrEmpty(options.BodyClass)) {
-            // Wrap in article
-            bodyContent = $"<article class=\"{HtmlTextEncoder.Encode(options.BodyClass, options)}\">" + bodyContent + "</article>";
+        if (options.BackToTopLinks) {
+            body.Append("<a id=\"top\"></a>");
         }
+        AppendBody(body, doc, blocksForRendering, options, headingCatalog);
+        if (wrapInArticle) {
+            body.Append("</article>");
+        }
+        string bodyContent = body.ToString();
 
         StringBuilder head = new StringBuilder();
         if (!string.IsNullOrEmpty(cssLinkTag)) head.Append(cssLinkTag);
@@ -115,7 +124,7 @@ internal static class HtmlRenderer {
         return parts;
     }
 
-    private static string RenderBody(MarkdownDocument document, System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, MarkdownHtmlExportOptions options, MarkdownHeadingCatalog headingCatalog) {
+    private static void AppendBody(StringBuilder sb, MarkdownDocument document, System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, MarkdownHtmlExportOptions options, MarkdownHeadingCatalog headingCatalog) {
         var context = new MarkdownBodyRenderContext(document, blocks, options, headingCatalog);
         using var _inlineContext = HtmlRenderContext.PushBodyContext(context);
         var plan = MarkdownBodyRenderPlan.Create(blocks);
@@ -126,25 +135,26 @@ internal static class HtmlRenderer {
             var navHtml = sidebar.RenderHtml(context);
             var content = new StringBuilder();
             for (int i = 0; i < plan.RenderBlocks.Count; i++) {
-                AppendBodyBlock(content, plan.RenderBlocks[i], context);
+                AppendBodyBlock(content, 0, plan.RenderBlocks[i], context);
             }
             if (footnotes.Count > 0) content.Append(BuildFootnotesSectionHtml(footnotes, context));
-            return sidebar.WrapSidebarLayoutHtml(navHtml, content.ToString());
+            sb.Append(sidebar.WrapSidebarLayoutHtml(navHtml, content.ToString()));
+            return;
         }
 
-        var sb = new StringBuilder();
+        // Output written before the first block (the article wrapper) is not a preceding block.
+        int bodyStart = sb.Length;
         for (int i = 0; i < plan.RenderBlocks.Count; i++) {
-            AppendBodyBlock(sb, plan.RenderBlocks[i], context);
+            AppendBodyBlock(sb, bodyStart, plan.RenderBlocks[i], context);
         }
         if (footnotes.Count > 0) sb.Append(BuildFootnotesSectionHtml(footnotes, context));
-        return sb.ToString();
     }
 
-    private static void AppendBodyBlock(StringBuilder builder, IMarkdownBlock block, MarkdownBodyRenderContext context) {
-        if (block is HtmlRawBlock { IsParsedBlock: true } && builder.Length > 0 && builder[builder.Length - 1] != '\n') {
+    private static void AppendBodyBlock(StringBuilder builder, int bodyStart, IMarkdownBlock block, MarkdownBodyRenderContext context) {
+        if (block is HtmlRawBlock { IsParsedBlock: true } && builder.Length > bodyStart && builder[builder.Length - 1] != '\n') {
             builder.Append('\n');
         }
-        builder.Append(RenderBodyBlock(block, context));
+        MarkdownBlockRenderDispatcher.AppendHtml(builder, block, context);
     }
 
     private static string RenderBodyBlock(IMarkdownBlock block, MarkdownBodyRenderContext context) {

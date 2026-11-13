@@ -40,6 +40,64 @@ internal static class MarkdownBlockRenderDispatcher {
         return block.RenderHtml();
     }
 
+    /// <summary>Appends the same HTML as <see cref="RenderHtml(IMarkdownBlock)"/> using the ambient body context.</summary>
+    internal static void AppendHtml(StringBuilder builder, IMarkdownBlock block) {
+        if (block == null) {
+            return;
+        }
+
+        var context = HtmlRenderContext.BodyContext;
+        if (context == null) {
+            System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
+            AppendDefaultHtml(builder, block);
+            return;
+        }
+
+        AppendHtml(builder, block, context);
+    }
+
+    /// <summary>Appends the same HTML as <see cref="RenderHtml(IMarkdownBlock, MarkdownBodyRenderContext)"/>.</summary>
+    internal static void AppendHtml(StringBuilder builder, IMarkdownBlock block, MarkdownBodyRenderContext context) {
+        if (block == null) {
+            return;
+        }
+
+        System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
+
+        var overridden = TryRenderSyntaxBlockHtmlOverride(block, context);
+        if (overridden != null) {
+            builder.Append(overridden);
+            return;
+        }
+
+        overridden = TryRenderBlockHtmlOverride(block, context);
+        if (overridden != null) {
+            builder.Append(overridden);
+            return;
+        }
+
+        if (block is IContextualHtmlMarkdownBlock contextualBlock) {
+            if (block is IHtmlAppendableContextualMarkdownBlock appendable) {
+                appendable.AppendHtml(builder, context);
+            } else {
+                builder.Append(contextualBlock.RenderHtml(context));
+            }
+
+            return;
+        }
+
+        AppendDefaultHtml(builder, block);
+    }
+
+    private static void AppendDefaultHtml(StringBuilder builder, IMarkdownBlock block) {
+        if (block is IHtmlAppendableMarkdownBlock appendable) {
+            appendable.AppendHtml(builder);
+            return;
+        }
+
+        builder.Append(block.RenderHtml());
+    }
+
     internal static string RenderTightListItemHtml(IMarkdownBlock block) {
         if (block == null) {
             return string.Empty;

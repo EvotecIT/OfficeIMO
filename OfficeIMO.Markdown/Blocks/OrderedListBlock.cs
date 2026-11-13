@@ -19,7 +19,7 @@ public enum MarkdownOrderedListMarkerStyle {
 /// <summary>
 /// Ordered (numbered) list.
 /// </summary>
-public sealed class OrderedListBlock : MarkdownBlock, IMarkdownListBlock, ISyntaxMarkdownBlock {
+public sealed class OrderedListBlock : MarkdownBlock, IMarkdownListBlock, ISyntaxMarkdownBlock, IHtmlAppendableMarkdownBlock {
     /// <summary>Items within the ordered list.</summary>
     public List<ListItem> Items { get; } = new List<ListItem>(4);
     /// <summary>Starting number (default 1).</summary>
@@ -57,6 +57,15 @@ public sealed class OrderedListBlock : MarkdownBlock, IMarkdownListBlock, ISynta
             Attributes,
             _ => RenderOrderedListAttributes(),
             renderItemAttributes);
+
+    void IHtmlAppendableMarkdownBlock.AppendHtml(StringBuilder builder) =>
+        MarkdownListRendering.AppendHtml(
+            builder,
+            "ol",
+            Items,
+            Attributes,
+            _ => RenderOrderedListAttributes(),
+            renderItemAttributes: false);
 
     IReadOnlyList<ListItem> IMarkdownListBlock.ListItems => Items;
     MarkdownSyntaxKind IMarkdownListBlock.ListSyntaxKind => MarkdownSyntaxKind.OrderedList;

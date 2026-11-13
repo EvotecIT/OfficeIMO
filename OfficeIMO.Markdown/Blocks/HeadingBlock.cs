@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Markdown heading (ATX) block, levels 1–6.
 /// </summary>
-public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock, IContextualHtmlMarkdownBlock, IHeadingMarkdownBlock {
+public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock, IContextualHtmlMarkdownBlock, IHeadingMarkdownBlock, IHtmlAppendableContextualMarkdownBlock {
     private HeadingBlockSyntaxMetadata? _syntaxMetadata;
 
     /// <summary>Heading level constrained to [1,6].</summary>
@@ -197,16 +197,24 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     }
 
     string IContextualHtmlMarkdownBlock.RenderHtml(MarkdownBodyRenderContext context) {
+        var sb = new System.Text.StringBuilder();
+        AppendHtml(sb, context);
+        return sb.ToString();
+    }
+
+    void IHtmlAppendableContextualMarkdownBlock.AppendHtml(StringBuilder builder, MarkdownBodyRenderContext context) =>
+        AppendHtml(builder, context);
+
+    private void AppendHtml(StringBuilder sb, MarkdownBodyRenderContext context) {
         var id = !SuppressAutoIdentifier && context.Options.AutoHeadingIdentifiers
             ? context.HeadingCatalog.GetHeadingAnchor(this)
             : string.Empty;
 
-        var sb = new System.Text.StringBuilder();
         sb.Append("<h").Append(Level);
         var effectiveId = !string.IsNullOrWhiteSpace(Attributes.ElementId) ? Attributes.ElementId : id;
         sb.Append(MarkdownHtmlAttributes.Render(Attributes, context.Options, id));
         sb.Append(">");
-        sb.Append(Inlines.RenderHtml());
+        Inlines.AppendHtml(sb);
         if (!string.IsNullOrEmpty(effectiveId) && (context.Options.IncludeAnchorLinks || context.Options.ShowAnchorIcons)) {
             var icon = HtmlTextEncoder.Encode(context.Options.AnchorIcon ?? "🔗", context.Options);
             sb.Append("<a class=\"heading-anchor\" href=\"#")
@@ -223,8 +231,6 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
             var text = HtmlTextEncoder.Encode(context.Options.BackToTopText ?? "Back to top", context.Options);
             sb.Append("<div class=\"back-to-top\"><a href=\"#top\">").Append(text).Append("</a></div>");
         }
-
-        return sb.ToString();
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
