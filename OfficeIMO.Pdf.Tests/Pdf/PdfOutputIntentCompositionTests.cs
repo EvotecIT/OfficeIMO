@@ -168,6 +168,29 @@ public sealed class PdfOutputIntentCompositionTests {
         Assert.Equal(384, raster.Height);
     }
 
+    [Fact]
+    public void CancellingSvgScales_UseTheIdentityProofSurfaceWithinTheRasterBudget() {
+        OfficeDrawing page = PdfReadDocument.Open(File.ReadAllBytes(Fixture("reportlab-output-intent.pdf"))).Pages[1].ToDrawing();
+        var inner = new OfficeDrawing(128, 96).AddEffectDrawing(page, OfficeTransform.Scale(0.01D, 1D));
+        var nested = new OfficeDrawing(128, 96).AddEffectDrawing(inner, OfficeTransform.Scale(100D, 1D));
+        var options = new OfficeImageExportOptions { MaximumRasterPixels = 20_000 };
+
+        OfficeRasterImage identity = EmbeddedRaster(new OfficeDrawing(128, 96).AddEffectDrawing(page, OfficeTransform.Identity));
+        OfficeRasterImage actual = EmbeddedRaster(nested);
+        Assert.Equal(128, actual.Width);
+        Assert.Equal(96, actual.Height);
+        Assert.Equal(identity.GetPixels(), actual.GetPixels());
+
+        OfficeRasterImage EmbeddedRaster(OfficeDrawing drawing) {
+            OfficeImageExportResult result = drawing.ToImage(OfficeImageExportFormat.Svg, options);
+            XElement image = Assert.Single(XDocument.Parse(Encoding.UTF8.GetString(result.Bytes)).Descendants(),
+                element => element.Name.LocalName == "image");
+            Assert.True(OfficePngReader.TryDecode(Convert.FromBase64String(image.Attribute("href")!.Value.Split(',')[1]),
+                out OfficeRasterImage? raster));
+            return raster!;
+        }
+    }
+
     [Theory]
     [InlineData(1D)]
     [InlineData(1.7D)]

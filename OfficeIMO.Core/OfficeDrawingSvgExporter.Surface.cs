@@ -94,7 +94,7 @@ public static partial class OfficeDrawingSvgExporter {
             DiagnosticSink = diagnosticSink, DiagnosticSource = diagnosticSource
         };
         OfficeRasterCanvas textMetrics = OfficeDrawingTextLayout.CreateMetrics(drawing, cancellationToken);
-        AppendDrawingContent(builder, drawing, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, rasterOptions, textMetrics, drawing.SvgTextAsPaths, requiredFontFamilies);
+        AppendDrawingContent(builder, drawing, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, rasterOptions, OfficeTransform.Identity, textMetrics, drawing.SvgTextAsPaths, requiredFontFamilies);
         if (drawing.Fonts.Faces.Count > 0) {
             AppendEmbeddedFonts(builder, drawing.Fonts, cancellationToken, idPrefix,
                 requiredFontFamilies);

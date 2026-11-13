@@ -6,17 +6,17 @@ public static partial class OfficeDrawingSvgExporter {
     private static void AppendDrawingContent(StringBuilder builder, OfficeDrawing drawing,
         IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId,
         CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget,
-        OfficeDrawingRasterRenderOptions rasterOptions, OfficeRasterCanvas textMetrics, bool textAsPaths,
+        OfficeDrawingRasterRenderOptions rasterOptions, OfficeTransform rasterTransform, OfficeRasterCanvas textMetrics, bool textAsPaths,
         System.Collections.Generic.ISet<string> requiredFontFamilies) {
         if (drawing.PostCompositionColorTransform == null) {
             AppendElements(builder, drawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId,
-                cancellationToken, tilingExpansionBudget, rasterOptions, textMetrics, textAsPaths, requiredFontFamilies);
+                cancellationToken, tilingExpansionBudget, rasterOptions, rasterTransform, textMetrics, textAsPaths, requiredFontFamilies);
             return;
         }
 
         // Portable SVG has no destination ICC transform for a composited group.
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
-            Scale = rasterOptions.Scale,
+            Scale = rasterOptions.Scale * GetRasterDensity(rasterTransform),
             MaximumRasterPixels = rasterOptions.MaximumRasterPixels,
             ImageCodec = imageCodec,
             DiagnosticSink = rasterOptions.DiagnosticSink,
@@ -48,19 +48,12 @@ public static partial class OfficeDrawingSvgExporter {
     }
 
     // sqrt(||A||1 * ||A||infinity) bounds the placement density without overflowing squared coefficients.
-    private static OfficeDrawingRasterRenderOptions TransformRasterOptions(
-        OfficeDrawingRasterRenderOptions options, OfficeTransform transform) {
+    private static double GetRasterDensity(OfficeTransform transform) {
         double largest = Math.Max(Math.Max(Math.Abs(transform.M11), Math.Abs(transform.M12)),
             Math.Max(Math.Abs(transform.M21), Math.Abs(transform.M22)));
-        if (largest == 0D) return options;
+        if (largest == 0D) return 1D;
         double a = Math.Abs(transform.M11) / largest, b = Math.Abs(transform.M12) / largest;
         double c = Math.Abs(transform.M21) / largest, d = Math.Abs(transform.M22) / largest;
-        double density = largest * Math.Sqrt(Math.Max(a + b, c + d) * Math.Max(a + c, b + d));
-        return new OfficeDrawingRasterRenderOptions {
-            Scale = options.Scale * density,
-            MaximumRasterPixels = options.MaximumRasterPixels,
-            DiagnosticSink = options.DiagnosticSink,
-            DiagnosticSource = options.DiagnosticSource
-        };
+        return largest * Math.Sqrt(Math.Max(a + b, c + d) * Math.Max(a + c, b + d));
     }
 }

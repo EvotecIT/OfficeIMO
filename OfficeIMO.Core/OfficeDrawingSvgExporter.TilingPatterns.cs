@@ -4,10 +4,10 @@ using System.Text;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeDrawingSvgExporter {
-    private static void AppendTilingPattern(StringBuilder sb, OfficeDrawingTilingPattern pattern, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, OfficeDrawingRasterRenderOptions rasterOptions, OfficeRasterCanvas textMetrics, bool textAsPaths, System.Collections.Generic.ISet<string> requiredFontFamilies) {
+    private static void AppendTilingPattern(StringBuilder sb, OfficeDrawingTilingPattern pattern, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, OfficeDrawingRasterRenderOptions rasterOptions, OfficeTransform rasterTransform, OfficeRasterCanvas textMetrics, bool textAsPaths, System.Collections.Generic.ISet<string> requiredFontFamilies) {
         if (pattern.Opacity <= 0D) return;
         textMetrics = textMetrics.WithDrawingTextProfile(pattern.InnerTile);
-        rasterOptions = TransformRasterOptions(rasterOptions, pattern.Transform);
+        rasterTransform = pattern.Transform.Then(rasterTransform);
         string clipId = idPrefix + "officeimo-pattern-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
         string tileClipId = idPrefix + "officeimo-pattern-tile-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
         string tileId = idPrefix + "officeimo-pattern-tile-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
@@ -23,7 +23,7 @@ public static partial class OfficeDrawingSvgExporter {
         tilingExpansionBudget.BeginTile(pattern.MaximumTileCount);
         long descendantExpansion;
         try {
-            AppendDrawingContent(sb, pattern.InnerTile, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, rasterOptions, textMetrics, textAsPaths, requiredFontFamilies);
+            AppendDrawingContent(sb, pattern.InnerTile, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, rasterOptions, rasterTransform, textMetrics, textAsPaths, requiredFontFamilies);
             descendantExpansion = tilingExpansionBudget.EndTile();
         } catch {
             tilingExpansionBudget.CancelTile();

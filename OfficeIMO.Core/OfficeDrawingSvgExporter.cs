@@ -148,7 +148,7 @@ public static partial class OfficeDrawingSvgExporter {
         ref int gradientId,
         ref int clipPathId,
         System.Threading.CancellationToken cancellationToken,
-        SvgTilingExpansionBudget tilingExpansionBudget, OfficeDrawingRasterRenderOptions rasterOptions,
+        SvgTilingExpansionBudget tilingExpansionBudget, OfficeDrawingRasterRenderOptions rasterOptions, OfficeTransform rasterTransform,
         OfficeRasterCanvas textMetrics, bool textAsPaths, System.Collections.Generic.ISet<string> requiredFontFamilies) {
         for (int i = 0; i < elements.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -196,13 +196,13 @@ public static partial class OfficeDrawingSvgExporter {
                     AppendImagePattern(sb, imagePattern, imageCodec, idPrefix, ref clipPathId, cancellationToken);
                     break;
                 case OfficeDrawingTilingPattern tilingPattern:
-                    AppendTilingPattern(sb, tilingPattern, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, rasterOptions, textMetrics, textAsPaths, requiredFontFamilies);
+                    AppendTilingPattern(sb, tilingPattern, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, rasterOptions, rasterTransform, textMetrics, textAsPaths, requiredFontFamilies);
                     break;
                 case OfficeDrawingGroup drawingGroup:
-                    AppendGroup(sb, drawingGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, rasterOptions, textMetrics, textAsPaths, requiredFontFamilies);
+                    AppendGroup(sb, drawingGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, rasterOptions, rasterTransform, textMetrics, textAsPaths, requiredFontFamilies);
                     break;
                 case OfficeDrawingEffectGroup effectGroup:
-                    AppendEffectGroup(sb, effectGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, rasterOptions, textMetrics, textAsPaths, requiredFontFamilies);
+                    AppendEffectGroup(sb, effectGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, rasterOptions, rasterTransform, textMetrics, textAsPaths, requiredFontFamilies);
                     break;
                 case OfficeDrawingLink link:
                     if (!OfficeDrawingLinkPolicy.TryNormalize(link.Uri, out string safeUri)) {
@@ -220,10 +220,10 @@ public static partial class OfficeDrawingSvgExporter {
         }
     }
 
-    private static void AppendGroup(StringBuilder sb, OfficeDrawingGroup drawingGroup, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, OfficeDrawingRasterRenderOptions rasterOptions, OfficeRasterCanvas textMetrics, bool textAsPaths, System.Collections.Generic.ISet<string> requiredFontFamilies) {
+    private static void AppendGroup(StringBuilder sb, OfficeDrawingGroup drawingGroup, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, OfficeDrawingRasterRenderOptions rasterOptions, OfficeTransform rasterTransform, OfficeRasterCanvas textMetrics, bool textAsPaths, System.Collections.Generic.ISet<string> requiredFontFamilies) {
         textMetrics = textMetrics.WithDrawingTextProfile(drawingGroup.InnerDrawing);
         if (drawingGroup.FrameTransform.HasValue && drawingGroup.FrameTransform.Value.HasTransform)
-            rasterOptions = TransformRasterOptions(rasterOptions, drawingGroup.FrameTransform.Value.CreateDestinationTransform());
+            rasterTransform = drawingGroup.FrameTransform.Value.CreateDestinationTransform().Then(rasterTransform);
         string groupClipPathId = idPrefix + "officeimo-group-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
         AppendClipPathDefinition(sb, groupClipPathId, drawingGroup.ClipPath);
         string transform = BuildGroupTransformAttribute(drawingGroup);
@@ -243,7 +243,7 @@ public static partial class OfficeDrawingSvgExporter {
                 .Append(Format(drawingGroup.ContentOffsetY))
                 .Append(")\">");
         }
-        AppendDrawingContent(sb, drawingGroup.InnerDrawing, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, rasterOptions, textMetrics, textAsPaths, requiredFontFamilies);
+        AppendDrawingContent(sb, drawingGroup.InnerDrawing, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, rasterOptions, rasterTransform, textMetrics, textAsPaths, requiredFontFamilies);
         if (hasContentOffset) sb.Append("</g>");
         sb.Append("</g>");
     }

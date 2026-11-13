@@ -4,14 +4,14 @@ using System.Text;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeDrawingSvgExporter {
-    private static void AppendEffectGroup(StringBuilder sb, OfficeDrawingEffectGroup effectGroup, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, OfficeDrawingRasterRenderOptions rasterOptions, OfficeRasterCanvas textMetrics, bool textAsPaths, System.Collections.Generic.ISet<string> requiredFontFamilies) {
+    private static void AppendEffectGroup(StringBuilder sb, OfficeDrawingEffectGroup effectGroup, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, OfficeDrawingRasterRenderOptions rasterOptions, OfficeTransform rasterTransform, OfficeRasterCanvas textMetrics, bool textAsPaths, System.Collections.Generic.ISet<string> requiredFontFamilies) {
         if (effectGroup.Opacity <= 0D) return;
         textMetrics = textMetrics.WithDrawingTextProfile(effectGroup.InnerDrawing);
-        rasterOptions = TransformRasterOptions(rasterOptions, effectGroup.Transform);
+        rasterTransform = effectGroup.Transform.Then(rasterTransform);
         string? maskId = null;
         if (effectGroup.SoftMask != null) {
             maskId = idPrefix + "officeimo-mask-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
-            AppendSoftMaskDefinition(sb, maskId, effectGroup.SoftMask, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, rasterOptions, textMetrics, textAsPaths, requiredFontFamilies);
+            AppendSoftMaskDefinition(sb, maskId, effectGroup.SoftMask, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, rasterOptions, rasterTransform, textMetrics, textAsPaths, requiredFontFamilies);
         }
         sb.Append("<g").Append(BuildMatrixTransformAttribute(effectGroup.Transform, 0D, 0D));
         if (effectGroup.Opacity < 1D) sb.Append(" opacity=\"").Append(Format(effectGroup.Opacity)).Append('"');
@@ -20,13 +20,13 @@ public static partial class OfficeDrawingSvgExporter {
         sb.Append('"');
         if (maskId != null) sb.Append(" mask=\"url(#").Append(maskId).Append(")\"");
         sb.Append('>');
-        AppendDrawingContent(sb, effectGroup.InnerDrawing, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, rasterOptions, textMetrics, textAsPaths, requiredFontFamilies);
+        AppendDrawingContent(sb, effectGroup.InnerDrawing, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, rasterOptions, rasterTransform, textMetrics, textAsPaths, requiredFontFamilies);
         sb.Append("</g>");
     }
 
-    private static void AppendSoftMaskDefinition(StringBuilder sb, string id, OfficeDrawingSoftMask mask, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, OfficeDrawingRasterRenderOptions rasterOptions, OfficeRasterCanvas textMetrics, bool textAsPaths, System.Collections.Generic.ISet<string> requiredFontFamilies) {
+    private static void AppendSoftMaskDefinition(StringBuilder sb, string id, OfficeDrawingSoftMask mask, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, OfficeDrawingRasterRenderOptions rasterOptions, OfficeTransform rasterTransform, OfficeRasterCanvas textMetrics, bool textAsPaths, System.Collections.Generic.ISet<string> requiredFontFamilies) {
         textMetrics = textMetrics.WithDrawingTextProfile(mask.InnerDrawing);
-        rasterOptions = TransformRasterOptions(rasterOptions, mask.Transform);
+        rasterTransform = mask.Transform.Then(rasterTransform);
         bool hasTransfer = mask.TransferTable != null;
         bool useFilter = mask.Mode == OfficeSoftMaskMode.Alpha || hasTransfer ||
             mask.LuminosityStandard == OfficeSoftMaskLuminosityStandard.PdfDeviceRgb;
@@ -51,7 +51,7 @@ public static partial class OfficeDrawingSvgExporter {
                 .Append("\" fill-opacity=\"").Append(Format(mask.BackdropColor.A / 255D)).Append("\"/>");
         }
         sb.Append("<g").Append(BuildMatrixTransformAttribute(mask.Transform, 0D, 0D)).Append('>');
-        AppendDrawingContent(sb, mask.InnerDrawing, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, rasterOptions, textMetrics, textAsPaths, requiredFontFamilies);
+        AppendDrawingContent(sb, mask.InnerDrawing, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, rasterOptions, rasterTransform, textMetrics, textAsPaths, requiredFontFamilies);
         sb.Append("</g>");
         if (useFilter) sb.Append("</g>");
         sb.Append("</mask></defs>");
