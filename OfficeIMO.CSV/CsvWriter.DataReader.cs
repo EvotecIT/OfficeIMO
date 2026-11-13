@@ -320,7 +320,7 @@ internal static partial class CsvWriter
         T value,
         char delimiter,
         CultureInfo culture)
-        where T : ISpanFormattable
+        where T : ISpanFormattable, IUtf8SpanFormattable
     {
         Span<char> destination = stackalloc char[128];
         if (ReferenceEquals(culture, CultureInfo.InvariantCulture))
