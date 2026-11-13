@@ -26,4 +26,16 @@ dotnet run -c Release -f net10.0 --project ./OfficeIMO.Toml.Benchmarks -- --filt
 | `LockFile` | uv's `uv.lock`, thousands of `[[package]]` tables and inline tables (350 KB) |
 | `Corpus` | every file of the [real-world corpus](../OfficeIMO.TestAssets/Toml/Corpus/manifest.json) except uv's `ruff.toml`, whose TOML 1.1 multi-line inline table Tomlet cannot read |
 
+## Large real-world corpus
+
+About 5,400 real-world files (crates.io and workspace manifests, `Cargo.lock`, `pyproject.toml`, `uv.lock`, `poetry.lock`, editor configuration and Hugo sites) are pinned by source URL and SHA-256 in [`sources.json`](../OfficeIMO.TestAssets/Toml/LargeCorpus/sources.json) and fetched into a local cache that is never committed:
+
+```sh
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Toml.Benchmarks -- --fetch-corpus
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Toml.Benchmarks -- --large-corpus
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Toml.Benchmarks -- --mutations --seed 20261113
+```
+
+`--large-corpus` loads every file, compares its data with Tomlyn's, saves it back, reads it through the stream reader and applies a scripted edit whose saved text must reload to the edited model with a minimal diff. It exits non-zero only for OfficeIMO failures (crash, round-trip, stream reader, edit); rejected files and differences from Tomlyn are listed for review. `--mutations` runs hostile variants of a seeded sample through the loader and the stream reader with time and allocation limits. The [TOML engine design](../Docs/officeimo.toml-engine-design.md#running-the-large-corpus) describes the options and the last results.
+
 Measurements are evidence for a specific machine and runtime. Keep them out of pull-request gates, as the repository's benchmark rules require.

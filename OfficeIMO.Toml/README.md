@@ -101,4 +101,4 @@ Invalid input throws `TomlException` with a stable `Code` from `TomlErrorCodes`,
 
 ## Conformance
 
-The engine passes all 214 valid and 467 invalid TOML 1.1 cases of [toml-test](https://github.com/toml-lang/toml-test) 2.2.0, and every valid case and real-world corpus file (`pyproject.toml`, `Cargo.toml`, `Cargo.lock`, `uv.lock`, Hugo, Netlify, Starship) saves back byte for byte.
+The engine passes all 214 valid and 467 invalid TOML 1.1 cases of [toml-test](https://github.com/toml-lang/toml-test) 2.2.0, and every valid case and real-world corpus file (`pyproject.toml`, `Cargo.toml`, `Cargo.lock`, `uv.lock`, Hugo, Netlify, Starship) saves back byte for byte. An opt-in run over about 5,400 pinned real-world files (crates.io and workspace manifests, lock files, `pyproject.toml`, Hugo sites) also checks stream reading, scripted edits and hostile mutations; the [TOML engine design](../Docs/officeimo.toml-engine-design.md#qualification) has the results and the benchmark comparison with Tomlyn.
