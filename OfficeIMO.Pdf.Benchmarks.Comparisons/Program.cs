@@ -7,6 +7,10 @@ if (args.Length > 0 && string.Equals(args[0], "compatibility", StringComparison.
     return PdfCompatibilityRunner.Run(args);
 }
 
+if (args.Length > 0 && string.Equals(args[0], "text-quality", StringComparison.OrdinalIgnoreCase)) {
+    return PdfTextQualityRunner.Run(args[1..]);
+}
+
 if (args.Length > 0 && string.Equals(args[0], "prepare-read-inputs", StringComparison.OrdinalIgnoreCase)) {
     return PdfPreparedReadInputs.Prepare(ReadOption(args, "--output")
         ?? throw new ArgumentException("prepare-read-inputs requires --output."));
