@@ -26,7 +26,6 @@ internal static partial class MarkdownReader {
             }
 
             int j = i + 1;
-            // A semantic parse collects source lines only for items that read continuation lines.
             List<MarkdownSourceLineSlice>? firstSourceLines = state.IsListBoundaryProbe || !state.CaptureSyntaxTree
                 ? null
                 : new List<MarkdownSourceLineSlice>();
@@ -44,22 +43,18 @@ internal static partial class MarkdownReader {
                     out var singleFirst)) {
                 first = singleFirst;
             } else {
-                if (!state.IsListBoundaryProbe) {
-                    firstSourceLines ??= new List<MarkdownSourceLineSlice>();
-                }
-                firstLines = ConsumeListContinuationLines(
+                firstLines = ConsumeListLeadLines(
                     lines,
                     ref j,
                     firstContinuationIndent,
                     firstContent,
                     options,
                     breakOnAnyOrderedListLine: options.ListExtras,
-                    sourceLines: firstSourceLines,
-                    absoluteLineOffset: state.SourceLineOffset,
+                    ref firstSourceLines,
                     initialLineIndex: i,
                     initialStartColumn: firstStartColumn,
-                    state: state);
-                first = CreateListItemFromLeadLines(firstLines, isTask, done, options, state, i, GetLeadSourceLinesForParse(state, firstSourceLines));
+                    state);
+                first = CreateListItemFromLeadLines(firstLines, isTask, done, options, state, i, firstSourceLines);
             }
             first.Level = 0;
             if (!state.IsListBoundaryProbe) {
@@ -130,22 +125,18 @@ internal static partial class MarkdownReader {
                         out var singleItem)) {
                     li = singleItem;
                 } else {
-                    if (!state.IsListBoundaryProbe) {
-                        itemSourceLines ??= new List<MarkdownSourceLineSlice>();
-                    }
-                    itemLines = ConsumeListContinuationLines(
+                    itemLines = ConsumeListLeadLines(
                         lines,
                         ref next,
                         continuationIndent,
                         content2,
                         options,
                         breakOnAnyOrderedListLine: options.ListExtras,
-                        sourceLines: itemSourceLines,
-                        absoluteLineOffset: state.SourceLineOffset,
+                        ref itemSourceLines,
                         initialLineIndex: itemStart,
                         initialStartColumn: startColumn,
-                        state: state);
-                    li = CreateListItemFromLeadLines(itemLines, isTask2, done2, options, state, itemStart, GetLeadSourceLinesForParse(state, itemSourceLines));
+                        state);
+                    li = CreateListItemFromLeadLines(itemLines, isTask2, done2, options, state, itemStart, itemSourceLines);
                 }
                 li.Level = continuationIndentsByLevel != null
                     ? GetRelativeListItemLevel(continuationIndentsByLevel, lines[itemStart])

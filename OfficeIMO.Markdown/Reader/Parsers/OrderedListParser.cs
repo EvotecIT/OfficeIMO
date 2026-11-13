@@ -40,22 +40,21 @@ internal static partial class MarkdownReader {
             } else {
                 firstStartColumn = GetListLeadContentStartColumn(lines[i], options, firstIsTask);
             }
-            List<MarkdownSourceLineSlice>? firstSourceLines = state.IsListBoundaryProbe
+            List<MarkdownSourceLineSlice>? firstSourceLines = state.IsListBoundaryProbe || !state.CaptureSyntaxTree
                 ? null
                 : new List<MarkdownSourceLineSlice>();
-            var firstLines = ConsumeListContinuationLines(
+            var firstLines = ConsumeListLeadLines(
                 lines,
                 ref j,
                 firstContinuationIndent,
                 strippedFirst,
                 options,
                 breakOnAnyOrderedListLine: true,
-                sourceLines: firstSourceLines,
-                absoluteLineOffset: state.SourceLineOffset,
+                ref firstSourceLines,
                 initialLineIndex: i,
                 initialStartColumn: firstStartColumn,
-                state: state);
-            var first = CreateListItemFromLeadLines(firstLines, firstIsTask, firstDone, options, state, i, GetLeadSourceLinesForParse(state, firstSourceLines));
+                state);
+            var first = CreateListItemFromLeadLines(firstLines, firstIsTask, firstDone, options, state, i, firstSourceLines);
             first.Level = 0;
             if (!state.IsListBoundaryProbe) {
                 SetListItemMarkerSourceSpans(first, lines[i], i, firstIsTask, options, state);
@@ -103,22 +102,21 @@ internal static partial class MarkdownReader {
                 } else {
                     startColumn = GetListLeadContentStartColumn(lines[itemStart], options, isTask);
                 }
-                List<MarkdownSourceLineSlice>? itemSourceLines = state.IsListBoundaryProbe
+                List<MarkdownSourceLineSlice>? itemSourceLines = state.IsListBoundaryProbe || !state.CaptureSyntaxTree
                     ? null
                     : new List<MarkdownSourceLineSlice>();
-                var itemLines = ConsumeListContinuationLines(
+                var itemLines = ConsumeListLeadLines(
                     lines,
                     ref next,
                     continuationIndent,
                     stripped,
                     options,
                     breakOnAnyOrderedListLine: true,
-                    sourceLines: itemSourceLines,
-                    absoluteLineOffset: state.SourceLineOffset,
+                    ref itemSourceLines,
                     initialLineIndex: itemStart,
                     initialStartColumn: startColumn,
-                    state: state);
-                var li = CreateListItemFromLeadLines(itemLines, isTask, done, options, state, itemStart, GetLeadSourceLinesForParse(state, itemSourceLines));
+                    state);
+                var li = CreateListItemFromLeadLines(itemLines, isTask, done, options, state, itemStart, itemSourceLines);
                 li.Level = continuationIndentsByLevel != null
                     ? GetRelativeListItemLevel(continuationIndentsByLevel, lines[itemStart])
                     : lvlAbs - lvl0Abs;

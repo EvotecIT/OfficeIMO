@@ -131,6 +131,8 @@ public sealed class MarkdownReaderState {
     internal bool BuildTableCellModels { get; set; } = true;
     /// <summary>Enables a lightweight semantic pass used only to locate an exact nested-list boundary.</summary>
     internal bool IsListBoundaryProbe { get; set; }
+    // Set when list continuation collection accepts a lazy continuation line.
+    internal bool LazyListContinuationSeen { get; set; }
     internal bool SuppressBlockGenericAttributes { get; set; }
     internal bool SuppressHeadingGenericAttributes { get; set; }
     internal bool IsMarkdigDefinitionListBody { get; set; }
