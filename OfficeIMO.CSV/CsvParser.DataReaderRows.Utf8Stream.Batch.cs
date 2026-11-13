@@ -219,7 +219,13 @@ internal static partial class CsvParser
             int rows;
             if (_trim)
             {
+#if NET9_0_OR_GREATER
+                rows = CanCompressTrimmedBlocks && blocks > 1
+                    ? IndexTrimmedBlocksCompressed(ends, rowEnds, blocks)
+                    : IndexTrimmedBlocks(ends, rowEnds, blocks);
+#else
                 rows = IndexTrimmedBlocks(ends, rowEnds, blocks);
+#endif
             }
             else
 #if NET9_0_OR_GREATER
