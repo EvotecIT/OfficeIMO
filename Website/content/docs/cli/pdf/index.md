@@ -116,11 +116,12 @@ To print, list the queues and submit the job:
 
 ```shell
 officeimo workflow printers
-officeimo workflow printers --paper-sources "Office printer"
+officeimo workflow printers --capabilities "Office printer"
 officeimo workflow print report.pdf --printer "Office printer" --pages 1-3 --pages-per-sheet 2 --copies 1 --duplex long
+officeimo workflow print-job wait --printer "Office printer" --job Office_printer-42
 ```
 
-`printers` returns the queues as JSON, with `name`, `isDefault` and `requiresOutputFile` for each; `--paper-sources` returns the `id` and `name` of each tray. `print` returns the queue receipt with `printer`, `jobId`, `sheetCount` and `copies`. Add `--format text` to any of them for plain lines:
+`printers` returns the queues as JSON, with `name`, `isDefault` and `requiresOutputFile` for each. `--capabilities` returns the printer's media, default media, trays, duplex, color, collation, copies and resolutions, and `--paper-sources` returns only the `id` and `name` of each tray. `print` returns the queue receipt with `printer`, `jobId`, `sheetCount`, `copies` and any `ignoredAttributes`. `print-job status|wait|cancel` returns the job's `state`, `isTerminal` and `stateReasons`. Add `--format text` to any of them for plain lines:
 
 ```shell
 officeimo workflow printers | jq -r '.printers[] | select(.isDefault) | .name'

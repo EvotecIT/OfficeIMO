@@ -78,7 +78,7 @@ $familyDefinitions = @(
         id = 'pdf'; title = 'PDF'; description = 'Author, inspect, transform, sign, annotate, extract, preflight, and combine PDF files.'
         docs = 'pdf'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Pdf'
         samples = @('New-OfficePdf', 'Merge-OfficeDocument', 'Test-OfficeDocument', 'Set-OfficePdfSignature')
-        match = { param($name) $name -match 'OfficePdf|OfficeDocumentPdf|OfficeTextPdf|OfficePrinter' }
+        match = { param($name) $name -match 'OfficePdf|OfficeDocumentPdf|OfficeTextPdf|OfficePrinter|OfficePrintJob' }
     }
     [ordered]@{
         id = 'reader'; title = 'Reader, extraction, and OCR'; description = 'Detect formats and extract normalized documents, chunks, tables, visuals, assets, OCR text, and ingest results.'

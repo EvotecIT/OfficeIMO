@@ -37,8 +37,16 @@ internal static class TomlInterop {
         }
     }
 
+    // Tomlyn parses floats with the runtime, and .NET Framework reads "-0.0" as positive zero. The round trip through
+    // OfficeIMO checks the sign on every runtime.
+#if NETFRAMEWORK
+    private const bool TomlynKeepsZeroSign = false;
+#else
+    private const bool TomlynKeepsZeroSign = true;
+#endif
+
     private static bool SameValue(object ours, object? theirs) => ours switch {
-        double number when theirs is double other => number.Equals(other) && (number != 0 || BitConverter.DoubleToInt64Bits(number) == BitConverter.DoubleToInt64Bits(other)),
+        double number when theirs is double other => number.Equals(other) && (number != 0 || !TomlynKeepsZeroSign || BitConverter.DoubleToInt64Bits(number) == BitConverter.DoubleToInt64Bits(other)),
         TomlDateTime dateTime when theirs is global::Tomlyn.TomlDateTime other => SameDateTime(dateTime, other),
         _ => Equals(ours, theirs)
     };

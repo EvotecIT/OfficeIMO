@@ -100516,7 +100516,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Lists system printer queues, or the paper sources of a named queue. Requires PowerShell 7.4 or newer.</maml:para>
+      <maml:para>Use Get-OfficePrinterCapability for media, duplex, color and resolution details of a queue or IPP printer.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="Printer">
@@ -100524,7 +100524,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="0" aliases="none">
           <maml:name>Name</maml:name>
           <maml:description>
-            <maml:para>Printer name patterns; PaperSource requires one exact printer name.</maml:para>
+            <maml:para>Printer name patterns; PaperSource requires one exact printer name or IPP printer URI.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
           <dev:type>
@@ -100539,7 +100539,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="False" position="0" aliases="none">
           <maml:name>Name</maml:name>
           <maml:description>
-            <maml:para>Printer name patterns; PaperSource requires one exact printer name.</maml:para>
+            <maml:para>Printer name patterns; PaperSource requires one exact printer name or IPP printer URI.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
           <dev:type>
@@ -100566,7 +100566,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
       <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="0" aliases="none">
         <maml:name>Name</maml:name>
         <maml:description>
-          <maml:para>Printer name patterns; PaperSource requires one exact printer name.</maml:para>
+          <maml:para>Printer name patterns; PaperSource requires one exact printer name or IPP printer URI.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
         <dev:type>
@@ -100620,6 +100620,242 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         </maml:introduction>
         <dev:code>Get-OfficePrinter
             Get-OfficePrinter -Name 'Office printer' -PaperSource</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
+      <command:name>Get-OfficePrinterCapability</command:name>
+      <command:verb>Get</command:verb>
+      <command:noun>OfficePrinterCapability</command:noun>
+      <maml:description>
+        <maml:para>Reports the media, paper sources, duplex, color, resolution and copy capabilities of a printer queue or IPP printer. Requires PowerShell 7.4 or newer.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Name accepts an installed queue name or an ipp:// or ipps:// printer URI. Reading capabilities does not change printer settings.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Default">
+        <maml:name>Get-OfficePrinterCapability</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="0" aliases="none">
+          <maml:name>Name</maml:name>
+          <maml:description>
+            <maml:para>Printer queue name or IPP printer URI.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="0" aliases="none">
+        <maml:name>Name</maml:name>
+        <maml:description>
+          <maml:para>Printer queue name or IPP printer URI.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Workflows.PdfPrinterCapabilities</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Read the capabilities of a queue and of an IPP printer.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>Get-OfficePrinterCapability -Name 'Office printer'
+            Get-OfficePrinterCapability -Name 'ipp://printer.local/ipp/print'</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
+      <command:name>Get-OfficePrintJob</command:name>
+      <command:verb>Get</command:verb>
+      <command:noun>OfficePrintJob</command:noun>
+      <maml:description>
+        <maml:para>Reports the state of a print job submitted with Send-OfficePrinter, optionally waiting until it finishes. Requires PowerShell 7.4 or newer.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>States are the same for every transport: Pending, Held, Processing, Stopped, Canceled, Aborted, Completed and Removed. Removed means the queue no longer reports the job: it finished and was purged, was deleted, or never existed.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Default">
+        <maml:name>Get-OfficePrintJob</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="1" aliases="none">
+          <maml:name>JobId</maml:name>
+          <maml:description>
+            <maml:para>The job identifier from the receipt.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="0" aliases="none">
+          <maml:name>PrinterName</maml:name>
+          <maml:description>
+            <maml:para>The printer queue name or IPP URI from the receipt.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>TimeoutSeconds</maml:name>
+          <maml:description>
+            <maml:para>Longest wait in seconds when Wait is set.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Wait</maml:name>
+          <maml:description>
+            <maml:para>Wait until the job is canceled, aborted, completed or removed.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="1" aliases="none">
+        <maml:name>JobId</maml:name>
+        <maml:description>
+          <maml:para>The job identifier from the receipt.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="0" aliases="none">
+        <maml:name>PrinterName</maml:name>
+        <maml:description>
+          <maml:para>The printer queue name or IPP URI from the receipt.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>TimeoutSeconds</maml:name>
+        <maml:description>
+          <maml:para>Longest wait in seconds when Wait is set.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Wait</maml:name>
+        <maml:description>
+          <maml:para>Wait until the job is canceled, aborted, completed or removed.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Workflows.PdfPrintJobStatus</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Wait up to two minutes for a submitted job.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>$receipt = Send-OfficePrinter -Path .\Report.pdf -PrinterName 'Office printer'
+            $receipt | Get-OfficePrintJob -Wait -TimeoutSeconds 120</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Check a job by printer and identifier.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>Get-OfficePrintJob -PrinterName 'Office printer' -JobId 'Office_printer-42'</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -173845,19 +174081,20 @@ document through the writer.</maml:para>
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
-      <command:name>Send-OfficePdfPrinter</command:name>
+      <command:name>Send-OfficePrinter</command:name>
       <command:verb>Send</command:verb>
-      <command:noun>OfficePdfPrinter</command:noun>
+      <command:noun>OfficePrinter</command:noun>
       <maml:description>
-        <maml:para>Prepares PDF sheets and submits them to an explicitly named printer. Requires PowerShell 7.4 or newer.</maml:para>
+        <maml:para>Prints a document of any format OfficeIMO converts to PDF on an explicitly named printer queue or IPP printer. Requires PowerShell 7.4 or newer.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>The returned receipt proves queue acceptance. It does not prove physical delivery. Check the queue after an interrupted submission before retrying.</maml:para>
+      <maml:para>PDF files are printed directly; other documents are converted to PDF in memory first, and conversion warnings are written as warnings. Send-OfficePdfPrinter remains an alias of this command. PrinterName accepts an installed queue name or an ipp:// or ipps:// printer URI.</maml:para>
+      <maml:para>Without PaperSize, sheets use the printer's default media. The returned receipt proves queue acceptance, not physical delivery. Follow it with Get-OfficePrintJob, and check the queue after an interrupted submission before retrying.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="Path">
-        <maml:name>Send-OfficePdfPrinter</maml:name>
+        <maml:name>Send-OfficePrinter</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Copies</maml:name>
           <maml:description>
@@ -173873,7 +174110,7 @@ document through the writer.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Dpi</maml:name>
           <maml:description>
-            <maml:para>Prepared sheet resolution.</maml:para>
+            <maml:para>Highest resolution used when sheets are rasterized for delivery.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
           <dev:type>
@@ -173901,6 +174138,18 @@ document through the writer.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Grayscale</maml:name>
+          <maml:description>
+            <maml:para>Print in grayscale, exactly as the sheets are previewed, regardless of the device's color support.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Margin</maml:name>
           <maml:description>
             <maml:para>Printable margin in points.</maml:para>
@@ -173915,7 +174164,7 @@ document through the writer.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Orientation</maml:name>
           <maml:description>
-            <maml:para>Paper orientation.</maml:para>
+            <maml:para>Paper orientation. When omitted, each sheet takes the orientation that places its pages largest, so two-up and six-up sheets of portrait pages print in landscape.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficePageOrientation</command:parameterValue>
           <command:parameterValueGroup>
@@ -173928,7 +174177,7 @@ document through the writer.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="OutputFilePath">
           <maml:name>OutputPath</maml:name>
           <maml:description>
             <maml:para>New destination file for a Windows file printer.</maml:para>
@@ -173940,7 +174189,7 @@ document through the writer.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Pages">
           <maml:name>Page</maml:name>
           <maml:description>
             <maml:para>Page selection such as 1-3,last.</maml:para>
@@ -173955,13 +174204,15 @@ document through the writer.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PagesPerSheet</maml:name>
           <maml:description>
-            <maml:para>Source pages per sheet.</maml:para>
+            <maml:para>Source pages per sheet, in row-major order.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">1</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">2</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">4</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">6</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">9</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>Int32</maml:name>
@@ -173970,9 +174221,26 @@ document through the writer.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PageSubset</maml:name>
+          <maml:description>
+            <maml:para>Keep all selected pages, or only odd or even original page numbers.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">All</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Odd</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Even</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PaperSize</maml:name>
           <maml:description>
-            <maml:para>PDF paper size, default A4.</maml:para>
+            <maml:para>Paper size. Defaults to the printer's default media, or A4 when the printer reports none.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficePageSize</command:parameterValue>
           <dev:type>
@@ -173984,7 +174252,7 @@ document through the writer.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PaperSourceId</maml:name>
           <maml:description>
-            <maml:para>Paper source identifier reported for this queue.</maml:para>
+            <maml:para>Paper source identifier reported by Get-OfficePrinterCapability.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -174008,7 +174276,7 @@ document through the writer.</maml:para>
         <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="False" position="0" aliases="none">
           <maml:name>Path</maml:name>
           <maml:description>
-            <maml:para>Local PDF source.</maml:para>
+            <maml:para>Local document to print: PDF or any format OfficeIMO converts to PDF.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
           <dev:type>
@@ -174020,7 +174288,7 @@ document through the writer.</maml:para>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PrinterName</maml:name>
           <maml:description>
-            <maml:para>Installed queue from Get-OfficePrinter.</maml:para>
+            <maml:para>Installed queue from Get-OfficePrinter, or an ipp:// or ipps:// printer URI.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -174048,7 +174316,7 @@ document through the writer.</maml:para>
         </command:parameter>
       </command:syntaxItem>
       <command:syntaxItem parameterSetName="LiteralPath">
-        <maml:name>Send-OfficePdfPrinter</maml:name>
+        <maml:name>Send-OfficePrinter</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Copies</maml:name>
           <maml:description>
@@ -174064,7 +174332,7 @@ document through the writer.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Dpi</maml:name>
           <maml:description>
-            <maml:para>Prepared sheet resolution.</maml:para>
+            <maml:para>Highest resolution used when sheets are rasterized for delivery.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
           <dev:type>
@@ -174091,10 +174359,22 @@ document through the writer.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Grayscale</maml:name>
+          <maml:description>
+            <maml:para>Print in grayscale, exactly as the sheets are previewed, regardless of the device's color support.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="FullName,PSPath">
           <maml:name>LiteralPath</maml:name>
           <maml:description>
-            <maml:para>Literal PDF sources, including FileInfo.FullName.</maml:para>
+            <maml:para>Literal document paths, including FileInfo.FullName.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
           <dev:type>
@@ -174118,7 +174398,7 @@ document through the writer.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Orientation</maml:name>
           <maml:description>
-            <maml:para>Paper orientation.</maml:para>
+            <maml:para>Paper orientation. When omitted, each sheet takes the orientation that places its pages largest, so two-up and six-up sheets of portrait pages print in landscape.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficePageOrientation</command:parameterValue>
           <command:parameterValueGroup>
@@ -174131,7 +174411,7 @@ document through the writer.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="OutputFilePath">
           <maml:name>OutputPath</maml:name>
           <maml:description>
             <maml:para>New destination file for a Windows file printer.</maml:para>
@@ -174143,7 +174423,7 @@ document through the writer.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Pages">
           <maml:name>Page</maml:name>
           <maml:description>
             <maml:para>Page selection such as 1-3,last.</maml:para>
@@ -174158,13 +174438,15 @@ document through the writer.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PagesPerSheet</maml:name>
           <maml:description>
-            <maml:para>Source pages per sheet.</maml:para>
+            <maml:para>Source pages per sheet, in row-major order.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">1</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">2</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">4</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">6</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">9</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>Int32</maml:name>
@@ -174173,9 +174455,26 @@ document through the writer.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PageSubset</maml:name>
+          <maml:description>
+            <maml:para>Keep all selected pages, or only odd or even original page numbers.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">All</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Odd</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Even</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PaperSize</maml:name>
           <maml:description>
-            <maml:para>PDF paper size, default A4.</maml:para>
+            <maml:para>Paper size. Defaults to the printer's default media, or A4 when the printer reports none.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficePageSize</command:parameterValue>
           <dev:type>
@@ -174187,7 +174486,7 @@ document through the writer.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PaperSourceId</maml:name>
           <maml:description>
-            <maml:para>Paper source identifier reported for this queue.</maml:para>
+            <maml:para>Paper source identifier reported by Get-OfficePrinterCapability.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -174211,7 +174510,7 @@ document through the writer.</maml:para>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PrinterName</maml:name>
           <maml:description>
-            <maml:para>Installed queue from Get-OfficePrinter.</maml:para>
+            <maml:para>Installed queue from Get-OfficePrinter, or an ipp:// or ipps:// printer URI.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -174255,7 +174554,7 @@ document through the writer.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>Dpi</maml:name>
         <maml:description>
-          <maml:para>Prepared sheet resolution.</maml:para>
+          <maml:para>Highest resolution used when sheets are rasterized for delivery.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
         <dev:type>
@@ -174282,10 +174581,22 @@ document through the writer.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Grayscale</maml:name>
+        <maml:description>
+          <maml:para>Print in grayscale, exactly as the sheets are previewed, regardless of the device's color support.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="FullName,PSPath">
         <maml:name>LiteralPath</maml:name>
         <maml:description>
-          <maml:para>Literal PDF sources, including FileInfo.FullName.</maml:para>
+          <maml:para>Literal document paths, including FileInfo.FullName.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
         <dev:type>
@@ -174309,7 +174620,7 @@ document through the writer.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>Orientation</maml:name>
         <maml:description>
-          <maml:para>Paper orientation.</maml:para>
+          <maml:para>Paper orientation. When omitted, each sheet takes the orientation that places its pages largest, so two-up and six-up sheets of portrait pages print in landscape.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">OfficePageOrientation</command:parameterValue>
         <command:parameterValueGroup>
@@ -174322,7 +174633,7 @@ document through the writer.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="OutputFilePath">
         <maml:name>OutputPath</maml:name>
         <maml:description>
           <maml:para>New destination file for a Windows file printer.</maml:para>
@@ -174334,7 +174645,7 @@ document through the writer.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Pages">
         <maml:name>Page</maml:name>
         <maml:description>
           <maml:para>Page selection such as 1-3,last.</maml:para>
@@ -174349,13 +174660,15 @@ document through the writer.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>PagesPerSheet</maml:name>
         <maml:description>
-          <maml:para>Source pages per sheet.</maml:para>
+          <maml:para>Source pages per sheet, in row-major order.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">1</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">2</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">4</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">6</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">9</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
           <maml:name>Int32</maml:name>
@@ -174364,9 +174677,26 @@ document through the writer.</maml:para>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>PageSubset</maml:name>
+        <maml:description>
+          <maml:para>Keep all selected pages, or only odd or even original page numbers.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">All</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Odd</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Even</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>PaperSize</maml:name>
         <maml:description>
-          <maml:para>PDF paper size, default A4.</maml:para>
+          <maml:para>Paper size. Defaults to the printer's default media, or A4 when the printer reports none.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">OfficePageSize</command:parameterValue>
         <dev:type>
@@ -174378,7 +174708,7 @@ document through the writer.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>PaperSourceId</maml:name>
         <maml:description>
-          <maml:para>Paper source identifier reported for this queue.</maml:para>
+          <maml:para>Paper source identifier reported by Get-OfficePrinterCapability.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -174402,7 +174732,7 @@ document through the writer.</maml:para>
       <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="False" position="0" aliases="none">
         <maml:name>Path</maml:name>
         <maml:description>
-          <maml:para>Local PDF source.</maml:para>
+          <maml:para>Local document to print: PDF or any format OfficeIMO converts to PDF.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
         <dev:type>
@@ -174414,7 +174744,7 @@ document through the writer.</maml:para>
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>PrinterName</maml:name>
         <maml:description>
-          <maml:para>Installed queue from Get-OfficePrinter.</maml:para>
+          <maml:para>Installed queue from Get-OfficePrinter, or an ipp:// or ipps:// printer URI.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -174466,7 +174796,27 @@ document through the writer.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>Send-OfficePdfPrinter -Path .\Report.pdf -PrinterName 'Office printer' -Page '1-3' -PagesPerSheet 2 -Duplex LongEdge</dev:code>
+        <dev:code>Send-OfficePrinter -Path .\Report.pdf -PrinterName 'Office printer' -Page '1-3' -PagesPerSheet 2 -Duplex LongEdge</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Print a Word document to an IPP printer and wait for it to finish.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>Send-OfficePrinter -Path .\Letter.docx -PrinterName 'ipp://printer.local/ipp/print' | Get-OfficePrintJob -Wait</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Print odd pages four to a sheet in grayscale.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>Send-OfficePrinter -Path .\Report.pdf -PrinterName 'Office printer' -PageSubset Odd -PagesPerSheet 4 -Grayscale</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -204165,6 +204515,106 @@ signature and preservation policies. Only the selected files are written; other 
       <command:example>
         <maml:title>Keep nested sections inside their chapter.</maml:title>
         <dev:code>Split-OfficeDocument -LiteralPath './Manual [final].pdf' -OutputDirectory ./Chapters -ByBookmark</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
+      <command:name>Stop-OfficePrintJob</command:name>
+      <command:verb>Stop</command:verb>
+      <command:noun>OfficePrintJob</command:noun>
+      <maml:description>
+        <maml:para>Cancels a print job submitted with Send-OfficePrinter and returns its state afterwards. Requires PowerShell 7.4 or newer.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>A job that has already finished is reported unchanged. Pages the printer has already received may still print.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Default">
+        <maml:name>Stop-OfficePrintJob</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="1" aliases="none">
+          <maml:name>JobId</maml:name>
+          <maml:description>
+            <maml:para>The job identifier from the receipt.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="0" aliases="none">
+          <maml:name>PrinterName</maml:name>
+          <maml:description>
+            <maml:para>The printer queue name or IPP URI from the receipt.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="1" aliases="none">
+        <maml:name>JobId</maml:name>
+        <maml:description>
+          <maml:para>The job identifier from the receipt.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="0" aliases="none">
+        <maml:name>PrinterName</maml:name>
+        <maml:description>
+          <maml:para>The printer queue name or IPP URI from the receipt.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Workflows.PdfPrintJobStatus</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Cancel a submitted job.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>Send-OfficePrinter -Path .\Report.pdf -PrinterName 'Office printer' | Stop-OfficePrintJob</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>

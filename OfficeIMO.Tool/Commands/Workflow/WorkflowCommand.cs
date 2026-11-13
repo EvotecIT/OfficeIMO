@@ -18,7 +18,7 @@ Usage:
              [--image-format png|jpeg|webp|tiff|svg] [--dpi <36-600>] [--max-dimension <pixels>] [--force]
              [--format json|text]
   officeimo workflow assemble <source>... --output <output.pdf> [--no-recursive] [--force] [--format json|text]
-  officeimo workflow print-plan <input.pdf> [--pages <selection>] [--paper A4|Letter|Legal|A3]
+  officeimo workflow print-plan <input.pdf> [--pages <selection>] [--paper A4|Letter|Legal|A3] [--password-env <name>]
              [--orientation auto|portrait|landscape] [--pages-per-sheet 1|2|4|6|9]
              [--scale fit|actual|fill|custom] [--custom-scale <percent>] [--margin <points>]
              [--margin-left <points>] [--margin-top <points>] [--margin-right <points>] [--margin-bottom <points>]
@@ -38,15 +38,18 @@ Usage:
   officeimo workflow job run <job.json> [--retry-failed] [--allow-empty] [--verbose] [--format json|ndjson]
              [--report <new-report.json>]
   officeimo workflow job report <run-report.json>
-  officeimo workflow printers [--paper-sources <queue>] [--format json|text]
-  officeimo workflow print <input.pdf> --printer <name> [print-plan options]
+  officeimo workflow printers [--capabilities <printer> | --paper-sources <printer>] [--format json|text]
+  officeimo workflow print <document> --printer <queue|ipp://uri> [print-plan options; --paper defaults to the printer's media]
              [--copies 1..100] [--duplex default|off|long|short] [--paper-source <id>] [--dpi 72..600]
              [--output-file <new-local-path>] [--format json|text]
+  officeimo workflow print-job status|wait|cancel --printer <queue|ipp://uri> --job <id> [--timeout <seconds>] [--format json|text]
 
 Page selections accept document-relative expressions such as 1-3,last.
+print accepts PDF and every format the conversion catalog turns into PDF; --password-env applies to PDF input.
+Printers are installed queue names or ipp:// and ipps:// printer URIs. Queue acceptance is not completion; use print-job.
 Folders and ZIP archives are expanded deterministically by the reusable workflow owner.
 Existing output is refused unless --force is supplied.
-compare, optimize-images, export-pages, assemble, print-plan, printers and print write one JSON result
+compare, optimize-images, export-pages, assemble, print-plan, printers, print and print-job write one JSON result
 with a versioned schema identifier; --format text writes a short summary instead. Diagnostics go to standard error.
 Batch output defaults to the existing aggregate JSON. --format json adds per-file outcomes
 (up to 10,000 or 16 MiB of items with an explicit truncation marker); ndjson streams every item and a final summary.
@@ -65,7 +68,8 @@ Passwords are read only from the environment variables named by --source-passwor
         TextWriter standardError,
         CancellationToken cancellationToken = default,
         IOfficeOutputWorkflowRunner? runner = null,
-        Func<PdfPrintPlanRequest, CancellationToken, Task<PdfPrintPlan>>? printPlanner = null) {
+        Func<PdfPrintPlanRequest, CancellationToken, Task<PdfPrintPlan>>? printPlanner = null,
+        IPdfPrinterService? printerService = null) {
         WorkflowCommandKind activeCommand = WorkflowCommandKind.Help;
         try {
             if (args.FirstOrDefault() == "compare")
@@ -76,8 +80,8 @@ Passwords are read only from the environment variables named by --source-passwor
                 return await WorkflowBatchCommand.RunAsync(args[1..], standardOutput, standardError, cancellationToken).ConfigureAwait(false);
             if (args.FirstOrDefault() == "job")
                 return await WorkflowJobCommand.RunAsync(args[1..], standardOutput, standardError, cancellationToken).ConfigureAwait(false);
-            if (args.FirstOrDefault() is "printers" or "print")
-                return await WorkflowPrintCommand.RunAsync(args, standardOutput, standardError, cancellationToken).ConfigureAwait(false);
+            if (args.FirstOrDefault() is "printers" or "print" or "print-job")
+                return await WorkflowPrintCommand.RunAsync(args, standardOutput, standardError, cancellationToken, printerService).ConfigureAwait(false);
             WorkflowArguments parsed = WorkflowArguments.Parse(args);
             activeCommand = parsed.Command;
             if (parsed.Command == WorkflowCommandKind.Help) {

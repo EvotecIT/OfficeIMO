@@ -106,9 +106,19 @@ internal static partial class PdfPageImageRenderer {
         long maximumRasterPixels = OfficeImageExportOptions.DefaultMaximumRasterPixels,
         IOfficeTextShapingProvider? textShapingProvider = null,
         string? textShapingLanguage = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default) =>
+        OfficeDrawingRasterRenderer.ToPng(drawing, RasterOptions(scale, background, imageCodec, maximumRasterPixels,
+            textShapingProvider, textShapingLanguage, cancellationToken));
 
-        return OfficeDrawingRasterRenderer.ToPng(drawing, new OfficeDrawingRasterRenderOptions {
+    /// <summary>Raster settings shared by PNG page renders and in-process pixel renders, so both produce the same pixels.</summary>
+    private static OfficeDrawingRasterRenderOptions RasterOptions(
+        double scale,
+        OfficeColor? background,
+        IOfficeRasterImageCodec? imageCodec,
+        long maximumRasterPixels,
+        IOfficeTextShapingProvider? textShapingProvider,
+        string? textShapingLanguage,
+        CancellationToken cancellationToken) => new() {
             Scale = scale,
             Background = background ?? OfficeColor.White,
             ImageCodec = imageCodec,
@@ -118,6 +128,5 @@ internal static partial class PdfPageImageRenderer {
             MaximumRasterPixels = maximumRasterPixels,
             PdfRasterConventions = true,
             CancellationToken = cancellationToken
-        });
-    }
+        };
 }

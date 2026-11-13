@@ -1,153 +1,160 @@
-# OfficeIMO repository instructions
+# OfficeIMO
 
-## Documentation audiences
+.NET document engines without Office installed: Word, Excel, PowerPoint, PDF,
+Markdown, HTML, Visio, Project, Access, OpenDocument, iWork, email and many
+more formats, plus readers, converters, the OfficeIMO.Tool CLI/MCP server,
+OfficeIMO Studio and the PSWriteOffice PowerShell module.
 
-- The root README and package READMEs are user-facing. They explain what the current package does, how to install it, and how to use its public API.
-- `MIGRATION.md` is the user-facing upgrade contract. Keep actionable old-to-new package, API, configuration, and behavior changes there; GitHub Releases owns release history.
-- `Docs/README.md` is a navigation page for readers and contributors. Keep it focused on finding the right guide, contract, evidence, or roadmap entry.
-- `Docs/ROADMAP.md` is the single product backlog. It contains open work, not completed milestones or implementation journals.
-- `AGENTS.md` owns repository-maintenance instructions for coding agents. Do not put agent workflow, cleanup policy, or documentation-governance rules into user-facing READMEs.
-- Website comparison pages may help users choose between libraries. Repository product documentation should explain OfficeIMO through its contracts, standards, fixtures, and measured workloads rather than competitor parity narratives.
+## Layout
 
-## Documentation maintenance
+- `OfficeIMO.<Format>/`: one engine or converter per project (`OfficeIMO.Word`,
+  `OfficeIMO.Word.Pdf`, `OfficeIMO.Reader.*`, ...), with `<Project>.Tests/`,
+  `.Benchmarks/`, `.Verification/` and `.AotSmoke/` siblings. `OfficeIMO/` is the
+  cross-format converter and batch package (tests in `OfficeIMO.Tests/`).
+- `OfficeIMO.slnx` is the full solution; `OfficeIMO.<Area>.slnf` filters scope
+  it to one area (Word, Excel, Pdf, Html, Studio, PowerShell, Benchmarks, ...).
+- `PowerShell/PSWriteOffice/`: the module (C# cmdlets in `Sources/`, Pester
+  tests, `Docs/`). It references the engines in this checkout.
+- `OfficeIMO.Studio*/`: desktop Studio (Avalonia, Windows and Linux).
+  `Apple/`: the native Mac, iPad and iPhone apps (Swift package).
+- `OfficeIMO.Tool/`: CLI and MCP server. `.agents/plugins/officeimo-document-tools/`:
+  the agent plugin that ships it.
+- `Website/`: officeimo.com (PowerForge site pipeline, `Website/build.ps1`),
+  with `Website/Apps/` for the browser-local WebAssembly tools.
+- `Build/`: build, release, generators, evidence and verification scripts.
+- `Docs/`: guides, design docs, support matrices and `ROADMAP.md`.
+- `Tools/OfficeIMO.Html.Pdf.Workbench/`: Blazor workbench with its own `AGENTS.md`.
 
-- Document the current source and package contract. Do not add release-wait, preview-state, pull-request progress, or "after publication" language to current product docs.
-- Keep installation and public API examples in the README of the package that owns the API.
-- Keep release summaries out of the repository. Link GitHub Releases for history and preserve only required upgrade actions in `MIGRATION.md`.
-- Keep exact coverage and known limitations in the relevant support or capability matrix.
-- Move actionable product gaps to `Docs/ROADMAP.md`; do not create another backlog, readiness review, gap plan, or package roadmap.
-- Keep dated reports only when the date is part of reproducible evidence, such as a benchmark run.
-- Update generated documents through their source catalogs, manifests, tests, or generators.
-- Before removing a stale review or planning document, move current behavior to its public owner and open work to `Docs/ROADMAP.md`.
-- Keep user-facing install commands on the latest version actually published to NuGet. Validate install examples through a representative restore/build consumer or release tool rather than unit-test substring assertions over documentation prose.
+## Build and test
 
-## Studio feature matrix
+Builds use the SDK pinned in `global.json` (10.0.100, latest feature roll-forward)
+and PSPublishModule 3.0.170 or later. Engines target `netstandard2.0`, `net8.0`,
+`net10.0`, plus `net472` on Windows; test projects (xUnit) target `net8.0` and
+`net10.0`, some also `net472` on Windows. The full solution is very large:
+build and test the area you changed.
 
-- `Website/data/studio_features.json` is the public record of what OfficeIMO Studio does on Windows, Linux, Mac, iPad and iPhone. The Studio page renders it, with a roadmap summary.
-- Any change that adds, removes or limits a Studio capability on any system updates the matrix in the same change: the support state on each affected platform, a note for partial support, and a `roadmap` section of `Docs/ROADMAP.md` for planned support.
-- Mark a cell available only when the capability works in that system's app; describe limits in the note instead of rounding up. Columns describe the native app on Mac, iPad and iPhone, and the desktop app on Windows and Linux.
-- When planned work is delivered, update the matrix and remove the completed roadmap text in the same change. Keep the matrix's `roadmap` milestones as summaries of open `Docs/ROADMAP.md` sections, not a second backlog.
-- Run `Website/scripts/Test-StudioFeatureMatrix.ps1` after editing the matrix or renaming roadmap headings.
-
-## AI agent integrations page
-
-- `Website/data/agent_integrations.json` is the public record of how agents use OfficeIMO: the clients and how to install in each, the directories that list it, the MCP tools, the plugin's skills, and the website's agent-facing resources. The [AI agents page](https://officeimo.com/agents/) renders it.
-- Adding, renaming or removing an MCP tool or plugin skill updates the page's `tools` or `skills` in the same change. Mark a client ready only when it installs through the client's own documented plugin or MCP mechanism and the server starts with exactly that configuration; a directory is listed only once the listing is live, with its URL. Planned entries link to a `Docs/ROADMAP.md` section.
-- Install commands and configurations use `{version}`; the release binding updates `pluginVersion` with the plugin. Run `Website/scripts/Test-AgentIntegrations.ps1`, which checks the tools against the server's registrations, the skills against the plugin and the install configurations against its `mcp.json`.
-
-## Studio translations
-
-- Studio's interface text is translated for every shipped language in both app families: the desktop `StudioStrings.<language>.resx` resources and the Apple String Catalogs. A change that adds or rewords interface text translates it into every shipped language in the same change.
-- Use the [Studio translations skill](.agents/skills/officeimo-studio-translations/SKILL.md) and the `Build/Studio/*-StudioTranslations.ps1` scripts to add languages or strings; don't edit the catalogs' languages or `ShippedCultures` by hand. `Build/Studio/Test-StudioTranslations.ps1` must pass.
-
-## Testing evidence
-
-Resolve shared procedures against `CODEX_HOME` (default `~/.codex`). Before adding or changing tests, read `skills/test-audit/SKILL.md` (the authoring gate), then `skills/contract-focused-tests/SKILL.md`. Deliberate pruning follows `skills/test-audit/CAMPAIGN.md`; its coverage evidence stays local and is never a CI or merge gate.
-
-
-- Do not use product unit tests to pin human-authored README, roadmap, migration, compatibility, planning, or agent prose.
-- Test Markdown when it is a supported input/output format. Compare generated documents with their executable generator or machine-readable source of truth.
-- Exercise documentation examples through real compile, restore, or run consumers where practical.
-- When low-value prose-only, implementation-only, duplicate, or obsolete tests are encountered in a touched area, remove them instead of preserving or replacing them for test-count optics.
-
-## Benchmark boundaries
-
-- Keep host-dependent timing, allocation, retained/peak-memory budgets and large scale measurements in explicit opt-in evidence runs, outside ordinary pull-request correctness gates. Retain deterministic format, interoperability, cancellation, and API-enforced resource-limit checks in correctness validation, including those hosted in benchmark projects.
-- Tag measurement-only xUnit cases with `Category=Performance` and exclude that category from ordinary CI routes. Report relocation separately from test deletion; keep optional measurement failures visible.
-- Third-party libraries used for comparisons stay isolated in benchmark projects and opt-in verification runners; do not add them to OfficeIMO runtime projects without an explicit product decision.
-- Keep opt-in benchmark runners outside the normal solution when their dependency or license profile should not affect normal restore and build.
-- Add a comparison lane only when every implementation performs equivalent work and the output is validated. Keep OfficeIMO-specific workflows out of parity runners that cannot measure the same contract without artificial adapters.
-- Keep benchmark execution and evidence-publication policy here or in benchmark tooling. Benchmark READMEs should explain how to run a suite, what it measures, how it validates output, and how to interpret its results.
-
-## Project implementation discipline
-
-- Follow the [open Microsoft Project milestones](Docs/ROADMAP.md#microsoft-project-document-library) as the single product scope. Use the [current model/XML contract and native feasibility evidence](OfficeIMO.Project/SUPPORT.md) as the baseline. Follow the remaining milestone order unless a concrete dependency or user direction justifies a recorded change.
-- At each implementation task start, identify the active milestone, remaining acceptance criteria, existing evidence, and the next bounded deliverable. Inspect current source and prior task history before repeating discovery. Keep one milestone or an explicitly agreed delivery bundle in active focus apart from necessary shared-owner fixes.
-- Preserve the adopted baseline: one typed model, thin fluent wrappers, no new external runtime dependencies, explicit scheduling, separate native-generation codecs, and operation-level preservation/conversion reports. Treat the executable public examples as the current API contract; do not propagate a later breaking redesign without identifying its effects.
-- Reproduce and fix defects within the active milestone, including sibling paths and the shared owner, without asking for routine implementation permission. A defect is required work, not an excuse to abandon the milestone for a broader redesign.
-- Before pursuing a newly discovered feature or changing an adopted boundary, record the trigger, affected milestone/API/dependencies, evidence, alternatives, and recommended change in the task. Ask the user only for material scope changes, new external dependencies, reduced acceptance criteria, or unresolved product choices. Continue independent authorized work while that decision is pending.
-- Do not silently replace native writing with XML export, template-free creation with seed-file patching, legacy lifecycle support with reading only, or independent-producer proof with self-round-trip tests. An unavailable oracle, unresolved writer, or missing fixture is an explicit gap; elapsed time and green unrelated tests do not close it.
-- Implement meaningful vertical slices and use focused validation before broad gates. Read-only local review, PR/CI follow-through, and merge/publication authorization retain their existing repository rules. Planning or implementation authorization does not automatically authorize a PR, merge, package release, or deployment.
-- Before reporting a milestone complete, account for every acceptance criterion and validated in-scope defect. During active work use checklists in the task; once delivered, remove completed roadmap work after its current contract and evidence are in the proper package/matrix owners. Preserve stable milestone references in remaining dependencies, linking to those owners when a completed subsection is removed.
-- End each implementation task with a compact handoff: milestone and satisfied/remaining criteria, branch/worktree and head, relevant evidence commands/results, unresolved decisions, PR/release state when applicable, exact next deliverable, and retained artifact paths. Do not create a second roadmap or a permanent implementation journal.
-
-## Access implementation discipline
-
-- Follow the [Access milestones](Docs/ROADMAP.md#microsoft-access-document-library) and [Access design](Docs/officeimo.access-design.md). Start with A00; do not infer native writer, VBA-carrier, form/report or producer-profile feasibility from existing OfficeIMO support for other formats.
-- At task start identify the active milestone, its remaining acceptance criteria, existing fixture/oracle evidence and next bounded deliverable. At handoff record satisfied/remaining criteria, branch/head, decisive evidence, held dependencies and the next deliverable. Keep implementation work and gaps in the owning package/support matrix and single roadmap, not another journal or backlog.
-- Preserve one typed `AccessDocument` model, generation-specific native codecs, shared VBA/security ownership, explicit inert file operations, default strict loss policy and the optional DbaClientX execution boundary. Changes to dependencies, native-versus-provider scope or accepted profile/operation criteria require an explicit decision; routine in-scope defect fixes do not.
-- Qualify reading, opaque preservation, typed editing, template-free native creation, profile conversion, rendering and execution separately. Do not replace required native work with ACE/COM wrappers, copied seed databases, text exports or self-round-trip proof. A missing oracle or unresolved writer holds only dependent criteria and remains visible.
-- Keep code/module/macro content inert and oracle validation isolated. Do not enable a trusted location, execute startup/VBA/data macros, modify a user database or use persistent signing keys for routine validation. Planning does not authorize implementation, PR publication, merge or release; apply the existing repository gates to each separately authorized step.
-
-## Independent HTML engine development
-
-- Keep the architecture in `Docs/officeimo.html-engine-design.md` and open milestones in `Docs/ROADMAP.md`; do not introduce a second program backlog. Update generated support contracts only when behavior is implemented and qualified.
-- Prioritize usable components with replaceable dependency boundaries. Breaking API cleanup is accepted: prove the owned contract, migrate affected consumers and remove superseded paths instead of retaining compatibility wrappers by default. Keep AngleSharp and Jint as the parser and scripting providers: improve them upstream and build on top. Replace a provider only when it proves a blocker, and keep `net472` while PowerShell 5.1 needs it. Keep effective shaping and encoding providers until replacement is justified and qualified. The first implementation PR should be a usable foundation milestone.
-- Develop HTML work like any other package: a short-lived branch and worktree from current `master` under the configured Evotec repository root, and one PR per outcome. The static engine already lives on `master`.
-- `feature/html-engine` is not an integration branch. It holds the parked scripted runtime (`OfficeIMO.Html.Runtime*` and the `External/` provider forks) until the runtime route is decided. Do not merge or rebase it into `master`, and do not build new static work on it. If the retained worker and forks are selected, port them into a fresh branch from `master`; if upstream Jint's browser host is selected, build on `master` and retire the parked code.
-- Prepare a ready-for-review PR when its outcome is complete: implementation, consumer migration, focused tests, representative rendered evidence, relevant package/platform validation, current documentation and risk-appropriate local review.
-- Treat pushes as branch backups, not release qualification. Inspect existing workflow triggers before relying on branch CI; use current build/test tooling for explicit branch validation where needed. Do not add release/publishing triggers as part of checkpoint setup.
-- Inspect all worktrees before branch operations, preserve unrelated work and avoid history rewrites on shared branches.
-- Keep test references and optional provider comparisons outside default runtime dependencies. Store bulky corpus outputs in a named task-owned location, retain compact manifests and decisive evidence, and remove superseded output before repeated runs.
-
-## Format map recordings
-
-Contributor usage and platform export presets are documented in [Docs/officeimo.format-map-media.md](Docs/officeimo.format-map-media.md). Keep that guide aligned with the recorder and cut files.
-
-`Build/FormatMapMedia/index.html` is a purpose-built diagram of the format map for video and social media; `Build/FormatMapRecorder` renders it into clips. Nothing in a clip is hand-made, so re-record from the data whenever the catalog, the PowerShell mapping or the design changes. The website's own format map (`Website/themes/officeimo/partials/sections/format-map.html`, `Website/static/js/format-map.js`) is separate and is not used for recordings.
-
-- Re-record with `./Build/Record-FormatMap.ps1`. It regenerates `Website/data/format_map.json` and renders every cut in `Build/FormatMapMedia/cuts.json` into `Artefacts/FormatMapVideos` (ignored). Useful switches: `-Cut <name>`, `-Scale 2` (true 3840x2160), `-Formats mp4,h265,mov,gif,...`, `-SkipCatalog`, `-Still 0,2000,8000` (PNG stills of those moments, for design work), `-List`. Video encoding needs ffmpeg; stills need only the shared Playwright browsers (HtmlTinkerX). Review generated changes after regeneration; the wrapper never restores working-tree edits. No website build is involved.
-- The diagram draws everything as a pure function of time (`window.imoMedia.render(t)`), so the recorder steps it frame by frame at any frame rate and resolution. Keep it free of timers, transitions and hover state, and keep it vector so `-Scale 2` stays sharp. It reads only `Website/data/format_map.json`, `surfaces.json` and the site font; presentation-only short labels (CHM, MEDLINE, XPS) live in its `ALIAS` table and the data names are untouched.
-- It has compositions for 16:9, 1:1, 4:5 and 9:16; surface pills light only for the surfaces that really run what is shown.
-- Cuts name formats and surfaces with the site tour's grammar (`intro`, `spot:DOCX`, `path:Markdown>DOCX`, `surface:powershell`, `outro`). A suffix such as `spot:XLSX@powershell` filters a format or path scene to that surface. The recorder fails with the unmatched scenes when a format is renamed or loses its routes; update `cuts.json`, do not weaken the check.
-- PowerShell routes come from `Build/CompatibilityCatalog/powershell-routes.json`, a reviewed route-to-cmdlet list with source evidence. Add an entry only after reading the PSWriteOffice cmdlet that performs exactly that conversion. The generator rejects unknown routes and cmdlets missing from `Website/data/apidocs/powershell/command-metadata.json`.
-- Do not commit rendered clips or frames. Render frames go under `EVOTEC_SCRATCH_ROOT` and are removed after a successful encode (and after a failed cut); remove superseded clips before repeating a large run. Keep the recorder outside the normal solution.
-## Agent plugin and MCP Registry maintenance
-
-
-`plugin.json` and `mcp.json` own metadata and server configuration. PowerForge generates the compatibility files used by older Codex clients and Claude. Use a source build of [PowerForge](https://github.com/EvotecIT/PSPublishModule) containing the `agent-plugin` command. Set `POWERFORGE_SOURCE` to that checkout, build with its pinned .NET SDK, and run this build from the PowerForge checkout:
-
-```sh
-dotnet build PowerForge.Cli/PowerForge.Cli.csproj -c Release -f net10.0
+```powershell
+dotnet build OfficeIMO.Word.slnf -c Release
+dotnet test OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj -c Release -f net8.0 --filter "Category!=Performance"
+dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj -c Release -f net10.0
+./Build/Build-Module.ps1 -IncludePackages:$false                          # unsigned PSWriteOffice build
+./Build/Build-Module.ps1 -RunMode Documentation -IncludePackages:$false   # regenerate cmdlet docs
+cd PowerShell/PSWriteOffice; ./PSWriteOffice.Tests.ps1                    # module Pester tests
+./Build/Build-Release.ps1                                                 # packages + module, unsigned
+./Website/build.ps1 -Serve                                                # website
 ```
 
-From the OfficeIMO checkout, invoke the built CLI:
+`./Build/Build-Release.ps1 -RunMode Publish -SignModule:$true` signs and
+publishes NuGet, PowerShell Gallery and the GitHub release. Release only.
+`Build/project.build.json` owns package selection and version bindings;
+`OfficeIMO.Word` is the version anchor. `Docs/building-and-releasing.md` covers
+PDF gates, documentation examples and recovery.
 
-```sh
-dotnet "$POWERFORGE_SOURCE/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll" agent-plugin sync --source .agents/plugins/officeimo-document-tools
-dotnet "$POWERFORGE_SOURCE/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll" agent-plugin validate --source .agents/plugins/officeimo-document-tools --project OfficeIMO.Tool/OfficeIMO.Tool.csproj
-dotnet "$POWERFORGE_SOURCE/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll" agent-plugin pack --source .agents/plugins/officeimo-document-tools --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --out Artefacts/AgentPlugins
-```
+## Generated files
 
-In PowerShell, use `$env:POWERFORGE_SOURCE` in place of `$POWERFORGE_SOURCE`. The resulting CLI runs on Windows, macOS, and Linux.
+Edit the source, then regenerate. Never hand-edit the output.
 
-The packer produces a versioned ZIP and SHA-256 sidecar. Run the Agent Skills validator and real client/server checks in addition to package validation. OfficeIMO's release version bindings update the pinned tool version in all MCP configurations and the manual launcher in `.agents/plugins/officeimo-document-tools/README.md`; regenerate compatibility files after other metadata changes. Contributor skills live separately in `.agents/skills` and are not part of this user plugin.
+- `*OpenXmlValueTypes.Generated.cs`: `Build/Generate-*OpenXmlValueTypes.ps1`.
+- README example blocks in `README.md`, the Word, Excel and PDF READMEs and
+  `Docs/officeimo.pdf-guide.md`: from `Build/DocumentationExamples`, synced with
+  `powerforge docs sync --config Build/docs-sync.json --apply`.
+- `PowerShell/PSWriteOffice/Docs/*.md` and external help: from cmdlet XML
+  comments via the Documentation run mode above.
+- `Website/data/format_map.json` and format map clips: `./Build/Record-FormatMap.ps1`
+  (see `Docs/officeimo.format-map-media.md`). Don't commit clips or frames.
+- Agent plugin compatibility manifests: from `plugin.json` and `mcp.json` with
+  PowerForge `agent-plugin sync`. The `agent-plugin` branch is generated by the
+  release workflow; never edit it.
 
-The **Agent Plugin Package** workflow validates the package and MCP Registry metadata on plugin and Registry package-input changes and manual runs. It builds a pinned PowerForge source revision with its own SDK and uploads the ZIP and checksum as a workflow artifact. `OfficeIMO.Tool-v<version>` tool/plugin releases and normal `OfficeIMO-vYYYYMMDDHHMMSS` coordinated release events attach those files to the [GitHub release](https://github.com/EvotecIT/OfficeIMO/releases) and publish the verified payload at the root of the generated `agent-plugin` branch through the shared PowerForge action. The tool tag must match the plugin version and avoids the separate VS Code Marketplace publisher; both routes require a commit contained in `master`. Do not edit the generated branch manually; vendor submissions use its root to avoid the full repository archive. Existing assets are preserved; attaching a duplicate filename fails. The plugin version follows the OfficeIMO.Tool NuGet release version. The canonical plugin version binding regenerates client manifests in the same PowerForge release transaction; generated files have no separate release bindings. Every published bundle change, including skills-only changes, requires a new product patch release. Keep schema/protocol and shared PowerForge versions independent.
+## Documentation
 
-PowerForge's project release bindings update both version fields in `server.json`. Publish the signed NuGet package first and check that its embedded README contains the matching `mcp-name` ownership marker. The registry validates the published package, so source metadata alone is insufficient. Then, from the repository root, authenticate an authorized EvotecIT publisher and submit the metadata:
+- READMEs (root and per package) are user-facing: what it does, how to install
+  it (latest NuGet version), its public API. `MIGRATION.md` holds actionable
+  upgrade changes only; release history lives in GitHub Releases.
+- `Docs/ROADMAP.md` is the single product backlog, open work only. Don't create
+  other backlogs or gap plans; remove delivered items once their contract is in
+  the owning package or support matrix.
+- Document the current contract through measured workloads, not competitor
+  parity or PR progress. Keep coverage and limits in the support matrices.
+- Studio capability changes update `Website/data/studio_features.json` (per
+  platform; available only where it works) and pass
+  `Website/scripts/Test-StudioFeatureMatrix.ps1`. MCP tool or skill changes update
+  `Website/data/agent_integrations.json` and pass `Website/scripts/Test-AgentIntegrations.ps1`.
 
-```text
-mcp-publisher login github
-mcp-publisher publish OfficeIMO.Tool/server.json
-```
+## Conventions
 
-For CI publication, the official publisher supports `mcp-publisher login github-oidc` with `id-token: write` on an authorized GitHub workflow. Follow the [MCP Registry publishing instructions](https://modelcontextprotocol.io/registry/quickstart) and verify the returned name and version in the Registry API. Registry publication provides discovery; ChatGPT and Claude public directories have their own submission and approval requirements.
+- Warnings are errors, nullable is on. Follow `.editorconfig`.
+- Keep hosts thin: Studio, the website, cmdlets, MCP tools and demos call engine
+  APIs; reusable behaviour lives in the engine.
+- No new external runtime dependencies without an explicit decision. Comparison
+  libraries stay in benchmark projects and opt-in runners, outside the normal
+  solution when their dependencies or licences would affect restore.
+- Studio and OfficeIMO.Workflows convert in process. LibreOffice and Pandoc
+  references in fixtures, benchmarks or verification scripts are independent
+  validation, not runtime requirements; don't carry them into Studio
+  prerequisites, packaging or feature gating.
+- Studio interface text is translated into every shipped language in the same
+  change, for both the desktop `StudioStrings.<language>.resx` files and the
+  Apple String Catalogs. Use the `Build/Studio/*-StudioTranslations.ps1` scripts;
+  `Build/Studio/Test-StudioTranslations.ps1` must pass.
+- PSWriteOffice cmdlets stay thin. Engine contract changes include the
+  PowerShell workflows. The module supports Windows PowerShell 5.1 and 7.
+- Commit titles are plain sentences describing the change:
+  `Keep content file associations when editing attachments in tagged PDFs`.
 
-`Build/validate_mcp_registry.py` validates against a fixed official schema URI and checks the source ownership marker. The OfficeIMO.Tool package smoke gate checks the same marker in the README declared by the actual NuGet artifact. Keep both checks when changing Registry metadata or package inputs.
+## Product boundaries
 
-## Runtime dependency evidence
+- **Project** (`Docs/ROADMAP.md#microsoft-project-document-library`,
+  `OfficeIMO.Project/SUPPORT.md`): one typed model, thin fluent wrappers,
+  explicit scheduling, separate native-generation codecs, operation-level
+  preservation and conversion reports.
+- **Access** (`Docs/officeimo.access-design.md`): one typed `AccessDocument`,
+  generation-specific native codecs, strict loss policy by default, optional
+  DbaClientX execution. Qualify reading, preservation, editing, native creation,
+  conversion and execution separately. Keep VBA, macros and modules inert: never
+  enable trusted locations or execute startup code during validation.
+- For both: don't replace native writing with XML/text export, template-free
+  creation with seed-file patching, or independent-producer proof with
+  self-round-trip tests. A missing oracle or fixture is an open gap, not a pass.
+- **HTML engine** (`Docs/officeimo.html-engine-design.md`): AngleSharp and Jint
+  are the parser and scripting providers; improve them upstream rather than
+  replacing them. Keep `net472` while PowerShell 5.1 needs it. Breaking API
+  cleanup is acceptable when consumers are migrated. `feature/html-engine` holds
+  the parked scripted runtime: don't merge or rebase it into `master` or build
+  new static work on it.
 
-OfficeIMO Studio and the executable OfficeIMO.Workflows document conversions use
-OfficeIMO engines in process. LibreOffice references in fixtures, compatibility
-reports, benchmarks, or opt-in verification scripts describe independent
-validation, not a product runtime requirement. Pandoc-style syntax references in
-Markdown comparison tests do not imply a Pandoc executable dependency. Do not
-carry either tool into Studio prerequisites, App Store restrictions, privacy
-claims, packaging, or feature gating without a reachable production call site.
-OCR's optional Tesseract process and printer queue delivery are separate
-capabilities; assess them from their own execution paths.
+## Tests and benchmarks
 
-## Integrated PowerShell source and releases
+- Don't write tests that pin human-written prose (README, roadmap, migration).
+  Test Markdown as a format; check generated docs against their generator.
+- Tag measurement-only tests `[Trait("Category", "Performance")]`. CI excludes
+  them; timing, allocation and memory budgets run only in opt-in evidence runs.
+  Add a comparison lane only when every implementation does equivalent, validated work.
+- Live and interop tests are opt-in through environment switches, for example
+  `OFFICEIMO_RUN_GOOGLE_WORKSPACE_LIVE`, `OFFICEIMO_RUN_LEGACY_DOC_COM_VALIDATION`
+  (and the PPT, XLS and Word layout COM variants) and `OFFICEIMO_RUN_VBA_SIP_INTEROP`.
+  They need Google credentials or installed Microsoft Office.
+- Many `Build/Test-*.ps1` gates need external tools (LibreOffice, Microsoft
+  Office, veraPDF, ffmpeg, Tesseract) or Windows. Run them only when the task
+  needs that evidence.
+- Keep bulky corpus output, clips and frames outside the repository.
 
-PSWriteOffice lives in `PowerShell/PSWriteOffice` and references the engines in this checkout. Use `Build/Build-Release.ps1` for combined package/module builds and releases; `Docs/building-and-releasing.md` describes validation, publication order, and recovery. Keep cmdlets thin and include the PowerShell workflows when an engine contract changes. Preserve the imported PSWriteOffice ancestry by merging the consolidation with a merge commit.
+## Agent plugin and MCP Registry
+
+- The plugin versions with the OfficeIMO.Tool package; any bundle change, skills
+  included, needs a patch release. Validate with PowerForge `agent-plugin validate
+  --source .agents/plugins/officeimo-document-tools --project OfficeIMO.Tool/OfficeIMO.Tool.csproj`.
+  `Build/validate_mcp_registry.py` checks `OfficeIMO.Tool/server.json`.
+
+## Repository skills
+
+Contributor skills in `.agents/skills`:
+
+- `officeimo-build-release`: building, packaging and releasing OfficeIMO and PSWriteOffice.
+- `officeimo-conversion-operator`: changing or validating conversion behaviour.
+- `officeimo-studio-translations`: adding Studio languages and interface text.
+- `officeimo-website-wasm`: officeimo.com browser tools and the WebAssembly engine.
+- `pswritepdf-retirement`: moving PSWritePDF behaviour into OfficeIMO and PSWriteOffice.
+
+The plugin's skills under `.agents/plugins/` are for users of the tools, not for
+working on this repository.

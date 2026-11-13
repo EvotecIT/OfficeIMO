@@ -70,34 +70,40 @@ The same conversion is available as `OfficeWorkflow.ConvertToPdfA` in `OfficeIMO
 
 ## Print to an installed printer
 
-`OfficeIMO.Workflows` prints through the operating system's own queues: GDI on Windows and CUPS on macOS and Linux. It plans and renders the sheets once, so a preview shows the same pixels the printer receives. Submission sends every prepared sheet, not only the ones you previewed.
+`OfficeIMO.Workflows` prints PDF files and every format OfficeIMO converts to PDF. It reaches Windows printers through GDI, CUPS queues on macOS and Linux, and network printers directly by `ipp://` or `ipps://` URI. Pages are composed onto sheets as vector content, so text and line art keep the printer's full resolution, and a preview renders the same job the printer receives.
 
 ```csharp
 using OfficeIMO.Pdf;
 using OfficeIMO.Workflows;
 
 var printers = new PdfPrinterService();
+PdfPrinterCapabilities capabilities = await printers.GetCapabilitiesAsync("Office printer");
+
 PdfDocument document = await PdfDocument.LoadAsync("report.pdf");
-PdfPreparedPrintDocument prepared = PdfPrintRenderer.Prepare(document, new PdfPrintPlanRequest {
+PdfPrintJob job = PdfPrintJob.Create(document, new PdfPrintPlanRequest {
     InputPath = "report.pdf",
     Pages = "1-8",
-    PagesPerSheet = 2
+    PagesPerSheet = 2,
+    PaperSize = capabilities.DefaultMedia?.Size ?? PdfPageSizes.A4
 });
-File.WriteAllBytes("sheet-1.png", prepared.Sheets[0].GetPng());
+File.WriteAllBytes("sheet-1.png", job.RenderSheet(1, dpi: 96).GetPng());
 
-PdfPrintSubmission job = await printers.SubmitAsync(prepared, new PdfPrintDeliveryOptions {
+PdfPrintSubmission receipt = await printers.SubmitAsync(job, new PdfPrintDeliveryOptions {
     PrinterName = "Office printer",
     Copies = 2,
     Duplex = PdfPrintDuplex.LongEdge
 });
+PdfPrintJobStatus status = await printers.WaitForJobAsync(receipt.PrinterName, receipt.JobId, TimeSpan.FromMinutes(5));
 ```
 
-- **Layout:** 1, 2, 4, 6 or 9 pages per sheet, odd or even pages, fit, actual size, fill or a custom percentage, per-edge margins, alignment, and grayscale.
-- **Printer:** list queues with `GetPrintersAsync` and their trays with `GetPaperSourcesAsync`, then choose copies, duplex and paper source.
-- **Permissions and limits:** PDF print restrictions are enforced, and page, pixel and output budgets bound the work.
-- **Receipt:** the job identifier confirms that the queue accepted the job, not that paper came out. After an interrupted submission, check the queue before retrying.
+To print a Word, Excel, PowerPoint or other document, call `printers.PrintAsync(new OfficePrintRequest { ... })`: it converts in memory, composes the job and submits it in one step.
 
-From the command line, use `officeimo workflow printers` and `officeimo workflow print report.pdf --printer "Office printer"`.
+- **Layout:** 1, 2, 4, 6 or 9 pages per sheet, odd or even pages, fit, actual size, fill or a custom percentage, per-edge margins, alignment, and grayscale.
+- **Printer:** list queues with `GetPrintersAsync`, read media, trays, duplex, color and resolutions with `GetCapabilitiesAsync`, then choose copies, duplex and paper source.
+- **Permissions and limits:** PDF print restrictions are enforced, and sheet, content and pixel budgets bound the work. Pages that can't be placed as vector content, such as print-only documents, are rasterized and the job reports why.
+- **Receipt:** the job identifier confirms that the queue accepted the job, not that paper came out. Follow it with `GetJobAsync`, `WaitForJobAsync` or `CancelJobAsync`. A `PdfPrintDeliveryException` means submission began, so check the queue before retrying.
+
+From the command line, use `officeimo workflow printers`, `officeimo workflow print report.pdf --printer "Office printer"` and `officeimo workflow print-job status --printer "Office printer" --job <id>`. In PowerShell, use `Send-OfficePrinter`, `Get-OfficePrinterCapability`, `Get-OfficePrintJob` and `Stop-OfficePrintJob`.
 
 ## Redaction is removal, not decoration
 

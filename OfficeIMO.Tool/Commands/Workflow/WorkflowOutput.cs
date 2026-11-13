@@ -14,6 +14,8 @@ internal static class WorkflowOutput {
     internal const string OptimizeImagesSchema = "officeimo.workflow.optimize-images.v1";
     internal const string PrintersSchema = "officeimo.workflow.printers.v1";
     internal const string PaperSourcesSchema = "officeimo.workflow.paper-sources.v1";
+    internal const string PrinterCapabilitiesSchema = "officeimo.workflow.printer-capabilities.v1";
+    internal const string PrintJobSchema = "officeimo.workflow.print-job.v1";
     internal const string PrintSchema = "officeimo.workflow.print.v1";
 
     /// <summary>Reads a --format value; <paramref name="otherUse"/> names the option for a non-output value, if any.</summary>
@@ -119,6 +121,100 @@ internal static class WorkflowOutput {
         }).ConfigureAwait(false);
     }
 
+    internal static async Task WritePrinterCapabilitiesAsync(TextWriter output, PdfPrinterCapabilities capabilities, bool json) {
+        if (!json) {
+            static string State(bool? value) => value switch { true => "yes", false => "no", _ => "unknown" };
+            await output.WriteLineAsync("Printer: " + capabilities.PrinterName).ConfigureAwait(false);
+            await output.WriteLineAsync("Default media: " + (capabilities.DefaultMedia?.Name ?? "unknown")).ConfigureAwait(false);
+            foreach (PdfPrinterMedia media in capabilities.Media) {
+                string size = media.Size is { } paper
+                    ? " (" + paper.Width.ToPoints().ToString("0.##", CultureInfo.InvariantCulture) + " x " + paper.Height.ToPoints().ToString("0.##", CultureInfo.InvariantCulture) + " pt)"
+                    : string.Empty;
+                await output.WriteLineAsync("Media: " + media.Id + ": " + media.Name + size).ConfigureAwait(false);
+            }
+            foreach (PdfPaperSourceInfo source in capabilities.PaperSources)
+                await output.WriteLineAsync("Paper source: " + source.Id + ": " + source.Name).ConfigureAwait(false);
+            await output.WriteLineAsync("Duplex: " + State(capabilities.SupportsDuplex)).ConfigureAwait(false);
+            await output.WriteLineAsync("Color: " + State(capabilities.SupportsColor)).ConfigureAwait(false);
+            await output.WriteLineAsync("Collation: " + State(capabilities.SupportsCollation)).ConfigureAwait(false);
+            await output.WriteLineAsync("Maximum copies: " + (capabilities.MaximumCopies?.ToString(CultureInfo.InvariantCulture) ?? "unknown")).ConfigureAwait(false);
+            if (capabilities.Resolutions.Count > 0)
+                await output.WriteLineAsync("Resolutions: " + string.Join(", ", capabilities.Resolutions)).ConfigureAwait(false);
+            return;
+        }
+        static void Media(Utf8JsonWriter writer, PdfPrinterMedia media) {
+            writer.WriteString("id", media.Id);
+            writer.WriteString("name", media.Name);
+            if (media.Size is { } paper) {
+                writer.WriteNumber("widthPoints", Math.Round(paper.Width.ToPoints(), 2));
+                writer.WriteNumber("heightPoints", Math.Round(paper.Height.ToPoints(), 2));
+            }
+        }
+        static void Optional(Utf8JsonWriter writer, string name, bool? value) {
+            if (value is bool known) writer.WriteBoolean(name, known);
+            else writer.WriteNull(name);
+        }
+        await WriteJsonAsync(output, writer => {
+            writer.WriteString("schema", PrinterCapabilitiesSchema);
+            writer.WriteString("printer", capabilities.PrinterName);
+            if (capabilities.DefaultMedia is { } defaultMedia) {
+                writer.WriteStartObject("defaultMedia");
+                Media(writer, defaultMedia);
+                writer.WriteEndObject();
+            } else {
+                writer.WriteNull("defaultMedia");
+            }
+            writer.WriteStartArray("media");
+            foreach (PdfPrinterMedia media in capabilities.Media) {
+                writer.WriteStartObject();
+                Media(writer, media);
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+            writer.WriteStartArray("paperSources");
+            foreach (PdfPaperSourceInfo source in capabilities.PaperSources) {
+                writer.WriteStartObject();
+                writer.WriteString("id", source.Id);
+                writer.WriteString("name", source.Name);
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+            Optional(writer, "supportsDuplex", capabilities.SupportsDuplex);
+            Optional(writer, "supportsColor", capabilities.SupportsColor);
+            Optional(writer, "supportsCollation", capabilities.SupportsCollation);
+            if (capabilities.MaximumCopies is int copies) writer.WriteNumber("maximumCopies", copies);
+            else writer.WriteNull("maximumCopies");
+            writer.WriteStartArray("resolutions");
+            foreach (PdfPrinterResolution resolution in capabilities.Resolutions) {
+                writer.WriteStartObject();
+                writer.WriteNumber("horizontalDpi", resolution.HorizontalDpi);
+                writer.WriteNumber("verticalDpi", resolution.VerticalDpi);
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+        }).ConfigureAwait(false);
+    }
+
+    internal static async Task WritePrintJobAsync(TextWriter output, PdfPrintJobStatus status, bool json) {
+        if (!json) {
+            await output.WriteLineAsync("Job " + status.JobId + " on " + status.PrinterName + ": " + status.State
+                + (status.StateReasons.Count > 0 ? " (" + string.Join(", ", status.StateReasons) + ")" : "")
+                + (string.IsNullOrEmpty(status.StateMessage) ? "" : ": " + status.StateMessage)).ConfigureAwait(false);
+            return;
+        }
+        await WriteJsonAsync(output, writer => {
+            writer.WriteString("schema", PrintJobSchema);
+            writer.WriteString("printer", status.PrinterName);
+            writer.WriteString("jobId", status.JobId);
+            writer.WriteString("state", status.State.ToString());
+            writer.WriteBoolean("isTerminal", status.IsTerminal);
+            writer.WriteStartArray("stateReasons");
+            foreach (string reason in status.StateReasons) writer.WriteStringValue(reason);
+            writer.WriteEndArray();
+            writer.WriteString("stateMessage", status.StateMessage);
+        }).ConfigureAwait(false);
+    }
+
     internal static async Task WritePrintAsync(TextWriter output, PdfPrintSubmission receipt, string inputPath, bool json) {
         if (!json) {
             await output.WriteLineAsync("Queue accepted: " + receipt.PrinterName + "; job " + (receipt.JobId ?? "unknown") + ". Physical delivery is unconfirmed.").ConfigureAwait(false);
@@ -132,6 +228,9 @@ internal static class WorkflowOutput {
             writer.WriteNumber("sheetCount", receipt.SheetCount);
             writer.WriteNumber("copies", receipt.Copies);
             writer.WriteString("outputFilePath", receipt.OutputFilePath);
+            writer.WriteStartArray("ignoredAttributes");
+            foreach (string ignored in receipt.IgnoredAttributes) writer.WriteStringValue(ignored);
+            writer.WriteEndArray();
         }).ConfigureAwait(false);
     }
 

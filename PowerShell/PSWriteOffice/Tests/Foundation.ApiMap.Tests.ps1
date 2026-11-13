@@ -92,7 +92,12 @@ Describe 'Command map foundations' {
     It 'exports exactly the aliases the reviewed map declares' {
         # Test-ApiMap.ps1 owns the alias naming and built-in collision rules; this checks the module matches the map.
         $actual = @($module.ExportedAliases.Values | ForEach-Object { "$($_.Name) -> $($_.ResolvedCommandName)" } | Sort-Object)
-        $expected = @($maps.commands | Where-Object alias | ForEach-Object { "$($_.alias) -> $($_.name)" } | Sort-Object)
+        # A shipped command name kept after a rename is a reviewed compatibility alias.
+        $expected = @($maps.commands | ForEach-Object {
+                $command = $_
+                if ($command.alias) { "$($command.alias) -> $($command.name)" }
+                if ($command.PSObject.Properties['compatibilityAliases']) { $command.compatibilityAliases | ForEach-Object { "$_ -> $($command.name)" } }
+            } | Sort-Object)
         Compare-Object $actual $expected -CaseSensitive | Should -BeNullOrEmpty
     }
 }
