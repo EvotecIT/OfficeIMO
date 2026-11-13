@@ -20,7 +20,7 @@ Usage:
                                      [--take <1-25>] [--max-items-scanned <1-10000>]
                                      [--max-decoded-bytes <1-67108864>] [--max-searchable-characters <1-2000000>]
                                      [--max-output-characters <512-64000>] [mailbox filters as above]
-  officeimo agent convert <path> --output <file> [--format markdown|json|docx|xlsx|pptx|pdf] [--overwrite]
+  officeimo agent convert <path> --output <file> [--format markdown|json|docx|xlsx|pptx|pdf] [--force]
   officeimo agent capabilities [--extension <.ext>] [--operation create|read|edit|preserve|inspect|validate|remove|search|fetch|convert|export]
                                 [--cursor <n>] [--conversion-cursor <n>] [--max-output-characters <512-64000>]
 
@@ -87,7 +87,7 @@ Output is one compact JSON object. Inspect or search first, then fetch selected 
                     parsed.Path!,
                     parsed.OutputPath!,
                     parsed.Format,
-                    parsed.Overwrite,
+                    parsed.Force,
                     cancellationToken).ConfigureAwait(false),
                 AgentCommandKind.Capabilities => service.Capabilities(
                     parsed.Extension,

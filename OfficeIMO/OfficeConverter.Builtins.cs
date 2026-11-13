@@ -24,7 +24,8 @@ public static partial class OfficeConverter {
     private static readonly HashSet<string> BuiltinRouteIds = new HashSet<string>(new[] {
         "email-pdf", "epub-pdf", "reader-visio-pdf", "doc-pdf", "docx-pdf", "xls-pdf", "xlsb-pdf", "xlsx-pdf", "ppt-pdf", "pptx-pdf", "markdown-pdf", "html-pdf", "txt-pdf",
         "word-xml-docx", "spreadsheet-xml-xlsx", "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html", "docx-html", "pptx-html", "docx-markdown", "html-docx", "html-markdown", "markdown-docx", "markdown-html"
-    }.Concat(OfficeConversionCapabilityCatalog.All.Where(route => route.Id.StartsWith("native-", StringComparison.Ordinal)).Select(route => route.Id)), StringComparer.OrdinalIgnoreCase);
+    }.Concat(OfficeConversionCapabilityCatalog.All.Where(route => route.Id.StartsWith("native-", StringComparison.Ordinal)).Select(route => route.Id))
+        .Concat(DataRouteIds), StringComparer.OrdinalIgnoreCase);
 
     private static async Task<OfficeConversionReport> ConvertCapturedCoreAsync(Stream input, Stream output,
         OfficeConversionOptions settings, CancellationToken token) {
@@ -216,7 +217,10 @@ public static partial class OfficeConverter {
                     itemsWritten: saved.Pipeline.Output?.PageCount ?? 0);
                 break;
             }
-            default: throw new NotSupportedException("Register the owning adapter before executing this route.");
+            default:
+                if (!IsDataRoute(id)) throw new NotSupportedException("Register the owning adapter before executing this route.");
+                result = ConvertData(id, input, output, settings, token);
+                break;
         }
         } catch (OfficeConversionException error) when (sourceReport != null) {
             var report = new OfficeConversionReport(settings.SourceName!, settings.TargetName!,

@@ -45,6 +45,7 @@ public class TomlReaderAndWriterTests {
             writer.WriteString("it's \"quoted\"\n", TomlStringStyle.Literal);
             writer.WriteKey("site", "url");
             writer.WriteString("https://example.com", TomlStringStyle.Literal);
+            writer.WriteComment("tools");
             writer.WriteTableHeader("tool", "x y");
             writer.WriteKey("list");
             writer.WriteStartArray();
@@ -61,10 +62,11 @@ public class TomlReaderAndWriterTests {
             Assert.Throws<InvalidOperationException>(() => writer.WriteInteger(1));
         }
         Assert.Equal(
-            "# generated\nname = \"it's \\\"quoted\\\"\\n\"\nsite.url = 'https://example.com'\n\n[tool.\"x y\"]\nlist = [1, 0.5, { a = false }]\n\n[[p]]\nwhen = 2024-02-29\n",
+            "# generated\nname = \"it's \\\"quoted\\\"\\n\"\nsite.url = 'https://example.com'\n\n# tools\n[tool.\"x y\"]\nlist = [1, 0.5, { a = false }]\n\n[[p]]\nwhen = 2024-02-29\n",
             output.ToString());
         using TomlDocument doc = TomlDocument.Parse(output.ToString());
         Assert.Equal("it's \"quoted\"\n", doc.Select("name")!.AsString());
         Assert.False(doc.Select("tool[\"x y\"].list[2].a")!.GetValue<bool>());
+        Assert.Equal(new[] { " tools" }, doc.Select("tool[\"x y\"]")!.LeadingComments);
     }
 }

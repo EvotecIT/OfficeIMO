@@ -373,6 +373,7 @@ public sealed class PublicApiNamingContracts {
             .Select(static path => Assembly.Load(new AssemblyName(AssemblyName.GetAssemblyName(path).Name!)))
             .Distinct()
             .ToArray();
+        // Nested types such as a collection's Enumerator are always qualified by their containing type, as in the BCL.
         IGrouping<string, Type>[] collisions = assemblies
             .SelectMany(assembly => assembly.GetExportedTypes())
             // Nested types such as a collection's Enumerator are always named through their declaring type.

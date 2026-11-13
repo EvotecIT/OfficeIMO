@@ -78,22 +78,6 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -HiddenDataOptions
-Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.
-
-```yaml
-Type: OfficeHiddenDataOptions
-Parameter Sets: PathSanitize, PathSanitizeDirectory, LiteralPathSanitize, LiteralPathSanitizeDirectory
-Aliases: SanitizationOptions
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -IgnorePermissionRestrictions
 After successful authentication only; never bypasses a missing password.
 
@@ -297,6 +281,22 @@ Possible values:
 
 Required: True
 Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -HiddenDataOptions
+Hidden-data categories that -Sanitize removes, from New-OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.
+
+```yaml
+Type: OfficeHiddenDataOptions
+Parameter Sets: PathSanitize, PathSanitizeDirectory, LiteralPathSanitize, LiteralPathSanitizeDirectory
+Aliases: SanitizationOptions
+Possible values:
+
+Required: False
+Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

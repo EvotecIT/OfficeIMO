@@ -28,6 +28,8 @@
     "OfficeIMO.Xps": "3.6.X",
     "OfficeIMO.Xps.Pdf": "3.6.X",
     "OfficeIMO.Data.Arrow": "3.6.X",
+    "OfficeIMO.Data.Conversions": "3.6.X",
+    "OfficeIMO.Data.Conversions.Excel": "3.6.X",
     "OfficeIMO.Data.Generators": "3.6.X",
     "OfficeIMO.DocBook": "3.6.X",
     "OfficeIMO.Drawing.CodeGlyphX": "3.6.X",

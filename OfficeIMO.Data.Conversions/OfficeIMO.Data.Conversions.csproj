@@ -1,0 +1,71 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Streaming structured-data conversions between JSON, JSON Lines, YAML, TOML, XML, CSV and TSV for OfficeIMO, with loss reporting through OfficeConversionReport.</Description>
+
+    <VersionPrefix>3.6.0</VersionPrefix>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <IsPackable>true</IsPackable>
+    <IsPublishable>True</IsPublishable>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+
+    <PackageTags>json;jsonl;yaml;toml;xml;csv;tsv;conversion;streaming;netstandard2.0;net8.0;net10.0;aot</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Copyright>(c) 2011 - 2026 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
+    <PackageIcon>OfficeIMO.png</PackageIcon>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <LangVersion>Latest</LangVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\\Assets\\OfficeIMO.png" Pack="True" PackagePath="\" />
+    <None Include="README.md" Pack="True" PackagePath="README.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="System.Buffers" />
+    <Using Include="System.Globalization" />
+    <Using Include="System.Text" />
+    <Using Include="System.Text.Json" />
+  </ItemGroup>
+
+  <!-- System.Text.Json is part of the shared framework on net8.0 and later. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">
+    <PackageReference Include="System.Text.Json" Version="[10.0.7,11.0.0)" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Yaml\OfficeIMO.Yaml.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Toml\OfficeIMO.Toml.csproj" />
+    <ProjectReference Include="..\OfficeIMO.CSV\OfficeIMO.CSV.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO" />
+    <InternalsVisibleTo Include="OfficeIMO.Data.Conversions.Excel" />
+    <InternalsVisibleTo Include="OfficeIMO.Data.Conversions.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Data.Conversions.Benchmarks" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.Xml.Linq" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
+  </ItemGroup>
+</Project>

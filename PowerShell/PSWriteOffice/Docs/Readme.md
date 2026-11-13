@@ -484,6 +484,9 @@ Compares two worksheets or ranges cell by cell.
 ### [Convert-OfficeDocument](Convert-OfficeDocument.md)
 Converts files through OfficeIMO's native routes and portable batch engine.
 
+### [ConvertFrom-OfficeToml](ConvertFrom-OfficeToml.md)
+Converts TOML text to PowerShell objects, as ConvertFrom-Json does for JSON.
+
 ### [ConvertFrom-OfficeYaml](ConvertFrom-OfficeYaml.md)
 Converts YAML text to PowerShell objects, as ConvertFrom-Json does for JSON.
 
@@ -498,6 +501,9 @@ Converts objects into a Markdown table.
 
 ### [ConvertTo-OfficeProjectTable](ConvertTo-OfficeProjectTable.md)
 Maps PowerShell rows to a bounded project entity table.
+
+### [ConvertTo-OfficeToml](ConvertTo-OfficeToml.md)
+Converts PowerShell objects to TOML text, as ConvertTo-Json does for JSON.
 
 ### [ConvertTo-OfficeVisioVisual](ConvertTo-OfficeVisioVisual.md)
 Converts CFX semantic visual-artifact input into a native editable OfficeIMO.Visio document.
@@ -546,6 +552,9 @@ Exports objects as a designed presentation with editable tables and optional cha
 
 ### [Export-OfficeProjectReport](Export-OfficeProjectReport.md)
 Exports a captured Project report through the shared PDF, HTML, Word, Excel or PowerPoint adapters.
+
+### [Export-OfficeToml](Export-OfficeToml.md)
+Writes PowerShell objects to a TOML file; the file form of ConvertTo-OfficeToml.
 
 ### [Export-OfficeVisioStencilPreviewGallery](Export-OfficeVisioStencilPreviewGallery.md)
 Exports preview artwork from a Visio stencil package into a browsable HTML gallery.
@@ -636,6 +645,9 @@ Lists template markers and, with -Value, which are bound.
 
 ### [Get-OfficeExcelValidation](Get-OfficeExcelValidation.md)
 Gets native data validation snapshots, with worksheet and source-path metadata.
+
+### [Get-OfficeHiddenData](Get-OfficeHiddenData.md)
+Reports the metadata and hidden data that would leave with a file. The file is never changed.
 
 ### [Get-OfficeMarkdownFrontMatter](Get-OfficeMarkdownFrontMatter.md)
 Gets top-level YAML front matter entries from a Markdown document as Key, Value, Node and SourceSpan objects.
@@ -802,6 +814,9 @@ Imports selected slides from a file or live document, preserving native relation
 ### [Import-OfficeProjectTable](Import-OfficeProjectTable.md)
 Imports explicitly mapped tables into a new project without changing existing documents.
 
+### [Import-OfficeToml](Import-OfficeToml.md)
+Reads TOML files as PowerShell objects; the file form of ConvertFrom-OfficeToml.
+
 ### [Import-OfficeVisioStencilCatalog](Import-OfficeVisioStencilCatalog.md)
 Loads a stencil catalog (built-in, from .vssx/.vsdx packages or installed Visio); inside a diagram block it also registers it.
 
@@ -912,6 +927,9 @@ Creates Excel checks for Test-OfficeDocument: capability preflight and package v
 
 ### [New-OfficeGoogleWorkspaceSession](New-OfficeGoogleWorkspaceSession.md)
 Creates a native Google Workspace session from a service-account key.
+
+### [New-OfficeHiddenDataOptions](New-OfficeHiddenDataOptions.md)
+Chooses which hidden data Remove-OfficeHiddenData and Optimize-OfficePdf -Sanitize remove.
 
 ### [New-OfficeHtmlConversionOptions](New-OfficeHtmlConversionOptions.md)
 Creates discoverable parsing, trust, and document settings for HTML conversion.
@@ -1185,6 +1203,9 @@ Removes a defined name.
 
 ### [Remove-OfficeExcelPageBreak](Remove-OfficeExcelPageBreak.md)
 Removes manual print page breaks from selected open worksheets.
+
+### [Remove-OfficeHiddenData](Remove-OfficeHiddenData.md)
+Writes a copy of a file without its metadata and hidden data, and reports what happened to each item.
 
 ### [Remove-OfficePdfAnnotation](Remove-OfficePdfAnnotation.md)
 Removes native annotations selected by identity, page and subtype.

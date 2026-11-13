@@ -15,7 +15,7 @@ internal static class WorkflowJobCommand {
         if (args[0] is not "plan" and not "run" and not "report") throw new WorkflowUsageException("Choose job plan, job run or job report.");
         string command = args[0];
         string? path = null, format = null, reportPath = null;
-        bool retryFailed = false, allowEmpty = false;
+        bool retryFailed = false, allowEmpty = false, verbose = false;
         var seen = new HashSet<string>(StringComparer.Ordinal);
         for (int index = 1; index < args.Length; index++) {
             string option = args[index];
@@ -29,6 +29,7 @@ internal static class WorkflowJobCommand {
             switch (option) {
                 case "--retry-failed": retryFailed = true; break;
                 case "--allow-empty": allowEmpty = true; break;
+                case "--verbose": verbose = true; break;
                 case "--report":
                     if (++index >= args.Length || args[index].StartsWith("--", StringComparison.Ordinal))
                         throw new WorkflowUsageException("Specify a new run-report path.");
@@ -58,7 +59,7 @@ internal static class WorkflowJobCommand {
             return plan.CanRun ? (int)OfficeImoToolExitCode.Success : (int)OfficeImoToolExitCode.OperationFailed;
         }
         if (retryFailed) job.RetryFailed = true;
-        var progress = new WorkflowBatchOutput(output, error, format ?? "json");
+        var progress = new WorkflowBatchOutput(output, error, format ?? "json", verbose);
         job.ResolveEnvironmentVariable = Environment.GetEnvironmentVariable;
         job.AllowEmpty |= allowEmpty;
         job.ReportPath = reportPath == null ? null : Path.GetFullPath(reportPath);

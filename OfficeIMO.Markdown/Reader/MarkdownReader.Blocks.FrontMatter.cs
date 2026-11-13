@@ -22,7 +22,8 @@ internal static partial class MarkdownReader {
         return false;
     }
 
-    private static bool IsFrontMatterFence(string? line) => string.Equals(line?.Trim(), FrontMatterBlock.Fence, StringComparison.Ordinal);
+    // Fences start at column 0, as in Jekyll; an indented "---" is indented code or a thematic break.
+    private static bool IsFrontMatterFence(string? line) => string.Equals(line?.TrimEnd(), FrontMatterBlock.Fence, StringComparison.Ordinal);
 
     // Front matter comes from documents of unknown origin. Repeated keys are common in hand-edited files; the engine's
     // default lets the last one win, as Jekyll and Hugo do, and reports each repeat instead of failing.

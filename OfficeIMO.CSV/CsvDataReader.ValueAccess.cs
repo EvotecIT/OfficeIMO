@@ -8,9 +8,15 @@ public partial class CsvDataReader
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override string GetString(int ordinal)
     {
+#if NET8_0_OR_GREATER
+        if (_currentUtf8TextRows is { } utf8Rows)
+        {
+            return utf8Rows.GetString(ordinal);
+        }
+#endif
         if (_useDirectTextSourceStrings)
         {
-            return GetDirectTextSourceString(ordinal);
+            return GetDirectDecodedTextSourceString(ordinal);
         }
 
         return GetStringCore(ordinal);
@@ -57,9 +63,15 @@ public partial class CsvDataReader
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override object GetValue(int ordinal)
     {
+#if NET8_0_OR_GREATER
+        if (_currentUtf8TextRows is { } utf8Rows)
+        {
+            return utf8Rows.GetString(ordinal);
+        }
+#endif
         if (_useDirectTextSourceStrings)
         {
-            return GetDirectTextSourceString(ordinal);
+            return GetDirectDecodedTextSourceString(ordinal);
         }
 
         return GetValueCore(ordinal);
@@ -108,8 +120,12 @@ public partial class CsvDataReader
         return value;
     }
 
+    /// <summary>
+    /// Reads a direct string when no UTF-8 row is current: from a decoded text source, or the
+    /// invalid-state error when no row is current at all.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private string GetDirectTextSourceString(int ordinal)
+    private string GetDirectDecodedTextSourceString(int ordinal)
     {
         if (!_hasCurrentTextRow)
         {
@@ -117,11 +133,6 @@ public partial class CsvDataReader
         }
 
 #if NET8_0_OR_GREATER
-        if (_utf8StreamTextRowSource is not null)
-        {
-            return _utf8StreamTextRowSource.GetString(ordinal);
-        }
-
         if (_streamTextRowSource is not null)
         {
             return _streamTextRowSource.GetString(ordinal);

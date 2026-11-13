@@ -41,10 +41,10 @@ public class PackageAssetsModernCsvBenchmarks {
         using DbDataReader reader = CsvDocument.OpenReader(new MemoryStream(_input, writable: false),
             new CsvReaderOptions { DetectDelimiter = false, HasHeaderRow = false, TrimWhitespace = Trim });
         var values = new CsvObservationAccumulator();
-        int fieldCount = reader.FieldCount;
         int rows = 0;
         while (reader.Read()) {
-            for (int column = 0; column < fieldCount; column++) values.Add(reader.GetString(column));
+            int count = reader.FieldCount;
+            for (int column = 0; column < count; column++) values.Add(reader.GetString(column));
             rows++;
         }
         return Validate(values.ToObservation(rows));
@@ -60,7 +60,8 @@ public class PackageAssetsModernCsvBenchmarks {
         var values = new CsvObservationAccumulator();
         int rows = 0;
         foreach (var row in reader) {
-            for (int column = 0; column < row.ColCount; column++) values.Add(row[column].ToString());
+            int count = row.ColCount;
+            for (int column = 0; column < count; column++) values.Add(row[column].ToString());
             rows++;
         }
         return Validate(values.ToObservation(rows));
@@ -77,7 +78,8 @@ public class PackageAssetsModernCsvBenchmarks {
         var values = new CsvObservationAccumulator();
         int rows = 0;
         while (reader.Read()) {
-            for (int column = 0; column < reader.FieldCount; column++) values.Add(reader.GetString(column));
+            int count = reader.FieldCount;
+            for (int column = 0; column < count; column++) values.Add(reader.GetString(column));
             rows++;
         }
         return Validate(values.ToObservation(rows));

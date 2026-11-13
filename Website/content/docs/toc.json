@@ -462,6 +462,11 @@
         "href": "/docs/toml/"
       },
       {
+        "title": "Data Conversions",
+        "path": "data-conversions/index.md",
+        "href": "/docs/data-conversions/"
+      },
+      {
         "title": "ZIP, CAB and MSI Archives",
         "path": "archives/index.md",
         "href": "/docs/archives/"
@@ -750,6 +755,76 @@
         "title": "Readable document layouts",
         "path": "pswriteoffice/document-layout/index.md",
         "href": "/docs/pswriteoffice/document-layout/"
+      },
+      {
+        "title": "Configuration Files and Data Conversion",
+        "path": "pswriteoffice/config-data-formats/index.md",
+        "href": "/docs/pswriteoffice/config-data-formats/"
+      },
+      {
+        "title": "Project, Access, and EPUB Files",
+        "path": "pswriteoffice/project-access-epub/index.md",
+        "href": "/docs/pswriteoffice/project-access-epub/"
+      },
+      {
+        "title": "Clean Files Before Sharing",
+        "path": "pswriteoffice/before-sharing/index.md",
+        "href": "/docs/pswriteoffice/before-sharing/"
+      }
+    ]
+  },
+  {
+    "title": "Command Line",
+    "items": [
+      {
+        "title": "CLI Documentation",
+        "path": "cli/index.md",
+        "href": "/docs/cli/"
+      },
+      {
+        "title": "Install and Pin",
+        "path": "cli/install/index.md",
+        "href": "/docs/cli/install/"
+      },
+      {
+        "title": "Convert Documents",
+        "path": "cli/convert/index.md",
+        "href": "/docs/cli/convert/"
+      },
+      {
+        "title": "Batches and Saved Jobs",
+        "path": "cli/batch-and-jobs/index.md",
+        "href": "/docs/cli/batch-and-jobs/"
+      },
+      {
+        "title": "Extract and Inspect",
+        "path": "cli/extract-and-inspect/index.md",
+        "href": "/docs/cli/extract-and-inspect/"
+      },
+      {
+        "title": "PDF Workflows",
+        "path": "cli/pdf/index.md",
+        "href": "/docs/cli/pdf/"
+      },
+      {
+        "title": "Clean Documents Before Sharing",
+        "path": "cli/before-sharing/index.md",
+        "href": "/docs/cli/before-sharing/"
+      },
+      {
+        "title": "Invoices",
+        "path": "cli/invoices/index.md",
+        "href": "/docs/cli/invoices/"
+      },
+      {
+        "title": "Scripting and CI",
+        "path": "cli/scripting-and-ci/index.md",
+        "href": "/docs/cli/scripting-and-ci/"
+      },
+      {
+        "title": "MCP and Agents",
+        "path": "cli/mcp-and-agents/index.md",
+        "href": "/docs/cli/mcp-and-agents/"
       }
     ]
   },

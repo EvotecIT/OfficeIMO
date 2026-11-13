@@ -30,6 +30,8 @@
     <ProjectReference Include="..\OfficeIMO.CSV\OfficeIMO.CSV.csproj" />
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.Data.Arrow\OfficeIMO.Data.Arrow.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Data.Conversions\OfficeIMO.Data.Conversions.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Data.Conversions.Excel\OfficeIMO.Data.Conversions.Excel.csproj" />
     <ProjectReference Include="..\OfficeIMO.Data.Generators\OfficeIMO.Data.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
@@ -176,6 +178,8 @@
     <TrimmerRootAssembly Include="OfficeIMO.CSV" />
     <TrimmerRootAssembly Include="OfficeIMO.Core" />
     <TrimmerRootAssembly Include="OfficeIMO.Data.Arrow" />
+    <TrimmerRootAssembly Include="OfficeIMO.Data.Conversions" />
+    <TrimmerRootAssembly Include="OfficeIMO.Data.Conversions.Excel" />
     <TrimmerRootAssembly Include="OfficeIMO.DjVu" />
     <TrimmerRootAssembly Include="OfficeIMO.DjVu.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.DocBook" />

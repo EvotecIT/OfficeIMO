@@ -1,61 +1,79 @@
 ---
 title: "OfficeIMO.Tool"
-description: "Convert, extract, and inspect documents from your terminal with OfficeIMO.Tool. Install the .NET tool from NuGet and automate repeatable document jobs."
+description: "Convert, extract, inspect and clean documents from your terminal with the officeimo CLI, in scripts, CI jobs, batches and MCP clients."
 meta.seo_title: "OfficeIMO.Tool: document conversion and inspection CLI"
 layout: application
 meta.application: "tool"
 ---
 
-## Install once. Use the same command in your scripts.
+## One command for document work in scripts
 
-Install the tool from NuGet with the .NET SDK, then inspect the available commands:
+`officeimo` runs the OfficeIMO engines from a shell, a CI job, a scheduled task or an AI agent, without Microsoft Office. Results go to standard output as JSON, diagnostics go to standard error, failures return documented exit codes, and existing files are protected unless you pass `--force`.
 
-```powershell
+## Install
+
+```shell
 dotnet tool install --global OfficeIMO.Tool
 officeimo --version
 officeimo help
 ```
 
-For a repository-pinned installation, use a .NET tool manifest and commit it with your project. Update a global installation with `dotnet tool update --global OfficeIMO.Tool`.
+For scripts and CI, pin the version in the repository with a tool manifest and run it as `dotnet officeimo`. [Install and pin the tool](/docs/cli/install/) shows both.
 
-## Start with a document
+## Convert a folder of documents to PDF
 
-Convert a Word document to PDF:
-
-```powershell
-officeimo convert report.docx report.pdf
+```shell
+officeimo workflow batch --input-directory ./Documents --output ./PDF --checkpoint ./PDF-State
 ```
 
-Extract document content as Markdown:
+Each file is converted, reopened and published independently. Rerun the same command to reuse completed work, or add `--retry-failed`. Single files use `officeimo convert report.docx`. See [Convert documents](/docs/cli/convert/) and [Batch conversion and saved jobs](/docs/cli/batch-and-jobs/).
 
-```powershell
-officeimo convert report.pdf report.md
+## Convert data between formats
+
+```shell
+officeimo convert settings.yaml settings.json
+officeimo convert response.json items.csv --select data.items --require-no-loss
 ```
 
-Discover the format handlers available in your installed version:
+JSON, JSON Lines, YAML, TOML, XML, CSV, TSV and XLSX convert into each other, and every loss is reported. See [structured data](/docs/cli/convert/#structured-data).
 
-```powershell
-officeimo reader capabilities
+## Extract content for search or a model
+
+```shell
+officeimo read report.docx --format markdown
+officeimo reader folder ./contracts --output ./contracts-json --format json
+officeimo inspect deck.pptx
 ```
 
-Conversion refuses to replace an existing destination unless you explicitly pass `--force`. Output formats have different fidelity boundaries: Markdown is a semantic projection, while PDF preserves a fixed page layout.
+Markdown and versioned JSON come from the same Reader used by the .NET libraries. See [Extract and inspect](/docs/cli/extract-and-inspect/).
 
 ## Clean a document before sharing
 
-```powershell
+```shell
 officeimo hidden-data inspect proposal.docx
-officeimo hidden-data remove proposal.docx
-officeimo provenance inspect proposal.docx --format text
+officeimo hidden-data remove proposal.docx --tracked-changes accept
+officeimo provenance check ./docs --format sarif > provenance.sarif
 ```
 
-`hidden-data` reports and removes author names, comments, tracked changes, hidden content, speaker notes, scripts and photo locations in Office, Visio, OpenDocument, EPUB, PDF and image files. It writes a separate cleaned copy and keeps Content Credentials and AI labels unless you add `--kinds default,provenance`; `--keep-provenance c2pa` keeps the credentials and drops only AI labels. The `officeimo_inspect_hidden_data` and `officeimo_remove_hidden_data` MCP tools do the same for agents. [Prepare a document for sharing](/docs/before-sharing/) explains what is kept and why.
+`hidden-data` writes a cleaned copy without author names, comments, scripts and photo locations; `provenance check` fails a CI step when working files contain potentially dangerous Unicode, or provenance carriers if you ask for that. See [Before sharing](/docs/cli/before-sharing/).
 
-## More than conversion
+## Prepare PDFs
 
-The command areas cover document reading, tabular extraction, HTML/PDF workflows, hidden-data and provenance cleanup, PDF redaction, page-image export, document assembly, and print planning. The same executable offers bounded agent operations and an MCP server over standard input/output.
+```shell
+officeimo pdf extract report.pdf --pages last,1-3 --output selected.pdf
+officeimo workflow assemble cover.png report.docx ./attachments.zip --output complete.pdf
+```
 
-```powershell
+The PDF commands also split, decrypt, flatten, OCR, compare, print and redact. See [PDF workflows](/docs/cli/pdf/).
+
+## Use it from an AI agent
+
+```shell
 officeimo mcp serve --stdio
 ```
 
-Use the [command guide](https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Tool#readme) for supported arguments and optional dependencies. OCR requires an explicitly configured provider; the default tool does not include an OCR runtime or model. Studio features are not automatically CLI commands.
+The MCP server reads and writes only inside the folders named in `OFFICEIMO_MCP_ALLOWED_ROOTS`. See [MCP and agents](/docs/cli/mcp-and-agents/) or [OfficeIMO for AI agents](/agents/) for client setup.
+
+## All guides
+
+The [CLI documentation](/docs/cli/) covers every command area, including [invoices](/docs/cli/invoices/) and [scripting and CI](/docs/cli/scripting-and-ci/). Each command also prints its own reference with `officeimo <area> --help`.

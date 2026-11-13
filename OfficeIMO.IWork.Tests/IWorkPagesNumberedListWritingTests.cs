@@ -122,7 +122,7 @@ public sealed class IWorkPagesNumberedListWritingTests {
         Assert.NotEqual(grouped.ToBytes(), split.ToBytes());
         var restarted = IWorkPagesDocument.Create(); var restart = restarted.CreateNumberedList(); restart.AddItem("One"); restart.AddItem("Two", restartAt: 2);
         Assert.NotEqual(grouped.ToBytes(), restarted.ToBytes());
-        Assert.Throws<ArgumentOutOfRangeException>(() => first.CreateNumberedList(fontSizePoints: 11.5f));
+        Assert.Throws<ArgumentOutOfRangeException>(() => first.CreateNumberedList(fontSizePoints: 11.25f));
         Assert.Throws<ArgumentException>(() => first.CreateNumberedList(fontName: " "));
         Assert.Throws<ArgumentOutOfRangeException>(() => first.CreateNumberedList(fontSizePoints: float.NaN));
         Assert.Equal(2, first.NumberedLists.Count);

@@ -68,6 +68,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string AmiproStyleMissing = "amipro-style-missing";
     /// <summary>Stable code: <c>anchored-image-page-bounds-clipped</c>.</summary>
     public const string AnchoredImagePageBoundsClipped = "anchored-image-page-bounds-clipped";
+    /// <summary>Stable code: <c>array-joined</c>.</summary>
+    public const string ArrayJoined = "array-joined";
     /// <summary>Stable code: <c>artifact-creation-failed</c>.</summary>
     public const string ArtifactCreationFailed = "artifact-creation-failed";
     /// <summary>Stable code: <c>asset-broken-image-relationship</c>.</summary>
@@ -166,6 +168,12 @@ public static partial class OfficeDiagnosticCodes {
     public const string CssSizeLimitExceeded = "css-size-limit-exceeded";
     /// <summary>Stable code: <c>css-total-size-limit-exceeded</c>.</summary>
     public const string CssTotalSizeLimitExceeded = "css-total-size-limit-exceeded";
+    /// <summary>Stable code: <c>datetime-as-string</c>.</summary>
+    public const string DatetimeAsString = "datetime-as-string";
+    /// <summary>Stable code: <c>datetime-offset-dropped</c>.</summary>
+    public const string DatetimeOffsetDropped = "datetime-offset-dropped";
+    /// <summary>Stable code: <c>datetime-precision</c>.</summary>
+    public const string DatetimePrecision = "datetime-precision";
     /// <summary>Stable code: <c>diagnostics-truncated</c>.</summary>
     public const string DiagnosticsTruncated = "diagnostics-truncated";
     /// <summary>Stable code: <c>doc-activex-controls-present</c>.</summary>
@@ -262,6 +270,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string DocWorddocumentTooLarge = "doc-worddocument-too-large";
     /// <summary>Stable code: <c>document-head-metadata-omitted-for-fragment</c>.</summary>
     public const string DocumentHeadMetadataOmittedForFragment = "document-head-metadata-omitted-for-fragment";
+    /// <summary>Stable code: <c>duplicate-key</c>.</summary>
+    public const string DuplicateKey = "duplicate-key";
     /// <summary>Stable code: <c>duplicate-macro-signature-profile</c>.</summary>
     public const string DuplicateMacroSignatureProfile = "duplicate-macro-signature-profile";
     /// <summary>Stable code: <c>duplicate-object-identifier</c>.</summary>
@@ -276,6 +286,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string EffectiveFormattingThemeResolution = "effective-formatting-theme-resolution";
     /// <summary>Stable code: <c>embedded-image-limit</c>.</summary>
     public const string EmbeddedImageLimit = "embedded-image-limit";
+    /// <summary>Stable code: <c>empty-collection-dropped</c>.</summary>
+    public const string EmptyCollectionDropped = "empty-collection-dropped";
     /// <summary>Stable code: <c>empty-table</c>.</summary>
     public const string EmptyTable = "empty-table";
     /// <summary>Stable code: <c>encryption-detected</c>.</summary>

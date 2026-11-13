@@ -1,11 +1,11 @@
 ---
 title: "PSWriteOffice"
-description: "Automate Word, Excel, PowerPoint, PDF, Reader, Visio, Markdown, CSV, RTF, OpenDocument, email, AsciiDoc, and LaTeX workflows from PowerShell."
+description: "Automate Word, Excel, PowerPoint, PDF, Visio, Project, Access, EPUB, YAML, TOML and CSV from PowerShell on Windows, Linux and macOS."
 layout: product
 meta.showcase_id: "pswriteoffice-patch-report"
 product_color: "#d97706"
 product_label: "PowerShell document automation"
-runtime_label: "PowerShell 5.1 and 7+"
+runtime_label: "PowerShell 5.1 and 7.4+"
 install: "Install-Module PSWriteOffice"
 nuget: ""
 docs_url: "/docs/pswriteoffice/"
@@ -20,15 +20,17 @@ meta.software.price_currency: "USD"
 
 ## Why PSWriteOffice?
 
-PSWriteOffice brings the OfficeIMO document stack to PowerShell. The command surface shown here is generated from the current module manifest used for this release. Create, inspect, update, review, convert, secure, and deliver documents from scripts and automation jobs without maintaining a separate document engine.
+PSWriteOffice brings the OfficeIMO document engines to PowerShell. Scripts create, read, update, convert, and check documents directly, so a scheduled job, a CI runner, or a Linux container needs neither Office nor LibreOffice. Commands return objects, work in the pipeline, and come with generated help.
 
 ## Features
 
-- **Manifest-derived command catalog** — cmdlets, aliases, and families are counted from the current module manifest
-- **DSL aliases** — intuitive shorthand like `WordParagraph`, `ExcelSheet`, and `PptSlide` for concise scripts
-- **Broad document platform** — Word, Excel, PowerPoint, PDF, Reader, Visio, Markdown, CSV, RTF, OpenDocument, email, AsciiDoc, LaTeX, and HTML asset workflows
-- **Cross-platform** — PowerShell 7.4 or newer runs on Windows, Linux, and macOS
-- **Windows PowerShell** — supports Windows PowerShell 5.1 on Windows; modern batch PDF export requires PowerShell 7.4 or newer
+- **Office and PDF** — Word, Excel, PowerPoint, and PDF authoring, inspection, merging, comparison, protection, and conversion
+- **Configuration files and data** — edit YAML without losing comments, merge overlays, read and write TOML, and convert between JSON, YAML, TOML, XML, CSV, and Excel with a report of anything the target cannot hold
+- **Files that usually need their own app** — Project schedules, Access table databases, EPUB books, Visio diagrams, OpenDocument, and email messages
+- **Before sharing** — list and remove comments, author names, speaker notes, image metadata and AI labels from Office, PDF and image files, and keep the original untouched
+- **Search and extraction** — one Reader model for text, tables, images, and OCR across mixed document folders
+- **Readable scripts** — script-block DSLs and short aliases such as `WordParagraph`, `ExcelSheet`, and `PowerPointSlide`
+- **Windows, Linux, and macOS** — PowerShell 7.4 or newer everywhere, and Windows PowerShell 5.1 on Windows
 
 ## Command families
 
@@ -45,84 +47,64 @@ PSWriteOffice brings the OfficeIMO document stack to PowerShell. The command sur
 | Move database data through CSV | {{< pswriteoffice-source kind="blob" path="Examples/Csv/Example-CsvDbaClientXRoundTrip.ps1" label="Runnable CSV round-trip example" >}} |
 | Create an operational Excel dashboard | {{< pswriteoffice-source kind="blob" path="Examples/Showcase/Showcase-Excel-OperationalDashboard.ps1" label="Excel showcase example" >}} |
 | Review quarterly support demand in PowerPoint | {{< pswriteoffice-source kind="blob" path="Examples/Showcase/ServiceBrief.md" label="CSV-driven service brief" >}} with location totals, ticket comparisons and dated actions. |
+| Update Helm values or CI settings without losing comments | [Edit and merge YAML](/docs/pswriteoffice/config-data-formats/#edit-yaml-without-rewriting-it) |
+| Turn an API export or lock file into CSV, Excel, or YAML | [Convert between data formats](/docs/pswriteoffice/config-data-formats/#convert-between-data-formats) |
+| Remove comments, authors and AI labels before sending files | [Clean files before sharing](/docs/pswriteoffice/before-sharing/) and the {{< pswriteoffice-source kind="blob" path="Examples/Workflows/Recipe-CleanBeforeSharing.ps1" label="runnable recipe" >}} |
+| Schedule a project and publish a Gantt PDF | [Project schedules](/docs/pswriteoffice/project-access-epub/#project-schedules) |
 | Browse copyable PowerShell patterns | [PSWriteOffice recipe gallery](/docs/workflows/powershell-recipes/) |
 | Compare Excel and CSV performance | [PSWriteOffice benchmark guide](/docs/workflows/powershell-benchmarks/) |
 | Evaluate mixed search, authenticated PDF, or Confluence publishing | [PSWriteOffice command families](/docs/pswriteoffice/command-families/) |
 
 ## Quick start
 
+Install the module, then turn the same rows into a Word report, an Excel table, a PowerPoint deck, and a PDF:
+
 ```powershell
-# Install the module
-Install-Module PSWriteOffice -Force
+Install-Module PSWriteOffice
 
-# Create a Word document
-New-OfficeWord -Path ".\Report.docx" {
+$regions = @(
+    [pscustomobject]@{ Region = 'North'; Revenue = 42000; Target = 40000 }
+    [pscustomobject]@{ Region = 'South'; Revenue = 38000; Target = 35000 }
+    [pscustomobject]@{ Region = 'East';  Revenue = 29000; Target = 30000 }
+    [pscustomobject]@{ Region = 'West';  Revenue = 51000; Target = 45000 }
+)
+
+New-OfficeWord -Path .\Report.docx {
     Add-OfficeWordSection {
-        Add-OfficeWordParagraph -Style Heading1 -Text "Monthly Report"
+        Add-OfficeWordParagraph -Style Heading1 -Text 'Monthly report'
         Add-OfficeWordParagraph -Text "Generated on $(Get-Date -Format 'MMMM yyyy')"
-
-        $data = @(
-            [pscustomobject]@{ Region = "North"; Revenue = 42000; Target = 40000 }
-            [pscustomobject]@{ Region = "South"; Revenue = 38000; Target = 35000 }
-            [pscustomobject]@{ Region = "East";  Revenue = 29000; Target = 30000 }
-            [pscustomobject]@{ Region = "West";  Revenue = 51000; Target = 45000 }
-        )
-
-        Add-OfficeWordTable -InputObject $data -Style GridTable4Accent1
-        Add-OfficeWordParagraph {
-            Add-OfficeWordText -Text "All regions met or exceeded targets except East."
-        }
+        Add-OfficeWordTable -InputObject $regions -Style GridTable4Accent1
     }
 }
 
-# Create an Excel workbook
-New-OfficeExcel -Path ".\Metrics.xlsx" {
-    Add-OfficeExcelSheet -Name "Summary" {
-        Set-OfficeExcelCell -Address "A1" -Value "Metric"
-        Set-OfficeExcelCell -Address "B1" -Value "Value"
-        Set-OfficeExcelCell -Address "C1" -Value "Status"
-        Set-OfficeExcelCell -Address "A2" -Value "Uptime"
-        Set-OfficeExcelCell -Address "B2" -Value "99.97%"
-        Set-OfficeExcelCell -Address "C2" -Value "OK"
-        Set-OfficeExcelCell -Address "A3" -Value "Response Time"
-        Set-OfficeExcelCell -Address "B3" -Value "42ms"
-        Set-OfficeExcelCell -Address "C3" -Value "OK"
-    }
-
-    Add-OfficeExcelSheet -Name "Details" {
-        Set-OfficeExcelCell -Address "A1" -Value "Timestamp"
-        Set-OfficeExcelCell -Address "B1" -Value "Endpoint"
-        Set-OfficeExcelCell -Address "C1" -Value "Latency"
-        $rowIndex = 2
-        1..10 | ForEach-Object {
-            Set-OfficeExcelCell -Row $rowIndex -Column 1 -Value ((Get-Date).AddMinutes(-$_))
-            Set-OfficeExcelCell -Row $rowIndex -Column 2 -Value "/api/data"
-            Set-OfficeExcelCell -Row $rowIndex -Column 3 -Value (Get-Random -Minimum 20 -Maximum 80)
-            $rowIndex++
-        }
+New-OfficeExcel -Path .\Revenue.xlsx {
+    Add-OfficeExcelSheet -Name Revenue {
+        Add-OfficeExcelTable -InputObject $regions -Name Revenue
     }
 }
 
-# Create a PowerPoint presentation
-$ppt = New-OfficePowerPoint -FilePath ".\Status.pptx"
-$slide = Add-OfficePowerPointSlide -Presentation $ppt
-Add-OfficePowerPointTextBox -Slide $slide -Text "Weekly Status" -X 80 -Y 60 -Width 520 -Height 50
-Add-OfficePowerPointBullets -Slide $slide -Bullets @(
-    "Shipped v3.2 to production",
-    "Resolved 14 customer tickets",
-    "Completed security audit"
-) -X 80 -Y 150 -Width 520 -Height 220
-$ppt | Save-OfficePowerPoint
+New-OfficePowerPoint -Path .\Status.pptx {
+    PowerPointSlide -Title 'Monthly status' {
+        PowerPointList 'Three of four regions above target', 'East is 3% short'
+    }
+    PowerPointSlide -Title 'Revenue by region' {
+        PowerPointTable -InputObject $regions
+    }
+}
+
+Convert-OfficeDocument -Path .\Report.docx -OutputPath .\Report.pdf
 ```
+
+The [DSL cookbook](/docs/pswriteoffice/dsl-cookbook/) builds on the same pattern for each format, and `Get-Help <command> -Full` shows every parameter.
 
 ## Compatibility
 
 | Platform | PowerShell Version | Supported |
 |----------|-------------------|-----------|
 | Windows  | 5.1               | Yes       |
-| Windows  | 7+                | Yes       |
-| Linux    | 7+                | Yes       |
-| macOS    | 7+                | Yes       |
+| Windows  | 7.4+              | Yes       |
+| Linux    | 7.4+              | Yes       |
+| macOS    | 7.4+              | Yes       |
 
 PSWriteOffice is available from the [PowerShell Gallery](https://www.powershellgallery.com/packages/PSWriteOffice) and includes generated help for its cmdlet surface.
 
@@ -132,6 +114,8 @@ PSWriteOffice is available from the [PowerShell Gallery](https://www.powershellg
 |-------|-------------|
 | [PSWriteOffice overview](/docs/pswriteoffice/) | Start with installation, command families, and module scope. |
 | [PowerPoint cmdlets](/docs/pswriteoffice/powerpoint/) | Build generated decks with slides, bullets, tables, and images. |
+| [Configuration files and data](/docs/pswriteoffice/config-data-formats/) | Edit YAML, read and write TOML, and convert between JSON, YAML, TOML, XML, CSV, and Excel. |
+| [Project, Access, and EPUB](/docs/pswriteoffice/project-access-epub/) | Schedule projects, build Access tables, and compose EPUB books. |
 | [Markdown cmdlets](/docs/pswriteoffice/open-text-formats/#markdown) | Generate Markdown reports and repository-friendly docs from scripts. |
 | [Database reporting](/docs/workflows/database-reporting/) | Connect DbaClientX queries and bulk writes to Excel and CSV artifacts. |
 | [Performance evidence](/docs/workflows/powershell-benchmarks/) | Reproduce the PowerForge-backed Excel and CSV comparisons. |

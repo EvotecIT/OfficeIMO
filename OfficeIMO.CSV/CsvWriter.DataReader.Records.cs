@@ -2,51 +2,56 @@
 using System.Buffers;
 using System.Data;
 using System.Globalization;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace OfficeIMO.CSV;
 
 internal static partial class CsvWriter
 {
-    /// <summary>Growable pooled characters for completed data-reader rows.</summary>
-    internal sealed class RecordBuffer : IDisposable
+    /// <summary>Growable pooled UTF-16 or UTF-8 units for completed data-reader rows.</summary>
+    internal sealed class RecordBuffer<TChar> : IDisposable
+        where TChar : unmanaged
     {
-        private char[] _characters = ArrayPool<char>.Shared.Rent(DataReaderFlushThreshold + 4096);
+        private TChar[] _units = ArrayPool<TChar>.Shared.Rent(DataReaderFlushThreshold + 4096);
 
         internal int Length { get; set; }
 
-        internal ReadOnlySpan<char> Written => _characters.AsSpan(0, Length);
+        internal ReadOnlySpan<TChar> Written => _units.AsSpan(0, Length);
 
-        internal Span<char> GetSpan(int sizeHint)
+        /// <summary>The first units, which stay readable after <see cref="Length"/> is reset.</summary>
+        internal ReadOnlySpan<TChar> Prefix(int length) => _units.AsSpan(0, length);
+
+        internal Span<TChar> GetSpan(int sizeHint)
         {
-            if (_characters.Length - Length < sizeHint)
+            if (_units.Length - Length < sizeHint)
             {
-                char[] larger = ArrayPool<char>.Shared.Rent(Math.Max(_characters.Length * 2, Length + sizeHint));
-                _characters.AsSpan(0, Length).CopyTo(larger);
-                ArrayPool<char>.Shared.Return(_characters);
-                _characters = larger;
+                TChar[] larger = ArrayPool<TChar>.Shared.Rent(Math.Max(_units.Length * 2, Length + sizeHint));
+                _units.AsSpan(0, Length).CopyTo(larger);
+                ArrayPool<TChar>.Shared.Return(_units);
+                _units = larger;
             }
 
-            return _characters.AsSpan(Length);
+            return _units.AsSpan(Length);
         }
 
-        internal void Write(char value)
+        internal void Write(TChar value)
         {
             GetSpan(1)[0] = value;
             Length++;
         }
 
-        internal void Write(ReadOnlySpan<char> value)
+        internal void Write(ReadOnlySpan<TChar> value)
         {
             value.CopyTo(GetSpan(value.Length));
             Length += value.Length;
         }
 
-
         public void Dispose()
         {
-            ArrayPool<char>.Shared.Return(_characters, clearArray: true);
-            _characters = Array.Empty<char>();
+            ArrayPool<TChar>.Shared.Return(_units, clearArray: true);
+            _units = Array.Empty<TChar>();
         }
     }
 
@@ -56,7 +61,7 @@ internal static partial class CsvWriter
     /// typed path, so the text is the same as that path writes.
     /// </summary>
     internal static void AppendDataReaderRecord(
-        RecordBuffer output,
+        RecordBuffer<char> output,
         StringBuilder scratch,
         IDataRecord reader,
         DataReaderFieldKind[] fieldKinds,
@@ -110,19 +115,56 @@ internal static partial class CsvWriter
         output.Write(newLine);
     }
 
-    /// <summary>True when every field is a kind <see cref="AppendInvariantRecord"/> writes.</summary>
-    internal static bool HasOnlyInvariantRecordKinds(DataReaderFieldKind[] fieldKinds)
+    /// <summary>
+    /// Column layouts of <see cref="AppendInvariantRecord{TFields, TChar, TLayout}"/>. Each layout is its own
+    /// value-type instantiation, so text-only, scalar-only and mixed rows get separate machine code and separate
+    /// tiering profiles: writing one shape first does not decide how the others are compiled.
+    /// </summary>
+    internal interface IInvariantRecordLayout { }
+
+    /// <summary>Every field is a string.</summary>
+    internal struct TextRecordLayout : IInvariantRecordLayout { }
+
+    /// <summary>No field is a string.</summary>
+    internal struct ScalarRecordLayout : IInvariantRecordLayout { }
+
+    /// <summary>Strings and scalars together.</summary>
+    internal struct MixedRecordLayout : IInvariantRecordLayout { }
+
+    internal enum InvariantRecordLayout : byte
     {
+        None,
+        Text,
+        Scalar,
+        Mixed
+    }
+
+    /// <summary>
+    /// The layout of a record <see cref="AppendInvariantRecord{TFields, TChar, TLayout}"/> writes, or None when a
+    /// field kind is not one it writes.
+    /// </summary>
+    internal static InvariantRecordLayout GetInvariantRecordLayout(DataReaderFieldKind[] fieldKinds)
+    {
+        bool text = false;
+        bool scalar = false;
         foreach (DataReaderFieldKind kind in fieldKinds)
         {
-            if (kind is not (DataReaderFieldKind.String or DataReaderFieldKind.Int32 or DataReaderFieldKind.Int64
-                or DataReaderFieldKind.Double or DataReaderFieldKind.Decimal or DataReaderFieldKind.Boolean or DataReaderFieldKind.DateTime))
+            if (kind == DataReaderFieldKind.String)
             {
-                return false;
+                text = true;
+            }
+            else if (kind is DataReaderFieldKind.Int32 or DataReaderFieldKind.Int64 or DataReaderFieldKind.Double
+                or DataReaderFieldKind.Decimal or DataReaderFieldKind.Boolean or DataReaderFieldKind.DateTime)
+            {
+                scalar = true;
+            }
+            else
+            {
+                return InvariantRecordLayout.None;
             }
         }
 
-        return true;
+        return text ? scalar ? InvariantRecordLayout.Mixed : InvariantRecordLayout.Text : InvariantRecordLayout.Scalar;
     }
 
     /// <summary>
@@ -130,15 +172,30 @@ internal static partial class CsvWriter
     /// invariant culture without value formatting options, as <see cref="AppendDataReaderRecord"/> writes it,
     /// in one pass with no per-field exception handling. A reader that rejects a typed read throws out of here;
     /// the caller then rewinds the row and writes it through <see cref="AppendDataReaderRecord"/>.
+    /// <typeparamref name="TLayout"/> matches <see cref="GetInvariantRecordLayout"/> of the field kinds.
     /// </summary>
-    internal static void AppendInvariantRecord<TFields>(RecordBuffer output, ref TFields fields, DataReaderFieldKind[] fieldKinds, string newLine)
+    internal static void AppendInvariantRecord<TFields, TChar, TLayout>(
+        RecordBuffer<TChar> output, ref TFields fields, DataReaderFieldKind[] fieldKinds, ReadOnlySpan<TChar> newLine, Encoding? encoding)
         where TFields : struct, IRecordFields
+        where TChar : unmanaged
+        where TLayout : struct, IInvariantRecordLayout
     {
+        // Fields are written through a local span of the free buffer, committed when it runs short and at the end;
+        // every check leaves room for a delimiter and the longest scalar.
+        Span<TChar> free = output.GetSpan(InvariantFieldSpace);
+        int position = 0;
         for (var i = 0; i < fieldKinds.Length; i++)
         {
+            if (free.Length - position < InvariantFieldSpace)
+            {
+                output.Length += position;
+                position = 0;
+                free = output.GetSpan(InvariantFieldSpace);
+            }
+
             if (i > 0)
             {
-                output.Write(',');
+                free[position++] = CsvShortestDouble.Unit<TChar>(',');
             }
 
             if (fields.IsNull(i))
@@ -146,36 +203,285 @@ internal static partial class CsvWriter
                 continue;
             }
 
+            if (typeof(TLayout) == typeof(TextRecordLayout))
+            {
+                AppendInvariantText(output, ref free, ref position, fields.GetString(i), encoding, quotesExpected: true);
+                continue;
+            }
+
+            Span<TChar> destination = free.Slice(position);
             switch (fieldKinds[i])
             {
-                case DataReaderFieldKind.String:
-                    AppendEscapedRecordText(output, fields.GetString(i), ',');
+                // Rows without strings leave this case out of their code.
+                case DataReaderFieldKind.String when typeof(TLayout) != typeof(ScalarRecordLayout):
+                    AppendInvariantText(output, ref free, ref position, fields.GetString(i), encoding, quotesExpected: false);
                     break;
                 case DataReaderFieldKind.Int32:
-                    AppendInvariantScalar(output, fields.GetInt32(i));
+                    position += FormatInt32(fields.GetInt32(i), destination);
                     break;
                 case DataReaderFieldKind.Int64:
-                    AppendInvariantScalar(output, fields.GetInt64(i));
+                    position += FormatInt64(fields.GetInt64(i), destination);
                     break;
                 case DataReaderFieldKind.Double:
-                    AppendInvariantScalar(output, fields.GetDouble(i));
+                    double number = fields.GetDouble(i);
+                    int formatted = FormatDouble(number, destination);
+                    position += formatted > 0 ? formatted : FormatRuntimeScalar(number, destination);
                     break;
                 case DataReaderFieldKind.Decimal:
-                    AppendInvariantScalar(output, fields.GetDecimal(i));
+                    decimal amount = fields.GetDecimal(i);
+                    position += TryFormatSmallDecimal(amount, destination, out int written) ? written : FormatRuntimeScalar(amount, destination);
                     break;
                 case DataReaderFieldKind.Boolean:
-                    output.Write(fields.GetBoolean(i) ? "True" : "False");
+                    string boolean = fields.GetBoolean(i) ? "True" : "False";
+                    for (var unit = 0; unit < boolean.Length; unit++)
+                    {
+                        destination[unit] = CsvShortestDouble.Unit<TChar>(boolean[unit]);
+                    }
+
+                    position += boolean.Length;
                     break;
                 default:
-                    AppendInvariantScalar(output, fields.GetDateTime(i));
+                    position += FormatRuntimeScalar(fields.GetDateTime(i), destination);
                     break;
             }
         }
 
+        output.Length += position;
         output.Write(newLine);
     }
 
-    /// <summary>Field reads for <see cref="AppendInvariantRecord"/>; <see cref="IsNull"/> comes first for each field.</summary>
+    /// <summary>
+    /// Writes one text field of <see cref="AppendInvariantRecord{TFields, TChar, TLayout}"/> at
+    /// <paramref name="position"/> in <paramref name="free"/>, committing and renewing the span when it needs more
+    /// room. Short text is escaped in one pass; <paramref name="quotesExpected"/> skips the plain copy that suits
+    /// text that seldom needs quotes.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void AppendInvariantText<TChar>(
+        RecordBuffer<TChar> output, ref Span<TChar> free, ref int position, string text, Encoding? encoding, bool quotesExpected)
+        where TChar : unmanaged
+    {
+        if (text.Length <= EscapedShortTextLength)
+        {
+            int room = text.Length * 2 + 2;
+            if (free.Length - position < room)
+            {
+                output.Length += position;
+                position = 0;
+                free = output.GetSpan(Math.Max(room, InvariantFieldSpace));
+            }
+
+            Span<TChar> destination = free.Slice(position);
+            if (!quotesExpected && TryCopyPlainText(text, destination, out _))
+            {
+                position += text.Length;
+                return;
+            }
+
+            if (TryWriteEscapedShortText(text, destination, out int written))
+            {
+                position += written;
+                return;
+            }
+        }
+        else if (TryCopyPlainText(text, free.Slice(position), out _))
+        {
+            position += text.Length;
+            return;
+        }
+
+        output.Length += position;
+        position = 0;
+        if (typeof(TChar) == typeof(byte))
+        {
+            AppendEscapedUtf8Text(Unsafe.As<RecordBuffer<byte>>(output), text, quoted: false, encoding!);
+        }
+        else
+        {
+            AppendEscapedRecordText(Unsafe.As<RecordBuffer<char>>(output), text, ',');
+        }
+
+        free = output.GetSpan(InvariantFieldSpace);
+    }
+
+    /// <summary>Text up to this length is escaped in one pass into room for twice its length and two quotes.</summary>
+    internal const int EscapedShortTextLength = 64;
+
+    /// <summary>
+    /// Escapes short text after a comma in one pass: copies it one unit along with its quotes doubled, then adds
+    /// the enclosing quotes when it holds a comma, quote or line break, or moves it back when it does not.
+    /// <paramref name="destination"/> holds at least twice the text length and two more units. False for
+    /// non-ASCII text in UTF-8, which the caller encodes through its encoding.
+    /// </summary>
+    internal static bool TryWriteEscapedShortText<TChar>(string text, Span<TChar> destination, out int written)
+        where TChar : unmanaged
+    {
+        ref TChar target = ref MemoryMarshal.GetReference(destination);
+        int position = 1;
+        bool special = false;
+        for (var index = 0; index < text.Length; index++)
+        {
+            char character = text[index];
+            if (character < 64)
+            {
+                if ((CommaQuoteMask >> character & 1) != 0)
+                {
+                    special = true;
+                    if (character == '"')
+                    {
+                        Unsafe.Add(ref target, position++) = CsvShortestDouble.Unit<TChar>('"');
+                    }
+                }
+            }
+            else if (typeof(TChar) == typeof(byte) && character >= 128)
+            {
+                written = 0;
+                return false;
+            }
+
+            Unsafe.Add(ref target, position++) = CsvShortestDouble.Unit<TChar>(character);
+        }
+
+        if (special)
+        {
+            target = CsvShortestDouble.Unit<TChar>('"');
+            Unsafe.Add(ref target, position++) = CsvShortestDouble.Unit<TChar>('"');
+            written = position;
+        }
+        else
+        {
+            destination.Slice(1, position - 1).CopyTo(destination);
+            written = position - 1;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Copies text that needs no quotes after a comma when it fits: as is in UTF-16, and in UTF-8 when it is ASCII.
+    /// False leaves the text to the escaping writers, with <paramref name="quoted"/> set when it is known to need quotes.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool TryCopyPlainText<TChar>(string text, Span<TChar> destination, out bool quoted)
+        where TChar : unmanaged
+    {
+        quoted = false;
+        if (text.Length > destination.Length)
+        {
+            return false;
+        }
+
+        if (text.Length <= ShortTextLength)
+        {
+            // Short text is copied and checked in one pass; the vectorized searches cost more to start than they save.
+            ref TChar target = ref MemoryMarshal.GetReference(destination);
+            for (var index = 0; index < text.Length; index++)
+            {
+                char character = text[index];
+                if (character < 64)
+                {
+                    if ((CommaQuoteMask >> character & 1) != 0)
+                    {
+                        quoted = true;
+                        return false;
+                    }
+                }
+                else if (typeof(TChar) == typeof(byte) && character >= 128)
+                {
+                    return false;
+                }
+
+                Unsafe.Add(ref target, index) = CsvShortestDouble.Unit<TChar>(character);
+            }
+
+            return true;
+        }
+
+        if (NeedsQuotes(text.AsSpan(), ','))
+        {
+            quoted = true;
+            return false;
+        }
+
+        if (typeof(TChar) == typeof(byte))
+        {
+            return Ascii.FromUtf16(text, MemoryMarshal.Cast<TChar, byte>(destination), out _) == OperationStatus.Done;
+        }
+
+        text.AsSpan().CopyTo(MemoryMarshal.Cast<TChar, char>(destination));
+        return true;
+    }
+
+    private const int ShortTextLength = 16;
+
+    /// <summary>Bit c is set for the characters below 64 that make text after a comma need quotes.</summary>
+    private const ulong CommaQuoteMask = (1UL << ',') | (1UL << '"') | (1UL << '\r') | (1UL << '\n');
+
+    /// <summary>
+    /// Writes text in UTF-8 under the default quoting rule. ASCII text is narrowed between its quotes; other text goes
+    /// through the destination's own encoding, so invalid UTF-16 gets the replacement or the exception it gives.
+    /// </summary>
+    private static void AppendEscapedUtf8Text(RecordBuffer<byte> output, string text, bool quoted, Encoding encoding)
+    {
+        ReadOnlySpan<char> rest = text.AsSpan();
+        if (!quoted && !NeedsQuotes(rest, ','))
+        {
+            AppendEncoded(output, rest, encoding);
+            return;
+        }
+
+        // Nothing is committed until the closing quote, so non-ASCII text can start again on the encoder path.
+        Span<byte> destination = output.GetSpan(rest.Length * 2 + 2);
+        int position = 0;
+        destination[position++] = (byte)'"';
+        ReadOnlySpan<char> remaining = rest;
+        while (true)
+        {
+            int quote = remaining.IndexOf('"');
+            ReadOnlySpan<char> segment = quote < 0 ? remaining : remaining[..(quote + 1)];
+            if (Ascii.FromUtf16(segment, destination.Slice(position), out int written) != OperationStatus.Done)
+            {
+                AppendEncodedQuoted(output, rest, encoding);
+                return;
+            }
+
+            position += written;
+            if (quote < 0)
+            {
+                break;
+            }
+
+            destination[position++] = (byte)'"';
+            remaining = remaining[(quote + 1)..];
+        }
+
+        destination[position++] = (byte)'"';
+        output.Length += position;
+    }
+
+    private static void AppendEncodedQuoted(RecordBuffer<byte> output, ReadOnlySpan<char> rest, Encoding encoding)
+    {
+        output.Write((byte)'"');
+        int quote = rest.IndexOf('"');
+        while (quote >= 0)
+        {
+            AppendEncoded(output, rest[..(quote + 1)], encoding);
+            output.Write((byte)'"');
+            rest = rest[(quote + 1)..];
+            quote = rest.IndexOf('"');
+        }
+
+        AppendEncoded(output, rest, encoding);
+        output.Write((byte)'"');
+    }
+
+    private static void AppendEncoded(RecordBuffer<byte> output, ReadOnlySpan<char> text, Encoding encoding)
+    {
+        Span<byte> destination = output.GetSpan(encoding.GetMaxByteCount(text.Length));
+        output.Length += encoding.GetBytes(text, destination);
+    }
+
+    /// <summary>Field reads for <see cref="AppendInvariantRecord{TFields, TChar, TLayout}"/>; <see cref="IsNull"/> comes first for each field.</summary>
     internal interface IRecordFields
     {
         bool IsNull(int ordinal);
@@ -219,20 +525,29 @@ internal static partial class CsvWriter
         public readonly DateTime GetDateTime(int ordinal) => (DateTime)_value!;
     }
 
-    /// <summary>Invariant text of these scalars never needs quotes after a comma.</summary>
-    private static void AppendInvariantScalar<T>(RecordBuffer output, T value) where T : ISpanFormattable
+    /// <summary>Room a field of <see cref="AppendInvariantRecord{TFields, TChar, TLayout}"/> may need: a delimiter and any invariant scalar.</summary>
+    private const int InvariantFieldSpace = 66;
+
+    /// <summary>The runtime's invariant text of a scalar, which never needs quotes after a comma.</summary>
+    private static int FormatRuntimeScalar<T, TChar>(T value, Span<TChar> destination)
+        where T : ISpanFormattable, IUtf8SpanFormattable
+        where TChar : unmanaged
     {
-        if (!TryFormatInvariant(value, output.GetSpan(64), out int written))
+        int written;
+        bool formatted = typeof(TChar) == typeof(byte)
+            ? value.TryFormat(MemoryMarshal.Cast<TChar, byte>(destination), out written, default, CultureInfo.InvariantCulture)
+            : value.TryFormat(MemoryMarshal.Cast<TChar, char>(destination), out written, default, CultureInfo.InvariantCulture);
+        if (!formatted)
         {
             throw new NotSupportedException("The value does not fit the record buffer.");
         }
 
-        output.Length += written;
+        return written;
     }
 
     /// <summary>Writes the common kinds directly; false leaves the value to the general appenders.</summary>
     private static bool TryAppendRecordValue(
-        RecordBuffer output,
+        RecordBuffer<char> output,
         IDataRecord reader,
         int ordinal,
         DataReaderFieldKind fieldKind,
@@ -323,7 +638,7 @@ internal static partial class CsvWriter
     }
 
     /// <summary>Formats a known scalar as the general path does: unescaped for invariant comma output, escaped otherwise.</summary>
-    private static bool AppendRecordScalar<T>(RecordBuffer output, T value, char delimiter, CultureInfo culture, bool invariantComma)
+    private static bool AppendRecordScalar<T>(RecordBuffer<char> output, T value, char delimiter, CultureInfo culture, bool invariantComma)
         where T : ISpanFormattable
     {
         if (invariantComma)
@@ -348,7 +663,7 @@ internal static partial class CsvWriter
     }
 
     /// <summary>Applies the default quoting rule: quote text with a delimiter, quote or line break and double its quotes.</summary>
-    private static void AppendEscapedRecordText(RecordBuffer output, ReadOnlySpan<char> text, char delimiter)
+    private static void AppendEscapedRecordText(RecordBuffer<char> output, ReadOnlySpan<char> text, char delimiter)
     {
         if (!NeedsQuotes(text, delimiter))
         {

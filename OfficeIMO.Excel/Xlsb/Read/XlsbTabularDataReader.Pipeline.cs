@@ -11,8 +11,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             DiscoverDataColumns(part, limits, records, cells, styles, sharedStringCount,
                 options.TreatDatesUsingNumberFormat, options.UseCachedFormulaResult, cancellationToken,
                 out int firstColumn, out int lastColumn, out int firstRow, out int lastRow,
-                out XlsbValidatedRowPlan? rowPlan, progress);
-            return new XlsbWorksheetDiscovery(firstColumn, lastColumn, firstRow, lastRow, rowPlan);
+                out XlsbValidatedRowPlan? rowPlan, out bool inlineTextFreeOfSurrogates, progress);
+            return new XlsbWorksheetDiscovery(firstColumn, lastColumn, firstRow, lastRow, rowPlan,
+                inlineTextFreeOfSurrogates);
         }
 
         /// <summary>Runs the same full validation for a single-pass reader, publishing each completed row.</summary>
@@ -24,8 +25,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 DiscoverDataColumns(part, limits, records, cells, styles, sharedStringCount,
                     options.TreatDatesUsingNumberFormat, options.UseCachedFormulaResult, gate.Token,
                     out int firstColumn, out int lastColumn, out int firstRow, out int lastRow,
-                    out XlsbValidatedRowPlan? rowPlan, progress, gate);
-                gate.Complete(new XlsbWorksheetDiscovery(firstColumn, lastColumn, firstRow, lastRow, rowPlan), part.DataLength);
+                    out XlsbValidatedRowPlan? rowPlan, out bool inlineTextFreeOfSurrogates, progress, gate);
+                gate.Complete(new XlsbWorksheetDiscovery(firstColumn, lastColumn, firstRow, lastRow, rowPlan,
+                    inlineTextFreeOfSurrogates), part.DataLength);
             } catch (Exception exception) {
                 gate.Fail(exception);
             }
@@ -35,14 +37,16 @@ namespace OfficeIMO.Excel.Xlsb.Read {
     /// <summary>Retains the validation result without keeping a second worksheet representation.</summary>
     internal readonly struct XlsbWorksheetDiscovery {
         internal XlsbWorksheetDiscovery(int firstColumn, int lastColumn, int firstRow,
-            int lastRow, XlsbValidatedRowPlan? rowPlan) {
+            int lastRow, XlsbValidatedRowPlan? rowPlan, bool inlineTextFreeOfSurrogates) {
             FirstColumn = firstColumn; LastColumn = lastColumn;
             FirstDataRow = firstRow; LastDataRow = lastRow; RowPlan = rowPlan;
+            InlineTextFreeOfSurrogates = inlineTextFreeOfSurrogates;
         }
         internal int FirstColumn { get; }
         internal int LastColumn { get; }
         internal int FirstDataRow { get; }
         internal int LastDataRow { get; }
         internal XlsbValidatedRowPlan? RowPlan { get; }
+        internal bool InlineTextFreeOfSurrogates { get; }
     }
 }

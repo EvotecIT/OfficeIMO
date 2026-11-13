@@ -1,0 +1,10 @@
+{
+  "source": "https://github.com/nst/JSONTestSuite",
+  "commit": "1ef36fa01286573e846ac449e8683f8833c5b26a",
+  "commitDate": "2024-11-22T13:55:41+01:00",
+  "license": "MIT",
+  "path": "test_parsing",
+  "accept": 95,
+  "reject": 188,
+  "implementationDefined": 35
+}

@@ -8283,6 +8283,315 @@
       "notes": "Cross-format options factories are named New-OfficeDocument{Purpose}Options. Flattens the Structural, TextIntegrity and Verification groups of OfficeProvenanceAssessmentOptions; Max* limits are named Maximum*, and the verifier Timeout (TimeSpan) is -VerificationTimeoutSeconds. Text-integrity inspection, embedded-asset processing and the typographic-space and variation-selector findings are on by default; the No* switches turn them off. -C2paToolPath and -SignalDetector stay on Get-OfficeDocumentProvenance."
     },
     {
+      "name": "Get-OfficeHiddenData",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Reports the metadata and hidden data that would leave with a Word, Excel, PowerPoint, Visio, OpenDocument, EPUB, PDF or image file, without changing it.",
+      "outputType": "OfficeHiddenDataFileReport",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "wildcards": false,
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Same inspection as officeimo hidden-data inspect. Each finding has the Outcome Found. Unsupported files write a non-terminating error and the batch continues.",
+      "examples": [
+        {
+          "title": "List what would leave with a proposal",
+          "description": "Shows each comment, author, property and other hidden item in a Word document.",
+          "code": "(Get-OfficeHiddenData -Path .\\Proposal.docx).Findings"
+        },
+        {
+          "title": "Find outgoing files that still carry comments",
+          "description": "Checks a folder and keeps the files with comments or tracked changes.",
+          "code": "Get-ChildItem .\\Outgoing -File | Get-OfficeHiddenData |\n    Where-Object { $_.Findings.Kind -contains 'Comments' -or $_.Findings.Kind -contains 'TrackedChanges' }"
+        }
+      ]
+    },
+    {
+      "name": "Remove-OfficeHiddenData",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Writes a copy of a file without its metadata and hidden data and returns what happened to each item. The input is never changed.",
+      "outputType": "OfficeHiddenDataFileReport",
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Cleaned copy for one input; keeps the input's extension. Defaults to <name>.cleaned<ext> beside the input."
+            },
+            {
+              "name": "Options",
+              "type": "OfficeHiddenDataOptions",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Categories, tracked-change action and provenance choices from New-OfficeHiddenDataOptions; hashtables accepted. Defaults to the Default categories."
+            },
+            {
+              "name": "RemoveInvalidatedSignatures",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Allow removal that invalidates an Office package signature. Signed PDFs are always refused."
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Refuse to replace an existing output file; without it an existing output is replaced."
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "wildcards": false,
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Cleaned copy for one input; keeps the input's extension. Defaults to <name>.cleaned<ext> beside the input."
+            },
+            {
+              "name": "Options",
+              "type": "OfficeHiddenDataOptions",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Categories, tracked-change action and provenance choices from New-OfficeHiddenDataOptions; hashtables accepted. Defaults to the Default categories."
+            },
+            {
+              "name": "RemoveInvalidatedSignatures",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Allow removal that invalidates an Office package signature. Signed PDFs are always refused."
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Refuse to replace an existing output file; without it an existing output is replaced."
+            }
+          ]
+        },
+        {
+          "name": "PathDirectory",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            },
+            {
+              "name": "OutputDirectory",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "none",
+              "note": "Folder for one cleaned copy per input under its original name; created when missing."
+            },
+            {
+              "name": "Options",
+              "type": "OfficeHiddenDataOptions",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Categories, tracked-change action and provenance choices from New-OfficeHiddenDataOptions; hashtables accepted. Defaults to the Default categories."
+            },
+            {
+              "name": "RemoveInvalidatedSignatures",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Allow removal that invalidates an Office package signature. Signed PDFs are always refused."
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Refuse to replace an existing output file; without it an existing output is replaced."
+            }
+          ]
+        },
+        {
+          "name": "LiteralPathDirectory",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "wildcards": false,
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "OutputDirectory",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "none",
+              "note": "Folder for one cleaned copy per input under its original name; created when missing."
+            },
+            {
+              "name": "Options",
+              "type": "OfficeHiddenDataOptions",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Categories, tracked-change action and provenance choices from New-OfficeHiddenDataOptions; hashtables accepted. Defaults to the Default categories."
+            },
+            {
+              "name": "RemoveInvalidatedSignatures",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Allow removal that invalidates an Office package signature. Signed PDFs are always refused."
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Refuse to replace an existing output file; without it an existing output is replaced."
+            }
+          ]
+        }
+      ],
+      "notes": "Same removal as officeimo hidden-data remove: writes <name>.cleaned<ext> unless -OutputPath or -OutputDirectory is given and replaces an existing output unless -NoClobber, like Convert-OfficeDocument and Optimize-OfficePdf. The default categories keep tracked changes, hidden content, provenance, attachments and bookmarks.",
+      "examples": [
+        {
+          "title": "Clean a proposal",
+          "description": "Writes Proposal.cleaned.docx with the default categories removed.",
+          "code": "Remove-OfficeHiddenData -Path .\\Proposal.docx"
+        },
+        {
+          "title": "Clean a folder for sharing",
+          "description": "Writes cleaned copies into a share folder and also removes Content Credentials and AI labels.",
+          "code": "$options = New-OfficeHiddenDataOptions -Kind Default, Provenance\nGet-ChildItem .\\Outgoing -File | Remove-OfficeHiddenData -OutputDirectory .\\Share -Options $options"
+        }
+      ]
+    },
+    {
+      "name": "New-OfficeHiddenDataOptions",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Chooses which hidden data Remove-OfficeHiddenData and Optimize-OfficePdf -Sanitize remove.",
+      "outputType": "OfficeHiddenDataOptions",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Default",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Kind",
+              "type": "OfficeHiddenDataKind[]",
+              "mandatory": false,
+              "position": 0,
+              "pipeline": "none",
+              "note": "Categories to remove, combined: Default (the CLI default), All or names such as Provenance, HiddenContent, TrackedChanges, ImageMetadata, Attachments, ActiveContent and Bookmarks."
+            },
+            {
+              "name": "TrackedChanges",
+              "type": "OfficeTrackedChangesAction",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Keep (default), AcceptAll or RejectAll."
+            },
+            {
+              "name": "KeepProvenance",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "C2pa, External or AiSource: provenance carriers to keep when Provenance is selected."
+            },
+            {
+              "name": "AnonymousAuthor",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Replacement author name on retained comments and revisions; defaults to Author."
+            }
+          ]
+        }
+      ],
+      "notes": "Builds OfficeHiddenDataOptions with the same choices as officeimo hidden-data remove --kinds, --tracked-changes, --keep-provenance and --anonymous-author.",
+      "examples": [
+        {
+          "title": "Remove AI labels but keep Content Credentials",
+          "description": "Selects provenance and keeps the C2PA manifests and links to them.",
+          "code": "$options = New-OfficeHiddenDataOptions -Kind Default, Provenance -KeepProvenance C2pa, External\nRemove-OfficeHiddenData -Path .\\Poster.pdf -Options $options"
+        },
+        {
+          "title": "Accept tracked changes before sharing",
+          "description": "Cleans a contract and accepts every tracked change.",
+          "code": "Remove-OfficeHiddenData -Path .\\Contract.docx -Options (New-OfficeHiddenDataOptions -TrackedChanges AcceptAll)"
+        }
+      ]
+    },
+    {
       "name": "ConvertTo-OfficeVisual",
       "alias": null,
       "status": "existing",

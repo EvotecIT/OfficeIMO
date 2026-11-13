@@ -15,8 +15,8 @@
     "familyCount": 3,
     "formatCount": 28,
     "capabilityCount": 137,
-    "packageCount": 82,
-    "operationCount": 1494
+    "packageCount": 84,
+    "operationCount": 1544
   },
   "fidelityStates": [
     {
@@ -2307,6 +2307,65 @@
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
               "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Data.Conversions",
+      "slug": "data-conversions",
+      "capabilityCount": 40,
+      "formats": [
+        "CSV",
+        "JSON",
+        "JSON Lines",
+        "TOML",
+        "TSV",
+        "XML",
+        "YAML"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 40
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Data.Conversions.Excel",
+      "slug": "data-conversions-excel",
+      "capabilityCount": 10,
+      "formats": [
+        "JSON",
+        "JSON Lines",
+        "TOML",
+        "XLSX",
+        "XML",
+        "YAML"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 10
             }
           ]
         }

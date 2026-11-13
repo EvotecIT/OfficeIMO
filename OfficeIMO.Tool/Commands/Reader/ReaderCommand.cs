@@ -9,11 +9,14 @@ OfficeIMO.Tool - Reader
 
 Usage:
   officeimo reader read <path|-> [--name <source-name>] [--format markdown|json] [--output <file|->] [--assets <directory>]
-                                [--max-input-bytes <bytes>]
+                                [--max-input-bytes <bytes>] [--force]
   officeimo reader folder <path> --output <directory> [--format markdown|json] [--assets <directory>] [--concurrency <1-64>]
                           [--max-files <count>] [--max-total-bytes <bytes>] [--max-input-bytes <bytes>] [--no-recursive]
+                          [--force]
   officeimo reader capabilities [--format text|json]
 
+'officeimo read' and 'officeimo extract' are shortcuts for 'officeimo reader read'.
+Existing output files and assets are refused unless --force is given.
 The dependency-bounded tool does not configure OCR or hosted providers.
 """;
 
@@ -22,8 +25,7 @@ The dependency-bounded tool does not configure OCR or hosted providers.
         Stream standardInput,
         TextWriter standardOutput,
         TextWriter standardError,
-        CancellationToken cancellationToken = default,
-        bool overwriteSingleOutput = true) {
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(standardInput);
         ArgumentNullException.ThrowIfNull(standardOutput);
         ArgumentNullException.ThrowIfNull(standardError);
@@ -50,7 +52,7 @@ The dependency-bounded tool does not configure OCR or hosted providers.
 
             return parsed.Command switch {
                 ReaderToolCommand.Read => await RunReadAsync(
-                    parsed, reader, standardInput, standardOutput, overwriteSingleOutput, cancellationToken).ConfigureAwait(false),
+                    parsed, reader, standardInput, standardOutput, cancellationToken).ConfigureAwait(false),
                 ReaderToolCommand.Folder => await RunFolderAsync(
                     parsed, reader, standardError, cancellationToken).ConfigureAwait(false),
                 ReaderToolCommand.Capabilities => await RunCapabilitiesAsync(
@@ -84,12 +86,12 @@ The dependency-bounded tool does not configure OCR or hosted providers.
         OfficeDocumentReader reader,
         Stream standardInput,
         TextWriter standardOutput,
-        bool overwriteOutput,
         CancellationToken cancellationToken) {
         var readerOptions = new ReaderOptions { MaxInputBytes = options.MaxInputBytes };
         OfficeDocumentReadResult document;
         string? sourcePath = null;
         if (options.InputPath == "-") {
+            EnsureOutputCanBeWritten(options);
             document = await reader.ReadDocumentAsync(
                 standardInput,
                 options.SourceName,
@@ -110,6 +112,7 @@ The dependency-bounded tool does not configure OCR or hosted providers.
             if (!string.IsNullOrWhiteSpace(options.OutputPath) && options.OutputPath != "-") {
                 ReaderToolPathSafety.EnsureDistinctFile(sourcePath, options.OutputPath!);
             }
+            EnsureOutputCanBeWritten(options);
             document = await reader.ReadDocumentAsync(sourcePath, readerOptions, cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -121,9 +124,15 @@ The dependency-bounded tool does not configure OCR or hosted providers.
             standardOutput,
             options.AssetsPath,
             sourcePath,
-            overwriteOutput,
+            options.Force,
             cancellationToken).ConfigureAwait(false);
         return (int)OfficeImoToolExitCode.Success;
+    }
+
+    // Checked before reading so a refused overwrite costs no extraction work; publication still refuses a file that appears later.
+    private static void EnsureOutputCanBeWritten(ReaderToolArguments options) {
+        if (string.IsNullOrWhiteSpace(options.OutputPath) || options.OutputPath == "-" || options.Force || !File.Exists(options.OutputPath)) return;
+        throw new ReaderToolOutputException("Output already exists. Use --force to replace it: " + Path.GetFullPath(options.OutputPath!));
     }
 
     private static async Task<int> RunFolderAsync(
@@ -165,6 +174,7 @@ The dependency-bounded tool does not configure OCR or hosted providers.
             paths,
             documents,
             options.Format,
+            options.Force,
             cancellationToken).ConfigureAwait(false);
         await standardError.WriteLineAsync("Converted " + paths.Count + " document(s).").ConfigureAwait(false);
         return (int)OfficeImoToolExitCode.Success;

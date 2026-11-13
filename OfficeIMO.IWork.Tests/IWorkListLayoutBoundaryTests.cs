@@ -6,7 +6,7 @@ namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkBoundaryTests {
     [Theory]
-    [InlineData(1f, 14.5f)]
+    [InlineData(1f, 14.25f)]
     [InlineData(1.2f, 8f)]
     public void Unqualified_mixed_decimal_sizes_keep_the_strict_conversion_boundary(float scale, float secondSize) {
         using var package = DecimalMixedSizeLayoutPackage(scale, secondSize);
@@ -20,9 +20,27 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Throws<InvalidOperationException>(() => partial.RequireCompleteEditableReconstruction());
     }
 
-    private static MemoryStream DecimalMixedSizeLayoutPackage(float scale, float secondSize) {
+    [Fact]
+    public void Half_point_Pages_sizes_do_not_widen_Keynote_list_layout_qualification() {
+        using var package = DecimalMixedSizeLayoutPackage(1f, 14.5f, IWorkDocumentKind.Keynote);
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions {
+            AllowPartialEditableReconstruction = true, RequireCompleteVisualCoverage = false
+        });
+        Assert.True(result.IsVisualFallback);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_KEYNOTE_POWERPOINT_DESTINATION_UNSUPPORTED");
+    }
+
+    private static MemoryStream DecimalMixedSizeLayoutPackage(float scale, float secondSize,
+        IWorkDocumentKind kind = IWorkDocumentKind.Pages) {
+        byte[] roots = kind == IWorkDocumentKind.Pages
+            ? ArchiveRecord(1, 10000, Message(ReferenceField(4, 6)))
+            : Message(ArchiveRecord(1, 1, Message(ReferenceField(2, 2))),
+                ArchiveRecord(2, 2, KeynoteShow(Message(ReferenceField(2, 3)))),
+                ArchiveRecord(3, 4, Message(ReferenceField(2, 4))),
+                ArchiveRecord(4, 5, Message(ReferenceField(5, 5))),
+                ArchiveRecord(5, 2011, Message(ReferenceField(2, 6))));
         byte[] records = Message(
-            ArchiveRecord(1, 10000, Message(ReferenceField(4, 6))),
+            roots,
             ArchiveRecord(6, 2001, Message(StringField(3, "Mixed"),
                 AttributeTable(7, AttributeEntry(0, ReferenceField(2, 7))),
                 AttributeTable(5, AttributeEntry(0, ReferenceField(2, 8))),

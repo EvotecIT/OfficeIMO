@@ -149,6 +149,9 @@
   <Project Path="OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj" />
   <Project Path="OfficeIMO.CSV/OfficeIMO.CSV.csproj" />
   <Project Path="OfficeIMO.Data.Arrow/OfficeIMO.Data.Arrow.csproj" />
+  <Project Path="OfficeIMO.Data.Conversions/OfficeIMO.Data.Conversions.csproj" />
+  <Project Path="OfficeIMO.Data.Conversions.Excel/OfficeIMO.Data.Conversions.Excel.csproj" />
+  <Project Path="OfficeIMO.Data.Conversions.Tests/OfficeIMO.Data.Conversions.Tests.csproj" />
   <Project Path="OfficeIMO.Data.Generators/OfficeIMO.Data.Generators.csproj" />
   <Project Path="OfficeIMO.DjVu.Pdf/OfficeIMO.DjVu.Pdf.csproj" />
   <Project Path="OfficeIMO.DjVu.Tests/OfficeIMO.DjVu.Tests.csproj" />

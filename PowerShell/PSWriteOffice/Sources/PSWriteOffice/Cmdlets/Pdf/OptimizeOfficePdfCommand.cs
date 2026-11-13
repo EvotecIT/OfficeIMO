@@ -120,7 +120,7 @@ public sealed class OptimizeOfficePdfCommand : OfficeCmdlet {
     [Parameter(ParameterSetName = "LiteralPathSanitize", Mandatory = true)]
     [Parameter(ParameterSetName = "LiteralPathSanitizeDirectory", Mandatory = true)]
     public SwitchParameter Sanitize { get; set; }
-    /// <summary>Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</summary>
+    /// <summary>Hidden-data categories that -Sanitize removes, from New-OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</summary>
     [Parameter(ParameterSetName = "PathSanitize")]
     [Parameter(ParameterSetName = "PathSanitizeDirectory")]
     [Parameter(ParameterSetName = "LiteralPathSanitize")]

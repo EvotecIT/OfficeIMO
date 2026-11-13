@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Excel worksheets in OfficeIMO structured-data conversions: worksheets and workbooks to JSON, JSON Lines, YAML, TOML and XML, and JSON, YAML, TOML and XML rows to workbooks.</Description>
+    <VersionPrefix>3.6.0</VersionPrefix>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <IsPackable>true</IsPackable>
+    <IsPublishable>true</IsPublishable>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageTags>excel;xlsx;json;jsonl;yaml;xml;conversion;officeimo</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <LangVersion>Latest</LangVersion>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Data.Conversions\OfficeIMO.Data.Conversions.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="System.Globalization" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="True" PackagePath="README.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO" />
+    <InternalsVisibleTo Include="OfficeIMO.Data.Conversions.Tests" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.Xml.Linq" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
+  </ItemGroup>
+</Project>

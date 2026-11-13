@@ -18,6 +18,7 @@ internal sealed class WorkflowArguments {
     internal string? OutputPath { get; private set; }
     internal string? Pages { get; private set; }
     internal OfficeImageExportFormat ImageFormat { get; private set; } = OfficeImageExportFormat.Png;
+    internal bool Json { get; private set; } = true;
     internal double TargetDpi { get; private set; } = 144D;
     internal int? MaximumDimension { get; private set; }
     internal bool Force { get; private set; }
@@ -80,6 +81,15 @@ internal sealed class WorkflowArguments {
                     parsed.Pages = ReadValue(args, ref index, token);
                     break;
                 case "--format":
+                    parsed.Json = ReadValue(args, ref index, token).ToLowerInvariant() switch {
+                        "json" => true,
+                        "text" => false,
+                        string value => throw new WorkflowUsageException(parsed.Command == WorkflowCommandKind.ExportPages
+                            ? "--format selects json or text output. Use --image-format " + value + " for the page images."
+                            : "--format must be json or text.")
+                    };
+                    break;
+                case "--image-format":
                     EnsureCommand(parsed.Command, token, WorkflowCommandKind.ExportPages);
                     parsed.ImageFormat = ParseImageFormat(ReadValue(args, ref index, token));
                     break;

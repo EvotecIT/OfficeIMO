@@ -2133,7 +2133,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Excel
 
 <details>
-<summary>578 changes</summary>
+<summary>582 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -2190,6 +2190,10 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Lifecycle | `OfficeIMO.Excel.ExcelDocument.WriteRows<T>(Stream stream, IEnumerable<T> items, IReadOnlyList<string> headers, Action<ExcelTabularRowWriter, T> writeRow, ExcelTabularWriteOptions options = null, CancellationToken ct = null)` | Merged | `OfficeIMO.Excel.ExcelDocument.CreateWriter(path or stream, ExcelWriterOptions options = null).WriteTable(...)` | Very large workbooks use an explicit streaming writer (design: Large workbooks). |
 | Lifecycle | `OfficeIMO.Excel.ExcelDocument.WriteRowsAsync<T>(Stream stream, IAsyncEnumerable<T> items, IReadOnlyList<string> headers, Action<ExcelTabularRowWriter, T> writeRow, ExcelTabularWriteOptions options = null, CancellationToken ct = null)` | Merged | `OfficeIMO.Excel.ExcelDocument.CreateWriter(path or stream, ExcelWriterOptions options = null).WriteTable(...)` | Very large workbooks use an explicit streaming writer (design: Large workbooks). |
 | Conversion | `OfficeIMO.Excel.ExcelSheet.ExportImage(...)` | Merged | `OfficeIMO.Excel.ExcelSheet.ToImage(...) : OfficeImageExportResult` | Use ToImage for one encoded surface and ToImages for a batch. Read Bytes for the payload, inspect CreateReport() for diagnostics, and use SaveAsImage or SaveAsImages to persist results. ExportImage and ExportImages aliases are removed. |
+| Conversion | `OfficeIMO.Excel.ExcelSheet.FromJson(string json, int startRow = 1, int startColumn = 1, bool includeHeaders = true, ExcelExecutionMode? mode = null, CancellationToken ct = default)` | Moved | `OfficeIMO.Excel.ExcelSheet.InsertDataReader(IDataReader reader, int startRow = 1, int startColumn = 1, bool includeHeaders = true, ...)` | Format packages do not carry conversions to other formats; structured-data routes live in OfficeIMO.Data.Conversions.Excel and stream instead of building a DataTable. |
+| Conversion | `OfficeIMO.Excel.ExcelSheet.TableToJson(string tableName, bool? headersInFirstRow = null, ExcelReaderOptions options = null, ExcelExecutionMode? mode = null, JsonSerializerOptions jsonOptions = null, CancellationToken ct = default)` | Moved | `OfficeIMO.Data.Conversions.ExcelDataConversions.ToJson(this ExcelSheet sheet, DataConversionOptions options = null)` | Format packages do not carry conversions to other formats; structured-data routes live in OfficeIMO.Data.Conversions.Excel and stream instead of building a DataTable. |
+| Conversion | `OfficeIMO.Excel.ExcelSheet.ToJson(bool headersInFirstRow = true, ExcelReaderOptions options = null, ExcelExecutionMode? mode = null, JsonSerializerOptions jsonOptions = null, CancellationToken ct = default)` | Moved | `OfficeIMO.Data.Conversions.ExcelDataConversions.ToJson(this ExcelSheet sheet, DataConversionOptions options = null)` | Format packages do not carry conversions to other formats; structured-data routes live in OfficeIMO.Data.Conversions.Excel and stream instead of building a DataTable. |
+| Conversion | `OfficeIMO.Excel.ExcelSheet.ToJson(string a1Range, bool headersInFirstRow = true, ExcelReaderOptions options = null, ExcelExecutionMode? mode = null, JsonSerializerOptions jsonOptions = null, CancellationToken ct = default)` | Moved | `OfficeIMO.Data.Conversions.ExcelDataConversions.ToJson(this ExcelSheet sheet, DataConversionOptions options = null)` | Format packages do not carry conversions to other formats; structured-data routes live in OfficeIMO.Data.Conversions.Excel and stream instead of building a DataTable. |
 | Conversion | `OfficeIMO.Excel.ExcelSpreadsheetXmlReport` | Merged | `OfficeIMO.OfficeConversionReport` | OfficeConversionReport with OfficeDiagnostic is the single conversion report type. |
 | Conversion | `OfficeIMO.Excel.Legacy.LegacySpreadsheetImportResult` | Kept | `OfficeIMO.Excel.Legacy.LegacySpreadsheetImportResult` | Retain this documented advanced model or its incoming public options/result contract under the approved visibility rule. |
 | Conversion | `OfficeIMO.Excel.LegacyXls.LegacyXlsLoadResult` | Merged | `OfficeIMO.OfficeConversionReport` | OfficeConversionReport with OfficeDiagnostic is the single conversion report type. |
@@ -5815,6 +5819,39 @@ Windows definitions before moving them to another operating system if their
 relative paths contain `\`; Unix treats that character as part of a filename.
 Run reports are optional evidence and do not change checkpoint compatibility.
 
+## Data conversion, overwrite and password rules in the CLI
+
+`officeimo convert` now runs the structured-data routes when both files are data formats (JSON, JSON Lines, YAML, TOML, XML, CSV, TSV and XLSX). A `.json` destination for a YAML, TOML, XML, CSV, TSV, JSON Lines or XLSX source therefore writes the converted data instead of Reader JSON (`officeimo.document.read-result`). For the Reader JSON of those files, use:
+
+```shell
+officeimo read settings.yaml --format json --output settings.reader.json
+```
+
+Other sources, such as DOCX or PDF, still write Reader JSON to a `.json` destination.
+
+`read`, `extract`, `reader read` and `reader folder` refuse to replace existing output files and assets. Add `--force` where a script relied on replacing them.
+
+`agent convert` takes `--force` instead of `--overwrite`. The MCP `officeimo_convert` tool keeps its `overwrite` argument.
+
+`workflow batch` rejects `--source-password` and `--pdf-password`. Put the password in an environment variable and pass its name with `--source-password-env` or `--pdf-password-env`.
+
+`tabular schema` prints `string`, `integer`, `number`, `boolean` and `datetime` instead of .NET type names such as `System.String`. Update scripts that compare the `type` column.
+
+## JSON output from workflow export-pages, assemble and print-plan
+
+`officeimo workflow export-pages`, `workflow assemble` and `workflow print-plan` now write one JSON result to standard output, like the `pdf`, `hidden-data` and `provenance` commands. The schemas are `officeimo.workflow.export-pages.v1`, `officeimo.workflow.assemble.v1` and `officeimo.workflow.print-plan.v1`. Scripts that read the previous text lines can switch to the JSON fields, or add `--format text` to keep the summary.
+
+`export-pages` takes the image format as `--image-format` because `--format` now chooses the output:
+
+```shell
+# Before
+officeimo workflow export-pages report.pdf --output pages --format webp
+# After
+officeimo workflow export-pages report.pdf --output pages --image-format webp
+```
+
+`officeimo convert` with an unknown `--sheet` or a malformed `--range` now exits with code `2` instead of `5`, and the error lists the sheets the workbook has. In .NET, an `OfficeConverter` data conversion from XLSX with the same `DataConversionOptions.Sheet` or `Range` throws `OfficeConversionException` with a `conversion-request-invalid` diagnostic instead of `KeyNotFoundException` or `ArgumentException`.
+
 ## Removed obsolete image and HTML capability aliases
 
 Replace `WordImage.BlackWiteMode` with `WordImage.BlackWhiteMode`. The enum and
@@ -6465,6 +6502,7 @@ Reader results use `ReaderInputKind.Toml` (`31`), which requires document transp
 Update exhaustive input-kind switches and transport bindings. Schemas 5 through 14 remain readable but cannot carry TOML input kinds.
 Without the handler, `.toml` files are detected as `application/toml` and read as plain text.
 Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the current artifact.
+In the neutral document model (`OfficeDocumentReadResultPdfExtensions`), TOML results map to `OfficeDocumentFormat.Toml` instead of `Unknown`.
 
 ## Publisher Reader identity and transport
 
@@ -9906,6 +9944,17 @@ A `data-officeimo-value` error value is written as an error cell only when it is
 `VisioDocument.ToPdf`, `SaveAsPdf` and their async forms now default to `VisioPdfProjectionMode.DiagramPages`: one PDF page per Visio page, at its physical size, drawn as vector artwork with searchable text. Before, the default was `SemanticReport`, a text and topology report. Set `Mode = VisioPdfProjectionMode.SemanticReport` to keep the report. `VisioOptions` and `ProjectionOptions` belong to the report, so options that set them without a `Mode` now throw `ArgumentException`; add the `Mode` setting.
 
 Diagram pages now keep arcs, ellipses and Bezier rows as curves, paint cached linear and radial gradient fills, draw open, filled, dot and diamond arrowheads, and turn shape and connector hyperlinks into PDF links. Text taller than its block overflows it, as in Visio, instead of being clipped. Regenerate visual baselines of Visio PDFs. `VISIO_DRAWING_METADATA` now reports only Shape Data; supported hyperlinks are no longer reported as omitted, and unsupported targets report `VISIO_DRAWING_LINKS`.
+
+## Structured-data conversions
+
+JSON, JSON Lines, YAML, TOML, XML, CSV, TSV and worksheet data convert through `OfficeIMO.Data.Conversions` and `OfficeIMO.Data.Conversions.Excel`. See the [structured-data conversion design](Docs/officeimo.data-conversions-design.md).
+
+- **Excel JSON methods.** `ExcelSheet.ToJson`, `ExcelSheet.TableToJson` and `ExcelSheet.FromJson` are removed from `OfficeIMO.Excel`. Reference `OfficeIMO.Data.Conversions.Excel` and call `sheet.ToJson(options)` or `sheet.SaveAsJson(path)`; choose cells with `DataConversionOptions.Range` (`"A1:F200"`). To fill a workbook from JSON, call `node.SaveAsExcel(path)` or `node.ToExcel()`. Typed columns and nested paths (`address.city`) follow the conversion design rather than `JsonSerializerOptions`.
+- **File extensions.** `OfficeConverter` now recognizes `.toml`, `.yaml`, `.yml`, `.jsonl` and `.ndjson` files.
+- **Conversion settings.** `OfficeConversionOptions.Data` takes a `DataConversionOptions` for the data routes (`Select`, `RootName`, `Columns`, `SampleRows`, `JsonLines` and the per-format reader and writer settings). In PowerShell, pass it to `Convert-OfficeDocument -Options`, for example `-Options @{ Select = 'package' }`.
+- **Loss reporting.** Data routes report what the target cannot hold, such as TOML nulls, YAML tags or XML attributes, as diagnostics on `OfficeConversionReport`. Set `FailOnLoss` (or `-FailOnLoss`) to stop instead.
+- **CSV UTF-8 rows.** `CsvRowWriter.WriteUtf8Row` now rejects a field that unquoted output cannot hold before writing any of that row, instead of leaving a partly written row.
+- **PowerShell TOML commands.** `ConvertFrom-OfficeToml`, `ConvertTo-OfficeToml`, `Import-OfficeToml` and `Export-OfficeToml` read and write TOML as PowerShell objects, as the JSON commands do.
 
 ## Printing any document from PowerShell
 

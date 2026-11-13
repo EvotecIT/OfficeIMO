@@ -131,6 +131,14 @@ public sealed partial class YamlReader : IDisposable {
     }
 
     /// <summary>
+    /// Gets the schema the current document resolves untagged plain scalars with: <see cref="YamlReaderOptions.Schema"/>
+    /// when set; otherwise <see cref="YamlSchema.Yaml11"/> for a document that declares <c>%YAML 1.1</c> and
+    /// <see cref="YamlSchema.Core"/> for any other. It changes at each <see cref="YamlTokenType.DocumentStart"/>, so a
+    /// streaming consumer resolves values exactly as a loaded <see cref="YamlDocument"/> does.
+    /// </summary>
+    public YamlSchema Schema => _documentSchema;
+
+    /// <summary>
     /// Gets the findings so far, in source order: each indentation the specification rejects that the reader accepted
     /// because <see cref="YamlReaderOptions.Strict"/> is off (<see cref="OfficeDiagnosticCodes.YamlLenientIndentation"/>),
     /// once per outermost flow collection and once per quoted scalar, with a line and column as the location. Empty, and

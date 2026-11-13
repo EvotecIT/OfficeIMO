@@ -1,10 +1,12 @@
 using System.Collections;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Apache.Arrow;
 using OfficeIMO.Adf;
 using OfficeIMO.CSV;
 using OfficeIMO.Data;
 using OfficeIMO.Data.Arrow;
+using OfficeIMO.Data.Conversions;
 using OfficeIMO.DocBook;
 using OfficeIMO.Excel;
 using OfficeIMO.GoogleWorkspace.Auth.GoogleApis;
@@ -151,6 +153,21 @@ if (excelRows.Length != 2
     throw new InvalidOperationException("The IDataReader XLSX write fallback and ordered-parallel Excel mapping did not survive NativeAOT.");
 }
 
+JsonNode dataRows = JsonNode.Parse("[{\"id\":1,\"name\":\"Ada\",\"tags\":[\"math\"]},{\"id\":2,\"name\":\"Grace\",\"tags\":[]}]")!;
+JsonNode? yamlBack = dataRows.ToYaml().ToJson();
+JsonNode? tomlBack = new JsonObject { ["people"] = dataRows.DeepClone() }.ToToml().ToJson();
+using var dataWorkbook = new System.IO.MemoryStream();
+dataRows.SaveAsExcel(dataWorkbook);
+dataWorkbook.Position = 0;
+using (ExcelDocument dataDocument = ExcelDocument.Load(dataWorkbook)) {
+    JsonNode? sheetBack = dataDocument.Sheets[0].ToJson();
+    if (yamlBack?[1]?["name"]?.GetValue<string>() != "Grace"
+        || tomlBack?["people"]?[0]?["tags"]?[0]?.GetValue<string>() != "math"
+        || sheetBack?[0]?["name"]?.GetValue<string>() != "Ada") {
+        throw new InvalidOperationException("The structured-data conversions did not survive NativeAOT.");
+    }
+}
+
 string workflowRoot = System.IO.Path.Combine(
     System.IO.Path.GetTempPath(),
     "OfficeIMO-AotWorkflow-" + Guid.NewGuid().ToString("N"));
@@ -212,7 +229,7 @@ try {
     }
 }
 
-Console.WriteLine("PASS | production libraries fully rooted; Google APIs, tabular, and PDF workflow contracts passed from NativeAOT.");
+Console.WriteLine("PASS | production libraries fully rooted; Google APIs, tabular, data conversion, and PDF workflow contracts passed from NativeAOT.");
 
 file sealed class AotCsvRow {
     public int Id { get; set; }

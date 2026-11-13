@@ -179,3 +179,7 @@ var csv = new CsvDocument()
     .AddRow("Widget A", "9,99")   // French decimal separator
     .AddRow("Widget B", "14,99");
 ```
+
+## Convert to other formats
+
+To turn CSV or TSV into JSON, JSON Lines, YAML, TOML, XML or an Excel worksheet, or the other way round, see [data conversions](/docs/data-conversions/).

@@ -65244,6 +65244,167 @@ cells. This keeps existing-document editing simple without forcing callers back 
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
+      <command:name>ConvertFrom-OfficeToml</command:name>
+      <command:verb>ConvertFrom</command:verb>
+      <command:noun>OfficeToml</command:noun>
+      <maml:description>
+        <maml:para>Converts TOML text to PowerShell objects, as ConvertFrom-Json does for JSON.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Tables become PSCustomObjects with properties in file order (ordered hashtables with AsHashtable), arrays and
+arrays of tables become arrays, integers Int64, floats Double, and date-times DateTimeOffset (with an offset),
+DateTime (local date-time or date) or TimeSpan (local time). Piped lines are joined before parsing, so Get-Content
+output works directly. Depth sets the deepest nesting accepted.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="InputObject">
+        <maml:name>ConvertFrom-OfficeToml</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>AsHashtable</maml:name>
+          <maml:description>
+            <maml:para>Return tables as ordered hashtables instead of PSCustomObjects.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Depth</maml:name>
+          <maml:description>
+            <maml:para>Deepest nesting of tables and arrays to accept; sets the reader's MaxDepth.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+          <maml:name>InputObject</maml:name>
+          <maml:description>
+            <maml:para>TOML text; piped strings are joined with line breaks before parsing.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Untrusted</maml:name>
+          <maml:description>
+            <maml:para>Caps every limit at the engine's untrusted defaults, for text from outside.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>AsHashtable</maml:name>
+        <maml:description>
+          <maml:para>Return tables as ordered hashtables instead of PSCustomObjects.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Depth</maml:name>
+        <maml:description>
+          <maml:para>Deepest nesting of tables and arrays to accept; sets the reader's MaxDepth.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <maml:name>InputObject</maml:name>
+        <maml:description>
+          <maml:para>TOML text; piped strings are joined with line breaks before parsing.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Untrusted</maml:name>
+        <maml:description>
+          <maml:para>Caps every limit at the engine's untrusted defaults, for text from outside.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>System.Management.Automation.PSObject</maml:name>
+        </dev:type>
+      </command:returnValue>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>System.Collections.Specialized.OrderedDictionary</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Read a project manifest's values.</maml:title>
+        <dev:code>$project = Get-Content -Path ./pyproject.toml -Raw | ConvertFrom-OfficeToml
+            $project.project.dependencies</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>List the packages of a Cargo lock file as hashtables.</maml:title>
+        <dev:code>(Get-Content ./Cargo.lock | ConvertFrom-OfficeToml -AsHashtable).package | ForEach-Object { '{0} {1}' -f $_.name, $_.version }</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
       <command:name>ConvertFrom-OfficeYaml</command:name>
       <command:verb>ConvertFrom</command:verb>
       <command:noun>OfficeYaml</command:noun>
@@ -68705,6 +68866,138 @@ nesting accepted (the engine default is 256).</maml:para>
       <command:example>
         <maml:title>Maps PowerShell rows to a bounded project entity table.</maml:title>
         <dev:code>Import-Csv ./tasks.csv | ConvertTo-OfficeProjectTable -Kind Tasks -ColumnMap @{ Uid = 'ID'; Name = 'Task' }</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
+      <command:name>ConvertTo-OfficeToml</command:name>
+      <command:verb>ConvertTo</command:verb>
+      <command:noun>OfficeToml</command:noun>
+      <maml:description>
+        <maml:para>Converts PowerShell objects to TOML text, as ConvertTo-Json does for JSON.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Hashtables, ordered dictionaries and object properties become tables: nested objects are written as
+[table] sections and lists of objects as [[array]] sections, after the table's own values. Collections
+become arrays, DateTime and DateTimeOffset TOML date-times, and enums their names. TOML has no null, so nulls are
+omitted with a warning, and input that is not an object (such as several piped objects) is written under RootName.
+Objects nested deeper than Depth (default 2) are written as their string form with a warning.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="InputObject">
+        <maml:name>ConvertTo-OfficeToml</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Depth</maml:name>
+          <maml:description>
+            <maml:para>How many levels of nested objects to write; deeper values become their string form.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+          <maml:name>InputObject</maml:name>
+          <maml:description>
+            <maml:para>Objects to convert; an argument is written exactly as given, piped objects as one value or an array.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+          <dev:type>
+            <maml:name>Object</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RootName</maml:name>
+          <maml:description>
+            <maml:para>The key that holds input which is not an object, because a TOML document is a table.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Depth</maml:name>
+        <maml:description>
+          <maml:para>How many levels of nested objects to write; deeper values become their string form.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <maml:name>InputObject</maml:name>
+        <maml:description>
+          <maml:para>Objects to convert; an argument is written exactly as given, piped objects as one value or an array.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+        <dev:type>
+          <maml:name>Object</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>RootName</maml:name>
+        <maml:description>
+          <maml:para>The key that holds input which is not an object, because a TOML document is a table.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.Object</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Turn a hashtable into a configuration file's text.</maml:title>
+        <dev:code>[ordered]@{ name = 'web'; port = 8080; tls = [ordered]@{ enabled = $true } } | ConvertTo-OfficeToml</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Write a list of records as an array of tables.</maml:title>
+        <dev:code>Get-Process | Select-Object -First 3 Name, Id | ConvertTo-OfficeToml -RootName process</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -82859,6 +83152,208 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
+      <command:name>Export-OfficeToml</command:name>
+      <command:verb>Export</command:verb>
+      <command:noun>OfficeToml</command:noun>
+      <maml:description>
+        <maml:para>Writes PowerShell objects to a TOML file; the file form of ConvertTo-OfficeToml.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>The file is UTF-8 without a byte-order mark and is written atomically. An existing file is replaced unless
+NoClobber is set. Nested objects become [table] sections and lists of objects [[array]] sections; nulls
+are omitted with a warning.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="InputObject">
+        <maml:name>Export-OfficeToml</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Depth</maml:name>
+          <maml:description>
+            <maml:para>How many levels of nested objects to write; deeper values become their string form.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+          <maml:name>InputObject</maml:name>
+          <maml:description>
+            <maml:para>Objects to write; an argument is written exactly as given, piped objects as one value or an array.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+          <dev:type>
+            <maml:name>Object</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>NoClobber</maml:name>
+          <maml:description>
+            <maml:para>Refuse to replace an existing file.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>Return the written file.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>The TOML file to create.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RootName</maml:name>
+          <maml:description>
+            <maml:para>The key that holds input which is not an object, because a TOML document is a table.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Depth</maml:name>
+        <maml:description>
+          <maml:para>How many levels of nested objects to write; deeper values become their string form.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+        <maml:name>InputObject</maml:name>
+        <maml:description>
+          <maml:para>Objects to write; an argument is written exactly as given, piped objects as one value or an array.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+        <dev:type>
+          <maml:name>Object</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>NoClobber</maml:name>
+        <maml:description>
+          <maml:para>Refuse to replace an existing file.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>PassThru</maml:name>
+        <maml:description>
+          <maml:para>Return the written file.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>The TOML file to create.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>RootName</maml:name>
+        <maml:description>
+          <maml:para>The key that holds input which is not an object, because a TOML document is a table.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.Object</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>System.IO.FileInfo</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Save settings to a file.</maml:title>
+        <dev:code>[ordered]@{ title = 'Report'; owner = [ordered]@{ name = 'Ops'; updated = Get-Date } } | Export-OfficeToml -Path ./settings.toml</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Export an inventory without replacing an existing file.</maml:title>
+        <dev:code>Import-OfficeCsv -Path ./servers.csv | Export-OfficeToml -Path ./inventory.toml -RootName server -NoClobber -PassThru</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
       <command:name>Export-OfficeVisioStencilPreviewGallery</command:name>
       <command:verb>Export</command:verb>
       <command:noun>OfficeVisioStencilPreviewGallery</command:noun>
@@ -91735,6 +92230,125 @@ and Set-OfficeYamlNode instead.</maml:para>
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
+      <command:name>Get-OfficeHiddenData</command:name>
+      <command:verb>Get</command:verb>
+      <command:noun>OfficeHiddenData</command:noun>
+      <maml:description>
+        <maml:para>Reports the metadata and hidden data that would leave with a file. The file is never changed.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Finds author and company properties, comments, tracked changes, hidden text, rows, sheets and slides, speaker notes,
+image metadata such as GPS locations, scripts, attachments, Content Credentials and AI labels. Inputs are Word, Excel,
+PowerPoint, Visio, OpenDocument, EPUB, PDF, JPEG, PNG, WebP, GIF and TIFF files. Each finding has the Outcome Found.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Path">
+        <maml:name>Get-OfficeHiddenData</maml:name>
+        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Files to inspect; supports wildcards.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="LiteralPath">
+        <maml:name>Get-OfficeHiddenData</maml:name>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="PSPath,FullName">
+          <maml:name>LiteralPath</maml:name>
+          <maml:description>
+            <maml:para>Exact file paths, including FileInfo.FullName and provider PSPath pipeline properties.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="PSPath,FullName">
+        <maml:name>LiteralPath</maml:name>
+        <maml:description>
+          <maml:para>Exact file paths, including FileInfo.FullName and provider PSPath pipeline properties.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>Files to inspect; supports wildcards.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>PSWriteOffice.Models.OfficeHiddenDataFileReport</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>Hidden data found in one file, what removal did with each item, and where the cleaned copy was written.</maml:para>
+        </maml:description>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>List what would leave with a proposal.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>(Get-OfficeHiddenData -Path .\Proposal.docx).Findings</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Find the files in an outgoing folder that still carry comments or tracked changes.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>Get-ChildItem .\Outgoing -File | Get-OfficeHiddenData |
+                Where-Object { $_.Findings.Kind -contains 'Comments' -or $_.Findings.Kind -contains 'TrackedChanges' }</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
       <command:name>Get-OfficeMarkdownFrontMatter</command:name>
       <command:verb>Get</command:verb>
       <command:noun>OfficeMarkdownFrontMatter</command:noun>
@@ -99826,7 +100440,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Use Get-OfficePrinterCapability for media, duplex, color and resolution details of a queue or IPP printer.</maml:para>
+      <maml:para>Lists system printer queues, or the paper sources of a named queue. Requires PowerShell 7.4 or newer.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="Printer">
@@ -99834,7 +100448,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="0" aliases="none">
           <maml:name>Name</maml:name>
           <maml:description>
-            <maml:para>Printer name patterns; PaperSource requires one exact printer name or IPP printer URI.</maml:para>
+            <maml:para>Printer name patterns; PaperSource requires one exact printer name.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
           <dev:type>
@@ -99849,7 +100463,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="False" position="0" aliases="none">
           <maml:name>Name</maml:name>
           <maml:description>
-            <maml:para>Printer name patterns; PaperSource requires one exact printer name or IPP printer URI.</maml:para>
+            <maml:para>Printer name patterns; PaperSource requires one exact printer name.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
           <dev:type>
@@ -99876,7 +100490,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
       <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="0" aliases="none">
         <maml:name>Name</maml:name>
         <maml:description>
-          <maml:para>Printer name patterns; PaperSource requires one exact printer name or IPP printer URI.</maml:para>
+          <maml:para>Printer name patterns; PaperSource requires one exact printer name.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
         <dev:type>
@@ -99930,242 +100544,6 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         </maml:introduction>
         <dev:code>Get-OfficePrinter
             Get-OfficePrinter -Name 'Office printer' -PaperSource</dev:code>
-        <dev:remarks>
-          <maml:para></maml:para>
-        </dev:remarks>
-      </command:example>
-    </command:examples>
-    <command:relatedLinks />
-  </command:command>
-  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
-    <command:details>
-      <command:name>Get-OfficePrinterCapability</command:name>
-      <command:verb>Get</command:verb>
-      <command:noun>OfficePrinterCapability</command:noun>
-      <maml:description>
-        <maml:para>Reports the media, paper sources, duplex, color, resolution and copy capabilities of a printer queue or IPP printer. Requires PowerShell 7.4 or newer.</maml:para>
-      </maml:description>
-    </command:details>
-    <maml:description>
-      <maml:para>Name accepts an installed queue name or an ipp:// or ipps:// printer URI. Reading capabilities does not change printer settings.</maml:para>
-    </maml:description>
-    <command:syntax>
-      <command:syntaxItem parameterSetName="Default">
-        <maml:name>Get-OfficePrinterCapability</maml:name>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="0" aliases="none">
-          <maml:name>Name</maml:name>
-          <maml:description>
-            <maml:para>Printer queue name or IPP printer URI.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-    </command:syntax>
-    <command:parameters>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="0" aliases="none">
-        <maml:name>Name</maml:name>
-        <maml:description>
-          <maml:para>Printer queue name or IPP printer URI.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-    </command:parameters>
-    <command:inputTypes>
-      <command:inputType>
-        <dev:type>
-          <maml:name>System.String</maml:name>
-        </dev:type>
-      </command:inputType>
-    </command:inputTypes>
-    <command:returnValues>
-      <command:returnValue>
-        <dev:type>
-          <maml:name>OfficeIMO.Workflows.PdfPrinterCapabilities</maml:name>
-        </dev:type>
-      </command:returnValue>
-    </command:returnValues>
-    <maml:alertSet>
-      <maml:alert>
-        <maml:para></maml:para>
-      </maml:alert>
-    </maml:alertSet>
-    <command:examples>
-      <command:example>
-        <maml:title>Read the capabilities of a queue and of an IPP printer.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>Get-OfficePrinterCapability -Name 'Office printer'
-            Get-OfficePrinterCapability -Name 'ipp://printer.local/ipp/print'</dev:code>
-        <dev:remarks>
-          <maml:para></maml:para>
-        </dev:remarks>
-      </command:example>
-    </command:examples>
-    <command:relatedLinks />
-  </command:command>
-  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
-    <command:details>
-      <command:name>Get-OfficePrintJob</command:name>
-      <command:verb>Get</command:verb>
-      <command:noun>OfficePrintJob</command:noun>
-      <maml:description>
-        <maml:para>Reports the state of a print job submitted with Send-OfficePrinter, optionally waiting until it finishes. Requires PowerShell 7.4 or newer.</maml:para>
-      </maml:description>
-    </command:details>
-    <maml:description>
-      <maml:para>States are the same for every transport: Pending, Held, Processing, Stopped, Canceled, Aborted, Completed and Removed. Removed means the queue no longer reports the job: it finished and was purged, was deleted, or never existed.</maml:para>
-    </maml:description>
-    <command:syntax>
-      <command:syntaxItem parameterSetName="Default">
-        <maml:name>Get-OfficePrintJob</maml:name>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="1" aliases="none">
-          <maml:name>JobId</maml:name>
-          <maml:description>
-            <maml:para>The job identifier from the receipt.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="0" aliases="none">
-          <maml:name>PrinterName</maml:name>
-          <maml:description>
-            <maml:para>The printer queue name or IPP URI from the receipt.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>TimeoutSeconds</maml:name>
-          <maml:description>
-            <maml:para>Longest wait in seconds when Wait is set.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Wait</maml:name>
-          <maml:description>
-            <maml:para>Wait until the job is canceled, aborted, completed or removed.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-    </command:syntax>
-    <command:parameters>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="1" aliases="none">
-        <maml:name>JobId</maml:name>
-        <maml:description>
-          <maml:para>The job identifier from the receipt.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="0" aliases="none">
-        <maml:name>PrinterName</maml:name>
-        <maml:description>
-          <maml:para>The printer queue name or IPP URI from the receipt.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>TimeoutSeconds</maml:name>
-        <maml:description>
-          <maml:para>Longest wait in seconds when Wait is set.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-        <dev:type>
-          <maml:name>Int32</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>Wait</maml:name>
-        <maml:description>
-          <maml:para>Wait until the job is canceled, aborted, completed or removed.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-    </command:parameters>
-    <command:inputTypes>
-      <command:inputType>
-        <dev:type>
-          <maml:name>System.String</maml:name>
-        </dev:type>
-      </command:inputType>
-    </command:inputTypes>
-    <command:returnValues>
-      <command:returnValue>
-        <dev:type>
-          <maml:name>OfficeIMO.Workflows.PdfPrintJobStatus</maml:name>
-        </dev:type>
-      </command:returnValue>
-    </command:returnValues>
-    <maml:alertSet>
-      <maml:alert>
-        <maml:para></maml:para>
-      </maml:alert>
-    </maml:alertSet>
-    <command:examples>
-      <command:example>
-        <maml:title>Wait up to two minutes for a submitted job.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>$receipt = Send-OfficePrinter -Path .\Report.pdf -PrinterName 'Office printer'
-            $receipt | Get-OfficePrintJob -Wait -TimeoutSeconds 120</dev:code>
-        <dev:remarks>
-          <maml:para></maml:para>
-        </dev:remarks>
-      </command:example>
-      <command:example>
-        <maml:title>Check a job by printer and identifier.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>Get-OfficePrintJob -PrinterName 'Office printer' -JobId 'Office_printer-42'</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -113591,6 +113969,229 @@ Select, each document's root is returned.</maml:para>
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
+      <command:name>Import-OfficeToml</command:name>
+      <command:verb>Import</command:verb>
+      <command:noun>OfficeToml</command:noun>
+      <maml:description>
+        <maml:para>Reads TOML files as PowerShell objects; the file form of ConvertFrom-OfficeToml.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Output follows ConvertFrom-OfficeToml: tables become PSCustomObjects in file order, or ordered hashtables with
+AsHashtable. A file that fails to parse writes a non-terminating error with the engine's code, line and column, and
+the next file is read.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Path">
+        <maml:name>Import-OfficeToml</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>AsHashtable</maml:name>
+          <maml:description>
+            <maml:para>Return tables as ordered hashtables instead of PSCustomObjects.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Depth</maml:name>
+          <maml:description>
+            <maml:para>Deepest nesting of tables and arrays to accept; sets the reader's MaxDepth.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>TOML files with FileSystem wildcard expansion.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Untrusted</maml:name>
+          <maml:description>
+            <maml:para>Caps every limit at the engine's untrusted defaults, for files from outside.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="LiteralPath">
+        <maml:name>Import-OfficeToml</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>AsHashtable</maml:name>
+          <maml:description>
+            <maml:para>Return tables as ordered hashtables instead of PSCustomObjects.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Depth</maml:name>
+          <maml:description>
+            <maml:para>Deepest nesting of tables and arrays to accept; sets the reader's MaxDepth.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="FullName,PSPath">
+          <maml:name>LiteralPath</maml:name>
+          <maml:description>
+            <maml:para>Literal TOML files, including FileInfo.FullName and provider PSPath.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Untrusted</maml:name>
+          <maml:description>
+            <maml:para>Caps every limit at the engine's untrusted defaults, for files from outside.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>AsHashtable</maml:name>
+        <maml:description>
+          <maml:para>Return tables as ordered hashtables instead of PSCustomObjects.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Depth</maml:name>
+        <maml:description>
+          <maml:para>Deepest nesting of tables and arrays to accept; sets the reader's MaxDepth.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="FullName,PSPath">
+        <maml:name>LiteralPath</maml:name>
+        <maml:description>
+          <maml:para>Literal TOML files, including FileInfo.FullName and provider PSPath.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>TOML files with FileSystem wildcard expansion.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Untrusted</maml:name>
+        <maml:description>
+          <maml:para>Caps every limit at the engine's untrusted defaults, for files from outside.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>System.Management.Automation.PSObject</maml:name>
+        </dev:type>
+      </command:returnValue>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>System.Collections.Specialized.OrderedDictionary</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Read a tool's settings.</maml:title>
+        <dev:code>$ruff = (Import-OfficeToml -Path ./pyproject.toml).tool.ruff
+            $ruff.'line-length'</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Read the manifest of every crate under a folder.</maml:title>
+        <dev:code>Get-ChildItem ./crates -Filter Cargo.toml -Recurse | Import-OfficeToml | ForEach-Object { $_.package.name }</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
       <command:name>Import-OfficeVisioStencilCatalog</command:name>
       <command:verb>Import</command:verb>
       <command:noun>OfficeVisioStencilCatalog</command:noun>
@@ -126341,6 +126942,245 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
         <maml:title>Create a delegated reporting session.</maml:title>
         <dev:code>$session = New-OfficeGoogleWorkspaceSession -KeyPath ./Secrets/reporting.json -Subject reports@example.com -Scope Documents,DriveFile
             try { Export-OfficeWordGoogleDocument -Path ./Report.docx -Session $session } finally { $session.CredentialSource.Dispose() }</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
+      <command:name>New-OfficeHiddenDataOptions</command:name>
+      <command:verb>New</command:verb>
+      <command:noun>OfficeHiddenDataOptions</command:noun>
+      <maml:description>
+        <maml:para>Chooses which hidden data Remove-OfficeHiddenData and Optimize-OfficePdf -Sanitize remove.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>With no parameters the options select the Default categories: document and custom properties, comments, personal
+identities, speaker notes, the thumbnail, custom XML, image metadata, printer settings, external references, document
+variables, revision identifiers and active content such as scripts. Tracked changes, hidden content, provenance,
+attachments and bookmarks change what readers see or what the file discloses, so they are removed only when you name them.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Default">
+        <maml:name>New-OfficeHiddenDataOptions</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>AnonymousAuthor</maml:name>
+          <maml:description>
+            <maml:para>Name that replaces authors on comments and revisions that stay in the file. Defaults to Author.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>KeepProvenance</maml:name>
+          <maml:description>
+            <maml:para>Provenance carriers to keep when Provenance is selected: C2pa (Content Credentials), External (links to Content Credentials) or AiSource (AI-generated labels).</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">C2pa</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">External</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">AiSource</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+          <maml:name>Kind</maml:name>
+          <maml:description>
+            <maml:para>Categories to remove, combined. Defaults to Default; All selects every category.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeHiddenDataKind[]</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">DocumentProperties</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">CustomProperties</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Comments</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">TrackedChanges</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">PersonalIdentities</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">HiddenContent</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">SpeakerNotes</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Thumbnail</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">CustomXml</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">ImageMetadata</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">PrinterSettings</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">ExternalReferences</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">DocumentVariables</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">RevisionIdentifiers</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Provenance</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Attachments</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">ActiveContent</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Default</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Bookmarks</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">All</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>OfficeHiddenDataKind[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>TrackedChanges</maml:name>
+          <maml:description>
+            <maml:para>Keep, accept or reject tracked changes. Defaults to Keep, which reports them and leaves them in place.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeTrackedChangesAction</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Keep</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">AcceptAll</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">RejectAll</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>OfficeTrackedChangesAction</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>AnonymousAuthor</maml:name>
+        <maml:description>
+          <maml:para>Name that replaces authors on comments and revisions that stay in the file. Defaults to Author.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>KeepProvenance</maml:name>
+        <maml:description>
+          <maml:para>Provenance carriers to keep when Provenance is selected: C2pa (Content Credentials), External (links to Content Credentials) or AiSource (AI-generated labels).</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">C2pa</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">External</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">AiSource</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <maml:name>Kind</maml:name>
+        <maml:description>
+          <maml:para>Categories to remove, combined. Defaults to Default; All selects every category.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeHiddenDataKind[]</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">DocumentProperties</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">CustomProperties</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Comments</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">TrackedChanges</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PersonalIdentities</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">HiddenContent</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SpeakerNotes</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Thumbnail</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">CustomXml</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ImageMetadata</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PrinterSettings</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ExternalReferences</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">DocumentVariables</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">RevisionIdentifiers</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Provenance</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Attachments</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ActiveContent</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Default</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Bookmarks</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">All</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>OfficeHiddenDataKind[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>TrackedChanges</maml:name>
+        <maml:description>
+          <maml:para>Keep, accept or reject tracked changes. Defaults to Keep, which reports them and leaves them in place.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeTrackedChangesAction</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">Keep</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">AcceptAll</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">RejectAll</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>OfficeTrackedChangesAction</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>None</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.OfficeHiddenDataOptions</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Also remove Content Credentials and AI labels, and accept tracked changes.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>$options = New-OfficeHiddenDataOptions -Kind Default, Provenance -TrackedChanges AcceptAll
+            Remove-OfficeHiddenData -Path .\Proposal.docx -Options $options</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Remove AI-generated labels from a poster but keep its Content Credentials.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>$options = New-OfficeHiddenDataOptions -Kind Default, Provenance -KeepProvenance C2pa, External
+            Remove-OfficeHiddenData -Path .\Poster.pdf -Options $options</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Clean everything, including hidden sheets and attachments.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>Remove-OfficeHiddenData -Path .\Budget.xlsx -Options (New-OfficeHiddenDataOptions -Kind All)</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -157038,7 +157878,7 @@ message gives the line, column and offending source line.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="SanitizationOptions">
           <maml:name>HiddenDataOptions</maml:name>
           <maml:description>
-            <maml:para>Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
+            <maml:para>Hidden-data categories that -Sanitize removes, from New-OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
           <dev:type>
@@ -157149,7 +157989,7 @@ message gives the line, column and offending source line.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="SanitizationOptions">
           <maml:name>HiddenDataOptions</maml:name>
           <maml:description>
-            <maml:para>Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
+            <maml:para>Hidden-data categories that -Sanitize removes, from New-OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
           <dev:type>
@@ -157407,7 +158247,7 @@ message gives the line, column and offending source line.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="SanitizationOptions">
           <maml:name>HiddenDataOptions</maml:name>
           <maml:description>
-            <maml:para>Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
+            <maml:para>Hidden-data categories that -Sanitize removes, from New-OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
           <dev:type>
@@ -157665,7 +158505,7 @@ message gives the line, column and offending source line.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="SanitizationOptions">
           <maml:name>HiddenDataOptions</maml:name>
           <maml:description>
-            <maml:para>Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
+            <maml:para>Hidden-data categories that -Sanitize removes, from New-OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
           <dev:type>
@@ -157788,7 +158628,7 @@ message gives the line, column and offending source line.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="SanitizationOptions">
         <maml:name>HiddenDataOptions</maml:name>
         <maml:description>
-          <maml:para>Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
+          <maml:para>Hidden-data categories that -Sanitize removes, from New-OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
         <dev:type>
@@ -162136,6 +162976,425 @@ options retain their owner password, permission mask, algorithm, metadata settin
             }</dev:code>
         <dev:remarks>
           <maml:para>Removes every manual page break from the report sheets so the print layout can be set up again.</maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
+      <command:name>Remove-OfficeHiddenData</command:name>
+      <command:verb>Remove</command:verb>
+      <command:noun>OfficeHiddenData</command:noun>
+      <maml:description>
+        <maml:para>Writes a copy of a file without its metadata and hidden data, and reports what happened to each item.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>The input is never changed. The cleaned copy is written as &lt;name&gt;.cleaned&lt;ext&gt; beside the input unless
+OutputPath or OutputDirectory says otherwise. An existing output file is replaced, as with Convert-OfficeDocument and
+Optimize-OfficePdf; NoClobber refuses it instead.</maml:para>
+      <maml:para>Without Options the Default categories are removed: document and custom properties, comments, personal identities,
+speaker notes, the thumbnail, custom XML, image metadata, printer settings, external references, document variables,
+revision identifiers and active content such as scripts. Tracked changes, hidden content, provenance, attachments and
+bookmarks are kept until New-OfficeHiddenDataOptions selects them. Every finding reports an Outcome; a Retained finding
+carries a Reason and a Note that say why it stayed.</maml:para>
+      <maml:para>Saving refuses to invalidate an Office package signature unless RemoveInvalidatedSignatures is present. Signed PDFs
+are always refused.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Path">
+        <maml:name>Remove-OfficeHiddenData</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>NoClobber</maml:name>
+          <maml:description>
+            <maml:para>Refuse to replace an existing output file.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Options</maml:name>
+          <maml:description>
+            <maml:para>Categories to remove and how to treat tracked changes and provenance, from New-OfficeHiddenDataOptions. Defaults to the Default categories.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeHiddenDataOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>OutputPath</maml:name>
+          <maml:description>
+            <maml:para>The cleaned copy for a single input. It must keep the input's extension.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Files to clean; supports wildcards.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RemoveInvalidatedSignatures</maml:name>
+          <maml:description>
+            <maml:para>Allow cleaning to remove Office package signatures that it invalidates; otherwise a signed package is refused.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="PathDirectory">
+        <maml:name>Remove-OfficeHiddenData</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>NoClobber</maml:name>
+          <maml:description>
+            <maml:para>Refuse to replace an existing output file.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Options</maml:name>
+          <maml:description>
+            <maml:para>Categories to remove and how to treat tracked changes and provenance, from New-OfficeHiddenDataOptions. Defaults to the Default categories.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeHiddenDataOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>OutputDirectory</maml:name>
+          <maml:description>
+            <maml:para>Folder that receives each cleaned copy under its original file name; created when missing.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Files to clean; supports wildcards.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RemoveInvalidatedSignatures</maml:name>
+          <maml:description>
+            <maml:para>Allow cleaning to remove Office package signatures that it invalidates; otherwise a signed package is refused.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="LiteralPath">
+        <maml:name>Remove-OfficeHiddenData</maml:name>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="PSPath,FullName">
+          <maml:name>LiteralPath</maml:name>
+          <maml:description>
+            <maml:para>Exact file paths, including FileInfo.FullName and provider PSPath pipeline properties.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>NoClobber</maml:name>
+          <maml:description>
+            <maml:para>Refuse to replace an existing output file.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Options</maml:name>
+          <maml:description>
+            <maml:para>Categories to remove and how to treat tracked changes and provenance, from New-OfficeHiddenDataOptions. Defaults to the Default categories.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeHiddenDataOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>OutputPath</maml:name>
+          <maml:description>
+            <maml:para>The cleaned copy for a single input. It must keep the input's extension.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RemoveInvalidatedSignatures</maml:name>
+          <maml:description>
+            <maml:para>Allow cleaning to remove Office package signatures that it invalidates; otherwise a signed package is refused.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="LiteralPathDirectory">
+        <maml:name>Remove-OfficeHiddenData</maml:name>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="PSPath,FullName">
+          <maml:name>LiteralPath</maml:name>
+          <maml:description>
+            <maml:para>Exact file paths, including FileInfo.FullName and provider PSPath pipeline properties.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>NoClobber</maml:name>
+          <maml:description>
+            <maml:para>Refuse to replace an existing output file.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Options</maml:name>
+          <maml:description>
+            <maml:para>Categories to remove and how to treat tracked changes and provenance, from New-OfficeHiddenDataOptions. Defaults to the Default categories.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeHiddenDataOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>OutputDirectory</maml:name>
+          <maml:description>
+            <maml:para>Folder that receives each cleaned copy under its original file name; created when missing.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RemoveInvalidatedSignatures</maml:name>
+          <maml:description>
+            <maml:para>Allow cleaning to remove Office package signatures that it invalidates; otherwise a signed package is refused.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="PSPath,FullName">
+        <maml:name>LiteralPath</maml:name>
+        <maml:description>
+          <maml:para>Exact file paths, including FileInfo.FullName and provider PSPath pipeline properties.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>NoClobber</maml:name>
+        <maml:description>
+          <maml:para>Refuse to replace an existing output file.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Options</maml:name>
+        <maml:description>
+          <maml:para>Categories to remove and how to treat tracked changes and provenance, from New-OfficeHiddenDataOptions. Defaults to the Default categories.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
+        <dev:type>
+          <maml:name>OfficeHiddenDataOptions</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>OutputDirectory</maml:name>
+        <maml:description>
+          <maml:para>Folder that receives each cleaned copy under its original file name; created when missing.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>OutputPath</maml:name>
+        <maml:description>
+          <maml:para>The cleaned copy for a single input. It must keep the input's extension.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>Files to clean; supports wildcards.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>RemoveInvalidatedSignatures</maml:name>
+        <maml:description>
+          <maml:para>Allow cleaning to remove Office package signatures that it invalidates; otherwise a signed package is refused.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>PSWriteOffice.Models.OfficeHiddenDataFileReport</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>Hidden data found in one file, what removal did with each item, and where the cleaned copy was written.</maml:para>
+        </maml:description>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Write Proposal.cleaned.docx with the default categories removed.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>Remove-OfficeHiddenData -Path .\Proposal.docx</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Clean a folder into a share folder, also removing Content Credentials and AI labels.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>$options = New-OfficeHiddenDataOptions -Kind Default, Provenance
+            Get-ChildItem .\Outgoing -File | Remove-OfficeHiddenData -OutputDirectory .\Share -Options $options</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Accept tracked changes, and keep an earlier cleaned copy if one exists.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>$options = New-OfficeHiddenDataOptions -TrackedChanges AcceptAll
+            Remove-OfficeHiddenData -Path .\Contract.docx -OutputPath .\Contract-final.docx -Options $options -NoClobber</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
@@ -171507,20 +172766,19 @@ document through the writer.</maml:para>
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
-      <command:name>Send-OfficePrinter</command:name>
+      <command:name>Send-OfficePdfPrinter</command:name>
       <command:verb>Send</command:verb>
-      <command:noun>OfficePrinter</command:noun>
+      <command:noun>OfficePdfPrinter</command:noun>
       <maml:description>
-        <maml:para>Prints a document of any format OfficeIMO converts to PDF on an explicitly named printer queue or IPP printer. Requires PowerShell 7.4 or newer.</maml:para>
+        <maml:para>Prepares PDF sheets and submits them to an explicitly named printer. Requires PowerShell 7.4 or newer.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>PDF files are printed directly; other documents are converted to PDF in memory first, and conversion warnings are written as warnings. Send-OfficePdfPrinter remains an alias of this command. PrinterName accepts an installed queue name or an ipp:// or ipps:// printer URI.</maml:para>
-      <maml:para>Without PaperSize, sheets use the printer's default media. The returned receipt proves queue acceptance, not physical delivery. Follow it with Get-OfficePrintJob, and check the queue after an interrupted submission before retrying.</maml:para>
+      <maml:para>The returned receipt proves queue acceptance. It does not prove physical delivery. Check the queue after an interrupted submission before retrying.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="Path">
-        <maml:name>Send-OfficePrinter</maml:name>
+        <maml:name>Send-OfficePdfPrinter</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Copies</maml:name>
           <maml:description>
@@ -171536,7 +172794,7 @@ document through the writer.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Dpi</maml:name>
           <maml:description>
-            <maml:para>Highest resolution used when sheets are rasterized for delivery.</maml:para>
+            <maml:para>Prepared sheet resolution.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
           <dev:type>
@@ -171564,18 +172822,6 @@ document through the writer.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Grayscale</maml:name>
-          <maml:description>
-            <maml:para>Print in grayscale, exactly as the sheets are previewed, regardless of the device's color support.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Margin</maml:name>
           <maml:description>
             <maml:para>Printable margin in points.</maml:para>
@@ -171590,7 +172836,7 @@ document through the writer.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Orientation</maml:name>
           <maml:description>
-            <maml:para>Paper orientation. When omitted, each sheet takes the orientation that places its pages largest, so two-up and six-up sheets of portrait pages print in landscape.</maml:para>
+            <maml:para>Paper orientation.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficePageOrientation</command:parameterValue>
           <command:parameterValueGroup>
@@ -171603,7 +172849,7 @@ document through the writer.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="OutputFilePath">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>OutputPath</maml:name>
           <maml:description>
             <maml:para>New destination file for a Windows file printer.</maml:para>
@@ -171615,7 +172861,7 @@ document through the writer.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Pages">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Page</maml:name>
           <maml:description>
             <maml:para>Page selection such as 1-3,last.</maml:para>
@@ -171630,15 +172876,13 @@ document through the writer.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PagesPerSheet</maml:name>
           <maml:description>
-            <maml:para>Source pages per sheet, in row-major order.</maml:para>
+            <maml:para>Source pages per sheet.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">1</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">2</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">4</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">6</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">9</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>Int32</maml:name>
@@ -171647,26 +172891,9 @@ document through the writer.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>PageSubset</maml:name>
-          <maml:description>
-            <maml:para>Keep all selected pages, or only odd or even original page numbers.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">All</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Odd</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Even</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PaperSize</maml:name>
           <maml:description>
-            <maml:para>Paper size. Defaults to the printer's default media, or A4 when the printer reports none.</maml:para>
+            <maml:para>PDF paper size, default A4.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficePageSize</command:parameterValue>
           <dev:type>
@@ -171678,7 +172905,7 @@ document through the writer.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PaperSourceId</maml:name>
           <maml:description>
-            <maml:para>Paper source identifier reported by Get-OfficePrinterCapability.</maml:para>
+            <maml:para>Paper source identifier reported for this queue.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -171702,7 +172929,7 @@ document through the writer.</maml:para>
         <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="False" position="0" aliases="none">
           <maml:name>Path</maml:name>
           <maml:description>
-            <maml:para>Local document to print: PDF or any format OfficeIMO converts to PDF.</maml:para>
+            <maml:para>Local PDF source.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
           <dev:type>
@@ -171714,7 +172941,7 @@ document through the writer.</maml:para>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PrinterName</maml:name>
           <maml:description>
-            <maml:para>Installed queue from Get-OfficePrinter, or an ipp:// or ipps:// printer URI.</maml:para>
+            <maml:para>Installed queue from Get-OfficePrinter.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -171742,7 +172969,7 @@ document through the writer.</maml:para>
         </command:parameter>
       </command:syntaxItem>
       <command:syntaxItem parameterSetName="LiteralPath">
-        <maml:name>Send-OfficePrinter</maml:name>
+        <maml:name>Send-OfficePdfPrinter</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Copies</maml:name>
           <maml:description>
@@ -171758,7 +172985,7 @@ document through the writer.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Dpi</maml:name>
           <maml:description>
-            <maml:para>Highest resolution used when sheets are rasterized for delivery.</maml:para>
+            <maml:para>Prepared sheet resolution.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
           <dev:type>
@@ -171785,22 +173012,10 @@ document through the writer.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Grayscale</maml:name>
-          <maml:description>
-            <maml:para>Print in grayscale, exactly as the sheets are previewed, regardless of the device's color support.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
         <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="FullName,PSPath">
           <maml:name>LiteralPath</maml:name>
           <maml:description>
-            <maml:para>Literal document paths, including FileInfo.FullName.</maml:para>
+            <maml:para>Literal PDF sources, including FileInfo.FullName.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
           <dev:type>
@@ -171824,7 +173039,7 @@ document through the writer.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Orientation</maml:name>
           <maml:description>
-            <maml:para>Paper orientation. When omitted, each sheet takes the orientation that places its pages largest, so two-up and six-up sheets of portrait pages print in landscape.</maml:para>
+            <maml:para>Paper orientation.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficePageOrientation</command:parameterValue>
           <command:parameterValueGroup>
@@ -171837,7 +173052,7 @@ document through the writer.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="OutputFilePath">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>OutputPath</maml:name>
           <maml:description>
             <maml:para>New destination file for a Windows file printer.</maml:para>
@@ -171849,7 +173064,7 @@ document through the writer.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Pages">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Page</maml:name>
           <maml:description>
             <maml:para>Page selection such as 1-3,last.</maml:para>
@@ -171864,15 +173079,13 @@ document through the writer.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PagesPerSheet</maml:name>
           <maml:description>
-            <maml:para>Source pages per sheet, in row-major order.</maml:para>
+            <maml:para>Source pages per sheet.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">1</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">2</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">4</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">6</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">9</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>Int32</maml:name>
@@ -171881,26 +173094,9 @@ document through the writer.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>PageSubset</maml:name>
-          <maml:description>
-            <maml:para>Keep all selected pages, or only odd or even original page numbers.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">All</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Odd</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Even</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PaperSize</maml:name>
           <maml:description>
-            <maml:para>Paper size. Defaults to the printer's default media, or A4 when the printer reports none.</maml:para>
+            <maml:para>PDF paper size, default A4.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficePageSize</command:parameterValue>
           <dev:type>
@@ -171912,7 +173108,7 @@ document through the writer.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PaperSourceId</maml:name>
           <maml:description>
-            <maml:para>Paper source identifier reported by Get-OfficePrinterCapability.</maml:para>
+            <maml:para>Paper source identifier reported for this queue.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -171936,7 +173132,7 @@ document through the writer.</maml:para>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PrinterName</maml:name>
           <maml:description>
-            <maml:para>Installed queue from Get-OfficePrinter, or an ipp:// or ipps:// printer URI.</maml:para>
+            <maml:para>Installed queue from Get-OfficePrinter.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -171980,7 +173176,7 @@ document through the writer.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>Dpi</maml:name>
         <maml:description>
-          <maml:para>Highest resolution used when sheets are rasterized for delivery.</maml:para>
+          <maml:para>Prepared sheet resolution.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
         <dev:type>
@@ -172007,22 +173203,10 @@ document through the writer.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>Grayscale</maml:name>
-        <maml:description>
-          <maml:para>Print in grayscale, exactly as the sheets are previewed, regardless of the device's color support.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
       <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="FullName,PSPath">
         <maml:name>LiteralPath</maml:name>
         <maml:description>
-          <maml:para>Literal document paths, including FileInfo.FullName.</maml:para>
+          <maml:para>Literal PDF sources, including FileInfo.FullName.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
         <dev:type>
@@ -172046,7 +173230,7 @@ document through the writer.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>Orientation</maml:name>
         <maml:description>
-          <maml:para>Paper orientation. When omitted, each sheet takes the orientation that places its pages largest, so two-up and six-up sheets of portrait pages print in landscape.</maml:para>
+          <maml:para>Paper orientation.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">OfficePageOrientation</command:parameterValue>
         <command:parameterValueGroup>
@@ -172059,7 +173243,7 @@ document through the writer.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="OutputFilePath">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>OutputPath</maml:name>
         <maml:description>
           <maml:para>New destination file for a Windows file printer.</maml:para>
@@ -172071,7 +173255,7 @@ document through the writer.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Pages">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>Page</maml:name>
         <maml:description>
           <maml:para>Page selection such as 1-3,last.</maml:para>
@@ -172086,15 +173270,13 @@ document through the writer.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>PagesPerSheet</maml:name>
         <maml:description>
-          <maml:para>Source pages per sheet, in row-major order.</maml:para>
+          <maml:para>Source pages per sheet.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">1</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">2</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">4</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">6</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">9</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
           <maml:name>Int32</maml:name>
@@ -172103,26 +173285,9 @@ document through the writer.</maml:para>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>PageSubset</maml:name>
-        <maml:description>
-          <maml:para>Keep all selected pages, or only odd or even original page numbers.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <command:parameterValueGroup>
-          <command:parameterValue required="false" variableLength="false">All</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Odd</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Even</command:parameterValue>
-        </command:parameterValueGroup>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>PaperSize</maml:name>
         <maml:description>
-          <maml:para>Paper size. Defaults to the printer's default media, or A4 when the printer reports none.</maml:para>
+          <maml:para>PDF paper size, default A4.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">OfficePageSize</command:parameterValue>
         <dev:type>
@@ -172134,7 +173299,7 @@ document through the writer.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>PaperSourceId</maml:name>
         <maml:description>
-          <maml:para>Paper source identifier reported by Get-OfficePrinterCapability.</maml:para>
+          <maml:para>Paper source identifier reported for this queue.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -172158,7 +173323,7 @@ document through the writer.</maml:para>
       <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="False" position="0" aliases="none">
         <maml:name>Path</maml:name>
         <maml:description>
-          <maml:para>Local document to print: PDF or any format OfficeIMO converts to PDF.</maml:para>
+          <maml:para>Local PDF source.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
         <dev:type>
@@ -172170,7 +173335,7 @@ document through the writer.</maml:para>
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>PrinterName</maml:name>
         <maml:description>
-          <maml:para>Installed queue from Get-OfficePrinter, or an ipp:// or ipps:// printer URI.</maml:para>
+          <maml:para>Installed queue from Get-OfficePrinter.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -172222,27 +173387,7 @@ document through the writer.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>Send-OfficePrinter -Path .\Report.pdf -PrinterName 'Office printer' -Page '1-3' -PagesPerSheet 2 -Duplex LongEdge</dev:code>
-        <dev:remarks>
-          <maml:para></maml:para>
-        </dev:remarks>
-      </command:example>
-      <command:example>
-        <maml:title>Print a Word document to an IPP printer and wait for it to finish.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>Send-OfficePrinter -Path .\Letter.docx -PrinterName 'ipp://printer.local/ipp/print' | Get-OfficePrintJob -Wait</dev:code>
-        <dev:remarks>
-          <maml:para></maml:para>
-        </dev:remarks>
-      </command:example>
-      <command:example>
-        <maml:title>Print odd pages four to a sheet in grayscale.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>Send-OfficePrinter -Path .\Report.pdf -PrinterName 'Office printer' -PageSubset Odd -PagesPerSheet 4 -Grayscale</dev:code>
+        <dev:code>Send-OfficePdfPrinter -Path .\Report.pdf -PrinterName 'Office printer' -Page '1-3' -PagesPerSheet 2 -Duplex LongEdge</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -201782,106 +202927,6 @@ signature and preservation policies. Only the selected files are written; other 
       <command:example>
         <maml:title>Keep nested sections inside their chapter.</maml:title>
         <dev:code>Split-OfficeDocument -LiteralPath './Manual [final].pdf' -OutputDirectory ./Chapters -ByBookmark</dev:code>
-        <dev:remarks>
-          <maml:para></maml:para>
-        </dev:remarks>
-      </command:example>
-    </command:examples>
-    <command:relatedLinks />
-  </command:command>
-  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
-    <command:details>
-      <command:name>Stop-OfficePrintJob</command:name>
-      <command:verb>Stop</command:verb>
-      <command:noun>OfficePrintJob</command:noun>
-      <maml:description>
-        <maml:para>Cancels a print job submitted with Send-OfficePrinter and returns its state afterwards. Requires PowerShell 7.4 or newer.</maml:para>
-      </maml:description>
-    </command:details>
-    <maml:description>
-      <maml:para>A job that has already finished is reported unchanged. Pages the printer has already received may still print.</maml:para>
-    </maml:description>
-    <command:syntax>
-      <command:syntaxItem parameterSetName="Default">
-        <maml:name>Stop-OfficePrintJob</maml:name>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="1" aliases="none">
-          <maml:name>JobId</maml:name>
-          <maml:description>
-            <maml:para>The job identifier from the receipt.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="0" aliases="none">
-          <maml:name>PrinterName</maml:name>
-          <maml:description>
-            <maml:para>The printer queue name or IPP URI from the receipt.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-    </command:syntax>
-    <command:parameters>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="1" aliases="none">
-        <maml:name>JobId</maml:name>
-        <maml:description>
-          <maml:para>The job identifier from the receipt.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="0" aliases="none">
-        <maml:name>PrinterName</maml:name>
-        <maml:description>
-          <maml:para>The printer queue name or IPP URI from the receipt.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-    </command:parameters>
-    <command:inputTypes>
-      <command:inputType>
-        <dev:type>
-          <maml:name>System.String</maml:name>
-        </dev:type>
-      </command:inputType>
-    </command:inputTypes>
-    <command:returnValues>
-      <command:returnValue>
-        <dev:type>
-          <maml:name>OfficeIMO.Workflows.PdfPrintJobStatus</maml:name>
-        </dev:type>
-      </command:returnValue>
-    </command:returnValues>
-    <maml:alertSet>
-      <maml:alert>
-        <maml:para></maml:para>
-      </maml:alert>
-    </maml:alertSet>
-    <command:examples>
-      <command:example>
-        <maml:title>Cancel a submitted job.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>Send-OfficePrinter -Path .\Report.pdf -PrinterName 'Office printer' | Stop-OfficePrintJob</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>

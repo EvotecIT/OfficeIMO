@@ -1,3 +1,4 @@
+using System.Text.Json;
 using OfficeIMO.Pdf;
 using OfficeIMO.Tool.Commands.Workflow;
 using OfficeIMO.Workflows;
@@ -64,20 +65,24 @@ public sealed class WorkflowCommandTests {
         Assert.Equal((int)OfficeImoToolExitCode.Usage, result.ExitCode);
     }
     [Fact]
-    public async Task ExportPagesPublishesSelectedValidatedImages() {
+    public async Task ExportPagesPublishesSelectedValidatedImagesAndReportsThemAsJson() {
         using var scope = new TestDirectory();
         string input = Path.Combine(scope.Path, "source.pdf");
         string output = Path.Combine(scope.Path, "pages");
         CreatePdf(input, 3);
 
         ToolResult result = await RunAsync([
-            "workflow", "export-pages", input, "--output", output, "--pages", "3,1", "--format", "png"
+            "workflow", "export-pages", input, "--output", output, "--pages", "3,1", "--image-format", "png"
         ]);
 
         Assert.Equal((int)OfficeImoToolExitCode.Success, result.ExitCode);
-        Assert.True(Directory.Exists(output));
         Assert.Equal(2, Directory.GetFiles(output, "*.png").Length);
-        Assert.Contains("2 page image(s)", result.Output, StringComparison.Ordinal);
+        using JsonDocument json = JsonDocument.Parse(result.Output);
+        Assert.Equal("officeimo.workflow.export-pages.v1", json.RootElement.GetProperty("schema").GetString());
+        Assert.True(json.RootElement.GetProperty("succeeded").GetBoolean());
+        JsonElement[] files = json.RootElement.GetProperty("files").EnumerateArray().ToArray();
+        Assert.Equal([3, 1], files.Select(static file => file.GetProperty("pageNumber").GetInt32()));
+        Assert.All(files, static file => Assert.True(File.Exists(file.GetProperty("path").GetString())));
         Assert.DoesNotContain("failed", result.Error, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -93,6 +98,11 @@ public sealed class WorkflowCommandTests {
         ToolResult initial = await RunAsync(["workflow", "assemble", first, second, "--output", output]);
         Assert.Equal((int)OfficeImoToolExitCode.Success, initial.ExitCode);
         Assert.Equal(3, PdfReadDocument.Open(File.ReadAllBytes(output)).Pages.Count);
+        using (JsonDocument json = JsonDocument.Parse(initial.Output)) {
+            Assert.Equal("officeimo.workflow.assemble.v1", json.RootElement.GetProperty("schema").GetString());
+            Assert.Equal(output, json.RootElement.GetProperty("outputPath").GetString());
+            Assert.Equal(3, json.RootElement.GetProperty("pageCount").GetInt32());
+        }
 
         ToolResult refused = await RunAsync(["workflow", "assemble", second, "--output", output]);
         Assert.Equal((int)OfficeImoToolExitCode.OutputFailed, refused.ExitCode);
@@ -117,9 +127,14 @@ public sealed class WorkflowCommandTests {
         ]);
 
         Assert.Equal((int)OfficeImoToolExitCode.Success, result.ExitCode);
-        Assert.Contains("Selected pages: 4,2,1", result.Output, StringComparison.Ordinal);
-        Assert.Contains("Sheets: 2", result.Output, StringComparison.Ordinal);
-        Assert.Contains("Sheet 1: 792 x 612 pt; pages 4,2", result.Output, StringComparison.Ordinal);
+        using JsonDocument json = JsonDocument.Parse(result.Output);
+        JsonElement plan = json.RootElement;
+        Assert.Equal("officeimo.workflow.print-plan.v1", plan.GetProperty("schema").GetString());
+        Assert.Equal([4, 2, 1], plan.GetProperty("selectedPages").EnumerateArray().Select(static page => page.GetInt32()));
+        Assert.Equal(2, plan.GetProperty("sheetCount").GetInt32());
+        JsonElement firstSheet = plan.GetProperty("sheets")[0];
+        Assert.Equal((792D, 612D), (firstSheet.GetProperty("paperWidth").GetDouble(), firstSheet.GetProperty("paperHeight").GetDouble()));
+        Assert.Equal([4, 2], firstSheet.GetProperty("placements").EnumerateArray().Select(static placement => placement.GetProperty("pageNumber").GetInt32()));
         Assert.Equal(string.Empty, result.Error);
     }
 
@@ -131,7 +146,8 @@ public sealed class WorkflowCommandTests {
         int exit = await WorkflowCommand.RunAsync([
             "print-plan", "source.pdf", "--pages", "9,8,7,6,5,4,3,2,1", "--pages-per-sheet", "6",
             "--scale", "custom", "--custom-scale", "25", "--alignment", "bottom-right", "--page-subset", "odd",
-            "--margin", "12", "--margin-left", "20", "--margin-top", "30", "--margin-right", "40", "--margin-bottom", "50", "--color", "grayscale"
+            "--margin", "12", "--margin-left", "20", "--margin-top", "30", "--margin-right", "40", "--margin-bottom", "50", "--color", "grayscale",
+            "--format", "text"
         ], output, error, CancellationToken.None, printPlanner: (request, token) => {
             captured = request;
             PdfDocument document = PdfDocument.Create(c => { for (int i = 0; i < 9; i++) c.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(120)).Margin(global::OfficeIMO.OfficeLength.Points(0))); });
@@ -149,13 +165,15 @@ public sealed class WorkflowCommandTests {
         Assert.Empty(error.ToString());
     }
 
-    [Fact]
-    public async Task InvalidWorkflowOptionsReturnSharedUsageCode() {
-        ToolResult result = await RunAsync(["workflow", "assemble", "source.pdf", "--format", "png", "--output", "result.pdf"]);
+    [Theory]
+    [InlineData("assemble", "--image-format", "png", "--image-format is not valid with assemble")]
+    [InlineData("export-pages", "--format", "webp", "Use --image-format webp")]
+    public async Task InvalidWorkflowOptionsReturnSharedUsageCode(string command, string option, string value, string expected) {
+        ToolResult result = await RunAsync(["workflow", command, "source.pdf", option, value, "--output", "result"]);
 
         Assert.Equal((int)OfficeImoToolExitCode.Usage, result.ExitCode);
-        Assert.Contains("--format is not valid with assemble", result.Error, StringComparison.Ordinal);
-        Assert.Contains("officeimo workflow assemble", result.Error, StringComparison.Ordinal);
+        Assert.Contains(expected, result.Error, StringComparison.Ordinal);
+        Assert.Contains("officeimo workflow " + command, result.Error, StringComparison.Ordinal);
     }
 
     [Fact]
