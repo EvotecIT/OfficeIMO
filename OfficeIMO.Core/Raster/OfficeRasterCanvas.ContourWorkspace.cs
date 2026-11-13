@@ -74,6 +74,13 @@ public sealed partial class OfficeRasterCanvas {
             _scanlines[count++] = (weight, start, length);
         }
 
+        internal double[] Intervals { get; private set; } = Array.Empty<double>();
+
+        internal double[] ReserveIntervals(int count) {
+            if (Intervals.Length < count * 2) Intervals = Grow(Intervals, Intervals.Length, checked(count * 2));
+            return Intervals;
+        }
+
         internal int[] RentClipWindings(int count) {
             if (_clipWindings.Length < count) _clipWindings = new int[count];
             return _clipWindings;
@@ -92,6 +99,7 @@ public sealed partial class OfficeRasterCanvas {
             _rowBoundaries = Release(_rowBoundaries);
             _rowCrossings = Release(_rowCrossings);
             _scanlines = Release(_scanlines);
+            Intervals = Release(Intervals);
         }
 
         private static T[] Grow<T>(T[] source, int count, int required) {

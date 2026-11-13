@@ -20,7 +20,7 @@ public sealed partial class OfficeRasterCanvas {
             double x = crossings[index].X;
             if (outside == 0 && x > previous) AccumulateInterval(Math.Max(left, previous), Math.Min(right + 1D, x), left, weight, coverage);
             do {
-                ContourEdge edge = edges[crossings[index++].Edge];
+                ref readonly ContourEdge edge = ref edges[crossings[index++].Edge];
                 int group = edge.Group;
                 bool nonzero = sources[group].Rule == OfficeFillRule.NonZero;
                 bool wasInside = nonzero ? windings[group] != 0 : (windings[group] & 1) != 0;
