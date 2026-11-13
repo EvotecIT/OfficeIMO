@@ -29,4 +29,19 @@ internal static class MarkdownGenericAttributeSourceSpans {
         markdownObject != null && _spans.TryGetValue(markdownObject, out var holder)
             ? holder.SourceSpan
             : null;
+
+    // A parse without a syntax tree has no span to record, but a code block still has to know
+    // that its attributes came from a standalone attribute line.
+    private static readonly ConditionalWeakTable<MarkdownObject, object> _standaloneWithoutSpan = new();
+    private static readonly object StandaloneMarker = new();
+
+    internal static void MarkStandaloneWithoutSpan(MarkdownObject? markdownObject) {
+        if (markdownObject != null) {
+            _standaloneWithoutSpan.GetValue(markdownObject, static _ => StandaloneMarker);
+        }
+    }
+
+    internal static bool HasStandaloneSource(MarkdownObject? markdownObject) =>
+        GetSourceSpan(markdownObject).HasValue
+        || (markdownObject != null && _standaloneWithoutSpan.TryGetValue(markdownObject, out _));
 }

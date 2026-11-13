@@ -56,6 +56,8 @@ public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPla
         HtmlRelSourceSpan = htmlRelSourceSpan;
     }
 
+    internal bool ParsedAsAutolinkWithoutSyntaxTree { get; set; }
+
     internal string RenderMarkdown() {
         string? autolinkMarkdown = TryRenderAutolinkMarkdown();
         if (autolinkMarkdown != null) {
@@ -74,7 +76,7 @@ public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPla
             return null;
         }
 
-        if (!MarkdownInlineMetadataSourceSpans.GetLinkTargetSpan(this).HasValue) {
+        if (!MarkdownInlineMetadataSourceSpans.GetLinkTargetSpan(this).HasValue && !ParsedAsAutolinkWithoutSyntaxTree) {
             return null;
         }
 

@@ -120,6 +120,10 @@ internal static partial class MarkdownReader {
             MarkdownGenericAttributeSourceSpans.Set(target, pending.SourceText, pending.SourceSpan);
         }
 
+        if (!state.CaptureSyntaxTree && !pending.SourceSpan.HasValue && !string.IsNullOrEmpty(pending.SourceText)) {
+            MarkdownGenericAttributeSourceSpans.MarkStandaloneWithoutSpan(target);
+        }
+
         captureStartLine = (pending.SourceSpan?.StartLine ?? blockStartLine + 1) - 1;
         state.PendingGenericAttributeBlock = null;
         return true;

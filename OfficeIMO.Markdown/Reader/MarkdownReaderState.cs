@@ -85,6 +85,11 @@ public sealed class MarkdownAbbreviationDefinition {
     /// <summary>Whether the definition was authored as leading content inside a list item.</summary>
     public bool IsListItemDefinition { get; }
 
+    // Zero-based source line and its text, kept without a syntax tree so a semantic parse orders
+    // and writes parse-owned definitions as the source-backed parse does.
+    internal int SourceLineIndex { get; set; } = -1;
+    internal string? SourceLineText { get; set; }
+
     /// <summary>Creates an abbreviation definition descriptor.</summary>
     public MarkdownAbbreviationDefinition(
         string label,

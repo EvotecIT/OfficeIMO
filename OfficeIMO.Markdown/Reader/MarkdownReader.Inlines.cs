@@ -169,7 +169,10 @@ internal static partial class MarkdownReader {
             int targetStart,
             int targetLength,
             bool angleWrapped) {
-            var link = new LinkInline(label, resolvedHref, null);
+            var link = new LinkInline(label, resolvedHref, null) {
+                // Without spans the writer still needs to know this link was written as an autolink.
+                ParsedAsAutolinkWithoutSyntaxTree = !captureSyntaxMetadata
+            };
             AddRawNode(link, start, length);
             MarkdownInlineMetadataSourceSpans.SetLinkParts(
                 link,

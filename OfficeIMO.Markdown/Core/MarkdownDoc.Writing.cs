@@ -21,7 +21,7 @@ public partial class MarkdownDocument {
             sb.AppendLine(renderedFrontMatter);
             sb.AppendLine();
         }
-        if (AppendParseOwnedAbbreviationDefinitions(sb, _parseResult, options) && blocks.Count > 0) sb.AppendLine();
+        if (AppendParseOwnedAbbreviationDefinitions(sb, _parseResult, ParseOwnedAbbreviationDefinitions, options) && blocks.Count > 0) sb.AppendLine();
         for (int i = 0; i < blocks.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             string rendered = MarkdownBlockRenderDispatcher.RenderMarkdown(blocks[i], context);

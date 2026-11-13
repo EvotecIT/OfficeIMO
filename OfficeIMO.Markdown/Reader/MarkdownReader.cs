@@ -73,6 +73,7 @@ internal static partial class MarkdownReader {
             lineOffset: 0,
             transformDiagnostics: null);
         MarkdownObjectTreeBinder.BindDocument(document);
+        document.AttachSemanticAbbreviationDefinitions(SnapshotAbbreviationDefinitions(state));
         return document;
     }
 

@@ -157,7 +157,7 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
     }
 
     private bool ShouldRenderStandaloneGenericAttributes() =>
-        !Attributes.IsEmpty && MarkdownGenericAttributeSourceSpans.GetSourceSpan(this).HasValue;
+        !Attributes.IsEmpty && MarkdownGenericAttributeSourceSpans.HasStandaloneSource(this);
 
     private MarkdownAttributeSet GetStandaloneRenderedAttributes() {
         if (!ShouldRenderStandaloneGenericAttributes()) {

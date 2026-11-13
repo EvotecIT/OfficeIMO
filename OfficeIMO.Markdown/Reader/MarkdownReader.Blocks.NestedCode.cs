@@ -97,6 +97,9 @@ internal static partial class MarkdownReader {
         if (!attributeSet.IsEmpty && block is MarkdownObject markdownObject && markdownObject.Attributes.IsEmpty) {
             markdownObject.SetAttributes(attributeSet);
             MarkdownGenericAttributeSourceSpans.Set(markdownObject, attributeSourceText, attributeSourceSpan);
+            if (!state.CaptureSyntaxTree && !attributeSourceSpan.HasValue && !string.IsNullOrEmpty(attributeSourceText)) {
+                MarkdownGenericAttributeSourceSpans.MarkStandaloneWithoutSpan(markdownObject);
+            }
         }
 
         index = j;
