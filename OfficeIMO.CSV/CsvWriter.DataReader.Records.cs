@@ -273,7 +273,7 @@ internal static partial class CsvWriter
             }
 
             Span<TChar> destination = free.Slice(position);
-            if (!quotesExpected && text.Length < Vector128<ushort>.Count && TryCopyPlainText(text, destination, out _))
+            if (!quotesExpected && text.Length <= ShortTextLength && TryCopyPlainText(text, destination, out _))
             {
                 position += text.Length;
                 return;
@@ -514,7 +514,7 @@ internal static partial class CsvWriter
         return true;
     }
 
-    private const int ShortTextLength = 16;
+    internal const int ShortTextLength = 16;
 
     /// <summary>Bit c is set for the characters below 64 that make text after a comma need quotes.</summary>
     private const ulong CommaQuoteMask = (1UL << ',') | (1UL << '"') | (1UL << '\r') | (1UL << '\n');
