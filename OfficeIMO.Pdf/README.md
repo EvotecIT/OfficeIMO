@@ -132,6 +132,8 @@ File.WriteAllBytes("Service-review-page-1.png", preview.Bytes!);
 ```
 <!-- /powerforge:code -->
 
+Pages with a supported destination ICC output profile and explicit transparency are composited before relative-colorimetric soft proofing. Their per-page reports include `render.colorspace.icc-output-intent-post-composition` as supported. SVG embeds the proofed raster surface; text extraction and the retained drawing scene keep their text and geometry. Other color-profile and transparency limitations remain diagnostic-driven; see the [producer corpus](../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Rendering/OutputIntent/SOURCE.md) for the qualified cases.
+
 ## More
 
 - [PDF guide](../Docs/officeimo.pdf-guide.md): every workflow with examples, from page layout and fonts to signatures, redaction, PDF/A and deployment.

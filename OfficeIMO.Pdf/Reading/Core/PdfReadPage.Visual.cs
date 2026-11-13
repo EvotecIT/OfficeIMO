@@ -183,6 +183,10 @@ public sealed partial class PdfReadPage {
         // Restore exact glyph aliases even when the page has no annotation appearances.
         ApplyPaintedGlyphMappings(drawing, registeredFonts, paintedGlyphMaps);
 
+        if (GetOutputIntentCompositionInteraction(cancellationToken) &&
+            _outputIntentColorTransform?.CreatePostCompositionTransform() is IOfficePostCompositionColorTransform proof)
+            drawing.SetPostCompositionColorTransform(proof);
+
         reportScaleDependence?.Invoke(pageContentBudget.UsesFunctionShadingScale);
         return drawing;
     }

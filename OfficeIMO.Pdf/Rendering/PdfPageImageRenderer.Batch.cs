@@ -180,15 +180,17 @@ internal static partial class PdfPageImageRenderer {
                     options.TextShapingLanguage,
                     cancellationToken);
             } else {
+                if (drawing.PostCompositionColorTransform != null)
+                    drawing = PdfImageExportEngine.AddBackground(drawing, options.Background);
                 try {
                     bytes = OfficeDrawingSvgExporter.ToSvgBytes(
                         drawing,
                         scale,
                         OfficeSvgSizeUnit.Point,
-                        imageCodec: null,
+                        imageCodec: options.ImageCodec,
                         resourceIdPrefix: null,
                         maximumUtf8Bytes: options.MaxOutputBytesPerPage,
-                        cancellationToken: cancellationToken);
+                        cancellationToken: cancellationToken, maximumRasterPixels: options.MaxPixelsPerPage);
                 } catch (OfficeImageExportBatchLimitException exception) {
                     throw PdfReadLimitException.Create(
                         PdfReadLimitKind.RenderBytes,
