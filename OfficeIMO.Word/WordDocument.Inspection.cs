@@ -184,7 +184,7 @@ namespace OfficeIMO.Word {
                 ListLevel = paragraph.ListItemLevel,
                 ListMarker = hasListMarker ? listMarker.Marker : null,
                 ListIndex = hasListMarker && listMarker.Info.Ordered ? listMarker.Index : null,
-                ListStyleName = paragraph.ListStyle?.ToString(),
+                ListStyleName = expansionContext.ListStyleNameFor(paragraph),
                 Alignment = NormalizeOpenXmlEnumValue(paragraph._paragraphProperties?.Justification?.Val),
                 IndentStart = paragraph.IndentationBefore,
                 IndentEnd = paragraph.IndentationAfter,
