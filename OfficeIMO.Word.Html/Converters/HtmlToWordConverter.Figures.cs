@@ -15,8 +15,7 @@ namespace OfficeIMO.Word.Html {
             WordHeaderFooter? headerFooter,
             WordList? headingList) {
             WordParagraph? figureParagraph = currentParagraph;
-            int paragraphStartIndex = GetGeneratedParagraphStartIndex(section, cell, headerFooter);
-            int tableStartIndex = GetTablesInScope(section, cell, headerFooter).Count;
+            ScopeMark scopeMark = MarkScope(section, cell, headerFooter);
             var materialChildren = element.ChildNodes
                 .Where(child => child is IElement || !string.IsNullOrWhiteSpace(child.TextContent))
                 .ToList();
@@ -35,26 +34,24 @@ namespace OfficeIMO.Word.Html {
                     continue;
                 }
 
-                int startIndex = GetParagraphsInScope(section, cell, headerFooter).Count;
+                ScopeMark? childMark = figureParagraph == null
+                    ? MarkScope(section, cell, headerFooter, replaceableCellParagraphIsGenerated: false, includeTables: false)
+                    : null;
                 ProcessNode(child, doc, section, options, figureParagraph, listStack, formatting, cell, headerFooter, headingList);
-                if (figureParagraph == null) {
-                    var paragraphs = GetParagraphsInScope(section, cell, headerFooter);
-                    if (paragraphs.Count > startIndex) {
-                        figureParagraph = paragraphs[paragraphs.Count - 1];
-                    }
+                if (childMark.HasValue) {
+                    figureParagraph = GetLastGeneratedParagraph(section, cell, headerFooter, childMark.Value);
                 }
             }
 
             if (captionParagraph != null && !singleContentIsImage) {
-                List<WordTable> generatedTables = GetGeneratedTables(section, cell, headerFooter, tableStartIndex);
-                List<WordParagraph> generatedParagraphs = GetGeneratedParagraphs(section, cell, headerFooter, paragraphStartIndex);
+                List<WordTable> generatedTables = GetGeneratedTables(section, cell, headerFooter, scopeMark);
+                List<WordParagraph> generatedParagraphs = GetGeneratedParagraphs(section, cell, headerFooter, scopeMark);
                 generatedParagraphs.RemoveAll(paragraph =>
                     ReferenceEquals(paragraph._paragraph, captionParagraph._paragraph) ||
                     IsGeneratedNestedTableTrailingAnchor(paragraph, generatedTables));
                 if (currentParagraph != null && contentBlocks > 0 &&
                     !generatedParagraphs.Any(paragraph => ReferenceEquals(paragraph._paragraph, currentParagraph._paragraph)) &&
-                    GetParagraphsInScope(section, cell, headerFooter)
-                        .Any(paragraph => ReferenceEquals(paragraph._paragraph, currentParagraph._paragraph))) {
+                    IsParagraphInScope(section, cell, headerFooter, scopeMark, currentParagraph)) {
                     generatedParagraphs.Add(currentParagraph);
                 }
 
