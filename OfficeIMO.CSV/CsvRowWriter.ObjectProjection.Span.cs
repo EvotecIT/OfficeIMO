@@ -25,9 +25,15 @@ public sealed partial class CsvRowWriter
             return;
         }
         if (ordinal > 0) _propertyCharacters[_propertyCharacterCount++] = _delimiter;
-        if (text != null)
-            _propertyCharacterCount += CsvWriter.WriteEscapedDefault(
-                _propertyCharacters.AsSpan(_propertyCharacterCount), text, _delimiter);
+        if (text == null) return;
+        // Projected rows are comma-separated; the room checked above holds every escaped form of the text.
+        Span<char> destination = _propertyCharacters.AsSpan(_propertyCharacterCount);
+        if (CsvWriter.TryCopyPlainText(text, destination, out _))
+            _propertyCharacterCount += text.Length;
+        else if (text.Length <= CsvWriter.EscapedShortTextLength && CsvWriter.TryWriteEscapedShortText(text, destination, out int written))
+            _propertyCharacterCount += written;
+        else
+            _propertyCharacterCount += CsvWriter.WriteEscapedDefault(destination, text, _delimiter);
     }
 
     /// <summary>Formats a known invariant scalar directly into the staged row's available space.</summary>

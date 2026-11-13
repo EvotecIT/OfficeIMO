@@ -1,7 +1,7 @@
 param(
     # Lane names; a comma-separated list also works from pwsh -File.
     [string[]] $Lane = @('Xlsx65K', 'Xlsb65K', 'ExcelGenerated', 'ExcelWriters', 'XLBenchReadAll', 'XLBenchSheets',
-        'CsvPackageAssets', 'CsvSpacesQuotes', 'Csv65K', 'CsvGenerated', 'CsvWrite', 'CsvWriteModern', 'CsvPackageAssetsModern', 'Csv65KModern'),
+        'CsvPackageAssets', 'CsvSpacesQuotes', 'Csv65K', 'CsvGenerated', 'CsvWrite', 'CsvWriteModern', 'CsvPackageAssetsModern', 'Csv65KModern', 'Csv65KInterned'),
     [string] $OutputRoot,
     [string] $FixtureRoot,
     [string] $XLBenchRoot = $env:OFFICEIMO_XLBENCH_ROOT,
@@ -51,6 +51,8 @@ $lanes = [ordered]@{
     CsvWriteModern = @{ Project = 'CSV.Modern'; Filters = @('*.CsvWriteModernBenchmarks.*') }
     CsvPackageAssetsModern = @{ Project = 'CSV.Modern'; Filters = @('*.PackageAssetsModernCsvBenchmarks.*') }
     Csv65KModern = @{ Project = 'CSV.Modern'; Filters = @('*.MarkPflug65KModernCsvBenchmarks.*') }
+    # OfficeIMO's string reuse option runs in its own process, apart from the library comparison.
+    Csv65KInterned = @{ Project = 'CSV.Modern'; Filters = @('*.MarkPflug65KInternedCsvBenchmarks.*') }
 }
 
 # EPPlus 8 refuses to run without a license declaration; the run includes it only when the caller made one.

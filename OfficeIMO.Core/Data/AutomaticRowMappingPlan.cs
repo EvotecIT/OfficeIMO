@@ -154,6 +154,13 @@ internal sealed partial class AutomaticRowMappingPlan<
         }
     }
 
+    private bool HasIncompatibleReaderValue(in RowReaderQualification qualification) {
+        if (qualification.RowQualification is not null) {
+            return !qualification.RowQualification.CanUseNonNullTypedGetters(qualification.RowQualificationState!);
+        }
+        return HasIncompatibleReaderValue(qualification.Reader, qualification.Compatibility);
+    }
+
     private bool HasIncompatibleReaderValue(DbDataReader reader, IDataReaderTypedMappingCompatibility? compatibility) {
         // MapReaderRow already requires the fast-value contract. Native readers can
         // prove conversion and presence together without a second virtual null probe.
@@ -187,10 +194,15 @@ internal sealed partial class AutomaticRowMappingPlan<
     /// </summary>
     internal RowReaderQualification Qualify(
         DbDataReader rowReader,
-        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter) =>
-        new(rowReader,
-            typeConverter is null && _fastReaderMap is not null && rowReader is IDataReaderFastMappingValues,
-            rowReader as IDataReaderTypedMappingCompatibility);
+        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter) {
+        bool usesFastMap = typeConverter is null && _fastReaderMap is not null && rowReader is IDataReaderFastMappingValues;
+        var compatibility = rowReader as IDataReaderTypedMappingCompatibility;
+        if (usesFastMap && compatibility is IDataReaderTypedRowQualification rowQualification) {
+            object? state = rowQualification.PrepareNonNullTypedRowQualification(_qualificationOrdinals, _qualificationTypes);
+            if (state is not null) return new(rowReader, usesFastMap, compatibility, rowQualification, state);
+        }
+        return new(rowReader, usesFastMap, compatibility, null, null);
+    }
 
     /// <summary>
     /// Maps the current row. Qualification and typed getters run on the row reader that owns the
@@ -203,8 +215,7 @@ internal sealed partial class AutomaticRowMappingPlan<
         IReadOnlyList<string>? dateTimeFormats,
         Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
         DataMappingErrorValuePolicy errorValuePolicy) {
-        if (qualification.UsesFastMap &&
-            !HasIncompatibleReaderValue(qualification.Reader, qualification.Compatibility)) {
+        if (qualification.UsesFastMap && !HasIncompatibleReaderValue(qualification)) {
             try {
                 return _fastReaderMap!(qualification.Reader);
             } catch (TypedReaderValueException) {
@@ -216,15 +227,20 @@ internal sealed partial class AutomaticRowMappingPlan<
 
     internal readonly struct RowReaderQualification {
         internal RowReaderQualification(DbDataReader reader, bool usesFastMap,
-            IDataReaderTypedMappingCompatibility? compatibility) {
+            IDataReaderTypedMappingCompatibility? compatibility,
+            IDataReaderTypedRowQualification? rowQualification, object? rowQualificationState) {
             Reader = reader;
             UsesFastMap = usesFastMap;
             Compatibility = compatibility;
+            RowQualification = rowQualification;
+            RowQualificationState = rowQualificationState;
         }
 
         internal DbDataReader Reader { get; }
         internal bool UsesFastMap { get; }
         internal IDataReaderTypedMappingCompatibility? Compatibility { get; }
+        internal IDataReaderTypedRowQualification? RowQualification { get; }
+        internal object? RowQualificationState { get; }
     }
 
     internal Func<DbDataReader, T>? GetFastReaderMap(
@@ -589,28 +605,25 @@ internal sealed partial class AutomaticRowMappingPlan<
             ParameterExpression reader = Expression.Parameter(typeof(DbDataReader), "reader");
             ParameterExpression instance = Expression.Variable(typeof(T), "instance");
             var values = new ParameterExpression[bindings.Length];
-            var body = new List<Expression>((bindings.Length * 2) + 2);
+            var body = new List<Expression>(bindings.Length + 3);
+            var reads = new Expression[bindings.Length + 1];
 
             for (int index = 0; index < bindings.Length; index++) {
                 MappingBinding binding = bindings[index];
                 ParameterExpression value = Expression.Variable(binding.Property.ValueType, $"value{index}");
                 values[index] = value;
-                BinaryExpression readValue = Expression.Assign(
+                reads[index] = Expression.Assign(
                     value,
                     Expression.Call(reader, getters[index], Expression.Constant(binding.ColumnIndex)));
-                NewExpression fallbackException = Expression.New(typeof(TypedReaderValueException));
-                body.Add(Expression.TryCatch(
-                    readValue,
-                    Expression.Catch(
-                        typeof(InvalidCastException),
-                        Expression.Throw(fallbackException, binding.Property.ValueType)),
-                    Expression.Catch(
-                        typeof(FormatException),
-                        Expression.Throw(fallbackException, binding.Property.ValueType)),
-                    Expression.Catch(
-                        typeof(OverflowException),
-                        Expression.Throw(fallbackException, binding.Property.ValueType))));
             }
+            // One protected region reads every column; any conversion failure takes the reflection path.
+            reads[bindings.Length] = Expression.Empty();
+            NewExpression fallbackException = Expression.New(typeof(TypedReaderValueException));
+            body.Add(Expression.TryCatch(
+                Expression.Block(reads),
+                Expression.Catch(typeof(InvalidCastException), Expression.Throw(fallbackException)),
+                Expression.Catch(typeof(FormatException), Expression.Throw(fallbackException)),
+                Expression.Catch(typeof(OverflowException), Expression.Throw(fallbackException))));
 
             if (constructor is null) {
                 body.Add(Expression.Assign(instance, Expression.New(typeof(T))));
