@@ -47,7 +47,7 @@ public sealed partial class PdfReadPage {
         var budget = new PageContentBudget(this, cancellationToken);
         var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         if (ContentUsesOptionalContent(
-                GetContentStreamContent(budget),
+                GetContentStreamSequence(budget).Source,
                 resources,
                 activeStreams,
                 budget,
@@ -109,7 +109,7 @@ public sealed partial class PdfReadPage {
     }
 
     private bool ContentUsesOptionalContent(
-        string content,
+        PdfContentSource content,
         PdfDictionary? resources,
         HashSet<PdfStream> activeStreams,
         PageContentBudget budget,

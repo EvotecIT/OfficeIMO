@@ -1794,6 +1794,18 @@ public sealed partial class PdfReadPage {
         return prefix + content + " Q";
     }
 
+    // The bytes of WrapContentWithTransform for decoded page content, without a Latin-1 copy of the page.
+    private static PdfContentSource WrapContentBytesWithTransform(PdfContentSource content, Matrix2D transform, out int contentOffset) {
+        string prefix = FormatTransformPrefix(transform);
+        const string Suffix = " Q";
+        contentOffset = prefix.Length;
+        var wrapped = new byte[checked(prefix.Length + content.Length + Suffix.Length)];
+        for (int index = 0; index < prefix.Length; index++) wrapped[index] = (byte)prefix[index];
+        Buffer.BlockCopy(content.Bytes!, 0, wrapped, prefix.Length, content.Length);
+        for (int index = 0; index < Suffix.Length; index++) wrapped[prefix.Length + content.Length + index] = (byte)Suffix[index];
+        return PdfContentSource.FromBytes(wrapped);
+    }
+
     private static string FormatTransformPrefix(Matrix2D transform) => string.Format(
         System.Globalization.CultureInfo.InvariantCulture,
         "q {0} {1} {2} {3} {4} {5} cm ",
@@ -2453,17 +2465,20 @@ public sealed partial class PdfReadPage {
     /// Same text as <see cref="WrapContentWithTransform(string, Matrix2D, out int)"/>. While decoded content is
     /// reused, visual passes that wrap the same page content in the same transform share one copy.
     /// </summary>
-    private string WrapReusedContentWithTransform(string content, Matrix2D transform, out int contentOffset) {
+    private PdfContentSource WrapReusedContentWithTransform(PdfContentSource content, Matrix2D transform, out int contentOffset) {
+        object key = (object?)content.Text ?? content.Bytes!;
         lock (_decodedContentReuseSync) {
             if (_decodedContentReuseDepth > 0 && _reusableWrappedContent is { } reused &&
-                ReferenceEquals(reused.Content, content) && SameBits(reused.Transform, transform)) {
+                ReferenceEquals(reused.Content, key) && SameBits(reused.Transform, transform)) {
                 contentOffset = reused.Offset;
                 return reused.Wrapped;
             }
         }
-        string wrapped = WrapContentWithTransform(content, transform, out contentOffset);
+        PdfContentSource wrapped = content.Text is string text
+            ? WrapContentWithTransform(text, transform, out contentOffset)
+            : WrapContentBytesWithTransform(content, transform, out contentOffset);
         lock (_decodedContentReuseSync) {
-            if (_decodedContentReuseDepth > 0) _reusableWrappedContent = (content, transform, contentOffset, wrapped);
+            if (_decodedContentReuseDepth > 0) _reusableWrappedContent = (key, transform, contentOffset, wrapped);
         }
         return wrapped;
 
@@ -2476,7 +2491,7 @@ public sealed partial class PdfReadPage {
             BitConverter.DoubleToInt64Bits(left.F) == BitConverter.DoubleToInt64Bits(right.F);
     }
 
-    private (string Content, Matrix2D Transform, int Offset, string Wrapped)? _reusableWrappedContent;
+    private (object Content, Matrix2D Transform, int Offset, PdfContentSource Wrapped)? _reusableWrappedContent;
 
     private readonly object _decodedContentReuseSync = new();
     private int _decodedContentReuseDepth;

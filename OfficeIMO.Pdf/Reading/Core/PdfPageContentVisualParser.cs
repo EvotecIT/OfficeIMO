@@ -25,7 +25,7 @@ internal static partial class PdfPageContentVisualParser {
     }
 
     public static IReadOnlyList<PdfPageVisualPrimitive> Parse(
-        string content,
+        PdfContentSource content,
         double pageWidth,
         double pageHeight,
         IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates,
@@ -72,7 +72,7 @@ internal static partial class PdfPageContentVisualParser {
         Action? operationCheck = null,
         double? initialMiterLimit = null,
         Action<int>? strokeDashProjectionConsumer = null) {
-        if (string.IsNullOrEmpty(content)) {
+        if (content.IsNullOrEmpty) {
             return Array.Empty<PdfPageVisualPrimitive>();
         }
 
@@ -215,7 +215,7 @@ internal static partial class PdfPageContentVisualParser {
     }
 
     private sealed partial class Parser {
-        private readonly string _content;
+        private readonly PdfContentSource _content;
         private readonly double _pageWidth;
         private readonly double _pageHeight;
         private readonly IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? _graphicsStates;
@@ -283,7 +283,7 @@ internal static partial class PdfPageContentVisualParser {
         private PdfPaintColorSelection? _strokeColorSelection;
 
         public Parser(
-            string content,
+            PdfContentSource content,
             double pageWidth,
             double pageHeight,
             IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates,
