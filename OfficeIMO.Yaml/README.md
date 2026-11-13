@@ -197,7 +197,7 @@ Serialization reads from `YamlReader` and writes to `YamlWriter` directly, witho
 
   The discriminator is a local tag (`- !http {path: /health}`). With `[OfficePolymorphic(DiscriminatorPropertyName = "kind")]` it is written as the first key instead, and reading finds it anywhere in the mapping, as Kubernetes files place `kind` after `apiVersion`.
 
-`[OfficePropertyName]` sets a key and wins over the naming policy. The policies are `CamelCase`, `SnakeCaseLower` and `KebabCaseLower`. `[OfficeIgnore]` leaves a property out. Its `Condition`, or `YamlSerializerOptions.DefaultIgnoreCondition`, skips only null or default values when writing.
+`[OfficePropertyName]` sets a key and wins over the naming policy. The policies are `CamelCase`, `SnakeCaseLower` and `KebabCaseLower`. `[OfficeIgnore]` leaves a property out. Its `Condition`, or `YamlSerializerOptions.DefaultIgnoreCondition`, skips only null or default values when writing. These attributes, `OfficeNamingPolicy` and `OfficeIgnoreCondition` are in the `OfficeIMO` namespace (`OfficeIMO.Core`), and `TomlSerializer` in `OfficeIMO.Toml` reads the same ones, so one model maps to both formats.
 
 ### Anchors, aliases and merge keys
 

@@ -235,7 +235,8 @@ a: 3`: PyYAML 6.0.3, go-yaml v2.4.0 and the YamlDotNet 18 deserializer return `a
   - Overloads without metadata carry `RequiresUnreferencedCode`/`RequiresDynamicCode`. Overloads with `YamlTypeInfo<T>` or a `YamlSerializerContext` use none.
 - **One converter engine, two metadata sources.**
   - The source generator emits calls to `YamlMetadataServices`: creators, constructor parameters, property getters and setters as delegates, and derived-type registrations.
-  - Reflection metadata builds the same values through the same methods. Both apply one set of shape rules: `YamlTypeShapes` at run time, mirrored by the generator's parser. So both write the same YAML, which the round-trip tests check.
+  - Reflection metadata builds the same values through the same methods. Both apply one set of shape rules: `SerializerTypeShapes` at run time, mirrored by the generator's parser. So both write the same YAML, which the round-trip tests check.
+  - The shape rules, the generator's parser and emitter, the mapping attributes, `OfficeNamingPolicy` and `OfficeIgnoreCondition` are shared with `TomlSerializer`: the attributes live in `OfficeIMO.Core`, and the rest is shared source compiled into each engine and generator, so one model maps to both formats.
 - **Generator packaging**:
   - The generator ships inside `OfficeIMO.Yaml` (`analyzers/dotnet/cs`), as `System.Text.Json`'s does, so its version cannot drift from the runtime.
   - `buildTransitive/OfficeIMO.Yaml.targets` turns reflection off for `PublishAot` and `PublishTrimmed` applications through the `OfficeIMO.Yaml.YamlSerializer.IsReflectionEnabledByDefault` switch (a `FeatureSwitchDefinition` on .NET 9+).
@@ -282,7 +283,7 @@ Exceeding a limit throws `YamlLimitExceededException` with the limit's name and 
 
 | Package | Depends on | Owns |
 |---|---|---|
-| `OfficeIMO.Yaml` | `OfficeIMO.Core` (diagnostics, shared IO) | Scanner, reader, writer, model, schemas, serializer, generator (built from `OfficeIMO.Yaml.SourceGeneration`, packed as an analyzer) |
+| `OfficeIMO.Yaml` | `OfficeIMO.Core` (diagnostics, shared IO, serializer attributes) | Scanner, reader, writer, model, schemas, serializer, generator (built from `OfficeIMO.Yaml.SourceGeneration`, packed as an analyzer) |
 | `OfficeIMO.Reader.Yaml` | `OfficeIMO.Reader.Core`, `OfficeIMO.Yaml` | Chunking and Markdown projection only |
 | `OfficeIMO.Markdown` | `OfficeIMO.Core`, `OfficeIMO.Yaml` | Front matter parsed and written through `YamlDocument` |
 

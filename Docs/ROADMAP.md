@@ -862,7 +862,6 @@ Acceptance: every adopted baseline criterion has decisive evidence, no validated
 `OfficeIMO.Toml` reads, edits and writes TOML 1.1 losslessly and passes the whole toml-test 1.1.0 suite; `OfficeIMO.Reader.Toml` ingests TOML files. The [TOML engine design](officeimo.toml-engine-design.md) owns the architecture. Open work:
 
 - [ ] Markdown `+++` front matter: read and write Hugo-style TOML front matter in `OfficeIMO.Markdown` through `TomlDocument`, on the same `FrontMatterBlock` shape as YAML front matter on `OfficeIMO.Yaml`, with the same lossless save and invalid-input diagnostics.
-- [ ] `TomlSerializer`: object mapping with a source generator for trimming and NativeAOT, following `YamlSerializer`'s design, so both formats share attributes, naming policies and options.
 - [ ] Stream and `TextReader` input for `TomlReader` with a pooled sliding buffer, as `YamlReader` has, for very large lock files.
 - [ ] PSWriteOffice document commands on the same API (`New-`/`Open-`/`Save-OfficeToml`, `Get-`/`Set-`/`Remove-OfficeTomlNode -Select`), following the YAML command set.
 - [ ] An opt-in large corpus run over thousands of pinned real-world TOML files (crates.io manifests, PyPI `pyproject.toml`, lock files, Hugo sites), checking parse, byte-exact round-trip and scripted edits, plus a mutation run for hostile input.
