@@ -585,9 +585,11 @@ internal static partial class PdfTextDiagnostics {
     }
 
     private static List<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, PdfOpenTypeFontInfo? info, string source, int indexOffset, OfficeTextFeatureSettings? featureSettings = null) {
-        var diagnostics = new List<PdfTextShapingDiagnostic>(AnalyzeAdvancedTextLayoutCore(text, source, indexOffset));
+        // The core list is created for this call, so it is extended in place rather than copied.
+        List<PdfTextShapingDiagnostic> diagnostics = AnalyzeAdvancedTextLayoutCore(text, source, indexOffset);
         if (info == null) return diagnostics;
-        var reportedCodes = new HashSet<string>(diagnostics.Select(diagnostic => diagnostic.Code), StringComparer.Ordinal);
+        var reportedCodes = new HashSet<string>(StringComparer.Ordinal);
+        foreach (PdfTextShapingDiagnostic diagnostic in diagnostics) reportedCodes.Add(diagnostic.Code);
         AddFontLayoutDiagnostics(text, info, diagnostics, reportedCodes, source, indexOffset, featureSettings);
         return diagnostics;
     }
