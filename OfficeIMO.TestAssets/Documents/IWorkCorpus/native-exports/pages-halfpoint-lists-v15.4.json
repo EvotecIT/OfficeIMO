@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "profile": "Pages half-point decimal list authoring and saved DOCX markers",
+  "license": "MIT; newly authored OfficeIMO fixtures and derived evidence",
+  "application": {
+    "name": "Pages",
+    "version": "15.4",
+    "build": "7051.0.79"
+  },
+  "host": {
+    "os": "macOS 27.0.1 (26A434)",
+    "architecture": "arm64"
+  },
+  "candidateBase": "b9eb04cf04bd475322553a476e6ff8c2f26b7b5d",
+  "regeneration": "IWorkPagesHalfPointListTests.Example().ToBytes()",
+  "artifacts": [
+    {
+      "path": "pages-halfpoint-created.pages",
+      "bytes": 22775,
+      "sha256": "a30f564462800e0e009b070455ebc734981bb57764c88d65c7db31cf83719998"
+    },
+    {
+      "path": "pages-halfpoint-saved-v15.4.pages",
+      "bytes": 100026,
+      "sha256": "489a9681ba3c108319a4eeb3e1748c59bc47ab7c48b86e18aef6be59bf94f0d8"
+    },
+    {
+      "path": "pages-halfpoint-saved-v15.4.pdf",
+      "bytes": 64182,
+      "sha256": "f8eecb7a302e39ee177c3ce97e4148b6974a1974c6682c4124ad17c6a6c8a09b"
+    },
+    {
+      "path": "pages-halfpoint-created-officeimo.docx",
+      "bytes": 14625,
+      "sha256": "39a6c989e20921f786143fe233230e3b17453f797a7592e4cbf6bb3c753e1cb3"
+    },
+    {
+      "path": "pages-halfpoint-officeimo-docx-v15.4.pdf",
+      "bytes": 64394,
+      "sha256": "a3f0b5d807223fff557dc5a5ed5d67b7e336aa3978070d9a2ecfecc2bdf39d22"
+    }
+  ],
+  "nativeProcedure": [
+    "Open a copy of the generated Pages input using the normal Pages file chooser; no repair dialog appeared. The original input remains unchanged.",
+    "Export a PDF, save as the native-saved fixture, close, reopen that fixture and export its PDF.",
+    "Open the exact created-officeimo.docx public conversion in Pages, inspect the one-page list and export its PDF. Close all task-owned documents and Pages."
+  ],
+  "acceptance": {
+    "numberedItems": 19,
+    "levels": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "forms": [
+      "1.",
+      "(1)",
+      "1)"
+    ],
+    "paragraphSizePoints": 11.5,
+    "runSizeRangePoints": [
+      8.5,
+      24.5
+    ],
+    "nativeSavedSourceStylesAndCountersVerified": true,
+    "strictPublicSavedReopenedDocx": true,
+    "nativeSavedAndReceivingDocxAllPagesInspected": true,
+    "nativeSessionClosed": true
+  },
+  "independentDecoder": {
+    "provider": "numbers-parser",
+    "providerVersion": "4.19.0",
+    "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176",
+    "command": "python Build/IWork/extract-pages-list-profile.py <fixture.pages> --descriptor <pinned-descriptor.pb> --out <declarations.json>",
+    "scope": "Selected character/paragraph/list declarations retain the authored half-point sizes, marker families, levels and counters; DOCX XML retains half-point marker/run sizes and 17.25-point hanging indent."
+  },
+  "nativePdfComparison": {
+    "provider": "Poppler pdftotext -bbox; pdftoppm -scale-to 1200 -singlefile -png",
+    "wordBounds": 121,
+    "maximumDeltaPoints": 0.0,
+    "tolerancePoints": 0.01,
+    "comparison": "Initial native Pages export, saved/reopened Pages export, and receiving OfficeIMO DOCX export have identical word sequences and bounds.",
+    "rasterSha256": "0b0fa32ddbe0a47c5b99a723afed4e7945ce8e54628f7b5d9c9cd7a6f826dc37",
+    "rasterSize": [
+      928,
+      1200
+    ],
+    "rasterComparison": "Saved/reopened Pages and receiving DOCX raster bytes are identical."
+  },
+  "fonts": [
+    {
+      "file": "Arial.ttf",
+      "sha256": "525979822591a3447cfc49d943d6f7683508e25543407871c0ed8fed05fd2bd9"
+    },
+    {
+      "file": "Times New Roman.ttf",
+      "sha256": "f3b4ffff71c2a0c7227d37497683b2498fb2d0a4e8beae26f022e3ccfcaabfa3"
+    },
+    {
+      "file": "Courier New.ttf",
+      "sha256": "c886ca3172d8ce9189976992d145ec090500a4ff516ecb9d4df56b1a78336247"
+    }
+  ],
+  "limits": [
+    "One generated body-list cohort and its Pages 15.4 save, on macOS arm64. Other producers, application versions and architectures are not qualified by this reference.",
+    "Pages shows a missing-font notice on DOCX import; no font settings were changed. The exported PDF embeds ArialMT, TimesNewRomanPS and CourierNewPS faces and matches the native reference in this environment.",
+    "Native rich-run editing, composed OfficeIMO PDF rendering, font substitution on other machines, quarter-point sizes, bullets, tiered numbering and additional containers retain separate gates.",
+    "Complete editable reconstruction refers to selected content; captured native records retain IWORK_RECORD_FIDELITY_UNASSESSED.",
+    "Pages accessibility ordinals differ from painted counters; native PDF and the inspected rendering supply counter evidence."
+  ]
+}
