@@ -7,8 +7,8 @@ using OfficeIMO.Word.Markdown;
 namespace OfficeIMO.Word.Benchmarks;
 
 /// <summary>
-/// Measures Markdown-to-Word and Word-to-Markdown conversion at two document sizes, so
-/// time and allocation growth between the sizes shows whether either direction scales linearly.
+/// Measures Markdown-to-Word, Word-to-Markdown and chunked Word-to-Markdown conversion at two
+/// document sizes, so time and allocation growth between the sizes shows whether each scales linearly.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory("Word", "Markdown")]
@@ -41,6 +41,17 @@ public class WordMarkdownConversionBenchmarks {
     [Benchmark]
     public int WordToMarkdown() => ConvertWordToMarkdown().Length;
 
+    [Benchmark]
+    public int WordToMarkdownChunks() {
+        using var stream = new MemoryStream(_document, writable: false);
+        using WordDocument document = WordDocument.Load(stream);
+        int length = 0;
+        foreach (WordMarkdownChunk chunk in document.ExtractMarkdownChunks()) {
+            length += chunk.Text.Length;
+        }
+        return length;
+    }
+
     private byte[] ConvertMarkdownToWord() {
         using WordDocument document = MarkdownDocument.Parse(_markdown).ToWord();
         return document.ToBytes();
@@ -67,6 +78,20 @@ public class WordMarkdownConversionBenchmarks {
         }
         EnsureEqual("Markdown headings", SectionCount, headings);
         EnsureEqual("Markdown table rows", SectionCount, rows);
+
+        string chunks;
+        using (var stream = new MemoryStream(_document, writable: false))
+        using (WordDocument document = WordDocument.Load(stream)) {
+            chunks = string.Join("\n\n", document.ExtractMarkdownChunks().Select(chunk => chunk.Text));
+        }
+        int chunkHeadings = 0;
+        int chunkItems = 0;
+        foreach (string line in chunks.Split('\n')) {
+            if (line.StartsWith("## Section ", StringComparison.Ordinal)) chunkHeadings++;
+            if (line.StartsWith("- First item", StringComparison.Ordinal)) chunkItems++;
+        }
+        EnsureEqual("Markdown chunk headings", SectionCount, chunkHeadings);
+        EnsureEqual("Markdown chunk list items", SectionCount, chunkItems);
     }
 
     private static void EnsureEqual(string what, int expected, int actual) {
