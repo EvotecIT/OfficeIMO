@@ -175,7 +175,7 @@ internal static partial class PdfSyntax {
         var byOffset = new Dictionary<int, PdfDictionary>();
         foreach (var entry in map.Values) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!parsedOffsets.TryGetValue(entry.ObjectNumber, out int offset)) {
+            if (!parsedOffsets.TryGetValue(entry.ObjectNumber, out int offset) || IsUnbuiltWithOtherType(entry, "XRef")) {
                 continue;
             }
 
@@ -333,6 +333,7 @@ internal static partial class PdfSyntax {
             cancellationToken.ThrowIfCancellationRequested();
             if (!parsedOffsets.TryGetValue(entry.ObjectNumber, out int offset) ||
                 offset != xrefStreamOffset ||
+                IsUnbuiltWithOtherType(entry, "XRef") ||
                 entry.Value is not PdfStream stream ||
                 stream.Dictionary.Get<PdfName>("Type")?.Name != "XRef") {
                 continue;

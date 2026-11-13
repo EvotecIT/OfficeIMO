@@ -37,7 +37,7 @@ internal static partial class PdfSyntax {
                 continue;
             }
 
-            if (!map.TryGetValue(id, out var ind)) continue;
+            if (!map.TryGetValue(id, out var ind) || IsUnbuiltWithOtherType(ind, "ObjStm")) continue;
             if (ind.Value is not PdfStream s) continue;
             var type = s.Dictionary.Get<PdfName>("Type")?.Name;
             if (!string.Equals(type, "ObjStm", StringComparison.Ordinal)) continue;

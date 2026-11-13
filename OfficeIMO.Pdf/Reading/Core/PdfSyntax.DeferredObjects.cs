@@ -12,6 +12,40 @@ internal static partial class PdfSyntax {
         ParseTopLevelObject(data, start, length, limits, trackEncodedStringSourceSpans: false, CancellationToken.None)
         ?? throw new InvalidOperationException("A deferred PDF object no longer parses as it did when it was validated.");
 
+    internal static PdfObject ParseDeferredClassicDictionary(byte[] data, int start, int length, PdfReadLimits limits) =>
+        ParseDictionary(new PdfByteContentText(data), start, length, limits, cancellationToken: CancellationToken.None);
+
+    // A top-level indirect object of the input file whose value is a dictionary that the eager load would store
+    // as is: complete syntax, no stream and nothing but whitespace or comments before endobj. The summary spans
+    // the text between << and >>, the same text the eager load passes to ParseDictionary.
+    private static bool TryScanDeferrableClassicDictionary(
+        PdfByteContentText text,
+        int dictionaryStart,
+        int dictionaryEnd,
+        int objectEnd,
+        int bodyEnd,
+        PdfReadLimits limits,
+        DeferredObjectScan scan,
+        out PdfDeferredObjectSummary summary,
+        CancellationToken cancellationToken) {
+        summary = null!;
+        if (IndexOfKeywordCancellable(text, "stream", dictionaryEnd, objectEnd, cancellationToken) >= 0 ||
+            SkipWhitespaceAndComments(text, dictionaryEnd, bodyEnd, cancellationToken) < bodyEnd) return false;
+        int contentStart = dictionaryStart + 2;
+        int contentLength = dictionaryEnd - contentStart;
+        scan.Reset();
+        try {
+            using var tokens = Tokenize(text, contentStart, contentLength, limits, true, cancellationToken);
+            if (!ScanTopLevelDictionary(tokens, limits, scan, cancellationToken)) return false;
+        } catch (Exception exception) when (exception is not OperationCanceledException and not OutOfMemoryException) {
+            // The eager parser reproduces the same failure, or the same limit exception, for this object.
+            return false;
+        }
+
+        summary = scan.CreateSummary(contentStart, contentLength);
+        return true;
+    }
+
     private static bool TryScanDeferrableObject(
         byte[] data,
         int start,
