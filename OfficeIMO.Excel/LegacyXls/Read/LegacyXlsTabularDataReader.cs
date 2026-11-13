@@ -38,8 +38,9 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private readonly int _streamOffsetBase;
         private readonly int _worksheetLimitOffset;
         private int[]? _bufferedRowOffsets;
-        private readonly int _bufferedWorksheetEndOffset;
-        private readonly bool _usedIndexedDiscovery;
+        private int _bufferedWorksheetEndOffset;
+        private bool _usedIndexedDiscovery;
+        private readonly bool _hasHeaderRow;
         private int _position;
         private int _nextRow;
         private int _schemaRowIndex;
@@ -98,6 +99,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                     indexed = false;
                 }
                 if (!indexed) {
+                    _indexedValidatedRowEnd = int.MaxValue;
                     Discover(
                         sheetOffset,
                         bufferedRowOffsets,
@@ -109,6 +111,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                         out headerValues);
                 }
                 _usedIndexedDiscovery = indexed;
+                _hasHeaderRow = hasHeaderRow;
                 _bufferedRowOffsets = bufferedRowOffsets;
                 _bufferedWorksheetEndOffset = bufferedWorksheetEndOffset;
                 _firstColumn = firstColumn;
@@ -124,14 +127,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                     throw new InvalidDataException(
                         $"XLS table column count {fieldCount} exceeds the configured limit of {options.MaxDataReaderColumns}.");
                 }
-                _headers = ExcelHeaderNameHelper.BuildUniqueHeaders(
-                    fieldCount,
-                    ordinal => hasHeaderRow
-                        && headerValues != null
-                        && headerValues.TryGetValue(ordinal + firstColumn, out string? value)
-                            ? value
-                            : null,
-                    options.NormalizeHeaders);
+                _headers = BuildHeaders(fieldCount, firstColumn, hasHeaderRow, headerValues, options);
                 _ordinals = new Dictionary<string, int>(_headers.Length, StringComparer.OrdinalIgnoreCase);
                 for (int index = 0; index < _headers.Length; index++) {
                     _ordinals[_headers[index]] = index;
@@ -153,6 +149,21 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 throw;
             }
         }
+
+        private static string[] BuildHeaders(
+            int fieldCount,
+            int firstColumn,
+            bool hasHeaderRow,
+            Dictionary<int, string?>? headerValues,
+            ExcelReaderOptions options) =>
+            ExcelHeaderNameHelper.BuildUniqueHeaders(
+                fieldCount,
+                ordinal => hasHeaderRow
+                    && headerValues != null
+                    && headerValues.TryGetValue(ordinal + firstColumn, out string? value)
+                        ? value
+                        : null,
+                options.NormalizeHeaders);
 
         public override object this[int ordinal] => GetValue(ordinal);
         public override object this[string name] => GetValue(GetOrdinal(name));
@@ -220,6 +231,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             ushort pendingFormulaStyle = 0;
 
             if (_bufferedBytes != null) {
+                // Indexed blocks are validated one row ahead of the reader, which needs the next row's start.
+                if (currentRow >= _indexedValidatedRowEnd - 1) EnsureIndexedRowsValidated(currentRow + 1);
                 int[] rowOffsets = _bufferedRowOffsets!;
                 int rowStartMarker = rowOffsets[currentRow];
                 if (rowStartMarker == 0) {
