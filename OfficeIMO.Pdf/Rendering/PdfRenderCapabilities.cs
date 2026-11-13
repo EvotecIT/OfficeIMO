@@ -34,7 +34,7 @@ public sealed class PdfRenderCapability {
     public string Message { get; }
 }
 
-/// <summary>A page-specific occurrence of a simplified or unsupported renderer capability.</summary>
+/// <summary>A page-specific rendering decision or fidelity limitation.</summary>
 public sealed class PdfRenderCapabilityDiagnostic {
     internal PdfRenderCapabilityDiagnostic(PdfRenderCapability capability, string? subject = null,
         bool isStandardFontSubstitution = false) {
@@ -140,7 +140,7 @@ internal static class PdfRenderCapabilities {
     internal const string IccColorSpaceId = "render.colorspace.icc";
     internal const string IccOutputIntentId = "render.colorspace.icc-output-intent";
     internal const string UnsupportedIccOutputIntentId = "render.colorspace.icc-output-intent-unsupported";
-    internal const string OutputIntentTransparencyId = "render.colorspace.icc-output-intent-transparency-simplified";
+    internal const string OutputIntentTransparencyId = "render.colorspace.icc-output-intent-post-composition";
     internal const string TilingPatternId = "render.resource.tiling-pattern";
     internal const string BlendModeId = "render.resource.blend-mode";
     internal const string SoftMaskId = "render.resource.soft-mask";
@@ -170,9 +170,9 @@ internal static class PdfRenderCapabilities {
             Entry(AnnotationAppearanceId, "annotation", "Annotations without appearance streams", PdfRenderSupportLevel.Unsupported, "The annotation is skipped because it has no usable appearance stream."),
             Entry("render.colorspace.device", "color", "DeviceGray, DeviceRGB, and DeviceCMYK", PdfRenderSupportLevel.Supported, "Device color spaces are projected to shared Drawing colors."),
             Entry("render.colorspace.calibrated", "color", "CalGray, CalRGB, and Lab color spaces", PdfRenderSupportLevel.Simplified, "Calibrated colors are projected through managed device-color approximations."),
-            Entry(IccOutputIntentId, "color", "ICC destination output intents", PdfRenderSupportLevel.Supported, "Catalog destination profiles with bounded RGB matrix/TRC or RGB/CMYK B2A0/B2A1/B2A2 mBA output transforms are soft-proofed through the shared managed color engine for content without explicit PDF transparency composition."),
+            Entry(IccOutputIntentId, "color", "ICC destination output intents", PdfRenderSupportLevel.Supported, "Catalog destination profiles with bounded RGB matrix/TRC or RGB/CMYK B2A0/B2A1/B2A2 mBA output transforms are soft-proofed through the shared managed color engine; explicit transparency is composed before relative-colorimetric destination soft proofing."),
             Entry(UnsupportedIccOutputIntentId, "color", "Unsupported ICC destination output intent", PdfRenderSupportLevel.Simplified, "The catalog output intent is retained for inspection, but its destination profile is malformed or outside the managed output-transform contract, so page colors are rendered without output-profile soft proofing."),
-            Entry(OutputIntentTransparencyId, "color", "Output intent with explicit PDF transparency", PdfRenderSupportLevel.Simplified, "The page uses blend modes, opacity, soft masks, transparency groups, or image masks. Colors remain in their authored space because output-profile conversion before transparency composition would be inaccurate."),
+            Entry(OutputIntentTransparencyId, "color", "Post-composition output intent with explicit PDF transparency", PdfRenderSupportLevel.Supported, "The page is composited in authored color over its page backdrop, then soft-proofed through the supported destination profile using relative colorimetry. SVG embeds a bounded raster surface. Other transparency limitations retain their own diagnostics."),
             Entry(IccColorSpaceId, "color", "Unsupported ICCBased profile fallback", PdfRenderSupportLevel.Simplified, "ICCBased colors whose embedded profile is unsupported use their declared alternate or component-count device fallback."),
             Entry("render.colorspace.indexed-content", "color", "Indexed content-paint color spaces", PdfRenderSupportLevel.Supported, "Bounded Indexed palettes are projected for path, text, pattern, and nested-form painting."),
             Entry("render.colorspace.indexed-image", "color", "Indexed image color spaces", PdfRenderSupportLevel.Supported, "Indexed image palettes are decoded and projected through shared Drawing images."),

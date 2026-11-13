@@ -8,7 +8,7 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeTransform pixelTransform, double fullWidth, double fullHeight,
         CancellationToken cancellationToken, out int widthPixels, out int heightPixels) {
         widthPixels = 0; heightPixels = 0;
-        if (effect.BlendMode != OfficeBlendMode.Normal || effect.SoftMask != null ||
+        if (layer.Drawing.PostCompositionColorTransform != null || effect.BlendMode != OfficeBlendMode.Normal || effect.SoftMask != null ||
             effect.UnfilteredGeometryBounds.HasValue || effect.IsSvgMarkerPaint || effect.HasCompleteLocalPaintBounds ||
             layer.Left != 0D || layer.ParagraphInk.Count != 0 || layer.Drawing.Elements.Count == 0 ||
             canvas.CoordinateScaleX != 1D || canvas.CoordinateScaleY != 1D ||

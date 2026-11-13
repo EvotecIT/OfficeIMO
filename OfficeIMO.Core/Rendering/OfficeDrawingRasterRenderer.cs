@@ -41,7 +41,9 @@ public static partial class OfficeDrawingRasterRenderer {
             TextShapingProvider = drawing.TextShapingProvider,
             TextShapingLanguage = drawing.TextShapingLanguage
         };
-        viewport.AddDrawingForClippedRendering(drawing, -x / scale, -y / scale, null);
+        viewport.AddDrawingForClippedRendering(drawing.CreateCompositionSource(), -x / scale, -y / scale, null);
+        if (drawing.PostCompositionColorTransform != null)
+            viewport.SetPostCompositionColorTransform(drawing.PostCompositionColorTransform, drawing.PostCompositionBackdrop ?? OfficeColor.White);
         return RenderCore(viewport, options, scale, scale, fonts: drawing.Fonts, pixelWidth: width, pixelHeight: height);
     }
 
@@ -78,7 +80,7 @@ public static partial class OfficeDrawingRasterRenderer {
         // A region gives its exact size; dividing it by the scale and rounding up again could add a pixel.
         int width = plan?.Limit.PixelWidth ?? pixelWidth;
         int height = plan?.Limit.PixelHeight ?? pixelHeight;
-        OfficeRasterImage image = new OfficeRasterImage(width, height, options.Background);
+        OfficeRasterImage image = new OfficeRasterImage(width, height, options.Background ?? drawing.PostCompositionBackdrop);
         OfficeRasterCanvas canvas = new OfficeRasterCanvas(
             image,
             font: null,
@@ -101,6 +103,7 @@ public static partial class OfficeDrawingRasterRenderer {
         canvas.MaximumClipEdgeChecks = options.MaximumClipEdgeChecks;
         RenderElements(canvas, drawing.Elements, scale, imageCodec, options.MaximumRasterPixels, options.CancellationToken);
 
+        ApplyPostCompositionColorTransform(image, drawing.PostCompositionColorTransform, options.CancellationToken);
         return image;
     }
 
@@ -159,6 +162,15 @@ public static partial class OfficeDrawingRasterRenderer {
         if (drawingGroup.ClipPath.Kind == OfficeClipPathKind.Empty) return;
         canvas = canvas.WithDrawingTextProfile(drawingGroup.InnerDrawing);
         using (PushGroupClip(canvas, drawingGroup, scale)) {
+            if (drawingGroup.InnerDrawing.PostCompositionColorTransform != null) {
+                OfficeTransform placement = OfficeTransform.Translate(
+                    drawingGroup.X + drawingGroup.ContentOffsetX, drawingGroup.Y + drawingGroup.ContentOffsetY);
+                if (drawingGroup.FrameTransform.HasValue && drawingGroup.FrameTransform.Value.HasTransform)
+                    placement = placement.Then(drawingGroup.FrameTransform.Value.CreateDestinationTransform());
+                RenderEffectGroup(canvas, new OfficeDrawingEffectGroup(drawingGroup.InnerDrawing, placement),
+                    scale, imageCodec, maximumRasterPixels, cancellationToken);
+                return;
+            }
             var translated = new OfficeDrawing(
                 Math.Max(1D, canvas.Width / scale),
                 Math.Max(1D, canvas.Height / scale));

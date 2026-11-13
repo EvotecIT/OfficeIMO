@@ -10,6 +10,7 @@ public static partial class OfficeDrawingRasterRenderer {
     private static bool TryForwardScaledSourceOverGroup(OfficeRasterCanvas canvas,
         OfficeDrawingEffectGroup effect, EffectTextLayerPlan layer, double scale,
         IOfficeRasterImageCodec? imageCodec, long maximumRasterPixels, CancellationToken cancellationToken) {
+        if (effect.InnerDrawing.PostCompositionColorTransform != null) return false;
         if (TryForwardTranslatedImage(canvas, effect, scale, imageCodec, maximumRasterPixels, cancellationToken)) return true;
         OfficeTransform transform = effect.Transform;
         if (layer.Interpolate || effect.Opacity != 1D || effect.BlendMode != OfficeBlendMode.Normal ||
@@ -65,7 +66,7 @@ public static partial class OfficeDrawingRasterRenderer {
         pending.Push((drawing, 0));
         while (pending.Count != 0) {
             (OfficeDrawing current, int depth) = pending.Pop();
-            if (depth > 64) return false;
+            if (depth > 64 || current.PostCompositionColorTransform != null) return false;
             foreach (OfficeDrawingElement element in current.Elements) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (--remaining < 0) return false;

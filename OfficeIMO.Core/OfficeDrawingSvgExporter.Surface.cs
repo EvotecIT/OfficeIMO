@@ -89,7 +89,7 @@ public static partial class OfficeDrawingSvgExporter {
         int clipPathId = 0;
         var tilingExpansionBudget = new SvgTilingExpansionBudget();
         OfficeRasterCanvas textMetrics = OfficeDrawingTextLayout.CreateMetrics(drawing, cancellationToken);
-        AppendElements(builder, drawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, textMetrics, drawing.SvgTextAsPaths, requiredFontFamilies);
+        AppendDrawingContent(builder, drawing, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, scale, textMetrics, drawing.SvgTextAsPaths, requiredFontFamilies);
         if (drawing.Fonts.Faces.Count > 0) {
             AppendEmbeddedFonts(builder, drawing.Fonts, cancellationToken, idPrefix,
                 requiredFontFamilies);
