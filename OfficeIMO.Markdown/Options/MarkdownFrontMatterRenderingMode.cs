@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// Controls how document front matter is emitted during Markdown serialization.
 /// </summary>
 public enum MarkdownFrontMatterRenderingMode {
-    /// <summary>Preserve YAML front matter fences and entries.</summary>
+    /// <summary>Preserve YAML or TOML front matter with its fences.</summary>
     Preserve,
 
     /// <summary>Omit front matter from the serialized Markdown document.</summary>

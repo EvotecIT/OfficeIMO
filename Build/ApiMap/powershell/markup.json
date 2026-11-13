@@ -11279,6 +11279,482 @@
       ]
     },
     {
+      "name": "New-OfficeToml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Creates a TOML file, optionally from a content block of TOML node commands.",
+      "outputType": "System.IO.FileInfo, OfficeIMO.Toml.TomlDocument",
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Live",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Force",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": false,
+              "position": 0,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "Content",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Force",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "Content",
+              "type": "scriptblock",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Show",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Without a content block it returns a live TomlDocument; -Path is then optional and Save-OfficeToml -Path names the file later. With a block, the file is written atomically when the block ends. Setting a key below a missing table adds its [header] section.",
+      "examples": [
+        {
+          "title": "Write a project file in one block",
+          "description": "Creates a pyproject file with a name and a ruff setting and saves it when the block ends.",
+          "code": "New-OfficeToml -Path .\\Project\\pyproject.toml {\n    Set-OfficeTomlNode -Select 'project.name' -Value 'reporting'\n    Set-OfficeTomlNode -Select 'tool.ruff.line-length' -Value 100\n}"
+        },
+        {
+          "title": "Build a document and name the file later",
+          "description": "Creates a document in memory, sets the title and saves it to the configuration file.",
+          "code": "$doc = New-OfficeToml\nSet-OfficeTomlNode -Document $doc -Select 'title' -Value 'Release notes'\nSave-OfficeToml -Document $doc -Path .\\Site\\config.toml\nClose-OfficeToml -Document $doc"
+        }
+      ]
+    },
+    {
+      "name": "Open-OfficeToml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Opens a TOML file, stream or text as a lossless document; a content block saves the edits.",
+      "outputType": "OfficeIMO.Toml.TomlDocument, System.IO.FileInfo",
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Content",
+              "type": "scriptblock",
+              "mandatory": false,
+              "position": 1,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Show",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Options",
+              "type": "TomlLoadOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Content",
+              "type": "scriptblock",
+              "mandatory": false,
+              "position": 1,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Show",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "LiteralPath",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "byPropertyName",
+              "aliases": [
+                "FullName",
+                "PSPath"
+              ]
+            },
+            {
+              "name": "Options",
+              "type": "TomlLoadOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "Text",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "TomlLoadOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "Stream",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Stream",
+              "type": "Stream",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "TomlLoadOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Saving writes only what changed: comments, blank lines, quoting, key order, alignment, line endings and the spelling of every other value stay byte for byte. -Options takes TomlLoadOptions or a hashtable of MaxDepth, MaxNodes, MaxStringLength and MaxInputBytes; -Untrusted caps the engine limits for files from outside. Malformed input fails with an error ID built from the engine code (toml-Toml.Syntax.*, toml-Toml.Load.*).",
+      "examples": [
+        {
+          "title": "Change one value in place",
+          "description": "Sets the project version; the rest of the file keeps its comments and layout.",
+          "code": "Open-OfficeToml -Path .\\Project\\pyproject.toml {\n    Set-OfficeTomlNode -Select 'project.version' -Value '1.2.0'\n}"
+        },
+        {
+          "title": "Read an uploaded file with untrusted limits",
+          "description": "Opens a crate manifest from outside and reads the package name.",
+          "code": "$doc = Open-OfficeToml -LiteralPath .\\Uploads\\Cargo.toml -Untrusted\n(Get-OfficeTomlNode -Document $doc -Select 'package.name').Value\nClose-OfficeToml -Document $doc"
+        }
+      ]
+    },
+    {
+      "name": "Save-OfficeToml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Saves a TomlDocument to its own file or to a new path, changing only edited text.",
+      "outputType": "System.IO.FileInfo",
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "TomlDocument",
+              "mandatory": true,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": false,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "-Path is optional; without it the document is saved to the file it was opened or created with. Untouched text is copied from the source with its line endings and byte-order mark. -PassThru returns the FileInfo.",
+      "examples": [
+        {
+          "title": "Save a document to its own file",
+          "description": "Writes the edits back to the file the document was opened from.",
+          "code": "Save-OfficeToml -Document $doc"
+        },
+        {
+          "title": "Write an edited copy",
+          "description": "Opens a manifest, bumps the version and saves the result to another folder.",
+          "code": "$doc = Open-OfficeToml -Path .\\Crates\\core\\Cargo.toml\nSet-OfficeTomlNode -Document $doc -Select 'package.version' -Value '0.4.0'\nSave-OfficeToml -Document $doc -Path .\\Publish\\Cargo.toml -PassThru"
+        }
+      ]
+    },
+    {
+      "name": "Close-OfficeToml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Releases a TomlDocument opened without a content block, without saving.",
+      "outputType": "None",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "TomlDocument",
+              "mandatory": true,
+              "pipeline": "byValue"
+            }
+          ]
+        }
+      ],
+      "notes": "Lifecycle parity with every authoring format. TomlDocument holds no file handle, so this only ends the document's lifetime.",
+      "examples": [
+        {
+          "title": "Release a document without saving",
+          "description": "Ends the document; nothing is written.",
+          "code": "Close-OfficeToml -Document $doc"
+        },
+        {
+          "title": "Read a value and discard the document",
+          "description": "Opens a crate manifest, reads the version and closes it without writing.",
+          "code": "$doc = Open-OfficeToml -Path .\\Crates\\core\\Cargo.toml\n(Get-OfficeTomlNode -Document $doc -Select 'package.version').Value\nClose-OfficeToml -Document $doc"
+        }
+      ]
+    },
+    {
+      "name": "Get-OfficeTomlNode",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Gets nodes of a TomlDocument by path, with their values and 1-based positions.",
+      "outputType": "PSCustomObject",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Select",
+              "type": "string[]",
+              "mandatory": false,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "AsHashtable",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Document",
+              "type": "TomlDocument",
+              "mandatory": false,
+              "pipeline": "byValue"
+            }
+          ]
+        }
+      ],
+      "notes": "-Select uses the engine path grammar, shared with YAML: dotted keys, [n] for 0-based array items and tables of an array of tables, and [\"key\"] for keys that are not plain names. Each result has Path, Value (plain PowerShell data as ConvertFrom-OfficeToml returns it), Node (the live node), Line and Column. Without -Select the root table is returned. A path with nothing at it writes a non-terminating toml-node-not-found error.",
+      "examples": [
+        {
+          "title": "Read one value",
+          "description": "Returns the ruff line length of a Python project.",
+          "code": "(Get-OfficeTomlNode -Document $doc -Select 'tool.ruff.line-length').Value"
+        },
+        {
+          "title": "Find where settings live",
+          "description": "Lists the project version and a dotted source key with their lines and columns.",
+          "code": "Get-OfficeTomlNode -Document $doc -Select 'project.version', 'tool.uv.sources[\"my.pkg\"]' |\n    Select-Object -Property Path, Value, Line, Column"
+        }
+      ]
+    },
+    {
+      "name": "Set-OfficeTomlNode",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Sets the value at a path in a TomlDocument, adding missing tables on the way.",
+      "outputType": "PSCustomObject",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Select",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "Value",
+              "type": "object",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Document",
+              "type": "TomlDocument",
+              "mandatory": false,
+              "pipeline": "byValue"
+            }
+          ]
+        }
+      ],
+      "notes": "Setting a value over a value changes only its text, and an equal value keeps its spelling. A new key follows its table's last key in the neighbors' layout; a missing table gets a [header] section. Hashtables and objects become inline tables and arrays become arrays. TOML has no null: $null is an error and nested nulls are omitted with a warning. An array index must already exist. -PassThru returns the node now at the path.",
+      "examples": [
+        {
+          "title": "Bump a version in place",
+          "description": "Sets the package version inside an editing block.",
+          "code": "Open-OfficeToml -Path .\\Crates\\core\\Cargo.toml {\n    Set-OfficeTomlNode -Select 'package.version' -Value '0.4.0'\n}"
+        },
+        {
+          "title": "Add an inline table and replace an array item",
+          "description": "Adds a dependency with features and replaces the first project dependency.",
+          "code": "Set-OfficeTomlNode -Document $doc -Select 'dependencies.serde' -Value ([ordered]@{ version = '1'; features = @('derive') })\nSet-OfficeTomlNode -Document $doc -Select 'project.dependencies[0]' -Value 'httpx>=0.27'"
+        }
+      ]
+    },
+    {
+      "name": "Remove-OfficeTomlNode",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Removes keys, tables or array items from a TomlDocument by path.",
+      "outputType": "None",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Select",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "Document",
+              "type": "TomlDocument",
+              "mandatory": false,
+              "pipeline": "byValue"
+            }
+          ]
+        }
+      ],
+      "notes": "A key goes with its line and the comment lines directly above it; a table goes with all of its sections. Neighbors and their comments stay. A path with nothing at it writes a non-terminating toml-node-not-found error.",
+      "examples": [
+        {
+          "title": "Drop a setting in place",
+          "description": "Removes the ruff ignore list inside an editing block.",
+          "code": "Open-OfficeToml -Path .\\Project\\pyproject.toml {\n    Remove-OfficeTomlNode -Select 'tool.ruff.lint.ignore'\n}"
+        },
+        {
+          "title": "Remove a table when it is there",
+          "description": "Removes the second [[bin]] table and ignores a manifest that has only one.",
+          "code": "Remove-OfficeTomlNode -Document $doc -Select 'bin[1]' -ErrorAction SilentlyContinue"
+        }
+      ]
+    },
+    {
       "name": "ConvertFrom-OfficeToml",
       "alias": null,
       "status": "new",

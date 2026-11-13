@@ -209,6 +209,7 @@ const OfficeIMO.OfficeDiagnosticCodes.YamlMergeAnchorRenamed = "yaml-merge-ancho
 const OfficeIMO.OfficeDiagnosticCodes.YamlMergeKeyNotRemoved = "yaml-merge-key-not-removed" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.YamlMergeKindConflict = "yaml-merge-kind-conflict" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.MarkdownFrontMatterInvalidYaml = "markdown-front-matter-invalid-yaml" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.MarkdownFrontMatterInvalidToml = "markdown-front-matter-invalid-toml" -> string!
 OfficeIMO.OfficeHiddenDataFinding
 OfficeIMO.OfficeHiddenDataFinding.Description.get -> string!
 OfficeIMO.OfficeHiddenDataFinding.Kind.get -> OfficeIMO.OfficeHiddenDataKind

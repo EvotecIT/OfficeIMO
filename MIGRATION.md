@@ -3,7 +3,7 @@
 <!-- officeimo-api-map:begin -->
 ## OfficeIMO and PSWriteOffice 3.6
 
-OfficeIMO 3.6 and PSWriteOffice 3.6 change the public API in both languages and are released together. Nothing keeps a compatibility wrapper, so update scripts and code with the rules and tables below. PSWriteOffice goes from 594 commands and 383 aliases to 494 commands and 176 aliases; every job that worked before still works, usually through fewer commands. The [API design](Docs/officeimo.api-design.md) explains the rules.
+OfficeIMO 3.6 and PSWriteOffice 3.6 change the public API in both languages and are released together. Nothing keeps a compatibility wrapper, so update scripts and code with the rules and tables below. PSWriteOffice goes from 594 commands and 383 aliases to 508 commands and 176 aliases; every job that worked before still works, usually through fewer commands. The [API design](Docs/officeimo.api-design.md) explains the rules.
 
 ### What changed
 
@@ -9945,6 +9945,17 @@ A `data-officeimo-value` error value is written as an error cell only when it is
 - **Removed.** The public parameterless `FrontMatterBlock()` constructor, which created a block that could not be filled, is removed. Use `FrontMatterBlock.FromObject`.
 - **Converters.** The PDF front matter table lists nested mappings as dotted keys, such as `author.name`. Markdown-to-AsciiDoc writes them as hyphen-joined attributes, such as `:author-name:`, and reports the flattening. Invalid front matter is reported and omitted from the attributes.
 - **PowerShell.** `Get-OfficeMarkdownFrontMatter` returns objects with `Key`, `Value`, `Node` and `SourceSpan`. `Value` is a plain .NET value: a string, number or boolean, a dictionary for a mapping, or a list for a sequence. `Node` is the `YamlNode`.
+- **TOML front matter.** A document that starts with a `+++` line and has a later `+++` line now has TOML front matter, read and written through `OfficeIMO.Toml`, instead of starting with paragraph text. `OfficeIMO.Markdown` now also depends on `OfficeIMO.Toml`. `FrontMatterBlock.Format` tells YAML from TOML, `Toml` is the lossless `TomlDocument`, and `Entries`, `Select` and `TryGetValue` read both formats. Invalid TOML is kept as text with a `markdown-front-matter-invalid-toml` error.
+- **Raw text.** `FrontMatterBlock.RawYaml` and `MarkdownNativeFrontMatterBlock.RawYaml` are now `RawText`, and the native snapshot field `rawYaml` is now `rawText`, because they hold TOML as well as YAML.
+
+## Markup front matter on the YAML engine
+
+`OfficeIMO.Markup` reads front matter through `OfficeIMO.Markdown`'s `FrontMatterBlock` instead of splitting `key: value` lines, so nested mappings, lists, quoted and escaped strings, trailing comments and TOML (`+++`) front matter read as they do in Markdown.
+
+- **Values.** `OfficeMarkupDocument.Metadata` is removed. Use `OfficeMarkupDocument.FrontMatter`: replace `document.Metadata["title"]` with `document.FrontMatter?.FindEntry("title")?.Value.AsString()`, or `TryGetValue("title", out string? title)`, and read nested values with `Select("author.name")`. To set values in code, assign `FrontMatter = FrontMatterBlock.FromObject(values)`. Single-quoted and escaped values are decoded, a comment after a value is no longer part of it, and an indented line such as `  name: Ada` under `author:` is the nested `author.name` instead of a top-level `name`.
+- **Diagnostics.** Front matter that is not valid YAML or TOML is now a parse error with its line and column, and the fallback profile applies, instead of being read partly or ignored. Repeated keys are warnings, and the last one wins.
+- **Fences.** The opening `---` must start at column 0, as in Markdown; an indented fence no longer starts front matter.
+- **Command line.** `officeimo markup` keeps the `Metadata` field in its JSON output, holding the top-level scalar values as text; nested values are no longer flattened into it.
 
 ## Excel non-finite numbers
 

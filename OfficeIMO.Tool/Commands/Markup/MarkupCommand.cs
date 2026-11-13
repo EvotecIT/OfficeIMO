@@ -2,11 +2,13 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using OfficeIMO.Markdown;
 using OfficeIMO.Markup;
 using OfficeIMO.Markup.Excel;
 using OfficeIMO.Markup.PowerPoint;
 using OfficeIMO.Markup.Word;
 using OfficeIMO.Excel;
+using OfficeIMO.Yaml;
 
 namespace OfficeIMO.Tool.Commands.Markup;
 
@@ -332,9 +334,20 @@ internal static class MarkupCommand {
         var styleResolver = OfficeMarkupStyleResolver.Create(document);
         return new OfficeMarkupDocumentDto {
             Profile = document.Profile.ToString(),
-            Metadata = new Dictionary<string, string>(document.Metadata, StringComparer.OrdinalIgnoreCase),
+            Metadata = ToMetadataDto(document.FrontMatter),
             Blocks = document.Blocks.Select(block => ToBlockDto(block, styleResolver)).ToList()
         };
+    }
+
+    /// <summary>Top-level front matter scalars as text, which the editor preview reads for its theme; when keys repeat the last wins.</summary>
+    private static Dictionary<string, string> ToMetadataDto(FrontMatterBlock? frontMatter) {
+        var metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (frontMatter == null) return metadata;
+        foreach (FrontMatterBlock.Entry entry in frontMatter.Entries) {
+            if (entry.Value is YamlScalar scalar && !scalar.IsNull) metadata[entry.Key] = scalar.AsString();
+        }
+
+        return metadata;
     }
 
     private static OfficeMarkupBlockDto ToBlockDto(OfficeMarkupBlock block, OfficeMarkupStyleResolver styleResolver) {

@@ -260,8 +260,8 @@ layout:
             var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
             var frontMatter = Assert.IsType<FrontMatterBlock>(parsed.DocumentHeader);
 
-            Assert.NotNull(frontMatter.RawYaml);
-            Assert.Equal(NormalizeMarkdown(expectedRawYaml), NormalizeMarkdown(frontMatter.RawYaml!));
+            Assert.NotNull(frontMatter.RawText);
+            Assert.Equal(NormalizeMarkdown(expectedRawYaml), NormalizeMarkdown(frontMatter.RawText!));
             Assert.Equal(new MarkdownSourceSpan(2, 1, 9, 16), frontMatter.BodySourceSpan);
             Assert.Equal(
                 "---\n" + NormalizeMarkdown(expectedRawYaml) + "\n---",

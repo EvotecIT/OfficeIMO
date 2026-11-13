@@ -135,9 +135,9 @@ $familyDefinitions = @(
         match = { param($name) $name -match 'OfficeYaml' }
     }
     [ordered]@{
-        id = 'toml'; title = 'TOML'; description = 'Read and write TOML configuration and lock files as PowerShell objects.'
-        docs = 'config-data-formats'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Data'
-        samples = @('ConvertFrom-OfficeToml', 'Import-OfficeToml', 'Export-OfficeToml')
+        id = 'toml'; title = 'TOML'; description = 'Edit TOML files without losing comments or layout, and read and write TOML configuration and lock files as PowerShell objects.'
+        docs = 'config-data-formats'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Toml'
+        samples = @('Open-OfficeToml', 'Set-OfficeTomlNode', 'Import-OfficeToml', 'Export-OfficeToml')
         match = { param($name) $name -match 'OfficeToml' }
     }
     [ordered]@{

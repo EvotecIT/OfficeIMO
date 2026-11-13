@@ -212,6 +212,26 @@ document.Save();
 - Front matter that is not valid YAML stays in the document as text. `Yaml` is `null`, and `Diagnostics` holds a `markdown-front-matter-invalid-yaml` error with its Markdown line and column. The rest of the document is still parsed.
 - Front matter is read with `YamlLoadOptions.UntrustedDefaults` limits. Repeated keys are reported in `Diagnostics`, and the last one wins.
 
+### TOML front matter
+
+Front matter between `+++` lines, as Hugo and Zola write it, is read and written by [`OfficeIMO.Toml`](../OfficeIMO.Toml/README.md) on the same `FrontMatterBlock`:
+
+```csharp
+var document = MarkdownDocument.Load("content/post.md");   // starts with +++
+FrontMatterBlock header = document.DocumentHeader!;
+
+string? title = header.FindEntry("title")?.Value.AsString();
+string? author = header.Select("author.name")?.AsString();
+
+header.Toml!.Set("title", "Final title");   // only the title text changes
+document.Save();
+```
+
+- `Format` is `MarkdownFrontMatterFormat.Toml`, and `Toml` is the lossless `TomlDocument`. Unedited front matter is written back byte for byte; edits through `Toml` rewrite only the text they change.
+- `Entries`, `Mapping`, `Select` and `TryGetValue` read TOML values through the same YAML node types as YAML front matter: tables are mappings, arrays and arrays of tables are sequences, and dates keep their TOML spelling. They follow edits made through `Toml`; make edits there.
+- `FrontMatterBlock.FromToml(tomlDocument)` adds TOML front matter built in code: `document.Add(FrontMatterBlock.FromToml(toml))`.
+- Front matter that is not valid TOML stays in the document as text. `Toml` is `null`, and `Diagnostics` holds a `markdown-front-matter-invalid-toml` error with its Markdown line and column. It is read with `TomlLoadOptions.UntrustedDefaults` limits.
+
 ### TeX math
 
 Math is an opt-in reader profile, so dollar signs in ordinary prose keep their meaning by default:
@@ -307,7 +327,7 @@ File.WriteAllText("README.normalized.md", parsed.ToMarkdown());
 ## Dependency footprint
 
 - **External:** None; parsing, syntax, semantic models, and writing are first-party.
-- **OfficeIMO:** `OfficeIMO.Core` and `OfficeIMO.Yaml`, which reads and writes front matter. The AST, parser, builder, transformations, and HTML renderer are first-party.
+- **OfficeIMO:** `OfficeIMO.Core`, plus `OfficeIMO.Yaml` and `OfficeIMO.Toml`, which read and write YAML and TOML front matter. The AST, parser, builder, transformations, and HTML renderer are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
 
