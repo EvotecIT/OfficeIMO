@@ -87,11 +87,21 @@ internal static partial class MarkdownReader {
         char blockFenceChar = '\0';
         int blockFenceLength = 0;
 
+        // Without a source map a reader parse still keeps the spelling of break tags, so a cell
+        // renders the same HTML whether or not the syntax tree is captured.
+        List<(int Offset, string Literal)>? semanticBreakTokens = null;
+
         void AppendMapped(string value, int sourceColumn, MarkdownSourceSpan? tokenSpan = null, string? tokenLiteral = null) {
-            builder.Append(value);
             if (points == null) {
+                if (state != null && tokenLiteral != null) {
+                    (semanticBreakTokens ??= new List<(int Offset, string Literal)>()).Add((builder.Length, tokenLiteral));
+                }
+
+                builder.Append(value);
                 return;
             }
+
+            builder.Append(value);
 
             var point = state!.SourceTextMap!.CreatePoint(absoluteLine, sourceColumn);
             for (int i = 0; i < value.Length; i++) {
@@ -154,7 +164,24 @@ internal static partial class MarkdownReader {
             column++;
         }
 
-        return (builder.ToString(), points == null ? null : new MarkdownInlineSourceMap(points.ToArray(), tokenSpans!.ToArray(), tokenLiterals!.ToArray()));
+        if (points == null) {
+            return (builder.ToString(), CreateSemanticTokenMap(builder.Length, semanticBreakTokens));
+        }
+
+        return (builder.ToString(), new MarkdownInlineSourceMap(points.ToArray(), tokenSpans!.ToArray(), tokenLiterals!.ToArray()));
+    }
+
+    private static MarkdownInlineSourceMap? CreateSemanticTokenMap(int length, List<(int Offset, string Literal)>? tokens) {
+        if (tokens == null || tokens.Count == 0) {
+            return null;
+        }
+
+        var literals = new string?[length];
+        foreach (var (offset, literal) in tokens) {
+            literals[offset] = literal;
+        }
+
+        return new MarkdownInlineSourceMap(Array.Empty<MarkdownSourcePoint?>(), null, literals);
     }
 
 }
