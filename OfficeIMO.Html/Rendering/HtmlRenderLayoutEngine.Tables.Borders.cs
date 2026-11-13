@@ -39,7 +39,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     y + rowOffsets[boundary],
                     columnWidths[segment],
                     border,
-                    source + "-h-" + boundary + "-" + segment,
+                    $"{source}-h-{boundary}-{segment}",
                     shapes);
             }
         }
@@ -58,7 +58,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     y + rowOffsets[segment],
                     rows[segment].Height,
                     border,
-                    source + "-v-" + boundary + "-" + segment,
+                    $"{source}-v-{boundary}-{segment}",
                     shapes);
             }
         }

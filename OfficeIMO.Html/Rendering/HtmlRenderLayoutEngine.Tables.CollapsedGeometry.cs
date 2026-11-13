@@ -3,6 +3,8 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    private const int MaximumPresizedTableEntries = 1 << 16;
+
     /// <summary>Resolves authored border conflicts before measuring cells, retaining full-width winners for paint.</summary>
     private CollapsedTableBorderLayout? ResolveCollapsedTableBorderLayout(
         IElement table,
@@ -12,8 +14,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth,
         int legacyBorderWidth) {
         if (tableStyle.BorderCollapse != "collapse" || rows.Count == 0 || columnCount <= 0) return null;
-        var winners = new Dictionary<CollapsedBorderKey, CollapsedBorderCandidate>();
-        var placements = new Dictionary<TableFormattingCell, CollapsedTableCellPlacement>();
+        // Every grid edge usually gets a winner. Sizing the maps up front avoids rebuilding them as a long
+        // table grows, which for a few hundred rows also put each rebuilt array on the large-object heap.
+        long gridEdges = (long)(rows.Count + 1) * columnCount + (long)rows.Count * (columnCount + 1);
+        var winners = new Dictionary<CollapsedBorderKey, CollapsedBorderCandidate>((int)Math.Min(gridEdges, MaximumPresizedTableEntries));
+        int cellCount = 0;
+        for (int index = 0; index < rows.Count; index++) cellCount += rows[index].Cells.Count;
+        var placements = new Dictionary<TableFormattingCell, CollapsedTableCellPlacement>(Math.Min(cellCount, MaximumPresizedTableEntries));
         int sourceOrder = 0;
         bool rtl = tableStyle.Direction == "rtl";
         AddHorizontalBorderRange(winners, 0, 0, columnCount, tableStyle.Borders.Top, CollapsedBorderOrigin.Table, ref sourceOrder);

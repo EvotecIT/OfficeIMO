@@ -20,17 +20,18 @@ internal static partial class HtmlRenderSystemFontLoader {
             fonts, resources, diagnostics, cancellationToken) ?? Array.Empty<string>();
         if (!options.AllowSystemFontFallback) return;
         bool allowDocumentFamilies = printOptions?.AllowsDocumentSystemFontFamilies == true;
-        var inherited = new Dictionary<IElement, (string Families, OfficeFontFaceDescriptor Descriptor)>();
+        // Every element gets an inherited font and a visibility entry; size those maps once.
+        IElement[] elements = document.QuerySelectorAll("*").ToArray();
+        var inherited = new Dictionary<IElement, (string Families, OfficeFontFaceDescriptor Descriptor)>(elements.Length);
         var attempted = new Dictionary<(string Family, OfficeFontFaceDescriptor Descriptor), bool>();
         var supplied = new HashSet<string>(fonts.Faces.Select(face => face.FamilyName), StringComparer.OrdinalIgnoreCase);
         supplied.UnionWith(configuredDefaults);
         var defaultFamilies = new HashSet<string>(fonts.GetParsedFamilyNames(options.DefaultFontFamily), StringComparer.OrdinalIgnoreCase);
-        var visibility = new Dictionary<IElement, DefaultFontVisibility>();
+        var visibility = new Dictionary<IElement, DefaultFontVisibility>(elements.Length);
         var visibleText = new HashSet<IElement>();
         var defaults = new List<(IElement Element, string Families, OfficeFontFaceDescriptor Descriptor, bool NeedsText, bool DirectText)>();
         var disclosures = new HtmlDisclosureState();
         var counterStyles = new Lazy<HtmlCounterStyleRegistry>(() => HtmlCounterStyleRegistry.Parse(document, options));
-        IElement[] elements = document.QuerySelectorAll("*").ToArray();
         bool limitReported = false;
         foreach (IElement element in elements) {
             cancellationToken.ThrowIfCancellationRequested();
