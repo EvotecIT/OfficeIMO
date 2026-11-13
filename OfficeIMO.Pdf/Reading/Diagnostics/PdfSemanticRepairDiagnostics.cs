@@ -18,8 +18,22 @@ internal static class PdfSemanticRepairDiagnostics {
         }
 
         ValidateNameTrees(objects, catalog, pages, options, diagnostics, cancellationToken);
-        DiagnoseOrphanedSemanticObjects(objects, catalog, diagnostics, cancellationToken);
         return diagnostics.AsReadOnly();
+    }
+
+    /// <summary>
+    /// Reports unreachable semantic objects. This walks every reachable reference and never changes the
+    /// object graph, so a document runs it only when its repair report is read, after the load-time repairs.
+    /// </summary>
+    internal static IReadOnlyList<PdfRepairDiagnostic> AnalyzeOrphanedSemanticObjects(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary? catalog,
+        System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var diagnostics = new List<PdfRepairDiagnostic>();
+        if (catalog is null) return diagnostics;
+        DiagnoseOrphanedSemanticObjects(objects, catalog, diagnostics, cancellationToken);
+        return diagnostics;
     }
 
     private static void RepairPageTree(Dictionary<int, PdfIndirectObject> objects, PdfDictionary root, IReadOnlyList<PdfReadPage> pages, PdfLoadOptions options, List<PdfRepairDiagnostic> diagnostics, System.Threading.CancellationToken cancellationToken) {
