@@ -321,10 +321,17 @@ function Initialize-ExcelBenchmarkInput {
 
     switch ([string]$Case.OperationKey) {
         ReadCsvSource {
-            $Run.Payload | Export-Csv -Path $Run.SourcePath -NoTypeInformation -Encoding utf8 -UseQuotes AsNeeded
+            $nativeCsvParameters = Get-NativeCsvExportParameter
+            $Run.Payload | Export-Csv -Path $Run.SourcePath @nativeCsvParameters
         }
         ReadCsvDataTable {
-            $Run.Payload | Export-Csv -Path $Run.SourcePath -NoTypeInformation -Encoding utf8 -UseQuotes AsNeeded
+            $nativeCsvParameters = Get-NativeCsvExportParameter
+            $Run.Payload | Export-Csv -Path $Run.SourcePath @nativeCsvParameters
+        }
+        ConvertFromCsvText {
+            $nativeCsvParameters = Get-NativeCsvExportParameter
+            $Run.Payload | Export-Csv -Path $Run.SourcePath @nativeCsvParameters
+            $Run.SourceText = [IO.File]::ReadAllText($Run.SourcePath)
         }
         ReadCsvGZipDataTable {
             Write-NativeGZipCsv -InputObject $Run.Payload -Path $Run.SourcePath
@@ -336,7 +343,8 @@ function Initialize-ExcelBenchmarkInput {
             New-ExcelBenchmarkDbatoolsCsvSource -Path $Run.SourcePath -Count ([int]$Case.RowCount) -ColumnCount $Run.ColumnCount -QuoteAll:([string]$Case.DataProfile -eq 'DbatoolsQuotedCsv')
         }
         CsvToExcel {
-            $Run.Payload | Export-Csv -Path $Run.SourcePath -NoTypeInformation -Encoding utf8 -UseQuotes AsNeeded
+            $nativeCsvParameters = Get-NativeCsvExportParameter
+            $Run.Payload | Export-Csv -Path $Run.SourcePath @nativeCsvParameters
         }
         ReadFullSheet { New-ExcelBenchmarkDefaultWorkbook -Engine PSWriteOffice -Run $Run }
         ReadRange { New-ExcelBenchmarkDefaultWorkbook -Engine PSWriteOffice -Run $Run }

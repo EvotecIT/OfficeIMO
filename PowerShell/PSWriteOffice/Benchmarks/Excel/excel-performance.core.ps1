@@ -184,6 +184,8 @@ function Get-CsvBenchmarkCase {
             New-ExcelBenchmarkCase -Name ('csv-read-source-{0}' -f $csvProfile.Label) -Label ('Read CSV file ({0})' -f $csvProfile.Label) -Suites $csv -OperationKey ReadCsvSource -Profile $csvProfile.Profile -FileExtension '.csv' -ValidateWorkbook:$false
             New-ExcelBenchmarkCase -Name ('csv-read-datatable-{0}' -f $csvProfile.Label) -Label ('Read CSV file as DataTable ({0})' -f $csvProfile.Label) -Suites $csv -OperationKey ReadCsvDataTable -Profile $csvProfile.Profile -FileExtension '.csv' -ValidateWorkbook:$false
             New-ExcelBenchmarkCase -Name ('csv-read-gzip-datatable-{0}' -f $csvProfile.Label) -Label ('Read GZip CSV file as DataTable ({0})' -f $csvProfile.Label) -Suites $csv -OperationKey ReadCsvGZipDataTable -Profile $csvProfile.Profile -FileExtension '.csv.gz' -ValidateWorkbook:$false
+            New-ExcelBenchmarkCase -Name ('csv-convertto-{0}' -f $csvProfile.Label) -Label ('Convert objects to CSV text ({0})' -f $csvProfile.Label) -Suites $csv -OperationKey ConvertToCsvText -Profile $csvProfile.Profile -FileExtension '.csv' -ValidateWorkbook:$false
+            New-ExcelBenchmarkCase -Name ('csv-convertfrom-{0}' -f $csvProfile.Label) -Label ('Convert CSV text to objects ({0})' -f $csvProfile.Label) -Suites $csv -OperationKey ConvertFromCsvText -Profile $csvProfile.Profile -FileExtension '.csv' -ValidateWorkbook:$false
         }
         New-ExcelBenchmarkCase -Name csv-write-datatable -Label 'Write DataTable as CSV file' -Suites $csv -OperationKey WriteCsvDataTable -Profile DataTable -FileExtension '.csv' -ValidateWorkbook:$false
         New-ExcelBenchmarkCase -Name csv-dbatools-quick-single-column -Label 'dbatools QuickTest read first column' -Suites $csv -OperationKey ReadCsvQuickSingleColumn -Profile DbatoolsQuickCsv -FileExtension '.csv' -ValidateWorkbook:$false
@@ -218,7 +220,7 @@ function Test-CsvBenchmarkEngineSupport {
 
     switch ($Engine) {
         PSWriteOffice { return $true }
-        NativeCsv { return [string]$Case.OperationKey -in @('WriteCsv', 'WriteCsvGZip', 'WriteCsvDataTable', 'ReadCsvSource', 'ReadCsvDataTable', 'ReadCsvGZipDataTable', 'ReadCsvQuickSingleColumn', 'ReadCsvQuickAllColumns') }
+        NativeCsv { return [string]$Case.OperationKey -in @('WriteCsv', 'WriteCsvGZip', 'WriteCsvDataTable', 'ReadCsvSource', 'ReadCsvDataTable', 'ReadCsvGZipDataTable', 'ReadCsvQuickSingleColumn', 'ReadCsvQuickAllColumns', 'ConvertToCsvText', 'ConvertFromCsvText') }
         default { return $false }
     }
 }
@@ -268,4 +270,19 @@ function Initialize-ExcelBenchmarkEngine {
     }
 
     [void]$script:ExcelBenchmarkInitializedEngines.Add($Engine)
+}
+
+# Windows PowerShell 5.1 has no -UseQuotes and quotes every field; PowerShell 7 quotes only where needed.
+function Get-NativeCsvConvertParameter {
+    $parameters = @{ NoTypeInformation = $true }
+    if ($PSVersionTable.PSVersion.Major -ge 7) {
+        $parameters.UseQuotes = 'AsNeeded'
+    }
+    $parameters
+}
+
+function Get-NativeCsvExportParameter {
+    $parameters = Get-NativeCsvConvertParameter
+    $parameters.Encoding = 'utf8'
+    $parameters
 }

@@ -189,6 +189,17 @@ native PowerShell baseline that reads via `Import-Csv` and fills a `DataTable`.
 That keeps the database/table workflow visible instead of comparing only
 PowerShell object materialization.
 
+The `csv-convertto-*` and `csv-convertfrom-*` lanes cover in-memory conversion.
+`ConvertTo-OfficeCsv` is compared with `ConvertTo-Csv` over the same objects;
+both emit one string per CSV record, and the lane validates the record count and
+every value. `Import-OfficeCsv -Text` is compared with `ConvertFrom-Csv` over the
+same CSV text string and validates every returned value.
+
+Windows PowerShell 5.1 has no `-UseQuotes`, so its native writers quote every
+field. Under 5.1 the native write lanes and the native-generated source files for
+the read lanes are therefore fully quoted; PowerShell 7 uses `-UseQuotes AsNeeded`.
+Every engine still reads the same source file within one run.
+
 The `csv-write-gzip-*` and `csv-read-gzip-datatable-*` lanes keep compressed
 CSV in the same benchmark matrix. The native baseline uses `GZipStream` with
 `ConvertTo-Csv` / `ConvertFrom-Csv`, while PSWriteOffice uses

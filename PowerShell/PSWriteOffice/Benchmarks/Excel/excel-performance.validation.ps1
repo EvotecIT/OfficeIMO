@@ -186,6 +186,20 @@ function Test-CsvBenchmarkOutput {
     param([object] $Case, [object] $Run)
 
     $expectedRows = [int]$Run.ExpectedRows
+    if ($Case.OperationKey -eq 'ConvertToCsvText') {
+        $lines = @($Run.CsvLines)
+        Assert-BenchmarkValue $lines.Count ($expectedRows + 1) -Message "Expected one CSV string per record from '$($Case.OperationKey)'."
+        $actualRows = @($lines | ConvertFrom-Csv)
+        Test-CsvBenchmarkTabularValues -Case $Case -Run $Run -ActualRows $actualRows
+        $Run.RowsProcessed = $actualRows.Count
+        return
+    }
+    if ($Case.OperationKey -eq 'ConvertFromCsvText') {
+        Assert-BenchmarkValue ([int]$Run.ActualRows) $expectedRows -Message "Expected $expectedRows rows returned by '$($Case.OperationKey)'."
+        Test-CsvBenchmarkTabularValues -Case $Case -Run $Run -ActualRows @($Run.ConvertedRows)
+        $Run.RowsProcessed = [int]$Run.ActualRows
+        return
+    }
     if ($Case.OperationKey -in @('ReadCsvSource', 'ReadCsvDataTable', 'ReadCsvGZipDataTable', 'ReadCsvQuickSingleColumn', 'ReadCsvQuickAllColumns')) {
         Assert-BenchmarkValue ([int]$Run.ActualRows) $expectedRows -Message "Expected $expectedRows rows returned by '$($Case.OperationKey)'."
         if ($Case.OperationKey -eq 'ReadCsvQuickSingleColumn') {

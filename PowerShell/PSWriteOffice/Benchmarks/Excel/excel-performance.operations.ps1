@@ -14,6 +14,8 @@ function Invoke-ExcelBenchmarkOperation {
         ReadCsvGZipDataTable { Invoke-ExcelBenchmarkReadCsvGZipDataTable -Engine $Engine -Run $Run }
         ReadCsvQuickSingleColumn { Invoke-ExcelBenchmarkReadCsvQuickSingleColumn -Engine $Engine -Run $Run }
         ReadCsvQuickAllColumns { Invoke-ExcelBenchmarkReadCsvQuickAllColumns -Engine $Engine -Run $Run }
+        ConvertToCsvText { Invoke-ExcelBenchmarkConvertToCsvText -Engine $Engine -Run $Run }
+        ConvertFromCsvText { Invoke-ExcelBenchmarkConvertFromCsvText -Engine $Engine -Run $Run }
         CsvToExcel { Invoke-ExcelBenchmarkCsvToExcel -Engine $Engine -Run $Run }
         WriteWorkbook { Invoke-ExcelBenchmarkWriteWorkbook -Engine $Engine -Case $Case -Run $Run }
         ReadFullSheet { Invoke-ExcelBenchmarkReadWorkbook -Engine $Engine -Case $Case -Run $Run -Mode Full }
@@ -46,7 +48,10 @@ function Invoke-ExcelBenchmarkWriteCsv {
 
     switch ($Engine) {
         PSWriteOffice { $Run.Payload | Export-OfficeCsv -Path $Run.Path }
-        NativeCsv { $Run.Payload | Export-Csv -Path $Run.Path -NoTypeInformation -Encoding utf8 -UseQuotes AsNeeded }
+        NativeCsv {
+            $nativeCsvParameters = Get-NativeCsvExportParameter
+            $Run.Payload | Export-Csv -Path $Run.Path @nativeCsvParameters
+        }
         default { throw "Engine '$Engine' does not support CSV write." }
     }
 }
@@ -66,7 +71,10 @@ function Invoke-ExcelBenchmarkWriteCsvDataTable {
 
     switch ($Engine) {
         PSWriteOffice { Export-OfficeCsv -InputObject $Run.Payload -Path $Run.Path }
-        NativeCsv { $Run.Payload.Rows | Export-Csv -Path $Run.Path -NoTypeInformation -Encoding utf8 -UseQuotes AsNeeded }
+        NativeCsv {
+            $nativeCsvParameters = Get-NativeCsvExportParameter
+            $Run.Payload.Rows | Export-Csv -Path $Run.Path @nativeCsvParameters
+        }
         default { throw "Engine '$Engine' does not support DataTable CSV write." }
     }
 }
@@ -80,6 +88,33 @@ function Invoke-ExcelBenchmarkReadCsv {
         default { throw "Engine '$Engine' does not support CSV read." }
     }
     $Run.ActualRows = @($rows).Count
+}
+
+# In-memory conversions: every engine receives the same objects or the same CSV text string and emits one
+# string per CSV record or one object per row.
+function Invoke-ExcelBenchmarkConvertToCsvText {
+    param([string] $Engine, [object] $Run)
+
+    switch ($Engine) {
+        PSWriteOffice { $Run.CsvLines = @($Run.Payload | ConvertTo-OfficeCsv) }
+        NativeCsv {
+            $nativeCsvParameters = Get-NativeCsvConvertParameter
+            $Run.CsvLines = @($Run.Payload | ConvertTo-Csv @nativeCsvParameters)
+        }
+        default { throw "Engine '$Engine' does not support CSV text conversion." }
+    }
+}
+
+function Invoke-ExcelBenchmarkConvertFromCsvText {
+    param([string] $Engine, [object] $Run)
+
+    $rows = switch ($Engine) {
+        PSWriteOffice { @(Import-OfficeCsv -Text $Run.SourceText) }
+        NativeCsv { @(ConvertFrom-Csv -InputObject $Run.SourceText) }
+        default { throw "Engine '$Engine' does not support CSV text parsing." }
+    }
+    $Run.ConvertedRows = $rows
+    $Run.ActualRows = $rows.Count
 }
 
 function Invoke-ExcelBenchmarkReadCsvDataTable {
@@ -188,13 +223,15 @@ function Write-NativeGZipCsv {
         [IO.Directory]::CreateDirectory($directory) | Out-Null
     }
 
+    $nativeCsvParameters = Get-NativeCsvConvertParameter
+
     $stream = [IO.File]::Create($Path)
     try {
         $gzip = [IO.Compression.GZipStream]::new($stream, [IO.Compression.CompressionLevel]::Optimal, $false)
         try {
             $writer = [IO.StreamWriter]::new($gzip, [Text.UTF8Encoding]::new($false))
             try {
-                foreach ($line in ($InputObject | ConvertTo-Csv -NoTypeInformation -UseQuotes AsNeeded)) {
+                foreach ($line in ($InputObject | ConvertTo-Csv @nativeCsvParameters)) {
                     $writer.WriteLine($line)
                 }
             } finally {
@@ -514,8 +551,8 @@ function Invoke-ExcelBenchmarkUpdateExistingWorkbook {
             $Run.Payload | Export-OfficeExcel -Path $Run.Path -WorksheetName $Run.WorksheetName -TableName Data
             Edit-OfficeExcelRow -InputPath $Run.Path -Sheet $Run.WorksheetName -ScriptBlock {
                 param($row)
-                $row.Set('TicketCount', ([int]$row.Get[int]('TicketCount') + 1))
-                if ($row.Get[bool]('IsEnabled')) { $row.Set('Notes', 'Reviewed') }
+                $row.Set('TicketCount', ([int]$row['TicketCount'].Value + 1))
+                if ([bool]$row['IsEnabled'].Value) { $row.Set('Notes', 'Reviewed') }
             } | Out-Null
             $document = Get-OfficeExcel -Path $Run.Path
             try {
