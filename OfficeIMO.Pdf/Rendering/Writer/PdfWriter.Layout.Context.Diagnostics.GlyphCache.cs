@@ -24,9 +24,42 @@ internal static partial class PdfWriter {
         /// <summary>Releases this writer's borrowed placement storage; shared outlines stay with their font program.</summary>
         private void ClearDiagnosticGlyphCache() => ClearDiagnosticGlyphWorkspace();
 
+        // This writer's view of the shared outlines. Paint inspection asks for the same few glyphs thousands of
+        // times per document; answering repeats here avoids the shared table's lock on every glyph.
+        private Dictionary<(IOfficeBoundedFontProgram Font, int Glyph, double Size), (List<List<OfficePoint>> Contours, DiagnosticPaintBounds Bounds)>?
+            _diagnosticGlyphOutlines;
+        private IOfficeBoundedFontProgram? _diagnosticGlyphOutlineFont;
+        private SharedDiagnosticGlyphOutlines? _diagnosticGlyphOutlineShared;
+
         private (List<List<OfficePoint>> Contours, DiagnosticPaintBounds Bounds) GetDiagnosticGlyphOutline(
             IOfficeBoundedFontProgram font, int glyphId, double size) {
-            SharedDiagnosticGlyphOutlines shared = SharedGlyphOutlines.GetValue(font, static _ => new SharedDiagnosticGlyphOutlines());
+            var localKey = (font, glyphId, size);
+            var local = _diagnosticGlyphOutlines ??= new(DiagnosticGlyphOutlineKeyComparer.Instance);
+            if (local.TryGetValue(localKey, out var known)) return known;
+            var outline = GetSharedDiagnosticGlyphOutline(font, glyphId, size);
+            if (local.Count >= DiagnosticGlyphCacheEntryLimit) local.Clear();
+            local[localKey] = outline;
+            return outline;
+        }
+
+        private sealed class DiagnosticGlyphOutlineKeyComparer : IEqualityComparer<(IOfficeBoundedFontProgram Font, int Glyph, double Size)> {
+            internal static readonly DiagnosticGlyphOutlineKeyComparer Instance = new();
+            public bool Equals((IOfficeBoundedFontProgram Font, int Glyph, double Size) x, (IOfficeBoundedFontProgram Font, int Glyph, double Size) y) =>
+                ReferenceEquals(x.Font, y.Font) && x.Glyph == y.Glyph && x.Size.Equals(y.Size);
+            public int GetHashCode((IOfficeBoundedFontProgram Font, int Glyph, double Size) key) =>
+                unchecked((System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(key.Font) * 397 ^ key.Glyph) * 397 ^ key.Size.GetHashCode());
+        }
+
+        private (List<List<OfficePoint>> Contours, DiagnosticPaintBounds Bounds) GetSharedDiagnosticGlyphOutline(
+            IOfficeBoundedFontProgram font, int glyphId, double size) {
+            SharedDiagnosticGlyphOutlines shared;
+            if (ReferenceEquals(_diagnosticGlyphOutlineFont, font)) {
+                shared = _diagnosticGlyphOutlineShared!;
+            } else {
+                shared = SharedGlyphOutlines.GetValue(font, static _ => new SharedDiagnosticGlyphOutlines());
+                _diagnosticGlyphOutlineFont = font;
+                _diagnosticGlyphOutlineShared = shared;
+            }
             var key = (glyphId, size);
             lock (shared) {
                 if (shared.Entries.TryGetValue(key, out var found)) return found;

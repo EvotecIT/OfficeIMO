@@ -72,9 +72,14 @@ internal static partial class PdfWriter {
             }
             yield break;
         }
+        var advances = new RichGlyphAdvanceReader(segment, text, command, options);
         var glyphs = command.VisualGlyphs;
         string hex = command.GlyphHex;
         int count = glyphs?.Count ?? hex.Length / 4;
+        // Synthetic styles belong to the segment's face, so they are resolved once, at the first painted glyph.
+        bool syntheticStylesResolved = false;
+        double shear = 0D;
+        bool syntheticBold = false;
         for (int index = 0; index < count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             int glyphId = glyphs != null ? glyphs[index].GlyphId : GetGlyphPaintId(hex, index * 4);
@@ -82,8 +87,11 @@ internal static partial class PdfWriter {
             double offsetY = glyphs != null ? glyphs[index].OffsetY1000 * size / 1000D : 0D;
             if (glyphId > 0) {
                 // The writer's rounded PDF advances, rather than outline-engine advances, own every origin.
-                double shear = options.NeedsSyntheticOblique(segment.Font, segment.NamedFont) ? ContentStreamBuilder.SyntheticObliqueShear : 0D;
-                bool syntheticBold = options.NeedsSyntheticBold(segment.Font, segment.NamedFont);
+                if (!syntheticStylesResolved) {
+                    shear = options.NeedsSyntheticOblique(segment.Font, segment.NamedFont) ? ContentStreamBuilder.SyntheticObliqueShear : 0D;
+                    syntheticBold = options.NeedsSyntheticBold(segment.Font, segment.NamedFont);
+                    syntheticStylesResolved = true;
+                }
                 var placement = new GlyphPaintPlacement(x + cursor, baseline, offsetX, offsetY, scale, shear, syntheticBold);
                 List<List<OfficePoint>>? contours;
                 if (glyphOutline != null) contours = glyphOutline(outline, glyphId, size, placement);
@@ -94,7 +102,7 @@ internal static partial class PdfWriter {
                 }
                 // The diagnostic resolver can prove containment without borrowing mutable placement points.
                 if (contours == null) {
-                    cursor += GetRichGlyphAdvance(segment, text, command, index, options);
+                    cursor += advances.Get(index);
                     continue;
                 }
                 foreach (var contour in contours) for (int p = 0; p < contour.Count; p++) {
@@ -115,7 +123,7 @@ internal static partial class PdfWriter {
                         cancellationToken), false);
                 }
             }
-            cursor += GetRichGlyphAdvance(segment, text, command, index, options);
+            cursor += advances.Get(index);
         }
     }
 
