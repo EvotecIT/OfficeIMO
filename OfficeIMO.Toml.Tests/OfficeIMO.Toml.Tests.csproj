@@ -30,6 +30,14 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Toml\OfficeIMO.Toml.csproj" />
+    <!-- The serializer's generator: an analyzer for the test contexts, and a reference for the diagnostic tests. -->
+    <ProjectReference Include="..\OfficeIMO.Toml.SourceGeneration\OfficeIMO.Toml.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
+  </ItemGroup>
+
+  <!-- An independent TOML library for the serializer interop checks: test-only, never referenced by OfficeIMO runtime projects. -->
+  <ItemGroup>
+    <PackageReference Include="Tomlyn" Version="2.10.1" />
   </ItemGroup>
 
   <ItemGroup>

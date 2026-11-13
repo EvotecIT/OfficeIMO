@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk" TreatAsLocalProperty="TargetFramework;EnableAotAnalyzer;EnableTrimAnalyzer">
+  <!-- The TOML serializer's source generator. It ships inside the OfficeIMO.Toml package (analyzers/dotnet/cs),
+       as System.Text.Json's generator does, so the generator and the runtime it targets never drift apart. -->
+  <PropertyGroup>
+    <Description>Source generator for OfficeIMO.Toml serializer contexts.</Description>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <EnableAotAnalyzer>false</EnableAotAnalyzer>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+    <IsPackable>false</IsPackable>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <LangVersion>Latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- The shape rules and emitter are shared with the YAML generator, which ships in its own package. -->
+  <ItemGroup>
+    <Compile Include="..\OfficeIMO.SharedSource\SerializerGeneration\*.cs" Link="Shared\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+</Project>
