@@ -40,6 +40,7 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
     private readonly CsvPowerShellObjectProjector _objectProjector = new();
     private CsvPowerShellLineWriter? _lineWriter;
     private CsvRowWriter? _csvWriter;
+    private string _recordNewLine = Environment.NewLine;
 
     /// <summary>CSV document to serialize.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocumentDelimiter)]
@@ -142,8 +143,18 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
             return;
         }
 
-        _objectProjector.WriteObject(InputObject, EnsureObjectWriter());
-        _lineWriter!.Flush();
+        var writer = EnsureObjectWriter();
+        // After the header, each object adds exactly one record.
+        var headerWritten = writer.HasRows;
+        _objectProjector.WriteObject(InputObject, writer);
+        if (headerWritten)
+        {
+            _lineWriter!.FlushSingleRecord(_recordNewLine);
+        }
+        else
+        {
+            _lineWriter!.Flush();
+        }
     }
 
     /// <inheritdoc />
@@ -293,6 +304,7 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
         _objectProjector.UseCsvOptions(options, MaxCollectionItems, MaxNestingDepth);
         _lineWriter = new CsvPowerShellLineWriter(this, GetDelimiterText(options), options.QuoteMode);
         _csvWriter = new CsvRowWriter(_lineWriter, options);
+        _recordNewLine = options.NewLine;
         return _csvWriter;
     }
 

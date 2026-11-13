@@ -1698,12 +1698,20 @@ Describe 'CSV cmdlets' {
     }
 
     It 'keeps quoted embedded newlines inside one ConvertTo-OfficeCsv record object' {
-        $csvLines = @([pscustomobject]@{ Name = 'Alpha'; Note = "one`ntwo" } | ConvertTo-OfficeCsv)
+        $rows = @(
+            [pscustomobject]@{ Name = 'Alpha'; Note = "one`ntwo" }
+            [pscustomobject]@{ Name = 'Beta'; Note = "three`r`n`"four`"" }
+        )
 
-        $csvLines.Count | Should -Be 2
+        $csvLines = @($rows | ConvertTo-OfficeCsv)
+
+        $csvLines.Count | Should -Be 3
         $csvLines[0] | Should -Be 'Name,Note'
         $csvLines[1] | Should -Be "Alpha,`"one`ntwo`""
-        @(Import-OfficeCsv -Text ($csvLines -join "`n"))[0].Note | Should -Be "one`ntwo"
+        $csvLines[2] | Should -Be "Beta,`"three`r`n`"`"four`"`"`""
+        $parsed = @(Import-OfficeCsv -Text ($csvLines -join "`n"))
+        $parsed[0].Note | Should -Be "one`ntwo"
+        $parsed[1].Note | Should -Be "three`r`n`"four`""
     }
 
     It 'keeps one ConvertTo-OfficeCsv record per DataTable row when the text spans many output chunks' {

@@ -165,6 +165,42 @@ internal sealed class CsvPowerShellLineWriter : TextWriter
         }
     }
 
+    /// <summary>
+    /// Emits the buffered text as one record when the caller wrote exactly one record ending with <paramref name="newLine"/>.
+    /// </summary>
+    /// <remarks>
+    /// With quoting enabled the row writer quotes every field that contains a line break, so one written row is one
+    /// record and needs no quote scan. Unquoted output can carry raw line breaks and keeps the full record splitter.
+    /// </remarks>
+    public void FlushSingleRecord(string newLine)
+    {
+        if (_parseQuotedRecords &&
+            IsAtRecordStart() &&
+            _pending.Length > newLine.Length &&
+            EndsWith(_pending, newLine))
+        {
+            EmitRecord(_pending.ToString(0, _pending.Length - newLine.Length));
+            _pending.Clear();
+            return;
+        }
+
+        Flush();
+    }
+
+    private static bool EndsWith(StringBuilder text, string suffix)
+    {
+        var offset = text.Length - suffix.Length;
+        for (var i = 0; i < suffix.Length; i++)
+        {
+            if (text[offset + i] != suffix[i])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public override void Flush()
     {
         if (_pending.Length == 0)
