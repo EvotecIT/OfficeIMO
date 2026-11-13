@@ -7,7 +7,6 @@ namespace PSWriteOffice.Cmdlets.Csv;
 internal sealed class CsvPowerShellLineWriter : TextWriter
 {
     private const int PendingFlushThreshold = 32 * 1024;
-    private static readonly char[] RecordStopCharacters = { '"', '\r', '\n' };
     private readonly PSCmdlet _cmdlet;
     private readonly string _delimiterText;
     private readonly bool _parseQuotedRecords;
@@ -45,12 +44,24 @@ internal sealed class CsvPowerShellLineWriter : TextWriter
 
     public override void Write(char[] buffer, int index, int count)
     {
+        if (TryGetWholeRecordLength(new ReadOnlySpan<char>(buffer, index, count), out var length))
+        {
+            EmitRecord(new string(buffer, index, length));
+            return;
+        }
+
         _pending.Append(buffer, index, count);
         FlushLargeBuffer();
     }
 
     public override void Write(string? value)
     {
+        if (value != null && TryGetWholeRecordLength(value.AsSpan(), out var length))
+        {
+            EmitRecord(value.Substring(0, length));
+            return;
+        }
+
         _pending.Append(value);
         FlushLargeBuffer();
     }
@@ -58,10 +69,56 @@ internal sealed class CsvPowerShellLineWriter : TextWriter
 #if NET6_0_OR_GREATER
     public override void Write(StringBuilder? value)
     {
+        // The row writer passes one record per call in its reusable buffer; emit it without copying it first.
+        if (value != null && _pending.Length == 0)
+        {
+            var chunks = 0;
+            ReadOnlyMemory<char> single = default;
+            foreach (var chunk in value.GetChunks())
+            {
+                single = chunk;
+                if (++chunks > 1)
+                {
+                    break;
+                }
+            }
+
+            if (chunks == 1 && TryGetWholeRecordLength(single.Span, out var length))
+            {
+                EmitRecord(value.ToString(0, length));
+                return;
+            }
+        }
+
         _pending.Append(value);
         FlushLargeBuffer();
     }
 #endif
+
+    // True when nothing is buffered and the text is exactly one complete record followed by its line break.
+    private bool TryGetWholeRecordLength(ReadOnlySpan<char> text, out int length)
+    {
+        length = 0;
+        if (_pending.Length != 0 || !IsAtRecordStart())
+        {
+            return false;
+        }
+
+        var stop = FindRecordEnd(text, 0);
+        if (stop < 0 || GetRecordBreakEnd(text, stop) != text.Length)
+        {
+            return false;
+        }
+
+        length = stop;
+        return true;
+    }
+
+    private void EmitRecord(string record)
+    {
+        _cmdlet.WriteObject(record);
+        _atFieldStart = true;
+    }
 
     // Multi-row writes such as a DataTable keep streaming records instead of buffering the whole output.
     private void FlushLargeBuffer()
@@ -112,58 +169,62 @@ internal sealed class CsvPowerShellLineWriter : TextWriter
         }
     }
 
-    // A record that starts cleanly and reaches its line break without a quote is exactly the text before that
-    // break; the character state machine would produce the same line. Quoted records take the full path.
+    // A record that starts cleanly and whose end FindRecordEnd can locate is exactly the text before its line break;
+    // the character state machine would produce the same line.
     private bool TryEmitQuoteFreeRecord(string text, ref int index)
     {
-        if (_line.Length != 0 || !_atFieldStart || _pendingCarriageReturn || _inQuotes || _pendingQuoteInQuotedField || _delimiterMatchIndex != 0)
+        if (!IsAtRecordStart())
         {
             return false;
         }
 
-        var stop = FindRecordEnd(text, index);
-        if (stop < 0)
+        var span = text.AsSpan(index);
+        var stop = FindRecordEnd(span, 0);
+        var next = stop < 0 ? -1 : GetRecordBreakEnd(span, stop);
+        if (next < 0)
         {
             return false;
         }
 
-        int next;
+        EmitRecord(text.Substring(index, stop));
+        index += next;
+        return true;
+    }
+
+    private bool IsAtRecordStart() =>
+        _line.Length == 0 && _atFieldStart && !_pendingCarriageReturn && !_inQuotes && !_pendingQuoteInQuotedField && _delimiterMatchIndex == 0;
+
+    // Index just past the line break at stop, or -1 when the break is a lone or trailing carriage return.
+    private static int GetRecordBreakEnd(ReadOnlySpan<char> text, int stop)
+    {
         if (text[stop] == '\n')
         {
-            next = stop + 1;
-        }
-        else if (text[stop] == '\r' && stop + 1 < text.Length && text[stop + 1] == '\n')
-        {
-            next = stop + 2;
-        }
-        else
-        {
-            return false;
+            return stop + 1;
         }
 
-        _cmdlet.WriteObject(text.Substring(index, stop - index));
-        _atFieldStart = true;
-        index = next;
-        return true;
+        return stop + 1 < text.Length && text[stop + 1] == '\n' ? stop + 2 : -1;
     }
 
     // Returns the index of the line break that ends the record starting at recordStart, or -1 when the record is
     // incomplete or needs the character state machine. Quotes follow the same rules as that state machine: a quote
     // opens a field only at a field start, a doubled quote stays inside the field, and line breaks inside quotes
     // belong to the record. Multi-character delimiters keep the state machine for quoted records.
-    private int FindRecordEnd(string text, int recordStart)
+    private int FindRecordEnd(ReadOnlySpan<char> text, int recordStart)
     {
         var position = recordStart;
         var inQuotes = false;
         while (true)
         {
-            var stop = inQuotes
-                ? text.IndexOf('"', position)
-                : text.IndexOfAny(RecordStopCharacters, position);
-            if (stop < 0)
+            var remaining = text.Slice(position);
+            var found = inQuotes
+                ? remaining.IndexOf('"')
+                : remaining.IndexOfAny('"', '\r', '\n');
+            if (found < 0)
             {
                 return -1;
             }
+
+            var stop = position + found;
 
             if (text[stop] != '"')
             {
