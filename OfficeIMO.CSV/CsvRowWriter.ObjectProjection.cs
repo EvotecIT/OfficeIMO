@@ -36,7 +36,6 @@ public sealed partial class CsvRowWriter
         if (utf8Writer != null)
         {
             _propertyUtf8Writer = utf8Writer;
-            _propertyBytes ??= new byte[PropertyStagingLength];
             _propertyNewLineBytes ??= utf8Writer.Encoding.GetBytes(_options.NewLine);
         }
         else if (useSpanBuffer)
@@ -55,6 +54,7 @@ public sealed partial class CsvRowWriter
         if (_bufferedPropertyProjector == null) return false;
         _rowBuffer.Clear();
         _propertyCharacterCount = 0;
+        if (_propertyUtf8Writer != null) StartProjectedUtf8Row();
         _propertyTextValues.AsSpan().Clear();
         _propertyFallbackColumn = -1;
         if (!_bufferedPropertyProjector(item, this, _options.Culture)) return false;
@@ -62,7 +62,7 @@ public sealed partial class CsvRowWriter
         {
             WriteProjectedFallback();
         }
-        else if (_propertyBytes != null)
+        else if (_propertyUtf8Writer != null)
         {
             WriteProjectedUtf8Row();
         }
@@ -99,8 +99,8 @@ public sealed partial class CsvRowWriter
         string newLine = _options.NewLine;
         if (_propertyFallbackPrefixLength > 0)
         {
-            if (_propertyBytes != null)
-                _propertyUtf8Writer!.WriteUtf8(_propertyBytes.AsSpan(0, _propertyFallbackPrefixLength));
+            if (_propertyUtf8Writer != null)
+                _propertyUtf8Writer.CommitUtf8(_propertyFallbackPrefixLength);
             else if (_propertyCharacters != null)
                 _writer.Write(_propertyCharacters.AsSpan(0, _propertyFallbackPrefixLength));
             else

@@ -24,8 +24,15 @@ public sealed partial class CsvRowWriter
     private const int PropertyStagingLength = 1024;
 
     private PooledUtf8TextWriter? _propertyUtf8Writer;
-    private byte[]? _propertyBytes;
     private byte[]? _propertyNewLineBytes;
+
+    /// <summary>
+    /// The UTF-8 writer's byte buffer while a row is staged in it, from <see cref="_propertyOrigin"/> up to
+    /// <see cref="_propertyLimit"/>; <see cref="_propertyCharacterCount"/> is then the absolute end of the staged bytes.
+    /// </summary>
+    private byte[]? _propertyBytes;
+    private int _propertyOrigin;
+    private int _propertyLimit;
 
     /// <summary>
     /// Stages text as UTF-8 bytes. ASCII text is copied or escaped in one pass; other text is escaped and then
@@ -35,10 +42,10 @@ public sealed partial class CsvRowWriter
     {
         int start = _propertyCharacterCount;
         int length = text?.Length ?? 0;
-        if (_propertyFallbackColumn < 0 && (long)start + length * 2L + 3 <= _propertyBytes!.Length)
+        if (_propertyFallbackColumn < 0 && (long)start + length * 2L + 3 <= _propertyLimit)
         {
             int position = start;
-            if (ordinal > 0) _propertyBytes[position++] = (byte)',';
+            if (ordinal > 0) _propertyBytes![position++] = (byte)',';
             if (text == null)
             {
                 _propertyCharacterCount = position;
@@ -70,7 +77,7 @@ public sealed partial class CsvRowWriter
         if (_propertyFallbackColumn < 0)
         {
             _propertyFallbackColumn = ordinal;
-            _propertyFallbackPrefixLength = start;
+            _propertyFallbackPrefixLength = start - _propertyOrigin;
         }
 
         StageProjectedText(ordinal, text);
@@ -108,33 +115,41 @@ public sealed partial class CsvRowWriter
         if (writer._propertyFallbackColumn < 0)
         {
             int start = writer._propertyCharacterCount + (ordinal > 0 ? 1 : 0);
-            if (start <= writer._propertyBytes!.Length &&
+            if (start <= writer._propertyLimit &&
                 CsvWriter.TryFormatInvariant(value, writer._propertyBytes.AsSpan(start), out int written))
             {
-                if (ordinal > 0) writer._propertyBytes[writer._propertyCharacterCount] = (byte)',';
+                if (ordinal > 0) writer._propertyBytes![writer._propertyCharacterCount] = (byte)',';
                 writer._propertyCharacterCount = start + written;
                 return;
             }
 
             writer._propertyFallbackColumn = ordinal;
-            writer._propertyFallbackPrefixLength = writer._propertyCharacterCount;
+            writer._propertyFallbackPrefixLength = writer._propertyCharacterCount - writer._propertyOrigin;
         }
 
         StageProjectedScalar(writer, ordinal, value);
     }
 
-    /// <summary>Delivers a staged UTF-8 row with its line terminator.</summary>
+    /// <summary>Starts a row in the UTF-8 writer's byte buffer, where it is staged without a copy.</summary>
+    private void StartProjectedUtf8Row()
+    {
+        _propertyBytes = _propertyUtf8Writer!.ReserveUtf8(PropertyStagingLength, out _propertyOrigin);
+        _propertyLimit = Math.Min(_propertyBytes.Length, _propertyOrigin + PropertyStagingLength);
+        _propertyCharacterCount = _propertyOrigin;
+    }
+
+    /// <summary>Commits a staged UTF-8 row with its line terminator.</summary>
     private void WriteProjectedUtf8Row()
     {
         byte[] newLine = _propertyNewLineBytes!;
-        int length = _propertyCharacterCount;
-        if (newLine.AsSpan().TryCopyTo(_propertyBytes!.AsSpan(length)))
+        int end = _propertyCharacterCount;
+        if (newLine.AsSpan().TryCopyTo(_propertyBytes.AsSpan(end)))
         {
-            _propertyUtf8Writer!.WriteUtf8(_propertyBytes.AsSpan(0, length + newLine.Length));
+            _propertyUtf8Writer!.CommitUtf8(end + newLine.Length - _propertyOrigin);
         }
         else
         {
-            _propertyUtf8Writer!.WriteUtf8(_propertyBytes.AsSpan(0, length));
+            _propertyUtf8Writer!.CommitUtf8(end - _propertyOrigin);
             _propertyUtf8Writer.WriteUtf8(newLine);
         }
     }
