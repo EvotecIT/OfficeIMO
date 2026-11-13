@@ -75,7 +75,7 @@ internal static partial class WindowsPdfPrinter {
         if (!Native.OpenPrinter(printer.Name, out IntPtr printerHandle, IntPtr.Zero)) throw new Win32Exception();
         IntPtr mode = IntPtr.Zero, dc = IntPtr.Zero;
         int jobId = 0;
-        bool completed = false;
+        bool completed = false, outputExisted = false;
         Native.AbortProcedure abort = (_, _) => !token.IsCancellationRequested;
         try {
             int modeBytes = Native.DocumentProperties(IntPtr.Zero, printerHandle, printer.Name, IntPtr.Zero, IntPtr.Zero, 0);
@@ -97,6 +97,7 @@ internal static partial class WindowsPdfPrinter {
             if (Native.SetAbortProc(dc, abort) <= 0) throw GdiFailure("SetAbortProc");
             token.ThrowIfCancellationRequested();
             var info = new Native.DocInfo { Size = Marshal.SizeOf<Native.DocInfo>(), DocumentName = options.DocumentName, Output = output };
+            outputExisted = output is not null && (File.Exists(output) || Directory.Exists(output));
             jobId = Native.StartDoc(dc, ref info);
             if (jobId <= 0) throw GdiFailure("StartDoc");
             int softwareCopies = options.Copies / driverCopies;
@@ -159,6 +160,8 @@ internal static partial class WindowsPdfPrinter {
             if (mode != IntPtr.Zero) Marshal.FreeHGlobal(mode);
             _ = Native.ClosePrinter(printerHandle);
             GC.KeepAlive(abort);
+            // A file printer creates its output when the job starts; an aborted job leaves it empty.
+            if (!completed && jobId > 0 && output is not null) PrintOutputFile.DiscardEmpty(output, outputExisted);
         }
     }
 
