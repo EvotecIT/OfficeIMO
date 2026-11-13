@@ -14,6 +14,7 @@ internal static partial class MarkdownReader {
         [ThreadStatic] private static BracketMatchIndex?[]? t_bracketIndexes;
         [ThreadStatic] private static BacktickRunIndex?[]? t_backtickIndexes;
         [ThreadStatic] private static ForwardSearch?[]? t_forwardSearches;
+        [ThreadStatic] private static WrapperIndexEntry?[]? t_wrapperIndexes;
 
         internal static Scope Enter() {
             t_scopeDepth++;
@@ -31,6 +32,7 @@ internal static partial class MarkdownReader {
                 t_bracketIndexes = null;
                 t_backtickIndexes = null;
                 t_forwardSearches = null;
+                t_wrapperIndexes = null;
                 t_lineVerdict = null;
             }
         }
@@ -75,6 +77,37 @@ internal static partial class MarkdownReader {
             var created = BacktickRunIndex.Build(text);
             InsertAtFront(entries, created);
             return created;
+        }
+
+        private sealed class WrapperIndexEntry {
+            internal WrapperIndexEntry(string text, InlineHtmlWrapperMatchIndex index) {
+                Text = text;
+                Index = index;
+            }
+
+            internal string Text { get; }
+            internal InlineHtmlWrapperMatchIndex Index { get; }
+        }
+
+        // Inline HTML wrapper pairs of a whole text, for callers that need them although the parse
+        // they are part of was given none.
+        internal static InlineHtmlWrapperMatchIndex GetWrapperIndex(string text) {
+            if (t_scopeDepth == 0) {
+                return BuildInlineHtmlWrapperMatchIndex(text);
+            }
+
+            var entries = t_wrapperIndexes ??= new WrapperIndexEntry?[Capacity];
+            for (int i = 0; i < entries.Length; i++) {
+                var entry = entries[i];
+                if (entry != null && ReferenceEquals(entry.Text, text)) {
+                    MoveToFront(entries, i);
+                    return entry.Index;
+                }
+            }
+
+            var created = new WrapperIndexEntry(text, BuildInlineHtmlWrapperMatchIndex(text));
+            InsertAtFront(entries, created);
+            return created.Index;
         }
 
         private sealed class ForwardSearch {

@@ -691,7 +691,7 @@ internal static partial class MarkdownReader {
 
                     if (state != null && TryParseCollapsedRef(text, pos, options, out int consumedC, out var lbl2, inlineHtmlWrapperMatches)) {
                         var key = NormalizeReferenceLabel(lbl2);
-                        if (ContainsResolvedLinkInLabel(lbl2, options, state)) {
+                        if (ContainsResolvedLinkInLabel(text, pos + 1, pos + 1 + lbl2.Length, options, state, inlineHtmlWrapperMatches)) {
                             AddTextNode("[", pos, 1);
                             pos++;
                             continue;
@@ -711,13 +711,15 @@ internal static partial class MarkdownReader {
                         AddTextNode(text.Substring(pos, consumedC), pos, consumedC);
                         pos += consumedC; continue;
                     }
-                    if (state != null && TryParseRefLink(text, pos, options, out int consumedR, out var lbl, out var refLabel, inlineHtmlWrapperMatches)) {
+                    if (state != null && TryParseRefLink(text, pos, options, out int consumedR, out int lblLength, out var refLabel, inlineHtmlWrapperMatches)) {
                         var key = NormalizeReferenceLabel(refLabel);
-                        if (ContainsResolvedLinkInLabel(lbl, options, state)) {
+                        if (ContainsResolvedLinkInLabel(text, pos + 1, pos + 1 + lblLength, options, state, inlineHtmlWrapperMatches)) {
                             AddTextNode("[", pos, 1);
                             pos++;
                             continue;
                         }
+
+                        var lbl = text.Substring(pos + 1, lblLength);
 
                         var labelSeq = ParseInlinesInternal(lbl, options, state, allowLinks: false, allowImages, SliceMap(pos + 1, lbl.Length), inlineHtmlWrapperMatches.Slice(pos + 1), inlineHtmlWrapperDepth, imageAltDepth, tableCellHtmlMode);
                         if (state.LinkRefs.TryGetValue(key, out var def)) {
@@ -732,7 +734,7 @@ internal static partial class MarkdownReader {
                     }
                     if (state != null && TryParseShortcutRef(text, pos, options, out int consumedS, out var lbl3, inlineHtmlWrapperMatches)) {
                         var key = NormalizeReferenceLabel(lbl3);
-                        if (ContainsResolvedLinkInLabel(lbl3, options, state)) {
+                        if (ContainsResolvedLinkInLabel(text, pos + 1, pos + 1 + lbl3.Length, options, state, inlineHtmlWrapperMatches)) {
                             AddTextNode("[", pos, 1);
                             pos++;
                             continue;

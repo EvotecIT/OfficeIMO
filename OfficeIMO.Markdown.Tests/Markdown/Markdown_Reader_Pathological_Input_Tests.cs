@@ -99,6 +99,11 @@ public sealed class Markdown_Reader_Pathological_Input_Tests {
         Add("unclosed link openers with spaces", () => Case(Repeat("[a ", 65000), @"(\[a ){64999}"));
         Add("unclosed html tag starts", () => Case(Repeat("<a ", 65000), "(&lt;a ){64999}"));
         Add("unmatched backtick runs", () => Case(Repeat("`a``", 32500), "^<p>"));
+        // Every opener's label holds all the inner links, so labels were copied and rescanned per opener.
+        Add("nested inline links", () => Case(Repeat("[", 65000) + "a" + Repeat("](u)", 65000), "^<p>\\[{64999}<a href=\"u\">a</a>(\\]\\(u\\)){64999}</p>$"));
+        Add("nested inline links in emphasis", () => Case(Repeat("*[", 65000) + "a" + Repeat("](u)*", 65000), "^<p>(<em>|</em>|\\[)+<a href=\"u\">a</a>(<em>|</em>|\\]\\(u\\))+</p>$"));
+        Add("nested inline links around raw html", () => Case(Repeat("[<b>", 65000) + "a" + Repeat("</b>](u)", 65000), "^<p>(\\[<b>){64999}<a href=\"u\"><b>a</b></a>(</b>\\]\\(u\\)){64999}</p>$"));
+        Add("nested reference links", () => Case("[r]: /x\n\n" + Repeat("[", 65000) + "a" + Repeat("][r]", 65000), "^<p>\\[{64999}<a href=\"/x\">a</a>(\\]<a href=\"/x\">r</a>){64999}</p>$"));
         // The default profile checks each bare autolink candidate against its line.
         Add("bare autolink candidates on one line", () => Case(Repeat("www.a ", 65000), "^<p>", profile: MarkdownDialectProfile.OfficeIMO));
         return cases;

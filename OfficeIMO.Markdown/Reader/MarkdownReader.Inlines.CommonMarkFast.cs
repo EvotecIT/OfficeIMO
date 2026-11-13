@@ -599,7 +599,7 @@ internal static partial class MarkdownReader {
         }
 
         if (state.LinkRefs.ContainsKey(NormalizeReferenceLabel(label))
-            || ContainsResolvedLinkInLabel(label, options, state)
+            || ContainsResolvedLinkInLabel(text, position + 1, position + 1 + label.Length, options, state, wrappers)
             || (options.Abbreviations && ContainsAbbreviationCandidate(label, state))
             || ContainsBackslashEscapableCharacter(label)) {
             return 0;
