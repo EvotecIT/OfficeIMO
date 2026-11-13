@@ -27,6 +27,8 @@ namespace OfficeIMO.Word.Markdown {
             Dictionary<string, string>? previousAnchors = _headingAnchorSlugs;
             _headingAnchorSlugs = BuildHeadingAnchorSlugs(document);
             try {
+                // Table cells, running content and notes resolve list info per paragraph.
+                using (WordDocumentTraversal.UseListNumberingCatalog(document))
                 using (WordComplexFieldRunVisibility.BeginConversionScope())
                     BuildMarkdownDocument(document, markdown, options, cancellationToken);
             } finally {
