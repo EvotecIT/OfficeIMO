@@ -111,6 +111,9 @@
     <None Include="..\Assets\Brand\Evotec\evotec-logo-horizontal-gradient-2400.png"
           Link="Brand\evotec-logo-horizontal-gradient-2400.png"
           CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Assets\Images\Others\Logo-evotec.png"
+          Link="Brand\Logo-evotec.png"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
