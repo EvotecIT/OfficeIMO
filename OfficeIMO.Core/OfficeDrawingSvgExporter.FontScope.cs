@@ -7,7 +7,7 @@ public static partial class OfficeDrawingSvgExporter {
     // names when necessary, and scope them for inline pages sharing a document.
     private static string ScopeEmbeddedFontFamilies(string svg, OfficeFontFaceCollection fonts,
         string prefix, CancellationToken cancellationToken) {
-        if (fonts.Faces.Count == 0) return svg;
+        if (fonts.Faces.Count == 0 || !ContainsFontFamilyAttribute(svg)) return svg;
         var families = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var face in fonts.Faces) {
             if (!face.AllowsOutlineEmbedding) continue;
@@ -36,6 +36,37 @@ public static partial class OfficeDrawingSvgExporter {
         cancellationToken.ThrowIfCancellationRequested();
         return changed ? root.ToString(SaveOptions.DisableFormatting) : svg;
     }
+
+    // An XML attribute is its name, optional white space and '='. Style sheet declarations
+    // use ':' instead, so markup without such an attribute needs no parse.
+    private static bool ContainsFontFamilyAttribute(string markup) {
+        const string name = "font-family";
+        for (int index = markup.IndexOf(name, StringComparison.Ordinal); index >= 0;
+            index = markup.IndexOf(name, index + name.Length, StringComparison.Ordinal)) {
+            int next = index + name.Length;
+            while (next < markup.Length && IsXmlWhiteSpace(markup[next])) next++;
+            if (next < markup.Length && markup[next] == '=') return true;
+        }
+        return false;
+    }
+
+    // Only start tags can introduce a text or tspan element; '<' is escaped everywhere else
+    // in well-formed markup, so a fragment without such a tag has no text families to collect.
+    private static bool ContainsSvgTextElement(string markup) {
+        for (int index = markup.IndexOf('<'); index >= 0; index = markup.IndexOf('<', index + 1)) {
+            int start = index + 1, end = start;
+            while (end < markup.Length && !IsXmlWhiteSpace(markup[end]) && markup[end] != '>' && markup[end] != '/') end++;
+            int colon = markup.LastIndexOf(':', end - 1, end - start);
+            if (colon >= 0) start = colon + 1;
+            int length = end - start;
+            if (length == 4 && string.CompareOrdinal(markup, start, "text", 0, 4) == 0 ||
+                length == 5 && string.CompareOrdinal(markup, start, "tspan", 0, 5) == 0) return true;
+        }
+        return false;
+    }
+
+    private static bool IsXmlWhiteSpace(char character) =>
+        character == ' ' || character == '\t' || character == '\r' || character == '\n';
 
     private static bool RequiresQuotedCssFamily(string family) {
         if (string.IsNullOrWhiteSpace(family)) return true;

@@ -119,8 +119,8 @@ public static partial class OfficeDrawingSvgExporter {
                 OfficePoint point = contour[index];
                 var placed = new OfficePoint(x + point.X * scaleX, y + point.Y);
                 if (text.GlyphTransform.HasValue) placed = text.GlyphTransform.Value.TransformPoint(placed);
-                output.Append(index == 0 ? 'M' : 'L').Append(Format(placed.X))
-                    .Append(' ').Append(Format(placed.Y)).Append(' ');
+                output.Append(index == 0 ? 'M' : 'L').AppendNumber(placed.X)
+                    .Append(' ').AppendNumber(placed.Y).Append(' ');
             }
             output.Append('Z');
         }
@@ -179,7 +179,7 @@ public static partial class OfficeDrawingSvgExporter {
 
     private static void CollectSvgTextFontFamilies(string fragment, ISet<string> families, CancellationToken token) {
         token.ThrowIfCancellationRequested();
-        if (fragment.Length == 0) return;
+        if (fragment.Length == 0 || !ContainsSvgTextElement(fragment)) return;
         var root = XElement.Parse("<g>" + fragment + "</g>", LoadOptions.PreserveWhitespace);
         foreach (XElement element in root.Descendants().Where(e => e.Name.LocalName is "text" or "tspan")) {
             token.ThrowIfCancellationRequested();
