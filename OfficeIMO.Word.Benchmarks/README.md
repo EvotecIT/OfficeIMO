@@ -170,3 +170,13 @@ two sizes: both directions should grow about four times, not sixteen.
 ```powershell
 dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordMarkdownConversionBenchmarks*'
 ```
+
+`WordHtmlImportBenchmarks` converts generated HTML to Word in three shapes:
+nested containers (divs, articles and blockquotes), small tables inside divs,
+and nested lists inside divs, each at 100 and 400 blocks. Setup checks that
+every block, table and list item reaches the document. As above, the larger
+size should take about four times as long.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordHtmlImportBenchmarks*'
+```
