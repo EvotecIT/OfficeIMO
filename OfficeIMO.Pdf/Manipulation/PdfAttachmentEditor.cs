@@ -85,19 +85,27 @@ internal static class PdfAttachmentEditor {
         IReadOnlyDictionary<string, string> retainedOriginalNames, CancellationToken cancellationToken) {
         if (!security.RootObjectNumber.HasValue || !objects.TryGetValue(security.RootObjectNumber.Value, out PdfIndirectObject? root) || root.Value is not PdfDictionary catalog) throw new InvalidOperationException("PDF catalog is not readable.");
         List<FileAttachmentAnnotation> fileAttachmentAnnotations = CaptureFileAttachmentAnnotations(objects);
+        // Structure elements, pages, annotations and XObjects can own files through /AF. Capture those owners
+        // before the embedded-file graph is rebuilt so retained files stay linked to the same content.
+        List<AssociatedFileOwner> associatedFileOwners = CaptureAssociatedFileOwners(objects, catalog, out AssociatedFileSet catalogAssociations, cancellationToken);
         PdfDictionary? names = ResolveDictionary(objects, catalog.Items.TryGetValue("Names", out PdfObject? namesObject) ? namesObject : null);
         names?.Items.Remove("EmbeddedFiles");
         RemoveExistingEmbeddedFileGraph(objects, cancellationToken);
         PdfAssociatedFileGraph.RemoveAssociatedFileReferences(objects);
         if (attachments.Count == 0) {
+            ReconnectAssociatedFileOwners(associatedFileOwners, new Dictionary<int, PdfReference>(), new Dictionary<int, PdfReference>());
             return ReconnectFileAttachmentAnnotations(
                 objects,
+                catalog,
                 fileAttachmentAnnotations,
                 retainedOriginalNames,
                 new Dictionary<string, PdfReference>(StringComparer.Ordinal),
                 new Dictionary<int, PdfReference>(),
-                new Dictionary<int, PdfReference>());
+                new Dictionary<int, PdfReference>(),
+                cancellationToken);
         }
+        var contentAssociations = new AssociatedFileSet();
+        foreach (AssociatedFileOwner owner in associatedFileOwners) contentAssociations.UnionWith(owner.Files.Select(static entry => entry.Identity));
 
         if (names == null) { names = new PdfDictionary(); catalog.Items["Names"] = names; }
         int nextObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
@@ -126,19 +134,103 @@ internal static class PdfAttachmentEditor {
             if (entry.SourceIdentity.EmbeddedFileObjectNumber > 0) {
                 fileSpecificationsByOriginalEmbeddedFile[entry.SourceIdentity.EmbeddedFileObjectNumber] = reference;
             }
-            if (attachment.Relationship != PdfAssociatedFileRelationship.Unspecified) associated.Items.Add(reference);
+            // A file associated only with content stays a content association instead of becoming document-level.
+            bool contentOnly = contentAssociations.Contains(entry.SourceIdentity) && !catalogAssociations.Contains(entry.SourceIdentity);
+            if (attachment.Relationship != PdfAssociatedFileRelationship.Unspecified && !contentOnly) associated.Items.Add(reference);
         }
         var nameArray = new PdfArray();
         foreach ((byte[] keyBytes, PdfReference reference) in nameEntries) { nameArray.Items.Add(new PdfStringObj(keyBytes)); nameArray.Items.Add(reference); }
         var embeddedFiles = new PdfDictionary(); embeddedFiles.Items["Names"] = nameArray; names.Items["EmbeddedFiles"] = embeddedFiles;
         if (associated.Items.Count > 0) catalog.Items["AF"] = associated;
+        ReconnectAssociatedFileOwners(associatedFileOwners, fileSpecificationsByOriginalObject, fileSpecificationsByOriginalEmbeddedFile);
         return ReconnectFileAttachmentAnnotations(
             objects,
+            catalog,
             fileAttachmentAnnotations,
             retainedOriginalNames,
             fileSpecificationsByName,
             fileSpecificationsByOriginalObject,
-            fileSpecificationsByOriginalEmbeddedFile);
+            fileSpecificationsByOriginalEmbeddedFile,
+            cancellationToken);
+    }
+
+    private static List<AssociatedFileOwner> CaptureAssociatedFileOwners(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary catalog,
+        out AssociatedFileSet catalogAssociations,
+        CancellationToken cancellationToken) {
+        var owners = new List<AssociatedFileOwner>();
+        catalogAssociations = new AssociatedFileSet();
+        var visited = new HashSet<PdfObject>();
+        foreach (PdfIndirectObject indirect in objects.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
+            CaptureAssociatedFileOwners(objects, indirect.Value, catalog, owners, catalogAssociations, visited);
+        }
+        return owners;
+    }
+
+    private static void CaptureAssociatedFileOwners(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject value,
+        PdfDictionary catalog,
+        List<AssociatedFileOwner> owners,
+        AssociatedFileSet catalogAssociations,
+        ISet<PdfObject> visited) {
+        if (!visited.Add(value)) return;
+        PdfDictionary? dictionary = value is PdfStream stream ? stream.Dictionary : value as PdfDictionary;
+        if (dictionary != null) {
+            if (dictionary.Items.TryGetValue("AF", out PdfObject? associatedFiles) &&
+                PdfObjectLookup.Resolve(objects, associatedFiles) is PdfArray files) {
+                var entries = new List<AssociatedFileEntry>(files.Items.Count);
+                foreach (PdfObject file in files.Items) entries.Add(new AssociatedFileEntry(file, ResolveFileSpecificationIdentity(objects, file)));
+                if (ReferenceEquals(dictionary, catalog)) catalogAssociations.UnionWith(entries.Select(static entry => entry.Identity));
+                else if (entries.Count > 0) owners.Add(new AssociatedFileOwner(dictionary, entries));
+            }
+            foreach (PdfObject child in dictionary.Items.Values) {
+                if (child is not PdfReference) CaptureAssociatedFileOwners(objects, child, catalog, owners, catalogAssociations, visited);
+            }
+            return;
+        }
+        if (value is PdfArray array) {
+            foreach (PdfObject child in array.Items) {
+                if (child is not PdfReference) CaptureAssociatedFileOwners(objects, child, catalog, owners, catalogAssociations, visited);
+            }
+        }
+    }
+
+    private static PdfAttachmentSourceIdentity ResolveFileSpecificationIdentity(Dictionary<int, PdfIndirectObject> objects, PdfObject fileSpecification) {
+        int fileSpecObjectNumber = fileSpecification is PdfReference reference ? reference.ObjectNumber : 0;
+        PdfDictionary? embeddedFiles = ResolveDictionary(objects, ResolveDictionary(objects, fileSpecification) is PdfDictionary specification &&
+            specification.Items.TryGetValue("EF", out PdfObject? embeddedFilesObject) ? embeddedFilesObject : null);
+        PdfObject? embeddedFile = embeddedFiles == null ? null
+            : embeddedFiles.Items.TryGetValue("UF", out PdfObject? unicodeFile) ? unicodeFile
+            : embeddedFiles.Items.TryGetValue("F", out PdfObject? regularFile) ? regularFile : null;
+        return new PdfAttachmentSourceIdentity(fileSpecObjectNumber, embeddedFile is PdfReference stream ? stream.ObjectNumber : 0);
+    }
+
+    private static void ReconnectAssociatedFileOwners(
+        IReadOnlyList<AssociatedFileOwner> owners,
+        Dictionary<int, PdfReference> fileSpecificationsByOriginalObject,
+        Dictionary<int, PdfReference> fileSpecificationsByOriginalEmbeddedFile) {
+        foreach (AssociatedFileOwner owner in owners) {
+            var files = new PdfArray();
+            var added = new HashSet<int>();
+            foreach (AssociatedFileEntry entry in owner.Files) {
+                PdfAttachmentSourceIdentity identity = entry.Identity;
+                if (identity.EmbeddedFileObjectNumber <= 0) {
+                    // External file references are not attachments; this edit leaves them untouched.
+                    files.Items.Add(entry.Original);
+                    continue;
+                }
+                PdfReference? replacement = null;
+                if (identity.FileSpecObjectNumber > 0) fileSpecificationsByOriginalObject.TryGetValue(identity.FileSpecObjectNumber, out replacement);
+                if (replacement == null && identity.EmbeddedFileObjectNumber > 0)
+                    fileSpecificationsByOriginalEmbeddedFile.TryGetValue(identity.EmbeddedFileObjectNumber, out replacement);
+                // Removed files leave no dangling association; retained and renamed files keep their owner.
+                if (replacement != null && added.Add(replacement.ObjectNumber)) files.Items.Add(replacement);
+            }
+            if (files.Items.Count > 0) owner.Dictionary.Items["AF"] = files;
+        }
     }
 
     private static void RemoveExistingEmbeddedFileGraph(Dictionary<int, PdfIndirectObject> objects, CancellationToken cancellationToken) {
@@ -230,11 +322,13 @@ internal static class PdfAttachmentEditor {
 
     private static bool ReconnectFileAttachmentAnnotations(
         Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary catalog,
         IReadOnlyList<FileAttachmentAnnotation> annotations,
         IReadOnlyDictionary<string, string> retainedOriginalNames,
         Dictionary<string, PdfReference> fileSpecificationsByName,
         Dictionary<int, PdfReference> fileSpecificationsByOriginalObject,
-        Dictionary<int, PdfReference> fileSpecificationsByOriginalEmbeddedFile) {
+        Dictionary<int, PdfReference> fileSpecificationsByOriginalEmbeddedFile,
+        CancellationToken cancellationToken) {
         var removedObjectNumbers = new HashSet<int>();
         var removedDirectAnnotations = new HashSet<PdfDictionary>();
         foreach (FileAttachmentAnnotation annotation in annotations) {
@@ -263,6 +357,9 @@ internal static class PdfAttachmentEditor {
         }
 
         if (removedObjectNumbers.Count == 0 && removedDirectAnnotations.Count == 0) return false;
+        // Tagged annotations are structure content: drop their object references and parent-tree keys too.
+        if (removedObjectNumbers.Count > 0 && catalog.Items.ContainsKey("StructTreeRoot"))
+            PdfTaggedPageOrganizer.PruneStructure(objects, catalog, new HashSet<int>(), new HashSet<int>(removedObjectNumbers), cancellationToken);
         var visited = new HashSet<PdfObject>();
         foreach (PdfIndirectObject indirect in objects.Values) {
             RemoveFileAttachmentAnnotationReferences(indirect.Value, removedObjectNumbers, removedDirectAnnotations, visited);
@@ -303,6 +400,43 @@ internal static class PdfAttachmentEditor {
                 RemoveFileAttachmentAnnotationReferences(child, removedObjectNumbers, removedDirectAnnotations, visited);
             }
         }
+    }
+
+    private sealed class AssociatedFileOwner {
+        internal AssociatedFileOwner(PdfDictionary dictionary, IReadOnlyList<AssociatedFileEntry> files) {
+            Dictionary = dictionary;
+            Files = files;
+        }
+
+        internal PdfDictionary Dictionary { get; }
+        internal IReadOnlyList<AssociatedFileEntry> Files { get; }
+    }
+
+    private sealed class AssociatedFileEntry {
+        internal AssociatedFileEntry(PdfObject original, PdfAttachmentSourceIdentity identity) {
+            Original = original;
+            Identity = identity;
+        }
+
+        internal PdfObject Original { get; }
+        internal PdfAttachmentSourceIdentity Identity { get; }
+    }
+
+    /// <summary>Matches a file by either its file-specification or embedded-stream object.</summary>
+    private sealed class AssociatedFileSet {
+        private readonly HashSet<int> _fileSpecifications = new();
+        private readonly HashSet<int> _embeddedFiles = new();
+
+        internal void UnionWith(IEnumerable<PdfAttachmentSourceIdentity> identities) {
+            foreach (PdfAttachmentSourceIdentity identity in identities) {
+                if (identity.FileSpecObjectNumber > 0) _fileSpecifications.Add(identity.FileSpecObjectNumber);
+                if (identity.EmbeddedFileObjectNumber > 0) _embeddedFiles.Add(identity.EmbeddedFileObjectNumber);
+            }
+        }
+
+        internal bool Contains(PdfAttachmentSourceIdentity identity) =>
+            identity.FileSpecObjectNumber > 0 && _fileSpecifications.Contains(identity.FileSpecObjectNumber) ||
+            identity.EmbeddedFileObjectNumber > 0 && _embeddedFiles.Contains(identity.EmbeddedFileObjectNumber);
     }
 
     private sealed class FileAttachmentAnnotation {
