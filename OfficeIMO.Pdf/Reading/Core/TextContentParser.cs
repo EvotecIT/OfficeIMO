@@ -7,6 +7,19 @@ namespace OfficeIMO.Pdf;
 internal static partial class TextContentParser {
     // Retained glyph codes are read-only evidence, so every one-byte code shares one array.
     private static readonly byte[][] SingleByteGlyphCodes = CreateSingleByteGlyphCodes();
+    // Two-byte codes are filled in per leading byte on first use. Spans share glyph code arrays
+    // and never write to them, so equal codes can share one array across runs and documents.
+    private static readonly byte[]?[]?[] TwoByteGlyphCodes = new byte[]?[]?[256];
+
+    private static byte[] GetTwoByteGlyphCode(byte first, byte second) {
+        byte[]?[] row = System.Threading.Volatile.Read(ref TwoByteGlyphCodes[first])
+            ?? System.Threading.Interlocked.CompareExchange(ref TwoByteGlyphCodes[first], new byte[]?[256], null)
+            ?? TwoByteGlyphCodes[first]!;
+        byte[]? code = System.Threading.Volatile.Read(ref row[second]);
+        if (code is not null) return code;
+        code = new byte[] { first, second };
+        return System.Threading.Interlocked.CompareExchange(ref row[second], code, null) ?? code;
+    }
 
     private static byte[][] CreateSingleByteGlyphCodes() {
         var codes = new byte[256][];
@@ -458,12 +471,18 @@ internal static partial class TextContentParser {
         bool retainGlyphAndPaintEvidence = retainEditingEvidence || !useLogicalTextFilters;
         byte[]?[]? kernedRunBytes = null;
         double[]?[]? kernedRunKerning = null;
-        // Runs without glyph evidence never add to these lists, so one empty set serves every run.
-        List<double>? noEvidenceAdvances = retainGlyphAndPaintEvidence ? null : new List<double>(0);
-        List<int>? noEvidenceCharacterLengths = retainGlyphAndPaintEvidence ? null : new List<int>(0);
-        List<byte[]>? noEvidenceGlyphBytes = retainGlyphAndPaintEvidence ? null : new List<byte[]>(0);
-        List<double>? noEvidencePaintedAdvances = retainGlyphAndPaintEvidence ? null : new List<double>(0);
-        List<string>? noEvidenceLogicalTexts = retainGlyphAndPaintEvidence ? null : new List<string>(0);
+        // One text run is decoded at a time and spans copy what they keep, so every run of this
+        // parse reuses the same glyph evidence lists and text buffer. Runs without glyph evidence
+        // never add to the lists.
+        var runAdvances = new List<double>();
+        var runGlyphCharacterLengths = new List<int>();
+        var runGlyphBytes = new List<byte[]>();
+        var runGlyphPaintedAdvances = new List<double>();
+        var runGlyphLogicalTexts = new List<string>();
+        var runText = new StringBuilder();
+        // Decoders and width providers read probe and glyph codes without retaining them.
+        byte[]? reusableSingleByteCode = null;
+        byte[]? reusableTwoByteCode = null;
         var spans = new List<PdfTextSpan>();
         PdfTextStateSnapshot startingTextState = initialTextState ?? PdfTextStateSnapshot.Default;
         // Text state
@@ -920,14 +939,14 @@ internal static partial class TextContentParser {
                     args.Clear();
                     break;
                 case "'": // move to next line and show text
-                    if (args.Count >= 1) { MoveToNextTextLine(); ShowTextRun(ToBytes(args[args.Count - 1]), paintOrder, forceCannotRestamp: false); pendingGapPt = 0; }
+                    if (args.Count >= 1) { MoveToNextTextLine(); ShowTextRun(BorrowTextOperand(args.Count - 1), paintOrder, forceCannotRestamp: false); pendingGapPt = 0; }
                     args.Clear();
                     break;
                 case "\"": // set spacing and show text
-                    if (args.Count >= 3) { wordSpacing = args.NumberOrZero(args.Count - 3); charSpacing = args.NumberOrZero(args.Count - 2); MoveToNextTextLine(); ShowTextRun(ToBytes(args[args.Count - 1]), paintOrder, forceCannotRestamp: false); pendingGapPt = 0; }
+                    if (args.Count >= 3) { wordSpacing = args.NumberOrZero(args.Count - 3); charSpacing = args.NumberOrZero(args.Count - 2); MoveToNextTextLine(); ShowTextRun(BorrowTextOperand(args.Count - 1), paintOrder, forceCannotRestamp: false); pendingGapPt = 0; }
                     args.Clear();
                     break;
-                case "Tj": if (args.Count >= 1) { ShowTextRun(ToBytes(args[args.Count - 1]), paintOrder, forceCannotRestamp: false); pendingGapPt = 0; args.Clear(); } break;
+                case "Tj": if (args.Count >= 1) { ShowTextRun(BorrowTextOperand(args.Count - 1), paintOrder, forceCannotRestamp: false); pendingGapPt = 0; args.Clear(); } break;
                 case "TJ": if (args.Count >= 1) { ShowTextArray(args[args.Count - 1], paintOrder); args.Clear(); } break;
                 case "Do":
                     // Share replacement ownership with visible Form paint, retaining its
@@ -1174,12 +1193,13 @@ internal static partial class TextContentParser {
                 // text operand has an unknown advance even if its prefix is decodable.
                 throw new PdfUnsupportedTextMappingException(twoByteFont);
             }
-            byte[]? reusableSingleByteCode = null;
-            byte[]? reusableTwoByteCode = null;
             if (!twoByte && bytes.Length >= 2) {
                 // Decoders and width providers read probe codes without retaining them.
-                byte[] firstCode = reusableSingleByteCode = new byte[] { bytes[0] };
-                byte[] pairCode = reusableTwoByteCode = new byte[] { bytes[0], bytes[1] };
+                byte[] firstCode = reusableSingleByteCode ??= new byte[1];
+                firstCode[0] = bytes[0];
+                byte[] pairCode = reusableTwoByteCode ??= new byte[2];
+                pairCode[0] = bytes[0];
+                pairCode[1] = bytes[1];
                 string one = DecodeRun(firstCode, probe: true);
                 string two = DecodeRun(pairCode, probe: true);
                 double firstByteWidth = sumWidth1000ForFont(font, firstCode);
@@ -1189,15 +1209,22 @@ internal static partial class TextContentParser {
                 twoByte = (IsNullOrEmptyDecodedGlyph(one) && !IsNullOrEmptyDecodedGlyph(two)) ||
                     (firstByteWidth <= 0 && secondByteWidth <= 0 && pairWidth > 0);
             }
-            var sbOut = new StringBuilder(textOutputBudget.GetDecodedTextBufferCapacity(bytes.Length));
+            StringBuilder sbOut = runText.Clear();
+            // A run of one glyph keeps that glyph's text instead of copying it out of the buffer.
+            string? onlyAppendedText = null;
+            int appendedTexts = 0;
             // Per-glyph evidence feeds spans that expose glyphs, paint or visual trimming. Plain
-            // logical text reads none of it, so those runs skip the lists and reuse code buffers.
-            int glyphCapacity = retainGlyphAndPaintEvidence ? (twoByte ? (bytes.Length + 1) / 2 : bytes.Length) : 0;
-            List<double> decodedAdvances = noEvidenceAdvances ?? new List<double>(glyphCapacity);
-            List<int> decodedGlyphCharacterLengths = noEvidenceCharacterLengths ?? new List<int>(glyphCapacity);
-            List<byte[]> decodedGlyphBytes = noEvidenceGlyphBytes ?? new List<byte[]>(glyphCapacity);
-            List<double> decodedGlyphPaintedAdvances = noEvidencePaintedAdvances ?? new List<double>(glyphCapacity);
-            List<string> decodedGlyphLogicalTexts = noEvidenceLogicalTexts ?? new List<string>(glyphCapacity);
+            // logical text reads none of it, so those runs leave the lists empty and reuse code buffers.
+            List<double> decodedAdvances = runAdvances;
+            List<int> decodedGlyphCharacterLengths = runGlyphCharacterLengths;
+            List<byte[]> decodedGlyphBytes = runGlyphBytes;
+            List<double> decodedGlyphPaintedAdvances = runGlyphPaintedAdvances;
+            List<string> decodedGlyphLogicalTexts = runGlyphLogicalTexts;
+            decodedAdvances.Clear();
+            decodedGlyphCharacterLengths.Clear();
+            decodedGlyphBytes.Clear();
+            decodedGlyphPaintedAdvances.Clear();
+            decodedGlyphLogicalTexts.Clear();
             bool hasUndecodableGlyph = false;
             double advTotal = 0;
             string wholeDecoded = NormalizeDecodedGlyphText(DecodeRun(bytes) ?? string.Empty);
@@ -1215,7 +1242,7 @@ internal static partial class TextContentParser {
                 int step = twoByte ? (idx + 1 < bytes.Length ? 2 : 1) : 1;
                 byte[] g;
                 if (retainGlyphAndPaintEvidence) {
-                    g = step == 1 ? SingleByteGlyphCodes[bytes[idx]] : new byte[] { bytes[idx], bytes[idx + 1] };
+                    g = step == 1 ? SingleByteGlyphCodes[bytes[idx]] : GetTwoByteGlyphCode(bytes[idx], bytes[idx + 1]);
                 } else if (step == 1) {
                     g = reusableSingleByteCode ??= new byte[1];
                     g[0] = bytes[idx];
@@ -1228,7 +1255,10 @@ internal static partial class TextContentParser {
                 if (remainingGlyphCharacters <= 0) {
                     textOutputBudget.ThrowDecodedTextLimitExceeded();
                 }
-                string t = NormalizeDecodedGlyphText(DecodeRun(g, remainingGlyphCharacters) ?? string.Empty);
+                // A run of exactly one code decodes to the whole run's text under the same budget.
+                string t = idx == 0 && step == bytes.Length
+                    ? wholeDecoded
+                    : NormalizeDecodedGlyphText(DecodeRun(g, remainingGlyphCharacters) ?? string.Empty);
                 string logicalGlyphText = t;
                 if (!useLogicalTextFilters && visualEncodingForResource != null) {
                     string? encoded = visualEncodingForResource(font, g);
@@ -1257,6 +1287,7 @@ internal static partial class TextContentParser {
                     decodedGlyphCount++;
                     eachDecodedGlyphIsOneTextElement &= t.Length == 1 || OfficeTextElements.Count(t) == 1;
                     sbOut.Append(t);
+                    onlyAppendedText = appendedTexts++ == 0 ? t : null;
                     if (retainGlyphAndPaintEvidence) {
                         decodedGlyphCharacterLengths.Add(t.Length);
                         decodedGlyphBytes.Add(g);
@@ -1280,9 +1311,11 @@ internal static partial class TextContentParser {
                 return true;
             }
             if (!usedVisualEncoding && ((recoverRun && unsupportedMapping is not null) ||
-                ShouldUseWholeDecodedText(sbOut.ToString(), wholeDecoded))) {
+                ShouldUseWholeDecodedText(onlyAppendedText ?? sbOut.ToString(), wholeDecoded))) {
                 sbOut.Clear();
                 sbOut.Append(wholeDecoded);
+                onlyAppendedText = wholeDecoded;
+                appendedTexts = 1;
                 decodedAdvances.Clear();
                 decodedGlyphCharacterLengths.Clear();
                 decodedGlyphBytes.Clear();
@@ -1295,7 +1328,7 @@ internal static partial class TextContentParser {
             bool usesVisibleStroke = UsesStrokeTextPaint(textRenderingMode) && !strokeColorSpace.SuppressesPaint;
             bool isVisibleText = usesVisibleFill || usesVisibleStroke;
             if (sbOut.Length == 0 && actualTextState is null && !isArtifact && !isHidden) return true;
-            string textOut = sbOut.ToString();
+            string textOut = onlyAppendedText ?? sbOut.ToString();
             string paintedRun = textOut;
             var textOrigin = textMatrix.Transform(0, textRise);
             var (dx, dy) = ctm.Transform(textOrigin.X, textOrigin.Y);
@@ -1550,7 +1583,7 @@ internal static partial class TextContentParser {
                         span.SetLogicalDrawingText(logicalText);
                         if (spanLogicalGlyphTexts.Count == spanGlyphCharacterLengths.Count &&
                             string.Equals(string.Concat(spanLogicalGlyphTexts), logicalText, StringComparison.Ordinal))
-                            span.SetLogicalGlyphTexts(spanLogicalGlyphTexts);
+                            span.SetLogicalGlyphTexts(spanLogicalGlyphTexts.ToArray());
                     }
                 }
                 if (replaceInvisibleAnchor) {
@@ -1810,6 +1843,18 @@ internal static partial class TextContentParser {
 
         static string ToName(object o) { return o as string ?? string.Empty; }
         static byte[] ToBytes(object o) { return o as byte[] ?? Array.Empty<byte>(); }
+
+        // A shown string is read only while its run is decoded, like a joined kerned run, so
+        // strings of one length share a scratch array instead of materializing each operand.
+        byte[] BorrowTextOperand(int index) {
+            if (!args.IsString(index)) return ToBytes(args[index]);
+            int length = args.StringLength(index);
+            if (length == 0 || length >= KernedRunScratchLengths) return ToBytes(args[index]);
+            kernedRunBytes ??= new byte[KernedRunScratchLengths][];
+            byte[] scratch = kernedRunBytes[length] ??= new byte[length];
+            args.CopyStringTo(index, scratch, 0);
+            return scratch;
+        }
         void ApplyGraphicsStateResource(string name) {
             if (graphicsStates != null && graphicsStates.TryGetValue(name, out PdfPageGraphicsStateResource resource)) {
                 fillOpacity = resource.FillOpacity ?? fillOpacity;
