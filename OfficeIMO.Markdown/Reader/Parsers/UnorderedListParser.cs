@@ -26,7 +26,8 @@ internal static partial class MarkdownReader {
             }
 
             int j = i + 1;
-            List<MarkdownSourceLineSlice>? firstSourceLines = state.IsListBoundaryProbe
+            // A semantic parse collects source lines only for items that read continuation lines.
+            List<MarkdownSourceLineSlice>? firstSourceLines = state.IsListBoundaryProbe || !state.CaptureSyntaxTree
                 ? null
                 : new List<MarkdownSourceLineSlice>();
             List<string> firstLines = null!;
@@ -43,6 +44,9 @@ internal static partial class MarkdownReader {
                     out var singleFirst)) {
                 first = singleFirst;
             } else {
+                if (!state.IsListBoundaryProbe) {
+                    firstSourceLines ??= new List<MarkdownSourceLineSlice>();
+                }
                 firstLines = ConsumeListContinuationLines(
                     lines,
                     ref j,
@@ -109,7 +113,7 @@ internal static partial class MarkdownReader {
                     startColumn = GetListLeadContentStartColumn(lines[itemStart], options, isTask2);
                 }
                 int next = itemStart + 1;
-                List<MarkdownSourceLineSlice>? itemSourceLines = state.IsListBoundaryProbe
+                List<MarkdownSourceLineSlice>? itemSourceLines = state.IsListBoundaryProbe || !state.CaptureSyntaxTree
                     ? null
                     : new List<MarkdownSourceLineSlice>();
                 List<string> itemLines = null!;
@@ -126,6 +130,9 @@ internal static partial class MarkdownReader {
                         out var singleItem)) {
                     li = singleItem;
                 } else {
+                    if (!state.IsListBoundaryProbe) {
+                        itemSourceLines ??= new List<MarkdownSourceLineSlice>();
+                    }
                     itemLines = ConsumeListContinuationLines(
                         lines,
                         ref next,

@@ -36,8 +36,7 @@ internal static partial class MarkdownReader {
             return false;
         }
 
-        bool allowLiteralBrackets = !options.Footnotes && (state == null || state.LinkRefs.Count == 0);
-        if (!ValidateSimpleCommonMarkInlineTokens(text, options, allowLiteralBrackets)) {
+        if (!ValidateSimpleCommonMarkInlineTokens(text, options)) {
             return false;
         }
 
@@ -46,6 +45,17 @@ internal static partial class MarkdownReader {
         int textStart = 0;
         while (position < text.Length) {
             if (!TryReadSimpleCommonMarkInlineToken(text, position, options, out var token)) {
+                int literalRunLength = GetDelimiterRunLength(text, position);
+                if (literalRunLength > 0) {
+                    // Validation accepted it as a run that cannot open. The full parser keeps such a
+                    // run as its own text run, so the semantic document does too.
+                    AddSimpleTextRun(sequence, text, textStart, position - textStart);
+                    AddSimpleTextRun(sequence, text, position, literalRunLength);
+                    position += literalRunLength;
+                    textStart = position;
+                    continue;
+                }
+
                 position++;
                 continue;
             }
@@ -107,36 +117,19 @@ internal static partial class MarkdownReader {
 
     private static bool ValidateSimpleCommonMarkInlineTokens(
         string text,
-        MarkdownLoadOptions options,
-        bool allowLiteralBrackets) {
+        MarkdownLoadOptions options) {
         bool foundToken = false;
-        bool foundLiteralBracket = false;
         int position = 0;
         while (position < text.Length) {
             char value = text[position];
             if (value is '*' or '_' or '`' or '[' or '!') {
                 if (!TryReadSimpleCommonMarkInlineToken(text, position, options, out var token)) {
-                    // Without footnotes or collected reference definitions, an unmatched '['
-                    // cannot become a semantic link token. Keep scanning so ordinary bracketed
-                    // prose (including task markers and literal callout labels) stays on the
-                    // lightweight semantic path. A non-image '!' is likewise plain text.
-                    if (allowLiteralBrackets
-                        && value is '[' or '!'
-                        && !IsPotentialInlineLinkOrImage(text, position)) {
-                        foundLiteralBracket = true;
-                        position++;
-                        continue;
-                    }
-
                     // A delimiter run that cannot open has no unresolved frame to affect on
                     // this validating path. It is literal CommonMark text even when it can
-                    // close in isolation (for example, a trailing unmatched "**").
+                    // close in isolation (for example, a trailing unmatched "**"), and the
+                    // parse below keeps it as its own text run like the full parser.
                     if (value is '*' or '_') {
-                        int runLength = 1;
-                        while (position + runLength < text.Length && text[position + runLength] == value) {
-                            runLength++;
-                        }
-
+                        int runLength = GetDelimiterRunLength(text, position);
                         GetDelimiterFlags(
                             text,
                             position,
@@ -151,6 +144,8 @@ internal static partial class MarkdownReader {
                         }
                     }
 
+                    // A literal bracket or '!' becomes text in the full parser with run
+                    // boundaries this path does not reproduce, so it is left to that parser.
                     return false;
                 }
 
@@ -169,7 +164,7 @@ internal static partial class MarkdownReader {
             position++;
         }
 
-        return foundToken || foundLiteralBracket;
+        return foundToken;
     }
 
     private static bool TryParsePlainDoubleAsteriskInlines(
@@ -281,25 +276,30 @@ internal static partial class MarkdownReader {
 
             int openingPosition = runPositions[openerRun];
             int closingPosition = runPositions[closingRun];
-            AddSimpleTextRun(sequence, text, textStart, openingPosition - textStart);
+            AddTextKeepingDoubleAsteriskRuns(sequence, text, textStart, openingPosition - textStart);
 
             var strongContent = new InlineSequence(1) { AutoSpacing = false };
-            AddSimpleTextRun(strongContent, text, openingPosition + 2, closingPosition - openingPosition - 2);
+            AddTextKeepingDoubleAsteriskRuns(strongContent, text, openingPosition + 2, closingPosition - openingPosition - 2);
             sequence.AddRaw(new BoldSequenceInline(strongContent));
             textStart = closingPosition + 2;
         }
 
-        AddSimpleTextRun(sequence, text, textStart, text.Length - textStart);
+        AddTextKeepingDoubleAsteriskRuns(sequence, text, textStart, text.Length - textStart);
         return true;
     }
 
-    private static bool IsPotentialInlineLinkOrImage(string text, int start) {
-        int labelStart = text[start] == '!' ? start + 1 : start;
-        if (labelStart >= text.Length || text[labelStart] != '[') {
-            return false;
+    // Every "**" outside a matched pair is an unmatched run here, which the full parser keeps as
+    // its own text run.
+    private static void AddTextKeepingDoubleAsteriskRuns(InlineSequence sequence, string text, int start, int length) {
+        int end = start + length;
+        int textStart = start;
+        for (int position = text.IndexOf('*', start); position >= 0 && position < end; position = text.IndexOf('*', position + 2)) {
+            AddSimpleTextRun(sequence, text, textStart, position - textStart);
+            AddSimpleTextRun(sequence, text, position, 2);
+            textStart = position + 2;
         }
 
-        return text.IndexOf("](", labelStart + 1, StringComparison.Ordinal) >= 0;
+        AddSimpleTextRun(sequence, text, textStart, end - textStart);
     }
 
     private static bool TryReadSimpleCommonMarkInlineToken(
@@ -493,6 +493,20 @@ internal static partial class MarkdownReader {
         }
 
         return true;
+    }
+
+    private static int GetDelimiterRunLength(string text, int position) {
+        char value = text[position];
+        if (value is not ('*' or '_')) {
+            return 0;
+        }
+
+        int runLength = 1;
+        while (position + runLength < text.Length && text[position + runLength] == value) {
+            runLength++;
+        }
+
+        return runLength;
     }
 
     private static void AddSimpleTextRun(InlineSequence sequence, string text, int start, int length) {
