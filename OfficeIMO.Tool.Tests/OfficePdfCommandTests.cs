@@ -74,7 +74,7 @@ public sealed class OfficePdfCommandTests {
         using var error = new StringWriter();
 
         int exitCode = await OfficeImoToolApp.RunAsync(
-            ["convert", "source.xlsx", "result.csv"],
+            ["convert", "source.xlsx", "result.docx"],
             Stream.Null,
             output,
             error);

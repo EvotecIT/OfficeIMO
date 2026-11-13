@@ -1,3 +1,4 @@
+using System.Text.Json;
 using OfficeIMO.Pdf;
 using OfficeIMO.Tool.Commands.Workflow;
 using OfficeIMO.Workflows;
@@ -27,7 +28,17 @@ public sealed class PdfPrintCommandTests {
             Assert.Equal(placement.SlotX + placement.SlotWidth - placement.Width, placement.X, 6);
             Assert.Equal(2, service.Options!.Copies);
             Assert.Equal(PdfPrintDuplex.LongEdge, service.Options.Duplex);
-            Assert.Contains("Physical delivery is unconfirmed", output.ToString());
+            using (JsonDocument receipt = JsonDocument.Parse(output.ToString())) {
+                Assert.Equal("officeimo.workflow.print.v1", receipt.RootElement.GetProperty("schema").GetString());
+                Assert.Equal("test-42", receipt.RootElement.GetProperty("jobId").GetString());
+                Assert.Equal(2, receipt.RootElement.GetProperty("copies").GetInt32());
+            }
+
+            output.GetStringBuilder().Clear();
+            Assert.Equal((int)OfficeImoToolExitCode.Success, await WorkflowPrintCommand.RunAsync(["printers"], output, error, CancellationToken.None, service));
+            using JsonDocument queues = JsonDocument.Parse(output.ToString());
+            Assert.Equal("officeimo.workflow.printers.v1", queues.RootElement.GetProperty("schema").GetString());
+            Assert.Equal("Test queue", Assert.Single(queues.RootElement.GetProperty("printers").EnumerateArray().ToArray()).GetProperty("name").GetString());
         } finally { File.Delete(path); }
     }
 
