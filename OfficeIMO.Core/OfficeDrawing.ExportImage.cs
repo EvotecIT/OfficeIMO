@@ -22,7 +22,7 @@ public sealed partial class OfficeDrawing {
                 double scale = effective.GetEffectiveScale(Width, Height);
                 byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(drawing, scale, OfficeSvgSizeUnit.Pixel, codec,
                     resourceIdPrefix: null, maximumUtf8Bytes: effective.MaximumTotalEncodedBytes, cancellationToken: token,
-                    maximumRasterPixels: effective.MaximumRasterPixels);
+                    maximumRasterPixels: effective.MaximumRasterPixels, diagnosticSink: diagnostics, diagnosticSource: source);
                 return effective.EnsureAccepted(new OfficeImageExportResult(format, (int)Math.Max(1D, OfficeRasterScaleLimiter.CeilingPixels(Width * scale)),
                     (int)Math.Max(1D, OfficeRasterScaleLimiter.CeilingPixels(Height * scale)), svg, source: source, diagnostics: diagnostics));
             }

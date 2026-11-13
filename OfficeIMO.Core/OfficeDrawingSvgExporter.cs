@@ -222,6 +222,8 @@ public static partial class OfficeDrawingSvgExporter {
 
     private static void AppendGroup(StringBuilder sb, OfficeDrawingGroup drawingGroup, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, OfficeDrawingRasterRenderOptions rasterOptions, OfficeRasterCanvas textMetrics, bool textAsPaths, System.Collections.Generic.ISet<string> requiredFontFamilies) {
         textMetrics = textMetrics.WithDrawingTextProfile(drawingGroup.InnerDrawing);
+        if (drawingGroup.FrameTransform.HasValue && drawingGroup.FrameTransform.Value.HasTransform)
+            rasterOptions = TransformRasterOptions(rasterOptions, drawingGroup.FrameTransform.Value.CreateDestinationTransform());
         string groupClipPathId = idPrefix + "officeimo-group-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
         AppendClipPathDefinition(sb, groupClipPathId, drawingGroup.ClipPath);
         string transform = BuildGroupTransformAttribute(drawingGroup);

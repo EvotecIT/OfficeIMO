@@ -23,6 +23,10 @@ public sealed class PdfOutputIntentCompositionTests {
         Assert.Equal(82D, before[0].Y, 4);
 
         OfficeDrawing drawing = page.ToDrawing();
+        OfficeDrawingText[] drawingText = DrawingText(drawing).ToArray();
+        Assert.Equal(label, string.Concat(drawingText.Select(text => text.Text)));
+        Assert.Equal(6D, drawingText[0].X, 4);
+        Assert.Equal(4D, drawingText[0].Y, 4);
         Assert.True(OfficePngReader.TryDecode(File.ReadAllBytes(Fixture($"page-{pageNumber}-reference.png")), out OfficeRasterImage? reference));
         Assert.NotNull(reference);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, background: OfficeColor.White);
@@ -56,7 +60,7 @@ public sealed class PdfOutputIntentCompositionTests {
     public void ProducerBatch_ReportsOnlyPagesThatRequirePostComposition() {
         byte[] pdf = File.ReadAllBytes(Fixture("reportlab-output-intent.pdf"));
         IReadOnlyList<PdfPageRenderResult> results = PdfPageImageRenderer.RenderPages(pdf);
-        Assert.Equal(4, results.Count);
+        Assert.Equal(5, results.Count);
         Assert.All(results, result => Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics)));
         Assert.DoesNotContain(results[0].CapabilityDiagnostics, item => item.Code.Contains("post-composition"));
         Assert.All(results.Skip(1), result => Assert.Contains(result.CapabilityDiagnostics,
@@ -85,6 +89,45 @@ public sealed class PdfOutputIntentCompositionTests {
             }));
         Assert.Equal(100, error.MaximumPixels);
         Assert.Equal(128 * 96, error.RequestedPixels);
+    }
+
+    [Fact]
+    public void ProofedSvg_RejectsImageOmissionEvenWithASmallPage() {
+        OfficeDrawing drawing = PdfReadDocument.Open(File.ReadAllBytes(Fixture("reportlab-output-intent.pdf"))).Pages[1].ToDrawing();
+        drawing.AddImage(OfficePngWriter.Encode(new OfficeRasterImage(200, 200, OfficeColor.Red)), "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0, 0, 10, 10)));
+        Assert.Throws<NotSupportedException>(() => drawing.ToImage(OfficeImageExportFormat.Svg,
+            new OfficeImageExportOptions { MaximumRasterPixels = 20_000, FailOnLoss = true }));
+    }
+
+    [Fact]
+    public void PortableDrawing_RejectsDestinationProofInsteadOfLosingItsAppearance() {
+        OfficeDrawing drawing = PdfReadDocument.Open(File.ReadAllBytes(Fixture("reportlab-output-intent.pdf"))).Pages[4].ToDrawing();
+        var options = new OfficeDrawingPortableOptions("Carlito");
+        Assert.True(OfficeDrawingPortableExporter.TryExportJson(drawing.CreateCompositionSource(), options,
+            out _, out IReadOnlyList<OfficeDiagnostic> controlDiagnostics), string.Join(" ", controlDiagnostics.Select(item => item.Message)));
+        Assert.False(OfficeDrawingPortableExporter.TryExportJson(drawing, options, out string? json,
+            out IReadOnlyList<OfficeDiagnostic> diagnostics));
+        Assert.Null(json);
+        Assert.Equal("DRAWING_COLOR_TRANSFORM_UNSUPPORTED", Assert.Single(diagnostics).Code);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void EnlargedSvg_RetainsAccumulatedProofSurfaceDensity(bool pattern) {
+        OfficeDrawing page = PdfReadDocument.Open(File.ReadAllBytes(Fixture("reportlab-output-intent.pdf"))).Pages[1].ToDrawing();
+        var drawing = new OfficeDrawing(512, 384);
+        if (pattern) drawing.AddTilingPattern(page, new OfficeImagePlacement(0, 0, 512, 384), 128, 96,
+            transform: OfficeTransform.Scale(4, 4));
+        else drawing.AddEffectDrawing(new OfficeDrawing(256, 192).AddEffectDrawing(page, OfficeTransform.Scale(2, 2)),
+            OfficeTransform.Scale(2, 2));
+        XElement image = Assert.Single(XDocument.Parse(OfficeDrawingSvgExporter.ToSvg(drawing)).Descendants(),
+            item => item.Name.LocalName == "image");
+        Assert.True(OfficePngReader.TryDecode(Convert.FromBase64String(image.Attribute("href")!.Value.Split(',')[1]),
+            out OfficeRasterImage? raster));
+        Assert.Equal(512, raster!.Width);
+        Assert.Equal(384, raster.Height);
     }
 
     [Theory]
@@ -135,5 +178,15 @@ public sealed class PdfOutputIntentCompositionTests {
         Assert.InRange(Math.Abs(actual.G - expected.G), 0, 4);
         Assert.InRange(Math.Abs(actual.B - expected.B), 0, 4);
         Assert.Equal((byte)255, actual.A);
+    }
+
+    private static IEnumerable<OfficeDrawingText> DrawingText(OfficeDrawing drawing) {
+        foreach (OfficeDrawingElement element in drawing.Elements) {
+            if (element is OfficeDrawingText text) yield return text;
+            else if (element is OfficeDrawingGroup group)
+                foreach (OfficeDrawingText child in DrawingText(group.InnerDrawing)) yield return child;
+            else if (element is OfficeDrawingEffectGroup effect)
+                foreach (OfficeDrawingText child in DrawingText(effect.InnerDrawing)) yield return child;
+        }
     }
 }

@@ -64,10 +64,11 @@ def main():
     output_profile = profile()
     plain = io.BytesIO()
     canvas = Canvas(plain, pagesize=(128, 96), invariant=1, pageCompression=0)
-    labels = ["Opaque proof", "Opacity proof", "Multiply proof", "Image mask proof"]
+    labels = ["Opaque proof", "Opacity proof", "Multiply proof", "Image mask proof", ""]
     for index, label in enumerate(labels):
         canvas.setFont("Corpus", 10)
-        canvas.drawString(6, 82, label)
+        if label:
+            canvas.drawString(6, 82, label)
         canvas.setFillColorRGB(.1, .25, .9)
         canvas.rect(8, 8, 72, 56, fill=1, stroke=0)
         canvas.saveState()
@@ -89,6 +90,8 @@ def main():
     producer = PdfReader(io.BytesIO(plain.getvalue()))
     writer = PdfWriter(clone_from=producer)
     writer.pdf_header = producer.pdf_header
+    writer.pages[4][NameObject("/Group")] = DictionaryObject({
+        NameObject("/S"): NameObject("/Transparency"), NameObject("/CS"): NameObject("/DeviceRGB")})
     icc = DecodedStreamObject()
     icc.set_data(output_profile)
     icc[NameObject("/N")] = NumberObject(3)
@@ -112,6 +115,7 @@ def main():
         for page in range(2, 5):
             authored = Image.open(directory / f"page-{page}.png").convert("RGB")
             reference = ImageCms.applyTransform(ImageCms.applyTransform(authored, to_device), to_display)
+            reference.info.clear()  # Keep pixel baselines independent of generated ICC timestamps.
             reference.save(ROOT / f"page-{page}-reference.png")
             samples.append({"page": page, "label": labels[page - 1],
                             "pixels": [{"x": x, "y": 56, "rgb": list(reference.getpixel((x, 56)))}

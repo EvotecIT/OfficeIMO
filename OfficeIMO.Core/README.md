@@ -181,7 +181,7 @@ if (!OfficeDrawingPortableExporter.TryExportJson(drawing, options, out string? j
 File.WriteAllText("chart.json", json!);
 ```
 
-The exporter rejects unsupported elements before returning a payload. Gradients, transparency, images, nonrectangular clips, rotated or wrapped text, variable/color fonts and complex text shaping are outside this profile. Solid strokes retain caps and joins; miter joins require a miter limit of ten. Pair positioning uses the existing Core font metrics; adjusted Latin runs become individually positioned characters. Fonts are supplied separately. Resource options bound elements, commands, nesting, text and JSON size. Drawing dimensions cannot exceed 14,400 points; coordinates must be finite and within one million points.
+The exporter rejects unsupported elements before returning a payload. Gradients, transparency, post-composition color transforms, images, nonrectangular clips, rotated or wrapped text, variable/color fonts and complex text shaping are outside this profile. Solid strokes retain caps and joins; miter joins require a miter limit of ten. Pair positioning uses the existing Core font metrics; adjusted Latin runs become individually positioned characters. Fonts are supplied separately. Resource options bound elements, commands, nesting, text and JSON size. Drawing dimensions cannot exceed 14,400 points; coordinates must be finite and within one million points.
 
 ## Native VBA projects
 

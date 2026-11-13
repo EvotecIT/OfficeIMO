@@ -175,7 +175,8 @@ internal static class PdfImageExportEngine {
                     fallbackCodec,
                     resourceIdPrefix: null,
                     maximumUtf8Bytes: maximumBytes,
-                    cancellationToken: cancellationToken, maximumRasterPixels: effective.MaximumRasterPixels),
+                    cancellationToken: cancellationToken, maximumRasterPixels: effective.MaximumRasterPixels,
+                    diagnosticSink: diagnostics, diagnosticSource: source),
                 cancellationToken);
             return options.EnsureAccepted(new OfficeImageExportResult(
                 format,
