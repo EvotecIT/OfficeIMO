@@ -30,9 +30,24 @@ internal static partial class MarkdownReader {
             return null;
         }
 
+        // An angle destination opens with "](", optional whitespace that may end the line, then '<'.
         for (int i = 0; i < lineCount; i++) {
-            if (line(i)?.IndexOf('<') >= 0) {
-                return new List<int>();
+            var value = line(i);
+            if (value == null) {
+                continue;
+            }
+
+            for (int opening = value.IndexOf("](", StringComparison.Ordinal); opening >= 0; opening = value.IndexOf("](", opening + 2, StringComparison.Ordinal)) {
+                int next = opening + 2;
+                while (next < value.Length && char.IsWhiteSpace(value[next])) {
+                    next++;
+                }
+
+                if (next < value.Length
+                    ? value[next] == '<'
+                    : i + 1 < lineCount && line(i + 1)?.TrimStart().StartsWith("<", StringComparison.Ordinal) == true) {
+                    return new List<int>();
+                }
             }
         }
 
