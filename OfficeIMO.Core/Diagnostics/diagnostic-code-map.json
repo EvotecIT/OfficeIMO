@@ -2716,6 +2716,14 @@
       ]
     },
     {
+      "oldCode": "markdown-front-matter-invalid-toml",
+      "catalogCode": "markdown-front-matter-invalid-toml",
+      "member": "MarkdownFrontMatterInvalidToml",
+      "origins": [
+        "OfficeIMO.Markdown/Reader/MarkdownReader.Blocks.FrontMatter.cs"
+      ]
+    },
+    {
       "oldCode": "MarkdownToWordWarning",
       "catalogCode": "markdown-to-word-warning",
       "member": "MarkdownToWordWarning",
@@ -11311,6 +11319,12 @@
       "catalogPattern": "yaml-{area}-{rule}",
       "source": "OfficeIMO.Yaml/YamlException.cs",
       "notes": "YamlException.ToDiagnostic converts the stable YamlErrorCodes values, such as Yaml.Syntax.InvalidIndentation to yaml-syntax-invalid-indentation. Yaml.Load.DuplicateKey keeps its literal entry, yaml-duplicate-key."
+    },
+    {
+      "oldPattern": "Toml.{area}.{rule}",
+      "catalogPattern": "toml-{area}-{rule}",
+      "source": "OfficeIMO.Toml/TomlException.cs",
+      "notes": "TomlException.ToDiagnostic converts the stable TomlErrorCodes values, such as Toml.Load.DuplicateKey to toml-load-duplicate-key."
     }
   ],
   "dynamicForwardingSites": [

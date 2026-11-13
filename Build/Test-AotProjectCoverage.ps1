@@ -160,6 +160,10 @@ $buildAnalyzers = @(
         evidence = 'The analyzer generates an explicit row-mapping plan that compiles into and executes from the main NativeAOT host; the analyzer itself is a build-time component, not a runtime assembly.'
     }
     [ordered]@{
+        name = 'OfficeIMO.Toml.SourceGeneration'
+        evidence = 'The generator emits TomlSerializer metadata that compiles into and executes from the OfficeIMO.Toml.AotSmoke NativeAOT host; the generator itself is a build-time component, not a runtime assembly.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.Yaml.SourceGeneration'
         evidence = 'The generator emits YamlSerializer metadata that compiles into and executes from the OfficeIMO.Yaml.AotSmoke NativeAOT host; the generator itself is a build-time component, not a runtime assembly.'
     }

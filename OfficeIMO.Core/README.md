@@ -86,6 +86,10 @@ selector in a typed chart call. `WordChartOptions` adds rounded corners,
 `PowerPointChartOptions` adds slide placement and accessibility. Omitting options
 keeps each format's native drawing defaults.
 
+## Serializer mapping attributes
+
+`YamlSerializer` (`OfficeIMO.Yaml`) and `TomlSerializer` (`OfficeIMO.Toml`) read one set of mapping attributes, so a model type maps to both formats the same way: `[OfficePropertyName]`, `[OfficeIgnore]` with `OfficeIgnoreCondition`, `[OfficeRequired]`, `[OfficeConstructor]`, `[OfficeDerivedType]` and `[OfficePolymorphic]`. `OfficeNamingPolicy` (`CamelCase`, `SnakeCaseLower`, `KebabCaseLower`) converts property names for both serializers' options.
+
 ## Conversion diagnostics
 
 `OfficeConversionReport` records a completed conversion's `Source`, `Target`,

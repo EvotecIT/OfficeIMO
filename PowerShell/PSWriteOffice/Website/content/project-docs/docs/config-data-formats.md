@@ -1,6 +1,6 @@
 ---
 title: "Configuration Files and Data Conversion"
-description: "Edit YAML without losing comments, read and write TOML, and convert JSON, YAML, TOML, XML, CSV and Excel data from PowerShell."
+description: "Edit YAML and TOML without losing comments, read and write them as objects, and convert JSON, YAML, TOML, XML, CSV and Excel data from PowerShell."
 layout: docs
 ---
 
@@ -9,6 +9,7 @@ Configuration and data files are a large part of everyday scripting: Helm values
 | Task | Commands |
 | --- | --- |
 | Change a YAML file and keep its comments and layout | `Open-OfficeYaml`, `Set-OfficeYamlNode`, `Remove-OfficeYamlNode`, `Save-OfficeYaml` |
+| Change a TOML file and keep its comments and layout | `Open-OfficeToml`, `Set-OfficeTomlNode`, `Remove-OfficeTomlNode`, `Save-OfficeToml` |
 | Layer one YAML file over another | `Merge-OfficeDocument` |
 | Read or write YAML and TOML as objects | `Import-OfficeYaml`, `Export-OfficeYaml`, `Import-OfficeToml`, `Export-OfficeToml` and the `ConvertFrom-`/`ConvertTo-` forms |
 | Check YAML before a deployment | `Test-OfficeYaml` |
@@ -114,6 +115,20 @@ updated = 2026-11-11T09:30:00Z
 
 TOML has no null. A `$null` property is left out and reported with a warning rather than written as an empty string.
 
+## Edit TOML without rewriting it
+
+`Open-OfficeToml` loads a `pyproject.toml`, `Cargo.toml` or site configuration as a document, the way `Open-OfficeYaml` does for YAML. Saving it changes only the text you edited; comments, alignment, quoting and the spelling of other values such as `0xFF` stay as they were.
+
+```powershell
+Open-OfficeToml -Path .\pyproject.toml {
+    Set-OfficeTomlNode -Select 'project.version' -Value '1.2.0'
+    Set-OfficeTomlNode -Select 'tool.ruff.line-length' -Value 100
+    Remove-OfficeTomlNode -Select 'tool.ruff.lint.ignore'
+}
+```
+
+A key below a missing table, such as `tool.ruff` above, adds the table's `[header]` section. `Get-OfficeTomlNode` reads values by the same path grammar as `Get-OfficeYamlNode`, with their line and column. `New-OfficeToml` creates a file, and `Save-OfficeToml` and `Close-OfficeToml` keep a document open across several steps.
+
 ## Convert between data formats
 
 `Convert-OfficeDocument` converts between JSON, JSON Lines (`.jsonl`, `.ndjson`), YAML, TOML, XML, CSV, TSV, and Excel worksheets. The output extension selects the target, and the data streams through without being loaded into an object model first:
@@ -158,6 +173,7 @@ Convert-OfficeDocument -Path .\service.json -OutputPath .\service.toml -FailOnLo
 ## Runnable examples
 
 - [Edit, merge, and read YAML configuration](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Yaml/Example-YamlEditMergeConvert.ps1)
+- [Edit a TOML project file in place](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Toml/Example-TomlEditInPlace.ps1)
 - [TOML lock files and data conversions](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Data/Example-DataConversions.ps1)
 - [Safe CSV export](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Csv/Recipe-Csv-SafeExport.ps1)
 

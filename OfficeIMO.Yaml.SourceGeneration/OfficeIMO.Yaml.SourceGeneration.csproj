@@ -17,6 +17,11 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
   </ItemGroup>
 
+  <!-- The shape rules and emitter are shared with the TOML generator, which ships in its own package. -->
+  <ItemGroup>
+    <Compile Include="..\OfficeIMO.SharedSource\SerializerGeneration\*.cs" Link="Shared\%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <ItemGroup>
     <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
     <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />

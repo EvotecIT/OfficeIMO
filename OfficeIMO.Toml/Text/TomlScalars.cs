@@ -205,7 +205,9 @@ internal static class TomlScalars {
         }
 #if NETSTANDARD2_0 || NET472
         try {
-            return double.Parse(buffer.Slice(0, length).ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
+            double value = double.Parse(buffer.Slice(0, length).ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
+            // .NET Framework parses "-0.0" as positive zero.
+            return value == 0 && negative ? -0.0 : value;
         } catch (OverflowException) {
             // .NET Framework throws where modern .NET rounds to infinity, as IEEE 754 does.
             return negative ? double.NegativeInfinity : double.PositiveInfinity;
@@ -346,13 +348,16 @@ internal static class TomlScalars {
         };
     }
 
-    /// <summary>Decodes the raw text of a validated key or string (with its quotes) to its value.</summary>
+    /// <summary>
+    /// Decodes the raw text of a validated key or string (with its quotes) to its value. Short values without escapes
+    /// come from <see cref="TomlStringCache"/>, since keys and many values repeat.
+    /// </summary>
     public static string Decode(ReadOnlySpan<char> raw, TomlStringStyle style) {
         switch (style) {
             case TomlStringStyle.Bare:
-                return raw.ToString();
+                return TomlStringCache.Get(raw);
             case TomlStringStyle.Literal:
-                return raw.Slice(1, raw.Length - 2).ToString();
+                return TomlStringCache.Get(raw.Slice(1, raw.Length - 2));
             case TomlStringStyle.Basic:
                 return DecodeBasic(raw.Slice(1, raw.Length - 2), multiline: false);
             case TomlStringStyle.MultilineLiteral: {
@@ -381,7 +386,7 @@ internal static class TomlScalars {
 
     private static string DecodeBasic(ReadOnlySpan<char> body, bool multiline) {
         int first = multiline ? body.IndexOfAny('\\', '\r') : body.IndexOf('\\');
-        if (first < 0) return body.ToString();
+        if (first < 0) return TomlStringCache.Get(body);
         var text = new StringBuilder(body.Length);
         text.Append(body.Slice(0, first).ToString());
         for (int i = first; i < body.Length; i++) {

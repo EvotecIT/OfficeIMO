@@ -19,6 +19,10 @@ public sealed partial class TomlDocument : IDisposable {
     internal readonly List<TomlTable> _headers = new List<TomlTable>();
     private int[]? _lineStarts;
     private TomlLayout? _layout;
+    /// <summary>Trailing comments set by editing; few nodes ever have one, so nodes do not carry a field for it.</summary>
+    private Dictionary<TomlNode, string?>? _changedComments;
+    /// <summary>Loaded nodes removed from each container by editing, kept so saving can delete their text.</summary>
+    private Dictionary<TomlNode, List<TomlNode>>? _removedNodes;
 
     private TomlDocument(string source, bool byteOrderMark, string? filePath) {
         _source = source;
@@ -37,10 +41,13 @@ public sealed partial class TomlDocument : IDisposable {
     /// <param name="path">The file the document saves to.</param>
     public static TomlDocument Create(string path) {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return new TomlDocument(string.Empty, byteOrderMark: false, path);
+        return new TomlDocument(string.Empty, byteOrderMark: false, Path.GetFullPath(path));
     }
 
-    /// <summary>Gets the file the document was loaded from or created for, which <see cref="Save()"/> writes; <see langword="null"/> for parsed or stream documents.</summary>
+    /// <summary>
+    /// Gets the full path of the file the document was loaded from, created for or last saved to, which <see cref="Save()"/>
+    /// writes; <see langword="null"/> for parsed or stream documents not yet saved to a file.
+    /// </summary>
     public string? FilePath { get; private set; }
 
     /// <summary>Gets the root table: the key/value pairs before the first header, and every top-level table.</summary>
@@ -57,7 +64,8 @@ public sealed partial class TomlDocument : IDisposable {
     /// <summary>
     /// Sets the value a path addresses and returns the node now there. The last step must be a key or an array index;
     /// missing tables on the way are added with <see cref="TomlTable.AddTable"/>, so
-    /// <c>Set("tool.ruff.line-length", 100)</c> works on a file without a <c>[tool.ruff]</c> table.
+    /// <c>Set("tool.ruff.line-length", 100)</c> works on a file without a <c>[tool.ruff]</c> table. An index equal to its
+    /// array's count appends.
     /// </summary>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> or <paramref name="value"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="path"/> is malformed or <paramref name="value"/> is not representable.</exception>
@@ -74,6 +82,18 @@ public sealed partial class TomlDocument : IDisposable {
     }
 
     internal TomlLayout Layout => _layout ??= new TomlLayout(this);
+
+    internal string? GetChangedComment(TomlNode node) => _changedComments != null && _changedComments.TryGetValue(node, out string? comment) ? comment : null;
+
+    internal void SetChangedComment(TomlNode node, string? comment) => (_changedComments ??= new Dictionary<TomlNode, string?>())[node] = comment;
+
+    internal List<TomlNode>? RemovedFrom(TomlNode container) => _removedNodes != null && _removedNodes.TryGetValue(container, out List<TomlNode>? removed) ? removed : null;
+
+    internal void AddRemoved(TomlNode container, TomlNode node) {
+        _removedNodes ??= new Dictionary<TomlNode, List<TomlNode>>();
+        if (!_removedNodes.TryGetValue(container, out List<TomlNode>? removed)) _removedNodes[container] = removed = new List<TomlNode>();
+        removed.Add(node);
+    }
 
     /// <summary>Converts an offset into the source to a position, building the line table on first use.</summary>
     internal TomlPosition GetPosition(int offset) {

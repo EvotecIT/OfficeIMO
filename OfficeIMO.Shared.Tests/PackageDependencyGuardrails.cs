@@ -519,7 +519,12 @@ public sealed class PackageDependencyGuardrailTests {
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlThemeColorResolver.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeVbaProjectPartEditor.cs",
                 "OfficeIMO.SharedSource/Processes/OfficeWindowsSuspendedProcess.cs",
-                "OfficeIMO.SharedSource/Reader/OfficeDocumentModelReaderMapping.cs"
+                "OfficeIMO.SharedSource/Reader/OfficeDocumentModelReaderMapping.cs",
+                "OfficeIMO.SharedSource/Serialization/SerializerTypeShapes.cs",
+                "OfficeIMO.SharedSource/SerializerGeneration/SerializerContextEmitter.cs",
+                "OfficeIMO.SharedSource/SerializerGeneration/SerializerContextParser.cs",
+                "OfficeIMO.SharedSource/SerializerGeneration/SerializerFormat.cs",
+                "OfficeIMO.SharedSource/SerializerGeneration/SerializerGenerationResult.cs"
             },
             files);
     }

@@ -7,7 +7,7 @@ namespace OfficeIMO.Toml;
 public sealed class TomlTableArray : TomlNode, IReadOnlyList<TomlTable> {
     internal readonly List<TomlTable> _items = new List<TomlTable>();
     /// <summary>Loaded tables removed by editing, kept so saving can delete their sections.</summary>
-    internal List<TomlNode>? _removed;
+    internal List<TomlNode>? _removed => _document.RemovedFrom(this);
 
     internal TomlTableArray(TomlDocument document) : base(document) {
     }
@@ -44,14 +44,42 @@ public sealed class TomlTableArray : TomlNode, IReadOnlyList<TomlTable> {
     public void RemoveAt(int index) {
         TomlTable table = this[index];
         _items.RemoveAt(index);
-        TomlEditing.Detach(table, ref _removed);
+        TomlEditing.Detach(this, table);
         TomlEditing.MarkChanged(this);
     }
 
     /// <summary>Returns an enumerator over the tables.</summary>
-    public IEnumerator<TomlTable> GetEnumerator() => _items.GetEnumerator();
+    public Enumerator GetEnumerator() => new Enumerator(this);
+
+    IEnumerator<TomlTable> IEnumerable<TomlTable>.GetEnumerator() => GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    /// <summary>Enumerates the tables in order without allocating.</summary>
+    public struct Enumerator : IEnumerator<TomlTable> {
+        private readonly List<TomlTable> _items;
+        private int _index;
+
+        internal Enumerator(TomlTableArray tables) {
+            _items = tables._items;
+            _index = -1;
+        }
+
+        /// <inheritdoc />
+        public TomlTable Current => _items[_index];
+
+        object IEnumerator.Current => Current;
+
+        /// <inheritdoc />
+        public bool MoveNext() => ++_index < _items.Count;
+
+        /// <inheritdoc />
+        public void Reset() => _index = -1;
+
+        /// <inheritdoc />
+        public void Dispose() {
+        }
+    }
 
     internal void AddLoaded(TomlTable table) {
         table._parent = this;

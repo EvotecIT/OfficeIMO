@@ -1,3 +1,5 @@
+using OfficeIMO.Core.Internal;
+
 namespace OfficeIMO.Toml;
 
 /// <summary>
@@ -5,10 +7,13 @@ namespace OfficeIMO.Toml;
 /// across releases and identifies the rule that failed; the message is for people and may change.
 /// </summary>
 public class TomlException : Exception {
+    private readonly string _reason;
+
     internal TomlException(string code, string message, TomlPosition position, Exception? innerException = null)
         : base(FormatMessage(message, position), innerException) {
         Code = code;
         Position = position;
+        _reason = message;
     }
 
     /// <summary>Gets the stable error code, one of the <see cref="TomlErrorCodes"/> values.</summary>
@@ -22,6 +27,21 @@ public class TomlException : Exception {
 
     /// <summary>Gets the one-based column where the problem was detected.</summary>
     public int Column => Position.Column;
+
+    /// <summary>
+    /// Returns the failure as an error <see cref="OfficeDiagnostic"/>, so a caller can report a file that does not load
+    /// next to the findings of files that do.
+    /// </summary>
+    /// <remarks>
+    /// <para>The code is the catalog form of <see cref="Code"/>: <c>Toml.Load.DuplicateKey</c> becomes
+    /// <c>toml-load-duplicate-key</c>.</para>
+    /// <para>The location is <c>line:column</c>, or <see langword="null"/> when the failure has no position. The message
+    /// leaves the position out. A host file that embeds the TOML, such as Markdown front matter, adds its own line offset
+    /// to <see cref="Line"/>.</para>
+    /// </remarks>
+    public OfficeDiagnostic ToDiagnostic() =>
+        new OfficeDiagnostic(OfficeDiagnosticCodeText.FromDottedCode(Code), OfficeDiagnosticSeverity.Error, _reason,
+            Position.Line > 0 ? Position.ToString() : null, "TOML");
 
     private static string FormatMessage(string message, TomlPosition position) =>
         position.Line > 0
@@ -81,4 +101,17 @@ public static class TomlErrorCodes {
     public const string InvalidArrayOfTables = "Toml.Load.InvalidArrayOfTables";
     /// <summary>A limit from <see cref="TomlReaderOptions"/> or <see cref="TomlLoadOptions"/> was exceeded; see <see cref="TomlLimitExceededException"/>.</summary>
     public const string LimitExceeded = "Toml.Limit.Exceeded";
+    /// <summary>A value <see cref="TomlSerializer"/> cannot read as the target type, such as a string for an integer property.</summary>
+    public const string TypeMismatch = "Toml.Serialization.TypeMismatch";
+    /// <summary>A table without a key that the target type requires.</summary>
+    public const string MissingRequiredMember = "Toml.Serialization.MissingRequiredMember";
+    /// <summary>A discriminator that is missing or not registered with <c>[OfficeDerivedType]</c> for the target type.</summary>
+    public const string UnknownDiscriminator = "Toml.Serialization.UnknownDiscriminator";
+    /// <summary>An object that contains itself, which TOML cannot write.</summary>
+    public const string ReferenceCycle = "Toml.Serialization.ReferenceCycle";
+    /// <summary>
+    /// A value TOML cannot hold: a null array item, a null property or dictionary value under
+    /// <see cref="TomlNullHandling.Error"/>, or an integer outside the 64-bit signed range.
+    /// </summary>
+    public const string UnrepresentableValue = "Toml.Serialization.UnrepresentableValue";
 }

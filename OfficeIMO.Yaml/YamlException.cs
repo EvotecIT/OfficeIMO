@@ -1,3 +1,5 @@
+using OfficeIMO.Core.Internal;
+
 namespace OfficeIMO.Yaml;
 
 /// <summary>
@@ -52,22 +54,8 @@ public class YamlException : Exception {
             Position.Line > 0 ? Position.ToString() : null, "YAML");
 
     /// <summary>Converts a <see cref="YamlErrorCodes"/> value to its catalog code (the <c>Yaml.{area}.{rule}</c> pattern).</summary>
-    internal static string DiagnosticCode(string code) {
-        if (code == YamlErrorCodes.DuplicateKey) return OfficeDiagnosticCodes.YamlDuplicateKey;
-        var text = new StringBuilder(code.Length + 8);
-        for (int i = 0; i < code.Length; i++) {
-            char ch = code[i];
-            if (ch == '.') {
-                text.Append('-');
-            } else if (char.IsUpper(ch)) {
-                if (i > 0 && char.IsLower(code[i - 1])) text.Append('-');
-                text.Append(char.ToLowerInvariant(ch));
-            } else {
-                text.Append(ch);
-            }
-        }
-        return text.ToString();
-    }
+    internal static string DiagnosticCode(string code) =>
+        code == YamlErrorCodes.DuplicateKey ? OfficeDiagnosticCodes.YamlDuplicateKey : OfficeDiagnosticCodeText.FromDottedCode(code);
 
     /// <summary>Adds the source excerpt; returns false so it can run in an exception filter without catching.</summary>
     internal bool AttachSource(string source) {

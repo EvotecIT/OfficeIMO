@@ -59,8 +59,8 @@ internal sealed class YamlKitLane {
 /// </summary>
 internal static class YamlKitLanes {
     private static readonly UTF8Encoding Utf8 = new(false);
-    private static readonly YamlSerializerOptions OfficeOptions = new() { PropertyNamingPolicy = YamlNamingPolicy.CamelCase };
-    private static readonly KitYamlContext OfficeContext = new(new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase });
+    private static readonly YamlSerializerOptions OfficeOptions = new() { PropertyNamingPolicy = OfficeNamingPolicy.CamelCase };
+    private static readonly KitYamlContext OfficeContext = new(new YamlSerializerOptions { PropertyNamingPolicy = OfficeNamingPolicy.CamelCase });
     private static readonly KitOneYamlContext OneContext = KitOneYamlContext.Default;
     private static readonly Sharp.YamlSerializerOptions SharpLoad = new() { ReferenceHandling = Sharp.YamlReferenceHandling.Preserve };
     private static readonly Sharp.YamlSerializerOptions SharpDump = new();

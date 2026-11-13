@@ -9,7 +9,7 @@ namespace OfficeIMO.Yaml.Tests.Serialization;
 // Contract: a shape the serializer cannot handle is a build error at the context, never a runtime fallback. Each case
 // must produce exactly its diagnostic, so a harness or reference problem cannot pass for the expected error.
 public class YamlSourceGeneratorTests {
-    private const string Usings = "using System; using System.Collections; using System.Collections.Generic; using OfficeIMO.Yaml;\n";
+    private const string Usings = "using System; using System.Collections; using System.Collections.Generic; using OfficeIMO; using OfficeIMO.Yaml;\n";
 
     [Theory]
     [InlineData("YAML001", "[YamlSerializable(typeof(int))] public class Context : YamlSerializerContext { }")]
@@ -21,10 +21,10 @@ public class YamlSourceGeneratorTests {
     [InlineData("YAML002", "public class Model { public IntPtr Handle { get; set; } } [YamlSerializable(typeof(Model))] public partial class Context : YamlSerializerContext { }")]
     [InlineData("YAML003", "public class Model { public Model(int a) { } public Model(string b) { } public int A { get; set; } } [YamlSerializable(typeof(Model))] public partial class Context : YamlSerializerContext { }")]
     [InlineData("YAML003", "public class Model { public Model(int count) { } public int Total { get; set; } } [YamlSerializable(typeof(Model))] public partial class Context : YamlSerializerContext { }")]
-    [InlineData("YAML003", "public class Model { [YamlConstructor] public Model() { } [YamlConstructor] public Model(int a) { A = a; } public int A { get; set; } } [YamlSerializable(typeof(Model))] public partial class Context : YamlSerializerContext { }")]
-    [InlineData("YAML004", "public class Model { [YamlPropertyName(\"x\")] public int A { get; set; } [YamlPropertyName(\"x\")] public int B { get; set; } } [YamlSerializable(typeof(Model))] public partial class Context : YamlSerializerContext { }")]
-    [InlineData("YAML005", "public class Other { } [YamlDerivedType(typeof(Other), \"o\")] public class Model { } [YamlSerializable(typeof(Model))] public partial class Context : YamlSerializerContext { }")]
-    [InlineData("YAML005", "public class A : Model { } public class B : Model { } [YamlDerivedType(typeof(A), \"same\")] [YamlDerivedType(typeof(B), \"same\")] public class Model { } [YamlSerializable(typeof(Model))] public partial class Context : YamlSerializerContext { }")]
+    [InlineData("YAML003", "public class Model { [OfficeConstructor] public Model() { } [OfficeConstructor] public Model(int a) { A = a; } public int A { get; set; } } [YamlSerializable(typeof(Model))] public partial class Context : YamlSerializerContext { }")]
+    [InlineData("YAML004", "public class Model { [OfficePropertyName(\"x\")] public int A { get; set; } [OfficePropertyName(\"x\")] public int B { get; set; } } [YamlSerializable(typeof(Model))] public partial class Context : YamlSerializerContext { }")]
+    [InlineData("YAML005", "public class Other { } [OfficeDerivedType(typeof(Other), \"o\")] public class Model { } [YamlSerializable(typeof(Model))] public partial class Context : YamlSerializerContext { }")]
+    [InlineData("YAML005", "public class A : Model { } public class B : Model { } [OfficeDerivedType(typeof(A), \"same\")] [OfficeDerivedType(typeof(B), \"same\")] public class Model { } [YamlSerializable(typeof(Model))] public partial class Context : YamlSerializerContext { }")]
     public void UnsupportedShapesAreBuildErrors(string expectedId, string source) {
         ImmutableArray<Diagnostic> diagnostics = Generate(Usings + source);
         Assert.True(diagnostics.Length == 1 && diagnostics[0].Id == expectedId,

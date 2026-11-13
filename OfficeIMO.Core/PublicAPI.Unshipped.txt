@@ -209,6 +209,7 @@ const OfficeIMO.OfficeDiagnosticCodes.YamlMergeAnchorRenamed = "yaml-merge-ancho
 const OfficeIMO.OfficeDiagnosticCodes.YamlMergeKeyNotRemoved = "yaml-merge-key-not-removed" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.YamlMergeKindConflict = "yaml-merge-kind-conflict" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.MarkdownFrontMatterInvalidYaml = "markdown-front-matter-invalid-yaml" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.MarkdownFrontMatterInvalidToml = "markdown-front-matter-invalid-toml" -> string!
 OfficeIMO.OfficeHiddenDataFinding
 OfficeIMO.OfficeHiddenDataFinding.Description.get -> string!
 OfficeIMO.OfficeHiddenDataFinding.Kind.get -> OfficeIMO.OfficeHiddenDataKind
@@ -294,3 +295,33 @@ OfficeIMO.OfficeHiddenDataReason.WholeFileCredentialsCannotSurvive = 6 -> Office
 OfficeIMO.OfficeHiddenDataReason.UnsupportedImageFormat = 7 -> OfficeIMO.OfficeHiddenDataReason
 OfficeIMO.OfficeHiddenDataReason.KeptByProvenanceChoices = 8 -> OfficeIMO.OfficeHiddenDataReason
 OfficeIMO.OfficeHiddenDataReason.UnusedImage = 9 -> OfficeIMO.OfficeHiddenDataReason
+OfficeIMO.OfficeConstructorAttribute
+OfficeIMO.OfficeConstructorAttribute.OfficeConstructorAttribute() -> void
+OfficeIMO.OfficeDerivedTypeAttribute
+OfficeIMO.OfficeDerivedTypeAttribute.DerivedType.get -> System.Type!
+OfficeIMO.OfficeDerivedTypeAttribute.Discriminator.get -> string!
+OfficeIMO.OfficeDerivedTypeAttribute.OfficeDerivedTypeAttribute(System.Type! derivedType, string! discriminator) -> void
+OfficeIMO.OfficeIgnoreAttribute
+OfficeIMO.OfficeIgnoreAttribute.Condition.get -> OfficeIMO.OfficeIgnoreCondition
+OfficeIMO.OfficeIgnoreAttribute.Condition.set -> void
+OfficeIMO.OfficeIgnoreAttribute.OfficeIgnoreAttribute() -> void
+OfficeIMO.OfficeIgnoreCondition
+OfficeIMO.OfficeIgnoreCondition.Always = 1 -> OfficeIMO.OfficeIgnoreCondition
+OfficeIMO.OfficeIgnoreCondition.Never = 0 -> OfficeIMO.OfficeIgnoreCondition
+OfficeIMO.OfficeIgnoreCondition.WhenWritingDefault = 3 -> OfficeIMO.OfficeIgnoreCondition
+OfficeIMO.OfficeIgnoreCondition.WhenWritingNull = 2 -> OfficeIMO.OfficeIgnoreCondition
+OfficeIMO.OfficeNamingPolicy
+OfficeIMO.OfficeNamingPolicy.OfficeNamingPolicy() -> void
+OfficeIMO.OfficePolymorphicAttribute
+OfficeIMO.OfficePolymorphicAttribute.DiscriminatorPropertyName.get -> string?
+OfficeIMO.OfficePolymorphicAttribute.DiscriminatorPropertyName.set -> void
+OfficeIMO.OfficePolymorphicAttribute.OfficePolymorphicAttribute() -> void
+OfficeIMO.OfficePropertyNameAttribute
+OfficeIMO.OfficePropertyNameAttribute.Name.get -> string!
+OfficeIMO.OfficePropertyNameAttribute.OfficePropertyNameAttribute(string! name) -> void
+OfficeIMO.OfficeRequiredAttribute
+OfficeIMO.OfficeRequiredAttribute.OfficeRequiredAttribute() -> void
+abstract OfficeIMO.OfficeNamingPolicy.ConvertName(string! name) -> string!
+static OfficeIMO.OfficeNamingPolicy.CamelCase.get -> OfficeIMO.OfficeNamingPolicy!
+static OfficeIMO.OfficeNamingPolicy.KebabCaseLower.get -> OfficeIMO.OfficeNamingPolicy!
+static OfficeIMO.OfficeNamingPolicy.SnakeCaseLower.get -> OfficeIMO.OfficeNamingPolicy!

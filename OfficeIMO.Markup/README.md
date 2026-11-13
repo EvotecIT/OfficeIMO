@@ -53,7 +53,7 @@ if (result.HasErrors) {
 }
 
 Console.WriteLine(result.Document.Profile);
-Console.WriteLine(result.Document.Metadata["title"]);
+Console.WriteLine(result.Document.FrontMatter?.Select("title")?.AsString());
 ```
 
 ### Emit starter C# for handoff
@@ -87,7 +87,7 @@ result.Document.SaveAsWord("status-brief.docx", new MarkupWordExportOptions {
 ## What it understands
 
 - Common Markdown structure through `OfficeIMO.Markdown`: headings, paragraphs, lists, fenced code, images, and pipe tables.
-- Front matter for document-level metadata and target profile selection.
+- YAML (`---`) or TOML (`+++`) front matter, read by `OfficeIMO.Markdown`, for document-level metadata and target profile selection. `OfficeMarkupDocument.FrontMatter` is the `FrontMatterBlock`, so nested values, lists, quoting and comments follow YAML or TOML, and front matter that cannot be read is a diagnostic with its line and column.
 - Container directives such as `@slide`, `@section`, and `@sheet`.
 - Office-aware blocks such as `::notes`, `::chart`, `::mermaid`, `::range`, `::formula`, `::table`, `::textbox`, `::columns`, `::column`, and `::card`.
 - Semantic chart, workbook, slide, document, layout, and style attributes that exporters can map to editable Office features.

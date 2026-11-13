@@ -50,7 +50,7 @@ internal static class TomlPath {
             throw new InvalidOperationException("The path step " + Describe(last) + " needs a table but found " + TomlNode.Describe(current.Kind) + ".");
         }
         if (current is TomlArray array) {
-            if (last.Index >= array.Count) throw new InvalidOperationException("The index " + Describe(last) + " is outside the array.");
+            if (last.Index > array.Count) throw new InvalidOperationException("The index " + Describe(last) + " is outside the array.");
             return array.Set((int)last.Index, value);
         }
         throw new InvalidOperationException("The path step " + Describe(last) + " needs an array but found " + TomlNode.Describe(current.Kind) + ".");

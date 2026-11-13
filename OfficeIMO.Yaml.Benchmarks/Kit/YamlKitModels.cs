@@ -44,7 +44,7 @@ public partial class KitWorkflow {
 
 [YamlObject]
 public partial class KitTriggers {
-    [YamlMember("pull_request"), YamlPropertyName("pull_request"), JsonPropertyName("pull_request")]
+    [YamlMember("pull_request"), OfficePropertyName("pull_request"), JsonPropertyName("pull_request")]
     public string? PullRequest { get; set; }
     public KitPush Push { get; set; } = new();
 }
@@ -56,7 +56,7 @@ public partial class KitPush {
 
 [YamlObject]
 public partial class KitJob {
-    [YamlMember("runs-on"), YamlPropertyName("runs-on"), JsonPropertyName("runs-on")]
+    [YamlMember("runs-on"), OfficePropertyName("runs-on"), JsonPropertyName("runs-on")]
     public string RunsOn { get; set; } = string.Empty;
     public KitStrategy? Strategy { get; set; }
     /// <summary>An image name or a mapping with <c>image</c> and <c>options</c>.</summary>
@@ -73,7 +73,7 @@ public partial class KitStrategy {
 
 [YamlObject]
 public partial class KitMatrix {
-    [YamlMember("runs-on"), YamlPropertyName("runs-on"), JsonPropertyName("runs-on")]
+    [YamlMember("runs-on"), OfficePropertyName("runs-on"), JsonPropertyName("runs-on")]
     public List<string> RunsOn { get; set; } = new();
 }
 
@@ -87,7 +87,7 @@ public partial class KitService {
 public partial class KitStep {
     public string? Id { get; set; }
     public string? Name { get; set; }
-    [YamlMember("if"), YamlPropertyName("if"), JsonPropertyName("if")]
+    [YamlMember("if"), OfficePropertyName("if"), JsonPropertyName("if")]
     public string? Condition { get; set; }
     public string? Uses { get; set; }
     public string? Run { get; set; }

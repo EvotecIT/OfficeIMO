@@ -16,9 +16,11 @@ internal static partial class MarkdownPowerPointProjection {
             string? title = MarkdownFrontMatterText.Get(source, "title");
             string? subtitle = MarkdownFrontMatterText.Get(source, "subtitle");
             string? author = MarkdownFrontMatterText.Get(source, "author");
-            if (title is { Length: > 0 }) { current.Title = title; target.Metadata["title"] = title; }
+            var designValues = new Dictionary<string, object?>(StringComparer.Ordinal);
+            if (title is { Length: > 0 }) { current.Title = title; designValues["title"] = title; }
             if (subtitle is { Length: > 0 }) current.Blocks.Add(new OfficeMarkupParagraphBlock(subtitle));
-            if (author is { Length: > 0 }) { current.Blocks.Add(new OfficeMarkupParagraphBlock(author)); target.Metadata["author"] = author; }
+            if (author is { Length: > 0 }) { current.Blocks.Add(new OfficeMarkupParagraphBlock(author)); designValues["author"] = author; }
+            if (designValues.Count > 0) target.FrontMatter = FrontMatterBlock.FromObject(designValues);
         }
         foreach (IMarkdownBlock block in source.Blocks) {
             token.ThrowIfCancellationRequested();

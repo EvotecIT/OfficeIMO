@@ -14,6 +14,15 @@ public static class TomlWorkloadCheck {
                 Console.WriteLine(workload + ": " + ex.Message);
             }
         }
+        foreach (TomlSerializerWorkload workload in Enum.GetValues<TomlSerializerWorkload>()) {
+            try {
+                TomlSerializerLibraries.Validate(workload);
+                Console.WriteLine("Serializer " + workload + ": ok");
+            } catch (Exception ex) {
+                failures++;
+                Console.WriteLine("Serializer " + workload + ": " + ex.Message);
+            }
+        }
         return failures == 0 ? 0 : 1;
     }
 

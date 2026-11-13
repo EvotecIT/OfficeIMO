@@ -13,12 +13,12 @@ public sealed class TomlTable : TomlNode, IReadOnlyCollection<KeyValuePair<strin
     private const int LinearLookupLimit = 8;
 
     internal TomlTableKind _tableKind;
-    internal string[] _keys = Array.Empty<string>();
+    /// <summary>The entries in order; each node holds its own key.</summary>
     internal TomlNode[] _nodes = Array.Empty<TomlNode>();
     internal int _count;
     private Dictionary<string, int>? _index;
     /// <summary>Loaded entries removed by editing, kept so saving can delete their text.</summary>
-    internal List<TomlNode>? _removed;
+    internal List<TomlNode>? _removed => _document.RemovedFrom(this);
     /// <summary>The index of the table's header in <see cref="TomlDocument._headers"/>, or -1.</summary>
     internal int _section = -1;
 
@@ -38,7 +38,7 @@ public sealed class TomlTable : TomlNode, IReadOnlyCollection<KeyValuePair<strin
     /// <summary>Gets the keys in order.</summary>
     public IEnumerable<string> Keys {
         get {
-            for (int i = 0; i < _count; i++) yield return _keys[i];
+            for (int i = 0; i < _count; i++) yield return _nodes[i]._key!;
         }
     }
 
@@ -167,15 +167,51 @@ public sealed class TomlTable : TomlNode, IReadOnlyCollection<KeyValuePair<strin
         int index = IndexOf(key);
         if (index < 0) return false;
         RemoveAt(index);
+        // A table made only by dotted keys or by deeper headers has no text of its own, so once empty it would vanish
+        // on save; remove it here too, so the model matches what reloading the saved text gives.
+        if (_count == 0 && _tableKind is TomlTableKind.Dotted or TomlTableKind.Implicit && _parent is TomlTable parent && (_state & TomlNodeState.Detached) == 0) {
+            parent.Remove(_key!);
+        }
         return true;
     }
 
     /// <summary>Returns an enumerator over the keys and nodes in order.</summary>
-    public IEnumerator<KeyValuePair<string, TomlNode>> GetEnumerator() {
-        for (int i = 0; i < _count; i++) yield return new KeyValuePair<string, TomlNode>(_keys[i], _nodes[i]);
-    }
+    public Enumerator GetEnumerator() => new Enumerator(this);
+
+    IEnumerator<KeyValuePair<string, TomlNode>> IEnumerable<KeyValuePair<string, TomlNode>>.GetEnumerator() => GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    /// <summary>Enumerates the keys and nodes of a table in order without allocating.</summary>
+    public struct Enumerator : IEnumerator<KeyValuePair<string, TomlNode>> {
+        private readonly TomlTable _table;
+        private int _index;
+
+        internal Enumerator(TomlTable table) {
+            _table = table;
+            _index = -1;
+        }
+
+        /// <inheritdoc />
+        public KeyValuePair<string, TomlNode> Current {
+            get {
+                TomlNode node = _table._nodes[_index];
+                return new KeyValuePair<string, TomlNode>(node._key!, node);
+            }
+        }
+
+        object IEnumerator.Current => Current;
+
+        /// <inheritdoc />
+        public bool MoveNext() => ++_index < _table._count;
+
+        /// <inheritdoc />
+        public void Reset() => _index = -1;
+
+        /// <inheritdoc />
+        public void Dispose() {
+        }
+    }
 
     /// <summary>Returns whether new tables under this one must be inline: it is inline or inside an inline table or array.</summary>
     internal bool IsInlineScope() => _tableKind == TomlTableKind.Inline || InInlineContext();
@@ -183,7 +219,7 @@ public sealed class TomlTable : TomlNode, IReadOnlyCollection<KeyValuePair<strin
     internal int IndexOf(string key) {
         if (_count <= LinearLookupLimit) {
             for (int i = 0; i < _count; i++) {
-                if (string.Equals(_keys[i], key, StringComparison.Ordinal)) return i;
+                if (string.Equals(_nodes[i]._key, key, StringComparison.Ordinal)) return i;
             }
             return -1;
         }
@@ -193,7 +229,7 @@ public sealed class TomlTable : TomlNode, IReadOnlyCollection<KeyValuePair<strin
 
     private Dictionary<string, int> BuildIndex() {
         var index = new Dictionary<string, int>(_count, StringComparer.Ordinal);
-        for (int i = 0; i < _count; i++) index[_keys[i]] = i;
+        for (int i = 0; i < _count; i++) index[_nodes[i]._key!] = i;
         return index;
     }
 
@@ -209,24 +245,17 @@ public sealed class TomlTable : TomlNode, IReadOnlyCollection<KeyValuePair<strin
 
     private void RemoveAt(int index) {
         TomlNode node = _nodes[index];
-        Array.Copy(_keys, index + 1, _keys, index, _count - index - 1);
         Array.Copy(_nodes, index + 1, _nodes, index, _count - index - 1);
         _count--;
-        _keys[_count] = null!;
         _nodes[_count] = null!;
         _index = null;
-        TomlEditing.Detach(node, ref _removed);
+        TomlEditing.Detach(this, node);
         TomlEditing.MarkChanged(this);
     }
 
     /// <summary>Adds an entry without change tracking; the builder and editing both use it.</summary>
     internal void AddEntry(string key, TomlNode node) {
-        if (_count == _keys.Length) {
-            int size = Math.Max(4, _count * 2);
-            Array.Resize(ref _keys, size);
-            Array.Resize(ref _nodes, size);
-        }
-        _keys[_count] = key;
+        if (_count == _nodes.Length) Array.Resize(ref _nodes, Math.Max(4, _count * 2));
         _nodes[_count] = node;
         _index?.Add(key, _count);
         _count++;

@@ -681,6 +681,7 @@ jobs:
           $projects = @(
             'OfficeIMO.Core/OfficeIMO.Core.csproj',
             'OfficeIMO.Yaml/OfficeIMO.Yaml.csproj',
+            'OfficeIMO.Toml/OfficeIMO.Toml.csproj',
             'OfficeIMO.Markdown/OfficeIMO.Markdown.csproj',
             'OfficeIMO.Rtf/OfficeIMO.Rtf.csproj',
             'OfficeIMO.Email/OfficeIMO.Email.csproj',
@@ -751,6 +752,7 @@ jobs:
           foreach ($packageId in @(
             'OfficeIMO.Core',
             'OfficeIMO.Yaml',
+            'OfficeIMO.Toml',
             'OfficeIMO.Markdown',
             'OfficeIMO.Rtf',
             'OfficeIMO.Email',
@@ -864,6 +866,7 @@ jobs:
           $projects = @(
             'OfficeIMO.Core/OfficeIMO.Core.csproj',
             'OfficeIMO.Yaml/OfficeIMO.Yaml.csproj',
+            'OfficeIMO.Toml/OfficeIMO.Toml.csproj',
             'OfficeIMO.Markdown/OfficeIMO.Markdown.csproj',
             'OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj',
             'OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj',
@@ -893,6 +896,7 @@ jobs:
           $packageIds = @(
             'OfficeIMO.Core',
             'OfficeIMO.Yaml',
+            'OfficeIMO.Toml',
             'OfficeIMO.Markdown',
             'OfficeIMO.Html.Core',
             'OfficeIMO.Html.AngleSharp',

@@ -20,6 +20,7 @@ try {
     $projects = @(
         'OfficeIMO.Core/OfficeIMO.Core.csproj',
         'OfficeIMO.Yaml/OfficeIMO.Yaml.csproj',
+        'OfficeIMO.Toml/OfficeIMO.Toml.csproj',
         'OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj',
         'OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj',
         'OfficeIMO.Html/OfficeIMO.Html.csproj',

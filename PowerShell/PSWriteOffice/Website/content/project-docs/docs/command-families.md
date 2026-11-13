@@ -28,7 +28,7 @@ The PSWriteOffice website catalog groups every exported cmdlet into exactly one 
 | RTF | 8 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | CSV | 3 | [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/) |
 | YAML | 12 | [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/) |
-| TOML | 4 | [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/) |
+| TOML | 11 | [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/) |
 | OpenDocument | 11 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | Email | 9 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | AsciiDoc | 3 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |

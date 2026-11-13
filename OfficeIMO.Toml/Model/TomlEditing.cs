@@ -11,10 +11,10 @@ internal static class TomlEditing {
         }
     }
 
-    /// <summary>Marks a removed node; loaded nodes are remembered so saving deletes their text.</summary>
-    public static void Detach(TomlNode node, ref List<TomlNode>? removed) {
+    /// <summary>Marks a node removed from a container; loaded nodes are remembered so saving deletes their text.</summary>
+    public static void Detach(TomlNode container, TomlNode node) {
         node._state |= TomlNodeState.Detached;
-        if (node.IsLoaded) (removed ??= new List<TomlNode>()).Add(node);
+        if (node.IsLoaded) container._document.AddRemoved(container, node);
     }
 
     /// <summary>Gives a new node the position of the loaded node it replaces, so saving writes it in the same place.</summary>
@@ -24,7 +24,6 @@ internal static class TomlEditing {
         node._start = old._start;
         node._end = old._end;
         node._keyStart = old._keyStart;
-        node._keyEnd = old._keyEnd;
         node._state |= TomlNodeState.Dirty;
     }
 
@@ -195,12 +194,12 @@ internal sealed class TomlLayout {
         KeySeparator = " = ";
         KeyIndent = string.Empty;
         TomlNode? sample = FindKeyValue(document._root);
-        if (sample != null) KeySeparator = source.Substring(sample._keyEnd, sample._start - sample._keyEnd);
+        if (sample != null) KeySeparator = source.Substring(sample.PairKeyEnd, sample._start - sample.PairKeyEnd);
         foreach (TomlTable header in document._headers) {
             TomlNode? first = FindKeyValue(header);
             if (first != null) {
                 KeyIndent = text.Indentation(first._keyStart);
-                if (sample == null) KeySeparator = source.Substring(first._keyEnd, first._start - first._keyEnd);
+                if (sample == null) KeySeparator = source.Substring(first.PairKeyEnd, first._start - first.PairKeyEnd);
                 break;
             }
         }

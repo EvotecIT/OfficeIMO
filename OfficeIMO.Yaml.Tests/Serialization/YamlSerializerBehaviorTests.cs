@@ -192,7 +192,7 @@ public class YamlSerializerBehaviorTests {
     [InlineData("apiVersion: v1\nkind: Service\nmetadata: {name: web}\nspec: {ports: [{port: 80}]}\n")]
     [InlineData("apiVersion: v1\nmetadata: {name: web}\nspec: {ports: [{port: 80}]}\nkind: Service\n")]
     public void PropertyDiscriminatorsAreFoundAnywhere(string yaml) {
-        var context = new TestYamlContext(new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase, DefaultIgnoreCondition = YamlIgnoreCondition.WhenWritingNull });
+        var context = new TestYamlContext(new YamlSerializerOptions { PropertyNamingPolicy = OfficeNamingPolicy.CamelCase, DefaultIgnoreCondition = OfficeIgnoreCondition.WhenWritingNull });
         KubeService service = Assert.IsType<KubeService>(YamlSerializer.Deserialize(yaml, context.KubeObject));
         Assert.Equal(("web", 80), (service.Metadata.Name, service.Spec.Ports[0].Port));
         Assert.Equal("kind: Service\napiVersion: v1\nmetadata:\n  name: web\nspec:\n  ports:\n  - port: 80\n", YamlSerializer.Serialize<KubeObject>(service, context.KubeObject));
@@ -260,20 +260,20 @@ public class YamlSerializerBehaviorTests {
         Assert.Equal((true, 31), (yaml11.Enabled, yaml11.Port));
     }
 
-    // Naming policies, [YamlPropertyName], [YamlIgnore] and the ignore conditions decide which keys are written.
+    // Naming policies, [OfficePropertyName], [OfficeIgnore] and the ignore conditions decide which keys are written.
     [Fact]
     public void NamingAndIgnoreConditionsShapeTheKeys() {
         var config = new AppConfig { Name = "app", Comment = null, Retries = 0 };
-        var snake = new TestYamlContext(new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.SnakeCaseLower, DefaultIgnoreCondition = YamlIgnoreCondition.WhenWritingDefault });
+        var snake = new TestYamlContext(new YamlSerializerOptions { PropertyNamingPolicy = OfficeNamingPolicy.SnakeCaseLower, DefaultIgnoreCondition = OfficeIgnoreCondition.WhenWritingDefault });
         string yaml = YamlSerializer.Serialize(config, snake.AppConfig);
         Assert.Equal("name: app\nretries: 0\ntags: []\nlabels: {}\nhosts: []\nfeature-flags: {}\n", yaml);
         Assert.DoesNotContain("Secret", YamlSerializer.Serialize(config, Context.AppConfig), StringComparison.Ordinal);
         Assert.Equal("never written", YamlSerializer.Deserialize("Secret: read\n", Context.AppConfig)!.Secret);
 
-        Assert.Equal("imagePullPolicy", YamlNamingPolicy.CamelCase.ConvertName("ImagePullPolicy"));
-        Assert.Equal("urlValue", YamlNamingPolicy.CamelCase.ConvertName("URLValue"));
-        Assert.Equal("http_server_v2", YamlNamingPolicy.SnakeCaseLower.ConvertName("HTTPServerV2"));
-        Assert.Equal("timeout-minutes", YamlNamingPolicy.KebabCaseLower.ConvertName("TimeoutMinutes"));
+        Assert.Equal("imagePullPolicy", OfficeNamingPolicy.CamelCase.ConvertName("ImagePullPolicy"));
+        Assert.Equal("urlValue", OfficeNamingPolicy.CamelCase.ConvertName("URLValue"));
+        Assert.Equal("http_server_v2", OfficeNamingPolicy.SnakeCaseLower.ConvertName("HTTPServerV2"));
+        Assert.Equal("timeout-minutes", OfficeNamingPolicy.KebabCaseLower.ConvertName("TimeoutMinutes"));
     }
 
     // Untyped reads keep file order and resolve scalars through the document's schema.
@@ -341,7 +341,7 @@ public class YamlSerializerBehaviorTests {
         Assert.Equal(("app", 80), (spec.Name, spec.Port));
 
         // Leave out what the section did not have: defaults and the collections set to null.
-        var compact = new TestYamlContext(new YamlSerializerOptions { DefaultIgnoreCondition = YamlIgnoreCondition.WhenWritingDefault });
+        var compact = new TestYamlContext(new YamlSerializerOptions { DefaultIgnoreCondition = OfficeIgnoreCondition.WhenWritingDefault });
         spec.Port = 8080;
         spec.Tags = null!;
         spec.Labels = null!;
@@ -363,7 +363,7 @@ public class YamlSerializerBehaviorTests {
     public void MetadataSourcesFailClearly() {
         var options = new YamlSerializerOptions { TypeInfoResolver = Context };
         _ = options.GetTypeInfo(typeof(AppConfig));
-        Assert.Throws<InvalidOperationException>(() => options.PropertyNamingPolicy = YamlNamingPolicy.CamelCase);
+        Assert.Throws<InvalidOperationException>(() => options.PropertyNamingPolicy = OfficeNamingPolicy.CamelCase);
         var missing = Assert.Throws<NotSupportedException>(() => new YamlSerializerOptions().GetTypeInfo(typeof(AppConfig)));
         Assert.Contains("YamlSerializerContext", missing.Message, StringComparison.Ordinal);
         Assert.Null(Context.GetTypeInfo(typeof(Version)));
@@ -377,7 +377,7 @@ public class YamlSerializerBehaviorTests {
             "", "plain", "yes", "8080", "100m", "128Mi", "a: b", "#x", "x #y", " lead", "trail ", "multi\nline", "it's", "ünï",
             new string('x', 1200), "-", "- item", "~", "null", "1.5", "+_1.", "registry.example.com/app:1.2.0", "[x]", "{x}"
         };
-        var options = new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase };
+        var options = new YamlSerializerOptions { PropertyNamingPolicy = OfficeNamingPolicy.CamelCase };
         var root = new List<EntryShapes>();
         for (int i = 0; i < texts.Length; i++) {
             root.Add(new EntryShapes {
@@ -447,8 +447,8 @@ public class YamlSerializerBehaviorTests {
             "1.5", "1.50", ".5", "1.", "1e3", "1.0e+3", "6.8523e-05", ".inf", "-.Inf", ".nan", "true", "True", "yes", "on", "off",
             "~", "null", "", "'5'", "\"5\"", "!!str 5", "!!int 5", "!custom 3", "abc", "1,000", "0.0", "-0.0", "&a 7", "|\n  12\n"
         };
-        var direct = new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase };
-        var converters = new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase, ReferenceHandling = YamlReferenceHandling.Preserve };
+        var direct = new YamlSerializerOptions { PropertyNamingPolicy = OfficeNamingPolicy.CamelCase };
+        var converters = new YamlSerializerOptions { PropertyNamingPolicy = OfficeNamingPolicy.CamelCase, ReferenceHandling = YamlReferenceHandling.Preserve };
         foreach (string header in new[] { "", "%YAML 1.1\n---\n" }) {
             foreach (string property in new[] { "text", "number", "big", "flag", "ratio", "amount" }) {
                 foreach (string spelling in spellings) {

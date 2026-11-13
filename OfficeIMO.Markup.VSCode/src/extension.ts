@@ -1275,7 +1275,7 @@ function isOfficeMarkupContent(document: vscode.TextDocument): boolean {
   }
 
   const text = document.getText();
-  if (/^---\s*[\r\n][\s\S]*?^profile\s*:\s*(presentation|document|workbook|common)\s*$/im.test(text)) {
+  if (/^(?:---|\+\+\+)\s*[\r\n][\s\S]*?^profile\s*[:=]\s*["']?(presentation|document|workbook|common)["']?\s*(?:#.*)?$/im.test(text)) {
     return true;
   }
 
@@ -1293,7 +1293,7 @@ async function resolveDocumentProfile(context: vscode.ExtensionContext, document
     }
   }
 
-  const match = /^---\s*[\r\n][\s\S]*?^profile\s*:\s*([A-Za-z-]+)\s*$/im.exec(document.getText());
+  const match = /^(?:---|\+\+\+)\s*[\r\n][\s\S]*?^profile\s*[:=]\s*["']?([A-Za-z-]+)["']?\s*(?:#.*)?$/im.exec(document.getText());
   return match?.[1]?.toLowerCase();
 }
 
