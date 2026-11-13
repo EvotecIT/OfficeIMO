@@ -1,7 +1,7 @@
 param(
     # Lane names; a comma-separated list also works from pwsh -File.
     [string[]] $Lane = @('Xlsx65K', 'Xlsb65K', 'ExcelGenerated', 'ExcelWriters', 'XLBenchReadAll', 'XLBenchSheets',
-        'CsvPackageAssets', 'CsvSpacesQuotes', 'Csv65K', 'CsvGenerated', 'CsvWrite', 'CsvWriteModern', 'CsvPackageAssetsModern', 'Csv65KModern', 'Csv65KInterned'),
+        'CsvPackageAssets', 'CsvSpacesQuotes', 'Csv65K', 'CsvGenerated', 'CsvWrite', 'CsvWriteModern', 'CsvPackageAssetsModern', 'Csv65KModern', 'Csv65KInterned', 'CsvDbatoolsParity'),
     [string] $OutputRoot,
     [string] $FixtureRoot,
     [string] $XLBenchRoot = $env:OFFICEIMO_XLBENCH_ROOT,
@@ -53,6 +53,8 @@ $lanes = [ordered]@{
     Csv65KModern = @{ Project = 'CSV.Modern'; Filters = @('*.MarkPflug65KModernCsvBenchmarks.*') }
     # OfficeIMO's string reuse option runs in its own process, apart from the library comparison.
     Csv65KInterned = @{ Project = 'CSV.Modern'; Filters = @('*.MarkPflug65KInternedCsvBenchmarks.*') }
+    # dataplat/dbatools.library's own CsvBenchmarks and QuickTest layout against Dataplat.Dbatools.Csv.
+    CsvDbatoolsParity = @{ Project = 'CSV'; Filters = @('*.CsvDbatoolsLibraryParityBenchmarks.*') }
 }
 
 # EPPlus 8 refuses to run without a license declaration; the run includes it only when the caller made one.
@@ -175,7 +177,7 @@ foreach ($kind in @($selected | ForEach-Object { $lanes[$_].Project } | Sort-Obj
 }
 
 # Resolved versions of the watched competitors, read from the restore that built each project.
-$watched = @('ExcelReader.NET', 'Sep', 'Sylvan.Data.Csv', 'Sylvan.Data.Excel', 'CsvHelper')
+$watched = @('ExcelReader.NET', 'Sep', 'Sylvan.Data.Csv', 'Sylvan.Data.Excel', 'CsvHelper', 'Dataplat.Dbatools.Csv')
 $competitorVersions = [ordered]@{}
 foreach ($kind in $assetFiles.Keys) {
     if (-not (Test-Path $assetFiles[$kind])) { continue }
@@ -291,7 +293,7 @@ foreach ($row in $rows) {
 $markdown.ToString() | Set-Content (Join-Path $OutputRoot 'results.md') -Encoding utf8
 
 # Competitor ledger: one entry per watched library case and run, kept under the scratch root across runs.
-$packageOf = @{ ExcelReaderNet = 'ExcelReader.NET'; Sep = 'Sep'; CsvHelper = 'CsvHelper' }
+$packageOf = @{ ExcelReaderNet = 'ExcelReader.NET'; Sep = 'Sep'; CsvHelper = 'CsvHelper'; Dataplat = 'Dataplat.Dbatools.Csv' }
 $ledgerPath = Join-Path $scratchRoot 'competitor-ledger.json'
 $ledger = [Collections.Generic.List[object]]::new()
 if (Test-Path $ledgerPath) { foreach ($entry in @(Get-Content $ledgerPath -Raw | ConvertFrom-Json)) { $ledger.Add($entry) } }

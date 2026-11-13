@@ -152,7 +152,14 @@ internal static partial class CsvParser
             _indexedAscii = false;
         }
 
-        internal void SetBuffer(byte[] buffer) => _buffer = buffer;
+        /// <summary>Sets the bytes field offsets refer to; a trimmed batch keeps its text in its own buffer.</summary>
+        internal void SetBuffer(byte[] buffer)
+        {
+            if (!ReferenceEquals(_buffer, buffer))
+            {
+                _buffer = buffer;
+            }
+        }
 
         /// <summary>Stores a quoted field's inner text, deferring removal of escaped quotes.</summary>
         internal void VisitQuotedFieldRange(int fieldIndex, int start, int length, bool escaped) =>
@@ -355,21 +362,27 @@ internal static partial class CsvParser
                     return string.Empty;
                 }
 
-                // Index entries are separator offsets inside the scanned buffer.
-                byte first = Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_buffer), fieldStart);
-                if (first != (byte)'"' || _quotesAreData)
+                // Index entries are separator offsets inside the scanned buffer. Quotes come off first, so
+                // quoted and unquoted text share one string-creation call: a call that only some shapes reach
+                // is laid out cold, and stays out of line, when a process has read the other shapes first.
+                ref byte data = ref MemoryMarshal.GetArrayDataReference(_buffer);
+                byte first = Unsafe.Add(ref data, fieldStart);
+                bool quoted = first == (byte)'"' && !_quotesAreData;
+                if (!quoted || !_mayHaveEscapedQuotes)
                 {
+                    if (quoted)
+                    {
+                        fieldStart++;
+                        fieldLength -= 2;
+                        if (fieldLength == 0)
+                        {
+                            return string.Empty;
+                        }
+
+                        first = Unsafe.Add(ref data, fieldStart);
+                    }
+
                     return fieldLength == 1 ? SingleCharacterStrings[first] : CreateAsciiString(_buffer, fieldStart, fieldLength);
-                }
-
-                if (fieldLength == 2)
-                {
-                    return string.Empty;
-                }
-
-                if (!_mayHaveEscapedQuotes && fieldLength >= 4)
-                {
-                    return CreateAsciiString(_buffer, fieldStart + 1, fieldLength - 2);
                 }
             }
 #endif

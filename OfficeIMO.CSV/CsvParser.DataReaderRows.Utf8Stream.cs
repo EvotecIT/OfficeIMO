@@ -82,8 +82,8 @@ internal static partial class CsvParser
             _trim = options.TrimWhitespace;
             _checkFieldLengths = HasFieldLengthLimits(options);
 #if NET8_0_OR_GREATER
-            // The batch index handles single-character delimiters without per-field trimming or limits.
-            _batchable = !_trim && !_checkFieldLengths && _delimiterText is null &&
+            // The batch index handles single-character delimiters without per-field limits.
+            _batchable = !_checkFieldLengths && _delimiterText is null &&
                 BitConverter.IsLittleEndian && Vector128.IsHardwareAccelerated;
 #endif
             _buffer = buffer;
@@ -242,6 +242,9 @@ internal static partial class CsvParser
                 {
                     continue;
                 }
+
+                // The record scanner's field offsets refer to the input buffer, not trimmed batch text.
+                _visitor.SetBuffer(_buffer);
 #endif
 
                 int recordStart = _position;
@@ -564,6 +567,26 @@ internal static partial class CsvParser
             }
         }
 
+        /// <summary>Whether every quote in quoted content is the first of an escaped pair.</summary>
+        private static bool HasOnlyEscapedQuotePairs(ReadOnlySpan<byte> content)
+        {
+            while (true)
+            {
+                int quote = content.IndexOf((byte)'"');
+                if (quote < 0)
+                {
+                    return true;
+                }
+
+                if (quote + 1 == content.Length || content[quote + 1] != (byte)'"')
+                {
+                    return false;
+                }
+
+                content = content.Slice(quote + 2);
+            }
+        }
+
         /// <summary>Completes a block-scanned record at a line separator; a negative field start means its last field was visited.</summary>
         private RecordScanResult CompleteBlockRecord(int end, int fieldStart, int fieldIndex, int lineBreaks, bool isAscii, out RecordScan scan)
         {
@@ -584,48 +607,51 @@ internal static partial class CsvParser
 
         private bool TryVisitQuotedField(int fieldIndex, int fieldStart, int end, int quotes, bool innerLineBreaks, ref int lineBreaks)
         {
-            byte[] buffer = _buffer;
-            if (_trim)
-            {
-                // Strict quoting admits whitespace only after the closing quote.
-                while (!_strictQuotes && fieldStart < end && IsAsciiWhiteSpace(buffer[fieldStart])) fieldStart++;
-                while (end > fieldStart && IsAsciiWhiteSpace(buffer[end - 1])) end--;
-            }
-
-            if ((quotes & 1) != 0 || end - fieldStart < 2 || buffer[fieldStart] != (byte)'"' || buffer[end - 1] != (byte)'"')
+            bool escaped = false;
+            if (!TryTrimQuotedField(ref fieldStart, ref end, quotes, innerLineBreaks, ref lineBreaks, ref escaped))
             {
                 return false;
             }
 
-            int contentStart = fieldStart + 1;
-            int contentLength = end - fieldStart - 2;
-            bool escaped = quotes > 2;
-            if (escaped)
+            _visitor.VisitQuotedFieldRange(fieldIndex, fieldStart + 1, end - fieldStart - 2, escaped);
+            return true;
+        }
+
+        /// <summary>
+        /// Trims whitespace around a quoted field and checks that the remaining range starts and ends with
+        /// a quote and that every inner quote is part of an escaped pair. The range keeps its quotes.
+        /// Strict quoting admits whitespace only after the closing quote.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryTrimQuotedField(ref int start, ref int end, int quotes, bool innerLineBreaks, ref int lineBreaks, ref bool escapedQuotes)
+        {
+            byte[] buffer = _buffer;
+            int fieldStart = start;
+            int fieldEnd = end;
+            while (!_strictQuotes && fieldStart < fieldEnd && IsAsciiWhiteSpace(buffer[fieldStart])) fieldStart++;
+            while (fieldEnd > fieldStart && IsAsciiWhiteSpace(buffer[fieldEnd - 1])) fieldEnd--;
+            if ((quotes & 1) != 0 || fieldEnd - fieldStart < 2 || buffer[fieldStart] != (byte)'"' || buffer[fieldEnd - 1] != (byte)'"')
             {
-                ReadOnlySpan<byte> content = buffer.AsSpan(contentStart, contentLength);
-                while (true)
+                return false;
+            }
+
+            if (quotes > 2)
+            {
+                if (!HasOnlyEscapedQuotePairs(buffer.AsSpan(fieldStart + 1, fieldEnd - fieldStart - 2)))
                 {
-                    int quote = content.IndexOf((byte)'"');
-                    if (quote < 0)
-                    {
-                        break;
-                    }
-
-                    if (quote + 1 == content.Length || content[quote + 1] != (byte)'"')
-                    {
-                        return false;
-                    }
-
-                    content = content.Slice(quote + 2);
+                    return false;
                 }
+
+                escapedQuotes = true;
             }
 
             if (innerLineBreaks)
             {
-                lineBreaks += CountLineBreaks(buffer, contentStart, end - 1, out _);
+                lineBreaks += CountLineBreaks(buffer, fieldStart + 1, fieldEnd - 1, out _);
             }
 
-            _visitor.VisitQuotedFieldRange(fieldIndex, contentStart, contentLength, escaped);
+            start = fieldStart;
+            end = fieldEnd;
             return true;
         }
 
@@ -1125,17 +1151,23 @@ internal static partial class CsvParser
             byte[] buffer = _buffer;
             while (start < end && IsAsciiWhiteSpace(buffer[start])) start++;
             while (end > start && IsAsciiWhiteSpace(buffer[end - 1])) end--;
-            ReadOnlySpan<byte> text = buffer.AsSpan(start, end - start);
-            if (!text.IsEmpty &&
-                ((text[0] >= 0x80 && Rune.DecodeFromUtf8(text, out Rune first, out _) == OperationStatus.Done && Rune.IsWhiteSpace(first)) ||
-                 (text[text.Length - 1] >= 0x80 && Rune.DecodeLastFromUtf8(text, out Rune last, out _) == OperationStatus.Done && Rune.IsWhiteSpace(last))))
+            if (start < end && HasNonAsciiWhiteSpaceEdge(start, end))
             {
                 // Non-ASCII whitespace at an edge: trim the decoded text exactly as string.Trim does.
-                _visitor.VisitMaterializedField(fieldIndex, _encoding.GetString(text).Trim());
+                _visitor.VisitMaterializedField(fieldIndex, _encoding.GetString(buffer, start, end - start).Trim());
                 return;
             }
 
             _visitor.VisitFieldRange(fieldIndex, start, end - start);
+        }
+
+        /// <summary>Whether non-empty ASCII-trimmed text starts or ends with non-ASCII whitespace, which only decoded text can trim.</summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private bool HasNonAsciiWhiteSpaceEdge(int start, int end)
+        {
+            ReadOnlySpan<byte> text = _buffer.AsSpan(start, end - start);
+            return (text[0] >= 0x80 && Rune.DecodeFromUtf8(text, out Rune first, out _) == OperationStatus.Done && Rune.IsWhiteSpace(first)) ||
+                (text[text.Length - 1] >= 0x80 && Rune.DecodeLastFromUtf8(text, out Rune last, out _) == OperationStatus.Done && Rune.IsWhiteSpace(last));
         }
 
 
@@ -1297,6 +1329,13 @@ internal static partial class CsvParser
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string GetString(int ordinal) => _fallback is null ? _visitor.GetString(ordinal) : _fallback.GetString(ordinal);
 
+        /// <summary>Whether records are still read from bytes rather than by the decoded-text fallback.</summary>
+        internal bool ReadsBytes => _fallback is null;
+
+        /// <summary>Reads a field of a record read from bytes; the caller checks <see cref="ReadsBytes"/> for the row.</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal string GetByteString(int ordinal) => _visitor.GetString(ordinal);
+
         public bool IsMissing(int ordinal) => _fallback?.IsMissing(ordinal) ?? _visitor.IsMissing(ordinal);
 
         public bool IsNull(int ordinal, string? nullValue) =>
@@ -1311,6 +1350,18 @@ internal static partial class CsvParser
             }
 
             int valueCount = Math.Min(count, _visitor.SourceColumnCount);
+#if NET8_0_OR_GREATER
+            if (nullValue is null && values.GetType() == typeof(object[]))
+            {
+                // An exact object[] takes any value, so the stores skip the covariant array check.
+                ref object slot = ref MemoryMarshal.GetArrayDataReference(values);
+                for (int index = 0; index < valueCount; index++)
+                {
+                    Unsafe.Add(ref slot, index) = _visitor.GetString(index);
+                }
+            }
+            else
+#endif
             for (int index = 0; index < valueCount; index++)
             {
                 values[index] = nullValue is not null && IsNull(index, nullValue)
