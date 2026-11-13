@@ -205,7 +205,7 @@ public static class HtmlActiveMediaFilter {
         }
 
         try {
-            var parser = new CssParser();
+            CssParser parser = HtmlCssProviderParsers.Declarations;
             var stylesheet = parser.ParseStyleSheet(css);
             cancellationToken.ThrowIfCancellationRequested();
             var builder = new StringBuilder();

@@ -21,9 +21,7 @@ public static partial class HtmlComputedStyleEngine {
         // Raw recovery supplements declarations AngleSharp cannot retain. Match each
         // parsed author rule once so recovery neither duplicates it nor charges it twice.
         var parsedRuleMatches = new ParsedSelectorRegistry();
-        var parser = new CssParser(new CssParserOptions {
-            IsIncludingUnknownDeclarations = true
-        });
+        CssParser parser = HtmlCssProviderParsers.StylesheetsWithUnknownDeclarations;
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
             if (!IsCssStyleElement(styleElement)) {
                 continue;
