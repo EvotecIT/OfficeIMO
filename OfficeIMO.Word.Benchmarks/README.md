@@ -161,3 +161,12 @@ dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filte
 
 Those workflows have no directly equivalent public API in every comparison
 library, so they stay outside the cross-library rankings.
+
+`WordMarkdownConversionBenchmarks` converts generated Markdown (headings,
+paragraphs, nested lists and tables) to Word and back at 100 and 400 sections.
+Setup checks that every heading and table survives both directions. Compare the
+two sizes: both directions should grow about four times, not sixteen.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordMarkdownConversionBenchmarks*'
+```
