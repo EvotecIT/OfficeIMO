@@ -76,8 +76,16 @@ public static class TomlLibraries {
                 foreach (KeyValuePair<string, TomlNode> entry in table) count += CountOfficeIMO(entry.Value);
                 return count;
             }
-            case TomlTableArray tables: return tables.Sum(t => CountOfficeIMO(t));
-            case TomlArray array: return array.Sum(CountOfficeIMO);
+            case TomlTableArray tables: {
+                long count = 0;
+                foreach (TomlTable table in tables) count += CountOfficeIMO(table);
+                return count;
+            }
+            case TomlArray array: {
+                long count = 0;
+                foreach (TomlNode item in array) count += CountOfficeIMO(item);
+                return count;
+            }
             default:
                 _ = ((TomlValue)node).Value;
                 return 1;

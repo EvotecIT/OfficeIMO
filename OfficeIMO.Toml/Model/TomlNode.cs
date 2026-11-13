@@ -8,7 +8,7 @@ internal enum TomlNodeState : byte {
     Dirty = 1,
     /// <summary>A descendant changed, or children were added or removed: saving walks into the node.</summary>
     Changed = 2,
-    /// <summary>The trailing comment was set and is written from <see cref="TomlNode._comment"/>.</summary>
+    /// <summary>The trailing comment was set and is written from <see cref="TomlNode.ChangedComment"/>.</summary>
     CommentChanged = 4,
     /// <summary>The node was removed from its container.</summary>
     Detached = 8,
@@ -28,21 +28,35 @@ internal enum TomlNodeState : byte {
 /// is not thread-safe.
 /// </remarks>
 public abstract class TomlNode {
-    internal readonly TomlDocument _document;
-    internal TomlNode? _parent;
+    /// <summary>
+    /// The parent node, or the document for the root and for a node not yet added to a container. One field serves
+    /// both, since a loaded document has a node per value and most of them never need the document directly.
+    /// </summary>
+    private object _owner;
     internal string? _key;
     internal int _start = -1;
     internal int _end = -1;
     /// <summary>Start of the first key segment of the key/value pair that defines this node, or -1.</summary>
     internal int _keyStart = -1;
-    /// <summary>End of the last key segment of the key/value pair that defines this node, or -1.</summary>
-    internal int _keyEnd = -1;
-    internal int _depth;
     internal TomlNodeState _state;
-    internal string? _comment;
 
     private protected TomlNode(TomlDocument document) {
-        _document = document;
+        _owner = document;
+    }
+
+    /// <summary>Gets or sets the containing node; <see langword="null"/> for the root and nodes not added yet.</summary>
+    internal TomlNode? _parent {
+        get => _owner as TomlNode;
+        set => _owner = value ?? (object)_document;
+    }
+
+    /// <summary>Gets the document the node belongs to, through its parents.</summary>
+    internal TomlDocument _document {
+        get {
+            object owner = _owner;
+            while (owner is TomlNode node) owner = node._owner;
+            return (TomlDocument)owner;
+        }
     }
 
     /// <summary>Gets what kind of node this is.</summary>
@@ -67,6 +81,25 @@ public abstract class TomlNode {
 
     /// <summary>Gets whether the node is defined by a <c>key = value</c> pair rather than a header or as an array item.</summary>
     internal bool IsKeyValue => _keyStart >= 0;
+
+    /// <summary>
+    /// Gets the end of the last key segment of the key/value pair that defines this node, or -1. Only spaces, tabs and
+    /// the <c>=</c> separate it from the value, so it is found from the value's start instead of being stored.
+    /// </summary>
+    internal int KeyEnd {
+        get {
+            if (_keyStart < 0) return -1;
+            string source = _document._source;
+            int i = _start;
+            while (i > _keyStart && (source[i - 1] == ' ' || source[i - 1] == '\t')) i--;
+            if (i > _keyStart && source[i - 1] == '=') i--;
+            while (i > _keyStart && (source[i - 1] == ' ' || source[i - 1] == '\t')) i--;
+            return i;
+        }
+    }
+
+    /// <summary>Gets the trailing comment set with <see cref="SetComment"/>; meaningful with <see cref="TomlNodeState.CommentChanged"/>.</summary>
+    internal string? ChangedComment => _document.GetChangedComment(this);
 
     /// <summary>Returns the node as a table.</summary>
     /// <exception cref="InvalidOperationException">The node is not a table.</exception>
@@ -147,7 +180,7 @@ public abstract class TomlNode {
     /// For a key/value pair or a table header that is the comment after it; a comment set with
     /// <see cref="SetComment"/> is returned before the document is saved.
     /// </summary>
-    public string? TrailingComment => (_state & TomlNodeState.CommentChanged) != 0 ? _comment : TomlTrivia.GetTrailingComment(this);
+    public string? TrailingComment => (_state & TomlNodeState.CommentChanged) != 0 ? ChangedComment : TomlTrivia.GetTrailingComment(this);
 
     /// <summary>
     /// Sets or, with <see langword="null"/>, removes the comment at the end of the node's line and returns the node.
@@ -163,7 +196,7 @@ public abstract class TomlNode {
             }
         }
         if (!CanHaveComment()) throw new InvalidOperationException("Only key/value pairs and table headers have trailing comments.");
-        _comment = comment;
+        _document.SetChangedComment(this, comment);
         _state |= TomlNodeState.CommentChanged;
         TomlEditing.MarkChanged(this);
         return this;

@@ -8,7 +8,7 @@ public sealed class TomlArray : TomlNode, IReadOnlyList<TomlNode> {
     internal TomlNode[] _items = Array.Empty<TomlNode>();
     internal int _count;
     /// <summary>Loaded items removed by editing, kept so saving can delete their text.</summary>
-    internal List<TomlNode>? _removed;
+    internal List<TomlNode>? _removed => _document.RemovedFrom(this);
 
     internal TomlArray(TomlDocument document) : base(document) {
     }
@@ -88,16 +88,42 @@ public sealed class TomlArray : TomlNode, IReadOnlyList<TomlNode> {
         TomlNode node = this[index];
         Array.Copy(_items, index + 1, _items, index, _count - index - 1);
         _items[--_count] = null!;
-        TomlEditing.Detach(node, ref _removed);
+        TomlEditing.Detach(this, node);
         TomlEditing.MarkChanged(this);
     }
 
     /// <summary>Returns an enumerator over the items.</summary>
-    public IEnumerator<TomlNode> GetEnumerator() {
-        for (int i = 0; i < _count; i++) yield return _items[i];
-    }
+    public Enumerator GetEnumerator() => new Enumerator(this);
+
+    IEnumerator<TomlNode> IEnumerable<TomlNode>.GetEnumerator() => GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    /// <summary>Enumerates the items of an array in order without allocating.</summary>
+    public struct Enumerator : IEnumerator<TomlNode> {
+        private readonly TomlArray _array;
+        private int _index;
+
+        internal Enumerator(TomlArray array) {
+            _array = array;
+            _index = -1;
+        }
+
+        /// <inheritdoc />
+        public TomlNode Current => _array._items[_index];
+
+        object IEnumerator.Current => Current;
+
+        /// <inheritdoc />
+        public bool MoveNext() => ++_index < _array._count;
+
+        /// <inheritdoc />
+        public void Reset() => _index = -1;
+
+        /// <inheritdoc />
+        public void Dispose() {
+        }
+    }
 
     internal void InsertNode(int index, TomlNode node) {
         if (_count == _items.Length) Array.Resize(ref _items, Math.Max(4, _count * 2));

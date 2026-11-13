@@ -19,6 +19,10 @@ public sealed partial class TomlDocument : IDisposable {
     internal readonly List<TomlTable> _headers = new List<TomlTable>();
     private int[]? _lineStarts;
     private TomlLayout? _layout;
+    /// <summary>Trailing comments set by editing; few nodes ever have one, so nodes do not carry a field for it.</summary>
+    private Dictionary<TomlNode, string?>? _changedComments;
+    /// <summary>Loaded nodes removed from each container by editing, kept so saving can delete their text.</summary>
+    private Dictionary<TomlNode, List<TomlNode>>? _removedNodes;
 
     private TomlDocument(string source, bool byteOrderMark, string? filePath) {
         _source = source;
@@ -74,6 +78,18 @@ public sealed partial class TomlDocument : IDisposable {
     }
 
     internal TomlLayout Layout => _layout ??= new TomlLayout(this);
+
+    internal string? GetChangedComment(TomlNode node) => _changedComments != null && _changedComments.TryGetValue(node, out string? comment) ? comment : null;
+
+    internal void SetChangedComment(TomlNode node, string? comment) => (_changedComments ??= new Dictionary<TomlNode, string?>())[node] = comment;
+
+    internal List<TomlNode>? RemovedFrom(TomlNode container) => _removedNodes != null && _removedNodes.TryGetValue(container, out List<TomlNode>? removed) ? removed : null;
+
+    internal void AddRemoved(TomlNode container, TomlNode node) {
+        _removedNodes ??= new Dictionary<TomlNode, List<TomlNode>>();
+        if (!_removedNodes.TryGetValue(container, out List<TomlNode>? removed)) _removedNodes[container] = removed = new List<TomlNode>();
+        removed.Add(node);
+    }
 
     /// <summary>Converts an offset into the source to a position, building the line table on first use.</summary>
     internal TomlPosition GetPosition(int offset) {

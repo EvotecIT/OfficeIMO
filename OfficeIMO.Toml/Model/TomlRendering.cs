@@ -274,7 +274,7 @@ internal sealed class TomlRendering {
             anchor = _text.LineEnd(owner._end);
         }
         string indent = last != null ? _text.Indentation(last._keyStart) : owner._tableKind == TomlTableKind.Root ? string.Empty : Layout.KeyIndent;
-        string separator = last != null ? _source.Substring(last._keyEnd, last._start - last._keyEnd) : Layout.KeySeparator;
+        string separator = last != null ? _source.Substring(last.KeyEnd, last._start - last.KeyEnd) : Layout.KeySeparator;
         var text = new StringBuilder();
         StartLine(text, anchor);
         foreach (TomlNode node in nodes) AppendLine(text, indent, prefix, node, separator);
@@ -340,8 +340,9 @@ internal sealed class TomlRendering {
     }
 
     private void AppendNewComment(StringBuilder text, TomlNode node) {
-        if ((node._state & TomlNodeState.CommentChanged) == 0 || node._comment is null) return;
-        text.Append(Layout.CommentGap).Append(CommentText(node._comment));
+        string? comment = node.ChangedComment;
+        if ((node._state & TomlNodeState.CommentChanged) == 0 || comment is null) return;
+        text.Append(Layout.CommentGap).Append(CommentText(comment));
     }
 
     // ---- Inserting sections ------------------------------------------------------------------------------------
@@ -402,9 +403,9 @@ internal sealed class TomlRendering {
         for (int i = 0; i < table._count; i++) {
             TomlNode node = table._nodes[i];
             if (node is TomlTableArray tables) {
-                foreach (TomlTable item in tables._items) AppendSection(text, item, Append(path, table._keys[i]), ref content);
+                foreach (TomlTable item in tables._items) AppendSection(text, item, Append(path, table._nodes[i]._key!), ref content);
             } else if (IsSectionChild(node)) {
-                AppendSection(text, (TomlTable)node, Append(path, table._keys[i]), ref content);
+                AppendSection(text, (TomlTable)node, Append(path, table._nodes[i]._key!), ref content);
             }
         }
     }
@@ -476,7 +477,7 @@ internal sealed class TomlRendering {
             TomlNode node = table._nodes[i];
             if (node is TomlTable dotted && dotted._tableKind == TomlTableKind.Dotted) {
                 var inner = prefix == null ? new List<string>() : new List<string>(prefix);
-                inner.Add(table._keys[i]);
+                inner.Add(table._nodes[i]._key!);
                 CollectInline(dotted, inner, current, removed);
             } else {
                 current.Add(new Element(node, prefix));
@@ -519,7 +520,8 @@ internal sealed class TomlRendering {
     private string InferSeparator(List<Element> survivors, bool inline) {
         if (!inline) return " = ";
         TomlNode first = survivors[0].Node;
-        return first._keyEnd >= 0 ? _source.Substring(first._keyEnd, first._start - first._keyEnd) : " = ";
+        int keyEnd = first.KeyEnd;
+        return keyEnd >= 0 ? _source.Substring(keyEnd, first._start - keyEnd) : " = ";
     }
 
     private void DeleteElements(List<Element> survivors, List<Element> removed, bool multiline) {
@@ -687,7 +689,7 @@ internal sealed class TomlRendering {
         text.Append("{ ");
         for (int i = 0; i < table._count; i++) {
             if (i > 0) text.Append(", ");
-            TomlFormatter.AppendKey(text, table._keys[i]);
+            TomlFormatter.AppendKey(text, table._nodes[i]._key!);
             text.Append(" = ");
             AppendValue(text, table._nodes[i]);
         }
@@ -696,7 +698,7 @@ internal sealed class TomlRendering {
 
     /// <summary>Sets, replaces or removes the comment after a loaded node on its line.</summary>
     private void WriteComment(TomlNode node) {
-        string? comment = node._comment;
+        string? comment = node.ChangedComment;
         int hash = _text.FindTrailingComment(node._end);
         if (hash >= 0) {
             int end = _text.ContentEnd(hash);
