@@ -858,7 +858,7 @@ Acceptance: every adopted baseline criterion has decisive evidence, no validated
 
 ## TOML engine
 
-`OfficeIMO.Toml` reads, edits and writes TOML 1.1 losslessly and passes the whole toml-test 1.1.0 suite; `OfficeIMO.Reader.Toml` ingests TOML files. The [TOML engine design](officeimo.toml-engine-design.md) owns the architecture. Open work:
+`OfficeIMO.Toml` reads, edits and writes TOML 1.1 losslessly and passes the whole toml-test 2.2.0 suite for TOML 1.1; `OfficeIMO.Reader.Toml` ingests TOML files. The [TOML engine design](officeimo.toml-engine-design.md) owns the architecture. Open work:
 
 - [ ] Windows and Linux benchmark evidence that OfficeIMO.Toml leads Tomlyn on parse and load time and allocation on every workload, alongside the [macOS evidence](officeimo.toml-engine-design.md#performance).
 

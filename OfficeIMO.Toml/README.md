@@ -19,7 +19,7 @@ document.Set("tool.ruff.line-length", 100);                      // adds [tool.r
 document.Save();                                                 // back to pyproject.toml
 ```
 
-`TomlDocument.Load` reads a file or stream, `LoadAsync` does the same asynchronously, and `Parse` takes a string. `Create()` starts an empty document. `Save()` writes to the file the document was loaded from or created for; `Save(path)`, `Save(stream)`, `SaveAsync` and `ToString()` are also available. Saving an unchanged document reproduces the input byte for byte, including comments, blank lines, quoting, key order, alignment, line endings, a UTF-8 byte-order mark and the original spelling of every value (`0xFF`, `1_000`, `1979-05-27 07:32:00Z`).
+`TomlDocument.Load` reads a file or stream, `LoadAsync` does the same asynchronously, and `Parse` takes a string. `Create()` starts an empty document. `Save()` writes to the document's `FilePath`, the file it was loaded from, created for or last saved to; `Save(path)` replaces a file atomically and makes it the `FilePath`. `Save(stream)`, `SaveAsync` and `ToString()` are also available. Saving an unchanged document reproduces the input byte for byte, including comments, blank lines, quoting, key order, alignment, line endings, a UTF-8 byte-order mark and the original spelling of every value (`0xFF`, `1_000`, `1979-05-27 07:32:00Z`).
 
 `Root` is the root table. Nodes are:
 
@@ -32,6 +32,7 @@ A table is one object even when the file spreads it out: `[a]`, `[a.b]` and `a.c
 
 - **Typed reads**: `GetValue<T>()` and `TryGetValue<T>()` for `string`, `bool`, `int`, `long`, `double`, `float`, `decimal`, `TomlDateTime`, `DateTime`, `DateTimeOffset` and `TimeSpan`, plus `DateOnly` and `TimeOnly` on .NET 8 and later. `AsString()` returns a string's text, or the TOML spelling of any other value. `AsTable()`, `AsArray()`, `AsTableArray()` and `AsValue()` throw an exception naming the actual kind.
 - **Paths**: `Select("tool.ruff.line-length")` returns a node or `null`. Use `["key"]` with JSON escapes for keys containing dots or brackets, and `[n]` for array items and the tables of an array of tables (`package[3].name`). `Set(path, value)` and `Remove(path)` edit by path. The grammar matches the paths `OfficeIMO.Reader.Toml` reports.
+- **Positions**: `Start` and `End` locate a loaded node in the text, and `KeyStart` and `KeyEnd` the key segment that names it (for a table made by dotted keys or deeper headers, its segment of the first such key). Nodes added by editing have the default position, whose `Line` is 0.
 - **Comments**: `LeadingComments` returns the comment lines directly above a node, and `TrailingComment` the comment after it. `SetComment(text)` sets, replaces or removes the comment after a key/value pair or table header.
 - **Dates and times**: `TomlDateTime` keeps all four TOML kinds (offset date-time, local date-time, local date, local time) with nanosecond precision, and converts to `DateTimeOffset`, `DateTime` and `TimeSpan`.
 
@@ -45,7 +46,7 @@ Every editing method returns the node it creates or changes, so calls chain: `ta
 | `TomlTable.Add(key, value)` / `Set(key, value)` | A `key = value` line after the table's last pair, with its indentation and `=` spacing. Inside an inline table, an entry inside the braces. New strings follow the quoting of their siblings. |
 | `TomlTable.AddTable(key)` / `AddTableArray(key)` | A `[header]` or `[[header]]` section after the table's last section, separated by a blank line when the file does that. |
 | `TomlTable.AddArray(key)` / `AddInlineTable(key)` | `key = []` or `key = {}` to fill. |
-| `TomlArray.Add` / `Insert` / `Set` / `RemoveAt` | In the array's own layout: a new line with the same indentation and comma style in a multi-line array, `, item` on one line otherwise. |
+| `TomlArray.Add` / `Insert` / `Set` / `RemoveAt` | In the array's own layout (`Set` at the array's count appends, as does a path `Set` such as `deps[3]` on a three-item array): a new line with the same indentation and comma style in a multi-line array, `, item` on one line otherwise. |
 | `TomlTable.Remove(key)` / `TomlTableArray.RemoveAt(i)` | The key/value line with the comment lines directly above it, or a table's sections, wherever in the file they are. |
 | `SetComment(text)` | Only the comment after the node changes. |
 
@@ -182,7 +183,7 @@ Reading loads the input as a `TomlDocument` within `TomlSerializerOptions.LoadOp
 
 ## Safety and errors
 
-Invalid input throws `TomlException` with a stable `Code` from `TomlErrorCodes`, plus `Line`, `Column` and `Position`. `TomlLoadOptions` bounds nesting depth (256), node count (1,000,000), string length (16 MiB) and, when set, input size; exceeding a limit throws `TomlLimitExceededException` naming the limit. Use `TomlLoadOptions.UntrustedDefaults` for files from outside: 16 MiB of input, depth 64, 200,000 nodes and 1 MiB per string. Loading checks cancellation at bounded intervals.
+Invalid input throws `TomlException` with a stable `Code` from `TomlErrorCodes`, plus `Line`, `Column` and `Position`; `ToDiagnostic()` returns the failure as an error `OfficeDiagnostic` (code `toml-load-duplicate-key` for `Toml.Load.DuplicateKey`, location `line:column`) to report next to other documents' findings. `TomlLoadOptions` bounds nesting depth (256), node count (1,000,000), string length (16 MiB) and, when set, input size; exceeding a limit throws `TomlLimitExceededException` naming the limit. Use `TomlLoadOptions.UntrustedDefaults` for files from outside: 16 MiB of input, depth 64, 200,000 nodes and 1 MiB per string. Loading checks cancellation at bounded intervals.
 
 ## Conformance
 
