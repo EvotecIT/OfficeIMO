@@ -12,8 +12,8 @@ namespace OfficeIMO.Workflows;
 #endif
 internal static partial class WindowsPdfPrinter {
     internal static Task<IReadOnlyList<PdfPrinterInfo>> GetPrintersAsync(CancellationToken token) => Task.Run(() => GetPrinters(token), token);
-    internal static Task<PdfPrintSubmission> SubmitAsync(PdfPrintJob job, PdfPrintDeliveryOptions options, CancellationToken token) =>
-        Task.Run(() => Submit(job, options, token), CancellationToken.None);
+    internal static Task<PdfPrintSubmission> SubmitAsync(PdfPrintJob job, PdfPrintDeliveryOptions options, PrinterCapabilityCache cache, CancellationToken token) =>
+        Task.Run(() => Submit(job, options, cache, token), CancellationToken.None);
 
     internal static IReadOnlyList<PdfPrinterInfo> GetPrinters(CancellationToken token) => GetPrinterDetails(token).Select(printer => printer.Info).ToArray();
 
@@ -55,11 +55,14 @@ internal static partial class WindowsPdfPrinter {
         } finally { Marshal.FreeHGlobal(buffer); }
     }
 
-    internal static PdfPrintSubmission Submit(PdfPrintJob job, PdfPrintDeliveryOptions options, CancellationToken token) {
+    internal static PdfPrintSubmission Submit(PdfPrintJob job, PdfPrintDeliveryOptions options, PrinterCapabilityCache cache, CancellationToken token) {
         PrinterDetails details = FindPrinter(options.PrinterName, token);
         PdfPrinterInfo printer = details.Info;
         string? output = ValidateOutput(job.SourcePath, printer, options.OutputFilePath);
-        PdfPrinterCapabilities capabilities = WindowsPrinterSettings.BuildCapabilities(printer.Name, ReadDriverCapabilities(details, token));
+        if (!cache.TryGet(options.PrinterName, out PdfPrinterCapabilities capabilities)) {
+            capabilities = WindowsPrinterSettings.BuildCapabilities(printer.Name, ReadDriverCapabilities(details, token));
+            cache.Set(options.PrinterName, capabilities);
+        }
         if (options.PaperSourceId is not null && !capabilities.PaperSources.Any(source => source.Id == options.PaperSourceId))
             throw new ArgumentException("The selected paper source is no longer available on this printer.", nameof(options));
         IReadOnlyList<PdfPrintSheet> sheets = job.Plan.Sheets;

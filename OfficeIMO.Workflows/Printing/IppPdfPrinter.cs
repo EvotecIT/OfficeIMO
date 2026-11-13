@@ -51,9 +51,11 @@ internal sealed class IppPrinterEndpoint {
 internal static class IppPdfPrinter {
     internal const string PdfFormat = "application/pdf", PwgRasterFormat = "image/pwg-raster";
 
-    internal static async Task<PdfPrinterCapabilities> GetCapabilitiesAsync(IppPrinterEndpoint endpoint, CancellationToken token) {
+    internal static async Task<PdfPrinterCapabilities> GetCapabilitiesAsync(IppPrinterEndpoint endpoint, PrinterCapabilityCache cache, CancellationToken token) {
         using IppPrintClient client = endpoint.CreateClient();
-        return MapCapabilities(endpoint.PrinterName, await client.GetCapabilitiesAsync(token).ConfigureAwait(false));
+        IppPrinterCapabilities printer = await client.GetCapabilitiesAsync(token).ConfigureAwait(false);
+        cache.Set(endpoint.PrinterName, printer);
+        return MapCapabilities(endpoint.PrinterName, printer);
     }
 
     internal static PdfPrinterCapabilities MapCapabilities(string printerName, IppPrinterCapabilities printer) {
@@ -81,9 +83,13 @@ internal static class IppPdfPrinter {
         };
     }
 
-    internal static async Task<PdfPrintSubmission> SubmitAsync(IppPrinterEndpoint endpoint, PdfPrintJob job, PdfPrintDeliveryOptions options, CancellationToken token) {
+    internal static async Task<PdfPrintSubmission> SubmitAsync(IppPrinterEndpoint endpoint, PdfPrintJob job, PdfPrintDeliveryOptions options,
+        PrinterCapabilityCache cache, CancellationToken token) {
         using IppPrintClient client = endpoint.CreateClient();
-        IppPrinterCapabilities printer = await client.GetCapabilitiesAsync(token).ConfigureAwait(false);
+        if (!cache.TryGet(endpoint.PrinterName, out IppPrinterCapabilities printer)) {
+            printer = await client.GetCapabilitiesAsync(token).ConfigureAwait(false);
+            cache.Set(endpoint.PrinterName, printer);
+        }
         return await SubmitAsync(endpoint, client, printer, job, options, token).ConfigureAwait(false);
     }
 

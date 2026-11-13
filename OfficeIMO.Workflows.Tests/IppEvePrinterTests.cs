@@ -178,7 +178,7 @@ public sealed class IppEvePrinterTests {
             ?? throw new InvalidOperationException("The queue did not resolve over IPP.")).Printer;
         Assert.Contains("application/pdf", attributes.DocumentFormats);
         PdfPrintSubmission receipt = await CupsPdfPrinter.SubmitAsync(scheduler, TwoPageJob(PdfPrintColorMode.Color),
-            new PdfPrintDeliveryOptions { PrinterName = "officeimo-test", DocumentName = "cups-route" }, default);
+            new PdfPrintDeliveryOptions { PrinterName = "officeimo-test", DocumentName = "cups-route" }, new PrinterCapabilityCache(), default);
 
         Assert.Equal("officeimo-test", receipt.PrinterName);
         Assert.Matches(@"^officeimo-test-\d+$", receipt.JobId);

@@ -307,6 +307,35 @@ public sealed class IppPrintClientTests {
         Assert.Equal(5, printRequests);
     }
 
+    [Fact]
+    public async Task SubmissionsReuseCapabilitiesReadWithinTheCacheLifetime() {
+        int attributeReads = 0;
+        int jobId = 0;
+        Func<HttpMessageHandler> handler = () => FakeHandler.Ipp(async request => {
+            IppMessage message = await Decode(request);
+            if (message.Code != (short)IppOperation.GetPrinterAttributes)
+                return Reply(message, 0, job => job.Add("job-id", IppValue.OfInteger(++jobId)).Add("job-state", IppValue.OfEnum(3)));
+            attributeReads++;
+            return Reply(message, 0, null, printer => printer.Add("document-format-supported", IppValue.OfString(IppValueTag.MimeMediaType, "application/pdf")));
+        });
+        var endpoint = IppPrinterEndpoint.ForUri(Printer.AbsoluteUri, Printer, handler);
+        long now = 0;
+        var cache = new PrinterCapabilityCache(TimeSpan.FromSeconds(60), () => now);
+        var options = new PdfPrintDeliveryOptions { PrinterName = Printer.AbsoluteUri };
+        PdfPrintJob job = PdfPrintJob.Create(OfficeIMO.Pdf.PdfDocument.Create(document => document.Page(page => page.Size(OfficeIMO.Pdf.PdfPageSizes.A6))),
+            new PdfPrintPlanRequest { InputPath = "cached.pdf", PaperSize = OfficeIMO.Pdf.PdfPageSizes.A6 });
+
+        await IppPdfPrinter.GetCapabilitiesAsync(endpoint, cache, default);
+        await IppPdfPrinter.SubmitAsync(endpoint, job, options, cache, default);
+        await IppPdfPrinter.SubmitAsync(endpoint, job, options, cache, default);
+        Assert.Equal(1, attributeReads);
+
+        now += System.Diagnostics.Stopwatch.Frequency * 61;
+        await IppPdfPrinter.SubmitAsync(endpoint, job, options, cache, default);
+        Assert.Equal(2, attributeReads);
+        Assert.Equal(3, jobId);
+    }
+
     private static async Task<IppMessage> Decode(HttpRequestMessage request) {
         byte[] body = await request.Content!.ReadAsByteArrayAsync();
         return IppCodec.Decode(body, body.Length, null, out _);

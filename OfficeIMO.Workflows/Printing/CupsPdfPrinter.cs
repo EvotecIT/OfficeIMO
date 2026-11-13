@@ -8,14 +8,17 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Workflows;
 
 internal static partial class CupsPdfPrinter {
-    internal static async Task<PdfPrinterCapabilities> GetCapabilitiesAsync(CupsScheduler scheduler, string printerName, CancellationToken token) {
+    internal static async Task<PdfPrinterCapabilities> GetCapabilitiesAsync(CupsScheduler scheduler, string printerName, PrinterCapabilityCache cache, CancellationToken token) {
         IppQueueRoute? route = await ResolveIppQueueAsync(scheduler, printerName, token).ConfigureAwait(false);
         if (route is not null) {
+            cache.Set(printerName, new CachedIppQueue(route.Endpoint, route.Printer));
             using (route.Client) return IppPdfPrinter.MapCapabilities(printerName, route.Printer);
         }
         if (!(await GetPrintersAsync(scheduler, token).ConfigureAwait(false)).Any(printer => printer.Name == printerName))
             throw new ArgumentException("The selected printer queue is not available.", nameof(printerName));
-        return await ReadCapabilitiesAsync(printerName, token).ConfigureAwait(false);
+        PdfPrinterCapabilities capabilities = await ReadCapabilitiesAsync(printerName, token).ConfigureAwait(false);
+        cache.Set(printerName, capabilities);
+        return capabilities;
     }
 
     /// <summary>Reads a job from the scheduler over IPP. Jobs submitted through lp are tracked the same way.</summary>
@@ -27,6 +30,9 @@ internal static partial class CupsPdfPrinter {
 
     /// <summary>A queue the scheduler answered for over IPP, with the client that reached it.</summary>
     internal sealed record IppQueueRoute(IppPrinterEndpoint Endpoint, IppPrintClient Client, IppPrinterCapabilities Printer);
+
+    /// <summary>A queue recently reached over IPP and the attributes it reported.</summary>
+    private sealed record CachedIppQueue(IppPrinterEndpoint Endpoint, IppPrinterCapabilities Printer);
 
     /// <summary>
     /// Reads the queue's attributes from the scheduler over IPP. Returns null, so the command-line tools are used, when the scheduler
@@ -110,21 +116,31 @@ internal static partial class CupsPdfPrinter {
         return receipt.Success ? receipt.Value : null;
     }
 
-    internal static async Task<PdfPrintSubmission> SubmitAsync(CupsScheduler scheduler, PdfPrintJob job, PdfPrintDeliveryOptions options, CancellationToken token) {
+    internal static async Task<PdfPrintSubmission> SubmitAsync(CupsScheduler scheduler, PdfPrintJob job, PdfPrintDeliveryOptions options,
+        PrinterCapabilityCache cache, CancellationToken token) {
         if (!(options.OutputFilePath == null || string.IsNullOrWhiteSpace(options.OutputFilePath))) throw new NotSupportedException("CUPS file output is controlled by the selected printer queue.");
+        if (cache.TryGet(options.PrinterName, out CachedIppQueue cached)) {
+            using IppPrintClient client = cached.Endpoint.CreateClient();
+            return await IppPdfPrinter.SubmitAsync(cached.Endpoint, client, cached.Printer, job, options, token).ConfigureAwait(false);
+        }
         IppQueueRoute? route = await ResolveIppQueueAsync(scheduler, options.PrinterName, token).ConfigureAwait(false);
         if (route is not null) {
+            cache.Set(options.PrinterName, new CachedIppQueue(route.Endpoint, route.Printer));
             using (route.Client)
                 return await IppPdfPrinter.SubmitAsync(route.Endpoint, route.Client, route.Printer, job, options, token).ConfigureAwait(false);
         }
-        return await SubmitWithLpAsync(scheduler, job, options, token).ConfigureAwait(false);
+        return await SubmitWithLpAsync(scheduler, job, options, cache, token).ConfigureAwait(false);
     }
 
     /// <summary>Delivers through <c>lp</c> when the scheduler cannot be reached over IPP or has not created the destination yet.</summary>
-    private static async Task<PdfPrintSubmission> SubmitWithLpAsync(CupsScheduler scheduler, PdfPrintJob job, PdfPrintDeliveryOptions options, CancellationToken token) {
+    private static async Task<PdfPrintSubmission> SubmitWithLpAsync(CupsScheduler scheduler, PdfPrintJob job, PdfPrintDeliveryOptions options,
+        PrinterCapabilityCache cache, CancellationToken token) {
         if (!(await GetPrintersAsync(scheduler, token).ConfigureAwait(false)).Any(printer => printer.Name == options.PrinterName))
             throw new ArgumentException("The selected printer queue is not available.", nameof(options));
-        PdfPrinterCapabilities capabilities = await ReadCapabilitiesAsync(options.PrinterName, token).ConfigureAwait(false);
+        if (!cache.TryGet(options.PrinterName, out PdfPrinterCapabilities capabilities)) {
+            capabilities = await ReadCapabilitiesAsync(options.PrinterName, token).ConfigureAwait(false);
+            cache.Set(options.PrinterName, capabilities);
+        }
         if (options.PaperSourceId is not null && !capabilities.PaperSources.Any(source => source.Id == options.PaperSourceId))
             throw new ArgumentException("The selected paper source is no longer available on this printer.", nameof(options));
         // The vector content keeps source colors, so grayscale jobs send the same pixels the preview shows.
