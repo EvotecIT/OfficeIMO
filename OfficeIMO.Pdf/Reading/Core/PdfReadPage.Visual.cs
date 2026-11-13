@@ -184,7 +184,7 @@ public sealed partial class PdfReadPage {
 
         if (GetOutputIntentCompositionInteraction(cancellationToken) &&
             _outputIntentColorTransform?.CreatePostCompositionTransform() is IOfficePostCompositionColorTransform proof)
-            drawing.SetPostCompositionColorTransform(proof, OfficeColor.White);
+            drawing.SetPostCompositionColorTransform(proof);
 
         reportScaleDependence?.Invoke(pageContentBudget.UsesFunctionShadingScale);
         return drawing;

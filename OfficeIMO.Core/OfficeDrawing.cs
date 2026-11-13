@@ -1047,7 +1047,6 @@ public sealed partial class OfficeDrawing {
     public OfficeDrawing Clone() {
         var clone = new OfficeDrawing(Width, Height) { _fonts = CloneFonts(), TextShapingProvider = TextShapingProvider, TextShapingLanguage = TextShapingLanguage, SvgTextAsPaths = SvgTextAsPaths };
         clone.PostCompositionColorTransform = PostCompositionColorTransform;
-        clone.PostCompositionBackdrop = PostCompositionBackdrop;
         for (int i = 0; i < _elements.Count; i++) {
             OfficeDrawingElement element = _elements[i].CloneElement();
             element.SourceElementIds = _elements[i].SourceElementIds;

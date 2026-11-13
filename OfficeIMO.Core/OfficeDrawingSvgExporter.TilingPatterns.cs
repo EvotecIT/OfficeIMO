@@ -4,7 +4,7 @@ using System.Text;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeDrawingSvgExporter {
-    private static void AppendTilingPattern(StringBuilder sb, OfficeDrawingTilingPattern pattern, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, double rasterScale, OfficeRasterCanvas textMetrics, bool textAsPaths, System.Collections.Generic.ISet<string> requiredFontFamilies) {
+    private static void AppendTilingPattern(StringBuilder sb, OfficeDrawingTilingPattern pattern, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, OfficeDrawingRasterRenderOptions rasterOptions, OfficeRasterCanvas textMetrics, bool textAsPaths, System.Collections.Generic.ISet<string> requiredFontFamilies) {
         if (pattern.Opacity <= 0D) return;
         textMetrics = textMetrics.WithDrawingTextProfile(pattern.InnerTile);
         string clipId = idPrefix + "officeimo-pattern-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
@@ -22,7 +22,7 @@ public static partial class OfficeDrawingSvgExporter {
         tilingExpansionBudget.BeginTile(pattern.MaximumTileCount);
         long descendantExpansion;
         try {
-            AppendDrawingContent(sb, pattern.InnerTile, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, rasterScale, textMetrics, textAsPaths, requiredFontFamilies);
+            AppendDrawingContent(sb, pattern.InnerTile, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, rasterOptions, textMetrics, textAsPaths, requiredFontFamilies);
             descendantExpansion = tilingExpansionBudget.EndTile();
         } catch {
             tilingExpansionBudget.CancelTile();

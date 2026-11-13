@@ -6,17 +6,18 @@ public static partial class OfficeDrawingSvgExporter {
     private static void AppendDrawingContent(StringBuilder builder, OfficeDrawing drawing,
         IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId,
         CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget,
-        double rasterScale, OfficeRasterCanvas textMetrics, bool textAsPaths,
+        OfficeDrawingRasterRenderOptions rasterOptions, OfficeRasterCanvas textMetrics, bool textAsPaths,
         System.Collections.Generic.ISet<string> requiredFontFamilies) {
         if (drawing.PostCompositionColorTransform == null) {
             AppendElements(builder, drawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId,
-                cancellationToken, tilingExpansionBudget, rasterScale, textMetrics, textAsPaths, requiredFontFamilies);
+                cancellationToken, tilingExpansionBudget, rasterOptions, textMetrics, textAsPaths, requiredFontFamilies);
             return;
         }
 
         // Portable SVG has no destination ICC transform for a composited group.
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
-            Scale = rasterScale,
+            Scale = rasterOptions.Scale,
+            MaximumRasterPixels = rasterOptions.MaximumRasterPixels,
             ImageCodec = imageCodec,
             TextShapingProvider = textMetrics.TextShapingProvider,
             TextShapingLanguage = textMetrics.TextShapingLanguage,

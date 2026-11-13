@@ -43,7 +43,7 @@ public static partial class OfficeDrawingRasterRenderer {
         };
         viewport.AddDrawingForClippedRendering(drawing.CreateCompositionSource(), -x / scale, -y / scale, null);
         if (drawing.PostCompositionColorTransform != null)
-            viewport.SetPostCompositionColorTransform(drawing.PostCompositionColorTransform, drawing.PostCompositionBackdrop ?? OfficeColor.White);
+            viewport.SetPostCompositionColorTransform(drawing.PostCompositionColorTransform);
         return RenderCore(viewport, options, scale, scale, fonts: drawing.Fonts, pixelWidth: width, pixelHeight: height);
     }
 
@@ -80,7 +80,7 @@ public static partial class OfficeDrawingRasterRenderer {
         // A region gives its exact size; dividing it by the scale and rounding up again could add a pixel.
         int width = plan?.Limit.PixelWidth ?? pixelWidth;
         int height = plan?.Limit.PixelHeight ?? pixelHeight;
-        OfficeRasterImage image = new OfficeRasterImage(width, height, options.Background ?? drawing.PostCompositionBackdrop);
+        OfficeRasterImage image = new OfficeRasterImage(width, height, options.Background);
         OfficeRasterCanvas canvas = new OfficeRasterCanvas(
             image,
             font: null,

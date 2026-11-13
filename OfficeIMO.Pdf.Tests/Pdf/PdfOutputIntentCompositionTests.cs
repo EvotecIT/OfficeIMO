@@ -1,4 +1,5 @@
 using System.Xml.Linq;
+using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -24,7 +25,7 @@ public sealed class PdfOutputIntentCompositionTests {
         OfficeDrawing drawing = page.ToDrawing();
         Assert.True(OfficePngReader.TryDecode(File.ReadAllBytes(Fixture($"page-{pageNumber}-reference.png")), out OfficeRasterImage? reference));
         Assert.NotNull(reference);
-        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, background: OfficeColor.White);
         Assert.Equal(128, raster.Width);
         Assert.Equal(96, raster.Height);
         foreach (int x in new[] { 20, 56, 99 }) AssertColor(reference!.GetPixel(x, 56), raster.GetPixel(x, 56));
@@ -35,9 +36,14 @@ public sealed class PdfOutputIntentCompositionTests {
         Assert.Equal(OfficeConversionLossKind.None, diagnostic.LossKind);
         Assert.DoesNotContain(page.GetRenderCapabilityDiagnostics(), item => item.Code == "render.colorspace.icc-output-intent-transparency-simplified");
         Assert.Equal(before, page.GetTextSpans().Select(span => (span.Text, span.X, span.Y, span.Advance)).ToArray());
-        Assert.Equal(raster.GetPixels(), OfficeDrawingRasterRenderer.Render(drawing.Clone()).GetPixels());
+        Assert.Equal(raster.GetPixels(), OfficeDrawingRasterRenderer.Render(drawing.Clone(), background: OfficeColor.White).GetPixels());
 
-        string svg = OfficeDrawingSvgExporter.ToSvg(drawing, 2D);
+        PdfPageRenderResult svgResult = Assert.Single(PdfDocument.Load(Fixture("reportlab-output-intent.pdf"))
+            .Render.Pages(PdfPageSelection.From(pageNumber), new PdfPageRenderOptions {
+                Format = OfficeImageExportFormat.Svg, Scale = 2D
+            }));
+        Assert.True(svgResult.Succeeded, string.Join(" ", svgResult.Diagnostics));
+        string svg = Encoding.UTF8.GetString(svgResult.Bytes!);
         XElement image = Assert.Single(XDocument.Parse(svg).Descendants(), item => item.Name.LocalName == "image");
         byte[] png = Convert.FromBase64String(image.Attribute("href")!.Value.Split(',')[1]);
         Assert.True(OfficePngReader.TryDecode(png, out OfficeRasterImage? svgRaster));
@@ -55,6 +61,30 @@ public sealed class PdfOutputIntentCompositionTests {
         Assert.DoesNotContain(results[0].CapabilityDiagnostics, item => item.Code.Contains("post-composition"));
         Assert.All(results.Skip(1), result => Assert.Contains(result.CapabilityDiagnostics,
             item => item.Code == "render.colorspace.icc-output-intent-post-composition"));
+    }
+
+    [Fact]
+    public void SvgExport_PreservesRequestedTransparentBackdrop() {
+        PdfReadPage page = PdfReadDocument.Open(File.ReadAllBytes(Fixture("reportlab-output-intent.pdf"))).Pages[1];
+        OfficeImageExportResult result = page.ToImage(OfficeImageExportFormat.Svg,
+            new PdfImageExportOptions { BackgroundColor = OfficeColor.Transparent });
+        XElement image = Assert.Single(XDocument.Parse(Encoding.UTF8.GetString(result.Bytes)).Descendants(),
+            item => item.Name.LocalName == "image");
+        Assert.True(OfficePngReader.TryDecode(Convert.FromBase64String(image.Attribute("href")!.Value.Split(',')[1]),
+            out OfficeRasterImage? raster));
+        Assert.Equal((byte)0, raster!.GetPixel(0, 0).A);
+        Assert.InRange(raster.GetPixel(99, 56).A, (byte)127, (byte)129);
+    }
+
+    [Fact]
+    public void SvgExport_RejectsProofSurfaceBeyondTheCallerRasterBudget() {
+        PdfReadPage page = PdfReadDocument.Open(File.ReadAllBytes(Fixture("reportlab-output-intent.pdf"))).Pages[1];
+        OfficeImageExportLimitException error = Assert.Throws<OfficeImageExportLimitException>(() =>
+            page.ToImage(OfficeImageExportFormat.Svg, new PdfImageExportOptions {
+                MaximumRasterPixels = 100, RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw
+            }));
+        Assert.Equal(100, error.MaximumPixels);
+        Assert.Equal(128 * 96, error.RequestedPixels);
     }
 
     [Theory]
@@ -91,7 +121,7 @@ public sealed class PdfOutputIntentCompositionTests {
         OfficeRasterImage expected = OfficeDrawingRasterRenderer.Render(page);
         OfficeRasterImage actual = OfficeDrawingRasterRenderer.Render(drawing);
         foreach (int x in new[] { 20, 56, 99 }) Assert.Equal(expected.GetPixel(x, 56), actual.GetPixel(x + 5, 63));
-        Assert.Equal((byte)255, actual.GetPixel(10, 77).A);
+        Assert.Equal(expected.GetPixel(5, 70).A, actual.GetPixel(10, 77).A);
         Assert.Equal((byte)0, actual.GetPixel(0, 0).A);
         XElement image = Assert.Single(XDocument.Parse(OfficeDrawingSvgExporter.ToSvg(drawing)).Descendants(),
             item => item.Name.LocalName == "image");

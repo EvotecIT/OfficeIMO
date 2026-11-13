@@ -7,13 +7,11 @@ internal interface IOfficePostCompositionColorTransform {
 
 public sealed partial class OfficeDrawing {
     internal IOfficePostCompositionColorTransform? PostCompositionColorTransform { get; private set; }
-    internal OfficeColor? PostCompositionBackdrop { get; private set; }
 
     /// <summary>Retains scene semantics while deferring destination color conversion to rasterization.</summary>
-    internal void SetPostCompositionColorTransform(IOfficePostCompositionColorTransform transform, OfficeColor backdrop) {
+    internal void SetPostCompositionColorTransform(IOfficePostCompositionColorTransform transform) {
         ArgumentNullException.ThrowIfNull(transform);
         PostCompositionColorTransform = transform;
-        PostCompositionBackdrop = backdrop;
     }
 
     /// <summary>Creates a render-only view of the authored paints for region composition.</summary>
