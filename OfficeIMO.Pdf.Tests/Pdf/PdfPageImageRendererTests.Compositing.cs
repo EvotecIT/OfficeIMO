@@ -29,4 +29,19 @@ public partial class PdfPageImageRendererTests {
         Assert.Equal(0, grouped.B);
         Assert.Equal(OfficeColor.FromRgb(255, 0, 0), raster.GetPixel(180, 100));
     }
+
+    [Fact]
+    public void RenderPage_KeepsTheRotationOfAnImageMatrixWrittenWithFewDigits() {
+        // A 30 by 40 point image rotated by 10 degrees with coefficients written to three decimals:
+        // its axes are orthogonal only relative to its size, not within an absolute 0.001.
+        byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
+            CompressWithDeflate(new byte[] { 255, 0, 0, 0, 0, 255 }),
+            colorSpace: "/DeviceRGB",
+            imageWidth: 2,
+            contentStream: "q 29.544 5.209 -6.946 39.392 100 80 cm /Im1 Do Q");
+
+        OfficeDrawingImage image = Assert.Single(PdfPageImageRenderer.RenderPage(pdf).Images);
+
+        Assert.InRange(image.Projection.RotationDegrees, -10.1D, -9.9D);
+    }
 }
