@@ -876,7 +876,7 @@ internal static partial class MarkdownReader {
             var definition = pair.Value;
             int? startLine = definition.LabelSourceSpan?.StartLine ?? definition.SourceSpan?.StartLine;
             if (startLine.HasValue && lazyReferenceLines.Contains(startLine.Value)) {
-                state.LinkRefs.Remove(pair.Key);
+                state.EditLinkRefs().Remove(pair.Key);
             }
         }
     }

@@ -104,6 +104,11 @@ public sealed class Markdown_Reader_Pathological_Input_Tests {
         Add("nested inline links in emphasis", () => Case(Repeat("*[", 65000) + "a" + Repeat("](u)*", 65000), "^<p>(<em>|</em>|\\[)+<a href=\"u\">a</a>(<em>|</em>|\\]\\(u\\))+</p>$"));
         Add("nested inline links around raw html", () => Case(Repeat("[<b>", 65000) + "a" + Repeat("</b>](u)", 65000), "^<p>(\\[<b>){64999}<a href=\"u\"><b>a</b></a>(</b>\\]\\(u\\)){64999}</p>$"));
         Add("nested reference links", () => Case("[r]: /x\n\n" + Repeat("[", 65000) + "a" + Repeat("][r]", 65000), "^<p>\\[{64999}<a href=\"/x\">a</a>(\\]<a href=\"/x\">r</a>){64999}</p>$"));
+        // Each nested container started its parse from a copy of every definition.
+        Add("many definitions and block quotes", () => Case(
+            string.Concat(Enumerable.Range(0, 40000).Select(index => "[ref" + index + "]: /u" + index + "\n")) + "\n" +
+            string.Concat(Enumerable.Range(0, 40000).Select(index => "> quote [ref" + index + "]\n> - item\n\n")),
+            "<blockquote><p>quote <a href=\"/u39999\">ref39999</a></p><ul><li>item</li></ul></blockquote>$"));
         // The default profile checks each bare autolink candidate against its line.
         Add("bare autolink candidates on one line", () => Case(Repeat("www.a ", 65000), "^<p>", profile: MarkdownDialectProfile.OfficeIMO));
         return cases;

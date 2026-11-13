@@ -21,7 +21,7 @@ internal static partial class MarkdownReader {
             }
 
             var sourceSpan = CreateLineSpan(state, state.SourceLineOffset + i + 1, state.SourceLineOffset + i + 1);
-            state.Abbreviations[label] = new MarkdownAbbreviationDefinition(
+            state.EditAbbreviations()[label] = new MarkdownAbbreviationDefinition(
                 label,
                 title,
                 sourceSpan,
@@ -112,7 +112,7 @@ internal static partial class MarkdownReader {
             }
 
             var sourceSpan = CreateLineSpan(state, state.SourceLineOffset + idx + 1, state.SourceLineOffset + idx + 1);
-            state.Abbreviations[label] = new MarkdownAbbreviationDefinition(
+            state.EditAbbreviations()[label] = new MarkdownAbbreviationDefinition(
                 label,
                 title,
                 sourceSpan,

@@ -96,7 +96,7 @@ internal static partial class MarkdownReader {
                         state,
                         state.SourceLineOffset + idx + 1,
                         state.SourceLineOffset + idx + consumedLines);
-                    state.LinkRefs[label] = new MarkdownReferenceLinkDefinition(
+                    state.EditLinkRefs()[label] = new MarkdownReferenceLinkDefinition(
                         label,
                         resolved!,
                         title,
@@ -120,7 +120,7 @@ internal static partial class MarkdownReader {
                 out var quotedDefinition,
                 out var quotedConsumedLines)) {
                 if (!state.LinkRefs.ContainsKey(quotedDefinition.Label)) {
-                    state.LinkRefs[quotedDefinition.Label] = quotedDefinition;
+                    state.EditLinkRefs()[quotedDefinition.Label] = quotedDefinition;
                 }
 
                 idx += quotedConsumedLines - 1;

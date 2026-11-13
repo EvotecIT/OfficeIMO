@@ -32,7 +32,7 @@ internal static partial class MarkdownReader {
                         state,
                         state.SourceLineOffset + i + 1,
                         state.SourceLineOffset + i + consumedLines);
-                    state.LinkRefs[label] = new MarkdownReferenceLinkDefinition(
+                    state.EditLinkRefs()[label] = new MarkdownReferenceLinkDefinition(
                         label,
                         resolved!,
                         title,
