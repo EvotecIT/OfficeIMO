@@ -7,6 +7,7 @@ namespace PSWriteOffice.Cmdlets.Csv;
 internal sealed class CsvPowerShellLineWriter : TextWriter
 {
     private const int PendingFlushThreshold = 32 * 1024;
+    private const int RecordContinues = -2;
     private readonly PSCmdlet _cmdlet;
     private readonly string _delimiterText;
     private readonly bool _parseQuotedRecords;
@@ -69,25 +70,12 @@ internal sealed class CsvPowerShellLineWriter : TextWriter
 #if NET6_0_OR_GREATER
     public override void Write(StringBuilder? value)
     {
-        // The row writer passes one record per call in its reusable buffer; emit it without copying it first.
-        if (value != null && _pending.Length == 0)
+        // A complete record in the row writer's reusable buffer is emitted without copying it first.
+        if (value != null && _pending.Length == 0 && TryGetSingleChunk(value, out var single) &&
+            TryGetWholeRecordLength(single.Span, out var length))
         {
-            var chunks = 0;
-            ReadOnlyMemory<char> single = default;
-            foreach (var chunk in value.GetChunks())
-            {
-                single = chunk;
-                if (++chunks > 1)
-                {
-                    break;
-                }
-            }
-
-            if (chunks == 1 && TryGetWholeRecordLength(single.Span, out var length))
-            {
-                EmitRecord(value.ToString(0, length));
-                return;
-            }
+            EmitRecord(value.ToString(0, length));
+            return;
         }
 
         _pending.Append(value);
@@ -95,11 +83,59 @@ internal sealed class CsvPowerShellLineWriter : TextWriter
     }
 #endif
 
+    // The row writer emits a plain record as WriteLine(record). When it is one complete record body, emit it as is
+    // instead of letting TextWriter split it into a body write and a line-break write.
+    public override void WriteLine(string? value)
+    {
+        if (value != null && CanEmitRecordBody(value.AsSpan()))
+        {
+            EmitRecord(value);
+            return;
+        }
+
+        base.WriteLine(value);
+    }
+
+#if NET6_0_OR_GREATER
+    public override void WriteLine(StringBuilder? value)
+    {
+        if (value != null && TryGetSingleChunk(value, out var chunk) && CanEmitRecordBody(chunk.Span))
+        {
+            EmitRecord(value.ToString());
+            return;
+        }
+
+        base.WriteLine(value);
+    }
+
+    private static bool TryGetSingleChunk(StringBuilder value, out ReadOnlyMemory<char> single)
+    {
+        single = default;
+        var chunks = 0;
+        foreach (var chunk in value.GetChunks())
+        {
+            single = chunk;
+            if (++chunks > 1)
+            {
+                return false;
+            }
+        }
+
+        return chunks == 1;
+    }
+#endif
+
+    // True when nothing is buffered and the text is one record without a line break outside quotes.
+    private bool CanEmitRecordBody(ReadOnlySpan<char> text) =>
+        _pending.Length == 0 &&
+        IsAtRecordStart() &&
+        FindRecordEnd(text, 0, textEndClosesQuote: true) == RecordContinues;
+
     // True when nothing is buffered and the text is exactly one complete record followed by its line break.
-    private bool TryGetWholeRecordLength(ReadOnlySpan<char> text, out int length)
+    private bool TryGetWholeRecordLength(ReadOnlySpan<char> text, out int length, bool ignorePending = false)
     {
         length = 0;
-        if (_pending.Length != 0 || !IsAtRecordStart())
+        if ((!ignorePending && _pending.Length != 0) || !IsAtRecordStart())
         {
             return false;
         }
@@ -135,6 +171,16 @@ internal sealed class CsvPowerShellLineWriter : TextWriter
         {
             return;
         }
+
+#if NET6_0_OR_GREATER
+        // Escaped records arrive field by field; one complete record is emitted straight from the buffer.
+        if (TryGetSingleChunk(_pending, out var pendingChunk) && TryGetWholeRecordLength(pendingChunk.Span, out var recordLength, ignorePending: true))
+        {
+            EmitRecord(_pending.ToString(0, recordLength));
+            _pending.Clear();
+            return;
+        }
+#endif
 
         var text = _pending.ToString();
         _pending.Clear();
@@ -205,11 +251,13 @@ internal sealed class CsvPowerShellLineWriter : TextWriter
         return stop + 1 < text.Length && text[stop + 1] == '\n' ? stop + 2 : -1;
     }
 
-    // Returns the index of the line break that ends the record starting at recordStart, or -1 when the record is
-    // incomplete or needs the character state machine. Quotes follow the same rules as that state machine: a quote
-    // opens a field only at a field start, a doubled quote stays inside the field, and line breaks inside quotes
-    // belong to the record. Multi-character delimiters keep the state machine for quoted records.
-    private int FindRecordEnd(ReadOnlySpan<char> text, int recordStart)
+    // Returns the index of the line break that ends the record starting at recordStart, RecordContinues when the text
+    // ends outside quotes without a line break, or -1 when the record needs the character state machine. Quotes follow
+    // the same rules as that state machine: a quote opens a field only at a field start, a doubled quote stays inside
+    // the field, and line breaks inside quotes belong to the record. Multi-character delimiters keep the state machine
+    // for quoted records. With textEndClosesQuote a quote that ends the text closes its field, because the caller
+    // knows a line break follows.
+    private int FindRecordEnd(ReadOnlySpan<char> text, int recordStart, bool textEndClosesQuote = false)
     {
         var position = recordStart;
         var inQuotes = false;
@@ -221,7 +269,7 @@ internal sealed class CsvPowerShellLineWriter : TextWriter
                 : remaining.IndexOfAny('"', '\r', '\n');
             if (found < 0)
             {
-                return -1;
+                return inQuotes ? -1 : RecordContinues;
             }
 
             var stop = position + found;
@@ -241,7 +289,14 @@ internal sealed class CsvPowerShellLineWriter : TextWriter
             {
                 if (stop + 1 >= text.Length)
                 {
-                    return -1;
+                    if (!textEndClosesQuote)
+                    {
+                        return -1;
+                    }
+
+                    inQuotes = false;
+                    position = stop + 1;
+                    continue;
                 }
 
                 if (text[stop + 1] == '"')
