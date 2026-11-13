@@ -40,6 +40,27 @@ public sealed class WordConversionFieldVisibilityTests {
     }
 
     [Fact]
+    public void RunsReflectFieldMarkersEditedBetweenReads() {
+        using WordDocument document = WordDocument.Create();
+        WordParagraph start = document.AddParagraph("Start");
+        WordParagraph middle = document.AddParagraph("Middle");
+        WordParagraph end = document.AddParagraph("End");
+        string Visible() => string.Join("|", new[] { start, middle, end }
+            .Select(paragraph => string.Concat(paragraph.GetRuns().Select(run => run.Text))));
+        Assert.Equal("Start|Middle|End", Visible());
+
+        var begin = new Run(new FieldChar { FieldCharType = FieldCharValues.Begin });
+        start._paragraph.Append(begin);
+        Assert.Equal("Start||", Visible());
+
+        end._paragraph.PrependChild(new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+        Assert.Equal("Start||End", Visible());
+
+        begin.Remove();
+        Assert.Equal("Start|Middle|End", Visible());
+    }
+
+    [Fact]
     public void MixedFieldMarkersWithinOneRunKeepOnlyVisibleSegments() {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("Prefix ");

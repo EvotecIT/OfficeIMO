@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
@@ -7,6 +8,7 @@ namespace OfficeIMO.Word {
     /// </summary>
     internal sealed class WordComplexFieldRunVisibility {
         private static readonly AsyncLocal<Dictionary<OpenXmlElement, Dictionary<Paragraph, FieldState>>?> ConversionPrefixes = new();
+        private static readonly ConditionalWeakTable<OpenXmlElement, StoryIndex> StoryIndexes = new();
         private FieldState? _state;
 
         internal sealed class FieldState {
@@ -63,6 +65,10 @@ namespace OfficeIMO.Word {
                     ? new WordComplexFieldRunVisibility(prefix) : new WordComplexFieldRunVisibility();
             }
 
+            if (StoryIndex.TryGetPrefix(story, textBoxStory != null, paragraph, out FieldState? indexedPrefix)) {
+                return new WordComplexFieldRunVisibility(indexedPrefix);
+            }
+
             var visibility = new WordComplexFieldRunVisibility();
             foreach (Paragraph earlier in story.Descendants<Paragraph>()) {
                 if (ReferenceEquals(earlier, paragraph)) break;
@@ -70,6 +76,76 @@ namespace OfficeIMO.Word {
                 visibility.ObserveParagraphMarkers(earlier);
             }
             return visibility;
+        }
+
+        // Outside a conversion, a caller such as one reading every paragraph's runs asks for many
+        // paragraphs of the same story, and walking the story's earlier paragraphs each time made
+        // that quadratic. Each story in a document part keeps the field state before every
+        // paragraph it has walked to, and continues the walk from there when asked about a later
+        // one, so a caller that edits between reads pays no more than the walk it replaced. The
+        // index is dropped when any element of the part is inserted or removed, which is how every
+        // edit of runs, fields, revisions and paragraphs reaches the tree. (Changing an existing
+        // field character's type in place, which nothing here does, raises no such event.)
+        private sealed class StoryIndex {
+            private readonly OpenXmlElementContext _context;
+            private readonly bool _isTextBoxStory;
+            private readonly Dictionary<Paragraph, FieldState?> _prefixes = new();
+            private readonly WordComplexFieldRunVisibility _walk = new();
+            private IEnumerator<Paragraph>? _remaining;
+            private bool _isCurrent = true;
+
+            private StoryIndex(OpenXmlElement story, bool isTextBoxStory, OpenXmlElementContext context) {
+                _context = context;
+                _isTextBoxStory = isTextBoxStory;
+                _remaining = story.Descendants<Paragraph>().GetEnumerator();
+                _context.ElementInserted += OnChanged;
+                _context.ElementRemoved += OnChanged;
+            }
+
+            internal static bool TryGetPrefix(OpenXmlElement story, bool isTextBoxStory, Paragraph paragraph, out FieldState? prefix) {
+                if (!StoryIndexes.TryGetValue(story, out StoryIndex? index) || !index._isCurrent) {
+                    // Only a story inside a part's tree reports its edits; detached content is walked.
+                    OpenXmlElement root = story.Ancestors().LastOrDefault() ?? story;
+                    if (root is not OpenXmlPartRootElement || root.OpenXmlElementContext is not OpenXmlElementContext context) {
+                        prefix = null;
+                        return false;
+                    }
+
+                    index = new StoryIndex(story, isTextBoxStory, context);
+                    StoryIndexes.Remove(story);
+                    StoryIndexes.Add(story, index);
+                }
+
+                return index.TryGetPrefix(paragraph, out prefix);
+            }
+
+            private bool TryGetPrefix(Paragraph paragraph, out FieldState? prefix) {
+                if (_prefixes.TryGetValue(paragraph, out prefix)) return true;
+                while (_remaining != null && _remaining.MoveNext()) {
+                    Paragraph next = _remaining.Current;
+                    if (!_isTextBoxStory && next.Ancestors<TextBoxContent>().Any()) continue;
+                    FieldState? state = _walk.CurrentState;
+                    _prefixes[next] = state;
+                    _walk.ObserveParagraphMarkers(next);
+                    if (ReferenceEquals(next, paragraph)) {
+                        prefix = state;
+                        return true;
+                    }
+                }
+
+                _remaining?.Dispose();
+                _remaining = null;
+                prefix = null;
+                return false;
+            }
+
+            private void OnChanged(object? sender, ElementEventArgs e) {
+                _isCurrent = false;
+                _remaining?.Dispose();
+                _remaining = null;
+                _context.ElementInserted -= OnChanged;
+                _context.ElementRemoved -= OnChanged;
+            }
         }
 
         /// <summary>Tests an instruction's visibility in its containing field and source story.</summary>
