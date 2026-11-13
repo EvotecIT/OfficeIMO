@@ -194,10 +194,13 @@ public sealed partial class CsvRowWriter
             _ => nameof(StageProjectedText),
         };
         MethodInfo textMethod = typeof(CsvRowWriter).GetMethod(textMethodName, BindingFlags.NonPublic | BindingFlags.Instance)!;
-        Expression text = Expression.Call(writer, textMethod, Expression.Constant(ordinal), formattedText);
+        // A string formats to itself, so it is staged without the formatting call.
+        Expression text = Expression.Call(writer, textMethod, Expression.Constant(ordinal),
+            value.Type == typeof(string) ? value : formattedText);
         Type scalarType = Nullable.GetUnderlyingType(value.Type) ?? value.Type;
         MethodInfo? scalarMethod = CsvWriter.GetPropertyScalarStageMethod(scalarType, staging);
-        usesTypedValue = scalarMethod != null;
+        // UTF-8 staging also beats the text projector for rows of text, whose characters it would transcode.
+        usesTypedValue = scalarMethod != null || staging == ProjectedStaging.Utf8;
         if (scalarMethod == null) return text;
         Expression scalarValue = value;
         if (scalarType != value.Type) scalarValue = Expression.Property(value, "Value");

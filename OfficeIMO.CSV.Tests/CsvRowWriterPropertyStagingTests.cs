@@ -136,6 +136,21 @@ public class CsvRowWriterPropertyStagingTests
         }
 
         Assert.Equal(new UTF8Encoding(false).GetBytes(text.ToString()), output.ToArray());
+
+        // Rows of text alone take the same staging.
+        var textRows = new[] { new { First = first, Second = (string?)second }, new { First = second, Second = (string?)null } };
+        output.SetLength(0);
+        using (var writer = CsvRowWriter.CreateStream(output, options, leaveOpen: true))
+        {
+            foreach (var row in textRows) writer.WriteObject(row);
+        }
+        text = new StringWriter(CultureInfo.InvariantCulture);
+        using (var writer = new CsvRowWriter(text, options, leaveOpen: true))
+        {
+            foreach (var row in textRows) writer.WriteObject(row);
+        }
+
+        Assert.Equal(new UTF8Encoding(false).GetBytes(text.ToString()), output.ToArray());
     }
 
     private sealed class RowContext(CsvSaveOptions options)
