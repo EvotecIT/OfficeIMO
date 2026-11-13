@@ -1198,7 +1198,7 @@ public sealed partial class PdfReadPage {
                     formWidths,
                     formFonts);
                 var combinedTransform = ApplyFormMatrix(invocation.Transform, formDict);
-                var formContent = WrapContentWithTransform(WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formDict), combinedTransform, out int formContentOffset);
+                PdfContentSource formContent = WrapFormContentBytes(pageContentBudget.Decode(formStream), formDict, combinedTransform, out int formContentOffset);
                 PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex + contentOrderOffset);
                 if (pageContentBudget.HasProjectedTransparencyGroup(formOrderPrefix)) continue;
                 bool effectiveArtifactContent = inheritedArtifactContent || invocation.IsArtifactContent;
@@ -1789,39 +1789,72 @@ public sealed partial class PdfReadPage {
     private static string WrapContentWithTransform(string content, Matrix2D transform) => WrapContentWithTransform(content, transform, out _);
 
     private static string WrapContentWithTransform(string content, Matrix2D transform, out int contentOffset) {
-        string prefix = string.Format(
-            System.Globalization.CultureInfo.InvariantCulture,
-            "q {0} {1} {2} {3} {4} {5} cm ",
-            transform.A,
-            transform.B,
-            transform.C,
-            transform.D,
-            transform.E,
-            transform.F);
+        string prefix = FormatTransformPrefix(transform);
         contentOffset = prefix.Length;
         return prefix + content + " Q";
     }
 
+    private static string FormatTransformPrefix(Matrix2D transform) => string.Format(
+        System.Globalization.CultureInfo.InvariantCulture,
+        "q {0} {1} {2} {3} {4} {5} cm ",
+        transform.A,
+        transform.B,
+        transform.C,
+        transform.D,
+        transform.E,
+        transform.F);
+
     private string WrapFormContentWithBoundingBoxClip(string content, PdfDictionary? formDict) {
+        string? prefix = FormatBoundingBoxClipPrefix(formDict);
+        return prefix is null ? content : prefix + content + " Q";
+    }
+
+    private string? FormatBoundingBoxClipPrefix(PdfDictionary? formDict) {
         if (formDict is null ||
             !TryReadBox(formDict.Items.TryGetValue("BBox", out PdfObject? bboxObject) ? bboxObject : null, out (double X1, double Y1, double X2, double Y2) bbox)) {
-            return content;
+            return null;
         }
 
         double width = bbox.X2 - bbox.X1;
         double height = bbox.Y2 - bbox.Y1;
         if (width <= 0D || height <= 0D) {
-            return content;
+            return null;
         }
 
-        string prefix = string.Format(
+        return string.Format(
             System.Globalization.CultureInfo.InvariantCulture,
             "q {0} {1} {2} {3} re W n ",
             bbox.X1,
             bbox.Y1,
             width,
             height);
-        return prefix + content + " Q";
+    }
+
+    /// <summary>
+    /// Builds the bytes of <see cref="WrapContentWithTransform(string, Matrix2D, out int)"/> applied to
+    /// <see cref="WrapFormContentWithBoundingBoxClip(string, PdfDictionary?)"/>, without Latin-1 strings
+    /// of the form content. The prefixes are ASCII, so offsets match the string form.
+    /// </summary>
+    private PdfContentSource WrapFormContentBytes(byte[] content, PdfDictionary? formDict, Matrix2D transform, out int contentOffset) {
+        string transformPrefix = FormatTransformPrefix(transform);
+        string? clipPrefix = FormatBoundingBoxClipPrefix(formDict);
+        const string Suffix = " Q";
+        contentOffset = transformPrefix.Length;
+        int length = checked(transformPrefix.Length + content.Length + Suffix.Length +
+            (clipPrefix is null ? 0 : clipPrefix.Length + Suffix.Length));
+        var wrapped = new byte[length];
+        int offset = WriteLatin1(transformPrefix, wrapped, 0);
+        if (clipPrefix is not null) offset = WriteLatin1(clipPrefix, wrapped, offset);
+        Buffer.BlockCopy(content, 0, wrapped, offset, content.Length);
+        offset += content.Length;
+        if (clipPrefix is not null) offset = WriteLatin1(Suffix, wrapped, offset);
+        WriteLatin1(Suffix, wrapped, offset);
+        return PdfContentSource.FromBytes(wrapped);
+
+        static int WriteLatin1(string value, byte[] destination, int start) {
+            for (int index = 0; index < value.Length; index++) destination[start + index] = (byte)value[index];
+            return start + value.Length;
+        }
     }
 
     private Matrix2D ApplyFormMatrix(Matrix2D invocationTransform, PdfDictionary? formDict) {
