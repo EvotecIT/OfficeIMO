@@ -11,13 +11,18 @@ internal static class WordReaderAdapter {
     internal static ReaderWordOptions Clone(ReaderWordOptions? source) => new ReaderWordOptions {
         IncludeFootnotes = source?.IncludeFootnotes ?? true,
         IncludePageLocations = source?.IncludePageLocations ?? false,
-        PageLocationOptions = source?.PageLocationOptions?.Clone()
+        PageLocationOptions = source?.PageLocationOptions?.Clone(),
+        StreamTextWhenPossible = source?.StreamTextWhenPossible ?? false
     };
 
     internal static OfficeDocumentReadResult ReadDocument(string path, ReaderOptions readerOptions, ReaderWordOptions options,
         global::OfficeIMO.Word.Legacy.LegacyWordImportOptions? legacyImportOptions, bool routeWordForDos, CancellationToken cancellationToken) {
         if (routeWordForDos && LegacyWordReaderAdapter.HasWordForDosHeader(path, cancellationToken)) {
             return LegacyWordReaderAdapter.ReadWordForDosDocument(path, readerOptions, options, legacyImportOptions, cancellationToken);
+        }
+        if (WordStreamingTextReader.Applies(readerOptions, options)) {
+            using FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (WordStreamingTextReader.TryRead(file, path, readerOptions, cancellationToken) is { } streamed) return streamed;
         }
         using WordDocument document = Load(path, readerOptions);
         return Project(document, path, readerOptions, options, cancellationToken);
@@ -28,6 +33,9 @@ internal static class WordReaderAdapter {
         if (routeWordForDos && LegacyWordReaderAdapter.HasWordForDosHeader(stream, sourceName, cancellationToken)) {
             return LegacyWordReaderAdapter.ReadWordForDosDocument(stream, sourceName, readerOptions, options, legacyImportOptions, cancellationToken);
         }
+        string name = string.IsNullOrWhiteSpace(sourceName) ? "document.docx" : sourceName!;
+        if (WordStreamingTextReader.Applies(readerOptions, options)
+            && WordStreamingTextReader.TryRead(stream, name, readerOptions, cancellationToken) is { } streamed) return streamed;
         using WordDocument document = Load(stream, readerOptions);
         return Project(document, string.IsNullOrWhiteSpace(sourceName) ? "document.docx" : sourceName!, readerOptions, options, cancellationToken);
     }
