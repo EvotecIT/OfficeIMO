@@ -6,7 +6,7 @@ using PSWriteOffice.Services.Markdown;
 
 namespace PSWriteOffice.Cmdlets.Markdown;
 
-/// <summary>Gets top-level YAML front matter entries from a Markdown document as Key, Value, Node and SourceSpan objects.</summary>
+/// <summary>Gets top-level YAML or TOML front matter entries from a Markdown document as Key, Value, Node and SourceSpan objects.</summary>
 /// <example>
 ///   <summary>Read selected front matter from a Markdown file.</summary>
 ///   <prefix>PS&gt; </prefix>
