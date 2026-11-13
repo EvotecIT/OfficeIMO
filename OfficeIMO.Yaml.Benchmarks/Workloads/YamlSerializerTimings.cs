@@ -21,8 +21,8 @@ internal static class YamlSerializerTimings {
             if (args[i] == "--workload") onlyWorkload = args[i + 1];
             if (args[i] == "--operation") onlyOperation = args[i + 1];
         }
-        var context = new BenchYamlContext(new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase });
-        var reflection = new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase };
+        var context = new BenchYamlContext(new YamlSerializerOptions { PropertyNamingPolicy = OfficeNamingPolicy.CamelCase });
+        var reflection = new YamlSerializerOptions { PropertyNamingPolicy = OfficeNamingPolicy.CamelCase };
         BenchSharpYamlContext sharp = BenchSharpYamlContext.Default;
         BenchOneYamlContext one = BenchOneYamlContext.Default;
         DotNet.ISerializer dotNetWriter = new DotNet.SerializerBuilder().WithNamingConvention(DotNet.NamingConventions.CamelCaseNamingConvention.Instance).Build();

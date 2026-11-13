@@ -131,7 +131,7 @@ writer.WriteEndMapping();
 ```csharp
 using OfficeIMO.Yaml;
 
-var options = new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase };
+var options = new YamlSerializerOptions { PropertyNamingPolicy = OfficeNamingPolicy.CamelCase };
 string yaml = YamlSerializer.Serialize(config, options);
 AppConfig? copy = YamlSerializer.Deserialize<AppConfig>(File.ReadAllText("app.yaml"), options);
 ```
@@ -142,7 +142,7 @@ These overloads create metadata by reflection. For trimmed and NativeAOT applica
 [YamlSerializable(typeof(AppConfig))]
 internal partial class AppYamlContext : YamlSerializerContext { }
 
-var context = new AppYamlContext(new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase });
+var context = new AppYamlContext(new YamlSerializerOptions { PropertyNamingPolicy = OfficeNamingPolicy.CamelCase });
 string yaml = YamlSerializer.Serialize(config, context.AppConfig);
 AppConfig? copy = YamlSerializer.Deserialize(yaml, context.AppConfig);
 object? value = YamlSerializer.Deserialize(yaml, typeof(AppConfig), context);
@@ -159,8 +159,8 @@ Serialization reads from `YamlReader` and writes to `YamlWriter` directly, witho
 
 - **Objects:** classes, structs and records, with public properties that have a public getter. Base-class properties come first.
   - Reading sets properties, including `init` ones.
-  - It uses the public parameterless constructor, the only public constructor, or the one marked `[YamlConstructor]`. Constructor parameters bind to properties of the same name and type, ignoring case.
-  - C# `required` members and `[YamlRequired]` properties must be present.
+  - It uses the public parameterless constructor, the only public constructor, or the one marked `[OfficeConstructor]`. Constructor parameters bind to properties of the same name and type, ignoring case.
+  - C# `required` members and `[OfficeRequired]` properties must be present.
   - Unknown keys are skipped.
   - Read-only properties are written but not read.
 - **Collections:** arrays, `List<T>`, the list and set interfaces, `HashSet<T>`, and other collections with a parameterless constructor and `Add`, written as sequences.
@@ -190,14 +190,14 @@ Serialization reads from `YamlReader` and writes to `YamlWriter` directly, witho
 - **Polymorphism** only through registrations on the base type. A tag in the input never names a .NET type by itself:
 
   ```csharp
-  [YamlDerivedType(typeof(HttpProbe), "http")]
-  [YamlDerivedType(typeof(TcpProbe), "tcp")]
+  [OfficeDerivedType(typeof(HttpProbe), "http")]
+  [OfficeDerivedType(typeof(TcpProbe), "tcp")]
   public abstract class Probe { }
   ```
 
-  The discriminator is a local tag (`- !http {path: /health}`). With `[YamlPolymorphic(DiscriminatorPropertyName = "kind")]` it is written as the first key instead, and reading finds it anywhere in the mapping, as Kubernetes files place `kind` after `apiVersion`.
+  The discriminator is a local tag (`- !http {path: /health}`). With `[OfficePolymorphic(DiscriminatorPropertyName = "kind")]` it is written as the first key instead, and reading finds it anywhere in the mapping, as Kubernetes files place `kind` after `apiVersion`.
 
-`[YamlPropertyName]` sets a key and wins over the naming policy. The policies are `CamelCase`, `SnakeCaseLower` and `KebabCaseLower`. `[YamlIgnore]` leaves a property out. Its `Condition`, or `YamlSerializerOptions.DefaultIgnoreCondition`, skips only null or default values when writing.
+`[OfficePropertyName]` sets a key and wins over the naming policy. The policies are `CamelCase`, `SnakeCaseLower` and `KebabCaseLower`. `[OfficeIgnore]` leaves a property out. Its `Condition`, or `YamlSerializerOptions.DefaultIgnoreCondition`, skips only null or default values when writing.
 
 ### Anchors, aliases and merge keys
 

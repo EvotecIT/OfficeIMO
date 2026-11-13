@@ -10,7 +10,7 @@ namespace OfficeIMO.Yaml.Tests.Serialization;
 // serializer's deterministic output, which the round-trip tests prove lossless.
 public class YamlSerializerInteropTests {
     private static readonly TestYamlContext Pascal = TestYamlContext.Default;
-    private static readonly TestYamlContext Camel = new TestYamlContext(new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase });
+    private static readonly TestYamlContext Camel = new TestYamlContext(new YamlSerializerOptions { PropertyNamingPolicy = OfficeNamingPolicy.CamelCase });
 
     private static readonly Dictionary<string, Type> Animals = new Dictionary<string, Type> { ["!cat"] = typeof(Cat), ["!dog"] = typeof(Dog) };
     private static readonly Dictionary<string, Type> Kinds = new Dictionary<string, Type> { ["Deployment"] = typeof(KubeDeployment), ["Service"] = typeof(KubeService) };

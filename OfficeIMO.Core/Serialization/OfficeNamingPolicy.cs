@@ -1,29 +1,32 @@
-namespace OfficeIMO.Yaml;
+using System.Text;
+
+namespace OfficeIMO;
 
 /// <summary>
-/// Converts .NET property names to mapping keys. The built-in policies cover the conventions YAML files use:
-/// <see cref="CamelCase"/> (Kubernetes, OpenAPI), <see cref="SnakeCaseLower"/> (Compose, Ansible) and
-/// <see cref="KebabCaseLower"/> (GitHub Actions). Derive from it for another convention.
+/// Converts .NET property names to the keys the OfficeIMO serializers write and read. The built-in policies cover the
+/// conventions configuration files use: <see cref="CamelCase"/> (Kubernetes, OpenAPI), <see cref="SnakeCaseLower"/>
+/// (Compose, Ansible, <c>pyproject.toml</c>) and <see cref="KebabCaseLower"/> (GitHub Actions, <c>Cargo.toml</c>).
+/// Derive from it for another convention.
 /// </summary>
-public abstract class YamlNamingPolicy {
+public abstract class OfficeNamingPolicy {
     /// <summary>Creates a policy.</summary>
-    protected YamlNamingPolicy() {
+    protected OfficeNamingPolicy() {
     }
 
     /// <summary>Gets the policy that writes <c>imagePullPolicy</c> for <c>ImagePullPolicy</c>.</summary>
-    public static YamlNamingPolicy CamelCase { get; } = new CamelCasePolicy();
+    public static OfficeNamingPolicy CamelCase { get; } = new CamelCasePolicy();
 
     /// <summary>Gets the policy that writes <c>image_pull_policy</c> for <c>ImagePullPolicy</c>.</summary>
-    public static YamlNamingPolicy SnakeCaseLower { get; } = new SeparatedPolicy('_');
+    public static OfficeNamingPolicy SnakeCaseLower { get; } = new SeparatedPolicy('_');
 
     /// <summary>Gets the policy that writes <c>image-pull-policy</c> for <c>ImagePullPolicy</c>.</summary>
-    public static YamlNamingPolicy KebabCaseLower { get; } = new SeparatedPolicy('-');
+    public static OfficeNamingPolicy KebabCaseLower { get; } = new SeparatedPolicy('-');
 
-    /// <summary>Returns the mapping key for a property name.</summary>
+    /// <summary>Returns the key for a property name.</summary>
     /// <param name="name">The .NET property name.</param>
     public abstract string ConvertName(string name);
 
-    private sealed class CamelCasePolicy : YamlNamingPolicy {
+    private sealed class CamelCasePolicy : OfficeNamingPolicy {
         public override string ConvertName(string name) {
             if (string.IsNullOrEmpty(name) || !char.IsUpper(name[0])) return name;
             char[] chars = name.ToCharArray();
@@ -42,7 +45,7 @@ public abstract class YamlNamingPolicy {
         }
     }
 
-    private sealed class SeparatedPolicy : YamlNamingPolicy {
+    private sealed class SeparatedPolicy : OfficeNamingPolicy {
         private readonly char _separator;
 
         public SeparatedPolicy(char separator) {

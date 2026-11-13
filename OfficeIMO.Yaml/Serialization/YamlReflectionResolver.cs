@@ -71,8 +71,8 @@ internal sealed class YamlReflectionResolver : IYamlTypeInfoResolver {
         }
         if (typeof(System.Collections.IEnumerable).IsAssignableFrom(type)) throw Unsupported(type, "non-generic collections are not supported");
 
-        bool polymorphic = type.GetCustomAttributes(typeof(YamlDerivedTypeAttribute), inherit: false).Length > 0;
-        if ((type.IsAbstract || type.IsInterface) && !polymorphic) throw Unsupported(type, "it is abstract and registers no derived types with [YamlDerivedType]");
+        bool polymorphic = type.GetCustomAttributes(typeof(OfficeDerivedTypeAttribute), inherit: false).Length > 0;
+        if ((type.IsAbstract || type.IsInterface) && !polymorphic) throw Unsupported(type, "it is abstract and registers no derived types with [OfficeDerivedType]");
         return Invoke(nameof(CreateObject), new[] { type }, options);
     }
 
@@ -195,10 +195,10 @@ internal sealed class YamlReflectionResolver : IYamlTypeInfoResolver {
             return infos;
         };
 
-        object[] derived = type.GetCustomAttributes(typeof(YamlDerivedTypeAttribute), inherit: false);
+        object[] derived = type.GetCustomAttributes(typeof(OfficeDerivedTypeAttribute), inherit: false);
         if (derived.Length > 0) {
-            values.DerivedTypes = Array.ConvertAll(derived, static attribute => (YamlDerivedTypeAttribute)attribute);
-            values.DiscriminatorPropertyName = type.GetCustomAttribute<YamlPolymorphicAttribute>(inherit: false)?.DiscriminatorPropertyName;
+            values.DerivedTypes = Array.ConvertAll(derived, static attribute => (OfficeDerivedTypeAttribute)attribute);
+            values.DiscriminatorPropertyName = type.GetCustomAttribute<OfficePolymorphicAttribute>(inherit: false)?.DiscriminatorPropertyName;
         }
         return YamlMetadataServices.CreateObjectInfo(options, values);
     }
@@ -223,9 +223,9 @@ internal sealed class YamlReflectionResolver : IYamlTypeInfoResolver {
     private static YamlPropertyInfo CreateProperty<TDeclaring, TProperty>(YamlSerializerOptions options, PropertyInfo property) {
         var values = new YamlPropertyInfoValues<TProperty> {
             Name = property.Name,
-            YamlName = property.GetCustomAttribute<YamlPropertyNameAttribute>()?.Name,
+            YamlName = property.GetCustomAttribute<OfficePropertyNameAttribute>()?.Name,
             IsRequired = YamlTypeShapes.IsRequired(property),
-            IgnoreCondition = property.GetCustomAttribute<YamlIgnoreAttribute>()?.Condition
+            IgnoreCondition = property.GetCustomAttribute<OfficeIgnoreAttribute>()?.Condition
         };
         MethodInfo getter = property.GetMethod!;
         MethodInfo? setter = property.SetMethod is { IsPublic: true } set ? set : null;
@@ -361,7 +361,7 @@ internal static class YamlTypeShapes {
     /// <summary>
     /// Returns the serialized properties: public instance properties with a public getter, base types first in
     /// declaration order. A redeclared property keeps its base position with the most derived declaration, and
-    /// <see cref="YamlIgnoreAttribute"/> with <see cref="YamlIgnoreCondition.Always"/> removes it.
+    /// <see cref="OfficeIgnoreAttribute"/> with <see cref="OfficeIgnoreCondition.Always"/> removes it.
     /// </summary>
     public static List<PropertyInfo> GetProperties(Type type) {
         var chain = new List<Type>();
@@ -375,7 +375,7 @@ internal static class YamlTypeShapes {
         foreach (Type declaring in chain) {
             foreach (PropertyInfo property in declaring.GetProperties(Declared)) {
                 if (property.GetIndexParameters().Length > 0) continue;
-                bool ignored = property.GetCustomAttribute<YamlIgnoreAttribute>() is { Condition: YamlIgnoreCondition.Always };
+                bool ignored = property.GetCustomAttribute<OfficeIgnoreAttribute>() is { Condition: OfficeIgnoreCondition.Always };
                 bool readable = property.GetMethod is { IsPublic: true, IsStatic: false };
                 PropertyInfo? entry = ignored || !readable ? null : property;
                 if (positions.TryGetValue(property.Name, out int position)) {
@@ -393,9 +393,9 @@ internal static class YamlTypeShapes {
         return properties;
     }
 
-    /// <summary>Whether a property is required: <see cref="YamlRequiredAttribute"/> or a C# <c>required</c> member.</summary>
+    /// <summary>Whether a property is required: <see cref="OfficeRequiredAttribute"/> or a C# <c>required</c> member.</summary>
     public static bool IsRequired(PropertyInfo property) {
-        if (Attribute.IsDefined(property, typeof(YamlRequiredAttribute), inherit: true)) return true;
+        if (Attribute.IsDefined(property, typeof(OfficeRequiredAttribute), inherit: true)) return true;
         foreach (CustomAttributeData attribute in property.CustomAttributes) {
             if (attribute.AttributeType.FullName == "System.Runtime.CompilerServices.RequiredMemberAttribute") return true;
         }
@@ -403,7 +403,7 @@ internal static class YamlTypeShapes {
     }
 
     /// <summary>
-    /// Selects the constructor reading uses: the one marked <see cref="YamlConstructorAttribute"/>; for a struct, its
+    /// Selects the constructor reading uses: the one marked <see cref="OfficeConstructorAttribute"/>; for a struct, its
     /// parameterless form; the public parameterless constructor; or the only public constructor. Returns null when
     /// none qualifies. <paramref name="useDefault"/> is set for a struct without a marked constructor.
     /// </summary>
@@ -412,8 +412,8 @@ internal static class YamlTypeShapes {
         ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
         ConstructorInfo? marked = null;
         foreach (ConstructorInfo constructor in constructors) {
-            if (!constructor.IsDefined(typeof(YamlConstructorAttribute), inherit: false)) continue;
-            if (marked is not null) throw new NotSupportedException("The type " + YamlSerializationErrors.TypeName(type) + " marks more than one constructor with [YamlConstructor].");
+            if (!constructor.IsDefined(typeof(OfficeConstructorAttribute), inherit: false)) continue;
+            if (marked is not null) throw new NotSupportedException("The type " + YamlSerializationErrors.TypeName(type) + " marks more than one constructor with [OfficeConstructor].");
             marked = constructor;
         }
         if (marked is not null) return marked;

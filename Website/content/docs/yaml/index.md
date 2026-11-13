@@ -78,12 +78,12 @@ Mappings merge key by key. Sequences are replaced by default, as in Helm, or app
 [YamlSerializable(typeof(AppConfig))]
 internal partial class AppYamlContext : YamlSerializerContext { }
 
-var context = new AppYamlContext(new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase });
+var context = new AppYamlContext(new YamlSerializerOptions { PropertyNamingPolicy = OfficeNamingPolicy.CamelCase });
 AppConfig? config = YamlSerializer.Deserialize(File.ReadAllText("app.yaml"), context.AppConfig);
 string yaml = YamlSerializer.Serialize(config!, context.AppConfig);
 ```
 
-The source generator ships in the package. Overloads that take `YamlSerializerOptions` alone use reflection metadata, which is off in `PublishAot` and `PublishTrimmed` applications. Polymorphism works only through `[YamlDerivedType]` registrations; a tag in the input never chooses a .NET type by itself.
+The source generator ships in the package. Overloads that take `YamlSerializerOptions` alone use reflection metadata, which is off in `PublishAot` and `PublishTrimmed` applications. Polymorphism works only through `[OfficeDerivedType]` registrations; a tag in the input never chooses a .NET type by itself.
 
 ## Options and diagnostics
 

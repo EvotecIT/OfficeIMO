@@ -295,7 +295,7 @@ internal abstract class YamlConverter<T> {
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
 public abstract class YamlPropertyInfo {
-    private protected YamlPropertyInfo(string name, string? yamlName, bool isRequired, YamlIgnoreCondition? ignoreCondition, Type propertyType) {
+    private protected YamlPropertyInfo(string name, string? yamlName, bool isRequired, OfficeIgnoreCondition? ignoreCondition, Type propertyType) {
         ClrName = name;
         ExplicitName = yamlName;
         IsRequired = isRequired;
@@ -318,12 +318,12 @@ public abstract class YamlPropertyInfo {
 
     internal bool IsRequired { get; }
 
-    internal YamlIgnoreCondition? IgnoreCondition { get; }
+    internal OfficeIgnoreCondition? IgnoreCondition { get; }
 
     internal Type PropertyType { get; }
 
     /// <summary>The effective condition for writing, combining the property's own and the options' default.</summary>
-    internal YamlIgnoreCondition WriteCondition { get; set; }
+    internal OfficeIgnoreCondition WriteCondition { get; set; }
 
     /// <summary>The constructor parameter position the property binds to, or -1.</summary>
     internal int ParameterIndex { get; set; } = -1;
@@ -379,10 +379,10 @@ internal sealed class YamlPropertyInfo<T> : YamlPropertyInfo {
     internal override void Write(YamlWriter writer, object owner, YamlWriteState state) {
         T value = _getter!(owner);
         switch (WriteCondition) {
-            case YamlIgnoreCondition.WhenWritingNull:
+            case OfficeIgnoreCondition.WhenWritingNull:
                 if (value is null) return;
                 break;
-            case YamlIgnoreCondition.WhenWritingDefault:
+            case OfficeIgnoreCondition.WhenWritingDefault:
                 if (value is null || (IsValueTypeValue && EqualityComparer<T>.Default.Equals(value, default!))) return;
                 break;
         }

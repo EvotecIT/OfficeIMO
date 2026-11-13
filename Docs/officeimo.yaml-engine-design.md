@@ -251,8 +251,8 @@ a: 3`: PyYAML 6.0.3, go-yaml v2.4.0 and the YamlDotNet 18 deserializer return `a
   - An alias read as `object` returns the value read for its anchor, as PyYAML and OneYaml do, unless `CopyAliases` is set. A typed alias replays the recorded events. A shared alias is charged the nodes a replay would visit, so `MaxAliasExpansion` bounds what writing or walking the result costs. An alias inside its own anchor fails with `RecursiveAlias`.
   - Merge keys fill only the members a mapping does not set.
   - Writing has no reference handling by default and fails on a cycle. With `Preserve`, a pre-pass finds the objects reached more than once. Only those get anchors (`&id001`), and later references become aliases. Reading maps each alias back to the anchored instance, and objects register before their members are read, so cycles resolve.
-- **Polymorphism** goes only through `[YamlDerivedType]` registrations on the base type:
-  - The discriminator is a local tag (`!cat`, the YAML-native form other libraries map with tag registrations), or with `[YamlPolymorphic(DiscriminatorPropertyName = "kind")]` the first mapping key.
+- **Polymorphism** goes only through `[OfficeDerivedType]` registrations on the base type:
+  - The discriminator is a local tag (`!cat`, the YAML-native form other libraries map with tag registrations), or with `[OfficePolymorphic(DiscriminatorPropertyName = "kind")]` the first mapping key.
   - Reading finds a property discriminator anywhere: the usual first-key case streams, and otherwise the mapping is captured and replayed.
   - A tag never activates a type by itself; unknown discriminators fail with `UnknownDiscriminator`.
 - **Scalars** are read by target type: the decoded text is parsed with the document schema's rules whatever its quoting. Strings are written with the writer's YAML 1.1-safe quoting. Timestamps are written plain in ISO 8601.
