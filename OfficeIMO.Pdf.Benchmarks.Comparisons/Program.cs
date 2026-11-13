@@ -7,6 +7,10 @@ if (args.Length > 0 && string.Equals(args[0], "compatibility", StringComparison.
     return PdfCompatibilityRunner.Run(args);
 }
 
+if (args.Length > 0 && string.Equals(args[0], "page-render", StringComparison.OrdinalIgnoreCase)) {
+    return PdfPageRenderComparisonRunner.Run(args);
+}
+
 if (args.Length > 0 && string.Equals(args[0], "text-quality", StringComparison.OrdinalIgnoreCase)) {
     return PdfTextQualityRunner.Run(args[1..]);
 }
