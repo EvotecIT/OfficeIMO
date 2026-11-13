@@ -35,8 +35,7 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
 {
     private const string ParameterSetInputObjectDelimiter = "InputObject";
     private const string ParameterSetInputObjectCulture = "InputObjectCulture";
-    private const string ParameterSetDocumentDelimiter = "Document";
-    private const string ParameterSetDocumentCulture = "DocumentCulture";
+
     private readonly CsvPowerShellObjectProjector _objectProjector = new();
     private CsvPowerShellLineWriter? _lineWriter;
     private CsvRowWriter? _csvWriter;
@@ -44,25 +43,20 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
     private StringWriter? _recordBuffer;
     private string _recordNewLine = Environment.NewLine;
 
-    /// <summary>CSV document to serialize.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocumentDelimiter)]
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocumentCulture)]
-    public CsvDocument Document { get; set; } = null!;
-
-    /// <summary>Objects to convert into CSV rows.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetInputObjectDelimiter)]
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetInputObjectCulture)]
+    // InputObject belongs to every parameter set, as in ConvertTo-Csv. Declaring it per set made PowerShell resolve the
+    // candidate sets again for every pipeline record, which allocated more per row than writing the row.
+    /// <summary>Objects to convert into CSV rows, or a CsvDocument to serialize (alias Document).</summary>
+    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Alias("Document")]
     [AllowNull, AllowEmptyString, AllowEmptyCollection]
     public object? InputObject { get; set; }
 
     /// <summary>Field delimiter text, including multi-character separators.</summary>
     [Parameter(ParameterSetName = ParameterSetInputObjectDelimiter)]
-    [Parameter(ParameterSetName = ParameterSetDocumentDelimiter)]
     public string Delimiter { get; set; } = ",";
 
     /// <summary>Use the list separator from the selected or current culture as the delimiter.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetInputObjectCulture)]
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetDocumentCulture)]
+    [Parameter(ParameterSetName = ParameterSetInputObjectCulture)]
     public SwitchParameter UseCulture { get; set; }
 
     /// <summary>Omit the header row from the output.</summary>
@@ -102,14 +96,12 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
     public SwitchParameter UseUtc { get; set; }
 
     /// <summary>Maximum number of items allowed in one nested collection or dictionary field. Defaults to 1,048,575; increase explicitly for trusted larger values.</summary>
-    [Parameter(ParameterSetName = ParameterSetInputObjectDelimiter)]
-    [Parameter(ParameterSetName = ParameterSetInputObjectCulture)]
+    [Parameter]
     [ValidateRange(1, int.MaxValue)]
     public int MaxCollectionItems { get; set; } = PSWriteOffice.Services.PowerShellObjectNormalizerOptions.DefaultMaxCollectionItems;
 
     /// <summary>Maximum nesting depth allowed while normalizing one field value. Defaults to 64; increase explicitly for trusted deeper values.</summary>
-    [Parameter(ParameterSetName = ParameterSetInputObjectDelimiter)]
-    [Parameter(ParameterSetName = ParameterSetInputObjectCulture)]
+    [Parameter]
     [ValidateRange(1, int.MaxValue)]
     public int MaxNestingDepth { get; set; } = PSWriteOffice.Services.PowerShellObjectNormalizerOptions.DefaultMaxNestingDepth;
 
@@ -122,16 +114,6 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        if (IsDocumentParameterSet())
-        {
-            if (Document != null)
-            {
-                EmitCsv(Document);
-            }
-
-            return;
-        }
-
         if (TryGetCsvDocument(InputObject, out var csvDocument))
         {
             EmitCsv(csvDocument);
@@ -381,7 +363,4 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
     private static string GetDelimiterText(CsvSaveOptions options) =>
         string.IsNullOrEmpty(options.DelimiterText) ? options.Delimiter.ToString() : options.DelimiterText!;
 
-    private bool IsDocumentParameterSet() =>
-        string.Equals(ParameterSetName, ParameterSetDocumentDelimiter, StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(ParameterSetName, ParameterSetDocumentCulture, StringComparison.OrdinalIgnoreCase);
 }
