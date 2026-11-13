@@ -199,9 +199,9 @@ internal static partial class PdfSyntax {
         }
 
         using var tokens = Tokenize(source, start, length, effectiveLimits, trackEncodedStringSourceSpans, cancellationToken);
-        var d = new PdfDictionary(tokens.Count > 0 && tokens[0].Equals(tokens.Source, "<<")
-            ? EstimateDictionaryKeyCount(tokens, 0, cancellationToken)
-            : 0);
+        // Object bodies usually arrive without their opening delimiter. Size them like a nested dictionary.
+        var d = new PdfDictionary(EstimateDictionaryKeyCount(tokens,
+            tokens.Count > 0 && tokens[0].Equals(tokens.Source, "<<") ? 0 : -1, cancellationToken));
         for (int i = 0; i < tokens.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfToken token = tokens[i];
