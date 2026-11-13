@@ -158,6 +158,9 @@ public static partial class OfficeConverter {
                 MarkdownLoadOptions load = id == "markdown-html" ? settings.MarkdownHtml?.ReaderOptions?.Clone() ?? new()
                     : id == "markdown-docx" ? (settings.MarkdownWord ?? new()).CreateReaderOptions() : new();
                 load.MaxInputBytes = Math.Min(load.MaxInputBytes ?? settings.MaximumInputBytes, settings.MaximumInputBytes);
+                // The document is converted once and disposed. HTML renderers or extensions supplied by the
+                // caller receive parsed blocks with their source spans, so those keep the syntax tree.
+                if (id != "markdown-html" || settings.MarkdownHtml?.HasCallerRenderHooks != true) load.SkipSyntaxCaptureForConversion();
                 using MarkdownDocument document = await MarkdownDocument.LoadAsync(input, load, token).ConfigureAwait(false);
                 if (id == "markdown-pdf") {
                     MarkdownPdfExportOptions options = settings.Markdown ?? new(); options.FailOnLoss |= settings.FailOnLoss;

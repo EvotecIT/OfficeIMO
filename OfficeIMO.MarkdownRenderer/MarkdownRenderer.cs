@@ -161,6 +161,12 @@ public static partial class MarkdownRenderer {
                 parseResult.ReferenceLinkDefinitions,
                 parseResult.AbbreviationDefinitions);
         } else {
+            // The document only lives for this render. Without caller hooks that receive parsed
+            // blocks, nothing reads its source spans, so the syntax tree is not captured.
+            if (!HasSourceAwareRenderHooks(options, htmlOptions, readerOptions)) {
+                readerOptions.CaptureSyntaxTree = false;
+            }
+
             doc = MarkdownDocument.Parse(markdown, readerOptions);
         }
 
@@ -221,6 +227,16 @@ public static partial class MarkdownRenderer {
 
         return html ?? string.Empty;
     }
+
+    private static bool HasSourceAwareRenderHooks(
+        MarkdownRendererOptions options,
+        MarkdownHtmlExportOptions htmlOptions,
+        MarkdownLoadOptions readerOptions) =>
+        options.FencedCodeBlockRenderers.Count > 0
+        || htmlOptions.HasCallerRenderHooks
+        // Standalone generic attributes before a fence render on the code element only when
+        // their source span was captured.
+        || readerOptions.GenericAttributes;
 
     private static bool RequiresSyntaxBackedParse(MarkdownRendererOptions options, MarkdownLoadOptions readerOptions) {
         var htmlOptions = options.HtmlOptions;

@@ -4,16 +4,6 @@ using Omd = OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {
-        public WordDocument ConvertIntoTemplate(string markdown, WordDocument document, MarkdownWordExportOptions options, CancellationToken cancellationToken = default) {
-            ArgumentNullException.ThrowIfNull(markdown);
-
-            options ??= new MarkdownWordExportOptions();
-            cancellationToken.ThrowIfCancellationRequested();
-            var readerOptions = CreateEffectiveReaderOptions(options);
-            using var markdownDocument = Omd.MarkdownDocument.Parse(markdown, readerOptions);
-            return ConvertIntoTemplate(markdownDocument, document, options, cancellationToken);
-        }
-
         public WordDocument ConvertIntoTemplate(Omd.MarkdownDocument markdown, WordDocument document, MarkdownWordExportOptions options, CancellationToken cancellationToken = default) {
             ArgumentNullException.ThrowIfNull(markdown);
 

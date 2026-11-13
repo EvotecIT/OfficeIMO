@@ -19,6 +19,17 @@ public sealed class MarkdownLoadOptions {
     /// <summary>Retains syntax and source bindings. False selects semantic-only parsing for large reads.</summary>
     public bool CaptureSyntaxTree { get; set; } = true;
 
+    /// <summary>
+    /// Turns off syntax capture for a document that a converter parses, renders once and discards.
+    /// Generic attributes keep it, because a standalone attribute line before a fence renders on
+    /// the code element only when its source span was captured.
+    /// </summary>
+    internal void SkipSyntaxCaptureForConversion() {
+        if (!GenericAttributes) {
+            CaptureSyntaxTree = false;
+        }
+    }
+
     /// <summary>Creates bounded parser settings for documents from outside.</summary>
     public static MarkdownLoadOptions UntrustedDefaults => new MarkdownLoadOptions {
         MaxInputBytes = 32L * 1024L * 1024L,

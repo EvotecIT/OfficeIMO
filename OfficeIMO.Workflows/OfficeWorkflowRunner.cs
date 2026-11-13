@@ -615,7 +615,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             case ".md":
                 using (FileStream stream = OpenStagedArtifact(stagingPath)) {
                     using var reader = new StreamReader(stream, new UTF8Encoding(false, true));
-                    _ = MarkdownDocument.Parse(await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false));
+                    // Only parseability is checked, so the syntax tree is not captured.
+                    _ = MarkdownDocument.Parse(await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false),
+                        new MarkdownLoadOptions { CaptureSyntaxTree = false });
                 }
                 break;
             default:

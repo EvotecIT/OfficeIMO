@@ -33,6 +33,21 @@ public sealed class MarkdownHtmlExportOptions {
     public bool IncludeCssInFragment { get; set; }
     internal Action<OfficeDiagnostic>? DiagnosticSink { get; set; }
 
+    /// <summary>
+    /// True when a caller-supplied renderer or extension receives parsed blocks or render contexts,
+    /// which expose source spans and syntax nodes. Without one, rendering reads only the semantic
+    /// model, so a document parsed just to be rendered can skip capturing the syntax tree.
+    /// </summary>
+    internal bool HasCallerRenderHooks =>
+        CodeBlockHtmlRenderer != null
+        || SemanticFencedBlockHtmlRenderer != null
+        || TocHtmlRenderer != null
+        || FootnoteSectionHtmlRenderer != null
+        || BlockRenderExtensions.Count > 0
+        || InlineRenderExtensions.Count > 0
+        || SyntaxBlockRenderExtensions.Count > 0
+        || SyntaxInlineRenderExtensions.Count > 0;
+
     internal void RecordRawHtmlChange(string original, string rendered, string location) {
         if (RawHtmlHandling == MarkdownRawHtmlHandling.Allow) {
             if (!GitHubHtmlTagFilter || string.Equals(original, OfficeIMO.Markdown.GitHubHtmlTagFilter.Apply(original), StringComparison.Ordinal)) return;

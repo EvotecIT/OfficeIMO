@@ -57,7 +57,9 @@ public static partial class OfficeConverter {
                 break;
             case OfficeDocumentFormat.Markdown: {
                 using var reader = new StreamReader(output, new System.Text.UTF8Encoding(false, true), true, 8192, leaveOpen: true);
-                using var document = Markdown.MarkdownDocument.Parse(await reader.ReadToEndAsync(token).ConfigureAwait(false));
+                // Only parseability is checked, so the syntax tree is not captured.
+                using var document = Markdown.MarkdownDocument.Parse(await reader.ReadToEndAsync(token).ConfigureAwait(false),
+                    new Markdown.MarkdownLoadOptions { CaptureSyntaxTree = false });
                 break;
             }
             case OfficeDocumentFormat.Epub: {

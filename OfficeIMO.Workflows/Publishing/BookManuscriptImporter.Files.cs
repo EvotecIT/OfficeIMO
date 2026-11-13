@@ -62,7 +62,9 @@ public static partial class BookManuscriptImporter {
         using var stream = new MemoryStream(bytes, false);
         if (extension is ".md" or ".markdown") {
             using var reader = new StreamReader(stream, new System.Text.UTF8Encoding(false, true), detectEncodingFromByteOrderMarks: true);
-            using MarkdownDocument parsed = MarkdownDocument.Parse(await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false));
+            // The manuscript is rendered to HTML once, so the syntax tree is not captured.
+            using MarkdownDocument parsed = MarkdownDocument.Parse(await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false),
+                new MarkdownLoadOptions { CaptureSyntaxTree = false });
             if (string.IsNullOrWhiteSpace(MarkdownFrontMatterText.Get(parsed, "title")))
                 operation.Title ??= fallbackTitle;
             return await ImportMarkdownAsync(parsed, operation, htmlOptions, cancellationToken).ConfigureAwait(false);
