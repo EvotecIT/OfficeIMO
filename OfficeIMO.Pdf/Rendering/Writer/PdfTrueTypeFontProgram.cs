@@ -11,7 +11,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
     private readonly int[] _advanceWidths1000;
     private readonly Dictionary<int, int> _cmap;
     private readonly Dictionary<string, TableRecord> _tables;
-    private readonly SubsetFontFingerprint _subsetFontFingerprint;
+    private readonly LazySubsetFontFingerprint _subsetFontFingerprint;
     private readonly OfficeOpenTypeTracking? _tracking;
     private readonly SortedSet<int> _usedGlyphIds = new();
     private readonly Dictionary<int, string> _usedGlyphToUnicode = new();
@@ -46,7 +46,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         _cmap = cmap;
         _canonicalGlyphText = new PdfCanonicalGlyphText(cmap);
         _textPins = new PdfGlyphTextPins(_canonicalGlyphText, _advanceWidths1000.Length, allowAliases: true);
-        _subsetFontFingerprint = SubsetFontFingerprint.Create(_data);
+        _subsetFontFingerprint = new LazySubsetFontFingerprint(_data);
         SharedIdentity = new object();
     }
 
