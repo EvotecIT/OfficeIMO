@@ -22,6 +22,7 @@ public static partial class OfficeDrawingSvgExporter {
             DiagnosticSink = rasterOptions.DiagnosticSink,
             DiagnosticSource = rasterOptions.DiagnosticSource,
             ThrowOnImageDecodeFailure = true,
+            InheritedFonts = textMetrics.Fonts,
             TextShapingProvider = textMetrics.TextShapingProvider,
             TextShapingLanguage = textMetrics.TextShapingLanguage,
             CancellationToken = cancellationToken

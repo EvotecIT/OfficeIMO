@@ -174,7 +174,7 @@ internal static partial class PdfPageImageRenderer {
                         drawing,
                         scale,
                         OfficeSvgSizeUnit.Point,
-                        imageCodec: null,
+                        imageCodec: options.ImageCodec,
                         resourceIdPrefix: null,
                         maximumUtf8Bytes: options.MaxOutputBytesPerPage,
                         cancellationToken: cancellationToken, maximumRasterPixels: options.MaxPixelsPerPage);

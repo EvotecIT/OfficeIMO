@@ -68,6 +68,34 @@ public sealed class PdfOutputIntentCompositionTests {
     }
 
     [Fact]
+    public void SupportedProof_ReportsVisualDifferencesWithoutIncompletePages() {
+        PdfVisualComparisonReport report = PdfVisualComparer.Compare(
+            File.ReadAllBytes(Fixture("reportlab-authored.pdf")),
+            File.ReadAllBytes(Fixture("reportlab-output-intent.pdf")));
+        Assert.Equal(0, report.IncompletePageCount);
+        Assert.True(report.DifferentPageCount > 0);
+        Assert.Contains(report.Pages[1].ActualCapabilityDiagnostics,
+            item => item.Code == "render.colorspace.icc-output-intent-post-composition");
+    }
+
+    [Fact]
+    public void NestedProofedSvg_UsesFontsRegisteredOnlyOnTheAncestor() {
+        OfficeDrawing page = PdfReadDocument.Open(File.ReadAllBytes(Fixture("reportlab-output-intent.pdf"))).Pages[1].ToDrawing();
+        page.AddText("Opacity proof", 6, 68, 116, 22, new OfficeFontInfo("Ancestor Font", 14));
+        var parent = new OfficeDrawing(128, 96).AddDrawing(page, 0, 0);
+        OfficeRasterImage withoutAncestor = OfficeDrawingRasterRenderer.Render(parent);
+        parent.Fonts.Add("Ancestor Font", page.Fonts.Faces[0].Data);
+        OfficeRasterImage expected = OfficeDrawingRasterRenderer.Render(parent);
+        Assert.False(withoutAncestor.GetPixels().SequenceEqual(expected.GetPixels()));
+
+        XElement image = Assert.Single(XDocument.Parse(OfficeDrawingSvgExporter.ToSvg(parent)).Descendants(),
+            item => item.Name.LocalName == "image");
+        Assert.True(OfficePngReader.TryDecode(Convert.FromBase64String(image.Attribute("href")!.Value.Split(',')[1]),
+            out OfficeRasterImage? actual));
+        Assert.Equal(expected.GetPixels(), actual!.GetPixels());
+    }
+
+    [Fact]
     public void SvgExport_PreservesRequestedTransparentBackdrop() {
         PdfReadPage page = PdfReadDocument.Open(File.ReadAllBytes(Fixture("reportlab-output-intent.pdf"))).Pages[1];
         OfficeImageExportResult result = page.ToImage(OfficeImageExportFormat.Svg,
@@ -152,6 +180,26 @@ public sealed class PdfOutputIntentCompositionTests {
         OfficeRasterImage tile = renderer.RenderRegion(4, scale, 54, 54, 4, 4, limits, default);
         for (int y = 0; y < 4; y++)
             for (int x = 0; x < 4; x++) Assert.Equal(whole.GetPixel(54 + x, 54 + y), tile.GetPixel(x, y));
+    }
+
+    [Theory]
+    [InlineData(1D, 0D, 5D, 7D)]
+    [InlineData(1D, 0D, 5.25D, 7.5D)]
+    [InlineData(1.7D, 0D, 5.25D, 7.5D)]
+    [InlineData(1D, 30D, 70D, 7D)]
+    public void NestedProofTiles_KeepTheSourceGridWithinTheWorkingBudget(double density, double rotation, double x, double y) {
+        OfficeDrawing page = PdfReadDocument.Open(File.ReadAllBytes(Fixture("reportlab-output-intent.pdf"))).Pages[4].ToDrawing();
+        var parent = new OfficeDrawing(256, 256).AddEffectDrawing(page,
+            OfficeTransform.Scale(density, density).Then(OfficeTransform.RotateDegrees(rotation)).Then(OfficeTransform.Translate(x, y)));
+        OfficeRasterImage whole = OfficeDrawingRasterRenderer.Render(parent);
+        OfficePoint sample = OfficeTransform.Scale(density, density).Then(OfficeTransform.RotateDegrees(rotation))
+            .Then(OfficeTransform.Translate(x, y)).TransformPoint(new OfficePoint(40, 56));
+        int left = (int)sample.X - 2, top = (int)sample.Y - 2;
+        OfficeRasterImage tile = OfficeDrawingRasterRenderer.RenderRegion(parent,
+            new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 1024 }, left, top, 4, 4);
+        for (int row = 0; row < 4; row++)
+            for (int column = 0; column < 4; column++)
+                Assert.Equal(whole.GetPixel(left + column, top + row), tile.GetPixel(column, row));
     }
 
     [Theory]

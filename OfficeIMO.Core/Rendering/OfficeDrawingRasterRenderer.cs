@@ -44,7 +44,8 @@ public static partial class OfficeDrawingRasterRenderer {
         viewport.AddDrawingForClippedRendering(drawing.CreateCompositionSource(), -x / scale, -y / scale, null);
         if (drawing.PostCompositionColorTransform != null)
             viewport.SetPostCompositionColorTransform(drawing.PostCompositionColorTransform);
-        return RenderCore(viewport, options, scale, scale, fonts: drawing.Fonts, pixelWidth: width, pixelHeight: height);
+        return RenderCore(viewport, options, scale, scale, fonts: options.InheritedFonts ?? drawing.Fonts,
+            pixelWidth: width, pixelHeight: height);
     }
 
     private static OfficeRasterImage RenderCore(OfficeDrawing drawing, OfficeDrawingRasterRenderOptions options,
@@ -84,7 +85,7 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeRasterCanvas canvas = new OfficeRasterCanvas(
             image,
             font: null,
-            fonts: fonts ?? drawing.Fonts,
+            fonts: fonts ?? options.InheritedFonts ?? drawing.Fonts,
             textShapingProvider: options.TextShapingProvider ?? drawing.TextShapingProvider,
             textShapingLanguage: options.TextShapingLanguage ?? drawing.TextShapingLanguage,
             diagnosticSink: options.DiagnosticSink,

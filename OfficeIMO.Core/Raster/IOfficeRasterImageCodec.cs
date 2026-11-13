@@ -40,4 +40,6 @@ public sealed class OfficeDrawingRasterRenderOptions {
     internal bool LimitRasterPaintWork { get; set; }
     /// <summary>Decoded and prefiltered images kept between renders of the same drawing.</summary>
     internal OfficeRasterImageCache? ImageCache { get; set; }
+    /// <summary>Font scope inherited by a retained drawing rendered as a standalone surface.</summary>
+    internal OfficeFontFaceCollection? InheritedFonts { get; set; }
 }

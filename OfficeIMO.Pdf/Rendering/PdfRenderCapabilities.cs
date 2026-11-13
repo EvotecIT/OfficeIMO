@@ -125,8 +125,8 @@ public sealed class PdfRenderCapabilityManifest {
 /// <summary>Stable capability registry shared by the manifest and per-page diagnostics.</summary>
 internal static class PdfRenderCapabilities {
     internal static bool HasIncompleteVisualProjection(IReadOnlyList<PdfRenderCapabilityDiagnostic> diagnostics) =>
-        diagnostics.Any(diagnostic => diagnostic.Code != FontSubstitutionId ||
-            !diagnostic.IsStandardFontSubstitution);
+        diagnostics.Any(diagnostic => diagnostic.SupportLevel != PdfRenderSupportLevel.Supported &&
+            (diagnostic.Code != FontSubstitutionId || !diagnostic.IsStandardFontSubstitution));
 
     internal const string UnknownOperatorId = "render.operator.unsupported";
     internal const string RenderingIntentId = "render.operator.rendering-intent";
