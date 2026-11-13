@@ -111,8 +111,12 @@ internal static partial class WordRunFormatting {
     /// <summary>Enumerates character-style then paragraph-style run properties, each in override order.</summary>
     internal static IEnumerable<StyleRunProperties> EnumerateRunStyleProperties(WordParagraph paragraph) {
         Styles? styles = paragraph._document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
-        foreach (Style style in EnumerateStyleChain(styles, paragraph.CharacterStyleId, StyleValues.Character)
-                     .Concat(EnumerateStyleChain(styles, paragraph.StyleId, StyleValues.Paragraph))) {
+        foreach (Style style in GetStyleChain(styles, paragraph.CharacterStyleId, StyleValues.Character)) {
+            if (style.StyleRunProperties != null) {
+                yield return style.StyleRunProperties;
+            }
+        }
+        foreach (Style style in GetStyleChain(styles, paragraph.StyleId, StyleValues.Paragraph)) {
             if (style.StyleRunProperties != null) {
                 yield return style.StyleRunProperties;
             }

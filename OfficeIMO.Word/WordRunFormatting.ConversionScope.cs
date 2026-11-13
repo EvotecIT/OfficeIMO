@@ -16,7 +16,26 @@ internal static partial class WordRunFormatting {
     private sealed class RunPaintConversion {
         internal readonly CancellationToken CancellationToken;
         internal readonly Dictionary<Table, TableRunPaintState> Tables = new();
+        internal readonly Dictionary<(Styles Styles, string? StyleId, StyleValues Type), Style[]> StyleChains = new();
         internal RunPaintConversion(CancellationToken cancellationToken) => CancellationToken = cancellationToken;
+    }
+
+    /// <summary>
+    /// Returns <see cref="EnumerateStyleChain"/> for one style. Each lookup scans the style
+    /// list, and paint resolution repeats it for every run, so a conversion keeps the chains
+    /// it has already walked.
+    /// </summary>
+    private static IEnumerable<Style> GetStyleChain(Styles? styles, string? styleId, StyleValues expectedType) {
+        RunPaintConversion? conversion = RunPaintConversions.Value;
+        if (conversion == null || styles == null) return EnumerateStyleChain(styles, styleId, expectedType);
+        lock (conversion.StyleChains) {
+            var key = (styles, styleId, expectedType);
+            if (!conversion.StyleChains.TryGetValue(key, out Style[]? chain)) {
+                chain = EnumerateStyleChain(styles, styleId, expectedType).ToArray();
+                conversion.StyleChains.Add(key, chain);
+            }
+            return chain;
+        }
     }
 
     private sealed class RunPaintScope : IDisposable {
