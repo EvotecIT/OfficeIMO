@@ -48,6 +48,16 @@ That command creates one validated PPTX, PNG and SVG renders for all nine slides
 
 The scales contain 3, 30, and 120 slides. Slides use editable text, vector shapes, tables, and charts. Package lanes reopen the result and verify the expected text, background and card fills, table values and header styling, chart categories and series values, edit markers, slide and shape counts, and Open XML validity. Export lanes decode or parse every output and verify representative visible content, including table and chart regions. Validation runs after timing and peak-working-set capture but in the same probe, so validation work does not contaminate the reported peak and an invalid or incomplete result cannot be reported as a fast result. Probes are intentionally cold; compare only like-for-like isolated runs.
 
+## Native text continuation
+
+Composition of live native text that overflows a slide runs in process, because the measured work is the layout itself:
+
+```powershell
+dotnet run --project OfficeIMO.PowerPoint.Benchmarks/OfficeIMO.PowerPoint.Benchmarks.csproj -c Release -f net10.0 -- --native-text-layout --iterations 40 --output .benchmark-artifacts/powerpoint/native-text.pptx --images .benchmark-artifacts/powerpoint/native-text-png
+```
+
+One materialized slide holds a native text body with three paragraphs: sixty sentences, a run of words without sentence punctuation, and a long unbroken identifier. Composition measures them, splits them between sentences or words, and continues them over ten slides, as PSWriteOffice content blocks do. The run validates the deck with the Open XML validator, checks that every paragraph's text survives across the continuation slides, then reports median and minimum time and managed allocation per composition. `NATIVE_TEXT_LAYOUT_SLIDES` hashes every slide's XML in order, ignoring the per-run GUID of slide-number fields, so two builds that print the same hash wrote the same slides; `--images` writes the rendered slides for a byte comparison.
+
 ## Interpret the result
 
 Compare like with like: the same runtime, architecture, build configuration, scale, and operation. Treat elapsed time from a busy workstation as directional. Managed allocations are usually more stable and should expose accidental buffering or repeated model construction. Peak working set includes the runtime and native rendering dependencies, so compare it only against another isolated probe with the same environment.
