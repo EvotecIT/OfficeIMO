@@ -160,11 +160,8 @@ namespace OfficeIMO.Word {
 
         internal ParagraphProperties? _paragraphProperties {
             get {
-                if (_paragraph != null && _paragraph.ParagraphProperties != null) {
-                    return _paragraph.ParagraphProperties;
-                }
-
-                return null;
+                // One typed lookup: each ParagraphProperties read searches the paragraph's children again.
+                return _paragraph?.ParagraphProperties;
             }
         }
 
