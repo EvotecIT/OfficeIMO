@@ -37,8 +37,18 @@ internal static partial class HtmlRenderSystemFontLoader {
 
     // Missing relative bases deliberately fail rather than guessing that a CSS
     // expression which happens to be zero at one arbitrary size is always zero.
-    private static bool IsAbsoluteZeroFontSize(string value) =>
-        HtmlRenderCssValues.TryLength(value, double.NaN, double.NaN, double.NaN, out double size) && size == 0D;
+    private static bool IsAbsoluteZeroFontSize(string value) {
+        // Elements usually share one computed font size, so the last answer settles most of them
+        // without building another length context. The answer depends only on the text.
+        if (string.Equals(_lastZeroFontSizeValue, value, StringComparison.Ordinal)) return _lastZeroFontSizeResult;
+        bool zero = HtmlRenderCssValues.TryLength(value, double.NaN, double.NaN, double.NaN, out double size) && size == 0D;
+        _lastZeroFontSizeValue = value;
+        _lastZeroFontSizeResult = zero;
+        return zero;
+    }
+
+    [ThreadStatic] private static string? _lastZeroFontSizeValue;
+    [ThreadStatic] private static bool _lastZeroFontSizeResult;
 
     private static bool HasDirectDefaultFontText(IElement element, HtmlComputedStyle computed, HtmlDisclosureState disclosures) {
         if (element.NamespaceUri != "http://www.w3.org/1999/xhtml") return false;
