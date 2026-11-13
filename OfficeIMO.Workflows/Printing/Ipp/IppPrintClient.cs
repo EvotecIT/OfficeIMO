@@ -297,6 +297,8 @@ internal sealed class IppPrintClient : IDisposable {
                 return;
             }
             Stream.Dispose();
+            // Keep no reference to the disposed stream if reopening throws, so Dispose does not close it again.
+            Stream = Stream.Null;
             Stream = _reopen!();
         }
 

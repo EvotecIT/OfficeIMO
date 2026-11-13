@@ -336,6 +336,38 @@ public sealed class IppPrintClientTests {
         Assert.Equal(3, jobId);
     }
 
+    [Fact]
+    public async Task ACachedCupsQueueThatStopsAnsweringIsResolvedAgainInsteadOfFailingTheJob() {
+        int attributeReads = 0, jobId = 0;
+        bool unreachable = false;
+        Func<HttpMessageHandler> handler = () => FakeHandler.Http(async (request, _) => {
+            if (unreachable) {
+                // The connection drops before the request body is sent, so the job cannot have reached the queue.
+                unreachable = false;
+                throw new HttpRequestException("Connection refused.");
+            }
+            IppMessage message = await Decode(request);
+            IppMessage reply = message.Code == (short)IppOperation.GetPrinterAttributes
+                ? Reply(message, 0, null, printer => { attributeReads++; printer.Add("document-format-supported", IppValue.OfString(IppValueTag.MimeMediaType, "application/pdf")); })
+                : Reply(message, 0, job => job.Add("job-id", IppValue.OfInteger(++jobId)).Add("job-state", IppValue.OfEnum(3)));
+            var content = new ByteArrayContent(IppCodec.Encode(reply));
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/ipp");
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
+        });
+        var scheduler = new CupsScheduler(new Uri("ipp://cups.test/"), handler, (_, _) => Printer);
+        var cache = new PrinterCapabilityCache();
+        PdfPrintJob job = PdfPrintJob.Create(OfficeIMO.Pdf.PdfDocument.Create(document => document.Page(page => page.Size(OfficeIMO.Pdf.PdfPageSizes.A6))),
+            new PdfPrintPlanRequest { InputPath = "cached-cups.pdf", PaperSize = OfficeIMO.Pdf.PdfPageSizes.A6 });
+        await CupsPdfPrinter.GetCapabilitiesAsync(scheduler, "office", cache, default);
+
+        unreachable = true;
+        PdfPrintSubmission receipt = await CupsPdfPrinter.SubmitAsync(scheduler, job, new PdfPrintDeliveryOptions { PrinterName = "office" }, cache, default);
+
+        Assert.Equal(1, jobId);
+        Assert.Equal(2, attributeReads);
+        Assert.Equal("office", receipt.PrinterName);
+    }
+
     private static async Task<IppMessage> Decode(HttpRequestMessage request) {
         byte[] body = await request.Content!.ReadAsByteArrayAsync();
         return IppCodec.Decode(body, body.Length, null, out _);

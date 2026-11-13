@@ -120,8 +120,14 @@ internal static partial class CupsPdfPrinter {
         PrinterCapabilityCache cache, CancellationToken token) {
         if (!(options.OutputFilePath == null || string.IsNullOrWhiteSpace(options.OutputFilePath))) throw new NotSupportedException("CUPS file output is controlled by the selected printer queue.");
         if (cache.TryGet(options.PrinterName, out CachedIppQueue cached)) {
-            using IppPrintClient client = cached.Endpoint.CreateClient();
-            return await IppPdfPrinter.SubmitAsync(cached.Endpoint, client, cached.Printer, job, options, token).ConfigureAwait(false);
+            try {
+                using IppPrintClient client = cached.Endpoint.CreateClient();
+                return await IppPdfPrinter.SubmitAsync(cached.Endpoint, client, cached.Printer, job, options, token).ConfigureAwait(false);
+            } catch (IppException error) when (error.StatusCode is null or NotFound) {
+                // The queue stopped answering, or was removed, before the job reached it; an uncertain delivery is reported as
+                // PdfPrintDeliveryException instead. Resolve the route again so lp is used as it would be without the cache.
+                cache.Remove(options.PrinterName);
+            }
         }
         IppQueueRoute? route = await ResolveIppQueueAsync(scheduler, options.PrinterName, token).ConfigureAwait(false);
         if (route is not null) {
