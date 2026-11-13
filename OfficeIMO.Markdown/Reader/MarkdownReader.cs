@@ -437,6 +437,18 @@ internal static partial class MarkdownReader {
         string markdown,
         int lineStart,
         int lineEnd) {
+        // Only list markers need their tab indent as columns here; other lines keep their tabs so
+        // HTML blocks and paragraph continuations read the same text as a source-backed parse.
+        int contentStart = lineStart;
+        while (contentStart < lineEnd && markdown[contentStart] is ' ' or '\t') {
+            contentStart++;
+        }
+
+        if (!StartsWithListMarker(markdown, contentStart, lineEnd)) {
+            builder.Append(markdown, lineStart, lineEnd - lineStart);
+            return;
+        }
+
         int column = 0;
         int current = lineStart;
         while (current < lineEnd && column < 4 && markdown[current] is ' ' or '\t') {
@@ -451,6 +463,29 @@ internal static partial class MarkdownReader {
             current++;
         }
         builder.Append(markdown, current, lineEnd - current);
+    }
+
+    private static bool StartsWithListMarker(string markdown, int start, int lineEnd) {
+        if (start >= lineEnd) {
+            return false;
+        }
+
+        int markerEnd = start;
+        if (markdown[start] is '-' or '*' or '+') {
+            markerEnd = start + 1;
+        } else {
+            while (markerEnd < lineEnd && markerEnd - start < 9 && markdown[markerEnd] is >= '0' and <= '9') {
+                markerEnd++;
+            }
+
+            if (markerEnd == start || markerEnd >= lineEnd || markdown[markerEnd] is not ('.' or ')')) {
+                return false;
+            }
+
+            markerEnd++;
+        }
+
+        return markerEnd == lineEnd || markdown[markerEnd] is ' ' or '\t';
     }
 
     private static bool TryGetOpeningFence(

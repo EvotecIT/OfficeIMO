@@ -204,7 +204,7 @@ internal static partial class MarkdownReader {
                 terms[termIndex].Bind(options, state);
             }
 
-            var group = new DefinitionListGroup();
+            var group = new DefinitionListGroup { ParsedFromMarkerLines = true };
             for (int termIndex = 0; termIndex < terms.Count; termIndex++) {
                 group.AddTerm(terms[termIndex].TermObject);
             }
@@ -822,6 +822,11 @@ internal static partial class MarkdownReader {
 
         var definitionBodyState = CloneState(state);
         definitionBodyState.IsMarkdigDefinitionListBody = true;
+        // Lazy continuations in a multi-line definition body are repaired from the body's syntax
+        // nodes, so such a body keeps them even when the document does not capture a syntax tree.
+        if (definitionSourceLines.Count > 1) {
+            definitionBodyState.CaptureSyntaxTree = true;
+        }
         RemoveLazyDefinitionContinuationReferenceDefinitions(definitionBodyState, definitionSourceLines);
         var suppressedParagraphAttributeStartLines = GetContinuationParagraphGenericAttributeSuppressionLines(definitionSourceLines);
         var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(

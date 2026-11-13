@@ -125,23 +125,44 @@ internal static partial class MarkdownReader {
         return ParseInlines(text, options, state, sourceMap);
     }
 
+    // Joins the lines as the source-mapped path does and carries the break tokens and line joins
+    // in a token-only map, so the inlines come out the same without source points.
     private static InlineSequence ParseDefinitionLazyParagraphInlinesWithoutSourceMap(
         IReadOnlyList<MarkdownSourceLineSlice> lines,
         MarkdownLoadOptions options,
         MarkdownReaderState? state) {
-        var sequence = new InlineSequence { AutoSpacing = false };
+        var text = new StringBuilder();
+        var breaks = new List<(int Offset, string? Literal)>(lines.Count);
+        ParagraphLineJoinInfo? previousJoinInfo = null;
         for (int i = 0; i < lines.Count; i++) {
-            if (i > 0) {
-                sequence.AddRaw(new SoftBreakInline());
+            if (previousJoinInfo != null) {
+                breaks.Add((text.Length, previousJoinInfo.Value.HardBreak ? previousJoinInfo.Value.HardBreakMarker : "\n"));
+                text.Append('\n');
             }
 
-            var parsedLine = ParseInlines(lines[i].Text, options, state);
-            for (int nodeIndex = 0; nodeIndex < parsedLine.Nodes.Count; nodeIndex++) {
-                sequence.AddRaw(parsedLine.Nodes[nodeIndex]);
-            }
+            var joinInfo = GetParagraphLineJoinInfo(
+                lines[i].Text,
+                lines[i].AbsoluteLine,
+                lines[i].StartColumn,
+                options,
+                sourceTextMap: null,
+                hasFollowingLine: i + 1 < lines.Count);
+            text.Append(joinInfo.Text);
+            previousJoinInfo = joinInfo;
         }
 
-        return sequence;
+        var tokens = new string?[text.Length];
+        var lineBreaks = new int[breaks.Count];
+        for (int i = 0; i < breaks.Count; i++) {
+            tokens[breaks[i].Offset] = breaks[i].Literal;
+            lineBreaks[i] = breaks[i].Offset;
+        }
+
+        return ParseInlines(
+            text.ToString(),
+            options,
+            state,
+            new MarkdownInlineSourceMap(Array.Empty<MarkdownSourcePoint?>(), null, tokens, lineBreaks));
     }
 
     private static (string Text, MarkdownInlineSourceMap SourceMap) JoinDefinitionLazyParagraphLinesWithSourceMap(

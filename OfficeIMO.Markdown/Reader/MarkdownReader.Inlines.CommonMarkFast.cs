@@ -362,6 +362,11 @@ internal static partial class MarkdownReader {
                 || (delimiterLength == 1
                     && ((closing > 0 && text[closing - 1] == marker)
                         || (closing + 1 < text.Length && text[closing + 1] == marker)))
+                // A "**" pair matches only when both runs are exactly two long; longer runs take
+                // part in the full parser's delimiter matching as a whole.
+                || (delimiterLength == 2
+                    && ((start + 2 < text.Length && text[start + 2] == marker)
+                        || (closing + 2 < text.Length && text[closing + 2] == marker)))
                 || !IsSimpleEmphasisContent(text, start + delimiterLength, closing - start - delimiterLength, options)) {
                 return false;
             }

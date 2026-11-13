@@ -672,7 +672,7 @@ public partial class MarkdownDocument : MarkdownObject {
             if (!string.IsNullOrWhiteSpace(sourceLine)) {
                 return sourceLine;
             }
-        } else if (!definition.SourceSpan.HasValue && definition.SourceLineText != null) {
+        } else if (parseResult == null && definition.SourceLineText != null) {
             var sourceLine = definition.SourceLineText.TrimEnd('\r', '\n');
             if (!string.IsNullOrWhiteSpace(sourceLine)) {
                 return sourceLine;
