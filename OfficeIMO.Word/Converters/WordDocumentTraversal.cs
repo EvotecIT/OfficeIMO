@@ -54,7 +54,23 @@ namespace OfficeIMO.Word {
             ListNumberingCatalogScope? previous = ActiveListNumberingCatalog.Value;
             if (previous != null && ReferenceEquals(previous.Document, document))
                 return new ListNumberingCatalogScope(document, previous.Catalog, previous);
-            var scope = new ListNumberingCatalogScope(document, WordListNumberingResolver.CreateStyleCatalog(document), previous);
+            return UseListNumberingCatalog(document, CreateListNumberingCatalog(document));
+        }
+
+        /// <summary>
+        /// Builds the catalog that <see cref="UseListNumberingCatalog(WordDocument, WordListNumberingResolver.StyleCatalog)"/>
+        /// makes current, for callers such as iterators that can't keep a scope open between calls.
+        /// </summary>
+        internal static WordListNumberingResolver.StyleCatalog CreateListNumberingCatalog(WordDocument document) {
+            ArgumentNullException.ThrowIfNull(document);
+            return WordListNumberingResolver.CreateStyleCatalog(document);
+        }
+
+        /// <summary>Makes a catalog built earlier for <paramref name="document"/> current until the scope is disposed.</summary>
+        internal static IDisposable UseListNumberingCatalog(WordDocument document, WordListNumberingResolver.StyleCatalog catalog) {
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(catalog);
+            var scope = new ListNumberingCatalogScope(document, catalog, ActiveListNumberingCatalog.Value);
             ActiveListNumberingCatalog.Value = scope;
             return scope;
         }

@@ -29,9 +29,20 @@ namespace OfficeIMO.Word {
         internal bool IsVisible => (_state?.HiddenCount ?? 0) == 0;
         internal bool HasOpenField => _state != null;
 
-        internal static IDisposable BeginConversionScope() {
+        /// <summary>Field state before each paragraph of the stories one conversion has read.</summary>
+        internal sealed class ConversionCache {
+            internal Dictionary<OpenXmlElement, Dictionary<Paragraph, FieldState>> Prefixes { get; } = new();
+        }
+
+        internal static IDisposable BeginConversionScope() => BeginConversionScope(new ConversionCache());
+
+        /// <summary>
+        /// Makes <paramref name="cache"/> current, so a conversion that runs in steps, such as an
+        /// iterator that can't keep a scope open across its yields, reuses what earlier steps read.
+        /// </summary>
+        internal static IDisposable BeginConversionScope(ConversionCache cache) {
             Dictionary<OpenXmlElement, Dictionary<Paragraph, FieldState>>? previous = ConversionPrefixes.Value;
-            ConversionPrefixes.Value = new Dictionary<OpenXmlElement, Dictionary<Paragraph, FieldState>>();
+            ConversionPrefixes.Value = cache.Prefixes;
             return new ConversionScope(previous);
         }
 
