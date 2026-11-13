@@ -1706,6 +1706,26 @@ Describe 'CSV cmdlets' {
         @(Import-OfficeCsv -Text ($csvLines -join "`n"))[0].Note | Should -Be "one`ntwo"
     }
 
+    It 'keeps one ConvertTo-OfficeCsv record per DataTable row when the text spans many output chunks' {
+        $table = [System.Data.DataTable]::new()
+        [void]$table.Columns.Add('Id', [int])
+        [void]$table.Columns.Add('Note', [string])
+        for ($i = 0; $i -lt 3000; $i++) {
+            $note = if ($i % 3 -eq 0) { "line $i`r`nnext, `"quoted`"" } else { "plain $i" }
+            [void]$table.Rows.Add($i, $note)
+        }
+
+        $csvLines = @(ConvertTo-OfficeCsv -InputObject $table)
+
+        $csvLines.Count | Should -Be 3001
+        $rows = @(Import-OfficeCsv -Text ($csvLines -join "`r`n"))
+        $rows.Count | Should -Be 3000
+        for ($i = 0; $i -lt 3000; $i++) {
+            $rows[$i].Id | Should -Be ([string]$i)
+            $rows[$i].Note | Should -Be $table.Rows[$i]['Note']
+        }
+    }
+
     It 'keeps separate records when unquoted values contain quote characters' {
         $rows = @(
             [pscustomobject]@{ Name = 'Alpha'; Note = 'a"b' }

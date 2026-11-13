@@ -6,10 +6,14 @@ namespace PSWriteOffice.Cmdlets.Csv;
 
 internal sealed class CsvPowerShellLineWriter : TextWriter
 {
+    private const int PendingFlushThreshold = 32 * 1024;
+    private static readonly char[] RecordStopCharacters = { '"', '\r', '\n' };
     private readonly PSCmdlet _cmdlet;
     private readonly string _delimiterText;
     private readonly bool _parseQuotedRecords;
     private readonly StringBuilder _line = new();
+    private readonly StringBuilder _pending = new();
+    private readonly char[] _specialCharacters;
     private bool _pendingCarriageReturn;
     private bool _inQuotes;
     private bool _pendingQuoteInQuotedField;
@@ -26,11 +30,124 @@ internal sealed class CsvPowerShellLineWriter : TextWriter
         _cmdlet = cmdlet ?? throw new ArgumentNullException(nameof(cmdlet));
         _delimiterText = string.IsNullOrEmpty(delimiterText) ? "," : delimiterText;
         _parseQuotedRecords = quoteMode != CsvQuoteMode.Never;
+        _specialCharacters = new[] { '"', '\r', '\n', _delimiterText[0] };
     }
 
     public override Encoding Encoding => Encoding.UTF8;
 
+    // Writes are buffered and split into records in bulk on Flush. Scanning every character through virtual
+    // Write(char) calls cost more than formatting the CSV itself.
     public override void Write(char value)
+    {
+        _pending.Append(value);
+        FlushLargeBuffer();
+    }
+
+    public override void Write(char[] buffer, int index, int count)
+    {
+        _pending.Append(buffer, index, count);
+        FlushLargeBuffer();
+    }
+
+    public override void Write(string? value)
+    {
+        _pending.Append(value);
+        FlushLargeBuffer();
+    }
+
+#if NET6_0_OR_GREATER
+    public override void Write(StringBuilder? value)
+    {
+        _pending.Append(value);
+        FlushLargeBuffer();
+    }
+#endif
+
+    // Multi-row writes such as a DataTable keep streaming records instead of buffering the whole output.
+    private void FlushLargeBuffer()
+    {
+        if (_pending.Length >= PendingFlushThreshold)
+        {
+            Flush();
+        }
+    }
+
+    public override void Flush()
+    {
+        if (_pending.Length == 0)
+        {
+            return;
+        }
+
+        var text = _pending.ToString();
+        _pending.Clear();
+        var index = 0;
+        while (index < text.Length)
+        {
+            if (TryEmitQuoteFreeRecord(text, ref index))
+            {
+                continue;
+            }
+
+            if (!_pendingCarriageReturn && !_pendingQuoteInQuotedField && _delimiterMatchIndex == 0)
+            {
+                var next = text.IndexOfAny(_specialCharacters, index);
+                if (next < 0)
+                {
+                    next = text.Length;
+                }
+
+                if (next > index)
+                {
+                    // A run of ordinary characters only clears the field-start state, as it would one character at a time.
+                    _line.Append(text, index, next - index);
+                    _atFieldStart = false;
+                    index = next;
+                    continue;
+                }
+            }
+
+            ProcessCharacter(text[index]);
+            index++;
+        }
+    }
+
+    // A record that starts cleanly and reaches its line break without a quote is exactly the text before that
+    // break; the character state machine would produce the same line. Quoted records take the full path.
+    private bool TryEmitQuoteFreeRecord(string text, ref int index)
+    {
+        if (_line.Length != 0 || _pendingCarriageReturn || _inQuotes || _pendingQuoteInQuotedField || _delimiterMatchIndex != 0)
+        {
+            return false;
+        }
+
+        var stop = text.IndexOfAny(RecordStopCharacters, index);
+        if (stop < 0)
+        {
+            return false;
+        }
+
+        int next;
+        if (text[stop] == '\n')
+        {
+            next = stop + 1;
+        }
+        else if (text[stop] == '\r' && stop + 1 < text.Length && text[stop + 1] == '\n')
+        {
+            next = stop + 2;
+        }
+        else
+        {
+            return false;
+        }
+
+        _cmdlet.WriteObject(text.Substring(index, stop - index));
+        _atFieldStart = true;
+        index = next;
+        return true;
+    }
+
+    private void ProcessCharacter(char value)
     {
         if (ResolvePendingQuote(value))
         {
@@ -110,38 +227,11 @@ internal sealed class CsvPowerShellLineWriter : TextWriter
         UpdateFieldStartState(value);
     }
 
-    public override void Write(string? value)
-    {
-        if (value is null)
-        {
-            return;
-        }
-
-        foreach (var character in value)
-        {
-            Write(character);
-        }
-    }
-
-#if NET6_0_OR_GREATER
-    public override void Write(StringBuilder? value)
-    {
-        if (value is null)
-        {
-            return;
-        }
-
-        for (var i = 0; i < value.Length; i++)
-        {
-            Write(value[i]);
-        }
-    }
-#endif
-
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
+            Flush();
             if (_pendingCarriageReturn)
             {
                 if (_inQuotes)

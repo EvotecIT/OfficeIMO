@@ -138,10 +138,12 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
         if (TryGetDataTable(InputObject, out var dataTable))
         {
             EmitDataTable(dataTable);
+            _lineWriter!.Flush();
             return;
         }
 
         _objectProjector.WriteObject(InputObject, EnsureObjectWriter());
+        _lineWriter!.Flush();
     }
 
     /// <inheritdoc />
