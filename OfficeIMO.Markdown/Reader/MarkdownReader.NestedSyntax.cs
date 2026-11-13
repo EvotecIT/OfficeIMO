@@ -106,14 +106,12 @@ internal static partial class MarkdownReader {
         InlineSequence sequence,
         MarkdownLoadOptions options) {
         int maximumDepth = options.MaxNestingDepth;
-        if (sequence.Nodes.Count == 0) {
-            return;
-        }
-
-        var pending = new Stack<(InlineSequence Sequence, int Depth)>();
-        pending.Push((sequence, 0));
-        while (pending.Count > 0) {
-            var (current, depth) = pending.Pop();
+        // Every inline parse ends here, and most sequences hold no containers at all, so the
+        // walk only allocates its stack once a nested sequence actually has to be visited.
+        Stack<(InlineSequence Sequence, int Depth)>? pending = null;
+        var current = sequence;
+        int depth = 0;
+        while (true) {
             var nodes = current.Nodes;
             for (int i = 0; i < nodes.Count; i++) {
                 if (nodes[i] is not IInlineContainerMarkdownInline container
@@ -127,8 +125,14 @@ internal static partial class MarkdownReader {
                         $"Markdown inline nesting exceeds MaxNestingDepth ({maximumDepth}).");
                 }
 
-                pending.Push((nested, depth + 1));
+                (pending ??= new Stack<(InlineSequence Sequence, int Depth)>()).Push((nested, depth + 1));
             }
+
+            if (pending == null || pending.Count == 0) {
+                return;
+            }
+
+            (current, depth) = pending.Pop();
         }
     }
 
