@@ -66,6 +66,9 @@ Sheet and schema names escape backslashes and controls as \\, \t, \r, \n, or \uX
                 TabularCommandKind.Convert => await ConvertAsync(parsed, standardOutput, cancellationToken).ConfigureAwait(false),
                 _ => (int)OfficeImoToolExitCode.Usage
             };
+        } catch (TabularUsageException exception) {
+            await standardError.WriteLineAsync(exception.Message).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.Usage;
         } catch (OperationCanceledException) {
             return (int)OfficeImoToolExitCode.Cancelled;
         } catch (NotSupportedException exception) {
@@ -277,6 +280,7 @@ Sheet and schema names escape backslashes and controls as \\, \t, \r, \n, or \uX
         }
 
         EnsureExcelPath(options.InputPath, "read");
+        EnsureSheetExists(options);
         return ExcelDocument.OpenReader(
             options.InputPath,
             new ExcelReaderOptions {
@@ -286,6 +290,18 @@ Sheet and schema names escape backslashes and controls as \\, \t, \r, \n, or \uX
                 InferSchema = inferSchema,
                 CancellationToken = cancellationToken
             });
+    }
+
+    // A missing sheet is a usage error that names the sheets, as in officeimo convert.
+    private static void EnsureSheetExists(TabularArguments options) {
+        if (options.SheetName is null && !options.SheetIndex.HasValue) return;
+        IReadOnlyList<string> names;
+        using (ExcelWorkbookDataReader probe = ExcelDocument.OpenReader(options.InputPath, new ExcelReaderOptions())) names = probe.SheetNames;
+        string? problem = options.SheetName is { } name
+            ? names.Contains(name, StringComparer.OrdinalIgnoreCase) ? null : "Sheet '" + name + "' was not found."
+            : options.SheetIndex!.Value < names.Count ? null : "Sheet index " + options.SheetIndex.Value + " is out of range.";
+        if (problem != null)
+            throw new TabularUsageException(problem + " The workbook has: " + string.Join(", ", names.Select(EscapeOutputField)) + ".");
     }
 
     // .tsv without an explicit delimiter is IANA TSV: no quoting, quotes are data.
