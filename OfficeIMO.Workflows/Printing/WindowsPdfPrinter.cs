@@ -94,9 +94,22 @@ internal static partial class WindowsPdfPrinter {
             if (jobId <= 0) throw GdiFailure("StartDoc");
             int softwareCopies = options.Copies / driverCopies;
             var kept = new PrintSheetCache<PackedSheetPixels>(softwareCopies > 1 ? job.MaximumContentBytes : 0);
+            // A null sheet is the blank back side that starts each collated copy on a fresh physical sheet under duplex.
+            var steps = new List<(PdfPrintSheet? Sheet, bool Keep)>();
             for (int copy = 0; copy < softwareCopies; copy++) {
-                foreach (PdfPrintSheet sheet in sheets) {
+                foreach (PdfPrintSheet sheet in sheets) steps.Add((sheet, copy + 1 < softwareCopies));
+                if (duplex && sheets.Count % 2 != 0 && copy + 1 < softwareCopies) steps.Add((null, false));
+            }
+            Task<SheetPixels>? next = null;
+            try {
+                for (int index = 0; index < steps.Count; index++) {
                     token.ThrowIfCancellationRequested();
+                    PdfPrintSheet? sheet = steps[index].Sheet;
+                    if (sheet is null) {
+                        if (Native.StartPage(dc) <= 0) throw GdiFailure("StartPage");
+                        if (Native.EndPage(dc) <= 0) throw GdiFailure("EndPage");
+                        continue;
+                    }
                     if (!SamePaper(sheet.PaperSize, currentPaper)) {
                         ConfigureMode(mode, driverDefaults, printerHandle, printer.Name, Request(sheet.PaperSize, driverCopies));
                         IntPtr reset = Native.ResetDC(dc, mode);
@@ -106,13 +119,27 @@ internal static partial class WindowsPdfPrinter {
                         ValidatePaper(dc, sheet.PaperSize);
                         currentPaper = sheet.PaperSize;
                     }
-                    DrawSheet(dc, job, sheet, options.MaximumRasterDpi, kept, keep: copy + 1 < softwareCopies, token);
-                }
-                // Start each collated copy on a fresh physical sheet when duplex leaves an unused back side.
-                if (duplex && sheets.Count % 2 != 0 && copy + 1 < softwareCopies) {
-                    token.ThrowIfCancellationRequested();
+                    SheetPixels? pixels = next is null
+                        ? PrepareSheet(job, sheet, SheetDpi(dc, job, sheet, options.MaximumRasterDpi), kept, steps[index].Keep, token)
+                        : next.GetAwaiter().GetResult();
+                    next = null;
                     if (Native.StartPage(dc) <= 0) throw GdiFailure("StartPage");
+                    DrawPixels(dc, pixels);
+                    pixels = null;
+                    // GDI has recorded the pixels, so the following sheet renders while EndPage hands this one to the spooler.
+                    // Only one sheet renders at a time, and a paper change waits so the device resolution is read after ResetDC.
+                    int following = index + 1 < steps.Count && steps[index + 1].Sheet is null ? index + 2 : index + 1;
+                    if (following < steps.Count && steps[following].Sheet is PdfPrintSheet upcoming && SamePaper(upcoming.PaperSize, currentPaper)) {
+                        double dpi = SheetDpi(dc, job, upcoming, options.MaximumRasterDpi);
+                        bool keep = steps[following].Keep;
+                        next = Task.Run(() => PrepareSheet(job, upcoming, dpi, kept, keep, token), token);
+                    }
                     if (Native.EndPage(dc) <= 0) throw GdiFailure("EndPage");
+                }
+            } finally {
+                // Never leave a render running against the caller's job after delivery stops.
+                if (next is not null) {
+                    try { next.GetAwaiter().GetResult(); } catch { /* The delivery failure is already being reported. */ }
                 }
             }
             token.ThrowIfCancellationRequested();
@@ -132,42 +159,41 @@ internal static partial class WindowsPdfPrinter {
         }
     }
 
-    /// <summary>
-    /// Rasterizes one sheet at the device resolution, within the caller and pixel limits, and sends it to the page. A sheet that a
-    /// later software copy prints again is kept packed in <paramref name="kept"/>, so each sheet is rendered once per job.
-    /// </summary>
-    private static void DrawSheet(IntPtr dc, PdfPrintJob job, PdfPrintSheet sheet, double maximumDpi, PrintSheetCache<PackedSheetPixels> kept,
-        bool keep, CancellationToken token) {
+    private sealed record SheetPixels(byte[] Pixels, int Width, int Height);
+
+    /// <summary>The sheet's raster resolution: the device resolution within the caller and pixel limits.</summary>
+    private static double SheetDpi(IntPtr dc, PdfPrintJob job, PdfPrintSheet sheet, double maximumDpi) {
         int deviceDpi = Math.Min(Native.GetDeviceCaps(dc, LogPixelsX), Native.GetDeviceCaps(dc, LogPixelsY));
-        double dpi = PdfPrintRaster.ResolveDpi(deviceDpi, maximumDpi, sheet.PaperSize.Width.ToPoints(), sheet.PaperSize.Height.ToPoints(), job.MaximumPixelsPerImage);
-        byte[] pixels;
-        int width, height;
-        if (kept.TryGet(sheet.SheetNumber, out PackedSheetPixels packed) && packed.Dpi == dpi) {
-            pixels = packed.Unpack();
-            width = packed.Width;
-            height = packed.Height;
-        } else {
-            OfficeRasterImage raster = job.RenderRaster(sheet.SheetNumber, dpi, job.MaximumPixelsPerImage, token).Raster;
-            pixels = raster.PixelBuffer;
-            width = raster.Width;
-            height = raster.Height;
-            PdfPrintRaster.ConvertRows(pixels, width, height, grayscale: false, toBgra: true, token);
-            if (keep) {
-                PackedSheetPixels packing = PackedSheetPixels.Pack(pixels, width, height, dpi);
-                kept.Add(sheet.SheetNumber, packing, packing.PackedLength);
-            }
+        return PdfPrintRaster.ResolveDpi(deviceDpi, maximumDpi, sheet.PaperSize.Width.ToPoints(), sheet.PaperSize.Height.ToPoints(), job.MaximumPixelsPerImage);
+    }
+
+    /// <summary>
+    /// Rasterizes one sheet to BGRA pixels without touching the device context, so it can run while GDI spools the previous sheet.
+    /// A sheet that a later software copy prints again is kept packed in <paramref name="kept"/>, so each sheet is rendered once per job.
+    /// </summary>
+    private static SheetPixels PrepareSheet(PdfPrintJob job, PdfPrintSheet sheet, double dpi, PrintSheetCache<PackedSheetPixels> kept,
+        bool keep, CancellationToken token) {
+        if (kept.TryGet(sheet.SheetNumber, out PackedSheetPixels packed) && packed.Dpi == dpi) return new(packed.Unpack(), packed.Width, packed.Height);
+        OfficeRasterImage raster = job.RenderRaster(sheet.SheetNumber, dpi, job.MaximumPixelsPerImage, token).Raster;
+        byte[] pixels = raster.PixelBuffer;
+        PdfPrintRaster.ConvertRows(pixels, raster.Width, raster.Height, grayscale: false, toBgra: true, token);
+        if (keep) {
+            PackedSheetPixels packing = PackedSheetPixels.Pack(pixels, raster.Width, raster.Height, dpi);
+            kept.Add(sheet.SheetNumber, packing, packing.PackedLength);
         }
+        return new(pixels, raster.Width, raster.Height);
+    }
+
+    /// <summary>Stretches the sheet's pixels over the whole physical page of the started page.</summary>
+    private static void DrawPixels(IntPtr dc, SheetPixels sheet) {
         var bitmap = new Native.BitmapInfo {
-            Size = 40, Width = width, Height = -height, Planes = 1, BitCount = 32,
-            ImageSize = checked((uint)pixels.Length)
+            Size = 40, Width = sheet.Width, Height = -sheet.Height, Planes = 1, BitCount = 32,
+            ImageSize = checked((uint)sheet.Pixels.Length)
         };
-        token.ThrowIfCancellationRequested();
-        if (Native.StartPage(dc) <= 0) throw GdiFailure("StartPage");
         int drawn = Native.StretchDIBits(dc, -Native.GetDeviceCaps(dc, PhysicalOffsetX), -Native.GetDeviceCaps(dc, PhysicalOffsetY),
-            Native.GetDeviceCaps(dc, PhysicalWidth), Native.GetDeviceCaps(dc, PhysicalHeight), 0, 0, width, height,
-            pixels, ref bitmap, 0, 0x00CC0020);
+            Native.GetDeviceCaps(dc, PhysicalWidth), Native.GetDeviceCaps(dc, PhysicalHeight), 0, 0, sheet.Width, sheet.Height,
+            sheet.Pixels, ref bitmap, 0, 0x00CC0020);
         if (drawn == 0 || drawn == -1) throw GdiFailure("StretchDIBits");
-        if (Native.EndPage(dc) <= 0) throw GdiFailure("EndPage");
     }
 
     /// <summary>Names the failed GDI call; most print calls do not set the last error, which would otherwise read as success.</summary>
