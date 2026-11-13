@@ -255,7 +255,8 @@ public static partial class OfficeConversionCapabilityCatalog {
         "doc-pdf", "txt-pdf", "docx-pdf", "xlsx-pdf", "pptx-pdf", "html-pdf", "markdown-pdf", "rtf-pdf", "xps-pdf", "djvu-pdf", "heic-pdf",
         "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html", "book-project-epub", "odg-pdf", "visio-pdf", "publisher-pdf", "chm-pdf", "chm-markdown", "chm-epub",
         "odt-pdf", "ods-pdf", "odp-pdf", "email-pdf", "epub-pdf", "markdown-docx", "html-docx", "rtf-docx",
-        "docx-odt", "odt-docx", "xlsx-ods", "ods-xlsx", "pptx-odp", "odp-pptx"
+        "docx-odt", "odt-docx", "xlsx-ods", "ods-xlsx", "pptx-odp", "odp-pptx",
+        "csv-xlsx", "xlsx-csv"
     };
 
     internal static bool IsHostExecutable(string id) => HostExecutableIds.Contains(id);

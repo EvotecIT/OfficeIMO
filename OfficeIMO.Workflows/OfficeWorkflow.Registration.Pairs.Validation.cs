@@ -47,6 +47,10 @@ public static partial class OfficeWorkflow {
                     };
                     break;
                 }
+                case ".csv": {
+                    using OfficeIMO.CSV.CsvDocument csv = await OfficeIMO.CSV.CsvDocument.LoadAsync(output, null, token).ConfigureAwait(false);
+                    break;
+                }
                 case ".one": {
                     using OneNoteSection section = OneNoteSection.Load(output,
                         new OneNoteLoadOptions { MaxInputBytes = options.MaximumOutputBytes });
