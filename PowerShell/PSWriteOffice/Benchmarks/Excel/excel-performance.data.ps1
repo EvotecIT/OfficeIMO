@@ -1,4 +1,29 @@
+$script:ExcelBenchmarkDataCache = @{}
+
 function Get-ExcelBenchmarkData {
+    param(
+        [string] $Profile,
+        [int] $Count
+    )
+
+    # Generating 10,000 rows in script takes up to two seconds, far longer than most measured operations. The
+    # object-row inputs are only read by every lane, so each profile and size is built once per process.
+    # DataTable and DataSet inputs stay fresh because they are mutable.
+    if ($Profile -notin @('DataTable', 'DataSet')) {
+        if ($null -eq $script:ExcelBenchmarkDataCache) {
+            $script:ExcelBenchmarkDataCache = @{}
+        }
+        $cacheKey = '{0}|{1}' -f $Profile, $Count
+        if (-not $script:ExcelBenchmarkDataCache.ContainsKey($cacheKey)) {
+            $script:ExcelBenchmarkDataCache[$cacheKey] = New-ExcelBenchmarkData -Profile $Profile -Count $Count
+        }
+        return $script:ExcelBenchmarkDataCache[$cacheKey]
+    }
+
+    New-ExcelBenchmarkData -Profile $Profile -Count $Count
+}
+
+function New-ExcelBenchmarkData {
     param(
         [string] $Profile,
         [int] $Count
