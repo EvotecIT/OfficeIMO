@@ -19,13 +19,13 @@ Remove-OfficePdfContent `
     -Text 'Secret account'
 ```
 
-The [redact-detected-text recipe](https://github.com/EvotecIT/OfficeIMO/blob/2cc38c5921c25533d50306e7bd8a41159cc326ce/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-RedactDetectedText.ps1) shows the same operation with a self-contained source PDF.
+The [redact-detected-text recipe](https://github.com/EvotecIT/OfficeIMO/blob/f66afdb30ec7fd68ce655a721b4d3ca1b5eb8f69/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-RedactDetectedText.ps1) shows the same operation with a self-contained source PDF.
 
 ## Prepare a delivery copy
 
 `Optimize-OfficePdf -Sanitize -PassThru` writes a sanitized file and returns its report. `Optimize-OfficePdf -PassThru` reports optimization actions and the size outcome. Neither should overwrite the only source copy in an auditable workflow.
 
-The [sanitize-and-optimize recipe](https://github.com/EvotecIT/OfficeIMO/blob/2cc38c5921c25533d50306e7bd8a41159cc326ce/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-SanitizeAndOptimize.ps1) keeps the source, sanitized copy, and optimized delivery file separate.
+The [sanitize-and-optimize recipe](https://github.com/EvotecIT/OfficeIMO/blob/f66afdb30ec7fd68ce655a721b4d3ca1b5eb8f69/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-SanitizeAndOptimize.ps1) keeps the source, sanitized copy, and optimized delivery file separate.
 
 To remove author names, comments and other metadata from PDF and Office files in one pass, see [Clean files before sharing](/docs/pswriteoffice/before-sharing/).
 

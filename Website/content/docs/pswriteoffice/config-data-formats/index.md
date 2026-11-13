@@ -153,12 +153,12 @@ Convert-OfficeDocument -Path .\service.json -OutputPath .\service.toml -FailOnLo
 
 ## CSV with explicit rules
 
-`Export-OfficeCsv` and `ConvertTo-OfficeCsv` write delimited data with explicit delimiter, quoting, encoding, and spreadsheet formula-injection choices (`-FormulaInjectionPolicy`), and `Import-OfficeCsv` reads it back with typed options. Use them when the CSV is a contract with another system. Use the Excel commands when formatting, formulas, or charts are part of the result. The [safe CSV export recipe](https://github.com/EvotecIT/OfficeIMO/blob/2cc38c5921c25533d50306e7bd8a41159cc326ce/PowerShell/PSWriteOffice/Examples/Csv/Recipe-Csv-SafeExport.ps1) shows the choices side by side.
+`Export-OfficeCsv` and `ConvertTo-OfficeCsv` write delimited data with explicit delimiter, quoting, encoding, and spreadsheet formula-injection choices (`-FormulaInjectionPolicy`), and `Import-OfficeCsv` reads it back with typed options. Use them when the CSV is a contract with another system. Use the Excel commands when formatting, formulas, or charts are part of the result. The [safe CSV export recipe](https://github.com/EvotecIT/OfficeIMO/blob/f66afdb30ec7fd68ce655a721b4d3ca1b5eb8f69/PowerShell/PSWriteOffice/Examples/Csv/Recipe-Csv-SafeExport.ps1) shows the choices side by side.
 
 ## Runnable examples
 
-- [Edit, merge, and read YAML configuration](https://github.com/EvotecIT/OfficeIMO/blob/2cc38c5921c25533d50306e7bd8a41159cc326ce/PowerShell/PSWriteOffice/Examples/Yaml/Example-YamlEditMergeConvert.ps1)
-- [TOML lock files and data conversions](https://github.com/EvotecIT/OfficeIMO/blob/2cc38c5921c25533d50306e7bd8a41159cc326ce/PowerShell/PSWriteOffice/Examples/Data/Example-DataConversions.ps1)
-- [Safe CSV export](https://github.com/EvotecIT/OfficeIMO/blob/2cc38c5921c25533d50306e7bd8a41159cc326ce/PowerShell/PSWriteOffice/Examples/Csv/Recipe-Csv-SafeExport.ps1)
+- [Edit, merge, and read YAML configuration](https://github.com/EvotecIT/OfficeIMO/blob/f66afdb30ec7fd68ce655a721b4d3ca1b5eb8f69/PowerShell/PSWriteOffice/Examples/Yaml/Example-YamlEditMergeConvert.ps1)
+- [TOML lock files and data conversions](https://github.com/EvotecIT/OfficeIMO/blob/f66afdb30ec7fd68ce655a721b4d3ca1b5eb8f69/PowerShell/PSWriteOffice/Examples/Data/Example-DataConversions.ps1)
+- [Safe CSV export](https://github.com/EvotecIT/OfficeIMO/blob/f66afdb30ec7fd68ce655a721b4d3ca1b5eb8f69/PowerShell/PSWriteOffice/Examples/Csv/Recipe-Csv-SafeExport.ps1)
 
 For every parameter, search the [command reference](/api/powershell/) for `OfficeYaml`, `OfficeToml`, `OfficeCsv`, or `Convert-OfficeDocument`. The .NET packages behind these commands are described in the [YAML](/docs/yaml/), [TOML](/docs/toml/), and [CSV](/docs/csv/) guides.

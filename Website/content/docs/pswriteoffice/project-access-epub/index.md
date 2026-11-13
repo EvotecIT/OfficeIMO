@@ -86,11 +86,11 @@ $handbook | Save-OfficeEpub -Path .\handbook.epub
 
 Plain chapter text is escaped, so `&` and `<` appear as written. Use `-Markdown` or `-Xhtml` when the chapter has its own structure. `Add-OfficeEpubResource` adds images and other files, and `Set-OfficeEpubMetadata` changes the title, author, and language. `Open-OfficeEpub` and `Get-OfficeEpubChapter` read an existing book.
 
-To publish an EPUB as PDF or another format, use [`Convert-OfficeDocument`](/docs/pswriteoffice/conversion-routes/).
+To publish an EPUB as PDF or another format, use `Convert-OfficeDocument`; the [conversion routes guide](/docs/pswriteoffice/conversion-routes/) lists what each route keeps.
 
 ## Runnable example
 
-The [native document families example](https://github.com/EvotecIT/OfficeIMO/blob/2cc38c5921c25533d50306e7bd8a41159cc326ce/PowerShell/PSWriteOffice/Examples/Workflows/Example-NativeDocumentFamilies.ps1) creates all three files in one run:
+The [native document families example](https://github.com/EvotecIT/OfficeIMO/blob/f66afdb30ec7fd68ce655a721b4d3ca1b5eb8f69/PowerShell/PSWriteOffice/Examples/Workflows/Example-NativeDocumentFamilies.ps1) creates all three files in one run:
 
 ```powershell
 .\Example-NativeDocumentFamilies.ps1 -OutputDirectory .\out
