@@ -6,6 +6,9 @@ internal sealed class MarkdownInlineSourceMap {
     private readonly MarkdownSourcePoint?[] _points;
     private readonly MarkdownSourceSpan?[] _tokenSpans;
     private readonly string?[] _tokenLiterals;
+    // Token-only maps of a parse without source points keep where joined lines met, so an angle
+    // link destination still cannot span lines.
+    private readonly int[]? _lineBreakOffsets;
     private readonly string? _singleLineText;
     private readonly int _singleLineTextStart;
     private readonly int _singleLineTextLength;
@@ -63,10 +66,12 @@ internal sealed class MarkdownInlineSourceMap {
     internal MarkdownInlineSourceMap(
         MarkdownSourcePoint?[] points,
         MarkdownSourceSpan?[]? tokenSpans,
-        string?[]? tokenLiterals) {
+        string?[]? tokenLiterals,
+        int[]? lineBreakOffsets = null) {
         _points = points ?? Array.Empty<MarkdownSourcePoint?>();
         _tokenSpans = tokenSpans ?? Array.Empty<MarkdownSourceSpan?>();
         _tokenLiterals = tokenLiterals ?? Array.Empty<string?>();
+        _lineBreakOffsets = lineBreakOffsets is { Length: > 0 } ? lineBreakOffsets : null;
     }
 
     internal int Length => _singleLineText != null ? _singleLineTextLength : Math.Max(_points.Length, _tokenLiterals.Length);
@@ -150,6 +155,17 @@ internal sealed class MarkdownInlineSourceMap {
 
     internal bool ContainsSourceLineBreak(int startIndex, int length) {
         if (_singleLineText != null) {
+            return false;
+        }
+
+        if (_lineBreakOffsets != null) {
+            var limit = startIndex + length;
+            foreach (var offset in _lineBreakOffsets) {
+                if (offset >= startIndex && offset < limit) {
+                    return true;
+                }
+            }
+
             return false;
         }
 
@@ -248,7 +264,19 @@ internal sealed class MarkdownInlineSourceMap {
             Array.Copy(_tokenLiterals, startIndex, tokenLiteralSlice, 0, Math.Min(actualLength, _tokenLiterals.Length - startIndex));
         }
 
-        return new MarkdownInlineSourceMap(slice, tokenSpanSlice, tokenLiteralSlice);
+        int[]? lineBreakSlice = null;
+        if (_lineBreakOffsets != null) {
+            var shifted = new List<int>();
+            foreach (var offset in _lineBreakOffsets) {
+                if (offset >= startIndex && offset < startIndex + actualLength) {
+                    shifted.Add(offset - startIndex);
+                }
+            }
+
+            lineBreakSlice = shifted.ToArray();
+        }
+
+        return new MarkdownInlineSourceMap(slice, tokenSpanSlice, tokenLiteralSlice, lineBreakSlice);
     }
 
     private int GetSingleLineColumn(int sourceIndex) =>

@@ -182,16 +182,31 @@ public sealed class Markdown_Reader_Semantic_Parse_Tests {
     // Converters parse without the syntax tree when nothing reads it, so the semantic document
     // has to render the same HTML and keep the same text runs as the default parse.
     [Theory]
-    [InlineData("| a |\n| --- |\n| ok <br> sure |\n")]
-    [InlineData("Validate the COSE_Sign1 claim and the CIE L* ladder.\n")]
-    [InlineData("**foo **bar baz**\n")]
-    [InlineData("  1.  A paragraph\n    with two lines.\n")]
-    public void Parse_WithoutSyntaxTree_Matches_Default_Parse_Html_And_Runs(string markdown) {
-        var sourceBacked = MarkdownDocument.Parse(markdown);
-        var semantic = MarkdownDocument.Parse(markdown, new MarkdownLoadOptions { CaptureSyntaxTree = false });
+    [InlineData("| a |\n| --- |\n| ok <br> sure |\n", false)]
+    [InlineData("Validate the COSE_Sign1 claim and the CIE L* ladder.\n", false)]
+    [InlineData("**foo **bar baz**\n", false)]
+    [InlineData("  1.  A paragraph\n    with two lines.\n", false)]
+    [InlineData("<http://foo.bar.baz>\n", true)]
+    [InlineData("[link](<foo\nbar>)\n", true)]
+    public void Parse_WithoutSyntaxTree_Matches_Default_Parse_Html_And_Runs(string markdown, bool commonMarkWithoutInlineHtml) {
+        var sourceBacked = MarkdownDocument.Parse(markdown, CreateOptions(commonMarkWithoutInlineHtml));
+        var semanticOptions = CreateOptions(commonMarkWithoutInlineHtml);
+        semanticOptions.CaptureSyntaxTree = false;
+        var semantic = MarkdownDocument.Parse(markdown, semanticOptions);
 
         Assert.Equal(sourceBacked.ToHtml(), semantic.ToHtml());
         Assert.Equal(InlineSignature(sourceBacked), InlineSignature(semantic));
+    }
+
+    // MarkdownRenderer reads with inline HTML off, which sends angle brackets down other paths.
+    private static MarkdownLoadOptions CreateOptions(bool commonMarkWithoutInlineHtml) {
+        if (!commonMarkWithoutInlineHtml) {
+            return new MarkdownLoadOptions();
+        }
+
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
+        options.InlineHtml = false;
+        return options;
     }
 
     private static IEnumerable<string> InlineSignature(MarkdownDocument document) =>

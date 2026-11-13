@@ -10,7 +10,9 @@ internal static partial class MarkdownReader {
             && options.InlineParserExtensions.Count == 0
             && !options.Math
             && !hasRegisteredAbbreviations
-            && !ContainsPotentialInlineSyntax(text, options, allowLinks: true, allowImages: true)) {
+            && !ContainsPotentialInlineSyntax(text, options, allowLinks: true, allowImages: true)
+            // Angle autolinks parse whether or not inline HTML is enabled.
+            && text.IndexOf('<') < 0) {
             sequence = new InlineSequence { AutoSpacing = false };
             if (!string.IsNullOrEmpty(text)) {
                 sequence.AddRaw(new MarkdownTextRun(text));
@@ -49,7 +51,10 @@ internal static partial class MarkdownReader {
         if (sourceMap == null
             && inlineParserExtensions.Count == 0
             && !(options.Abbreviations && state?.Abbreviations.Count > 0)
-            && !ContainsPotentialInlineSyntax(text, options, allowLinks, allowImages)) {
+            && !ContainsPotentialInlineSyntax(text, options, allowLinks, allowImages)
+            // A syntax-capturing parse reaches the scanner below with a source map, where an angle
+            // autolink parses even with inline HTML off; a semantic parse has to reach it too.
+            && (state?.CaptureSyntaxTree != false || text.IndexOf('<') < 0)) {
             root.AddRaw(new MarkdownTextRun(text));
             return root;
         }
