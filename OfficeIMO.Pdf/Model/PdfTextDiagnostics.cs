@@ -588,9 +588,7 @@ internal static partial class PdfTextDiagnostics {
         // The core list is created for this call, so it is extended in place rather than copied.
         List<PdfTextShapingDiagnostic> diagnostics = AnalyzeAdvancedTextLayoutCore(text, source, indexOffset);
         if (info == null) return diagnostics;
-        var reportedCodes = new HashSet<string>(StringComparer.Ordinal);
-        foreach (PdfTextShapingDiagnostic diagnostic in diagnostics) reportedCodes.Add(diagnostic.Code);
-        AddFontLayoutDiagnostics(text, info, diagnostics, reportedCodes, source, indexOffset, featureSettings);
+        AddFontLayoutDiagnostics(text, info, diagnostics, source, indexOffset, featureSettings);
         return diagnostics;
     }
 
@@ -647,7 +645,7 @@ internal static partial class PdfTextDiagnostics {
             }
 
             if (info != null) {
-                AddFontLayoutDiagnostics(run.Text, info, diagnostics, reportedCodes, source, indexOffset: 0, featureSettings: run.FeatureSettings);
+                AddFontLayoutDiagnostics(run.Text, info, diagnostics, source, indexOffset: 0, featureSettings: run.FeatureSettings);
             }
         }
 
@@ -1181,13 +1179,19 @@ internal static partial class PdfTextDiagnostics {
             messageFactory: diagnosticIndex => "Text contains character " + codePoint + rendered + " at index " + diagnosticIndex.ToString(CultureInfo.InvariantCulture) + " that is not covered by embedded OpenType/CFF font '" + fontName + "'. Configure a font that contains this glyph or split the run to a fallback font.");
     }
 
-    private static void AddDiagnostic(List<PdfTextShapingDiagnostic> diagnostics, HashSet<string> reportedCodes, string source, int index, int scalar, string script, string code, string message, bool isCoveredByBuiltInShaping = false) {
-        if (reportedCodes.Add(code)) {
-            diagnostics.Add(new PdfTextShapingDiagnostic(source, index, scalar, script, code, message, isCoveredByBuiltInShaping));
+    // Every code in the list was reported once, so the list itself is the duplicate check.
+    private static void AddDiagnostic(List<PdfTextShapingDiagnostic> diagnostics, string source, int index, int scalar, string script, string code, string message, bool isCoveredByBuiltInShaping = false) {
+        for (int i = 0; i < diagnostics.Count; i++) {
+            if (string.Equals(diagnostics[i].Code, code, StringComparison.Ordinal)) return;
         }
+        diagnostics.Add(new PdfTextShapingDiagnostic(source, index, scalar, script, code, message, isCoveredByBuiltInShaping));
     }
 
-    private static void AddFontLayoutDiagnostics(string text, PdfOpenTypeFontInfo info, List<PdfTextShapingDiagnostic> diagnostics, HashSet<string> reportedCodes, string source, int indexOffset, OfficeTextFeatureSettings? featureSettings = null) {
+    private static readonly string[] DefaultLigatureFeatureTags = { "liga", "clig", "rlig" };
+    private static readonly string[] DiscretionaryLigatureFeatureTags = { "dlig" };
+    private static readonly string[] MarkPositioningFeatureTags = { "mark", "mkmk" };
+
+    private static void AddFontLayoutDiagnostics(string text, PdfOpenTypeFontInfo info, List<PdfTextShapingDiagnostic> diagnostics, string source, int indexOffset, OfficeTextFeatureSettings? featureSettings = null) {
         // Preflight the same selected language-system lookups used by the shared shaper.
         // A rejected required feature or custom ligature need not contain ff/fi/fl, but it
         // only simplifies this run when it could start on one of the run's glyphs.
@@ -1199,13 +1203,13 @@ internal static partial class PdfTextDiagnostics {
             if (usesCachedDefaultLookups) latinInputIndex = OfficeOpenTypeSubstitution.FindLatinDefaultInputIndex(text);
             if (latinInputIndex >= 0 && info.LatinSubstitution.DeclinedLatinDefaultLookupMayApply(
                     MapRunGlyphs(text, info), effectiveSettings, default)) {
-                AddDiagnostic(diagnostics, reportedCodes, source, indexOffset + latinInputIndex, char.ConvertToUtf32(text, latinInputIndex),
+                AddDiagnostic(diagnostics, source, indexOffset + latinInputIndex, char.ConvertToUtf32(text, latinInputIndex),
                     "OpenType GSUB", "unsupported-font-ligature-substitution",
                     "Embedded font '" + info.FontName + "' selects an OpenType GSUB feature outside the managed shaping subset. Generated output may be visually simplified.");
             }
         }
-        if (HasAnyFeature(info.LatinGlyphSubstitutionFeatureTags, "liga", "clig", "rlig") ||
-            HasAnyFeature(info.LatinGlyphSubstitutionFeatureTags, "dlig") && featureSettings != null &&
+        if (HasAnyFeature(info.LatinGlyphSubstitutionFeatureTags, DefaultLigatureFeatureTags) ||
+            HasAnyFeature(info.LatinGlyphSubstitutionFeatureTags, DiscretionaryLigatureFeatureTags) && featureSettings != null &&
             featureSettings.TryGetValue("dlig", out int discretionaryValue) && discretionaryValue > 0) {
             int ligatureIndex = FindLatinLigatureSequenceIndex(text);
             if (ligatureIndex >= 0) {
@@ -1216,7 +1220,6 @@ internal static partial class PdfTextDiagnostics {
                     info.ContainsUnicodeScalar(ligatureScalar);
                 AddDiagnostic(
                     diagnostics,
-                    reportedCodes,
                     source,
                     sourceIndex,
                     scalar,
@@ -1227,7 +1230,7 @@ internal static partial class PdfTextDiagnostics {
             }
         }
 
-        if (HasAnyFeature(info.GlyphPositioningFeatureTags, "mark", "mkmk")) {
+        if (HasAnyFeature(info.GlyphPositioningFeatureTags, MarkPositioningFeatureTags)) {
             for (int index = 0; index < text.Length;) {
                 int scalarStart = index;
                 int sourceIndex = scalarStart + indexOffset;
@@ -1238,7 +1241,6 @@ internal static partial class PdfTextDiagnostics {
 
                 AddDiagnostic(
                     diagnostics,
-                    reportedCodes,
                     source,
                     sourceIndex,
                     scalar,
@@ -1250,7 +1252,7 @@ internal static partial class PdfTextDiagnostics {
         }
     }
 
-    private static bool HasAnyFeature(IReadOnlyList<string> featureTags, params string[] expectedTags) {
+    private static bool HasAnyFeature(IReadOnlyList<string> featureTags, string[] expectedTags) {
         for (int index = 0; index < featureTags.Count; index++) {
             string tag = featureTags[index];
             for (int expectedIndex = 0; expectedIndex < expectedTags.Length; expectedIndex++) {
