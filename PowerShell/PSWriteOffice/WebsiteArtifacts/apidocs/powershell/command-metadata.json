@@ -1494,6 +1494,14 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Rtf/CloseOfficeRtfCommand.cs#L15"
     },
     {
+      "name": "Close-OfficeToml",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Toml/CloseOfficeTomlCommand.cs",
+      "sourceLine": 14,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Toml/CloseOfficeTomlCommand.cs#L14"
+    },
+    {
       "name": "Close-OfficeVisio",
       "kind": "Cmdlet",
       "aliases": [],
@@ -2212,6 +2220,14 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Project/GetOfficeProjectViewCommand.cs",
       "sourceLine": 15,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Project/GetOfficeProjectViewCommand.cs#L15"
+    },
+    {
+      "name": "Get-OfficeTomlNode",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Toml/GetOfficeTomlNodeCommand.cs",
+      "sourceLine": 21,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Toml/GetOfficeTomlNodeCommand.cs#L21"
     },
     {
       "name": "Get-OfficeWordBookmark",
@@ -3128,6 +3144,14 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficeTextPdfOptionsCommand.cs#L12"
     },
     {
+      "name": "New-OfficeToml",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Toml/NewOfficeTomlCommand.cs",
+      "sourceLine": 22,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Toml/NewOfficeTomlCommand.cs#L22"
+    },
+    {
       "name": "New-OfficeVisio",
       "kind": "Cmdlet",
       "aliases": [],
@@ -3360,6 +3384,14 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Rtf/OpenOfficeRtfCommand.cs#L15"
     },
     {
+      "name": "Open-OfficeToml",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Toml/OpenOfficeTomlCommand.cs",
+      "sourceLine": 22,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Toml/OpenOfficeTomlCommand.cs#L22"
+    },
+    {
       "name": "Open-OfficeVisio",
       "kind": "Cmdlet",
       "aliases": [],
@@ -3494,6 +3526,14 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/RemoveOfficePowerPointSlideCommand.cs",
       "sourceLine": 13,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/RemoveOfficePowerPointSlideCommand.cs#L13"
+    },
+    {
+      "name": "Remove-OfficeTomlNode",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Toml/RemoveOfficeTomlNodeCommand.cs",
+      "sourceLine": 19,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Toml/RemoveOfficeTomlNodeCommand.cs#L19"
     },
     {
       "name": "Remove-OfficeWordTableOfContents",
@@ -3646,6 +3686,14 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Rtf/SaveOfficeRtfCommand.cs",
       "sourceLine": 15,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Rtf/SaveOfficeRtfCommand.cs#L15"
+    },
+    {
+      "name": "Save-OfficeToml",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Toml/SaveOfficeTomlCommand.cs",
+      "sourceLine": 17,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Toml/SaveOfficeTomlCommand.cs#L17"
     },
     {
       "name": "Save-OfficeVisio",
@@ -4140,6 +4188,14 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Project/SetOfficeProjectTaskCommand.cs",
       "sourceLine": 13,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Project/SetOfficeProjectTaskCommand.cs#L13"
+    },
+    {
+      "name": "Set-OfficeTomlNode",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Toml/SetOfficeTomlNodeCommand.cs",
+      "sourceLine": 23,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Toml/SetOfficeTomlNodeCommand.cs#L23"
     },
     {
       "name": "Set-OfficeVisioShapeLayout",
