@@ -1326,6 +1326,13 @@ internal static partial class CsvParser
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string GetString(int ordinal) => _fallback is null ? _visitor.GetString(ordinal) : _fallback.GetString(ordinal);
 
+        /// <summary>Whether records are still read from bytes rather than by the decoded-text fallback.</summary>
+        internal bool ReadsBytes => _fallback is null;
+
+        /// <summary>Reads a field of a record read from bytes; the caller checks <see cref="ReadsBytes"/> for the row.</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal string GetByteString(int ordinal) => _visitor.GetString(ordinal);
+
         public bool IsMissing(int ordinal) => _fallback?.IsMissing(ordinal) ?? _visitor.IsMissing(ordinal);
 
         public bool IsNull(int ordinal, string? nullValue) =>
