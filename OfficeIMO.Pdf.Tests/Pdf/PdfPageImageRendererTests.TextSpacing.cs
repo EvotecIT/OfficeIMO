@@ -21,6 +21,21 @@ public partial class PdfPageImageRendererTests {
         Assert.Equal(PdfReadLimitKind.DecodedTextCharacters, exception.Kind);
     }
 
+    [Fact]
+    public void ToDrawing_PlacesEachGlyphOfASpacedRunContainingPunctuationAtItsPdfOrigin() {
+        // Helvetica widths: a 556, b 556, space 278, en dash 556, t 278. One unit of character
+        // spacing follows every glyph, so the run must not be drawn as one label of natural width.
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf("BT /F1 10 Tf 1 Tc 20 100 Td [(ab \\226 t)60 (o)] TJ ET",
+            "<< /Font << /F1 5 0 R >> >>", font);
+
+        OfficeDrawingText[] glyphs = PdfReadDocument.Open(pdf).Pages[0].ToDrawing().Elements.OfType<OfficeDrawingText>().ToArray();
+
+        Assert.Equal(20D + 22.24D + 5D, Assert.Single(glyphs, glyph => glyph.Text == "t").X, 3);
+        Assert.Equal(20D + 25.02D + 6D - .6D, Assert.Single(glyphs, glyph => glyph.Text == "o").X, 3);
+        Assert.Contains(glyphs, glyph => glyph.Text == "–");
+    }
+
     [Theory]
     [InlineData("/ca 0", "")]
     [InlineData("/CA 0", "1 Tr ")]

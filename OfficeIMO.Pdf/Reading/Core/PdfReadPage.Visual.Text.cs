@@ -234,7 +234,8 @@ public sealed partial class PdfReadPage {
             // Repeated one-character glyphs use an allocation-free key. Multi-character
             // mappings must charge their materialization even when measurement is cached.
             if (length > 1) pageContentBudget.ChargePositionedTextWorkCharacters(length);
-            string text = length == 1 ? BasicLatinGlyphStrings[span.Text[characterOffset] - ' ']
+            char first = span.Text[characterOffset];
+            string text = length == 1 && first >= ' ' && first <= '~' ? BasicLatinGlyphStrings[first - ' ']
                 : span.Text.Substring(characterOffset, length);
             var key = (text, paintedAdvances[index]);
             if (!measuredGlyphs.TryGetValue(key, out var measurement)) {
@@ -276,6 +277,22 @@ public sealed partial class PdfReadPage {
                 -sharedClipBounds.X, -sharedClipBounds.Y);
         }
         return true;
+    }
+
+    // Characters drawn the same alone as inside a run: Latin letters and the general
+    // punctuation, currency and letterlike symbols, excluding controls, format characters and marks.
+    private static bool IsUnshapedSpacingCharacter(char character) {
+        if (character >= ' ' && character <= '~') return true;
+        bool simpleBlock = character >= '\u00A0' && character <= '\u024F' ||
+            character >= '\u2010' && character <= '\u205E' ||
+            character >= '\u20A0' && character <= '\u20CF' ||
+            character >= '\u2100' && character <= '\u214F';
+        if (!simpleBlock) return false;
+        System.Globalization.UnicodeCategory category = char.GetUnicodeCategory(character);
+        return category is not (System.Globalization.UnicodeCategory.Control or System.Globalization.UnicodeCategory.Format or
+            System.Globalization.UnicodeCategory.NonSpacingMark or System.Globalization.UnicodeCategory.SpacingCombiningMark or
+            System.Globalization.UnicodeCategory.EnclosingMark or System.Globalization.UnicodeCategory.LineSeparator or
+            System.Globalization.UnicodeCategory.ParagraphSeparator);
     }
 
     private static bool HasReflectedTextMatrix(PdfTextSpan span) =>
@@ -341,14 +358,14 @@ public sealed partial class PdfReadPage {
         out double direction) {
         direction = 0D;
         cancellationToken.ThrowIfCancellationRequested();
-        // PDF character codes are not shaping clusters. Expand only basic Latin
-        // display runs; retain whole-run shaping for other scripts, marks and emoji.
-        // Supporting those at individual origins requires a shaped-glyph run contract.
+        // PDF character codes are not shaping clusters. Expand only Latin, punctuation and
+        // symbol characters that never join or combine; retain whole-run shaping for other
+        // scripts, marks and emoji. Those need a shaped-glyph run contract at individual origins.
         if (span.HasActualText) return false;
         for (int index = 0; index < span.Text.Length; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             pageContentBudget.ChargePositionedTextProjectionCharacters(1);
-            if (span.Text[index] < ' ' || span.Text[index] > '~') return false;
+            if (!IsUnshapedSpacingCharacter(span.Text[index])) return false;
         }
         IReadOnlyList<int>? lengths = span.GlyphCharacterLengths;
         IReadOnlyList<double>? widths = span.GlyphPaintedAdvances;
