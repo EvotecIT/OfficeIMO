@@ -34,7 +34,7 @@ The C# rules and PowerShell rules in the [API design](officeimo.api-design.md) a
   - Mutators that configure a node return that node, so calls chain naturally: `mapping.Add("image", "nginx").SetComment("pinned by CI")`.
 
   Any fluent builder is a thin wrapper over these same names, never a second model.
-- **Conversion grammar:** the engine exposes no conversion routes. The structured-data routes in the [roadmap](ROADMAP.md#yaml-engine) use the shared `To{Target}`/`SaveAs{Target}` forms. Markdown front matter reads and writes through `YamlDocument`. YAML has no format-engine dependencies of its own.
+- **Conversion grammar:** the engine exposes no conversion routes. The structured-data routes in the [roadmap](ROADMAP.md#yaml-engine) use the shared `To{Target}`/`SaveAs{Target}` forms. Markdown front matter reads and writes through `YamlDocument`, and `OfficeIMO.Markup` reads its front matter through Markdown's `FrontMatterBlock`. YAML has no format-engine dependencies of its own.
 - **Diagnostics:** recoverable findings are `OfficeDiagnostic` values whose codes come from the Core diagnostic catalog. Exceptions keep their stable `YamlErrorCodes` for syntax and limit failures.
 - **Positions:** C# indexes are 0-based like every .NET collection; PowerShell positions are 1-based like every PSWriteOffice command.
 - **Visibility:** public only what the README and examples use. The public API analyzer baseline (`PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt` through `Build/ApiMap/PublicApi.targets`) makes every surface change deliberate.
@@ -284,7 +284,7 @@ Exceeding a limit throws `YamlLimitExceededException` with the limit's name and 
 |---|---|---|
 | `OfficeIMO.Yaml` | `OfficeIMO.Core` (diagnostics, shared IO) | Scanner, reader, writer, model, schemas, serializer, generator (built from `OfficeIMO.Yaml.SourceGeneration`, packed as an analyzer) |
 | `OfficeIMO.Reader.Yaml` | `OfficeIMO.Reader.Core`, `OfficeIMO.Yaml` | Chunking and Markdown projection only |
-| `OfficeIMO.Markdown` | `OfficeIMO.Core`, `OfficeIMO.Yaml` | Front matter parsed and written through `YamlDocument` |
+| `OfficeIMO.Markdown` | `OfficeIMO.Core`, `OfficeIMO.Yaml`, `OfficeIMO.Toml` | YAML front matter parsed and written through `YamlDocument`, TOML front matter through `TomlDocument` |
 
 - Targets: netstandard2.0, net8.0, net10.0 and net472, matching `OfficeIMO.CSV`. On netstandard2.0/net472 the only polyfill package is `System.Buffers`/`System.Memory`.
 - Third-party YAML libraries (YamlDotNet, SharpYaml, others) appear only in `OfficeIMO.Yaml.Tests` and `OfficeIMO.Yaml.Benchmarks`, as oracles and comparison lanes.

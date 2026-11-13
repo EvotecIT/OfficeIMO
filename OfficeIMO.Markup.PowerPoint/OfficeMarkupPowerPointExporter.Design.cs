@@ -96,10 +96,11 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         }
     }
 
-    private static string? GetMetadata(OfficeMarkupDocument document, string name) =>
-        document.Metadata.TryGetValue(name, out var value) && !string.IsNullOrWhiteSpace(value)
-            ? value.Trim()
-            : null;
+    private static string? GetMetadata(OfficeMarkupDocument document, string name) {
+        string? value = null;
+        document.FrontMatter?.TryGetValue(name, out value);
+        return string.IsNullOrWhiteSpace(value) ? null : value!.Trim();
+    }
 
     private static bool HasExplicitBackground(OfficeMarkupSlideBlock slideBlock) =>
         !string.IsNullOrWhiteSpace(slideBlock.Background);

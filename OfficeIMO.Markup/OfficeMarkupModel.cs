@@ -193,7 +193,6 @@ public sealed class OfficeMarkupPlacement {
 /// Root semantic document produced by the markup parser.
 /// </summary>
 public sealed class OfficeMarkupDocument {
-    private readonly Dictionary<string, string> _metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     private readonly List<OfficeMarkupBlock> _blocks = new List<OfficeMarkupBlock>();
 
     /// <summary>Creates an empty semantic document for the selected authoring profile.</summary>
@@ -203,8 +202,13 @@ public sealed class OfficeMarkupDocument {
 
     /// <summary>Gets or sets the authoring profile used by validation and target-specific consumers.</summary>
     public OfficeMarkupProfile Profile { get; set; }
-    /// <summary>Gets mutable, case-insensitively keyed front-matter metadata.</summary>
-    public IDictionary<string, string> Metadata => _metadata;
+    /// <summary>
+    /// Gets or sets the document's front matter: YAML between <c>---</c> lines or TOML between <c>+++</c> lines, read by
+    /// <c>OfficeIMO.Markdown</c>. Read values with <see cref="FrontMatterBlock.TryGetValue{T}"/>,
+    /// <see cref="FrontMatterBlock.FindEntry"/> or <see cref="FrontMatterBlock.Select"/>; keys match case-insensitively
+    /// except in paths. <see langword="null"/> when the markup has none.
+    /// </summary>
+    public FrontMatterBlock? FrontMatter { get; set; }
     /// <summary>Gets the mutable top-level block sequence.</summary>
     public IList<OfficeMarkupBlock> Blocks => _blocks;
 

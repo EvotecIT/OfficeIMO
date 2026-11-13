@@ -174,7 +174,7 @@ graph LR
 
         Assert.False(result.HasErrors);
         Assert.Equal(OfficeMarkupProfile.Presentation, result.Document.Profile);
-        Assert.Equal("OfficeIMO Slide DSL Demo", result.Document.Metadata["title"]);
+        Assert.Equal("OfficeIMO Slide DSL Demo", result.Document.FrontMatter!.FindEntry("title")!.Value.AsString());
         Assert.Equal(2, result.Document.Blocks.Count);
 
         var firstSlide = Assert.IsType<OfficeMarkupSlideBlock>(result.Document.Blocks[0]);
@@ -187,6 +187,37 @@ graph LR
         var secondSlide = Assert.IsType<OfficeMarkupSlideBlock>(result.Document.Blocks[1]);
         Assert.Equal("Architecture Overview", secondSlide.Title);
         Assert.IsType<OfficeMarkupDiagramBlock>(Assert.Single(secondSlide.Blocks));
+    }
+
+    [Fact]
+    public void Parse_FrontMatter_ReadsNestedListsQuotedValuesAndCommentsAsYaml() {
+        var markup = "---\nprofile: \"presentation\"   # deck\ntitle: 'It''s: done'\nsubtitle: \"Tab\\there\"\nauthor:\n  name: Ada\ntags: [a, b]\n---\n\n# Agenda\n";
+
+        var result = OfficeMarkupParser.Parse(markup);
+
+        Assert.Empty(result.Diagnostics);
+        Assert.Equal(OfficeMarkupProfile.Presentation, result.Document.Profile);
+        var frontMatter = result.Document.FrontMatter!;
+        Assert.True(frontMatter.TryGetValue("title", out string? title));
+        Assert.Equal("It's: done", title);
+        Assert.Equal("Tab\there", frontMatter.FindEntry("subtitle")!.Value.AsString());
+        Assert.Equal("Ada", frontMatter.Select("author.name")!.AsString());
+        Assert.Equal("b", frontMatter.Select("tags[1]")!.AsString());
+        Assert.Equal("Agenda", Assert.IsType<OfficeMarkupSlideBlock>(Assert.Single(result.Document.Blocks)).Title);
+    }
+
+    [Fact]
+    public void Parse_InvalidFrontMatter_ReportsAnErrorAtItsMarkupLineAndKeepsTheFallbackProfile() {
+        var markup = "---\nprofile: presentation\ntags: [unclosed\n---\n\n# Body\n";
+
+        var result = OfficeMarkupParser.Parse(markup, new OfficeMarkupParserOptions { Profile = OfficeMarkupProfile.Document });
+
+        var diagnostic = Assert.Single(result.Diagnostics, d => d.Message.StartsWith("Front matter:", StringComparison.Ordinal));
+        Assert.Equal(OfficeMarkupDiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Contains("not valid YAML", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Matches(@"\(line [34], column \d+\)$", diagnostic.Message);
+        Assert.Equal(OfficeMarkupProfile.Document, result.Document.Profile);
+        Assert.Equal("Body", Assert.IsType<OfficeMarkupHeadingBlock>(Assert.Single(result.Document.Blocks)).Text);
     }
 
     [Fact]

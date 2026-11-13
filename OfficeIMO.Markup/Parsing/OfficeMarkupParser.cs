@@ -28,15 +28,18 @@ public static partial class OfficeMarkupParser {
     private static readonly string[] MermaidLanguages = { "mermaid" };
 
     /// <summary>Parses front matter, Markdown, and Office directives into a semantic document and diagnostics.</summary>
-    /// <remarks>Null input is treated as empty text. Front-matter profile metadata can override the option's fallback profile; validation runs unless disabled in the options.</remarks>
+    /// <remarks>
+    /// Null input is treated as empty text. YAML or TOML front matter is read by <c>OfficeIMO.Markdown</c>; its
+    /// <c>profile</c> value can override the option's fallback profile, and front matter that cannot be read is reported
+    /// with its line and column. Validation runs unless disabled in the options.
+    /// </remarks>
     public static OfficeMarkupParseResult Parse(string markup, OfficeMarkupParserOptions? options = null) {
         options ??= new OfficeMarkupParserOptions();
         var source = (markup ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
         var diagnostics = new List<OfficeMarkupDiagnostic>();
-        var metadata = ExtractFrontMatter(ref source);
-        var profile = ResolveProfile(options.Profile, metadata);
-        var document = new OfficeMarkupDocument(profile);
-        CopyAttributes(metadata, document.Metadata);
+        var frontMatter = ExtractFrontMatter(ref source, diagnostics);
+        var profile = ResolveProfile(options.Profile, frontMatter);
+        var document = new OfficeMarkupDocument(profile) { FrontMatter = frontMatter };
 
         var markdownOptions = CreateMarkdownOptions(options);
         if (!TryMapOfficeSyntax(source, document, profile, diagnostics, markdownOptions)) {
