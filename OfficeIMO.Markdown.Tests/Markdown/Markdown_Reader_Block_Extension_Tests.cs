@@ -15,7 +15,9 @@ Paragraph line
 :::
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateOptions());
+        var options = CreateOptions();
+        options.CaptureSyntaxTree = true;
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
 
         var panel = Assert.IsType<PanelBlock>(Assert.Single(document.Blocks));
         Assert.Equal("Ops Notes", panel.Title);
@@ -94,6 +96,7 @@ Paragraph line
         MarkdownSourceSlice sourceSlice = default;
         bool sourceSliceOk = false;
         var options = MarkdownLoadOptions.CreatePortableProfile();
+        options.CaptureSyntaxTree = true;
         options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
             "source-aware-claim",
             MarkdownBlockParserPlacement.BeforeParagraphs,

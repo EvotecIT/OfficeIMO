@@ -11,9 +11,12 @@ public partial class MarkdownDocument : IDisposable {
     /// <summary>Gets the source syntax and transform snapshot, when the document was parsed.</summary>
     public MarkdownParseInfo? ParseInfo => _parseResult;
 
-    /// <summary>Parses Markdown text into the document model.</summary>
+    /// <summary>
+    /// Parses Markdown text into the document model. Source spans and <see cref="ParseInfo"/> are captured only
+    /// when <see cref="MarkdownLoadOptions.CaptureSyntaxTree"/> is set.
+    /// </summary>
     public static MarkdownDocument Parse(string markdown, MarkdownLoadOptions? options = null) =>
-        options?.CaptureSyntaxTree == false ? MarkdownReader.ParseSemantic(markdown, options) : MarkdownReader.Parse(markdown, options);
+        options?.CaptureSyntaxTree == true ? MarkdownReader.Parse(markdown, options) : MarkdownReader.ParseSemantic(markdown, options);
 
     /// <summary>Parses Markdown text and reports the completed native read.</summary>
     public static MarkdownDocument Parse(string markdown, MarkdownLoadOptions? options,

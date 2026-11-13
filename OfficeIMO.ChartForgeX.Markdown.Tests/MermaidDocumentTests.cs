@@ -25,7 +25,7 @@ public sealed class MermaidDocumentTests {
     [Fact]
     public void NestedFencesBecomeImagesWhileCaptionsAndFailedSourceRemain() {
         string source = "# Report\n\n> ```mermaid title=\"Approval flow\"\n> flowchart LR\n> A --> B\n> ```\n\n```csharp\nthrow;\n```\n\n```mermaid\nnot-a-diagram\n```";
-        var document = MarkdownDocument.Parse(source);
+        var document = MarkdownDocument.Parse(source, new MarkdownLoadOptions { CaptureSyntaxTree = true });
         var fences = document.DescendantObjectsOfType<CodeBlock>().ToArray();
         fences[0].Caption = "Request approval";
         var failed = fences.Single(block => block.Content == "not-a-diagram");

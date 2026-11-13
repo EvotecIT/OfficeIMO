@@ -30,7 +30,7 @@ public class MarkdownParseBenchmarks {
     public MarkdownDocument OfficeIMO_ParseSemantic_CommonMark() => MarkdownBenchmarkParsing.ParseSemantic(_markdown, _commonMarkOptions);
 
     [Benchmark(Description = "OfficeIMO source-backed")]
-    public MarkdownDocument OfficeIMO_Parse_SourceBacked_CommonMark() => MarkdownDocument.Parse(_markdown, _commonMarkOptions);
+    public MarkdownDocument OfficeIMO_Parse_SourceBacked_CommonMark() => MarkdownBenchmarkParsing.ParseSourceBacked(_markdown, _commonMarkOptions);
 
     [Benchmark(Description = "Markdig")]
     public Markdig.Syntax.MarkdownDocument Markdig_ParseSemanticComparison_CommonMark() => Markdig.Markdown.Parse(_markdown);
@@ -75,7 +75,7 @@ public class MarkdownHtmlBenchmarks {
     }
 
     [Benchmark(Baseline = true, Description = "OfficeIMO source-backed")]
-    public string OfficeIMO_ToHtml_CommonMark() => MarkdownDocument.Parse(_markdown, _commonMarkOptions).ToHtml(_commonMarkHtmlOptions);
+    public string OfficeIMO_ToHtml_CommonMark() => MarkdownBenchmarkParsing.ParseSourceBacked(_markdown, _commonMarkOptions).ToHtml(_commonMarkHtmlOptions);
 
     [Benchmark(Description = "OfficeIMO-Semantic")]
     public string OfficeIMO_ToHtml_Semantic_CommonMark() =>
@@ -84,10 +84,10 @@ public class MarkdownHtmlBenchmarks {
     [Benchmark(Description = "Markdig")]
     public string Markdig_ToHtml_CommonMark() => Markdig.Markdown.ToHtml(_markdown, MarkdigCommonMarkPipeline);
 
-    [Benchmark(Description = "OfficeIMO default source-backed")]
+    [Benchmark(Description = "OfficeIMO default")]
     public string OfficeIMO_ToHtml_Default() => MarkdownDocument.Parse(_markdown).ToHtml();
 
-    [Benchmark(Description = "OfficeIMO portable source-backed")]
+    [Benchmark(Description = "OfficeIMO portable")]
     public string OfficeIMO_ToHtml_Portable() => MarkdownDocument.Parse(_markdown, _portableOptions).ToHtml();
 }
 

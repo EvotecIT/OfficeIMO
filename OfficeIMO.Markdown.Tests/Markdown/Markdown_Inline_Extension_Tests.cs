@@ -72,7 +72,7 @@ public sealed class Markdown_Inline_Extension_Tests {
     public void InlineParserContext_Can_Create_Normalized_SourceSlice_For_Custom_Inline() {
         MarkdownSourceSlice sourceSlice = default;
         bool sourceSliceOk = false;
-        var options = new MarkdownLoadOptions();
+        var options = new MarkdownLoadOptions { CaptureSyntaxTree = true };
         options.InlineParserExtensions.Add(new MarkdownInlineParserExtension(
             "source-aware-double-brace",
             (MarkdownInlineParserContext context, out MarkdownInlineParseResult result) => {
@@ -170,7 +170,7 @@ public sealed class Markdown_Inline_Extension_Tests {
         MarkdownSourceSpan? strongSpan = null;
         MarkdownSourceSlice strongSlice = default;
         bool strongSliceOk = false;
-        var options = new MarkdownLoadOptions();
+        var options = new MarkdownLoadOptions { CaptureSyntaxTree = true };
         options.InlineTransformExtensions.Add(new MarkdownInlineTransformExtension(
             "source-aware-transform",
             (sequence, context) => {

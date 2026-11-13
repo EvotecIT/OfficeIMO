@@ -5346,6 +5346,42 @@ These parameter aliases stay removed. Command aliases such as `ExcelExport` are 
 | `-Values` | `-InputObject` | `Add-OfficeExcelTableRow` |
 | `-Values` | `-Value` | `Add-OfficePowerPointTableRow`, `Get-OfficeExcelTemplateMarker`, `Invoke-OfficeExcelTemplate`, `Set-OfficeExcelAutoFilter` |
 
+## Markdown parses without a syntax tree by default
+
+`MarkdownLoadOptions.CaptureSyntaxTree` now defaults to `false`. `MarkdownDocument.Parse`, `Load`
+and `LoadAsync` build the typed document without source spans, syntax nodes or `ParseInfo`, which
+takes a fraction of the time and memory. Rendering HTML, Word, PDF and other formats and writing the
+document back to Markdown produce the same output as before.
+
+Set `CaptureSyntaxTree = true` when you read source information from a parsed document:
+
+- `MarkdownDocument.ParseInfo`, its syntax trees, source slices and definition snapshots;
+- `SourceSpan` and the other source span properties of blocks, inlines and front matter entries;
+- `MarkdownBodyRenderContext.FindSyntaxNode` and `TryCreateSourceSlice`, and
+  `SyntaxBlockRenderExtensions` or `SyntaxInlineRenderExtensions` on documents you parse yourself;
+- `TryCreateSourceSlice` on `MarkdownBlockParserContext`, `MarkdownInlineParserContext`,
+  `MarkdownInlineTransformContext` and `MarkdownDocumentTransformContext` in your reader extensions
+  and document transforms;
+- `MarkdownRendererOptions.ReaderOptions` for `MarkdownRenderer.ParseDocument` when you inspect the
+  returned document's source information;
+- the Markdown source spans in `ToAsciiDoc` and `ToLatex` conversion diagnostics, and the line
+  numbers in `MermaidMarkdownAdapter.Materialize` and `ToPowerPoint` diagnostics.
+
+```csharp
+var options = MarkdownLoadOptions.CreateCommonMarkProfile();
+options.CaptureSyntaxTree = true;
+MarkdownDocument document = MarkdownDocument.Parse(markdown, options);
+MarkdownParseInfo parseInfo = document.ParseInfo!;
+```
+
+`MarkdownReader.ParseWithSyntaxTree`, `MarkdownNativeDocument.Parse` and
+`MarkdownRenderer.ParseDocumentResult` always capture the syntax tree, and so do
+`MarkdownRenderer.RenderBodyHtml` and the Markdown-to-HTML conversion route when they call your fenced
+code renderers or HTML render extensions. The Markdown-to-AsciiDoc, Markdown-to-LaTeX and
+Markdown-to-PowerPoint workflow routes capture it unless you pass your own reader options.
+`Get-OfficeMarkdownNode` and `Get-OfficeMarkdownFrontMatter` keep reporting source spans; for other
+cmdlets, pass reader options with `CaptureSyntaxTree` set.
+
 ## OneNote visual PDF pages are vector
 
 `ToVisualPdf`, `SaveAsVisualPdf` and their async forms now write each OneNote page as

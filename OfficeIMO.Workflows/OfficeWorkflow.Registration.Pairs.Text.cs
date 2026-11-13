@@ -40,7 +40,8 @@ public static partial class OfficeWorkflow {
                 projection.FailOnLoss |= options.FailOnLoss;
                 return await RetainSourceAsync(source, () => read.Document.SaveAsMarkdownAsync(output, projection, token), projection.FailOnLoss).ConfigureAwait(false);
             }
-            using MarkdownDocument document = await LoadMarkdownAsync(input, options, settings, token).ConfigureAwait(false);
+            // AsciiDoc and LaTeX diagnostics locate Markdown losses by their source spans.
+            using MarkdownDocument document = await LoadMarkdownAsync(input, options, settings, token, captureSyntaxTree: true).ConfigureAwait(false);
             if (Id == "markdown-asciidoc") {
                 MarkdownAsciiDocExportOptions conversion = settings.MarkdownAsciiDoc ?? new();
                 conversion.FailOnLoss |= options.FailOnLoss;
@@ -52,8 +53,9 @@ public static partial class OfficeWorkflow {
         }
 
         private static Task<MarkdownDocument> LoadMarkdownAsync(Stream input, OfficeConversionOptions options,
-            OfficeWorkflowRouteSettings settings, CancellationToken token) {
+            OfficeWorkflowRouteSettings settings, CancellationToken token, bool captureSyntaxTree = false) {
             MarkdownLoadOptions load = settings.MarkdownLoad ?? new();
+            if (captureSyntaxTree && settings.MarkdownLoad == null) load.CaptureSyntaxTree = true;
             load.MaxInputBytes = Math.Min(load.MaxInputBytes ?? options.MaximumInputBytes, options.MaximumInputBytes);
             return MarkdownDocument.LoadAsync(input, load, token);
         }

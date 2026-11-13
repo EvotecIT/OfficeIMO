@@ -13,8 +13,10 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 
 public sealed class Markdown_CurrentHead_Review_Tests {
     [Fact]
-    public void Parse_DefaultPath_ReturnsFullyBoundObjectTree() {
-        MarkdownDocument document = MarkdownDocument.Parse("# Heading\n\nParagraph with **strong** text.");
+    public void Parse_WithSyntaxTree_ReturnsFullyBoundObjectTree() {
+        MarkdownDocument document = MarkdownDocument.Parse(
+            "# Heading\n\nParagraph with **strong** text.",
+            new MarkdownLoadOptions { CaptureSyntaxTree = true });
 
         MarkdownInvariantAssert.SemanticTreeIsWellFormed(document);
         Assert.All(

@@ -16,19 +16,12 @@ public enum MarkdownCalloutTitleMode {
 /// syntax such as OfficeIMO callouts, TOC placeholders, footnotes, or custom inline tokens.
 /// </summary>
 public sealed class MarkdownLoadOptions {
-    /// <summary>Retains syntax and source bindings. False selects semantic-only parsing for large reads.</summary>
-    public bool CaptureSyntaxTree { get; set; } = true;
-
     /// <summary>
-    /// Turns off syntax capture for a document that a converter parses, renders once and discards.
-    /// Generic attributes keep it, because a standalone attribute line before a fence renders on
-    /// the code element only when its source span was captured.
+    /// Retains the syntax tree, source spans and <see cref="MarkdownDocument.ParseInfo"/>. Off by default:
+    /// a parse builds the semantic document, which renders and writes the same output. Turn it on for
+    /// source spans, syntax nodes, source slices, source edits or render extensions that read them.
     /// </summary>
-    internal void SkipSyntaxCaptureForConversion() {
-        if (!GenericAttributes) {
-            CaptureSyntaxTree = false;
-        }
-    }
+    public bool CaptureSyntaxTree { get; set; }
 
     /// <summary>Creates bounded parser settings for documents from outside.</summary>
     public static MarkdownLoadOptions UntrustedDefaults => new MarkdownLoadOptions {

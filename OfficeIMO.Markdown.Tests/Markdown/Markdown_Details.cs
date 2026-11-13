@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
         public void Reader_RoundTrips_Details_Html() {
             string markdown = "<details open>\n<summary>  Expand  </summary>\n\nParagraph text\n</details>";
 
-            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, new MarkdownLoadOptions { CaptureSyntaxTree = true });
 
             var details = Assert.IsType<DetailsBlock>(doc.Blocks[0]);
             Assert.True(details.Open);

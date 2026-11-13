@@ -73,7 +73,7 @@ namespace OfficeIMO.Word.Markdown {
                 var readerOptions = CreateEffectiveReaderOptions(options);
                 readerOptions.FrontMatter = false;
                 // The fragment is rendered into the header or footer and dropped.
-                readerOptions.SkipSyntaxCaptureForConversion();
+                readerOptions.CaptureSyntaxTree = false;
                 var fragment = Omd.MarkdownDocument.Parse(block.Content, readerOptions);
 
                 if (fragment.DocumentHeader != null) {

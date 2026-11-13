@@ -146,6 +146,7 @@ public class ReaderMarkdownPipelineBenchmarks {
     private byte[] _bytes = Array.Empty<byte>();
     private string _markdown = string.Empty;
     private string _markdownWithoutTables = string.Empty;
+    private static readonly MarkdownLoadOptions SyntaxTreeOptions = new() { CaptureSyntaxTree = true };
     private OfficeDocumentReader _headingReader = null!;
     private OfficeDocumentReader _paragraphReader = null!;
     private ReaderOptions _readerOptions = null!;
@@ -170,10 +171,10 @@ public class ReaderMarkdownPipelineBenchmarks {
     }
 
     [Benchmark]
-    public MarkdownParseInfo ParseWithSyntaxTreeAndTables() => MarkdownDocument.Parse(_markdown).ParseInfo!;
+    public MarkdownParseInfo ParseWithSyntaxTreeAndTables() => MarkdownDocument.Parse(_markdown, SyntaxTreeOptions).ParseInfo!;
 
     [Benchmark]
-    public MarkdownParseInfo ParseWithSyntaxTreeWithoutTables() => MarkdownDocument.Parse(_markdownWithoutTables).ParseInfo!;
+    public MarkdownParseInfo ParseWithSyntaxTreeWithoutTables() => MarkdownDocument.Parse(_markdownWithoutTables, SyntaxTreeOptions).ParseInfo!;
 
     [Benchmark]
     public ReaderChunk[] ReadHeadingAndTableChunks() =>
