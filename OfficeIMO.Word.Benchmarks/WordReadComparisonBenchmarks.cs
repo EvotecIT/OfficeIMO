@@ -33,6 +33,7 @@ public class WordReadComparisonBenchmarks {
         EnsureExpected(nameof(OfficeIMO), OfficeIMO());
         EnsureExpected(nameof(OpenXmlSdk), OpenXmlSdk());
         EnsureExpected(nameof(OfficeIMOReaderText), OfficeIMOReaderText());
+        EnsureExpected(nameof(OfficeIMOReaderStreamedText), OfficeIMOReaderStreamedText());
     }
 
     internal int InputBytes => _fixture.Length;
@@ -51,6 +52,10 @@ public class WordReadComparisonBenchmarks {
     /// <summary>OfficeIMO.Reader's text projection: the plain-text route for ingestion and search.</summary>
     [Benchmark]
     public WordReadObservation OfficeIMOReaderText() => WordReaderTextWorkload.Read(_fixture);
+
+    /// <summary>OfficeIMO.Reader's text projection with <c>StreamTextWhenPossible</c>.</summary>
+    [Benchmark]
+    public WordReadObservation OfficeIMOReaderStreamedText() => WordReaderTextWorkload.ReadStreamed(_fixture);
 
     [Benchmark]
     public WordReadObservation DocX() {
