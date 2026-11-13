@@ -736,11 +736,28 @@ internal sealed partial class HtmlRenderStyleResolver {
 
     internal static string DescribeSource(IElement element) {
         if (HtmlRenderSourceIdentity.TryGet(element, out string identity)) return identity;
-        string tag = element.TagName.ToLowerInvariant();
+        string tag = LowerTagName(element);
         if (!string.IsNullOrWhiteSpace(element.Id)) return tag + "#" + element.Id;
         string? className = element.GetAttribute("class");
         if (!string.IsNullOrWhiteSpace(className)) return tag + "." + className!.Trim().Replace(' ', '.');
         return tag;
+    }
+
+    // Layout labels every painted box with its source, so this runs for each table cell. An unprefixed
+    // ASCII lowercase local name already is the lowercased tag name; only other names need a new string.
+    private static string LowerTagName(IElement element) {
+        string localName = element.LocalName;
+        if (element.Prefix == null && localName.Length > 0) {
+            bool lower = true;
+            foreach (char character in localName) {
+                if (character > 0x7F || character >= 'A' && character <= 'Z') {
+                    lower = false;
+                    break;
+                }
+            }
+            if (lower) return localName;
+        }
+        return element.TagName.ToLowerInvariant();
     }
 
     internal double ResolveFontSize(string value, double parentFontSize, double rootFontSize) {
