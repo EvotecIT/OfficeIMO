@@ -22,4 +22,4 @@ Before delivery:
 
 `Protect-OfficeDocument` and `Unprotect-OfficeDocument` make the protection boundary explicit. `Update-OfficeWordField` and `Update-OfficeWordTableOfContents` handle calculated presentation state.
 
-The [approval-checklist recipe](https://github.com/EvotecIT/OfficeIMO/blob/09e072b4b7b0e2b8529cd7c61c36f10972d35e55/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-ApprovalChecklist.ps1) demonstrates content controls and a watermark. Combine it with [read and inspect](/docs/pswriteoffice/word-read-inspect/) for delivery readback.
+The [approval-checklist recipe](https://github.com/EvotecIT/OfficeIMO/blob/d3d39792d6c1c0cc3e4945e9ec5767e83822c239/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-ApprovalChecklist.ps1) demonstrates content controls and a watermark. Combine it with [read and inspect](/docs/pswriteoffice/word-read-inspect/) for delivery readback.

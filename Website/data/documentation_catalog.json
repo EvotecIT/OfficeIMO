@@ -9,7 +9,7 @@
     "validationProjectCount": 75,
     "apiReferenceCount": 129,
     "conceptualPageCount": 160,
-    "conceptualWordCount": 88968
+    "conceptualWordCount": 89121
   },
   "categories": [
     {
@@ -2322,7 +2322,7 @@
       "description": "Typed local document workflows that compose first-party OfficeIMO conversion, PDF, and provenance capabilities.",
       "kind": "package",
       "projectPath": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
-      "sourceFileCount": 228,
+      "sourceFileCount": 249,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/workflows/",
@@ -2400,7 +2400,7 @@
       "description": "PSWriteOffice is a focused component in the OfficeIMO managed document platform.",
       "kind": "library",
       "projectPath": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/PSWriteOffice.csproj",
-      "sourceFileCount": 782,
+      "sourceFileCount": 785,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/pswriteoffice/",
       "apiUrl": null,
