@@ -1350,6 +1350,18 @@ internal static partial class CsvParser
             }
 
             int valueCount = Math.Min(count, _visitor.SourceColumnCount);
+#if NET8_0_OR_GREATER
+            if (nullValue is null && values.GetType() == typeof(object[]))
+            {
+                // An exact object[] takes any value, so the stores skip the covariant array check.
+                ref object slot = ref MemoryMarshal.GetArrayDataReference(values);
+                for (int index = 0; index < valueCount; index++)
+                {
+                    Unsafe.Add(ref slot, index) = _visitor.GetString(index);
+                }
+            }
+            else
+#endif
             for (int index = 0; index < valueCount; index++)
             {
                 values[index] = nullValue is not null && IsNull(index, nullValue)
