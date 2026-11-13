@@ -24,11 +24,11 @@ public sealed class PdfPrintJobOptions {
 }
 
 /// <summary>Print content composed from a sheet plan, detached from later source-file or workspace changes.</summary>
-/// <remarks>Preview and every printer transport use the same content. Transports that cannot send PDF rasterize it one sheet at a time.</remarks>
+/// <remarks>Preview and every printer transport use the same content. Transports that cannot send PDF rasterize it, rendering a few sheets at once on separate cores.</remarks>
 public sealed class PdfPrintJob {
     private readonly byte[] _content;
-    private readonly object _renderLock = new();
-    private PdfDocument? _contentDocument;
+    // Each render uses a document no other thread is using; idle ones are kept so later sheets reuse their parsed state.
+    private readonly Stack<PdfDocument> _idleDocuments = new();
 
     internal PdfPrintJob(string sourcePath, PdfPrintPlan plan, byte[] content, PdfPrintContentKind contentKind,
         IReadOnlyList<string> diagnostics, long maximumPixelsPerImage, long maximumContentBytes) {
@@ -84,12 +84,18 @@ public sealed class PdfPrintJob {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeRasterImage raster;
         PdfPageRenderResult page;
-        lock (_renderLock) {
-            _contentDocument ??= PdfDocument.LoadOwned(_content);
+        PdfDocument? document = null;
+        lock (_idleDocuments) {
+            if (_idleDocuments.Count > 0) document = _idleDocuments.Pop();
+        }
+        document ??= PdfDocument.LoadOwned(_content);
+        try {
             // The pixels stay in process, so they are not encoded to PNG and decoded again.
-            (raster, page) = _contentDocument.Render.DisplayRaster(sheetNumber, new PdfPageDisplayOptions {
+            (raster, page) = document.Render.DisplayRaster(sheetNumber, new PdfPageDisplayOptions {
                 Scale = dpi / 72, MaximumPixels = maximumPixels, MaximumOutputBytes = 256L * 1024 * 1024
             }, cancellationToken);
+        } finally {
+            lock (_idleDocuments) _idleDocuments.Push(document);
         }
         if (Plan.ColorMode == PdfPrintColorMode.Grayscale) PdfPrintRaster.ApplyGrayscale(raster, cancellationToken);
         return (raster, page.Diagnostics);

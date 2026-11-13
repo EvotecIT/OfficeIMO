@@ -5,6 +5,7 @@ namespace OfficeIMO.Workflows;
 /// <summary>
 /// Keeps encoded sheets while a transport repeats them for software copies, so each sheet is rasterized once per job.
 /// The kept bytes stay within a capacity, normally the job's content byte limit; a sheet that does not fit is rendered again.
+/// Sheets prepared ahead on worker threads add to it, so every access is synchronized.
 /// </summary>
 internal sealed class PrintSheetCache<T> where T : class {
     private readonly Dictionary<int, T> _sheets = new();
@@ -14,13 +15,16 @@ internal sealed class PrintSheetCache<T> where T : class {
     internal PrintSheetCache(long capacityBytes) => _capacity = Math.Max(0, capacityBytes);
 
     /// <summary>Times a kept sheet was used instead of rendering it again.</summary>
-    internal int Reused { get; private set; }
+    internal int Reused { get { lock (_sheets) return _reused; } }
+    private int _reused;
 
     internal bool TryGet(int key, out T value) {
-        if (_sheets.TryGetValue(key, out T? kept)) {
-            Reused++;
-            value = kept;
-            return true;
+        lock (_sheets) {
+            if (_sheets.TryGetValue(key, out T? kept)) {
+                _reused++;
+                value = kept;
+                return true;
+            }
         }
         value = null!;
         return false;
@@ -28,9 +32,11 @@ internal sealed class PrintSheetCache<T> where T : class {
 
     /// <summary>Keeps <paramref name="value"/> when its <paramref name="bytes"/> fit the remaining capacity.</summary>
     internal void Add(int key, T value, long bytes) {
-        if (_sheets.ContainsKey(key) || bytes > _capacity - _used) return;
-        _sheets.Add(key, value);
-        _used += bytes;
+        lock (_sheets) {
+            if (_sheets.ContainsKey(key) || bytes > _capacity - _used) return;
+            _sheets.Add(key, value);
+            _used += bytes;
+        }
     }
 }
 

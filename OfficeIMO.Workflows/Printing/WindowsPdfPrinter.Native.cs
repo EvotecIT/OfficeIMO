@@ -30,6 +30,12 @@ internal static partial class WindowsPdfPrinter {
             internal int XPixelsPerMeter, YPixelsPerMeter;
             internal uint ColorsUsed, ColorsImportant;
         }
+        /// <summary>A BITMAPINFO with a 256-entry color table, used for 8-bit gray sheets.</summary>
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct PaletteBitmapInfo {
+            internal BitmapInfo Header;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)] internal uint[] Colors;
+        }
         [StructLayout(LayoutKind.Sequential)]
         internal struct JobInfo1 {
             internal uint JobId;
@@ -74,5 +80,8 @@ internal static partial class WindowsPdfPrinter {
         [DllImport("gdi32.dll", SetLastError = true)]
         internal static extern int StretchDIBits(IntPtr dc, int x, int y, int width, int height, int sourceX, int sourceY,
             int sourceWidth, int sourceHeight, byte[] bits, ref BitmapInfo info, uint usage, uint operation);
+        [DllImport("gdi32.dll", SetLastError = true)]
+        internal static extern int StretchDIBits(IntPtr dc, int x, int y, int width, int height, int sourceX, int sourceY,
+            int sourceWidth, int sourceHeight, byte[] bits, ref PaletteBitmapInfo info, uint usage, uint operation);
     }
 }

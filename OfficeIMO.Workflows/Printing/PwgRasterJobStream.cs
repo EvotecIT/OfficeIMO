@@ -3,8 +3,8 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Workflows;
 
 /// <summary>
-/// A forward-only PWG raster document that renders one page at a time while it is read, so a large job never holds more than one sheet's pixels.
-/// Sheets repeated for software copies are encoded once and written again from the kept page, within the job's content byte limit.
+/// A forward-only PWG raster document that renders pages a few ahead on other cores while it is read, within the job's content byte limit.
+/// Sheets repeated for software copies are encoded once and written again from the kept page, within the same limit.
 /// </summary>
 /// <remarks>The first page is rendered on construction, so rendering failures surface before any data reaches the printer.</remarks>
 internal sealed class PwgRasterJobStream : Stream {
@@ -16,6 +16,7 @@ internal sealed class PwgRasterJobStream : Stream {
     private readonly PwgRasterWriter _writer;
     private readonly PrintSheetCache<EncodedPage> _encoded;
     private readonly int[] _lastUse;
+    private readonly PrintSheetPrefetcher<DevicePage> _ahead;
     private int _next;
     private int _lastWidth, _lastHeight;
 
@@ -32,7 +33,22 @@ internal sealed class PwgRasterJobStream : Stream {
         _lastUse = new int[job.Plan.Sheets.Count * 2];
         for (int index = 0; index < _pages.Length; index++)
             if (_pages[index] is int sheet) _lastUse[PageKey(sheet, index)] = index;
-        WriteNextPage();
+        // Only the first use of each page renders ahead; later uses come from the kept encoding, or render again if it did not fit.
+        var firstUse = new HashSet<int>();
+        var renderAhead = new bool[_pages.Length];
+        for (int index = 0; index < _pages.Length; index++)
+            if (_pages[index] is int sheet) renderAhead[index] = firstUse.Add(PageKey(sheet, index));
+        PdfPrintSheet first = job.Plan.Sheets[0];
+        long pageBytes = (long)(first.PaperSize.Width.ToPoints() / 72 * plan.RasterDpi) * (long)(first.PaperSize.Height.ToPoints() / 72 * plan.RasterDpi) *
+            (4 + (plan.ColorSpace == PwgRasterColorSpace.Rgb8 ? 3 : 1));
+        _ahead = new PrintSheetPrefetcher<DevicePage>(_pages.Length, PrintSheetPrefetcher<DevicePage>.DepthFor(pageBytes, job.MaximumContentBytes),
+            (index, stop) => renderAhead[index] ? RenderPage(index, stop) : null, token);
+        try {
+            WriteNextPage();
+        } catch {
+            _ahead.Dispose();
+            throw;
+        }
     }
 
     /// <summary>Encoded pages written again instead of being rendered for another copy.</summary>
@@ -64,6 +80,7 @@ internal sealed class PwgRasterJobStream : Stream {
         _token.ThrowIfCancellationRequested();
         int index = _next++;
         _buffer.SetLength(0);
+        DevicePage? prepared = _ahead.Take(index);
         if (_pages[index] is int repeated && _encoded.TryGet(PageKey(repeated, index), out EncodedPage kept)) {
             _lastWidth = kept.Width;
             _lastHeight = kept.Height;
@@ -71,15 +88,16 @@ internal sealed class PwgRasterJobStream : Stream {
             _buffer.Position = 0;
             return;
         }
-        bool back = _plan.Duplex && index % 2 == 1;
-        (bool mirrorRows, bool reverseRows) = back ? BackSideTransform(_plan.SheetBack, _plan.Tumble) : (false, false);
-        int bytesPerPixel = _plan.ColorSpace == PwgRasterColorSpace.Rgb8 ? 3 : 1;
+        (bool mirrorRows, bool reverseRows) = Transform(index);
+        int bytesPerPixel = BytesPerPixel;
         byte[] pixels;
         int width, height;
         string? mediaName = null;
         if (_pages[index] is int sheet) {
-            OfficeRasterImage raster = _job.RenderRaster(sheet + 1, _plan.RasterDpi, _job.MaximumPixelsPerImage, _token).Raster;
-            pixels = DevicePixels(raster, bytesPerPixel, mirrorRows, reverseRows, out width, out height, _token);
+            DevicePage page = prepared ?? RenderPage(index, _token);
+            pixels = page.Pixels;
+            width = page.Width;
+            height = page.Height;
             mediaName = _plan.MediaNames.Count > sheet ? _plan.MediaNames[sheet] : null;
         } else {
             width = _lastWidth;
@@ -97,6 +115,22 @@ internal sealed class PwgRasterJobStream : Stream {
         _writer.WriteEncodedPage(encoded);
         _buffer.Position = 0;
     }
+
+    private int BytesPerPixel => _plan.ColorSpace == PwgRasterColorSpace.Rgb8 ? 3 : 1;
+
+    private (bool MirrorRows, bool ReverseRows) Transform(int index) =>
+        _plan.Duplex && index % 2 == 1 ? BackSideTransform(_plan.SheetBack, _plan.Tumble) : (false, false);
+
+    /// <summary>Renders page <paramref name="index"/> to device rows; safe on a worker thread, as it reads only the job and plan.</summary>
+    private DevicePage RenderPage(int index, CancellationToken token) {
+        int sheet = _pages[index]!.Value;
+        (bool mirrorRows, bool reverseRows) = Transform(index);
+        OfficeRasterImage raster = _job.RenderRaster(sheet + 1, _plan.RasterDpi, _job.MaximumPixelsPerImage, token).Raster;
+        byte[] pixels = DevicePixels(raster, BytesPerPixel, mirrorRows, reverseRows, out int width, out int height, token);
+        return new DevicePage(pixels, width, height);
+    }
+
+    private sealed record DevicePage(byte[] Pixels, int Width, int Height);
 
     /// <summary>How a back side is mirrored for pwg-raster-document-sheet-back (PWG 5100.14): (mirror each row, reverse the row order).</summary>
     internal static (bool MirrorRows, bool ReverseRows) BackSideTransform(string? sheetBack, bool tumble) => sheetBack switch {
@@ -155,7 +189,10 @@ internal sealed class PwgRasterJobStream : Stream {
     public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 
     protected override void Dispose(bool disposing) {
-        if (disposing) _buffer.Dispose();
+        if (disposing) {
+            _ahead.Dispose();
+            _buffer.Dispose();
+        }
         base.Dispose(disposing);
     }
 }
