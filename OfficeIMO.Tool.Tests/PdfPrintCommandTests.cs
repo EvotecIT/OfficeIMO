@@ -1,3 +1,4 @@
+using System.Text.Json;
 using OfficeIMO.Pdf;
 using OfficeIMO.Tool.Commands.Workflow;
 using OfficeIMO.Workflows;
@@ -28,7 +29,31 @@ public sealed class PdfPrintCommandTests {
             Assert.Equal(2, service.Options!.Copies);
             Assert.Equal(PdfPrintDuplex.LongEdge, service.Options.Duplex);
             Assert.Equal(72, service.Options.MaximumRasterDpi);
-            Assert.Contains("Physical delivery is unconfirmed", output.ToString());
+            using (JsonDocument receipt = JsonDocument.Parse(output.ToString())) {
+                Assert.Equal("officeimo.workflow.print.v1", receipt.RootElement.GetProperty("schema").GetString());
+                Assert.Equal("test-42", receipt.RootElement.GetProperty("jobId").GetString());
+                Assert.Equal(2, receipt.RootElement.GetProperty("copies").GetInt32());
+            }
+
+            output.GetStringBuilder().Clear();
+            Assert.Equal((int)OfficeImoToolExitCode.Success, await WorkflowPrintCommand.RunAsync(["printers"], output, error, CancellationToken.None, service));
+            using (JsonDocument queues = JsonDocument.Parse(output.ToString())) {
+                Assert.Equal("officeimo.workflow.printers.v1", queues.RootElement.GetProperty("schema").GetString());
+                Assert.Equal("Test queue", Assert.Single(queues.RootElement.GetProperty("printers").EnumerateArray().ToArray()).GetProperty("name").GetString());
+            }
+
+            output.GetStringBuilder().Clear();
+            var described = new PrinterBoundary { DefaultMedia = new("Letter", "US Letter", PdfPageSizes.Letter) };
+            Assert.Equal((int)OfficeImoToolExitCode.Success,
+                await WorkflowPrintCommand.RunAsync(["printers", "--capabilities", "Test queue"], output, error, CancellationToken.None, described));
+            using JsonDocument capabilities = JsonDocument.Parse(output.ToString());
+            Assert.Equal("officeimo.workflow.printer-capabilities.v1", capabilities.RootElement.GetProperty("schema").GetString());
+            JsonElement defaultMedia = capabilities.RootElement.GetProperty("defaultMedia");
+            Assert.Equal("Letter", defaultMedia.GetProperty("id").GetString());
+            Assert.Equal(792, defaultMedia.GetProperty("heightPoints").GetDouble());
+            Assert.Equal(JsonValueKind.Null, capabilities.RootElement.GetProperty("supportsDuplex").ValueKind);
+            await Assert.ThrowsAsync<WorkflowUsageException>(() => WorkflowPrintCommand.RunAsync(
+                ["printers", "--capabilities", "Test queue", "--paper-sources", "Test queue"], TextWriter.Null, TextWriter.Null, CancellationToken.None, described));
         } finally { File.Delete(path); }
     }
 
@@ -94,6 +119,14 @@ public sealed class PdfPrintCommandTests {
             using var status = new StringWriter();
             Assert.Equal((int)OfficeImoToolExitCode.Success, await WorkflowPrintCommand.RunAsync(
                 ["print-job", "cancel", "--printer", "Test queue", "--job", "test-42"], status, TextWriter.Null, CancellationToken.None, service));
+            using (JsonDocument canceled = JsonDocument.Parse(status.ToString())) {
+                Assert.Equal("officeimo.workflow.print-job.v1", canceled.RootElement.GetProperty("schema").GetString());
+                Assert.Equal("Canceled", canceled.RootElement.GetProperty("state").GetString());
+                Assert.True(canceled.RootElement.GetProperty("isTerminal").GetBoolean());
+            }
+            status.GetStringBuilder().Clear();
+            Assert.Equal((int)OfficeImoToolExitCode.Success, await WorkflowPrintCommand.RunAsync(
+                ["print-job", "cancel", "--printer", "Test queue", "--job", "test-42", "--format", "text"], status, TextWriter.Null, CancellationToken.None, service));
             Assert.Equal("Job test-42 on Test queue: Canceled", status.ToString().Trim());
             await Assert.ThrowsAsync<WorkflowUsageException>(() => WorkflowPrintCommand.RunAsync(
                 ["print-job", "status", "--printer", "Test queue"], TextWriter.Null, TextWriter.Null, CancellationToken.None, service));

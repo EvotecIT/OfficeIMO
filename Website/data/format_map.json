@@ -911,6 +911,8 @@
       "api": "CsvDocument.Load(stream).ToExcel(options, out report)",
       "surfaces": [
         "dotnet",
+        "cli",
+        "studio",
         "powershell"
       ],
       "cmdlet": "Export-OfficeExcel",
@@ -4068,7 +4070,9 @@
       "fidelity": "Semantic",
       "api": "ExcelDocument.Load(stream).Sheets[0].ToCsv(options)",
       "surfaces": [
-        "dotnet"
+        "dotnet",
+        "cli",
+        "studio"
       ]
     },
     {

@@ -8,6 +8,7 @@ public static partial class OfficeWorkflow {
         "asciidoc-markdown", "markdown-asciidoc", "latex-markdown", "markdown-latex", "markdown-pptx",
         "rtf-html", "html-rtf", "rtf-markdown", "markdown-rtf", "rtf-docx", "docx-rtf", "pdf-rtf",
         "docx-odt", "odt-docx", "xlsx-ods", "ods-xlsx", "pptx-odp", "odp-pptx", "xlsx-html", "html-xlsx",
+        "csv-xlsx", "xlsx-csv",
         "onenote-html", "html-onenote", "onenote-markdown", "onenote-pdf",
         "asciidoc-pdf", "latex-pdf", "odt-pdf", "ods-pdf", "odp-pdf", "pdf-markdown"
     };
@@ -26,6 +27,7 @@ public static partial class OfficeWorkflow {
             OfficeConversionReport report = Id switch {
                 "markdown-pptx" => await ConvertMarkdownPowerPointAsync(source, destination, options, settings, cancellationToken).ConfigureAwait(false),
                 "xlsx-html" or "html-xlsx" => await ConvertExcelHtmlAsync(source, destination, options, settings, cancellationToken).ConfigureAwait(false),
+                "csv-xlsx" or "xlsx-csv" => await ConvertExcelCsvAsync(source, destination, options, cancellationToken).ConfigureAwait(false),
                 "pdf-markdown" => await ConvertPdfMarkdownAsync(source, destination, options, settings, cancellationToken).ConfigureAwait(false),
                 "asciidoc-markdown" or "markdown-asciidoc" or "latex-markdown" or "markdown-latex" or "asciidoc-pdf" or "latex-pdf" =>
                     await ConvertTextAsync(source, destination, options, settings, cancellationToken).ConfigureAwait(false),

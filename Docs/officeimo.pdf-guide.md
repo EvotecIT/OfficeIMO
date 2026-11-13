@@ -1217,7 +1217,7 @@ General `Merge` keeps its historical `Forms = KeepPrimary` default, which remove
 
 When combining tagged forms, choose `Forms = PdfMergeStructureMode.Combine` and `FormFieldCollisions = PdfMergeCollisionMode.RenameIncoming` in `PdfMergePolicy`. Policies that discard tagged widgets are rejected so their accessibility links cannot silently point to removed fields.
 
-Tagged merges retain primary metadata and bookmarks. Dropping or combining those structures is rejected before assembly because their editors do not yet preserve tags. Primary attachments are retained when incoming sources contain none; attachment policies that require rewriting files are also rejected explicitly.
+Tagged merges retain primary metadata and bookmarks. Dropping or combining those structures is rejected before assembly because their editors do not yet preserve tags. Every attachment policy works with tagged inputs. Files associated with a structure element, page or annotation belong to that content's source: a kept file stays linked, a renamed file stays linked under its new name, and a dropped file loses its association too.
 
 Encrypted merge inputs keep independent authentication settings. Owner authorization is honored automatically. A user password follows the PDF permission bits unless the caller explicitly opts into ignoring those restrictions:
 

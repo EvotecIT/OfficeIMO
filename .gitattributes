@@ -203,6 +203,9 @@ OfficeIMO.TestAssets/Documents/SpreadsheetXmlCorpus/*.xml -text -whitespace
 
 # Native Word XML producer hashes identify exact bytes on every checkout platform.
 OfficeIMO.TestAssets/Documents/WordXmlMigration/*.xml -text -whitespace
+# WordML note producer exports and authored ODF sources have provenance-bound bytes.
+OfficeIMO.TestAssets/Documents/WordMl2003Notes/*.xml -text -whitespace
+OfficeIMO.TestAssets/Documents/WordMl2003Notes/*.fodt -text
 
 # Legacy Visio producer inputs are hash-bound evidence, including line endings.
 OfficeIMO.Visio.Tests/Fixtures/LegacyXml/*.vdx -text -diff

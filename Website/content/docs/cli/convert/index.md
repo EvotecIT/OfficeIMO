@@ -102,6 +102,18 @@ officeimo convert people.json people.xml --root-name people
 officeimo convert budget.xlsx budget.json --sheet Summary --range A1:D20
 ```
 
+### CSV and workbooks
+
+CSV or TSV to XLSX, and XLSX to CSV, use the spreadsheet routes:
+
+```shell
+officeimo convert people.csv people.xlsx
+officeimo convert people.tsv people.xlsx
+officeimo convert budget.xlsx budget.csv
+```
+
+Delimited input becomes one worksheet with typed columns; CSV output takes the first worksheet's values. The data options above do not apply to these routes. To choose a sheet or a delimiter, or to write XLSB or XLS, use [`officeimo tabular convert`](#spreadsheets-and-delimited-files).
+
 ## Route-specific options
 
 | Option | Applies to | Effect |
@@ -184,17 +196,17 @@ officeimo tabular convert pipe-delimited.csv output.csv --delimiter '|' --output
 officeimo tabular convert legacy.xls modern.xlsx
 ```
 
-Workbook input can be XLSX, XLSM, XLTX, XLTM, XLAM, XLSB or XLS; workbook output is XLSX, XLSB or XLS. Select a sheet with `--sheet <name>` or `--sheet-index <zero-based-index>`. `.tsv` input always uses a tab unless `--delimiter` overrides it, and `--output-delimiter` controls CSV or TSV output independently. `--no-header` treats the first row as data. Existing destinations require `--force`.
+Workbook input can be XLSX, XLSM, XLTX, XLTM, XLAM, XLSB or XLS; workbook output is XLSX, XLSB or XLS. Select a sheet with `--sheet <name>` or `--sheet-index <zero-based-index>`; a sheet that does not exist exits with code `2`, and the error lists the sheets the workbook has. `.tsv` input always uses a tab unless `--delimiter` overrides it, and `--output-delimiter` controls CSV or TSV output independently. `--no-header` treats the first row as data. Existing destinations require `--force`.
 
 ## Word image optimization
 
 ```shell
 officeimo workflow optimize-images input.docx --analyze
 officeimo workflow optimize-images input.docx --output optimized.docx --mode both --dpi 144 --quality 85
-officeimo workflow optimize-images first.docx second.docx --output-directory optimized --format pdf --mode both
+officeimo workflow optimize-images first.docx second.docx --output-directory optimized --output-format pdf --mode both
 ```
 
-`--analyze` reports embedded images without writing a file. Each output is staged and reopened before publication.
+`--analyze` reports embedded images without writing a file. Each output is staged and reopened before publication. The JSON result (`officeimo.workflow.optimize-images.v1`) has one entry per input under `files`, with the output path, byte counts and image diagnostics; `--format text` prints one summary line per file instead. `--output-format docx|doc|pdf` chooses the copies' format for `--output-directory`; with `--output`, the file extension chooses it.
 
 ## Related
 

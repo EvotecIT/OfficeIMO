@@ -5837,9 +5837,18 @@ Other sources, such as DOCX or PDF, still write Reader JSON to a `.json` destina
 
 `tabular schema` prints `string`, `integer`, `number`, `boolean` and `datetime` instead of .NET type names such as `System.String`. Update scripts that compare the `type` column.
 
-## JSON output from workflow export-pages, assemble and print-plan
+## JSON output from the workflow commands
 
-`officeimo workflow export-pages`, `workflow assemble` and `workflow print-plan` now write one JSON result to standard output, like the `pdf`, `hidden-data` and `provenance` commands. The schemas are `officeimo.workflow.export-pages.v1`, `officeimo.workflow.assemble.v1` and `officeimo.workflow.print-plan.v1`. Scripts that read the previous text lines can switch to the JSON fields, or add `--format text` to keep the summary.
+`officeimo workflow compare`, `optimize-images`, `export-pages`, `assemble`, `print-plan`, `printers` and `print` now write one JSON result to standard output, like the `pdf`, `hidden-data` and `provenance` commands. The schemas are `officeimo.workflow.compare.v1`, `officeimo.workflow.optimize-images.v1`, `officeimo.workflow.export-pages.v1`, `officeimo.workflow.assemble.v1`, `officeimo.workflow.print-plan.v1`, `officeimo.workflow.printers.v1` (`officeimo.workflow.paper-sources.v1` with `--paper-sources`) and `officeimo.workflow.print.v1`. Scripts that read the previous text lines can switch to the JSON fields, or add `--format text` to keep the summary. A failed `compare` now also writes its JSON result, with `succeeded` set to `false`.
+
+`optimize-images` takes the output document format as `--output-format`, because `--format` now chooses the output:
+
+```shell
+# Before
+officeimo workflow optimize-images first.docx second.docx --output-directory optimized --format pdf
+# After
+officeimo workflow optimize-images first.docx second.docx --output-directory optimized --output-format pdf
+```
 
 `export-pages` takes the image format as `--image-format` because `--format` now chooses the output:
 
@@ -5850,7 +5859,9 @@ officeimo workflow export-pages report.pdf --output pages --format webp
 officeimo workflow export-pages report.pdf --output pages --image-format webp
 ```
 
-`officeimo convert` with an unknown `--sheet` or a malformed `--range` now exits with code `2` instead of `5`, and the error lists the sheets the workbook has. In .NET, an `OfficeConverter` data conversion from XLSX with the same `DataConversionOptions.Sheet` or `Range` throws `OfficeConversionException` with a `conversion-request-invalid` diagnostic instead of `KeyNotFoundException` or `ArgumentException`.
+`officeimo convert` and `workflow batch` now convert CSV and TSV to XLSX and XLSX to CSV. A batch with `--target xlsx` or `--target csv` that previously skipped those files now converts them; add `--source-extension` to keep a narrower selection.
+
+`officeimo convert` with an unknown `--sheet` or a malformed `--range`, and `officeimo tabular` with an unknown `--sheet` or an out-of-range `--sheet-index`, now exit with code `2` instead of `5`, and the error lists the sheets the workbook has. In .NET, an `OfficeConverter` data conversion from XLSX with the same `DataConversionOptions.Sheet` or `Range` throws `OfficeConversionException` with a `conversion-request-invalid` diagnostic instead of `KeyNotFoundException` or `ArgumentException`.
 
 ## Removed obsolete image and HTML capability aliases
 

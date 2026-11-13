@@ -305,6 +305,10 @@ officeimo convert response.json items.csv --select data.items --columns id,name,
 officeimo convert people.json people.xml --root-name people
 officeimo convert budget.xlsx budget.json --sheet Summary --range A1:D20
 
+# CSV or TSV to a typed workbook, and the first worksheet back to CSV
+officeimo convert people.csv people.xlsx
+officeimo convert budget.xlsx budget.csv
+
 # Supported documents to Markdown or JSON through OfficeIMO.Reader
 officeimo convert workbook.xlsx workbook.md
 officeimo convert report.docx report.json
@@ -332,7 +336,7 @@ officeimo workflow optimize-images input.docx --analyze
 officeimo workflow optimize-images input.docx --output optimized.docx --mode both --dpi 144 --quality 85
 
 # Process an explicit batch; each output is independently staged and reopened
-officeimo workflow optimize-images first.docx second.docx --output-directory optimized --format pdf --mode both
+officeimo workflow optimize-images first.docx second.docx --output-directory optimized --output-format pdf --mode both
 
 # Export selected PDF pages to validated images
 officeimo workflow export-pages report.pdf --output .\report-pages --pages 1-3,last --image-format png
@@ -343,7 +347,7 @@ officeimo workflow assemble cover.png report.docx appendices .\attachments.zip -
 # Inspect print-sheet placement without requiring a platform printer driver
 officeimo workflow print-plan complete.pdf --paper A4 --pages-per-sheet 2 --scale fit
 
-# export-pages, assemble and print-plan write versioned JSON; --format text prints a summary
+# Workflow commands other than batch write versioned JSON; --format text prints a summary
 officeimo workflow print-plan complete.pdf --format text
 
 # Inspect or assess provenance with versioned JSON output

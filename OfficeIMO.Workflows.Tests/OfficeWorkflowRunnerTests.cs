@@ -65,7 +65,7 @@ public sealed class OfficeWorkflowRunnerTests {
     public void CatalogProjectsCanonicalRoutesAndSupportedExecutionContracts() {
         Assert.Equal(OfficeConversionCapabilityCatalog.All.Count, OfficeWorkflowCatalog.Routes.Count);
         Assert.Equal(
-            ["book-project-epub", "chm-epub", "chm-markdown", "chm-pdf", "djvu-pdf", "doc-pdf", "docx-odt", "docx-pdf", "email-pdf", "epub-pdf", "heic-pdf", "html-docx", "html-pdf", "markdown-docx", "markdown-pdf", "odg-pdf", "odp-pdf", "odp-pptx", "ods-pdf", "ods-xlsx", "odt-docx", "odt-pdf", "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-odp", "pptx-pdf", "publisher-pdf", "rtf-docx", "rtf-pdf", "txt-pdf", "visio-pdf", "xlsx-ods", "xlsx-pdf", "xps-pdf"],
+            ["book-project-epub", "chm-epub", "chm-markdown", "chm-pdf", "csv-xlsx", "djvu-pdf", "doc-pdf", "docx-odt", "docx-pdf", "email-pdf", "epub-pdf", "heic-pdf", "html-docx", "html-pdf", "markdown-docx", "markdown-pdf", "odg-pdf", "odp-pdf", "odp-pptx", "ods-pdf", "ods-xlsx", "odt-docx", "odt-pdf", "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-odp", "pptx-pdf", "publisher-pdf", "rtf-docx", "rtf-pdf", "txt-pdf", "visio-pdf", "xlsx-csv", "xlsx-ods", "xlsx-pdf", "xps-pdf"],
             OfficeWorkflowCatalog.ExecutableRoutes.Select(route => route.Id).OrderBy(id => id, StringComparer.Ordinal));
         Assert.All(OfficeWorkflowCatalog.Routes, route => Assert.True(route.Engine == "OfficeIMO" || route.Engine.StartsWith("OfficeIMO.", StringComparison.Ordinal)));
         Assert.All(OfficeWorkflowCatalog.Routes, route => {

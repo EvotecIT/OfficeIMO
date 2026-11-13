@@ -12,18 +12,27 @@ internal static class WorkflowPrintCommand {
             return (int)OfficeImoToolExitCode.Success;
         }
         if (args[0] == "printers") {
-            if (args.Length == 3 && args[1] == "--paper-sources") {
-                foreach (PdfPaperSourceInfo source in (await service.GetCapabilitiesAsync(args[2], token).ConfigureAwait(false)).PaperSources)
-                    await output.WriteLineAsync(source.Id + ": " + source.Name).ConfigureAwait(false);
-                return (int)OfficeImoToolExitCode.Success;
+            string? queueName = null;
+            bool capabilities = false, listJson = true;
+            for (int index = 1; index < args.Length; index++) {
+                string option = args[index];
+                if (option is not ("--paper-sources" or "--capabilities" or "--format") || ++index >= args.Length || args[index].StartsWith("--", StringComparison.Ordinal))
+                    throw new WorkflowUsageException("Use printers [--capabilities <printer> | --paper-sources <printer>] [--format json|text].");
+                if (option == "--format") {
+                    listJson = WorkflowOutput.ParseJson(args[index]);
+                    continue;
+                }
+                if (queueName != null) throw new WorkflowUsageException("Choose either --capabilities or --paper-sources.");
+                queueName = args[index];
+                capabilities = option == "--capabilities";
             }
-            if (args.Length == 3 && args[1] == "--capabilities") {
-                await WriteCapabilitiesAsync(await service.GetCapabilitiesAsync(args[2], token).ConfigureAwait(false), output).ConfigureAwait(false);
-                return (int)OfficeImoToolExitCode.Success;
+            if (queueName == null) {
+                await WorkflowOutput.WritePrintersAsync(output, await service.GetPrintersAsync(token).ConfigureAwait(false), listJson).ConfigureAwait(false);
+            } else {
+                PdfPrinterCapabilities found = await service.GetCapabilitiesAsync(queueName, token).ConfigureAwait(false);
+                if (capabilities) await WorkflowOutput.WritePrinterCapabilitiesAsync(output, found, listJson).ConfigureAwait(false);
+                else await WorkflowOutput.WritePaperSourcesAsync(output, queueName, found.PaperSources, listJson).ConfigureAwait(false);
             }
-            if (args.Length != 1) throw new WorkflowUsageException("Use printers, printers --capabilities <printer> or printers --paper-sources <printer>.");
-            foreach (PdfPrinterInfo queue in await service.GetPrintersAsync(token).ConfigureAwait(false))
-                await output.WriteLineAsync(queue.Name + (queue.IsDefault ? " (default)" : "") + (queue.RequiresOutputFile ? " (file printer)" : "")).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.Success;
         }
         if (args[0] == "print-job") return await RunJobAsync(args, output, service, token).ConfigureAwait(false);
@@ -31,15 +40,16 @@ internal static class WorkflowPrintCommand {
         var planner = new List<string> { "print-plan" };
         string? printer = null, paperSource = null, outputFile = null;
         int copies = 1;
+        bool json = true;
         double dpi = 300;
         PdfPrintDuplex duplex = PdfPrintDuplex.PrinterDefault;
         for (int index = 1; index < args.Length; index++) {
             string option = args[index];
-            if (option == "--format") throw new WorkflowUsageException("--format is not valid with print.");
-            if (option is "--printer" or "--copies" or "--duplex" or "--paper-source" or "--dpi" or "--output-file") {
+            if (option is "--format" or "--printer" or "--copies" or "--duplex" or "--paper-source" or "--dpi" or "--output-file") {
                 if (++index >= args.Length) throw new WorkflowUsageException(option + " requires a value.");
                 string value = args[index];
                 switch (option) {
+                    case "--format": json = WorkflowOutput.ParseJson(value); break;
                     case "--printer": printer = value; break;
                     case "--paper-source": paperSource = value; break;
                     case "--output-file": outputFile = Path.GetFullPath(value); break;
@@ -80,7 +90,7 @@ internal static class WorkflowPrintCommand {
                     await error.WriteLineAsync("Conversion " + diagnostic.Severity.ToString().ToLowerInvariant() + ": " + diagnostic.Message).ConfigureAwait(false);
             foreach (string diagnostic in result.Diagnostics) await error.WriteLineAsync(diagnostic).ConfigureAwait(false);
             PdfPrintSubmission receipt = result.Submission;
-            await output.WriteLineAsync("Queue accepted: " + receipt.PrinterName + "; job " + receipt.JobId + ". Physical delivery is unconfirmed.").ConfigureAwait(false);
+            await WorkflowOutput.WritePrintAsync(output, receipt, layout.InputPath, json).ConfigureAwait(false);
             if (receipt.IgnoredAttributes.Count > 0)
                 await error.WriteLineAsync("The printer ignored: " + string.Join(", ", receipt.IgnoredAttributes) + ".").ConfigureAwait(false);
             if (receipt.CleanupWarning != null) await error.WriteLineAsync(receipt.CleanupWarning).ConfigureAwait(false);
@@ -91,12 +101,13 @@ internal static class WorkflowPrintCommand {
         }
     }
 
-    /// <summary>print-job status|wait|cancel --printer &lt;printer&gt; --job &lt;id&gt; [--timeout &lt;seconds&gt;]</summary>
+    /// <summary>print-job status|wait|cancel --printer &lt;printer&gt; --job &lt;id&gt; [--timeout &lt;seconds&gt;] [--format json|text]</summary>
     private static async Task<int> RunJobAsync(string[] args, TextWriter output, IPdfPrinterService service, CancellationToken token) {
         string action = args.Length > 1 ? args[1] : string.Empty;
         if (action is not ("status" or "wait" or "cancel")) throw new WorkflowUsageException("Use print-job status|wait|cancel --printer <printer> --job <id>.");
         string? printer = null, job = null;
         double timeout = 300;
+        bool json = true;
         for (int index = 2; index < args.Length; index++) {
             string option = args[index];
             if (++index >= args.Length) throw new WorkflowUsageException(option + " requires a value.");
@@ -104,6 +115,7 @@ internal static class WorkflowPrintCommand {
             switch (option) {
                 case "--printer": printer = value; break;
                 case "--job": job = value; break;
+                case "--format": json = WorkflowOutput.ParseJson(value); break;
                 case "--timeout" when action == "wait":
                     if (!double.TryParse(value, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out timeout) || !double.IsFinite(timeout) || timeout is <= 0 or > 86400)
                         throw new WorkflowUsageException("The timeout must be from 1 through 86400 seconds.");
@@ -117,29 +129,7 @@ internal static class WorkflowPrintCommand {
             "wait" => await service.WaitForJobAsync(printer!, job!, TimeSpan.FromSeconds(timeout), cancellationToken: token).ConfigureAwait(false),
             _ => await service.GetJobAsync(printer!, job!, token).ConfigureAwait(false)
         };
-        await output.WriteLineAsync("Job " + status.JobId + " on " + status.PrinterName + ": " + status.State
-            + (status.StateReasons.Count > 0 ? " (" + string.Join(", ", status.StateReasons) + ")" : "")
-            + (string.IsNullOrEmpty(status.StateMessage) ? "" : ": " + status.StateMessage)).ConfigureAwait(false);
+        await WorkflowOutput.WritePrintJobAsync(output, status, json).ConfigureAwait(false);
         return (int)OfficeImoToolExitCode.Success;
-    }
-
-    private static async Task WriteCapabilitiesAsync(PdfPrinterCapabilities capabilities, TextWriter output) {
-        static string State(bool? value) => value switch { true => "yes", false => "no", _ => "unknown" };
-        await output.WriteLineAsync("Printer: " + capabilities.PrinterName).ConfigureAwait(false);
-        await output.WriteLineAsync("Default media: " + (capabilities.DefaultMedia?.Name ?? "unknown")).ConfigureAwait(false);
-        foreach (PdfPrinterMedia media in capabilities.Media) {
-            string size = media.Size is { } paper
-                ? " (" + paper.Width.ToPoints().ToString("0.##", CultureInfo.InvariantCulture) + " x " + paper.Height.ToPoints().ToString("0.##", CultureInfo.InvariantCulture) + " pt)"
-                : string.Empty;
-            await output.WriteLineAsync("Media: " + media.Id + ": " + media.Name + size).ConfigureAwait(false);
-        }
-        foreach (PdfPaperSourceInfo source in capabilities.PaperSources)
-            await output.WriteLineAsync("Paper source: " + source.Id + ": " + source.Name).ConfigureAwait(false);
-        await output.WriteLineAsync("Duplex: " + State(capabilities.SupportsDuplex)).ConfigureAwait(false);
-        await output.WriteLineAsync("Color: " + State(capabilities.SupportsColor)).ConfigureAwait(false);
-        await output.WriteLineAsync("Collation: " + State(capabilities.SupportsCollation)).ConfigureAwait(false);
-        await output.WriteLineAsync("Maximum copies: " + (capabilities.MaximumCopies?.ToString(CultureInfo.InvariantCulture) ?? "unknown")).ConfigureAwait(false);
-        if (capabilities.Resolutions.Count > 0)
-            await output.WriteLineAsync("Resolutions: " + string.Join(", ", capabilities.Resolutions)).ConfigureAwait(false);
     }
 }

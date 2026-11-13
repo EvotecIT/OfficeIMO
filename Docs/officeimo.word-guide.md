@@ -802,8 +802,18 @@ inheritance and font defaults, rich run formatting, paragraph spacing, indents,
 tabs and borders into an editable document. Tables retain their grid, widths,
 cell spans, row settings, shading and borders. Embedded raster pictures retain
 their bytes and VML geometry; hyperlinks use native package relationships.
-Headers and footers have their own parts and image relationships. Section page
-sizes, margins, columns and document grids retain their supported native values.
+Headers and footers have their own parts and image relationships. Inline footnotes
+and endnotes retain their body anchors, reference suppression, multiple paragraphs,
+blank paragraphs, rich text, tables, pictures and hyperlinks in native note parts.
+Use `FootNotes`, `EndNotes` and `Inspect()` to read the notes, and edit their live
+paragraph runs before saving DOCX. Literal custom marks stay in their source
+positions; import does not infer missing reference text. Custom-reference appearance
+is unqualified and reports `WORDML2003_NOTE_REFERENCE_APPROXIMATION`, which strict
+load rejects while permissive import retains the note content and suppression.
+Nested notes, notes in headers or footers, special separator types and unsupported
+note settings remain
+reported losses. Section page sizes, margins, columns and document grids retain
+their supported native values.
 
 Ordinary list definitions and instances become editable numbering through the
 same list model used by DOCX. The native Word reference qualifies decimal and

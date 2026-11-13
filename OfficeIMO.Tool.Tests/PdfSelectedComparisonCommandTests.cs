@@ -20,6 +20,10 @@ public sealed class PdfSelectedComparisonCommandTests {
             int code = await OfficeImoToolApp.RunAsync(["workflow", "compare", first, second, "--output", cli,
                 "--expected-pages", "4,2", "--actual-pages", "3,2,1"], Stream.Null, stdout, stderr);
             Assert.Equal(0, code); Assert.Contains("Expected 4 / actual 3", File.ReadAllText(cli));
+            using (var cliResult = System.Text.Json.JsonDocument.Parse(stdout.ToArray())) {
+                Assert.Equal("officeimo.workflow.compare.v1", cliResult.RootElement.GetProperty("schema").GetString());
+                Assert.Equal(cli, cliResult.RootElement.GetProperty("outputPath").GetString());
+            }
             var transport = new StdioClientTransport(new() {
                 Name = "officeimo-compare-test", Command = "dotnet", Arguments = [typeof(OfficeImoToolApp).Assembly.Location, "mcp", "serve", "--stdio"],
                 WorkingDirectory = root,
