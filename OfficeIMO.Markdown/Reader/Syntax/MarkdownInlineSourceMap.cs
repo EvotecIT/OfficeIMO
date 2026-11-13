@@ -4,6 +4,11 @@ namespace OfficeIMO.Markdown;
 
 internal sealed class MarkdownInlineSourceMap {
     private readonly MarkdownSourcePoint?[] _points;
+    // Joined paragraph text keeps its points as runs instead of one point per character. A slice
+    // is a view over the same runs.
+    private readonly MarkdownSourcePointRuns? _pointRuns;
+    private readonly int _pointRunsStart;
+    private readonly int _pointRunsLength;
     private readonly MarkdownSourceSpan?[] _tokenSpans;
     private readonly string?[] _tokenLiterals;
     // Token-only maps of a parse without source points keep where joined lines met, so an angle
@@ -74,7 +79,33 @@ internal sealed class MarkdownInlineSourceMap {
         _lineBreakOffsets = lineBreakOffsets is { Length: > 0 } ? lineBreakOffsets : null;
     }
 
-    internal int Length => _singleLineText != null ? _singleLineTextLength : Math.Max(_points.Length, _tokenLiterals.Length);
+    internal MarkdownInlineSourceMap(
+        MarkdownSourcePointRuns pointRuns,
+        MarkdownSourceSpan?[]? tokenSpans,
+        string?[]? tokenLiterals)
+        : this(pointRuns, 0, pointRuns.Count, tokenSpans, tokenLiterals) {
+    }
+
+    private MarkdownInlineSourceMap(
+        MarkdownSourcePointRuns pointRuns,
+        int pointRunsStart,
+        int pointRunsLength,
+        MarkdownSourceSpan?[]? tokenSpans,
+        string?[]? tokenLiterals) {
+        _points = Array.Empty<MarkdownSourcePoint?>();
+        _pointRuns = pointRuns;
+        _pointRunsStart = pointRunsStart;
+        _pointRunsLength = pointRunsLength;
+        _tokenSpans = tokenSpans ?? Array.Empty<MarkdownSourceSpan?>();
+        _tokenLiterals = tokenLiterals ?? Array.Empty<string?>();
+    }
+
+    private int PointCount => _pointRuns != null ? _pointRunsLength : _points.Length;
+
+    private MarkdownSourcePoint? PointAt(int index) =>
+        _pointRuns != null ? _pointRuns.Get(_pointRunsStart + index) : _points[index];
+
+    internal int Length => _singleLineText != null ? _singleLineTextLength : Math.Max(PointCount, _tokenLiterals.Length);
 
     internal MarkdownSourceSpan? GetSpan(int startIndex, int length) {
         if (_singleLineText != null) {
@@ -96,7 +127,7 @@ internal sealed class MarkdownInlineSourceMap {
                 _singleLineStartOffset + endExclusive - 1);
         }
 
-        if (length <= 0 || startIndex < 0 || startIndex >= _points.Length) {
+        if (length <= 0 || startIndex < 0 || startIndex >= PointCount) {
             return null;
         }
 
@@ -104,7 +135,7 @@ internal sealed class MarkdownInlineSourceMap {
             return _tokenSpans[startIndex];
         }
 
-        var endIndex = Math.Min(_points.Length - 1, startIndex + length - 1);
+        var endIndex = Math.Min(PointCount - 1, startIndex + length - 1);
         // Only the first and last mapped positions matter. Walking inward from both ends keeps a
         // wide span (an emphasis around a long paragraph) from costing its full length.
         MarkdownSourcePoint? start = null;
@@ -115,7 +146,7 @@ internal sealed class MarkdownInlineSourceMap {
                 var span = _tokenSpans[i]!.Value;
                 start = new MarkdownSourcePoint(span.StartLine, span.StartColumn ?? 1, span.StartOffset ?? 0);
             } else {
-                start = _points[i];
+                start = PointAt(i);
             }
         }
 
@@ -124,7 +155,7 @@ internal sealed class MarkdownInlineSourceMap {
                 var span = _tokenSpans[i]!.Value;
                 end = new MarkdownSourcePoint(span.EndLine, span.EndColumn ?? 1, span.EndOffset ?? 0);
             } else {
-                end = _points[i];
+                end = PointAt(i);
             }
         }
 
@@ -169,18 +200,19 @@ internal sealed class MarkdownInlineSourceMap {
             return false;
         }
 
-        if (length <= 0 || startIndex < 0 || startIndex >= _points.Length) {
+        int pointCount = PointCount;
+        if (length <= 0 || startIndex < 0 || startIndex >= pointCount) {
             return false;
         }
 
-        var endExclusive = Math.Min(_points.Length, startIndex + length);
+        var endExclusive = Math.Min(pointCount, startIndex + length);
         for (var i = startIndex; i < endExclusive; i++) {
-            if (i + 1 >= _points.Length) {
+            if (i + 1 >= pointCount) {
                 break;
             }
 
-            var current = _points[i];
-            var next = _points[i + 1];
+            var current = PointAt(i);
+            var next = PointAt(i + 1);
             if (current.HasValue && next.HasValue && current.Value.Line != next.Value.Line) {
                 return true;
             }
@@ -214,12 +246,12 @@ internal sealed class MarkdownInlineSourceMap {
     }
 
     private bool HasSourceLineTransitionAfter(int index) {
-        if (index < 0 || index + 1 >= _points.Length) {
+        if (index < 0 || index + 1 >= PointCount) {
             return false;
         }
 
-        var current = _points[index];
-        var next = _points[index + 1];
+        var current = PointAt(index);
+        var next = PointAt(index + 1);
         return current.HasValue && next.HasValue && current.Value.Line != next.Value.Line;
     }
 
@@ -246,6 +278,15 @@ internal sealed class MarkdownInlineSourceMap {
         }
 
         var actualLength = Math.Min(length, Length - startIndex);
+        if (_pointRuns != null) {
+            return new MarkdownInlineSourceMap(
+                _pointRuns,
+                _pointRunsStart + startIndex,
+                Math.Min(actualLength, Math.Max(0, _pointRunsLength - startIndex)),
+                SliceArray(_tokenSpans, startIndex, actualLength),
+                SliceArray(_tokenLiterals, startIndex, actualLength));
+        }
+
         var slice = Array.Empty<MarkdownSourcePoint?>();
         if (_points.Length > startIndex) {
             slice = new MarkdownSourcePoint?[actualLength];
@@ -277,6 +318,16 @@ internal sealed class MarkdownInlineSourceMap {
         }
 
         return new MarkdownInlineSourceMap(slice, tokenSpanSlice, tokenLiteralSlice, lineBreakSlice);
+    }
+
+    private static T[] SliceArray<T>(T[] source, int startIndex, int length) {
+        if (source.Length <= startIndex) {
+            return Array.Empty<T>();
+        }
+
+        var slice = new T[length];
+        Array.Copy(source, startIndex, slice, 0, Math.Min(length, source.Length - startIndex));
+        return slice;
     }
 
     private int GetSingleLineColumn(int sourceIndex) =>
