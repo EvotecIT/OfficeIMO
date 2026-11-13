@@ -82,4 +82,6 @@ The engine passes all 214 valid and 467 invalid TOML 1.1 cases of toml-test 2.2.
 - TOML has no null; passing `null` to `Add` or `Set` throws.
 - The engine reads and writes TOML only. To extract TOML into chunks for search or indexing, use `OfficeIMO.Reader.Toml`, which emits one path, type and value row per value with the same path grammar as `Select`.
 
+To convert TOML to and from JSON, YAML, XML, CSV or Excel, see [data conversions](/docs/data-conversions/).
+
 See the [package README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Toml/README.md) and the [Reader overview](/docs/reader/).

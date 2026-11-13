@@ -62,6 +62,7 @@ internal static partial class PdfSanitizer {
         int maximumActionDepth = readLimits.MaxObjectNestingDepth;
         int maximumActionNodes = readLimits.MaxIndirectObjects;
         byte[] sanitized;
+        PdfStructureTreePruning? pruning = null;
         try {
             sanitized = PdfDocumentObjectGraphRewriter.Rewrite(
                 pdf,
@@ -69,7 +70,7 @@ internal static partial class PdfSanitizer {
                 outputEncryption: null,
                 (objects, security) => {
                     cancellationToken.ThrowIfCancellationRequested();
-                    SanitizeObjectGraph(objects, security, policy, maximumActionDepth, maximumActionNodes);
+                    pruning = SanitizeObjectGraph(objects, security, policy, maximumActionDepth, maximumActionNodes);
                     return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value)
                         ? security.InfoObjectNumber
                         : null;
@@ -116,7 +117,8 @@ internal static partial class PdfSanitizer {
             PreserveFormWidgetActions = true,
             FilterActionsByPreservedTypes = true,
             PreserveRevisionStructure = false,
-            PreserveSecurityState = !sourceDocument.Security.HasEncryption
+            PreserveSecurityState = !sourceDocument.Security.HasEncryption,
+            TaggedContentPruning = pruning
         };
         if (policy.ShouldRemoveEmbeddedFiles && (policy.ContentKindsToRemove.HasValue || policy.RemoveRichMedia)) {
             preservationOptions.ExcludedAnnotationSubtypes.Add("FileAttachment");

@@ -12459,7 +12459,7 @@
               "aliases": [
                 "SanitizationOptions"
               ],
-              "notes": "Hidden-data categories that -Sanitize removes. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media."
+              "notes": "Hidden-data categories that -Sanitize removes, from New-OfficeHiddenDataOptions. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media."
             },
             {
               "name": "Password",
@@ -12527,7 +12527,7 @@
               "aliases": [
                 "SanitizationOptions"
               ],
-              "notes": "Hidden-data categories that -Sanitize removes. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media."
+              "notes": "Hidden-data categories that -Sanitize removes, from New-OfficeHiddenDataOptions. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media."
             },
             {
               "name": "Password",
@@ -12768,7 +12768,7 @@
               "aliases": [
                 "SanitizationOptions"
               ],
-              "notes": "Hidden-data categories that -Sanitize removes. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media."
+              "notes": "Hidden-data categories that -Sanitize removes, from New-OfficeHiddenDataOptions. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media."
             },
             {
               "name": "Password",
@@ -12839,7 +12839,7 @@
               "aliases": [
                 "SanitizationOptions"
               ],
-              "notes": "Hidden-data categories that -Sanitize removes. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media."
+              "notes": "Hidden-data categories that -Sanitize removes, from New-OfficeHiddenDataOptions. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media."
             },
             {
               "name": "Password",

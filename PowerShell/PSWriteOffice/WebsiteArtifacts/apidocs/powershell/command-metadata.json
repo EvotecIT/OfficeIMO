@@ -1974,6 +1974,14 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelValidationCommand.cs#L25"
     },
     {
+      "name": "Get-OfficeHiddenData",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Security/GetOfficeHiddenDataCommand.cs",
+      "sourceLine": 24,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Security/GetOfficeHiddenDataCommand.cs#L24"
+    },
+    {
       "name": "Get-OfficeMarkdownFrontMatter",
       "kind": "Cmdlet",
       "aliases": [],
@@ -2710,6 +2718,14 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Google/NewOfficeGoogleWorkspaceSessionCommand.cs#L15"
     },
     {
+      "name": "New-OfficeHiddenDataOptions",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Security/NewOfficeHiddenDataOptionsCommand.cs",
+      "sourceLine": 29,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Security/NewOfficeHiddenDataOptionsCommand.cs#L29"
+    },
+    {
       "name": "New-OfficeHtmlConversionOptions",
       "kind": "Cmdlet",
       "aliases": [],
@@ -3438,6 +3454,14 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/RemoveOfficeExcelPageBreakCommand.cs",
       "sourceLine": 28,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/RemoveOfficeExcelPageBreakCommand.cs#L28"
+    },
+    {
+      "name": "Remove-OfficeHiddenData",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Security/RemoveOfficeHiddenDataCommand.cs",
+      "sourceLine": 37,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Security/RemoveOfficeHiddenDataCommand.cs#L37"
     },
     {
       "name": "Remove-OfficePdfAnnotation",

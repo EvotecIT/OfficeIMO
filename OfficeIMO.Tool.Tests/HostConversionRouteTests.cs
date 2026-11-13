@@ -111,6 +111,68 @@ public sealed class HostConversionRouteTests {
         } finally { Directory.Delete(directory, true); }
     }
 
+    [Fact]
+    public async Task DataRoutesWriteConvertedDataWithTheSelectedRowsAndColumns() {
+        string directory = CreateDirectory();
+        try {
+            string yaml = Path.Combine(directory, "response.yaml");
+            string json = Path.Combine(directory, "response.json");
+            string csv = Path.Combine(directory, "rows.csv");
+            await File.WriteAllTextAsync(yaml, "data:\n  items:\n    - id: 1\n      name: first\n    - id: 2\n      name: second\n");
+
+            await ConvertAsync(yaml, json);
+            await ConvertAsync(json, csv, "--select", "data.items", "--columns", "name,id");
+
+            using (System.Text.Json.JsonDocument data = System.Text.Json.JsonDocument.Parse(await File.ReadAllTextAsync(json)))
+                Assert.Equal(2, data.RootElement.GetProperty("data").GetProperty("items")[1].GetProperty("id").GetInt32());
+            Assert.Equal(["name,id", "first,1", "second,2"], (await File.ReadAllTextAsync(csv)).Split('\n', StringSplitOptions.RemoveEmptyEntries));
+        } finally { Directory.Delete(directory, true); }
+    }
+
+    [Fact]
+    public async Task DataRoutesReportLossAndRequireNoLossRefusesToPublish() {
+        string directory = CreateDirectory();
+        try {
+            string source = Path.Combine(directory, "settings.json");
+            string target = Path.Combine(directory, "settings.toml");
+            await File.WriteAllTextAsync(source, "{\"name\":\"a\",\"note\":null}");
+            await using var output = new MemoryStream();
+            using var error = new StringWriter();
+
+            int exit = await OfficeImoToolApp.RunAsync(["convert", source, target, "--require-no-loss"], Stream.Null, output, error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.OperationFailed, exit);
+            Assert.Contains("null-dropped", error.ToString(), StringComparison.Ordinal);
+            Assert.False(File.Exists(target));
+        } finally { Directory.Delete(directory, true); }
+    }
+
+    [Theory]
+    [InlineData("--sheet", "Missing", "Sheet 'Missing' was not found. The workbook has: Data, Summary.")]
+    [InlineData("--range", "ZZ", "Range 'ZZ' is not an A1 range")]
+    public async Task WorkbookDataRoutesRejectASheetOrRangeTheWorkbookCannotSupply(string option, string value, string expected) {
+        string directory = CreateDirectory();
+        try {
+            string source = Path.Combine(directory, "book.xlsx");
+            string target = Path.Combine(directory, "rows.json");
+            using (ExcelDocument workbook = ExcelDocument.Create(source)) {
+                workbook.AddSheet("Data").Cell(1, 1).SetValue("name");
+                workbook.AddSheet("Summary").Cell(1, 1).SetValue("total");
+                workbook.Save();
+            }
+            await using var output = new MemoryStream();
+            using var error = new StringWriter();
+
+            int exit = await OfficeImoToolApp.RunAsync(["convert", source, target, option, value], Stream.Null, output, error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.Usage, exit);
+            Assert.Contains(expected, error.ToString(), StringComparison.Ordinal);
+            Assert.DoesNotContain("Exception", error.ToString(), StringComparison.Ordinal);
+            Assert.Empty(output.ToArray());
+            Assert.False(File.Exists(target));
+        } finally { Directory.Delete(directory, true); }
+    }
+
     [Theory]
     [InlineData("source.docx", "result.ods", null)]
     [InlineData("notes.txt", "notes.docx", null)]

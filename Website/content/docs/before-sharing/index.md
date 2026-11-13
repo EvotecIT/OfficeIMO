@@ -8,7 +8,7 @@ A document that leaves your team carries more than its visible text. Author and 
 
 ## Three checks
 
-- **[Hidden data](/docs/before-sharing/hidden-data/):** what personal or internal information leaves with the file. `OfficeDocument.RemoveHiddenData(input, output, options)`, `InspectHiddenData()` and `RemoveHiddenData(options)` on a loaded document, or `officeimo hidden-data` on the command line.
+- **[Hidden data](/docs/before-sharing/hidden-data/):** what personal or internal information leaves with the file. `OfficeDocument.RemoveHiddenData(input, output, options)`, `InspectHiddenData()` and `RemoveHiddenData(options)` on a loaded document, `officeimo hidden-data` on the command line, or `Get-OfficeHiddenData` and `Remove-OfficeHiddenData` in PowerShell.
 - **[Content Credentials and AI labels](/docs/before-sharing/provenance/):** does the file say how it was made, for example that a picture is AI-generated? Reported and removed as the `Provenance` category of hidden data, or on their own with `RemoveProvenance` and `officeimo provenance`.
 - **[Accessibility](/docs/before-sharing/accessibility/):** can everyone read it, including people who use a screen reader? `InspectAccessibility()` and `FixAccessibility(options)`.
 
@@ -75,7 +75,16 @@ officeimo hidden-data remove proposal.docx --kinds default,provenance
 officeimo hidden-data remove photo.jpg --kinds default,provenance --keep-provenance c2pa
 ```
 
-Install [OfficeIMO.Tool](/tool/) first. The [hidden data page](/docs/before-sharing/hidden-data/#command-line) lists every option.
+Install [OfficeIMO.Tool](/tool/) first. The [hidden data page](/docs/before-sharing/hidden-data/#command-line) lists every option, and [Before sharing from the CLI](/docs/cli/before-sharing/) adds batch cleanup and CI checks.
+
+## PowerShell
+
+```powershell
+Get-OfficeHiddenData -Path .\Proposal.docx
+Remove-OfficeHiddenData -Path .\Proposal.docx -Options (New-OfficeHiddenDataOptions -Kind Default, Provenance)
+```
+
+[PSWriteOffice](/products/pswriteoffice/) runs the same engine on Windows PowerShell 5.1 and PowerShell 7.4 or newer. [Clean files before sharing](/docs/pswriteoffice/before-sharing/) covers folders, PDF sanitizing and `Get-OfficeDocumentProvenance`.
 
 ## For AI agents
 

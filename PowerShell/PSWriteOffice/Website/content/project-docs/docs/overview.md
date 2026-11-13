@@ -17,6 +17,8 @@ The module manifest is the source of truth for exported cmdlets and aliases. The
 | Review or diagnose files | inspection, preflight, comparison, and HTML export commands | Read-only diagnostics can run before a job decides whether to change or reject an artifact. |
 | Normalize many formats | Reader commands | One result model exposes documents, chunks, hierarchy, tables, visuals, assets, warnings, and provenance. |
 | Convert between formats or place reusable visuals | `Convert-OfficeDocument` and visual commands | Conversion behavior stays in the matching OfficeIMO adapter. PDF input can also be reconstructed as editable Word, Excel, or PowerPoint content. |
+| Edit configuration or move data between formats | `Open-OfficeYaml`, `Import-OfficeToml`, and `Convert-OfficeDocument` | YAML edits keep comments and layout, and data conversions report anything the target format cannot hold. See [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/). |
+| Share a file outside your team | `Get-OfficeHiddenData` and `Remove-OfficeHiddenData` | Comments, authors, speaker notes, image metadata and AI labels are listed and removed into a cleaned copy, with an outcome for every item. See [Clean files before sharing](/docs/pswriteoffice/before-sharing/). |
 | Check protected-content support before automation | `Get-OfficeDocumentCapability -Protection` | Filterable, typed capability rows show supported operations, limits, and incomplete format coverage before a workflow handles a protected file. |
 
 ## Major families
@@ -26,12 +28,16 @@ The module manifest is the source of truth for exported cmdlets and aliases. The
 - **PDF — 77 commands:** composition, structured reading, explicit Word/Excel/PowerPoint/Markdown/RTF export, editable Office reconstruction, text and image extraction, searchable OCR output, merge/split, pages, forms, annotations, attachments, signatures, compliance, redaction, optimization, visual placement, and diagnostics.
 - **PowerPoint — 53 commands:** slides, sections, shapes, charts, tables, notes, themes, layouts, transitions, visual placement, import, inspection, and HTML review.
 - **Document operations and capabilities — 11 commands:** inspect, compare, validate, repair, protect, combine, split, and convert documents with limits and reports. See [Choose a conversion route](/docs/pswriteoffice/conversion-routes/).
-- **Project — 20 commands:** create and schedule tasks, resources and assignments; exchange mapped tables; save native MPP or Project XML and export reports.
+- **Before sharing — 5 commands:** list and remove comments, authors, hidden content, image metadata and AI labels, and inspect Content Credentials. See [Clean files before sharing](/docs/pswriteoffice/before-sharing/).
+- **YAML — 12 commands:** edit files without losing comments or layout, merge overlays, validate, and convert to and from objects. See [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/).
+- **TOML — 4 commands:** read and write settings and lock files as PowerShell objects.
+- **CSV — 3 commands:** import and export delimited data with explicit quoting, encoding, and formula-injection rules.
+- **Project — 20 commands:** create and schedule tasks, resources and assignments; exchange mapped tables; save native MPP or Project XML and export reports. See [Project, Access, and EPUB](/docs/pswriteoffice/project-access-epub/).
 - **Access — 9 commands:** inspect native MDB/ACCDB schemas and rows, and create inert table databases from PowerShell objects.
 - **EPUB — 8 commands:** build publications from chapters, resources and metadata, then inspect and save the package.
 - **Archive migration and evidence — 5 commands:** inspect package security and provenance, identify iWork files, and convert iWork and offline OneNote content with explicit fidelity evidence.
 - **Confluence Cloud — 7 commands:** plan, create, update, and remove pages; preserve managed sections; and list, upload, or download attachments.
-- **Markdown, Visio, Reader, OCR, visuals, and open formats:** typed Markdown, VSDX diagrams and stencils, cross-format visual placement, normalized extraction, local image OCR, RTF, CSV, YAML, ODT/ODS/ODP, email, AsciiDoc, and LaTeX workflows.
+- **Markdown, Visio, Reader, OCR, visuals, and open formats:** typed Markdown, VSDX diagrams and stencils, cross-format visual placement, normalized extraction, local image OCR, RTF, ODT/ODS/ODP, email, AsciiDoc, and LaTeX workflows.
 
 ## How the documentation fits together
 

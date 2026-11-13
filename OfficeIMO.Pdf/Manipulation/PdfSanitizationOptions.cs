@@ -66,6 +66,17 @@ internal sealed class PdfSanitizationOptions : IPdfOperationCancellation {
     /// </summary>
     internal bool SeparateRichMediaFromComments { get; set; }
 
+    /// <summary>
+    /// Whether user metadata removal keeps the Factur-X or ZUGFeRD identification. It follows whether embedded files stay, because the
+    /// identification describes the attached invoice data. An inventory that lists every category sets it to match the removal it reports for.
+    /// </summary>
+    internal bool KeepsElectronicInvoiceMetadata {
+        get => _keepsElectronicInvoiceMetadata ?? !ShouldRemoveEmbeddedFiles;
+        set => _keepsElectronicInvoiceMetadata = value;
+    }
+
+    private bool? _keepsElectronicInvoiceMetadata;
+
     internal bool IsActionAllowed(string actionType) => AllowedActionTypes.Contains(actionType);
 
     internal bool ShouldRemoveContent(PdfSanitizationContentKind kind) => ContentKindsToRemove.HasValue

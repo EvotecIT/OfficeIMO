@@ -5819,6 +5819,39 @@ Windows definitions before moving them to another operating system if their
 relative paths contain `\`; Unix treats that character as part of a filename.
 Run reports are optional evidence and do not change checkpoint compatibility.
 
+## Data conversion, overwrite and password rules in the CLI
+
+`officeimo convert` now runs the structured-data routes when both files are data formats (JSON, JSON Lines, YAML, TOML, XML, CSV, TSV and XLSX). A `.json` destination for a YAML, TOML, XML, CSV, TSV, JSON Lines or XLSX source therefore writes the converted data instead of Reader JSON (`officeimo.document.read-result`). For the Reader JSON of those files, use:
+
+```shell
+officeimo read settings.yaml --format json --output settings.reader.json
+```
+
+Other sources, such as DOCX or PDF, still write Reader JSON to a `.json` destination.
+
+`read`, `extract`, `reader read` and `reader folder` refuse to replace existing output files and assets. Add `--force` where a script relied on replacing them.
+
+`agent convert` takes `--force` instead of `--overwrite`. The MCP `officeimo_convert` tool keeps its `overwrite` argument.
+
+`workflow batch` rejects `--source-password` and `--pdf-password`. Put the password in an environment variable and pass its name with `--source-password-env` or `--pdf-password-env`.
+
+`tabular schema` prints `string`, `integer`, `number`, `boolean` and `datetime` instead of .NET type names such as `System.String`. Update scripts that compare the `type` column.
+
+## JSON output from workflow export-pages, assemble and print-plan
+
+`officeimo workflow export-pages`, `workflow assemble` and `workflow print-plan` now write one JSON result to standard output, like the `pdf`, `hidden-data` and `provenance` commands. The schemas are `officeimo.workflow.export-pages.v1`, `officeimo.workflow.assemble.v1` and `officeimo.workflow.print-plan.v1`. Scripts that read the previous text lines can switch to the JSON fields, or add `--format text` to keep the summary.
+
+`export-pages` takes the image format as `--image-format` because `--format` now chooses the output:
+
+```shell
+# Before
+officeimo workflow export-pages report.pdf --output pages --format webp
+# After
+officeimo workflow export-pages report.pdf --output pages --image-format webp
+```
+
+`officeimo convert` with an unknown `--sheet` or a malformed `--range` now exits with code `2` instead of `5`, and the error lists the sheets the workbook has. In .NET, an `OfficeConverter` data conversion from XLSX with the same `DataConversionOptions.Sheet` or `Range` throws `OfficeConversionException` with a `conversion-request-invalid` diagnostic instead of `KeyNotFoundException` or `ArgumentException`.
+
 ## Removed obsolete image and HTML capability aliases
 
 Replace `WordImage.BlackWiteMode` with `WordImage.BlackWhiteMode`. The enum and

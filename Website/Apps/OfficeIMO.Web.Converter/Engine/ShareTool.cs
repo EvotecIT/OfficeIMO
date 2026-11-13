@@ -257,7 +257,7 @@ internal static class ShareTool {
                     ? "Kept because you chose to keep it."
                     : !category.Selectable
                         ? "Kept: these labels don't say the content was made by AI, and only AI labels are removed."
-                        : "Kept: " + string.Join(" ", retained.Select(Explain).Where(static note => note.Length > 0).Distinct().Take(3));
+                        : KeptDetail(retained.Select(Explain).Where(static note => note.Length > 0).Distinct().Take(3).ToArray());
                 items.Add(new ToolItem(category.Id + "-kept", Title(category, retained.Length), detail.TrimEnd(), byChoice || !category.Selectable ? ToolState.Kept : ToolState.Info, category.Group));
             }
         }
@@ -305,6 +305,13 @@ internal static class ShareTool {
     /// The page's sentence for a finding that was kept or changed with a reason. Reasons that point at a removal choice name the
     /// checkbox; the others use the engine's own sentence.
     /// </summary>
+    /// <summary>Joins the reasons for kept findings. Engine notes already start with "Kept because", so the label is added only when the first reason lacks it.</summary>
+    private static string KeptDetail(string[] reasons) {
+        if (reasons.Length == 0) return "Kept.";
+        string joined = string.Join(" ", reasons);
+        return reasons[0].StartsWith("Kept", StringComparison.Ordinal) ? joined : "Kept: " + joined;
+    }
+
     private static string Explain(OfficeHiddenDataFinding finding) => finding.Reason switch {
         OfficeHiddenDataReason.ProtectsContentCredentials =>
             "Changing this picture would break its Content Credentials. Tick Content Credentials too to clean both.",

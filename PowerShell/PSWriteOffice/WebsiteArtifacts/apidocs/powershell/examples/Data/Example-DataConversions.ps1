@@ -21,10 +21,10 @@ version = "0.8.19"
 '@ | Set-Content -LiteralPath $lock -NoNewline
 
 # Read it as objects, as ConvertFrom-Json does for JSON.
-(Import-OfficeToml -Path $lock).package | Select-Object -Property name, version
+(Import-OfficeToml -Path $lock).package | Format-Table -Property name, version
 
 # Convert files between data formats; the output extension selects the target. Select picks the rows.
-Convert-OfficeDocument -Path $lock -OutputPath $packages -Options @{ Select = 'package' } | Select-Object -Property Source, Target, ItemsWritten
+Convert-OfficeDocument -Path $lock -OutputPath $packages -Options @{ Select = 'package' } | Format-Table -Property Target, ItemsWritten, HasLoss
 Convert-OfficeDocument -Path $packages -OutputPath $json | Out-Null
 Get-Content -LiteralPath $json -Raw
 

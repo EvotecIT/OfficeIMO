@@ -17,7 +17,7 @@ public static partial class OfficeConverter {
         options.FailOnLoss |= settings.FailOnLoss;
         if (sourceId == "xlsx") {
             var context = new DataConversionContext(DataConversionEngine.Normalize(options, DataFormat(targetId)!.Value), token);
-            using DataEventReader reader = ExcelDataConversions.OpenWorkbook(input, context);
+            using DataEventReader reader = ExcelDataConversions.OpenWorkbook(input, context, targetId.ToUpperInvariant());
             using DataEventWriter writer = DataConversionEngine.CreateWriter(output, DataFormat(targetId)!.Value, context, 1, Data.Conversions.DataFormat.Csv);
             return DataConversionEngine.Run(reader, writer, context, "Excel", targetId.ToUpperInvariant());
         }

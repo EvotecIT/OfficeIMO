@@ -157,7 +157,7 @@ to 16 MiB. For the pinned authority downloads and runtime requirements, see the
 
 DOC conversion blocks known legacy import loss by default; `--allow-legacy-loss` explicitly accepts the reported reductions. TXT conversion treats HTML and Markdown as literal text, detects Unicode BOMs and otherwise uses strict UTF-8. Use `--text-encoding` and `--tab-size` for explicit text settings. The adapter's diagnostics remain on standard error.
 
-Batch conversion uses the existing executable workflow catalog. PDF routes include DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, Draw, DjVu and Publisher. Files without an eligible route are counted as skipped. Checkpoints are optional. Resolve relative paths from the directory where the command runs:
+Batch conversion uses the existing executable workflow catalog and the structured-data routes. PDF routes include DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, Draw, DjVu and Publisher; data targets are `json`, `jsonl`, `yaml`, `toml`, `xml`, `csv`, `tsv` and `xlsx`. `--route <id>` selects one route and, without `--target`, its target. Files without an eligible route are skipped and counted on standard error; `--verbose` lists them, and the report always does. Checkpoints are optional. Resolve relative paths from the directory where the command runs:
 
 ```powershell
 officeimo workflow batch --input-directory ./Documents --output ./PDF
@@ -166,6 +166,7 @@ officeimo workflow batch --input-directory ./Documents --output ./PDF --checkpoi
 officeimo workflow batch --input-directory ./Documents --output ./PDF --checkpoint ./PDF-State --retry-failed
 # Explicit files and other existing conversion targets use the same command.
 officeimo workflow batch report.pdf appendix.pdf --output ./HTML --target html
+officeimo workflow batch --input-directory ./config --output ./json --route toml-json
 
 officeimo workflow printers
 officeimo workflow printers --paper-sources "Office printer"
@@ -291,9 +292,17 @@ officeimo convert budget.numbers budget.xlsx
 officeimo convert presentation.key presentation.pptx
 officeimo convert document.pages document.pdf
 
+# Structured data between JSON, JSON Lines, YAML, TOML, XML, CSV, TSV and XLSX
+officeimo convert settings.yaml settings.json
+officeimo convert settings.json settings.toml --require-no-loss
+officeimo convert response.json items.csv --select data.items --columns id,name,address.city
+officeimo convert people.json people.xml --root-name people
+officeimo convert budget.xlsx budget.json --sheet Summary --range A1:D20
+
 # Supported documents to Markdown or JSON through OfficeIMO.Reader
 officeimo convert workbook.xlsx workbook.md
 officeimo convert report.docx report.json
+officeimo read settings.yaml --format json --output settings.reader.json
 
 # Extract to standard output or a file
 officeimo read report.docx --format markdown
@@ -304,6 +313,7 @@ officeimo inspect deck.pptx
 
 # Inspect and convert tabular data without loading an editable workbook
 officeimo tabular sheets workbook.xlsx
+# schema prints each column's type as string, integer, number, boolean or datetime
 officeimo tabular schema workbook.xlsx --sheet Data
 officeimo tabular convert input.csv output.xlsx
 officeimo tabular convert workbook.xlsb output.tsv --sheet Data
@@ -319,13 +329,16 @@ officeimo workflow optimize-images input.docx --output optimized.docx --mode bot
 officeimo workflow optimize-images first.docx second.docx --output-directory optimized --format pdf --mode both
 
 # Export selected PDF pages to validated images
-officeimo workflow export-pages report.pdf --output .\report-pages --pages 1-3,last --format png
+officeimo workflow export-pages report.pdf --output .\report-pages --pages 1-3,last --image-format png
 
 # Assemble an ordered PDF from files, folders, images, and ZIP archives
 officeimo workflow assemble cover.png report.docx appendices .\attachments.zip --output complete.pdf
 
 # Inspect print-sheet placement without requiring a platform printer driver
 officeimo workflow print-plan complete.pdf --paper A4 --pages-per-sheet 2 --scale fit
+
+# export-pages, assemble and print-plan write versioned JSON; --format text prints a summary
+officeimo workflow print-plan complete.pdf --format text
 
 # Inspect or assess provenance with versioned JSON output
 officeimo provenance inspect report.docx
@@ -345,13 +358,15 @@ officeimo pdf redact batch --request redaction.batch.json
 
 The positional destination is optional for supported Office and Draw inputs to PDF conversion. When omitted, the tool writes a sibling `.pdf` file. `--output <path>` remains available for scripts that prefer named options.
 
-Markdown and JSON destinations are semantic Reader projections rather than fixed-layout renderings. They use the same handlers as `officeimo reader read` and support every input format reported by `officeimo reader capabilities`.
+When both files are data formats, `convert` runs the structured-data route and reports each loss on standard error; `--require-no-loss` refuses to publish lossy output. `--select`, `--columns`, `--root-name`, `--sheet` and `--range` set the row path, the table columns and their order, the XML root name, and the XLSX worksheet and range.
+
+Markdown destinations, and JSON destinations for sources without a data route, are semantic Reader projections rather than fixed-layout renderings. They use the same handlers as `officeimo reader read` and support every input format reported by `officeimo reader capabilities`. For the Reader JSON of a data file, use `officeimo read <file> --format json`.
 
 `officeimo reader read` accepts iWork directory bundles with `.pages`, `.numbers`, or `.key` extensions as individual documents. Folder discovery also keeps each bundle intact. Export files and asset directories must be outside the source bundle; reported size and content hashes describe the bounded captured package. These Reader outputs are semantic extraction, with the same rendering limits as other Reader routes.
 
 Apple-to-OOXML and Apple-to-PDF conversion accept ZIP files and local directory packages and returns JSON with typed fidelity diagnostics, producer/projection facts, source snapshot SHA-256, coverage, and publication status. Defaults reject partial editable reconstruction and previews without known complete coverage. Use `--iwork-mode auto|editable|visual`, `--allow-partial`, `--allow-incomplete-preview`, and `--normalize-worksheet-names` only when those acceptance choices fit the task. `--max-input-bytes` and `--max-output-bytes` bound conversion. Directory-package checksums describe a private transport ZIP, identified by `snapshotKind = DirectoryPackage`. Root replacement and changes to file membership or content prevent publication. The destination must be outside the source package and separate from its members. Native permission-scoped directory intake remains outside this local-filesystem contract. PDF requires complete editable reconstruction and retains both source and PDF-stage evidence; partial output, previews, content exclusion and PDF-stage omissions or failures are rejected.
 
-All `convert` destinations are protected from accidental replacement. Pass `--force` explicitly when an existing output file should be replaced.
+All `convert`, `read`, `extract`, `reader` and `agent convert` destinations are protected from accidental replacement. Pass `--force` explicitly when an existing output file should be replaced.
 
 ## Command areas
 

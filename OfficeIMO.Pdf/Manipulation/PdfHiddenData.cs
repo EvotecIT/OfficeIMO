@@ -15,9 +15,11 @@ internal static class PdfHiddenData {
     internal static OfficeHiddenDataReport Inspect(byte[] pdf, PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
         Guard.NotNull(pdf, nameof(pdf));
         var collector = new OfficeHiddenDataCollector(FormatName, null);
-        PdfSanitizationReport inventory = InspectInventory(pdf, readOptions, cancellationToken);
+        PdfSanitizationReport inventory = InspectInventory(pdf, readOptions, OfficeHiddenDataKind.Default, cancellationToken);
         IReadOnlyList<OfficeProvenanceEvidence> provenance = InspectProvenance(pdf, readOptions, cancellationToken);
-        Record(collector, inventory);
+        // What removal always keeps (the title and conformance identification) is not hidden data to act on, so inspection leaves
+        // it out, as the Office formats do for their titles; a removal report still lists it as retained with the reason.
+        Record(collector, inventory, includeAlwaysKept: false);
         foreach (OfficeProvenanceEvidence evidence in provenance) RecordProvenance(collector, evidence, OfficeHiddenDataOutcome.Found);
         return collector.Build();
     }
@@ -32,7 +34,7 @@ internal static class PdfHiddenData {
         options ??= new OfficeHiddenDataOptions();
         if (maximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes), "The maximum output size must be positive.");
         var collector = new OfficeHiddenDataCollector(FormatName, options);
-        PdfSanitizationReport inventory = InspectInventory(pdf, readOptions, cancellationToken);
+        PdfSanitizationReport inventory = InspectInventory(pdf, readOptions, options.Kinds, cancellationToken);
         IReadOnlyList<OfficeProvenanceEvidence> provenance = InspectProvenance(pdf, readOptions, cancellationToken);
 
         // Content Credentials sign the file's bytes, so the rewrite below would leave them stale. They are removed first through the
@@ -55,7 +57,7 @@ internal static class PdfHiddenData {
             throw new InvalidOperationException("The rewritten PDF did not pass hidden-data and preservation checks; it was not returned.");
         }
 
-        Record(collector, inventory);
+        Record(collector, inventory, includeAlwaysKept: true);
         if (provenance.Count > 0) {
             List<OfficeProvenanceEvidence> remaining = InspectProvenance(sanitized.Bytes, sanitized.ReadOptions, cancellationToken).ToList();
             bool selected = collector.Removes(OfficeHiddenDataKind.Provenance);
@@ -90,18 +92,20 @@ internal static class PdfHiddenData {
 
     private static bool Selects(OfficeHiddenDataKind kinds, OfficeHiddenDataKind kind) => (kinds & kind) == kind;
 
-    private static PdfSanitizationReport InspectInventory(byte[] pdf, PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
+    /// <summary>Lists every category; what metadata it reports as kept follows <paramref name="removal"/>, the selection being applied or previewed.</summary>
+    private static PdfSanitizationReport InspectInventory(byte[] pdf, PdfLoadOptions? readOptions, OfficeHiddenDataKind removal, CancellationToken cancellationToken) {
         PdfSanitizationOptions everything = CreatePolicy(OfficeHiddenDataKind.All);
+        everything.KeepsElectronicInvoiceMetadata = !Selects(removal, OfficeHiddenDataKind.Attachments);
         everything.CancellationToken = cancellationToken;
         return PdfSanitizer.Inspect(pdf, everything, readOptions);
     }
 
-    private static void Record(OfficeHiddenDataCollector collector, PdfSanitizationReport inventory) {
-        Record(collector, inventory, PdfSanitizationContentKind.UserMetadata, OfficeHiddenDataKind.DocumentProperties);
-        Record(collector, inventory, PdfSanitizationContentKind.CommentsAndMarkup, OfficeHiddenDataKind.Comments);
-        Record(collector, inventory, PdfSanitizationContentKind.OptionalContent, OfficeHiddenDataKind.HiddenContent);
-        Record(collector, inventory, PdfSanitizationContentKind.EmbeddedFiles, OfficeHiddenDataKind.Attachments);
-        Record(collector, inventory, PdfSanitizationContentKind.Bookmarks, OfficeHiddenDataKind.Bookmarks);
+    private static void Record(OfficeHiddenDataCollector collector, PdfSanitizationReport inventory, bool includeAlwaysKept) {
+        Record(collector, inventory, PdfSanitizationContentKind.UserMetadata, OfficeHiddenDataKind.DocumentProperties, includeAlwaysKept);
+        Record(collector, inventory, PdfSanitizationContentKind.CommentsAndMarkup, OfficeHiddenDataKind.Comments, includeAlwaysKept);
+        Record(collector, inventory, PdfSanitizationContentKind.OptionalContent, OfficeHiddenDataKind.HiddenContent, includeAlwaysKept);
+        Record(collector, inventory, PdfSanitizationContentKind.EmbeddedFiles, OfficeHiddenDataKind.Attachments, includeAlwaysKept);
+        Record(collector, inventory, PdfSanitizationContentKind.Bookmarks, OfficeHiddenDataKind.Bookmarks, includeAlwaysKept);
         foreach (PdfSanitizationFinding finding in inventory.Findings) {
             if (finding.Kind == PdfSanitizationFindingKind.EmbeddedFile) continue;
             RecordEngineItem(collector, OfficeHiddenDataKind.ActiveContent, finding.Path, DescribeActiveContent(finding),
@@ -109,10 +113,18 @@ internal static class PdfHiddenData {
         }
     }
 
-    private static void Record(OfficeHiddenDataCollector collector, PdfSanitizationReport inventory, PdfSanitizationContentKind source, OfficeHiddenDataKind kind) {
+    private static void Record(OfficeHiddenDataCollector collector, PdfSanitizationReport inventory, PdfSanitizationContentKind source, OfficeHiddenDataKind kind, bool includeAlwaysKept) {
         foreach (PdfSanitizationItem item in inventory.Items) {
             // Content Credentials stored as an attachment are reported once, as provenance.
-            if (item.Kind == source && !item.IsProvenanceCarrier) RecordEngineItem(collector, kind, item.Location, item.Description, item.Value);
+            if (item.Kind != source || item.IsProvenanceCarrier) continue;
+            if (item.IsRetained) {
+                if (!includeAlwaysKept) continue;
+                OfficeHiddenDataOutcome outcome = collector.Resolve(kind, removed: false, OfficeHiddenDataReason.NeededByDocument, out OfficeHiddenDataReason reason);
+                string? note = reason == OfficeHiddenDataReason.NeededByDocument ? item.RetainedNote : null;
+                collector.Record(kind, item.Location, item.Description, item.Value, outcome, note, reason: reason);
+            } else {
+                RecordEngineItem(collector, kind, item.Location, item.Description, item.Value);
+            }
         }
     }
 

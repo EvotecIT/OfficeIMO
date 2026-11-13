@@ -139,6 +139,17 @@ The converter maps between Word and Markdown elements:
 | Horizontal rule | `---` |
 | Block quote style | `> text` |
 
+## From the Command Line
+
+The `officeimo` CLI runs both directions without writing code:
+
+```shell
+officeimo convert report.docx report.md
+officeimo convert notes.md notes.docx
+```
+
+A `.md` destination uses the Reader's Markdown projection. [Convert documents with the CLI](/docs/cli/convert/#markdown-and-json-output) covers the options.
+
 ## Round-Trip Fidelity
 
 While the converters handle the most common elements, some formatting may be lost during round-trip conversion (Word -> Markdown -> Word or vice versa). Complex features like nested tables, custom table styles, SmartArt, and embedded OLE objects do not have Markdown equivalents and will be simplified or omitted.

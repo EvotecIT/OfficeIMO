@@ -43,6 +43,13 @@ Before choosing a format, see [pipeline, object, and DSL workflows](/docs/pswrit
 - [Forms and annotations](/docs/pswriteoffice/pdf-forms-annotations/)
 - [Signatures and compliance](/docs/pswriteoffice/pdf-signatures-compliance/)
 
+## Before sharing
+
+- [See what would leave with a file](/docs/pswriteoffice/before-sharing/#see-what-would-leave-with-a-file)
+- [Write a cleaned copy](/docs/pswriteoffice/before-sharing/#write-a-cleaned-copy)
+- [Remove Content Credentials and AI labels](/docs/pswriteoffice/before-sharing/#content-credentials-and-ai-labels)
+- [Clean a folder and check the result](/docs/pswriteoffice/before-sharing/#clean-a-folder-and-check-the-result)
+
 ## Markdown and Reader
 
 - [Read and parse Markdown](/docs/pswriteoffice/markdown-read-parse/)
@@ -51,5 +58,19 @@ Before choosing a format, see [pipeline, object, and DSL workflows](/docs/pswrit
 - [Search a mixed document corpus](/docs/pswriteoffice/reader-search-corpus/)
 - [Extract chunks, tables, and assets](/docs/pswriteoffice/reader-chunks-tables/)
 - [Build bounded ingestion pipelines](/docs/pswriteoffice/reader-ingest-pipelines/)
+
+## Configuration files and data
+
+- [Edit YAML without losing comments](/docs/pswriteoffice/config-data-formats/#edit-yaml-without-rewriting-it)
+- [Merge YAML overlays](/docs/pswriteoffice/config-data-formats/#merge-overlays)
+- [Validate YAML before deploying](/docs/pswriteoffice/config-data-formats/#validate-before-deploying)
+- [Read and write TOML](/docs/pswriteoffice/config-data-formats/#read-and-write-toml)
+- [Convert between JSON, YAML, TOML, XML, CSV, and Excel](/docs/pswriteoffice/config-data-formats/#convert-between-data-formats)
+
+## Project, Access, and EPUB
+
+- [Build and schedule a project](/docs/pswriteoffice/project-access-epub/#project-schedules)
+- [Create and read Access tables](/docs/pswriteoffice/project-access-epub/#access-table-databases)
+- [Compose an EPUB book](/docs/pswriteoffice/project-access-epub/#epub-publications)
 
 The [DSL cookbook](/docs/pswriteoffice/dsl-cookbook/) teaches composition syntax. The generated [command reference](/api/powershell/) remains the source of truth for exact parameters.

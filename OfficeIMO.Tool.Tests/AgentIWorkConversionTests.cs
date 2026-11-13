@@ -22,7 +22,7 @@ public sealed partial class AgentIWorkConversionTests {
         using var stdout = new StringWriter();
         using var stderr = new StringWriter();
         var arguments = new List<string> { "convert", files.Input, "--output", output, "--format", "docx" };
-        if (overwrite) arguments.Add("--overwrite");
+        if (overwrite) arguments.Add("--force");
         int exit = await AgentCommand.RunAsync(arguments.ToArray(), stdout, stderr);
         using var response = System.Text.Json.JsonDocument.Parse(stdout.ToString());
         Assert.Equal(overwrite, response.RootElement.GetProperty("workflow").GetProperty("succeeded").GetBoolean());

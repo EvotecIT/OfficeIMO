@@ -83,7 +83,7 @@ File.WriteAllBytes("Report-shared.pdf", result.ToArray());
 - **Word:** properties, comments, tracked changes, reviewer names, hidden text, document variables, custom XML, revision save IDs (RSIDs), the attached template and picture metadata. Comments and revisions that stay keep an author, because Word requires one; `PersonalIdentities` replaces the name with `AnonymousAuthor` (`Author` by default). Bibliography sources and custom XML bound to content controls are kept.
 - **Excel:** notes, threaded comments and their authors, hidden sheets, rows, columns and names, external links, pivot cache source paths, custom XML, picture metadata and printer settings. Cached values from external workbooks are removed, but the links themselves are kept, because formulas and refreshes need them. Power Query data is kept and reported with a note. Deleting hidden sheets, rows and columns shifts or breaks formulas that refer to them, exactly as deleting them in Excel does.
 - **PowerPoint:** properties, classic and modern comments, speaker notes, the thumbnail, custom XML and picture metadata. Hidden slides, hidden shapes and shapes placed entirely off the slide count as hidden content.
-- **PDF:** document properties and XMP metadata, comments and markup, attachments, JavaScript and other actions, bookmarks, optional-content layers and Content Credentials. Signed PDFs are refused.
+- **PDF:** document properties and XMP metadata, comments and markup, attachments, JavaScript and other actions, bookmarks, optional-content layers and Content Credentials. The title stays in the document information and in XMP, as it does in Office files, because readers and screen readers announce it. The PDF/A, PDF/UA and PDF/X identification also stays, so a conforming file keeps declaring its conformance, together with the document IDs PDF/X requires. Inspection leaves out what always stays, so a cleaned PDF doesn't look unfinished; the removal report lists it as retained with the reason. A Factur-X or ZUGFeRD invoice keeps its e-invoice identification while its invoice XML stays attached; select `Attachments` to remove both. Tagged PDFs, including PDF/UA files, keep their structure tree, language and reading order; a removed comment or attachment is also removed from the tags. Signed PDFs are refused.
 - **Images:** Exif, GPS, XMP and IPTC metadata, Content Credentials and AI source labels. Pixels are not re-encoded.
 - **Visio, OpenDocument and EPUB:** properties, comments, pictures and their metadata, and provenance, as far as each format carries them.
 
@@ -95,7 +95,7 @@ The [hidden data support matrix](https://github.com/EvotecIT/OfficeIMO/blob/mast
 
 | Category | In `Default` | Covers |
 | --- | --- | --- |
-| `DocumentProperties` | Yes | Author, last modified by, last printed, revision number, company, manager, template, editing time |
+| `DocumentProperties` | Yes | Author, last modified by, last printed, revision number, company, manager, template, editing time; in PDF, document information and XMP metadata except the title and the PDF/A, PDF/UA, PDF/X and e-invoice identification |
 | `CustomProperties` | Yes | Custom document properties |
 | `Comments` | Yes | Comments, replies, notes, threaded comments and PDF markup |
 | `PersonalIdentities` | Yes | People parts, and authors on retained comments and revisions |
@@ -165,6 +165,17 @@ officeimo hidden-data remove .\poster.pdf --kinds default,provenance --keep-prov
 The first command reports everything without changing the file. The second writes `proposal.cleaned.docx` with the default categories. The third also removes origin records and accepts tracked changes, into a named file. The last removes only the AI label and keeps the Content Credentials.
 
 `remove` never changes the input. It writes `<name>.cleaned<ext>` unless you pass `--output`, and refuses to replace an existing file without `--force`. `--kinds` takes `default`, `all` or category names such as `hidden-content`, `image-metadata`, `attachments`, `active-content`, `bookmarks` and `provenance`. `--keep-provenance` keeps some kinds of record when `provenance` is selected: `c2pa`, `external` or `ai-source`. `--anonymous-author` sets the replacement name, and `--remove-invalidated-signatures` allows cleaning a signed package. Output is JSON in the `officeimo.hidden-data.result.v1` schema, one entry per finding with its outcome; `--format text` prints a readable list instead.
+
+## PowerShell
+
+```powershell
+Get-OfficeHiddenData -Path .\proposal.docx
+Remove-OfficeHiddenData -Path .\proposal.docx
+$options = New-OfficeHiddenDataOptions -Kind Default, Provenance -TrackedChanges AcceptAll
+Get-ChildItem .\Outgoing -File | Remove-OfficeHiddenData -OutputDirectory .\Share -Options $options
+```
+
+`Remove-OfficeHiddenData` writes `<name>.cleaned<ext>` unless you pass `-OutputPath` or `-OutputDirectory`, replaces an existing output unless you pass `-NoClobber`, and returns the findings with their outcomes. [Clean files before sharing](/docs/pswriteoffice/before-sharing/) shows real output for Word, Excel, PowerPoint and PDF files.
 
 ## For AI agents
 

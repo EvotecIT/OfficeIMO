@@ -27,4 +27,6 @@ The [redact-detected-text recipe](https://github.com/EvotecIT/OfficeIMO/blob/mas
 
 The [sanitize-and-optimize recipe](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-SanitizeAndOptimize.ps1) keeps the source, sanitized copy, and optimized delivery file separate.
 
+To remove author names, comments and other metadata from PDF and Office files in one pass, see [Clean files before sharing](/docs/pswriteoffice/before-sharing/).
+
 Visual black boxes are not automatically secure redactions. Use the redaction command and verify extracted content rather than relying on a stamp or shape to hide text.

@@ -528,7 +528,7 @@ namespace OfficeIMO.Excel {
                 }
             }
             if (matchIndex < 0) {
-                throw new KeyNotFoundException($"Sheet '{options.SheetName}' was not found.");
+                throw new KeyNotFoundException($"Sheet '{options.SheetName}' was not found. The workbook has: {string.Join(", ", sheetNames)}.");
             }
 
             return new[] { new SheetSelection(sheetNames[matchIndex], matchIndex) };

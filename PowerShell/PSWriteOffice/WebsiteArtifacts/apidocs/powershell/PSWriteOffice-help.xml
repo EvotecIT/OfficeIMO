@@ -92230,6 +92230,125 @@ and Set-OfficeYamlNode instead.</maml:para>
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
+      <command:name>Get-OfficeHiddenData</command:name>
+      <command:verb>Get</command:verb>
+      <command:noun>OfficeHiddenData</command:noun>
+      <maml:description>
+        <maml:para>Reports the metadata and hidden data that would leave with a file. The file is never changed.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Finds author and company properties, comments, tracked changes, hidden text, rows, sheets and slides, speaker notes,
+image metadata such as GPS locations, scripts, attachments, Content Credentials and AI labels. Inputs are Word, Excel,
+PowerPoint, Visio, OpenDocument, EPUB, PDF, JPEG, PNG, WebP, GIF and TIFF files. Each finding has the Outcome Found.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Path">
+        <maml:name>Get-OfficeHiddenData</maml:name>
+        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Files to inspect; supports wildcards.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="LiteralPath">
+        <maml:name>Get-OfficeHiddenData</maml:name>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="PSPath,FullName">
+          <maml:name>LiteralPath</maml:name>
+          <maml:description>
+            <maml:para>Exact file paths, including FileInfo.FullName and provider PSPath pipeline properties.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="PSPath,FullName">
+        <maml:name>LiteralPath</maml:name>
+        <maml:description>
+          <maml:para>Exact file paths, including FileInfo.FullName and provider PSPath pipeline properties.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>Files to inspect; supports wildcards.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>PSWriteOffice.Models.OfficeHiddenDataFileReport</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>Hidden data found in one file, what removal did with each item, and where the cleaned copy was written.</maml:para>
+        </maml:description>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>List what would leave with a proposal.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>(Get-OfficeHiddenData -Path .\Proposal.docx).Findings</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Find the files in an outgoing folder that still carry comments or tracked changes.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>Get-ChildItem .\Outgoing -File | Get-OfficeHiddenData |
+                Where-Object { $_.Findings.Kind -contains 'Comments' -or $_.Findings.Kind -contains 'TrackedChanges' }</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
       <command:name>Get-OfficeMarkdownFrontMatter</command:name>
       <command:verb>Get</command:verb>
       <command:noun>OfficeMarkdownFrontMatter</command:noun>
@@ -126832,6 +126951,245 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
+      <command:name>New-OfficeHiddenDataOptions</command:name>
+      <command:verb>New</command:verb>
+      <command:noun>OfficeHiddenDataOptions</command:noun>
+      <maml:description>
+        <maml:para>Chooses which hidden data Remove-OfficeHiddenData and Optimize-OfficePdf -Sanitize remove.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>With no parameters the options select the Default categories: document and custom properties, comments, personal
+identities, speaker notes, the thumbnail, custom XML, image metadata, printer settings, external references, document
+variables, revision identifiers and active content such as scripts. Tracked changes, hidden content, provenance,
+attachments and bookmarks change what readers see or what the file discloses, so they are removed only when you name them.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Default">
+        <maml:name>New-OfficeHiddenDataOptions</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>AnonymousAuthor</maml:name>
+          <maml:description>
+            <maml:para>Name that replaces authors on comments and revisions that stay in the file. Defaults to Author.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>KeepProvenance</maml:name>
+          <maml:description>
+            <maml:para>Provenance carriers to keep when Provenance is selected: C2pa (Content Credentials), External (links to Content Credentials) or AiSource (AI-generated labels).</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">C2pa</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">External</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">AiSource</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+          <maml:name>Kind</maml:name>
+          <maml:description>
+            <maml:para>Categories to remove, combined. Defaults to Default; All selects every category.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeHiddenDataKind[]</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">DocumentProperties</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">CustomProperties</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Comments</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">TrackedChanges</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">PersonalIdentities</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">HiddenContent</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">SpeakerNotes</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Thumbnail</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">CustomXml</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">ImageMetadata</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">PrinterSettings</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">ExternalReferences</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">DocumentVariables</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">RevisionIdentifiers</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Provenance</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Attachments</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">ActiveContent</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Default</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Bookmarks</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">All</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>OfficeHiddenDataKind[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>TrackedChanges</maml:name>
+          <maml:description>
+            <maml:para>Keep, accept or reject tracked changes. Defaults to Keep, which reports them and leaves them in place.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeTrackedChangesAction</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Keep</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">AcceptAll</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">RejectAll</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>OfficeTrackedChangesAction</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>AnonymousAuthor</maml:name>
+        <maml:description>
+          <maml:para>Name that replaces authors on comments and revisions that stay in the file. Defaults to Author.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>KeepProvenance</maml:name>
+        <maml:description>
+          <maml:para>Provenance carriers to keep when Provenance is selected: C2pa (Content Credentials), External (links to Content Credentials) or AiSource (AI-generated labels).</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">C2pa</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">External</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">AiSource</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <maml:name>Kind</maml:name>
+        <maml:description>
+          <maml:para>Categories to remove, combined. Defaults to Default; All selects every category.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeHiddenDataKind[]</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">DocumentProperties</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">CustomProperties</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Comments</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">TrackedChanges</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PersonalIdentities</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">HiddenContent</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SpeakerNotes</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Thumbnail</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">CustomXml</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ImageMetadata</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PrinterSettings</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ExternalReferences</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">DocumentVariables</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">RevisionIdentifiers</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Provenance</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Attachments</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ActiveContent</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Default</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Bookmarks</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">All</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>OfficeHiddenDataKind[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>TrackedChanges</maml:name>
+        <maml:description>
+          <maml:para>Keep, accept or reject tracked changes. Defaults to Keep, which reports them and leaves them in place.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeTrackedChangesAction</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">Keep</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">AcceptAll</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">RejectAll</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>OfficeTrackedChangesAction</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>None</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.OfficeHiddenDataOptions</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Also remove Content Credentials and AI labels, and accept tracked changes.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>$options = New-OfficeHiddenDataOptions -Kind Default, Provenance -TrackedChanges AcceptAll
+            Remove-OfficeHiddenData -Path .\Proposal.docx -Options $options</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Remove AI-generated labels from a poster but keep its Content Credentials.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>$options = New-OfficeHiddenDataOptions -Kind Default, Provenance -KeepProvenance C2pa, External
+            Remove-OfficeHiddenData -Path .\Poster.pdf -Options $options</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Clean everything, including hidden sheets and attachments.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>Remove-OfficeHiddenData -Path .\Budget.xlsx -Options (New-OfficeHiddenDataOptions -Kind All)</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
       <command:name>New-OfficeHtmlConversionOptions</command:name>
       <command:verb>New</command:verb>
       <command:noun>OfficeHtmlConversionOptions</command:noun>
@@ -157520,7 +157878,7 @@ message gives the line, column and offending source line.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="SanitizationOptions">
           <maml:name>HiddenDataOptions</maml:name>
           <maml:description>
-            <maml:para>Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
+            <maml:para>Hidden-data categories that -Sanitize removes, from New-OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
           <dev:type>
@@ -157631,7 +157989,7 @@ message gives the line, column and offending source line.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="SanitizationOptions">
           <maml:name>HiddenDataOptions</maml:name>
           <maml:description>
-            <maml:para>Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
+            <maml:para>Hidden-data categories that -Sanitize removes, from New-OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
           <dev:type>
@@ -157889,7 +158247,7 @@ message gives the line, column and offending source line.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="SanitizationOptions">
           <maml:name>HiddenDataOptions</maml:name>
           <maml:description>
-            <maml:para>Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
+            <maml:para>Hidden-data categories that -Sanitize removes, from New-OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
           <dev:type>
@@ -158147,7 +158505,7 @@ message gives the line, column and offending source line.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="SanitizationOptions">
           <maml:name>HiddenDataOptions</maml:name>
           <maml:description>
-            <maml:para>Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
+            <maml:para>Hidden-data categories that -Sanitize removes, from New-OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
           <dev:type>
@@ -158270,7 +158628,7 @@ message gives the line, column and offending source line.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="SanitizationOptions">
         <maml:name>HiddenDataOptions</maml:name>
         <maml:description>
-          <maml:para>Hidden-data categories that -Sanitize removes, as OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
+          <maml:para>Hidden-data categories that -Sanitize removes, from New-OfficeHiddenDataOptions or a hashtable such as @{ Kinds = 'ActiveContent, Attachments, DocumentProperties' }. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
         <dev:type>
@@ -162618,6 +162976,425 @@ options retain their owner password, permission mask, algorithm, metadata settin
             }</dev:code>
         <dev:remarks>
           <maml:para>Removes every manual page break from the report sheets so the print layout can be set up again.</maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
+      <command:name>Remove-OfficeHiddenData</command:name>
+      <command:verb>Remove</command:verb>
+      <command:noun>OfficeHiddenData</command:noun>
+      <maml:description>
+        <maml:para>Writes a copy of a file without its metadata and hidden data, and reports what happened to each item.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>The input is never changed. The cleaned copy is written as &lt;name&gt;.cleaned&lt;ext&gt; beside the input unless
+OutputPath or OutputDirectory says otherwise. An existing output file is replaced, as with Convert-OfficeDocument and
+Optimize-OfficePdf; NoClobber refuses it instead.</maml:para>
+      <maml:para>Without Options the Default categories are removed: document and custom properties, comments, personal identities,
+speaker notes, the thumbnail, custom XML, image metadata, printer settings, external references, document variables,
+revision identifiers and active content such as scripts. Tracked changes, hidden content, provenance, attachments and
+bookmarks are kept until New-OfficeHiddenDataOptions selects them. Every finding reports an Outcome; a Retained finding
+carries a Reason and a Note that say why it stayed.</maml:para>
+      <maml:para>Saving refuses to invalidate an Office package signature unless RemoveInvalidatedSignatures is present. Signed PDFs
+are always refused.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Path">
+        <maml:name>Remove-OfficeHiddenData</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>NoClobber</maml:name>
+          <maml:description>
+            <maml:para>Refuse to replace an existing output file.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Options</maml:name>
+          <maml:description>
+            <maml:para>Categories to remove and how to treat tracked changes and provenance, from New-OfficeHiddenDataOptions. Defaults to the Default categories.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeHiddenDataOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>OutputPath</maml:name>
+          <maml:description>
+            <maml:para>The cleaned copy for a single input. It must keep the input's extension.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Files to clean; supports wildcards.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RemoveInvalidatedSignatures</maml:name>
+          <maml:description>
+            <maml:para>Allow cleaning to remove Office package signatures that it invalidates; otherwise a signed package is refused.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="PathDirectory">
+        <maml:name>Remove-OfficeHiddenData</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>NoClobber</maml:name>
+          <maml:description>
+            <maml:para>Refuse to replace an existing output file.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Options</maml:name>
+          <maml:description>
+            <maml:para>Categories to remove and how to treat tracked changes and provenance, from New-OfficeHiddenDataOptions. Defaults to the Default categories.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeHiddenDataOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>OutputDirectory</maml:name>
+          <maml:description>
+            <maml:para>Folder that receives each cleaned copy under its original file name; created when missing.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Files to clean; supports wildcards.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RemoveInvalidatedSignatures</maml:name>
+          <maml:description>
+            <maml:para>Allow cleaning to remove Office package signatures that it invalidates; otherwise a signed package is refused.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="LiteralPath">
+        <maml:name>Remove-OfficeHiddenData</maml:name>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="PSPath,FullName">
+          <maml:name>LiteralPath</maml:name>
+          <maml:description>
+            <maml:para>Exact file paths, including FileInfo.FullName and provider PSPath pipeline properties.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>NoClobber</maml:name>
+          <maml:description>
+            <maml:para>Refuse to replace an existing output file.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Options</maml:name>
+          <maml:description>
+            <maml:para>Categories to remove and how to treat tracked changes and provenance, from New-OfficeHiddenDataOptions. Defaults to the Default categories.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeHiddenDataOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>OutputPath</maml:name>
+          <maml:description>
+            <maml:para>The cleaned copy for a single input. It must keep the input's extension.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RemoveInvalidatedSignatures</maml:name>
+          <maml:description>
+            <maml:para>Allow cleaning to remove Office package signatures that it invalidates; otherwise a signed package is refused.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="LiteralPathDirectory">
+        <maml:name>Remove-OfficeHiddenData</maml:name>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="PSPath,FullName">
+          <maml:name>LiteralPath</maml:name>
+          <maml:description>
+            <maml:para>Exact file paths, including FileInfo.FullName and provider PSPath pipeline properties.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>NoClobber</maml:name>
+          <maml:description>
+            <maml:para>Refuse to replace an existing output file.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Options</maml:name>
+          <maml:description>
+            <maml:para>Categories to remove and how to treat tracked changes and provenance, from New-OfficeHiddenDataOptions. Defaults to the Default categories.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeHiddenDataOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>OutputDirectory</maml:name>
+          <maml:description>
+            <maml:para>Folder that receives each cleaned copy under its original file name; created when missing.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RemoveInvalidatedSignatures</maml:name>
+          <maml:description>
+            <maml:para>Allow cleaning to remove Office package signatures that it invalidates; otherwise a signed package is refused.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="PSPath,FullName">
+        <maml:name>LiteralPath</maml:name>
+        <maml:description>
+          <maml:para>Exact file paths, including FileInfo.FullName and provider PSPath pipeline properties.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>NoClobber</maml:name>
+        <maml:description>
+          <maml:para>Refuse to replace an existing output file.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Options</maml:name>
+        <maml:description>
+          <maml:para>Categories to remove and how to treat tracked changes and provenance, from New-OfficeHiddenDataOptions. Defaults to the Default categories.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeHiddenDataOptions</command:parameterValue>
+        <dev:type>
+          <maml:name>OfficeHiddenDataOptions</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>OutputDirectory</maml:name>
+        <maml:description>
+          <maml:para>Folder that receives each cleaned copy under its original file name; created when missing.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>OutputPath</maml:name>
+        <maml:description>
+          <maml:para>The cleaned copy for a single input. It must keep the input's extension.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>Files to clean; supports wildcards.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>RemoveInvalidatedSignatures</maml:name>
+        <maml:description>
+          <maml:para>Allow cleaning to remove Office package signatures that it invalidates; otherwise a signed package is refused.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>PSWriteOffice.Models.OfficeHiddenDataFileReport</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>Hidden data found in one file, what removal did with each item, and where the cleaned copy was written.</maml:para>
+        </maml:description>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Write Proposal.cleaned.docx with the default categories removed.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>Remove-OfficeHiddenData -Path .\Proposal.docx</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Clean a folder into a share folder, also removing Content Credentials and AI labels.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>$options = New-OfficeHiddenDataOptions -Kind Default, Provenance
+            Get-ChildItem .\Outgoing -File | Remove-OfficeHiddenData -OutputDirectory .\Share -Options $options</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Accept tracked changes, and keep an earlier cleaned copy if one exists.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>$options = New-OfficeHiddenDataOptions -TrackedChanges AcceptAll
+            Remove-OfficeHiddenData -Path .\Contract.docx -OutputPath .\Contract-final.docx -Options $options -NoClobber</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>

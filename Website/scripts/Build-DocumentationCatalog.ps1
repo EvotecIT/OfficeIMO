@@ -41,6 +41,7 @@ function Get-DocumentationUrl {
 
     switch -Regex ($Name) {
         '^PSWriteOffice$' { return '/docs/pswriteoffice/' }
+        '^OfficeIMO\.Tool$' { return '/docs/cli/' }
         '^OfficeIMO\.(?:IWork|Reader\.IWork|Word\.IWork|Excel\.IWork|PowerPoint\.IWork)$' { return '/docs/iwork/' }
         '^OfficeIMO\.Word' { return '/docs/word/' }
         '^OfficeIMO\.Excel' { return '/docs/excel/' }
@@ -54,6 +55,7 @@ function Get-DocumentationUrl {
         '^OfficeIMO\.Markdown' { return '/docs/markdown/' }
         '^OfficeIMO\.Rtf' { return '/docs/rtf/' }
         '^OfficeIMO\.Epub' { return '/docs/epub/' }
+        '^OfficeIMO\.Data\.Conversions' { return '/docs/data-conversions/' }
         '^OfficeIMO\.CSV' { return '/docs/csv/' }
         '^OfficeIMO\.Yaml' { return '/docs/yaml/' }
         '^OfficeIMO\.Visio' { return '/docs/visio/' }

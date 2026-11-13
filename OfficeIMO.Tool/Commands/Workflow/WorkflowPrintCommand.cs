@@ -30,6 +30,7 @@ internal static class WorkflowPrintCommand {
         PdfPrintDuplex duplex = PdfPrintDuplex.PrinterDefault;
         for (int index = 1; index < args.Length; index++) {
             string option = args[index];
+            if (option == "--format") throw new WorkflowUsageException("--format is not valid with print.");
             if (option is "--printer" or "--copies" or "--duplex" or "--paper-source" or "--dpi" or "--output-file") {
                 if (++index >= args.Length) throw new WorkflowUsageException(option + " requires a value.");
                 string value = args[index];

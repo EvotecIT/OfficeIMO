@@ -115,4 +115,5 @@ Open-OfficeYaml -Path .\deployment.yaml {
 
 - [OfficeIMO.Yaml README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Yaml/README.md): the complete API guide, including comments, anchors, schemas and supported serializer types.
 - [YAML engine design](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.yaml-engine-design.md): architecture, editing rules and qualification.
+- [Data conversions](/docs/data-conversions/): convert YAML to and from JSON, TOML, XML, CSV and Excel.
 - [OfficeIMO.Yaml API reference](/api/yaml/)

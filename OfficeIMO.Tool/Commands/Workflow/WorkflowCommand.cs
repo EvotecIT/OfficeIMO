@@ -1,4 +1,3 @@
-using System.Globalization;
 using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Tool.Commands.Workflow;
@@ -15,26 +14,28 @@ Usage:
              [--output <file> | --output-directory <folder>] [--format docx|doc|pdf]
              [--mode downsample|recompress|both] [--dpi <36-1200>] [--quality <1-100>] [--force]
   officeimo workflow export-pages <input.pdf> --output <folder> [--pages <selection>]
-             [--format png|jpeg|webp|tiff|svg] [--dpi <36-600>] [--max-dimension <pixels>] [--force]
-  officeimo workflow assemble <source>... --output <output.pdf> [--no-recursive] [--force]
+             [--image-format png|jpeg|webp|tiff|svg] [--dpi <36-600>] [--max-dimension <pixels>] [--force]
+             [--format json|text]
+  officeimo workflow assemble <source>... --output <output.pdf> [--no-recursive] [--force] [--format json|text]
   officeimo workflow print-plan <input.pdf> [--pages <selection>] [--paper A4|Letter|Legal|A3]
              [--orientation auto|portrait|landscape] [--pages-per-sheet 1|2|4|6|9]
              [--scale fit|actual|fill|custom] [--custom-scale <percent>] [--margin <points>]
              [--margin-left <points>] [--margin-top <points>] [--margin-right <points>] [--margin-bottom <points>]
              [--alignment center|top-left|top|top-right|left|right|bottom-left|bottom|bottom-right]
-             [--page-subset all|odd|even] [--color color|grayscale]
+             [--page-subset all|odd|even] [--color color|grayscale] [--format json|text]
   officeimo workflow batch [<source>...] --output <folder> [--input-directory <folder>]
-             [--target pdf|docx|xlsx|pptx|html] [--checkpoint <folder>] [--route <id>]
+             [--target pdf|docx|xlsx|pptx|html|json|jsonl|yaml|toml|xml|csv|tsv] [--checkpoint <folder>] [--route <id>]
              [--source-extension <extension>] [--no-recursive] [--concurrency 1..32]
              [--conflict fail|rename|replace] [--retry-failed] [--text-encoding <name>] [--tab-size 1..32]
-             [--allow-legacy-loss] [--source-password <password>] [--pdf-password <password>] [--pages <selection>]
+             [--allow-legacy-loss] [--pages <selection>]
              [--profile faithful|lightweight|printready|textonly] [--maximum-files <count>]
              [--maximum-input-bytes <bytes>] [--maximum-output-bytes <bytes>]
              [--maximum-xml-characters-in-part <characters>] [--diagram-layers screen|print] [--require-no-loss]
-             [--source-password-env <name>] [--pdf-password-env <name>] [--allow-empty]
+             [--source-password-env <name>] [--pdf-password-env <name>] [--allow-empty] [--verbose]
              [--format json|ndjson] [--save-job <new-job.json>]
   officeimo workflow job plan <job.json>
-  officeimo workflow job run <job.json> [--retry-failed] [--allow-empty] [--format json|ndjson] [--report <new-report.json>]
+  officeimo workflow job run <job.json> [--retry-failed] [--allow-empty] [--verbose] [--format json|ndjson]
+             [--report <new-report.json>]
   officeimo workflow job report <run-report.json>
   officeimo workflow printers [--paper-sources <queue>]
   officeimo workflow print <input.pdf> --printer <name> [print-plan options]
@@ -44,9 +45,15 @@ Usage:
 Page selections accept document-relative expressions such as 1-3,last.
 Folders and ZIP archives are expanded deterministically by the reusable workflow owner.
 Existing output is refused unless --force is supplied.
+export-pages, assemble and print-plan write one JSON result with a versioned schema identifier;
+--format text writes a short summary instead. Diagnostics go to standard error.
 Batch output defaults to the existing aggregate JSON. --format json adds per-file outcomes
 (up to 10,000 or 16 MiB of items with an explicit truncation marker); ndjson streams every item and a final summary.
 Batch and saved jobs fail when no inputs are selected unless --allow-empty is supplied.
+--target defaults to pdf, or to the target of --route when a route is named. Data targets (json, jsonl,
+yaml, toml, xml, csv, tsv and xlsx) run the structured-data routes.
+Files without a route to the target are skipped and counted on standard error; --verbose lists each one.
+Passwords are read only from the environment variables named by --source-password-env and --pdf-password-env.
 --save-job writes a definition without converting files. Saved jobs contain secret references only.
 --report records an attempt independently of checkpoint receipts; job report inspects it without executing work.
 """;
@@ -122,8 +129,9 @@ Batch and saved jobs fail when no inputs are selected unless --allow-empty is su
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken) {
+        string inputPath = Path.GetFullPath(parsed.Inputs[0]);
         PdfPageImageExportResult result = await runner.ExportPdfPagesAsync(new PdfPageImageExportRequest {
-            InputPath = Path.GetFullPath(parsed.Inputs[0]),
+            InputPath = inputPath,
             OutputDirectory = Path.GetFullPath(parsed.OutputPath!),
             Pages = parsed.Pages,
             Format = parsed.ImageFormat,
@@ -132,11 +140,8 @@ Batch and saved jobs fail when no inputs are selected unless --allow-empty is su
             ConflictPolicy = parsed.Force ? OfficePublicationPolicy.Replace : OfficePublicationPolicy.Fail
         }, cancellationToken: cancellationToken).ConfigureAwait(false);
         await WriteDiagnosticsAsync(result.Diagnostics, error).ConfigureAwait(false);
-        if (!result.Succeeded) return MapStatus(result.Status, result.FailureKind);
-        await output.WriteLineAsync(result.OutputDirectory).ConfigureAwait(false);
-        await output.WriteLineAsync(result.Files.Count.ToString(CultureInfo.InvariantCulture) + " page image(s), " +
-                                    result.OutputBytes.ToString(CultureInfo.InvariantCulture) + " bytes").ConfigureAwait(false);
-        return (int)OfficeImoToolExitCode.Success;
+        await WorkflowOutput.WriteExportPagesAsync(output, result, inputPath, parsed.Json).ConfigureAwait(false);
+        return result.Succeeded ? (int)OfficeImoToolExitCode.Success : MapStatus(result.Status, result.FailureKind);
     }
 
     private static async Task<int> AssembleAsync(
@@ -152,11 +157,8 @@ Batch and saved jobs fail when no inputs are selected unless --allow-empty is su
             Options = new PdfAssemblyOptions { IncludeSubdirectories = parsed.IncludeSubdirectories }
         }, cancellationToken: cancellationToken).ConfigureAwait(false);
         await WriteDiagnosticsAsync(result.Diagnostics, error).ConfigureAwait(false);
-        if (!result.Succeeded) return MapStatus(result.Status, result.FailureKind);
-        await output.WriteLineAsync(result.OutputPath).ConfigureAwait(false);
-        await output.WriteLineAsync(result.PageCount.ToString(CultureInfo.InvariantCulture) + " page(s) from " +
-                                    result.SourceCount.ToString(CultureInfo.InvariantCulture) + " normalized source(s)").ConfigureAwait(false);
-        return (int)OfficeImoToolExitCode.Success;
+        await WorkflowOutput.WriteAssembleAsync(output, result, parsed.Json).ConfigureAwait(false);
+        return result.Succeeded ? (int)OfficeImoToolExitCode.Success : MapStatus(result.Status, result.FailureKind);
     }
 
     private static async Task<int> PrintPlanAsync(
@@ -164,18 +166,9 @@ Batch and saved jobs fail when no inputs are selected unless --allow-empty is su
         TextWriter output,
         Func<PdfPrintPlanRequest, CancellationToken, Task<PdfPrintPlan>> printPlanner,
         CancellationToken cancellationToken) {
-        PdfPrintPlan plan = await printPlanner(parsed.CreatePrintRequest(), cancellationToken).ConfigureAwait(false);
-        await output.WriteLineAsync("Source pages: " + plan.SourcePageCount.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(false);
-        await output.WriteLineAsync("Selected pages: " + string.Join(',', plan.SelectedPages)).ConfigureAwait(false);
-        await output.WriteLineAsync("Sheets: " + plan.Sheets.Count.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(false);
-        await output.WriteLineAsync("Color: " + plan.ColorMode).ConfigureAwait(false);
-        foreach (PdfPrintSheet sheet in plan.Sheets) {
-            await output.WriteLineAsync(
-                "Sheet " + sheet.SheetNumber.ToString(CultureInfo.InvariantCulture) + ": " +
-                sheet.PaperSize.Width.ToPoints().ToString("0.##", CultureInfo.InvariantCulture) + " x " +
-                sheet.PaperSize.Height.ToPoints().ToString("0.##", CultureInfo.InvariantCulture) + " pt; pages " +
-                string.Join(',', sheet.Placements.Select(static placement => placement.PageNumber))).ConfigureAwait(false);
-        }
+        PdfPrintPlanRequest request = parsed.CreatePrintRequest();
+        PdfPrintPlan plan = await printPlanner(request, cancellationToken).ConfigureAwait(false);
+        await WorkflowOutput.WritePrintPlanAsync(output, plan, request.InputPath, parsed.Json).ConfigureAwait(false);
         return (int)OfficeImoToolExitCode.Success;
     }
 
