@@ -11,15 +11,21 @@ internal static partial class MarkdownReader {
         consumed = 0;
         label = href = string.Empty;
         if (start < 0 || start >= text.Length || text[start] != '<') return false;
-        int gt = text.IndexOf('>', start + 1);
+        // Autolinks can't contain '<', whitespace or controls, so stop at the first of those rather
+        // than searching the rest of the text for '>' from every '<'.
+        int gt = -1;
+        for (int i = start + 1; i < text.Length; i++) {
+            char c = text[i];
+            if (c == '>') {
+                gt = i;
+                break;
+            }
+
+            if (c == '<' || char.IsWhiteSpace(c) || char.IsControl(c)) return false;
+        }
+
         if (gt < 0) return false;
         if (gt == start + 1) return false;
-
-        // Disallow whitespace/control inside.
-        for (int i = start + 1; i < gt; i++) {
-            char c = text[i];
-            if (char.IsWhiteSpace(c) || char.IsControl(c)) return false;
-        }
 
         var inner = text.Substring(start + 1, gt - (start + 1));
 

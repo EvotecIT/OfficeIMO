@@ -8,6 +8,19 @@ internal static partial class MarkdownReader {
         InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches = null) {
         if (string.IsNullOrEmpty(text) || openIndex < 0 || openIndex >= text.Length || text[openIndex] != '[') return -1;
 
+        var index = InlineScanIndexCache.GetBracketIndex(text, options, inlineHtmlWrapperMatches);
+        if (index != null && index.TryGetMatch(openIndex, out int closeIndex)) {
+            return closeIndex;
+        }
+
+        return ScanForMatchingBracket(text, openIndex, options, inlineHtmlWrapperMatches);
+    }
+
+    private static int ScanForMatchingBracket(
+        string text,
+        int openIndex,
+        MarkdownLoadOptions? options,
+        InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches) {
         int depth = 0;
         bool escaped = false;
         var effectiveInlineHtmlWrapperMatches = inlineHtmlWrapperMatches;
@@ -88,7 +101,23 @@ internal static partial class MarkdownReader {
             fenceLength++;
         }
 
-        int scan = start + fenceLength;
+        int closingStart = FindClosingBacktickRun(text, start + fenceLength, fenceLength);
+        if (closingStart < 0) {
+            return false;
+        }
+
+        consumed = closingStart + fenceLength - start;
+        return true;
+    }
+
+    // Finds the next run of exactly fenceLength backticks at or after from, which must not be inside a run.
+    private static int FindClosingBacktickRun(string text, int from, int fenceLength) {
+        var index = InlineScanIndexCache.GetBacktickIndex(text);
+        if (index != null) {
+            return index.FindRun(from, fenceLength);
+        }
+
+        int scan = from;
         while (scan < text.Length) {
             if (text[scan] != '`') {
                 scan++;
@@ -101,14 +130,13 @@ internal static partial class MarkdownReader {
             }
 
             if (runLength == fenceLength) {
-                consumed = scan + runLength - start;
-                return true;
+                return scan;
             }
 
             scan += runLength;
         }
 
-        return false;
+        return -1;
     }
 
     private static int FindReferenceLabelEnd(string text, int openIndex) {
@@ -179,12 +207,17 @@ internal static partial class MarkdownReader {
         return UnescapeMarkdownBackslashEscapes(value);
     }
 
+    // CommonMark caps link labels at 999 characters. Longer bracketed text can never name a
+    // definition, so it is not normalized and looked up for every bracket it contains.
+    private const int MaxReferenceLabelLength = 999;
+
     private static bool TryParseRefLink(string text, int start, MarkdownLoadOptions? options, out int consumed, out string label, out string refLabel, InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches = null) {
         consumed = 0; label = refLabel = string.Empty;
         if (start >= text.Length || text[start] != '[') return false;
         int rb = FindMatchingBracket(text, start, options, inlineHtmlWrapperMatches); if (rb < 0) return false;
         if (rb + 1 >= text.Length || text[rb + 1] != '[') return false;
         int rb2 = FindMatchingBracket(text, rb + 1, options, inlineHtmlWrapperMatches); if (rb2 < 0) return false;
+        if (rb2 - rb - 2 > MaxReferenceLabelLength) return false;
         label = text.Substring(start + 1, rb - (start + 1));
         refLabel = text.Substring(rb + 2, rb2 - (rb + 2));
         consumed = rb2 - start + 1; return true;
@@ -195,6 +228,7 @@ internal static partial class MarkdownReader {
         if (start >= text.Length || text[start] != '[') return false;
         int rb = FindMatchingBracket(text, start, options, inlineHtmlWrapperMatches); if (rb < 0) return false;
         if (rb + 2 >= text.Length || text[rb + 1] != '[' || text[rb + 2] != ']') return false;
+        if (rb - start - 1 > MaxReferenceLabelLength) return false;
         label = text.Substring(start + 1, rb - (start + 1));
         consumed = rb + 3 - start;
         return true;
@@ -205,6 +239,7 @@ internal static partial class MarkdownReader {
         if (start >= text.Length || text[start] != '[') return false;
         int rb = FindMatchingBracket(text, start, options, inlineHtmlWrapperMatches); if (rb < 0) return false;
         if (rb + 1 < text.Length && text[rb + 1] == '[') return false;
+        if (rb - start - 1 > MaxReferenceLabelLength) return false;
         label = text.Substring(start + 1, rb - (start + 1));
         consumed = rb + 1 - start;
         return true;
@@ -590,6 +625,9 @@ internal static partial class MarkdownReader {
         return false;
     }
 
+    // The opening parenthesis counts as the first level.
+    private const int MaxLinkDestinationParenDepth = 33;
+
     private static int FindMatchingParen(string text, int openIndex) {
         int depth = 0;
         bool inDoubleQuotes = false;
@@ -607,6 +645,9 @@ internal static partial class MarkdownReader {
                 continue;
             }
             if (inAngle) {
+                // A pointed destination can't contain '<' or a line ending; stopping here keeps an
+                // unclosed '<' from scanning the rest of the text for every link opener.
+                if (c == '<' || c == '\n') return -1;
                 if (c == '>') inAngle = false;
                 continue;
             }
@@ -618,7 +659,12 @@ internal static partial class MarkdownReader {
                 if (c == '\'') inSingleQuotes = false;
                 continue;
             }
-            if (c == '(') { depth++; continue; }
+            if (c == '(') {
+                // CommonMark lets implementations cap parenthesis nesting in destinations; like cmark,
+                // give up past 32 so unbalanced input can't make every opener scan to the end.
+                if (++depth > MaxLinkDestinationParenDepth) return -1;
+                continue;
+            }
             if (c == ')') { depth--; if (depth == 0) return i; continue; }
             if (depth == 1) {
                 if (c == '<') { inAngle = true; continue; }

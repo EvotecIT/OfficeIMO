@@ -108,13 +108,13 @@ internal static partial class MarkdownReader {
                 continue;
             }
 
-            if (!HtmlBlockParser.TryParseHtmlTag(text.Substring(tagStart), out _, out _, out int endIndex)) {
+            if (!HtmlBlockParser.TryParseHtmlTag(text, tagStart, out _, out _, out int endIndex)) {
                 position = tagStart + 1;
                 continue;
             }
 
-            ranges.Add(new ParagraphInlinePreserveRange(tagStart + 1, tagStart + endIndex));
-            position = tagStart + endIndex + 1;
+            ranges.Add(new ParagraphInlinePreserveRange(tagStart + 1, endIndex));
+            position = endIndex + 1;
         }
 
         return ranges;

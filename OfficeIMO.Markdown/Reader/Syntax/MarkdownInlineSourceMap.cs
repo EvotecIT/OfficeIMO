@@ -12,6 +12,9 @@ internal sealed class MarkdownInlineSourceMap {
     private readonly int _singleLine;
     private readonly int _singleLineStartColumn;
     private readonly int _singleLineStartOffset;
+    // Column at every index of _singleLineText, kept only when the line has tabs. Without tabs a
+    // column is the start column plus the distance, so spans no longer rescan the line prefix.
+    private readonly int[]? _singleLineTabColumns;
 
     internal MarkdownInlineSourceMap(
         MarkdownSourceTextMap sourceTextMap,
@@ -28,6 +31,7 @@ internal sealed class MarkdownInlineSourceMap {
         _singleLine = startPoint.Line;
         _singleLineStartColumn = startPoint.Column;
         _singleLineStartOffset = startPoint.Offset;
+        _singleLineTabColumns = BuildTabColumns(_singleLineText, _singleLineStartColumn);
     }
 
     private MarkdownInlineSourceMap(
@@ -36,7 +40,8 @@ internal sealed class MarkdownInlineSourceMap {
         int textLength,
         int absoluteLine,
         int startColumn,
-        int startOffset) {
+        int startOffset,
+        int[]? tabColumns) {
         _points = Array.Empty<MarkdownSourcePoint?>();
         _tokenSpans = Array.Empty<MarkdownSourceSpan?>();
         _tokenLiterals = Array.Empty<string?>();
@@ -46,6 +51,7 @@ internal sealed class MarkdownInlineSourceMap {
         _singleLine = absoluteLine;
         _singleLineStartColumn = startColumn;
         _singleLineStartOffset = startOffset;
+        _singleLineTabColumns = tabColumns;
     }
 
     internal MarkdownInlineSourceMap(MarkdownSourcePoint?[] points) {
@@ -74,12 +80,8 @@ internal sealed class MarkdownInlineSourceMap {
             var endExclusive = Math.Min(_singleLineTextLength, startIndex + length);
             var sourceStart = _singleLineTextStart + startIndex;
             var sourceEndExclusive = _singleLineTextStart + endExclusive;
-            var startColumn = AdvanceColumn(
-                _singleLineStartColumn,
-                _singleLineText,
-                _singleLineTextStart,
-                sourceStart);
-            var endColumnExclusive = AdvanceColumn(startColumn, _singleLineText, sourceStart, sourceEndExclusive);
+            var startColumn = GetSingleLineColumn(sourceStart);
+            var endColumnExclusive = GetSingleLineColumn(sourceEndExclusive);
             return new MarkdownSourceSpan(
                 _singleLine,
                 startColumn,
@@ -98,24 +100,27 @@ internal sealed class MarkdownInlineSourceMap {
         }
 
         var endIndex = Math.Min(_points.Length - 1, startIndex + length - 1);
+        // Only the first and last mapped positions matter. Walking inward from both ends keeps a
+        // wide span (an emphasis around a long paragraph) from costing its full length.
         MarkdownSourcePoint? start = null;
         MarkdownSourcePoint? end = null;
 
-        for (var i = startIndex; i <= endIndex; i++) {
-            var point = _points[i];
+        for (var i = startIndex; i <= endIndex && !start.HasValue; i++) {
             if (i < _tokenSpans.Length && _tokenSpans[i].HasValue) {
                 var span = _tokenSpans[i]!.Value;
-                start ??= new MarkdownSourcePoint(span.StartLine, span.StartColumn ?? 1, span.StartOffset ?? 0);
+                start = new MarkdownSourcePoint(span.StartLine, span.StartColumn ?? 1, span.StartOffset ?? 0);
+            } else {
+                start = _points[i];
+            }
+        }
+
+        for (var i = endIndex; i >= startIndex && start.HasValue && !end.HasValue; i--) {
+            if (i < _tokenSpans.Length && _tokenSpans[i].HasValue) {
+                var span = _tokenSpans[i]!.Value;
                 end = new MarkdownSourcePoint(span.EndLine, span.EndColumn ?? 1, span.EndOffset ?? 0);
-                continue;
+            } else {
+                end = _points[i];
             }
-
-            if (point == null) {
-                continue;
-            }
-
-            start ??= point;
-            end = point;
         }
 
         if (!start.HasValue || !end.HasValue) {
@@ -215,12 +220,9 @@ internal sealed class MarkdownInlineSourceMap {
                 directStart,
                 directLength,
                 _singleLine,
-                AdvanceColumn(
-                    _singleLineStartColumn,
-                    _singleLineText,
-                    _singleLineTextStart,
-                    directStart),
-                _singleLineStartOffset + startIndex);
+                GetSingleLineColumn(directStart),
+                _singleLineStartOffset + startIndex,
+                _singleLineTabColumns);
         }
 
         if (length <= 0 || startIndex < 0 || startIndex >= Length) {
@@ -249,14 +251,23 @@ internal sealed class MarkdownInlineSourceMap {
         return new MarkdownInlineSourceMap(slice, tokenSpanSlice, tokenLiteralSlice);
     }
 
-    private static int AdvanceColumn(int column, string text, int start, int endExclusive) {
-        var result = column;
-        var limit = Math.Min(text.Length, Math.Max(start, endExclusive));
-        for (var index = Math.Max(0, start); index < limit; index++) {
-            result = MarkdownSourceColumns.AdvanceColumn(result, text[index]);
+    private int GetSingleLineColumn(int sourceIndex) =>
+        _singleLineTabColumns != null
+            ? _singleLineTabColumns[sourceIndex]
+            : _singleLineStartColumn + (sourceIndex - _singleLineTextStart);
+
+    private static int[]? BuildTabColumns(string text, int startColumn) {
+        if (text.IndexOf('\t') < 0) {
+            return null;
         }
 
-        return result;
+        var columns = new int[text.Length + 1];
+        columns[0] = startColumn;
+        for (var index = 0; index < text.Length; index++) {
+            columns[index + 1] = MarkdownSourceColumns.AdvanceColumn(columns[index], text[index]);
+        }
+
+        return columns;
     }
 }
 

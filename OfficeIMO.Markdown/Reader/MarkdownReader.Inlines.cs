@@ -54,6 +54,7 @@ internal static partial class MarkdownReader {
             return root;
         }
 
+        using var scanIndexScope = InlineScanIndexCache.Enter();
         inlineHtmlWrapperMatches ??= options.InlineHtml
             ? BuildInlineHtmlWrapperMatchIndex(text)
             : InlineHtmlWrapperMatchIndex.Empty;
@@ -464,25 +465,7 @@ internal static partial class MarkdownReader {
             if (text[pos] == '`') {
                 // Support multi-backtick code spans: count fence length and find a matching run
                 int fenceLen = 0; int k = pos; while (k < text.Length && text[k] == '`') { fenceLen++; k++; }
-                int j = k; int matchStart = -1;
-                while (j < text.Length) {
-                    if (text[j] != '`') {
-                        j++;
-                        continue;
-                    }
-
-                    int candidateStart = j;
-                    int candidateLen = 0;
-                    while (j < text.Length && text[j] == '`') {
-                        candidateLen++;
-                        j++;
-                    }
-
-                    if (candidateLen == fenceLen) {
-                        matchStart = candidateStart;
-                        break;
-                    }
-                }
+                int matchStart = FindClosingBacktickRun(text, k, fenceLen);
                 if (matchStart >= 0) {
                     int contentStart = pos + fenceLen;
                     int contentLen = matchStart - contentStart;
@@ -791,15 +774,15 @@ internal static partial class MarkdownReader {
                     continue;
                 }
 
-                bool splitDoubleRunIntoDualItalic = ShouldSplitDoubleRunIntoDualItalic(text, pos, marker, runLen, stack, options.CjkFriendlyEmphasis);
+                bool splitDoubleRunIntoDualItalic = ShouldSplitDoubleRunIntoDualItalic(text, pos, marker, runLen, stack, options.CjkFriendlyEmphasis, emphasisClosingRuns);
 
-                if (ShouldTreatDelimiterRunAsLiteral(text, pos, marker, runLen, stack, splitDoubleRunIntoDualItalic, options.CjkFriendlyEmphasis, out int literalRunLength)) {
+                if (ShouldTreatDelimiterRunAsLiteral(text, pos, marker, runLen, stack, splitDoubleRunIntoDualItalic, options.CjkFriendlyEmphasis, emphasisClosingRuns, out int literalRunLength)) {
                     AddTextNode(new string(marker, literalRunLength), pos, literalRunLength);
                     pos += literalRunLength;
                     continue;
                 }
 
-                if (ShouldTreatSingleMarkerAsLiteralInsideBold(text, pos, marker, runLen, stack, options.CjkFriendlyEmphasis)) {
+                if (ShouldTreatSingleMarkerAsLiteralInsideBold(text, pos, marker, runLen, stack, options.CjkFriendlyEmphasis, emphasisClosingRuns)) {
                     AddTextNode(marker.ToString(), pos, 1);
                     pos++;
                     continue;
@@ -861,7 +844,7 @@ internal static partial class MarkdownReader {
                 int remaining = runLen;
                 if (canClose) {
                     while (remaining > 0) {
-                        if (TryRebalanceParentBoldWithInnerItalicIntoDualItalic(text, pos, stack, marker, remaining, options.CjkFriendlyEmphasis, out int dualItalicRebalanced)) {
+                        if (TryRebalanceParentBoldWithInnerItalicIntoDualItalic(text, pos, stack, marker, remaining, options.CjkFriendlyEmphasis, emphasisClosingRuns, out int dualItalicRebalanced)) {
                             remaining -= dualItalicRebalanced;
                             continue;
                         }
