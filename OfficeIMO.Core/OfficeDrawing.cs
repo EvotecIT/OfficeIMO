@@ -902,6 +902,11 @@ public sealed partial class OfficeDrawing {
 
         if ((!groupTransform.HasValue || !groupTransform.Value.HasTransform) && frameTransform.HasValue && frameTransform.Value.HasTransform) {
             groupTransform = frameTransform;
+        } else if (groupTransform.HasValue && groupTransform.Value.HasTransform) {
+            // An existing child's destination-space center moves with its translated frame.
+            OfficeImageFrameTransform original = groupTransform.Value;
+            groupTransform = new OfficeImageFrameTransform(original.RotationDegrees,
+                original.CenterX + offsetX, original.CenterY + offsetY, original.FlipHorizontal, original.FlipVertical);
         }
 
         if (groupTransform.HasValue) {

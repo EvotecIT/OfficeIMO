@@ -189,7 +189,9 @@ public sealed class PdfOutputIntentCompositionTests {
     [InlineData(1D, 30D, 70D, 7D)]
     public void NestedProofTiles_KeepTheSourceGridWithinTheWorkingBudget(double density, double rotation, double x, double y) {
         OfficeDrawing page = PdfReadDocument.Open(File.ReadAllBytes(Fixture("reportlab-output-intent.pdf"))).Pages[4].ToDrawing();
-        var parent = new OfficeDrawing(256, 256).AddEffectDrawing(page,
+        var parent = new OfficeDrawing(256, 256);
+        if (density == 1D && rotation == 0D) parent.AddDrawing(page, x, y);
+        else parent.AddEffectDrawing(page,
             OfficeTransform.Scale(density, density).Then(OfficeTransform.RotateDegrees(rotation)).Then(OfficeTransform.Translate(x, y)));
         OfficeRasterImage whole = OfficeDrawingRasterRenderer.Render(parent);
         OfficePoint sample = OfficeTransform.Scale(density, density).Then(OfficeTransform.RotateDegrees(rotation))
@@ -200,6 +202,26 @@ public sealed class PdfOutputIntentCompositionTests {
         for (int row = 0; row < 4; row++)
             for (int column = 0; column < 4; column++)
                 Assert.Equal(whole.GetPixel(left + column, top + row), tile.GetPixel(column, row));
+    }
+
+    [Theory]
+    [InlineData(90D, false)]
+    [InlineData(0D, true)]
+    public void ProofTiles_TranslateDescendantClipAndFrameCenterTogether(double rotation, bool mirror) {
+        OfficeDrawing page = PdfReadDocument.Open(File.ReadAllBytes(Fixture("reportlab-output-intent.pdf"))).Pages[4].ToDrawing();
+        OfficeShape shape = OfficeShape.Rectangle(20, 20);
+        shape.FillColor = OfficeColor.FromRgb(0, 255, 0);
+        shape.StrokeWidth = 0;
+        var child = new OfficeDrawing(20, 20).AddShape(shape, 0, 0);
+        page.AddClippedDrawing(child, 40, 40, OfficeClipPath.Rectangle(20, 20),
+            new OfficeImageFrameTransform(rotation, 50, 50, flipHorizontal: mirror));
+        var parent = new OfficeDrawing(128, 96).AddDrawing(page, 0, 0);
+        OfficeRasterImage whole = OfficeDrawingRasterRenderer.Render(parent);
+        Assert.True(whole.GetPixel(42, 42).G > whole.GetPixel(42, 42).R);
+        OfficeRasterImage tile = OfficeDrawingRasterRenderer.RenderRegion(parent,
+            new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 1024 }, 42, 42, 4, 4);
+        for (int y = 0; y < 4; y++)
+            for (int x = 0; x < 4; x++) Assert.Equal(whole.GetPixel(42 + x, 42 + y), tile.GetPixel(x, y));
     }
 
     [Theory]
