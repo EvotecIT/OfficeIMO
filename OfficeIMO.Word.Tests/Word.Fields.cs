@@ -311,6 +311,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FieldPartsFollowInstructionEdits() {
+            using WordDocument document = WordDocument.Create();
+            _ = document.PageSetup.Header;
+            var pageNumber = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddPageNumber(WordPageNumberStyle.PlainNumber);
+            WordField field = pageNumber.Field!;
+            Assert.DoesNotContain(field.FieldSwitches, value => value.StartsWith("\\@", StringComparison.Ordinal));
+
+            // The setter rewrites the instruction through another handle after this one has read it.
+            pageNumber.CustomFormat = "0.00";
+
+            Assert.Contains("\\@ \"0.00\"", field.FieldSwitches);
+            Assert.Equal(WordFieldType.Page, field.FieldType);
+        }
+
+        [Fact]
         public void Test_BibliographyAndCitation() {
             using (WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "DocumentWithCitation.docx"))) {
                 var src = new WordBibliographySource("S1", WordBibliographySourceType.Book) {
