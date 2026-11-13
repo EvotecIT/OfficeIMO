@@ -112,7 +112,7 @@ function Test-ExcelBenchmarkOutput {
         return
     }
 
-    $document = Get-OfficeExcel -Path $Run.Path -ReadOnly
+    $document = Open-OfficeExcel -Path $Run.Path -ReadOnly
     if ($document) {
         Close-OfficeExcel -Document $document
     }

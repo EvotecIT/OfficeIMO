@@ -184,7 +184,7 @@ upstream `QuickTest` pattern and the small/medium/large reader shape by changing
 `-RowCount`. The explicit `csv-dbatools-wide-*` and `csv-dbatools-quoted-*`
 lanes cover the upstream wide 50-column and quote-all files.
 
-The `csv-read-datatable-*` lanes compare `Import-OfficeCsv -AsDataTable` with a
+The `csv-read-datatable-*` lanes compare `Import-OfficeCsv -As DataTable` with a
 native PowerShell baseline that reads via `Import-Csv` and fills a `DataTable`.
 That keeps the database/table workflow visible instead of comparing only
 PowerShell object materialization.
@@ -220,12 +220,12 @@ round-trip validation.
 
 | Capability | Current PSWriteOffice / OfficeIMO.CSV support | Benchmark visibility |
 | --- | --- | --- |
-| Streaming reads | `Import-OfficeCsv` streams rows by default; `-AsDataTable` materializes one table when the next hop is tabular | Object read lanes and DataTable read lanes |
+| Streaming reads | `Import-OfficeCsv` streams rows by default; `-As DataTable` materializes one table when the next hop is tabular | Object read lanes and DataTable read lanes |
 | Streaming writes | `Export-OfficeCsv` accepts objects, `DataTable`, `DataView`, and `IDataReader` input | Object/DataTable write lanes; DbaClientX export benchmark covers direct `IDataReader` SQL export |
 | Compression | `Export-OfficeCsv` / `Import-OfficeCsv` expose `-CompressionType`; OfficeIMO.CSV supports none, auto, GZip, Deflate, and runtime-supported Brotli/ZLib | GZip write/read DataTable lanes |
 | Cancellation | OfficeIMO.CSV accepts a cancellation token; PSWriteOffice cancels it from `StopProcessing`, so Ctrl+C can stop long reads | Contract coverage, not timed by default |
 | Progress | OfficeIMO.CSV exposes progress callbacks; PSWriteOffice exposes `-ProgressInterval` and writes PowerShell progress records | Contract coverage, not timed by default |
-| Schema and typed tables | OfficeIMO.CSV supports explicit/inferred schema, `DataTable`, and `IDataReader` schema tables; PSWriteOffice exposes `Import-OfficeCsv -AsDataTable -InferSchema` and `Import-OfficeCsv -AsDataReader -ColumnType` | DataTable read lanes; DbaClientX round-trip uses schema-aware reader handoff |
+| Schema and typed tables | OfficeIMO.CSV supports explicit/inferred schema, `DataTable`, and `IDataReader` schema tables; PSWriteOffice exposes `Import-OfficeCsv -As DataTable -InferSchema` and `Import-OfficeCsv -As DataReader -ColumnType` | DataTable read lanes; DbaClientX round-trip uses schema-aware reader handoff |
 | CSV dialects | Culture/list separator, delimiter detection, multi-character delimiters, no-header/custom headers, comments, W3C headers, null values, date formats, quote modes, and selected quote fields | Default benchmark dialect plus focused command tests |
 | Robust parsing | Duplicate-header policy, row-length mismatch policy, strict/lenient quotes, parse-error collection/skip-row, max field length, decompression limits, smart-quote normalization, and string interning | Command/core tests; timed lanes stay on clean generated files |
 | Platform shape | PSWriteOffice targets Windows PowerShell/.NET Framework and PowerShell 7/.NET; Brotli/ZLib depend on runtime support, and comparison tools such as `bcp`/FastBCP/dbatools must be installed locally | Benchmarks skip unavailable optional engines |

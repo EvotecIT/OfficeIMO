@@ -26,7 +26,7 @@ function Invoke-ExcelBenchmarkOperation {
         ReadRangeDataReader { Invoke-ExcelBenchmarkReadDataReader -Run $Run -Mode Range }
         ReadNoHeaderRange { Invoke-ExcelBenchmarkReadWorkbook -Engine $Engine -Case $Case -Run $Run -Mode NoHeader }
         ReadUsedRangeDataTable {
-            $dataTable = Get-OfficeExcelUsedRange -Path $Run.Path -Sheet $Run.WorksheetName -AsDataTable
+            $dataTable = Import-OfficeExcel -Path $Run.Path -Sheet $Run.WorksheetName -As DataTable
             $Run.ActualRows = if ($dataTable -and $dataTable.Rows) { [int]$dataTable.Rows.Count } else { 0 }
         }
         ReadTableMetadata {
@@ -122,7 +122,7 @@ function Invoke-ExcelBenchmarkReadCsvDataTable {
 
     switch ($Engine) {
         PSWriteOffice {
-            $table = Import-OfficeCsv -Path $Run.SourcePath -AsDataTable
+            $table = Import-OfficeCsv -Path $Run.SourcePath -As DataTable
             $Run.ActualRows = if ($table -and $table.Rows) { [int]$table.Rows.Count } else { 0 }
         }
         NativeCsv {
@@ -138,7 +138,7 @@ function Invoke-ExcelBenchmarkReadCsvGZipDataTable {
 
     switch ($Engine) {
         PSWriteOffice {
-            $table = Import-OfficeCsv -Path $Run.SourcePath -CompressionType GZip -AsDataTable
+            $table = Import-OfficeCsv -Path $Run.SourcePath -CompressionType GZip -As DataTable
             $Run.ActualRows = if ($table -and $table.Rows) { [int]$table.Rows.Count } else { 0 }
         }
         NativeCsv {
