@@ -1026,6 +1026,9 @@ internal static partial class MarkdownReader {
             foreach (var node in f.Seq.Nodes) parent.AddRaw(node);
         }
 
+        // Link labels and inline HTML wrappers are parsed here too, so their depth is checked
+        // before a parent derives text from them.
+        EnsureInlineNestingDepthAvailable(root, options);
         return root;
     }
 

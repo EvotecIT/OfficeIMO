@@ -80,6 +80,9 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
 
     internal string RenderMarkdown() {
         MarkdownRenderContext.ThrowIfCancellationRequested();
+        // Rendering descends nested sequences recursively; a hand-built tree deeper than the stack
+        // fails with a catchable exception instead of ending the process.
+        System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
         StringBuilder sb = new StringBuilder();
         var options = MarkdownRenderContext.Options;
         MarkdownInlineMarkdownRenderContext? context = options == null
@@ -105,6 +108,7 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
             return RenderMarkdown();
         }
 
+        System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
         StringBuilder sb = new StringBuilder();
         var options = MarkdownRenderContext.Options;
         MarkdownInlineMarkdownRenderContext? context = options == null
@@ -127,6 +131,7 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
     }
 
     internal string RenderHtml() {
+        System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
         StringBuilder sb = new StringBuilder();
         var options = HtmlRenderContext.Options;
         MarkdownInlineHtmlRenderContext? context = options == null

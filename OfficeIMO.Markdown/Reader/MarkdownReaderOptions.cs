@@ -676,7 +676,9 @@ public sealed class MarkdownLoadOptions {
 
     /// <summary>
     /// Maximum recursive block-container depth accepted while parsing nested lists, quotes,
-    /// details, callouts, footnotes, and similar constructs. Default: 64.
+    /// details, callouts, footnotes, and similar constructs, and the maximum depth of nested
+    /// inline containers such as emphasis, links and inline HTML wrappers within one block.
+    /// Deeper input fails with an <see cref="System.IO.InvalidDataException"/>. Default: 64.
     /// </summary>
     public int MaxNestingDepth { get; set; } = 64;
 

@@ -99,6 +99,39 @@ internal static partial class MarkdownReader {
         }
     }
 
+    // Inline containers are built with an explicit frame stack, but the syntax builder, renderers,
+    // writers and visitors descend them recursively. Rejecting the tree here keeps every consumer
+    // within the same bound that MaxNestingDepth already gives block containers.
+    private static void EnsureInlineNestingDepthAvailable(
+        InlineSequence sequence,
+        MarkdownLoadOptions options) {
+        int maximumDepth = options.MaxNestingDepth;
+        if (sequence.Nodes.Count == 0) {
+            return;
+        }
+
+        var pending = new Stack<(InlineSequence Sequence, int Depth)>();
+        pending.Push((sequence, 0));
+        while (pending.Count > 0) {
+            var (current, depth) = pending.Pop();
+            var nodes = current.Nodes;
+            for (int i = 0; i < nodes.Count; i++) {
+                if (nodes[i] is not IInlineContainerMarkdownInline container
+                    || container.NestedInlines is not InlineSequence nested
+                    || nested.Nodes.Count == 0) {
+                    continue;
+                }
+
+                if (depth >= maximumDepth) {
+                    throw new InvalidDataException(
+                        $"Markdown inline nesting exceeds MaxNestingDepth ({maximumDepth}).");
+                }
+
+                pending.Push((nested, depth + 1));
+            }
+        }
+    }
+
     private static MarkdownReaderState CreateNestedState(
         MarkdownReaderState state,
         MarkdownLoadOptions options) {

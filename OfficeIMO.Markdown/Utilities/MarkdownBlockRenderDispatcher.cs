@@ -6,6 +6,8 @@ internal static class MarkdownBlockRenderDispatcher {
             return string.Empty;
         }
 
+        System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
+
         var context = HtmlRenderContext.BodyContext;
         return context == null
             ? block.RenderHtml()
@@ -16,6 +18,10 @@ internal static class MarkdownBlockRenderDispatcher {
         if (block == null) {
             return string.Empty;
         }
+
+        // Container blocks render their children through here; a hand-built tree deeper than the
+        // stack fails with a catchable exception instead of ending the process.
+        System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
 
         var overridden = TryRenderSyntaxBlockHtmlOverride(block, context);
         if (overridden != null) {
@@ -67,6 +73,8 @@ internal static class MarkdownBlockRenderDispatcher {
         if (block == null) {
             return string.Empty;
         }
+
+        System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
 
         var context = MarkdownRenderContext.WriteContext;
         return context == null
