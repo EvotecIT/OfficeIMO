@@ -13,28 +13,34 @@ internal static class WorkflowPrintCommand {
             return (int)OfficeImoToolExitCode.Success;
         }
         if (args[0] == "printers") {
-            if (args.Length == 3 && args[1] == "--paper-sources") {
-                foreach (PdfPaperSourceInfo source in await service.GetPaperSourcesAsync(args[2], token).ConfigureAwait(false))
-                    await output.WriteLineAsync(source.Id + ": " + source.Name).ConfigureAwait(false);
-                return (int)OfficeImoToolExitCode.Success;
+            string? queueName = null;
+            bool listJson = true;
+            for (int index = 1; index < args.Length; index++) {
+                string option = args[index];
+                if (option is not ("--paper-sources" or "--format") || ++index >= args.Length || args[index].StartsWith("--", StringComparison.Ordinal))
+                    throw new WorkflowUsageException("Use printers [--paper-sources <queue>] [--format json|text].");
+                if (option == "--format") listJson = WorkflowOutput.ParseJson(args[index]);
+                else queueName = args[index];
             }
-            if (args.Length != 1) throw new WorkflowUsageException("Use printers or printers --paper-sources <queue>.");
-            foreach (PdfPrinterInfo queue in await service.GetPrintersAsync(token).ConfigureAwait(false))
-                await output.WriteLineAsync(queue.Name + (queue.IsDefault ? " (default)" : "") + (queue.RequiresOutputFile ? " (file printer)" : "")).ConfigureAwait(false);
+            if (queueName != null)
+                await WorkflowOutput.WritePaperSourcesAsync(output, queueName, await service.GetPaperSourcesAsync(queueName, token).ConfigureAwait(false), listJson).ConfigureAwait(false);
+            else
+                await WorkflowOutput.WritePrintersAsync(output, await service.GetPrintersAsync(token).ConfigureAwait(false), listJson).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.Success;
         }
         var planner = new List<string> { "print-plan" };
         string? printer = null, paperSource = null, outputFile = null;
         int copies = 1;
+        bool json = true;
         double dpi = 150;
         PdfPrintDuplex duplex = PdfPrintDuplex.PrinterDefault;
         for (int index = 1; index < args.Length; index++) {
             string option = args[index];
-            if (option == "--format") throw new WorkflowUsageException("--format is not valid with print.");
-            if (option is "--printer" or "--copies" or "--duplex" or "--paper-source" or "--dpi" or "--output-file") {
+            if (option is "--format" or "--printer" or "--copies" or "--duplex" or "--paper-source" or "--dpi" or "--output-file") {
                 if (++index >= args.Length) throw new WorkflowUsageException(option + " requires a value.");
                 string value = args[index];
                 switch (option) {
+                    case "--format": json = WorkflowOutput.ParseJson(value); break;
                     case "--printer": printer = value; break;
                     case "--paper-source": paperSource = value; break;
                     case "--output-file": outputFile = Path.GetFullPath(value); break;
@@ -65,7 +71,7 @@ internal static class WorkflowPrintCommand {
             PdfPrintSubmission receipt = await service.SubmitAsync(sheets, new PdfPrintDeliveryOptions {
                 PrinterName = printer, DocumentName = Path.GetFileName(input), Copies = copies, Duplex = duplex, PaperSourceId = paperSource, OutputFilePath = outputFile
             }, token).ConfigureAwait(false);
-            await output.WriteLineAsync("Queue accepted: " + receipt.PrinterName + "; job " + (receipt.JobId ?? "unknown") + ". Physical delivery is unconfirmed.").ConfigureAwait(false);
+            await WorkflowOutput.WritePrintAsync(output, receipt, input, json).ConfigureAwait(false);
             if (receipt.CleanupWarning != null) await error.WriteLineAsync(receipt.CleanupWarning).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.Success;
         } catch (PdfPrintDeliveryException exception) {

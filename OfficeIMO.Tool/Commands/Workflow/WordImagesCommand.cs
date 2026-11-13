@@ -17,7 +17,7 @@ internal static class WordImagesCommand {
         var inputs = new List<string>();
         var options = new WordImageOptimizationOptions();
         string? destination = null, directory = null, format = null;
-        bool analyze = false, force = false;
+        bool analyze = false, force = false, json = true;
         for (int i = 0; i < args.Length; i++) {
             string argument = args[i];
             string Value() => ++i < args.Length && !args[i].StartsWith("--", StringComparison.Ordinal)
@@ -27,7 +27,8 @@ internal static class WordImagesCommand {
                 case "--force": force = true; break;
                 case "--output": destination = Value(); break;
                 case "--output-directory": directory = Value(); break;
-                case "--format": format = Value().ToLowerInvariant(); break;
+                case "--format": json = WorkflowOutput.ParseJson(Value(), "--output-format"); break;
+                case "--output-format": format = Value().ToLowerInvariant(); break;
                 case "--mode": options.Mode = Value().ToLowerInvariant() switch {
                     "downsample" => OfficeImageOptimizationMode.Downsample,
                     "recompress" => OfficeImageOptimizationMode.Recompress,
@@ -52,7 +53,7 @@ internal static class WordImagesCommand {
         if (!analyze && destination == null && directory == null)
             throw new WorkflowUsageException("Choose --output or --output-directory for the optimized copy.");
         if (destination != null && format != null)
-            throw new WorkflowUsageException("The --output file extension selects its format; omit --format.");
+            throw new WorkflowUsageException("The --output file extension selects its format; omit --output-format.");
         try { options = options.Clone(); }
         catch (ArgumentException exception) { throw new WorkflowUsageException(exception.Message); }
         var requests = inputs.Select(input => new OfficeWorkflowRequest {
@@ -67,11 +68,7 @@ internal static class WordImagesCommand {
             throw new WorkflowUsageException("The batch inputs produce duplicate output filenames. Choose separate destinations or run them individually.");
         var results = await (runner ?? new OfficeWorkflowRunner()).RunBatchAsync(requests, cancellationToken: token).ConfigureAwait(false);
         token.ThrowIfCancellationRequested();
-        foreach (var result in results) {
-            await output.WriteLineAsync((result.OutputPath ?? result.RequestId) + ": " + result.Summary).ConfigureAwait(false);
-            foreach (var diagnostic in result.Diagnostics)
-                await (result.Succeeded ? output : error).WriteLineAsync(diagnostic.Code + ": " + diagnostic.Message).ConfigureAwait(false);
-        }
+        await WorkflowOutput.WriteOptimizeImagesAsync(output, error, results, analyze, json).ConfigureAwait(false);
         if (results.Any(result => result.Status == OfficeWorkflowStatus.Cancelled)) return (int)OfficeImoToolExitCode.Cancelled;
         var failed = results.FirstOrDefault(result => !result.Succeeded);
         return failed == null ? (int)OfficeImoToolExitCode.Success : WorkflowCommand.MapStatus(failed.Status, failed.FailureKind);
