@@ -180,3 +180,13 @@ size should take about four times as long.
 ```powershell
 dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordHtmlImportBenchmarks*'
 ```
+
+`WordSectionCollectionBenchmarks` reads `Paragraphs`, `Tables` and
+`ParagraphsHyperLinks` of a loaded document with 25 and 100 sections, each with
+20 paragraphs, two tables and a hyperlink. Setup checks that the document-wide
+lists match the sections. Four times the sections should cost about four times
+as much.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordSectionCollectionBenchmarks*'
+```
