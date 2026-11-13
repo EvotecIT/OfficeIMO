@@ -5,11 +5,135 @@ using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Tool.Commands.Workflow;
 
-/// <summary>JSON and text results for export-pages, assemble and print-plan.</summary>
+/// <summary>JSON and text results for the workflow commands.</summary>
 internal static class WorkflowOutput {
     internal const string ExportPagesSchema = "officeimo.workflow.export-pages.v1";
     internal const string AssembleSchema = "officeimo.workflow.assemble.v1";
     internal const string PrintPlanSchema = "officeimo.workflow.print-plan.v1";
+    internal const string CompareSchema = "officeimo.workflow.compare.v1";
+    internal const string OptimizeImagesSchema = "officeimo.workflow.optimize-images.v1";
+    internal const string PrintersSchema = "officeimo.workflow.printers.v1";
+    internal const string PaperSourcesSchema = "officeimo.workflow.paper-sources.v1";
+    internal const string PrintSchema = "officeimo.workflow.print.v1";
+
+    /// <summary>Reads a --format value; <paramref name="otherUse"/> names the option for a non-output value, if any.</summary>
+    internal static bool ParseJson(string value, string? otherUse = null) => value.ToLowerInvariant() switch {
+        "json" => true,
+        "text" => false,
+        _ => throw new WorkflowUsageException(otherUse == null
+            ? "--format must be json or text."
+            : "--format selects json or text output. Use " + otherUse + " " + value + " instead.")
+    };
+
+    internal static async Task WriteCompareAsync(TextWriter output, OfficeWorkflowResult result, string inputPath, string comparisonPath, bool json) {
+        if (!json) {
+            if (!result.Succeeded) return;
+            await output.WriteLineAsync(result.OutputPath).ConfigureAwait(false);
+            await output.WriteLineAsync(result.Summary).ConfigureAwait(false);
+            return;
+        }
+        await WriteJsonAsync(output, writer => {
+            WriteStatus(writer, CompareSchema, result.Status, result.FailureKind, result.Summary);
+            writer.WriteString("inputPath", inputPath);
+            writer.WriteString("comparisonPath", comparisonPath);
+            writer.WriteString("outputPath", result.OutputPath);
+            writer.WriteNumber("inputBytes", result.InputBytes);
+            writer.WriteNumber("outputBytes", result.OutputBytes);
+            writer.WriteString("outputSha256", result.OutputSha256);
+            WriteDiagnostics(writer, result.Diagnostics);
+        }).ConfigureAwait(false);
+    }
+
+    internal static async Task WriteOptimizeImagesAsync(TextWriter output, TextWriter error, IReadOnlyList<OfficeWorkflowResult> results, bool analyze, bool json) {
+        if (!json) {
+            foreach (OfficeWorkflowResult result in results) {
+                await output.WriteLineAsync((result.OutputPath ?? result.RequestId) + ": " + result.Summary).ConfigureAwait(false);
+                foreach (OfficeWorkflowDiagnostic diagnostic in result.Diagnostics)
+                    await (result.Succeeded ? output : error).WriteLineAsync(diagnostic.Code + ": " + diagnostic.Message).ConfigureAwait(false);
+            }
+            return;
+        }
+        foreach (OfficeWorkflowResult result in results.Where(static result => !result.Succeeded))
+            foreach (OfficeWorkflowDiagnostic diagnostic in result.Diagnostics)
+                await error.WriteLineAsync(result.RequestId + ": " + diagnostic.Code + ": " + diagnostic.Message).ConfigureAwait(false);
+        await WriteJsonAsync(output, writer => {
+            writer.WriteString("schema", OptimizeImagesSchema);
+            writer.WriteString("mode", analyze ? "analyze" : "optimize");
+            writer.WriteBoolean("succeeded", results.All(static result => result.Succeeded));
+            writer.WriteNumber("fileCount", results.Count);
+            writer.WriteStartArray("files");
+            foreach (OfficeWorkflowResult result in results) {
+                writer.WriteStartObject();
+                writer.WriteString("inputPath", result.RequestId);
+                writer.WriteString("outputPath", result.OutputPath);
+                writer.WriteString("status", result.Status.ToString());
+                writer.WriteString("failureKind", result.FailureKind.ToString());
+                writer.WriteBoolean("succeeded", result.Succeeded);
+                writer.WriteString("summary", result.Summary);
+                writer.WriteNumber("inputBytes", result.InputBytes);
+                writer.WriteNumber("outputBytes", result.OutputBytes);
+                WriteDiagnostics(writer, result.Diagnostics);
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+        }).ConfigureAwait(false);
+    }
+
+    internal static async Task WritePrintersAsync(TextWriter output, IReadOnlyList<PdfPrinterInfo> printers, bool json) {
+        if (!json) {
+            foreach (PdfPrinterInfo queue in printers)
+                await output.WriteLineAsync(queue.Name + (queue.IsDefault ? " (default)" : "") + (queue.RequiresOutputFile ? " (file printer)" : "")).ConfigureAwait(false);
+            return;
+        }
+        await WriteJsonAsync(output, writer => {
+            writer.WriteString("schema", PrintersSchema);
+            writer.WriteStartArray("printers");
+            foreach (PdfPrinterInfo queue in printers) {
+                writer.WriteStartObject();
+                writer.WriteString("name", queue.Name);
+                writer.WriteBoolean("isDefault", queue.IsDefault);
+                writer.WriteBoolean("requiresOutputFile", queue.RequiresOutputFile);
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+        }).ConfigureAwait(false);
+    }
+
+    internal static async Task WritePaperSourcesAsync(TextWriter output, string printer, IReadOnlyList<PdfPaperSourceInfo> sources, bool json) {
+        if (!json) {
+            foreach (PdfPaperSourceInfo source in sources)
+                await output.WriteLineAsync(source.Id + ": " + source.Name).ConfigureAwait(false);
+            return;
+        }
+        await WriteJsonAsync(output, writer => {
+            writer.WriteString("schema", PaperSourcesSchema);
+            writer.WriteString("printer", printer);
+            writer.WriteStartArray("paperSources");
+            foreach (PdfPaperSourceInfo source in sources) {
+                writer.WriteStartObject();
+                writer.WriteString("id", source.Id);
+                writer.WriteString("name", source.Name);
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+        }).ConfigureAwait(false);
+    }
+
+    internal static async Task WritePrintAsync(TextWriter output, PdfPrintSubmission receipt, string inputPath, bool json) {
+        if (!json) {
+            await output.WriteLineAsync("Queue accepted: " + receipt.PrinterName + "; job " + (receipt.JobId ?? "unknown") + ". Physical delivery is unconfirmed.").ConfigureAwait(false);
+            return;
+        }
+        await WriteJsonAsync(output, writer => {
+            writer.WriteString("schema", PrintSchema);
+            writer.WriteString("inputPath", inputPath);
+            writer.WriteString("printer", receipt.PrinterName);
+            writer.WriteString("jobId", receipt.JobId);
+            writer.WriteNumber("sheetCount", receipt.SheetCount);
+            writer.WriteNumber("copies", receipt.Copies);
+            writer.WriteString("outputFilePath", receipt.OutputFilePath);
+        }).ConfigureAwait(false);
+    }
 
     internal static async Task WriteExportPagesAsync(TextWriter output, PdfPageImageExportResult result, string inputPath, bool json) {
         if (!json) {
@@ -123,6 +247,12 @@ internal static class WorkflowOutput {
             writer.WriteString("severity", diagnostic.Severity.ToString());
             writer.WriteString("code", diagnostic.Code);
             writer.WriteString("message", diagnostic.Message);
+            if (diagnostic.Details.Count != 0) {
+                writer.WriteStartObject("details");
+                foreach (KeyValuePair<string, string> detail in diagnostic.Details.OrderBy(static pair => pair.Key, StringComparer.Ordinal))
+                    writer.WriteString(detail.Key, detail.Value);
+                writer.WriteEndObject();
+            }
             writer.WriteEndObject();
         }
         writer.WriteEndArray();

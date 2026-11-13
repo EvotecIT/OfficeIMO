@@ -164,7 +164,7 @@ public sealed partial class OfficeWorkflowRouteSettings {
             "odt-pdf" => new OfficeWorkflowRouteSettings { OpenDocumentLoad = copy.OpenDocumentLoad, OdtPdf = copy.OdtPdf },
             "ods-pdf" => new OfficeWorkflowRouteSettings { OpenDocumentLoad = copy.OpenDocumentLoad, OdsPdf = copy.OdsPdf },
             "odp-pdf" => new OfficeWorkflowRouteSettings { OpenDocumentLoad = copy.OpenDocumentLoad, OdpPdf = copy.OdpPdf },
-            "heic-pdf" or "book-project-epub" => new OfficeWorkflowRouteSettings(),
+            "heic-pdf" or "book-project-epub" or "csv-xlsx" or "xlsx-csv" => new OfficeWorkflowRouteSettings(),
             _ => throw new ArgumentException("Choose a Workflows conversion route.", nameof(routeId))
         };
     }

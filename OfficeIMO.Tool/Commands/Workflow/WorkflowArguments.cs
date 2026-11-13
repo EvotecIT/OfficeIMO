@@ -69,13 +69,8 @@ internal sealed class WorkflowArguments {
                     parsed.Pages = ReadValue(args, ref index, token);
                     break;
                 case "--format":
-                    parsed.Json = ReadValue(args, ref index, token).ToLowerInvariant() switch {
-                        "json" => true,
-                        "text" => false,
-                        string value => throw new WorkflowUsageException(parsed.Command == WorkflowCommandKind.ExportPages
-                            ? "--format selects json or text output. Use --image-format " + value + " for the page images."
-                            : "--format must be json or text.")
-                    };
+                    parsed.Json = WorkflowOutput.ParseJson(ReadValue(args, ref index, token),
+                        parsed.Command == WorkflowCommandKind.ExportPages ? "--image-format" : null);
                     break;
                 case "--image-format":
                     EnsureCommand(parsed.Command, token, WorkflowCommandKind.ExportPages);

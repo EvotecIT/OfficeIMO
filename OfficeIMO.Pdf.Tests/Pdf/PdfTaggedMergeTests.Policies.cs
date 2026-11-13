@@ -87,37 +87,76 @@ public sealed partial class PdfTaggedMergeTests {
     private static byte[] TaggedForm(string value) => PdfDocument.Create().TaggedPdfCatalogMarkers()
         .TextField("Name", value: value, style: new PdfFormFieldStyle { AlternateName = "Customer name" }).ToBytes();
 
+    [Theory]
+    [InlineData(PdfMergeStructureMode.KeepPrimary, PdfMergeCollisionMode.RenameIncoming,
+        "formula.xml=x|notes.txt=Primary", "formula.xml", null)]
+    [InlineData(PdfMergeStructureMode.Drop, PdfMergeCollisionMode.RenameIncoming, "", null, null)]
+    [InlineData(PdfMergeStructureMode.Combine, PdfMergeCollisionMode.KeepFirst,
+        "formula.xml=x|notes.txt=Primary", "formula.xml", null)]
+    [InlineData(PdfMergeStructureMode.Combine, PdfMergeCollisionMode.RenameIncoming,
+        "formula.source2.xml=y|formula.xml=x|notes.source2.txt=Incoming|notes.txt=Primary", "formula.xml", "formula.source2.xml")]
+    public void TaggedMergeAppliesAttachmentPolicyAndKeepsStructureLinks(PdfMergeStructureMode mode, PdfMergeCollisionMode collision,
+        string expectedFiles, string? firstFormulaFile, string? secondFormulaFile) {
+        var options = new PdfMergeOptions { Policy = new PdfMergePolicy { Attachments = mode, AttachmentCollisions = collision } };
+        byte[] output = PdfDocument.MergeToBytes(options, AttachmentReport("Primary", "x"), AttachmentReport("Incoming", "y"));
+
+        var read = PdfReadDocument.Open(output);
+        AssertParentTreeMatchesPages(read, 2);
+        var catalog = (PdfDictionary)read.Objects[read.Security.RootObjectNumber!.Value].Value;
+        Assert.True(catalog.Items.ContainsKey("MarkInfo"));
+        Assert.True(catalog.Items.ContainsKey("Lang"));
+        Assert.True(read.UncheckedXmpMetadata?.HasPdfUaIdentification);
+        Assert.Equal(expectedFiles, string.Join("|", read.ExtractAttachments()
+            .Select(file => file.FileName + "=" + FilePayloadMarker(file.Bytes)).OrderBy(item => item, StringComparer.Ordinal)));
+        // Each formula keeps a link only to its own retained file, under that file's merged name.
+        PdfRawDocumentView raw = read.RawStructure();
+        PdfRawObjectView[] formulas = raw.Objects.Where(item => item.Value.Entries.TryGetValue("S", out var role) && role.Text == "Formula").ToArray();
+        Assert.Equal(2, formulas.Length);
+        Assert.Equal(new[] { firstFormulaFile, secondFormulaFile }, formulas.Select(formula => formula.Value.Entries.TryGetValue("AF", out var files)
+            ? raw.GetObject(Assert.Single(files.Items).ReferenceObjectNumber!.Value)!.Value.Entries["UF"].Text
+            : null));
+        Assert.False(catalog.Items.ContainsKey("AF"));
+    }
+
     [Fact]
-    public void TaggedMergeKeepsPrimaryAttachmentsWithoutRewritingTheirStructure() {
-        byte[] primary = PdfDocument.Create().TaggedPdfCatalogMarkers()
-            .AttachFile("notes.txt", new byte[] { 1, 2, 3 }, "text/plain")
-            .H1("Primary report").ToBytes();
-        byte[] output = PdfDocument.MergeToBytes(primary, Report("Incoming", "en-US"));
-        var document = PdfDocument.Load(output);
-        Assert.Equal(new byte[] { 1, 2, 3 }, Assert.Single(document.Attachments.Extract()).Bytes);
-        AssertParentTreeMatchesPages(PdfReadDocument.Open(output), 2);
+    public void TaggedMergeStillRejectsIncomingAttachmentsOnRequest() {
+        var options = new PdfMergeOptions { Policy = new PdfMergePolicy { Attachments = PdfMergeStructureMode.RejectIncoming } };
+        var error = Assert.Throws<InvalidOperationException>(() =>
+            PdfDocument.MergeToBytes(options, AttachmentReport("Primary", "x"), AttachmentReport("Incoming", "y")));
+        Assert.Contains("rejected 2 incoming attachment", error.Message, StringComparison.Ordinal);
+    }
+
+    private static byte[] AttachmentReport(string title, string variable) => PdfDocument.Create(new PdfCreateOptions {
+        Language = "en-US", TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
+    }.SetPdfUaIdentification())
+        .H1(title + " report")
+        .AttachFile("notes.txt", System.Text.Encoding.UTF8.GetBytes(title), "text/plain")
+        .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula,
+            nested => nested.Text(variable, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20),
+                global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)),
+            new PdfCanvasStructureOptions { AlternativeText = variable }.AddAssociatedFile(new PdfEmbeddedFile("formula.xml",
+                System.Text.Encoding.UTF8.GetBytes("<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mi>" + variable + "</mi></math>"),
+                "application/mathml+xml", PdfAssociatedFileRelationship.Supplement))))
+        .ToBytes();
+
+    private static string FilePayloadMarker(byte[] bytes) {
+        string text = System.Text.Encoding.UTF8.GetString(bytes);
+        int start = text.IndexOf("<mi>", StringComparison.Ordinal);
+        return start < 0 ? text : text.Substring(start + 4, 1);
     }
 
     [Theory]
-    [InlineData("metadata", PdfMergeStructureMode.Drop, false)]
-    [InlineData("metadata", PdfMergeStructureMode.Combine, false)]
-    [InlineData("outlines", PdfMergeStructureMode.Drop, false)]
-    [InlineData("outlines", PdfMergeStructureMode.Combine, false)]
-    [InlineData("attachments", PdfMergeStructureMode.Combine, false)]
-    [InlineData("attachments", PdfMergeStructureMode.Drop, true)]
-    [InlineData("attachments", PdfMergeStructureMode.KeepPrimary, true)]
-    public void TaggedMergeExplainsUnsupportedCatalogPoliciesBeforeAssembly(string structure, PdfMergeStructureMode mode, bool incomingAttachment) {
+    [InlineData("metadata", PdfMergeStructureMode.Drop)]
+    [InlineData("metadata", PdfMergeStructureMode.Combine)]
+    [InlineData("outlines", PdfMergeStructureMode.Drop)]
+    [InlineData("outlines", PdfMergeStructureMode.Combine)]
+    public void TaggedMergeExplainsUnsupportedCatalogPoliciesBeforeAssembly(string structure, PdfMergeStructureMode mode) {
         byte[] first = Report("Primary", "en-US");
-        byte[] second = incomingAttachment
-            ? PdfDocument.Create().TaggedPdfCatalogMarkers().AttachFile("notes.txt", new byte[] { 1, 2, 3 }).H1("Incoming report").ToBytes()
-            : Report("Incoming", "en-US");
+        byte[] second = Report("Incoming", "en-US");
         byte[] firstSnapshot = (byte[])first.Clone(), secondSnapshot = (byte[])second.Clone();
         var policy = new PdfMergePolicy();
-        switch (structure) {
-            case "metadata": policy.Metadata = mode; break;
-            case "outlines": policy.Outlines = mode; break;
-            case "attachments": policy.Attachments = mode; break;
-        }
+        if (structure == "metadata") policy.Metadata = mode;
+        else policy.Outlines = mode;
         var error = Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.MergeToBytes(new PdfMergeOptions { Policy = policy }, first, second));
         Assert.Contains("Tagged PDF merge", error.Message, StringComparison.Ordinal);
         Assert.Contains(structure, error.Message, StringComparison.OrdinalIgnoreCase);

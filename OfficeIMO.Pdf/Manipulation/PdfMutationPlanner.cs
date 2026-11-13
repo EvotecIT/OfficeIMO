@@ -1186,8 +1186,11 @@ internal static class PdfMutationPlanner {
         }
 
         if (operation == PdfMutationOperation.ModifyAttachments) {
+            // Attachment editors keep structure-element associations and prune structure references
+            // to the file attachment annotations they remove.
             return blocker != PdfRewriteBlockerKind.EmbeddedFiles &&
-                blocker != PdfRewriteBlockerKind.CatalogNameTrees;
+                blocker != PdfRewriteBlockerKind.CatalogNameTrees &&
+                blocker != PdfRewriteBlockerKind.TaggedContent;
         }
 
         if (operation == PdfMutationOperation.ModifyJavaScript) {

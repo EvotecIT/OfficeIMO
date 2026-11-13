@@ -42,9 +42,8 @@ elseif ($LASTEXITCODE -ne 0) { throw "officeimo failed with exit code $LASTEXITC
 |---|---|
 | `read`, `extract`, `reader read` without `--output` | The extracted Markdown or JSON |
 | `convert` | The output path |
-| `inspect`, `agent *`, `pdf *`, `hidden-data`, `provenance`, `invoice`, `workflow export-pages`, `workflow assemble`, `workflow print-plan` | One JSON result (text with `--format text` where offered) |
+| `inspect`, `agent *`, `pdf *`, `hidden-data`, `provenance`, `invoice`, `workflow compare`, `workflow optimize-images`, `workflow export-pages`, `workflow assemble`, `workflow print-plan`, `workflow printers`, `workflow print` | One JSON result (text with `--format text` where offered) |
 | `workflow batch`, `workflow job run` | The batch report as JSON, or NDJSON with `--format ndjson` |
-| `workflow compare`, `workflow optimize-images`, `workflow printers`, `workflow print` | A short readable summary |
 | `tabular sheets`, `tabular schema` | Tab-separated lines; schema types are `string`, `integer`, `number`, `boolean` or `datetime` |
 
 Diagnostics, progress and warnings always go to standard error, so redirecting standard output to a file or a JSON parser stays safe:

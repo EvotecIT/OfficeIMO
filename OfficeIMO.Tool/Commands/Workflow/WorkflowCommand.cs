@@ -9,10 +9,11 @@ OfficeIMO.Tool - output and intake workflows
 Usage:
   officeimo workflow compare <expected.pdf> <actual.pdf> --output <report.html>
              [--expected-pages <selection>] [--actual-pages <selection>] [--force]
-             [--password-env <name>] [--comparison-password-env <name>]
+             [--password-env <name>] [--comparison-password-env <name>] [--format json|text]
   officeimo workflow optimize-images <input.docx|input.doc>... [--analyze]
-             [--output <file> | --output-directory <folder>] [--format docx|doc|pdf]
+             [--output <file> | --output-directory <folder>] [--output-format docx|doc|pdf]
              [--mode downsample|recompress|both] [--dpi <36-1200>] [--quality <1-100>] [--force]
+             [--format json|text]
   officeimo workflow export-pages <input.pdf> --output <folder> [--pages <selection>]
              [--image-format png|jpeg|webp|tiff|svg] [--dpi <36-600>] [--max-dimension <pixels>] [--force]
              [--format json|text]
@@ -37,16 +38,16 @@ Usage:
   officeimo workflow job run <job.json> [--retry-failed] [--allow-empty] [--verbose] [--format json|ndjson]
              [--report <new-report.json>]
   officeimo workflow job report <run-report.json>
-  officeimo workflow printers [--paper-sources <queue>]
+  officeimo workflow printers [--paper-sources <queue>] [--format json|text]
   officeimo workflow print <input.pdf> --printer <name> [print-plan options]
              [--copies 1..100] [--duplex default|off|long|short] [--paper-source <id>] [--dpi 72..600]
-             [--output-file <new-local-path>]
+             [--output-file <new-local-path>] [--format json|text]
 
 Page selections accept document-relative expressions such as 1-3,last.
 Folders and ZIP archives are expanded deterministically by the reusable workflow owner.
 Existing output is refused unless --force is supplied.
-export-pages, assemble and print-plan write one JSON result with a versioned schema identifier;
---format text writes a short summary instead. Diagnostics go to standard error.
+compare, optimize-images, export-pages, assemble, print-plan, printers and print write one JSON result
+with a versioned schema identifier; --format text writes a short summary instead. Diagnostics go to standard error.
 Batch output defaults to the existing aggregate JSON. --format json adds per-file outcomes
 (up to 10,000 or 16 MiB of items with an explicit truncation marker); ndjson streams every item and a final summary.
 Batch and saved jobs fail when no inputs are selected unless --allow-empty is supplied.

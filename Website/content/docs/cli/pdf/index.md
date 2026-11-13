@@ -65,7 +65,7 @@ officeimo workflow export-pages report.pdf --output thumbnails --image-format we
 
 Image formats are `png`, `jpeg`, `webp`, `tiff` and `svg`, with `--dpi 36..600`. Every image is decoded and checked before the folder is published.
 
-`export-pages`, `assemble` and `print-plan` write one JSON result to standard output, so a script can read the published files without listing the folder:
+`export-pages`, like the other `workflow` commands except `batch`, writes one JSON result to standard output, so a script can read the published files without listing the folder:
 
 ```shell
 officeimo workflow export-pages report.pdf --output report-pages | jq -r '.files[].path'
@@ -88,6 +88,12 @@ officeimo workflow compare current.pdf revised.pdf --output review.html --expect
 ```
 
 The comparison renders the selected pages, up to 100 per side, and pairs them by position in the selection. The standalone HTML report shows page links, the selected scope, document totals, render limitations and SHA-256 values for both files. It compares rendered appearance; it does not detect semantic changes or moved pages. Use `--password-env` and `--comparison-password-env` for protected files.
+
+The JSON result (`officeimo.workflow.compare.v1`) gives the report path in `outputPath`, its `outputSha256`, and the comparison verdict in `summary`:
+
+```shell
+officeimo workflow compare current.pdf revised.pdf --output review.html | jq -r '.summary'
+```
 
 ## Print plans and printing
 
@@ -112,6 +118,12 @@ To print, list the queues and submit the job:
 officeimo workflow printers
 officeimo workflow printers --paper-sources "Office printer"
 officeimo workflow print report.pdf --printer "Office printer" --pages 1-3 --pages-per-sheet 2 --copies 1 --duplex long
+```
+
+`printers` returns the queues as JSON, with `name`, `isDefault` and `requiresOutputFile` for each; `--paper-sources` returns the `id` and `name` of each tray. `print` returns the queue receipt with `printer`, `jobId`, `sheetCount` and `copies`. Add `--format text` to any of them for plain lines:
+
+```shell
+officeimo workflow printers | jq -r '.printers[] | select(.isDefault) | .name'
 ```
 
 The returned job identifier confirms that the queue accepted the job, not that it printed. After an interrupted submission, check the queue before retrying. Windows file printers need `--output-file` naming a new local file. On macOS and Linux, printing uses the CUPS command-line tools.
