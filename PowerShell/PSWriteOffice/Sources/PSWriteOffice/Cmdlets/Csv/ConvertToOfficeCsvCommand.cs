@@ -40,6 +40,7 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
     private readonly CsvPowerShellObjectProjector _objectProjector = new();
     private CsvPowerShellLineWriter? _lineWriter;
     private CsvRowWriter? _csvWriter;
+    private const int RecordBufferEmitThreshold = 32 * 1024;
     private StringWriter? _recordBuffer;
     private string _recordNewLine = Environment.NewLine;
 
@@ -233,6 +234,12 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
                 (Row: row, Columns: columns, Projector: _objectProjector),
                 static (state, index) => state.Projector.NormalizeCellValue(
                     TryGetDataTableValue(state.Row, state.Columns[index])));
+
+            // A table that follows object rows lands in the record buffer; emit it in bounded chunks.
+            if (_recordBuffer != null && _recordBuffer.GetStringBuilder().Length >= RecordBufferEmitThreshold)
+            {
+                EmitWrittenRecords(singleRecord: false);
+            }
         }
     }
 
