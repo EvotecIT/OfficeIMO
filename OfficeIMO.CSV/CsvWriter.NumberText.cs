@@ -17,6 +17,7 @@ internal static partial class CsvWriter
     /// short exact decimals and decimals with a 64-bit coefficient are written here, the remaining doubles by
     /// <see cref="CsvShortestDouble"/>; each gives the runtime's text with less work.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static bool TryFormatInvariant<T, TChar>(T value, Span<TChar> destination, out int written)
         where T : ISpanFormattable, IUtf8SpanFormattable
         where TChar : unmanaged
