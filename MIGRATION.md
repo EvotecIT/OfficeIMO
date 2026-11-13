@@ -9946,23 +9946,6 @@ A `data-officeimo-value` error value is written as an error cell only when it is
 - **Converters.** The PDF front matter table lists nested mappings as dotted keys, such as `author.name`. Markdown-to-AsciiDoc writes them as hyphen-joined attributes, such as `:author-name:`, and reports the flattening. Invalid front matter is reported and omitted from the attributes.
 - **PowerShell.** `Get-OfficeMarkdownFrontMatter` returns objects with `Key`, `Value`, `Node` and `SourceSpan`. `Value` is a plain .NET value: a string, number or boolean, a dictionary for a mapping, or a list for a sequence. `Node` is the `YamlNode`.
 
-## Serializer attributes shared by YAML and TOML
-
-`YamlSerializer` and the new `TomlSerializer` read one set of mapping attributes, so a model type maps to both formats. The attributes, the naming policy and the ignore condition moved from `OfficeIMO.Yaml` to the `OfficeIMO` namespace in `OfficeIMO.Core`, which both packages already reference, and lost their `Yaml` prefix:
-
-| Before | After |
-|---|---|
-| `[YamlPropertyName]` | `[OfficePropertyName]` |
-| `[YamlIgnore]` | `[OfficeIgnore]` |
-| `[YamlRequired]` | `[OfficeRequired]` |
-| `[YamlConstructor]` | `[OfficeConstructor]` |
-| `[YamlDerivedType]` | `[OfficeDerivedType]` |
-| `[YamlPolymorphic]` | `[OfficePolymorphic]` |
-| `YamlIgnoreCondition` | `OfficeIgnoreCondition` |
-| `YamlNamingPolicy` | `OfficeNamingPolicy` |
-
-Rename the attributes and add `using OfficeIMO;` where the file is outside the `OfficeIMO` namespace. Behavior and generated YAML are unchanged. `YamlSerializable`, `YamlSerializerContext`, `YamlSerializerOptions` and `YamlReferenceHandling` keep their names.
-
 ## Excel non-finite numbers
 
 `NaN`, `PositiveInfinity` and `NegativeInfinity` written as cell values (`double` or `float`, through `SetValue`, `WriteData`, tabular imports or `CreateWriter`) are stored as the `#NUM!` error in XLSX, XLSB and XLS, which is what Excel shows for a number it cannot represent. Reading such a cell back returns the `#NUM!` error, not a number. Before, XLSX saves wrote an invalid number that Excel refused to open, XLSB saves stored `#NULL!`, and the XLS and XLSB `CreateWriter` streaming writers threw `ArgumentException`. Check the value before writing it if you need a blank cell or text instead.
