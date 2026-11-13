@@ -20,8 +20,7 @@ namespace OfficeIMO.PowerPoint {
             }
             sources.AddRange(FindParagraphProperties(ResolveTextMasterStyle(textBox), level));
             SlidePart? slidePart = textBox.OwnerSlide?.SlidePart ?? textBox.SlidePart;
-            var defaults = slidePart?.GetParentParts().OfType<PresentationPart>()
-                .FirstOrDefault()?.Presentation?.DefaultTextStyle;
+            var defaults = slidePart?.GetParentPresentationPart()?.Presentation?.DefaultTextStyle;
             sources.AddRange(FindParagraphProperties(defaults, level));
             return ResolveBulletColor(sources, color => ResolveTextColorElementForExport(color, textBox), textColor);
         }

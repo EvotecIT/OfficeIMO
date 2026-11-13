@@ -20,8 +20,7 @@ namespace OfficeIMO.PowerPoint {
             foreach (P.Shape inherited in EnumerateTextColorShapes(textBox).Skip(1))
                 AddPlaceholderDefaults(sources, inherited, level);
             sources.AddRange(FindDefaultRunProperties(textBox.MasterTextStyle, level));
-            OpenXmlCompositeElement? presentationDefaults = textBox.SlidePart?.GetParentParts()
-                .OfType<DocumentFormat.OpenXml.Packaging.PresentationPart>().FirstOrDefault()?.Presentation?.DefaultTextStyle;
+            OpenXmlCompositeElement? presentationDefaults = textBox.SlidePart?.GetParentPresentationPart()?.Presentation?.DefaultTextStyle;
             sources.AddRange(FindDefaultRunProperties(presentationDefaults, level));
             spacing = ResolveValue(sources, static source => source.Spacing?.Value);
             if (inheritedSpacingByLevel != null) inheritedSpacingByLevel[level] = spacing;

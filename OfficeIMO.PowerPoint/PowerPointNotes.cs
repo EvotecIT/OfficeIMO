@@ -83,9 +83,7 @@ namespace OfficeIMO.PowerPoint {
 
         private void EnsureNotesMasterRelationship(NotesSlidePart notesPart) {
             PresentationPart? presentationPart = _slidePart
-                .GetParentParts()
-                .OfType<PresentationPart>()
-                .FirstOrDefault();
+                .GetParentPresentationPart();
 
             if (presentationPart == null) {
                 return;
