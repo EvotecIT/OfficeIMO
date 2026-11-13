@@ -14,6 +14,10 @@
     <PackageReference Include="NPOI" Version="2.8.1" />
     <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.13" />
   </ItemGroup>
+  <!-- OneDocument ships net10.0 only, so its comparison lanes compile only for that target. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="RecursiveAI.OneDocument.Documents" Version="1.0.0" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.Html\OfficeIMO.Word.Html.csproj" />

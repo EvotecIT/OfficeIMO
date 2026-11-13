@@ -21,6 +21,10 @@ public class WordReadComparisonBenchmarks {
         SetupOfficeAndOpenXml();
         EnsureExpected(nameof(DocX), DocX());
         EnsureExpected(nameof(NPOI), NPOI());
+#if NET10_0_OR_GREATER
+        EnsureExpected(nameof(OneDocument), OneDocument());
+        EnsureExpected(nameof(OneDocumentExtractText), OneDocumentExtractText());
+#endif
     }
 
     internal void SetupOfficeAndOpenXml() {
@@ -78,6 +82,15 @@ public class WordReadComparisonBenchmarks {
         return observation;
     }
 
+#if NET10_0_OR_GREATER
+    [Benchmark]
+    public WordReadObservation OneDocument() => WordOneDocumentWorkloads.ReadParagraphs(_fixture);
+
+    /// <summary>OneDocument's streaming extractor: same text, no document model.</summary>
+    [Benchmark]
+    public WordReadObservation OneDocumentExtractText() => WordOneDocumentWorkloads.ExtractText(_fixture);
+
+#endif
     private void EnsureExpected(string implementation, WordReadObservation actual) {
         if (actual != _expected) {
             throw new InvalidDataException(
