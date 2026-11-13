@@ -82,9 +82,23 @@ public sealed partial class PdfEmbeddedFontFamily {
         foreach (string path in EnumerateSystemTrueTypeFontFiles()) {
             if (inspectedFiles++ >= MaxSystemFontFilesToInspect) break;
             fallbackFiles.Add(path);
-            if (!TryReadSystemFontNameMetadata(path,
-                    out System.Collections.Generic.List<TrueTypeNameMetadata>? metadataFaces,
-                    out _) || metadataFaces == null) continue;
+        }
+        // Each probe opens a file and reads a few small ranges, so the scan is bound by file opens.
+        // Probing in parallel and merging in enumeration order builds the same index sooner.
+        var probed = new System.Collections.Generic.List<TrueTypeNameMetadata>?[fallbackFiles.Count];
+        try {
+            System.Threading.Tasks.Parallel.For(0, fallbackFiles.Count, index => {
+                if (TryReadSystemFontNameMetadata(fallbackFiles[index],
+                        out System.Collections.Generic.List<TrueTypeNameMetadata>? faces, out _)) probed[index] = faces;
+            });
+        } catch (System.AggregateException exception) when (exception.InnerExceptions.Count > 0) {
+            // Surface a probe failure as the sequential scan did.
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(exception.InnerExceptions[0]).Throw();
+        }
+        for (int fileIndex = 0; fileIndex < fallbackFiles.Count; fileIndex++) {
+            string path = fallbackFiles[fileIndex];
+            System.Collections.Generic.List<TrueTypeNameMetadata>? metadataFaces = probed[fileIndex];
+            if (metadataFaces == null) continue;
             foreach (TrueTypeNameMetadata metadata in metadataFaces) {
                 foreach (string? name in metadata.GetFamilyNames().Concat(metadata.GetFaceNames())) {
                     if (string.IsNullOrWhiteSpace(name)) continue;
