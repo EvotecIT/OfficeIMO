@@ -96,14 +96,6 @@ internal static partial class PdfMerger {
         if (policy.Outlines == PdfMergeStructureMode.Drop || policy.Outlines == PdfMergeStructureMode.Combine)
             throw PdfMutationBlockedException.PolicyConflict(primaryPlan, "MergePolicy.TaggedOutlines",
                 "Tagged PDF merge cannot drop or combine outlines. KeepPrimary or RejectIncoming preserves the tagged document catalog.");
-        bool anyAttachments = sources.Any(source => source.Document.Attachments.Count > 0);
-        bool incomingAttachments = sources.Where((source, index) => index != primarySourceIndex)
-            .Any(source => source.Document.Attachments.Count > 0);
-        if (policy.Attachments == PdfMergeStructureMode.Combine ||
-            policy.Attachments == PdfMergeStructureMode.Drop && anyAttachments ||
-            policy.Attachments == PdfMergeStructureMode.KeepPrimary && incomingAttachments)
-            throw PdfMutationBlockedException.PolicyConflict(primaryPlan, "MergePolicy.TaggedAttachments",
-                "Tagged PDF merge cannot rewrite attachments. KeepPrimary supports primary attachments when incoming sources have none; RejectIncoming rejects sources that contain attachments.");
         ValidateTaggedFormMergePolicy(sources, primarySourceIndex, policy, primaryPlan);
     }
 
