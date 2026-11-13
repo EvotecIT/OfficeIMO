@@ -92,13 +92,17 @@ internal static class IppPdfPrinter {
         if (!(options.OutputFilePath == null || string.IsNullOrWhiteSpace(options.OutputFilePath)))
             throw new NotSupportedException("IPP printers do not write local output files.");
         IppDeliveryPlan plan = Plan(job.Plan, job.ContentKind, job.MaximumPixelsPerImage, options, printer, endpoint.PrinterName);
-        using Stream document = plan.Kind switch {
-            IppDocumentKind.VectorPdf => job.OpenContent(),
-            IppDocumentKind.RasterPdf => job.ContentKind == PdfPrintContentKind.Raster && job.Plan.ColorMode != PdfPrintColorMode.Grayscale
-                ? job.OpenContent() : new MemoryStream(job.RasterizeToPdf(options.MaximumRasterDpi, token), writable: false),
-            _ => new PwgRasterJobStream(job, plan, token)
-        };
-        IppSubmission submission = await client.PrintAsync(document, plan.DocumentFormat, plan.JobOptions, token).ConfigureAwait(false);
+        // PDF documents are rewound and PWG raster is encoded again if a busy printer asks for the job to be sent later.
+        Func<Stream> openDocument;
+        if (plan.Kind == IppDocumentKind.VectorPdf || plan.Kind == IppDocumentKind.RasterPdf && job.ContentKind == PdfPrintContentKind.Raster && job.Plan.ColorMode != PdfPrintColorMode.Grayscale) {
+            openDocument = job.OpenContent;
+        } else if (plan.Kind == IppDocumentKind.RasterPdf) {
+            byte[] rasterPdf = job.RasterizeToPdf(options.MaximumRasterDpi, token);
+            openDocument = () => new MemoryStream(rasterPdf, writable: false);
+        } else {
+            openDocument = () => new PwgRasterJobStream(job, plan, token);
+        }
+        IppSubmission submission = await client.PrintAsync(openDocument, plan.DocumentFormat, plan.JobOptions, token).ConfigureAwait(false);
         return new PdfPrintSubmission(endpoint.PrinterName, endpoint.FormatJobId(submission.Job.Id), job.Plan.Sheets.Count, options.Copies, null) {
             IgnoredAttributes = plan.Ignored.Concat(submission.UnsupportedAttributes).Distinct(StringComparer.Ordinal).ToArray()
         };

@@ -7,10 +7,13 @@ namespace OfficeIMO.Workflows;
 /// </summary>
 /// <remarks>
 /// The client speaks IPP/2.0 and falls back to IPP/1.1 when the printer reports that 2.0 is unsupported.
-/// It does not follow HTTP redirects and does not authenticate. Instances are safe for concurrent use.
+/// It does not follow HTTP redirects and does not authenticate. A request the printer refuses as busy is sent again after a short wait,
+/// a few times, when its document can be sent again. Instances are safe for concurrent use.
 /// </remarks>
 internal sealed class IppPrintClient : IDisposable {
-    private const int StatusVersionNotSupported = 0x0503;
+    private const int StatusVersionNotSupported = 0x0503, StatusBusy = 0x0507;
+    // server-error-busy refuses the request without processing it (RFC 8011 section 13.1.5.8), so it is sent again after these waits.
+    private static readonly TimeSpan[] DefaultBusyRetryDelays = { TimeSpan.FromMilliseconds(500), TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2) };
     private static readonly string[] JobAttributes = {
         "job-id", "job-uri", "job-state", "job-state-reasons", "job-state-message", "job-name"
     };
@@ -52,6 +55,9 @@ internal sealed class IppPrintClient : IDisposable {
     /// <summary>The printer URI sent in each request.</summary>
     public Uri PrinterUri { get; }
 
+    /// <summary>Waits before each new attempt of a request the printer refused as busy; the request fails once they are used up.</summary>
+    internal IReadOnlyList<TimeSpan> BusyRetryDelays { get; set; } = DefaultBusyRetryDelays;
+
     /// <summary>Reads the printer's supported formats, media, finishing options and current state (Get-Printer-Attributes).</summary>
     public async Task<IppPrinterCapabilities> GetCapabilitiesAsync(CancellationToken cancellationToken = default) {
         IppMessage request = NewRequest(IppOperation.GetPrinterAttributes);
@@ -79,22 +85,39 @@ internal sealed class IppPrintClient : IDisposable {
     }
 
     /// <summary>Submits a document (Print-Job), streaming it from its current position.</summary>
-    /// <param name="document">Document data. Seekable streams are sent with a length; others use chunked transfer. The stream is not disposed.</param>
+    /// <param name="document">Document data. Seekable streams are sent with a length and sent again when the printer is busy; others use chunked transfer
+    /// and are sent once. The stream is not disposed.</param>
     /// <param name="documentFormat">MIME type the printer lists in document-format-supported, such as application/pdf or image/pwg-raster.</param>
     /// <param name="options">Job attributes, or the printer defaults.</param>
     /// <param name="cancellationToken">Cancels the submission.</param>
     /// <returns>The accepted job. Acceptance is not completion.</returns>
     /// <exception cref="IppException">The printer was unreachable or rejected the job before accepting any of it.</exception>
     /// <exception cref="PdfPrintDeliveryException">The connection failed, timed out or was canceled after the document started streaming, or the acknowledgement was unusable; the job may print. Check the printer's jobs before retrying.</exception>
-    public async Task<IppSubmission> PrintAsync(Stream document, string documentFormat, IppJobOptions? options = null, CancellationToken cancellationToken = default) {
+    public Task<IppSubmission> PrintAsync(Stream document, string documentFormat, IppJobOptions? options = null, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(document);
         if (!document.CanRead) throw new ArgumentException("The document stream must be readable.", nameof(document));
+        return PrintAsync(new RequestDocument(document, null), documentFormat, options, cancellationToken);
+    }
+
+    /// <summary>Submits a document (Print-Job) that <paramref name="openDocument"/> can produce again, so a forward-only stream can still be resent when the printer is busy.</summary>
+    /// <param name="openDocument">Opens the document; the client disposes each stream it opens.</param>
+    /// <param name="documentFormat">MIME type the printer lists in document-format-supported.</param>
+    /// <param name="options">Job attributes, or the printer defaults.</param>
+    /// <param name="cancellationToken">Cancels the submission.</param>
+    /// <inheritdoc cref="PrintAsync(Stream, string, IppJobOptions?, CancellationToken)"/>
+    internal async Task<IppSubmission> PrintAsync(Func<Stream> openDocument, string documentFormat, IppJobOptions? options = null, CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(openDocument);
+        using var document = new RequestDocument(openDocument(), openDocument);
+        return await PrintAsync(document, documentFormat, options, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<IppSubmission> PrintAsync(RequestDocument document, string documentFormat, IppJobOptions? options, CancellationToken cancellationToken) {
         IppMessage request = JobRequest(IppOperation.PrintJob, documentFormat, options);
-        bool started = false;
+        var started = new DeliveryState();
         IppMessage response;
         try {
-            response = await SendAsync(request, document, () => started = true, cancellationToken).ConfigureAwait(false);
-        } catch (Exception error) when (started && (error is OperationCanceledException || error is IppException { IsDefinitiveRejection: false })) {
+            response = await SendAsync(request, document, started, cancellationToken).ConfigureAwait(false);
+        } catch (Exception error) when (started.BodyStarted && (error is OperationCanceledException || error is IppException { IsDefinitiveRejection: false })) {
             throw new PdfPrintDeliveryException(null, error);
         }
         IppAttributeGroup? job = response.FirstGroup(IppGroupTag.Job);
@@ -212,22 +235,31 @@ internal sealed class IppPrintClient : IDisposable {
         return request;
     }
 
-    private async Task<IppMessage> SendAsync(IppMessage request, Stream? document, Action? bodyStarted, CancellationToken cancellationToken) {
-        long documentStart = document is { CanSeek: true } ? document.Position : -1;
+    private async Task<IppMessage> SendAsync(IppMessage request, RequestDocument? document, DeliveryState? state, CancellationToken cancellationToken) {
+        Action? bodyStarted = state is null ? null : () => state.BodyStarted = true;
+        int busyAttempts = 0;
         while (true) {
             if (_useIpp11) {
                 request.VersionMajor = 1;
                 request.VersionMinor = 1;
             }
             request.RequestId = (Interlocked.Increment(ref _requestId) & int.MaxValue) | 1;
-            IppMessage response = await _transport.SendAsync(request, document, bodyStarted, _options.Timeout, _options.MaxResponseBytes, cancellationToken).ConfigureAwait(false);
+            IppMessage response = await _transport.SendAsync(request, document?.Stream, bodyStarted, _options.Timeout, _options.MaxResponseBytes, cancellationToken).ConfigureAwait(false);
             int status = (ushort)response.Code;
             if (status < 0x0100) return response;
+            bool replayable = document is null || document.CanReplay;
             // A version error rejects the request before any processing, so it can be replayed once with IPP/1.1
-            // when the document (if any) can be rewound.
-            if (status == StatusVersionNotSupported && !_useIpp11 && (document is null || documentStart >= 0)) {
+            // when the document (if any) can be sent again.
+            if (status == StatusVersionNotSupported && !_useIpp11 && replayable) {
                 _useIpp11 = true;
-                if (document is not null) document.Position = documentStart;
+                document?.Rewind();
+                continue;
+            }
+            // A busy printer did not accept the request, so nothing streamed so far can print; waiting is not uncertain delivery.
+            if (status == StatusBusy && replayable && busyAttempts < BusyRetryDelays.Count) {
+                if (state is not null) state.BodyStarted = false;
+                await Task.Delay(BusyRetryDelays[busyAttempts++], cancellationToken).ConfigureAwait(false);
+                document?.Rewind();
                 continue;
             }
             string? message = response.FirstGroup(IppGroupTag.Operation)?["status-message"]?.First?.Text;
@@ -239,6 +271,40 @@ internal sealed class IppPrintClient : IDisposable {
 
     private static IppValue[] Keywords(params string[] values) =>
         values.Select(value => IppValue.OfString(IppValueTag.Keyword, value)).ToArray();
+
+    private sealed class DeliveryState {
+        public bool BodyStarted;
+    }
+
+    /// <summary>A request's document and how to send it again: rewind a seekable stream, or open a new one when it is forward-only.</summary>
+    private sealed class RequestDocument : IDisposable {
+        private readonly Func<Stream>? _reopen;
+        private readonly long _start;
+
+        public RequestDocument(Stream stream, Func<Stream>? reopen) {
+            Stream = stream;
+            _reopen = reopen;
+            _start = stream.CanSeek ? stream.Position : -1;
+        }
+
+        public Stream Stream { get; private set; }
+
+        public bool CanReplay => _start >= 0 || _reopen is not null;
+
+        public void Rewind() {
+            if (_start >= 0) {
+                Stream.Position = _start;
+                return;
+            }
+            Stream.Dispose();
+            Stream = _reopen!();
+        }
+
+        /// <summary>Disposes the stream when the client opened it.</summary>
+        public void Dispose() {
+            if (_reopen is not null) Stream.Dispose();
+        }
+    }
 }
 
 /// <summary>Translates between IPP attributes and the public printing types.</summary>

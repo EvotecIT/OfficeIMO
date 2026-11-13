@@ -268,6 +268,45 @@ public sealed class IppPrintClientTests {
         await Assert.ThrowsAsync<ArgumentException>(() => client.ValidateJobAsync("pdf"));
     }
 
+    [Fact]
+    public async Task ABusyPrinterReceivesTheJobAgainWhenItsDocumentCanBeResent() {
+        var bodies = new List<byte[]>();
+        int printRequests = 0;
+        int jobId = 0;
+        var handler = FakeHandler.Ipp(async request => {
+            byte[] body = await request.Content!.ReadAsByteArrayAsync();
+            IppMessage message = IppCodec.Decode(body, body.Length, null, out int offset);
+            if (message.Code == (short)IppOperation.GetPrinterAttributes) return Reply(message, 0, null, printer => printer
+                .Add("document-format-supported", IppValue.OfString(IppValueTag.MimeMediaType, "image/pwg-raster"))
+                .Add("pwg-raster-document-resolution-supported", IppValue.OfResolution(72, 72, 3))
+                .Add("pwg-raster-document-type-supported", IppValue.OfString(IppValueTag.Keyword, "sgray_8")));
+            // The first submission of each job finds the printer busy.
+            if (printRequests++ % 2 == 0) return Reply(message, 0x0507, null);
+            bodies.Add(body.Skip(offset).ToArray());
+            return Reply(message, 0, job => job.Add("job-id", IppValue.OfInteger(++jobId)).Add("job-state", IppValue.OfEnum(3)));
+        });
+        var endpoint = IppPrinterEndpoint.ForUri(Printer.AbsoluteUri, Printer, () => handler);
+        using var client = new IppPrintClient(Printer, handler) { BusyRetryDelays = new[] { TimeSpan.Zero } };
+        IppPrinterCapabilities printer = await client.GetCapabilitiesAsync();
+        // Grayscale jobs are sent as forward-only PWG raster, which is encoded again for the second attempt.
+        PdfPrintJob job = PdfPrintJob.Create(OfficeIMO.Pdf.PdfDocument.Create(document => document.Page(page => page.Size(OfficeIMO.Pdf.PdfPageSizes.A6))),
+            new PdfPrintPlanRequest { InputPath = "busy.pdf", PaperSize = OfficeIMO.Pdf.PdfPageSizes.A6, ColorMode = PdfPrintColorMode.Grayscale });
+
+        PdfPrintSubmission raster = await IppPdfPrinter.SubmitAsync(endpoint, client, printer, job,
+            new PdfPrintDeliveryOptions { PrinterName = Printer.AbsoluteUri, MaximumRasterDpi = 72 }, default);
+        IppSubmission pdf = await client.PrintAsync(new byte[] { 1, 2, 3 }, "application/pdf");
+
+        Assert.Equal(("1", 2), (raster.JobId, pdf.Job.Id));
+        Assert.Equal(4, printRequests);
+        Assert.Equal("RaS2", System.Text.Encoding.ASCII.GetString(bodies[0], 0, 4));
+        Assert.Equal(new byte[] { 1, 2, 3 }, bodies[1]);
+
+        // A caller's forward-only stream cannot be sent again, so the busy answer is the result.
+        IppException busy = await Assert.ThrowsAsync<IppException>(() => client.PrintAsync(new NonSeekableStream(new byte[16]), "image/pwg-raster"));
+        Assert.Equal(0x0507, busy.StatusCode);
+        Assert.Equal(5, printRequests);
+    }
+
     private static async Task<IppMessage> Decode(HttpRequestMessage request) {
         byte[] body = await request.Content!.ReadAsByteArrayAsync();
         return IppCodec.Decode(body, body.Length, null, out _);
