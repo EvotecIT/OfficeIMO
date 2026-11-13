@@ -187,6 +187,36 @@ internal sealed class CsvPowerShellLineWriter : TextWriter
         Flush();
     }
 
+    /// <summary>Emits the records a row writer appended to <paramref name="records"/>, then clears it.</summary>
+    public void EmitRecords(StringBuilder records, bool singleRecord, string newLine)
+    {
+        if (records.Length == 0)
+        {
+            return;
+        }
+
+        if (singleRecord &&
+            _parseQuotedRecords &&
+            _pending.Length == 0 &&
+            IsAtRecordStart() &&
+            records.Length >= newLine.Length &&
+            EndsWith(records, newLine))
+        {
+            EmitRecord(records.ToString(0, records.Length - newLine.Length));
+        }
+        else
+        {
+#if NET6_0_OR_GREATER
+            _pending.Append(records);
+#else
+            _pending.Append(records.ToString());
+#endif
+            Flush();
+        }
+
+        records.Clear();
+    }
+
     private static bool EndsWith(StringBuilder text, string suffix)
     {
         var offset = text.Length - suffix.Length;
