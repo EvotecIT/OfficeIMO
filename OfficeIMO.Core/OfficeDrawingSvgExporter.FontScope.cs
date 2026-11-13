@@ -52,15 +52,22 @@ public static partial class OfficeDrawingSvgExporter {
 
     // Only start tags can introduce a text or tspan element; '<' is escaped everywhere else
     // in well-formed markup, so a fragment without such a tag has no text families to collect.
+#if NET8_0_OR_GREATER
+    private static bool ContainsSvgTextElement(ReadOnlySpan<char> markup) {
+#else
     private static bool ContainsSvgTextElement(string markup) {
-        for (int index = markup.IndexOf('<'); index >= 0; index = markup.IndexOf('<', index + 1)) {
-            int start = index + 1, end = start;
-            while (end < markup.Length && !IsXmlWhiteSpace(markup[end]) && markup[end] != '>' && markup[end] != '/') end++;
-            int colon = markup.LastIndexOf(':', end - 1, end - start);
-            if (colon >= 0) start = colon + 1;
-            int length = end - start;
-            if (length == 4 && string.CompareOrdinal(markup, start, "text", 0, 4) == 0 ||
-                length == 5 && string.CompareOrdinal(markup, start, "tspan", 0, 5) == 0) return true;
+#endif
+        for (int index = 0; index < markup.Length; index++) {
+            if (markup[index] != '<') continue;
+            int end = index + 1, name = end;
+            while (end < markup.Length && !IsXmlWhiteSpace(markup[end]) && markup[end] != '>' && markup[end] != '/') {
+                if (markup[end] == ':') name = end + 1;
+                end++;
+            }
+            int length = end - name;
+            if (length == 4 && markup[name] == 't' && markup[name + 1] == 'e' && markup[name + 2] == 'x' && markup[name + 3] == 't' ||
+                length == 5 && markup[name] == 't' && markup[name + 1] == 's' && markup[name + 2] == 'p' && markup[name + 3] == 'a' &&
+                markup[name + 4] == 'n') return true;
         }
         return false;
     }
