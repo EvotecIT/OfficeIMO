@@ -69,6 +69,19 @@ while (reader.Read()) {
 
 The reader checks TOML 1.1 syntax completely. Rules that need the whole document, such as duplicate keys and table redefinition, are checked by `TomlDocument`.
 
+The reader also reads a `Stream` (UTF-8, with or without a byte-order mark) or a `TextReader` without loading the whole input, which suits very large lock files:
+
+```csharp
+using var stream = File.OpenRead("Cargo.lock");
+using var reader = new TomlReader(stream);
+int packages = 0;
+while (reader.Read()) {
+    if (reader.TokenType == TomlTokenType.ArrayOfTablesHeaderStart) packages++;
+}
+```
+
+It keeps whole lines in a pooled buffer that grows only while one line or multi-line string is longer than it. Tokens, positions and errors are the same as for the same text in memory, and invalid UTF-8 fails with `TomlErrorCodes.InvalidEncoding` at the first bad byte. `ValueSpan` is valid until the next `Read()`. Dispose the reader to return its buffers; it never disposes your stream or text reader. `TomlReaderOptions.MaxInputBytes` bounds the input (bytes for a stream, characters otherwise). `TomlDocument.Load` keeps the whole text, because saving reproduces it.
+
 ## Writing
 
 ```csharp

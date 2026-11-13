@@ -40,7 +40,15 @@ public sealed partial class TomlReader {
         int line = _line, lineStart = _lineStart;
         int i = start + 3;
         while (true) {
-            if (i >= s.Length) throw Error(TomlErrorCodes.UnterminatedString, "The multi-line string is not closed.", start);
+            if (i >= s.Length) {
+                if (_final) throw new TomlException(TomlErrorCodes.UnterminatedString, "The multi-line string is not closed.", Position(start, line, lineStart));
+                int shift = More(start, i, line, lineStart);
+                start -= shift;
+                i -= shift;
+                lineStart -= shift;
+                s = Text;
+                continue;
+            }
             char ch = s[i];
             if (ch == '"') {
                 int run = QuoteRun(s, i, '"');
@@ -78,7 +86,15 @@ public sealed partial class TomlReader {
         int line = _line, lineStart = _lineStart;
         int i = start + 3;
         while (true) {
-            if (i >= s.Length) throw Error(TomlErrorCodes.UnterminatedString, "The multi-line string is not closed.", start);
+            if (i >= s.Length) {
+                if (_final) throw new TomlException(TomlErrorCodes.UnterminatedString, "The multi-line string is not closed.", Position(start, line, lineStart));
+                int shift = More(start, i, line, lineStart);
+                start -= shift;
+                i -= shift;
+                lineStart -= shift;
+                s = Text;
+                continue;
+            }
             char ch = s[i];
             if (ch == '\'') {
                 int run = QuoteRun(s, i, '\'');
@@ -112,6 +128,15 @@ public sealed partial class TomlReader {
         return i + 1;
     }
 
+    /// <summary>
+    /// Reads more input while a multi-line string continues past the visible text, failing once the string is already
+    /// longer than <see cref="TomlReaderOptions.MaxStringLength"/>. Returns how far the text moved.
+    /// </summary>
+    private int More(int start, int i, int line, int lineStart) {
+        if (i - start > _options.MaxStringLength) throw new TomlLimitExceededException(nameof(TomlReaderOptions.MaxStringLength), _options.MaxStringLength, Position(start, line, lineStart));
+        return Fill(start);
+    }
+
     private static int QuoteRun(ReadOnlySpan<char> s, int i, char quote) {
         int run = 0;
         while (i + run < s.Length && s[i + run] == quote) run++;
@@ -125,7 +150,7 @@ public sealed partial class TomlReader {
     }
 
     private void FinishMultiline(TomlStringStyle style, int start, int end, int line, int lineStart) {
-        if (end - start > _options.MaxStringLength) throw new TomlLimitExceededException(nameof(TomlReaderOptions.MaxStringLength), _options.MaxStringLength, new TomlPosition(start, line, start - lineStart + 1));
+        if (end - start > _options.MaxStringLength) throw new TomlLimitExceededException(nameof(TomlReaderOptions.MaxStringLength), _options.MaxStringLength, Position(start, line, lineStart));
         _style = style;
         _pos = end;
         Token(TomlTokenType.String, start, line, lineStart);

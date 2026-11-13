@@ -28,5 +28,17 @@ public sealed class TomlReaderOptions {
         set => _maxStringLength = value >= 1 ? value : throw new ArgumentOutOfRangeException(nameof(value), value, "MaxStringLength must be at least 1.");
     }
 
+    /// <summary>
+    /// Gets or sets the maximum input size, or <see langword="null"/> (the default) for no limit. Stream input counts
+    /// bytes; text and <see cref="TextReader"/> input count UTF-16 code units.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The value is negative.</exception>
+    public long? MaxInputBytes {
+        get => _maxInputBytes;
+        set => _maxInputBytes = value is null or >= 0 ? value : throw new ArgumentOutOfRangeException(nameof(value), value, "MaxInputBytes cannot be negative.");
+    }
+
+    private long? _maxInputBytes;
+
     internal TomlReaderOptions Clone() => (TomlReaderOptions)MemberwiseClone();
 }

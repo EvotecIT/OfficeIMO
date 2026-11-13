@@ -109,18 +109,19 @@ public sealed partial class TomlDocument {
         return Build(text, bom, options, cancellationToken);
     }
 
-    /// <summary>Finds the line and column of an invalid byte, counting decoded characters before it.</summary>
+    /// <summary>Finds the line and column of an invalid byte, counting the UTF-16 code units decoded before it.</summary>
     private static TomlPosition BytePosition(byte[] buffer, int start, int index) {
         int line = 1, column = 1, offset = 0;
         for (int i = start; i < index && i < buffer.Length; i++) {
             byte b = buffer[i];
             if ((b & 0xC0) == 0x80) continue; // continuation byte
-            offset++;
+            int units = b >= 0xF0 ? 2 : 1; // four-byte sequences decode to a surrogate pair
+            offset += units;
             if (b == (byte)'\n') {
                 line++;
                 column = 1;
             } else {
-                column++;
+                column += units;
             }
         }
         return new TomlPosition(offset, line, column);

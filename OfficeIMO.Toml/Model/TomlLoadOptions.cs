@@ -58,9 +58,7 @@ public sealed class TomlLoadOptions {
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">The value is negative.</exception>
     public long? MaxInputBytes {
-        get => _maxInputBytes;
-        set => _maxInputBytes = value is null or >= 0 ? value : throw new ArgumentOutOfRangeException(nameof(value), value, "MaxInputBytes cannot be negative.");
+        get => _reader.MaxInputBytes;
+        set => _reader.MaxInputBytes = value;
     }
-
-    private long? _maxInputBytes;
 }
