@@ -21,7 +21,10 @@ internal sealed class TomlUntypedConverter : TomlConverter<object> {
         switch (node) {
             case TomlTable table: {
                 var dictionary = new Dictionary<string, object?>(table._count, StringComparer.Ordinal);
-                for (int i = 0; i < table._count; i++) dictionary.Add(table._keys[i], Read(table._nodes[i], state));
+                for (int i = 0; i < table._count; i++) {
+                    TomlNode entry = table._nodes[i];
+                    dictionary.Add(entry._key!, Read(entry, state));
+                }
                 return dictionary;
             }
             case TomlArray array: {

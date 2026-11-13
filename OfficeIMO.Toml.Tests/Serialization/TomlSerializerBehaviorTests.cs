@@ -196,7 +196,7 @@ public class TomlSerializerBehaviorTests {
         Assert.Equal(TomlDateTime.FromDate(1979, 5, 27), values["d"]);
         Assert.Equal(new List<object?> { 1L, "x" }, values["e"]);
         Assert.Equal(true, ((Dictionary<string, object?>)values["t"])["k"]);
-        Assert.Equal(1L, ((Dictionary<string, object?>)((List<object?>)values["arr"])[0])["n"]);
+        Assert.Equal(1L, ((Dictionary<string, object?>)((List<object?>)values["arr"])[0]!)["n"]);
         Assert.Equal("a = 1\nb = 1.5\nc = \"s\"\nd = 1979-05-27\ne = [1, \"x\"]\n\n[t]\nk = true\n\n[[arr]]\nn = 1\n",
             TomlSerializer.Serialize(values, TestTomlContext.Default.DictionaryStringObject));
     }

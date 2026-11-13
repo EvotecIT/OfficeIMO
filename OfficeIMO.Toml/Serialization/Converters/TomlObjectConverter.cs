@@ -141,14 +141,13 @@ internal sealed class TomlObjectConverter<T> : TomlConverter<T>, ITomlObjectConv
         if (rented is not null) found.Clear();
         try {
             int entries = table._count;
-            string[] keys = table._keys;
             TomlNode[] nodes = table._nodes;
             object owner;
             int expected = 0;
             if (_createWithArguments is null) {
                 owner = _create!()!;
                 for (int i = 0; i < entries; i++) {
-                    int index = Find(keys[i], ref expected);
+                    int index = Find(nodes[i]._key!, ref expected);
                     if (index < 0 || !properties[index].CanSet) continue;
                     properties[index].ReadAndSet(nodes[i], state, owner);
                     found[index] = true;
@@ -156,7 +155,7 @@ internal sealed class TomlObjectConverter<T> : TomlConverter<T>, ITomlObjectConv
             } else {
                 var values = new object?[count];
                 for (int i = 0; i < entries; i++) {
-                    int index = Find(keys[i], ref expected);
+                    int index = Find(nodes[i]._key!, ref expected);
                     if (index < 0 || (!properties[index].CanSet && properties[index].ParameterIndex < 0)) continue;
                     values[index] = properties[index].ReadBoxed(nodes[i], state);
                     found[index] = true;

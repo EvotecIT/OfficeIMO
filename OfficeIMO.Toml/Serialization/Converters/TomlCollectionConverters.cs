@@ -127,10 +127,9 @@ internal sealed class TomlDictionaryConverter<TDictionary, TKey, TValue> : TomlC
         TomlTypeInfo<TValue> valueInfo = _value!;
         int count = table._count;
         var dictionary = new Dictionary<TKey, TValue>(count);
-        string[] keys = table._keys;
         TomlNode[] nodes = table._nodes;
         for (int i = 0; i < count; i++) {
-            string text = keys[i];
+            string text = nodes[i]._key!;
             TKey key;
             if (_stringKeys) {
                 key = (TKey)(object)text;
