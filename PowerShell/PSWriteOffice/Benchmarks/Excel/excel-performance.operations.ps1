@@ -312,7 +312,7 @@ function Invoke-ExcelBenchmarkCsvToExcel {
     param([string] $Engine, [object] $Run)
 
     switch ($Engine) {
-        PSWriteOffice { Import-OfficeExcelDelimitedText -Path $Run.Path -SourcePath $Run.SourcePath -SheetName $Run.WorksheetName | Out-Null }
+        PSWriteOffice { Import-OfficeCsv -Path $Run.SourcePath | Export-OfficeExcel -Path $Run.Path -Sheet $Run.WorksheetName }
         ImportExcel { Import-Csv -Path $Run.SourcePath | Export-Excel -Path $Run.Path -WorksheetName $Run.WorksheetName }
         default { throw "Engine '$Engine' does not support CSV-to-Excel conversion." }
     }
@@ -421,7 +421,7 @@ function Invoke-ExcelBenchmarkObjectsNoTable {
 function Invoke-ExcelBenchmarkObjectsTableAutofit {
     param([string] $Engine, [object] $Run)
     switch ($Engine) {
-        PSWriteOffice { $Run.Payload | Export-OfficeExcel -Path $Run.Path -WorksheetName $Run.WorksheetName -TableName Data -AutoFit }
+        PSWriteOffice { $Run.Payload | Export-OfficeExcel -Path $Run.Path -WorksheetName $Run.WorksheetName -TableName Data }
         ImportExcel { $Run.Payload | Export-Excel -Path $Run.Path -WorksheetName $Run.WorksheetName -TableName Data -AutoFilter -AutoSize }
     }
 }
@@ -429,7 +429,7 @@ function Invoke-ExcelBenchmarkObjectsTableAutofit {
 function Invoke-ExcelBenchmarkObjectsTitleFreeze {
     param([string] $Engine, [object] $Run)
     switch ($Engine) {
-        PSWriteOffice { $Run.Payload | Export-OfficeExcel -Path $Run.Path -WorksheetName $Run.WorksheetName -TableName Data -Title 'Operational export' -StartRow 3 -FreezeTopRow -BoldTopRow }
+        PSWriteOffice { $Run.Payload | Export-OfficeExcel -Path $Run.Path -WorksheetName $Run.WorksheetName -TableName Data -Title 'Operational export' -Address A2 }
         ImportExcel { $Run.Payload | Export-Excel -Path $Run.Path -WorksheetName $Run.WorksheetName -TableName Data -AutoFilter -Title 'Operational export' -StartRow 3 -FreezeTopRow -BoldTopRow }
     }
 }
@@ -463,8 +463,8 @@ function Invoke-ExcelBenchmarkMultiSheetRegions {
             New-OfficeExcel -Path $Run.Path {
                 foreach ($group in (Get-ExcelBenchmarkRegionGroups -Rows $Run.Payload)) {
                     Add-OfficeExcelSheet -Name $group.Name -Content {
-                        Add-OfficeExcelTable -Data $group.Data -TableName $group.TableName
-                        Set-OfficeExcelFreeze -TopRows 1
+                        Add-OfficeExcelTable -InputObject $group.Data -Name $group.TableName
+                        Set-OfficeExcelSheetView -FreezeRows 1
                     }
                 }
             } | Out-Null
@@ -493,8 +493,8 @@ function Invoke-ExcelBenchmarkSummaryFormulas {
         PSWriteOffice {
             New-OfficeExcel -Path $Run.Path {
                 Add-OfficeExcelSheet -Name $Run.WorksheetName -Content {
-                    Add-OfficeExcelTable -Data $Run.Payload -TableName Data
-                    Set-OfficeExcelFreeze -TopRows 1
+                    Add-OfficeExcelTable -InputObject $Run.Payload -Name Data
+                    Set-OfficeExcelSheetView -FreezeRows 1
                 }
                 Add-OfficeExcelSheet -Name Summary -Content {
                     Set-OfficeExcelCell -Address A1 -Value Metric
@@ -502,8 +502,7 @@ function Invoke-ExcelBenchmarkSummaryFormulas {
                     $row = 2
                     foreach ($summaryRow in $summaryRows) {
                         Set-OfficeExcelCell -Row $row -Column 1 -Value $summaryRow.Metric
-                        Set-OfficeExcelFormula -Address ('B{0}' -f $row) -Formula $summaryRow.Formula
-                        Set-OfficeExcelCell -Row $row -Column 2 -NumberFormat $summaryRow.NumberFormat
+                        Set-OfficeExcelCell -Address ('B{0}' -f $row) -Formula $summaryRow.Formula -NumberFormat $summaryRow.NumberFormat
                         $row++
                     }
                 }
@@ -535,7 +534,7 @@ function Invoke-ExcelBenchmarkAppendExistingTable {
     switch ($Engine) {
         PSWriteOffice {
             $split.Initial | Export-OfficeExcel -Path $Run.Path -WorksheetName $Run.WorksheetName -TableName Data
-            if ($split.Append.Count -gt 0) { Add-OfficeExcelTableRow -InputPath $Run.Path -Sheet $Run.WorksheetName -TableName Data -InputObject $split.Append | Out-Null }
+            if ($split.Append.Count -gt 0) { $split.Append | Export-OfficeExcel -Path $Run.Path -WorksheetName $Run.WorksheetName -Append -TableName Data }
         }
         ImportExcel {
             $split.Initial | Export-Excel -Path $Run.Path -WorksheetName $Run.WorksheetName -TableName Data -AutoFilter
@@ -549,21 +548,16 @@ function Invoke-ExcelBenchmarkUpdateExistingWorkbook {
     switch ($Engine) {
         PSWriteOffice {
             $Run.Payload | Export-OfficeExcel -Path $Run.Path -WorksheetName $Run.WorksheetName -TableName Data
-            Edit-OfficeExcelRow -InputPath $Run.Path -Sheet $Run.WorksheetName -ScriptBlock {
+            Edit-OfficeExcelRow -Path $Run.Path -Sheet $Run.WorksheetName -ScriptBlock {
                 param($row)
                 $row.Set('TicketCount', ([int]$row['TicketCount'].Value + 1))
                 if ([bool]$row['IsEnabled'].Value) { $row.Set('Notes', 'Reviewed') }
             } | Out-Null
-            $document = Get-OfficeExcel -Path $Run.Path
-            try {
-                $sheet = $document.Sheets | Where-Object { $_.Name -eq $Run.WorksheetName } | Select-Object -First 1
-                $formulaColumn = $Run.ColumnCount + 1
-                $sheet.Cell(1, $formulaColumn).SetValue('ScoreDouble')
-                $sheet.Cell(2, $formulaColumn).SetFormula('G2*2').SetNumberFormat('#,##0.00')
-                $document | Save-OfficeExcel
-            } finally {
-                $document | Close-OfficeExcel
-            }
+            $formulaColumn = $Run.ColumnCount + 1
+            Open-OfficeExcel -Path $Run.Path {
+                Set-OfficeExcelCell -Sheet $Run.WorksheetName -Row 1 -Column $formulaColumn -Value 'ScoreDouble'
+                Set-OfficeExcelCell -Sheet $Run.WorksheetName -Row 2 -Column $formulaColumn -Formula 'G2*2' -NumberFormat '#,##0.00'
+            } | Out-Null
         }
         ImportExcel {
             $Run.Payload | Export-Excel -Path $Run.Path -WorksheetName $Run.WorksheetName -TableName Data -AutoFilter
@@ -592,8 +586,8 @@ function Invoke-ExcelBenchmarkManySmallSheets {
             New-OfficeExcel -Path $Run.Path {
                 foreach ($group in (Get-ExcelBenchmarkSmallSheetGroups -Rows $Run.Payload -SheetCount 20)) {
                     Add-OfficeExcelSheet -Name $group.Name -Content {
-                        Add-OfficeExcelTable -Data $group.Data -TableName $group.TableName
-                        Set-OfficeExcelFreeze -TopRows 1
+                        Add-OfficeExcelTable -InputObject $group.Data -Name $group.TableName
+                        Set-OfficeExcelSheetView -FreezeRows 1
                     }
                 }
             } | Out-Null
@@ -622,7 +616,7 @@ function Invoke-ExcelBenchmarkWorkbookPackageMerge {
         PSWriteOffice {
             $input.RowsA | Export-OfficeExcel -Path $input.SourceA -WorksheetName Data -TableName DataA
             $input.RowsB | Export-OfficeExcel -Path $input.SourceB -WorksheetName Data -TableName DataB
-            Join-OfficeExcelWorkbook -Path $Run.Path -SourcePath @($input.SourceA, $input.SourceB) -CopyMode Package -SheetNamePrefix Merged | Out-Null
+            Merge-OfficeDocument -Path @($input.SourceA, $input.SourceB) -OutputPath $Run.Path -Options (New-OfficeExcelMergeOptions -CopyMode Package -NamePrefix Merged) | Out-Null
         }
         ImportExcel {
             $input.RowsA | Export-Excel -Path $input.SourceA -WorksheetName Data -TableName DataA -AutoFilter
@@ -654,8 +648,8 @@ function Invoke-ExcelBenchmarkChartOnlyWorkbook {
         PSWriteOffice {
             New-OfficeExcel -Path $Run.Path {
                 Add-OfficeExcelSheet -Name $Run.WorksheetName -Content {
-                    Add-OfficeExcelTable -Data $Run.Payload -TableName Data
-                    Add-OfficeExcelChart -Table Data -Address L2 -Type ColumnClustered -Title 'Score by region'
+                    Add-OfficeExcelTable -InputObject $Run.Payload -Name Data
+                    Add-OfficeExcelChart -Table Data -Category Region -Value Score -Address L2 -Type ColumnClustered -Title 'Score by region'
                 }
             } | Out-Null
         }
@@ -677,8 +671,8 @@ function Invoke-ExcelBenchmarkPivotOnlyWorkbook {
         PSWriteOffice {
             New-OfficeExcel -Path $Run.Path {
                 Add-OfficeExcelSheet -Name $Run.WorksheetName -Content {
-                    Add-OfficeExcelTable -Data $Run.Payload -TableName Data
-                    Add-OfficeExcelPivotTable -SourceRange $Run.Range -DestinationCell L4 -Name SummaryPivot -RowField Region -ColumnField Department -DataField Score, TicketCount -DataFunction Average, Sum -DataDisplayName 'Average Score', Tickets -DataNumberFormat '#,##0.00', '#,##0'
+                    Add-OfficeExcelTable -InputObject $Run.Payload -Name Data
+                    Add-OfficeExcelPivotTable -Range $Run.Range -Address L4 -Name SummaryPivot -RowField Region -ColumnField Department -DataField Score, TicketCount -DataFunction Average, Sum -DataDisplayName 'Average Score', Tickets -DataNumberFormat '#,##0.00', '#,##0'
                 }
             } | Out-Null
         }
@@ -701,17 +695,17 @@ function Invoke-ExcelBenchmarkReportWorkbook {
             $lastRow = [int]$Run.Payload.Count + 1
             New-OfficeExcel -Path $Run.Path {
                 Add-OfficeExcelSheet -Name $Run.WorksheetName -Content {
-                    Add-OfficeExcelTable -Data $Run.Payload -TableName Data -AutoFit
-                    Set-OfficeExcelFreeze -TopRows 1
-                    Add-OfficeExcelConditionalRule -Range "G2:G$lastRow" -Operator GreaterThan -Formula1 '750'
-                    Add-OfficeExcelConditionalDataBar -Range "G2:G$lastRow" -Color '#70AD47'
-                    Add-OfficeExcelConditionalColorScale -Range "I2:I$lastRow" -StartColor '#F4CCCC' -EndColor '#D9EAD3'
-                    Add-OfficeExcelConditionalIconSet -Range "I2:I$lastRow"
-                    Add-OfficeExcelValidationList -Range "D2:D$lastRow" -Values NA, EU, APAC, LATAM
-                    Set-OfficeExcelColumnStyleByHeader -Header Score -NumberFormat '#,##0.000'
-                    Set-OfficeExcelColumnStyleByHeader -Header Created -NumberFormat 'yyyy-mm-dd hh:mm'
-                    Add-OfficeExcelChart -Table Data -Address L2 -Type ColumnClustered -Title 'Score by region'
-                    Add-OfficeExcelPivotTable -SourceRange $Run.Range -DestinationCell L24 -Name SummaryPivot -RowField Region -ColumnField Department -DataField Score, TicketCount -DataFunction Average, Sum -DataDisplayName 'Average Score', Tickets -DataNumberFormat '#,##0.00', '#,##0'
+                    Add-OfficeExcelTable -InputObject $Run.Payload -Name Data
+                    Set-OfficeExcelSheetView -FreezeRows 1
+                    Add-OfficeExcelConditionalFormat -Range "G2:G$lastRow" -Rule CellIs -Operator GreaterThan -Value '750' -BackgroundColor '#F4CCCC'
+                    Add-OfficeExcelConditionalFormat -Range "G2:G$lastRow" -DataBar -Color '#70AD47'
+                    Add-OfficeExcelConditionalFormat -Range "I2:I$lastRow" -StartColor '#F4CCCC' -MidColor '#FFF2CC' -EndColor '#D9EAD3'
+                    Add-OfficeExcelConditionalFormat -Range "I2:I$lastRow" -IconSet ThreeTrafficLights1
+                    Add-OfficeExcelValidation -Range "D2:D$lastRow" -Type List -Values NA, EU, APAC, LATAM
+                    Set-OfficeExcelColumn -Header Score -NumberFormat '#,##0.000'
+                    Set-OfficeExcelColumn -Header Created -NumberFormat 'yyyy-mm-dd hh:mm'
+                    Add-OfficeExcelChart -Table Data -Category Region -Value Score -Address L2 -Type ColumnClustered -Title 'Score by region'
+                    Add-OfficeExcelPivotTable -Range $Run.Range -Address L24 -Name SummaryPivot -RowField Region -ColumnField Department -DataField Score, TicketCount -DataFunction Average, Sum -DataDisplayName 'Average Score', Tickets -DataNumberFormat '#,##0.00', '#,##0'
                 }
             } | Out-Null
         }

@@ -422,7 +422,7 @@ function New-ExcelBenchmarkNamedRangeWorkbook {
         PSWriteOffice {
             New-OfficeExcel -Path $Run.Path {
                 Add-OfficeExcelSheet -Name $Run.WorksheetName -Content {
-                    Add-OfficeExcelTable -Data $Run.Payload -TableName Data
+                    Add-OfficeExcelTable -InputObject $Run.Payload -Name Data
                     Set-OfficeExcelNamedRange -Name SalesData -Range $Run.Range
                 }
             } | Out-Null

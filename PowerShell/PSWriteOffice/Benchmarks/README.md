@@ -19,6 +19,11 @@ engines adjacent and alternates which engine runs first. PowerForge performs an
 explicit managed-memory cleanup after setup and data creation, outside the timed
 operation, so allocations from one engine do not become another engine's GC bill.
 
+`Export-OfficeExcel` and `Add-OfficeExcelTable` apply a table style, fitted
+columns and a frozen header row by default. The PSWriteOffice lanes keep those
+defaults, so default-export lanes do more formatting work than the plain
+`Export-Excel` and `Export-Workbook` calls they are compared with.
+
 Every read comparison uses the same PSWriteOffice-produced workbook shape for
 the selected row count. The competing readers do not benchmark files created by
 their own writers.
