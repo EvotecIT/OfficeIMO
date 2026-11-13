@@ -111,6 +111,17 @@ internal static partial class MarkdownReader {
             }
         }
 
+        void AppendMappedChar(char value, int sourceColumn) {
+            builder.Append(value);
+            if (points == null) {
+                return;
+            }
+
+            points.Add(state!.SourceTextMap!.CreatePoint(absoluteLine, sourceColumn));
+            tokenSpans!.Add(null);
+            tokenLiterals!.Add(null);
+        }
+
         for (int i = 0; i < cell.Markdown.Length; i++) {
             char ch = cell.Markdown[i];
             if (TryConsumeTableCellLiteralToken(cell.Markdown, i, out int literalLength, ref blockFenceChar, ref blockFenceLength, preserveFencedCodeSpans)) {
@@ -121,7 +132,7 @@ internal static partial class MarkdownReader {
                         offset++;
                         literal = '|';
                     }
-                    AppendMapped(literal.ToString(), column + offset);
+                    AppendMappedChar(literal, column + offset);
                 }
                 column += literalLength;
                 i += literalLength - 1;
@@ -129,8 +140,8 @@ internal static partial class MarkdownReader {
             }
 
             if (ch == '\\' && i + 1 < cell.Markdown.Length && IsBackslashEscapable(cell.Markdown[i + 1])) {
-                AppendMapped(ch.ToString(), column++);
-                AppendMapped(cell.Markdown[++i].ToString(), column++);
+                AppendMappedChar(ch, column++);
+                AppendMappedChar(cell.Markdown[++i], column++);
                 continue;
             }
 
@@ -160,7 +171,7 @@ internal static partial class MarkdownReader {
                 continue;
             }
 
-            AppendMapped(ch.ToString(), column);
+            AppendMappedChar(ch, column);
             column++;
         }
 
