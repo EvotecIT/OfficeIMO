@@ -6,6 +6,41 @@ namespace OfficeIMO.Workflows;
 
 /// <summary>Platform-independent DEVMODEW composition and capability interpretation, kept apart from GDI calls so it can be verified anywhere.</summary>
 internal static partial class WindowsPrinterSettings {
+    /// <summary>
+    /// The device page for each step and how far its sheet turns onto it. With <paramref name="turnSheets"/>, a sheet on the same paper
+    /// turned the other way stays on the current device page, rotated as the driver turns landscape (<paramref name="landscapeTurn"/>
+    /// degrees counter-clockwise, 90 or 270), so it lands upright on the fed paper. A different paper size starts a new device page.
+    /// </summary>
+    internal static (PdfPageSize Device, int QuarterTurns)[] DeviceLayout(IReadOnlyList<PdfPrintSheet?> sheets, bool turnSheets, int landscapeTurn) {
+        var layout = new (PdfPageSize, int)[sheets.Count];
+        PdfPageSize? device = null;
+        int turn = landscapeTurn == 270 ? 3 : 1;
+        for (int index = 0; index < sheets.Count; index++) {
+            if (sheets[index] is not PdfPrintSheet sheet) {
+                layout[index] = (device ?? sheets.First(item => item is not null)!.PaperSize, 0);
+                continue;
+            }
+            if (device is PdfPageSize current && SamePaper(sheet.PaperSize, current)) {
+                layout[index] = (current, 0);
+            } else if (turnSheets && device is PdfPageSize page && SameTurnedPaper(sheet.PaperSize, page)) {
+                // A landscape sheet on a portrait page turns as the driver turns landscape; a portrait sheet on a landscape page turns back.
+                bool landscapeSheet = sheet.PaperSize.Width.ToPoints() > sheet.PaperSize.Height.ToPoints();
+                layout[index] = (page, landscapeSheet ? turn : 4 - turn);
+            } else {
+                device = sheet.PaperSize;
+                layout[index] = (sheet.PaperSize, 0);
+            }
+        }
+        return layout;
+    }
+
+    internal static bool SamePaper(PdfPageSize first, PdfPageSize second) =>
+        Math.Abs(first.Width.ToPoints() - second.Width.ToPoints()) < 0.01 && Math.Abs(first.Height.ToPoints() - second.Height.ToPoints()) < 0.01;
+
+    /// <summary>Whether <paramref name="first"/> is <paramref name="second"/> turned a quarter, such as A4 landscape and A4 portrait.</summary>
+    internal static bool SameTurnedPaper(PdfPageSize first, PdfPageSize second) =>
+        Math.Abs(first.Width.ToPoints() - second.Height.ToPoints()) < 0.01 && Math.Abs(first.Height.ToPoints() - second.Width.ToPoints()) < 0.01;
+
     // Public DEVMODEW offsets and dmFields flags (wingdi.h).
     internal const int DevModeSize = 68, DevModeFields = 72, DevModeOrientation = 76, DevModePaperSize = 78, DevModePaperLength = 80,
         DevModePaperWidth = 82, DevModeScale = 84, DevModeCopies = 86, DevModeDefaultSource = 88, DevModeDuplex = 94, DevModeCollate = 100;

@@ -109,6 +109,25 @@ public sealed class PdfPrinterCapabilityTests {
     }
 
     [Fact]
+    public void FedPaperPrintersKeepOneOrientationAndTurnSheetsWhileFilePrintersFollowEachSheet() {
+        // An HP LaserJet on the IPP class driver printed the portrait sheet of a landscape-portrait-landscape job shrunk onto landscape.
+        PdfPageSize landscape = PdfPageSizes.A4.Landscape(), portrait = PdfPageSizes.A4;
+        PdfPrintSheet?[] steps = [Sheet(1, landscape), Sheet(2, portrait), null, Sheet(3, landscape), Sheet(4, PdfPageSizes.Letter)];
+
+        var printer = WindowsPrinterSettings.DeviceLayout(steps, turnSheets: true, landscapeTurn: 90);
+        Assert.Equal([landscape, landscape, landscape, landscape, PdfPageSizes.Letter], printer.Select(step => step.Device));
+        Assert.Equal([0, 3, 0, 0, 0], printer.Select(step => step.QuarterTurns)); // Portrait turns clockwise, the driver then turns it upright.
+        Assert.Equal(1, WindowsPrinterSettings.DeviceLayout(steps, turnSheets: true, landscapeTurn: 270)[1].QuarterTurns);
+        Assert.Equal(1, WindowsPrinterSettings.DeviceLayout([Sheet(1, portrait), Sheet(2, landscape)], turnSheets: true, landscapeTurn: 90)[1].QuarterTurns);
+
+        var file = WindowsPrinterSettings.DeviceLayout(steps, turnSheets: false, landscapeTurn: 0);
+        Assert.Equal([landscape, portrait, portrait, landscape, PdfPageSizes.Letter], file.Select(step => step.Device));
+        Assert.All(file, step => Assert.Equal(0, step.QuarterTurns));
+
+        static PdfPrintSheet Sheet(int number, PdfPageSize paper) => new(number, paper, []);
+    }
+
+    [Fact]
     public void DevModeCompositionWritesDriverCopiesCustomPaperSourceAndDuplex() {
         byte[] mode = DriverDefaults(fields: WindowsPrinterSettings.FieldPaperLength | 0x40000);
         var paper = new PdfPageSize(OfficeLength.Points(400), OfficeLength.Points(250));

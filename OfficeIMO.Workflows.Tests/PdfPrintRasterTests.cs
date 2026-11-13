@@ -4,17 +4,20 @@ namespace OfficeIMO.Workflows.Tests;
 
 public sealed class PdfPrintRasterTests {
     [Fact]
-    public void RowConversionMatchesTheSharedGrayscaleAndProducesPaddedGdiRows() {
+    public void RowConversionMatchesTheSharedGrayscaleAndProducesPaddedTurnedGdiRows() {
         OfficeColor[] colors = [OfficeColor.FromRgba(255, 0, 0, 255), OfficeColor.FromRgba(12, 200, 99, 128), OfficeColor.FromRgba(0, 0, 255, 0)];
         var raster = new OfficeRasterImage(3, 1);
         for (int x = 0; x < colors.Length; x++) raster.SetPixel(x, 0, colors[x]);
         byte[] rgba = raster.GetPixels();
-        Assert.Equal(new byte[] { 0, 0, 255, 99, 200, 12, 255, 0, 0, 0, 0, 0 }, PdfPrintRaster.ToGdiRows(rgba, 3, 1, gray: false, CancellationToken.None));
+        Assert.Equal(new byte[] { 0, 0, 255, 99, 200, 12, 255, 0, 0, 0, 0, 0 }, PdfPrintRaster.ToGdiRows(rgba, 3, 1, gray: false, quarterTurns: 0, CancellationToken.None));
+        // Turned a quarter counter-clockwise, the last pixel becomes the top row; clockwise, the first does. Each one-pixel row pads to four bytes.
+        Assert.Equal(new byte[] { 255, 0, 0, 0, 99, 200, 12, 0, 0, 0, 255, 0 }, PdfPrintRaster.ToGdiRows(rgba, 3, 1, gray: false, quarterTurns: 1, CancellationToken.None));
+        Assert.Equal(new byte[] { 0, 0, 255, 0, 99, 200, 12, 0, 255, 0, 0, 0 }, PdfPrintRaster.ToGdiRows(rgba, 3, 1, gray: false, quarterTurns: 3, CancellationToken.None));
 
         PdfPrintRaster.ApplyGrayscale(raster, CancellationToken.None);
         for (int x = 0; x < colors.Length; x++) Assert.Equal(OfficeColorTransforms.Grayscale(colors[x]), raster.GetPixel(x, 0));
         byte[] grayPixels = raster.GetPixels();
-        Assert.Equal(new byte[] { grayPixels[0], grayPixels[4], grayPixels[8], 0 }, PdfPrintRaster.ToGdiRows(grayPixels, 3, 1, gray: true, CancellationToken.None));
+        Assert.Equal(new byte[] { grayPixels[0], grayPixels[4], grayPixels[8], 0 }, PdfPrintRaster.ToGdiRows(grayPixels, 3, 1, gray: true, quarterTurns: 0, CancellationToken.None));
     }
 
     [Theory]

@@ -20,16 +20,26 @@ internal static class PdfPrintRaster {
 
     /// <summary>
     /// Copies RGBA pixels into the rows a GDI device-independent bitmap expects: 24-bit BGR, or 8-bit gray for a gray sheet, each row
-    /// padded to four bytes. Alpha is dropped, as a 32-bit GDI bitmap ignores it. Smaller rows make the spooler's copy of each sheet cheaper.
+    /// padded to four bytes, turned <paramref name="quarterTurns"/> quarter turns counter-clockwise (0, 1 or 3). Alpha is dropped, as a
+    /// 32-bit GDI bitmap ignores it. Smaller rows make the spooler's copy of each sheet cheaper.
     /// </summary>
-    internal static byte[] ToGdiRows(byte[] pixels, int width, int height, bool gray, CancellationToken token) {
+    internal static byte[] ToGdiRows(byte[] pixels, int width, int height, bool gray, int quarterTurns, CancellationToken token) {
         if (pixels.Length < checked(width * 4 * height)) throw new ArgumentException("The pixel buffer is smaller than its dimensions.", nameof(pixels));
-        int stride = GdiStride(width, gray);
-        var rows = new byte[checked(stride * height)];
-        for (int y = 0; y < height; y++) {
+        if (quarterTurns is not (0 or 1 or 3)) throw new ArgumentOutOfRangeException(nameof(quarterTurns));
+        bool turned = quarterTurns != 0;
+        int outWidth = turned ? height : width, outHeight = turned ? width : height;
+        int stride = GdiStride(outWidth, gray);
+        var rows = new byte[checked(stride * outHeight)];
+        for (int y = 0; y < outHeight; y++) {
             if ((y & 63) == 0) token.ThrowIfCancellationRequested();
-            int from = y * width * 4, to = y * stride;
-            for (int x = 0; x < width; x++, from += 4) {
+            int to = y * stride;
+            for (int x = 0; x < outWidth; x++) {
+                // A counter-clockwise turn puts the source's right column on the top row; a clockwise turn puts its left column there.
+                int from = quarterTurns switch {
+                    1 => (x * width + (width - 1 - y)) * 4,
+                    3 => ((height - 1 - x) * width + y) * 4,
+                    _ => (y * width + x) * 4
+                };
                 if (gray) {
                     rows[to++] = pixels[from];
                 } else {

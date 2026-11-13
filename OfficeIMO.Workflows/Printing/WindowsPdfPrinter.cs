@@ -63,7 +63,11 @@ internal static partial class WindowsPdfPrinter {
         if (options.PaperSourceId is not null && !capabilities.PaperSources.Any(source => source.Id == options.PaperSourceId))
             throw new ArgumentException("The selected paper source is no longer available on this printer.", nameof(options));
         IReadOnlyList<PdfPrintSheet> sheets = job.Plan.Sheets;
-        bool singlePaper = sheets.All(sheet => SamePaper(sheet.PaperSize, sheets[0].PaperSize));
+        // Printers feed every sheet the same way and many drivers, such as the IPP class driver, keep the first page's orientation for the
+        // whole job. Sheets that only turn the paper are therefore rotated here instead; file printers still get each page's own orientation.
+        bool turnSheets = !printer.RequiresOutputFile;
+        int landscapeTurn = turnSheets ? Native.DeviceCapabilities(printer.Name, details.PortName, DcOrientation, IntPtr.Zero, IntPtr.Zero) : 0;
+        bool singlePaper = sheets.All(sheet => SamePaper(sheet.PaperSize, sheets[0].PaperSize) || turnSheets && WindowsPrinterSettings.SameTurnedPaper(sheet.PaperSize, sheets[0].PaperSize));
         short driverCopies = WindowsPrinterSettings.DriverCopies(options.Copies, capabilities, singlePaper);
         if (!Native.OpenPrinter(printer.Name, out IntPtr printerHandle, IntPtr.Zero)) throw new Win32Exception();
         IntPtr mode = IntPtr.Zero, dc = IntPtr.Zero;
@@ -100,6 +104,7 @@ internal static partial class WindowsPdfPrinter {
                 foreach (PdfPrintSheet sheet in sheets) steps.Add((sheet, copy == 0));
                 if (duplex && sheets.Count % 2 != 0 && copy + 1 < softwareCopies) steps.Add((null, false));
             }
+            (PdfPageSize Device, int QuarterTurns)[] layout = WindowsPrinterSettings.DeviceLayout(steps.Select(step => step.Sheet).ToArray(), turnSheets, landscapeTurn);
             bool keep = softwareCopies > 1;
             bool gray = job.Plan.ColorMode == PdfPrintColorMode.Grayscale;
             // Sheets render a few ahead on other cores at the device resolution read now; a paper change that alters it renders again below.
@@ -109,7 +114,7 @@ internal static partial class WindowsPdfPrinter {
                 (long)Math.Ceiling(sheets[0].PaperSize.Height.ToPoints() / 72 * firstDpi);
             using var ahead = new PrintSheetPrefetcher<SheetPixels>(steps.Count, PrintSheetPrefetcher<SheetPixels>.DepthFor(sheetBytes, job.MaximumContentBytes),
                 (index, stop) => steps[index] is { Sheet: PdfPrintSheet sheet, First: true }
-                    ? PrepareSheet(job, sheet, SheetDpi(deviceDpi, job, sheet, options.MaximumRasterDpi), gray, kept, keep, stop)
+                    ? PrepareSheet(job, sheet, SheetDpi(deviceDpi, job, sheet, options.MaximumRasterDpi), gray, layout[index].QuarterTurns, kept, keep, stop)
                     : null, token);
             for (int index = 0; index < steps.Count; index++) {
                 token.ThrowIfCancellationRequested();
@@ -120,17 +125,18 @@ internal static partial class WindowsPdfPrinter {
                     if (Native.EndPage(dc) <= 0) throw GdiFailure("EndPage");
                     continue;
                 }
-                if (!SamePaper(sheet.PaperSize, currentPaper)) {
-                    ConfigureMode(mode, driverDefaults, printerHandle, printer.Name, Request(sheet.PaperSize, driverCopies));
+                (PdfPageSize device, int quarterTurns) = layout[index];
+                if (!SamePaper(device, currentPaper)) {
+                    ConfigureMode(mode, driverDefaults, printerHandle, printer.Name, Request(device, driverCopies));
                     IntPtr reset = Native.ResetDC(dc, mode);
                     if (reset == IntPtr.Zero) throw GdiFailure("ResetDC");
                     dc = reset;
                     if (Native.SetAbortProc(dc, abort) <= 0) throw GdiFailure("SetAbortProc");
-                    ValidatePaper(dc, sheet.PaperSize);
-                    currentPaper = sheet.PaperSize;
+                    ValidatePaper(dc, device);
+                    currentPaper = device;
                 }
                 double dpi = SheetDpi(DeviceDpi(dc), job, sheet, options.MaximumRasterDpi);
-                SheetPixels pixels = prepared is not null && prepared.Dpi == dpi ? prepared : PrepareSheet(job, sheet, dpi, gray, kept, keep, token);
+                SheetPixels pixels = prepared is not null && prepared.Dpi == dpi ? prepared : PrepareSheet(job, sheet, dpi, gray, quarterTurns, kept, keep, token);
                 prepared = null;
                 if (Native.StartPage(dc) <= 0) throw GdiFailure("StartPage");
                 DrawPixels(dc, pixels, gray);
@@ -165,16 +171,18 @@ internal static partial class WindowsPdfPrinter {
     /// Rasterizes one sheet to GDI bitmap rows without touching the device context, so it can run on another core while GDI spools
     /// earlier sheets. A sheet that a later software copy prints again is kept packed in <paramref name="kept"/>, so it renders once per job.
     /// </summary>
-    private static SheetPixels PrepareSheet(PdfPrintJob job, PdfPrintSheet sheet, double dpi, bool gray, PrintSheetCache<PackedSheetPixels> kept,
-        bool keep, CancellationToken token) {
-        if (kept.TryGet(sheet.SheetNumber, out PackedSheetPixels packed) && packed.Dpi == dpi) return new(packed.Unpack(), packed.Width, packed.Height, dpi);
+    private static SheetPixels PrepareSheet(PdfPrintJob job, PdfPrintSheet sheet, double dpi, bool gray, int quarterTurns,
+        PrintSheetCache<PackedSheetPixels> kept, bool keep, CancellationToken token) {
+        int key = sheet.SheetNumber * 4 + quarterTurns;
+        if (kept.TryGet(key, out PackedSheetPixels packed) && packed.Dpi == dpi) return new(packed.Unpack(), packed.Width, packed.Height, dpi);
         OfficeRasterImage raster = job.RenderRaster(sheet.SheetNumber, dpi, job.MaximumPixelsPerImage, token).Raster;
-        byte[] rows = PdfPrintRaster.ToGdiRows(raster.PixelBuffer, raster.Width, raster.Height, gray, token);
+        byte[] rows = PdfPrintRaster.ToGdiRows(raster.PixelBuffer, raster.Width, raster.Height, gray, quarterTurns, token);
+        int width = quarterTurns == 0 ? raster.Width : raster.Height, height = quarterTurns == 0 ? raster.Height : raster.Width;
         if (keep) {
-            PackedSheetPixels packing = PackedSheetPixels.Pack(rows, raster.Width, raster.Height, dpi);
-            kept.Add(sheet.SheetNumber, packing, packing.PackedLength);
+            PackedSheetPixels packing = PackedSheetPixels.Pack(rows, width, height, dpi);
+            kept.Add(key, packing, packing.PackedLength);
         }
-        return new(rows, raster.Width, raster.Height, dpi);
+        return new(rows, width, height, dpi);
     }
 
     /// <summary>Stretches the sheet's rows, 24-bit color or 8-bit gray, over the whole physical page of the started page.</summary>
@@ -202,8 +210,7 @@ internal static partial class WindowsPdfPrinter {
 
     private const int LogPixelsX = 88, LogPixelsY = 90, PhysicalWidth = 110, PhysicalHeight = 111, PhysicalOffsetX = 112, PhysicalOffsetY = 113;
 
-    private static bool SamePaper(PdfPageSize first, PdfPageSize second) =>
-        Math.Abs(first.Width.ToPoints() - second.Width.ToPoints()) < 0.01 && Math.Abs(first.Height.ToPoints() - second.Height.ToPoints()) < 0.01;
+    private static bool SamePaper(PdfPageSize first, PdfPageSize second) => WindowsPrinterSettings.SamePaper(first, second);
 
     private static string? ValidateOutput(string sourcePath, PdfPrinterInfo printer, string? outputPath) {
         if (!printer.RequiresOutputFile) {

@@ -12,7 +12,7 @@ namespace OfficeIMO.Workflows;
 #endif
 internal static partial class WindowsPdfPrinter {
     // DeviceCapabilities indexes (wingdi.h).
-    private const ushort DcPapers = 2, DcPaperSize = 3, DcBins = 6, DcDuplex = 7, DcBinNames = 12, DcEnumResolutions = 13,
+    private const ushort DcOrientation = 17, DcPapers = 2, DcPaperSize = 3, DcBins = 6, DcDuplex = 7, DcBinNames = 12, DcEnumResolutions = 13,
         DcPaperNames = 16, DcCopies = 18, DcCollate = 22, DcColorDevice = 32;
     // Identifiers are WORDs. DeviceCapabilities has no output-capacity argument and the driver may change
     // its count between calls, so list buffers reserve the entire identifier space.
