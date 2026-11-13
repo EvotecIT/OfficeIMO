@@ -11,24 +11,20 @@ public sealed partial class OfficeRasterCanvas {
 
     // Intersect geometric scanline intervals before accumulating area. Multiplying independent
     // pixel coverages loses where each clip lies inside the pixel and darkens coincident edges.
-    private static void AccumulateClipIntersection(List<ContourCrossing> crossings, int startIndex, int count,
-        IReadOnlyList<ClipContourSource> sources, int left, int right, double weight, double[] coverage) {
-        var windings = new int[sources.Count];
+    private static void AccumulateClipIntersection(ContourCrossing[] crossings, int startIndex, int count, ContourEdge[] edges,
+        IReadOnlyList<ClipContourSource> sources, int[] windings, int left, int right, double weight, double[] coverage) {
+        Array.Clear(windings, 0, sources.Count);
         int outside = sources.Count, index = startIndex, endIndex = startIndex + count;
         double previous = crossings[index].X;
         while (index < endIndex) {
             double x = crossings[index].X;
-            if (outside == 0 && x > previous) {
-                double start = Math.Max(left, previous), end = Math.Min(right + 1D, x);
-                if (end > start) for (int pixel = (int)Math.Floor(start); pixel < Math.Ceiling(end); pixel++)
-                    coverage[pixel - left] += (Math.Min(end, pixel + 1D) - Math.Max(start, pixel)) * weight;
-            }
+            if (outside == 0 && x > previous) AccumulateInterval(Math.Max(left, previous), Math.Min(right + 1D, x), left, weight, coverage);
             do {
-                ContourCrossing crossing = crossings[index++];
-                int group = crossing.Group;
+                ContourEdge edge = edges[crossings[index++].Edge];
+                int group = edge.Group;
                 bool nonzero = sources[group].Rule == OfficeFillRule.NonZero;
                 bool wasInside = nonzero ? windings[group] != 0 : (windings[group] & 1) != 0;
-                windings[group] += nonzero ? crossing.WindingDelta : 1;
+                windings[group] += nonzero ? edge.WindingDelta : 1;
                 bool isInside = nonzero ? windings[group] != 0 : (windings[group] & 1) != 0;
                 if (wasInside != isInside) outside += isInside ? -1 : 1;
             } while (index < endIndex && Math.Abs(crossings[index].X - x) <= ContourCrossingTolerance);
@@ -54,7 +50,7 @@ public sealed partial class OfficeRasterCanvas {
         }
         ContourCoverageWorkspace workspace = maskCanvas.TakeContourCoverageWorkspace();
         try {
-            maskCanvas.FillContourPaint(shifted[0].Contours, shifted[0].Rule, (_, _) => OfficeColor.White,
+            maskCanvas.FillContourPaint(shifted[0].Contours, shifted[0].Rule, SolidPaint(OfficeColor.White),
                 null, workspace, shifted);
         } finally {
             maskCanvas.ReturnContourCoverageWorkspace(workspace);
