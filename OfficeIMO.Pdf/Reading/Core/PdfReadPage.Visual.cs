@@ -1483,7 +1483,7 @@ public sealed partial class PdfReadPage {
                 PdfFontResourceSet formFonts = CreateInheritedFormFontResources(fontResources, formResources,
                     invocation.TextState, out PdfTextStateSnapshot formTextState, pageContentBudget.CancellationToken);
                 if (!requireSupportedType3Content && type3GroupVisitor != null &&
-                    formOrderPrefix != null && IsSupportedOrdinaryTransparencyGroup(formDictionary)) {
+                    formOrderPrefix != null && IsSupportedOrdinaryTransparencyGroup(formDictionary, invocation)) {
                     OfficeDrawing group = CreateOrdinaryTransparencyGroupDrawing(formContent, formResources, formTransform,
                         pageWidth, pageHeight, invocation, activeForms, activeType3Glyphs, renderedType3PaintOrders,
                         type3GlyphBudget, paintOrderScale, textOutputBudget, pageContentBudget,
