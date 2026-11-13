@@ -49,7 +49,7 @@ public sealed partial class PdfCreateOptions {
             && _namedFontFamilies?.ContainsKey(key) != true) {
             return false;
         }
-        (_namedFontFamilies ??= new Dictionary<string, PdfEmbeddedFontFamily>(StringComparer.Ordinal))[key] = fontFamily.Clone();
+        (_namedFontFamilies ??= new PdfFontMembershipMap<string, PdfEmbeddedFontFamily>(StringComparer.Ordinal))[key] = fontFamily.Clone();
         _automaticFallbackOwnedNamedFamilyKeys?.Remove(key);
         RemoveNamedFontProgramCache(key);
         return true;

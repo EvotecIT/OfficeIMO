@@ -111,10 +111,10 @@ public sealed partial class PdfCreateOptions {
     private PdfPageBorder? _pageBorder;
     private PdfPageBackgroundImage? _pageBackgroundImage;
     private System.Collections.Generic.List<PdfPageBackgroundShape>? _pageBackgroundShapes;
-    private System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>? _embeddedFonts;
+    private PdfFontMembershipMap<PdfStandardFont, PdfEmbeddedFont>? _embeddedFonts;
     private System.Collections.Generic.Dictionary<PdfStandardFont, PdfTrueTypeFontProgram>? _embeddedFontPrograms;
     private System.Collections.Generic.Dictionary<PdfStandardFont, PdfOpenTypeCffFontProgram>? _embeddedOpenTypeCffFontPrograms;
-    private System.Collections.Generic.Dictionary<string, PdfEmbeddedFontFamily>? _namedFontFamilies;
+    private PdfFontMembershipMap<string, PdfEmbeddedFontFamily>? _namedFontFamilies;
     private System.Collections.Generic.Dictionary<PdfNamedFontFace, PdfTrueTypeFontProgram>? _namedFontPrograms;
     private System.Collections.Generic.Dictionary<PdfNamedFontFace, PdfOpenTypeCffFontProgram>? _namedOpenTypeCffFontPrograms;
     private System.Collections.Generic.HashSet<PdfNamedFontFace>? _namedFontProgramFailures;
