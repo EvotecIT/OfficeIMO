@@ -639,7 +639,7 @@ internal static partial class CsvWriter
 
     /// <summary>Formats a known scalar as the general path does: unescaped for invariant comma output, escaped otherwise.</summary>
     private static bool AppendRecordScalar<T>(RecordBuffer<char> output, T value, char delimiter, CultureInfo culture, bool invariantComma)
-        where T : ISpanFormattable
+        where T : ISpanFormattable, IUtf8SpanFormattable
     {
         if (invariantComma)
         {

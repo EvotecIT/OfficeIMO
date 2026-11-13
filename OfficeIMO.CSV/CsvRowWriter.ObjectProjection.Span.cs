@@ -38,7 +38,7 @@ public sealed partial class CsvRowWriter
 
     /// <summary>Formats a known invariant scalar directly into the staged row's available space.</summary>
     private static void StageProjectedScalarSpan<T>(CsvRowWriter writer, int ordinal, T value)
-        where T : ISpanFormattable
+        where T : ISpanFormattable, IUtf8SpanFormattable
     {
         if (writer._propertyFallbackColumn < 0)
         {
@@ -107,7 +107,7 @@ public sealed partial class CsvRowWriter
         Type scalarType = Nullable.GetUnderlyingType(value.Type) ?? value.Type;
         MethodInfo? scalarMethod = scalarType == typeof(DateTime)
             ? typeof(CsvRowWriter).GetMethod(nameof(StageProjectedFormattedDate), BindingFlags.NonPublic | BindingFlags.Static)
-            : scalarType == typeof(DateTimeOffset) ? null : CsvWriter.GetPropertyScalarStageMethod(scalarType, useSpanBuffer: true);
+            : scalarType == typeof(DateTimeOffset) ? null : CsvWriter.GetPropertyScalarStageMethod(scalarType, ProjectedStaging.Characters);
         usesTypedValue = scalarMethod != null;
         if (scalarMethod == null)
         {

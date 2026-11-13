@@ -20,15 +20,29 @@ public sealed partial class CsvRowWriter
     {
         if (_delimiter != ',') return false;
         bool useSpanBuffer = _writer.GetType() == typeof(StreamWriter) || _writer is PooledUtf8TextWriter || _stringWriterBuffer != null;
+        // Exactly UTF8Encoding: ASCII is staged as the bytes its encoder writes, other text goes through the encoding.
+        PooledUtf8TextWriter? utf8Writer = _useDefaultWritePath && _writer is PooledUtf8TextWriter pooled
+            && pooled.Encoding.GetType() == typeof(UTF8Encoding) ? pooled : null;
         ObjectDataHelpers.PropertyWriteExpressionFactory factory;
-        if (_useDefaultWritePath)
+        if (utf8Writer != null)
+            factory = CreatePropertyUtf8WriteExpression;
+        else if (_useDefaultWritePath)
             factory = useSpanBuffer ? CreatePropertySpanWriteExpression : CreatePropertyWriteExpression;
         else if (_useFormattedDefaultWritePath && useSpanBuffer)
             factory = CreateFormattedPropertySpanWriteExpression;
         else
             return false;
         if (!ObjectDataHelpers.TryCreatePropertyWriter<CsvRowWriter>(item, columns, factory, out var projector)) return false;
-        if (useSpanBuffer) _propertyCharacters ??= new char[1024];
+        if (utf8Writer != null)
+        {
+            _propertyUtf8Writer = utf8Writer;
+            _propertyBytes ??= new byte[PropertyStagingLength];
+            _propertyNewLineBytes ??= utf8Writer.Encoding.GetBytes(_options.NewLine);
+        }
+        else if (useSpanBuffer)
+        {
+            _propertyCharacters ??= new char[PropertyStagingLength];
+        }
         _bufferedPropertyProjector = projector;
         _propertyTextValues = new string?[columns.Count];
         _propertyFormattedRanges = new (int Start, int Length)[columns.Count];
@@ -47,6 +61,10 @@ public sealed partial class CsvRowWriter
         if (_propertyFallbackColumn >= 0)
         {
             WriteProjectedFallback();
+        }
+        else if (_propertyBytes != null)
+        {
+            WriteProjectedUtf8Row();
         }
         else if (_propertyCharacters != null)
         {
@@ -81,7 +99,9 @@ public sealed partial class CsvRowWriter
         string newLine = _options.NewLine;
         if (_propertyFallbackPrefixLength > 0)
         {
-            if (_propertyCharacters != null)
+            if (_propertyBytes != null)
+                _propertyUtf8Writer!.WriteUtf8(_propertyBytes.AsSpan(0, _propertyFallbackPrefixLength));
+            else if (_propertyCharacters != null)
                 _writer.Write(_propertyCharacters.AsSpan(0, _propertyFallbackPrefixLength));
             else
                 _writer.Write(_rowBuffer.ToString(0, _propertyFallbackPrefixLength));
@@ -117,7 +137,7 @@ public sealed partial class CsvRowWriter
 
     /// <summary>Formats an invariant built-in scalar through the existing constrained formatter.</summary>
     private static void StageProjectedScalar<T>(CsvRowWriter writer, int ordinal, T value)
-        where T : ISpanFormattable
+        where T : ISpanFormattable, IUtf8SpanFormattable
     {
         if (writer._propertyFallbackColumn < 0)
         {
@@ -132,9 +152,14 @@ public sealed partial class CsvRowWriter
     }
 
     /// <summary>Roots the concrete scalar staging method for the selected row representation.</summary>
-    internal static MethodInfo GetPropertyScalarStageMethod<T>(bool useSpanBuffer = false) where T : ISpanFormattable
+    internal static MethodInfo GetPropertyScalarStageMethod<T>(ProjectedStaging staging) where T : ISpanFormattable, IUtf8SpanFormattable
     {
-        Action<CsvRowWriter, int, T> action = useSpanBuffer ? StageProjectedScalarSpan<T> : StageProjectedScalar<T>;
+        Action<CsvRowWriter, int, T> action = staging switch
+        {
+            ProjectedStaging.Utf8 => StageProjectedScalarUtf8<T>,
+            ProjectedStaging.Characters => StageProjectedScalarSpan<T>,
+            _ => StageProjectedScalar<T>,
+        };
         return action.Method;
     }
 
@@ -142,25 +167,36 @@ public sealed partial class CsvRowWriter
     [RequiresUnreferencedCode("Builds property expressions from runtime schema metadata, including nullable property accessors.")]
     private static Expression CreatePropertyWriteExpression(ParameterExpression value,
         Expression formattedText, ParameterExpression writer, ParameterExpression culture, int ordinal, out bool usesTypedValue) =>
-        CreatePropertyWriteExpressionCore(value, formattedText, writer, culture, ordinal, false, out usesTypedValue);
+        CreatePropertyWriteExpressionCore(value, formattedText, writer, culture, ordinal, ProjectedStaging.Builder, out usesTypedValue);
 
     /// <summary>Builds property writes into the bounded character row buffer.</summary>
     [RequiresUnreferencedCode("Builds typed property expressions from runtime schema metadata.")]
     private static Expression CreatePropertySpanWriteExpression(ParameterExpression value,
         Expression formattedText, ParameterExpression writer, ParameterExpression culture, int ordinal, out bool usesTypedValue) =>
-        CreatePropertyWriteExpressionCore(value, formattedText, writer, culture, ordinal, true, out usesTypedValue);
+        CreatePropertyWriteExpressionCore(value, formattedText, writer, culture, ordinal, ProjectedStaging.Characters, out usesTypedValue);
+
+    /// <summary>Builds property writes into the bounded UTF-8 row buffer.</summary>
+    [RequiresUnreferencedCode("Builds typed property expressions from runtime schema metadata.")]
+    private static Expression CreatePropertyUtf8WriteExpression(ParameterExpression value,
+        Expression formattedText, ParameterExpression writer, ParameterExpression culture, int ordinal, out bool usesTypedValue) =>
+        CreatePropertyWriteExpressionCore(value, formattedText, writer, culture, ordinal, ProjectedStaging.Utf8, out usesTypedValue);
 
     /// <summary>Reuses the scalar classification and captured-culture rules for both staged representations.</summary>
     [RequiresUnreferencedCode("Builds property expressions from runtime schema metadata, including nullable property accessors.")]
     private static Expression CreatePropertyWriteExpressionCore(ParameterExpression value,
         Expression formattedText, ParameterExpression writer, ParameterExpression culture, int ordinal,
-        bool useSpanBuffer, out bool usesTypedValue)
+        ProjectedStaging staging, out bool usesTypedValue)
     {
-        MethodInfo textMethod = typeof(CsvRowWriter).GetMethod(useSpanBuffer ? nameof(StageProjectedSpanText) : nameof(StageProjectedText),
-            BindingFlags.NonPublic | BindingFlags.Instance)!;
+        string textMethodName = staging switch
+        {
+            ProjectedStaging.Utf8 => nameof(StageProjectedUtf8Text),
+            ProjectedStaging.Characters => nameof(StageProjectedSpanText),
+            _ => nameof(StageProjectedText),
+        };
+        MethodInfo textMethod = typeof(CsvRowWriter).GetMethod(textMethodName, BindingFlags.NonPublic | BindingFlags.Instance)!;
         Expression text = Expression.Call(writer, textMethod, Expression.Constant(ordinal), formattedText);
         Type scalarType = Nullable.GetUnderlyingType(value.Type) ?? value.Type;
-        MethodInfo? scalarMethod = CsvWriter.GetPropertyScalarStageMethod(scalarType, useSpanBuffer);
+        MethodInfo? scalarMethod = CsvWriter.GetPropertyScalarStageMethod(scalarType, staging);
         usesTypedValue = scalarMethod != null;
         if (scalarMethod == null) return text;
         Expression scalarValue = value;

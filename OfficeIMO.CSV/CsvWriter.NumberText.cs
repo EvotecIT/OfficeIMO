@@ -11,12 +11,13 @@ internal static partial class CsvWriter
     internal const int IntegerMaximumLength = 20;
 
     /// <summary>
-    /// Formats with the invariant culture and default format. Integers, doubles that are short exact decimals and
-    /// decimals with a 64-bit coefficient are written here, the remaining doubles by <see cref="CsvShortestDouble"/>;
-    /// each gives the runtime's text with less work.
+    /// Formats with the invariant culture and default format into UTF-16 or UTF-8 units. Integers, doubles that are
+    /// short exact decimals and decimals with a 64-bit coefficient are written here, the remaining doubles by
+    /// <see cref="CsvShortestDouble"/>; each gives the runtime's text with less work.
     /// </summary>
-    internal static bool TryFormatInvariant<T>(T value, Span<char> destination, out int written)
-        where T : ISpanFormattable
+    internal static bool TryFormatInvariant<T, TChar>(T value, Span<TChar> destination, out int written)
+        where T : ISpanFormattable, IUtf8SpanFormattable
+        where TChar : unmanaged
     {
         if (typeof(T) == typeof(int) && destination.Length >= IntegerMaximumLength)
         {
@@ -44,7 +45,9 @@ internal static partial class CsvWriter
             return true;
         }
 
-        return value.TryFormat(destination, out written, default, CultureInfo.InvariantCulture);
+        return typeof(TChar) == typeof(byte)
+            ? value.TryFormat(MemoryMarshal.Cast<TChar, byte>(destination), out written, default, CultureInfo.InvariantCulture)
+            : value.TryFormat(MemoryMarshal.Cast<TChar, char>(destination), out written, default, CultureInfo.InvariantCulture);
     }
 
     /// <summary>
