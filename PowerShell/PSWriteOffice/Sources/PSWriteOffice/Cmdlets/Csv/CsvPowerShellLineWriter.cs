@@ -116,12 +116,12 @@ internal sealed class CsvPowerShellLineWriter : TextWriter
     // break; the character state machine would produce the same line. Quoted records take the full path.
     private bool TryEmitQuoteFreeRecord(string text, ref int index)
     {
-        if (_line.Length != 0 || _pendingCarriageReturn || _inQuotes || _pendingQuoteInQuotedField || _delimiterMatchIndex != 0)
+        if (_line.Length != 0 || !_atFieldStart || _pendingCarriageReturn || _inQuotes || _pendingQuoteInQuotedField || _delimiterMatchIndex != 0)
         {
             return false;
         }
 
-        var stop = text.IndexOfAny(RecordStopCharacters, index);
+        var stop = FindRecordEnd(text, index);
         if (stop < 0)
         {
             return false;
@@ -145,6 +145,64 @@ internal sealed class CsvPowerShellLineWriter : TextWriter
         _atFieldStart = true;
         index = next;
         return true;
+    }
+
+    // Returns the index of the line break that ends the record starting at recordStart, or -1 when the record is
+    // incomplete or needs the character state machine. Quotes follow the same rules as that state machine: a quote
+    // opens a field only at a field start, a doubled quote stays inside the field, and line breaks inside quotes
+    // belong to the record. Multi-character delimiters keep the state machine for quoted records.
+    private int FindRecordEnd(string text, int recordStart)
+    {
+        var position = recordStart;
+        var inQuotes = false;
+        while (true)
+        {
+            var stop = inQuotes
+                ? text.IndexOf('"', position)
+                : text.IndexOfAny(RecordStopCharacters, position);
+            if (stop < 0)
+            {
+                return -1;
+            }
+
+            if (text[stop] != '"')
+            {
+                return stop;
+            }
+
+            if (!_parseQuotedRecords)
+            {
+                position = stop + 1;
+                continue;
+            }
+
+            if (inQuotes)
+            {
+                if (stop + 1 >= text.Length)
+                {
+                    return -1;
+                }
+
+                if (text[stop + 1] == '"')
+                {
+                    position = stop + 2;
+                    continue;
+                }
+
+                inQuotes = false;
+                position = stop + 1;
+                continue;
+            }
+
+            if (_delimiterText.Length != 1 ||
+                (stop != recordStart && text[stop - 1] != _delimiterText[0]))
+            {
+                return -1;
+            }
+
+            inQuotes = true;
+            position = stop + 1;
+        }
     }
 
     private void ProcessCharacter(char value)
