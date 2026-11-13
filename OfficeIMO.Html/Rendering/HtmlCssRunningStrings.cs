@@ -79,6 +79,11 @@ internal enum HtmlCssRunningStringPosition {
 }
 
 internal static class HtmlCssRunningStringParser {
+    /// <summary>Whether a string-set value is absent or <c>none</c>, so it assigns no running strings.</summary>
+    internal static bool DeclaresNoAssignments(string? declaration) =>
+        string.IsNullOrWhiteSpace(declaration)
+        || string.Equals(declaration!.Trim(), "none", StringComparison.OrdinalIgnoreCase);
+
     internal static IReadOnlyList<HtmlCssRunningStringAssignment> ResolveAssignments(
         IElement element,
         string? declaration,
@@ -87,10 +92,7 @@ internal static class HtmlCssRunningStringParser {
         Func<IElement, int, Action<long>, string?> resolveContentText,
         out bool limitExceeded) {
         limitExceeded = false;
-        if (string.IsNullOrWhiteSpace(declaration)) {
-            return Array.Empty<HtmlCssRunningStringAssignment>();
-        }
-        if (string.Equals(declaration!.Trim(), "none", StringComparison.OrdinalIgnoreCase)) {
+        if (DeclaresNoAssignments(declaration)) {
             return Array.Empty<HtmlCssRunningStringAssignment>();
         }
 

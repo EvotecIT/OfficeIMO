@@ -36,6 +36,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement element,
         HtmlRenderBoxStyle style,
         double offset) {
+        // Every table cell and block asks; without string-set there is nothing to describe, parse or translate.
+        if (HtmlCssRunningStringParser.DeclaresNoAssignments(style.StringSet)) return Array.Empty<HtmlCssRunningStringAssignment>();
         string source = HtmlRenderStyleResolver.DescribeSource(element);
         IReadOnlyList<HtmlCssRunningStringAssignment> ownAssignments = HtmlCssRunningStringParser.ResolveAssignments(
             element,
