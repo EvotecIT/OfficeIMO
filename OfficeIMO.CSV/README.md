@@ -861,6 +861,18 @@ CsvDocument.WriteDataReader("summary.csv.gz", reader, new CsvSaveOptions {
 });
 ```
 
+A `DataTable` can be written directly too. The output matches writing its
+`CreateDataReader()`: deleted rows are skipped and each value comes from the
+row's current version, but the values are read without the data reader's
+per-value overhead:
+
+```csharp
+using OfficeIMO.CSV;
+
+using var output = File.Create("orders.csv");
+CsvDocument.WriteDataTable(output, ordersTable);
+```
+
 For large database exports with CPU-heavy quoting or value formatting, opt in
 to ordered parallel formatting. The source reader is still consumed by one
 thread; detached row batches are formatted concurrently and committed in the

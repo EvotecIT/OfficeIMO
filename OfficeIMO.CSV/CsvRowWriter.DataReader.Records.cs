@@ -15,7 +15,9 @@ public sealed partial class CsvRowWriter
     /// </summary>
     private void WriteDataReaderRecords(IDataReader reader, CsvWriter.DataReaderFieldKind[] fieldKinds, CancellationToken cancellationToken)
     {
-        bool boxedValues = reader.GetType() == typeof(DataTableReader);
+        // Data table rows look values up per call; one boxed read answers both the null check and the value.
+        Type readerType = reader.GetType();
+        bool boxedValues = readerType == typeof(DataTableReader) || readerType == typeof(CsvDataTableRowReader);
         CsvWriter.InvariantRecordLayout layout = !_useFormattedDefaultWritePath && _delimiter == ','
             && ReferenceEquals(_options.Culture, CultureInfo.InvariantCulture)
                 ? CsvWriter.GetInvariantRecordLayout(fieldKinds)
