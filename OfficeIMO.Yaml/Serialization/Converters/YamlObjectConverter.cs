@@ -57,7 +57,7 @@ internal sealed class YamlObjectConverter<T> : YamlConverter<T>, IYamlObjectConv
 
     public override void Configure(YamlSerializerOptions options) {
         YamlPropertyInfo[] properties = _propertyInitializer?.Invoke(options) ?? Array.Empty<YamlPropertyInfo>();
-        YamlNamingPolicy? policy = options.PropertyNamingPolicy;
+        OfficeNamingPolicy? policy = options.PropertyNamingPolicy;
         var byName = new Dictionary<string, int>(properties.Length, StringComparer.Ordinal);
         for (int i = 0; i < properties.Length; i++) {
             YamlPropertyInfo property = properties[i];
@@ -92,7 +92,7 @@ internal sealed class YamlObjectConverter<T> : YamlConverter<T>, IYamlObjectConv
 
         _properties = properties;
         _written = Array.FindAll(properties, static property => property.CanRead);
-        _alwaysWrites = Array.Exists(_written, static property => property.WriteCondition is not (YamlIgnoreCondition.WhenWritingNull or YamlIgnoreCondition.WhenWritingDefault));
+        _alwaysWrites = Array.Exists(_written, static property => property.WriteCondition is not (OfficeIgnoreCondition.WhenWritingNull or OfficeIgnoreCondition.WhenWritingDefault));
         _parameters = parameters;
         _byName = byName;
 #if NET9_0_OR_GREATER
@@ -131,7 +131,7 @@ internal sealed class YamlObjectConverter<T> : YamlConverter<T>, IYamlObjectConv
     public object ReadBody(YamlEventCursor cursor, YamlReadState state, YamlPosition start) {
         if (!CanCreate) {
             throw new NotSupportedException("The type " + YamlSerializationErrors.TypeName(typeof(T))
-                + " cannot be created: it needs a public parameterless constructor, a single public constructor or one marked [YamlConstructor].");
+                + " cannot be created: it needs a public parameterless constructor, a single public constructor or one marked [OfficeConstructor].");
         }
         int count = _properties.Length;
         byte[]? rented = null;
@@ -268,18 +268,18 @@ internal sealed class YamlObjectConverter<T> : YamlConverter<T>, IYamlObjectConv
 }
 
 /// <summary>
-/// A type with <see cref="YamlDerivedTypeAttribute"/> registrations. Values are written with their runtime type's
+/// A type with <see cref="OfficeDerivedTypeAttribute"/> registrations. Values are written with their runtime type's
 /// members and its discriminator, as a local tag (<c>!cat</c>) or a first mapping entry. Reading creates only a
 /// registered derived type, chosen by its discriminator; without one, the base type itself when it can be created.
 /// </summary>
 internal sealed class YamlPolymorphicConverter<T> : YamlConverter<T> {
     private readonly YamlTypeInfo<T> _base;
-    private readonly YamlDerivedTypeAttribute[] _registrations;
+    private readonly OfficeDerivedTypeAttribute[] _registrations;
     private readonly string? _propertyName;
     private Dictionary<Type, (YamlTypeInfo Info, string Discriminator)>? _byType;
     private Dictionary<string, YamlTypeInfo>? _byDiscriminator;
 
-    public YamlPolymorphicConverter(YamlTypeInfo<T> baseInfo, YamlDerivedTypeAttribute[] registrations, string? propertyName) {
+    public YamlPolymorphicConverter(YamlTypeInfo<T> baseInfo, OfficeDerivedTypeAttribute[] registrations, string? propertyName) {
         _base = baseInfo;
         _registrations = registrations;
         _propertyName = propertyName;
@@ -292,7 +292,7 @@ internal sealed class YamlPolymorphicConverter<T> : YamlConverter<T> {
     public override void Configure(YamlSerializerOptions options) {
         var byType = new Dictionary<Type, (YamlTypeInfo, string)>();
         var byDiscriminator = new Dictionary<string, YamlTypeInfo>(StringComparer.Ordinal);
-        foreach (YamlDerivedTypeAttribute registration in _registrations) {
+        foreach (OfficeDerivedTypeAttribute registration in _registrations) {
             if (!typeof(T).IsAssignableFrom(registration.DerivedType) || registration.DerivedType == typeof(T)) {
                 throw new InvalidOperationException("The type " + YamlSerializationErrors.TypeName(registration.DerivedType) + " registered on "
                     + YamlSerializationErrors.TypeName(typeof(T)) + " does not derive from it.");
@@ -328,7 +328,7 @@ internal sealed class YamlPolymorphicConverter<T> : YamlConverter<T> {
             return;
         }
         if (!_byType!.TryGetValue(runtime, out (YamlTypeInfo Info, string Discriminator) entry)) {
-            throw new NotSupportedException("The runtime type " + YamlSerializationErrors.TypeName(runtime) + " is not registered with [YamlDerivedType] on "
+            throw new NotSupportedException("The runtime type " + YamlSerializationErrors.TypeName(runtime) + " is not registered with [OfficeDerivedType] on "
                 + YamlSerializationErrors.TypeName(typeof(T)) + ".");
         }
         if (_propertyName is null) {

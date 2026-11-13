@@ -14,7 +14,7 @@ public static class YamlMetadataServices {
         if (options is null) throw new ArgumentNullException(nameof(options));
         if (values is null) throw new ArgumentNullException(nameof(values));
         var objectInfo = new YamlTypeInfo<T>(options, new YamlObjectConverter<T>(values));
-        YamlDerivedTypeAttribute[]? derived = values.DerivedTypes;
+        OfficeDerivedTypeAttribute[]? derived = values.DerivedTypes;
         if (derived is null || derived.Length == 0) return objectInfo;
         return new YamlTypeInfo<T>(options, new YamlPolymorphicConverter<T>(objectInfo, derived, values.DiscriminatorPropertyName), objectInfo);
     }
@@ -23,7 +23,7 @@ public static class YamlMetadataServices {
     public static YamlPropertyInfo CreatePropertyInfo<T>(YamlSerializerOptions options, YamlPropertyInfoValues<T> values) {
         if (options is null) throw new ArgumentNullException(nameof(options));
         if (values is null) throw new ArgumentNullException(nameof(values));
-        if (values.IgnoreCondition == YamlIgnoreCondition.Always) throw new ArgumentException("An ignored property has no metadata.", nameof(values));
+        if (values.IgnoreCondition == OfficeIgnoreCondition.Always) throw new ArgumentException("An ignored property has no metadata.", nameof(values));
         return new YamlPropertyInfo<T>(values);
     }
 
@@ -152,7 +152,7 @@ public sealed class YamlObjectInfoValues<T> {
     public Func<YamlParameterInfoValues[]>? ConstructorParameterMetadataInitializer { get; set; }
 
     /// <summary>Gets or sets the registered derived types, which make the type polymorphic.</summary>
-    public YamlDerivedTypeAttribute[]? DerivedTypes { get; set; }
+    public OfficeDerivedTypeAttribute[]? DerivedTypes { get; set; }
 
     /// <summary>Gets or sets the mapping key that holds the discriminator, or null to use tags.</summary>
     public string? DiscriminatorPropertyName { get; set; }
@@ -165,7 +165,7 @@ public sealed class YamlPropertyInfoValues<T> {
     /// <summary>Gets or sets the .NET property name.</summary>
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>Gets or sets the name from <see cref="YamlPropertyNameAttribute"/>, or null.</summary>
+    /// <summary>Gets or sets the name from <see cref="OfficePropertyNameAttribute"/>, or null.</summary>
     public string? YamlName { get; set; }
 
     /// <summary>Gets or sets the getter, or null for a property that cannot be read.</summary>
@@ -177,8 +177,8 @@ public sealed class YamlPropertyInfoValues<T> {
     /// <summary>Gets or sets whether a mapping must contain the property.</summary>
     public bool IsRequired { get; set; }
 
-    /// <summary>Gets or sets the condition from <see cref="YamlIgnoreAttribute"/>, or null for the options' default.</summary>
-    public YamlIgnoreCondition? IgnoreCondition { get; set; }
+    /// <summary>Gets or sets the condition from <see cref="OfficeIgnoreAttribute"/>, or null for the options' default.</summary>
+    public OfficeIgnoreCondition? IgnoreCondition { get; set; }
 }
 
 /// <summary>One parameter of the constructor used to create an object.</summary>

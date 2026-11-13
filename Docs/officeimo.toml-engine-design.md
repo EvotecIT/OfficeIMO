@@ -23,7 +23,7 @@ Tomlyn (BSD-2, TOML 1.1, with a trivia-preserving syntax tree) is the main .NET 
 ## Layers
 
 ```
-TomlSerializer                          objects ⇄ TOML                       [T4, open]
+TomlSerializer (+ source generator)     objects ⇄ TOML                       [T4]
 TomlDocument / TomlNode                 lossless editable model              [T2, T3]
 TomlReader / TomlWriter                 forward-only pull tokens / emitter   [T1, T3]
 Scalars (internal)                      validation and lazy decoding         [T1]
@@ -62,6 +62,16 @@ Saving walks only nodes marked changed and turns each change into a text edit at
 
 New text uses the file's line endings, its key separator and its comment spacing. New strings follow the quoting of their siblings. Output stays readable by TOML 1.0 parsers: no `\e` or `\x` escapes, and times always have seconds.
 
+### Serializer
+
+`TomlSerializer` maps .NET objects to TOML documents with `YamlSerializer`'s design, so a model maps to both formats the same way:
+
+- **One vocabulary.** The mapping attributes (`OfficePropertyName`, `OfficeIgnore`, `OfficeRequired`, `OfficeConstructor`, `OfficeDerivedType`, `OfficePolymorphic`), `OfficeNamingPolicy` and `OfficeIgnoreCondition` live in `OfficeIMO.Core`, which both engines reference. Each format keeps its own options, context, `[TomlSerializable]` root attribute and errors. `[TomlInlineTable]` is the one TOML-only attribute.
+- **One shape rule set, two metadata sources.** Reflection metadata and the source generator classify types with the same rules as YAML: the runtime rules are shared source (`OfficeIMO.SharedSource/Serialization`), and the generator's parser and emitter are shared source (`OfficeIMO.SharedSource/SerializerGeneration`) compiled into each format's generator with its own diagnostics (`TOML001`–`TOML005`). The generator ships inside the `OfficeIMO.Toml` package, and `buildTransitive/OfficeIMO.Toml.targets` turns reflection off for `PublishAot` and `PublishTrimmed` applications.
+- **Reading** loads a `TomlDocument`, so every table rule, limit and position is the model's. TOML tables can be defined out of order (`[a.b]` before `[a]`, dotted keys, headers spread over the file), so the serializer maps the finished tree instead of streaming tokens into objects. Values decode from their source text by target type, without the boxed `TomlValue.Value`. Errors are `TomlException`s with the node's position and path.
+- **Writing** goes straight to text through the formatting code `TomlWriter` and model editing use. Each table writes its key/value pairs first and its tables after them as `[header]` and `[[header]]` sections; a header is written only when its table writes a pair or ends empty, so tables that hold only sub-tables need none. Inside arrays and inline tables everything is inline. Untyped and polymorphic values choose their layout by value.
+- **Null** has no TOML form. Null properties and dictionary values are left out by default (`TomlNullHandling.Omit`), or fail (`Error`); null array items always fail. Polymorphic values carry their discriminator as a key, `$type` unless named.
+
 ### Writer
 
 `TomlWriter` is a forward-only emitter, modeled on `Utf8JsonWriter`, sharing its formatting code with model editing so a value is spelled the same whichever API writes it. It writes to a `TextWriter` or a UTF-8 stream and rejects calls TOML does not allow at that point.
@@ -81,7 +91,7 @@ Exceeding a limit throws `TomlLimitExceededException` with the limit's name. Loa
 
 | Package | Depends on | Owns |
 |---|---|---|
-| `OfficeIMO.Toml` | `OfficeIMO.Core` | Reader, writer, model, editing |
+| `OfficeIMO.Toml` | `OfficeIMO.Core` | Reader, writer, model, editing, serializer, generator (built from `OfficeIMO.Toml.SourceGeneration`, packed as an analyzer) |
 | `OfficeIMO.Reader.Toml` | `OfficeIMO.Reader.Core`, `OfficeIMO.Toml` | Path/type/value chunks and Markdown projection |
 
 Targets: netstandard2.0, net472, net8.0 and net10.0, with `System.Memory` and `System.Buffers` as the only polyfills.
@@ -93,7 +103,8 @@ Targets: netstandard2.0, net472, net8.0 and net10.0, with `System.Memory` and `S
 - **Stream input:** every toml-test case and corpus file reads through 2- to 64-character buffers, one byte or character per read, with the same tokens, positions and errors as in memory.
 - **Large corpus** (opt-in): 5,433 real-world files (236 MB) pinned by source URL and SHA-256 in `OfficeIMO.TestAssets/Toml/LargeCorpus/sources.json` and fetched into a local cache that is never committed: crates.io manifests as published (vendored in Firefox), workspace manifests and `Cargo.lock` files (polkadot-sdk, Zed, rustc, Bevy, Deno, windows-rs), `pyproject.toml` files (DataDog integrations, LlamaIndex, uv, ruff, PDM), `uv.lock` and `poetry.lock` files (LlamaIndex, LangChain, pydantic, uv, ruff, Poetry's fixtures), editor and prompt configuration (Helix, Starship) and Hugo sites and themes. Every file is loaded, compared with Tomlyn's data, saved back byte for byte, read through the stream reader with the same tokens as in memory, and edited with a fixed script (set a value, add a key, remove a key, add a table) whose saved text must reload to the edited model and change only the lines involved. A seeded mutation run (truncation, byte flips, line edits, invalid UTF-8, control characters, deep arrays, inline tables, dotted keys and headers, huge strings, key and table floods, unclosed and quote-run strings, lone carriage returns) feeds hostile variants of a corpus sample to the loader with `UntrustedDefaults` and to the stream reader: only `TomlException` may escape, nothing may run past its time limit, allocation stays within budget and every mutant that loads saves back byte for byte. [Running them](#running-the-large-corpus) has the commands.
 - **Product tests** cover what the oracle cannot: limits, cancellation, encodings, error codes and positions, edit rules, the reader's token contract and the writer.
-- **Benchmarks** (opt-in, `OfficeIMO.Toml.Benchmarks`) compare parse, load and unchanged save with Tomlyn and Tomlet on corpus workloads, after checking that every library sees the same values. See [Performance](#performance).
+- **Serializer:** generated and reflection metadata write the same TOML for every model, read it back losslessly, and Tomlyn reads every output to the same values the model sees. `OfficeIMO.Toml.AotSmoke` publishes the generated serializer with NativeAOT and no trim or AOT warnings.
+- **Benchmarks** (opt-in, `OfficeIMO.Toml.Benchmarks`) compare parse, load and unchanged save with Tomlyn and Tomlet on corpus workloads, and model deserialization and serialization with Tomlyn's reflection and generated serializer, after checking that every library sees the same values.
 
 ### Running the large corpus
 

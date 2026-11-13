@@ -2,7 +2,7 @@
 
 OfficeIMO's own TOML 1.1 engine. It reads, edits and writes TOML without changing anything you didn't change, has no runtime dependencies beyond `OfficeIMO.Core`, and targets .NET Standard 2.0, .NET Framework 4.7.2, .NET 8 and .NET 10.
 
-The package provides `TomlDocument`, a lossless editable model, `TomlReader`, a forward-only pull reader, and `TomlWriter`, a forward-only emitter.
+The package provides `TomlDocument`, a lossless editable model, `TomlReader`, a forward-only pull reader, `TomlWriter`, a forward-only emitter, and `TomlSerializer`, which maps .NET objects to TOML with a NativeAOT source generator.
 
 ## Loading and editing a document
 
@@ -94,6 +94,91 @@ writer.WriteInteger(120);
 ```
 
 `TomlWriter` writes headers, keys (dotted with several arguments), values, arrays and inline tables in order and rejects calls TOML does not allow at that point. Output is deterministic. Comments written just before a header stay directly above it, with the blank line that separates sections above the comments. `TomlWriterOptions.NewLine` selects `\n` (the default) or `\r\n`.
+
+## Serializing objects
+
+`TomlSerializer` converts .NET objects to and from TOML documents. Its API follows `System.Text.Json` and `YamlSerializer`, and it reads the same mapping attributes, naming policy and ignore condition, which live in the `OfficeIMO` namespace, so one model maps to YAML and TOML alike:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Toml;
+
+var options = new TomlSerializerOptions { PropertyNamingPolicy = OfficeNamingPolicy.KebabCaseLower };
+CargoManifest manifest = TomlSerializer.Deserialize<CargoManifest>(File.ReadAllText("Cargo.toml"), options);
+string toml = TomlSerializer.Serialize(manifest, options);
+
+using var document = TomlDocument.Load("pyproject.toml");
+RuffSettings ruff = TomlSerializer.Deserialize<RuffSettings>(document.Select("tool.ruff")!, options);
+```
+
+These overloads create metadata by reflection. For trimmed and NativeAOT applications, declare a context and pass its generated metadata. The source generator ships in this package:
+
+```csharp
+[TomlSerializable(typeof(CargoManifest))]
+internal partial class CargoContext : TomlSerializerContext { }
+
+var context = new CargoContext(new TomlSerializerOptions { PropertyNamingPolicy = OfficeNamingPolicy.KebabCaseLower });
+CargoManifest manifest = TomlSerializer.Deserialize(text, context.CargoManifest);
+string toml = TomlSerializer.Serialize(manifest, context.CargoManifest);
+```
+
+A shape the serializer cannot handle is a build error (`TOML001` to `TOML005`). In a `PublishAot` or `PublishTrimmed` application the reflection overloads are off; set the `TomlSerializerIsReflectionEnabledByDefault` MSBuild property to change this. Every method takes a string, a UTF-8 `Stream`, or a `TextReader`/`TextWriter`; `Deserialize` also takes any `TomlNode` of a loaded document.
+
+### Layout
+
+A TOML document is a table, so the root is an object or a dictionary. Writing puts each table's key/value pairs first and its tables after them, as TOML requires:
+
+```toml
+version = "1.2.0"
+
+[package]
+name = "demo"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+
+[[bin]]
+name = "cli"
+path = "src/main.rs"
+
+[profile.release]
+lto = true
+```
+
+- Objects and dictionaries are `[table]` sections. A table with only sub-tables gets no header of its own (`[profile.release]` without `[profile]`).
+- A non-empty collection of objects is an array of tables (`[[bin]]`); an empty one is `bin = []`.
+- Inside an array or inline table everything is inline: `owner = { name = "Ada", address = { city = "London" } }`.
+- `[TomlInlineTable]` on a class or struct writes its values as inline tables, as Cargo dependencies are written. On a property it writes that property's object or collection of objects inline, or, for a dictionary, keeps the dictionary's section and writes its entries inline.
+
+Reading accepts every form for every type: an array of tables or an array of inline tables reads into the same list.
+
+### Supported types
+
+- **Objects:** classes, structs and records with public properties, as `YamlSerializer` maps them: `init` properties, the parameterless, only or `[OfficeConstructor]` constructor with parameters bound by name, C# `required` and `[OfficeRequired]` members, `[OfficePropertyName]` and `[OfficeIgnore]`. Unknown keys are skipped.
+- **Collections:** arrays, `List<T>`, the list and set interfaces, `HashSet<T>`, and other collections with a parameterless constructor and `Add`.
+- **Dictionaries:** tables. Keys are strings, or numbers, enums and other scalars written as their text (`[ports]` with `8080 = "web"`).
+- **Scalars:**
+
+  | Type | TOML |
+  | --- | --- |
+  | `string`, `char`, `Guid`, `Uri` | string |
+  | `bool` | boolean |
+  | integer types, `BigInteger` | integer; a whole float in range also reads. Values outside the 64-bit signed range fail with `UnrepresentableValue` |
+  | `double`, `float` | float, including `inf`, `-inf` and `nan`; an integer also reads |
+  | `decimal` | float with its exact digits (`0.1`), read from the text without going through a double |
+  | `DateTimeOffset` | offset date-time `1979-05-27T07:32:00-07:00` |
+  | `DateTime` | local date-time `1979-05-27T07:32:00`; a UTC or local kind is an offset date-time. An offset date-time reads as its UTC instant, a local date as midnight |
+  | `DateOnly`, `TimeOnly` | local date `1979-05-27`, local time `07:32:00` |
+  | `TimeSpan` | local time when it is a time of day, otherwise the string `"1.02:03:04"`; both read |
+  | `TomlDateTime` | any of the four kinds, unchanged |
+  | `byte[]` | Base64 string |
+  | enums | member names; `[Flags]` combinations as `"Read, Write"`, and an array of names also reads |
+
+- **Nullable value types** read and write the value. **TOML has no null:** a null property or dictionary value is left out, so it reads back as the default. Set `TomlSerializerOptions.NullHandling` to `Error` to fail instead. A null array item always fails with `UnrepresentableValue`, because leaving it out would shift the items after it.
+- **`object`:** tables read as `Dictionary<string, object?>`, arrays and arrays of tables as `List<object?>`, and values as `string`, `long`, `double`, `bool` or `TomlDateTime`, which keeps the date-time kind.
+- **Polymorphism** through `[OfficeDerivedType]` registrations on the base type. TOML has no tags, so the discriminator is the first key, `"$type" = "http"`, or the key `[OfficePolymorphic(DiscriminatorPropertyName = "kind")]` names. Reading finds it anywhere in the table; an unknown discriminator fails with `UnknownDiscriminator`.
+
+Reading loads the input as a `TomlDocument` within `TomlSerializerOptions.LoadOptions`, so every TOML rule and limit applies. A value that does not fit its type fails with `TomlException` code `TypeMismatch`, its line and column, and its path, such as `tool.ruff.lint.select[1]`. A missing required key fails with `MissingRequiredMember`; an object that contains itself fails with `ReferenceCycle`.
 
 ## Safety and errors
 

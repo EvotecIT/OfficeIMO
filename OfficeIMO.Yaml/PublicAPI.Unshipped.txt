@@ -24,28 +24,11 @@ static OfficeIMO.Yaml.YamlSequenceMerge.MergeByKey(string! keyName) -> OfficeIMO
 static OfficeIMO.Yaml.YamlSequenceMerge.Replace.get -> OfficeIMO.Yaml.YamlSequenceMerge!
 OfficeIMO.Yaml.IYamlTypeInfoResolver
 OfficeIMO.Yaml.IYamlTypeInfoResolver.GetTypeInfo(System.Type! type, OfficeIMO.Yaml.YamlSerializerOptions! options) -> OfficeIMO.Yaml.YamlTypeInfo?
-OfficeIMO.Yaml.YamlConstructorAttribute
-OfficeIMO.Yaml.YamlConstructorAttribute.YamlConstructorAttribute() -> void
-OfficeIMO.Yaml.YamlDerivedTypeAttribute
-OfficeIMO.Yaml.YamlDerivedTypeAttribute.DerivedType.get -> System.Type!
-OfficeIMO.Yaml.YamlDerivedTypeAttribute.Discriminator.get -> string!
-OfficeIMO.Yaml.YamlDerivedTypeAttribute.YamlDerivedTypeAttribute(System.Type! derivedType, string! discriminator) -> void
-OfficeIMO.Yaml.YamlIgnoreAttribute
-OfficeIMO.Yaml.YamlIgnoreAttribute.Condition.get -> OfficeIMO.Yaml.YamlIgnoreCondition
-OfficeIMO.Yaml.YamlIgnoreAttribute.Condition.set -> void
-OfficeIMO.Yaml.YamlIgnoreAttribute.YamlIgnoreAttribute() -> void
-OfficeIMO.Yaml.YamlIgnoreCondition
-OfficeIMO.Yaml.YamlIgnoreCondition.Always = 1 -> OfficeIMO.Yaml.YamlIgnoreCondition
-OfficeIMO.Yaml.YamlIgnoreCondition.Never = 0 -> OfficeIMO.Yaml.YamlIgnoreCondition
-OfficeIMO.Yaml.YamlIgnoreCondition.WhenWritingDefault = 3 -> OfficeIMO.Yaml.YamlIgnoreCondition
-OfficeIMO.Yaml.YamlIgnoreCondition.WhenWritingNull = 2 -> OfficeIMO.Yaml.YamlIgnoreCondition
 OfficeIMO.Yaml.YamlMetadataServices
-OfficeIMO.Yaml.YamlNamingPolicy
-OfficeIMO.Yaml.YamlNamingPolicy.YamlNamingPolicy() -> void
 OfficeIMO.Yaml.YamlObjectInfoValues<T>
 OfficeIMO.Yaml.YamlObjectInfoValues<T>.ConstructorParameterMetadataInitializer.get -> System.Func<OfficeIMO.Yaml.YamlParameterInfoValues![]!>?
 OfficeIMO.Yaml.YamlObjectInfoValues<T>.ConstructorParameterMetadataInitializer.set -> void
-OfficeIMO.Yaml.YamlObjectInfoValues<T>.DerivedTypes.get -> OfficeIMO.Yaml.YamlDerivedTypeAttribute![]?
+OfficeIMO.Yaml.YamlObjectInfoValues<T>.DerivedTypes.get -> OfficeIMO.OfficeDerivedTypeAttribute![]?
 OfficeIMO.Yaml.YamlObjectInfoValues<T>.DerivedTypes.set -> void
 OfficeIMO.Yaml.YamlObjectInfoValues<T>.DiscriminatorPropertyName.get -> string?
 OfficeIMO.Yaml.YamlObjectInfoValues<T>.DiscriminatorPropertyName.set -> void
@@ -66,15 +49,11 @@ OfficeIMO.Yaml.YamlParameterInfoValues.ParameterType.set -> void
 OfficeIMO.Yaml.YamlParameterInfoValues.Position.get -> int
 OfficeIMO.Yaml.YamlParameterInfoValues.Position.set -> void
 OfficeIMO.Yaml.YamlParameterInfoValues.YamlParameterInfoValues() -> void
-OfficeIMO.Yaml.YamlPolymorphicAttribute
-OfficeIMO.Yaml.YamlPolymorphicAttribute.DiscriminatorPropertyName.get -> string?
-OfficeIMO.Yaml.YamlPolymorphicAttribute.DiscriminatorPropertyName.set -> void
-OfficeIMO.Yaml.YamlPolymorphicAttribute.YamlPolymorphicAttribute() -> void
 OfficeIMO.Yaml.YamlPropertyInfo
 OfficeIMO.Yaml.YamlPropertyInfoValues<T>
 OfficeIMO.Yaml.YamlPropertyInfoValues<T>.Getter.get -> System.Func<object!, T>?
 OfficeIMO.Yaml.YamlPropertyInfoValues<T>.Getter.set -> void
-OfficeIMO.Yaml.YamlPropertyInfoValues<T>.IgnoreCondition.get -> OfficeIMO.Yaml.YamlIgnoreCondition?
+OfficeIMO.Yaml.YamlPropertyInfoValues<T>.IgnoreCondition.get -> OfficeIMO.OfficeIgnoreCondition?
 OfficeIMO.Yaml.YamlPropertyInfoValues<T>.IgnoreCondition.set -> void
 OfficeIMO.Yaml.YamlPropertyInfoValues<T>.IsRequired.get -> bool
 OfficeIMO.Yaml.YamlPropertyInfoValues<T>.IsRequired.set -> void
@@ -85,14 +64,9 @@ OfficeIMO.Yaml.YamlPropertyInfoValues<T>.Setter.set -> void
 OfficeIMO.Yaml.YamlPropertyInfoValues<T>.YamlName.get -> string?
 OfficeIMO.Yaml.YamlPropertyInfoValues<T>.YamlName.set -> void
 OfficeIMO.Yaml.YamlPropertyInfoValues<T>.YamlPropertyInfoValues() -> void
-OfficeIMO.Yaml.YamlPropertyNameAttribute
-OfficeIMO.Yaml.YamlPropertyNameAttribute.Name.get -> string!
-OfficeIMO.Yaml.YamlPropertyNameAttribute.YamlPropertyNameAttribute(string! name) -> void
 OfficeIMO.Yaml.YamlReferenceHandling
 OfficeIMO.Yaml.YamlReferenceHandling.None = 0 -> OfficeIMO.Yaml.YamlReferenceHandling
 OfficeIMO.Yaml.YamlReferenceHandling.Preserve = 1 -> OfficeIMO.Yaml.YamlReferenceHandling
-OfficeIMO.Yaml.YamlRequiredAttribute
-OfficeIMO.Yaml.YamlRequiredAttribute.YamlRequiredAttribute() -> void
 OfficeIMO.Yaml.YamlSerializableAttribute
 OfficeIMO.Yaml.YamlSerializableAttribute.Type.get -> System.Type!
 OfficeIMO.Yaml.YamlSerializableAttribute.YamlSerializableAttribute(System.Type! type) -> void
@@ -104,11 +78,11 @@ OfficeIMO.Yaml.YamlSerializerContext.YamlSerializerContext(OfficeIMO.Yaml.YamlSe
 OfficeIMO.Yaml.YamlSerializerOptions
 OfficeIMO.Yaml.YamlSerializerOptions.CopyAliases.get -> bool
 OfficeIMO.Yaml.YamlSerializerOptions.CopyAliases.set -> void
-OfficeIMO.Yaml.YamlSerializerOptions.DefaultIgnoreCondition.get -> OfficeIMO.Yaml.YamlIgnoreCondition
+OfficeIMO.Yaml.YamlSerializerOptions.DefaultIgnoreCondition.get -> OfficeIMO.OfficeIgnoreCondition
 OfficeIMO.Yaml.YamlSerializerOptions.DefaultIgnoreCondition.set -> void
 OfficeIMO.Yaml.YamlSerializerOptions.GetTypeInfo(System.Type! type) -> OfficeIMO.Yaml.YamlTypeInfo!
 OfficeIMO.Yaml.YamlSerializerOptions.IsReadOnly.get -> bool
-OfficeIMO.Yaml.YamlSerializerOptions.PropertyNamingPolicy.get -> OfficeIMO.Yaml.YamlNamingPolicy?
+OfficeIMO.Yaml.YamlSerializerOptions.PropertyNamingPolicy.get -> OfficeIMO.OfficeNamingPolicy?
 OfficeIMO.Yaml.YamlSerializerOptions.PropertyNamingPolicy.set -> void
 OfficeIMO.Yaml.YamlSerializerOptions.ReaderOptions.get -> OfficeIMO.Yaml.YamlReaderOptions?
 OfficeIMO.Yaml.YamlSerializerOptions.ReaderOptions.set -> void
@@ -124,7 +98,6 @@ OfficeIMO.Yaml.YamlTypeInfo
 OfficeIMO.Yaml.YamlTypeInfo.Options.get -> OfficeIMO.Yaml.YamlSerializerOptions!
 OfficeIMO.Yaml.YamlTypeInfo.Type.get -> System.Type!
 OfficeIMO.Yaml.YamlTypeInfo<T>
-abstract OfficeIMO.Yaml.YamlNamingPolicy.ConvertName(string! name) -> string!
 abstract OfficeIMO.Yaml.YamlSerializerContext.CreateTypeInfo(System.Type! type, OfficeIMO.Yaml.YamlSerializerOptions! options) -> OfficeIMO.Yaml.YamlTypeInfo?
 const OfficeIMO.Yaml.YamlErrorCodes.MissingRequiredMember = "Yaml.Serialization.MissingRequiredMember" -> string!
 const OfficeIMO.Yaml.YamlErrorCodes.ReferenceCycle = "Yaml.Serialization.ReferenceCycle" -> string!
@@ -136,9 +109,6 @@ static OfficeIMO.Yaml.YamlMetadataServices.CreateEnumInfo<T>(OfficeIMO.Yaml.Yaml
 static OfficeIMO.Yaml.YamlMetadataServices.CreateNullableInfo<T>(OfficeIMO.Yaml.YamlSerializerOptions! options) -> OfficeIMO.Yaml.YamlTypeInfo<T?>!
 static OfficeIMO.Yaml.YamlMetadataServices.CreateObjectInfo<T>(OfficeIMO.Yaml.YamlSerializerOptions! options, OfficeIMO.Yaml.YamlObjectInfoValues<T>! values) -> OfficeIMO.Yaml.YamlTypeInfo<T>!
 static OfficeIMO.Yaml.YamlMetadataServices.CreatePropertyInfo<T>(OfficeIMO.Yaml.YamlSerializerOptions! options, OfficeIMO.Yaml.YamlPropertyInfoValues<T>! values) -> OfficeIMO.Yaml.YamlPropertyInfo!
-static OfficeIMO.Yaml.YamlNamingPolicy.CamelCase.get -> OfficeIMO.Yaml.YamlNamingPolicy!
-static OfficeIMO.Yaml.YamlNamingPolicy.KebabCaseLower.get -> OfficeIMO.Yaml.YamlNamingPolicy!
-static OfficeIMO.Yaml.YamlNamingPolicy.SnakeCaseLower.get -> OfficeIMO.Yaml.YamlNamingPolicy!
 static OfficeIMO.Yaml.YamlReaderOptions.UntrustedDefaults.get -> OfficeIMO.Yaml.YamlReaderOptions!
 static OfficeIMO.Yaml.YamlSerializer.Deserialize(OfficeIMO.Yaml.YamlNode! node, System.Type! returnType, OfficeIMO.Yaml.YamlSerializerContext! context) -> object?
 static OfficeIMO.Yaml.YamlSerializer.Deserialize(OfficeIMO.Yaml.YamlNode! node, System.Type! returnType, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> object?

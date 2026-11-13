@@ -28,12 +28,12 @@ public sealed class AppConfig {
     public string[] Hosts { get; set; } = Array.Empty<string>();
 
     // The interop tests read this model with YamlDotNet and SharpYaml too, which have their own name attributes.
-    [YamlPropertyName("feature-flags")]
+    [OfficePropertyName("feature-flags")]
     [global::YamlDotNet.Serialization.YamlMember(Alias = "feature-flags")]
     [global::SharpYaml.Serialization.YamlPropertyName("feature-flags")]
     public Dictionary<string, bool> Features { get; set; } = new Dictionary<string, bool>();
 
-    [YamlIgnore]
+    [OfficeIgnore]
     public string Secret { get; set; } = "never written";
 }
 
@@ -47,7 +47,7 @@ public sealed record Person(string Name, int Age, string? Email = null);
 public sealed class Account {
     public required string Id { get; init; }
     public string Owner { get; init; } = "unknown";
-    [YamlRequired]
+    [OfficeRequired]
     public decimal Balance { get; set; }
     public DateTimeOffset Opened { get; set; }
 }
@@ -58,7 +58,7 @@ public struct Point {
 }
 
 public readonly struct Size {
-    [YamlConstructor]
+    [OfficeConstructor]
     public Size(int width, int height) {
         Width = width;
         Height = height;
@@ -110,8 +110,8 @@ public sealed class Collections {
     public object? Anything { get; set; }
 }
 
-[YamlDerivedType(typeof(Cat), "cat")]
-[YamlDerivedType(typeof(Dog), "dog")]
+[OfficeDerivedType(typeof(Cat), "cat")]
+[OfficeDerivedType(typeof(Dog), "dog")]
 public abstract class Animal {
     public string Name { get; set; } = string.Empty;
 }
@@ -136,9 +136,9 @@ public sealed class TreeNode {
 }
 
 // A Kubernetes-like nested model, with the object kind as a property discriminator ("kind" is the second key in real files).
-[YamlPolymorphic(DiscriminatorPropertyName = "kind")]
-[YamlDerivedType(typeof(KubeDeployment), "Deployment")]
-[YamlDerivedType(typeof(KubeService), "Service")]
+[OfficePolymorphic(DiscriminatorPropertyName = "kind")]
+[OfficeDerivedType(typeof(KubeDeployment), "Deployment")]
+[OfficeDerivedType(typeof(KubeService), "Service")]
 public abstract class KubeObject {
     public string ApiVersion { get; set; } = string.Empty;
     public KubeMetadata Metadata { get; set; } = new KubeMetadata();

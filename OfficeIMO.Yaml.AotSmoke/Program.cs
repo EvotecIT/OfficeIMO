@@ -1,9 +1,10 @@
+using OfficeIMO;
 using OfficeIMO.Yaml;
 
 // Serialization through generated metadata only: no reflection, so trimming and NativeAOT keep every member it needs.
 var context = new SmokeYamlContext(new YamlSerializerOptions {
-    PropertyNamingPolicy = YamlNamingPolicy.CamelCase,
-    DefaultIgnoreCondition = YamlIgnoreCondition.WhenWritingNull
+    PropertyNamingPolicy = OfficeNamingPolicy.CamelCase,
+    DefaultIgnoreCondition = OfficeIgnoreCondition.WhenWritingNull
 });
 
 var config = new ServiceConfig {
@@ -72,8 +73,8 @@ public sealed class Port {
     public string? Name { get; set; }
 }
 
-[YamlDerivedType(typeof(HttpProbe), "http")]
-[YamlDerivedType(typeof(TcpProbe), "tcp")]
+[OfficeDerivedType(typeof(HttpProbe), "http")]
+[OfficeDerivedType(typeof(TcpProbe), "tcp")]
 public abstract class Probe {
 }
 

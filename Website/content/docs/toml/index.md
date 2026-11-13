@@ -5,7 +5,7 @@ order: 57
 meta.seo_title: "Read and edit TOML in C# with OfficeIMO.Toml"
 ---
 
-`OfficeIMO.Toml` is a TOML 1.1 engine with three entry points: `TomlDocument`, a lossless editable model; `TomlReader`, a forward-only pull reader; and `TomlWriter`, a forward-only emitter. It depends only on `OfficeIMO.Core` and targets .NET Standard 2.0, .NET Framework 4.7.2, .NET 8 and .NET 10.
+`OfficeIMO.Toml` is a TOML 1.1 engine with four entry points: `TomlDocument`, a lossless editable model; `TomlReader`, a forward-only pull reader; `TomlWriter`, a forward-only emitter; and `TomlSerializer`, which maps .NET objects to TOML. It depends only on `OfficeIMO.Core` and targets .NET Standard 2.0, .NET Framework 4.7.2, .NET 8 and .NET 10.
 
 ```shell
 dotnet add package OfficeIMO.Toml
@@ -61,6 +61,22 @@ writer.WriteInteger(120);
 ```
 
 `TomlWriter` rejects calls TOML does not allow at that point and produces deterministic output. `TomlWriterOptions.NewLine` selects `\n` (default) or `\r\n`. Text written by OfficeIMO stays readable by TOML 1.0 parsers: no `\e` or `\x` escapes, and times always include seconds.
+
+## Serializing objects
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Toml;
+
+[TomlSerializable(typeof(CargoManifest))]
+internal partial class CargoContext : TomlSerializerContext { }
+
+var context = new CargoContext(new TomlSerializerOptions { PropertyNamingPolicy = OfficeNamingPolicy.KebabCaseLower });
+CargoManifest manifest = TomlSerializer.Deserialize(File.ReadAllText("Cargo.toml"), context.CargoManifest);
+string toml = TomlSerializer.Serialize(manifest, context.CargoManifest);
+```
+
+`TomlSerializer` reads the same `[OfficePropertyName]`, `[OfficeIgnore]`, `[OfficeRequired]`, `[OfficeConstructor]` and `[OfficeDerivedType]` attributes as `YamlSerializer`, so one model maps to both formats. Objects and dictionaries become `[table]` sections after the key/value pairs, collections of objects become `[[table]]` arrays of tables, and `[TomlInlineTable]` writes a type or property inline, as Cargo dependencies are written. TOML has no null: null values are left out, or fail when `NullHandling` is `Error`. The source generator ships in the package; overloads that take `TomlSerializerOptions` alone use reflection metadata, which is off in `PublishAot` and `PublishTrimmed` applications.
 
 ## Untrusted input
 

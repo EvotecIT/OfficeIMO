@@ -81,4 +81,17 @@ public static class TomlErrorCodes {
     public const string InvalidArrayOfTables = "Toml.Load.InvalidArrayOfTables";
     /// <summary>A limit from <see cref="TomlReaderOptions"/> or <see cref="TomlLoadOptions"/> was exceeded; see <see cref="TomlLimitExceededException"/>.</summary>
     public const string LimitExceeded = "Toml.Limit.Exceeded";
+    /// <summary>A value <see cref="TomlSerializer"/> cannot read as the target type, such as a string for an integer property.</summary>
+    public const string TypeMismatch = "Toml.Serialization.TypeMismatch";
+    /// <summary>A table without a key that the target type requires.</summary>
+    public const string MissingRequiredMember = "Toml.Serialization.MissingRequiredMember";
+    /// <summary>A discriminator that is missing or not registered with <c>[OfficeDerivedType]</c> for the target type.</summary>
+    public const string UnknownDiscriminator = "Toml.Serialization.UnknownDiscriminator";
+    /// <summary>An object that contains itself, which TOML cannot write.</summary>
+    public const string ReferenceCycle = "Toml.Serialization.ReferenceCycle";
+    /// <summary>
+    /// A value TOML cannot hold: a null array item, a null property or dictionary value under
+    /// <see cref="TomlNullHandling.Error"/>, or an integer outside the 64-bit signed range.
+    /// </summary>
+    public const string UnrepresentableValue = "Toml.Serialization.UnrepresentableValue";
 }

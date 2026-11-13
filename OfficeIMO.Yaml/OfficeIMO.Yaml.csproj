@@ -72,6 +72,8 @@
 
   <ItemGroup>
     <Compile Include="..\OfficeIMO.SharedSource\IO\PooledUtf8TextWriter*.cs" Link="SharedSource\IO\%(Filename)%(Extension)" />
+    <!-- The reflection shape rules TomlSerializer applies too. -->
+    <Compile Include="..\OfficeIMO.SharedSource\Serialization\*.cs" Link="SharedSource\Serialization\%(Filename)%(Extension)" />
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
   </ItemGroup>
 
