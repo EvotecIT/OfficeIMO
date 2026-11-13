@@ -34,7 +34,7 @@ internal abstract class ExcelPackageArchive : IDisposable {
 
     /// <summary>
     /// Returns the package's background compressor aimed at <paramref name="destination"/>. Entries are written one
-    /// after another, so one worker and its buffers serve every sheet; each entry drains it before closing.
+    /// after another, so one set of buffers serves every sheet; each entry drains it before closing.
     /// </summary>
     internal WorksheetCompressionPipeline AcquireCompression(Stream destination) {
         if (_compression == null) _compression = new WorksheetCompressionPipeline(destination);
