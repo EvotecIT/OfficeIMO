@@ -163,9 +163,10 @@ Those workflows have no directly equivalent public API in every comparison
 library, so they stay outside the cross-library rankings.
 
 `WordMarkdownConversionBenchmarks` converts generated Markdown (headings,
-paragraphs, nested lists and tables) to Word and back at 100 and 400 sections.
-Setup checks that every heading and table survives both directions. Compare the
-two sizes: both directions should grow about four times, not sixteen.
+paragraphs, nested lists and tables) to Word and back, whole and as
+`ExtractMarkdownChunks` chunks, at 100 and 400 sections. Setup checks that every
+heading, list and table survives each direction. Compare the two sizes: each
+lane should grow about four times, not sixteen.
 
 ```powershell
 dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordMarkdownConversionBenchmarks*'
@@ -179,6 +180,15 @@ size should take about four times as long.
 
 ```powershell
 dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordHtmlImportBenchmarks*'
+```
+
+`WordLoadBenchmarks` loads a DOCX of 50 or 500 distinct images (about 1 MB and
+10 MB) from memory, read-only and editable. Setup prints the input size and
+checks the image count; allocation divided by the input size shows how many
+copies of the package a load makes.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordLoadBenchmarks*'
 ```
 
 `WordSectionCollectionBenchmarks` reads the document-wide lists (`Paragraphs`,
