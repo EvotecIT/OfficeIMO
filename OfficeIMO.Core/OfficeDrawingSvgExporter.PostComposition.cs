@@ -33,8 +33,14 @@ public static partial class OfficeDrawingSvgExporter {
         long remainingCharacters = builder.MaxCapacity - (long)builder.Length - 3L;
         if (remainingCharacters < 4L)
             throw new ArgumentOutOfRangeException(nameof(builder), "The encoded SVG exceeds its configured character ceiling.");
-        byte[] png = OfficeRasterImageEncoder.Encode(raster, OfficeImageExportFormat.Png, null,
-            remainingCharacters / 4L * 3L, cancellationToken);
+        byte[] png;
+        try {
+            png = OfficeRasterImageEncoder.Encode(raster, OfficeImageExportFormat.Png, null,
+                remainingCharacters / 4L * 3L, cancellationToken);
+        } catch (OfficeImageExportBatchLimitException) {
+            // The public export limit describes the enclosing SVG, not this derived PNG allowance.
+            throw new ArgumentOutOfRangeException(nameof(builder), "The encoded SVG exceeds its configured character ceiling.");
+        }
         EnsureBase64PayloadFits(builder, png.LongLength);
         OfficeSvgImageRenderer.AppendBase64(builder, png, cancellationToken);
         builder.Append("\"/>");

@@ -92,6 +92,16 @@ public sealed class PdfOutputIntentCompositionTests {
     }
 
     [Fact]
+    public void ProofedSvg_ReportsTheCallerEncodedByteBudget() {
+        OfficeDrawing drawing = PdfReadDocument.Open(File.ReadAllBytes(Fixture("reportlab-output-intent.pdf"))).Pages[1].ToDrawing();
+        OfficeImageExportBatchLimitException error = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+            drawing.ToImage(OfficeImageExportFormat.Svg, new OfficeImageExportOptions { MaximumTotalEncodedBytes = 256 }));
+        Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), error.LimitName);
+        Assert.Equal(256, error.Maximum);
+        Assert.True(error.Actual > error.Maximum);
+    }
+
+    [Fact]
     public void ProofedSvg_RejectsImageOmissionEvenWithASmallPage() {
         OfficeDrawing drawing = PdfReadDocument.Open(File.ReadAllBytes(Fixture("reportlab-output-intent.pdf"))).Pages[1].ToDrawing();
         drawing.AddImage(OfficePngWriter.Encode(new OfficeRasterImage(200, 200, OfficeColor.Red)), "image/png",
