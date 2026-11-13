@@ -4,9 +4,8 @@ using BenchmarkDotNet.Attributes;
 namespace OfficeIMO.Word.Benchmarks;
 
 /// <summary>
-/// Reads the document-wide paragraph and table lists of a multi-section document at two section
-/// counts, so the growth between the sizes shows whether the lists scale with the document or with
-/// sections times the document.
+/// Reads the document-wide lists of a multi-section document at two section counts, so the growth
+/// between the sizes shows whether the lists scale with the document or with sections times the document.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory("Word", "Read")]
@@ -31,6 +30,11 @@ public class WordSectionCollectionBenchmarks {
                     target.AddTable(2, 2);
                 }
                 target.AddParagraph().AddHyperLink("Link", new Uri("https://example.com/"));
+                WordParagraph extras = target.AddParagraph("Page ");
+                extras.AddField(WordFieldType.Page);
+                extras.AddBookmark("Bookmark" + section.ToString(CultureInfo.InvariantCulture));
+                extras.AddCheckBox();
+                extras.AddFootNote("Note " + section.ToString(CultureInfo.InvariantCulture));
             }
             bytes = document.ToBytes();
         }
@@ -40,6 +44,12 @@ public class WordSectionCollectionBenchmarks {
         EnsureEqual("Section paragraphs", _document.Sections.Sum(section => section.Paragraphs.Count), _document.Paragraphs.Count);
         EnsureEqual("Tables", SectionCount * TablesPerSection, _document.Tables.Count);
         EnsureEqual("Hyperlink paragraphs", SectionCount, _document.ParagraphsHyperLinks.Count);
+        EnsureEqual("Elements", _document.Sections.Sum(section => section.Elements.Count), _document.Elements.Count);
+        EnsureEqual("Fields", SectionCount, _document.Fields.Count);
+        EnsureEqual("Hyperlinks", SectionCount, _document.HyperLinks.Count);
+        EnsureEqual("Check boxes", SectionCount, _document.CheckBoxes.Count);
+        EnsureEqual("Footnotes", SectionCount, _document.FootNotes.Count);
+        EnsureEqual("Nested tables included", SectionCount * TablesPerSection, _document.TablesIncludingNestedTables.Count);
     }
 
     [GlobalCleanup]
@@ -50,6 +60,16 @@ public class WordSectionCollectionBenchmarks {
 
     [Benchmark]
     public int HyperlinkParagraphs() => _document!.ParagraphsHyperLinks.Count;
+
+    [Benchmark]
+    public int Elements() => _document!.Elements.Count;
+
+    [Benchmark]
+    public int FieldsHyperlinksAndBookmarks() => _document!.Fields.Count + _document.HyperLinks.Count + _document.Bookmarks.Count;
+
+    [Benchmark]
+    public int ControlsNotesAndNestedTables() =>
+        _document!.CheckBoxes.Count + _document.StructuredDocumentTags.Count + _document.FootNotes.Count + _document.TablesIncludingNestedTables.Count;
 
     private static void EnsureEqual(string what, int expected, int actual) {
         if (actual != expected) {

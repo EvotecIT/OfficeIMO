@@ -181,10 +181,12 @@ size should take about four times as long.
 dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordHtmlImportBenchmarks*'
 ```
 
-`WordSectionCollectionBenchmarks` reads `Paragraphs`, `Tables` and
-`ParagraphsHyperLinks` of a loaded document with 25 and 100 sections, each with
-20 paragraphs, two tables and a hyperlink. Setup checks that the document-wide
-lists match the sections. Four times the sections should cost about four times
+`WordSectionCollectionBenchmarks` reads the document-wide lists (`Paragraphs`,
+`Tables`, `ParagraphsHyperLinks`, `Elements`, `Fields`, `HyperLinks`,
+`Bookmarks`, `CheckBoxes`, `StructuredDocumentTags`, `FootNotes` and
+`TablesIncludingNestedTables`) of a loaded document with 25 and 100 sections.
+Each section has 20 paragraphs, two tables, a hyperlink, a field, a bookmark, a
+check box and a footnote. Setup checks the lists against the sections. Four times the sections should cost about four times
 as much.
 
 ```powershell
