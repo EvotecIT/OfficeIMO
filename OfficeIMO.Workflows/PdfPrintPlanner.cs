@@ -5,7 +5,10 @@ namespace OfficeIMO.Workflows;
 
 /// <summary>Page orientation used by a print-preview plan.</summary>
 public enum PdfPrintOrientation {
-    /// <summary>Choose orientation from the first source page on each sheet.</summary>
+    /// <summary>
+    /// Choose, for each sheet, the paper orientation that places its source pages largest in the sheet's grid, as print
+    /// dialogs turn two-up and six-up sheets of portrait pages to landscape. Ties follow the sheet's first source page.
+    /// </summary>
     Automatic,
     /// <summary>Portrait paper.</summary>
     Portrait,
@@ -251,10 +254,8 @@ public static class PdfPrintPlanner {
         for (int offset = 0; offset < pages.Length; offset += validated.PagesPerSheet) {
             cancellationToken.ThrowIfCancellationRequested();
             int count = Math.Min(validated.PagesPerSheet, pages.Length - offset);
-            PdfPageLayoutInfo firstPage = pageLayouts[pages[offset] - 1];
-            (double firstPageWidth, double firstPageHeight) = GetVisualPageSize(firstPage);
-            PdfPageSize paper = ResolvePaper(validated, firstPageWidth > firstPageHeight);
-            if (paper.Width.ToPoints() <= validated.MarginLeft + validated.MarginRight || paper.Height.ToPoints() <= validated.MarginTop + validated.MarginBottom) {
+            PdfPageSize paper = ResolvePaper(validated, pageLayouts, pages, offset, count);
+            if (!HasPrintableArea(validated, paper)) {
                 throw new ArgumentException("Print margins leave no printable paper area.", nameof(request));
             }
             IReadOnlyList<PdfPrintPlacement> placements = CreatePlacements(
@@ -270,11 +271,45 @@ public static class PdfPrintPlanner {
         return new PdfPrintPlan(pageLayouts.Count, pages, sheets, validated.ColorMode);
     }
 
-    private static PdfPageSize ResolvePaper(ValidatedPrintPlanRequest request, bool sourceLandscape) => request.Orientation switch {
-        PdfPrintOrientation.Portrait => request.PaperSize.Portrait(),
-        PdfPrintOrientation.Landscape => request.PaperSize.Landscape(),
-        _ => sourceLandscape ? request.PaperSize.Landscape() : request.PaperSize.Portrait()
-    };
+    private static PdfPageSize ResolvePaper(ValidatedPrintPlanRequest request, IReadOnlyList<PdfPageLayoutInfo> pageLayouts,
+        IReadOnlyList<int> pages, int offset, int count) {
+        if (request.Orientation == PdfPrintOrientation.Portrait) return request.PaperSize.Portrait();
+        if (request.Orientation == PdfPrintOrientation.Landscape) return request.PaperSize.Landscape();
+        PdfPageSize portrait = request.PaperSize.Portrait(), landscape = request.PaperSize.Landscape();
+        double portraitScale = GridFitScale(request, pageLayouts, pages, offset, count, portrait);
+        double landscapeScale = GridFitScale(request, pageLayouts, pages, offset, count, landscape);
+        if (Math.Abs(portraitScale - landscapeScale) > 1e-9) return landscapeScale > portraitScale ? landscape : portrait;
+        (double width, double height) = GetVisualPageSize(pageLayouts[pages[offset] - 1]);
+        return width > height ? landscape : portrait;
+    }
+
+    /// <summary>The smallest scale at which every source page on the sheet fits its slot, or zero when the margins leave no area.</summary>
+    private static double GridFitScale(ValidatedPrintPlanRequest request, IReadOnlyList<PdfPageLayoutInfo> pageLayouts,
+        IReadOnlyList<int> pages, int offset, int count, PdfPageSize paper) {
+        if (!HasPrintableArea(request, paper)) return 0D;
+        (_, _, double slotWidth, double slotHeight) = Grid(request, paper);
+        double scale = double.MaxValue;
+        for (int index = 0; index < count; index++) {
+            (double width, double height) = GetVisualPageSize(pageLayouts[pages[offset + index] - 1]);
+            scale = Math.Min(scale, Math.Min(slotWidth / width, slotHeight / height));
+        }
+        return scale;
+    }
+
+    private static bool HasPrintableArea(ValidatedPrintPlanRequest request, PdfPageSize paper) =>
+        paper.Width.ToPoints() > request.MarginLeft + request.MarginRight && paper.Height.ToPoints() > request.MarginTop + request.MarginBottom;
+
+    /// <summary>Columns, rows and slot size of the sheet grid; six-up runs three across on landscape paper.</summary>
+    private static (int Columns, int Rows, double SlotWidth, double SlotHeight) Grid(ValidatedPrintPlanRequest request, PdfPageSize paper) {
+        (int columns, int rows) = request.PagesPerSheet switch {
+            1 => (1, 1), 2 => (2, 1), 4 => (2, 2),
+            6 when paper.Width.ToPoints() > paper.Height.ToPoints() => (3, 2),
+            6 => (2, 3), _ => (3, 3)
+        };
+        double printableWidth = paper.Width.ToPoints() - request.MarginLeft - request.MarginRight;
+        double printableHeight = paper.Height.ToPoints() - request.MarginTop - request.MarginBottom;
+        return (columns, rows, printableWidth / columns, printableHeight / rows);
+    }
 
     private static IReadOnlyList<PdfPrintPlacement> CreatePlacements(
         ValidatedPrintPlanRequest request,
@@ -284,15 +319,7 @@ public static class PdfPrintPlanner {
         int count,
         PdfPageSize paper,
         CancellationToken cancellationToken) {
-        (int columns, int rows) = request.PagesPerSheet switch {
-            1 => (1, 1), 2 => (2, 1), 4 => (2, 2),
-            6 when paper.Width.ToPoints() > paper.Height.ToPoints() => (3, 2),
-            6 => (2, 3), _ => (3, 3)
-        };
-        double printableWidth = paper.Width.ToPoints() - request.MarginLeft - request.MarginRight;
-        double printableHeight = paper.Height.ToPoints() - request.MarginTop - request.MarginBottom;
-        double slotWidth = printableWidth / columns;
-        double slotHeight = printableHeight / rows;
+        (int columns, _, double slotWidth, double slotHeight) = Grid(request, paper);
         var placements = new List<PdfPrintPlacement>(count);
 
         for (int index = 0; index < count; index++) {

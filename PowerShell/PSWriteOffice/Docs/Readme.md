@@ -718,6 +718,12 @@ Reads the selected slide master's theme, colors and fonts.
 ### [Get-OfficePrinter](Get-OfficePrinter.md)
 Lists system printer queues, or the paper sources of a named queue. Requires PowerShell 7.4 or newer.
 
+### [Get-OfficePrinterCapability](Get-OfficePrinterCapability.md)
+Reports the media, paper sources, duplex, color, resolution and copy capabilities of a printer queue or IPP printer. Requires PowerShell 7.4 or newer.
+
+### [Get-OfficePrintJob](Get-OfficePrintJob.md)
+Reports the state of a print job submitted with Send-OfficePrinter, optionally waiting until it finishes. Requires PowerShell 7.4 or newer.
+
 ### [Get-OfficeProjectAssignment](Get-OfficeProjectAssignment.md)
 Returns project assignments.
 
@@ -1285,8 +1291,8 @@ Finds regular-expression or literal matches across supported files and folders.
 ### [Send-OfficeConfluenceAttachment](Send-OfficeConfluenceAttachment.md)
 Uploads or versions a Confluence page attachment.
 
-### [Send-OfficePdfPrinter](Send-OfficePdfPrinter.md)
-Prepares PDF sheets and submits them to an explicitly named printer. Requires PowerShell 7.4 or newer.
+### [Send-OfficePrinter](Send-OfficePrinter.md)
+Prints a document of any format OfficeIMO converts to PDF on an explicitly named printer queue or IPP printer. Requires PowerShell 7.4 or newer.
 
 ### [Set-OfficeConfluenceManagedSection](Set-OfficeConfluenceManagedSection.md)
 Safely replaces one marker-delimited section in a Confluence storage body.
@@ -1467,6 +1473,9 @@ Sets the value at a path in a live YAML document, creating missing mappings on t
 
 ### [Split-OfficeDocument](Split-OfficeDocument.md)
 Splits PDF files into consecutive groups, selected ranges or top-level bookmarked chapters.
+
+### [Stop-OfficePrintJob](Stop-OfficePrintJob.md)
+Cancels a print job submitted with Send-OfficePrinter and returns its state afterwards. Requires PowerShell 7.4 or newer.
 
 ### [Test-OfficeDocument](Test-OfficeDocument.md)
 Validates native document structure, schema, security, accessibility or compliance without changing the input.

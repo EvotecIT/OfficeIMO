@@ -3,7 +3,7 @@
 <!-- officeimo-api-map:begin -->
 ## OfficeIMO and PSWriteOffice 3.6
 
-OfficeIMO 3.6 and PSWriteOffice 3.6 change the public API in both languages and are released together. Nothing keeps a compatibility wrapper, so update scripts and code with the rules and tables below. PSWriteOffice goes from 594 commands and 383 aliases to 494 commands and 176 aliases; every job that worked before still works, usually through fewer commands. The [API design](Docs/officeimo.api-design.md) explains the rules.
+OfficeIMO 3.6 and PSWriteOffice 3.6 change the public API in both languages and are released together. Nothing keeps a compatibility wrapper, so update scripts and code with the rules and tables below. PSWriteOffice goes from 594 commands and 383 aliases to 497 commands and 176 aliases; every job that worked before still works, usually through fewer commands. The [API design](Docs/officeimo.api-design.md) explains the rules.
 
 ### What changed
 
@@ -1045,7 +1045,7 @@ Every PSWriteOffice 3.5 command and alias appears once, sorted by name. **Use in
 #### PDF
 
 <details>
-<summary>93 commands, 40 renamed, merged or removed</summary>
+<summary>93 commands, 41 renamed, merged or removed</summary>
 
 | 3.5 command | 3.6 command | Change | Parameter changes | Use instead |
 | --- | --- | --- | --- | --- |
@@ -1125,7 +1125,7 @@ Every PSWriteOffice 3.5 command and alias appears once, sorted by name. **Use in
 | `Remove-OfficePdfAnnotation` | `Remove-OfficePdfAnnotation` | Kept | `-PassThruReport` &rarr; `-PassThru`<br>`-PageNumber` &rarr; `-Page` |   |
 | `Remove-OfficePdfPage` | `Remove-OfficePdfPage` | Kept | `-FilePath` &rarr; `-Path`<br>`-PageRange` &rarr; `-Page` |   |
 | `Save-OfficePdf` | `Save-OfficePdf` | Kept | `-Open` &rarr; `-Show`<br>`-UserPassword` &rarr; `-Password`<br>`-Permissions` &rarr; `-Permission` |   |
-| `Send-OfficePdfPrinter` | `Send-OfficePdfPrinter` | Kept | `-Pages` &rarr; `-Page`<br>`-OutputFilePath` &rarr; `-OutputPath` |   |
+| `Send-OfficePdfPrinter` | `Send-OfficePrinter` | Renamed | `-Pages` &rarr; `-Page`<br>`-OutputFilePath` &rarr; `-OutputPath` | `Send-OfficePrinter -Path .\Report.pdf -PrinterName 'Office printer'` |
 | `Set-OfficePdfAnnotation` | `Set-OfficePdfAnnotation` | Kept | `-PassThruReport` &rarr; `-PassThru` |   |
 | `Set-OfficePdfBackground` | `Set-OfficePdfBackground` | Kept | Removed: `-Document`, `-PassThru` |   |
 | `Set-OfficePdfBackgroundImage` | `Set-OfficePdfBackground` (`Image` set) | Merged | `-Path`, `-FilePath` &rarr; `-ImagePath`<br>`-Clear` &rarr; `-Clear -Target Image` | `PdfBackground -ImagePath .\paper.png -Fit Cover -Opacity 0.2` |
@@ -9966,3 +9966,9 @@ JSON, JSON Lines, YAML, TOML, XML, CSV, TSV and worksheet data convert through `
 - **Loss reporting.** Data routes report what the target cannot hold, such as TOML nulls, YAML tags or XML attributes, as diagnostics on `OfficeConversionReport`. Set `FailOnLoss` (or `-FailOnLoss`) to stop instead.
 - **CSV UTF-8 rows.** `CsvRowWriter.WriteUtf8Row` now rejects a field that unquoted output cannot hold before writing any of that row, instead of leaving a partly written row.
 - **PowerShell TOML commands.** `ConvertFrom-OfficeToml`, `ConvertTo-OfficeToml`, `Import-OfficeToml` and `Export-OfficeToml` read and write TOML as PowerShell objects, as the JSON commands do.
+
+## Printing any document from PowerShell
+
+`Send-OfficePdfPrinter` is now `Send-OfficePrinter`, which prints PDF files and every format OfficeIMO converts to PDF. `Send-OfficePdfPrinter` remains an alias with the same parameters and the same behavior for PDF files, so existing scripts keep working; use `Send-OfficePrinter` in new scripts. `-PrinterName` also accepts an `ipp://` or `ipps://` printer URI.
+
+Printer capabilities come from `Get-OfficePrinterCapability -Name <printer>`. Follow or cancel a submitted job with `Get-OfficePrintJob` and `Stop-OfficePrintJob`, which take the receipt from the pipeline.

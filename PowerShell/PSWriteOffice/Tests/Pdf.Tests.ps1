@@ -1563,3 +1563,21 @@ Describe 'PDF native physical and pipeline contracts' {
         [Convert]::ToBase64String([IO.File]::ReadAllBytes($source)) | Should -Be $before
     }
 }
+
+Describe 'PDF printer submission' -Skip:($PSVersionTable.PSVersion -lt [version]'7.4') {
+    It 'rejects a password for non-PDF input before submitting any document' {
+        $pdf = Join-Path $TestDrive 'first.pdf'
+        New-OfficePdf -Path $pdf { PdfParagraph 'First' } | Out-Null
+        $docx = Join-Path $TestDrive 'second.docx'
+        Set-Content -LiteralPath $docx -Value 'not opened'
+        # The PDF comes first; validation must fail before any document is considered for submission.
+        { Send-OfficePrinter -Path $pdf, $docx -PrinterName 'officeimo-unused-queue' -Password (ConvertTo-SecureString 'secret' -AsPlainText -Force) -WhatIf } |
+            Should -Throw '*Password applies only to PDF documents*'
+    }
+
+    It 'binds the 3.5 parameter names of Send-OfficePdfPrinter' {
+        $pdf = Join-Path $TestDrive 'aliases.pdf'
+        New-OfficePdf -Path $pdf { PdfParagraph 'Aliases' } | Out-Null
+        { Send-OfficePdfPrinter -Path $pdf -PrinterName 'officeimo-unused-queue' -Pages '1' -OutputFilePath (Join-Path $TestDrive 'out.prn') -WhatIf } | Should -Not -Throw
+    }
+}

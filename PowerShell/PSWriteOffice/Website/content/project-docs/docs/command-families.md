@@ -12,7 +12,7 @@ The PSWriteOffice website catalog groups every exported cmdlet into exactly one 
 | --- | ---: | --- |
 | Excel | 103 | [Excel automation](/docs/pswriteoffice/excel/) |
 | Word | 81 | [Word automation](/docs/pswriteoffice/word/) |
-| PDF | 77 | [PDF automation](/docs/pswriteoffice/pdf/) |
+| PDF | 80 | [PDF automation](/docs/pswriteoffice/pdf/) |
 | Document operations and capabilities | 11 | [Document operations and capabilities](/docs/pswriteoffice/automation-patterns/) |
 | Before sharing | 5 | [Clean files before sharing](/docs/pswriteoffice/before-sharing/) |
 | Project | 20 | [Project, Access, and EPUB](/docs/pswriteoffice/project-access-epub/) |

@@ -135,8 +135,9 @@ public sealed partial class PdfReadPage {
 
     // Used only by the raster display path; never return this drawing through a public viewing API.
     // reportScaleDependence receives whether the drawing depends on functionShadingScale; one that does not serves any scale.
+    // printing paints only annotations with the Print flag, as a printed page shows them.
     internal OfficeDrawing ToDisplayDrawing(CancellationToken cancellationToken, Action<OfficeDrawing>? configureDrawing = null, double functionShadingScale = 1D, long maximumFunctionPixels = OfficeImageExportOptions.DefaultMaximumRasterPixels,
-        Action<bool>? reportScaleDependence = null) {
+        Action<bool>? reportScaleDependence = null, bool printing = false) {
         cancellationToken.ThrowIfCancellationRequested();
         PrepareOutputIntentRendering(cancellationToken);
         (double Width, double Height) size = GetVisualPageSize();
@@ -176,7 +177,7 @@ public sealed partial class PdfReadPage {
         cancellationToken.ThrowIfCancellationRequested();
         AddAnnotationAppearances(drawing, size.Height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget,
             invocationTextClippingBudget, patternTextClippingBudget, cancellationToken,
-            registeredFonts: registeredFonts, paintedGlyphMaps: paintedGlyphMaps);
+            registeredFonts: registeredFonts, paintedGlyphMaps: paintedGlyphMaps, printableOnly: printing);
         cancellationToken.ThrowIfCancellationRequested();
         // Replayed forms can merge older copies of the same embedded faces into the page.
         // Restore exact glyph aliases even when the page has no annotation appearances.
@@ -2833,7 +2834,8 @@ public sealed partial class PdfReadPage {
         CancellationToken cancellationToken,
         PdfArray? selectedAnnotations = null,
         Dictionary<(string Family, OfficeFontStyle Style), PdfFontResource>? registeredFonts = null,
-        Dictionary<(string Family, OfficeFontStyle Style), PaintedGlyphMap>? paintedGlyphMaps = null) {
+        Dictionary<(string Family, OfficeFontStyle Style), PaintedGlyphMap>? paintedGlyphMaps = null,
+        bool printableOnly = false) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfArray? annotations = selectedAnnotations;
         if (annotations == null && _pageDict.Items.TryGetValue("Annots", out PdfObject? annotationsObject))
@@ -2860,7 +2862,8 @@ public sealed partial class PdfReadPage {
             PdfDictionary? annotation = ResolveDictionary(annotations.Items[i]);
             if (annotation == null ||
                 !TryReadRectangle(annotation.Items.TryGetValue("Rect", out PdfObject? rectangleObject) ? rectangleObject : null, out (double X1, double Y1, double X2, double Y2) rectangle) ||
-                IsHiddenAnnotation(annotation) ||
+                IsHiddenAnnotation(annotation, printing: printableOnly) ||
+                (printableOnly && !IsPrintableAnnotation(annotation)) ||
                 !TryGetRenderableAnnotationAppearanceStream(annotation, out PdfStream appearanceStream, out _, cancellationToken)) {
                 continue;
             }
@@ -3114,7 +3117,11 @@ public sealed partial class PdfReadPage {
     private bool TryReadBox(PdfObject? obj, out (double X1, double Y1, double X2, double Y2) box) =>
         TryReadRectangle(obj, out box);
 
-    private bool IsHiddenAnnotation(PdfDictionary annotation) {
+    /// <summary>
+    /// Whether the annotation is suppressed on screen or, when <paramref name="printing"/>, on paper. NoView only suppresses
+    /// screen display, so a NoView annotation with the Print flag still prints; Invisible and Hidden suppress both.
+    /// </summary>
+    private bool IsHiddenAnnotation(PdfDictionary annotation, bool printing = false) {
         int? flags = TryReadInteger(annotation.Items.TryGetValue("F", out PdfObject? flagsObject) ? flagsObject : null);
         if (!flags.HasValue) {
             return false;
@@ -3123,7 +3130,7 @@ public sealed partial class PdfReadPage {
         const int invisible = 1;
         const int hidden = 2;
         const int noView = 32;
-        return (flags.Value & (invisible | hidden | noView)) != 0;
+        return (flags.Value & (printing ? invisible | hidden : invisible | hidden | noView)) != 0;
     }
 
     private void AddTextSpans(OfficeDrawing drawing, double pageHeight, Matrix2D pageTransform) {

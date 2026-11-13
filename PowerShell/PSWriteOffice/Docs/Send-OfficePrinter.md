@@ -4,29 +4,43 @@ Module Name: PSWriteOffice
 online version: https://github.com/EvotecIT/OfficeIMO
 schema: 2.0.0
 ---
-# Send-OfficePdfPrinter
+# Send-OfficePrinter
 ## SYNOPSIS
-Prepares PDF sheets and submits them to an explicitly named printer. Requires PowerShell 7.4 or newer.
+Prints a document of any format OfficeIMO converts to PDF on an explicitly named printer queue or IPP printer. Requires PowerShell 7.4 or newer.
 
 ## SYNTAX
 ### Path (Default)
 ```powershell
-Send-OfficePdfPrinter [-Path] <string[]> -PrinterName <string> [-Page <OfficePageSelector>] [-PagesPerSheet <int>] [-Copies <int>] [-Duplex <string>] [-PaperSourceId <string>] [-OutputPath <string>] [-Dpi <double>] [-Margin <OfficeLength>] [-Orientation <OfficePageOrientation>] [-ScaleMode <string>] [-PaperSize <OfficePageSize>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Send-OfficePrinter [-Path] <string[]> -PrinterName <string> [-Page <OfficePageSelector>] [-PagesPerSheet <int>] [-PageSubset <string>] [-Grayscale] [-Copies <int>] [-Duplex <string>] [-PaperSourceId <string>] [-OutputPath <string>] [-Dpi <double>] [-Margin <OfficeLength>] [-Orientation <OfficePageOrientation>] [-ScaleMode <string>] [-PaperSize <OfficePageSize>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### LiteralPath
 ```powershell
-Send-OfficePdfPrinter -LiteralPath <string[]> -PrinterName <string> [-Page <OfficePageSelector>] [-PagesPerSheet <int>] [-Copies <int>] [-Duplex <string>] [-PaperSourceId <string>] [-OutputPath <string>] [-Dpi <double>] [-Margin <OfficeLength>] [-Orientation <OfficePageOrientation>] [-ScaleMode <string>] [-PaperSize <OfficePageSize>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Send-OfficePrinter -LiteralPath <string[]> -PrinterName <string> [-Page <OfficePageSelector>] [-PagesPerSheet <int>] [-PageSubset <string>] [-Grayscale] [-Copies <int>] [-Duplex <string>] [-PaperSourceId <string>] [-OutputPath <string>] [-Dpi <double>] [-Margin <OfficeLength>] [-Orientation <OfficePageOrientation>] [-ScaleMode <string>] [-PaperSize <OfficePageSize>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-The returned receipt proves queue acceptance. It does not prove physical delivery. Check the queue after an interrupted submission before retrying.
+PDF files are printed directly; other documents are converted to PDF in memory first, and conversion warnings are written as warnings. Send-OfficePdfPrinter remains an alias of this command. PrinterName accepts an installed queue name or an ipp:// or ipps:// printer URI.
+
+Without PaperSize, sheets use the printer's default media. The returned receipt proves queue acceptance, not physical delivery. Follow it with Get-OfficePrintJob, and check the queue after an interrupted submission before retrying.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> Send-OfficePdfPrinter -Path .\Report.pdf -PrinterName 'Office printer' -Page '1-3' -PagesPerSheet 2 -Duplex LongEdge
+PS> Send-OfficePrinter -Path .\Report.pdf -PrinterName 'Office printer' -Page '1-3' -PagesPerSheet 2 -Duplex LongEdge
+```
+
+
+### EXAMPLE 2
+```powershell
+PS> Send-OfficePrinter -Path .\Letter.docx -PrinterName 'ipp://printer.local/ipp/print' | Get-OfficePrintJob -Wait
+```
+
+
+### EXAMPLE 3
+```powershell
+PS> Send-OfficePrinter -Path .\Report.pdf -PrinterName 'Office printer' -PageSubset Odd -PagesPerSheet 4 -Grayscale
 ```
 
 
@@ -49,7 +63,7 @@ Accept wildcard characters: False
 ```
 
 ### -Dpi
-Prepared sheet resolution.
+Highest resolution used when sheets are rasterized for delivery.
 
 ```yaml
 Type: Double
@@ -80,8 +94,24 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Grayscale
+Print in grayscale, exactly as the sheets are previewed, regardless of the device's color support.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -LiteralPath
-Literal PDF sources, including FileInfo.FullName.
+Literal document paths, including FileInfo.FullName.
 
 ```yaml
 Type: String[]
@@ -113,7 +143,7 @@ Accept wildcard characters: False
 ```
 
 ### -Orientation
-Paper orientation.
+Paper orientation. When omitted, each sheet takes the orientation that places its pages largest, so two-up and six-up sheets of portrait pages print in landscape.
 
 ```yaml
 Type: OfficePageOrientation
@@ -134,7 +164,7 @@ New destination file for a Windows file printer.
 ```yaml
 Type: String
 Parameter Sets: Path, LiteralPath
-Aliases: None
+Aliases: OutputFilePath
 Possible values:
 
 Required: False
@@ -150,7 +180,7 @@ Page selection such as 1-3,last.
 ```yaml
 Type: OfficePageSelector
 Parameter Sets: Path, LiteralPath
-Aliases: None
+Aliases: Pages
 Possible values:
 
 Required: False
@@ -161,13 +191,29 @@ Accept wildcard characters: False
 ```
 
 ### -PagesPerSheet
-Source pages per sheet.
+Source pages per sheet, in row-major order.
 
 ```yaml
 Type: Int32
 Parameter Sets: Path, LiteralPath
 Aliases: None
-Possible values: 1, 2, 4
+Possible values: 1, 2, 4, 6, 9
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -PageSubset
+Keep all selected pages, or only odd or even original page numbers.
+
+```yaml
+Type: String
+Parameter Sets: Path, LiteralPath
+Aliases: None
+Possible values: All, Odd, Even
 
 Required: False
 Position: named
@@ -177,7 +223,7 @@ Accept wildcard characters: False
 ```
 
 ### -PaperSize
-PDF paper size, default A4.
+Paper size. Defaults to the printer's default media, or A4 when the printer reports none.
 
 ```yaml
 Type: OfficePageSize
@@ -193,7 +239,7 @@ Accept wildcard characters: False
 ```
 
 ### -PaperSourceId
-Paper source identifier reported for this queue.
+Paper source identifier reported by Get-OfficePrinterCapability.
 
 ```yaml
 Type: String
@@ -225,7 +271,7 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Local PDF source.
+Local document to print: PDF or any format OfficeIMO converts to PDF.
 
 ```yaml
 Type: String[]
@@ -241,7 +287,7 @@ Accept wildcard characters: True
 ```
 
 ### -PrinterName
-Installed queue from Get-OfficePrinter.
+Installed queue from Get-OfficePrinter, or an ipp:// or ipps:// printer URI.
 
 ```yaml
 Type: String
