@@ -203,7 +203,7 @@ graph LR
         Assert.Equal("Tab\there", frontMatter.FindEntry("subtitle")!.Value.AsString());
         Assert.Equal("Ada", frontMatter.Select("author.name")!.AsString());
         Assert.Equal("b", frontMatter.Select("tags[1]")!.AsString());
-        Assert.Equal("Agenda", Assert.IsType<OfficeMarkupSlideBlock>(Assert.Single(result.Document.Blocks)).Title);
+        Assert.Equal("Agenda", Assert.IsType<OfficeMarkupHeadingBlock>(Assert.Single(result.Document.Blocks)).Text);
     }
 
     [Fact]
