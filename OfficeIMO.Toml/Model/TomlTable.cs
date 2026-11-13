@@ -167,6 +167,11 @@ public sealed class TomlTable : TomlNode, IReadOnlyCollection<KeyValuePair<strin
         int index = IndexOf(key);
         if (index < 0) return false;
         RemoveAt(index);
+        // A table made only by dotted keys or by deeper headers has no text of its own, so once empty it would vanish
+        // on save; remove it here too, so the model matches what reloading the saved text gives.
+        if (_count == 0 && _tableKind is TomlTableKind.Dotted or TomlTableKind.Implicit && _parent is TomlTable parent && (_state & TomlNodeState.Detached) == 0) {
+            parent.Remove(_key!);
+        }
         return true;
     }
 

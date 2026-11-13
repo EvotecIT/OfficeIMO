@@ -175,7 +175,14 @@ internal sealed class TomlRendering {
         if (!node.IsLoaded) return;
         if (node.IsKeyValue) {
             int start = _text.BlockStart(_text.LineStart(node._keyStart), 0);
-            Delete(start, _text.LineEnd(node._end));
+            int end = _text.LineEnd(node._end);
+            // The last line of a file without a final line break takes the break before it, so the file still ends
+            // without one and text added at the end starts on a new line of its own, not after a blank one.
+            if (end == _source.Length && start > 0 && _source[end - 1] != '\n') {
+                start--;
+                if (start > 0 && _source[start - 1] == '\r') start--;
+            }
+            Delete(start, end);
             return;
         }
         switch (node) {

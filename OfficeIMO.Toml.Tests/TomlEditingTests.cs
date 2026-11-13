@@ -60,6 +60,30 @@ public class TomlEditingTests {
         Assert.Equal("# keep\n\na = 1\n", Edit("# keep\n\na = 1\n# about b\nb = 2 # trailing\n", doc => doc.Root.Remove("b")));
     }
 
+    // A table that has text only through its dotted keys or deeper headers disappears with its last key, in the model
+    // as in the saved text (found by the large corpus: `repository.workspace = true` in Cargo manifests).
+    [Theory]
+    [InlineData("[package]\nname = \"a\"\nrepository.workspace = true\n", "package.repository.workspace", "package.repository", "[package]\nname = \"a\"\n")]
+    [InlineData("[a.b]\nx = 1\n", "a.b", "a", "")]
+    public void RemovingTheLastKeyOfATableWithoutTextRemovesTheTable(string toml, string path, string emptied, string expected) {
+        Assert.Equal(expected, Edit(toml, doc => {
+            Assert.True(doc.Remove(path));
+            Assert.Null(doc.Select(emptied));
+        }));
+    }
+
+    // Removing the last line of a file without a final line break must not leave an empty line for added text to follow.
+    [Theory]
+    [InlineData("a = 1\nb = 2", false, "a = 1")]
+    [InlineData("a = 1\r\nb = 2", false, "a = 1")]
+    [InlineData("a = 1\nb = 2", true, "a = 1\n\n[t]\nk = 1\n")]
+    public void RemovingTheLastLineOfAFileWithoutAFinalBreakTakesTheBreakBeforeIt(string toml, bool addTable, string expected) {
+        Assert.Equal(expected, Edit(toml, doc => {
+            doc.Remove("b");
+            if (addTable) doc.Root.AddTable("t").Add("k", 1);
+        }));
+    }
+
     [Fact]
     public void RemovingATableRemovesItsSubTablesWhereverTheyAre() {
         string toml = "[a]\nx = 1\n\n[b]\ny = 2\n\n[a.c]\nz = 3\n";
