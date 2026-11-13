@@ -20,22 +20,31 @@ internal static partial class MarkdownReader {
                 : null;
             int j = i;
             bool sawQuotedLine = false;
+            var literalBlock = new QuotedLiteralBlockState(state);
             while (j < lines.Length) {
                 var ln = lines[j];
                 var ltrim = ln.TrimStart();
                 if (ltrim.StartsWith(">", StringComparison.Ordinal)) {
                     if (CountLeadingIndentColumns(ln) > 3) break;
 
-                    if (sawQuotedLine
-                        && options.Callouts
-                        && inner.Count > 0
-                        && IsCalloutHeader(ltrim, options, out _, out _)) {
-                        break;
-                    }
-
                     // Strip one level
                     var expanded = ExpandWhitespaceAfterContainerMarker(ln, ln.IndexOf('>') + 1);
                     var stripped = StripSingleQuoteMarker(expanded);
+
+                    // Callout-like text inside quoted fenced code or an HTML block is literal; it does not split the quote.
+                    if (!literalBlock.Continue(stripped)) {
+                        if (sawQuotedLine
+                            && options.Callouts
+                            && inner.Count > 0
+                            && IsCalloutHeader(ltrim, options, out _, out _)) {
+                            break;
+                        }
+
+                        if (!literalBlock.TryOpenFence(stripped, options)) {
+                            literalBlock.TryOpenTopLevelHtmlBlock(stripped, lines, j, options);
+                        }
+                    }
+
                     int contentStartColumn = GetQuoteContentStartColumn(expanded);
                     if (inner.Count == 0) {
                         int leadingColumns = CountLeadingIndentColumns(stripped);
@@ -71,7 +80,8 @@ internal static partial class MarkdownReader {
                 // Lazy continuation: allow a non-quoted line to continue a blockquote paragraph
                 // until a blank line followed by a non-quoted line ends the blockquote.
                 if (sawQuotedLine) {
-                    if (string.IsNullOrWhiteSpace(ln)) {
+                    // Only paragraphs continue lazily; an open quoted fence or HTML block ends at an unquoted line.
+                    if (string.IsNullOrWhiteSpace(ln) || literalBlock.IsOpen) {
                         break;
                     }
 

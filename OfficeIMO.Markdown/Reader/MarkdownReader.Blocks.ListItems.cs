@@ -622,6 +622,8 @@ internal static partial class MarkdownReader {
     private static bool IsCalloutHeader(string line, out string kind, out string title) {
         kind = string.Empty; title = string.Empty;
         if (string.IsNullOrEmpty(line)) return false;
+        // As with a block quote, the ">" may be indented by at most three columns; more is indented code.
+        if (CountLeadingIndentColumns(line) > 3) return false;
         var t = line.TrimStart();
         if (!t.StartsWith(">", StringComparison.Ordinal)) return false;
         t = t.Substring(1).TrimStart();

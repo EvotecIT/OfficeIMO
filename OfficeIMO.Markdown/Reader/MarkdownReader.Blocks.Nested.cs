@@ -431,7 +431,7 @@ internal static partial class MarkdownReader {
         return tableLines.Count > 0 && StartsTable(tableLines.ToArray(), 0, options, state);
     }
 
-    private static bool TryParseNestedQuoteBlock(string[] lines, ref int index, int itemLevelAbs, int continuationIndent, MarkdownLoadOptions options, MarkdownReaderState state, out QuoteBlock? quote) {
+    private static bool TryParseNestedQuoteBlock(string[] lines, ref int index, int itemLevelAbs, int continuationIndent, MarkdownLoadOptions options, MarkdownReaderState state, out IMarkdownBlock? quote) {
         quote = null;
         if (lines == null || index < 0 || index >= lines.Length) return false;
 
@@ -447,6 +447,8 @@ internal static partial class MarkdownReader {
         var collectedSourceLines = new List<MarkdownSourceLineSlice>();
         bool sawQuotedLine = false;
         string? lastQuoteContent = null;
+        var nestedQuoteOptions = GetNestedListQuoteOptions(options);
+        var literalBlock = new QuotedLiteralBlockState(state);
         while (j < lines.Length) {
             string raw = lines[j] ?? string.Empty;
             if (string.IsNullOrWhiteSpace(raw)) {
@@ -470,6 +472,20 @@ internal static partial class MarkdownReader {
                 }
 
                 string collectedLine = "> " + quoteContent;
+                // Callout-like text inside quoted fenced code or an HTML block is literal; otherwise a callout header
+                // starts its own block, as it does at the top level.
+                if (!literalBlock.Continue(quoteContent)) {
+                    if (collected.Count > 0
+                        && nestedQuoteOptions.Callouts
+                        && IsCalloutHeader(collectedLine, nestedQuoteOptions, out _, out _)) {
+                        break;
+                    }
+
+                    if (!literalBlock.TryOpenFence(quoteContent, nestedQuoteOptions)) {
+                        literalBlock.TryOpenNestedHtmlBlock(quoteContent, lines, j, continuationIndent, nestedQuoteOptions);
+                    }
+                }
+
                 collected.Add(collectedLine);
                 collectedSourceLines.Add(new MarkdownSourceLineSlice(
                     collectedLine,
@@ -482,7 +498,7 @@ internal static partial class MarkdownReader {
             }
 
             // Match the top-level quote parser's lazy continuation behavior inside list items too.
-            if (!sawQuotedLine) break;
+            if (!sawQuotedLine || literalBlock.IsOpen) break;
             if (IsNestedListLineForParentItem(raw, itemLevelAbs, continuationIndent, options)) break;
             var previousQuoteContent = lastQuoteContent;
             if (previousQuoteContent == null || previousQuoteContent.Length == 0) break;
@@ -501,10 +517,9 @@ internal static partial class MarkdownReader {
 
         if (collected.Count == 0) return false;
 
-        var nestedQuoteOptions = GetNestedListQuoteOptions(options);
         var (blocks, _) = ParseNestedMarkdownBlocks(collectedSourceLines, nestedQuoteOptions, state);
-        if (blocks.Count > 0 && blocks[0] is QuoteBlock parsedQuote) {
-            quote = parsedQuote;
+        if (blocks.Count > 0 && blocks[0] is QuoteBlock or CalloutBlock) {
+            quote = blocks[0];
             index = j;
             return true;
         }

@@ -20,6 +20,38 @@ public class Markdown_FrontMatter_Yaml_Tests {
         Assert.Empty(frontMatter.Diagnostics);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Indented_Front_Matter_Fences_Stay_Indented_Code(bool commonMarkProfile) {
+        var document = MarkdownDocument.Parse("    ---\n    title: example\n    ---\n\nVisible", CreateFrontMatterOptions(commonMarkProfile));
+
+        Assert.Null(document.DocumentHeader);
+        Assert.Collection(
+            document.Blocks,
+            block => Assert.Equal("---\ntitle: example\n---", Assert.IsType<CodeBlock>(block).Content.Replace("\r\n", "\n")),
+            block => Assert.IsType<ParagraphBlock>(block));
+    }
+
+    [Theory]
+    [InlineData(false, "---\ntitle: x\n---\n\nVisible")]
+    [InlineData(true, "---\ntitle: x\n---\n\nVisible")]
+    [InlineData(true, "﻿---  \ntitle: x\n---\t\n\nVisible")]
+    public void Front_Matter_At_Column_Zero_Is_Read_As_Front_Matter(bool commonMarkProfile, string markdown) {
+        var document = MarkdownDocument.Parse(markdown, CreateFrontMatterOptions(commonMarkProfile));
+
+        Assert.Equal("x", document.DocumentHeader!.FindEntry("title")!.Value.AsString());
+        Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+    }
+
+    private static MarkdownLoadOptions CreateFrontMatterOptions(bool commonMarkProfile) {
+        if (!commonMarkProfile) return new MarkdownLoadOptions();
+
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
+        options.FrontMatter = true;
+        return options;
+    }
+
     [Fact]
     public void Edited_Front_Matter_Rewrites_Only_The_Changed_Value() {
         const string markdown = "---\n# Site settings\ntitle: Draft   # working title\ntags: [a, b]\n---\n\n# Body\n";
@@ -141,12 +173,12 @@ public class Markdown_FrontMatter_Yaml_Tests {
     /// <summary>Returns the index just past the closing <c>---</c> line, as the Markdown reader finds it.</summary>
     private static int FindClosingFence(string text) {
         int lineEnd = text.IndexOf('\n');
-        if (lineEnd < 0 || text.Substring(0, lineEnd).Trim() != "---") return -1;
+        if (lineEnd < 0 || text.Substring(0, lineEnd).TrimEnd() != "---") return -1;
         int position = lineEnd + 1;
         while (position < text.Length) {
             int next = text.IndexOf('\n', position);
             string line = next < 0 ? text.Substring(position) : text.Substring(position, next - position);
-            if (line.Trim() == "---") return next < 0 ? text.Length : next + 1;
+            if (line.TrimEnd() == "---") return next < 0 ? text.Length : next + 1;
             if (next < 0) break;
             position = next + 1;
         }
