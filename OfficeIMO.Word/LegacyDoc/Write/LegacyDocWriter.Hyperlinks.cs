@@ -93,7 +93,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return AppendHyperlinkMetadata(" HYPERLINK \\l \"" + EscapeFieldString(hyperlink.Anchor!.Value!) + "\" ", hyperlink);
             }
 
-            HyperlinkRelationship? relationship = relationshipOwner.HyperlinkRelationships.FirstOrDefault(item => item.Id == hyperlink.Id);
+            HyperlinkRelationship? relationship = WordHyperLink.FindHyperlinkRelationship(relationshipOwner, hyperlink.Id?.Value);
             if (relationship == null) {
                 throw new NotSupportedException($"Native DOC saving could not find hyperlink relationship '{hyperlink.Id}'.");
             }

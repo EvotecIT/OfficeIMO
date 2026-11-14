@@ -85,6 +85,12 @@ public sealed class MarkdownFencedCodeBlockRenderer {
     public MarkdownFencedCodeBlockHtmlRenderer RenderHtml { get; }
 
     /// <summary>
+    /// True for the built-in renderers, which read only the fence language, info and content and
+    /// never the source spans on the match.
+    /// </summary>
+    internal bool ReadsFenceContentOnly { get; set; }
+
+    /// <summary>
     /// Optional shell head HTML builder invoked by <see cref="MarkdownRenderer.BuildShellHtml(string?, MarkdownRendererOptions?)"/>.
     /// </summary>
     public MarkdownRendererShellHeadBuilder? BuildShellHeadHtml { get; set; }

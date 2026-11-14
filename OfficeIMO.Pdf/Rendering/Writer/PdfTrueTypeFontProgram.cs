@@ -208,7 +208,14 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
     private void ReplayGlyphRunUsage(PdfGlyphRun run) {
         IReadOnlyList<PdfGlyphInfo> glyphs = run.Glyphs;
-        for (int index = 0; index < glyphs.Count; index++) RecordGlyphUsage(glyphs[index].GlyphId, glyphs[index].UnicodeText);
+        // Same records as RecordGlyphUsage per glyph, under one acquisition of the usage lock.
+        lock (_usageLock) {
+            for (int index = 0; index < glyphs.Count; index++) {
+                PdfGlyphInfo glyph = glyphs[index];
+                if (glyph.GlyphId < 0) continue;
+                RecordNormalizedGlyphUsage(glyph.GlyphId, OfficeArabicTextShaper.ToLogicalText(glyph.UnicodeText));
+            }
+        }
     }
 
     private PdfGlyphRun ShapeUncachedText(string text, PdfTextShapingOptions options) {

@@ -183,7 +183,7 @@ internal static class WordBenchmarkCorpus {
         XElement[] paragraphs = body.Elements(WordNamespace + "p").ToArray();
         EnsureEqual("replaced paragraph count", itemCount, paragraphs.Length);
         for (int index = 0; index < itemCount; index++) {
-            string expected = ReplacementText(index).Replace(Placeholder, Replacement, StringComparison.Ordinal);
+            string expected = ReplacementText(index).Replace(Placeholder, Replacement);
             EnsureEqual("replaced paragraph " + index, expected, ReadText(paragraphs[index]));
         }
         if (requireOpenXmlSdkConformance) EnsureOpenXmlSdkConformance(payload);

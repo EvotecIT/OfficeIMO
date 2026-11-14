@@ -10,16 +10,23 @@ namespace OfficeIMO.Word {
         private static bool RequiresLegacyRuntimeSignatureSnapshot() =>
             RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.OrdinalIgnoreCase);
 
+        // The loader reads the source into an array of its own and never writes to it: an editable
+        // package gets a copy, and a read-only package reads the array through a stream that can't
+        // write. The array can therefore serve as the encoded baseline without another copy.
         private static byte[]? CaptureLegacyValidationEncodedPackage(byte[] sourceBytes, bool readOnly) =>
             !readOnly && RequiresLegacyRuntimeSignatureSnapshot()
-                ? (byte[])sourceBytes.Clone()
+                ? sourceBytes
                 : null;
 
         private static MemoryStream CreateLegacyValidationPackageStream(
             byte[] sourceBytes,
             bool readOnly,
             long maximumPackageBytes) {
-            MemoryStream stream = !readOnly && RequiresLegacyRuntimeSignatureSnapshot()
+            if (readOnly) {
+                return new MemoryStream(sourceBytes, 0, sourceBytes.Length, writable: false, publiclyVisible: true);
+            }
+
+            MemoryStream stream = RequiresLegacyRuntimeSignatureSnapshot()
                 ? new LegacyValidationPackageMemoryStream(maximumPackageBytes)
                 : new MemoryStream(sourceBytes.Length);
             stream.Write(sourceBytes, 0, sourceBytes.Length);

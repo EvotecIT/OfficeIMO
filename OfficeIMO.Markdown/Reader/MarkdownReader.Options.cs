@@ -203,8 +203,7 @@ internal static partial class MarkdownReader {
 
     private static MarkdownReaderState CloneState(MarkdownReaderState state) {
         var clone = new MarkdownReaderState();
-        foreach (var kvp in state.LinkRefs) clone.LinkRefs[kvp.Key] = kvp.Value;
-        foreach (var kvp in state.Abbreviations) clone.Abbreviations[kvp.Key] = kvp.Value;
+        clone.ShareDefinitionsWith(state);
         clone.SourceLineOffset = state.SourceLineOffset;
         clone.SourceTextMap = state.SourceTextMap;
         clone.SourceLineAbsoluteNumbers = state.SourceLineAbsoluteNumbers;

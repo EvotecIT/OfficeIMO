@@ -22,6 +22,9 @@ public sealed class DefinitionListGroup : MarkdownObject {
     /// <summary>Definition bodies shared by the terms in this group.</summary>
     public IReadOnlyList<DefinitionListDefinition> Definitions => _definitions;
 
+    /// <summary>True when the reader parsed this group from term lines followed by ":" marker lines.</summary>
+    internal bool ParsedFromMarkerLines { get; set; }
+
     /// <summary>Creates a grouped definition-list item.</summary>
     public DefinitionListGroup(
         IEnumerable<InlineSequence>? terms = null,

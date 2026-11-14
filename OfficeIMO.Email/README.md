@@ -486,6 +486,7 @@ RTF syntax editing and semantic conversion belong to `OfficeIMO.Rtf`. Generate R
 retains the original artifact bytes automatically, including Outlook's complete outer `multipart/signed` attachment
 for `IPM.Note.SMIME.MultipartSigned`. `EmailSmime` creates and verifies clear/opaque S/MIME, creates and decrypts
 EnvelopedData, and supports sign-then-encrypt through an explicitly supplied security provider; OpenPGP remains outside this package.
+DKIM and ARC verification are described below.
 Writing an unchanged protected document in its source format emits those bytes verbatim; an edited or cross-format
 write is blocked by default because regenerating the wrapper would invalidate its cryptographic meaning.
 
@@ -545,6 +546,40 @@ platform key handle without exporting private parameters. Keychain identity sele
 Other envelope profiles and older targets require an exportable RSA key and report
 `EnvelopePrivateKeyNotExportable` when export is unavailable.
 
+
+## DKIM and ARC verification
+
+`EmailDkim.VerifyAsync` checks every DKIM-Signature (RFC 6376) over the exact received bytes: simple and relaxed
+canonicalization, oversigned `h=` lists, body hashes, `rsa-sha256` and `ed25519-sha256` (RFC 8463). `rsa-sha1` and
+RSA keys under 1024 bits are refused with a `Policy` result (RFC 8301). `EmailArc.VerifyAsync` validates the ARC chain
+(RFC 8617): complete instance sets, `cv=` values, the newest ARC-Message-Signature and every ARC-Seal.
+
+OfficeIMO does not query DNS. Supply the `selector._domainkey.domain` TXT records through `IEmailDkimKeyResolver`
+(`EmailDkimStaticKeyResolver` holds a fixed set) and the signature math through `IOfficePublicKeySignatureVerifier`,
+which `OfficeSecurityProvider` from `OfficeIMO.Security` implements. Read messages with `preserveRawSource: true`;
+a document without its original bytes is reported as not verifiable.
+
+```csharp
+using OfficeIMO.Security;
+
+EmailDocument message = EmailDocument.Load("received.eml", new EmailReaderOptions(preserveRawSource: true));
+var keys = new EmailDkimStaticKeyResolver()
+    .Add("selector1", "example.com", "v=DKIM1; k=rsa; p=MIIBIjANBgkq...");
+
+EmailDkimVerificationResult dkim = await EmailDkim.VerifyAsync(message, keys, OfficeSecurityProvider.Default);
+foreach (EmailDkimSignatureResult signature in dkim.Signatures) {
+    Console.WriteLine($"{signature.Domain}: {signature.Result} {signature.FailureReason}");
+}
+
+EmailArcVerificationResult arc = await EmailArc.VerifyAsync(message, keys, OfficeSecurityProvider.Default);
+Console.WriteLine(arc.Status);
+```
+
+Every result is typed and nothing throws for hostile input. Anything malformed or ambiguous, such as two TXT records
+for one selector, never passes. Signatures with an `l=` body length limit are evaluated but carry a warning and
+`UnsignedBodyBytes`; set `EmailAuthenticationOptions.RejectBodyLengthLimit` to refuse them. Temporary key lookup
+failures report `TempError` (DKIM) or `NotVerified` (ARC), never a failure or a pass. Bare LF line endings from files
+saved on disk are treated as CRLF and reported in the diagnostics.
 ## Mailbox stores and store-backed content
 
 PST, OST, Outlook for Mac OLM, and Apple Mail EMLX containers are included in `OfficeIMO.Email`. The Store APIs yield ordinary `EmailDocument` instances while preserving folder paths, store metadata, diagnostics, and bounded attachment behavior.
@@ -805,7 +840,7 @@ foreach (OfficeDocumentAsset attachment in result.Assets) {
 
 ## Scope boundary
 
-`OfficeIMO.Email` owns offline artifact parsing, serialization, and format-neutral Outlook data. It does not connect to mail servers, authenticate users, send messages, discover certificates or private keys, or implement DKIM, ARC, or OpenPGP. `EmailSmime.Sign`, `Encrypt`, `SignAndEncrypt`, `Verify`, `Decrypt`, and `DecryptThenVerify` are thin data-oriented adapters over a caller-supplied `IOfficeSecurityProvider`: Email owns bounded MIME construction and exact protected-byte handling, while the provider owns CMS, certificates, and trust policy. The adapters create signed or encrypted MIME, verify exact clear-signed bytes and opaque signed-data, decrypt caller-selected EnvelopedData recipients, retain the original protected artifact, and return a separate parsed protected-content document when possible. Certificate/key and provider selection remain explicit and caller-owned.
+`OfficeIMO.Email` owns offline artifact parsing, serialization, and format-neutral Outlook data. It does not connect to mail servers, authenticate users, send messages, or discover certificates or private keys. `EmailSmime.Sign`, `Encrypt`, `SignAndEncrypt`, `Verify`, `Decrypt`, and `DecryptThenVerify` are thin data-oriented adapters over a caller-supplied `IOfficeSecurityProvider`: Email owns bounded MIME construction and exact protected-byte handling, while the provider owns CMS, certificates, and trust policy. The adapters create signed or encrypted MIME, verify exact clear-signed bytes and opaque signed-data, decrypt caller-selected EnvelopedData recipients, retain the original protected artifact, and return a separate parsed protected-content document when possible. Certificate/key and provider selection remain explicit and caller-owned.
 
 The package does not expose general-purpose CFB transactions. Its Store API area owns PST, OST, OLM, EMLX, Mbox,
 Apple Mail, and Maildir traversal, selection, validation, native export, verified conversion, multi-store merge, and

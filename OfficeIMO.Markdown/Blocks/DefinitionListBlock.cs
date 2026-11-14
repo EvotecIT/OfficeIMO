@@ -278,7 +278,7 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
             return false;
         }
 
-        if (group.TermItems.Count != 1 || group.Definitions.Count != 1) {
+        if (group.TermItems.Count != 1 || group.Definitions.Count != 1 || group.ParsedFromMarkerLines) {
             return true;
         }
 

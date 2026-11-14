@@ -37,6 +37,13 @@ public static class WordMarkdownExtractionExtensions {
 
         int blockIndex = 0;
 
+        // List lookups would otherwise rebuild the style and numbering catalog, and field
+        // visibility would rewalk the story, for every paragraph. A scope can't stay open across
+        // yield return, where it would leak into the caller's code, so both are built once and
+        // made current around each conversion. Like any enumeration, this assumes the document
+        // doesn't change meanwhile.
+        var conversionState = new ConversionState(document);
+
         foreach (var section in WordDocumentTraversal.EnumerateSections(document)) {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -50,44 +57,9 @@ public static class WordMarkdownExtractionExtensions {
             for (int i = 0; i < elements.Count; i++) {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var el = elements[i];
-                string? blockMarkdown = null;
-
-                if (el is WordParagraph p) {
-                    bool hasRuns = false;
-                    try {
-                        hasRuns = p.GetRuns().Any();
-                    } catch (InvalidOperationException ex) {
-                        Debug.WriteLine($"GetRuns() failed for paragraph during chunk extraction: {ex.Message}");
-                        hasRuns = false;
-                    }
-
-                    // Only render once per underlying OpenXml paragraph (see converter logic).
-                    // Also look ahead to detect checkbox state across wrappers.
-                    bool paraHasCheckbox = p.IsCheckBox;
-                    bool paraCheckboxChecked = p.CheckBox?.IsChecked == true;
-                    int j = i + 1;
-                    while (j < elements.Count && elements[j] is WordParagraph p2 && p2.Equals(p)) {
-                        if (p2.IsCheckBox) { paraHasCheckbox = true; paraCheckboxChecked = p2.CheckBox?.IsChecked == true; }
-                        j++;
-                    }
-                    if (hasRuns && !p.IsFirstRun) continue;
-
-                    // Track heading path for better chunk metadata (best-effort).
-                    int? headingLevel = p.Style.HasValue
-                        ? WordHeadingStyleMapper.GetLevelForHeadingStyle(p.Style.Value)
-                        : (int?)null;
-                    if (headingLevel.HasValue && headingLevel.Value > 0) {
-                        var headingText = SafePlainTextFromParagraph(p, markdownOptions, converter);
-                        UpdateHeadingStack(headingStack, headingLevel.Value, headingText);
-                    }
-
-                    blockMarkdown = converter.ConvertParagraph(p, markdownOptions, paraHasCheckbox, paraCheckboxChecked);
-                } else if (el is WordTable t) {
-                    blockMarkdown = converter.ConvertTable(t, markdownOptions);
-                } else if (el is WordEmbeddedDocument ed) {
-                    var html = ed.GetHtml();
-                    if (!string.IsNullOrWhiteSpace(html)) blockMarkdown = html!.TrimEnd();
+                string? blockMarkdown;
+                using (conversionState.Enter()) {
+                    blockMarkdown = ConvertBlock(elements, i, markdownOptions, converter, headingStack);
                 }
 
                 if (string.IsNullOrWhiteSpace(blockMarkdown)) continue;
@@ -121,7 +93,9 @@ public static class WordMarkdownExtractionExtensions {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (footnote.ReferenceId.HasValue) {
                     sb.Append("[^").Append(footnote.ReferenceId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("]: ");
-                    sb.AppendLine(converter.RenderFootnote(footnote, markdownOptions));
+                    using (conversionState.Enter()) {
+                        sb.AppendLine(converter.RenderFootnote(footnote, markdownOptions));
+                    }
                 }
             }
 
@@ -150,6 +124,89 @@ public static class WordMarkdownExtractionExtensions {
                 firstHeadingPath,
                 current.ToString().TrimEnd(),
                 warnings.Count > 0 ? warnings.ToArray() : null);
+        }
+    }
+
+    // Converts one section element, or returns null for a run wrapper that its paragraph's first
+    // run already converted.
+    private static string? ConvertBlock(
+        IReadOnlyList<WordElement> elements,
+        int i,
+        WordMarkdownExportOptions markdownOptions,
+        WordToMarkdownConverter converter,
+        List<(int Level, string Text)> headingStack) {
+        var el = elements[i];
+        if (el is WordParagraph p) {
+            bool hasRuns = false;
+            try {
+                hasRuns = p.GetRuns().Any();
+            } catch (InvalidOperationException ex) {
+                Debug.WriteLine($"GetRuns() failed for paragraph during chunk extraction: {ex.Message}");
+                hasRuns = false;
+            }
+
+            // Only render once per underlying OpenXml paragraph (see converter logic).
+            // Also look ahead to detect checkbox state across wrappers.
+            bool paraHasCheckbox = p.IsCheckBox;
+            bool paraCheckboxChecked = p.CheckBox?.IsChecked == true;
+            int j = i + 1;
+            while (j < elements.Count && elements[j] is WordParagraph p2 && p2.Equals(p)) {
+                if (p2.IsCheckBox) { paraHasCheckbox = true; paraCheckboxChecked = p2.CheckBox?.IsChecked == true; }
+                j++;
+            }
+            if (hasRuns && !p.IsFirstRun) return null;
+
+            // Track heading path for better chunk metadata (best-effort).
+            int? headingLevel = p.Style.HasValue
+                ? WordHeadingStyleMapper.GetLevelForHeadingStyle(p.Style.Value)
+                : (int?)null;
+            if (headingLevel.HasValue && headingLevel.Value > 0) {
+                var headingText = SafePlainTextFromParagraph(p, markdownOptions, converter);
+                UpdateHeadingStack(headingStack, headingLevel.Value, headingText);
+            }
+
+            return converter.ConvertParagraph(p, markdownOptions, paraHasCheckbox, paraCheckboxChecked);
+        }
+
+        if (el is WordTable t) {
+            return converter.ConvertTable(t, markdownOptions);
+        }
+
+        if (el is WordEmbeddedDocument ed) {
+            var html = ed.GetHtml();
+            if (!string.IsNullOrWhiteSpace(html)) return html!.TrimEnd();
+        }
+
+        return null;
+    }
+
+    private sealed class ConversionState {
+        private readonly WordDocument _document;
+        private readonly WordListNumberingResolver.StyleCatalog _listNumberingCatalog;
+        private readonly WordComplexFieldRunVisibility.ConversionCache _fieldVisibility = new();
+
+        internal ConversionState(WordDocument document) {
+            _document = document;
+            _listNumberingCatalog = WordDocumentTraversal.CreateListNumberingCatalog(document);
+        }
+
+        internal Scope Enter() => new(
+            WordDocumentTraversal.UseListNumberingCatalog(_document, _listNumberingCatalog),
+            WordComplexFieldRunVisibility.BeginConversionScope(_fieldVisibility));
+
+        internal readonly struct Scope : IDisposable {
+            private readonly IDisposable _listNumbering;
+            private readonly IDisposable _fieldVisibility;
+
+            internal Scope(IDisposable listNumbering, IDisposable fieldVisibility) {
+                _listNumbering = listNumbering;
+                _fieldVisibility = fieldVisibility;
+            }
+
+            public void Dispose() {
+                _fieldVisibility.Dispose();
+                _listNumbering.Dispose();
+            }
         }
     }
 

@@ -96,7 +96,7 @@ internal static partial class MarkdownReader {
                         state,
                         state.SourceLineOffset + idx + 1,
                         state.SourceLineOffset + idx + consumedLines);
-                    state.LinkRefs[label] = new MarkdownReferenceLinkDefinition(
+                    state.EditLinkRefs()[label] = new MarkdownReferenceLinkDefinition(
                         label,
                         resolved!,
                         title,
@@ -120,7 +120,7 @@ internal static partial class MarkdownReader {
                 out var quotedDefinition,
                 out var quotedConsumedLines)) {
                 if (!state.LinkRefs.ContainsKey(quotedDefinition.Label)) {
-                    state.LinkRefs[quotedDefinition.Label] = quotedDefinition;
+                    state.EditLinkRefs()[quotedDefinition.Label] = quotedDefinition;
                 }
 
                 idx += quotedConsumedLines - 1;
@@ -586,6 +586,10 @@ internal static partial class MarkdownReader {
 
         int rb = FindReferenceLabelEnd(trimmed, 0);
         if (rb > 1 && rb + 1 < trimmed.Length && trimmed[rb + 1] == ':') {
+            if (rb - 1 > MaxReferenceLabelLength) {
+                return false;
+            }
+
             label = NormalizeReferenceLabel(trimmed.Substring(1, rb - 1));
             int absoluteLine = state?.SourceLineOffset + index + 1 ?? index + 1;
             labelSpan = CreateSpan(
@@ -633,6 +637,10 @@ internal static partial class MarkdownReader {
 
                 labelBuilder.Append('\n');
                 labelBuilder.Append(trimmedContinuation.Substring(0, closingBracket));
+                if (labelBuilder.Length > MaxReferenceLabelLength) {
+                    return false;
+                }
+
                 label = NormalizeReferenceLabel(labelBuilder.ToString());
                 int absoluteStartLine = state?.SourceLineOffset + index + 1 ?? index + 1;
                 int absoluteClosingLine = state?.SourceLineOffset + index + lineOffset + 1 ?? index + lineOffset + 1;
@@ -669,6 +677,9 @@ internal static partial class MarkdownReader {
 
             labelBuilder.Append('\n');
             labelBuilder.Append(trimmedContinuation);
+            if (labelBuilder.Length > MaxReferenceLabelLength) {
+                return false;
+            }
         }
 
         return false;

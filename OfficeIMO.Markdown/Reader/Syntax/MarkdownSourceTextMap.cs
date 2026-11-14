@@ -63,18 +63,13 @@ internal sealed class MarkdownSourceTextMap {
             throw new ArgumentOutOfRangeException(nameof(destinationIndex));
         }
 
-        var firstPoint = CreatePoint(line, startColumn);
+        var range = CreateSequentialRange(line, startColumn);
+        var firstPoint = range.FirstPoint;
         var logicalSourceColumn = startColumn;
         var mappedSourceColumn = firstPoint.Column;
         var sourceOffset = firstPoint.Offset;
-        var maximumColumn = GetLineLength(firstPoint.Line);
-        var lineEndExclusive = firstPoint.Line < _lineStarts.Length
-            ? _lineStarts[firstPoint.Line] - 1
-            : _text.Length;
-        while (lineEndExclusive > sourceOffset && _text[lineEndExclusive - 1] == '\n') {
-            lineEndExclusive--;
-        }
-        var maximumOffset = Math.Max(sourceOffset, lineEndExclusive - 1);
+        var maximumColumn = range.MaximumColumn;
+        var maximumOffset = range.MaximumOffset;
 
         for (var index = 0; index < text.Length; index++) {
             destination[destinationIndex++] = new MarkdownSourcePoint(
@@ -87,6 +82,20 @@ internal sealed class MarkdownSourceTextMap {
         }
 
         return logicalSourceColumn;
+    }
+
+    /// <summary>First point and bounds of a contiguous source slice starting at a line and column.</summary>
+    internal (MarkdownSourcePoint FirstPoint, int MaximumColumn, int MaximumOffset) CreateSequentialRange(int line, int startColumn) {
+        var firstPoint = CreatePoint(line, startColumn);
+        var maximumColumn = GetLineLength(firstPoint.Line);
+        var lineEndExclusive = firstPoint.Line < _lineStarts.Length
+            ? _lineStarts[firstPoint.Line] - 1
+            : _text.Length;
+        while (lineEndExclusive > firstPoint.Offset && _text[lineEndExclusive - 1] == '\n') {
+            lineEndExclusive--;
+        }
+
+        return (firstPoint, maximumColumn, Math.Max(firstPoint.Offset, lineEndExclusive - 1));
     }
 
     private int NormalizeColumn(int line, int column) {

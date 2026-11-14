@@ -34,6 +34,21 @@ public sealed class PdfOpenTypeFontInfo {
         GlyphSubstitutionFeatureTags = CopyFeatureTags(glyphSubstitutionFeatureTags);
         GlyphPositioningFeatureTags = CopyFeatureTags(glyphPositioningFeatureTags);
         LatinGlyphSubstitutionFeatureTags = CopyFeatureTags(latinGlyphSubstitutionFeatureTags ?? glyphSubstitutionFeatureTags);
+        // Text diagnostics ask these for every run; the tag lists are fixed copies, so answer once per font.
+        AdvertisesDefaultLatinLigatures = ContainsAnyFeature(LatinGlyphSubstitutionFeatureTags, "liga", "clig", "rlig");
+        AdvertisesDiscretionaryLatinLigatures = ContainsAnyFeature(LatinGlyphSubstitutionFeatureTags, "dlig");
+        AdvertisesMarkPositioning = ContainsAnyFeature(GlyphPositioningFeatureTags, "mark", "mkmk");
+    }
+
+    internal bool AdvertisesDefaultLatinLigatures { get; }
+    internal bool AdvertisesDiscretionaryLatinLigatures { get; }
+    internal bool AdvertisesMarkPositioning { get; }
+
+    private static bool ContainsAnyFeature(IReadOnlyList<string> featureTags, params string[] expectedTags) {
+        for (int index = 0; index < featureTags.Count; index++) {
+            if (Array.IndexOf(expectedTags, featureTags[index]) >= 0) return true;
+        }
+        return false;
     }
 
     /// <summary>PostScript or configured font name sanitized for PDF font dictionaries.</summary>
