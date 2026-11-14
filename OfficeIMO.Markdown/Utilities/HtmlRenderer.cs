@@ -34,7 +34,7 @@ internal static class HtmlRenderer {
         // The body is written once into one builder: the optional article wrapper, theme toggle and
         // top anchor for back-to-top links, then the blocks.
         var blocksForRendering = doc.Blocks;
-        var body = new StringBuilder();
+        var body = RentBodyBuilder();
         bool wrapInArticle = !string.IsNullOrEmpty(options.BodyClass);
         if (wrapInArticle) {
             body.Append("<article class=\"").Append(HtmlTextEncoder.Encode(options.BodyClass, options)).Append("\">");
@@ -51,6 +51,7 @@ internal static class HtmlRenderer {
             body.Append("</article>");
         }
         string bodyContent = body.ToString();
+        ReturnBodyBuilder(body);
 
         StringBuilder head = new StringBuilder();
         if (!string.IsNullOrEmpty(cssLinkTag)) head.Append(cssLinkTag);
@@ -122,6 +123,29 @@ internal static class HtmlRenderer {
         parts.Css = css ?? string.Empty;
         parts.Scripts = scripts.ToString();
         return parts;
+    }
+
+    // The body builder is kept for the next render on the thread, so a render allocates its output
+    // string instead of growing a builder. A render nested inside another takes a builder of its own.
+    private const int MaxRetainedBodyBuilderCapacity = 256 * 1024;
+    [ThreadStatic] private static StringBuilder? t_bodyBuilder;
+
+    private static StringBuilder RentBodyBuilder() {
+        StringBuilder? builder = t_bodyBuilder;
+        if (builder == null) {
+            return new StringBuilder();
+        }
+
+        t_bodyBuilder = null;
+        builder.Clear();
+        return builder;
+    }
+
+    private static void ReturnBodyBuilder(StringBuilder builder) {
+        if (builder.Capacity <= MaxRetainedBodyBuilderCapacity) {
+            builder.Clear();
+            t_bodyBuilder = builder;
+        }
     }
 
     private static void AppendBody(StringBuilder sb, MarkdownDocument document, System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, MarkdownHtmlExportOptions options, MarkdownHeadingCatalog headingCatalog) {
