@@ -54,6 +54,7 @@ Without an installation, clients launch a pinned package through `dotnet dnx`; t
 | `officeimo_pdf_ocr_providers`, `officeimo_pdf_ocr` | Searchable copies through a provider registered at startup |
 | `officeimo_pdf_print_plan` | Sheet layout without printing |
 | `officeimo_pdf_compare` | Rendered comparison of selected pages, saved as HTML |
+| `officeimo_pdf_redline` | Word-level text changes marked on a copy of the newer PDF, with a JSON change list and HTML report |
 
 Results contain a short text summary and compact structured content; the server does not publish whole documents or mailboxes as resources. Writing tools need an explicit output path inside the allowed roots and `overwrite=true` to replace a file. Printing to a device stays a CLI command.
 

@@ -326,3 +326,160 @@ abstract OfficeIMO.OfficeNamingPolicy.ConvertName(string! name) -> string!
 static OfficeIMO.OfficeNamingPolicy.CamelCase.get -> OfficeIMO.OfficeNamingPolicy!
 static OfficeIMO.OfficeNamingPolicy.KebabCaseLower.get -> OfficeIMO.OfficeNamingPolicy!
 static OfficeIMO.OfficeNamingPolicy.SnakeCaseLower.get -> OfficeIMO.OfficeNamingPolicy!
+OfficeIMO.Diff.OfficeChange
+OfficeIMO.Diff.OfficeChange.Id.get -> int
+OfficeIMO.Diff.OfficeChange.Kind.get -> OfficeIMO.Diff.OfficeChangeKind
+OfficeIMO.Diff.OfficeChange.New.get -> OfficeIMO.Diff.OfficeChangeAnchor?
+OfficeIMO.Diff.OfficeChange.NewText.get -> string!
+OfficeIMO.Diff.OfficeChange.OfficeChange(int id, OfficeIMO.Diff.OfficeChangeKind kind, string? oldText, string? newText, OfficeIMO.Diff.OfficeChangeAnchor? oldAnchor, OfficeIMO.Diff.OfficeChangeAnchor? newAnchor) -> void
+OfficeIMO.Diff.OfficeChange.Old.get -> OfficeIMO.Diff.OfficeChangeAnchor?
+OfficeIMO.Diff.OfficeChange.OldText.get -> string!
+OfficeIMO.Diff.OfficeChangeAnchor
+OfficeIMO.Diff.OfficeChangeAnchor.Length.get -> int
+OfficeIMO.Diff.OfficeChangeAnchor.Location.get -> string?
+OfficeIMO.Diff.OfficeChangeAnchor.OfficeChangeAnchor(int start, int length, int? pageNumber = null, string? location = null, System.Collections.Generic.IEnumerable<OfficeIMO.Diff.OfficeChangeRegion!>? regions = null) -> void
+OfficeIMO.Diff.OfficeChangeAnchor.PageNumber.get -> int?
+OfficeIMO.Diff.OfficeChangeAnchor.Regions.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Diff.OfficeChangeRegion!>!
+OfficeIMO.Diff.OfficeChangeAnchor.Start.get -> int
+OfficeIMO.Diff.OfficeChangeKind
+OfficeIMO.Diff.OfficeChangeKind.Deleted = 1 -> OfficeIMO.Diff.OfficeChangeKind
+OfficeIMO.Diff.OfficeChangeKind.Inserted = 0 -> OfficeIMO.Diff.OfficeChangeKind
+OfficeIMO.Diff.OfficeChangeKind.Moved = 3 -> OfficeIMO.Diff.OfficeChangeKind
+OfficeIMO.Diff.OfficeChangeKind.Replaced = 2 -> OfficeIMO.Diff.OfficeChangeKind
+OfficeIMO.Diff.OfficeChangeRegion
+OfficeIMO.Diff.OfficeChangeRegion.Bottom.get -> double
+OfficeIMO.Diff.OfficeChangeRegion.Left.get -> double
+OfficeIMO.Diff.OfficeChangeRegion.OfficeChangeRegion(int pageNumber, double left, double bottom, double right, double top) -> void
+OfficeIMO.Diff.OfficeChangeRegion.PageNumber.get -> int
+OfficeIMO.Diff.OfficeChangeRegion.Right.get -> double
+OfficeIMO.Diff.OfficeChangeRegion.Top.get -> double
+OfficeIMO.Diff.OfficeChangeSet
+OfficeIMO.Diff.OfficeChangeSet.Changes.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Diff.OfficeChange!>!
+OfficeIMO.Diff.OfficeChangeSet.Count(OfficeIMO.Diff.OfficeChangeKind kind) -> int
+OfficeIMO.Diff.OfficeChangeSet.IsComplete.get -> bool
+OfficeIMO.Diff.OfficeChangeSet.IsEmpty.get -> bool
+OfficeIMO.Diff.OfficeChangeSet.NewSource.get -> string?
+OfficeIMO.Diff.OfficeChangeSet.OfficeChangeSet(System.Collections.Generic.IEnumerable<OfficeIMO.Diff.OfficeChange!>! changes, string? oldSource = null, string? newSource = null, string! unit = "word", bool isComplete = true) -> void
+OfficeIMO.Diff.OfficeChangeSet.OldSource.get -> string?
+OfficeIMO.Diff.OfficeChangeSet.ToJson(bool indented = true) -> string!
+OfficeIMO.Diff.OfficeChangeSet.Unit.get -> string!
+OfficeIMO.Diff.OfficeChangeSetOptions
+OfficeIMO.Diff.OfficeChangeSetOptions.DetectMoves.get -> bool
+OfficeIMO.Diff.OfficeChangeSetOptions.DetectMoves.set -> void
+OfficeIMO.Diff.OfficeChangeSetOptions.IncludeWhitespaceOnlyChanges.get -> bool
+OfficeIMO.Diff.OfficeChangeSetOptions.IncludeWhitespaceOnlyChanges.set -> void
+OfficeIMO.Diff.OfficeChangeSetOptions.MinimumMoveLength.get -> int
+OfficeIMO.Diff.OfficeChangeSetOptions.MinimumMoveLength.set -> void
+OfficeIMO.Diff.OfficeChangeSetOptions.NewPageNumber.get -> System.Func<int, int?>?
+OfficeIMO.Diff.OfficeChangeSetOptions.NewPageNumber.set -> void
+OfficeIMO.Diff.OfficeChangeSetOptions.NewSource.get -> string?
+OfficeIMO.Diff.OfficeChangeSetOptions.NewSource.set -> void
+OfficeIMO.Diff.OfficeChangeSetOptions.OfficeChangeSetOptions() -> void
+OfficeIMO.Diff.OfficeChangeSetOptions.OldPageNumber.get -> System.Func<int, int?>?
+OfficeIMO.Diff.OfficeChangeSetOptions.OldPageNumber.set -> void
+OfficeIMO.Diff.OfficeChangeSetOptions.OldSource.get -> string?
+OfficeIMO.Diff.OfficeChangeSetOptions.OldSource.set -> void
+OfficeIMO.Diff.OfficeDiff
+OfficeIMO.Diff.OfficeDiffAlgorithm
+OfficeIMO.Diff.OfficeDiffAlgorithm.Histogram = 2 -> OfficeIMO.Diff.OfficeDiffAlgorithm
+OfficeIMO.Diff.OfficeDiffAlgorithm.Myers = 0 -> OfficeIMO.Diff.OfficeDiffAlgorithm
+OfficeIMO.Diff.OfficeDiffAlgorithm.Patience = 1 -> OfficeIMO.Diff.OfficeDiffAlgorithm
+OfficeIMO.Diff.OfficeDiffEdit
+OfficeIMO.Diff.OfficeDiffEdit.Equals(OfficeIMO.Diff.OfficeDiffEdit other) -> bool
+OfficeIMO.Diff.OfficeDiffEdit.NewLength.get -> int
+OfficeIMO.Diff.OfficeDiffEdit.NewStart.get -> int
+OfficeIMO.Diff.OfficeDiffEdit.OfficeDiffEdit() -> void
+OfficeIMO.Diff.OfficeDiffEdit.OfficeDiffEdit(OfficeIMO.Diff.OfficeDiffOperation operation, int oldStart, int oldLength, int newStart, int newLength) -> void
+OfficeIMO.Diff.OfficeDiffEdit.OldLength.get -> int
+OfficeIMO.Diff.OfficeDiffEdit.OldStart.get -> int
+OfficeIMO.Diff.OfficeDiffEdit.Operation.get -> OfficeIMO.Diff.OfficeDiffOperation
+OfficeIMO.Diff.OfficeDiffHtmlOptions
+OfficeIMO.Diff.OfficeDiffHtmlOptions.Changes.get -> OfficeIMO.Diff.OfficeChangeSet?
+OfficeIMO.Diff.OfficeDiffHtmlOptions.Changes.set -> void
+OfficeIMO.Diff.OfficeDiffHtmlOptions.ContextLines.get -> int
+OfficeIMO.Diff.OfficeDiffHtmlOptions.ContextLines.set -> void
+OfficeIMO.Diff.OfficeDiffHtmlOptions.DiffOptions.get -> OfficeIMO.Diff.OfficeDiffOptions?
+OfficeIMO.Diff.OfficeDiffHtmlOptions.DiffOptions.set -> void
+OfficeIMO.Diff.OfficeDiffHtmlOptions.NewTitle.get -> string!
+OfficeIMO.Diff.OfficeDiffHtmlOptions.NewTitle.set -> void
+OfficeIMO.Diff.OfficeDiffHtmlOptions.OfficeDiffHtmlOptions() -> void
+OfficeIMO.Diff.OfficeDiffHtmlOptions.OldTitle.get -> string!
+OfficeIMO.Diff.OfficeDiffHtmlOptions.OldTitle.set -> void
+OfficeIMO.Diff.OfficeDiffHtmlOptions.Title.get -> string!
+OfficeIMO.Diff.OfficeDiffHtmlOptions.Title.set -> void
+OfficeIMO.Diff.OfficeDiffHtmlReport
+OfficeIMO.Diff.OfficeDiffHunk
+OfficeIMO.Diff.OfficeDiffHunk.NewLength.get -> int
+OfficeIMO.Diff.OfficeDiffHunk.NewStart.get -> int
+OfficeIMO.Diff.OfficeDiffHunk.OfficeDiffHunk() -> void
+OfficeIMO.Diff.OfficeDiffHunk.OfficeDiffHunk(int oldStart, int oldLength, int newStart, int newLength) -> void
+OfficeIMO.Diff.OfficeDiffHunk.OldLength.get -> int
+OfficeIMO.Diff.OfficeDiffHunk.OldStart.get -> int
+OfficeIMO.Diff.OfficeDiffOperation
+OfficeIMO.Diff.OfficeDiffOperation.Delete = 1 -> OfficeIMO.Diff.OfficeDiffOperation
+OfficeIMO.Diff.OfficeDiffOperation.Equal = 0 -> OfficeIMO.Diff.OfficeDiffOperation
+OfficeIMO.Diff.OfficeDiffOperation.Insert = 2 -> OfficeIMO.Diff.OfficeDiffOperation
+OfficeIMO.Diff.OfficeDiffOptions
+OfficeIMO.Diff.OfficeDiffOptions.Algorithm.get -> OfficeIMO.Diff.OfficeDiffAlgorithm
+OfficeIMO.Diff.OfficeDiffOptions.Algorithm.set -> void
+OfficeIMO.Diff.OfficeDiffOptions.IgnoreCase.get -> bool
+OfficeIMO.Diff.OfficeDiffOptions.IgnoreCase.set -> void
+OfficeIMO.Diff.OfficeDiffOptions.IgnoreWhitespace.get -> bool
+OfficeIMO.Diff.OfficeDiffOptions.IgnoreWhitespace.set -> void
+OfficeIMO.Diff.OfficeDiffOptions.MaxWorkUnits.get -> long
+OfficeIMO.Diff.OfficeDiffOptions.MaxWorkUnits.set -> void
+OfficeIMO.Diff.OfficeDiffOptions.OfficeDiffOptions() -> void
+OfficeIMO.Diff.OfficeDiffOptions.SemanticCleanup.get -> bool
+OfficeIMO.Diff.OfficeDiffOptions.SemanticCleanup.set -> void
+OfficeIMO.Diff.OfficeDiffOptions.Timeout.get -> System.TimeSpan?
+OfficeIMO.Diff.OfficeDiffOptions.Timeout.set -> void
+OfficeIMO.Diff.OfficeDiffResult<T>
+OfficeIMO.Diff.OfficeDiffResult<T>.Algorithm.get -> OfficeIMO.Diff.OfficeDiffAlgorithm
+OfficeIMO.Diff.OfficeDiffResult<T>.Apply(System.Collections.Generic.IReadOnlyList<T>! source) -> System.Collections.Generic.IReadOnlyList<T>!
+OfficeIMO.Diff.OfficeDiffResult<T>.AreEqual.get -> bool
+OfficeIMO.Diff.OfficeDiffResult<T>.Comparer.get -> System.Collections.Generic.IEqualityComparer<T>!
+OfficeIMO.Diff.OfficeDiffResult<T>.DeletedCount.get -> int
+OfficeIMO.Diff.OfficeDiffResult<T>.EditDistance.get -> int
+OfficeIMO.Diff.OfficeDiffResult<T>.Edits.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Diff.OfficeDiffEdit>!
+OfficeIMO.Diff.OfficeDiffResult<T>.EqualCount.get -> int
+OfficeIMO.Diff.OfficeDiffResult<T>.GetChangedRegions() -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Diff.OfficeDiffHunk>!
+OfficeIMO.Diff.OfficeDiffResult<T>.InsertedCount.get -> int
+OfficeIMO.Diff.OfficeDiffResult<T>.LimitReached.get -> bool
+OfficeIMO.Diff.OfficeDiffResult<T>.New.get -> System.Collections.Generic.IReadOnlyList<T>!
+OfficeIMO.Diff.OfficeDiffResult<T>.Old.get -> System.Collections.Generic.IReadOnlyList<T>!
+OfficeIMO.Diff.OfficeDiffResult<T>.Revert(System.Collections.Generic.IReadOnlyList<T>! target) -> System.Collections.Generic.IReadOnlyList<T>!
+OfficeIMO.Diff.OfficeDiffResult<T>.WorkUnits.get -> long
+OfficeIMO.Diff.OfficeTextToken
+OfficeIMO.Diff.OfficeTextToken.Equals(OfficeIMO.Diff.OfficeTextToken other) -> bool
+OfficeIMO.Diff.OfficeTextToken.Kind.get -> OfficeIMO.Diff.OfficeTextTokenKind
+OfficeIMO.Diff.OfficeTextToken.Length.get -> int
+OfficeIMO.Diff.OfficeTextToken.OfficeTextToken() -> void
+OfficeIMO.Diff.OfficeTextToken.OfficeTextToken(string! text, int start, OfficeIMO.Diff.OfficeTextTokenKind kind) -> void
+OfficeIMO.Diff.OfficeTextToken.Start.get -> int
+OfficeIMO.Diff.OfficeTextToken.Text.get -> string!
+OfficeIMO.Diff.OfficeTextTokenKind
+OfficeIMO.Diff.OfficeTextTokenKind.Character = 4 -> OfficeIMO.Diff.OfficeTextTokenKind
+OfficeIMO.Diff.OfficeTextTokenKind.Line = 3 -> OfficeIMO.Diff.OfficeTextTokenKind
+OfficeIMO.Diff.OfficeTextTokenKind.Punctuation = 2 -> OfficeIMO.Diff.OfficeTextTokenKind
+OfficeIMO.Diff.OfficeTextTokenKind.Whitespace = 1 -> OfficeIMO.Diff.OfficeTextTokenKind
+OfficeIMO.Diff.OfficeTextTokenKind.Word = 0 -> OfficeIMO.Diff.OfficeTextTokenKind
+OfficeIMO.Diff.OfficeTextTokenizer
+OfficeIMO.Diff.OfficeUnifiedDiff
+override OfficeIMO.Diff.OfficeDiffEdit.Equals(object? obj) -> bool
+override OfficeIMO.Diff.OfficeDiffEdit.GetHashCode() -> int
+override OfficeIMO.Diff.OfficeDiffEdit.ToString() -> string!
+override OfficeIMO.Diff.OfficeTextToken.Equals(object? obj) -> bool
+override OfficeIMO.Diff.OfficeTextToken.GetHashCode() -> int
+override OfficeIMO.Diff.OfficeTextToken.ToString() -> string!
+static OfficeIMO.Diff.OfficeChangeSet.FromTextDiff(OfficeIMO.Diff.OfficeDiffResult<OfficeIMO.Diff.OfficeTextToken>! diff, OfficeIMO.Diff.OfficeChangeSetOptions? options = null) -> OfficeIMO.Diff.OfficeChangeSet!
+static OfficeIMO.Diff.OfficeDiff.Compare<T>(System.Collections.Generic.IReadOnlyList<T>! oldItems, System.Collections.Generic.IReadOnlyList<T>! newItems, System.Collections.Generic.IEqualityComparer<T>? comparer = null, OfficeIMO.Diff.OfficeDiffOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Diff.OfficeDiffResult<T>!
+static OfficeIMO.Diff.OfficeDiff.CompareCharacters(string? oldText, string? newText, OfficeIMO.Diff.OfficeDiffOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Diff.OfficeDiffResult<OfficeIMO.Diff.OfficeTextToken>!
+static OfficeIMO.Diff.OfficeDiff.CompareLines(string? oldText, string? newText, OfficeIMO.Diff.OfficeDiffOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Diff.OfficeDiffResult<OfficeIMO.Diff.OfficeTextToken>!
+static OfficeIMO.Diff.OfficeDiff.CompareTokens(System.Collections.Generic.IReadOnlyList<OfficeIMO.Diff.OfficeTextToken>! oldTokens, System.Collections.Generic.IReadOnlyList<OfficeIMO.Diff.OfficeTextToken>! newTokens, OfficeIMO.Diff.OfficeDiffOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Diff.OfficeDiffResult<OfficeIMO.Diff.OfficeTextToken>!
+static OfficeIMO.Diff.OfficeDiff.CompareWords(string? oldText, string? newText, OfficeIMO.Diff.OfficeDiffOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Diff.OfficeDiffResult<OfficeIMO.Diff.OfficeTextToken>!
+static OfficeIMO.Diff.OfficeDiffHtmlReport.SideBySide(string? oldText, string? newText, OfficeIMO.Diff.OfficeDiffHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> string!
+static OfficeIMO.Diff.OfficeTextTokenizer.Characters(string? text) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Diff.OfficeTextToken>!
+static OfficeIMO.Diff.OfficeTextTokenizer.Lines(string? text) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Diff.OfficeTextToken>!
+static OfficeIMO.Diff.OfficeTextTokenizer.Words(string? text) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Diff.OfficeTextToken>!
+static OfficeIMO.Diff.OfficeUnifiedDiff.Create(string? oldText, string? newText, string! oldName = "a", string! newName = "b", int contextLines = 3, OfficeIMO.Diff.OfficeDiffOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> string!
+static OfficeIMO.Diff.OfficeUnifiedDiff.Format(OfficeIMO.Diff.OfficeDiffResult<OfficeIMO.Diff.OfficeTextToken>! lineDiff, string! oldName = "a", string! newName = "b", int contextLines = 3) -> string!

@@ -12,16 +12,70 @@ internal static partial class PdfAnnotationEditor {
     public static PdfAnnotationEditResult AddAnnotation(byte[] pdf, PdfAnnotationCreateOptions options, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken = default) {
         options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
         Guard.NotNull(pdf, nameof(pdf)); Guard.NotNull(options, nameof(options));
-        cancellationToken = options.CancellationToken;
+        return AddAnnotations(pdf, new[] { options }, readOptions, options.ExecutionPreference, options.CancellationToken);
+    }
+
+    /// <summary>
+    /// Adds several standard annotations in one mutation: the PDF is parsed, written and read back once, however many annotations are added.
+    /// </summary>
+    internal static PdfAnnotationEditResult AddAnnotations(byte[] pdf, IReadOnlyList<PdfAnnotationCreateOptions> annotations, PdfLoadOptions? readOptions,
+        PdfMutationExecutionPreference executionPreference, System.Threading.CancellationToken cancellationToken) {
+        Guard.NotNull(pdf, nameof(pdf)); Guard.NotNull(annotations, nameof(annotations));
+        if (annotations.Count == 0) throw new ArgumentException("At least one annotation is required.", nameof(annotations));
         cancellationToken.ThrowIfCancellationRequested();
-        ValidateCreateOptions(options);
-        PdfMutationPlan plan = PdfMutationPlanner.Require(pdf, PdfMutationOperation.ModifyAnnotations, readOptions, executionPreference: options.ExecutionPreference, cancellationToken: cancellationToken);
+        foreach (PdfAnnotationCreateOptions options in annotations) {
+            Guard.NotNull(options, nameof(annotations));
+            ValidateCreateOptions(options);
+        }
+
+        PdfMutationPlan plan = PdfMutationPlanner.Require(pdf, PdfMutationOperation.ModifyAnnotations, readOptions, executionPreference: executionPreference, cancellationToken: cancellationToken);
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken); int catalog = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalog == 0) throw new ArgumentException("PDF does not contain a readable catalog.", nameof(pdf));
-        ValidateLinkUriAgainstCatalog(options, objects, catalog);
         List<int> pages = GetPageObjectNumbersInDocumentOrder(objects);
-        if (options.PageNumber > pages.Count) throw new ArgumentOutOfRangeException(nameof(options), "Annotation page number exceeds the PDF page count.");
-        if (options.LinkPageNumber > pages.Count) throw new ArgumentOutOfRangeException(nameof(options), "Link destination page exceeds the PDF page count.");
+        var created = new List<CreatedAnnotation>(annotations.Count);
+        var changed = new List<int>();
+        var growthObjects = new List<int>();
+        var referencesPerPage = new Dictionary<int, int>();
+        foreach (PdfAnnotationCreateOptions options in annotations) {
+            cancellationToken.ThrowIfCancellationRequested();
+            ValidateLinkUriAgainstCatalog(options, objects, catalog);
+            if (options.PageNumber > pages.Count) throw new ArgumentOutOfRangeException(nameof(annotations), "Annotation page number exceeds the PDF page count.");
+            if (options.LinkPageNumber > pages.Count) throw new ArgumentOutOfRangeException(nameof(annotations), "Link destination page exceeds the PDF page count.");
+            CreatedAnnotation annotation = CreateAnnotationObjects(objects, pages, options, cancellationToken);
+            created.Add(annotation);
+            changed.Add(annotation.Owner);
+            changed.Add(annotation.ObjectNumber);
+            if (annotation.PopupObjectNumber.HasValue) changed.Add(annotation.PopupObjectNumber.Value);
+            changed.AddRange(annotation.GeneratedObjects);
+            growthObjects.AddRange(annotation.GeneratedObjects);
+            growthObjects.Add(annotation.ObjectNumber);
+            if (annotation.PopupObjectNumber.HasValue) growthObjects.Add(annotation.PopupObjectNumber.Value);
+            growthObjects.Add(annotation.Owner);
+            referencesPerPage.TryGetValue(options.PageNumber, out int count);
+            referencesPerPage[options.PageNumber] = count + (annotation.PopupObjectNumber.HasValue ? 2 : 1);
+        }
+
+        PdfGeneratedOutputGrowth generatedGrowth = BuildGeneratedOutputGrowth(
+            objects,
+            growthObjects,
+            additionalAnnotationsPerPage: referencesPerPage.Values.Max(),
+            additionalRevisions: plan.ExecutionMode == PdfMutationExecutionMode.AppendOnly ? 1 : 0);
+
+        byte[] output;
+        if (plan.ExecutionMode == PdfMutationExecutionMode.AppendOnly) {
+            output = PdfIncrementalObjectWriter.Append(pdf, objects, plan.Preflight.Probe.Security, trailerRaw, changed.Distinct().ToArray(), encryptionHandler: GetAppendEncryptionHandler(objects, trailerRaw, readOptions, plan.Preflight.Probe.Security), cancellationToken: cancellationToken);
+            PdfLoadOptions outputReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth);
+            PdfSignatureMutationReport proof = BuildAppendOnlyProof(pdf, output, plan, readOptions, outputReadOptions, cancellationToken);
+            ValidateCreatedAnnotations(output, created, static number => number, outputReadOptions, cancellationToken);
+            return new PdfAnnotationEditResult(output, created.Count, plan, proof, readOptions: outputReadOptions);
+        }
+        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalog, cancellationToken); output = RewriteAllObjects(objects, catalog, PdfReadDocument.Open(pdf, readOptions, cancellationToken).UncheckedMetadata, pdf, out IReadOnlyDictionary<int, int> numberMap, cancellationToken);
+        PdfLoadOptions rewrittenReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth);
+        ValidateCreatedAnnotations(output, created, number => numberMap[number], rewrittenReadOptions, cancellationToken);
+        return CreateFullRewriteResult(pdf, output, created.Count, plan, annotationsChanged: true, readOptions: readOptions, rewrittenReadOptions: rewrittenReadOptions, objectNumberMap: numberMap, cancellationToken: cancellationToken);
+    }
+
+    private static CreatedAnnotation CreateAnnotationObjects(Dictionary<int, PdfIndirectObject> objects, List<int> pages, PdfAnnotationCreateOptions options, System.Threading.CancellationToken cancellationToken) {
         int pageObjectNumber = pages[options.PageNumber - 1]; PdfIndirectObject pageIndirect = objects[pageObjectNumber]; PdfDictionary page = (PdfDictionary)pageIndirect.Value;
         int annotationObjectNumber = NextAnnotationObjectNumber(objects);
         var annotation = new PdfDictionary(); annotation.Items["Type"] = new PdfName("Annot"); annotation.Items["Subtype"] = new PdfName(options.Subtype); annotation.Items["P"] = new PdfReference(pageObjectNumber, pageIndirect.Generation);
@@ -63,25 +117,27 @@ internal static partial class PdfAnnotationEditor {
         IReadOnlyList<int> generatedObjects = ApplyUpdates(objects, annotation, update);
         var references = new List<PdfReference> { new PdfReference(annotationObjectNumber, 0) }; if (popupObjectNumber.HasValue) references.Add(new PdfReference(popupObjectNumber.Value, 0));
         int owner = pageObjectNumber; foreach (PdfReference reference in references) owner = AddAnnotationReference(objects, pageObjectNumber, page, reference);
-        PdfGeneratedOutputGrowth generatedGrowth = BuildGeneratedOutputGrowth(
-            objects,
-            generatedObjects
-                .Concat(references.Select(static reference => reference.ObjectNumber))
-                .Concat(new[] { owner }),
-            additionalAnnotationsPerPage: references.Count,
-            additionalRevisions: plan.ExecutionMode == PdfMutationExecutionMode.AppendOnly ? 1 : 0);
+        return new CreatedAnnotation(options, annotationObjectNumber, popupObjectNumber, generatedObjects, owner);
+    }
 
-        byte[] output;
-        if (plan.ExecutionMode == PdfMutationExecutionMode.AppendOnly) {
-            int[] changed = new[] { owner, annotationObjectNumber }.Concat(popupObjectNumber.HasValue ? new[] { popupObjectNumber.Value } : Array.Empty<int>()).Concat(generatedObjects).Distinct().ToArray();
-            output = PdfIncrementalObjectWriter.Append(pdf, objects, plan.Preflight.Probe.Security, trailerRaw, changed, encryptionHandler: GetAppendEncryptionHandler(objects, trailerRaw, readOptions, plan.Preflight.Probe.Security), cancellationToken: cancellationToken);
-            PdfLoadOptions outputReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth);
-            PdfSignatureMutationReport proof = BuildAppendOnlyProof(pdf, output, plan, readOptions, outputReadOptions, cancellationToken); ValidateCreatedAnnotation(output, options, annotationObjectNumber, options.InReplyToObjectNumber, outputReadOptions); return new PdfAnnotationEditResult(output, 1, plan, proof, readOptions: outputReadOptions);
+    private static void ValidateCreatedAnnotations(byte[] output, IReadOnlyList<CreatedAnnotation> created, Func<int, int> mapObjectNumber, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken) {
+        PdfDocumentInfo info = ReadAnnotationMetadata(output, readOptions, cancellationToken);
+        foreach (CreatedAnnotation annotation in created) {
+            int? parent = annotation.Options.InReplyToObjectNumber.HasValue ? mapObjectNumber(annotation.Options.InReplyToObjectNumber.Value) : null;
+            ValidateCreatedAnnotation(info, annotation.Options, mapObjectNumber(annotation.ObjectNumber), parent);
         }
-        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalog, cancellationToken); output = RewriteAllObjects(objects, catalog, PdfReadDocument.Open(pdf, readOptions, cancellationToken).UncheckedMetadata, pdf, out IReadOnlyDictionary<int, int> numberMap, cancellationToken);
-        int? rewrittenParent = options.InReplyToObjectNumber.HasValue ? numberMap[options.InReplyToObjectNumber.Value] : null;
-        PdfLoadOptions rewrittenReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth);
-        ValidateCreatedAnnotation(output, options, numberMap[annotationObjectNumber], rewrittenParent, rewrittenReadOptions); return CreateFullRewriteResult(pdf, output, 1, plan, annotationsChanged: true, readOptions: readOptions, rewrittenReadOptions: rewrittenReadOptions, objectNumberMap: numberMap, cancellationToken: cancellationToken);
+    }
+
+    private sealed class CreatedAnnotation {
+        internal CreatedAnnotation(PdfAnnotationCreateOptions options, int objectNumber, int? popupObjectNumber, IReadOnlyList<int> generatedObjects, int owner) {
+            Options = options; ObjectNumber = objectNumber; PopupObjectNumber = popupObjectNumber; GeneratedObjects = generatedObjects; Owner = owner;
+        }
+
+        internal PdfAnnotationCreateOptions Options { get; }
+        internal int ObjectNumber { get; }
+        internal int? PopupObjectNumber { get; }
+        internal IReadOnlyList<int> GeneratedObjects { get; }
+        internal int Owner { get; }
     }
 
     private static void ValidateCreateOptions(PdfAnnotationCreateOptions options) {
@@ -160,8 +216,7 @@ internal static partial class PdfAnnotationEditor {
             additionalRevisions);
     }
     private static double[] DefaultPopupRectangle(IReadOnlyList<double> parent) => new[] { parent[2] + 8D, parent[1], parent[2] + 208D, parent[1] + 120D };
-    private static void ValidateCreatedAnnotation(byte[] output, PdfAnnotationCreateOptions options, int expectedObjectNumber, int? expectedParentObjectNumber, PdfLoadOptions? readOptions) {
-        PdfDocumentInfo info = ReadAnnotationMetadata(output, readOptions, options.CancellationToken);
+    private static void ValidateCreatedAnnotation(PdfDocumentInfo info, PdfAnnotationCreateOptions options, int expectedObjectNumber, int? expectedParentObjectNumber) {
         PdfAnnotation? found = info.Annotations.FirstOrDefault(annotation => annotation.ObjectNumber == expectedObjectNumber);
         if (found == null || found.Subtype != options.Subtype || found.PageNumber != options.PageNumber) throw new InvalidOperationException("PDF annotation creation readback failed; the artifact was not returned.");
         if (options.GenerateAppearance && IsAppearanceSubtype(options.Subtype) && !found.HasNormalAppearance) throw new InvalidOperationException("PDF annotation appearance readback failed; the artifact was not returned.");

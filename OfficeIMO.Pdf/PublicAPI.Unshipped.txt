@@ -1091,3 +1091,56 @@ OfficeIMO.Pdf.PdfDocumentRedactions.ApplyForSharing(OfficeIMO.Pdf.PdfRedactionPl
 OfficeIMO.Pdf.PdfRedactionShareableSummary.RemovedHiddenDataCount.get -> int?
 OfficeIMO.Pdf.PdfRedactionSharingResult.HiddenData.get -> OfficeIMO.OfficeHiddenDataResult!
 OfficeIMO.Pdf.PdfAConversionRefusalReason.EmbeddedFileRequired = 22 -> OfficeIMO.Pdf.PdfAConversionRefusalReason
+OfficeIMO.Pdf.PdfTextRedline
+OfficeIMO.Pdf.PdfTextRedlineOptions
+OfficeIMO.Pdf.PdfTextRedlineOptions.Algorithm.get -> OfficeIMO.Diff.OfficeDiffAlgorithm
+OfficeIMO.Pdf.PdfTextRedlineOptions.Algorithm.set -> void
+OfficeIMO.Pdf.PdfTextRedlineOptions.Author.get -> string!
+OfficeIMO.Pdf.PdfTextRedlineOptions.Author.set -> void
+OfficeIMO.Pdf.PdfTextRedlineOptions.CreatePopups.get -> bool
+OfficeIMO.Pdf.PdfTextRedlineOptions.CreatePopups.set -> void
+OfficeIMO.Pdf.PdfTextRedlineOptions.DeletionColor.get -> System.Collections.Generic.IReadOnlyList<double>!
+OfficeIMO.Pdf.PdfTextRedlineOptions.DeletionColor.set -> void
+OfficeIMO.Pdf.PdfTextRedlineOptions.DetectMoves.get -> bool
+OfficeIMO.Pdf.PdfTextRedlineOptions.DetectMoves.set -> void
+OfficeIMO.Pdf.PdfTextRedlineOptions.IgnoreCase.get -> bool
+OfficeIMO.Pdf.PdfTextRedlineOptions.IgnoreCase.set -> void
+OfficeIMO.Pdf.PdfTextRedlineOptions.InsertionColor.get -> System.Collections.Generic.IReadOnlyList<double>!
+OfficeIMO.Pdf.PdfTextRedlineOptions.InsertionColor.set -> void
+OfficeIMO.Pdf.PdfTextRedlineOptions.MaxAnnotatedChanges.get -> int
+OfficeIMO.Pdf.PdfTextRedlineOptions.MaxAnnotatedChanges.set -> void
+OfficeIMO.Pdf.PdfTextRedlineOptions.MaxNoteLength.get -> int
+OfficeIMO.Pdf.PdfTextRedlineOptions.MaxNoteLength.set -> void
+OfficeIMO.Pdf.PdfTextRedlineOptions.MaxWorkUnits.get -> long
+OfficeIMO.Pdf.PdfTextRedlineOptions.MaxWorkUnits.set -> void
+OfficeIMO.Pdf.PdfTextRedlineOptions.MinimumMoveLength.get -> int
+OfficeIMO.Pdf.PdfTextRedlineOptions.MinimumMoveLength.set -> void
+OfficeIMO.Pdf.PdfTextRedlineOptions.MoveColor.get -> System.Collections.Generic.IReadOnlyList<double>!
+OfficeIMO.Pdf.PdfTextRedlineOptions.MoveColor.set -> void
+OfficeIMO.Pdf.PdfTextRedlineOptions.NewName.get -> string?
+OfficeIMO.Pdf.PdfTextRedlineOptions.NewName.set -> void
+OfficeIMO.Pdf.PdfTextRedlineOptions.NewReadOptions.get -> OfficeIMO.Pdf.PdfLoadOptions?
+OfficeIMO.Pdf.PdfTextRedlineOptions.NewReadOptions.set -> void
+OfficeIMO.Pdf.PdfTextRedlineOptions.OldName.get -> string?
+OfficeIMO.Pdf.PdfTextRedlineOptions.OldName.set -> void
+OfficeIMO.Pdf.PdfTextRedlineOptions.OldReadOptions.get -> OfficeIMO.Pdf.PdfLoadOptions?
+OfficeIMO.Pdf.PdfTextRedlineOptions.OldReadOptions.set -> void
+OfficeIMO.Pdf.PdfTextRedlineOptions.PdfTextRedlineOptions() -> void
+OfficeIMO.Pdf.PdfTextRedlineOptions.ReplacementColor.get -> System.Collections.Generic.IReadOnlyList<double>!
+OfficeIMO.Pdf.PdfTextRedlineOptions.ReplacementColor.set -> void
+OfficeIMO.Pdf.PdfTextRedlineOptions.SemanticCleanup.get -> bool
+OfficeIMO.Pdf.PdfTextRedlineOptions.SemanticCleanup.set -> void
+OfficeIMO.Pdf.PdfTextRedlineOptions.Timeout.get -> System.TimeSpan?
+OfficeIMO.Pdf.PdfTextRedlineOptions.Timeout.set -> void
+OfficeIMO.Pdf.PdfTextRedlineResult
+OfficeIMO.Pdf.PdfTextRedlineResult.AnnotationCount.get -> int
+OfficeIMO.Pdf.PdfTextRedlineResult.AnnotationLimitReached.get -> bool
+OfficeIMO.Pdf.PdfTextRedlineResult.Changes.get -> OfficeIMO.Diff.OfficeChangeSet!
+OfficeIMO.Pdf.PdfTextRedlineResult.HasChanges.get -> bool
+OfficeIMO.Pdf.PdfTextRedlineResult.NewText.get -> string!
+OfficeIMO.Pdf.PdfTextRedlineResult.OldText.get -> string!
+OfficeIMO.Pdf.PdfTextRedlineResult.Pdf.get -> byte[]!
+OfficeIMO.Pdf.PdfTextRedlineResult.ToHtml(string? title = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> string!
+OfficeIMO.Pdf.PdfTextRedlineResult.ToJson(bool indented = true) -> string!
+static OfficeIMO.Pdf.PdfTextRedline.Compare(byte[]! oldPdf, byte[]! newPdf, OfficeIMO.Pdf.PdfTextRedlineOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfTextRedlineResult!
+static OfficeIMO.Pdf.PdfTextRedline.CompareFiles(string! oldPath, string! newPath, OfficeIMO.Pdf.PdfTextRedlineOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfTextRedlineResult!

@@ -95,6 +95,14 @@ The JSON result (`officeimo.workflow.compare.v1`) gives the report path in `outp
 officeimo workflow compare current.pdf revised.pdf --output review.html | jq -r '.summary'
 ```
 
+## Mark text changes
+
+```shell
+officeimo pdf redline contract-v1.pdf contract-v2.pdf --output contract-v2.redline.pdf --changes changes.json --report changes.html
+```
+
+`pdf redline` compares the text of two PDFs word by word, in reading order, and writes a copy of the newer PDF with review annotations: highlights on inserted, replaced and moved text, and a caret where text was deleted. Notes on replacements, deletions and moves carry the old text. Reflowed lines and moved page breaks are not reported. `--changes` writes every change as JSON with page numbers and page rectangles; `--report` writes a side-by-side HTML comparison. A PDF without a text layer is refused, so run `pdf ocr` on scans first. The JSON result on standard output has change counts and file paths, not document text.
+
 ## Print plans and printing
 
 `print-plan` computes sheet layout without a printer driver, which makes it safe to run in CI:
