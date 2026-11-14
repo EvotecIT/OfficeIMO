@@ -257,7 +257,7 @@ internal static partial class MarkdownReader {
             }
             var lines = captureSourceSpans
                 ? text.Split('\n')
-                : SplitMarkdownLines(text, reuseRepeatedLines: state.BuildTableCellModels);
+                : SplitMarkdownLines(text);
             int i = 0;
 
             // Parsing with syntax capture binds the complete object and source trees together
@@ -537,10 +537,8 @@ internal static partial class MarkdownReader {
         return current == lineEnd;
     }
 
-    private static string[] SplitMarkdownLines(string markdown, bool reuseRepeatedLines = true) {
-        int carriageReturn = markdown.IndexOf('\r');
-        bool shouldReuseRepeatedLines = reuseRepeatedLines && ShouldReuseRepeatedMarkdownLines(markdown);
-        if (carriageReturn < 0 && !shouldReuseRepeatedLines) {
+    private static string[] SplitMarkdownLines(string markdown) {
+        if (markdown.IndexOf('\r') < 0) {
             return markdown.Split('\n');
         }
 
@@ -556,9 +554,6 @@ internal static partial class MarkdownReader {
             }
         }
 
-        Dictionary<MarkdownLineKey, string>? repeatedLines = shouldReuseRepeatedLines
-            ? new Dictionary<MarkdownLineKey, string>(MarkdownLineKeyComparer.Instance)
-            : null;
         var lines = new string[lineCount];
         int lineIndex = 0;
         int lineStart = 0;
@@ -568,7 +563,7 @@ internal static partial class MarkdownReader {
                 continue;
             }
 
-            lines[lineIndex++] = GetMarkdownLine(markdown, lineStart, i - lineStart, repeatedLines);
+            lines[lineIndex++] = markdown.Substring(lineStart, i - lineStart);
             if (value == '\r' && i + 1 < markdown.Length && markdown[i + 1] == '\n') {
                 i++;
             }
@@ -576,127 +571,8 @@ internal static partial class MarkdownReader {
             lineStart = i + 1;
         }
 
-        lines[lineIndex] = GetMarkdownLine(markdown, lineStart, markdown.Length - lineStart, repeatedLines);
+        lines[lineIndex] = markdown.Substring(lineStart, markdown.Length - lineStart);
         return lines;
-    }
-
-    private static string GetMarkdownLine(
-        string markdown,
-        int start,
-        int length,
-        Dictionary<MarkdownLineKey, string>? repeatedLines) {
-        if (length == 0) {
-            return string.Empty;
-        }
-        if (repeatedLines == null) {
-            return markdown.Substring(start, length);
-        }
-
-        var key = new MarkdownLineKey(markdown, start, length);
-        if (repeatedLines.TryGetValue(key, out string? existing)) {
-            return existing;
-        }
-
-        string line = markdown.Substring(start, length);
-        repeatedLines.Add(key, line);
-        return line;
-    }
-
-    private static bool ShouldReuseRepeatedMarkdownLines(string markdown) {
-        const int maximumSampleLines = 64;
-        const int requiredRepeatedLines = 4;
-        if (markdown.Length < 4096) {
-            return false;
-        }
-
-#if NET8_0_OR_GREATER
-        Span<int> starts = stackalloc int[maximumSampleLines];
-        Span<int> lengths = stackalloc int[maximumSampleLines];
-#else
-        var starts = new int[maximumSampleLines];
-        var lengths = new int[maximumSampleLines];
-#endif
-        int lineCount = 0;
-        int repeatedLineCount = 0;
-        int lineStart = 0;
-        for (int index = 0; index <= markdown.Length && lineCount < maximumSampleLines; index++) {
-            bool atEnd = index == markdown.Length;
-            if (!atEnd && markdown[index] is not ('\r' or '\n')) {
-                continue;
-            }
-
-            int length = index - lineStart;
-            if (length > 0) {
-                for (int prior = 0; prior < lineCount; prior++) {
-                    if (lengths[prior] == length
-                        && MarkdownLineRegionsEqual(markdown, starts[prior], lineStart, length)) {
-                        repeatedLineCount++;
-                        break;
-                    }
-                }
-            }
-
-            starts[lineCount] = lineStart;
-            lengths[lineCount] = length;
-            lineCount++;
-            if (repeatedLineCount >= requiredRepeatedLines) {
-                return true;
-            }
-
-            if (!atEnd && markdown[index] == '\r' && index + 1 < markdown.Length && markdown[index + 1] == '\n') {
-                index++;
-            }
-            lineStart = index + 1;
-        }
-
-        return false;
-    }
-
-    private static bool MarkdownLineRegionsEqual(string markdown, int leftStart, int rightStart, int length) {
-        for (int offset = 0; offset < length; offset++) {
-            if (markdown[leftStart + offset] != markdown[rightStart + offset]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private readonly struct MarkdownLineKey {
-        internal MarkdownLineKey(string source, int start, int length) {
-            Source = source;
-            Start = start;
-            Length = length;
-        }
-
-        internal string Source { get; }
-        internal int Start { get; }
-        internal int Length { get; }
-    }
-
-    private sealed class MarkdownLineKeyComparer : IEqualityComparer<MarkdownLineKey> {
-        internal static readonly MarkdownLineKeyComparer Instance = new MarkdownLineKeyComparer();
-
-        public bool Equals(MarkdownLineKey left, MarkdownLineKey right) {
-            if (left.Length != right.Length) {
-                return false;
-            }
-            return string.CompareOrdinal(
-                left.Source,
-                left.Start,
-                right.Source,
-                right.Start,
-                left.Length) == 0;
-        }
-
-        public int GetHashCode(MarkdownLineKey key) {
-            unchecked {
-                int hash = 17;
-                for (int offset = 0; offset < key.Length; offset++) {
-                    hash = hash * 31 + key.Source[key.Start + offset];
-                }
-                return hash;
-            }
-        }
     }
 
     private static void ValidateInputLength(string input, int? maxInputCharacters, string paramName) {
