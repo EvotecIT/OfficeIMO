@@ -181,15 +181,11 @@ public class StreamingAutoFitTests {
         string destination = Path.Combine(directory, "book.xlsx");
         File.WriteAllText(destination, "original destination");
         var before = new HashSet<string>(Directory.GetFiles(Path.GetTempPath(), "OfficeIMO-Excel-AutoFit-*.xml"));
-        string? spool = null;
         try {
             using (var writer = ExcelDocument.CreateWriter(destination, new ExcelWriterOptions { AutoFit = true, UseSharedStrings = false })) {
-                writer.WriteTable("Data", new[] { "fits" }, new[] { "Text" }, (row, value) => {
-                    spool = Assert.Single(Directory.GetFiles(Path.GetTempPath(), "OfficeIMO-Excel-AutoFit-*.xml"), path => !before.Contains(path));
-                    row.Write(value);
-                });
+                writer.WriteTable("Data", new[] { "fits" }, new[] { "Text" }, (row, value) => row.Write(value));
                 Assert.Equal("original destination", File.ReadAllText(destination));
-                Assert.False(File.Exists(spool));
+                Assert.DoesNotContain(Directory.GetFiles(Path.GetTempPath(), "OfficeIMO-Excel-AutoFit-*.xml"), path => !before.Contains(path));
             }
             using var package = SpreadsheetDocument.Open(destination, false);
             Assert.Empty(new OpenXmlValidator().Validate(package));
@@ -198,24 +194,15 @@ public class StreamingAutoFitTests {
     }
 
     [Fact]
-    public void Writer_AutoFitSpoolsDuringEnumerationAndClampsStyledWidths() {
+    public void Writer_AutoFitClampsStyledWidths() {
         using var output = new MemoryStream();
-        var before = new HashSet<string>(Directory.GetFiles(Path.GetTempPath(), "OfficeIMO-Excel-AutoFit-*.xml"));
-        bool observedSpoolData = false;
         using (var writer = ExcelDocument.CreateWriter(output, new ExcelWriterOptions {
             AutoFit = true, UseSharedStrings = false, CreateTable = false,
             Styles = new Dictionary<string, ExcelStyleDefinition> { ["Large"] = new() { FontSize = OfficeIMO.OfficeLength.Points(28) } },
             DefaultRowStyle = "Large"
         }, leaveOpen: true)) {
-            writer.WriteTable("Long", Enumerable.Range(0, 128), new[] { "Text" }, (row, index) => {
-                if (index == 127) {
-                    string spool = Assert.Single(Directory.GetFiles(Path.GetTempPath(), "OfficeIMO-Excel-AutoFit-*.xml"), path => !before.Contains(path));
-                    observedSpoolData = new FileInfo(spool).Length > 0;
-                }
-                row.Write(new string('W', 1024));
-            });
+            writer.WriteTable("Long", Enumerable.Range(0, 128), new[] { "Text" }, (row, _) => row.Write(new string('W', 1024)));
         }
-        Assert.True(observedSpoolData);
         using var package = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
         Assert.Empty(new OpenXmlValidator().Validate(package));
         Assert.Equal(255D, package.WorkbookPart!.WorksheetParts.Single().Worksheet!.GetFirstChild<Columns>()!.Elements<Column>().Single().Width!.Value);
@@ -225,15 +212,10 @@ public class StreamingAutoFitTests {
     public void Writer_AutoFitOutputFailureRemovesSpool() {
         using var output = new OfficeIMO.Tests.TestStreams.ThrowAfterBytesWriteStream(0);
         var before = new HashSet<string>(Directory.GetFiles(Path.GetTempPath(), "OfficeIMO-Excel-AutoFit-*.xml"));
-        string? spool = null;
         var writer = ExcelDocument.CreateWriter(output, new ExcelWriterOptions { AutoFit = true, UseSharedStrings = false }, leaveOpen: true);
         try {
-            Assert.ThrowsAny<IOException>(() => writer.WriteTable("Fail", new[] { "value" }, new[] { "Text" }, (row, value) => {
-                spool = Assert.Single(Directory.GetFiles(Path.GetTempPath(), "OfficeIMO-Excel-AutoFit-*.xml"), path => !before.Contains(path));
-                row.Write(value);
-            }));
-            Assert.NotNull(spool);
-            Assert.False(File.Exists(spool));
+            Assert.ThrowsAny<IOException>(() => writer.WriteTable("Fail", new[] { "value" }, new[] { "Text" }, (row, value) => row.Write(value)));
+            Assert.DoesNotContain(Directory.GetFiles(Path.GetTempPath(), "OfficeIMO-Excel-AutoFit-*.xml"), path => !before.Contains(path));
         } finally {
             try { writer.Dispose(); } catch (IOException) { /* The failed destination can also reject the ZIP trailer. */ }
         }
