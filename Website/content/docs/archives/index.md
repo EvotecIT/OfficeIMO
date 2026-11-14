@@ -62,6 +62,8 @@ The format is detected from bytes, not the file name. The destination must be ab
 ## Read ZIP content in memory
 
 ```csharp
+using OfficeIMO.Archives;
+
 var files = ArchiveReader.ReadZip(File.ReadAllBytes("package.zip"), new ArchiveReadOptions {
     IncludeFile = path => path.EndsWith(".xml", StringComparison.OrdinalIgnoreCase),
     MaxEntryBytes = 8L * 1024 * 1024

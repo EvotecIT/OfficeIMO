@@ -48,6 +48,7 @@ OfficeConverter.Convert("app.yaml", "app.json");
 A worksheet reads with first-row headers, and path headers such as `address.city` rebuild nested objects. Formulas contribute their cached values.
 
 ```csharp
+using System.Text.Json.Nodes;
 using OfficeIMO.Data.Conversions;
 using OfficeIMO.Excel;
 
@@ -63,6 +64,10 @@ JsonNode.Parse(File.ReadAllText("export.json"))!.SaveAsExcel("export.xlsx");
 Every format has limits. TOML has no null, CSV has no nesting, XML attributes have no JSON equivalent, and an Excel cell holds 15 significant digits. Each `To{Target}` method has an overload that returns an `OfficeConversionReport`, and each `SaveAs{Target}` returns one:
 
 ```csharp
+using System.Text.Json.Nodes;
+using OfficeIMO;
+using OfficeIMO.Data.Conversions;
+
 OfficeConversionReport report = JsonNode.Parse(File.ReadAllText("service.json"))!.SaveAsToml("service.toml");
 
 foreach (OfficeDiagnostic diagnostic in report.Diagnostics)

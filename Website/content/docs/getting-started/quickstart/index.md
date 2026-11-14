@@ -20,7 +20,7 @@ document.AddParagraph("Hello, World!").Bold = true;
 // Add more content
 var paragraph = document.AddParagraph("This document was created with OfficeIMO.");
 paragraph.FontFamily = "Calibri";
-paragraph.FontSize = 14;
+paragraph.FontSize = OfficeIMO.OfficeLength.Points(14);
 paragraph.Color = OfficeIMO.OfficeColor.DarkBlue;
 
 // Add a table
@@ -59,10 +59,8 @@ document.Save();
 using OfficeIMO.Excel;
 
 // Create a workbook with one sheet
-using var workbook = ExcelDocument.Create("Report.xlsx", "Sales");
-
-// Access the first sheet
-var sheet = workbook.Sheets[0];
+using var workbook = ExcelDocument.Create("Report.xlsx");
+var sheet = workbook.AddSheet("Sales");
 
 // Set header row
 sheet.Cell("A1").SetValue("Product");
@@ -115,7 +113,7 @@ File.WriteAllText("status.md", markdown);
 ```csharp
 using OfficeIMO.CSV;
 
-var csv = new CsvDocument()
+var csv = CsvDocument.Create()
     .WithDelimiter(',')
     .WithHeader("Name", "Age", "City")
     .AddRow("Alice", "30", "New York")
@@ -128,6 +126,8 @@ csv.Save("people.csv");
 Or generate a CSV from objects:
 
 ```csharp
+using OfficeIMO.CSV;
+
 var people = new[] {
     new { Name = "Alice", Age = 30, City = "New York" },
     new { Name = "Bob", Age = 25, City = "London" },

@@ -23,6 +23,8 @@ if (!analysis.CanRead) {
 ## Extract content and assets
 
 ```csharp
+using OfficeIMO.Pdf;
+
 PdfDocumentReadResult result = PdfDocument.Load("Service-review.pdf").Read();
 foreach (PdfLogicalPage page in result.Pages) {
     Console.WriteLine($"Page {page.PageNumber}: {page.Paragraphs.Count} paragraphs, {page.Tables.Count} tables");
@@ -35,6 +37,8 @@ Console.WriteLine(result.ExtractMarkdown());
 ## Compose existing documents
 
 ```csharp
+using OfficeIMO.Pdf;
+
 PdfDocument.Load("Service-review.pdf")
     .MergeWith("Appendix.pdf")
     .Pages.Rotate(90, "2")
@@ -51,6 +55,8 @@ Stamp and watermark operations support text, images and imported pages. Annotati
 ## Convert an existing PDF to PDF/A
 
 ```csharp
+using OfficeIMO.Pdf;
+
 PdfAConversionResult archive = PdfDocument.Load("Service-review.pdf").ConvertToPdfA(new PdfAConversionOptions {
     Profile = PdfComplianceProfile.PdfA3B,
     Attachments = PdfAAttachmentPolicy.Refuse

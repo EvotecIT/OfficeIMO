@@ -67,6 +67,8 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 ## Read text and tables
 
 ```csharp
+using OfficeIMO.Pdf;
+
 PdfDocumentReadResult result = PdfDocument.Load("Service-review.pdf").Read();
 foreach (PdfLogicalPage page in result.Pages) {
     Console.WriteLine($"Page {page.PageNumber}: {page.Paragraphs.Count} paragraphs, {page.Tables.Count} tables");
