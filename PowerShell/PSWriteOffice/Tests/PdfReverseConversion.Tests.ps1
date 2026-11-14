@@ -129,8 +129,8 @@ Describe 'Protected-content capability discovery' {
         $all[0].GetType().FullName | Should -Be 'OfficeIMO.Security.OfficeProtectionCapability'
 
         $pdf = @(Get-OfficeDocumentCapability -Protection -Format PDF)
-        $pdf | Should -HaveCount 1
-        $pdf[0].Id | Should -Be 'pdf-password'
+        $pdf | Should -HaveCount 2
+        $pdf.Id | Should -Be @('pdf-password', 'pdf-recipient')
 
         $incomplete = @(Get-OfficeDocumentCapability -Protection -IncompleteOnly)
         $incomplete.Count | Should -BeGreaterThan 0

@@ -46,8 +46,8 @@ public sealed class CapabilityCmdletWorkflowTests {
         using var shell = PowerShell.Create();
         shell.Runspace = runspace;
         shell.AddScript("""
-            $pdf = Get-OfficeDocumentCapability -Protection -Format PDF
-            if ($pdf.Id -ne 'pdf-password') { throw 'PDF protection row was not selected' }
+            $pdf = @(Get-OfficeDocumentCapability -Protection -Format PDF)
+            if (($pdf.Id -join ',') -ne 'pdf-password,pdf-recipient') { throw 'PDF protection rows were not selected' }
             $json = Get-OfficeDocumentCapability -Protection -AsJson | ConvertFrom-Json
             if ($json.id -ne 'OfficeIMO.ProtectedContent') { throw 'The canonical protection catalog was lost' }
             $rejected = $false
@@ -58,7 +58,8 @@ public sealed class CapabilityCmdletWorkflowTests {
             """);
         var output = shell.Invoke();
         Assert.Empty(shell.Streams.Error);
-        Assert.Equal("pdf-password", Assert.IsType<OfficeIMO.Security.OfficeProtectionCapability>(Assert.Single(output).BaseObject).Id);
+        Assert.Equal(new[] { "pdf-password", "pdf-recipient" },
+            output.Select(item => Assert.IsType<OfficeIMO.Security.OfficeProtectionCapability>(item.BaseObject).Id));
     }
 
     private static Runspace OpenRunspace() {

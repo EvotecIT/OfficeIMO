@@ -27,6 +27,7 @@ internal static partial class PdfSyntax {
             options?.Password,
             supplied,
             options?.AesCryptographyProvider,
+            options?.PublicKeyDecryption,
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return true;
