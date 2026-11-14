@@ -160,6 +160,67 @@ namespace OfficeIMO.Tests {
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
         }
 
+        [Theory]
+        [InlineData("range")]
+        [InlineData("tables")]
+        public void PerformanceReview_TableMetadataReadsKeepTheDataTableWorksheetData(string read) {
+            var table = new DataTable();
+            table.Columns.Add("Id", typeof(int));
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("Enabled", typeof(bool));
+            table.Columns.Add("Created", typeof(DateTime));
+            table.Columns.Add("Score", typeof(decimal));
+            for (int i = 1; i <= 30; i++) table.Rows.Add(i, "n" + i, i % 2 == 0, new DateTime(2024, 1, 1).AddMinutes(i), i * 1.25m);
+
+            string SheetData(bool readMetadata) {
+                using var stream = new MemoryStream();
+                using (var document = ExcelDocument.Create(stream, new ExcelCreateOptions {
+                    PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
+                })) {
+                    var sheet = document.AddSheet("Data");
+                    var created = sheet.AddTable(table, new ExcelTableOptions { Name = "Scores", AutoFit = false }, row: 1, column: 1);
+                    if (readMetadata && read == "range") Assert.Equal("A1:E31", created.Range);
+                    if (readMetadata && read == "tables") Assert.Equal("A1:E31", Assert.Single(sheet.GetTables()).Range);
+                }
+
+                using var archive = new ZipArchive(new MemoryStream(stream.ToArray()), ZipArchiveMode.Read);
+                using var reader = new StreamReader(archive.GetEntry("xl/worksheets/sheet1.xml")!.Open());
+                string xml = reader.ReadToEnd();
+                int start = xml.IndexOf("<sheetData", StringComparison.Ordinal);
+                return xml.Substring(start, xml.IndexOf("</sheetData>", StringComparison.Ordinal) - start);
+            }
+
+            Assert.Equal(SheetData(readMetadata: false), SheetData(readMetadata: true));
+        }
+
+        [Fact]
+        public void PerformanceReview_EditsAfterReadingDataTableCellsReachTheSavedWorksheet() {
+            var table = new DataTable();
+            table.Columns.Add("Id", typeof(int));
+            table.Columns.Add("Name", typeof(object));
+            for (int i = 1; i <= 30; i++) table.Rows.Add(i, "n" + i);
+
+            using var stream = new MemoryStream();
+            using (var document = ExcelDocument.Create(stream)) {
+                var sheet = document.AddSheet("Data");
+                sheet.AddTable(table, new ExcelTableOptions { Name = "Names", AutoFit = false }, row: 1, column: 1);
+                Assert.True(sheet.TryGetCellText(3, 2, out string text));
+                Assert.Equal("n2", text);
+                sheet.Cell(1, 1).SetBold(true);
+                sheet.Cell(5, 2).SetValue("edited");
+                sheet.AutoFitColumnsFor(new[] { 1, 2 });
+                document.Save(stream);
+            }
+
+            using var loaded = ExcelDocument.Load(new MemoryStream(stream.ToArray()));
+            var saved = loaded.Sheets[0];
+            Assert.True(saved.TryGetCellText(5, 2, out string edited));
+            Assert.Equal("edited", edited);
+            Assert.True(saved.TryGetCellText(31, 2, out string last));
+            Assert.Equal("n30", last);
+            Assert.True(saved.Cell(1, 1).GetStyle().Bold);
+        }
+
         [Fact]
         public void CellValueSnapshots_ColumnReadMatchesSingleCellReadsOnLoadedAndImportedSheets() {
             byte[] package;

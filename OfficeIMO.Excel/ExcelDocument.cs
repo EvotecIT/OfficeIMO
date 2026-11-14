@@ -514,6 +514,9 @@ namespace OfficeIMO.Excel {
             => _materializedDirectDataSetFastSaveModel != null
                || _directDataSetSaveCandidate?.IsValid == true;
 
+        /// <summary>Rows written to the worksheet are also kept in a direct-save model that a later edit must drop.</summary>
+        internal bool HasMaterializedDirectDataSetFastSaveModel => _materializedDirectDataSetFastSaveModel != null;
+
         internal void PreserveDirectDataSetSaveCandidateForNextDirtyMark() {
             _preserveDirectDataSetSaveCandidateForNextDirtyMark = true;
         }
