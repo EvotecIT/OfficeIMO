@@ -408,8 +408,7 @@
       {
         "Name": "applications",
         "Css": [
-          "/css/applications.css",
-          "/css/surfaces.css"
+          "/css/applications.css"
         ],
         "Js": [
           "/js/surface-explorer.js"

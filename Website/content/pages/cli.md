@@ -10,7 +10,7 @@ meta.application: "cli"
 
 `officeimo` runs the OfficeIMO engines from a shell, a CI job, a scheduled task or an AI agent, without Microsoft Office. Results go to standard output as JSON, diagnostics go to standard error, failures return documented exit codes, and existing files are protected unless you pass `--force`.
 
-## Install
+## Install the CLI
 
 ```shell
 dotnet tool install --global OfficeIMO.Tool
