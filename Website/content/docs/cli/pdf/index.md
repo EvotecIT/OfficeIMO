@@ -45,6 +45,18 @@ officeimo pdf decrypt protected.pdf --password-env PDF_OWNER_PASSWORD --output c
 
 Decryption needs the owner password. Other operations on protected documents keep the PDF engine's permission and signature rules.
 
+## PDF/A copies
+
+```shell
+officeimo pdf convert-to-pdfa report.pdf --output report-pdfa.pdf
+officeimo pdf convert-to-pdfa report.pdf --output report-pdfa3.pdf --profile 3b --attachments refuse
+officeimo pdf convert-to-pdfa report.pdf --output report-pdfa.pdf --font "Helvetica=fonts/Helvetica.ttf" --font "Helvetica:bold=fonts/Helvetica-Bold.ttf"
+```
+
+`convert-to-pdfa` writes a PDF/A copy, or refuses with exit code `4` and writes nothing. The profile is `2b` unless you choose `2u`, `3b`, `3u`, `4` or `4f`. Standard error lists every change, such as an embedded font or an added output intent, and every violation that blocked the copy; the JSON result keeps the exact counts.
+
+Embedded files are removed by default; `--attachments refuse` refuses a source that has them instead. Fonts the page uses but does not embed are taken from the files you pass with `--font family[:bold|italic|bold-italic]=<file>`, then from installed fonts unless you pass `--font-substitution none`. A face is embedded only when its glyph widths match the page and its licence allows embedding. `--output-intent <profile.icc>` with `--output-condition-identifier` replaces the default sRGB output intent. An encrypted source needs its owner password through `--password-env`.
+
 ## Searchable scans with OCR
 
 The tool ships no OCR engine or model. Supply a trusted provider assembly and select its provider id. `OfficeIMO.Ocr.Tesseract` registers `tesseract-cli`, which calls a separately installed Tesseract executable:

@@ -70,6 +70,7 @@ Commands refuse to replace an existing file or folder, so rerunning a script can
 | `workflow batch` | `--conflict replace`, or `--conflict rename` to keep both |
 | `invoice` | Not possible; choose a new path |
 | `workflow job run --report`, `--save-job` | Not possible; choose a new path |
+| `markup emit --output`, `markup export` | Replaced without `--force`; write to a new path to keep the previous file |
 
 Outputs are staged and published atomically. A conversion that fails or is rejected leaves an existing destination unchanged. The MCP `officeimo_convert` tool takes the same permission as an `overwrite` argument.
 
@@ -113,7 +114,124 @@ Commands have bounded defaults, so an unexpected file fails fast instead of exha
 | `provenance audit`, `check` | 256 files | `--max-items` up to 10,000 |
 | `agent` | Bounded JSON | `--max-output-characters 512..64000` |
 
-## A complete CI job
+## Discover commands from the tool
+
+`officeimo help --format json` describes every command area, subcommand, usage line, key option, input and output format and exit code of the installed version as one JSON document with the schema `officeimo.tool.commands.v1`. Use it to check in a script that a command exists before relying on it, or to generate your own reference:
+
+```shell
+officeimo help --format json | jq -r '.groups[].subcommands[].usage[]'
+officeimo help --format json | jq '.exitCodes'
+```
+
+```powershell
+$catalog = officeimo help --format json | ConvertFrom-Json
+$catalog.groups | Where-Object id -eq 'pdf' | ForEach-Object { $_.subcommands.name }
+```
+
+## CI recipes
+
+Each recipe installs one exact version, so a new release changes nothing until you move the pin. The examples use `3.6.1`; replace it with the version you have tested.
+
+### GitHub Actions: convert a folder to PDF
+
+This job converts everything under `docs` to PDF, keeps a checkpoint so a re-run of the same commit continues where an interrupted run stopped, and uploads the PDFs and the per-file report:
+
+```yaml
+name: documents
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  pdf:
+    runs-on: ubuntu-latest
+    env:
+      OFFICEIMO_VERSION: 3.6.1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Install officeimo
+        run: dotnet tool install OfficeIMO.Tool --version "$OFFICEIMO_VERSION" --tool-path .tools
+      - name: Restore an interrupted run of this commit
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            out/pdf
+            .officeimo/checkpoint
+          key: officeimo-pdf-${{ github.sha }}
+      - name: Convert to PDF
+        run: |
+          mkdir -p reports
+          .tools/officeimo workflow batch --input-directory docs --output out/pdf \
+            --checkpoint .officeimo/checkpoint --retry-failed --format ndjson > reports/batch.ndjson
+      - name: Keep the checkpoint for a re-run
+        if: failure() || cancelled()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            out/pdf
+            .officeimo/checkpoint
+          key: officeimo-pdf-${{ github.sha }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: documents
+          path: |
+            out/pdf
+            reports
+```
+
+### Azure DevOps: convert a folder to PDF
+
+Azure Pipelines can retry the conversion step in the same job. The checkpoint makes each retry reuse the PDFs that were already verified, and `--retry-failed` converts the failed files again:
+
+```yaml
+trigger:
+  - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  OFFICEIMO_VERSION: 3.6.1
+
+steps:
+  - task: UseDotNet@2
+    inputs:
+      packageType: sdk
+      version: 10.0.x
+
+  - script: dotnet tool install OfficeIMO.Tool --version $(OFFICEIMO_VERSION) --tool-path .tools
+    displayName: Install officeimo
+
+  - script: |
+      mkdir -p $(Build.ArtifactStagingDirectory)/reports
+      .tools/officeimo workflow batch --input-directory docs --output $(Build.ArtifactStagingDirectory)/pdf \
+        --checkpoint $(Agent.TempDirectory)/officeimo-checkpoint --retry-failed --format ndjson \
+        > $(Build.ArtifactStagingDirectory)/reports/batch.ndjson
+    displayName: Convert to PDF
+    retryCountOnTaskFailure: 2
+
+  - task: PublishPipelineArtifact@1
+    condition: succeededOrFailed()
+    inputs:
+      targetPath: $(Build.ArtifactStagingDirectory)
+      artifact: documents
+```
+
+### How checkpoints behave
+
+- The source folder, the output folder and the checkpoint folder must be separate. Batches with a checkpoint use the `fail` conflict policy.
+- A rerun with the same settings reuses every output whose receipt still matches and converts the rest. The NDJSON summary reports `reused` next to `completed`.
+- Restore the output folder and the checkpoint together. An output that went missing after it was recorded fails that file instead of being converted again silently.
+- Changing the conversion settings needs a new output folder and checkpoint. Execution limits such as `--concurrency` can change between runs.
+- Files that failed stay failed on a rerun unless you pass `--retry-failed`.
+
+### Gate and publish with a tool manifest
+
+If the repository already pins the tool in a [tool manifest](/docs/cli/install/#pin-it-to-a-repository), restore it instead of installing a version in the workflow:
 
 ```yaml
 name: documents
@@ -127,8 +245,9 @@ jobs:
         with:
           dotnet-version: '10.0.x'
       - run: dotnet tool restore
-      - run: dotnet officeimo provenance check ./docs --format sarif > provenance.sarif
-      - run: dotnet officeimo workflow batch --input-directory ./docs --output ./artifacts/pdf --format ndjson > batch.ndjson
+      - run: mkdir -p artifacts
+      - run: dotnet officeimo provenance check ./docs --format sarif > artifacts/provenance.sarif
+      - run: dotnet officeimo workflow batch --input-directory ./docs --output ./artifacts/pdf --format ndjson > artifacts/batch.ndjson
       - run: dotnet officeimo hidden-data remove ./docs/proposal.docx --output ./artifacts/proposal.docx
       - uses: actions/upload-artifact@v4
         with:
@@ -136,4 +255,4 @@ jobs:
           path: artifacts
 ```
 
-The tool version comes from the committed tool manifest; see [Install and pin the tool](/docs/cli/install/).
+`provenance check` exits with code `1` when it finds dangerous Unicode, which stops the job before anything is published.

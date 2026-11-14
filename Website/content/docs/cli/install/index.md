@@ -23,16 +23,23 @@ dotnet tool update --global OfficeIMO.Tool
 dotnet tool uninstall --global OfficeIMO.Tool
 ```
 
+Add `--version` to install one exact release, for example `dotnet tool install --global OfficeIMO.Tool --version 3.6.1`. A build agent that should not change its global tools can install into a folder instead and run the tool from there:
+
+```shell
+dotnet tool install OfficeIMO.Tool --version 3.6.1 --tool-path .tools
+.tools/officeimo --version
+```
+
 ## Pin it to a repository
 
 For scripts and CI, I recommend a local tool manifest. The manifest records the exact package version, so every clone and build agent runs the same `officeimo`:
 
 ```shell
 dotnet new tool-manifest
-dotnet tool install OfficeIMO.Tool
+dotnet tool install OfficeIMO.Tool --version 3.6.1
 ```
 
-Commit `.config/dotnet-tools.json`. On a fresh clone or build agent, restore the pinned version and run it through the SDK:
+Commit the manifest: `dotnet-tools.json` at the repository root with the .NET 10 SDK, or `.config/dotnet-tools.json` with earlier SDKs. On a fresh clone or build agent, restore the pinned version and run it through the SDK:
 
 ```shell
 dotnet tool restore
@@ -62,9 +69,10 @@ officeimo convert --help
 officeimo reader capabilities --format json
 officeimo html capabilities --format json
 officeimo provenance capabilities
+officeimo help --format json
 ```
 
-`officeimo convert --help` ends with the list of conversion routes the installed tool runs. `reader capabilities` lists the extraction handlers and their extensions.
+`officeimo convert --help` ends with the list of conversion routes the installed tool runs. `officeimo help --format json` describes every command, option and exit code as JSON. `reader capabilities` lists the extraction handlers and their extensions.
 
 ## Optional components
 
