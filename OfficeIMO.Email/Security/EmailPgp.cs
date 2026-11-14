@@ -268,7 +268,8 @@ public sealed class EmailPgpDecryptionResult {
     public bool IsSignatureValid {
         get {
             bool combined = Cryptography?.Signatures.Count > 0;
-            bool nested = NestedSignature?.Cryptography?.Signatures.Count > 0;
+            // A nested signed part that failed to verify still counts as present, so it can never be ignored.
+            bool nested = NestedSignature != null;
             if (!combined && !nested) return false;
             return (!combined || Cryptography!.IsSignatureValid) && (!nested || NestedSignature!.IsValid);
         }

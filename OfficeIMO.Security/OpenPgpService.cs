@@ -86,6 +86,8 @@ internal static class OpenPgpService {
             OfficeOpenPgpMessageResult? failure = reader.Read(first, factory, 0);
             return failure ?? reader.ToResult(isEncrypted: false, integrityProtected: false, symmetricAlgorithm: null,
                 recipients: Array.Empty<string>());
+        } catch (OpenPgpLimitException ex) {
+            return new OfficeOpenPgpMessageResult(OfficeOpenPgpMessageStatus.LimitExceeded, ex.Message);
         } catch (Exception ex) when (IsParseFailure(ex)) {
             return Unreadable(message, new OfficeOpenPgpMessageResult(OfficeOpenPgpMessageStatus.Malformed,
                 "The OpenPGP message could not be parsed: " + ex.Message));
@@ -137,6 +139,19 @@ internal static class OpenPgpService {
                     continue;
                 }
 
+                // Recover the session key before touching the shared encrypted payload, so a hidden recipient
+                // (key ID zero) can try every supplied key instead of stopping at the first one.
+                try {
+                    item.GetSymmetricAlgorithm(privateKey);
+                } catch (Exception ex) when (IsParseFailure(ex)) {
+                    if (failure == OfficeOpenPgpMessageStatus.NoMatchingSecretKey) {
+                        failure = OfficeOpenPgpMessageStatus.Malformed;
+                        failureMessage = "No supplied secret key recovers the session key of the message.";
+                    }
+
+                    continue;
+                }
+
                 return DecryptWith(item, privateKey, keys, options, recipients);
             }
         }
@@ -180,6 +195,9 @@ internal static class OpenPgpService {
             }
 
             return reader.ToResult(isEncrypted: true, protectedData, symmetric, recipients);
+        } catch (OpenPgpLimitException ex) {
+            return new OfficeOpenPgpMessageResult(OfficeOpenPgpMessageStatus.LimitExceeded, ex.Message,
+                isEncrypted: true, symmetricAlgorithm: symmetric, recipientKeyIds: recipients);
         } catch (Exception ex) when (IsParseFailure(ex)) {
             // Altered ciphertext usually breaks packet parsing before the modification detection code is reached.
             OfficeOpenPgpMessageStatus status = protectedData
@@ -209,7 +227,8 @@ internal static class OpenPgpService {
         }
 
         try {
-            return secretKey.ExtractPrivateKey(passphrase);
+            // OpenPGP passphrases are UTF-8 (RFC 4880 section 3.7); the legacy overload would mangle non-ASCII text.
+            return secretKey.ExtractPrivateKeyUtf8(passphrase);
         } catch (Exception ex) when (IsParseFailure(ex)) {
             status = OfficeOpenPgpMessageStatus.WrongPassphrase;
             return null;
@@ -260,7 +279,14 @@ internal static class OpenPgpService {
                 continue;
             }
 
-            return CheckKeyPolicy(signature, entry, created, options, Result);
+            // The same key material may be attached to several certificates; any one that passes policy is enough,
+            // and a certificate that does not authenticate the key cannot hide one that does.
+            OfficeOpenPgpSignatureInfo checkedKey = CheckKeyPolicy(signature, entry, created, options, Result);
+            if (checkedKey.Status == OfficeOpenPgpSignatureStatus.Valid) return checkedKey;
+            if (firstFailure == null || firstFailure.Status == OfficeOpenPgpSignatureStatus.Invalid ||
+                firstFailure.Status == OfficeOpenPgpSignatureStatus.Unsupported) {
+                firstFailure = checkedKey;
+            }
         }
 
         return firstFailure!;
@@ -275,25 +301,31 @@ internal static class OpenPgpService {
                 options.MinimumKeyBits.ToString(CultureInfo.InvariantCulture) + " are required.", entry);
         }
 
-        if (entry.Primary.HasRevocation() || HasSubkeyRevocation(key)) {
-            return result(OfficeOpenPgpSignatureStatus.KeyRevoked, "The signing key carries a revocation signature.", entry);
+        if (IsRevoked(entry.Primary) || (!key.IsMasterKey && IsSubkeyRevoked(entry.Primary, key))) {
+            return result(OfficeOpenPgpSignatureStatus.KeyRevoked, "The signing key carries a verified revocation signature.", entry);
         }
 
+        long validSeconds;
         if (!key.IsMasterKey) {
             PgpSignature? binding = FindValidBinding(entry.Primary, key);
             if (binding == null) {
                 return result(OfficeOpenPgpSignatureStatus.KeyNotValidForSigning,
-                    "The signing subkey has no binding signature from its primary key that verifies.", entry);
+                    "The signing subkey has no binding signature from its primary key, with a primary key binding " +
+                    "signature from the subkey, that verifies.", entry);
             }
 
-            if (binding.HasSubpackets && binding.GetHashedSubPackets().HasSubpacket(SignatureSubpacketTag.KeyFlags) &&
-                (binding.GetHashedSubPackets().GetKeyFlags() & KeyFlags.SignData) == 0) {
+            PgpSignatureSubpacketVector? bindingPackets = binding.HasSubpackets ? binding.GetHashedSubPackets() : null;
+            if (bindingPackets != null && bindingPackets.HasSubpacket(SignatureSubpacketTag.KeyFlags) &&
+                (bindingPackets.GetKeyFlags() & KeyFlags.SignData) == 0) {
                 return result(OfficeOpenPgpSignatureStatus.KeyNotValidForSigning, "The signing subkey is not flagged for signing.", entry);
             }
+
+            validSeconds = bindingPackets?.GetKeyExpirationTime() ?? 0;
+        } else {
+            validSeconds = PrimaryValidSeconds(key);
         }
 
         DateTimeOffset keyCreated = new DateTimeOffset(DateTime.SpecifyKind(key.CreationTime, DateTimeKind.Utc));
-        long validSeconds = SafeValidSeconds(key);
         if (created < keyCreated || (validSeconds > 0 && created > keyCreated.AddSeconds(validSeconds))) {
             return result(OfficeOpenPgpSignatureStatus.KeyExpired, "The signing key was not valid when the signature was made.", entry);
         }
@@ -309,27 +341,99 @@ internal static class OpenPgpService {
         return result(OfficeOpenPgpSignatureStatus.Valid, "The signature verified.", entry);
     }
 
+    /// <summary>
+    /// Returns the newest subkey binding signature that verifies against the primary key and carries a primary key
+    /// binding signature made by the subkey (RFC 4880 section 5.2.1), so a certificate cannot claim another
+    /// signer's subkey.
+    /// </summary>
     private static PgpSignature? FindValidBinding(PgpPublicKey primary, PgpPublicKey subkey) {
+        PgpSignature? newest = null;
         foreach (PgpSignature binding in subkey.GetSignaturesOfType(PgpSignature.SubkeyBinding)) {
-            try {
+            if (newest != null && binding.CreationTime <= newest.CreationTime) continue;
+            if (Verifies(() => {
                 binding.InitVerify(primary);
-                if (binding.VerifyCertification(primary, subkey)) return binding;
-            } catch (Exception ex) when (IsParseFailure(ex)) {
-                // Try the next binding signature.
+                return binding.VerifyCertification(primary, subkey);
+            }) && HasValidBackSignature(binding, primary, subkey)) {
+                newest = binding;
             }
         }
 
-        return null;
+        return newest;
     }
 
-    private static bool HasSubkeyRevocation(PgpPublicKey key) =>
-        !key.IsMasterKey && key.GetSignaturesOfType(PgpSignature.SubkeyRevocation).Any();
+    private static bool HasValidBackSignature(PgpSignature binding, PgpPublicKey primary, PgpPublicKey subkey) {
+        if (!binding.HasSubpackets) return false;
+        foreach (PgpSignatureSubpacketVector? packets in new[] { binding.GetHashedSubPackets(), binding.GetUnhashedSubPackets() }) {
+            if (packets == null) continue;
+            PgpSignatureList embedded;
+            try {
+                embedded = packets.GetEmbeddedSignatures();
+            } catch (Exception ex) when (IsParseFailure(ex)) {
+                continue;
+            }
 
-    private static long SafeValidSeconds(PgpPublicKey key) {
+            for (int index = 0; index < embedded.Count; index++) {
+                PgpSignature back = embedded[index];
+                if (back.SignatureType != PgpSignature.PrimaryKeyBinding) continue;
+                if (Verifies(() => {
+                    back.InitVerify(subkey);
+                    return back.VerifyCertification(primary, subkey);
+                })) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsRevoked(PgpPublicKey primary) =>
+        primary.GetSignaturesOfType(PgpSignature.KeyRevocation).Any(revocation => Verifies(() => {
+            revocation.InitVerify(primary);
+            return revocation.VerifyCertification(primary);
+        }));
+
+    private static bool IsSubkeyRevoked(PgpPublicKey primary, PgpPublicKey subkey) =>
+        subkey.GetSignaturesOfType(PgpSignature.SubkeyRevocation).Any(revocation => Verifies(() => {
+            revocation.InitVerify(primary);
+            return revocation.VerifyCertification(primary, subkey);
+        }));
+
+    /// <summary>Key lifetime from the newest self-signature that verifies; zero means no expiry.</summary>
+    private static long PrimaryValidSeconds(PgpPublicKey primary) {
+        PgpSignature? newest = null;
+        void Consider(PgpSignature signature, Func<bool> verify) {
+            if (signature.KeyId != primary.KeyId) return;
+            if (newest != null && signature.CreationTime <= newest.CreationTime) return;
+            if (Verifies(verify)) newest = signature;
+        }
+
+        foreach (string userId in primary.GetUserIds()) {
+            foreach (PgpSignature certification in primary.GetSignaturesForId(userId)) {
+                int type = certification.SignatureType;
+                if (type < PgpSignature.DefaultCertification || type > PgpSignature.PositiveCertification) continue;
+                Consider(certification, () => {
+                    certification.InitVerify(primary);
+                    return certification.VerifyCertification(userId, primary);
+                });
+            }
+        }
+
+        foreach (PgpSignature direct in primary.GetSignaturesOfType(PgpSignature.DirectKey)) {
+            Consider(direct, () => {
+                direct.InitVerify(primary);
+                return direct.VerifyCertification(primary);
+            });
+        }
+
+        return newest != null && newest.HasSubpackets ? newest.GetHashedSubPackets().GetKeyExpirationTime() : 0;
+    }
+
+    private static bool Verifies(Func<bool> verify) {
         try {
-            return key.GetValidSeconds();
+            return verify();
         } catch (Exception ex) when (IsParseFailure(ex)) {
-            return 0;
+            return false;
         }
     }
 
@@ -345,6 +449,7 @@ internal static class OpenPgpService {
             using Stream decoded = PgpUtilities.GetDecoderStream(new MemoryStream(encoded, writable: false));
             var factory = new PgpObjectFactory(decoded);
             var found = new List<PgpSignature>();
+            var budget = new DecompressionBudget(options.MaxOutputBytes);
             PgpObject? item;
             int depth = 0;
             while ((item = factory.NextPgpObject()) != null) {
@@ -354,7 +459,7 @@ internal static class OpenPgpService {
                         return false;
                     }
 
-                    factory = new PgpObjectFactory(compressed.GetDataStream());
+                    factory = new PgpObjectFactory(budget.Wrap(compressed));
                     continue;
                 }
 
@@ -424,7 +529,68 @@ internal static class OpenPgpService {
         int read;
         while ((read = stream.Read(buffer, 0, buffer.Length)) > 0) {
             total += read;
-            if (total > limit) throw new InvalidDataException("The encrypted data exceeds the configured output limit.");
+            if (total > limit) throw new OpenPgpLimitException("The encrypted data exceeds the configured output limit.");
+        }
+    }
+
+    /// <summary>A configured resource limit was reached while reading packets.</summary>
+    private sealed class OpenPgpLimitException : IOException {
+        internal OpenPgpLimitException(string message) : base(message) {
+        }
+    }
+
+    /// <summary>Decompressed bytes shared by every compressed packet of one operation.</summary>
+    private sealed class DecompressionBudget {
+        private long _remaining;
+
+        internal DecompressionBudget(long limit) => _remaining = limit;
+
+        internal BoundedStream Wrap(PgpCompressedData compressed) => new BoundedStream(compressed.GetDataStream(), this);
+
+        internal void Consume(int count) {
+            _remaining -= count;
+            if (_remaining < 0) throw new OpenPgpLimitException("The decompressed data exceeds the configured output limit.");
+        }
+    }
+
+    /// <summary>Counts decompressed bytes against a budget before the packet parser sees them.</summary>
+    private sealed class BoundedStream : Stream {
+        private readonly Stream _inner;
+        private readonly DecompressionBudget _budget;
+
+        internal BoundedStream(Stream inner, DecompressionBudget budget) {
+            _inner = inner;
+            _budget = budget;
+        }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = _inner.Read(buffer, offset, count);
+            _budget.Consume(read);
+            return read;
+        }
+
+        public override int ReadByte() {
+            int value = _inner.ReadByte();
+            if (value >= 0) _budget.Consume(1);
+            return value;
+        }
+
+        public override void Flush() {
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) _inner.Dispose();
+            base.Dispose(disposing);
         }
     }
 
@@ -461,47 +627,76 @@ internal static class OpenPgpService {
         internal IReadOnlyList<Entry> Find(long keyId) =>
             _entries.TryGetValue(keyId, out List<Entry>? list) ? list : (IReadOnlyList<Entry>)Array.Empty<Entry>();
 
+        /// <summary>
+        /// Loads every certificate and merges copies that share a primary key, so a newer copy carrying a revocation
+        /// or a changed expiry cannot be shadowed by an older one supplied earlier.
+        /// </summary>
         internal static KeyIndex Load(OfficeOpenPgpKeySet keys, OfficeOpenPgpOptions options) {
             var index = new KeyIndex();
-            int rings = 0;
-            foreach (byte[] buffer in keys.PublicKeys) {
-                if (!index.TryLoad(buffer, options, ref rings, secret: false)) continue;
+            var certificates = new List<PgpPublicKeyRing>();
+            var byPrimary = new Dictionary<string, int>(StringComparer.Ordinal);
+            var conflicted = new HashSet<string>(StringComparer.Ordinal);
+            foreach (byte[] buffer in keys.PublicKeys) index.TryLoad(buffer, options, secret: false, certificates);
+            foreach (byte[] buffer in keys.SecretKeys) index.TryLoad(buffer, options, secret: true, certificates);
+
+            var merged = new List<PgpPublicKeyRing?>();
+            foreach (PgpPublicKeyRing certificate in certificates) {
+                string primary = Hex(certificate.GetPublicKey().GetFingerprint());
+                if (conflicted.Contains(primary)) continue;
+                if (!byPrimary.TryGetValue(primary, out int position)) {
+                    byPrimary.Add(primary, merged.Count);
+                    merged.Add(certificate);
+                    continue;
+                }
+
+                try {
+                    merged[position] = PgpPublicKeyRing.Join(merged[position]!, certificate, false, false);
+                } catch (Exception ex) when (IsParseFailure(ex)) {
+                    // Copies that cannot be merged are dropped rather than trusting either one alone.
+                    merged[position] = null;
+                    conflicted.Add(primary);
+                    index.Error = "Copies of certificate " + primary + " could not be merged and were ignored: " + ex.Message;
+                }
             }
 
-            foreach (byte[] buffer in keys.SecretKeys) {
-                index.TryLoad(buffer, options, ref rings, secret: true);
+            foreach (PgpPublicKeyRing? certificate in merged) {
+                if (certificate == null) continue;
+                PgpPublicKey primary = certificate.GetPublicKey();
+                foreach (PgpPublicKey key in certificate.GetPublicKeys()) index.Add(key, primary);
             }
 
             return index;
         }
 
-        private bool TryLoad(byte[] buffer, OfficeOpenPgpOptions options, ref int rings, bool secret) {
+        private void TryLoad(byte[] buffer, OfficeOpenPgpOptions options, bool secret, List<PgpPublicKeyRing> certificates) {
             if (buffer.LongLength > options.MaxInputBytes) {
                 Error = "A supplied key exceeds the configured input limit.";
-                return false;
+                return;
             }
 
             try {
                 using Stream decoded = PgpUtilities.GetDecoderStream(new MemoryStream(buffer, writable: false));
                 if (secret) {
                     foreach (PgpSecretKeyRing ring in new PgpSecretKeyRingBundle(decoded).GetKeyRings()) {
-                        if (++rings > MaxKeyRings) return false;
-                        PgpPublicKey primary = ring.GetPublicKey();
-                        foreach (PgpSecretKey key in ring.GetSecretKeys()) Add(key.PublicKey, primary);
+                        if (certificates.Count >= MaxKeyRings) return;
+                        certificates.Add(ToCertificate(ring));
                     }
                 } else {
                     foreach (PgpPublicKeyRing ring in new PgpPublicKeyRingBundle(decoded).GetKeyRings()) {
-                        if (++rings > MaxKeyRings) return false;
-                        PgpPublicKey primary = ring.GetPublicKey();
-                        foreach (PgpPublicKey key in ring.GetPublicKeys()) Add(key, primary);
+                        if (certificates.Count >= MaxKeyRings) return;
+                        certificates.Add(ring);
                     }
                 }
-
-                return true;
             } catch (Exception ex) when (IsParseFailure(ex)) {
                 Error = "A supplied key could not be parsed: " + ex.Message;
-                return false;
             }
+        }
+
+        private static PgpPublicKeyRing ToCertificate(PgpSecretKeyRing ring) {
+            using var encoded = new MemoryStream();
+            foreach (PgpSecretKey key in ring.GetSecretKeys()) key.PublicKey.Encode(encoded);
+            foreach (PgpPublicKey key in ring.GetExtraPublicKeys()) key.Encode(encoded);
+            return new PgpPublicKeyRing(encoded.ToArray());
         }
 
         private void Add(PgpPublicKey key, PgpPublicKey primary) {
@@ -510,8 +705,7 @@ internal static class OpenPgpService {
                 _entries.Add(key.KeyId, list);
             }
 
-            byte[] fingerprint = key.GetFingerprint();
-            if (!list.Any(existing => existing.Key.GetFingerprint().SequenceEqual(fingerprint))) list.Add(new Entry(key, primary));
+            list.Add(new Entry(key, primary));
         }
 
         internal sealed class Entry {
@@ -531,12 +725,14 @@ internal static class OpenPgpService {
         private readonly OfficeOpenPgpOptions _options;
         private readonly KeyIndex _index;
         private readonly List<PgpSignature> _signatures = new List<PgpSignature>();
+        private readonly DecompressionBudget _budget;
         private byte[]? _content;
         private string? _fileName;
 
         internal LiteralReader(OfficeOpenPgpOptions options, KeyIndex index) {
             _options = options;
             _index = index;
+            _budget = new DecompressionBudget(options.MaxOutputBytes);
         }
 
         internal OfficeOpenPgpMessageResult? Read(PgpObject first, PgpObjectFactory factory, int depth) {
@@ -551,7 +747,7 @@ internal static class OpenPgpService {
                             return new OfficeOpenPgpMessageResult(OfficeOpenPgpMessageStatus.LimitExceeded, "The message is nested too deeply.");
                         }
 
-                        var inner = new PgpObjectFactory(compressed.GetDataStream());
+                        var inner = new PgpObjectFactory(_budget.Wrap(compressed));
                         PgpObject? innerFirst = NextSkippingMarkers(inner);
                         if (innerFirst == null) return new OfficeOpenPgpMessageResult(OfficeOpenPgpMessageStatus.Malformed, "The compressed data is empty.");
                         OfficeOpenPgpMessageResult? nested = Read(innerFirst, inner, depth + 1);

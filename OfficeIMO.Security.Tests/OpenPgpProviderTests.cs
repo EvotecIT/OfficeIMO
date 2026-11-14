@@ -14,6 +14,7 @@ public sealed class OpenPgpProviderTests {
     private static readonly IOfficeOpenPgpProvider Provider = OfficeSecurityProvider.Default;
     private static readonly byte[] Data = Encoding.ASCII.GetBytes("Signed body\r\n");
     private static readonly Lazy<TestKey> Standard = new(() => TestKey.Create(2048));
+    private static readonly Lazy<TestKey> WithoutBackSignature = new(() => TestKey.Create(2048, crossCertify: false));
 
     [Fact]
     public void DetachedSignaturesFromPrimaryAndSigningSubkeysVerify() {
@@ -78,11 +79,61 @@ public sealed class OpenPgpProviderTests {
             Provider.VerifyCleartext(Encoding.ASCII.GetBytes("-----BEGIN PGP SIGNED MESSAGE-----\n\n-unescaped\n"), key.PublicKeys()).Signatures[0].Status);
     }
 
+    [Fact]
+    public void RevocationsAndSubkeysMustBeAuthenticated() {
+        TestKey key = Standard.Value;
+        TestKey other = WithoutBackSignature.Value;
+
+        OfficeOpenPgpVerificationResult forgedRevocation = Provider.VerifyDetached(key.Sign(Data, key.Primary), Data,
+            new OfficeOpenPgpKeySet(new[] { key.Revoked(other.Primary) }));
+        OfficeOpenPgpVerificationResult noBackSignature = Provider.VerifyDetached(other.Sign(Data, other.SigningSubkey), Data, other.PublicKeys());
+        OfficeOpenPgpVerificationResult staleCopyFirst = Provider.VerifyDetached(key.Sign(Data, key.Primary), Data,
+            new OfficeOpenPgpKeySet(new[] { key.PublicKeys().PublicKeys[0], key.Revoked() }));
+
+        Assert.True(forgedRevocation.IsValid);
+        Assert.Equal(OfficeOpenPgpSignatureStatus.KeyNotValidForSigning, noBackSignature.Signatures[0].Status);
+        Assert.Equal(OfficeOpenPgpSignatureStatus.KeyRevoked, staleCopyFirst.Signatures[0].Status);
+    }
+
+    [Fact]
+    public void HiddenRecipientsTryEveryKeyAndPassphrasesAreUtf8() {
+        TestKey key = Standard.Value;
+        var keys = new OfficeOpenPgpKeySet(secretKeys: new[] { key.SecretRing }, passphraseProvider: _ => TestKey.Passphrase.ToCharArray());
+
+        OfficeOpenPgpMessageResult named = Provider.OpenMessage(key.Encrypt(Data, hideRecipient: false), keys);
+        OfficeOpenPgpMessageResult hidden = Provider.OpenMessage(key.Encrypt(Data, hideRecipient: true), keys);
+
+        Assert.Equal(OfficeOpenPgpMessageStatus.Opened, named.Status);
+        Assert.Equal(OfficeOpenPgpMessageStatus.Opened, hidden.Status);
+        Assert.Equal(Data, hidden.Content);
+    }
+
+    [Fact]
+    public void DecompressedPacketsAndTruncatedMarkersStayWithinLimits() {
+        TestKey key = Standard.Value;
+        byte[] signature = key.Sign(Data, key.Primary);
+        using var compressedOutput = new MemoryStream();
+        var compressor = new PgpCompressedDataGenerator(CompressionAlgorithmTag.Zip);
+        using (Stream compressed = compressor.Open(compressedOutput)) {
+            for (int index = 0; index < 200; index++) compressed.Write(signature, 0, signature.Length);
+        }
+
+        OfficeOpenPgpMessageResult bomb = Provider.OpenMessage(compressedOutput.ToArray(), key.PublicKeys(),
+            new OfficeOpenPgpOptions { MaxSignatures = 1000, MaxOutputBytes = 2048 });
+        OfficeOpenPgpVerificationResult marker = Provider.VerifyDetached(new byte[] { 0xCA, 0xFF, 0x7F, 0xFF, 0xFF, 0xFF, 0x50 }, Data, key.PublicKeys());
+
+        Assert.Equal(OfficeOpenPgpMessageStatus.LimitExceeded, bomb.Status);
+        Assert.Equal(OfficeOpenPgpSignatureStatus.Malformed, marker.Signatures[0].Status);
+    }
+
     private sealed class TestKey {
         private readonly byte[] _publicRing;
 
-        private TestKey(byte[] publicRing, PgpKeyPair primary, PgpKeyPair signing, PgpKeyPair encryption) {
+        internal const string Passphrase = "p\u00e4ss";
+
+        private TestKey(byte[] publicRing, byte[] secretRing, PgpKeyPair primary, PgpKeyPair signing, PgpKeyPair encryption) {
             _publicRing = publicRing;
+            SecretRing = secretRing;
             Primary = primary;
             SigningSubkey = signing;
             EncryptionSubkey = encryption;
@@ -94,7 +145,9 @@ public sealed class OpenPgpProviderTests {
 
         internal PgpKeyPair EncryptionSubkey { get; }
 
-        internal static TestKey Create(int bits, DateTime? created = null, TimeSpan? expiresAfter = null) {
+        internal byte[] SecretRing { get; }
+
+        internal static TestKey Create(int bits, DateTime? created = null, TimeSpan? expiresAfter = null, bool crossCertify = true) {
             var random = new SecureRandom();
             DateTime time = created ?? DateTime.UtcNow.AddMinutes(-10);
             PgpKeyPair primary = Rsa(bits, time, random);
@@ -105,15 +158,16 @@ public sealed class OpenPgpProviderTests {
             certification.SetKeyFlags(false, KeyFlags.CertifyOther | KeyFlags.SignData);
             if (expiresAfter is TimeSpan lifetime) certification.SetKeyExpirationTime(false, (long)lifetime.TotalSeconds);
             var generator = new PgpKeyRingGenerator(PgpSignature.PositiveCertification, primary, "Test Signer <signer@example.com>",
-                SymmetricKeyAlgorithmTag.Aes256, Array.Empty<char>(), true, certification.Generate(), null, random);
+                SymmetricKeyAlgorithmTag.Aes256, true, Passphrase.ToCharArray(), true, certification.Generate(), null, random);
             var signingFlags = new PgpSignatureSubpacketGenerator();
             signingFlags.SetKeyFlags(false, KeyFlags.SignData);
-            signingFlags.SetEmbeddedSignature(false, CrossCertify(signing, primary));
+            if (crossCertify) signingFlags.SetEmbeddedSignature(false, CrossCertify(signing, primary));
             generator.AddSubKey(signing, signingFlags.Generate(), null);
             var encryptionFlags = new PgpSignatureSubpacketGenerator();
             encryptionFlags.SetKeyFlags(false, KeyFlags.EncryptComms | KeyFlags.EncryptStorage);
             generator.AddSubKey(encryption, encryptionFlags.Generate(), null);
-            return new TestKey(generator.GeneratePublicKeyRing().GetEncoded(), primary, signing, encryption);
+            return new TestKey(generator.GeneratePublicKeyRing().GetEncoded(), generator.GenerateSecretKeyRing().GetEncoded(),
+                primary, signing, encryption);
         }
 
         internal OfficeOpenPgpKeySet PublicKeys() => new(new[] { PublicRing().GetEncoded() });
@@ -140,12 +194,44 @@ public sealed class OpenPgpProviderTests {
             return PgpPublicKeyRing.InsertPublicKey(ring, subkey).GetEncoded();
         }
 
-        internal byte[] Revoked() {
+        internal byte[] Revoked(PgpKeyPair? signer = null) {
             PgpPublicKeyRing ring = PublicRing();
-            var generator = new PgpSignatureGenerator(Primary.PublicKey.Algorithm, HashAlgorithmTag.Sha256);
-            generator.InitSign(PgpSignature.KeyRevocation, Primary.PrivateKey);
+            signer ??= Primary;
+            var generator = new PgpSignatureGenerator(signer.PublicKey.Algorithm, HashAlgorithmTag.Sha256);
+            generator.InitSign(PgpSignature.KeyRevocation, signer.PrivateKey);
             PgpSignature revocation = generator.GenerateCertification(ring.GetPublicKey());
             return PgpPublicKeyRing.InsertPublicKey(ring, PgpPublicKey.AddCertification(ring.GetPublicKey(), revocation)).GetEncoded();
+        }
+
+        internal byte[] Encrypt(byte[] data, bool hideRecipient) {
+            var generator = new PgpEncryptedDataGenerator(SymmetricKeyAlgorithmTag.Aes256, true, new SecureRandom());
+            generator.AddMethod(EncryptionSubkey.PublicKey);
+            using var output = new MemoryStream();
+            using (Stream encrypted = generator.Open(output, new byte[4096])) {
+                var literal = new PgpLiteralDataGenerator();
+                using Stream plain = literal.Open(encrypted, PgpLiteralData.Binary, "message.txt", data.Length, DateTime.UtcNow);
+                plain.Write(data, 0, data.Length);
+            }
+
+            byte[] message = output.ToArray();
+            if (hideRecipient) {
+                // RFC 4880 section 5.1: a key ID of zero hides the recipient. It follows the version octet (3).
+                byte[] keyId = BitConverter.GetBytes(EncryptionSubkey.KeyId);
+                if (BitConverter.IsLittleEndian) Array.Reverse(keyId);
+                int position = IndexOf(message, new byte[] { 3 }.Concat(keyId).ToArray());
+                Assert.True(position >= 0);
+                Array.Clear(message, position + 1, keyId.Length);
+            }
+
+            return message;
+        }
+
+        private static int IndexOf(byte[] data, byte[] pattern) {
+            for (int index = 0; index + pattern.Length <= data.Length; index++) {
+                if (data.AsSpan(index, pattern.Length).SequenceEqual(pattern)) return index;
+            }
+
+            return -1;
         }
 
         private PgpPublicKeyRing PublicRing() => new(_publicRing);

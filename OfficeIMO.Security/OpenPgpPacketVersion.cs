@@ -26,6 +26,7 @@ internal static class OpenPgpPacketVersion {
             if (offset >= data.Length) return false;
             int version = data[offset];
             if (tag == 10 && length >= 0) {
+                if (length > data.Length - offset) return false;
                 offset += length; // Marker packet.
                 continue;
             }

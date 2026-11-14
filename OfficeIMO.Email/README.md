@@ -608,9 +608,12 @@ if (decrypted.IsDecrypted) {
 }
 ```
 
-Results are typed rather than thrown. Encrypted data without a modification detection code is refused and altered
-data never releases plaintext. MD5, SHA-1 and RIPEMD-160 signatures, RSA/DSA keys under 2048 bits, revoked or expired
-keys, and subkeys without a valid binding never count as valid. User IDs are reported as claims; deciding whether to
+Results are typed rather than thrown. By default, encrypted data without a modification detection code is refused and
+altered data never releases plaintext; setting `OfficeOpenPgpOptions.AllowMissingIntegrityProtection` releases such data
+without that guarantee. By default, MD5, SHA-1 and RIPEMD-160 signatures and RSA/DSA keys under 2048 bits are reported
+as weak; `AllowWeakHashAlgorithms` and `MinimumKeyBits` relax that policy. Revoked or expired keys and signing subkeys
+without verified binding and primary-key-binding signatures never count as valid; revocations and expiry are taken only
+from signatures that verify, and copies of the same certificate are merged. User IDs are reported as claims; deciding whether to
 trust a signer stays with the caller. Version 4 keys and signatures (RFC 4880) are covered, including Ed25519 and
 Curve25519 keys. RFC 9580 version 6 keys, signatures and AEAD-encrypted data are reported as unsupported, as are
 password-only encrypted messages.
