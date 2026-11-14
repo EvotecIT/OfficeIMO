@@ -11285,6 +11285,14 @@
       "origins": [
         "OfficeIMO.Yaml/Model/YamlMerge.cs"
       ]
+    },
+    {
+      "oldCode": "toml-merge-kind-conflict",
+      "catalogCode": "toml-merge-kind-conflict",
+      "member": "TomlMergeKindConflict",
+      "origins": [
+        "OfficeIMO.Toml/Model/TomlMerge.cs"
+      ]
     }
   ],
   "dynamicPatterns": [

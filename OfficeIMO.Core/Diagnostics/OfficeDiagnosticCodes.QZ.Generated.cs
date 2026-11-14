@@ -312,6 +312,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string TimestampValidationDisabled = "timestamp-validation-disabled";
     /// <summary>Stable code: <c>timestamp-validation-failed</c>.</summary>
     public const string TimestampValidationFailed = "timestamp-validation-failed";
+    /// <summary>Stable code: <c>toml-merge-kind-conflict</c>.</summary>
+    public const string TomlMergeKindConflict = "toml-merge-kind-conflict";
     /// <summary>Stable code: <c>tracked-revisions-projected</c>.</summary>
     public const string TrackedRevisionsProjected = "tracked-revisions-projected";
     /// <summary>Stable code: <c>uncompressed-stream</c>.</summary>

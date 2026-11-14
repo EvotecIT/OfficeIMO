@@ -95,18 +95,33 @@ public sealed class TomlTable : TomlNode, IReadOnlyCollection<KeyValuePair<strin
         TomlNode current = _nodes[index];
         if (current is TomlValue scalar && TomlValueConverter.IsScalar(value)) return scalar.SetValue(value);
         TomlNode node = TomlValueConverter.CreateNode(_document, value, nameof(value), TomlEditing.PreferredStringStyle(this));
-        if (current.IsKeyValue) {
+        PutNode(key, node);
+        return node;
+    }
+
+    /// <summary>
+    /// Stores a new node under a key: added when the key is missing, written at the old value's position when both are
+    /// written as <c>key = value</c>, otherwise removed and appended so the editing layer places it.
+    /// </summary>
+    internal void PutNode(string key, TomlNode node) {
+        int index = IndexOf(key);
+        if (index < 0) {
+            Append(key, node);
+            return;
+        }
+        TomlNode current = _nodes[index];
+        bool inlineValue = node is TomlValue || node is TomlArray || (node is TomlTable table && table._tableKind == TomlTableKind.Inline);
+        if (current.IsKeyValue && inlineValue) {
             // Written at the old value's position on the same line.
             TomlEditing.Adopt(current, node);
             node._parent = this;
             node._key = key;
             _nodes[index] = node;
             TomlEditing.MarkChanged(this);
-            return node;
+            return;
         }
         RemoveAt(index);
         Append(key, node);
-        return node;
     }
 
     /// <summary>
