@@ -114,6 +114,13 @@ foreach (ReaderChunk chunk in reader.Enumerate("proposal.docx")) {
 Use `ReadDocument(...)` when the host needs the complete normalized document:
 
 ```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.All;
+
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddAllOfficeIMOHandlers()
+    .Build();
+
 OfficeDocumentReadResult document = reader.ReadDocument("proposal.docx");
 
 Console.WriteLine($"{document.Pages.Count} pages or source containers");
@@ -144,7 +151,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 
 OfficeDocumentReadResult result = await reader.ReadDocumentAsync(
     "handbook.pdf",
-    cancellationToken: cancellationToken);
+    cancellationToken: CancellationToken.None);
 ```
 
 `Build()` snapshots the configuration. Different reader instances can use different handlers for the same extension without leaking registration state. Async path, stream, byte, and bounded batch APIs preserve input limits, cancellation, deterministic ordering, and caller-owned stream lifetimes.
@@ -154,6 +161,13 @@ OfficeDocumentReadResult result = await reader.ReadDocumentAsync(
 Reader combines extension, media-type, signature, and structured container evidence. Normal reads preserve known-extension routing; hosts can opt into content-first routing for mislabeled uploads:
 
 ```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.All;
+
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddAllOfficeIMOHandlers()
+    .Build();
+
 ReaderDetectionResult detection = reader.Detect("upload.bin");
 
 OfficeDocumentReadResult result = reader.ReadDocument(
@@ -172,7 +186,11 @@ Detection reports the selected kind, extension/content evidence, confidence, med
 Register ordered processors when every rich read should receive the same deterministic cleanup or filtering:
 
 ```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Word;
+
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddWordHandler()
     .AddProcessor(new OfficeDocumentBlockNormalizationProcessor())
     .AddProcessor(new OfficeDocumentTableNormalizationProcessor())
     .AddProcessor(new OfficeDocumentLinkNormalizationProcessor())
@@ -195,6 +213,13 @@ The structured extractor emits bounded scalar records, heading sections, named t
 `ReadHierarchical(...)` splits large source chunks by a token budget while preserving document, page/slide/sheet, and heading ancestry:
 
 ```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.All;
+
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddAllOfficeIMOHandlers()
+    .Build();
+
 ReaderChunkHierarchyResult hierarchy = reader.ReadHierarchical(
     "policy.docx",
     chunkingOptions: new ReaderHierarchicalChunkingOptions {
@@ -207,6 +232,9 @@ ReaderChunkHierarchyResult hierarchy = reader.ReadHierarchical(
 foreach (ReaderChunk chunk in hierarchy.Chunks) {
     StoreEmbedding(chunk.Id, chunk.Text, chunk.TokenEstimate ?? 0);
 }
+
+// Replace with your vector store.
+static void StoreEmbedding(string id, string text, int tokens) { }
 ```
 
 The result includes deterministic leaf IDs and hashes, exact source spans, overlap/context totals, and a flattened hierarchy sidecar. Supply an `IReaderTokenCounter` when the embedding model requires its exact tokenizer.
