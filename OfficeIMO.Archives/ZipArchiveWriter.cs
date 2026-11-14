@@ -221,6 +221,17 @@ public sealed class ZipArchiveWriter : IDisposable {
 
     private void Complete(EntryStream entry) {
         _open = null;
+        try {
+            CompleteCore(entry);
+        } catch {
+            // A member that could not be written leaves the archive without a central directory, like a failed source.
+            _faulted = true;
+            if (entry.Target is ArchiveSpillStream spill) spill.Dispose();
+            throw;
+        }
+    }
+
+    private void CompleteCore(EntryStream entry) {
         CentralRecord record = entry.Record;
         if (_options.UseDataDescriptors) {
             long compressed = _sink.Position - entry.DataStart;

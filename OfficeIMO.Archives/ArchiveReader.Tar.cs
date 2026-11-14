@@ -47,17 +47,32 @@ public static partial class ArchiveReader {
         return Array.AsReadOnly(TarArchiveContent.ReadDirectory(tar.Stream, limits, cancellationToken).ToArray());
     }
 
-    private static IReadOnlyList<ArchiveEntryData> ReadTar(Stream source, ArchiveLimits limits, CancellationToken token) {
+    private static IReadOnlyList<ArchiveEntryData> ReadTar(Stream source, ArchiveLimits limits, CancellationToken token) =>
+        Array.AsReadOnly(ReadTarMembers(source, limits, null, token).Select(member => new ArchiveEntryData(member.Path, member.Data!)).ToArray());
+
+    /// <summary>Reads selected TAR members, asking <paramref name="admit"/> before each payload is allocated. A member the
+    /// callback declines is returned with null data, so a host can reserve its own capacity or report the skip.</summary>
+    internal static IReadOnlyList<(string Path, long Length, byte[]? Data)> ReadTarMembers(Stream source, ArchiveReadOptions options,
+        Func<string, long, bool> admit, CancellationToken token) {
+        ArgumentNullException.ThrowIfNull(source);
+        var limits = options.Limits();
+        using Stream snapshot = Snapshot(source, limits, token);
+        return ReadTarMembers(snapshot, limits, admit, token);
+    }
+
+    private static IReadOnlyList<(string Path, long Length, byte[]? Data)> ReadTarMembers(Stream source, ArchiveLimits limits,
+        Func<string, long, bool>? admit, CancellationToken token) {
         using TarSource tar = TarSource.Open(source, limits, token);
-        var files = new List<ArchiveEntryData>();
-        foreach (var (entry, path) in tar.SelectFiles(limits, token, rejectLinks: false)) {
+        var files = new List<(string Path, long Length, byte[]? Data)>();
+        foreach (var (entry, path) in tar.SelectFiles(limits, token, rejectLinks: false).OrderBy(item => item.Path, StringComparer.Ordinal)) {
             ArchiveLimits.Check(entry.Length, Math.Min(limits.Entry, int.MaxValue), nameof(ArchiveReadOptions.MaxEntryBytes));
+            if (admit != null && !admit(path, entry.Length)) { files.Add((path, entry.Length, null)); continue; }
             var data = new byte[entry.Length];
             TarArchiveContent.ReadExactly(tar.Stream, entry.DataOffset, data);
-            files.Add(new ArchiveEntryData(path, data));
+            files.Add((path, entry.Length, data));
         }
         token.ThrowIfCancellationRequested();
-        return Array.AsReadOnly(files.OrderBy(file => file.RelativePath, StringComparer.Ordinal).ToArray());
+        return files;
     }
 
     /// <summary>Copies a readable stream from its current position to EOF into a seekable snapshot under the input limit.</summary>

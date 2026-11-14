@@ -140,6 +140,18 @@ public sealed class ZipArchiveWriterTests {
     }
 
     [Fact]
+    public void FailedDestinationWriteLeavesNoCentralDirectory() {
+        var output = new FlakyWriteStream();
+        var writer = new ZipArchiveWriter(output, leaveOpen: true);
+        writer.AddFile("good.txt", new byte[] { 1 });
+        output.FailNextWrite = true;
+        Assert.Throws<IOException>(() => writer.AddFile("lost.txt", Text));
+        Assert.Throws<InvalidOperationException>(() => writer.AddFile("later.txt", new byte[] { 2 }));
+        writer.Dispose();
+        Assert.Throws<InvalidDataException>(() => ArchiveReader.ReadZip(output.ToArray()));
+    }
+
+    [Fact]
     public void DirectoryArchivesIgnoreFileTimesAndEnumerationOrderByDefault() {
         using var fixture = new ArchiveFixtures();
         string source = Path.Combine(fixture.Root, "source");
@@ -182,6 +194,15 @@ public sealed class ZipArchiveWriterTests {
 
     internal sealed class NonSeekableWriteStream : MemoryStream {
         public override bool CanSeek => false;
+    }
+
+    /// <summary>Fails one write on request and accepts every later one.</summary>
+    internal sealed class FlakyWriteStream : MemoryStream {
+        internal bool FailNextWrite { get; set; }
+        public override void Write(byte[] buffer, int offset, int count) {
+            if (FailNextWrite) { FailNextWrite = false; throw new IOException("Destination failed."); }
+            base.Write(buffer, offset, count);
+        }
     }
 
     internal sealed class FailingStream : Stream {

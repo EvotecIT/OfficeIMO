@@ -91,7 +91,8 @@ The same input gives the same bytes on Windows, macOS and Linux and on every tar
 ## Read TAR and gzip
 
 ```csharp
-foreach (TarArchiveEntry entry in ArchiveReader.ListTar(File.OpenRead("site.tar.gz")))
+using var input = File.OpenRead("site.tar.gz");
+foreach (TarArchiveEntry entry in ArchiveReader.ListTar(input))
     Console.WriteLine($"{entry.Kind} {entry.Name} {entry.LinkTarget}");
 var files = ArchiveReader.ReadTar(File.ReadAllBytes("site.tar.gz"));
 ArchiveExtractor.Extract("site.tar.gz", "site-copy");

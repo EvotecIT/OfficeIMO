@@ -74,7 +74,7 @@ public static partial class ArchiveExtractor {
             if (GZipContent.HasSignature(header, headerLength)) {
                 source.Position = 0;
                 var peek = new byte[1024];
-                return LooksLikeTar(peek, GZipContent.Peek(source, peek, peek.Length)) ? ArchiveFormat.TarGZip : ArchiveFormat.GZip;
+                return LooksLikeTar(peek, GZipContent.Peek(source, peek, peek.Length, token)) ? ArchiveFormat.TarGZip : ArchiveFormat.GZip;
             }
             if (TryDetectMagic(header, headerLength, out ArchiveFormat format)) return format;
             if (headerLength == 8) headerLength = Fill(source, header, header.Length, token, start: 8);

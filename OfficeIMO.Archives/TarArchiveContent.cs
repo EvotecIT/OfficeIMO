@@ -122,11 +122,16 @@ internal static class TarArchiveContent {
                     throw new NotSupportedException("GNU sparse, multi-volume and old long-name TAR members are not supported.");
             }
             Dictionary<string, string>? effective = local == null && global.Count == 0 ? null : Merge(global, local);
-            if (effective != null && effective.TryGetValue("size", out string? paxSize)) size = ParseDecimal(paxSize, "size");
-            if (effective != null && effective.Keys.Any(key => key.StartsWith("GNU.sparse.", StringComparison.Ordinal)))
+            // A deleted size has no replacement boundary, so the header size stays in force.
+            if (effective != null && effective.TryGetValue("size", out string? paxSize) && paxSize.Length != 0) size = ParseDecimal(paxSize, "size");
+            if (effective != null && effective.Any(pair => pair.Value.Length != 0 && pair.Key.StartsWith("GNU.sparse.", StringComparison.Ordinal)))
                 throw new NotSupportedException("Sparse TAR members are not supported.");
-            string name = effective != null && effective.TryGetValue("path", out string? paxPath) ? paxPath
-                : longName ?? HeaderName(block, posix);
+            string? paxPath = null;
+            if (effective != null && effective.TryGetValue("path", out string? deletedOrPath)) {
+                if (deletedOrPath.Length == 0) throw new InvalidDataException("A pax header deletes the TAR member name.");
+                paxPath = deletedOrPath;
+            }
+            string name = paxPath ?? longName ?? HeaderName(block, posix);
             string? link = effective != null && effective.TryGetValue("linkpath", out string? paxLink) ? paxLink
                 : longLink ?? Field(block, 157, 100, "link name");
             ArchiveEntryKind kind;
@@ -140,7 +145,8 @@ internal static class TarArchiveContent {
                 default: throw new NotSupportedException("Unsupported TAR member type '" + type + "'.");
             }
             if (dataOffset > length || size > length - dataOffset) throw new InvalidDataException("A TAR member is truncated: " + name);
-            DateTimeOffset? time = effective != null && effective.TryGetValue("mtime", out string? paxTime) ? ParseTime(paxTime)
+            DateTimeOffset? time = effective != null && effective.TryGetValue("mtime", out string? paxTime)
+                ? paxTime.Length == 0 ? null : ParseTime(paxTime)
                 : ToTime(ParseNumber(block, 136, 12, "mtime"));
             int mode = (int)(ParseNumber(block, 100, 8, "mode") & 0xfff);
             if (entries.Count >= limits.Entries) throw ArchiveLimits.Exceeded(nameof(ArchiveExtractionOptions.MaxEntryCount), limits.Entries);
@@ -167,12 +173,11 @@ internal static class TarArchiveContent {
         return padded > length - dataOffset ? length : dataOffset + padded;
     }
 
+    /// <summary>Combines global and local pax records. An empty value is kept as a deletion marker: it hides the header
+    /// field and any earlier global value until a later nonempty value replaces it.</summary>
     private static Dictionary<string, string> Merge(Dictionary<string, string> global, Dictionary<string, string>? local) {
-        var merged = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var pair in global) if (pair.Value.Length != 0) merged[pair.Key] = pair.Value;
-        if (local != null) foreach (var pair in local) {
-            if (pair.Value.Length == 0) merged.Remove(pair.Key); else merged[pair.Key] = pair.Value;
-        }
+        var merged = new Dictionary<string, string>(global, StringComparer.Ordinal);
+        if (local != null) foreach (var pair in local) merged[pair.Key] = pair.Value;
         return merged;
     }
 

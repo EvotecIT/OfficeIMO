@@ -74,6 +74,34 @@ public sealed class TarArchiveTests {
     }
 
     [Fact]
+    public void TimesUpToTheElevenDigitOctalLimitStayInTheHeader() {
+        // 8,589,934,591 is 077777777777 octal, the largest value an eleven-digit ustar field holds.
+        var largest = DateTimeOffset.FromUnixTimeSeconds(8_589_934_591);
+        var beyond = DateTimeOffset.FromUnixTimeSeconds(8_589_934_592);
+        byte[] fits = Write(new[] { ArchiveWriteEntry.File("a.txt", new byte[] { 1 }, largest) });
+        byte[] paxed = Write(new[] { ArchiveWriteEntry.File("a.txt", new byte[] { 1 }, beyond) });
+        Assert.Equal("77777777777", Encoding.ASCII.GetString(fits, 136, 11));
+        Assert.Contains("mtime=8589934592\n", Encoding.UTF8.GetString(paxed, 512, 512));
+        Assert.Equal(largest, ArchiveReader.ListTar(new MemoryStream(fits)).Single().LastWriteTime);
+        Assert.Equal(beyond, ArchiveReader.ListTar(new MemoryStream(paxed)).Single().LastWriteTime);
+    }
+
+    [Fact]
+    public void EmptyPaxValuesDeleteTheHeaderFieldUntilReplaced() {
+        byte[] deleteTime = Encoding.UTF8.GetBytes("9 mtime=\n");
+        byte[] setTime = Encoding.UTF8.GetBytes("20 mtime=1600000000\n");
+        byte[] tar = Build((TarHeader("g", 'g', deleteTime.Length), deleteTime), (TarHeader("a.txt", '0', 1), new byte[] { 1 }),
+            (TarHeader("g", 'g', setTime.Length), setTime), (TarHeader("b.txt", '0', 1), new byte[] { 2 }));
+        var entries = ArchiveReader.ListTar(new MemoryStream(tar));
+        Assert.Null(entries[0].LastWriteTime);
+        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1600000000), entries[1].LastWriteTime);
+
+        byte[] deletePath = Encoding.UTF8.GetBytes("8 path=\n");
+        byte[] noName = Build((TarHeader("x", 'x', deletePath.Length), deletePath), (TarHeader("a.txt", '0', 1), new byte[] { 1 }));
+        Assert.Throws<InvalidDataException>(() => ArchiveReader.ListTar(new MemoryStream(noName)));
+    }
+
+    [Fact]
     public void LinksAreListedAsMetadataAndRejectedOnlyWhenSelectedForExtraction() {
         byte[] tar = Build(
             (TarHeader("docs/target.txt", '0', 5), Encoding.ASCII.GetBytes("hello")),
@@ -195,6 +223,27 @@ public sealed class TarArchiveTests {
             Assert.Throws<InvalidDataException>(() => GZipArchive.Decompress(new MemoryStream(bad), Stream.Null));
         Assert.Throws<OfficeIMO.OfficeInspectionResourceLimitException>(() => GZipArchive.Decompress(new MemoryStream(joined), Stream.Null,
             new ArchiveReadOptions { MaxEntryBytes = 8 }));
+    }
+
+    [Fact]
+    public void GZipOutputIsBoundedByTheTotalLimitAndChargedAsSelected() {
+        byte[] gzip = GZip(Encoding.ASCII.GetBytes("first second"));
+        var expanded = Assert.Throws<OfficeIMO.OfficeInspectionResourceLimitException>(() => GZipArchive.Decompress(new MemoryStream(gzip),
+            Stream.Null, new ArchiveReadOptions { MaxExpandedBytes = 8 }));
+        Assert.Equal(nameof(ArchiveReadOptions.MaxExpandedBytes), expanded.LimitName);
+        var budget = new ArchiveOperationBudget(new ArchiveOperationLimits { MaxSelectedBytes = 4 });
+        Assert.Throws<OfficeIMO.OfficeInspectionResourceLimitException>(() => GZipArchive.Decompress(new MemoryStream(gzip),
+            Stream.Null, new ArchiveReadOptions { OperationBudget = budget }));
+    }
+
+    [Fact]
+    public void TarAfterAnEmptyGZipMemberIsStillDetectedAsTar() {
+        byte[] tar = Write(new[] { ArchiveWriteEntry.File("docs/a.txt", new byte[] { 1, 2, 3 }) });
+        byte[] joined = GZip(Array.Empty<byte>()).Concat(GZip(tar)).ToArray();
+        using var fixture = new ArchiveFixtures();
+        var result = ArchiveExtractor.Extract(fixture.Package(joined), fixture.Destination);
+        Assert.Equal(ArchiveFormat.TarGZip, result.Format);
+        Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(Path.Combine(fixture.Destination, "docs", "a.txt")));
     }
 
     [Fact]

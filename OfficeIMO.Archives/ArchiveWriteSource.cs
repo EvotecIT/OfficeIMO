@@ -46,8 +46,11 @@ internal static class ArchiveWriteSource {
             completed = true;
         } finally {
             if (!completed) {
-                output.Dispose();
-                try { File.Delete(full); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+                try {
+                    output.Dispose();
+                } finally {
+                    try { File.Delete(full); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+                }
             }
         }
     }

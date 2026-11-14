@@ -52,7 +52,9 @@ public static class GZipArchive {
     }
 
     /// <summary>Decompresses every member of a gzip stream into the destination, verifying checksums and lengths.
-    /// Input and output are bounded by <see cref="ArchiveReadOptions.MaxInputBytes"/> and <see cref="ArchiveReadOptions.MaxEntryBytes"/>.
+    /// Input is bounded by <see cref="ArchiveReadOptions.MaxInputBytes"/>; output by the smaller of
+    /// <see cref="ArchiveReadOptions.MaxEntryBytes"/> and <see cref="ArchiveReadOptions.MaxExpandedBytes"/>, and it is charged to
+    /// the operation budget as selected bytes.
     /// Nonseekable input is snapshotted first. The source stays open.</summary>
     /// <exception cref="InvalidDataException">The input is not gzip, is truncated, or fails a checksum.</exception>
     /// <exception cref="OfficeInspectionResourceLimitException">A configured limit is exceeded.</exception>
@@ -67,7 +69,9 @@ public static class GZipArchive {
             ArchiveLimits.Check(input.Length - input.Position, limits.Input, nameof(ArchiveReadOptions.MaxInputBytes));
             limits.Operation.AdmitInput(input.Length - input.Position);
         }
-        return GZipContent.Decompress(input, destination, limits.Entry, limits, nameof(ArchiveReadOptions.MaxEntryBytes), cancellationToken);
+        bool entryLimit = limits.Entry <= limits.Expanded;
+        return GZipContent.Decompress(input, destination, entryLimit ? limits.Entry : limits.Expanded, limits,
+            entryLimit ? nameof(ArchiveReadOptions.MaxEntryBytes) : nameof(ArchiveReadOptions.MaxExpandedBytes), cancellationToken, selected: true);
     }
 }
 
@@ -123,7 +127,7 @@ internal static class GZipContent {
 
     /// <summary>Decompresses all members from the current position of a seekable stream.</summary>
     internal static GZipReadResult Decompress(Stream source, Stream destination, long maximumOutput, ArchiveLimits limits,
-        string limitName, CancellationToken token) {
+        string limitName, CancellationToken token, bool selected = false) {
         long length = source.Length;
         long total = 0;
         int members = 0;
@@ -142,6 +146,8 @@ internal static class GZipContent {
                 throw new InvalidDataException("The gzip member contains truncated or invalid Deflate data.");
             }
             limits.Operation.Decode(expected, consumed + expected);
+            // Standalone gzip output is the caller's content; for .tar.gz the TAR members are charged when selected.
+            if (selected) limits.Operation.Select(expected);
             uint crc = OfficePngCrc32.Begin();
             long produced = 0;
             using (var window = new SeekableReadWindowStream(source, start, consumed))
@@ -180,17 +186,35 @@ internal static class GZipContent {
         return new GZipReadResult(first!.FileName, first.ModificationTime, members, total);
     }
 
-    /// <summary>Decompresses at most <paramref name="count"/> bytes of the first member for format detection.</summary>
-    internal static int Peek(Stream source, byte[] destination, int count) {
+    /// <summary>Decompresses at most <paramref name="count"/> bytes for format detection, continuing across members
+    /// because concatenated members form one decompressed stream.</summary>
+    internal static int Peek(Stream source, byte[] destination, int count, CancellationToken token) {
+        const int MaxMembers = 16;
+        int total = 0;
         try {
-            ReadHeader(source);
-            using var inflater = new DeflateStream(source, CompressionMode.Decompress, leaveOpen: true);
-            int total = 0, read;
-            while (total < count && (read = inflater.Read(destination, total, count - total)) > 0) total += read;
-            return total;
+            long length = source.Length;
+            for (int member = 0; member < MaxMembers && total < count; member++) {
+                token.ThrowIfCancellationRequested();
+                ReadHeader(source);
+                long start = source.Position;
+                using (var window = new SeekableReadWindowStream(source, start, length - start))
+                using (var inflater = new DeflateStream(window, CompressionMode.Decompress, leaveOpen: true)) {
+                    int read;
+                    while (total < count && (read = inflater.Read(destination, total, count - total)) > 0) total += read;
+                }
+                if (total == count) break;
+                // The member ended early; find where its Deflate data stops and continue with the next member.
+                source.Position = start;
+                if (!OfficeDeflateStreamValidator.TryMeasure(source, length - start, count, out long consumed, out _, out _, token)) break;
+                long next = start + consumed + 8;
+                if (next > length - 2) break;
+                source.Position = next;
+                if (source.ReadByte() != 0x1f || source.ReadByte() != 0x8b) break;
+                source.Position = next;
+            }
         } catch (Exception error) when (error is InvalidDataException or NotSupportedException or EndOfStreamException) {
-            return 0;
         }
+        return total;
     }
 
     private static int ReadFully(Stream source, byte[] buffer) {

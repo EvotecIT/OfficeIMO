@@ -17,7 +17,8 @@ public sealed class TarArchiveWriterOptions : ArchiveWriterOptions {
 public sealed class TarArchiveWriter : IDisposable {
     private const int Block = 512;
     private const int Record = 20 * Block;
-    private const long OctalSizeLimit = 077777777777L;
+    // Largest value of an eleven-digit octal field (077777777777 octal); C# has no octal literals.
+    private const long OctalSizeLimit = 8_589_934_591L;
 
     private readonly Stream _destination;
     private readonly Stream _output;
@@ -249,6 +250,7 @@ public sealed class TarArchiveWriter : IDisposable {
 
     private static void Octal(byte[] block, int offset, int length, long value) {
         string text = Convert.ToString(value, 8).PadLeft(length - 1, '0');
+        if (text.Length > length - 1) throw new InvalidOperationException("A TAR header value does not fit its octal field.");
         for (int index = 0; index < length - 1; index++) block[offset + index] = (byte)text[index];
         block[offset + length - 1] = 0;
     }

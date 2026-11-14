@@ -8,7 +8,7 @@
 | `ArchiveInspection.Verify` / `CopyTo` | ZIP, CAB, MSI | Structured integrity outcomes; verified copying uses a private decoded spool for every format. CAB/MSI verify the complete containing folder. |
 | `ArchiveExtractor.Extract` | ZIP, CAB, MSI, TAR, .tar.gz, gzip | Strict verified extraction through a sibling staging directory and completed-directory publication. TAR links and device records are never created; selecting one fails the extraction. |
 | `ArchiveReader.ReadTar` / `ListTar` | TAR, .tar.gz | Header checksums, numeric fields, extended headers and content bounds are verified; `ReadTar` applies extraction path checks and returns selected regular files, `ListTar` returns every member's metadata including link targets. |
-| `GZipArchive.Decompress` / `Compress` / `CreateWriter` | gzip | Concatenated members, per-member CRC-32 and length, optional header CRC; writing uses the deterministic managed Deflate encoder. |
+| `GZipArchive.Decompress` / `Compress` / `CreateWriter` | gzip | Concatenated members, per-member CRC-32 and length, optional header CRC; output is bounded by the smaller of `MaxEntryBytes` and `MaxExpandedBytes` and charged as selected bytes; writing uses the deterministic managed Deflate encoder. |
 | `ZipArchiveWriter` | ZIP | Stored or Deflate members, UTF-8 names, ZIP64 when sizes, offsets or counts require it, optional data descriptors; byte-identical output across platforms and target frameworks. |
 | `TarArchiveWriter` | TAR, .tar.gz | ustar headers with pax records only when needed, fixed owner, modes and times; byte-identical output across platforms and target frameworks. |
 
