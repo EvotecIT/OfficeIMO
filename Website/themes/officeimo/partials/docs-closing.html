@@ -65,7 +65,7 @@
     {{~ if limit_links.size > 0 || meta.limits ~}}
     <div class="imo-docs-closing__block">
       <h2 class="imo-docs-closing__title">Limits</h2>
-      {{~ if meta.limits ~}}<p>{{ meta.limits }}</p>{{~ end ~}}
+      {{~ if meta.limits ~}}<p>{{ meta.limits | html.escape | regex.replace "`([^`]+)`" "<code>$1</code>" | regex.replace "\\[([^\\]]+)\\]\\((/[^)\\s]*)\\)" "<a href=\"$2\">$1</a>" }}</p>{{~ end ~}}
       {{~ if limit_links.size > 0 ~}}
       <ul>{{ for link in limit_links }}<li><a href="{{ link.url }}">{{ link.title }} support and limits</a></li>{{ end }}</ul>
       {{~ end ~}}

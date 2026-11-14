@@ -2,6 +2,9 @@
 title: Import and Export Data
 description: Move data between Excel and .NET objects, DataTable, IDataReader, and CSV with OfficeIMO.Excel, PSWriteOffice, and the officeimo CLI.
 order: 27
+packages:
+  - OfficeIMO.Excel
+  - OfficeIMO.Excel.Csv
 ---
 
 OfficeIMO.Excel reads and writes the shapes .NET code already uses: typed objects, `DataTable`, and `IDataReader`. Header names map to property names, and cell values keep their types (numbers, dates, booleans) instead of becoming text.
@@ -124,9 +127,3 @@ book.Save("sales.xlsx");
 officeimo tabular convert sales.csv sales.xlsx
 officeimo tabular convert Inventory.xlsx servers.csv --sheet Servers
 ```
-
-## Limits and reference
-
-**Limits:** see the [Excel package row](/compatibility/#package-excel) and the [Excel CSV adapter row](/compatibility/#package-excel-csv).
-
-**Reference:** [OfficeIMO.Excel API](/api/excel/) · [OfficeIMO.Excel.Csv API](/api/excel-csv/)

@@ -2,6 +2,9 @@
 title: Formulas and Named Ranges
 description: Write Excel formulas, define named ranges, calculate supported functions in .NET, and inventory formulas in existing workbooks with OfficeIMO.Excel.
 order: 25
+packages:
+  - OfficeIMO.Excel
+limits: "Formula calculation covers the supported function set; other functions are written unchanged and calculated by the spreadsheet application."
 ---
 
 Formulas are stored as Excel formulas, so Excel and other spreadsheet applications recalculate them on open. OfficeIMO.Excel can also calculate the functions it supports and cache the results, so readers that do not recalculate (search indexers, previews, `GetValue`) see the numbers.
@@ -98,9 +101,3 @@ Before changing a model, list its formulas, including volatile functions and ext
 Get-OfficeExcelFormula -Path .\Models\*.xlsx -Volatile | Format-Table SheetName, Address, Formula
 Get-ChildItem -LiteralPath .\Models -Filter *.xlsx | Get-OfficeExcelFormula -External
 ```
-
-## Limits and reference
-
-**Limits:** formula calculation covers the supported function set; other functions are written unchanged and calculated by the spreadsheet application. See the [Excel package row](/compatibility/#package-excel).
-
-**Reference:** [OfficeIMO.Excel API](/api/excel/) · [PSWriteOffice cmdlets](/api/powershell/)

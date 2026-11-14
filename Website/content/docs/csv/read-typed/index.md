@@ -2,6 +2,11 @@
 title: Read CSV into Typed Objects
 description: Map CSV rows to .NET objects, read typed values through a forward-only data reader, and infer column types with OfficeIMO.CSV, PSWriteOffice, and the officeimo CLI.
 order: 51
+packages:
+  - OfficeIMO.CSV
+cmdlets:
+  - Import-OfficeCsv
+limits: "Input-size, field-length, and decompression limits are on `CsvLoadOptions` and `CsvReaderOptions`."
 ---
 
 Choose the read path by what happens next. Load a `CsvDocument` when you will edit, sort, filter, or save the rows. Open a `CsvDataReader` when you read once, from start to end: it does not keep the file in memory, and it is a `DbDataReader`, so it plugs into anything that accepts one.
@@ -92,9 +97,3 @@ Print the inferred schema of a file:
 ```sh
 officeimo tabular schema orders.csv
 ```
-
-## Limits and reference
-
-**Limits:** see the [CSV package row](/compatibility/#package-csv). Input-size, field-length, and decompression limits are on `CsvLoadOptions` and `CsvReaderOptions`.
-
-**Reference:** [OfficeIMO.CSV API](/api/csv/) · [Import-OfficeCsv](/api/powershell/import-officecsv/)

@@ -2,6 +2,11 @@
 title: "Redact PDF Content"
 description: "Find sensitive text with literal or regular-expression searches, review the redaction plan, remove the content, and verify the result with OfficeIMO.Pdf, PSWriteOffice, and the officeimo CLI."
 layout: docs
+packages:
+  - OfficeIMO.Pdf
+cmdlets:
+  - Remove-OfficePdfContent
+limits: "Scanned pages need a text layer (OCR) before text can be found."
 ---
 
 Redaction removes content from the page: the matched text, and optionally the image and vector content underneath it, is deleted from the content stream and the area is painted over. Drawing a black rectangle on top of text is not redaction, because the text stays extractable.
@@ -62,9 +67,3 @@ options.PageNumbers.Add(2);
 
 PdfRedactionPlan plan = PdfDocument.Load("memo.pdf").Redactions.Search(options);
 ```
-
-## Limits and reference
-
-**Limits:** scanned pages need a text layer (OCR) before text can be found. See the [PDF package row](/compatibility/#package-pdf).
-
-**Reference:** [OfficeIMO.Pdf API](/api/pdf/) · [Remove-OfficePdfContent](/api/powershell/remove-officepdfcontent/)

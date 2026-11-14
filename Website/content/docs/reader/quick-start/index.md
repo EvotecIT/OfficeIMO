@@ -2,6 +2,10 @@
 title: Reader Quick Start
 description: Read Word, PDF, Excel, Markdown, and other documents into Markdown, plain text, or JSON with OfficeIMO.Reader, PSWriteOffice, and the officeimo CLI.
 order: 56
+packages:
+  - OfficeIMO.Reader.Core
+cmdlets:
+  - Read-OfficeDocument
 ---
 
 OfficeIMO.Reader turns a document into one normalized result: text, Markdown, pages, headings, tables, and metadata, whatever the source format. Install the adapters for the formats you read; each one brings the shared `OfficeIMO.Reader.Core` contracts.
@@ -96,9 +100,3 @@ string markdown = reader.ConvertToMarkdown(upload, "Contract.docx");
 - [Read whole folders](/docs/reader/folders/)
 - [Extract tables and records](/docs/reader/tables-records/)
 - [Check supported formats](/docs/reader/formats/)
-
-## Limits and reference
-
-**Limits:** for format coverage, see [supported formats](/docs/reader/#supported-formats) and the [compatibility matrix](/compatibility/).
-
-**Reference:** [OfficeIMO.Reader API](/api/reader/) · [Read-OfficeDocument](/api/powershell/read-officedocument/)

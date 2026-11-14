@@ -2,6 +2,11 @@
 title: Chunk Documents for Search and AI
 description: Split documents into bounded, citable chunks with heading paths and page locations, or token-sized hierarchical chunks with overlap, for search indexes and retrieval-augmented generation with OfficeIMO.Reader.
 order: 57
+packages:
+  - OfficeIMO.Reader.Core
+cmdlets:
+  - Read-OfficeDocument
+limits: "Token counts from the built-in estimator are approximate; use your model's tokenizer when a hard budget matters."
 ---
 
 Search indexes and language-model retrieval work on passages, not whole files. OfficeIMO.Reader produces two kinds of chunks:
@@ -86,9 +91,3 @@ OfficeDocumentReadResult document = reader.ReadDocument("Handbook.docx");
 ReaderChunkHierarchyResult chunks = reader.ChunkDocument(document,
     new ReaderHierarchicalChunkingOptions { MaxTokens = 800 });
 ```
-
-## Limits and reference
-
-**Limits:** token counts from the built-in estimator are approximate; use your model's tokenizer when a hard budget matters. See the [compatibility matrix](/compatibility/) for per-format extraction coverage.
-
-**Reference:** [OfficeIMO.Reader API](/api/reader/) · [Read-OfficeDocument](/api/powershell/read-officedocument/)

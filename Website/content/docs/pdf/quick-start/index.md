@@ -2,6 +2,8 @@
 title: "PDF Quick Start"
 description: "Create a PDF with headings, paragraphs, a table, and an image, then load it and read its text, with OfficeIMO.Pdf, PSWriteOffice, or the officeimo CLI."
 layout: docs
+packages:
+  - OfficeIMO.Pdf
 ---
 
 OfficeIMO.Pdf writes and reads PDF files directly in .NET. It has no native dependencies and does not need a browser, printer driver, or Office installation.
@@ -105,9 +107,3 @@ officeimo read Service-review.pdf --format markdown
 - [Encrypt and sign](/docs/pdf/encrypt-sign/)
 - [Convert to PDF/A](/docs/pdf/pdfa/)
 - [Watermarks and stamps](/docs/pdf/watermarks-stamps/)
-
-## Limits and reference
-
-**Limits:** see the [PDF package row](/compatibility/#package-pdf) in the compatibility matrix.
-
-**Reference:** [OfficeIMO.Pdf API](/api/pdf/)

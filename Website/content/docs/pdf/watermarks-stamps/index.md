@@ -2,6 +2,10 @@
 title: "Watermarks, Stamps, and Metadata"
 description: "Add text or image watermarks and stamps to new or existing PDFs and set title, author, and keywords with OfficeIMO.Pdf and PSWriteOffice."
 layout: docs
+packages:
+  - OfficeIMO.Pdf
+cmdlets:
+  - Add-OfficePdfStamp
 ---
 
 A watermark is drawn across the page, usually behind or over the content with low opacity. A stamp places text or an image at a position on selected pages, such as an approval mark or a page label. Positions are measured in points from the bottom-left corner of the page.
@@ -84,9 +88,3 @@ Console.WriteLine(PdfDocument.Load("report-tagged.pdf").Inspect().Metadata.Title
 ```powershell
 Set-OfficePdfMetadata -Path .\report.pdf -OutputPath .\report-tagged.pdf -Title 'Service review' -Author 'Operations'
 ```
-
-## Limits and reference
-
-**Limits:** see the [PDF package row](/compatibility/#package-pdf).
-
-**Reference:** [OfficeIMO.Pdf API](/api/pdf/) · [Add-OfficePdfStamp](/api/powershell/add-officepdfstamp/)

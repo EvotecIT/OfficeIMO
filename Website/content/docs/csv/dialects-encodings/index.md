@@ -2,6 +2,11 @@
 title: CSV Dialects and Encodings
 description: Read and write semicolon, tab, and pipe-delimited files, detect delimiters, choose encodings and cultures, and apply strict or spreadsheet policy profiles with OfficeIMO.CSV and PSWriteOffice.
 order: 53
+packages:
+  - OfficeIMO.CSV
+cmdlets:
+  - Import-OfficeCsv
+limits: "Delimiter detection samples at most 64 Ki characters and 64 records; it falls back to the configured delimiter when the sample is inconclusive."
 ---
 
 "CSV" covers many dialects: comma or semicolon delimiters, quoted or unquoted fields, UTF-8 with or without a byte order mark, regional decimal separators. OfficeIMO.CSV reads and writes each of them explicitly, so the file you write back matches what the receiving system expects.
@@ -103,9 +108,3 @@ CsvDocument.Load("input.csv").Save("output.csv", new CsvSaveOptions {
 ```powershell
 Import-OfficeCsv -Path .\input.csv | Export-OfficeCsv -Path .\output.csv -Encoding ([System.Text.UTF8Encoding]::new($false)) -NewLine "`n"
 ```
-
-## Limits and reference
-
-**Limits:** delimiter detection samples at most 64 Ki characters and 64 records; it falls back to the configured delimiter when the sample is inconclusive. See the [CSV package row](/compatibility/#package-csv).
-
-**Reference:** [OfficeIMO.CSV API](/api/csv/) · [Import-OfficeCsv](/api/powershell/import-officecsv/)

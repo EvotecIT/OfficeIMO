@@ -2,6 +2,8 @@
 title: Excel Quick Start
 description: Create an Excel workbook with a typed table and a chart, then read it back, with OfficeIMO.Excel, PSWriteOffice, or the officeimo CLI.
 order: 23
+packages:
+  - OfficeIMO.Excel
 ---
 
 This page creates a workbook from a list of objects, adds a native Excel table and a chart, saves it, and reads the rows back. Nothing else needs to be installed: OfficeIMO.Excel writes the `.xlsx` package directly.
@@ -101,9 +103,3 @@ officeimo tabular convert Orders.xlsx orders.csv --sheet Orders
 - [Import and export data](/docs/excel/import-export-data/)
 - [Large files and streaming](/docs/excel/large-files/)
 - [Protect sheets and workbooks](/docs/excel/protection/)
-
-## Limits and reference
-
-**Limits:** see the [Excel package row](/compatibility/#package-excel) and the [Excel format fidelity card](/compatibility/#excel) in the compatibility matrix.
-
-**Reference:** [OfficeIMO.Excel API](/api/excel/)

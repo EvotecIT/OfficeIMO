@@ -2,6 +2,11 @@
 title: Check Supported Formats
 description: List the formats a configured OfficeIMO.Reader instance can read, detect a file's kind, and register every adapter at once, with C#, PSWriteOffice, and the officeimo CLI.
 order: 60
+packages:
+  - OfficeIMO.Reader.Core
+cmdlets:
+  - Get-OfficeDocumentCapability
+limits: "A registered handler is not a claim of complete format preservation; each capability lists its format qualifications."
 ---
 
 A reader only handles the formats you registered, so the supported set is a property of your configuration. The full list of adapter packages and extensions is in the [supported formats table](/docs/reader/#supported-formats); this page shows how to check it at run time.
@@ -65,9 +70,3 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddAllOfficeIMOHandlers(new ReaderAllOptions())
     .Build();
 ```
-
-## Limits and reference
-
-**Limits:** a registered handler is not a claim of complete format preservation; each capability lists its format qualifications. See the [compatibility matrix](/compatibility/).
-
-**Reference:** [OfficeIMO.Reader API](/api/reader/) · [Get-OfficeDocumentCapability](/api/powershell/get-officedocumentcapability/)

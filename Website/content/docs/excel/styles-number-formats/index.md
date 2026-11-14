@@ -2,6 +2,8 @@
 title: Styles and Number Formats
 description: Format Excel cells, ranges, and table columns with fonts, fills, borders, alignment, number formats, and conditional formatting in OfficeIMO.Excel.
 order: 24
+packages:
+  - OfficeIMO.Excel
 ---
 
 Rows and columns are 1-based, as in Excel. `sheet.Cell("B4")` returns a lightweight cell handle and `sheet.Range("A1:D1")` returns a range. Format blocks of cells through a range: one range call applies the style once instead of cell by cell.
@@ -123,9 +125,3 @@ Open-OfficeExcel -Path .\Scores.xlsx {
     }
 }
 ```
-
-## Limits and reference
-
-**Limits:** see the [Excel package row](/compatibility/#package-excel) and the [Excel format fidelity card](/compatibility/#excel).
-
-**Reference:** [OfficeIMO.Excel API](/api/excel/) · [PSWriteOffice cmdlets](/api/powershell/)

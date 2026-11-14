@@ -2,6 +2,11 @@
 title: "Convert to PDF/A"
 description: "Convert existing PDFs to PDF/A-2, PDF/A-3, or PDF/A-4 archival profiles, assess readiness, and create PDF/A documents with OfficeIMO.Pdf, PSWriteOffice, and the officeimo CLI."
 layout: docs
+packages:
+  - OfficeIMO.Pdf
+cmdlets:
+  - Get-OfficePdfCompliance
+limits: "OfficeIMO reports what it changed and what blocks conversion; it does not certify conformance on its own. Confirm the saved file with an independent PDF/A validator when compliance is a requirement. PDF/A-4e is not a conversion target."
 ---
 
 PDF/A is the ISO profile for long-term archiving: fonts are embedded, colors are device-independent, and features that depend on external resources are removed. OfficeIMO.Pdf supports the `PdfA2B` (default), `PdfA2U`, `PdfA3B`, `PdfA3U`, `PdfA4`, and `PdfA4F` profiles.
@@ -69,9 +74,3 @@ New-OfficePdf -Path .\archive-record.pdf {
     PdfHeading 'Archive record'
 }
 ```
-
-## Limits and reference
-
-**Limits:** OfficeIMO reports what it changed and what blocks conversion; it does not certify conformance on its own. Confirm the saved file with an independent PDF/A validator when compliance is a requirement. PDF/A-4e is not a conversion target. See the [PDF package row](/compatibility/#package-pdf).
-
-**Reference:** [OfficeIMO.Pdf API](/api/pdf/) · [Get-OfficePdfCompliance](/api/powershell/get-officepdfcompliance/)

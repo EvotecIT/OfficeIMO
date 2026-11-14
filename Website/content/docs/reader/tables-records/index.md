@@ -2,6 +2,9 @@
 title: Extract Tables and Records
 description: Extract tables from Word, Excel, PDF, HTML, and other documents as rows, CSV, Markdown, or JSON, and pull key-value records and sections with OfficeIMO.Reader and PSWriteOffice.
 order: 59
+packages:
+  - OfficeIMO.Reader.Core
+limits: "Table detection in PDFs works from the drawn layout; see [Extract text and tables from PDF](/docs/pdf/extract-text-tables/)."
 ---
 
 Tables come out of every format in the same shape: a `ReaderTable` with column names, rows of strings, its location in the source, and whether it was truncated. That means the same code exports a table from a Word document, a PDF page, or an Excel range.
@@ -58,9 +61,3 @@ Console.WriteLine($"{structured.Records.Count} records, {structured.Sections.Cou
 ```powershell
 Read-OfficeDocument -Path .\Contract.docx -As Structure
 ```
-
-## Limits and reference
-
-**Limits:** table detection in PDFs works from the drawn layout; see [Extract text and tables from PDF](/docs/pdf/extract-text-tables/). See the [compatibility matrix](/compatibility/) for per-format coverage.
-
-**Reference:** [OfficeIMO.Reader API](/api/reader/)
