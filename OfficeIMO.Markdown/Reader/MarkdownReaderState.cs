@@ -85,6 +85,11 @@ public sealed class MarkdownAbbreviationDefinition {
     /// <summary>Whether the definition was authored as leading content inside a list item.</summary>
     public bool IsListItemDefinition { get; }
 
+    // Zero-based source line and its text, kept without a syntax tree so a semantic parse orders
+    // and writes parse-owned definitions as the source-backed parse does.
+    internal int SourceLineIndex { get; set; } = -1;
+    internal string? SourceLineText { get; set; }
+
     /// <summary>Creates an abbreviation definition descriptor.</summary>
     public MarkdownAbbreviationDefinition(
         string label,
@@ -110,10 +115,54 @@ public sealed class MarkdownAbbreviationDefinition {
 /// Mutable per-parse state shared across block and inline parsers.
 /// </summary>
 public sealed class MarkdownReaderState {
-    /// <summary>Reference-style link definitions collected while parsing.</summary>
-    internal Dictionary<string, MarkdownReferenceLinkDefinition> LinkRefs { get; } = new Dictionary<string, MarkdownReferenceLinkDefinition>(System.StringComparer.OrdinalIgnoreCase);
-    /// <summary>Case-sensitive abbreviation definitions collected while parsing. Later definitions replace earlier ones, matching Markdig.</summary>
-    internal Dictionary<string, MarkdownAbbreviationDefinition> Abbreviations { get; } = new Dictionary<string, MarkdownAbbreviationDefinition>(System.StringComparer.Ordinal);
+    private Dictionary<string, MarkdownReferenceLinkDefinition> _linkRefs = new Dictionary<string, MarkdownReferenceLinkDefinition>(System.StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, MarkdownAbbreviationDefinition> _abbreviations = new Dictionary<string, MarkdownAbbreviationDefinition>(System.StringComparer.Ordinal);
+    // Nested parses start from their parent's definitions. Copying them for every nested container
+    // made documents with many definitions and many containers quadratic, so states share the
+    // dictionaries and whichever side changes them first takes a copy of its own.
+    private bool _linkRefsShared;
+    private bool _abbreviationsShared;
+
+    /// <summary>Reference-style link definitions collected while parsing. Change them through <see cref="EditLinkRefs"/>.</summary>
+    internal IReadOnlyDictionary<string, MarkdownReferenceLinkDefinition> LinkRefs => _linkRefs;
+    /// <summary>Case-sensitive abbreviation definitions collected while parsing. Later definitions replace earlier ones, matching Markdig. Change them through <see cref="EditAbbreviations"/>.</summary>
+    internal IReadOnlyDictionary<string, MarkdownAbbreviationDefinition> Abbreviations => _abbreviations;
+
+    internal Dictionary<string, MarkdownReferenceLinkDefinition> EditLinkRefs() {
+        if (_linkRefsShared) {
+            _linkRefs = CopyDefinitions(_linkRefs, System.StringComparer.OrdinalIgnoreCase);
+            _linkRefsShared = false;
+        }
+
+        return _linkRefs;
+    }
+
+    internal Dictionary<string, MarkdownAbbreviationDefinition> EditAbbreviations() {
+        if (_abbreviationsShared) {
+            _abbreviations = CopyDefinitions(_abbreviations, System.StringComparer.Ordinal);
+            _abbreviationsShared = false;
+        }
+
+        return _abbreviations;
+    }
+
+    /// <summary>Starts this state from the definitions of <paramref name="source"/> without copying them.</summary>
+    internal void ShareDefinitionsWith(MarkdownReaderState source) {
+        _linkRefs = source._linkRefs;
+        _abbreviations = source._abbreviations;
+        _linkRefsShared = source._linkRefsShared = true;
+        _abbreviationsShared = source._abbreviationsShared = true;
+    }
+
+    private static Dictionary<string, TValue> CopyDefinitions<TValue>(Dictionary<string, TValue> source, System.StringComparer comparer) {
+        // Enumeration order is kept, as copying entry by entry always did.
+        var copy = new Dictionary<string, TValue>(source.Count, comparer);
+        foreach (var pair in source) {
+            copy[pair.Key] = pair.Value;
+        }
+
+        return copy;
+    }
     internal int SourceLineOffset { get; set; }
     // The quoted content of the run of quote lines last measured for HTML blocks, shared by sibling quotes and callouts.
     internal QuotedContentRun? QuotedContentRun { get; set; }
@@ -131,6 +180,8 @@ public sealed class MarkdownReaderState {
     internal bool BuildTableCellModels { get; set; } = true;
     /// <summary>Enables a lightweight semantic pass used only to locate an exact nested-list boundary.</summary>
     internal bool IsListBoundaryProbe { get; set; }
+    // Set when list continuation collection accepts a lazy continuation line.
+    internal bool LazyListContinuationSeen { get; set; }
     internal bool SuppressBlockGenericAttributes { get; set; }
     internal bool SuppressHeadingGenericAttributes { get; set; }
     internal bool IsMarkdigDefinitionListBody { get; set; }

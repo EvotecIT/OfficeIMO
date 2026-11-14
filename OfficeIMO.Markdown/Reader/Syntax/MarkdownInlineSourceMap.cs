@@ -4,14 +4,25 @@ namespace OfficeIMO.Markdown;
 
 internal sealed class MarkdownInlineSourceMap {
     private readonly MarkdownSourcePoint?[] _points;
+    // Joined paragraph text keeps its points as runs instead of one point per character. A slice
+    // is a view over the same runs.
+    private readonly MarkdownSourcePointRuns? _pointRuns;
+    private readonly int _pointRunsStart;
+    private readonly int _pointRunsLength;
     private readonly MarkdownSourceSpan?[] _tokenSpans;
     private readonly string?[] _tokenLiterals;
+    // Token-only maps of a parse without source points keep where joined lines met, so an angle
+    // link destination still cannot span lines.
+    private readonly int[]? _lineBreakOffsets;
     private readonly string? _singleLineText;
     private readonly int _singleLineTextStart;
     private readonly int _singleLineTextLength;
     private readonly int _singleLine;
     private readonly int _singleLineStartColumn;
     private readonly int _singleLineStartOffset;
+    // Column at every index of _singleLineText, kept only when the line has tabs. Without tabs a
+    // column is the start column plus the distance, so spans no longer rescan the line prefix.
+    private readonly int[]? _singleLineTabColumns;
 
     internal MarkdownInlineSourceMap(
         MarkdownSourceTextMap sourceTextMap,
@@ -28,6 +39,7 @@ internal sealed class MarkdownInlineSourceMap {
         _singleLine = startPoint.Line;
         _singleLineStartColumn = startPoint.Column;
         _singleLineStartOffset = startPoint.Offset;
+        _singleLineTabColumns = BuildTabColumns(_singleLineText, _singleLineStartColumn);
     }
 
     private MarkdownInlineSourceMap(
@@ -36,7 +48,8 @@ internal sealed class MarkdownInlineSourceMap {
         int textLength,
         int absoluteLine,
         int startColumn,
-        int startOffset) {
+        int startOffset,
+        int[]? tabColumns) {
         _points = Array.Empty<MarkdownSourcePoint?>();
         _tokenSpans = Array.Empty<MarkdownSourceSpan?>();
         _tokenLiterals = Array.Empty<string?>();
@@ -46,6 +59,7 @@ internal sealed class MarkdownInlineSourceMap {
         _singleLine = absoluteLine;
         _singleLineStartColumn = startColumn;
         _singleLineStartOffset = startOffset;
+        _singleLineTabColumns = tabColumns;
     }
 
     internal MarkdownInlineSourceMap(MarkdownSourcePoint?[] points) {
@@ -57,13 +71,41 @@ internal sealed class MarkdownInlineSourceMap {
     internal MarkdownInlineSourceMap(
         MarkdownSourcePoint?[] points,
         MarkdownSourceSpan?[]? tokenSpans,
-        string?[]? tokenLiterals) {
+        string?[]? tokenLiterals,
+        int[]? lineBreakOffsets = null) {
         _points = points ?? Array.Empty<MarkdownSourcePoint?>();
+        _tokenSpans = tokenSpans ?? Array.Empty<MarkdownSourceSpan?>();
+        _tokenLiterals = tokenLiterals ?? Array.Empty<string?>();
+        _lineBreakOffsets = lineBreakOffsets is { Length: > 0 } ? lineBreakOffsets : null;
+    }
+
+    internal MarkdownInlineSourceMap(
+        MarkdownSourcePointRuns pointRuns,
+        MarkdownSourceSpan?[]? tokenSpans,
+        string?[]? tokenLiterals)
+        : this(pointRuns, 0, pointRuns.Count, tokenSpans, tokenLiterals) {
+    }
+
+    private MarkdownInlineSourceMap(
+        MarkdownSourcePointRuns pointRuns,
+        int pointRunsStart,
+        int pointRunsLength,
+        MarkdownSourceSpan?[]? tokenSpans,
+        string?[]? tokenLiterals) {
+        _points = Array.Empty<MarkdownSourcePoint?>();
+        _pointRuns = pointRuns;
+        _pointRunsStart = pointRunsStart;
+        _pointRunsLength = pointRunsLength;
         _tokenSpans = tokenSpans ?? Array.Empty<MarkdownSourceSpan?>();
         _tokenLiterals = tokenLiterals ?? Array.Empty<string?>();
     }
 
-    internal int Length => _singleLineText != null ? _singleLineTextLength : Math.Max(_points.Length, _tokenLiterals.Length);
+    private int PointCount => _pointRuns != null ? _pointRunsLength : _points.Length;
+
+    private MarkdownSourcePoint? PointAt(int index) =>
+        _pointRuns != null ? _pointRuns.Get(_pointRunsStart + index) : _points[index];
+
+    internal int Length => _singleLineText != null ? _singleLineTextLength : Math.Max(PointCount, _tokenLiterals.Length);
 
     internal MarkdownSourceSpan? GetSpan(int startIndex, int length) {
         if (_singleLineText != null) {
@@ -74,12 +116,8 @@ internal sealed class MarkdownInlineSourceMap {
             var endExclusive = Math.Min(_singleLineTextLength, startIndex + length);
             var sourceStart = _singleLineTextStart + startIndex;
             var sourceEndExclusive = _singleLineTextStart + endExclusive;
-            var startColumn = AdvanceColumn(
-                _singleLineStartColumn,
-                _singleLineText,
-                _singleLineTextStart,
-                sourceStart);
-            var endColumnExclusive = AdvanceColumn(startColumn, _singleLineText, sourceStart, sourceEndExclusive);
+            var startColumn = GetSingleLineColumn(sourceStart);
+            var endColumnExclusive = GetSingleLineColumn(sourceEndExclusive);
             return new MarkdownSourceSpan(
                 _singleLine,
                 startColumn,
@@ -89,7 +127,7 @@ internal sealed class MarkdownInlineSourceMap {
                 _singleLineStartOffset + endExclusive - 1);
         }
 
-        if (length <= 0 || startIndex < 0 || startIndex >= _points.Length) {
+        if (length <= 0 || startIndex < 0 || startIndex >= PointCount) {
             return null;
         }
 
@@ -97,25 +135,28 @@ internal sealed class MarkdownInlineSourceMap {
             return _tokenSpans[startIndex];
         }
 
-        var endIndex = Math.Min(_points.Length - 1, startIndex + length - 1);
+        var endIndex = Math.Min(PointCount - 1, startIndex + length - 1);
+        // Only the first and last mapped positions matter. Walking inward from both ends keeps a
+        // wide span (an emphasis around a long paragraph) from costing its full length.
         MarkdownSourcePoint? start = null;
         MarkdownSourcePoint? end = null;
 
-        for (var i = startIndex; i <= endIndex; i++) {
-            var point = _points[i];
+        for (var i = startIndex; i <= endIndex && !start.HasValue; i++) {
             if (i < _tokenSpans.Length && _tokenSpans[i].HasValue) {
                 var span = _tokenSpans[i]!.Value;
-                start ??= new MarkdownSourcePoint(span.StartLine, span.StartColumn ?? 1, span.StartOffset ?? 0);
+                start = new MarkdownSourcePoint(span.StartLine, span.StartColumn ?? 1, span.StartOffset ?? 0);
+            } else {
+                start = PointAt(i);
+            }
+        }
+
+        for (var i = endIndex; i >= startIndex && start.HasValue && !end.HasValue; i--) {
+            if (i < _tokenSpans.Length && _tokenSpans[i].HasValue) {
+                var span = _tokenSpans[i]!.Value;
                 end = new MarkdownSourcePoint(span.EndLine, span.EndColumn ?? 1, span.EndOffset ?? 0);
-                continue;
+            } else {
+                end = PointAt(i);
             }
-
-            if (point == null) {
-                continue;
-            }
-
-            start ??= point;
-            end = point;
         }
 
         if (!start.HasValue || !end.HasValue) {
@@ -148,18 +189,30 @@ internal sealed class MarkdownInlineSourceMap {
             return false;
         }
 
-        if (length <= 0 || startIndex < 0 || startIndex >= _points.Length) {
+        if (_lineBreakOffsets != null) {
+            var limit = startIndex + length;
+            foreach (var offset in _lineBreakOffsets) {
+                if (offset >= startIndex && offset < limit) {
+                    return true;
+                }
+            }
+
             return false;
         }
 
-        var endExclusive = Math.Min(_points.Length, startIndex + length);
+        int pointCount = PointCount;
+        if (length <= 0 || startIndex < 0 || startIndex >= pointCount) {
+            return false;
+        }
+
+        var endExclusive = Math.Min(pointCount, startIndex + length);
         for (var i = startIndex; i < endExclusive; i++) {
-            if (i + 1 >= _points.Length) {
+            if (i + 1 >= pointCount) {
                 break;
             }
 
-            var current = _points[i];
-            var next = _points[i + 1];
+            var current = PointAt(i);
+            var next = PointAt(i + 1);
             if (current.HasValue && next.HasValue && current.Value.Line != next.Value.Line) {
                 return true;
             }
@@ -193,12 +246,12 @@ internal sealed class MarkdownInlineSourceMap {
     }
 
     private bool HasSourceLineTransitionAfter(int index) {
-        if (index < 0 || index + 1 >= _points.Length) {
+        if (index < 0 || index + 1 >= PointCount) {
             return false;
         }
 
-        var current = _points[index];
-        var next = _points[index + 1];
+        var current = PointAt(index);
+        var next = PointAt(index + 1);
         return current.HasValue && next.HasValue && current.Value.Line != next.Value.Line;
     }
 
@@ -215,12 +268,9 @@ internal sealed class MarkdownInlineSourceMap {
                 directStart,
                 directLength,
                 _singleLine,
-                AdvanceColumn(
-                    _singleLineStartColumn,
-                    _singleLineText,
-                    _singleLineTextStart,
-                    directStart),
-                _singleLineStartOffset + startIndex);
+                GetSingleLineColumn(directStart),
+                _singleLineStartOffset + startIndex,
+                _singleLineTabColumns);
         }
 
         if (length <= 0 || startIndex < 0 || startIndex >= Length) {
@@ -228,6 +278,15 @@ internal sealed class MarkdownInlineSourceMap {
         }
 
         var actualLength = Math.Min(length, Length - startIndex);
+        if (_pointRuns != null) {
+            return new MarkdownInlineSourceMap(
+                _pointRuns,
+                _pointRunsStart + startIndex,
+                Math.Min(actualLength, Math.Max(0, _pointRunsLength - startIndex)),
+                SliceArray(_tokenSpans, startIndex, actualLength),
+                SliceArray(_tokenLiterals, startIndex, actualLength));
+        }
+
         var slice = Array.Empty<MarkdownSourcePoint?>();
         if (_points.Length > startIndex) {
             slice = new MarkdownSourcePoint?[actualLength];
@@ -246,17 +305,48 @@ internal sealed class MarkdownInlineSourceMap {
             Array.Copy(_tokenLiterals, startIndex, tokenLiteralSlice, 0, Math.Min(actualLength, _tokenLiterals.Length - startIndex));
         }
 
-        return new MarkdownInlineSourceMap(slice, tokenSpanSlice, tokenLiteralSlice);
-    }
+        int[]? lineBreakSlice = null;
+        if (_lineBreakOffsets != null) {
+            var shifted = new List<int>();
+            foreach (var offset in _lineBreakOffsets) {
+                if (offset >= startIndex && offset < startIndex + actualLength) {
+                    shifted.Add(offset - startIndex);
+                }
+            }
 
-    private static int AdvanceColumn(int column, string text, int start, int endExclusive) {
-        var result = column;
-        var limit = Math.Min(text.Length, Math.Max(start, endExclusive));
-        for (var index = Math.Max(0, start); index < limit; index++) {
-            result = MarkdownSourceColumns.AdvanceColumn(result, text[index]);
+            lineBreakSlice = shifted.ToArray();
         }
 
-        return result;
+        return new MarkdownInlineSourceMap(slice, tokenSpanSlice, tokenLiteralSlice, lineBreakSlice);
+    }
+
+    private static T[] SliceArray<T>(T[] source, int startIndex, int length) {
+        if (source.Length <= startIndex) {
+            return Array.Empty<T>();
+        }
+
+        var slice = new T[length];
+        Array.Copy(source, startIndex, slice, 0, Math.Min(length, source.Length - startIndex));
+        return slice;
+    }
+
+    private int GetSingleLineColumn(int sourceIndex) =>
+        _singleLineTabColumns != null
+            ? _singleLineTabColumns[sourceIndex]
+            : _singleLineStartColumn + (sourceIndex - _singleLineTextStart);
+
+    private static int[]? BuildTabColumns(string text, int startColumn) {
+        if (text.IndexOf('\t') < 0) {
+            return null;
+        }
+
+        var columns = new int[text.Length + 1];
+        columns[0] = startColumn;
+        for (var index = 0; index < text.Length; index++) {
+            columns[index + 1] = MarkdownSourceColumns.AdvanceColumn(columns[index], text[index]);
+        }
+
+        return columns;
     }
 }
 

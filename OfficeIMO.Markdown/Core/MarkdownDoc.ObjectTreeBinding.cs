@@ -24,7 +24,7 @@ public partial class MarkdownDocument {
             _lastBlock = block;
         }
 
-        _parseResult = null;
+        ClearParseOwnedState();
     }
 
     internal void EnsureObjectTreeBound() {

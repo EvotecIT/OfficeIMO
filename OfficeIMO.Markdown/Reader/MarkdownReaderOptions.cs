@@ -16,7 +16,11 @@ public enum MarkdownCalloutTitleMode {
 /// syntax such as OfficeIMO callouts, TOC placeholders, footnotes, or custom inline tokens.
 /// </summary>
 public sealed class MarkdownLoadOptions {
-    /// <summary>Retains syntax and source bindings. False selects semantic-only parsing for large reads.</summary>
+    /// <summary>
+    /// Retains the syntax tree, source spans and <see cref="MarkdownDocument.ParseInfo"/>. Default: true.
+    /// Set it to false when nothing reads source information: the parse then builds the same semantic
+    /// document, which renders and writes the same output, in less time and memory.
+    /// </summary>
     public bool CaptureSyntaxTree { get; set; } = true;
 
     /// <summary>Creates bounded parser settings for documents from outside.</summary>
@@ -676,7 +680,9 @@ public sealed class MarkdownLoadOptions {
 
     /// <summary>
     /// Maximum recursive block-container depth accepted while parsing nested lists, quotes,
-    /// details, callouts, footnotes, and similar constructs. Default: 64.
+    /// details, callouts, footnotes, and similar constructs, and the maximum depth of nested
+    /// inline containers such as emphasis, links and inline HTML wrappers within one block.
+    /// Deeper input fails with an <see cref="System.IO.InvalidDataException"/>. Default: 64.
     /// </summary>
     public int MaxNestingDepth { get; set; } = 64;
 

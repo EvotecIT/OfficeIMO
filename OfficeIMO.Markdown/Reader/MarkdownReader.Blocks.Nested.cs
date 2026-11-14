@@ -173,6 +173,9 @@ internal static partial class MarkdownReader {
                     LooksLikeParagraphLine(collected, collected.Count - 1, options) &&
                     TryNormalizeListLazyContinuationLine(lines, k, options, breakOnOrderedListLine, out var normalizedLazyLine)) {
                     collected.Add(normalizedLazyLine);
+                    if (state != null) {
+                        state.LazyListContinuationSeen = true;
+                    }
                     sourceLines?.Add(new MarkdownSourceLineSlice(
                         normalizedLazyLine,
                         absoluteLineOffset + k + 1,

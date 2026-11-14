@@ -39,7 +39,13 @@ namespace OfficeIMO.Word.Markdown {
                 }
                 options.ApplyDefaults(document);
                 var pageContentWidthPixels = EstimatePageContentWidthPixels(document);
-                RenderDocument(markdown, document, options, pageContentWidthPixels, cancellationToken);
+                // Styling each heading would otherwise rescan the whole body for a table of contents,
+                // and each new list would scan every numbering definition for free ids.
+                document.RunWithDeferredHeadingModified(() => {
+                    using (document.UseNumberingIdCache()) {
+                        RenderDocument(markdown, document, options, pageContentWidthPixels, cancellationToken);
+                    }
+                });
                 return document;
             } catch {
                 document.Dispose();

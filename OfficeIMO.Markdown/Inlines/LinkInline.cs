@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Hyperlink inline.
 /// </summary>
-public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline, IMarkdownInlineAuxiliarySyntaxMetadataOwner {
+public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline, IMarkdownInlineAuxiliarySyntaxMetadataOwner, IHtmlAppendableMarkdownInline {
     MarkdownInlineAuxiliarySyntaxMetadata? IMarkdownInlineAuxiliarySyntaxMetadataOwner.AuxiliarySyntaxMetadata { get; set; }
     /// <summary>Link text.</summary>
     public string Text { get; }
@@ -56,6 +56,8 @@ public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPla
         HtmlRelSourceSpan = htmlRelSourceSpan;
     }
 
+    internal bool ParsedAsAutolinkWithoutSyntaxTree { get; set; }
+
     internal string RenderMarkdown() {
         string? autolinkMarkdown = TryRenderAutolinkMarkdown();
         if (autolinkMarkdown != null) {
@@ -74,7 +76,7 @@ public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPla
             return null;
         }
 
-        if (!MarkdownInlineMetadataSourceSpans.GetLinkTargetSpan(this).HasValue) {
+        if (!MarkdownInlineMetadataSourceSpans.GetLinkTargetSpan(this).HasValue && !ParsedAsAutolinkWithoutSyntaxTree) {
             return null;
         }
 
@@ -125,8 +127,37 @@ public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPla
         }
         return $"<a href=\"{HtmlAttributeUrlEncoder.Encode(Url, o)}\"{title}{extra}>{HtmlTextEncoder.Encode(Text, o)}</a>";
     }
+    internal void AppendHtml(StringBuilder sb) {
+        var o = HtmlRenderContext.Options;
+        if (!UrlOriginPolicy.IsAllowedHttpLink(o, Url)) {
+            if (LabelInlines != null) {
+                LabelInlines.AppendHtml(sb);
+            } else {
+                HtmlTextEncoder.Append(sb, Text, o);
+            }
+
+            return;
+        }
+
+        sb.Append("<a href=\"").Append(HtmlAttributeUrlEncoder.Encode(Url, o)).Append('"');
+        if (!string.IsNullOrEmpty(Title)) {
+            sb.Append(" title=\"");
+            HtmlTextEncoder.Append(sb, Title, o);
+            sb.Append('"');
+        }
+
+        sb.Append(LinkHtmlAttributes.BuildLinkAttributes(o, Url, LinkTarget, LinkRel)).Append('>');
+        if (LabelInlines != null) {
+            LabelInlines.AppendHtml(sb);
+        } else {
+            HtmlTextEncoder.Append(sb, Text, o);
+        }
+
+        sb.Append("</a>");
+    }
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
+    void IHtmlAppendableMarkdownInline.AppendHtml(StringBuilder builder) => AppendHtml(builder);
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) {
         if (LabelInlines != null) {
             InlinePlainText.AppendPlainText(sb, LabelInlines);

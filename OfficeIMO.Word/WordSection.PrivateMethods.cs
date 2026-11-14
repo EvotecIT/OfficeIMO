@@ -987,13 +987,91 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         private List<WordParagraph> GetParagraphsList() {
             int targetSection = GetSectionOrdinal();
-            var paragraphsBySection = Enumerable.Range(0, GetSectionCount())
-                .Select(_ => new List<Paragraph>())
-                .ToList();
-
             var body = _document._document?.Body;
             if (body == null) {
                 return new List<WordParagraph>();
+            }
+
+            var paragraphs = new List<Paragraph>();
+            foreach (var (element, section) in EnumerateBodyChildrenBySection(body, targetSection)) {
+                if (section > targetSection) {
+                    break;
+                }
+                if (section == targetSection && element is Paragraph paragraph && !IsPureSectionBreakParagraph(paragraph)) {
+                    paragraphs.Add(paragraph);
+                }
+            }
+
+            return ConvertParagraphsToWordParagraphs(_document, paragraphs);
+        }
+
+        /// <summary>
+        /// Splits the body children into sections: a section break paragraph belongs to the section
+        /// it ends, and any extra break paragraphs stay in the last section.
+        /// </summary>
+        internal static List<List<OpenXmlElement>> SplitBodyBySection(Body body, int sectionCount) {
+            var childrenBySection = Enumerable.Range(0, Math.Max(sectionCount, 1))
+                .Select(_ => new List<OpenXmlElement>())
+                .ToList();
+            int currentSection = 0;
+            foreach (var element in body.ChildElements) {
+                childrenBySection[currentSection].Add(element);
+                if (element is Paragraph paragraph && IsSectionBoundaryParagraph(paragraph) && currentSection < childrenBySection.Count - 1) {
+                    currentSection++;
+                }
+            }
+            return childrenBySection;
+        }
+
+        /// <summary>
+        /// Yields body children with the section they belong to. Inside a document-wide snapshot scope only
+        /// the target section's children are yielded; otherwise the whole body is walked, so callers that
+        /// wrap every element keep doing so.
+        /// </summary>
+        private IEnumerable<(OpenXmlElement Element, int Section)> EnumerateBodyChildrenBySection(Body body, int targetSection) {
+            List<List<OpenXmlElement>>? snapshot = _document.GetBodySectionSnapshot(body);
+            if (snapshot != null) {
+                foreach (OpenXmlElement element in snapshot[targetSection]) {
+                    yield return (element, targetSection);
+                }
+                yield break;
+            }
+
+            int sectionCount = GetSectionCount();
+            int currentSection = 0;
+            foreach (var element in body.ChildElements) {
+                yield return (element, currentSection);
+                if (element is Paragraph paragraph && IsSectionBoundaryParagraph(paragraph) && currentSection < sectionCount - 1) {
+                    currentSection++;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns the paragraphs of every section in section order, the same list as concatenating
+        /// each section's <see cref="Paragraphs"/>, from one pass over the body instead of one per section.
+        /// </summary>
+        internal static List<WordParagraph> GetParagraphsOfAllSections(WordDocument document) {
+            var list = new List<WordParagraph>();
+            List<List<Paragraph>>? paragraphsBySection = GroupBodyParagraphsBySection(document);
+            if (paragraphsBySection == null) {
+                return list;
+            }
+
+            for (int section = 0; section < document.Sections.Count; section++) {
+                list.AddRange(ConvertParagraphsToWordParagraphs(document, paragraphsBySection[section]));
+            }
+            return list;
+        }
+
+        private static List<List<Paragraph>>? GroupBodyParagraphsBySection(WordDocument document) {
+            var paragraphsBySection = Enumerable.Range(0, Math.Max(document.Sections.Count, 1))
+                .Select(_ => new List<Paragraph>())
+                .ToList();
+
+            var body = document._document?.Body;
+            if (body == null) {
+                return null;
             }
 
             int currentSection = 0;
@@ -1011,7 +1089,7 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            return ConvertParagraphsToWordParagraphs(_document, paragraphsBySection[targetSection]);
+            return paragraphsBySection;
         }
 
         /// <summary>
@@ -1054,13 +1132,52 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         private List<WordTable> GetTablesList() {
             int targetSection = GetSectionOrdinal();
-            var tablesBySection = Enumerable.Range(0, GetSectionCount())
-                .Select(_ => new List<WordTable>())
-                .ToList();
-
             var body = _wordprocessingDocument?.MainDocumentPart?.Document?.Body;
             if (body == null) {
                 return new List<WordTable>();
+            }
+
+            // Wrapping a table prepares its cells for editing, so every table the walk sees is wrapped,
+            // not only the ones returned for this section.
+            List<WordTable> tables = new List<WordTable>();
+            foreach (var (element, section) in EnumerateBodyChildrenBySection(body, targetSection)) {
+                if (element is Table table) {
+                    var wordTable = new WordTable(_document, table);
+                    if (section == targetSection) {
+                        tables.Add(wordTable);
+                    }
+                }
+            }
+            return tables;
+        }
+
+        /// <summary>
+        /// Returns the tables of every section in section order, the same list as concatenating
+        /// each section's <see cref="Tables"/>, from one pass over the body instead of one per section.
+        /// </summary>
+        internal static List<WordTable> GetTablesOfAllSections(WordDocument document) {
+            var list = new List<WordTable>();
+            List<List<Table>>? tablesBySection = GroupBodyTablesBySection(document);
+            if (tablesBySection == null) {
+                return list;
+            }
+
+            for (int section = 0; section < document.Sections.Count; section++) {
+                foreach (Table table in tablesBySection[section]) {
+                    list.Add(new WordTable(document, table));
+                }
+            }
+            return list;
+        }
+
+        private static List<List<Table>>? GroupBodyTablesBySection(WordDocument document) {
+            var tablesBySection = Enumerable.Range(0, Math.Max(document.Sections.Count, 1))
+                .Select(_ => new List<Table>())
+                .ToList();
+
+            var body = document._wordprocessingDocument?.MainDocumentPart?.Document?.Body;
+            if (body == null) {
+                return null;
             }
 
             int currentSection = 0;
@@ -1070,11 +1187,11 @@ namespace OfficeIMO.Word {
                         currentSection++;
                     }
                 } else if (element is Table table) {
-                    tablesBySection[currentSection].Add(new WordTable(_document, table));
+                    tablesBySection[currentSection].Add(table);
                 }
             }
 
-            return tablesBySection[targetSection];
+            return tablesBySection;
         }
 
         /// <summary>
@@ -1083,58 +1200,48 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         private List<WordEmbeddedDocument> GetEmbeddedDocumentsList() {
             int targetSection = GetSectionOrdinal();
-            var embeddedDocumentsBySection = Enumerable.Range(0, GetSectionCount())
-                .Select(_ => new List<WordEmbeddedDocument>())
-                .ToList();
-
             var body = _wordprocessingDocument?.MainDocumentPart?.Document?.Body;
             if (body == null) {
                 return new List<WordEmbeddedDocument>();
             }
 
-            int currentSection = 0;
-            foreach (var element in body.ChildElements) {
-                if (element is Paragraph paragraph) {
-                    if (IsSectionBoundaryParagraph(paragraph) && currentSection < embeddedDocumentsBySection.Count - 1) {
-                        currentSection++;
+            var embeddedDocuments = new List<WordEmbeddedDocument>();
+            foreach (var (element, section) in EnumerateBodyChildrenBySection(body, targetSection)) {
+                if (element is AltChunk altChunk) {
+                    var embeddedDocument = new WordEmbeddedDocument(_document, altChunk);
+                    if (section == targetSection) {
+                        embeddedDocuments.Add(embeddedDocument);
                     }
-                } else if (element is AltChunk altChunk) {
-                    embeddedDocumentsBySection[currentSection].Add(new WordEmbeddedDocument(_document, altChunk));
                 }
             }
 
-            return embeddedDocumentsBySection[targetSection];
+            return embeddedDocuments;
         }
 
         private List<WordEmbeddedObject> GetEmbeddedObjectsList() {
             int targetSection = GetSectionOrdinal();
-            var embeddedObjectsBySection = Enumerable.Range(0, GetSectionCount())
-                .Select(_ => new List<WordEmbeddedObject>())
-                .ToList();
-
             var body = _wordprocessingDocument?.MainDocumentPart?.Document?.Body;
             if (body == null) {
                 return new List<WordEmbeddedObject>();
             }
 
-            int currentSection = 0;
-            foreach (var element in body.ChildElements) {
+            var embeddedObjects = new List<WordEmbeddedObject>();
+            foreach (var (element, section) in EnumerateBodyChildrenBySection(body, targetSection)) {
                 if (element is not Paragraph paragraph) {
                     continue;
                 }
 
                 foreach (var run in paragraph.ChildElements.OfType<Run>()) {
                     if (run.Descendants<Ovml.OleObject>().Any()) {
-                        embeddedObjectsBySection[currentSection].Add(new WordEmbeddedObject(_document, run));
+                        var embeddedObject = new WordEmbeddedObject(_document, run);
+                        if (section == targetSection) {
+                            embeddedObjects.Add(embeddedObject);
+                        }
                     }
-                }
-
-                if (IsSectionBoundaryParagraph(paragraph) && currentSection < embeddedObjectsBySection.Count - 1) {
-                    currentSection++;
                 }
             }
 
-            return embeddedObjectsBySection[targetSection];
+            return embeddedObjects;
         }
 
         /// <summary>
@@ -1143,35 +1250,33 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         private List<WordElement> GetWordElements() {
             int targetSection = GetSectionOrdinal();
-            var elementsBySection = Enumerable.Range(0, GetSectionCount())
-                .Select(_ => new List<WordElement>())
-                .ToList();
-
             var body = _wordprocessingDocument?.MainDocumentPart?.Document?.Body;
             if (body == null) {
                 return new List<WordElement>();
             }
 
-            int currentSection = 0;
-            foreach (var element in body.ChildElements) {
+            // Elements of other sections are still wrapped when the walk sees them, as before.
+            var elements = new List<WordElement>();
+            foreach (var (element, section) in EnumerateBodyChildrenBySection(body, targetSection)) {
+                List<WordElement>? target = section == targetSection ? elements : null;
                 if (element is Paragraph paragraph) {
                     if (!IsPureSectionBreakParagraph(paragraph)) {
-                        elementsBySection[currentSection].AddRange(ConvertParagraphToWordParagraphs(_document, paragraph));
-                    }
-
-                    if (IsSectionBoundaryParagraph(paragraph) && currentSection < elementsBySection.Count - 1) {
-                        currentSection++;
+                        List<WordParagraph> paragraphs = ConvertParagraphToWordParagraphs(_document, paragraph);
+                        target?.AddRange(paragraphs);
                     }
                 } else if (element is AltChunk altChunk) {
-                    elementsBySection[currentSection].Add(new WordEmbeddedDocument(_document, altChunk));
+                    var embeddedDocument = new WordEmbeddedDocument(_document, altChunk);
+                    target?.Add(embeddedDocument);
                 } else if (element is SdtBlock sdtBlock) {
-                    elementsBySection[currentSection].Add(ConvertStdBlockToWordElements(_document, sdtBlock));
+                    WordElement structuredElement = ConvertStdBlockToWordElements(_document, sdtBlock);
+                    target?.Add(structuredElement);
                 } else if (element is Table table) {
-                    elementsBySection[currentSection].Add(new WordTable(_document, table));
+                    var wordTable = new WordTable(_document, table);
+                    target?.Add(wordTable);
                 }
             }
 
-            return elementsBySection[targetSection];
+            return elements;
         }
 
         /// <summary>
@@ -1228,27 +1333,22 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         private List<SdtBlock> GetSdtBlockList() {
             int targetSection = GetSectionOrdinal();
-            var sdtBlocksBySection = Enumerable.Range(0, GetSectionCount())
-                .Select(_ => new List<SdtBlock>())
-                .ToList();
-
             var body = _wordprocessingDocument?.MainDocumentPart?.Document?.Body;
             if (body == null) {
                 return new List<SdtBlock>();
             }
 
-            int currentSection = 0;
-            foreach (var element in body.ChildElements) {
-                if (element is Paragraph paragraph) {
-                    if (IsSectionBoundaryParagraph(paragraph) && currentSection < sdtBlocksBySection.Count - 1) {
-                        currentSection++;
-                    }
-                } else if (element is SdtBlock sdtBlock) {
-                    sdtBlocksBySection[currentSection].Add(sdtBlock);
+            var sdtBlocks = new List<SdtBlock>();
+            foreach (var (element, section) in EnumerateBodyChildrenBySection(body, targetSection)) {
+                if (section > targetSection) {
+                    break;
+                }
+                if (section == targetSection && element is SdtBlock sdtBlock) {
+                    sdtBlocks.Add(sdtBlock);
                 }
             }
 
-            return sdtBlocksBySection[targetSection];
+            return sdtBlocks;
         }
 
         /// <summary>

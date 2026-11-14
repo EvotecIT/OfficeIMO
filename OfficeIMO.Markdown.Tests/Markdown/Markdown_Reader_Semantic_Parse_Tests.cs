@@ -170,16 +170,67 @@ public sealed class Markdown_Reader_Semantic_Parse_Tests {
             var semanticDocument = MarkdownReader.ParseSemantic(example.Markdown, options);
             var sourceBackedDocument = MarkdownReader.ParseWithSyntaxTree(example.Markdown, options).Document;
 
+            // Exact output: converters rely on a semantic parse rendering what the default parse renders.
             Assert.True(
-                string.Equals(
-                    CommonMarkHtmlComparison.Normalize(sourceBackedDocument.ToHtml()),
-                    CommonMarkHtmlComparison.Normalize(semanticDocument.ToHtml()),
-                    StringComparison.Ordinal),
+                string.Equals(sourceBackedDocument.ToHtml(), semanticDocument.ToHtml(), StringComparison.Ordinal),
                 $"CommonMark example {example.Example} ({example.Section}) produced different HTML. " +
                 $"Source-backed: {Escape(sourceBackedDocument.ToHtml())}; semantic: {Escape(semanticDocument.ToHtml())}.");
             MarkdownInvariantAssert.SemanticTreeIsWellFormed(semanticDocument);
         }
     }
+
+    // Converters parse without the syntax tree when nothing reads it, so the semantic document
+    // has to render the same HTML and keep the same text runs as the default parse.
+    [Theory]
+    [InlineData("| a |\n| --- |\n| ok <br> sure |\n", ReaderSetup.Default)]
+    [InlineData("Validate the COSE_Sign1 claim and the CIE L* ladder.\n", ReaderSetup.Default)]
+    [InlineData("**foo **bar baz**\n", ReaderSetup.Default)]
+    [InlineData("- Overall health **\u2705****Healthy**\n", ReaderSetup.Default)]
+    [InlineData("  1.  A paragraph\n    with two lines.\n", ReaderSetup.Default)]
+    [InlineData("<http://foo.bar.baz>\n", ReaderSetup.CommonMarkWithoutInlineHtml)]
+    [InlineData("[link](<foo\nbar>)\n", ReaderSetup.CommonMarkWithoutInlineHtml)]
+    [InlineData("Term\n:   Definition\n", ReaderSetup.Default)]
+    [InlineData("Term: First paragraph\n  continued\n\n  Second paragraph\n\nOther: Value\n", ReaderSetup.Default)]
+    [InlineData("Term\n:   First\nlazy title\n{.note}\n", ReaderSetup.Extended)]
+    [InlineData("> Term: def\n> hello\n", ReaderSetup.Default)]
+    [InlineData("a\n\tb\n\n<div>\n\t<p>x</p>\n</div>\n", ReaderSetup.Default)]
+    [InlineData("*[HTML]:   \n\nHTML\n", ReaderSetup.Extended)]
+    public void Parse_WithoutSyntaxTree_Matches_SourceBacked_Html_Runs_And_Markdown(string markdown, ReaderSetup setup) {
+        var sourceBackedOptions = CreateOptions(setup);
+        sourceBackedOptions.CaptureSyntaxTree = true;
+        var sourceBacked = MarkdownDocument.Parse(markdown, sourceBackedOptions);
+        var semanticOptions = CreateOptions(setup);
+        semanticOptions.CaptureSyntaxTree = false;
+        var semantic = MarkdownDocument.Parse(markdown, semanticOptions);
+
+        Assert.Equal(sourceBacked.ToHtml(), semantic.ToHtml());
+        Assert.Equal(InlineSignature(sourceBacked), InlineSignature(semantic));
+        Assert.Equal(sourceBacked.ToMarkdown(), semantic.ToMarkdown());
+    }
+
+    public enum ReaderSetup {
+        Default,
+        // MarkdownRenderer reads with inline HTML off, which sends angle brackets down other paths.
+        CommonMarkWithoutInlineHtml,
+        Extended
+    }
+
+    private static MarkdownLoadOptions CreateOptions(ReaderSetup setup) {
+        switch (setup) {
+            case ReaderSetup.CommonMarkWithoutInlineHtml:
+                var commonMark = MarkdownLoadOptions.CreateCommonMarkProfile();
+                commonMark.InlineHtml = false;
+                return commonMark;
+            case ReaderSetup.Extended:
+                return new MarkdownLoadOptions { Abbreviations = true, GenericAttributes = true };
+            default:
+                return new MarkdownLoadOptions();
+        }
+    }
+
+    private static IEnumerable<string> InlineSignature(MarkdownDocument document) =>
+        document.DescendantObjectsOfType<MarkdownInline>()
+            .Select(inline => inline.GetType().Name + (inline is MarkdownTextRun run ? ":" + run.Text : string.Empty));
 
     [Fact]
     public void ParseSemantic_Does_Not_Capture_Public_Source_Spans() {

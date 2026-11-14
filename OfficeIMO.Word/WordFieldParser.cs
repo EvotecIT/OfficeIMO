@@ -8,6 +8,13 @@ namespace OfficeIMO.Word {
     /// Parses Word field codes and exposes their individual parts.
     /// </summary>
     internal class WordFieldParser {
+        // Every field property read parses the field code, so build each pattern once.
+        private static readonly Regex FormatSwitchPattern = new(@"(\\\*) *([A-Za-z-_]+ *)");
+        private static readonly Regex NumericPictureSwitchPattern = new(@"(\\#)(?:\s*(""[^""]*""|[^\s\\]+))?");
+        private static readonly Regex SwitchPattern = new(@"(\\[A-Za-z@](?:\s*(?:""[^""]*""|[^\s\\]+))?)");
+        private static readonly Regex InstructionPattern = new(" +([A-Za-z0-9_.-]+|\"[^\"]+\")");
+        private static readonly Regex FieldTypePattern = new("^[^ ]+");
+
         private WordFieldType? _wordFieldType;
         /// <summary>
         /// Gets the type of field represented by the parsed code.
@@ -83,10 +90,7 @@ namespace OfficeIMO.Word {
             var orgFieldCodeDeclaration = fieldCodeDeclaration.Clone();
 
             // get format switches
-            string formatSwitches = @"(\\\*) *([A-Za-z-_]+ *)";
-
-            Regex rgx = new Regex(formatSwitches);
-            var matches = rgx.Matches(fieldCodeDeclaration);
+            var matches = FormatSwitchPattern.Matches(fieldCodeDeclaration);
             foreach (Match m in matches) {
                 string formatSwitch = m.Groups[2].ToString().Trim();
                 var success = WordFieldFormatCodec.TryParse(formatSwitch, out WordFieldFormat fieldFormat);
@@ -99,9 +103,7 @@ namespace OfficeIMO.Word {
                 fieldCodeDeclaration = fieldCodeDeclaration.Replace(m.ToString(), "").Trim();
             }
 
-            string numericPictureSwitches = @"(\\#)(?:\s*(""[^""]*""|[^\s\\]+))?";
-            rgx = new Regex(numericPictureSwitches);
-            matches = rgx.Matches(fieldCodeDeclaration);
+            matches = NumericPictureSwitchPattern.Matches(fieldCodeDeclaration);
             foreach (Match m in matches) {
                 string switchText = m.ToString().Trim();
                 this._diagnostics.Add($"Field numeric picture switch {switchText} is not parsed by OfficeIMO for this field type.");
@@ -109,10 +111,7 @@ namespace OfficeIMO.Word {
             }
 
             // get normal switches
-            string switches = @"(\\[A-Za-z@](?:\s*(?:""[^""]*""|[^\s\\]+))?)";
-
-            rgx = new Regex(switches);
-            matches = rgx.Matches(fieldCodeDeclaration);
+            matches = SwitchPattern.Matches(fieldCodeDeclaration);
             foreach (Match m in matches) {
                 var normalSwitch = m.ToString().Trim();
                 this._switches.Add(normalSwitch);
@@ -121,10 +120,7 @@ namespace OfficeIMO.Word {
             }
 
             // get instructions
-            string instructions = " +([A-Za-z0-9_.-]+|\"[^\"]+\")";
-
-            rgx = new Regex(instructions);
-            matches = rgx.Matches(fieldCodeDeclaration);
+            matches = InstructionPattern.Matches(fieldCodeDeclaration);
             foreach (Match m in matches) {
                 var instruction = m.ToString().Trim();
                 this._instructions.Add(instruction);
@@ -134,10 +130,7 @@ namespace OfficeIMO.Word {
 
 
             // get field type
-            string fieldType = "^[^ ]+";
-
-            rgx = new Regex(fieldType);
-            String match = rgx.Match(fieldCodeDeclaration).ToString().Trim();
+            String match = FieldTypePattern.Match(fieldCodeDeclaration).ToString().Trim();
 
 
             var parsed = Enum.TryParse(match, true, out WordFieldType wordFieldType);

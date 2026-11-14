@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// Bold/strong emphasis that contains nested inline nodes.
 /// Used by the reader so nested markup can be represented without changing the fluent builder API.
 /// </summary>
-public sealed class BoldSequenceInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline, IStrongMarkdownInline, IMarkdownInlineAuxiliarySyntaxMetadataOwner {
+public sealed class BoldSequenceInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline, IStrongMarkdownInline, IMarkdownInlineAuxiliarySyntaxMetadataOwner, IHtmlAppendableMarkdownInline {
     MarkdownInlineAuxiliarySyntaxMetadata? IMarkdownInlineAuxiliarySyntaxMetadataOwner.AuxiliarySyntaxMetadata { get; set; }
     /// <summary>Inline content.</summary>
     public InlineSequence Inlines { get; }
@@ -15,9 +15,19 @@ public sealed class BoldSequenceInline : MarkdownInline, IRenderableMarkdownInli
     }
 
     internal string RenderMarkdown() => "**" + Inlines.RenderMarkdown() + "**";
-    internal string RenderHtml() => "<strong>" + Inlines.RenderHtml() + "</strong>";
+    internal string RenderHtml() {
+        var sb = new StringBuilder();
+        AppendHtml(sb);
+        return sb.ToString();
+    }
+    internal void AppendHtml(StringBuilder sb) {
+        sb.Append("<strong>");
+        Inlines.AppendHtml(sb);
+        sb.Append("</strong>");
+    }
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
+    void IHtmlAppendableMarkdownInline.AppendHtml(StringBuilder builder) => AppendHtml(builder);
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => InlinePlainText.AppendPlainText(sb, Inlines);
     InlineSequence? IInlineContainerMarkdownInline.NestedInlines => Inlines;
 }

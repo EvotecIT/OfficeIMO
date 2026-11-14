@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Plain text run.
 /// </summary>
-public sealed class MarkdownTextRun : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, ILiteralTextMarkdownInline {
+public sealed class MarkdownTextRun : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, ILiteralTextMarkdownInline, IHtmlAppendableMarkdownInline {
     private MarkdownTextRunSyntaxMetadata? _syntaxMetadata;
 
     /// <summary>Text content.</summary>
@@ -68,6 +68,7 @@ public sealed class MarkdownTextRun : MarkdownInline, IRenderableMarkdownInline,
     internal string RenderHtml() => HtmlTextEncoder.Encode(Text, HtmlRenderContext.Options);
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
+    void IHtmlAppendableMarkdownInline.AppendHtml(StringBuilder builder) => HtmlTextEncoder.Append(builder, Text, HtmlRenderContext.Options);
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(Text);
 
     private MarkdownTextRunSyntaxMetadata SyntaxMetadata =>

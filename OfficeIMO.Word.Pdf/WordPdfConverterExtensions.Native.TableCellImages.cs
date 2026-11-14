@@ -8,8 +8,9 @@ namespace OfficeIMO.Word.Pdf {
             Uri? uri = image.Hyperlink;
             if (uri == null && image._Image?.Descendants<A.HyperlinkOnClick>().FirstOrDefault()?.Id?.Value is { } relationshipId) {
                 WordParagraph paragraph = image.Paragraph;
-                uri = WordHyperLink.ResolveRelationshipPart(paragraph._document, paragraph._paragraph)?.HyperlinkRelationships
-                    .FirstOrDefault(relationship => relationship.IsExternal && relationship.Id == relationshipId)?.Uri;
+                DocumentFormat.OpenXml.Packaging.HyperlinkRelationship? relationship = WordHyperLink.FindHyperlinkRelationship(
+                    WordHyperLink.ResolveRelationshipPart(paragraph._document, paragraph._paragraph), relationshipId);
+                uri = relationship is { IsExternal: true } ? relationship.Uri : null;
             }
 
             return uri?.IsAbsoluteUri == true && OfficeDrawingLinkPolicy.TryNormalize(uri.AbsoluteUri, out string link)

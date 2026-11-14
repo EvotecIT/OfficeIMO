@@ -409,6 +409,18 @@ namespace OfficeIMO.Word.Html {
             WordTableCell? cell,
             WordHeaderFooter? headerFooter) {
             var parent = anchor._paragraph.Parent;
+            if (cell == null && headerFooter == null &&
+                section.TryGetLastBlocks(out _, out Paragraph? lastParagraph)) {
+                // Every paragraph listed for a section is a direct child of the body.
+                if (parent is not Body || lastParagraph == null) {
+                    return anchor;
+                }
+                List<WordParagraph> projected = ProjectParagraph(section, lastParagraph);
+                if (projected.Count > 0) {
+                    return projected[projected.Count - 1];
+                }
+            }
+
             var paragraphs = GetParagraphsInScope(section, cell, headerFooter);
             for (int i = paragraphs.Count - 1; i >= 0; i--) {
                 var candidate = paragraphs[i];

@@ -514,7 +514,7 @@ namespace OfficeIMO.Word {
                 word._wordprocessingDocument = wordDocument;
                 word._document = wordDocument.MainDocumentPart?.Document ?? throw new InvalidOperationException("Document is missing.");
                 word._openXmlOriginalPackageBytes = OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(sourceBytes)
-                    ? (byte[])sourceBytes.Clone()
+                    ? sourceBytes
                     : null;
                 word.LoadDocument();
                 if (applyOverrideStyles) {
@@ -641,7 +641,7 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument = wordDocument,
                 _document = wordDocument.MainDocumentPart?.Document ?? throw new InvalidOperationException("Document is missing."),
                 _openXmlOriginalPackageBytes = OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(sourceBytes)
-                    ? (byte[])sourceBytes.Clone()
+                    ? sourceBytes
                     : null,
                 _persistenceMode = resolved.PersistenceMode
             };
@@ -681,11 +681,11 @@ namespace OfficeIMO.Word {
                 cancellationToken).ConfigureAwait(false);
             if (resolved.Password == null && TryLoadWordXml(sourceBytes, null, resolved, cancellationToken) is { } xmlDocument)
                 return xmlDocument.RememberXmlStream(stream);
-            using var bufferedStream = new MemoryStream(sourceBytes.Length);
-            bufferedStream.Write(sourceBytes, 0, sourceBytes.Length);
-            bufferedStream.Position = 0;
+            // The bytes were read under the same limits the synchronous load applies, so they are
+            // loaded as they are instead of being copied into a buffer and read again.
+            using var bufferedStream = new MemoryStream(sourceBytes, 0, sourceBytes.Length, writable: true, publiclyVisible: true);
             WordDocument document = resolved.Password == null
-                ? LoadFromStream(bufferedStream, resolved, captureSourcePackageSecurity: true, detectXml: false, cancellationToken: cancellationToken)
+                ? LoadFromStream(bufferedStream, resolved, captureSourcePackageSecurity: true, detectXml: false, cancellationToken: cancellationToken, sourceBytes: sourceBytes)
                 : Load(bufferedStream, resolved);
             if (document.SourceFormat == WordFileFormat.Docx) {
                 document.OriginalStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(stream, resolved.AccessMode)!;
@@ -707,7 +707,7 @@ namespace OfficeIMO.Word {
 
         private static WordDocument LoadFromStream(Stream stream, WordLoadOptions? options,
             bool captureSourcePackageSecurity, bool detectXml = true, CancellationToken cancellationToken = default,
-            OpenSettings? packageSettings = null) {
+            OpenSettings? packageSettings = null, byte[]? sourceBytes = null) {
             ArgumentNullException.ThrowIfNull(stream);
             cancellationToken.ThrowIfCancellationRequested();
             if (!stream.CanRead) {
@@ -720,7 +720,7 @@ namespace OfficeIMO.Word {
             bool saveOnDispose = resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
             OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
             var effectiveOpenSettings = packageSettings ?? CreateOpenSettings(resolved.OpenSettings);
-            byte[] sourceBytes = ReadSourceBytes(stream, resolved);
+            sourceBytes ??= ReadSourceBytes(stream, resolved);
             cancellationToken.ThrowIfCancellationRequested();
             if (detectXml && TryLoadWordXml(sourceBytes, null, resolved) is { } xmlDocument)
                 return xmlDocument.RememberXmlStream(stream);
@@ -751,7 +751,7 @@ namespace OfficeIMO.Word {
                         sourceBytes,
                         readOnly),
                     _openXmlOriginalPackageBytes = OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(sourceBytes)
-                        ? (byte[])sourceBytes.Clone()
+                        ? sourceBytes
                         : null,
                     _persistenceMode = resolved.PersistenceMode
                 };

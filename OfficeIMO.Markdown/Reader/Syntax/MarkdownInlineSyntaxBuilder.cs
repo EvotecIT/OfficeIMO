@@ -33,6 +33,8 @@ internal static class MarkdownInlineSyntaxBuilder {
             return null;
         }
 
+        // Parsed trees are bounded by MaxNestingDepth; hand-built ones fail here instead of overflowing.
+        System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
         var span = MarkdownInlineSourceSpans.Get(inline);
         if (inline is ISyntaxMarkdownInline syntaxInline) {
             return syntaxInline.BuildSyntaxNode(_context, span);

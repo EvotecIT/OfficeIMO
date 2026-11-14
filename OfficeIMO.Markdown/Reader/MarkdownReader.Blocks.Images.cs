@@ -38,10 +38,33 @@ internal static partial class MarkdownReader {
         return TryParseImage(line, out image, out sizeSpec, out ranges);
     }
     private static bool TryParseImage(string line, out ImageBlock image, out string? sizeSpec) =>
-        TryParseImage(line, new MarkdownLoadOptions(), new MarkdownReaderState(), out image, out sizeSpec, out _);
+        TryParseImage(line, out image, out sizeSpec, out _);
 
-    private static bool TryParseImage(string line, out ImageBlock image, out string? sizeSpec, out MarkdownImageSyntaxRanges ranges) =>
-        TryParseImage(line, new MarkdownLoadOptions(), new MarkdownReaderState(), out image, out sizeSpec, out ranges);
+    private static bool TryParseImage(string line, out ImageBlock image, out string? sizeSpec, out MarkdownImageSyntaxRanges ranges) {
+        // Paragraph scanning probes every line. Default reader options register the built-in
+        // extensions, so they are only created once the line can actually start an image.
+        if (!StartsWithImageMarker(line)) {
+            image = null!;
+            sizeSpec = null;
+            ranges = default;
+            return false;
+        }
+
+        return TryParseImage(line, new MarkdownLoadOptions(), new MarkdownReaderState(), out image, out sizeSpec, out ranges);
+    }
+
+    private static bool StartsWithImageMarker(string? line) {
+        if (string.IsNullOrEmpty(line)) {
+            return false;
+        }
+
+        int index = 0;
+        while (index < line!.Length && char.IsWhiteSpace(line[index])) {
+            index++;
+        }
+
+        return index + 1 < line.Length && line[index] == '!' && line[index + 1] == '[';
+    }
 
     private static bool TryParseImage(string line, MarkdownLoadOptions options, MarkdownReaderState state, out ImageBlock image, out string? sizeSpec) =>
         TryParseImage(line, options, state, out image, out sizeSpec, out _);

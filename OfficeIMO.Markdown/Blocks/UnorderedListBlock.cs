@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Unordered list supporting plain items and task (checklist) items.
 /// </summary>
-public sealed class UnorderedListBlock : MarkdownBlock, IMarkdownListBlock, ISyntaxMarkdownBlock {
+public sealed class UnorderedListBlock : MarkdownBlock, IMarkdownListBlock, ISyntaxMarkdownBlock, IHtmlAppendableMarkdownBlock {
     /// <summary>List items.</summary>
     public List<ListItem> Items { get; } = new List<ListItem>(4);
     /// <inheritdoc />
@@ -23,6 +23,9 @@ public sealed class UnorderedListBlock : MarkdownBlock, IMarkdownListBlock, ISyn
 
     internal string RenderHtml(bool renderItemAttributes) =>
         MarkdownListRendering.RenderHtml("ul", Items, Attributes, _ => string.Empty, renderItemAttributes);
+
+    void IHtmlAppendableMarkdownBlock.AppendHtml(StringBuilder builder) =>
+        MarkdownListRendering.AppendHtml(builder, "ul", Items, Attributes, _ => string.Empty, renderItemAttributes: false);
 
     IReadOnlyList<ListItem> IMarkdownListBlock.ListItems => Items;
     MarkdownSyntaxKind IMarkdownListBlock.ListSyntaxKind => MarkdownSyntaxKind.UnorderedList;

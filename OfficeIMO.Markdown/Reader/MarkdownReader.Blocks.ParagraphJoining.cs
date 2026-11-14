@@ -4,16 +4,54 @@ namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
     private static InlineSequence ParseJoinedParagraphLines(List<string> lines, MarkdownLoadOptions options, MarkdownReaderState? state) {
-        var text = JoinParagraphLines(lines, options, out var softBreaks);
-        return ParseInlines(text, options, state, CreateSemanticLineBreakMap(text, softBreaks));
+        var lineBreaks = CreateSemanticLineBreakList(state, lines.Count, index => lines[index]);
+        var text = JoinParagraphLines(lines, options, out var softBreaks, lineBreaks: lineBreaks);
+        return ParseInlines(text, options, state, CreateSemanticLineBreakMap(text, softBreaks, lineBreaks));
     }
 
     // Token-only maps transport parsing semantics without allocating source points or capturing spans.
-    private static MarkdownInlineSourceMap? CreateSemanticLineBreakMap(string text, List<int>? softBreaks) {
-        if (softBreaks == null || softBreaks.Count == 0) return null;
+    private static MarkdownInlineSourceMap? CreateSemanticLineBreakMap(string text, List<int>? softBreaks, List<int>? lineBreaks = null) {
+        bool hasSoftBreaks = softBreaks != null && softBreaks.Count > 0;
+        bool hasLineBreaks = lineBreaks != null && lineBreaks.Count > 0;
+        if (!hasSoftBreaks && !hasLineBreaks) return null;
         var tokens = new string?[text.Length];
-        foreach (int offset in softBreaks) tokens[offset] = "\n";
-        return new MarkdownInlineSourceMap(Array.Empty<MarkdownSourcePoint?>(), null, tokens);
+        if (hasSoftBreaks) {
+            foreach (int offset in softBreaks!) tokens[offset] = "\n";
+        }
+
+        return new MarkdownInlineSourceMap(Array.Empty<MarkdownSourcePoint?>(), null, tokens, hasLineBreaks ? lineBreaks!.ToArray() : null);
+    }
+
+    // A syntax-capturing parse rejects an angle link destination that spans lines because its
+    // source points change line. Without points, a parse records where lines were joined, but only
+    // for paragraphs that can hold such a destination.
+    private static List<int>? CreateSemanticLineBreakList(MarkdownReaderState? state, int lineCount, Func<int, string?> line) {
+        if (state?.CaptureSyntaxTree != false || lineCount < 2) {
+            return null;
+        }
+
+        // An angle destination opens with "](", optional whitespace that may end the line, then '<'.
+        for (int i = 0; i < lineCount; i++) {
+            var value = line(i);
+            if (value == null) {
+                continue;
+            }
+
+            for (int opening = value.IndexOf("](", StringComparison.Ordinal); opening >= 0; opening = value.IndexOf("](", opening + 2, StringComparison.Ordinal)) {
+                int next = opening + 2;
+                while (next < value.Length && char.IsWhiteSpace(value[next])) {
+                    next++;
+                }
+
+                if (next < value.Length
+                    ? value[next] == '<'
+                    : i + 1 < lineCount && line(i + 1)?.TrimStart().StartsWith("<", StringComparison.Ordinal) == true) {
+                    return new List<int>();
+                }
+            }
+        }
+
+        return null;
     }
 
     private static (string Text, MarkdownInlineSourceMap? SourceMap) JoinTrimmedParagraphLines(List<string> lines, MarkdownLoadOptions options) {
@@ -25,7 +63,7 @@ internal static partial class MarkdownReader {
     }
 
     private static string JoinParagraphLines(List<string> lines, MarkdownLoadOptions options, out List<int>? softBreaks,
-        MarkdownReaderState? state = null, int absoluteLineOffset = 0) {
+        MarkdownReaderState? state = null, int absoluteLineOffset = 0, List<int>? lineBreaks = null) {
         softBreaks = null;
         if (lines.Count == 1) {
             return GetParagraphLineJoinInfo(
@@ -61,6 +99,7 @@ internal static partial class MarkdownReader {
                     (IsLazyQuoteContinuationLine(state, absoluteLineOffset + i - 1) ||
                      IsLazyQuoteContinuationLine(state, absoluteLineOffset + i));
                 if (previousPreserveLineBreak || lazyQuoteBreak) (softBreaks ??= new List<int>()).Add(sb.Length);
+                lineBreaks?.Add(sb.Length);
                 sb.Append(previousUsesLineBreakSeparator || lazyQuoteBreak ? "\n" : " ");
             }
             sb.Append(joinInfo.Text);
@@ -78,13 +117,14 @@ internal static partial class MarkdownReader {
         MarkdownReaderState? state,
         IReadOnlyList<int>? lineStartColumns = null) {
         if (state?.SourceTextMap == null) {
-            var sourceText = JoinParagraphLines(lines, options, out var softBreaks, state, absoluteLineOffset);
-            return (sourceText, CreateSemanticLineBreakMap(sourceText, softBreaks));
+            var lineBreaks = CreateSemanticLineBreakList(state, lines.Count, index => lines[index]);
+            var sourceText = JoinParagraphLines(lines, options, out var softBreaks, state, absoluteLineOffset, lineBreaks);
+            return (sourceText, CreateSemanticLineBreakMap(sourceText, softBreaks, lineBreaks));
         }
 
         var mapCapacity = GetJoinedParagraphCapacity(lines);
         var textBuilder = new StringBuilder(mapCapacity);
-        var points = new MarkdownSourcePoint?[mapCapacity];
+        var pointRuns = new MarkdownSourcePointRuns();
         MarkdownSourceSpan?[]? tokenSpans = null;
         string?[]? tokenLiterals = null;
         var mapLength = 0;
@@ -101,7 +141,7 @@ internal static partial class MarkdownReader {
                     IsLazyQuoteContinuationLine(state, absoluteLineOffset + i)) &&
                     !previousJoinInfo.Value.HardBreak;
                 textBuilder.Append(previousJoinInfo.Value.UsesLineBreakSeparator || softLazyQuoteBreak ? '\n' : ' ');
-                points[mapLength] = state.SourceTextMap.CreatePoint(previousAbsoluteLine, previousJoinColumn);
+                pointRuns.AddPoint(state.SourceTextMap.CreatePoint(previousAbsoluteLine, previousJoinColumn));
                 var tokenSpan = previousJoinInfo.Value.HardBreak
                     ? previousJoinInfo.Value.HardBreakMarkerSpan
                     : softLazyQuoteBreak || previousJoinInfo.Value.PreserveLineBreak
@@ -144,12 +184,12 @@ internal static partial class MarkdownReader {
                 preserveSoftLineBreakBeforeHtml: options.InlineHtml && i + 1 < lines.Count &&
                     StartsWithRawInlineHtml(lines[i + 1]));
             textBuilder.Append(joinInfo.Text);
-            var sourceColumn = state.SourceTextMap.WriteSequentialPoints(
-                points,
-                ref mapLength,
+            var sourceColumn = pointRuns.AddSequential(
+                state.SourceTextMap,
                 joinInfo.Text,
                 absoluteLine,
                 lineStartColumn);
+            mapLength += joinInfo.Text.Length;
 
             previousAbsoluteLine = absoluteLine;
             previousJoinColumn = Math.Max(lineStartColumn, sourceColumn - 1);
@@ -161,8 +201,8 @@ internal static partial class MarkdownReader {
             return (text, null);
         }
 
-        ResizeInlineSourceMapArrays(ref points, ref tokenSpans, ref tokenLiterals, mapLength);
-        return (text, new MarkdownInlineSourceMap(points, tokenSpans, tokenLiterals));
+        ResizeInlineSourceMapTokens(ref tokenSpans, ref tokenLiterals, mapLength);
+        return (text, new MarkdownInlineSourceMap(pointRuns, tokenSpans, tokenLiterals));
     }
 
     private static int GetParagraphLineStartColumn(IReadOnlyList<int>? lineStartColumns, int lineIndex) {
@@ -210,13 +250,14 @@ internal static partial class MarkdownReader {
         }
 
         if (state?.SourceTextMap == null) {
-            var sourceText = JoinParagraphSourceLines(lines, options, out var softBreaks);
-            return (sourceText, CreateSemanticLineBreakMap(sourceText, softBreaks));
+            var lineBreaks = CreateSemanticLineBreakList(state, lines.Count, index => lines[index].Text);
+            var sourceText = JoinParagraphSourceLines(lines, options, out var softBreaks, lineBreaks);
+            return (sourceText, CreateSemanticLineBreakMap(sourceText, softBreaks, lineBreaks));
         }
 
         var mapCapacity = GetJoinedParagraphCapacity(lines);
         var textBuilder = new StringBuilder(mapCapacity);
-        var points = new MarkdownSourcePoint?[mapCapacity];
+        var pointRuns = new MarkdownSourcePointRuns();
         MarkdownSourceSpan?[]? tokenSpans = null;
         string?[]? tokenLiterals = null;
         var mapLength = 0;
@@ -237,7 +278,7 @@ internal static partial class MarkdownReader {
                     !previousJoinInfo.Value.HardBreak;
                 textBuilder.Append(previousJoinInfo.Value.UsesLineBreakSeparator || softLazyQuoteBreak ? '\n' : ' ');
                 var previousJoinColumn = GetEndColumn(previousLine.Value.StartColumn, previousJoinInfo.Value.Text);
-                points[mapLength] = state.SourceTextMap.CreatePoint(previousLine.Value.AbsoluteLine, previousJoinColumn);
+                pointRuns.AddPoint(state.SourceTextMap.CreatePoint(previousLine.Value.AbsoluteLine, previousJoinColumn));
                 var tokenSpan = previousJoinInfo.Value.HardBreak
                     ? previousJoinInfo.Value.HardBreakMarkerSpan
                     : softLazyQuoteBreak || previousJoinInfo.Value.PreserveLineBreak
@@ -274,12 +315,12 @@ internal static partial class MarkdownReader {
                 preserveSoftLineBreakBeforeHtml: options.InlineHtml && i + 1 < lines.Count &&
                     StartsWithRawInlineHtml(lines[i + 1].Text));
             textBuilder.Append(joinInfo.Text);
-            state.SourceTextMap.WriteSequentialPoints(
-                points,
-                ref mapLength,
+            pointRuns.AddSequential(
+                state.SourceTextMap,
                 joinInfo.Text,
                 slice.AbsoluteLine,
                 slice.StartColumn);
+            mapLength += joinInfo.Text.Length;
 
             previousLine = slice;
             previousJoinInfo = joinInfo;
@@ -290,11 +331,11 @@ internal static partial class MarkdownReader {
             return (text, null);
         }
 
-        ResizeInlineSourceMapArrays(ref points, ref tokenSpans, ref tokenLiterals, mapLength);
-        return (text, new MarkdownInlineSourceMap(points, tokenSpans, tokenLiterals));
+        ResizeInlineSourceMapTokens(ref tokenSpans, ref tokenLiterals, mapLength);
+        return (text, new MarkdownInlineSourceMap(pointRuns, tokenSpans, tokenLiterals));
     }
 
-    private static string JoinParagraphSourceLines(List<MarkdownSourceLineSlice> lines, MarkdownLoadOptions options, out List<int>? softBreaks) {
+    private static string JoinParagraphSourceLines(List<MarkdownSourceLineSlice> lines, MarkdownLoadOptions options, out List<int>? softBreaks, List<int>? lineBreaks = null) {
         softBreaks = null;
         if (lines == null || lines.Count == 0) {
             return string.Empty;
@@ -331,6 +372,7 @@ internal static partial class MarkdownReader {
                 if (!previousJoinInfo.Value.HardBreak && (previousJoinInfo.Value.PreserveLineBreak || IsLazyQuoteSoftBreak(previousLine.Value, slice))) {
                     (softBreaks ??= new List<int>()).Add(sb.Length);
                 }
+                lineBreaks?.Add(sb.Length);
                 sb.Append(previousJoinInfo.Value.UsesLineBreakSeparator ||
                           (IsLazyQuoteSoftBreak(previousLine.Value, slice) && !previousJoinInfo.Value.HardBreak)
                     ? '\n'
@@ -373,20 +415,14 @@ internal static partial class MarkdownReader {
         return capacity;
     }
 
-    private static void ResizeInlineSourceMapArrays(
-        ref MarkdownSourcePoint?[] points,
+    private static void ResizeInlineSourceMapTokens(
         ref MarkdownSourceSpan?[]? tokenSpans,
         ref string?[]? tokenLiterals,
         int length) {
-        if (length == points.Length) {
-            return;
-        }
-
-        Array.Resize(ref points, length);
-        if (tokenSpans != null) {
+        if (tokenSpans != null && tokenSpans.Length != length) {
             Array.Resize(ref tokenSpans, length);
         }
-        if (tokenLiterals != null) {
+        if (tokenLiterals != null && tokenLiterals.Length != length) {
             Array.Resize(ref tokenLiterals, length);
         }
     }

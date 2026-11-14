@@ -4,6 +4,56 @@ using System.Text;
 namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
+    // A lazy continuation line keeps its soft line break only through the source-line join, which
+    // a semantic parse otherwise skips. When collection saw such a line, the lines are collected
+    // again with their slices; other items keep the plain-line path.
+    private static List<string> ConsumeListLeadLines(
+        string[] lines,
+        ref int nextIndex,
+        int continuationIndent,
+        string initialContent,
+        MarkdownLoadOptions options,
+        bool breakOnAnyOrderedListLine,
+        ref List<MarkdownSourceLineSlice>? sourceLines,
+        int initialLineIndex,
+        int initialStartColumn,
+        MarkdownReaderState state) {
+        int start = nextIndex;
+        bool semantic = sourceLines == null && !state.CaptureSyntaxTree && !state.IsListBoundaryProbe;
+        state.LazyListContinuationSeen = false;
+        var collected = ConsumeListContinuationLines(
+            lines,
+            ref nextIndex,
+            continuationIndent,
+            initialContent,
+            options,
+            breakOnAnyOrderedListLine,
+            sourceLines,
+            state.SourceLineOffset,
+            initialLineIndex,
+            initialStartColumn,
+            state);
+        if (!semantic || !state.LazyListContinuationSeen) {
+            return collected;
+        }
+
+        state.LazyListContinuationSeen = false;
+        nextIndex = start;
+        sourceLines = new List<MarkdownSourceLineSlice>();
+        return ConsumeListContinuationLines(
+            lines,
+            ref nextIndex,
+            continuationIndent,
+            initialContent,
+            options,
+            breakOnAnyOrderedListLine,
+            sourceLines,
+            state.SourceLineOffset,
+            initialLineIndex,
+            initialStartColumn,
+            state);
+    }
+
     private static ListItem CreateListItemFromLeadLines(List<string> lines, bool isTask, bool done, MarkdownLoadOptions options, MarkdownReaderState? state, int lineOffset, List<MarkdownSourceLineSlice>? sourceLines = null) {
         if (state?.IsListBoundaryProbe == true) {
             return isTask

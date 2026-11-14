@@ -55,7 +55,7 @@ public partial class MarkdownDocument : MarkdownObject {
     internal void ReplaceBlocks(IEnumerable<IMarkdownBlock>? blocks) {
         _blocks.Clear();
         _lastBlock = null;
-        _parseResult = null;
+        ClearParseOwnedState();
         if (blocks == null) {
             MarkdownObjectTreeBinder.BindDocument(this);
             return;
@@ -75,6 +75,22 @@ public partial class MarkdownDocument : MarkdownObject {
 
     internal void AttachParseResult(MarkdownParseInfo parseResult) {
         _parseResult = parseResult ?? throw new ArgumentNullException(nameof(parseResult));
+    }
+
+    // A parse without a syntax tree attaches no parse result, but still owns its abbreviation
+    // definitions, which Markdown writing preserves.
+    private IReadOnlyList<MarkdownAbbreviationDefinition>? _semanticAbbreviationDefinitions;
+
+    internal void AttachSemanticAbbreviationDefinitions(IReadOnlyList<MarkdownAbbreviationDefinition> definitions) {
+        _semanticAbbreviationDefinitions = definitions.Count == 0 ? null : definitions;
+    }
+
+    internal IReadOnlyList<MarkdownAbbreviationDefinition>? ParseOwnedAbbreviationDefinitions =>
+        _parseResult?.AbbreviationDefinitions ?? _semanticAbbreviationDefinitions;
+
+    private void ClearParseOwnedState() {
+        _parseResult = null;
+        _semanticAbbreviationDefinitions = null;
     }
 
     /// <summary>Enumerates all document blocks depth-first, including front matter when present.</summary>
@@ -615,7 +631,11 @@ public partial class MarkdownDocument : MarkdownObject {
         };
     }
 
-    private static bool AppendParseOwnedAbbreviationDefinitions(StringBuilder sb, MarkdownParseInfo? parseResult, MarkdownSaveOptions options) {
+    private static bool AppendParseOwnedAbbreviationDefinitions(
+        StringBuilder sb,
+        MarkdownParseInfo? parseResult,
+        IReadOnlyList<MarkdownAbbreviationDefinition>? definitions,
+        MarkdownSaveOptions options) {
         if (options.AbbreviationDefinitionRendering == MarkdownAbbreviationDefinitionRenderingMode.Omit) {
             return false;
         }
@@ -624,13 +644,13 @@ public partial class MarkdownDocument : MarkdownObject {
             throw new ArgumentOutOfRangeException(nameof(options.AbbreviationDefinitionRendering), options.AbbreviationDefinitionRendering, "Unknown abbreviation definition rendering mode.");
         }
 
-        if (parseResult == null || parseResult.AbbreviationDefinitions.Count == 0) {
+        if (definitions == null || definitions.Count == 0) {
             return false;
         }
 
         var wroteDefinition = false;
-        for (int i = 0; i < parseResult.AbbreviationDefinitions.Count; i++) {
-            var definition = parseResult.AbbreviationDefinitions[i];
+        for (int i = 0; i < definitions.Count; i++) {
+            var definition = definitions[i];
             if (definition == null
                 || string.IsNullOrWhiteSpace(definition.Label)
                 || definition.IsListItemDefinition) {
@@ -644,10 +664,16 @@ public partial class MarkdownDocument : MarkdownObject {
         return wroteDefinition;
     }
 
-    private static string RenderAbbreviationDefinition(MarkdownParseInfo parseResult, MarkdownAbbreviationDefinition definition) {
-        if (definition.SourceSpan.HasValue
+    private static string RenderAbbreviationDefinition(MarkdownParseInfo? parseResult, MarkdownAbbreviationDefinition definition) {
+        if (parseResult != null
+            && definition.SourceSpan.HasValue
             && parseResult.TryCreateSourceSlice(definition.SourceSpan.Value, out var slice)) {
             var sourceLine = slice.Text.TrimEnd('\r', '\n');
+            if (!string.IsNullOrWhiteSpace(sourceLine)) {
+                return sourceLine;
+            }
+        } else if (parseResult == null && definition.SourceLineText != null) {
+            var sourceLine = definition.SourceLineText.TrimEnd('\r', '\n');
             if (!string.IsNullOrWhiteSpace(sourceLine)) {
                 return sourceLine;
             }

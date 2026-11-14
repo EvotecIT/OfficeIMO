@@ -159,6 +159,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordToMarkdown_ExportsDirectAndStyleNumberedListsInsideTableCells() {
+            using var doc = WordDocument.Create();
+            WordList steps = doc.AddList(WordListStyle.Numbered);
+            steps.AddItem("Body step");
+            doc.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(new Style(
+                new StyleName { Val = "CellSteps" },
+                new StyleParagraphProperties(new NumberingProperties(
+                    new NumberingLevelReference { Val = 0 }, new NumberingId { Val = steps.NumberId }))) {
+                Type = StyleValues.Paragraph, StyleId = "CellSteps"
+            });
+
+            var table = doc.AddTable(2, 1);
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Procedure";
+            WordTableCell cell = table.Rows[1].Cells[0];
+            cell.Paragraphs[0].Text = "Styled step";
+            cell.Paragraphs[0].SetStyleId("CellSteps");
+            cell.AddList(WordListStyle.Bulleted).AddItem("Direct bullet");
+
+            MarkdownDocument markdown = doc.ToMarkdown(new WordMarkdownExportOptions());
+
+            var tableBlock = Assert.IsType<TableBlock>(markdown.Blocks.Last());
+            Assert.Collection(
+                Assert.Single(Assert.Single(tableBlock.RowCells)).ChildBlocks,
+                block => Assert.Equal("Styled step", Assert.Single(Assert.IsType<OrderedListBlock>(block).Items).ChildBlocks.Single().RenderMarkdown()),
+                block => Assert.Equal("Direct bullet", Assert.Single(Assert.IsType<UnorderedListBlock>(block).Items).ChildBlocks.Single().RenderMarkdown()));
+        }
+
+        [Fact]
         public void WordToMarkdown_ToMarkdownDocument_Expands_TextBox_Content_In_Document_Order() {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Intro");

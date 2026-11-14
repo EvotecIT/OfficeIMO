@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// Inserted inline content that can contain nested inline nodes.
 /// Used by Markdig-style emphasis extras so nested markup can be represented without flattening formatting.
 /// </summary>
-public sealed class InsertedSequenceInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline, IMarkdownInlineAuxiliarySyntaxMetadataOwner {
+public sealed class InsertedSequenceInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline, IMarkdownInlineAuxiliarySyntaxMetadataOwner, IHtmlAppendableMarkdownInline {
     MarkdownInlineAuxiliarySyntaxMetadata? IMarkdownInlineAuxiliarySyntaxMetadataOwner.AuxiliarySyntaxMetadata { get; set; }
     /// <summary>Inline content.</summary>
     public InlineSequence Inlines { get; }
@@ -15,9 +15,19 @@ public sealed class InsertedSequenceInline : MarkdownInline, IRenderableMarkdown
     }
 
     internal string RenderMarkdown() => "++" + Inlines.RenderMarkdownWithTextEscaper(MarkdownEscaper.EscapeInsertedText) + "++";
-    internal string RenderHtml() => "<ins>" + Inlines.RenderHtml() + "</ins>";
+    internal string RenderHtml() {
+        var sb = new StringBuilder();
+        AppendHtml(sb);
+        return sb.ToString();
+    }
+    internal void AppendHtml(StringBuilder sb) {
+        sb.Append("<ins>");
+        Inlines.AppendHtml(sb);
+        sb.Append("</ins>");
+    }
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
+    void IHtmlAppendableMarkdownInline.AppendHtml(StringBuilder builder) => AppendHtml(builder);
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => InlinePlainText.AppendPlainText(sb, Inlines);
     InlineSequence? IInlineContainerMarkdownInline.NestedInlines => Inlines;
 }

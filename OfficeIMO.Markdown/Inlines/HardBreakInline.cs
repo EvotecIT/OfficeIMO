@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Hard line break inline. Markdown renders as two spaces + newline; HTML as <br/>.
 /// </summary>
-public sealed class HardBreakInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
+public sealed class HardBreakInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IHtmlAppendableMarkdownInline {
     /// <summary>Source marker spelling that produced this hard break when parsed from markdown.</summary>
     public string? Marker { get; internal set; }
     /// <summary>Source span for the hard-break marker when parsed from markdown.</summary>
@@ -19,5 +19,6 @@ public sealed class HardBreakInline : MarkdownInline, IRenderableMarkdownInline,
         Marker is "<br>" or "<br/>" or "<br />" ? Marker : "<br/>";
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
+    void IHtmlAppendableMarkdownInline.AppendHtml(StringBuilder builder) => builder.Append(RenderHtml());
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(' ');
 }

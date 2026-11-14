@@ -39,7 +39,8 @@ namespace OfficeIMO.Word {
         private static void VisitListCounters(WordDocument document, CancellationToken cancellationToken,
             Action<WordParagraph, ListInfo, int, Dictionary<int, long>, Dictionary<int, WordNumberFormat?>> visit,
             IEnumerable<IEnumerable<WordParagraph>>? stories = null) {
-            WordListNumberingResolver.StyleCatalog catalog = WordListNumberingResolver.CreateStyleCatalog(document);
+            WordListNumberingResolver.StyleCatalog catalog = GetActiveListNumberingCatalog(document)
+                ?? WordListNumberingResolver.CreateStyleCatalog(document);
             foreach (IEnumerable<WordParagraph> story in stories ?? EnumerateListStories(document)) {
                 // A numbering instance selects formatting and optional restarts. Instances
                 // sharing an abstract definition otherwise advance one story-local sequence.
