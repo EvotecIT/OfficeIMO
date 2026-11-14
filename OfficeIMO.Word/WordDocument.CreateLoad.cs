@@ -206,7 +206,12 @@ namespace OfficeIMO.Word {
             word.InitializeSdtIdState();
             InitializeNewDocumentFacade(word);
             try {
-                if (themeApplied) word._creationTheme = OfficeTheme.Default;
+                if (themeApplied) {
+                    word._creationTheme = OfficeTheme.Default;
+                    word._defaultPackageThemePart = wordDocument.MainDocumentPart?.ThemePart;
+                    word._defaultPackageStylesPart = wordDocument.MainDocumentPart?.StyleDefinitionsPart;
+                    word._defaultPackageType = documentType;
+                }
                 else if (theme != null) word.ApplyCreationTheme(theme);
                 else if (applyDefaultTheme) word.ApplyDefaultCreationTheme();
                 return word;
@@ -344,7 +349,8 @@ namespace OfficeIMO.Word {
         }
 
         private static void InitializeNewDocumentFacade(WordDocument word) {
-            new WordSettings(word);
+            // Settings are created on first use; the default package already has a settings part, so parsing it
+            // here only made every new document load and rewrite settings.xml.
             new WordCompatibilitySettings(word);
             new WordApplicationProperties(word);
             new WordBuiltinDocumentProperties(word);
