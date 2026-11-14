@@ -199,6 +199,13 @@ public sealed partial class PdfTableCell {
     /// <summary>Returns a copy that renders the given portion of the full cell, including images. Cells containing check boxes or form fields cannot use a viewport.</summary>
     public PdfTableCell WithViewport(PdfTableCellViewport? viewport) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, NoWrap, viewport, TextRotation, ShrinkTextToFit, Blocks) { OrientedRowTextHeight = OrientedRowTextHeight };
 
+    /// <summary>Copies the cell with every text run passed through <paramref name="replace"/>, keeping run formatting.</summary>
+    internal PdfTableCell WithReplacedText(System.Func<string, string> replace) =>
+        new PdfTableCell(Runs.Select(run => run.WithText(replace(run.Text))),
+            Paragraphs.Select(paragraph => paragraph.WithRuns(paragraph.Runs.Select(run => run.WithText(replace(run.Text))))),
+            ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName,
+            NoWrap, Viewport, TextRotation, ShrinkTextToFit, Blocks) { OrientedRowTextHeight = OrientedRowTextHeight };
+
     internal PdfTableCell Clone() => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, NoWrap, Viewport, TextRotation, ShrinkTextToFit, Blocks) { OrientedRowTextHeight = OrientedRowTextHeight };
 
     private static void Validate(int columnSpan, int rowSpan, string? linkUri, string? linkDestinationName, string? linkContents, string? namedDestinationName) {
@@ -437,5 +444,6 @@ internal sealed class PdfTableCellParagraph {
         return new RichParagraphBlock(Runs, Align ?? OfficeAlignment.Left, null, style);
     }
 
+    internal PdfTableCellParagraph WithRuns(System.Collections.Generic.IEnumerable<PdfTextRun> runs) => new PdfTableCellParagraph(runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent, LineHeight, DefaultTabStopWidth, TabStops, FontSize, LineSpacing, WidowControl, KeepTogether, KeepWithNext, JustificationMode, JustifyExplicitLineBreaks, JustifyLastLine, UseWordJustificationSpacing);
     internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent, LineHeight, DefaultTabStopWidth, TabStops, FontSize, LineSpacing, WidowControl, KeepTogether, KeepWithNext, JustificationMode, JustifyExplicitLineBreaks, JustifyLastLine, UseWordJustificationSpacing);
 }

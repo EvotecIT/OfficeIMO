@@ -25,6 +25,20 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// }</code>
 ///   <para>Converts PowerShell objects into a table using selected properties and friendly headers.</para>
 /// </example>
+/// <example>
+///   <summary>Carry invoice amounts across pages.</summary>
+///   <prefix>PS&gt; </prefix>
+///   <code>$summary = [OfficeIMO.Pdf.PdfTablePageSummary]::new()
+/// $amount = $summary.Sum('amount', 2, 'N2', $null)
+/// $null = $summary.AddContinuationHeaderRow([string[]] @('Brought forward', '', $amount.BroughtForwardToken))
+/// $null = $summary.AddPageFooterRow([string[]] @('Carried forward', '', $amount.RunningToken))
+/// $lines = 1..120 | ForEach-Object { [pscustomobject]@{ Item = $_; Description = 'Consulting hour'; Amount = '125.00' } }
+/// $lines += [pscustomobject]@{ Item = 'Total'; Description = ''; Amount = $amount.RunningToken }
+/// New-OfficePdf -Path .\Examples\Documents\PdfInvoiceLines.pdf {
+///     Add-OfficePdfTable -InputObject $lines -FooterRowCount 1 -PageSummary $summary
+/// }</code>
+///   <para>Each page that continues ends with the running amount, and the next page starts with the amount brought forward.</para>
+/// </example>
 [Cmdlet(VerbsCommon.Add, "OfficePdfTable", DefaultParameterSetName = ParameterSetContext)]
 [OutputType(typeof(PdfDocument))]
 [Alias("PdfTable") ]
@@ -39,7 +53,8 @@ public sealed class AddOfficePdfTableCommand : PSCmdlet
         ? name == nameof(AutoFit) ? AutoFit.IsPresent : name == nameof(ShrinkToFit) ? ShrinkToFit.IsPresent :
           name == nameof(KeepTogether) ? KeepTogether.IsPresent : name == nameof(KeepWithNext) ? KeepWithNext.IsPresent :
           name == nameof(NoBorder) ? NoBorder.IsPresent : name == nameof(NoHeaderBackground) ? NoHeaderBackground.IsPresent :
-          name == nameof(NoBanding) ? NoBanding.IsPresent : NoNumericAlignment.IsPresent : null;
+          name == nameof(NoBanding) ? NoBanding.IsPresent : name == nameof(RepeatFooterRows) ? RepeatFooterRows.IsPresent :
+          NoNumericAlignment.IsPresent : null;
 
     /// <summary>PDF document to update outside the DSL context.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetDocument)]
@@ -242,6 +257,17 @@ public sealed class AddOfficePdfTableCommand : PSCmdlet
     [Parameter]
     public int? FooterRowCount { get; set; }
 
+    /// <summary>Close every page of a table that continues across pages with its footer rows, not only the last page.</summary>
+    [Parameter]
+    public SwitchParameter RepeatFooterRows { get; set; }
+
+    /// <summary>
+    /// Per-page aggregates and summary rows, such as page subtotals and carried-forward or brought-forward amounts.
+    /// Footer rows and summary rows can show aggregate tokens such as {page:amount}, {broughtForward:amount} and {running:amount}.
+    /// </summary>
+    [Parameter]
+    public PdfTablePageSummary? PageSummary { get; set; }
+
     /// <summary>Emit the updated document.</summary>
     [Parameter(ParameterSetName = ParameterSetDocument)]
     [Parameter(ParameterSetName = ParameterSetPipelineDocument)]
@@ -439,7 +465,9 @@ public sealed class AddOfficePdfTableCommand : PSCmdlet
             NoRowStripeFill = Bound(nameof(NoBanding)),
             HeaderRowCount = HeaderRowCount,
             RepeatHeaderRowCount = RepeatHeaderRowCount,
-            FooterRowCount = FooterRowCount
+            FooterRowCount = FooterRowCount,
+            RepeatFooterRows = Bound(nameof(RepeatFooterRows)),
+            PageSummary = PageSummary
         });
     }
 

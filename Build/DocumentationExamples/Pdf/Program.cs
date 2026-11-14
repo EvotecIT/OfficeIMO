@@ -60,6 +60,25 @@ PdfPageRenderResult preview = PdfDocument.Load("Service-review.pdf")
 File.WriteAllBytes("Service-review-page-1.png", preview.Bytes!);
 #endregion
 
+// Page summaries are newer than the pinned published package, so its consumer run skips them.
+#if !OFFICEIMO_DOCUMENTATION_PUBLISHED_PACKAGE
+#region PageSubtotals
+var invoiceStyle = PdfTableStyles.Minimal();
+invoiceStyle.FooterRowCount = 1;
+var pageSummary = invoiceStyle.PageSummary = new PdfTablePageSummary();
+PdfTableAggregate amount = pageSummary.Sum("amount", column: 2, format: "N2");
+pageSummary.AddContinuationHeaderRow("Brought forward", "", amount.BroughtForwardToken);
+pageSummary.AddPageFooterRow("Carried forward", "", amount.RunningToken);
+
+var invoiceLines = new List<string[]> { new[] { "Item", "Description", "Amount" } };
+for (int line = 1; line <= 120; line++) invoiceLines.Add(new[] { line.ToString(), "Consulting hour", "125.00" });
+invoiceLines.Add(new[] { "Total", "", amount.RunningToken });
+
+PdfDocument.Create(pdf => pdf.Content(content => content.AddTable(invoiceLines, style: invoiceStyle)))
+    .Save("Invoice-lines.pdf");
+#endregion
+#endif
+
 // Reopen every saved file and check the content each example promises.
 Require(result.Pages.Count == 1 && result.Pages[0].Tables.Count == 1, "The created report must read back as one page with one table");
 Require(result.ExtractMarkdown().Contains("Rotate certificates"), "The read Markdown must contain the table rows");
@@ -82,6 +101,16 @@ Require(reopened.Read().Text.Contains("Service review"), "The protected copy mus
 
 byte[] png = File.ReadAllBytes("Service-review-page-1.png");
 Require(preview.Succeeded && png.Length > 8 && png[0] == 0x89 && png[1] == (byte)'P', "The rendered page must be a PNG");
+
+#if !OFFICEIMO_DOCUMENTATION_PUBLISHED_PACKAGE
+string[] invoicePages = PdfDocument.Load("Invoice-lines.pdf").Pages.Split().Select(page => page.Read().Text).ToArray();
+Require(invoicePages.Length > 1, "The invoice table must continue across pages");
+for (int page = 0; page < invoicePages.Length - 1; page++) {
+    Require(invoicePages[page].Contains("Carried forward"), "Every continued page must close with the carried-forward amount");
+    Require(invoicePages[page + 1].Contains("Brought forward"), "Every continuation page must open with the brought-forward amount");
+}
+Require(invoicePages[invoicePages.Length - 1].Contains("15,000.00"), "The final page must show the invoice total");
+#endif
 
 Console.WriteLine("PDF README examples reopened and matched their content.");
 

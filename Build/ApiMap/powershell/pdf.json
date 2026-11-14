@@ -1779,6 +1779,18 @@
               "type": "int",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "RepeatFooterRows",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PageSummary",
+              "type": "PdfTablePageSummary",
+              "mandatory": false,
+              "pipeline": "none"
             }
           ]
         },
@@ -2058,6 +2070,18 @@
             {
               "name": "FooterRowCount",
               "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "RepeatFooterRows",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PageSummary",
+              "type": "PdfTablePageSummary",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -2345,6 +2369,18 @@
             {
               "name": "FooterRowCount",
               "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "RepeatFooterRows",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PageSummary",
+              "type": "PdfTablePageSummary",
               "mandatory": false,
               "pipeline": "none"
             },
