@@ -4,7 +4,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>Measures native AutoFit text using finite style metadata and a bounded text cache.</summary>
-        internal sealed class AutoFitWidthMeasurer {
+        internal sealed partial class AutoFitWidthMeasurer {
             private readonly ExcelTextMeasurer textMeasurer;
             private readonly float defaultMdw;
             private readonly AutoFitTextContext textContext;

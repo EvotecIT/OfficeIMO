@@ -614,6 +614,31 @@ Describe 'Excel DSL surface' {
         $chartXml.OuterXml | Should -Match 'dLbls'
     }
 
+    It 'charts non-adjacent table columns in place, with or without cached values' -ForEach @(
+        @{ NoCachedData = $false }
+        @{ NoCachedData = $true }
+    ) {
+        $path = Join-Path $TestDrive "DslExcelChartNonAdjacent-$NoCachedData.xlsx"
+        $rows = @(
+            [PSCustomObject]@{ Region = 'EU'; Owner = 'Ava'; Revenue = 100 }
+            [PSCustomObject]@{ Region = 'US'; Owner = 'Noah'; Revenue = 120 }
+        )
+
+        New-OfficeExcel -Path $path {
+            Add-OfficeExcelSheet -Name 'Data' -Content {
+                Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
+                Add-OfficeExcelChart -Table Sales -Category Region -Value Revenue -Address E1 -Title 'Revenue' -NoCachedData:$NoCachedData
+            }
+        } | Out-Null
+
+        $workbookXml = Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/workbook.xml'
+        @($workbookXml.GetElementsByTagName('sheet', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main')).Count | Should -Be 1
+        $chartText = (Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/drawings/charts/chart1.xml').OuterXml
+        $chartText | Should -Match "<c:cat><c:strRef><c:f>'Data'!\`$A\`$2:\`$A\`$3</c:f>"
+        $chartText | Should -Match "<c:val><c:numRef><c:f>'Data'!\`$C\`$2:\`$C\`$3</c:f>"
+        ($chartText -match '<c:numCache>') | Should -Be (-not $NoCachedData)
+    }
+
     It 'builds dashboard tables and charts through a thin command' {
         $path = Join-Path $TestDrive 'DslExcelDashboardBuilder.xlsx'
         $rows = @(

@@ -8,6 +8,11 @@ using BenchmarkDotNet.Running;
 using System.Globalization;
 using System.Text.Json;
 
+if (args.Length > 0 && args[0] == "--compare-engine-lanes") {
+    Environment.ExitCode = ExcelEngineLanes.Run(args.Skip(1).ToArray());
+    return;
+}
+
 if (args.Length == 1 && args[0] == "--validate-prime-readers") {
     ExcelPrimeSalesObservation.ValidateReaders();
     return;

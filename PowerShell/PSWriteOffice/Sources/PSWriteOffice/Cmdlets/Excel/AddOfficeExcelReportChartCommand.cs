@@ -96,7 +96,10 @@ public sealed class AddOfficeExcelReportChartCommand : PSCmdlet {
             Row = row, Column = column + 2, Width = Width, Height = Height, Title = Title,
             Preset = Preset ?? ExcelDashboardChartPreset.Comparison
         });
-        else {
+        else if (plan.UsesSeriesRanges(type)) {
+            chart = AddOfficeExcelChartCommand.AddRangeSeriesChart(sheet, type, plan, new ExcelChartOptions { Row = row, Column = column + 2, Width = Width ?? OfficeLength.Pixels(640), Height = Height ?? OfficeLength.Pixels(360), Title = Title }, includeCachedData: true);
+            chart.ApplyDashboardPreset(Preset ?? ExcelDashboardChartPreset.Comparison);
+        } else {
             chart = sheet.AddChart(type, plan.Data, new ExcelChartOptions { Row = row, Column = column + 2, Width = Width ?? OfficeLength.Pixels(640), Height = Height ?? OfficeLength.Pixels(360), Title = Title });
             chart.ApplyDashboardPreset(Preset ?? ExcelDashboardChartPreset.Comparison);
         }

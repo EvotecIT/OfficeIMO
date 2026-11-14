@@ -243,6 +243,7 @@ internal static partial class ExcelLibraryComparisonRunner {
             RealWorldConditionalFormattingScenario => new(ConditionalFormats: true),
             RealWorldDataValidationScenario => new(DataValidations: true),
             RealWorldChartsScenario => new(Charts: true),
+            RealWorldTableChartColumnsScenario => new(Tables: true, Charts: true),
             RealWorldPivotTableScenario => new(PivotTables: true),
             "write-datareader-table" => new(Tables: true, StyledTables: true, AutoFilters: true),
             "write-datareader-table-autofit" => new(Tables: true, StyledTables: true, AutoFilters: true, CustomWidthColumns: true),
