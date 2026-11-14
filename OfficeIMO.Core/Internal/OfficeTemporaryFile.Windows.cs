@@ -21,7 +21,7 @@ namespace OfficeIMO.Core.Internal {
                 const uint normalAttribute = 0x00000080U;
                 uint access = genericReadWrite | ((options & FileOptions.DeleteOnClose) != 0 ? deleteAccess : 0);
                 uint flags = normalAttribute | (unchecked((uint)options) & ~unchecked((uint)FileOptions.Asynchronous));
-                SafeFileHandle handle = CreateFile(path, access, 0, ref attributes, 1, flags, IntPtr.Zero);
+                SafeFileHandle handle = CreateFile(ToExtendedPath(path), access, 0, ref attributes, 1, flags, IntPtr.Zero);
                 if (handle.IsInvalid) {
                     int error = Marshal.GetLastWin32Error();
                     handle.Dispose();
@@ -63,7 +63,7 @@ namespace OfficeIMO.Core.Internal {
             try {
                 if (!GetSecurityDescriptorDacl(descriptor, out bool present, out IntPtr dacl, out _) || !present || dacl == IntPtr.Zero)
                     throw new IOException("Unable to prepare inherited Windows permissions (OS error " + Marshal.GetLastWin32Error() + ").");
-                int error = SetNamedSecurityInfo(path, FileObject, DaclInformation | UnprotectedDaclInformation,
+                int error = SetNamedSecurityInfo(ToExtendedPath(path), FileObject, DaclInformation | UnprotectedDaclInformation,
                     IntPtr.Zero, IntPtr.Zero, dacl, IntPtr.Zero);
                 if (error != 0 && !IsWithoutAclSupport(error))
                     throw new IOException("Unable to apply the destination folder's permissions to '" + path + "' (OS error " + error + ").");
@@ -85,7 +85,7 @@ namespace OfficeIMO.Core.Internal {
                 if (IsWithoutAclSupport(error)) return;
                 if (error != 0)
                     throw new IOException("Unable to read the permissions of '" + sourcePath + "' (OS error " + error + ").");
-                error = SetNamedSecurityInfo(destinationPath, FileObject,
+                error = SetNamedSecurityInfo(ToExtendedPath(destinationPath), FileObject,
                     DaclInformation | (isProtected ? ProtectedDaclInformation : UnprotectedDaclInformation),
                     IntPtr.Zero, IntPtr.Zero, dacl, IntPtr.Zero);
                 if (error != 0 && !IsWithoutAclSupport(error))
@@ -98,12 +98,24 @@ namespace OfficeIMO.Core.Internal {
         // Returns the Win32 error. The caller frees the descriptor, which owns the DACL.
         private static int ReadWindowsDacl(string path, out IntPtr descriptor, out IntPtr dacl, out bool isProtected) {
             isProtected = false;
-            int error = GetNamedSecurityInfo(path, FileObject, DaclInformation,
+            int error = GetNamedSecurityInfo(ToExtendedPath(path), FileObject, DaclInformation,
                 IntPtr.Zero, IntPtr.Zero, out dacl, IntPtr.Zero, out descriptor);
             if (error != 0) return error;
             if (!GetSecurityDescriptorControl(descriptor, out ushort control, out _)) return Marshal.GetLastWin32Error();
             isProtected = (control & DaclProtectedControl) != 0;
             return 0;
+        }
+
+        // These calls go straight to Win32, which limits ordinary paths to MAX_PATH even where
+        // .NET's own file APIs accept longer ones. The extended-length form lifts that limit, so a
+        // staging file next to a deeply nested destination can still be created and secured.
+        internal static string ToExtendedPath(string path) {
+            string fullPath = Path.GetFullPath(path);
+            if (fullPath.StartsWith(@"\\?\", StringComparison.Ordinal) || fullPath.StartsWith(@"\\.\", StringComparison.Ordinal))
+                return fullPath;
+            if (fullPath.StartsWith(@"\\", StringComparison.Ordinal))
+                return @"\\?\UNC\" + fullPath.Substring(2);
+            return @"\\?\" + fullPath;
         }
 
         // A file system without ACL support never applied the staging DACL either.

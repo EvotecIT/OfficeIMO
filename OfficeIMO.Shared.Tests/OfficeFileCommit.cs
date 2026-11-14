@@ -97,6 +97,18 @@ namespace OfficeIMO.Shared.Tests {
 #endif
         }
 
+        // Hosts without a long-path-aware manifest, such as pwsh.exe, get MAX_PATH from raw Win32
+        // calls; the test host is long-path aware, so the conversion itself is what can be checked.
+        [Theory]
+        [InlineData(@"C:\work\out.xlsx", @"\\?\C:\work\out.xlsx")]
+        [InlineData(@"C:\work\..\out.xlsx", @"\\?\C:\out.xlsx")]
+        [InlineData(@"\\server\share\out.xlsx", @"\\?\UNC\server\share\out.xlsx")]
+        [InlineData(@"\\?\C:\work\out.xlsx", @"\\?\C:\work\out.xlsx")]
+        public void WindowsStagingPathsUseTheExtendedLengthForm(string path, string expected) {
+            if (Path.DirectorySeparatorChar != '\\') return;
+            Assert.Equal(expected, OfficeTemporaryFile.ToExtendedPath(path));
+        }
+
         [Fact]
         public void StagedBytesCanRetryAfterDestinationCollisionWithoutBeingRewritten() {
             string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
