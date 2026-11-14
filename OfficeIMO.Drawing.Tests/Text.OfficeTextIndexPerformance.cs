@@ -19,12 +19,12 @@ public class TextOfficeTextIndexPerformanceTests {
             .Select(_ => string.Join(" ", Enumerable.Range(0, 120).Select(_ => vocabulary[random.Next(vocabulary.Length)])))
             .ToArray();
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
+        long before = AllocatedBytes();
         var watch = Stopwatch.StartNew();
         var index = new OfficeTextIndex();
         for (int i = 0; i < documents.Length; i++) index.Add("d" + i, documents[i]);
         TimeSpan indexing = watch.Elapsed;
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        long allocated = AllocatedBytes() - before;
 
         watch.Restart();
         int matches = 0;
@@ -37,4 +37,12 @@ public class TextOfficeTextIndexPerformanceTests {
         _output.WriteLine($"Four queries, {matches} matches, in {querying.TotalMilliseconds:F1} ms.");
         Assert.Equal(20_000, index.DocumentCount);
     }
+
+    // .NET Framework has no per-thread allocation counter; the total heap size is a rougher stand-in there.
+    private static long AllocatedBytes() =>
+#if NETFRAMEWORK
+        GC.GetTotalMemory(false);
+#else
+        GC.GetAllocatedBytesForCurrentThread();
+#endif
 }
