@@ -54,7 +54,7 @@
           </picture>
           <picture class="imo-theme-dark-only">
             <source srcset="{{ (app.imageDark ?? app.image) | string.replace '.png' '.webp' }}" type="image/webp" />
-            <img src="{{ app.imageDark ?? app.image }}" width="1440" height="960" alt="{{ app.imageAlt }}" decoding="async" />
+            <img src="{{ app.imageDark ?? app.image }}" width="1440" height="960" alt="{{ app.imageAlt }}" decoding="async" loading="eager" />
           </picture>
         </a>
         <figcaption>{{ app.caption }}</figcaption>
