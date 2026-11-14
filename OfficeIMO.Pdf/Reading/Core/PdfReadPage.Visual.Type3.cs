@@ -1357,7 +1357,8 @@ public sealed partial class PdfReadPage {
                 requireExactType3ShadingProjection: true,
                 retainPrimitiveData: false,
                 inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
-                operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
+                operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested,
+                textClippingBudget: new PdfTextClippingBudget(_limits));
 
             foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                          content,
@@ -1422,7 +1423,8 @@ public sealed partial class PdfReadPage {
                                  depth + 1),
                          visibleShadingVisitor: _ => channels |= PdfType3PaintChannels.Visible,
                          pageWidth: pageWidth,
-                         operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested)) {
+                         operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested,
+                         textClippingBudget: new PdfTextClippingBudget(_limits))) {
                 if (invocation.InlineImage != null) {
                     if (!IsInvisibleInlineImageInvocation(
                             invocation,

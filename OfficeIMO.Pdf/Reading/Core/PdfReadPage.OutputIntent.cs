@@ -497,7 +497,8 @@ public sealed partial class PdfReadPage {
                 if (HasExplicitTransparency(state, channels)) found = true;
             },
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
-            operationCheck: budget.CancellationToken.ThrowIfCancellationRequested);
+            operationCheck: budget.CancellationToken.ThrowIfCancellationRequested,
+            textClippingBudget: new PdfTextClippingBudget(_limits));
         return found;
     }
 

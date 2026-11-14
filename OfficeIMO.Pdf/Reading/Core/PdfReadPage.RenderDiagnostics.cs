@@ -60,7 +60,7 @@ public sealed partial class PdfReadPage {
         var activeForms = new HashSet<PdfStream>();
         var pageContentBudget = new PageContentBudget(this, cancellationToken);
         var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
-        var textClippingBudget = new PdfTextClippingBudget();
+        var textClippingBudget = new PdfTextClippingBudget(_limits);
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
         CollectRenderCapabilityDiagnostics(
             GetContentStreamContent(pageContentBudget),

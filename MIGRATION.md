@@ -5346,6 +5346,28 @@ These parameter aliases stay removed. Command aliases such as `ExcelExport` are 
 | `-Values` | `-InputObject` | `Add-OfficeExcelTableRow` |
 | `-Values` | `-Value` | `Add-OfficePowerPointTableRow`, `Get-OfficeExcelTemplateMarker`, `Invoke-OfficeExcelTemplate`, `Set-OfficeExcelAutoFilter` |
 
+## PDF read limits open larger valid files by default
+
+`PdfReadLimits` defaults now accept single objects of up to 16,000,000 characters and
+16,000,000 content operations and operands per stream, up from 1,000,000 each, so large
+valid papers and inline-image files open. The clipping-work budget, previously fixed, is
+now `MaxClippingIntersectionWorkPerPage` and stays 1,000,000 by default.
+`PdfLoadOptions.UntrustedDefaults` keeps 1,000,000 for object size, operations and
+operands; load uploads and other files from outside your organization with it, or set
+these limits explicitly if you relied on the previous defaults to reject such files.
+
+Page renders no longer fail for a form nested deeper than the thread's stack allows or an
+element beyond the rasterizer's work limit: the page is drawn without that content and
+`PdfPageRenderResult.CapabilityDiagnostics` reports
+`render.resource.form-nesting-stack-limit` or `render.raster.element-work-limit`.
+Annotations whose appearance has a missing or malformed bounding box are skipped with
+`render.resource.annotation-appearance-missing`. Page extraction writes references to
+objects the file never defines as `null`, as ISO 32000-2 reads them. When page extraction
+goes through the tagged or form-preserving writer, structure, navigation and field
+actions it cannot retarget are refused with `PdfMutationBlockedException` instead of
+`InvalidOperationException`. Stray non-hex characters inside content-stream hex strings
+are skipped, as viewers do, instead of failing with `FormatException`.
+
 ## Grayscale printing sends vector PDF to printers that convert it
 
 Grayscale print jobs for IPP printers and CUPS queues reached over IPP that list

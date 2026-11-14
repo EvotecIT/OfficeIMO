@@ -150,8 +150,8 @@ public sealed partial class PdfReadPage {
         var textOutputBudget = CreateTextOutputBudget();
         var pageContentBudget = new PageContentBudget(this, configureDrawing, cancellationToken) { FunctionShadingScale = functionShadingScale, MaximumFunctionPixels = maximumFunctionPixels };
         var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
-        var invocationTextClippingBudget = new PdfTextClippingBudget();
-        var patternTextClippingBudget = new PdfTextClippingBudget();
+        var invocationTextClippingBudget = new PdfTextClippingBudget(_limits);
+        var patternTextClippingBudget = new PdfTextClippingBudget(_limits);
         cancellationToken.ThrowIfCancellationRequested();
         var registeredFonts = new Dictionary<(string Family, OfficeFontStyle Style), PdfFontResource>();
         Dictionary<(string Family, OfficeFontStyle Style), PaintedGlyphMap> paintedGlyphMaps = pageContentBudget.PaintedGlyphMaps;
@@ -1057,8 +1057,8 @@ public sealed partial class PdfReadPage {
         PdfTextStateSnapshot? initialTextState = null, PdfFontResourceSet? inheritedFontResources = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
-        invocationTextClippingBudget ??= new PdfTextClippingBudget();
-        patternTextClippingBudget ??= new PdfTextClippingBudget();
+        invocationTextClippingBudget ??= new PdfTextClippingBudget(_limits);
+        patternTextClippingBudget ??= new PdfTextClippingBudget(_limits);
         activeType3Glyphs ??= new HashSet<PdfStream>();
         renderedType3PaintOrders ??= new RenderedType3TextTracker();
         type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
@@ -2554,7 +2554,8 @@ public sealed partial class PdfReadPage {
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
             visibleColorSpaceVisitor: name => names.ColorSpaces.Add(name),
             operatorVisitor: names.ObserveOperator,
-            operationCheck: operationCheck);
+            operationCheck: operationCheck,
+            textClippingBudget: new PdfTextClippingBudget(_limits));
         return names;
     }
 

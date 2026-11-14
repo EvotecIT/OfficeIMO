@@ -296,7 +296,7 @@ public sealed partial class PdfReadPage {
         PdfPageXObjectInvocation? initialState = null,
         PdfTextClippingBudget? textClippingBudget = null) {
         EnsureContentNestingBudget(contentNestingDepth);
-        textClippingBudget ??= new PdfTextClippingBudget();
+        textClippingBudget ??= new PdfTextClippingBudget(_limits);
         nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, contentNestingDepth);
         bool supported = true;
         Dictionary<string, PdfFontResource> fonts = _fontResourceCache.GetFonts(resources, _objects, forDrawing: true, pageContentBudget.CancellationToken);
@@ -838,7 +838,7 @@ public sealed partial class PdfReadPage {
         PdfPageInvokedResourceNames? invokedResourceNames = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
-        textClippingBudget ??= new PdfTextClippingBudget();
+        textClippingBudget ??= new PdfTextClippingBudget(_limits);
         initialEffect = initialEffect.WithEffectiveRenderingIntent(initialRenderingIntent);
         PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(
             content, resources, pageContentBudget.CancellationToken.ThrowIfCancellationRequested);

@@ -2440,6 +2440,23 @@ For a batch job or an uploaded file, set an input limit and pass the job's cance
 
 `Save(...)` and `SaveAsync(...)` throw on failure; `PdfSaveOptions.AllowLoss` controls writer-time fidelity rejection. Adapter `SaveAsPdf(...)` methods return an `OfficeConversionReport` with source and output diagnostics. The [migration guide](../MIGRATION.md) maps APIs that changed in earlier releases.
 
+### Read limits
+
+`PdfReadLimits` bounds the memory and work a document can demand. The defaults are sized so valid real-world files open, render and extract: a 6 MB inline image dictionary or a dense vector figure stays within them. `PdfLoadOptions.UntrustedDefaults` selects strict parsing and tighter limits for uploads and other files from outside your organization:
+
+| Limit | Default | `UntrustedDefaults` |
+| --- | ---: | ---: |
+| `MaxInputBytes` | 512 MiB | 64 MiB |
+| `MaxIndirectObjects` | 500,000 | 100,000 |
+| `MaxRawStreamBytes` | 256 MiB | 32 MiB |
+| `MaxDecodedStreamBytes` | 256 MiB | 64 MiB |
+| `MaxTotalDecodedStreamBytes` | 512 MiB | 128 MiB |
+| `MaxObjectCharacters` | 16,000,000 | 1,000,000 |
+| `MaxContentOperations` | 16,000,000 | 1,000,000 |
+| `MaxContentOperands` | 16,000,000 | 1,000,000 |
+
+Other limits share the default value in both profiles. `MaxClippingIntersectionWorkPerPage` (1,000,000) bounds clip-path intersection work per page; some dense papers need a few million for text extraction, and raising it also raises render memory because each element keeps its clipped geometry. A file that exceeds a limit fails with `PdfReadLimitException`, whose `Kind`, `Limit` and `Actual` identify the budget. Content nested deeper than the thread's call stack allows stops the same way; page rendering skips only that nested form and reports `render.resource.form-nesting-stack-limit`, and an element beyond the rasterizer's per-element work limit is omitted with `render.raster.element-work-limit`.
+
 ### Choose a deployment path
 
 Install only the packages your application needs:

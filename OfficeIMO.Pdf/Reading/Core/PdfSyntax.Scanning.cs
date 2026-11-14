@@ -228,7 +228,7 @@ internal static partial class PdfSyntax {
         }
 
         int dictionaryCharacters = dictionaryEnd - dictionaryStart - 2;
-        int maximumDictionaryCharacters = limits?.MaxObjectCharacters ?? 1_000_000;
+        int maximumDictionaryCharacters = limits?.MaxObjectCharacters ?? PdfReadLimits.DefaultMaxObjectCharacters;
         if (dictionaryCharacters > maximumDictionaryCharacters) {
             if (limits != null) {
                 throw PdfReadLimitException.Create(

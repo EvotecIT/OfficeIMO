@@ -153,7 +153,8 @@ public sealed partial class PdfReadPage {
                 requireExactType3ShadingProjection: true,
                 retainPrimitiveData: false,
                 inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
-                operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
+                operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested,
+                textClippingBudget: new PdfTextClippingBudget(_limits));
 
             Dictionary<string, PdfFontResource> fonts = _fontResourceCache.GetFonts(resources, _objects, forDrawing: true, pageContentBudget.CancellationToken);
             Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
@@ -229,7 +230,8 @@ public sealed partial class PdfReadPage {
                                  depth + 1),
                          visibleShadingVisitor: _ => channels |= PdfType3PaintChannels.Visible,
                          pageWidth: pageWidth,
-                         operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested)) {
+                         operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested,
+                         textClippingBudget: new PdfTextClippingBudget(_limits))) {
                 if (invocation.InlineImage != null &&
                     !IsInvisibleInlineImageInvocation(
                         invocation,

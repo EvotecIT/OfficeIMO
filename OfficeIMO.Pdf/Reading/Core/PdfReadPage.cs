@@ -968,7 +968,7 @@ public sealed partial class PdfReadPage {
         textOutputBudget ??= new TextContentParser.TextOutputBudget(
             _limits.MaxActualTextCharacters,
             _limits.MaxDecodedTextCharacters);
-        textClippingBudget ??= new PdfTextClippingBudget();
+        textClippingBudget ??= new PdfTextClippingBudget(_limits);
         Dictionary<string, Func<byte[], int, string>>? configuredDecoders = null;
         string DecodeWithFontWithinLimit(string fontRes, byte[] bytes, int maximumCharacters) {
             try {
@@ -1310,7 +1310,7 @@ public sealed partial class PdfReadPage {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
-        textClippingBudget ??= new PdfTextClippingBudget();
+        textClippingBudget ??= new PdfTextClippingBudget(_limits);
         Action? operationCheck = consumeWork is null && cancellationCheck is null
             ? null
             : () => {

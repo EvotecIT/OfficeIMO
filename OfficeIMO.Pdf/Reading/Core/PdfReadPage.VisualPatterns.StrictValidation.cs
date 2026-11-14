@@ -39,7 +39,8 @@ public sealed partial class PdfReadPage {
                 }
             },
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
-            operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
+            operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested,
+            textClippingBudget: new PdfTextClippingBudget(_limits));
         if (malformed) return true;
         PdfContentStreamInterpreter.InterpretUntil(
             content,
