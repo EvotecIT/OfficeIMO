@@ -1830,7 +1830,50 @@ PdfSignatureValidationReport report = signed.ToDocument().Security.ValidateSigna
 
 Set `SubFilter = PdfExternalSignatureSubFilter.CadesDetached` in the signature options for PAdES B-B. The built-in signer emits signing-certificate-v2 and omits CMS signing-time for that subfilter. Both RSA and ECDSA certificates are supported. For B-T, set `CmsSigningOptions.SignatureTimestampProvider` to an RFC 3161 token provider, such as `Rfc3161TimestampClient.GetTimestamp`; its transport and trust policy belong to the caller. Document timestamps use a separate RFC 3161 signer.
 
-Text appearances require an explicit `PdfVisibleSignatureAppearanceOptions.Font` containing an embedded TrueType font. Image-only appearances do not require it. `PdfLongTermValidationEnricher.EnrichAsync` can merge caller-supplied certificates, OCSP responses and CRLs with an optional caller-owned fetcher. DSS/VRI presence alone does not establish complete trusted B-LT validation.
+Text appearances require an explicit `PdfVisibleSignatureAppearanceOptions.Font` containing an embedded TrueType font. Image-only appearances do not require it.
+
+#### Long-term validation, revocation and PAdES levels
+
+`PdfLongTermValidationEnricher.FetchAndEnrichAsync` turns a B-T signature into B-LT. It builds the signer and signature time-stamp authority paths, fetches an OCSP response (or a CRL when no responder answers) for every issued certificate, and appends the responses and path certificates as a DSS/VRI revision. Adding a document time-stamp afterwards gives B-LTA.
+
+```csharp
+using OfficeIMO.Pdf;
+using OfficeIMO.Security;
+
+var cryptography = new PdfCmsSignatureCryptographyProvider(OfficeSecurityProvider.Default, new CmsVerificationOptions());
+using var fetcher = new CertificateRevocationFetcher();
+
+int signature = PdfDocument.Load(signedPdf).Security.ValidateSignatures(cryptography).Signatures[0].Signature.ObjectNumber;
+PdfLongTermValidationEnrichmentResult longTerm =
+    await PdfLongTermValidationEnricher.FetchAndEnrichAsync(signedPdf, signature, cryptography, fetcher);
+
+foreach (PdfSignatureValidationResult result in longTerm.ValidationAfter.Signatures) {
+    Console.WriteLine($"{result.Signature.FieldName}: {result.PadesLevel}, revocation {result.CryptographicResult?.RevocationStatus}");
+}
+```
+
+`CertificateRevocationFetcher` uses only http and https locations from the certificates' authority information access and CRL distribution points, connects directly without a proxy, limits each exchange to `Timeout` (15 seconds) and `MaxResponseBytes` (32 MiB), and caches responses for the lifetime of the instance, so use one instance per run. Those locations come from the document being processed, so loopback, private, link-local and other non-public addresses are refused unless `AllowNonPublicAddresses` is set for an internal PKI. On .NET 8 and later the address is checked when the connection is made; on older frameworks it is checked after name resolution. Fetch problems are listed in `FetchFindings`. Any `ICertificateRevocationFetcher` can replace it, and `EnrichAsync` still accepts caller-supplied evidence.
+
+Validation reads revocation data from the document. `PdfCmsSignatureCryptographyProvider.RevocationPolicy` chooses the source:
+
+| Policy | Revocation data used |
+| --- | --- |
+| `EmbeddedOnly` (default) | DSS/VRI values and revocation data inside the CMS signature (CMS `crls` and the Adobe revocation-information archival attribute). Never contacts the network. |
+| `EmbeddedThenOnline` | Embedded data first; certificates it does not settle are fetched through `RevocationFetcher`. |
+| `Online` | Freshly fetched data only, through `RevocationFetcher`. |
+
+The signer path is checked at the time of the earliest valid signature time-stamp, so a certificate that expired or was revoked after signing does not invalidate a time-stamped signature. Time-stamp authority paths are checked at their generation time. An OCSP response or CRL counts when its signature verifies against the issuer or a delegated OCSP responder, its validity window covers the checked time or it was issued later, and its signer was valid when it was produced. When the OCSP responder or CRL issuer certificate has since expired, the data still counts if a valid document time-stamp covers the revision that holds it. Revocation is reported per certificate as findings; `RevocationStatus` is `Invalid` when a certificate was revoked before the checked time and `Indeterminate`, with the reason, when no usable data exists. Revoked signatures clear `CryptographicTrustVerified`.
+
+`PdfSignatureValidationResult.PadesLevel` reports the PAdES baseline level that validation established:
+
+| Level | Requires |
+| --- | --- |
+| `BaselineB` | `ETSI.CAdES.detached`, valid signature math and digest, ESS signing-certificate-v2 |
+| `BaselineT` | B-B plus a valid signature time-stamp or a valid later document time-stamp |
+| `BaselineLT` | B-T plus valid revocation status for every signer and time-stamp authority certificate, settled by DSS data |
+| `BaselineLTA` | B-LT plus a valid document time-stamp covering the DSS data used |
+
+When a level is not reached, the signature's findings include `pades-baseline-b-not-reached`, `pades-baseline-t-not-reached`, `pades-baseline-lt-not-reached` or `pades-baseline-lta-not-reached` with the reason. Trust anchors come from `CmsVerificationOptions.CertificateValidation`; EU trusted lists are not consulted.
 
 The PDF package owns byte ranges, incremental updates, signature dictionaries, and preservation policy. The optional provider owns CMS, timestamps, and certificate trust. A custom `IPdfExternalSigner` or `IPdfSignatureCryptographyProvider` remains valid without `OfficeIMO.Security`. Authenticated encrypted signing appends a revision while retaining the original bytes and encryption. Signature metadata and visible appearances are encrypted; the detached CMS `/Contents` remains unencrypted as required by the PDF format. The optional appearance image is visual content only; certificate validation remains the source of signer identity. Set `ShowText`, `ShowBackground`, and `ShowBorder` to `false` for an image-only appearance. Existing appearances retain their background and border because both new visibility options default to `true`.
 

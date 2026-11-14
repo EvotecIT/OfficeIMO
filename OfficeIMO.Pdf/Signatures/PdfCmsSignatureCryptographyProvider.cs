@@ -7,22 +7,62 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptographyProvider {
     private readonly IOfficeSecurityProvider _securityProvider;
     private readonly CmsVerificationOptions _options;
+    private readonly CertificateRevocationPolicy _revocationPolicy;
 
     /// <summary>Creates a PDF adapter over the shared OfficeIMO security policy.</summary>
     public PdfCmsSignatureCryptographyProvider(
         IOfficeSecurityProvider securityProvider,
         CmsVerificationOptions? options = null) {
-#if NETSTANDARD2_0 || NET472
         ArgumentNullException.ThrowIfNull(securityProvider);
-#else
-        ArgumentNullException.ThrowIfNull(securityProvider);
-#endif
         _securityProvider = securityProvider;
         _options = options ?? new CmsVerificationOptions();
     }
 
     /// <inheritdoc />
     public string Name => "OfficeIMO.Pdf CMS";
+
+    /// <summary>
+    /// Where OCSP responses and CRLs come from. Defaults to <see cref="CertificateRevocationPolicy.EmbeddedOnly"/>:
+    /// only data carried by the signature and the document's DSS is used and validation never starts network
+    /// retrieval. The online policies use <see cref="RevocationFetcher"/>.
+    /// </summary>
+    public CertificateRevocationPolicy RevocationPolicy {
+        get => _revocationPolicy;
+        init {
+            if (value is < CertificateRevocationPolicy.EmbeddedOnly or > CertificateRevocationPolicy.Online) {
+                throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown revocation policy.");
+            }
+            _revocationPolicy = value;
+        }
+    }
+
+    /// <summary>
+    /// Fetcher used by the online revocation policies, such as <c>CertificateRevocationFetcher</c>. Without one,
+    /// certificates that embedded data does not settle are reported as indeterminate.
+    /// </summary>
+    public ICertificateRevocationFetcher? RevocationFetcher { get; init; }
+
+    /// <summary>
+    /// Fetches revocation data for the signer and time-stamp authority paths of one validated signature,
+    /// including the certificates of those paths, for embedding in the document's DSS.
+    /// </summary>
+    internal async Task<CertificateRevocationEvidence> FetchRevocationEvidenceAsync(
+        PdfSignatureValidationResult signature,
+        ICertificateRevocationFetcher fetcher,
+        CancellationToken cancellationToken) {
+        if (_securityProvider is not IOfficeRevocationValidator validator) {
+            throw new NotSupportedException(_securityProvider.Name + " does not support revocation data retrieval.");
+        }
+        byte[] contents = signature.Signature.ContentsBytes ??
+            throw new InvalidOperationException("The signature has no decoded /Contents bytes.");
+        byte[] encoded = _securityProvider.NormalizeAsn1Object(contents, allowTrailingZeroPadding: true, _options.MaxEncodedBytes);
+        return await validator.FetchRevocationEvidenceAsync(
+            encoded,
+            signature.Signature.IsDocumentTimestamp,
+            fetcher,
+            _options.CertificateValidation.ExtraCertificates,
+            cancellationToken).ConfigureAwait(false);
+    }
 
     /// <inheritdoc />
     public PdfSignatureCryptographicResult Verify(PdfSignatureCryptographyInput input) {
@@ -42,7 +82,7 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
         }
 
         return input.Signature.IsDocumentTimestamp
-            ? VerifyDocumentTimestamp(input.SignedContent, encoded)
+            ? VerifyDocumentTimestamp(input, encoded)
             : VerifyCmsSignature(input, encoded);
     }
 
@@ -107,7 +147,21 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
         }
 
         CmsSignerVerificationResult first = security.Signers[0];
-        return new PdfSignatureCryptographicResult(
+        OfficeRevocationOutcome? revocation = ValidateRevocation(
+            input,
+            encoded,
+            isTimestampToken: false,
+            ResolveSignerValidationTime(first),
+            findings);
+        if (revocation is not null) {
+            revocationStatus = CombineRevocation(revocationStatus, MapStatus(revocation.Status));
+            if (revocation.TimestampAuthorityStatus == SecurityValidationStatus.Invalid &&
+                timestampStatus != PdfCryptographicValidationStatus.NotPerformed) {
+                timestampStatus = PdfCryptographicValidationStatus.Invalid;
+            }
+        }
+
+        return WithPadesFacts(new PdfSignatureCryptographicResult(
             Name,
             signatureStatus,
             digestStatus,
@@ -120,10 +174,75 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
             first.Thumbprint,
             first.SigningTime,
             first.TimestampTime,
-            findings);
+            findings), revocation);
     }
 
-    private PdfSignatureCryptographicResult VerifyDocumentTimestamp(byte[] signedContent, byte[] encoded) {
+    /// <summary>
+    /// The signer path is checked at the earliest trusted signature time-stamp, the best proof of when the
+    /// signature existed, unless the caller fixed a verification time.
+    /// </summary>
+    private DateTimeOffset? ResolveSignerValidationTime(CmsSignerVerificationResult signer) {
+        if (_options.CertificateValidation.VerificationTime is DateTime fixedTime) {
+            return new DateTimeOffset(DateTime.SpecifyKind(fixedTime.ToUniversalTime(), DateTimeKind.Utc));
+        }
+        DateTimeOffset? earliest = null;
+        foreach (Rfc3161TimestampVerificationResult token in signer.TimestampTokens) {
+            if (token.Status != SecurityValidationStatus.Valid || !token.Timestamp.HasValue) continue;
+            if (!earliest.HasValue || token.Timestamp.Value < earliest.Value) earliest = token.Timestamp.Value;
+        }
+        return earliest;
+    }
+
+    private OfficeRevocationOutcome? ValidateRevocation(
+        PdfSignatureCryptographyInput input,
+        byte[] encoded,
+        bool isTimestampToken,
+        DateTimeOffset? signerValidationTime,
+        List<PdfSignatureCryptographicFinding> findings) {
+        if (_securityProvider is not IOfficeRevocationValidator validator) {
+            findings.Add(Finding(
+                PdfDiagnosticSeverity.Info,
+                "revocation-data-not-evaluated",
+                _securityProvider.Name + " does not evaluate OCSP responses or CRLs from the signature or document; only its certificate policy applies."));
+            return null;
+        }
+
+        DateTime? fixedTime = _options.CertificateValidation.VerificationTime;
+        var request = new OfficeRevocationRequest(encoded, isTimestampToken) {
+            SignerValidationTime = signerValidationTime,
+            DocumentCertificates = input.ValidationData.Certificates,
+            DocumentTokens = input.ValidationData.CreateTokens(),
+            Policy = RevocationPolicy,
+            Fetcher = RevocationFetcher,
+            ExtraCertificates = _options.CertificateValidation.ExtraCertificates,
+            Now = fixedTime.HasValue
+                ? new DateTimeOffset(DateTime.SpecifyKind(fixedTime.Value.ToUniversalTime(), DateTimeKind.Utc))
+                : null
+        };
+        OfficeRevocationOutcome outcome = validator.ValidateRevocation(request);
+        findings.AddRange(outcome.Findings.Select(MapFinding));
+        return outcome;
+    }
+
+    private static PdfSignatureCryptographicResult WithPadesFacts(
+        PdfSignatureCryptographicResult result,
+        OfficeRevocationOutcome? revocation) {
+        if (revocation is null) return result;
+        result.ReportsPadesEvidence = true;
+        result.HasSigningCertificateAttribute = revocation.HasSigningCertificateAttribute;
+        result.RevocationSettledByDocument = revocation.SettledByDocument;
+        result.RevocationEvidenceHasProofOfExistence = revocation.DocumentEvidenceHasProofOfExistence;
+        return result;
+    }
+
+    /// <summary>Embedded and fetched revocation data decide; a platform revocation check can only add a revoked result.</summary>
+    private static PdfCryptographicValidationStatus CombineRevocation(
+        PdfCryptographicValidationStatus platform,
+        PdfCryptographicValidationStatus evidence) =>
+        platform == PdfCryptographicValidationStatus.Invalid ? PdfCryptographicValidationStatus.Invalid : evidence;
+
+    private PdfSignatureCryptographicResult VerifyDocumentTimestamp(PdfSignatureCryptographyInput input, byte[] encoded) {
+        byte[] signedContent = input.SignedContent;
         if (!_options.ValidateTimestamps) {
             return new PdfSignatureCryptographicResult(
                 Name,
@@ -149,6 +268,17 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
         PdfCryptographicValidationStatus timestampStatus = chainStatus == PdfCryptographicValidationStatus.Invalid
             ? PdfCryptographicValidationStatus.Invalid
             : cryptoStatus;
+        PdfCryptographicValidationStatus revocationStatus = MapStatus(timestamp.CertificateValidation.RevocationStatus);
+        OfficeRevocationOutcome? revocation = ValidateRevocation(
+            input,
+            encoded,
+            isTimestampToken: true,
+            signerValidationTime: null,
+            findings);
+        if (revocation is not null) {
+            revocationStatus = CombineRevocation(revocationStatus, MapStatus(revocation.Status));
+            if (revocationStatus == PdfCryptographicValidationStatus.Invalid) timestampStatus = PdfCryptographicValidationStatus.Invalid;
+        }
         if (timestampStatus == PdfCryptographicValidationStatus.Invalid) {
             findings.Add(Finding(
                 PdfDiagnosticSeverity.Error,
@@ -156,15 +286,15 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
                 "The RFC 3161 token, TSA trust policy, or message imprint did not validate against the PDF signed byte ranges."));
         }
 
-        return new PdfSignatureCryptographicResult(
+        return WithPadesFacts(new PdfSignatureCryptographicResult(
             Name,
             cryptoStatus,
             cryptoStatus,
             chainStatus,
-            MapStatus(timestamp.CertificateValidation.RevocationStatus),
+            revocationStatus,
             timestampStatus,
             timestampTime: timestamp.Timestamp,
-            findings: findings);
+            findings: findings), revocation);
     }
 
     private PdfSignatureCryptographicResult InvalidContainer(string code, string message) =>
