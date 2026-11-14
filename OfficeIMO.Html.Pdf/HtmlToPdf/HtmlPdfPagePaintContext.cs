@@ -3,21 +3,26 @@ namespace OfficeIMO.Html.Pdf;
 /// <summary>Operation-local link coverage and logical ownership for one rendered page.</summary>
 internal sealed class HtmlPdfPagePaintContext {
     private readonly HtmlPdfAnchorLinkMap _links;
+    internal HtmlPdfRenderedConverter.LinkTargets LinkTargets { get; }
     internal HtmlPdfMathMlFiles MathMlFiles { get; }
     private readonly Dictionary<HtmlRenderLogicalTextScope, List<HtmlRenderLogicalTextGroup>> _logicalGroups = new();
     private readonly HashSet<HtmlRenderLogicalTextScope> _emittedScopes = new();
     private readonly Dictionary<HtmlRenderLogicalTextScope, IReadOnlyList<HtmlRenderVisual>> _logicalPaint = new();
 
-    private HtmlPdfPagePaintContext(HtmlRenderPage page, HtmlPdfMathMlFiles mathMlFiles) {
+    private HtmlPdfPagePaintContext(HtmlRenderPage page, HtmlPdfMathMlFiles mathMlFiles, HtmlPdfRenderedConverter.LinkTargets linkTargets) {
         MathMlFiles = mathMlFiles;
+        LinkTargets = linkTargets;
         _links = HtmlPdfAnchorLinkMap.Create(page);
         Collect(page.Scene);
     }
 
-    internal static HtmlPdfPagePaintContext Create(HtmlRenderPage page, HtmlPdfMathMlFiles mathMlFiles) => new(page, mathMlFiles);
+    internal static HtmlPdfPagePaintContext Create(HtmlRenderPage page, HtmlPdfMathMlFiles mathMlFiles,
+        HtmlPdfRenderedConverter.LinkTargets linkTargets) => new(page, mathMlFiles, linkTargets);
 
-    internal bool IsActive(HtmlRenderAnchorFragment fragment) => _links.IsActive(fragment);
-    internal bool Covers(HtmlRenderVisual visual) => _links.Covers(visual);
+    internal bool IsActive(HtmlRenderAnchorFragment fragment) => _links.IsActive(fragment)
+        && LinkTargets.Include(fragment.LinkUri, fragment.Source);
+    internal bool SuppressesLink(HtmlRenderVisual visual) => _links.Covers(visual)
+        || !LinkTargets.Include(visual.LinkUri, visual.Source);
     internal bool TryClaim(HtmlRenderLogicalTextScope scope) => _emittedScopes.Add(scope);
     internal bool IsClaimed(HtmlRenderLogicalTextScope scope) => _emittedScopes.Contains(scope);
 
