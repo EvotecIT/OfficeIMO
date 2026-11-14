@@ -109,6 +109,33 @@ public class CsvStreamingTests
     }
 
     [Fact]
+    public void StreamedReads_HaveNoDefaultInputLimit_WhileInMemoryLoadsKeepIt()
+    {
+        // The stream reports more than the in-memory default without holding those bytes.
+        static Stream Large() => new ReportedLengthStream(Encoding.UTF8.GetBytes("Id,Name\n1,Alice\n2,Bob\n"),
+            CsvReaderOptions.DefaultMaxInputBytes + 1);
+
+        using (var reader = CsvDocument.OpenReader(Large()))
+        {
+            int rows = 0;
+            while (reader.Read()) rows++;
+            Assert.Equal(2, rows);
+        }
+
+        Assert.Throws<InvalidDataException>(() => CsvDocument.Load(Large()));
+    }
+
+    private sealed class ReportedLengthStream : MemoryStream
+    {
+        private readonly long _reportedLength;
+
+        public ReportedLengthStream(byte[] content, long reportedLength) : base(content, writable: false) =>
+            _reportedLength = reportedLength;
+
+        public override long Length => _reportedLength;
+    }
+
+    [Fact]
     public async Task LoadAsync_SnapshotsCompleteCallerStreamAndRestoresPosition()
     {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Id,Name\n1,Alice\n"));

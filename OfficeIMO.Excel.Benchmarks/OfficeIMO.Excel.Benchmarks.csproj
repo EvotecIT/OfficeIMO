@@ -3,6 +3,11 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <!-- .NET Framework builds only the engine lanes (EPPlus and ClosedXML), so they compare on both runtimes. -->
+    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">$(TargetFrameworks);net472</TargetFrameworks>
+    <!-- Windows PowerShell 5.1 is a 64-bit process; an SDK-style .NET Framework exe would otherwise run as x86. -->
+    <PlatformTarget Condition="'$(TargetFramework)' == 'net472'">x64</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
 
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
@@ -17,8 +22,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageReference Include="ClosedXML" Version="0.105.1" />
+    <PackageReference Include="EPPlus" Version="8.7.2" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Compile Remove="@(Compile)" />
+    <Compile Include="ExcelEngineLanes.cs" />
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageReference Include="ExcelDataReader" Version="3.9.0" />
     <PackageReference Include="ExcelDataReader.DataSet" Version="3.9.0" />
     <PackageReference Include="Excel-PRIME" Version="5.2610.18" />
@@ -26,7 +41,6 @@
     <!-- Runtime APIs are benchmarked directly. The source generator targets a newer Roslyn than the repository SDK ships. -->
     <PackageReference Include="ExcelReader.NET" Version="$(ExcelReaderBenchmarkVersion)" ExcludeAssets="analyzers" />
     <PackageReference Include="ExcelReader.Arrow" Version="$(ExcelReaderBenchmarkVersion)" />
-    <PackageReference Include="EPPlus" Version="8.7.2" />
     <PackageReference Include="LargeXlsx" Version="2.0.2" />
     <PackageReference Include="MiniExcel" Version="1.46.0" />
     <PackageReference Include="SpreadCheetah" Version="1.28.0" />
@@ -37,19 +51,22 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OfficeIMO.Data.Arrow\OfficeIMO.Data.Arrow.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
+    <ProjectReference Include="..\OfficeIMO.Data.Arrow\OfficeIMO.Data.Arrow.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.Csv\OfficeIMO.Excel.Csv.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
     <Compile Include="..\Benchmarks\BenchmarkProcessorAffinity.cs" Link="Shared\BenchmarkProcessorAffinity.cs" />
     <Compile Include="..\Benchmarks\BenchmarkProcessPriority.cs" Link="Shared\BenchmarkProcessPriority.cs" />
     <Compile Include="..\Benchmarks\MarkPflug65KFixture.cs" Link="Shared\MarkPflug65KFixture.cs" />
     <Compile Include="..\Benchmarks\SalesMappingFixture.cs" Link="Shared\SalesMappingFixture.cs" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
     <EmbeddedResource Include="XlBenchShapes\sales_template.xlsx" LogicalName="XlBenchShapes.sales_template.xlsx" />
   </ItemGroup>
 

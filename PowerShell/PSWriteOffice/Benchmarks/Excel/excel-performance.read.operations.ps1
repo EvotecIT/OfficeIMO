@@ -4,7 +4,7 @@ function Invoke-ExcelBenchmarkReadDataTable {
     $parameters = @{
         Path = $Run.Path
         WorksheetName = $Run.WorksheetName
-        AsDataTable = $true
+        As = 'DataTable'
     }
     if ($Mode -eq 'Range') {
         $parameters.Range = $Run.Range
@@ -25,7 +25,7 @@ function Invoke-ExcelBenchmarkReadDataReader {
     $parameters = @{
         Path = $Run.Path
         WorksheetName = $Run.WorksheetName
-        AsDataReader = $true
+        As = 'DataReader'
     }
     if ($Mode -eq 'Range') {
         $parameters.Range = $Run.Range

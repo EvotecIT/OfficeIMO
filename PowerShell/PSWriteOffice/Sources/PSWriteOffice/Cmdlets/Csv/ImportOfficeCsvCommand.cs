@@ -295,6 +295,19 @@ public sealed partial class ImportOfficeCsvCommand : PSCmdlet
     [ValidateRange(0, long.MaxValue)]
     public long? MaxDecompressedBytes { get; set; }
 
+    /// <summary>
+    /// Maximum input bytes to read. Streamed imports read files of any size unless this is set; imports that load the
+    /// whole file into memory default to 256 MiB.
+    /// </summary>
+    [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [ValidateRange(1, long.MaxValue)]
+    public long? MaxInputBytes { get; set; }
+
     /// <summary>Load mode controlling materialization.</summary>
     [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
     [Parameter(ParameterSetName = ParameterSetPathCulture)]
@@ -705,6 +718,11 @@ public sealed partial class ImportOfficeCsvCommand : PSCmdlet
             CompressionType,
             MaxDecompressedBytes);
 
+        if (MaxInputBytes.HasValue)
+        {
+            options.MaxInputBytes = MaxInputBytes.Value;
+        }
+
         if (Culture != null)
         {
             options.Culture = Culture;
@@ -758,6 +776,11 @@ public sealed partial class ImportOfficeCsvCommand : PSCmdlet
             StaticColumns,
             CompressionType,
             MaxDecompressedBytes);
+
+        if (MaxInputBytes.HasValue)
+        {
+            options.MaxInputBytes = MaxInputBytes.Value;
+        }
 
         if (Culture != null)
         {

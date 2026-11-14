@@ -317,6 +317,7 @@ namespace OfficeIMO.Excel {
             try {
                 if (range.CategoryCount <= 0 || range.SeriesCount <= 0 ||
                     (long)range.CategoryCount + ((long)range.CategoryCount * range.SeriesCount) > MaxChartDataPoints) return null;
+                if (sheet.Document.TryReadDeferredTabularChartData(sheet, range, out ExcelChartData? deferred)) return deferred;
                 var categories = new List<string>(range.CategoryCount);
                 for (int i = 0; i < range.CategoryCount; i++) {
                     int row = range.Orientation == ExcelChartDataOrientation.Vertical ? range.CategoryStartRow + i : range.CategoryStartRow;

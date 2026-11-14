@@ -176,6 +176,7 @@ namespace OfficeIMO.Excel.Reports {
         private static void ApplyDashboardAppearance(ExcelChart chart, ExcelDashboardChartPreset kind,
             int? styleId, int? colorStyleId) {
             var preset = ResolveDashboardChartPreset(kind);
+            using var deferredSaves = chart.DeferSaves();
             chart.ApplyStylePreset(styleId ?? preset.StyleId, colorStyleId ?? preset.ColorStyleId);
             if (preset.HideLegend) {
                 chart.HideLegend();

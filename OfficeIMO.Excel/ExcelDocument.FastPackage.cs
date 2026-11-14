@@ -177,6 +177,7 @@ namespace OfficeIMO.Excel {
                 FileStream stagedPackage = (FileStream)boundedOrStagedPackage!;
                 stagedPackage!.Position = 0;
                 byte[] packageBytes = ReadPackageBytes(stagedPackage, options);
+                ReleaseWrittenDirectDataSetFastSaveModel();
                 ReloadFromBytes(packageBytes, simplePackageContentKnown: true, reusablePackageStream: destination);
                 destination.Seek(0, SeekOrigin.Begin);
             } else if (boundedOrStagedPackage is FileStream stagedPackage) {
@@ -197,6 +198,15 @@ namespace OfficeIMO.Excel {
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Drops the direct-save model once its rows are in the package that is about to be reloaded, so the reload
+        /// does not write them into the reloaded worksheet a second time.
+        /// </summary>
+        private void ReleaseWrittenDirectDataSetFastSaveModel() {
+            _materializedDirectDataSetFastSaveModel = null;
+            _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet = false;
         }
 
         /// <summary>Validates the encoded package before any caller destination or clean-state marker changes.</summary>

@@ -9,6 +9,63 @@ namespace OfficeIMO.CSV.Tests;
 public class CsvDataReaderWriterRegressionTests
 {
     [Theory]
+    [InlineData(',', "", null, null)]
+    [InlineData(',', "de-DE", "yyyy-MM-dd HH:mm", "NULL")]
+    [InlineData(';', "", null, null)]
+    public void WriteDataTable_WritesWhatTheTablesDataReaderWrites(char delimiter, string cultureName, string? dateFormat, string? nullValue)
+    {
+        using var table = new DataTable("Rows");
+        table.Columns.Add("Id", typeof(int));
+        table.Columns.Add("Name", typeof(string));
+        table.Columns.Add("Amount", typeof(decimal));
+        table.Columns.Add("Ratio", typeof(double));
+        table.Columns.Add("When", typeof(DateTime));
+        table.Columns.Add("Flag", typeof(bool));
+        table.Columns.Add("Key", typeof(Guid));
+        table.Columns.Add("Any", typeof(object));
+        table.Columns.Add("Twice", typeof(decimal), "Amount * 2");
+        for (int index = 0; index < 40; index++)
+        {
+            bool empty = index % 6 == 5;
+            table.Rows.Add(index, empty ? DBNull.Value : index % 4 == 0 ? "a,\"b\"\nc" : "name" + index,
+                empty ? DBNull.Value : index * 1.25m, index / 3.0, new DateTime(2026, 1, 2, 3, 4, 5).AddHours(index * 7),
+                index % 2 == 0, new Guid(index, 0, 0, new byte[8]), empty ? DBNull.Value : index % 3 == 0 ? "x;y" : index);
+        }
+        table.AcceptChanges();
+        table.Rows[3]["Name"] = "changed";
+        table.Rows[5].Delete();
+        table.Rows[9].Delete();
+        table.Rows.Add(100, "added", 7.5m, 0.1, DateTime.MinValue, true, Guid.Empty, DBNull.Value);
+        table.Rows[12].BeginEdit();
+        table.Rows[12]["Amount"] = 99m;
+        DataRow detached = table.NewRow();
+        detached["Id"] = 200;
+        var options = new CsvSaveOptions
+        {
+            Delimiter = delimiter, NewLine = "\n", DateTimeFormat = dateFormat, NullValue = nullValue,
+            Culture = cultureName.Length == 0 ? CultureInfo.InvariantCulture : CultureInfo.GetCultureInfo(cultureName)
+        };
+
+        string Expected(Action<TextWriter> write)
+        {
+            using var text = new StringWriter(CultureInfo.InvariantCulture);
+            write(text);
+            return text.ToString();
+        }
+
+        string expected = Expected(text =>
+        {
+            using var reader = table.CreateDataReader();
+            CsvDocument.WriteDataReader(text, reader, options);
+        });
+        Assert.Equal(expected, Expected(text => CsvDocument.WriteDataTable(text, table, options)));
+
+        using var stream = new MemoryStream();
+        CsvDocument.WriteDataTable(stream, table, options);
+        Assert.Equal(expected, Encoding.UTF8.GetString(stream.ToArray()));
+    }
+
+    [Theory]
     [InlineData('T', "\"True\"TAlpha\nFalseTBeta\n")]
     [InlineData('F', "TrueFAlpha\n\"False\"FBeta\n")]
     public void WriteDataReader_QuotesBooleanWhenDelimiterAppearsInLiteral(char delimiter, string expected)

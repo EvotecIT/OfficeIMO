@@ -3,10 +3,10 @@ namespace OfficeIMO.Excel;
 
 /// <summary>Defers the bounded worksheet compression handoff until a streamed sheet is large enough.</summary>
 /// <remarks>With an <paramref name="owner"/> archive the sheet borrows that package's compressor, so a workbook of many
-/// sheets starts one worker instead of one per sheet.</remarks>
+/// sheets rents one set of hand-off buffers instead of one per sheet.</remarks>
 internal sealed class StreamingWorksheetCompression(Stream destination, ExcelPackageArchive? owner = null) : Stream {
     // Smaller sheets stay on the caller. The package keeps its compressor for later sheets, so only the first large
-    // sheet pays to start the worker.
+    // sheet pays to rent the buffers.
     private const int SynchronousPrefixLength = 64 * 1024;
     private WorksheetCompressionPipeline? _pipeline;
     private int _prefixBytes;

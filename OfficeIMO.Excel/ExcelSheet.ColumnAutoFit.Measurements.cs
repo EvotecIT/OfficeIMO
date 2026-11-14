@@ -158,22 +158,45 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool TryGetDateAutoFitSample(Cell cell, AutoFitTextContext textContext, out string sample) {
-            sample = string.Empty;
             var dataType = cell.DataType?.Value;
+            if (dataType != null && dataType != DocumentFormat.OpenXml.Spreadsheet.CellValues.Number) {
+                sample = string.Empty;
+                return false;
+            }
+
+            return TryGetDateAutoFitSample(dataType, GetCellDisplayStyleIndex(cell), cell.CellValue?.InnerText ?? string.Empty, textContext, out sample);
+        }
+
+        /// <summary>
+        /// The canonical date sample of a numeric cell value in a date format, from the cell's parts. The sample formats a
+        /// fixed date, so the value only selects the format section; without conditional sections that depends on its sign
+        /// alone, and the sample is cached per format and sign.
+        /// </summary>
+        private static bool TryGetDateAutoFitSample(DocumentFormat.OpenXml.Spreadsheet.CellValues? dataType, uint styleIndex, string raw,
+            AutoFitTextContext textContext, out string sample) {
+            sample = string.Empty;
             if (dataType != null && dataType != DocumentFormat.OpenXml.Spreadsheet.CellValues.Number) {
                 return false;
             }
 
-            uint numberFormatId = GetCellNumberFormatId(cell, textContext);
+            uint numberFormatId = GetCellNumberFormatId(styleIndex, textContext);
             string? formatCode = GetNumberFormatCode(numberFormatId, textContext);
-            string raw = cell.CellValue?.InnerText ?? string.Empty;
-            if (!double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
-                || !ExcelNumberFormatDisplay.IsDateNumberFormat(numberFormatId, formatCode)
-                || !ExcelNumberFormatDisplay.TryGetDateSample(numberFormatId, formatCode, out sample, value)) {
+            if (!double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) {
                 return false;
             }
 
-            return true;
+            bool cacheable = formatCode == null || formatCode.IndexOf('[') < 0;
+            var key = (numberFormatId, value < 0 ? 1 : value == 0 ? 2 : 0);
+            if (cacheable && textContext.DateSamples.TryGetValue(key, out string? cached)) {
+                sample = cached ?? string.Empty;
+                return cached != null;
+            }
+
+            bool found = ExcelNumberFormatDisplay.IsDateNumberFormat(numberFormatId, formatCode)
+                && ExcelNumberFormatDisplay.TryGetDateSample(numberFormatId, formatCode, out sample, value);
+            if (!found) sample = string.Empty;
+            if (cacheable) textContext.DateSamples[key] = found ? sample : null;
+            return found;
         }
 
         private bool CanSkipRawSimpleAutoFitMeasurement(

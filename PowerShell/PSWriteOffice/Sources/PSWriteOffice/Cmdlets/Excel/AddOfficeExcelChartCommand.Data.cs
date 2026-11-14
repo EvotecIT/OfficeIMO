@@ -47,17 +47,31 @@ public sealed partial class AddOfficeExcelChartCommand {
 
         int categoryIndex = FindColumn(names, category ?? names[0], nameof(category));
         int[] valueIndexes = SelectValues(names, categoryIndex, values,
-            index => Enumerable.Range(firstRow, lastRow - firstRow + 1).All(row =>
-                TryReadNumber(sheet, row, tableBounds.Left + index, out _)));
+            index => ReadNumbers(sheet, firstRow, lastRow, tableBounds.Left + index).All(value => value.HasValue));
         int[] valueColumns = valueIndexes.Select(index => tableBounds.Left + index).ToArray();
         var chartData = ReadData(sheet, firstRow, lastRow, tableBounds.Left + categoryIndex,
             valueColumns, valueIndexes.Select(index => names[index]).ToArray());
         bool contiguous = valueIndexes.Select((index, offset) => index == categoryIndex + offset + 1).All(matches => matches);
-        string? source = contiguous
-            ? ExcelA1.CellReference(table.HasHeaderRow ? tableBounds.Top : firstRow, tableBounds.Left + categoryIndex) + ":" +
-              ExcelA1.CellReference(lastRow, valueColumns[valueColumns.Length - 1])
-            : null;
+        if (!contiguous) {
+            // Non-adjacent columns are charted in place; each series references its own column.
+            string ColumnRange(int column) => ExcelA1.CellReference(firstRow, column) + ":" + ExcelA1.CellReference(lastRow, column);
+            string categories = ColumnRange(tableBounds.Left + categoryIndex);
+            var ranges = valueIndexes.Select(index => new ExcelChartSeriesRange(names[index], categories, ColumnRange(tableBounds.Left + index))).ToArray();
+            return new ChartPlan(chartData, null, table.HasHeaderRow, seriesRanges: ranges);
+        }
+
+        string source = ExcelA1.CellReference(table.HasHeaderRow ? tableBounds.Top : firstRow, tableBounds.Left + categoryIndex) + ":" +
+            ExcelA1.CellReference(lastRow, valueColumns[valueColumns.Length - 1]);
         return new ChartPlan(chartData, source, table.HasHeaderRow);
+    }
+
+    /// <summary>Adds a chart whose series reference non-adjacent worksheet columns, reusing the values already read as its cache.</summary>
+    internal static ExcelChart AddRangeSeriesChart(ExcelSheet sheet, OfficeChartType kind, ChartPlan plan, ExcelChartOptions options, bool includeCachedData) {
+        options.IncludeCachedData = includeCachedData;
+        options.CachedData = includeCachedData
+            ? new ExcelChartData(plan.Data.Categories, plan.Data.Series.Select(series => new ExcelChartSeries(series.Name, series.Values)))
+            : null;
+        return sheet.AddChartFromRanges(kind, plan.SeriesRanges!, options);
     }
 
     /// <summary>Normalizes pipeline input through the shared table owner and reserves unused worksheet rows.</summary>
@@ -116,14 +130,24 @@ public sealed partial class AddOfficeExcelChartCommand {
         int count = lastRow - firstRow + 1;
         var categories = Enumerable.Range(firstRow, count).Select(row => CategoryText(ReadText(sheet, row, categoryColumn))).ToArray();
         var series = valueColumns.Select((column, index) => new OfficeSeries(seriesNames[index],
-            Enumerable.Range(firstRow, count).Select(row => TryReadNumber(sheet, row, column, out double value)
-                ? value : throw new PSArgumentException($"Column '{seriesNames[index]}' contains a blank, nonnumeric or nonfinite value at {ExcelA1.CellReference(row, column)}.", nameof(Value))))).ToArray();
+            ReadNumbers(sheet, firstRow, lastRow, column).Select((value, offset) => value
+                ?? throw new PSArgumentException($"Column '{seriesNames[index]}' contains a blank, nonnumeric or nonfinite value at {ExcelA1.CellReference(firstRow + offset, column)}.", nameof(Value))))).ToArray();
         return new OfficeChartData(categories, series);
     }
 
-    private static bool TryReadNumber(ExcelSheet sheet, int row, int column, out double value) {
+    /// <summary>Reads one column of numbers in a single pass; a blank, nonnumeric or nonfinite cell reads as null.</summary>
+    private static double?[] ReadNumbers(ExcelSheet sheet, int firstRow, int lastRow, int column) {
+        var cells = sheet.GetCellValueSnapshots(column, firstRow, lastRow);
+        var values = new double?[cells.Count];
+        for (int i = 0; i < values.Length; i++) {
+            if (TryReadNumber(sheet, firstRow + i, column, cells[i], out double value)) values[i] = value;
+        }
+        return values;
+    }
+
+    private static bool TryReadNumber(ExcelSheet sheet, int row, int column, ExcelNativeCellValueInfo? cell, out double value) {
         value = 0;
-        if (!sheet.TryGetCellValueSnapshot(row, column, out var cell) || cell == null || cell.DateTimeValue.HasValue ||
+        if (cell == null || cell.DateTimeValue.HasValue ||
             cell.Kind is ExcelCellValueKind.Boolean or ExcelCellValueKind.Error or ExcelCellValueKind.DateTime) return false;
         if (cell.Kind == ExcelCellValueKind.Formula) {
             // Formula RawValue is the expression. Read its stored result through the native cache owner.
@@ -170,13 +194,19 @@ public sealed partial class AddOfficeExcelChartCommand {
     }
 
     internal sealed class ChartPlan {
-        internal ChartPlan(OfficeChartData data, string? sourceRange, bool hasHeaders, DataTable? inputTable = null, int startRow = 0) {
+        internal ChartPlan(OfficeChartData data, string? sourceRange, bool hasHeaders, DataTable? inputTable = null, int startRow = 0,
+            IReadOnlyList<ExcelChartSeriesRange>? seriesRanges = null) {
             Data = data;
             SourceRange = sourceRange;
             HasHeaders = hasHeaders;
             InputTable = inputTable;
             StartRow = startRow;
+            SeriesRanges = seriesRanges;
         }
+        internal IReadOnlyList<ExcelChartSeriesRange>? SeriesRanges { get; }
+
+        /// <summary>Whether the chart can reference the worksheet columns in place. Scatter charts keep their numeric X snapshot.</summary>
+        internal bool UsesSeriesRanges(OfficeChartType kind) => SeriesRanges != null && kind != OfficeChartType.Scatter;
         internal OfficeChartData Data { get; }
         internal string? SourceRange { get; }
         internal bool HasHeaders { get; }

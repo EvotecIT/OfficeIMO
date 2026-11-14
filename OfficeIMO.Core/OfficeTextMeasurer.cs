@@ -65,8 +65,14 @@ public sealed class OfficeTextMeasurer {
             return 0D;
         }
 
+        double fontWidthFactor = style.WidthFactor > 0D
+            ? style.WidthFactor
+            : GetFontFamilyWidthFactor(style.FontInfo) * GetStyleWidthFactor(style.FontInfo);
+        if (TryMeasureAsciiWidth(text!, style, fontWidthFactor, out double asciiWidth)) {
+            return asciiWidth;
+        }
+
         double width = 0D;
-        double fontWidthFactor = GetFontFamilyWidthFactor(style.FontInfo) * GetStyleWidthFactor(style.FontInfo);
         foreach (string element in OfficeTextElements.Enumerate(text)) {
             if (element == "\t") {
                 width += style.SpaceWidthPixels * 4D;
@@ -77,6 +83,40 @@ public sealed class OfficeTextMeasurer {
         }
 
         return width;
+    }
+
+    /// <summary>
+    /// The width of ASCII text, which is one text element per character (CR LF excepted, and control characters
+    /// measure zero either way): each character's factor comes from a table, summed in the same order and with the same
+    /// products as the element loop, so the result is identical.
+    /// </summary>
+    private static bool TryMeasureAsciiWidth(string text, OfficeTextMeasurementStyle style, double fontWidthFactor, out double width) {
+        width = 0D;
+        double[] factors = AsciiWidthFactors;
+        foreach (char character in text) {
+            if (character >= factors.Length) {
+                width = 0D;
+                return false;
+            }
+
+            width += character == '\t'
+                ? style.SpaceWidthPixels * 4D
+                : style.FontSizePixels * (factors[character] * fontWidthFactor);
+        }
+
+        return true;
+    }
+
+    /// <summary>Base width factors of the ASCII characters; zero for control characters, which have no base scalar.</summary>
+    private static readonly double[] AsciiWidthFactors = CreateAsciiWidthFactors();
+
+    private static double[] CreateAsciiWidthFactors() {
+        var factors = new double[128];
+        for (int character = 0x20; character < 0x7F; character++) {
+            factors[character] = GetCharacterBaseWidthFactor((char)character);
+        }
+
+        return factors;
     }
 
     /// <summary>Measures text width or returns the provided fallback when text cannot be measured.</summary>

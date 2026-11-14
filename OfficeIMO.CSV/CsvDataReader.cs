@@ -59,7 +59,10 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
     private bool _checkedForRows;
     private bool _hasCurrentTextRow;
 #if NET8_0_OR_GREATER
-    /// <summary>The UTF-8 row source while it holds the current row and strings are read from it directly.</summary>
+    /// <summary>
+    /// The UTF-8 row source while it holds the current row, reads it from bytes rather than through
+    /// its decoded-text fallback, and strings are read from it directly.
+    /// </summary>
     private CsvParser.CsvUtf8StreamDataReaderRowSource? _currentUtf8TextRows;
     private readonly CsvParser.CsvUtf8StreamDataReaderRowSource? _directUtf8TextRows;
 #endif
@@ -1191,7 +1194,12 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
     {
         _hasCurrentTextRow = value;
 #if NET8_0_OR_GREATER
-        _currentUtf8TextRows = value ? _directUtf8TextRows : null;
+        // Rows usually keep the same source, and comparing first skips the write barrier.
+        CsvParser.CsvUtf8StreamDataReaderRowSource? rows = value && _directUtf8TextRows is { ReadsBytes: true } ? _directUtf8TextRows : null;
+        if (!ReferenceEquals(_currentUtf8TextRows, rows))
+        {
+            _currentUtf8TextRows = rows;
+        }
 #endif
     }
 

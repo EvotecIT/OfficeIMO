@@ -46,6 +46,28 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void WorksheetCompression_KeepsByteOrderWhenCallerAndBackgroundShareWrites() {
+            // The caller writes queued chunks itself whenever the background drain has not run yet,
+            // so both threads take turns on one destination across entries.
+            byte[] payload = new byte[24 * WorksheetCompressionPipeline.ChunkSize + 12_345];
+            for (int i = 0; i < payload.Length; i++) payload[i] = (byte)(i * 31 % 251);
+            for (int attempt = 0; attempt < 8; attempt++) {
+                var first = new MemoryStream();
+                var second = new MemoryStream();
+                using (var pipeline = new WorksheetCompressionPipeline(first)) {
+                    for (int offset = 0; offset < payload.Length; offset += 100_003)
+                        pipeline.Write(payload, offset, Math.Min(100_003, payload.Length - offset));
+                    pipeline.Drain();
+                    pipeline.Retarget(second);
+                    pipeline.Write(payload, 0, payload.Length);
+                    pipeline.Complete();
+                }
+                Assert.Equal(payload, first.ToArray());
+                Assert.Equal(payload, second.ToArray());
+            }
+        }
+
         [Theory]
         [InlineData(ExcelFileFormat.Xlsb, 4095, ExcelExecutionMode.Automatic, null, false)]
         [InlineData(ExcelFileFormat.Xlsb, 4096, ExcelExecutionMode.Automatic, null, false)]
