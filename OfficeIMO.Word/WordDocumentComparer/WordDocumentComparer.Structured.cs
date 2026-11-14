@@ -5,6 +5,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using V = DocumentFormat.OpenXml.Vml;
+using OfficeIMO.Diff;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
@@ -590,56 +591,62 @@ namespace OfficeIMO.Word {
                 GetTableChildDocumentOrder(tableDocumentOrder, sourceCells[cellIndex]._tableCell));
         }
 
+        // Myers' linear-space diff from OfficeIMO.Core keeps the alignment exact for large documents; the greedy
+        // pass is only a fallback when the diff work limit is reached.
         private static IReadOnlyList<MatchedIndexPair> FindMatchingIndexes<T>(IReadOnlyList<T> source, IReadOnlyList<T> target, IEqualityComparer<T> comparer) where T : notnull {
-            if (((long)source.Count + 1) * ((long)target.Count + 1) > LcsCellLimit) {
+            var keyComparer = new FingerprintedValueComparer<T>(comparer);
+            OfficeDiffResult<FingerprintedValue<T>> diff = OfficeDiff.Compare(
+                FingerprintedValue<T>.Create(source, comparer),
+                FingerprintedValue<T>.Create(target, comparer),
+                keyComparer);
+            if (diff.LimitReached) {
                 return FindGreedyMatchingIndexes(source, target, comparer);
             }
 
-            int[] sourceHashCodes = new int[source.Count];
-            ulong[] sourceFingerprints = new ulong[source.Count];
-            for (int sourceIndex = 0; sourceIndex < source.Count; sourceIndex++) {
-                sourceHashCodes[sourceIndex] = comparer.GetHashCode(source[sourceIndex]);
-                sourceFingerprints[sourceIndex] = GetComparisonFingerprint(source[sourceIndex]);
-            }
-
-            int[] targetHashCodes = new int[target.Count];
-            ulong[] targetFingerprints = new ulong[target.Count];
-            for (int targetIndex = 0; targetIndex < target.Count; targetIndex++) {
-                targetHashCodes[targetIndex] = comparer.GetHashCode(target[targetIndex]);
-                targetFingerprints[targetIndex] = GetComparisonFingerprint(target[targetIndex]);
-            }
-
-            int[,] lengths = new int[source.Count + 1, target.Count + 1];
-
-            for (int sourceIndex = source.Count - 1; sourceIndex >= 0; sourceIndex--) {
-                for (int targetIndex = target.Count - 1; targetIndex >= 0; targetIndex--) {
-                    lengths[sourceIndex, targetIndex] = sourceHashCodes[sourceIndex] == targetHashCodes[targetIndex] &&
-                        sourceFingerprints[sourceIndex] == targetFingerprints[targetIndex] &&
-                        comparer.Equals(source[sourceIndex], target[targetIndex])
-                        ? lengths[sourceIndex + 1, targetIndex + 1] + 1
-                        : Math.Max(lengths[sourceIndex + 1, targetIndex], lengths[sourceIndex, targetIndex + 1]);
-                }
-            }
-
-            var matches = new List<MatchedIndexPair>();
-            int sourceCursor = 0;
-            int targetCursor = 0;
-
-            while (sourceCursor < source.Count && targetCursor < target.Count) {
-                if (sourceHashCodes[sourceCursor] == targetHashCodes[targetCursor] &&
-                    sourceFingerprints[sourceCursor] == targetFingerprints[targetCursor] &&
-                    comparer.Equals(source[sourceCursor], target[targetCursor])) {
-                    matches.Add(new MatchedIndexPair(sourceCursor, targetCursor));
-                    sourceCursor++;
-                    targetCursor++;
-                } else if (lengths[sourceCursor + 1, targetCursor] >= lengths[sourceCursor, targetCursor + 1]) {
-                    sourceCursor++;
-                } else {
-                    targetCursor++;
+            var matches = new List<MatchedIndexPair>(diff.EqualCount);
+            foreach (OfficeDiffEdit edit in diff.Edits) {
+                if (edit.Operation != OfficeDiffOperation.Equal) continue;
+                for (int offset = 0; offset < edit.OldLength; offset++) {
+                    matches.Add(new MatchedIndexPair(edit.OldStart + offset, edit.NewStart + offset));
                 }
             }
 
             return matches;
+        }
+
+        /// <summary>A value with its hash code and independent fingerprint computed once; both must agree before the comparer is asked.</summary>
+        private readonly struct FingerprintedValue<T> where T : notnull {
+            private FingerprintedValue(T value, int hashCode, ulong fingerprint) {
+                Value = value;
+                HashCode = hashCode;
+                Fingerprint = fingerprint;
+            }
+
+            internal T Value { get; }
+            internal int HashCode { get; }
+            internal ulong Fingerprint { get; }
+
+            internal static FingerprintedValue<T>[] Create(IReadOnlyList<T> values, IEqualityComparer<T> comparer) {
+                var result = new FingerprintedValue<T>[values.Count];
+                for (int index = 0; index < values.Count; index++) {
+                    result[index] = new FingerprintedValue<T>(values[index], comparer.GetHashCode(values[index]), GetComparisonFingerprint(values[index]));
+                }
+
+                return result;
+            }
+        }
+
+        private sealed class FingerprintedValueComparer<T> : IEqualityComparer<FingerprintedValue<T>> where T : notnull {
+            private readonly IEqualityComparer<T> _comparer;
+
+            internal FingerprintedValueComparer(IEqualityComparer<T> comparer) {
+                _comparer = comparer;
+            }
+
+            public bool Equals(FingerprintedValue<T> x, FingerprintedValue<T> y) =>
+                x.HashCode == y.HashCode && x.Fingerprint == y.Fingerprint && _comparer.Equals(x.Value, y.Value);
+
+            public int GetHashCode(FingerprintedValue<T> obj) => obj.HashCode;
         }
 
         private static IReadOnlyList<MatchedIndexPair> FindGreedyMatchingIndexes<T>(IReadOnlyList<T> source, IReadOnlyList<T> target, IEqualityComparer<T> comparer) where T : notnull {
