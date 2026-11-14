@@ -1298,7 +1298,7 @@ foreach (string change in front.Pipeline.Steps[front.Pipeline.Steps.Count - 1].D
     Console.WriteLine(change); // Bookmark "Results" was removed because its destination page is not in the output.
 ```
 
-Extraction refuses signed, certified and usage-rights documents, XFA forms, encrypted documents without the required permission, and sources with unreadable or inconsistent object references. `PdfMutationBlockedException` carries the plan, whose blockers name each reason; `PlanMutation(PdfMutationOperation.ExtractPages)` returns the same plan without extracting.
+Extraction refuses signed, certified and usage-rights documents, XFA forms, encrypted documents without the required permission, sources with unreadable objects and unencrypted sources with inconsistent object references. `PdfMutationBlockedException` carries the plan, whose blockers name each reason; `PlanMutation(PdfMutationOperation.ExtractPages)` returns the same plan without extracting.
 
 To place source pages on printable sheets, use the same page import engine for N-up or duplex booklet output:
 

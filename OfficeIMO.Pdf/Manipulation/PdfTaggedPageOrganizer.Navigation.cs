@@ -2,19 +2,20 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfTaggedPageOrganizer {
     /// <summary>
-    /// Returns the destination names whose every definition goes to a removed page. Names that cannot be resolved,
-    /// or that are defined in a name tree this writer cannot traverse, are not included: they are kept as found.
+    /// Returns the destination names, keyed by <see cref="PdfPageExtractor.DestinationNameKey"/>, whose definition goes to a
+    /// removed page. Names that cannot be resolved, or that are defined in a name tree this writer cannot traverse, are
+    /// not included: they are kept as found.
     /// </summary>
     internal static HashSet<string> CollectRemovedDestinationNames(Dictionary<int, PdfIndirectObject> objects, PdfDictionary catalog,
         HashSet<int> removedPages, CancellationToken token) {
         var survives = new Dictionary<string, bool>(StringComparer.Ordinal);
         if (removedPages.Count == 0) return new HashSet<string>(StringComparer.Ordinal);
         if (catalog.Items.TryGetValue("Dests", out var directValue) && PdfObjectLookup.Resolve(objects, directValue) is PdfDictionary direct)
-            foreach (var pair in direct.Items) Record(pair.Key, pair.Value);
+            foreach (var pair in direct.Items) Record(PdfPageExtractor.DestinationNameKey(pair.Key, isNameObject: true), pair.Value);
         if (TryGetDestinationNameTree(objects, catalog, out _, out var tree)) {
             var pairs = new List<(PdfStringObj Name, PdfObject Value)>();
             if (TryCollectNameTreePairs(objects, tree, pairs, token))
-                foreach (var pair in pairs) Record(pair.Name.Value, pair.Value);
+                foreach (var pair in pairs) Record(PdfPageExtractor.DestinationNameKey(pair.Name.Value, isNameObject: false), pair.Value);
         }
         return new HashSet<string>(survives.Where(static pair => !pair.Value).Select(static pair => pair.Key), StringComparer.Ordinal);
 
@@ -41,8 +42,9 @@ internal static partial class PdfTaggedPageOrganizer {
                 var resolved = PdfObjectLookup.Resolve(objects, destination);
                 if (resolved is PdfDictionary dictionary && dictionary.Items.TryGetValue("D", out destination!)) continue;
                 if (resolved is PdfArray array) return array.Items.Count == 0 || array.Items[0] is not PdfReference page || !removedPages.Contains(page.ObjectNumber);
-                string? name = resolved is PdfName pdfName ? pdfName.Name : (resolved as PdfStringObj)?.Value;
-                return name == null || !removedNames.Contains(name);
+                string? key = resolved is PdfName pdfName ? PdfPageExtractor.DestinationNameKey(pdfName.Name, isNameObject: true)
+                    : resolved is PdfStringObj text ? PdfPageExtractor.DestinationNameKey(text.Value, isNameObject: false) : null;
+                return key == null || !removedNames.Contains(key);
             }
             throw new InvalidOperationException("Page organization found a cyclic destination.");
         }
@@ -97,6 +99,9 @@ internal static partial class PdfTaggedPageOrganizer {
 
         var actionResults = new Dictionary<PdfDictionary, PdfObject?>();
         var activeActions = new HashSet<PdfDictionary>();
+        // Each removed action dictionary counts once, whether it was an owner's entry or a /Next link in a chain.
+        int removedActions = 0;
+        bool countRemovals = true;
         PdfObject? PruneAction(PdfObject action) {
             if (PdfObjectLookup.Resolve(objects, action) is not PdfDictionary dictionary) return action;
             if (actionResults.TryGetValue(dictionary, out var previous)) return previous;
@@ -113,28 +118,33 @@ internal static partial class PdfTaggedPageOrganizer {
             }
             if (dictionary.Items.ContainsKey("Next")) throw new InvalidOperationException("A removed page destination has a chained action that cannot be pruned safely.");
             activeActions.Remove(dictionary); actionResults.Add(dictionary, null);
+            if (countRemovals) removedActions++;
             return null;
         }
-        int removedActions = 0;
         foreach (var indirect in objects.Values) {
             token.ThrowIfCancellationRequested();
             if (indirect.Value is not PdfDictionary dictionary || removedPages.Contains(indirect.ObjectNumber)) continue;
             // Objects that leave the output with a removed page or bookmark are not reported as changed.
-            bool reported = !removedAnnotations.Contains(indirect.ObjectNumber) && !droppedOutlines.Contains(indirect.ObjectNumber);
+            countRemovals = !removedAnnotations.Contains(indirect.ObjectNumber) && !droppedOutlines.Contains(indirect.ObjectNumber);
             foreach (string key in new[] { "A", "OpenAction" }) if (dictionary.Items.TryGetValue(key, out var action)) {
                 var resolved = PdfObjectLookup.Resolve(objects, action);
-                var value = resolved is PdfArray ? Exists(action) ? action : null : PruneAction(action);
+                bool openAction = ReferenceEquals(dictionary, catalog) && key == "OpenAction";
+                int before = removedActions;
+                PdfObject? value;
+                if (resolved is PdfArray) {
+                    value = Exists(action) ? action : null;
+                    if (value == null && countRemovals) removedActions++;
+                } else value = PruneAction(action);
                 if (value == null) {
                     dictionary.Items.Remove(key);
-                    if (!reported) continue;
-                    if (ReferenceEquals(dictionary, catalog) && key == "OpenAction") report?.Add(PdfPageNavigationReport.OpenActionRemoved);
-                    else removedActions++;
+                    // The catalog's own open action gets its own sentence; actions chained behind it are still counted.
+                    if (openAction && removedActions > before) { removedActions--; report?.Add(PdfPageNavigationReport.OpenActionRemoved); }
                 } else dictionary.Items[key] = value;
             }
             if (dictionary.Items.TryGetValue("AA", out var additional) && PdfObjectLookup.Resolve(objects, additional) is PdfDictionary actions)
                 foreach (string key in actions.Items.Keys.ToArray()) {
                     var value = PruneAction(actions.Items[key]);
-                    if (value == null) { actions.Items.Remove(key); if (reported) removedActions++; } else actions.Items[key] = value;
+                    if (value == null) actions.Items.Remove(key); else actions.Items[key] = value;
                 }
         }
         if (removedActions > 0) report?.Add(PdfPageNavigationReport.ActionsRemoved(removedActions));

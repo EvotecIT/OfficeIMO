@@ -102,7 +102,7 @@ internal static partial class PdfPageExtractor {
     /// <summary>
     /// Removes link annotations whose destinations are outside the copied pages and adds the number removed to
     /// <paramref name="report"/>. When <paramref name="removedDestinationNames"/> is supplied, a named link is removed
-    /// only when its name is in that set; other names are kept as found.
+    /// only when its <see cref="DestinationNameKey"/> is in that set; other names are kept as found.
     /// </summary>
     internal static Dictionary<int, Dictionary<string, PdfObject>>? BuildPageOverridesWithFilteredDestinationLinks(
         Dictionary<int, PdfIndirectObject> sourceObjects,
@@ -116,9 +116,9 @@ internal static partial class PdfPageExtractor {
         HashSet<string>? availableDestinationNames = removedDestinationNames is null
             ? GetNamedDestinationNames(sourceObjects, catalogState, cancellationToken)
             : null;
-        Func<string, bool> isNameAvailable = availableDestinationNames is not null
-            ? availableDestinationNames.Contains
-            : name => !removedDestinationNames!.Contains(name);
+        Func<string, bool, bool> isNameAvailable = availableDestinationNames is not null
+            ? (name, _) => availableDestinationNames.Contains(name)
+            : (name, isNameObject) => !removedDestinationNames!.Contains(DestinationNameKey(name, isNameObject));
         int removedLinks = 0;
         Dictionary<int, Dictionary<string, PdfObject>>? result = null;
     
@@ -195,7 +195,7 @@ internal static partial class PdfPageExtractor {
     private static bool TryFilterLinkAnnotations(
         Dictionary<int, PdfIndirectObject> sourceObjects,
         PdfObject? annotationsObject,
-        Func<string, bool> isNameAvailable,
+        Func<string, bool, bool> isNameAvailable,
         HashSet<int> copiedPageObjectIds,
         out PdfArray filteredAnnotations,
         ref int removedLinks,
@@ -208,8 +208,8 @@ internal static partial class PdfPageExtractor {
         bool removed = false;
         foreach (var annotation in annotations.Items) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (TryGetNamedDestinationLinkName(sourceObjects, annotation, out string? destinationName) &&
-                !isNameAvailable(destinationName!)) {
+            if (TryGetNamedDestinationLinkName(sourceObjects, annotation, out string? destinationName, out bool isNameObject) &&
+                !isNameAvailable(destinationName!, isNameObject)) {
                 removed = true;
                 removedLinks++;
                 continue;
@@ -231,15 +231,18 @@ internal static partial class PdfPageExtractor {
     private static bool TryGetNamedDestinationLinkName(
         Dictionary<int, PdfIndirectObject> sourceObjects,
         PdfObject annotationObject,
-        out string? destinationName) {
+        out string? destinationName,
+        out bool isNameObject) {
         destinationName = null;
+        isNameObject = false;
         if (ResolveDictionary(sourceObjects, annotationObject) is not PdfDictionary annotation ||
             annotation.Get<PdfName>("Subtype")?.Name != "Link") {
             return false;
         }
-    
+
         if (annotation.Items.TryGetValue("Dest", out var directDestination) &&
             TryGetNamedDestinationName(sourceObjects, directDestination, out destinationName)) {
+            isNameObject = ResolveObject(sourceObjects, directDestination) is PdfName;
             return true;
         }
     
@@ -250,8 +253,15 @@ internal static partial class PdfPageExtractor {
             return false;
         }
     
+        isNameObject = ResolveObject(sourceObjects, actionDestination) is PdfName;
         return TryGetNamedDestinationName(sourceObjects, actionDestination, out destinationName);
     }
+
+    /// <summary>
+    /// Keys a destination name by its token type: a name object refers to the catalog /Dests dictionary and a string
+    /// to the /Names /Dests tree, so the same text in both namespaces is two different destinations.
+    /// </summary>
+    internal static string DestinationNameKey(string name, bool isNameObject) => (isNameObject ? "/" : "(") + name;
 
     private static bool TryGetDirectDestinationLink(
         Dictionary<int, PdfIndirectObject> sourceObjects,

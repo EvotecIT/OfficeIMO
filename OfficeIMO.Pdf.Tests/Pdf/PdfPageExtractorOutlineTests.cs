@@ -20,8 +20,8 @@ public sealed class PdfPageExtractorOutlineTests {
         byte[] output = extracted.ToBytes();
         PdfDocumentInfo info = PdfInspector.Inspect(output);
         Assert.Equal(Flatten(sourceInfo.Outlines), Flatten(info.Outlines));
-        Assert.Equal(new[] { "chapter.1", "chapter.3", "part.1" }, info.NamedDestinations.Select(destination => destination.Name).OrderBy(name => name, StringComparer.Ordinal));
-        Assert.Equal(2, info.LinkAnnotations.Count);
+        Assert.Equal(new[] { "chapter.1", "chapter.1", "chapter.3", "part.1" }, info.NamedDestinations.Select(destination => destination.Name).OrderBy(name => name, StringComparer.Ordinal));
+        Assert.Equal(3, info.LinkAnnotations.Count);
         Assert.Empty(extracted.Pipeline.Steps.Last().Diagnostics);
         AssertReadable(output, 3, "Page three");
     }
@@ -49,8 +49,8 @@ public sealed class PdfPageExtractorOutlineTests {
         Assert.Equal(4, report.Count);
         Assert.Contains(report, entry => entry.Contains("\"Chapter 3\" was removed", StringComparison.Ordinal));
         Assert.Contains(report, entry => entry.Contains("\"Part II\" was kept without a destination", StringComparison.Ordinal));
-        Assert.Contains(report, entry => entry.StartsWith("1 named destination ", StringComparison.Ordinal));
-        Assert.Contains(report, entry => entry.StartsWith("1 link annotation ", StringComparison.Ordinal));
+        Assert.Contains(report, entry => entry.StartsWith("2 named destinations ", StringComparison.Ordinal));
+        Assert.Contains(report, entry => entry.StartsWith("2 link annotations ", StringComparison.Ordinal));
         AssertReadable(output, 2, "Page two");
     }
 
@@ -96,18 +96,20 @@ public sealed class PdfPageExtractorOutlineTests {
 
     /// <summary>
     /// Three pages with a two-level outline (named, explicit and URI targets), a /Names /Dests tree with Kids and Limits,
-    /// and two named-destination links on page one. Every dictionary sits in one object stream behind an xref stream.
+    /// and named-destination links. The catalog /Dests name object /chapter.1 goes to page three while the tree's string
+    /// (chapter.1) goes to page one. Every dictionary sits in one object stream behind an xref stream.
     /// </summary>
     private static byte[] BuildCompressedOutlinePdf() {
         var packed = new List<(int Number, string Body)> {
-            (1, "<< /Type /Catalog /Pages 2 0 R /Outlines 20 0 R /Names << /Dests 30 0 R >> /PageMode /UseOutlines >>"),
+            (1, "<< /Type /Catalog /Pages 2 0 R /Outlines 20 0 R /Names << /Dests 30 0 R >> /Dests << /chapter.1 [5 0 R /Fit] >> /PageMode /UseOutlines >>"),
             (2, "<< /Type /Pages /Kids [3 0 R 4 0 R 5 0 R] /Count 3 /MediaBox [0 0 612 792] /Resources << /Font << /F1 6 0 R >> >> >>"),
             (3, "<< /Type /Page /Parent 2 0 R /Contents 40 0 R /Annots [7 0 R 8 0 R] >>"),
-            (4, "<< /Type /Page /Parent 2 0 R /Contents 41 0 R >>"),
+            (4, "<< /Type /Page /Parent 2 0 R /Contents 41 0 R /Annots [9 0 R] >>"),
             (5, "<< /Type /Page /Parent 2 0 R /Contents 42 0 R >>"),
             (6, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"),
             (7, "<< /Type /Annot /Subtype /Link /Rect [72 600 200 620] /Border [0 0 0] /A << /S /GoTo /D (chapter.3) >> >>"),
             (8, "<< /Type /Annot /Subtype /Link /Rect [72 560 200 580] /Border [0 0 0] /Dest (chapter.1) >>"),
+            (9, "<< /Type /Annot /Subtype /Link /Rect [72 560 200 580] /Border [0 0 0] /Dest /chapter.1 >>"),
             (20, "<< /Type /Outlines /First 21 0 R /Last 24 0 R /Count 4 >>"),
             (21, "<< /Title (Part I) /Parent 20 0 R /Next 24 0 R /First 22 0 R /Last 23 0 R /Count 2 /Dest (part.1) >>"),
             (22, "<< /Title (Chapter 1) /Parent 21 0 R /Next 23 0 R /A << /S /GoTo /D (chapter.1) >> >>"),
