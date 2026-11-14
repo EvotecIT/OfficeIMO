@@ -1,6 +1,6 @@
 ---
 title: CSV Documents
-description: Overview of the OfficeIMO.CSV package for strongly-typed CSV document workflows. Includes practical examples, limits, and API links.
+description: Create, load, validate and save CSV files with the OfficeIMO.CSV document model, with links to the CSV task guides.
 order: 50
 ---
 
@@ -37,6 +37,8 @@ csv.Save("people.csv");
 Generate a CSV document from any collection of objects. Column names are inferred from property names or dictionary keys:
 
 ```csharp
+using OfficeIMO.CSV;
+
 var employees = new[] {
     new { Name = "Alice", Department = "Engineering", Salary = 95000 },
     new { Name = "Bob", Department = "Design", Salary = 85000 },
@@ -51,7 +53,9 @@ You can customize the delimiter, culture, and encoding:
 
 ```csharp
 using System.Globalization;
+using OfficeIMO.CSV;
 
+var employees = new[] { new { Name = "Alice", Salary = 95000.50m } };
 var csv = CsvDocument.FromObjects(
     employees,
     delimiter: ';',
@@ -62,6 +66,8 @@ var csv = CsvDocument.FromObjects(
 ## Loading a CSV File
 
 ```csharp
+using OfficeIMO.CSV;
+
 var csv = CsvDocument.Load("data.csv");
 
 foreach (CsvRow row in csv.AsEnumerable()) {
@@ -73,6 +79,7 @@ foreach (CsvRow row in csv.AsEnumerable()) {
 
 ```csharp
 using System.Text;
+using OfficeIMO.CSV;
 
 var csv = CsvDocument.Load("data.csv", new CsvLoadOptions {
     Delimiter = '\t',
@@ -89,6 +96,8 @@ Shared parsing concepts use the same property names and defaults on both types. 
 loading a document:
 
 ```csharp
+using OfficeIMO.CSV;
+
 using CsvDataReader reader = CsvDocument.OpenReader("large.csv");
 
 while (reader.Read()) {
@@ -102,7 +111,9 @@ Define a schema to enforce column types and constraints:
 
 ```csharp
 using System.Text.RegularExpressions;
+using OfficeIMO.CSV;
 
+var csv = CsvDocument.Load("people.csv");
 var validated = csv
     .EnsureSchema(schema => schema
         .Column("Name").AsString().Required()
@@ -122,11 +133,7 @@ foreach (var error in errors) {
 Map CSV rows to strongly-typed objects:
 
 ```csharp
-public class Person {
-    public string Name { get; set; }
-    public int Age { get; set; }
-    public string City { get; set; }
-}
+using OfficeIMO.CSV;
 
 var csv = CsvDocument.Load("people.csv");
 var people = csv.RowsAs<Person>().ToList();
@@ -134,13 +141,21 @@ var people = csv.RowsAs<Person>().ToList();
 foreach (var person in people) {
     Console.WriteLine($"{person.Name} ({person.Age}) lives in {person.City}");
 }
+
+public class Person {
+    public string Name { get; set; } = "";
+    public int Age { get; set; }
+    public string City { get; set; } = "";
+}
 ```
 
 ## Save Options
 
 ```csharp
 using System.Text;
+using OfficeIMO.CSV;
 
+var csv = CsvDocument.Load("people.csv");
 csv.Save("output.csv", new CsvSaveOptions {
     Delimiter = ',',
     IncludeHeader = true,
@@ -151,6 +166,9 @@ csv.Save("output.csv", new CsvSaveOptions {
 ## Writing to a Stream
 
 ```csharp
+using OfficeIMO.CSV;
+
+var csv = CsvDocument.Load("people.csv");
 using var stream = new MemoryStream();
 csv.Save(stream);
 ```
@@ -158,6 +176,8 @@ csv.Save(stream);
 ## Custom Delimiters
 
 ```csharp
+using OfficeIMO.CSV;
+
 // Tab-separated
 var tsv = CsvDocument.Create().WithDelimiter('\t');
 
@@ -172,6 +192,7 @@ var psv = CsvDocument.Create().WithDelimiter('|');
 
 ```csharp
 using System.Globalization;
+using OfficeIMO.CSV;
 
 var csv = CsvDocument.Create()
     .WithCulture(new CultureInfo("fr-FR"))
