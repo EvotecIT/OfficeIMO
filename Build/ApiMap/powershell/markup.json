@@ -7115,6 +7115,12 @@
               "pipeline": "none"
             },
             {
+              "name": "MaxInputBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "Encoding",
               "type": "Encoding",
               "mandatory": false,
@@ -7323,6 +7329,12 @@
             },
             {
               "name": "MaxDecompressedBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxInputBytes",
               "type": "long",
               "mandatory": false,
               "pipeline": "none"
@@ -7547,6 +7559,12 @@
               "pipeline": "none"
             },
             {
+              "name": "MaxInputBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "Encoding",
               "type": "Encoding",
               "mandatory": false,
@@ -7764,6 +7782,12 @@
               "pipeline": "none"
             },
             {
+              "name": "MaxInputBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "Encoding",
               "type": "Encoding",
               "mandatory": false,
@@ -7975,6 +7999,12 @@
             },
             {
               "name": "MaxDecompressedBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxInputBytes",
               "type": "long",
               "mandatory": false,
               "pipeline": "none"
@@ -8197,6 +8227,12 @@
             },
             {
               "name": "MaxDecompressedBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxInputBytes",
               "type": "long",
               "mandatory": false,
               "pipeline": "none"
