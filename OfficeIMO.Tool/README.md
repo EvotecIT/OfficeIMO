@@ -390,6 +390,7 @@ All `convert`, `read`, `extract`, `reader` and `agent convert` destinations are 
 - `officeimo pdf redact` plans, applies, verifies, and batch-runs source-bound PDF redaction recipes with privacy-safe JSON evidence. `batch --request` accepts the strict `officeimo.pdf.redaction.batch-request.v1` file-set contract, preserves deterministic relative-path ordering, and supports atomic-all or continue-per-item publication. Framework-dependent tool builds load optional provider assemblies only from explicit `--ocr-provider-assembly` paths and select one with `--ocr-provider`; NativeAOT hosts must register a statically linked provider through `OcrEngineCatalog`. The default tool still includes no OCR runtime or model. Use `--ocr-language`, `--ocr-min-confidence`, and repeated `--ocr-option key=value` values for non-secret configuration. Passwords are accepted only through named environment variables, and provider credentials should remain behind environment or secret-store references. Output, evidence, and manifests can never replace the PDF, recipe, decisions, or batch-request input, even with `--force`; zero-area verification of re-encrypted output accepts `--expected-output-sha256` from prior apply evidence. Signing a derivative remains an API-host responsibility because the CLI does not construct external signers.
 - `officeimo provenance` discovers format owners and runs bounded inspect, assess, selective-remove, and batch workflows with versioned JSON or readable text output.
 - `officeimo hidden-data` inspects and removes metadata, comments, hidden content and provenance from Word, Excel and PowerPoint files before sharing.
+- `officeimo accessibility` checks Word, Excel and PowerPoint files for accessibility issues and writes JSON, SARIF 2.1.0 or text.
 - `officeimo html` converts HTML or MHTML to PDF and reports renderer capabilities.
 - `officeimo reader` extracts individual documents or folders as Markdown or JSON and reports supported formats.
 - `officeimo markup` parses, validates, emits, previews, and exports OfficeIMO Markup.
@@ -421,6 +422,21 @@ officeimo hidden-data remove .\poster.docx --kinds default,provenance --keep-pro
 ```
 
 Output uses the `officeimo.hidden-data.result.v1` schema from `OfficeHiddenDataReportSerializer`, with one finding per item, its outcome and its scope. Inputs are Office, Visio, OpenDocument, EPUB and image files. `--kinds` takes `default`, `all` or category names such as `provenance`, `hidden-content` and `image-metadata`. Removal never changes the input and refuses to invalidate a signature unless `--remove-invalidated-signatures` is given. The `officeimo_inspect_hidden_data` and `officeimo_remove_hidden_data` MCP tools take the same choices. The [hidden data matrix](../Docs/officeimo.hidden-data-support-matrix.md) lists every category.
+
+## Accessibility checks
+
+```powershell
+# Report findings as JSON; exit code 1 when there are errors
+officeimo accessibility .\Budget.xlsx
+
+# Strict profile, SARIF for code-scanning tools, and fail on warnings too
+officeimo accessibility .\Deck.pptx --strict --fail-on-warnings --format sarif --output .\Deck.sarif
+
+# One line per finding
+officeimo accessibility .\Proposal.docx --format text
+```
+
+Word, Excel and PowerPoint return the same `OfficeAccessibilityReport`: stable finding codes such as `accessibility-missing-alternative-text`, severities and locations such as `Paragraph 12`, `Slide 3` or `Data!B3`. `--strict` turns structural warnings into errors and requires a document title; heuristic findings stay warnings. SARIF output keeps a relative input path relative, so it can be uploaded from a repository checkout. The `officeimo_check_accessibility` MCP tool returns the same findings, bounded by `maxFindings`, and the SARIF log when `includeSarif` is set.
 
 ## Provenance workflows
 
