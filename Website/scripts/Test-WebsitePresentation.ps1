@@ -75,7 +75,7 @@ function Assert-ContainsPattern {
 
 $showcase = Get-Content -LiteralPath (Join-Path $sourceRootPath 'data/showcase.json') -Raw | ConvertFrom-Json -Depth 40
 $galleryHtml = Get-RequiredText -Path (Join-Path $siteRootPath 'showcase/index.html')
-$powerShellProductHtml = Get-RequiredText -Path (Join-Path $siteRootPath 'products/pswriteoffice/index.html')
+$powerShellProductHtml = Get-RequiredText -Path (Join-Path $siteRootPath 'powershell/index.html')
 Assert-ContainsAttribute -Text $galleryHtml -Name 'id' -Value 'showcase-language' -Contract 'showcase language selection'
 foreach ($card in @($showcase.cards | Where-Object walkthrough_url)) {
     $cardId = [regex]::Escape($card.id)
@@ -121,7 +121,7 @@ foreach ($card in @($showcase.cards | Where-Object walkthrough_url)) {
 
 if ($Scope -eq 'Showcase') { Write-Host 'Showcase presentation contracts validated.'; return }
 
-$presentationRoutes = @('', 'downloads', 'studio', 'tool', 'products/excel', 'products/reader', 'libraries', 'convert', 'convert/guides', 'browser/word-to-pdf', 'pdf', 'pdf/merge', 'docs', 'api/word')
+$presentationRoutes = @('', 'downloads', 'studio', 'cli', 'powershell', 'agents', 'benchmarks', 'benchmarks/pdf', 'products/excel', 'products/reader', 'libraries', 'convert', 'convert/guides', 'browser/word-to-pdf', 'pdf', 'pdf/merge', 'docs', 'api', 'api/word')
 # Parse actual head elements, excluding comments, script text and inert fallbacks.
 # Python's standard HTML parser also accepts the production optimizer's markup.
 $pythonCommand = Get-Command python3, python -ErrorAction SilentlyContinue | Select-Object -First 1
