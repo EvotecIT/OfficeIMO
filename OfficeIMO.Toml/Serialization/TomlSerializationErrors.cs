@@ -5,6 +5,12 @@ namespace OfficeIMO.Toml;
 /// such as <c>tool.ruff["line-length"]</c> or <c>package[3].name</c>, in the grammar <see cref="TomlNode.Select"/> takes.
 /// </summary>
 internal static class TomlSerializationErrors {
+    public static TomlException TypeMismatch(TomlReadNode node, Type type, string? detail = null) => TypeMismatch(node.Node, type, detail);
+
+    public static TomlException MissingRequired(TomlReadNode table, Type type, string key) => MissingRequired(table.Node, type, key);
+
+    public static TomlException UnknownDiscriminator(TomlReadNode node, Type type, string? discriminator) => UnknownDiscriminator(node.Node, type, discriminator);
+
     public static TomlException TypeMismatch(TomlNode node, Type type, string? detail = null) {
         string message = "Cannot read " + Describe(node) + " as " + TypeName(type) + At(node) + (detail is null ? "." : ": " + detail + ".");
         return new TomlException(TomlErrorCodes.TypeMismatch, message, PositionOf(node));

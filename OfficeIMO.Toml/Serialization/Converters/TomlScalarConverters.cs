@@ -8,48 +8,38 @@ namespace OfficeIMO.Toml;
 /// type only when it is whole and in range.
 /// </summary>
 internal static class TomlValueText {
-    /// <summary>The source text of a loaded, unedited value, or an empty span when the value has a decoded form instead.</summary>
-    private static bool TryRaw(TomlValue value, out ReadOnlySpan<char> raw) {
-        if (value._value is null && value._start >= 0) {
-            raw = value._document._source.AsSpan(value._start, value._end - value._start);
-            return true;
-        }
-        raw = default;
-        return false;
-    }
+    public static string GetString(TomlReadNode value) =>
+        value.TryGetRaw(out ReadOnlySpan<char> raw) ? TomlScalars.Decode(raw, value.StringStyle) : (string)value.DecodedValue;
 
-    public static string GetString(TomlValue value) =>
-        TryRaw(value, out ReadOnlySpan<char> raw) ? TomlScalars.Decode(raw, value._style) : (string)value.Value;
-
-    public static long GetInt64(TomlValue value) {
-        if (TryRaw(value, out ReadOnlySpan<char> raw)) {
+    public static long GetInt64(TomlReadNode value) {
+        if (value.TryGetRaw(out ReadOnlySpan<char> raw)) {
             TomlScalars.TryParseInteger(raw, out long number, out _, out _);
             return number;
         }
-        return (long)value.Value;
+        return (long)value.DecodedValue;
     }
 
-    public static bool GetBoolean(TomlValue value) =>
-        TryRaw(value, out ReadOnlySpan<char> raw) ? raw[0] == 't' : (bool)value.Value;
+    public static bool GetBoolean(TomlReadNode value) =>
+        value.TryGetRaw(out ReadOnlySpan<char> raw) ? raw[0] == 't' : (bool)value.DecodedValue;
 
-    public static double GetDouble(TomlValue value) =>
-        TryRaw(value, out ReadOnlySpan<char> raw) ? TomlScalars.ParseFloat(raw) : (double)value.Value;
+    public static double GetDouble(TomlReadNode value) =>
+        value.TryGetRaw(out ReadOnlySpan<char> raw) ? TomlScalars.ParseFloat(raw) : (double)value.DecodedValue;
 
-    public static TomlDateTime GetDateTime(TomlValue value) {
-        if (TryRaw(value, out ReadOnlySpan<char> raw)) {
+    public static TomlDateTime GetDateTime(TomlReadNode value) {
+        if (value.TryGetRaw(out ReadOnlySpan<char> raw)) {
             TomlScalars.TryParseDateTime(raw, out TomlDateTime dateTime, out _);
             return dateTime;
         }
-        return (TomlDateTime)value.Value;
+        return (TomlDateTime)value.DecodedValue;
     }
 
     /// <summary>Reads an integer, or a whole float in range, as a 64-bit integer.</summary>
-    public static bool TryGetWhole(TomlValue value, out long number) {
-        if (value._kind == TomlNodeKind.Integer) {
+    public static bool TryGetWhole(TomlReadNode value, out long number) {
+        if (value.Kind == TomlNodeKind.Integer) {
             number = GetInt64(value);
             return true;
         }
-        if (value._kind == TomlNodeKind.Float) {
+        if (value.Kind == TomlNodeKind.Float) {
             double real = GetDouble(value);
             if (!double.IsNaN(real) && !double.IsInfinity(real) && Math.Floor(real) == real && real >= long.MinValue && real < long.MaxValue) {
                 number = (long)real;
@@ -60,12 +50,12 @@ internal static class TomlValueText {
         return false;
     }
 
-    public static bool TryGetReal(TomlValue value, out double number) {
-        if (value._kind == TomlNodeKind.Float) {
+    public static bool TryGetReal(TomlReadNode value, out double number) {
+        if (value.Kind == TomlNodeKind.Float) {
             number = GetDouble(value);
             return true;
         }
-        if (value._kind == TomlNodeKind.Integer) {
+        if (value.Kind == TomlNodeKind.Integer) {
             number = GetInt64(value);
             return true;
         }
@@ -74,23 +64,23 @@ internal static class TomlValueText {
     }
 
     /// <summary>A float's text without digit separators, for an exact decimal read.</summary>
-    public static string FloatText(TomlValue value) {
-        if (TryRaw(value, out ReadOnlySpan<char> raw)) return raw.ToString().Replace("_", string.Empty);
-        return ((double)value.Value).ToString("R", CultureInfo.InvariantCulture);
+    public static string FloatText(TomlReadNode value) {
+        if (value.TryGetRaw(out ReadOnlySpan<char> raw)) return raw.ToString().Replace("_", string.Empty);
+        return ((double)value.DecodedValue).ToString("R", CultureInfo.InvariantCulture);
     }
 }
 
 /// <summary>A type written as one TOML value, read only from the value kinds that can hold it.</summary>
 internal abstract class TomlScalarConverter<T> : TomlConverter<T> {
-    public override T Read(TomlNode node, TomlReadState state) {
-        if (node is TomlValue value && TryRead(value, out T result)) return result;
+    public override T Read(TomlReadNode node, TomlReadState state) {
+        if (node.IsValue && TryRead(node, out T result)) return result;
         throw TomlSerializationErrors.TypeMismatch(node, typeof(T), Detail(node));
     }
 
     /// <summary>Why a value of the right kind does not fit, such as a range, or null.</summary>
-    protected virtual string? Detail(TomlNode node) => null;
+    protected virtual string? Detail(TomlReadNode node) => null;
 
-    protected abstract bool TryRead(TomlValue value, out T result);
+    protected abstract bool TryRead(TomlReadNode value, out T result);
 
     /// <summary>Formats a value as a key; keys are strings, so the value's own text is used.</summary>
     public override string? WriteKey(T value) => FormatText(value);
@@ -108,8 +98,8 @@ internal abstract class TomlScalarConverter<T> : TomlConverter<T> {
 internal sealed class TomlStringConverter : TomlScalarConverter<string> {
     public static readonly TomlStringConverter Instance = new TomlStringConverter();
 
-    protected override bool TryRead(TomlValue value, out string result) {
-        if (value._kind != TomlNodeKind.String) {
+    protected override bool TryRead(TomlReadNode value, out string result) {
+        if (value.Kind != TomlNodeKind.String) {
             result = null!;
             return false;
         }
@@ -130,9 +120,9 @@ internal sealed class TomlStringConverter : TomlScalarConverter<string> {
 internal sealed class TomlBooleanConverter : TomlScalarConverter<bool> {
     public static readonly TomlBooleanConverter Instance = new TomlBooleanConverter();
 
-    protected override bool TryRead(TomlValue value, out bool result) {
-        result = value._kind == TomlNodeKind.Boolean && TomlValueText.GetBoolean(value);
-        return value._kind == TomlNodeKind.Boolean;
+    protected override bool TryRead(TomlReadNode value, out bool result) {
+        result = value.Kind == TomlNodeKind.Boolean && TomlValueText.GetBoolean(value);
+        return value.Kind == TomlNodeKind.Boolean;
     }
 
     public override void Write(TomlEmitter emitter, bool value, TomlWriteState state) => emitter.WriteBoolean(value);
@@ -159,7 +149,7 @@ internal sealed class TomlIntegerConverter<T> : TomlScalarConverter<T> where T :
         _to = to;
     }
 
-    protected override bool TryRead(TomlValue value, out T result) {
+    protected override bool TryRead(TomlReadNode value, out T result) {
         if (TomlValueText.TryGetWhole(value, out long number) && number >= _min && number <= _max) {
             result = _from(number);
             return true;
@@ -168,8 +158,8 @@ internal sealed class TomlIntegerConverter<T> : TomlScalarConverter<T> where T :
         return false;
     }
 
-    protected override string? Detail(TomlNode node) =>
-        node is TomlValue value && TomlValueText.TryGetWhole(value, out _) ? "the value is outside the range of " + typeof(T).Name : null;
+    protected override string? Detail(TomlReadNode node) =>
+        node.IsValue && TomlValueText.TryGetWhole(node, out _) ? "the value is outside the range of " + typeof(T).Name : null;
 
     public override void Write(TomlEmitter emitter, T value, TomlWriteState state) => emitter.WriteInteger(_to(value));
 
@@ -186,7 +176,7 @@ internal sealed class TomlIntegerConverter<T> : TomlScalarConverter<T> where T :
 internal sealed class TomlUInt64Converter : TomlScalarConverter<ulong> {
     public static readonly TomlUInt64Converter Instance = new TomlUInt64Converter();
 
-    protected override bool TryRead(TomlValue value, out ulong result) {
+    protected override bool TryRead(TomlReadNode value, out ulong result) {
         if (TomlValueText.TryGetWhole(value, out long number) && number >= 0) {
             result = (ulong)number;
             return true;
@@ -206,7 +196,7 @@ internal sealed class TomlUInt64Converter : TomlScalarConverter<ulong> {
 internal sealed class TomlBigIntegerConverter : TomlScalarConverter<BigInteger> {
     public static readonly TomlBigIntegerConverter Instance = new TomlBigIntegerConverter();
 
-    protected override bool TryRead(TomlValue value, out BigInteger result) {
+    protected override bool TryRead(TomlReadNode value, out BigInteger result) {
         bool whole = TomlValueText.TryGetWhole(value, out long number);
         result = number;
         return whole;
@@ -223,7 +213,7 @@ internal sealed class TomlBigIntegerConverter : TomlScalarConverter<BigInteger> 
 internal sealed class TomlDoubleConverter : TomlScalarConverter<double> {
     public static readonly TomlDoubleConverter Instance = new TomlDoubleConverter();
 
-    protected override bool TryRead(TomlValue value, out double result) => TomlValueText.TryGetReal(value, out result);
+    protected override bool TryRead(TomlReadNode value, out double result) => TomlValueText.TryGetReal(value, out result);
 
     public override void Write(TomlEmitter emitter, double value, TomlWriteState state) => emitter.WriteFloat(value);
 
@@ -236,7 +226,7 @@ internal sealed class TomlDoubleConverter : TomlScalarConverter<double> {
 internal sealed class TomlSingleConverter : TomlScalarConverter<float> {
     public static readonly TomlSingleConverter Instance = new TomlSingleConverter();
 
-    protected override bool TryRead(TomlValue value, out float result) {
+    protected override bool TryRead(TomlReadNode value, out float result) {
         bool read = TomlValueText.TryGetReal(value, out double number);
         result = (float)number;
         return read;
@@ -259,13 +249,13 @@ internal sealed class TomlSingleConverter : TomlScalarConverter<float> {
 internal sealed class TomlDecimalConverter : TomlScalarConverter<decimal> {
     public static readonly TomlDecimalConverter Instance = new TomlDecimalConverter();
 
-    protected override bool TryRead(TomlValue value, out decimal result) {
-        if (value._kind == TomlNodeKind.Integer) {
+    protected override bool TryRead(TomlReadNode value, out decimal result) {
+        if (value.Kind == TomlNodeKind.Integer) {
             result = TomlValueText.GetInt64(value);
             return true;
         }
         result = 0;
-        return value._kind == TomlNodeKind.Float
+        return value.Kind == TomlNodeKind.Float
             && decimal.TryParse(TomlValueText.FloatText(value), NumberStyles.Float, CultureInfo.InvariantCulture, out result);
     }
 
@@ -277,8 +267,8 @@ internal sealed class TomlDecimalConverter : TomlScalarConverter<decimal> {
 internal sealed class TomlCharConverter : TomlScalarConverter<char> {
     public static readonly TomlCharConverter Instance = new TomlCharConverter();
 
-    protected override bool TryRead(TomlValue value, out char result) {
-        string? text = value._kind == TomlNodeKind.String ? TomlValueText.GetString(value) : null;
+    protected override bool TryRead(TomlReadNode value, out char result) {
+        string? text = value.Kind == TomlNodeKind.String ? TomlValueText.GetString(value) : null;
         result = text is { Length: 1 } ? text[0] : '\0';
         return text is { Length: 1 };
     }
@@ -324,8 +314,8 @@ internal sealed class TomlTextConverter<T> : TomlScalarConverter<T> {
         _format = format;
     }
 
-    protected override bool TryRead(TomlValue value, out T result) {
-        if (value._kind != TomlNodeKind.String) {
+    protected override bool TryRead(TomlReadNode value, out T result) {
+        if (value.Kind != TomlNodeKind.String) {
             result = default!;
             return false;
         }
@@ -354,8 +344,8 @@ internal sealed class TomlDateTimeConverter<T> : TomlScalarConverter<T> {
         _write = write;
     }
 
-    protected override bool TryRead(TomlValue value, out T result) {
-        if (value._kind != TomlNodeKind.DateTime) {
+    protected override bool TryRead(TomlReadNode value, out T result) {
+        if (value.Kind != TomlNodeKind.DateTime) {
             result = default!;
             return false;
         }
@@ -421,10 +411,10 @@ internal static class TomlDateTimeConverters {
 internal sealed class TomlTimeSpanConverter : TomlScalarConverter<TimeSpan> {
     public static readonly TomlTimeSpanConverter Instance = new TomlTimeSpanConverter();
 
-    protected override bool TryRead(TomlValue value, out TimeSpan result) {
+    protected override bool TryRead(TomlReadNode value, out TimeSpan result) {
         result = default;
-        if (value._kind == TomlNodeKind.String) return TimeSpan.TryParse(TomlValueText.GetString(value), CultureInfo.InvariantCulture, out result);
-        if (value._kind != TomlNodeKind.DateTime) return false;
+        if (value.Kind == TomlNodeKind.String) return TimeSpan.TryParse(TomlValueText.GetString(value), CultureInfo.InvariantCulture, out result);
+        if (value.Kind != TomlNodeKind.DateTime) return false;
         TomlDateTime time = TomlValueText.GetDateTime(value);
         if (time.Kind != TomlDateTimeKind.LocalTime) return false;
         result = time.ToTimeOfDay();
@@ -458,7 +448,7 @@ internal sealed class TomlNullableConverter<T> : TomlConverter<T?> where T : str
 
     public override void Configure(TomlSerializerOptions options) => _underlying = (TomlTypeInfo<T>)options.GetTypeInfo(typeof(T));
 
-    public override T? Read(TomlNode node, TomlReadState state) => _underlying!.Read(node, state);
+    public override T? Read(TomlReadNode node, TomlReadState state) => _underlying!.Read(node, state);
 
     public override void Write(TomlEmitter emitter, T? value, TomlWriteState state) => _underlying!.Write(emitter, value!.Value, state);
 

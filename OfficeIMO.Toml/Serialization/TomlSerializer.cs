@@ -110,7 +110,7 @@ public static class TomlSerializer {
     [RequiresDynamicCode(TomlReflectionResolver.DynamicCodeMessage)]
     public static object Deserialize(string toml, Type returnType, TomlSerializerOptions? options = null) {
         TomlTypeInfo info = Info(returnType, options);
-        return ReadBoxed(Parse(toml, info), info);
+        return ReadTextBoxed(toml, info);
     }
 
     /// <summary>Reads a UTF-8 TOML document from a stream as <paramref name="returnType"/>. The stream stays open.</summary>
@@ -118,7 +118,7 @@ public static class TomlSerializer {
     [RequiresDynamicCode(TomlReflectionResolver.DynamicCodeMessage)]
     public static object Deserialize(Stream utf8Toml, Type returnType, TomlSerializerOptions? options = null) {
         TomlTypeInfo info = Info(returnType, options);
-        return ReadBoxed(Load(utf8Toml, info), info);
+        return ReadTextBoxed(LoadText(utf8Toml, info), info);
     }
 
     /// <summary>Reads a TOML document from a text reader as <paramref name="returnType"/>. The reader stays open.</summary>
@@ -126,7 +126,7 @@ public static class TomlSerializer {
     [RequiresDynamicCode(TomlReflectionResolver.DynamicCodeMessage)]
     public static object Deserialize(TextReader reader, Type returnType, TomlSerializerOptions? options = null) {
         TomlTypeInfo info = Info(returnType, options);
-        return ReadBoxed(Parse(ReadAll(reader), info), info);
+        return ReadTextBoxed(ReadAll(reader), info);
     }
 
     /// <summary>Reads a node of a loaded <see cref="TomlDocument"/> as <paramref name="returnType"/>.</summary>
@@ -176,19 +176,19 @@ public static class TomlSerializer {
     /// <exception cref="TomlException">The input is malformed, exceeds a limit or does not fit the type.</exception>
     public static T Deserialize<T>(string toml, TomlTypeInfo<T> typeInfo) {
         if (typeInfo is null) throw new ArgumentNullException(nameof(typeInfo));
-        return Read(Parse(toml, typeInfo), typeInfo);
+        return ReadText(toml, typeInfo);
     }
 
     /// <summary>Reads a UTF-8 TOML document from a stream with generated metadata. The stream stays open.</summary>
     public static T Deserialize<T>(Stream utf8Toml, TomlTypeInfo<T> typeInfo) {
         if (typeInfo is null) throw new ArgumentNullException(nameof(typeInfo));
-        return Read(Load(utf8Toml, typeInfo), typeInfo);
+        return ReadText(LoadText(utf8Toml, typeInfo), typeInfo);
     }
 
     /// <summary>Reads a TOML document from a text reader with generated metadata. The reader stays open.</summary>
     public static T Deserialize<T>(TextReader reader, TomlTypeInfo<T> typeInfo) {
         if (typeInfo is null) throw new ArgumentNullException(nameof(typeInfo));
-        return Read(Parse(ReadAll(reader), typeInfo), typeInfo);
+        return ReadText(ReadAll(reader), typeInfo);
     }
 
     /// <summary>Reads a node of a loaded <see cref="TomlDocument"/> with generated metadata.</summary>
@@ -214,19 +214,19 @@ public static class TomlSerializer {
     /// <summary>Reads a TOML document as <paramref name="returnType"/> with the context's metadata.</summary>
     public static object Deserialize(string toml, Type returnType, TomlSerializerContext context) {
         TomlTypeInfo info = GetTypeInfo(returnType, context, null);
-        return ReadBoxed(Parse(toml, info), info);
+        return ReadTextBoxed(toml, info);
     }
 
     /// <summary>Reads a UTF-8 TOML document from a stream as <paramref name="returnType"/> with the context's metadata. The stream stays open.</summary>
     public static object Deserialize(Stream utf8Toml, Type returnType, TomlSerializerContext context) {
         TomlTypeInfo info = GetTypeInfo(returnType, context, null);
-        return ReadBoxed(Load(utf8Toml, info), info);
+        return ReadTextBoxed(LoadText(utf8Toml, info), info);
     }
 
     /// <summary>Reads a TOML document from a text reader as <paramref name="returnType"/> with the context's metadata. The reader stays open.</summary>
     public static object Deserialize(TextReader reader, Type returnType, TomlSerializerContext context) {
         TomlTypeInfo info = GetTypeInfo(returnType, context, null);
-        return ReadBoxed(Parse(ReadAll(reader), info), info);
+        return ReadTextBoxed(ReadAll(reader), info);
     }
 
     /// <summary>Reads a node of a loaded <see cref="TomlDocument"/> as <paramref name="returnType"/> with the context's metadata.</summary>
@@ -344,14 +344,11 @@ public static class TomlSerializer {
         }
     }
 
-    private static TomlTable Parse(string toml, TomlTypeInfo typeInfo) {
-        if (toml is null) throw new ArgumentNullException(nameof(toml));
-        return TomlDocument.Parse(toml, typeInfo.Options.EffectiveLoadOptions).Root;
-    }
+    private static TomlTable Parse(string toml, TomlTypeInfo typeInfo) => TomlDocument.Parse(toml, typeInfo.Options.EffectiveLoadOptions).Root;
 
-    private static TomlTable Load(Stream utf8Toml, TomlTypeInfo typeInfo) {
+    private static string LoadText(Stream utf8Toml, TomlTypeInfo typeInfo) {
         if (utf8Toml is null) throw new ArgumentNullException(nameof(utf8Toml));
-        return TomlDocument.Load(utf8Toml, typeInfo.Options.EffectiveLoadOptions).Root;
+        return TomlDocument.ReadText(utf8Toml, typeInfo.Options.EffectiveLoadOptions ?? TomlLoadOptions.Default, out _);
     }
 
     private static string ReadAll(TextReader reader) {
@@ -361,7 +358,37 @@ public static class TomlSerializer {
 
     private static TomlNode RequireNode(TomlNode node) => node ?? throw new ArgumentNullException(nameof(node));
 
-    private static T Read<T>(TomlNode node, TomlTypeInfo<T> typeInfo) => typeInfo.Read(node, new TomlReadState(typeInfo.Options));
+    private static T Read<T>(TomlNode node, TomlTypeInfo<T> typeInfo) => typeInfo.Read(new TomlReadNode(node), new TomlReadState(typeInfo.Options));
 
-    private static object ReadBoxed(TomlNode node, TomlTypeInfo typeInfo) => typeInfo.ReadBoxed(node, new TomlReadState(typeInfo.Options))!;
+    private static object ReadBoxed(TomlNode node, TomlTypeInfo typeInfo) => typeInfo.ReadBoxed(new TomlReadNode(node), new TomlReadState(typeInfo.Options))!;
+
+    /// <summary>
+    /// Reads text through the pooled <see cref="TomlDataTree"/>. Input it cannot read, malformed or not fitting the
+    /// type, is read again through <see cref="TomlDocument"/>, which reports the error with its position and path; in
+    /// that case setters and constructors run again for the objects read before the error.
+    /// </summary>
+    private static T ReadText<T>(string toml, TomlTypeInfo<T> typeInfo) {
+        if (toml is null) throw new ArgumentNullException(nameof(toml));
+        TomlDataTree tree = TomlDataTree.Rent();
+        try {
+            if (tree.TryLoad(toml, typeInfo.Options.EffectiveLoadOptions ?? TomlLoadOptions.Default)) return typeInfo.Read(tree.Root, new TomlReadState(typeInfo.Options));
+        } catch (TomlReadFallbackException) {
+        } finally {
+            TomlDataTree.Return(tree);
+        }
+        return Read(Parse(toml, typeInfo), typeInfo);
+    }
+
+    /// <inheritdoc cref="ReadText{T}(string, TomlTypeInfo{T})"/>
+    private static object ReadTextBoxed(string toml, TomlTypeInfo typeInfo) {
+        if (toml is null) throw new ArgumentNullException(nameof(toml));
+        TomlDataTree tree = TomlDataTree.Rent();
+        try {
+            if (tree.TryLoad(toml, typeInfo.Options.EffectiveLoadOptions ?? TomlLoadOptions.Default)) return typeInfo.ReadBoxed(tree.Root, new TomlReadState(typeInfo.Options))!;
+        } catch (TomlReadFallbackException) {
+        } finally {
+            TomlDataTree.Return(tree);
+        }
+        return ReadBoxed(Parse(toml, typeInfo), typeInfo);
+    }
 }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using OfficeIMO.Toml.Tests.Conformance;
 using Xunit;
 using Xunit.Abstractions;
@@ -42,6 +43,51 @@ public class TomlConformanceTests {
         }
         Report("invalid", TomlTestSuite.Invalid.Count, failures);
     }
+
+    // The serializer reads text through its own pooled tree and falls back to TomlDocument only on errors, so the tree
+    // must accept exactly the cases the document accepts and read the same data from them.
+    [Fact]
+    public void SerializerTreeAcceptsAndReadsEveryCaseAsTheDocumentDoes() {
+        var failures = new List<string>();
+        foreach (TomlTestCase testCase in TomlTestSuite.Valid.Concat(TomlTestSuite.Invalid)) {
+            string text;
+            try {
+                text = TomlDocument.ReadText(new MemoryStream(testCase.Toml), TomlLoadOptions.Default, out _);
+            } catch (TomlException) {
+                continue;
+            }
+            TomlTable? document;
+            try {
+                document = TomlDocument.Parse(text).Root;
+            } catch (TomlException) {
+                document = null;
+            }
+            TomlDataTree tree = TomlDataTree.Rent();
+            try {
+                bool accepted = tree.TryLoad(text, TomlLoadOptions.Default);
+                if (accepted != (document is not null)) {
+                    failures.Add(testCase.Name + (accepted ? ": accepted, the document rejects it" : ": rejected, the document accepts it"));
+                } else if (document is not null) {
+                    var options = new TomlSerializerOptions();
+                    TomlTypeInfo<object> info = (TomlTypeInfo<object>)options.GetTypeInfo(typeof(object));
+                    string expected = Describe(info.Read(new TomlReadNode(document), new TomlReadState(options)));
+                    string actual = Describe(info.Read(tree.Root, new TomlReadState(options)));
+                    if (expected != actual) failures.Add(testCase.Name + ": read " + actual + ", the document reads " + expected);
+                }
+            } finally {
+                TomlDataTree.Return(tree);
+            }
+        }
+        Assert.True(failures.Count == 0, string.Join("\n", failures.Take(40)));
+    }
+
+    private static string Describe(object? value) => value switch {
+        IDictionary<string, object?> table => "{" + string.Join(",", table.Select(entry => entry.Key + "=" + Describe(entry.Value))) + "}",
+        IList<object?> list => "[" + string.Join(",", list.Select(Describe)) + "]",
+        double number => number.ToString("R", CultureInfo.InvariantCulture) + (BitConverter.DoubleToInt64Bits(number) < 0 ? "(-)" : ""),
+        IFormattable formattable => value.GetType().Name + ":" + formattable.ToString(null, CultureInfo.InvariantCulture),
+        _ => value?.GetType().Name + ":" + value
+    };
 
     [Fact]
     public void ValidCasesSaveBackByteForByte() {

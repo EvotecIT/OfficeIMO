@@ -3,7 +3,7 @@ namespace OfficeIMO.Toml;
 /// <summary>The object half of a converter, for a polymorphic base that chose the derived type.</summary>
 internal interface ITomlObjectConverter {
     /// <summary>Reads an object from a table.</summary>
-    object ReadTable(TomlTable table, TomlReadState state);
+    object ReadTable(TomlReadNode table, TomlReadState state);
 
     /// <summary>Gets whether the object has a property written under <paramref name="name"/>.</summary>
     bool HasProperty(string name);
@@ -124,12 +124,12 @@ internal sealed class TomlObjectConverter<T> : TomlConverter<T>, ITomlObjectConv
         }
     }
 
-    public override T Read(TomlNode node, TomlReadState state) {
-        if (node is not TomlTable table) throw TomlSerializationErrors.TypeMismatch(node, typeof(T));
-        return (T)ReadTable(table, state);
+    public override T Read(TomlReadNode node, TomlReadState state) {
+        if (!node.IsTable) throw TomlSerializationErrors.TypeMismatch(node, typeof(T));
+        return (T)ReadTable(node, state);
     }
 
-    public object ReadTable(TomlTable table, TomlReadState state) {
+    public object ReadTable(TomlReadNode table, TomlReadState state) {
         if (!CanCreate) {
             throw new NotSupportedException("The type " + TomlSerializationErrors.TypeName(typeof(T))
                 + " cannot be created: it needs a public parameterless constructor, a single public constructor or one marked [OfficeConstructor].");
@@ -140,24 +140,22 @@ internal sealed class TomlObjectConverter<T> : TomlConverter<T>, ITomlObjectConv
         Span<bool> found = count <= 128 ? stackalloc bool[count] : (rented = ArrayPool<bool>.Shared.Rent(count)).AsSpan(0, count);
         if (rented is not null) found.Clear();
         try {
-            int entries = table._count;
-            TomlNode[] nodes = table._nodes;
             object owner;
             int expected = 0;
             if (_createWithArguments is null) {
                 owner = _create!()!;
-                for (int i = 0; i < entries; i++) {
-                    int index = Find(nodes[i]._key!, ref expected);
+                foreach (TomlReadNode entry in table.GetChildren()) {
+                    int index = Find(entry.Key!, ref expected);
                     if (index < 0 || !properties[index].CanSet) continue;
-                    properties[index].ReadAndSet(nodes[i], state, owner);
+                    properties[index].ReadAndSet(entry, state, owner);
                     found[index] = true;
                 }
             } else {
                 var values = new object?[count];
-                for (int i = 0; i < entries; i++) {
-                    int index = Find(nodes[i]._key!, ref expected);
+                foreach (TomlReadNode entry in table.GetChildren()) {
+                    int index = Find(entry.Key!, ref expected);
                     if (index < 0 || (!properties[index].CanSet && properties[index].ParameterIndex < 0)) continue;
-                    values[index] = properties[index].ReadBoxed(nodes[i], state);
+                    values[index] = properties[index].ReadBoxed(entry, state);
                     found[index] = true;
                 }
                 owner = Construct(values, found);
@@ -286,15 +284,15 @@ internal sealed class TomlPolymorphicConverter<T> : TomlConverter<T> {
         else derived.WriteBodyBoxed(emitter, value!, state);
     }
 
-    public override T Read(TomlNode node, TomlReadState state) {
-        if (node is not TomlTable table) throw TomlSerializationErrors.TypeMismatch(node, typeof(T));
-        if (!table.TryGetValue(_propertyName, out TomlNode? discriminatorNode)) {
-            if (!_base.ObjectConverter!.CanCreate) throw TomlSerializationErrors.UnknownDiscriminator(table, typeof(T), null);
-            return _base.Read(table, state);
+    public override T Read(TomlReadNode node, TomlReadState state) {
+        if (!node.IsTable) throw TomlSerializationErrors.TypeMismatch(node, typeof(T));
+        if (!node.TryGetChild(_propertyName, out TomlReadNode discriminatorNode)) {
+            if (!_base.ObjectConverter!.CanCreate) throw TomlSerializationErrors.UnknownDiscriminator(node, typeof(T), null);
+            return _base.Read(node, state);
         }
-        if (discriminatorNode is not TomlValue { Kind: TomlNodeKind.String } text) throw TomlSerializationErrors.TypeMismatch(discriminatorNode!, typeof(string), "a discriminator must be a string");
-        string discriminator = TomlValueText.GetString(text);
+        if (discriminatorNode.Kind != TomlNodeKind.String) throw TomlSerializationErrors.TypeMismatch(discriminatorNode, typeof(string), "a discriminator must be a string");
+        string discriminator = TomlValueText.GetString(discriminatorNode);
         if (!_byDiscriminator!.TryGetValue(discriminator, out TomlTypeInfo? info)) throw TomlSerializationErrors.UnknownDiscriminator(discriminatorNode, typeof(T), discriminator);
-        return (T)info.ObjectConverter!.ReadTable(table, state);
+        return (T)info.ObjectConverter!.ReadTable(node, state);
     }
 }

@@ -43,13 +43,13 @@ internal sealed class TomlEnumConverter<TEnum> : TomlConverter<TEnum> where TEnu
         _bitNames = bitNames.ToArray();
     }
 
-    public override TEnum Read(TomlNode node, TomlReadState state) {
-        if (_flags && node is TomlArray array) {
+    public override TEnum Read(TomlReadNode node, TomlReadState state) {
+        if (_flags && node.Kind == TomlNodeKind.Array) {
             ulong combined = 0;
-            foreach (TomlNode item in array) combined |= ToBits(ReadOne(item, Text(item)));
+            foreach (TomlReadNode item in node.GetChildren()) combined |= ToBits(ReadOne(item, Text(item)));
             return FromBits(combined);
         }
-        if (node is TomlValue { Kind: TomlNodeKind.Integer } integer) return FromBits(unchecked((ulong)TomlValueText.GetInt64(integer)));
+        if (node.Kind == TomlNodeKind.Integer) return FromBits(unchecked((ulong)TomlValueText.GetInt64(node)));
         string text = Text(node).Trim();
         if (!_flags || text.IndexOf(',') < 0) return ReadOne(node, text);
         ulong value = 0;
@@ -57,10 +57,10 @@ internal sealed class TomlEnumConverter<TEnum> : TomlConverter<TEnum> where TEnu
         return FromBits(value);
     }
 
-    private static string Text(TomlNode node) =>
-        node is TomlValue { Kind: TomlNodeKind.String } value ? TomlValueText.GetString(value) : throw TomlSerializationErrors.TypeMismatch(node, typeof(TEnum));
+    private static string Text(TomlReadNode node) =>
+        node.Kind == TomlNodeKind.String ? TomlValueText.GetString(node) : throw TomlSerializationErrors.TypeMismatch(node, typeof(TEnum));
 
-    private TEnum ReadOne(TomlNode node, string text) {
+    private TEnum ReadOne(TomlReadNode node, string text) {
         if (_byName.TryGetValue(text, out TEnum value)) return value;
         throw TomlSerializationErrors.TypeMismatch(node, typeof(TEnum), "not a member of the enum");
     }

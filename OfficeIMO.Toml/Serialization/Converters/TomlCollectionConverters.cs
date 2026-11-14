@@ -46,21 +46,11 @@ internal sealed class TomlCollectionConverter<TCollection, TElement> : TomlConve
         return any ? TomlShape.TableArray : TomlShape.Array;
     }
 
-    public override TCollection Read(TomlNode node, TomlReadState state) {
+    public override TCollection Read(TomlReadNode node, TomlReadState state) {
+        if (node.Kind is not (TomlNodeKind.Array or TomlNodeKind.TableArray)) throw TomlSerializationErrors.TypeMismatch(node, typeof(TCollection));
         TomlTypeInfo<TElement> element = _element!;
-        List<TElement> list;
-        switch (node) {
-            case TomlArray array:
-                list = new List<TElement>(array.Count);
-                for (int i = 0; i < array.Count; i++) list.Add(element.Read(array[i], state));
-                break;
-            case TomlTableArray tables:
-                list = new List<TElement>(tables.Count);
-                for (int i = 0; i < tables.Count; i++) list.Add(element.Read(tables[i], state));
-                break;
-            default:
-                throw TomlSerializationErrors.TypeMismatch(node, typeof(TCollection));
-        }
+        var list = new List<TElement>(node.Count);
+        foreach (TomlReadNode item in node.GetChildren()) list.Add(element.Read(item, state));
         return _listIsResult ? (TCollection)(object)list : _finish(list);
     }
 
@@ -122,25 +112,23 @@ internal sealed class TomlDictionaryConverter<TDictionary, TKey, TValue> : TomlC
         _valueIsDictionary = _value.Converter.IsDictionary;
     }
 
-    public override TDictionary Read(TomlNode node, TomlReadState state) {
-        if (node is not TomlTable table) throw TomlSerializationErrors.TypeMismatch(node, typeof(TDictionary));
+    public override TDictionary Read(TomlReadNode node, TomlReadState state) {
+        if (!node.IsTable) throw TomlSerializationErrors.TypeMismatch(node, typeof(TDictionary));
         TomlTypeInfo<TValue> valueInfo = _value!;
-        int count = table._count;
-        var dictionary = new Dictionary<TKey, TValue>(count);
-        TomlNode[] nodes = table._nodes;
-        for (int i = 0; i < count; i++) {
-            string text = nodes[i]._key!;
+        var dictionary = new Dictionary<TKey, TValue>(node.Count);
+        foreach (TomlReadNode entry in node.GetChildren()) {
+            string text = entry.Key!;
             TKey key;
             if (_stringKeys) {
                 key = (TKey)(object)text;
             } else if (!_key!.Converter.TryReadKey(text, out key)) {
-                throw TomlSerializationErrors.TypeMismatch(nodes[i], typeof(TKey), "the key '" + text + "' is not a " + TomlSerializationErrors.TypeName(typeof(TKey)));
+                throw TomlSerializationErrors.TypeMismatch(entry, typeof(TKey), "the key '" + text + "' is not a " + TomlSerializationErrors.TypeName(typeof(TKey)));
             }
 #if NET8_0_OR_GREATER
             // Keys are unique in a table, but two texts can read as one key, such as "1" and "01"; the last wins.
-            CollectionsMarshal.GetValueRefOrAddDefault(dictionary, key, out _) = valueInfo.Read(nodes[i], state);
+            CollectionsMarshal.GetValueRefOrAddDefault(dictionary, key, out _) = valueInfo.Read(entry, state);
 #else
-            dictionary[key] = valueInfo.Read(nodes[i], state);
+            dictionary[key] = valueInfo.Read(entry, state);
 #endif
         }
         return _dictionaryIsResult ? (TDictionary)(object)dictionary : _finish(dictionary);
