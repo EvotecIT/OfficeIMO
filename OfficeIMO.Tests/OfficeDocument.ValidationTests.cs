@@ -105,13 +105,15 @@ public sealed class OfficeDocumentValidationTests {
     }
 
     [Fact]
-    public void BorrowedWordSchemaUsesTheLiveModelAndUnavailableChecksExplainTheirScope() {
+    public void BorrowedWordChecksUseTheLiveModelAndUnavailableChecksExplainTheirScope() {
         using var document = WordDocument.Create();
         document.AddParagraph("Unsaved content");
         var report = OfficeDocument.Validate(document, new[] { OfficeDocumentCheck.Schema, OfficeDocumentCheck.Security, OfficeDocumentCheck.Accessibility });
         Assert.Contains(report.NativeReports, evidence => evidence is IReadOnlyList<OfficeOpenXmlValidationError>);
         Assert.Contains(report.Diagnostics, finding => finding.Code == "Validation.NotApplicable" && finding.Location == "Security");
-        Assert.Contains(report.Diagnostics, finding => finding.Code == "Validation.NotApplicable" && finding.Location == "Accessibility");
+        Assert.DoesNotContain(report.Diagnostics, finding => finding.Code == "Validation.NotApplicable" && finding.Location == "Accessibility");
+        Assert.Contains(report.NativeReports, evidence => evidence is OfficeAccessibilityReport { Format: "Word" });
+        Assert.Contains(report.Diagnostics, finding => finding.Code == OfficeDiagnosticCodes.AccessibilityMissingDocumentTitle);
         Assert.Equal("Unsaved content", document.Paragraphs[0].Text);
         document.AddParagraph("The caller can continue editing");
     }

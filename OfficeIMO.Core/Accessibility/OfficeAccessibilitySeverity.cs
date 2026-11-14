@@ -10,7 +10,7 @@ public enum OfficeAccessibilitySeverity {
     Error
 }
 
-/// <summary>Built-in accessibility policy profiles shared by the Word and PowerPoint checkers.</summary>
+/// <summary>Built-in accessibility policy profiles shared by the Word, PowerPoint and Excel checkers.</summary>
 public enum OfficeAccessibilityPolicyProfile {
     /// <summary>Practical policy suitable for ordinary CI gates. Structural risks are warnings.</summary>
     Default,

@@ -326,3 +326,13 @@ abstract OfficeIMO.OfficeNamingPolicy.ConvertName(string! name) -> string!
 static OfficeIMO.OfficeNamingPolicy.CamelCase.get -> OfficeIMO.OfficeNamingPolicy!
 static OfficeIMO.OfficeNamingPolicy.KebabCaseLower.get -> OfficeIMO.OfficeNamingPolicy!
 static OfficeIMO.OfficeNamingPolicy.SnakeCaseLower.get -> OfficeIMO.OfficeNamingPolicy!
+OfficeIMO.OfficeAccessibilityReport.SaveSarif(string! path, string? artifactPath = null, bool indented = true) -> void
+OfficeIMO.OfficeAccessibilityReport.ToSarif(string? artifactPath = null, bool indented = true) -> string!
+const OfficeIMO.OfficeDiagnosticCodes.AccessibilityBlankCellLayout = "accessibility-blank-cell-layout" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.AccessibilityBlankParagraphSpacing = "accessibility-blank-paragraph-spacing" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.AccessibilityDefaultSheetName = "accessibility-default-sheet-name" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.AccessibilityFloatingObject = "accessibility-floating-object" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.AccessibilityHiddenSheetContent = "accessibility-hidden-sheet-content" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.AccessibilityLayoutTable = "accessibility-layout-table" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.AccessibilityMergedCells = "accessibility-merged-cells" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.AccessibilityMissingHeadings = "accessibility-missing-headings" -> string!
