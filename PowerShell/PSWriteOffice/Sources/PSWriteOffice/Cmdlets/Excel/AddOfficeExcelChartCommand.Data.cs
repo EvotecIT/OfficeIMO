@@ -47,8 +47,7 @@ public sealed partial class AddOfficeExcelChartCommand {
 
         int categoryIndex = FindColumn(names, category ?? names[0], nameof(category));
         int[] valueIndexes = SelectValues(names, categoryIndex, values,
-            index => Enumerable.Range(firstRow, lastRow - firstRow + 1).All(row =>
-                TryReadNumber(sheet, row, tableBounds.Left + index, out _)));
+            index => ReadNumbers(sheet, firstRow, lastRow, tableBounds.Left + index).All(value => value.HasValue));
         int[] valueColumns = valueIndexes.Select(index => tableBounds.Left + index).ToArray();
         var chartData = ReadData(sheet, firstRow, lastRow, tableBounds.Left + categoryIndex,
             valueColumns, valueIndexes.Select(index => names[index]).ToArray());
@@ -116,14 +115,24 @@ public sealed partial class AddOfficeExcelChartCommand {
         int count = lastRow - firstRow + 1;
         var categories = Enumerable.Range(firstRow, count).Select(row => CategoryText(ReadText(sheet, row, categoryColumn))).ToArray();
         var series = valueColumns.Select((column, index) => new OfficeSeries(seriesNames[index],
-            Enumerable.Range(firstRow, count).Select(row => TryReadNumber(sheet, row, column, out double value)
-                ? value : throw new PSArgumentException($"Column '{seriesNames[index]}' contains a blank, nonnumeric or nonfinite value at {ExcelA1.CellReference(row, column)}.", nameof(Value))))).ToArray();
+            ReadNumbers(sheet, firstRow, lastRow, column).Select((value, offset) => value
+                ?? throw new PSArgumentException($"Column '{seriesNames[index]}' contains a blank, nonnumeric or nonfinite value at {ExcelA1.CellReference(firstRow + offset, column)}.", nameof(Value))))).ToArray();
         return new OfficeChartData(categories, series);
     }
 
-    private static bool TryReadNumber(ExcelSheet sheet, int row, int column, out double value) {
+    /// <summary>Reads one column of numbers in a single pass; a blank, nonnumeric or nonfinite cell reads as null.</summary>
+    private static double?[] ReadNumbers(ExcelSheet sheet, int firstRow, int lastRow, int column) {
+        var cells = sheet.GetCellValueSnapshots(column, firstRow, lastRow);
+        var values = new double?[cells.Count];
+        for (int i = 0; i < values.Length; i++) {
+            if (TryReadNumber(sheet, firstRow + i, column, cells[i], out double value)) values[i] = value;
+        }
+        return values;
+    }
+
+    private static bool TryReadNumber(ExcelSheet sheet, int row, int column, ExcelNativeCellValueInfo? cell, out double value) {
         value = 0;
-        if (!sheet.TryGetCellValueSnapshot(row, column, out var cell) || cell == null || cell.DateTimeValue.HasValue ||
+        if (cell == null || cell.DateTimeValue.HasValue ||
             cell.Kind is ExcelCellValueKind.Boolean or ExcelCellValueKind.Error or ExcelCellValueKind.DateTime) return false;
         if (cell.Kind == ExcelCellValueKind.Formula) {
             // Formula RawValue is the expression. Read its stored result through the native cache owner.
