@@ -1,6 +1,6 @@
 ---
 title: "Redact PDF Content"
-description: "Find sensitive text with literal or regular-expression searches, review the redaction plan, remove the content, and verify the result with OfficeIMO.Pdf, PSWriteOffice, and the officeimo CLI."
+description: "Find sensitive text with literal or regex searches, review the plan, remove the content and verify the redacted PDF with OfficeIMO.Pdf."
 layout: docs
 packages:
   - OfficeIMO.Pdf

@@ -1,6 +1,6 @@
 ---
 title: CSV Dialects and Encodings
-description: Read and write semicolon, tab, and pipe-delimited files, detect delimiters, choose encodings and cultures, and apply strict or spreadsheet policy profiles with OfficeIMO.CSV and PSWriteOffice.
+description: "Read and write semicolon, tab and pipe-delimited CSV, detect delimiters, and choose encodings, cultures and policy profiles with OfficeIMO.CSV."
 order: 53
 packages:
   - OfficeIMO.CSV

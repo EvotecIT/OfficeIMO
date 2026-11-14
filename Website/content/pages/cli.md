@@ -1,7 +1,7 @@
 ---
 title: "CLI"
 description: "Convert, extract, inspect and clean documents from your terminal with the officeimo CLI, in scripts, CI jobs, batches and MCP clients."
-meta.seo_title: "OfficeIMO CLI: document conversion and inspection from the command line"
+meta.seo_title: "OfficeIMO CLI: convert and inspect documents"
 layout: application
 meta.application: "cli"
 ---

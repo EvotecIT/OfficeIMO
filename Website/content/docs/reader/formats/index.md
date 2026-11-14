@@ -1,6 +1,6 @@
 ---
 title: Check Supported Formats
-description: List the formats a configured OfficeIMO.Reader instance can read, detect a file's kind, and register every adapter at once, with C#, PSWriteOffice, and the officeimo CLI.
+description: "List the formats an OfficeIMO.Reader instance can read, detect a file's kind and register every adapter at once from C#, PowerShell or CLI."
 order: 60
 packages:
   - OfficeIMO.Reader.Core

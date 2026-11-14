@@ -1,6 +1,6 @@
 ---
 title: Extract Tables and Records
-description: Extract tables from Word, Excel, PDF, HTML, and other documents as rows, CSV, Markdown, or JSON, and pull key-value records and sections with OfficeIMO.Reader and PSWriteOffice.
+description: "Extract tables from Word, Excel, PDF and HTML as rows, CSV, Markdown or JSON, and pull key-value records with OfficeIMO.Reader."
 order: 59
 packages:
   - OfficeIMO.Reader.Core

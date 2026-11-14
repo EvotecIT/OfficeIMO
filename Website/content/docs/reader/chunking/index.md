@@ -1,6 +1,6 @@
 ---
 title: Chunk Documents for Search and AI
-description: Split documents into bounded, citable chunks with heading paths and page locations, or token-sized hierarchical chunks with overlap, for search indexes and retrieval-augmented generation with OfficeIMO.Reader.
+description: "Split documents into bounded, citable chunks with heading paths and page locations for search indexes and retrieval with OfficeIMO.Reader."
 order: 57
 packages:
   - OfficeIMO.Reader.Core

@@ -1,6 +1,6 @@
 ---
 title: "Convert to PDF/A"
-description: "Convert existing PDFs to PDF/A-2, PDF/A-3, or PDF/A-4 archival profiles, assess readiness, and create PDF/A documents with OfficeIMO.Pdf, PSWriteOffice, and the officeimo CLI."
+description: "Convert existing PDFs to PDF/A-2, PDF/A-3 or PDF/A-4, check readiness, and create archival PDF/A documents with OfficeIMO.Pdf and the CLI."
 layout: docs
 packages:
   - OfficeIMO.Pdf
