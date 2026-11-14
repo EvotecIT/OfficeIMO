@@ -38,13 +38,13 @@ end
 <section class="imo-docs-facts" aria-label="Page facts">
   <dl class="imo-docs-facts__list">
     {{~ if packages.size > 0 ~}}
-    <div><dt>Packages</dt><dd><ul>{{ for name in packages }}{{ component = components[name] }}<li>{{ if component && component.packageUrl }}<a href="{{ components[name].packageUrl }}">{{ name }}</a>{{ else }}{{ name }}{{ end }} <code>dotnet add package {{ name }}</code></li>{{ end }}</ul></dd></div>
+    <div><dt>Packages</dt><dd><ul>{{ for name in packages }}{{ component = components[name] }}<li>{{ if component && component.packageUrl }}<a href="{{ components[name].packageUrl }}" aria-label="{{ name }} on NuGet">{{ name }}</a>{{ else }}{{ name }}{{ end }} <code>dotnet add package {{ name }}</code></li>{{ end }}</ul></dd></div>
     {{~ end ~}}
     {{~ if packages.size > 0 || cmdlets.size > 0 || commands.size > 0 ~}}
     <div><dt>Works with</dt><dd><ul>
       {{~ if packages.size > 0 ~}}<li>.NET</li>{{~ end ~}}
-      {{~ if cmdlets.size > 0 ~}}<li><a href="/docs/pswriteoffice/install/">PowerShell</a> <code>Install-Module PSWriteOffice</code></li>{{~ end ~}}
-      {{~ if commands.size > 0 ~}}<li><a href="/docs/cli/install/">CLI</a> <code>dotnet tool install --global OfficeIMO.Tool</code></li>{{~ end ~}}
+      {{~ if cmdlets.size > 0 ~}}<li><a href="/docs/pswriteoffice/install/" aria-label="Install PSWriteOffice for PowerShell">PowerShell</a> <code>Install-Module PSWriteOffice</code></li>{{~ end ~}}
+      {{~ if commands.size > 0 ~}}<li><a href="/docs/cli/install/" aria-label="Install the OfficeIMO CLI">CLI</a> <code>dotnet tool install --global OfficeIMO.Tool</code></li>{{~ end ~}}
     </ul></dd></div>
     {{~ end ~}}
     {{~ if frameworks.size > 0 ~}}
@@ -70,7 +70,7 @@ end
       {{~ for index in api_indexes ~}}<li><a href="{{ index.url }}" type="application/json">{{ index.title }} API index</a></li>{{~ end ~}}
       {{~ if cmdlets.size > 0 ~}}<li><a href="/data/powershell/commands.json" type="application/json">PSWriteOffice command catalog</a></li>{{~ end ~}}
       {{~ if commands.size > 0 ~}}<li><a href="/data/cli/commands.json" type="application/json">CLI command catalog</a></li>{{~ end ~}}
-      {{~ if limit_links.size > 0 ~}}<li><a href="/data/capabilities.json" type="application/json">Capability catalog</a></li>{{~ end ~}}
+      {{~ if limit_links.size > 0 ~}}<li><a href="/data/capabilities.json" type="application/json">Capability catalog (JSON)</a></li>{{~ end ~}}
     </ul></dd></div>
     {{~ end ~}}
   </dl>
