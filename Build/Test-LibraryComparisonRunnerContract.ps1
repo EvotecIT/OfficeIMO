@@ -126,10 +126,10 @@ if ($epubRead.Count -ne 1 -or
     throw 'The EPUB open/read comparison is missing from the catalog-eligible mixed benchmark plan.'
 }
 if ($zipTraversal.Count -ne 1 -or
-    $zipTraversal[0].CatalogEligible -or
-    $zipTraversal[0].WillCatalog -or
-    $zipTraversal[0].Publish) {
-    throw 'The non-equivalent ZIP safety-overhead diagnostic can reach library-comparison publication.'
+    -not $zipTraversal[0].WillCatalog -or
+    $zipTraversal[0].Publish -or
+    [string]::IsNullOrWhiteSpace($zipTraversal[0].PublishRestriction)) {
+    throw 'ZIP safety-overhead evidence must remain visible as a diagnostic without publication.'
 }
 
 $pdfHtml = @(
@@ -175,7 +175,7 @@ $inheritsAffinity = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPla
 $expectedAffinityApplication = if ($inheritsAffinity) {
     'inherited-parent-process'
 } else {
-    'benchmarkdotnet-command-line'
+    'unsupported'
 }
 if ($affinityPlan.Count -ne 1 -or
     $affinityPlan[0].AffinityMask -ne '0x3' -or

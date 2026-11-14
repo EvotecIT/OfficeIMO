@@ -1,62 +1,19 @@
 param(
     [ValidateSet('quick', 'full')]
-    [string] $RunMode = 'quick',
+    [string] $RunMode = 'full',
     [ValidateSet('net8.0', 'net10.0')]
     [string] $Framework = 'net10.0',
-    [ValidateSet(
-        'all',
-        'csv',
-        'csvwrite',
-        'csvasyncread',
-        'csvwideasyncread',
-        'csvlargefirstrow',
-        'xls',
-        'xlsx',
-        'xlsxwrite',
-        'xlsb',
-        'markdownparse',
-        'markdownhtml',
-        'htmltomarkdown',
-        'rtfhtml',
-        'emailmimeread',
-        'emailmimewrite',
-        'odscreate',
-        'odsread',
-        'epubread',
-        'ziptraverse',
-        'imagepngdecode',
-        'imagejpegdecode',
-        'imagepngencode',
-        'imagetifflzw',
-        'imagewebplossless',
-        'imageresize',
-        'word',
-        'wordcreate',
-        'wordreport',
-        'wordread',
-        'wordreplace',
-        'pdfgenerate',
-        'pdfinvoice',
-        'pdfinvoiceworkflow',
-        'pdfhtml',
-        'pdfhtmlpayload',
-        'pdfformats',
-        'pdfread',
-        'pdfreverse',
-        'pdfcorpusread',
-        'pdfstructuredread',
-        'pdfnative',
-        'pdfsplit',
-        'pdfmerge',
-        'pdfselect')]
-    [string] $Workload = 'all',
+    [string[]] $Workload = @('all'),
+    [ValidateSet('windows', 'linux', 'macos')]
+    [string] $Platform,
+    [Alias('BundleRoot')]
+    [string] $EvidenceRoot,
+    [switch] $DryRun,
     [string] $PdfCorpusRoot,
     [string] $HtmlTinkerXRoot = $env:HTMLTINKERX_ROOT,
-    [string] $OutputRoot = (Join-Path ([System.IO.Path]::GetTempPath()) 'OfficeIMO\Benchmarks\Runs'),
+    [string] $OutputRoot = (Join-Path ([System.IO.Path]::GetTempPath()) 'OfficeIMO/Benchmarks/Runs'),
     [string] $PowerForgeRoot = $env:POWERFORGE_ROOT,
     [string] $BuildArtifactsPath,
-    [ValidateSet('net8.0', 'net10.0')]
-    [string] $PowerForgeFramework = 'net8.0',
     [UInt64] $AffinityMask = 0,
     [string] $QuestPdfPackageVersion,
     [ValidateSet('Community', 'Evaluation', 'Professional', 'Enterprise')]
@@ -78,7 +35,7 @@ if ($Publish -and $RunMode -ne 'full') {
 }
 
 if ($MeasurementProfile -eq 'WarmedV1' -and
-    ($RunMode -ne 'full' -or $Workload -ne 'pdfhtmlpayload')) {
+    ($RunMode -ne 'full' -or $Workload.Count -ne 1 -or $Workload[0] -ne 'pdfhtmlpayload')) {
     throw 'WarmedV1 requires -RunMode full -Workload pdfhtmlpayload.'
 }
 
@@ -91,7 +48,11 @@ $htmlTinkerXProjectPath = $null
 $htmlTinkerXSourceRoot = $null
 $htmlTinkerXSourceCommit = $null
 $htmlTinkerXSourceDirty = $false
-$usesHtmlTinkerX = $Workload -eq 'pdfhtml' -or $Workload -eq 'all'
+$isPlanning = $PlanOnly -or $DryRun
+if ($PSBoundParameters.ContainsKey('Platform') -and -not $isPlanning) {
+    throw '-Platform is a planning override only; actual collection uses the host platform.'
+}
+$usesHtmlTinkerX = 'pdfhtml' -in $Workload -or 'all' -in $Workload
 if ($usesHtmlTinkerX -and -not [string]::IsNullOrWhiteSpace($HtmlTinkerXRoot)) {
     $resolvedHtmlTinkerX = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($HtmlTinkerXRoot)
     $htmlTinkerXProjectPath = if ($resolvedHtmlTinkerX.EndsWith('.csproj', [StringComparison]::OrdinalIgnoreCase)) {
@@ -99,676 +60,40 @@ if ($usesHtmlTinkerX -and -not [string]::IsNullOrWhiteSpace($HtmlTinkerXRoot)) {
     } else {
         Join-Path $resolvedHtmlTinkerX 'Sources\HtmlTinkerX\HtmlTinkerX.csproj'
     }
-    if (-not (Test-Path -LiteralPath $htmlTinkerXProjectPath -PathType Leaf)) {
-        throw "The HtmlTinkerX project was not found at '$htmlTinkerXProjectPath'."
-    }
+}
 
-    $htmlTinkerXSourceRoot = (& git -C (Split-Path -Parent $htmlTinkerXProjectPath) rev-parse --show-toplevel).Trim()
-    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($htmlTinkerXSourceRoot)) {
-        throw "Unable to resolve the HtmlTinkerX source root for '$htmlTinkerXProjectPath'."
-    }
-    $htmlTinkerXSourceCommit = (& git -C $htmlTinkerXSourceRoot rev-parse HEAD).Trim()
-    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($htmlTinkerXSourceCommit)) {
-        throw 'Unable to resolve the HtmlTinkerX source commit for benchmark provenance.'
-    }
-    $htmlTinkerXSourceDirty = @(& git -C $htmlTinkerXSourceRoot status --porcelain --untracked-files=normal).Count -gt 0
-}
-$affinityLabel = if ($AffinityMask -ne 0) { '0x{0:X}' -f $AffinityMask } else { $null }
-$isWindowsBenchmarkPlatform = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
-    [System.Runtime.InteropServices.OSPlatform]::Windows)
-$isLinuxBenchmarkPlatform = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
-    [System.Runtime.InteropServices.OSPlatform]::Linux)
-$canInheritAffinity = $isWindowsBenchmarkPlatform -or $isLinuxBenchmarkPlatform
-$affinityApplication = if ($AffinityMask -ne 0 -and $canInheritAffinity) {
-    # BenchmarkDotNet 0.15.x parses --affinity as a signed 32-bit value. Real
-    # runs pin the coordinator so masks such as 0xFFFF0000 remain exact and
-    # are inherited by benchmark worker processes.
-    'inherited-parent-process'
-} else {
-    $null
-}
-$effectiveAffinityApplication = if ($null -ne $affinityApplication) {
-    $affinityApplication
-} elseif ($AffinityMask -ne 0) {
-    'benchmarkdotnet-command-line'
-} else {
-    $null
-}
-$OutputRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath(
-    $OutputRoot)
-$platform = if ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
-        [System.Runtime.InteropServices.OSPlatform]::Windows)) {
-    'windows'
-} elseif ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
-        [System.Runtime.InteropServices.OSPlatform]::Linux)) {
-    'linux'
-} elseif ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
-        [System.Runtime.InteropServices.OSPlatform]::OSX)) {
-    'macos'
-} else {
+$OutputRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputRoot)
+$hostPlatform = if ($IsWindows) { 'windows' } elseif ($IsLinux) { 'linux' } elseif ($IsMacOS) { 'macos' } else {
     throw 'Unsupported benchmark platform.'
 }
-
-$definitions = [ordered]@{
-    csvlargefirstrow = [pscustomobject]@{
-        Project = 'OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj'
-        Filter = '*CsvLargeFirstRowBenchmarks*'
-        ComparisonId = "csv-million-first-row-$Framework"
-        Suite = 'OfficeIMO.CSV.LargeFirstRow'
-        CatalogEligible = $false
-        FullRunArguments = @('--warmupCount', '6', '--iterationCount', '12', '--outliers', 'DontRemove')
-        IdentityVariables = @('shape')
-        ExpectedCases = @(
-            foreach ($shape in @('Plain', 'Multiline')) {
-                foreach ($scenario in @('OfficeIMO_Snapshot', 'OfficeIMO_Incremental')) {
-                    "$scenario|Shape=$shape"
-                }
-            }
-        )
-    }
-    csvasyncread = [pscustomobject]@{
-        Project = 'OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj'
-        Filter = '*CsvAsyncReadBenchmarks*'
-        ComparisonId = "csv-async-read-$Framework"
-        Suite = 'OfficeIMO.CSV.AsyncRead'
-        CatalogEligible = $false
-        FullRunArguments = @('--warmupCount', '6', '--iterationCount', '12', '--outliers', 'DontRemove')
-        IdentityVariables = @('operation', 'rowcount', 'shape')
-        ExpectedCases = @(
-            foreach ($operation in @('FirstRow', 'AllRows')) {
-                foreach ($rowCount in @(1000, 100000)) {
-                    foreach ($shape in @('Plain', 'Multiline')) {
-                        foreach ($scenario in @('OfficeIMO_Snapshot', 'OfficeIMO_Incremental')) {
-                            "$scenario|Operation=$operation&RowCount=$rowCount&Shape=$shape"
-                        }
-                    }
-                }
-            }
-        )
-    }
-    csvwideasyncread = [pscustomobject]@{
-        Project = 'OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj'
-        Filter = '*CsvWideAsyncReadBenchmarks*'
-        ComparisonId = "csv-wide-async-read-$Framework"
-        Suite = 'OfficeIMO.CSV.WideAsyncRead'
-        CatalogEligible = $false
-        FullRunArguments = @('--warmupCount', '6', '--iterationCount', '12', '--outliers', 'DontRemove')
-        IdentityVariables = @('operation', 'rowcount')
-        ExpectedCases = @(
-            foreach ($operation in @('FirstRow', 'AllRows')) {
-                foreach ($rowCount in @(5000, 25000)) {
-                    foreach ($scenario in @('OfficeIMO_Snapshot', 'OfficeIMO_Incremental')) {
-                        "$scenario|Operation=$operation&RowCount=$rowCount"
-                    }
-                }
-            }
-        )
-    }
-    pdfnative = [pscustomobject]@{
-        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-        Filter = '*PdfNativeOperationsBenchmarks*'
-        ComparisonId = "pdf-native-100-pages-$Framework"
-        Suite = 'OfficeIMO.Pdf.NativeOperations'
-        IdentityVariables = @('producer', 'operation')
-        ExpectedCases = @(
-            foreach ($producer in @('IText', 'MigraDoc')) {
-                foreach ($operation in @('ReadText', 'ReadStructured', 'Select', 'Merge', 'Split', 'SplitSelections')) {
-                    "Execute|Operation=$operation&Producer=$producer"
-                }
-            }
-        )
-    }
-    csv = [pscustomobject]@{
-        Project = 'OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj'
-        Filter = '*MarkPflug65KCsvBenchmarks*'
-        ComparisonId = "markpflug-65k-csv-decoded-$Framework"
-        Suite = 'OfficeIMO.CSV.MarkPflug65K'
-        IdentityVariables = @()
-        ExpectedCases = @('OfficeIMO', 'Sep', 'Sylvan', 'CsvHelper', 'DataplatDbatools', 'LumenWorks')
-    }
-    csvwrite = [pscustomobject]@{
-        Project = 'OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj'
-        Filter = '*CsvDataReaderWriteBenchmarks*(RowCount: 25000,*'
-        ComparisonId = "csv-25k-datareader-write-$Framework"
-        Suite = 'OfficeIMO.CSV.DataReaderWrite25K'
-        IdentityVariables = @('rowcount', 'shape')
-        ExpectedCases = @(
-            foreach ($shape in @('Mixed', 'Quoted', 'Multiline')) {
-                foreach ($scenario in @(
-                    'OfficeIMO_WriteDataReader'
-                    'OfficeIMO_WriteDataReaderParallel'
-                    'Sylvan_WriteDataReader')) {
-                    "$scenario|RowCount=25000&Shape=$shape"
-                }
-            }
-        )
-    }
-    xls = [pscustomobject]@{
-        Project = 'OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj'
-        Filter = '*MarkPflug65KXlsBenchmarks*'
-        ComparisonId = "markpflug-65k-xls-typed-$Framework"
-        Suite = 'OfficeIMO.Excel.Xls.MarkPflug65K'
-        IdentityVariables = @()
-        ExpectedCases = @('OfficeIMO', 'Sylvan', 'ExcelDataReader')
-    }
-    xlsx = [pscustomobject]@{
-        Project = 'OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj'
-        Filter = '*MarkPflug65KXlsxBenchmarks*'
-        ComparisonId = "markpflug-65k-xlsx-typed-$Framework"
-        Suite = 'OfficeIMO.Excel.Xlsx.MarkPflug65K'
-        IdentityVariables = @()
-        ExpectedCases = @('OfficeIMO', 'Sylvan', 'ExcelDataReader', 'ClosedXML', 'EPPlus', 'MiniExcel')
-    }
-    xlsxwrite = [pscustomobject]@{
-        Project = 'OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj'
-        Filter = '*ExcelDataReaderWriteBenchmarks*'
-        ComparisonId = "xlsx-25k-datareader-write-$Framework"
-        Suite = 'OfficeIMO.Excel.DataReaderWrite25K'
-        IdentityVariables = @('rowcount')
-        ExpectedCases = @(
-            'OfficeIMO|RowCount=25000'
-            'SpreadCheetah|RowCount=25000'
-            'Sylvan|RowCount=25000'
-            'LargeXlsx|RowCount=25000'
-        )
-    }
-    xlsb = [pscustomobject]@{
-        Project = 'OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj'
-        Filter = '*MarkPflug65KXlsbBenchmarks*'
-        ComparisonId = "markpflug-65k-xlsb-typed-$Framework"
-        Suite = 'OfficeIMO.Excel.Xlsb.MarkPflug65K'
-        IdentityVariables = @()
-        ExpectedCases = @('OfficeIMO', 'Sylvan', 'ExcelDataReader')
-    }
-    markdownparse = [pscustomobject]@{
-        Project = 'OfficeIMO.Markdown.Benchmarks\OfficeIMO.Markdown.Benchmarks.csproj'
-        Filter = '*MarkdownParseBenchmarks.*_ParseSemantic*_CommonMark'
-        ComparisonId = "markdown-commonmark-parse-$Framework"
-        Suite = 'OfficeIMO.Markdown.CommonMarkParse'
-        IdentityVariables = @('corpusname')
-        ExpectedCases = @(
-            foreach ($corpus in @(
-                'PortableReadme',
-                'Transcript',
-                'TechnicalDoc',
-                'RichAst',
-                'LongNestedList',
-                'LargeTable',
-                'NormalizationStress')) {
-                foreach ($engine in @('OfficeIMO-Semantic', 'Markdig')) {
-                    "$engine|CorpusName=$corpus"
-                }
-            }
-        )
-    }
-    markdownhtml = [pscustomobject]@{
-        Project = 'OfficeIMO.Markdown.Benchmarks\OfficeIMO.Markdown.Benchmarks.csproj'
-        Filter = '*MarkdownHtmlBenchmarks.*_ToHtml_CommonMark'
-        ComparisonId = "markdown-commonmark-html-$Framework"
-        Suite = 'OfficeIMO.Markdown.CommonMarkHtml'
-        IdentityVariables = @('corpusname')
-        ExpectedCases = @(
-            foreach ($corpus in @(
-                'PortableReadme',
-                'Transcript',
-                'TechnicalDoc',
-                'RichAst',
-                'LongNestedList',
-                'LargeTable',
-                'NormalizationStress')) {
-                foreach ($engine in @('OfficeIMO', 'Markdig')) {
-                    "$engine|CorpusName=$corpus"
-                }
-            }
-        )
-    }
-    htmltomarkdown = [pscustomobject]@{
-        Project = 'OfficeIMO.Markdown.Benchmarks\OfficeIMO.Markdown.Benchmarks.csproj'
-        Filter = '*HtmlToMarkdownBenchmarks*'
-        ComparisonId = "html-to-markdown-$Framework"
-        Suite = 'OfficeIMO.Markdown.HtmlToMarkdown'
-        IdentityVariables = @('corpusname')
-        ExpectedCases = @(
-            foreach ($corpus in @('Article', 'LargeArticle', 'Table')) {
-                foreach ($engine in @('OfficeIMO', 'ReverseMarkdown')) {
-                    "$engine|CorpusName=$corpus"
-                }
-            }
-        )
-    }
-    rtfhtml = [pscustomobject]@{
-        Project = 'OfficeIMO.Rtf.Benchmarks.Comparisons\OfficeIMO.Rtf.Benchmarks.Comparisons.csproj'
-        Filter = '*RtfToHtmlComparisonBenchmarks*'
-        ComparisonId = "rtf-to-html-$Framework"
-        Suite = 'OfficeIMO.Rtf.HtmlComparison'
-        ValidatedSizeEvidence = $true
-        IdentityVariables = @('scale')
-        ExpectedCases = @(
-            foreach ($scale in @('Small', 'Medium', 'Large', 'Producer')) {
-                foreach ($engine in @('OfficeIMO', 'RtfPipe')) {
-                    "$engine|Scale=$scale"
-                }
-            }
-        )
-    }
-    odscreate = [pscustomobject]@{
-        Project = 'OfficeIMO.OpenDocument.Benchmarks.Comparisons\OfficeIMO.OpenDocument.Benchmarks.Comparisons.csproj'
-        Filter = '*OdsCreateComparisonBenchmarks*'
-        ComparisonId = "opendocument-ods-create-$Framework"
-        Suite = 'OfficeIMO.OpenDocument.OdsCreate'
-        ValidatedSizeEvidence = $true
-        IdentityVariables = @('scale')
-        ExpectedCases = @(
-            foreach ($scale in @('Small', 'Normal')) {
-                foreach ($engine in @('OfficeIMO', 'OpenStandardLibrary')) {
-                    "$engine|Scale=$scale"
-                }
-            }
-        )
-    }
-    odsread = [pscustomobject]@{
-        Project = 'OfficeIMO.OpenDocument.Benchmarks.Comparisons\OfficeIMO.OpenDocument.Benchmarks.Comparisons.csproj'
-        Filter = '*OdsReadComparisonBenchmarks*'
-        ComparisonId = "opendocument-ods-read-$Framework"
-        Suite = 'OfficeIMO.OpenDocument.OdsRead'
-        IdentityVariables = @('scale')
-        ExpectedCases = @(
-            foreach ($scale in @('Small', 'Normal')) {
-                foreach ($engine in @('OfficeIMO', 'OpenStandardLibrary')) {
-                    "$engine|Scale=$scale"
-                }
-            }
-        )
-    }
-    emailmimeread = [pscustomobject]@{
-        Project = 'OfficeIMO.Email.Benchmarks.Comparisons\OfficeIMO.Email.Benchmarks.Comparisons.csproj'
-        Filter = '*EmailMimeReadBenchmarks*'
-        ComparisonId = "email-mime-read-$Framework"
-        Suite = 'OfficeIMO.Email.MimeRead'
-        ValidatedSizeEvidence = $true
-        IdentityVariables = @('scale')
-        ExpectedCases = @(
-            foreach ($scale in @('Small', 'Normal')) {
-                foreach ($engine in @('OfficeIMO', 'MimeKit')) {
-                    "$engine|Scale=$scale"
-                }
-            }
-        )
-    }
-    emailmimewrite = [pscustomobject]@{
-        Project = 'OfficeIMO.Email.Benchmarks.Comparisons\OfficeIMO.Email.Benchmarks.Comparisons.csproj'
-        Filter = '*EmailMimeWriteBenchmarks*'
-        ComparisonId = "email-mime-write-$Framework"
-        Suite = 'OfficeIMO.Email.MimeWrite'
-        ValidatedSizeEvidence = $true
-        IdentityVariables = @('scale')
-        ExpectedCases = @(
-            foreach ($scale in @('Small', 'Normal')) {
-                foreach ($engine in @('OfficeIMO', 'MimeKit')) {
-                    "$engine|Scale=$scale"
-                }
-            }
-        )
-    }
-    epubread = [pscustomobject]@{
-        Project = 'OfficeIMO.Epub.Benchmarks.Comparisons\OfficeIMO.Epub.Benchmarks.Comparisons.csproj'
-        Filter = '*EpubReadComparisonBenchmarks*'
-        ComparisonId = "epub-open-read-$Framework"
-        Suite = 'OfficeIMO.Epub.OpenRead'
-        ValidatedSizeEvidence = $true
-        IdentityVariables = @('scale')
-        ExpectedCases = @(
-            foreach ($scale in @('Small', 'Normal')) {
-                foreach ($engine in @('OfficeIMO', 'VersOne.Epub+HAP')) {
-                    "$engine|Scale=$scale"
-                }
-            }
-        )
-    }
-    ziptraverse = [pscustomobject]@{
-        Project = 'OfficeIMO.Archives.Benchmarks\OfficeIMO.Archives.Benchmarks.csproj'
-        Filter = '*ZipTraversalComparisonBenchmarks*'
-        ComparisonId = "zip-safe-traversal-$Framework"
-        Suite = 'OfficeIMO.Archives.SafeZipTraversal'
-        CatalogEligible = $false
-        IdentityVariables = @('scale')
-        ExpectedCases = @(
-            foreach ($scale in @('Small', 'Normal', 'Large')) {
-                foreach ($engine in @('OfficeIMO', 'System.IO.Compression')) {
-                    "$engine|Scale=$scale"
-                }
-            }
-        )
-    }
-    imagepngdecode = [pscustomobject]@{
-        Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
-        Filter = '*ImagePngDecodeBenchmarks*'
-        ComparisonId = "image-png-decode-$Framework"
-        Suite = 'OfficeIMO.Drawing.PngDecode'
-        IdentityVariables = @()
-        ExpectedCases = @('OfficeIMO', 'SkiaSharp', 'MagickNET', 'StbImageSharp')
-    }
-    imagejpegdecode = [pscustomobject]@{
-        Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
-        Filter = '*ImageJpegDecodeBenchmarks*'
-        ComparisonId = "image-jpeg-decode-$Framework"
-        Suite = 'OfficeIMO.Drawing.JpegDecode'
-        IdentityVariables = @()
-        ExpectedCases = @('OfficeIMO', 'SkiaSharp', 'MagickNET', 'StbImageSharp')
-    }
-    imagepngencode = [pscustomobject]@{
-        Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
-        Filter = '*ImagePngEncodeBenchmarks*'
-        ComparisonId = "image-png-encode-$Framework"
-        Suite = 'OfficeIMO.Drawing.PngEncode'
-        IdentityVariables = @()
-        ExpectedCases = @('OfficeIMO', 'SkiaSharp', 'MagickNET')
-    }
-    imagetifflzw = [pscustomobject]@{
-        Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
-        Filter = '*ImageTiffLzw*Benchmarks*'
-        ComparisonId = "image-tiff-lzw-$Framework"
-        Suite = 'OfficeIMO.Drawing.TiffLzw'
-        IdentityVariables = @()
-        ExpectedCases = @('OfficeIMOEncode', 'MagickNETEncode', 'OfficeIMODecodeExternal', 'MagickNETDecodeExternal')
-    }
-    imagewebplossless = [pscustomobject]@{
-        Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
-        Filter = '*ImageWebpLossless*Benchmarks*'
-        ComparisonId = "image-webp-lossless-$Framework"
-        Suite = 'OfficeIMO.Drawing.WebpLossless'
-        IdentityVariables = @()
-        ExpectedCases = @('OfficeIMOEncode', 'MagickNETEncode', 'OfficeIMODecodeExternal', 'MagickNETDecodeExternal')
-    }
-    imageresize = [pscustomobject]@{
-        Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
-        Filter = '*ImageResizeBenchmarks*'
-        ComparisonId = "image-resize-$Framework"
-        Suite = 'OfficeIMO.Drawing.Resize'
-        IdentityVariables = @()
-        ExpectedCases = @('OfficeIMO', 'SkiaSharp', 'MagickNET')
-    }
-    pdfgenerate = [pscustomobject]@{
-        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-        Filter = '*PdfGenerationBenchmarks*'
-        ComparisonId = "pdf-structured-generation-$Framework"
-        Suite = 'OfficeIMO.Pdf.StructuredGeneration'
-        IdentityVariables = @('scale')
-        ExpectedCases = @(
-            foreach ($scale in @('Easy', 'Medium', 'High')) {
-                foreach ($engine in @('OfficeIMO', 'QuestPDF', 'MigraDoc', 'IText')) {
-                    "$engine|Scale=$scale"
-                }
-            }
-        )
-    }
-    pdfinvoice = [pscustomobject]@{
-        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-        Filter = '*PdfInvoiceGenerationBenchmarks*'
-        ComparisonId = "pdf-real-world-invoice-$Framework"
-        Suite = 'OfficeIMO.Pdf.RealWorldInvoice'
-        CatalogEligible = $false
-        IdentityVariables = @()
-        ExpectedCases = @('OfficeIMO', 'QuestPDF', 'IText')
-    }
-    pdfinvoiceworkflow = [pscustomobject]@{
-        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-        Filter = '*PdfTypedInvoiceWorkflowBenchmarks*'
-        ComparisonId = "pdf-typed-invoice-workflow-$Framework"
-        Suite = 'OfficeIMO.Pdf.TypedInvoiceWorkflow'
-        CatalogEligible = $false
-        IdentityVariables = @()
-        ExpectedCases = @('TypedElectronicInvoicePdf')
-    }
-    pdfhtml = [pscustomobject]@{
-        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-        Filter = '*PdfHtmlBenchmarks*'
-        ComparisonId = "pdf-html-generation-$Framework"
-        Suite = 'OfficeIMO.Pdf.HtmlGeneration'
-        IdentityVariables = @('scale')
-        ExpectedCases = @(
-            foreach ($scale in @('Easy', 'Medium', 'High')) {
-                foreach ($engine in @('OfficeIMO', 'PeachPDF', 'PdfPecker', 'ITextPdfHtml', 'Chromium')) {
-                    "$engine|Scale=$scale"
-                }
-            }
-        )
-    }
-    pdfhtmlpayload = [pscustomobject]@{
-        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-        Filter = '*PdfHtmlPayloadBenchmarks*'
-        ComparisonId = "pdf-html-21k-payload-$Framework"
-        Suite = 'OfficeIMO.Pdf.Html21KiBPayload'
-        IdentityVariables = @('payload')
-        ExpectedCases = @(
-            foreach ($payload in @('PlainText', 'Table', 'Multilingual')) {
-                foreach ($engine in @('OfficeIMO', 'PeachPDF', 'PdfPecker')) {
-                    "$engine|Payload=$payload"
-                }
-            }
-        )
-    }
-    pdfformats = [pscustomobject]@{
-        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-        Filter = '*Pdf*FormatConversionBenchmarks*'
-        ComparisonId = "officeimo-pdf-format-route-health-$Framework"
-        Suite = 'OfficeIMO.Pdf.FormatConversion'
-        CatalogEligible = $false
-        IdentityVariables = @('format')
-        ExpectedCases = @(
-            foreach ($format in @(
-                'Docx',
-                'Xlsx',
-                'Pptx',
-                'Html',
-                'Markdown',
-                'Rtf',
-                'AsciiDoc',
-                'Latex',
-                'Mhtml',
-                'OneNote',
-                'Odt',
-                'Ods',
-                'Odp',
-                'Visio')) {
-                "ConvertToPdf|Format=$format"
-            }
-        )
-    }
-    pdfread = [pscustomobject]@{
-        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-        Filter = '*PdfReadBenchmarks*'
-        ComparisonId = "pdf-text-extraction-$Framework"
-        Suite = 'OfficeIMO.Pdf.TextExtraction'
-        IdentityVariables = @('producer', 'scale')
-        ExpectedCases = @(
-            foreach ($scale in @('Easy', 'Medium', 'High')) {
-                foreach ($producer in @('OfficeIMO', 'QuestPDF', 'PeachPDF', 'MigraDoc', 'IText')) {
-                    foreach ($engine in @('OfficeIMO', 'PdfPig', 'IText')) {
-                        "$engine|Producer=$producer&Scale=$scale"
-                    }
-                }
-            }
-        )
-    }
-    pdfstructuredread = [pscustomobject]@{
-        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-        Filter = '*PdfStructuredRead*Benchmarks*'
-        ComparisonId = "officeimo-pdf-read-profile-route-health-$Framework"
-        Suite = 'OfficeIMO.Pdf.ReadProfileRouteHealth'
-        CatalogEligible = $false
-        IdentityVariables = @('scale')
-        ExpectedCases = @(
-            foreach ($scale in @('Easy', 'Medium', 'High')) {
-                "FastLoadAndRead|Scale=$scale"
-                "StructuredLoadAndRead|Scale=$scale"
-            }
-        )
-    }
-    pdfreverse = [pscustomobject]@{
-        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-        Filter = '*PdfReverseConversionBenchmarks*'
-        ComparisonId = "pdf-reverse-conversion-$Framework"
-        Suite = 'OfficeIMO.Pdf.ReverseConversion'
-        IdentityVariables = @('producer', 'scale')
-        ExpectedCases = @(
-            foreach ($scale in @('Easy', 'Medium', 'High')) {
-                foreach ($producer in @('OfficeIMO', 'QuestPDF', 'PeachPDF', 'MigraDoc', 'IText')) {
-                    foreach ($route in @(
-                        'PdfToDocx',
-                        'PdfToHtml',
-                        'PdfToXlsx',
-                        'PdfToPptx',
-                        'PdfToOdt',
-                        'PdfToOds',
-                        'PdfToOdp',
-                        'PdfToPng')) {
-                        "$route|Producer=$producer&Scale=$scale"
-                    }
-                }
-            }
-        )
-    }
-    pdfcorpusread = [pscustomobject]@{
-        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-        Filter = '*PdfCorpusReadBenchmarks*'
-        ComparisonId = "pdf-corpus-text-extraction-$Framework"
-        Suite = 'OfficeIMO.Pdf.CorpusTextExtraction'
-        Default = $false
-        IdentityVariables = @('document')
-        ExpectedCases = @(
-            foreach ($document in @('OfficeIMO-500p', 'NIST-492p', 'Type3-85p', 'PDFA-258p-12MB')) {
-                foreach ($engine in @('OfficeIMO', 'PdfPig', 'IText')) {
-                    "$engine|Document=$document"
-                }
-            }
-        )
-    }
-    pdfsplit = [pscustomobject]@{
-        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-        Filter = '*PdfSplitBenchmarks*'
-        ComparisonId = "pdf-split-$Framework"
-        Suite = 'OfficeIMO.Pdf.Split'
-        IdentityVariables = @('density', 'producer', 'scale', 'workflow')
-        ExpectedCases = @(
-            foreach ($scale in @('Easy', 'Medium', 'High', 'VeryHigh')) {
-                foreach ($producer in @('OfficeIMO', 'IText')) {
-                    foreach ($density in @('Standard', 'Dense')) {
-                        foreach ($workflow in @('EveryPage', 'Bundles')) {
-                            foreach ($engine in @('OfficeIMO', 'IText', 'PdfSharp')) {
-                                "$engine|Density=$density&Producer=$producer&Scale=$scale&Workflow=$workflow"
-                            }
-                        }
-                    }
-                }
-            }
-        )
-    }
-    pdfmerge = [pscustomobject]@{
-        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-        Filter = '*PdfMergeBenchmarks*'
-        ComparisonId = "pdf-merge-$Framework"
-        Suite = 'OfficeIMO.Pdf.Merge'
-        IdentityVariables = @('density', 'producer', 'scale')
-        ExpectedCases = @(
-            foreach ($scale in @('Easy', 'Medium', 'High', 'VeryHigh')) {
-                foreach ($producer in @('OfficeIMO', 'IText')) {
-                    foreach ($density in @('Standard', 'Dense')) {
-                        foreach ($engine in @('OfficeIMO', 'IText', 'PdfSharp')) {
-                            "$engine|Density=$density&Producer=$producer&Scale=$scale"
-                        }
-                    }
-                }
-            }
-        )
-    }
-    pdfselect = [pscustomobject]@{
-        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-        Filter = '*PdfPageSelectionBenchmarks*'
-        ComparisonId = "pdf-page-selection-$Framework"
-        Suite = 'OfficeIMO.Pdf.PageSelection'
-        IdentityVariables = @('density', 'producer', 'scale')
-        ExpectedCases = @(
-            foreach ($scale in @('Easy', 'Medium', 'High', 'VeryHigh')) {
-                foreach ($producer in @('OfficeIMO', 'IText')) {
-                    foreach ($density in @('Standard', 'Dense')) {
-                        foreach ($engine in @('OfficeIMO', 'IText', 'PdfSharp')) {
-                            "$engine|Density=$density&Producer=$producer&Scale=$scale"
-                        }
-                    }
-                }
-            }
-        )
-    }
-    wordcreate = [pscustomobject]@{
-        Project = 'OfficeIMO.Word.Benchmarks\OfficeIMO.Word.Benchmarks.csproj'
-        Filter = '*WordCreateParagraphComparisonBenchmarks*'
-        ComparisonId = "word-docx-create-paragraphs-$Framework"
-        Suite = 'OfficeIMO.Word.CreateParagraphs'
-        IdentityVariables = @('itemcount')
-        ExpectedCases = @(
-            'OfficeIMO|ItemCount=100'
-            'OfficeIMO|ItemCount=1000'
-            'DocX|ItemCount=100'
-            'DocX|ItemCount=1000'
-            'NPOI|ItemCount=100'
-            'NPOI|ItemCount=1000'
-            'OpenXmlSdk|ItemCount=100'
-            'OpenXmlSdk|ItemCount=1000'
-        )
-    }
-    wordreport = [pscustomobject]@{
-        Project = 'OfficeIMO.Word.Benchmarks\OfficeIMO.Word.Benchmarks.csproj'
-        Filter = '*WordCreateReportComparisonBenchmarks*'
-        ComparisonId = "word-docx-create-report-$Framework"
-        Suite = 'OfficeIMO.Word.CreateReport'
-        IdentityVariables = @('rowcount')
-        ExpectedCases = @(
-            'OfficeIMO|RowCount=100'
-            'OfficeIMO|RowCount=1000'
-            'DocX|RowCount=100'
-            'DocX|RowCount=1000'
-            'NPOI|RowCount=100'
-            'NPOI|RowCount=1000'
-            'OpenXmlSdk|RowCount=100'
-            'OpenXmlSdk|RowCount=1000'
-        )
-    }
-    wordread = [pscustomobject]@{
-        Project = 'OfficeIMO.Word.Benchmarks\OfficeIMO.Word.Benchmarks.csproj'
-        Filter = '*WordReadComparisonBenchmarks*'
-        ComparisonId = "word-docx-read-paragraphs-$Framework"
-        Suite = 'OfficeIMO.Word.ReadParagraphs'
-        IdentityVariables = @('itemcount')
-        ExpectedCases = @(
-            'OfficeIMO|ItemCount=100'
-            'OfficeIMO|ItemCount=1000'
-            'DocX|ItemCount=100'
-            'DocX|ItemCount=1000'
-            'NPOI|ItemCount=100'
-            'NPOI|ItemCount=1000'
-            'OpenXmlSdk|ItemCount=100'
-            'OpenXmlSdk|ItemCount=1000'
-        )
-    }
-    wordreplace = [pscustomobject]@{
-        Project = 'OfficeIMO.Word.Benchmarks\OfficeIMO.Word.Benchmarks.csproj'
-        Filter = '*WordReplaceComparisonBenchmarks*'
-        ComparisonId = "word-docx-replace-and-save-$Framework"
-        Suite = 'OfficeIMO.Word.ReplaceAndSave'
-        IdentityVariables = @('itemcount')
-        ExpectedCases = @(
-            'OfficeIMO|ItemCount=100'
-            'OfficeIMO|ItemCount=1000'
-            'DocX|ItemCount=100'
-            'DocX|ItemCount=1000'
-            'NPOI|ItemCount=100'
-            'NPOI|ItemCount=1000'
-            'OpenXmlSdk|ItemCount=100'
-            'OpenXmlSdk|ItemCount=1000'
-        )
-    }
+if ([string]::IsNullOrWhiteSpace($Platform)) { $Platform = $hostPlatform }
+$isWindowsBenchmarkPlatform = $Platform -eq 'windows'
+$isLinuxBenchmarkPlatform = $Platform -eq 'linux'
+$canInheritAffinity = $isWindowsBenchmarkPlatform -or $isLinuxBenchmarkPlatform
+$affinityLabel = if ($AffinityMask -ne 0) { '0x{0:X}' -f $AffinityMask } else { $null }
+$affinityApplication = if ($AffinityMask -ne 0 -and $canInheritAffinity) { 'inherited-parent-process' } else { $null }
+$effectiveAffinityApplication = if ($null -ne $affinityApplication) { $affinityApplication } elseif ($AffinityMask -ne 0) {
+    'unsupported'
+} elseif ($Platform -eq 'macos') { 'no-control-macos' } else { 'os-default' }
+if (-not $isPlanning -and $Platform -eq 'macos' -and $AffinityMask -ne 0) {
+    throw 'macOS does not support this runner''s affinity control; use -AffinityMask 0.'
 }
+$stamp = [DateTimeOffset]::UtcNow.ToString('yyyyMMdd-HHmmss-fff')
+$websiteRoot = Join-Path $repositoryRoot 'Website/static/data/benchmarks/library-comparisons'
+$staticRoot = if ([string]::IsNullOrWhiteSpace($EvidenceRoot)) {
+    Join-Path ([System.IO.Path]::GetTempPath()) "OfficeIMO/Benchmarks/Bundles/$Platform"
+} else {
+    $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($EvidenceRoot)
+}
+$portableBundle = $staticRoot -ne $websiteRoot
+if ($portableBundle -and -not $PSBoundParameters.ContainsKey('OutputRoot')) {
+    $OutputRoot = Join-Path $staticRoot 'raw'
+}
+$catalogPath = Join-Path $staticRoot 'index.json'
+$comparisonPath = Join-Path $staticRoot 'comparisons.json'
+
+. (Join-Path $PSScriptRoot 'LibraryComparisonDefinitions.ps1')
+$definitions = Get-LibraryComparisonDefinitions -Framework $Framework
 
 if ($MeasurementProfile -eq 'WarmedV1') {
     $definitions.pdfhtmlpayload.ComparisonId += '-warmed-v1'
@@ -784,26 +109,18 @@ if ($MeasurementProfile -eq 'WarmedV1') {
     )
 }
 
-$selected = if ($Workload -eq 'all') {
-    @(
-        $definitions.GetEnumerator() |
-            Where-Object {
-                $_.Key -notlike 'word*' -and
-                ($null -eq $_.Value.PSObject.Properties['Default'] -or $_.Value.Default -ne $false)
-            } |
-            ForEach-Object { $_.Key }
-    )
-} elseif ($Workload -eq 'word') {
-    @('wordcreate', 'wordreport', 'wordread', 'wordreplace')
-} else {
-    @($Workload)
-}
-
-if ($Workload -eq 'pdfcorpusread' -and [string]::IsNullOrWhiteSpace($PdfCorpusRoot)) {
-    throw 'PdfCorpusRoot is required for the pdfcorpusread workload. Prepare the corpus first.'
-}
-
-$containsWordWorkload = @($selected | Where-Object { $_ -like 'word*' }).Count -gt 0
+$includeAll = 'all' -in $Workload
+$explicitWorkloads = @(
+    foreach ($requested in $Workload) {
+        if ($requested -eq 'all') { continue }
+        if ($requested -eq 'word') { 'wordcreate'; 'wordreport'; 'wordread'; 'wordreplace' }
+        elseif ($requested -eq 'powerpoint') { 'pptxcreate'; 'pptxedit' }
+        elseif ($definitions.Contains($requested)) { $requested }
+        else { throw "Unknown workload '$requested'. Choose all, word, powerpoint, or: $($definitions.Keys -join ', ')." }
+    }
+)
+$selected = @(@(if ($includeAll) { $definitions.Keys }; $explicitWorkloads) | Select-Object -Unique)
+if ($selected.Count -eq 0) { throw 'Select at least one workload.' }
 $containsQuestPdfWorkload = @($selected | Where-Object { $_ -in $questPdfWorkloads }).Count -gt 0
 $effectiveQuestPdfVersion = if ($InternalQuestPdf) { $QuestPdfPackageVersion } else { $questPdfBenchmarkVersion }
 
@@ -816,9 +133,6 @@ if ($InternalQuestPdf) {
     }
     if ([string]::IsNullOrWhiteSpace($QuestPdfPackageVersion)) {
         throw 'Internal QuestPDF mode requires an explicit -QuestPdfPackageVersion.'
-    }
-    if (-not $ConfirmQuestPdfAuthorization) {
-        throw 'Internal QuestPDF mode requires -ConfirmQuestPdfAuthorization. Internal or unpublished use does not itself override the selected version''s license.'
     }
 } elseif (-not [string]::IsNullOrWhiteSpace($QuestPdfPackageVersion)) {
     throw '-QuestPdfPackageVersion is available only with -InternalQuestPdf.'
@@ -835,18 +149,6 @@ if ($containsQuestPdfWorkload) {
     }
 }
 
-if ($Publish -and $containsWordWorkload) {
-    throw @'
-DocX is distributed under the Xceed Community License, which prohibits publishing benchmark or performance comparison results without Xceed's advance permission. Word comparison evidence is local-only. Obtain written permission and update this reviewed publication gate before publishing it.
-'@
-}
-
-if ($containsWordWorkload -and -not $AcceptNPOIOSMFLicense) {
-    throw @'
-The Word comparison suite includes NPOI 2.8.1. Review the NPOI binary EULA at https://github.com/nissl-lab/npoi/blob/master/OSMFEULA.txt, then rerun with -AcceptNPOIOSMFLicense to acknowledge it for this opt-in benchmark run.
-'@
-}
-
 $executionPlan = @(
     foreach ($name in $selected) {
         $definition = $definitions[$name]
@@ -855,19 +157,81 @@ $executionPlan = @(
         } else {
             $definition.ComparisonId
         }
-        $catalogEligibleByPolicy = -not $InternalQuestPdf -and
-            $name -notlike 'word*' -and
-            ($null -eq $definition.PSObject.Properties['CatalogEligible'] -or [bool] $definition.CatalogEligible)
-        $willCatalog = ($RunMode -eq 'quick' -or [bool] $Publish) -and $catalogEligibleByPolicy
+        $blockedReasons = @(
+            if ($name -in @('markdownparse', 'markdownhtml') -and
+                -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_MARKDOWN_BENCHMARK_CORPUS)) {
+                'Clear OFFICEIMO_MARKDOWN_BENCHMARK_CORPUS to collect the declared seven-corpus CommonMark matrix.'
+            }
+            if ($null -ne $definition.Frameworks -and $Framework -notin $definition.Frameworks) {
+                "This comparison requires $($definition.Frameworks -join ', '); ShapeCrawler 0.82.0 ships only net10.0."
+            }
+            if ($name -like 'word*') {
+                if ($Publish) { $definition.PublishRestriction }
+                if (-not $AcceptNPOIOSMFLicense) {
+                    'NPOI 2.8.1 OSMF EULA acknowledgement required: -AcceptNPOIOSMFLicense (https://github.com/nissl-lab/npoi/blob/master/OSMFEULA.txt).'
+                }
+            }
+            if ($InternalQuestPdf -and -not $ConfirmQuestPdfAuthorization) {
+                'Internal QuestPDF requires -ConfirmQuestPdfAuthorization for the selected version.'
+            }
+            if ($name -eq 'pdfcorpusread' -and [string]::IsNullOrWhiteSpace($PdfCorpusRoot)) {
+                'PdfCorpusRoot is required; prepare the independent PDF corpus first.'
+            }
+            if ($AffinityMask -ne 0 -and $Platform -eq 'macos') { 'Nonzero affinity is unsupported on macOS.' }
+        )
+        $catalogEligibleByPolicy = -not $InternalQuestPdf -and $definition.CatalogEligible
+        $willCatalog = -not $InternalQuestPdf -and
+            ($catalogEligibleByPolicy -or $definition.CollectNonPublishedEvidence) -and
+            $blockedReasons.Count -eq 0
+        $artifactsPath = Join-Path $OutputRoot "$Platform-$name-$RunMode-$stamp"
+        $commandOptions = @{
+            Definition = $definition
+            RepositoryRoot = $repositoryRoot
+            Framework = $Framework
+            RunMode = $RunMode
+            ArtifactsPath = $artifactsPath
+            BuildArtifactsPath = $BuildArtifactsPath
+            KeepBenchmarkFiles = $KeepBenchmarkFiles
+            Word = $name -like 'word*'
+            QuestPdfVersion = if ($name -in $questPdfWorkloads) { $effectiveQuestPdfVersion } else { $null }
+            InternalQuestPdf = $InternalQuestPdf
+        }
+        $commands = @(Get-LibraryComparisonCommands @commandOptions)
+        foreach ($command in $commands) {
+            $quotedArguments = @($command.Arguments | ForEach-Object { "'" + ([string] $_).Replace("'", "''") + "'" })
+            $command | Add-Member -NotePropertyName CommandLine -NotePropertyValue (
+                $command.FilePath + ' ' + ($quotedArguments -join ' '))
+        }
         $planItem = [pscustomobject]@{
             Workload = $name
+            Area = $definition.Area
+            Title = $definition.Title
+            Libraries = $definition.Libraries
+            ExpectedPlatforms = $definition.ExpectedPlatforms
+            PublishRestriction = $definition.PublishRestriction
+            Platform = $Platform
+            BlockedReasons = $blockedReasons
+            CanRun = $blockedReasons.Count -eq 0
+            Optional = $includeAll -and $name -notin $explicitWorkloads
+            Commands = $commands
+            CommandLines = @($commands.CommandLine)
+            Environment = [ordered]@{
+                OFFICEIMO_EXPECTED_BENCHMARK_AFFINITY = $affinityLabel
+                OFFICEIMO_PDF_CORPUS_ROOT = if ($name -eq 'pdfcorpusread') { $PdfCorpusRoot } else { $null }
+                HTMLTINKERX_PROJECT_PATH = if ($name -in @('pdfhtml', 'pdfhtmlpayload')) { $htmlTinkerXProjectPath } else { $null }
+                OFFICEIMO_QUESTPDF_LICENSE_TYPE = if ($name -in $questPdfWorkloads) { $QuestPdfLicenseType } else { $null }
+            }
+            ArtifactsPath = $artifactsPath
+            BundleRoot = $staticRoot
+            ComparisonPath = if (-not $InternalQuestPdf) { $comparisonPath } else { $null }
+            EvidenceCatalog = if ($willCatalog) { $catalogPath } else { $null }
             Filter = $definition.Filter
             ComparisonId = $definition.ComparisonId
             CatalogComparisonId = $catalogComparisonId
             ProvenanceWorkloadId = $catalogComparisonId
             CatalogEligible = $catalogEligibleByPolicy
             WillCatalog = $willCatalog
-            Publish = [bool] $Publish -and $willCatalog
+            Publish = [bool] $Publish -and $catalogEligibleByPolicy -and $willCatalog
             ExpectedCaseCount = @($definition.ExpectedCases).Count
             AffinityMask = $affinityLabel
             AffinityApplication = $effectiveAffinityApplication
@@ -886,9 +250,39 @@ foreach ($item in $executionPlan) {
     $executionPlanByWorkload[$item.Workload] = $item
 }
 
-if ($PlanOnly) {
+if ($isPlanning) {
     $executionPlan
     return
+}
+
+$outputPaths = @($staticRoot, $OutputRoot)
+if (-not [string]::IsNullOrWhiteSpace($BuildArtifactsPath)) { $outputPaths += $BuildArtifactsPath }
+Assert-BenchmarkOutputIgnored -RepositoryRoot $repositoryRoot -Path $outputPaths
+
+$blockedRequired = @($executionPlan | Where-Object { -not $_.CanRun -and -not $_.Optional })
+if ($blockedRequired.Count -gt 0) {
+    throw (($blockedRequired | ForEach-Object { "$($_.Workload): $($_.BlockedReasons -join '; ')" }) -join [Environment]::NewLine)
+}
+foreach ($blocked in @($executionPlan | Where-Object { -not $_.CanRun -and $_.Optional })) {
+    Write-Warning "Skipping optional $($blocked.Workload): $($blocked.BlockedReasons -join '; ')"
+}
+$selected = @($executionPlan | Where-Object CanRun | ForEach-Object Workload)
+if ($selected.Count -eq 0) { throw 'No runnable workloads remain in the selection.' }
+
+if ($usesHtmlTinkerX -and -not [string]::IsNullOrWhiteSpace($HtmlTinkerXRoot)) {
+    if (-not (Test-Path -LiteralPath $htmlTinkerXProjectPath -PathType Leaf)) {
+        throw "The HtmlTinkerX project was not found at '$htmlTinkerXProjectPath'."
+    }
+
+    $htmlTinkerXSourceRoot = (& git -C (Split-Path -Parent $htmlTinkerXProjectPath) rev-parse --show-toplevel).Trim()
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($htmlTinkerXSourceRoot)) {
+        throw "Unable to resolve the HtmlTinkerX source root for '$htmlTinkerXProjectPath'."
+    }
+    $htmlTinkerXSourceCommit = (& git -C $htmlTinkerXSourceRoot rev-parse HEAD).Trim()
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($htmlTinkerXSourceCommit)) {
+        throw 'Unable to resolve the HtmlTinkerX source commit for benchmark provenance.'
+    }
+    $htmlTinkerXSourceDirty = @(& git -C $htmlTinkerXSourceRoot status --porcelain --untracked-files=normal).Count -gt 0
 }
 
 function Get-LinuxThreadAffinityMasks {
@@ -911,7 +305,12 @@ $benchmarkHost = $null
 $originalProcessorAffinity = $null
 $originalLinuxAffinity = $null
 $linuxTaskset = $null
+$previousNodeReuse = $env:MSBUILDDISABLENODEREUSE
+$previousBuildServer = $env:DOTNET_CLI_USE_MSBUILD_SERVER
 try {
+$env:MSBUILDDISABLENODEREUSE = '1'
+$env:DOTNET_CLI_USE_MSBUILD_SERVER = '0'
+
 if ($AffinityMask -ne 0 -and $canInheritAffinity) {
     if ($isLinuxBenchmarkPlatform) {
         # Linux affinity is per thread. Process.ProcessorAffinity only pins the
@@ -942,19 +341,6 @@ if ($AffinityMask -ne 0 -and $canInheritAffinity) {
     }
 }
 
-if ([string]::IsNullOrWhiteSpace($PowerForgeRoot)) {
-    Import-Module PSPublishModule -MinimumVersion 3.0.84 -Force
-} else {
-    $powerForgeModule = Join-Path $PowerForgeRoot "PSPublishModule\bin\Release\$PowerForgeFramework\PSPublishModule.dll"
-    if (-not (Test-Path -LiteralPath $powerForgeModule -PathType Leaf)) {
-        throw "The local PowerForge binary was not found at '$powerForgeModule'. Build PSPublishModule for $PowerForgeFramework in Release configuration first."
-    }
-    Import-Module $powerForgeModule -Force
-}
-
-$stamp = [DateTimeOffset]::UtcNow.ToString('yyyyMMdd-HHmmss')
-$staticRoot = Join-Path $repositoryRoot 'Website\static\data\benchmarks\library-comparisons'
-$catalogPath = Join-Path $staticRoot 'index.json'
 $catalogEligible = @($executionPlan | Where-Object WillCatalog).Count -gt 0
 New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
 if ($catalogEligible) {
@@ -973,16 +359,19 @@ if ($selected -contains 'pdfhtml' -and $catalogEligible -and $htmlTinkerXSourceD
     throw 'Cataloged browser benchmark evidence requires a clean HtmlTinkerX worktree so its recorded source commit identifies the measured code exactly.'
 }
 
+& (Join-Path $PSScriptRoot 'Initialize-BenchmarkPowerForge.ps1') -PowerForgeRoot $PowerForgeRoot | Out-Null
+
 $measurements = [System.Collections.Generic.List[object]]::new()
 foreach ($name in $selected) {
     $definition = $definitions[$name]
     $workloadPlan = $executionPlanByWorkload[$name]
-    $artifactsPath = Join-Path $OutputRoot "$platform-$name-$RunMode-$stamp"
+    $artifactsPath = $workloadPlan.ArtifactsPath
     New-Item -ItemType Directory -Force -Path $artifactsPath | Out-Null
     $provenanceMetadata = [ordered]@{
         'benchmark.workload.id' = $workloadPlan.ProvenanceWorkloadId
         'benchmark.workload.sourceCommit' = $gitSha
         'benchmark.workload.framework' = $Framework
+        'benchmark.workload.requestedProcessPriority' = if ([string]::IsNullOrWhiteSpace($env:OFFICEIMO_BENCHMARK_PROCESS_PRIORITY)) { 'os-default' } else { $env:OFFICEIMO_BENCHMARK_PROCESS_PRIORITY }
     }
     if ($MeasurementProfile -eq 'WarmedV1') {
         $provenanceMetadata['benchmark.workload.measurementProfile'] = 'WarmedV1'
@@ -1006,9 +395,9 @@ foreach ($name in $selected) {
             $provenanceMetadata['benchmark.dependency.questpdf.scope'] = 'internal-only; maintainer-confirmed authorization'
         }
     }
+    $provenanceMetadata['benchmark.workload.affinityApplication'] = $effectiveAffinityApplication
     if ($null -ne $affinityLabel) {
         $provenanceMetadata['benchmark.workload.affinityMask'] = $affinityLabel
-        $provenanceMetadata['benchmark.workload.affinityApplication'] = $effectiveAffinityApplication
     }
     if ($name -in @('pdfhtml', 'pdfhtmlpayload')) {
         [xml] $pdfComparisonProject = Get-Content -LiteralPath (
@@ -1035,14 +424,7 @@ foreach ($name in $selected) {
         # beside it, then admit the probe as a captured artifact after reservation.
         $packageEvidencePath = Join-Path $OutputRoot (
             '{0}-pdfpecker-package.json' -f (Split-Path -Leaf $artifactsPath))
-        $packageEvidenceArguments = @(
-            'run', '-c', 'Release', '-f', $Framework,
-            '--project', (Join-Path $repositoryRoot $definition.Project)
-        )
-        if (-not [string]::IsNullOrWhiteSpace($BuildArtifactsPath)) {
-            $packageEvidenceArguments += @('--artifacts-path', [System.IO.Path]::GetFullPath($BuildArtifactsPath))
-        }
-        $packageEvidenceArguments += @('--', 'html-package-evidence', '--output', $packageEvidencePath)
+        $packageEvidenceArguments = @($workloadPlan.Commands | Where-Object Kind -eq 'package-evidence')[0].Arguments
         & dotnet @packageEvidenceArguments
         if ($LASTEXITCODE -ne 0) { throw 'Could not inspect the restored PdfPecker comparison package.' }
         $packageEvidence = Get-Content -LiteralPath $packageEvidencePath -Raw | ConvertFrom-Json
@@ -1086,44 +468,8 @@ foreach ($name in $selected) {
             Join-Path $artifactsPath 'pdfpecker-package.json')
     }
 
-    $arguments = @(
-        'run',
-        '-c', 'Release',
-        '-f', $Framework,
-        '--project', (Join-Path $repositoryRoot $definition.Project)
-    )
-    if (-not [string]::IsNullOrWhiteSpace($BuildArtifactsPath)) {
-        $arguments += @('--artifacts-path', [System.IO.Path]::GetFullPath($BuildArtifactsPath))
-    }
-    if ($name -like 'word*') {
-        $arguments += '-p:AcceptNPOIOSMFLicense=true'
-    }
-    if ($name -in $questPdfWorkloads) {
-        $arguments += "-p:QuestPdfBenchmarkVersion=$effectiveQuestPdfVersion"
-        $arguments += "-p:QuestPdfInternalAuthorization=$($InternalQuestPdf.ToString().ToLowerInvariant())"
-    }
-    $arguments += @(
-        '--',
-        '--filter', $definition.Filter,
-        '--artifacts', $artifactsPath
-    )
+    $arguments = @($workloadPlan.Commands | Where-Object Kind -eq 'measure')[0].Arguments
     $isPdfComparison = $definition.Project -eq 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-    if ($isPdfComparison) {
-        # The generated benchmark project can exceed the default build timeout on one CPU domain.
-        $arguments += @('--buildTimeout', '600')
-    }
-    if ($KeepBenchmarkFiles) {
-        $arguments += @('--keepFiles', '--generateBinLog')
-    }
-    if ($RunMode -eq 'quick') {
-        $arguments += @('--job', 'Dry')
-    }
-    elseif ($null -ne $definition.PSObject.Properties['FullRunArguments']) {
-        $arguments += $definition.FullRunArguments
-    }
-    if ($AffinityMask -ne 0 -and $null -eq $affinityApplication) {
-        $arguments += @('--affinity', $AffinityMask.ToString([Globalization.CultureInfo]::InvariantCulture))
-    }
 
     Push-Location -LiteralPath $repositoryRoot
     $previousPdfCorpusRoot = $env:OFFICEIMO_PDF_CORPUS_ROOT
@@ -1157,18 +503,7 @@ foreach ($name in $selected) {
     $sizeEvidencePath = $null
     if ($definition.ValidatedSizeEvidence) {
         $sizeEvidencePath = Join-Path $artifactsPath 'validated-size-evidence.json'
-        $sizeArguments = @(
-            'run',
-            '-c', 'Release',
-            '-f', $Framework,
-            '--project', (Join-Path $repositoryRoot $definition.Project),
-            '--',
-            'validate',
-            '--json', $sizeEvidencePath
-        )
-        if (-not [string]::IsNullOrWhiteSpace($BuildArtifactsPath)) {
-            $sizeArguments = $sizeArguments[0..6] + @('--artifacts-path', [System.IO.Path]::GetFullPath($BuildArtifactsPath)) + $sizeArguments[7..($sizeArguments.Count - 1)]
-        }
+        $sizeArguments = @($workloadPlan.Commands | Where-Object Kind -eq 'validate-size')[0].Arguments
         Push-Location -LiteralPath $repositoryRoot
         try {
             & dotnet @sizeArguments
@@ -1238,7 +573,8 @@ foreach ($name in $selected) {
         -ComparisonId $workloadPlan.CatalogComparisonId `
         -Platform $platform `
         -RunMode $RunMode `
-        -StaticRoot $staticRoot
+        -StaticRoot $staticRoot `
+        -Portable:$portableBundle
     # Keep derived output outside the completed raw-artifact provenance boundary.
     $normalizedPath = Join-Path $OutputRoot (
         '{0}-normalized-result.json' -f (Split-Path -Leaf $artifactsPath))
@@ -1271,14 +607,55 @@ if ($catalogEligible) {
             -ResultArtifactPath $measurement.EvidenceLocation.Path `
             -RunMode $RunMode `
             -Platform $platform `
-            -ExpectedPlatform windows, linux, macos `
-            -Publish:$Publish | Out-Null
+            -ExpectedPlatform $measurement.Definition.ExpectedPlatforms `
+            -Publish:($executionPlanByWorkload[$measurement.Workload].Publish) | Out-Null
     }
+}
+
+if (-not $InternalQuestPdf) {
+    # Declarations include restricted and uncollected workloads, even for a subset run.
+    # Keep this metadata outside completed raw provenance; PowerForge owns catalog merging.
+    $catalogDeclarations = [ordered]@{}
+    if (Test-Path -LiteralPath $catalogPath -PathType Leaf) {
+        $existingCatalog = Get-Content -LiteralPath $catalogPath -Raw | ConvertFrom-Json
+        foreach ($declaration in @($existingCatalog.comparisons)) {
+            $catalogDeclarations[$declaration.comparisonId] = $declaration
+        }
+    }
+    $baseDefinitions = Get-LibraryComparisonDefinitions -Framework $Framework
+    foreach ($definition in $baseDefinitions.Values) {
+        $catalogDeclarations[$definition.ComparisonId] = [pscustomobject]@{
+            comparisonId = $definition.ComparisonId
+            area = $definition.Area
+            title = $definition.Title
+            libraries = @($definition.Libraries)
+            expectedPlatforms = @($definition.ExpectedPlatforms)
+        }
+    }
+    foreach ($item in $executionPlan) {
+        $baseId = $baseDefinitions[$item.Workload].ComparisonId
+        if ($item.CatalogComparisonId -eq $baseId) { continue }
+        $catalogDeclarations[$item.CatalogComparisonId] = [pscustomobject]@{
+            comparisonId = $item.CatalogComparisonId
+            area = $item.Area
+            title = $item.Title + ' (' + $item.CatalogComparisonId.Substring($baseId.Length).TrimStart('-') + ')'
+            libraries = @($item.Libraries)
+            expectedPlatforms = @($item.ExpectedPlatforms)
+        }
+    }
+    New-Item -ItemType Directory -Force -Path $staticRoot | Out-Null
+    ConvertTo-Json -InputObject @($catalogDeclarations.Values) -Depth 10 |
+        Set-Content -LiteralPath $comparisonPath -Encoding utf8NoBOM
+    if (-not (Test-Path -LiteralPath $catalogPath -PathType Leaf)) {
+        Write-BenchmarkEvidenceResult -Path $catalogPath -InputObject ([PowerForge.BenchmarkEvidenceCatalog]::new())
+    }
+    $mergedCatalog = Merge-BenchmarkEvidenceCatalog -SourcePath $catalogPath -Path $catalogPath -ComparisonPath $comparisonPath
 }
 
 $outputs = foreach ($measurement in $measurements) {
     [pscustomobject]@{
         Workload = $measurement.Workload
+        Area = $measurement.Definition.Area
         CatalogComparisonId = $executionPlanByWorkload[$measurement.Workload].CatalogComparisonId
         Platform = $platform
         RunMode = $RunMode
@@ -1290,17 +667,25 @@ $outputs = foreach ($measurement in $measurements) {
         SourceCommit = $gitSha
         ArtifactsPath = $measurement.ArtifactsPath
         NormalizedResult = if ($measurement.CatalogEligible) {
-            $measurement.EvidenceLocation.Path
+            $entry = @($mergedCatalog.Entries | Where-Object {
+                $_.ComparisonId -eq $executionPlanByWorkload[$measurement.Workload].CatalogComparisonId -and
+                $_.Platform -eq $Platform -and $_.RunMode -eq $RunMode
+            })[0]
+            Join-Path $staticRoot $entry.ArtifactRelativePath
         } else {
             $measurement.NormalizedResult
         }
         SizeEvidence = $measurement.SizeEvidence
-        EvidenceCatalog = if ($measurement.CatalogEligible) { $catalogPath } else { $null }
+        BundleRoot = $staticRoot
+        ComparisonPath = if (-not $InternalQuestPdf) { $comparisonPath } else { $null }
+        EvidenceCatalog = if (-not $InternalQuestPdf) { $catalogPath } else { $null }
     }
 }
 
 $outputs
 } finally {
+    $env:MSBUILDDISABLENODEREUSE = $previousNodeReuse
+    $env:DOTNET_CLI_USE_MSBUILD_SERVER = $previousBuildServer
     if ($null -ne $linuxTaskset -and $null -ne $originalLinuxAffinity) {
         $restoreOutput = @(& $linuxTaskset -ap $originalLinuxAffinity $PID 2>&1)
         if ($LASTEXITCODE -ne 0) {
