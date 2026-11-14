@@ -72,6 +72,14 @@ drawing conclusions:
 dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*Word*ComparisonBenchmarks*'
 ```
 
+On Windows the project also builds for `net472`, the runtime of Windows
+PowerShell 5.1. That build contains the paragraph and report creation, read and
+replace comparisons:
+
+```powershell
+dotnet run -c Release -f net472 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordCreate*' '*WordRead*' '*WordReplace*'
+```
+
 ### Shared custom-data snapshots
 
 The opt-in PowerForge suite measures load, public legacy-write assessment and disposal with one

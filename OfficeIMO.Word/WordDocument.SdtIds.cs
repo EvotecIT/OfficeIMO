@@ -91,16 +91,9 @@ namespace OfficeIMO.Word {
                 yield break;
             }
 
-            IEnumerable<SdtId> query;
-            try {
-                query = root.Descendants<SdtId>();
-            } catch (InvalidOperationException ex) {
-                Debug.WriteLine($"Failed to enumerate SDT identifiers: {ex}");
-                yield break;
-            }
-
-            foreach (var sdtId in query) {
-                if (sdtId?.Val?.HasValue == true) {
+            for (OpenXmlElement? element = root.FirstChild; element != null;
+                 element = WordElementWalk.Next(element, root, descend: !WordElementWalk.IsFormattingOrText(element))) {
+                if (element is SdtId { Val.HasValue: true } sdtId) {
                     yield return sdtId.Val.Value;
                 }
             }

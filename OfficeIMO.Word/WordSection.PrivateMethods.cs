@@ -317,7 +317,7 @@ namespace OfficeIMO.Word {
             }
 
             var prefix = new Paragraph();
-            ParagraphProperties? properties = paragraph.GetFirstChild<ParagraphProperties>();
+            ParagraphProperties? properties = WordElementWalk.FirstChild<ParagraphProperties>(paragraph);
             if (properties != null) {
                 prefix.Append((ParagraphProperties)properties.CloneNode(true));
             }
@@ -432,7 +432,7 @@ namespace OfficeIMO.Word {
             }
 
             var prefix = new Paragraph();
-            ParagraphProperties? properties = paragraph.GetFirstChild<ParagraphProperties>();
+            ParagraphProperties? properties = WordElementWalk.FirstChild<ParagraphProperties>(paragraph);
             if (properties != null) {
                 prefix.Append((ParagraphProperties)properties.CloneNode(true));
             }
@@ -502,7 +502,7 @@ namespace OfficeIMO.Word {
             }
 
             var prefix = new Paragraph();
-            ParagraphProperties? properties = paragraph.GetFirstChild<ParagraphProperties>();
+            ParagraphProperties? properties = WordElementWalk.FirstChild<ParagraphProperties>(paragraph);
             if (properties != null) {
                 prefix.Append((ParagraphProperties)properties.CloneNode(true));
             }
@@ -648,26 +648,29 @@ namespace OfficeIMO.Word {
             cancellationToken.ThrowIfCancellationRequested();
             var childElements = paragraph.ChildElements;
             if (!splitPaginationMarkers) {
-                if (childElements.Count == 0) {
+                // Sibling links instead of ChildElements.Count, which walks every child on each call.
+                OpenXmlElement? first = paragraph.FirstChild;
+                if (first == null) {
                     list.Add(new WordParagraph(document, paragraph));
                     return;
                 }
 
-                if (childElements.Count == 1) {
-                    if (childElements[0] is Run onlyRun) {
+                OpenXmlElement? second = first.NextSibling();
+                if (second == null) {
+                    if (first is Run onlyRun) {
                         list.Add(new WordParagraph(document, paragraph, onlyRun));
                         return;
                     }
 
-                    if (childElements[0] is ParagraphProperties) {
+                    if (first is ParagraphProperties) {
                         list.Add(new WordParagraph(document, paragraph));
                         return;
                     }
                 }
 
-                if (childElements.Count == 2 &&
-                    childElements[0] is ParagraphProperties &&
-                    childElements[1] is Run contentRun) {
+                if (first is ParagraphProperties &&
+                    second is Run contentRun &&
+                    contentRun.NextSibling() == null) {
                     list.Add(new WordParagraph(document, paragraph, contentRun));
                     return;
                 }
@@ -966,7 +969,8 @@ namespace OfficeIMO.Word {
         }
 
         private static bool IsSectionBoundaryParagraph(Paragraph paragraph) {
-            return paragraph.ParagraphProperties?.SectionProperties != null;
+            // A plain child scan; the schema-driven ParagraphProperties lookup costs more per body paragraph.
+            return WordElementWalk.FirstChild<ParagraphProperties>(paragraph)?.SectionProperties != null;
         }
 
         private static bool IsPureSectionBreakParagraph(Paragraph paragraph) {
