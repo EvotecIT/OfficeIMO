@@ -1,63 +1,115 @@
 ---
-title: "Export Visio diagrams to images"
-description: "Render VSDX pages to SVG, PNG, JPEG, TIFF, or lossless WebP previews without Microsoft Visio installed. Includes examples and API links."
-meta.seo_title: "Convert VSDX to SVG, PNG, JPEG, and WebP"
+title: "Export Visio Diagrams to Images and PDF"
+description: "Render VSDX pages to SVG, PNG, JPEG, TIFF, WebP, or PDF without Microsoft Visio installed."
+meta.seo_title: "Convert VSDX to SVG, PNG, JPEG, WebP, and PDF"
 order: 56
+packages:
+  - OfficeIMO.Visio
+  - OfficeIMO.Visio.Pdf
+cmdlets:
+  - Export-OfficeDocumentImage
+  - New-OfficeVisioImageOptions
+  - Convert-OfficeDocument
+commands:
+  - officeimo convert
+search_terms:
+  - vsdx to svg
+  - vsdx to png
+  - vsdx to pdf
+  - visio preview
+  - convert visio
+verified: 2026-11-14
 ---
 
-OfficeIMO.Visio renders diagram pages without launching Microsoft Visio. Use image output for pull-request previews, evidence packs, web portals, thumbnails, and automated visual review.
+`OfficeIMO.Visio` renders diagram pages to images with `SaveAsImage`, `SaveAsImages`, and `ToImages`, configured by `VisioImageExportOptions`. `OfficeIMO.Visio.Pdf` adds `SaveAsPdf`. Neither starts Microsoft Visio. An image is a rendering, not a substitute for [validating the VSDX](/docs/visio/editing-and-validation/).
 
-## Export SVG and PNG
+## Export a page to SVG or PNG
 
-```csharp
-using OfficeIMO;
-using OfficeIMO.Visio;
+`Format` picks the encoder. `PageIndex` is zero-based; the first page is the default.
 
-var document = VisioDocument.Create("pipeline.vsdx");
-var page = document.AddPage("Pipeline").Size(OfficeLength.Inches(8), OfficeLength.Inches(4));
-var build = page.AddProcess(OfficeLength.Inches(1.5), OfficeLength.Inches(2), OfficeLength.Inches(1.4), OfficeLength.Inches(0.7), "Build");
-var ship = page.AddProcess(OfficeLength.Inches(5.5), OfficeLength.Inches(2), OfficeLength.Inches(1.4), OfficeLength.Inches(0.7), "Ship");
-
-page.AddConnector(
-    build,
-    ship,
-    ConnectorKind.RightAngle,
-    VisioSide.Right,
-    VisioSide.Left).EndArrow = EndArrow.Arrow;
-
-document.SaveAsSvg(
-    "pipeline.svg",
-    new VisioSvgSaveOptions {
-        PixelsPerInch = 96,
-        BackgroundColor = null
-    });
-
-document.SaveAsPng(
-    "pipeline.png",
-    new VisioPngSaveOptions {
-        PixelsPerInch = 144,
-        Supersampling = 3
-    });
-```
-
-## Use the shared image builder
+### C#
 
 ```csharp
 using OfficeIMO.Drawing;
+using OfficeIMO.Visio;
 
-OfficeImageExportResult webp = document
-    .ToImage()
-    .AtDpi(144)
-    .AsWebp()
-    .Save("pipeline.webp");
+using VisioDocument document = VisioDocument.Load("pipeline.vsdx");
 
-IReadOnlyList<OfficeImageExportResult> pages = document
-    .ToImages()
-    .AllPages()
-    .AsJpeg()
-    .Save("pipeline-pages");
+document.SaveAsImage("pipeline.svg", new VisioImageExportOptions {
+    Format = OfficeImageExportFormat.Svg
+});
+
+document.SaveAsImage("pipeline.png", new VisioImageExportOptions {
+    Format = OfficeImageExportFormat.Png,
+    TargetDpi = 144,
+    Supersampling = 3
+});
 ```
 
-The image builder also supports PNG, TIFF, and SVG. Choose DPI and supersampling based on the destination: lower values for navigation thumbnails, higher values for reports and visual inspection.
+### PowerShell
 
-Image export is a rendering of the diagram, not a replacement for package validation. Run `document.Validate()` or `VisioValidator.Validate(path)` on the VSDX and use the image as additional human-readable evidence.
+```powershell
+Export-OfficeDocumentImage -Path .\pipeline.vsdx -Page 1 -Format Svg -OutputPath .\pipeline.svg
+Export-OfficeDocumentImage -Path .\pipeline.vsdx -Page 1 -Format Png -Dpi 144 -OutputPath .\pipeline.png
+```
+
+### CLI
+
+```sh
+officeimo convert pipeline.vsdx pipeline.svg
+officeimo convert pipeline.vsdx pipeline.png
+```
+
+## Export every page
+
+### C#
+
+```csharp
+using OfficeIMO.Drawing;
+using OfficeIMO.Visio;
+
+using VisioDocument document = VisioDocument.Load("runbook.vsdx");
+
+document.SaveAsImages("runbook-pages", new VisioImageExportOptions {
+    Format = OfficeImageExportFormat.Jpeg
+});
+
+IReadOnlyList<OfficeImageExportResult> previews = document.ToImages(new VisioImageExportOptions {
+    Format = OfficeImageExportFormat.Webp
+});
+
+foreach (OfficeImageExportResult preview in previews) {
+    Console.WriteLine($"{preview.Width}x{preview.Height}, {preview.EncodedLength} bytes");
+}
+```
+
+### PowerShell
+
+```powershell
+$options = New-OfficeVisioImageOptions -Font Arial -NoConnectorLabels
+Export-OfficeDocumentImage -Path .\runbook.vsdx -Format Jpeg -OutputDirectory .\runbook-pages -Options $options
+```
+
+## Export to PDF
+
+### C#
+
+```csharp
+using OfficeIMO.Visio;
+using OfficeIMO.Visio.Pdf;
+
+using VisioDocument document = VisioDocument.Load("architecture.vsdx");
+document.SaveAsPdf("architecture.pdf");
+```
+
+### PowerShell
+
+```powershell
+Convert-OfficeDocument -Path .\architecture.vsdx -OutputPath .\architecture.pdf
+```
+
+### CLI
+
+```sh
+officeimo convert architecture.vsdx architecture.pdf
+```

@@ -1,23 +1,67 @@
 ---
-title: Google Drive
-description: "Use the shared typed Drive owner for files, conversion, collaboration, media, and change tokens. Includes examples and package links."
+title: "Manage Google Drive Files"
+description: "List, upload, download, copy, and share Google Drive files with the typed GoogleDriveClient from OfficeIMO.GoogleWorkspace.Drive."
 order: 50
+packages:
+  - OfficeIMO.GoogleWorkspace.Drive
+  - OfficeIMO.GoogleWorkspace
+limits: "Multipart uploads are limited to 5 MiB; use UploadResumableAsync for larger files."
+search_terms:
+  - google drive api
+  - upload to google drive
+  - download from google drive
+  - list drive files
+verified: 2026-11-14
 ---
 
-Install `OfficeIMO.GoogleWorkspace.Drive`. The format translators already use this package; applications can use the same owner directly.
+`GoogleDriveClient` is the Drive layer the format translators use, and applications can call it directly. It covers metadata, folders, shared-drive checks, list, copy, move, delete, permissions, comments and replies, revisions, change tokens, export formats, downloads, multipart and resumable uploads, progress, and cancellation.
+
+`GoogleDriveClient.GetRequiredScopes(operation)` returns the default scope family for an operation, and `GoogleDriveClientOptions` can override read and write scopes. A `drive.file` token only sees files the application created or opened; ask for a broader Drive scope only when the product needs it.
+
+## List files in a folder
+
+### C#
 
 ```csharp
+using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.GoogleWorkspace.Drive;
 
+using var credentials = GoogleServiceAccountCredentialSource.FromFile("service-account.json");
+var session = new GoogleWorkspaceSession(credentials);
+
 using var drive = new GoogleDriveClient(session);
-GoogleDriveAboutFormats formats = await drive.GetFormatsAsync();
-GoogleDriveFile folder = await drive.ResolveFolderAsync("folder-id", "expected-drive-id");
+GoogleDriveFile folder = await drive.ResolveFolderAsync("folder-id");
+
 GoogleDriveFileList files = await drive.ListFilesAsync(new GoogleDriveListOptions {
     DriveId = folder.DriveId,
     Query = $"'{folder.Id}' in parents and trashed = false"
 });
+
+foreach (GoogleDriveFile file in files.Files) {
+    Console.WriteLine($"{file.Name} ({file.MimeType})");
+}
 ```
 
-The client covers metadata, folders, shared-drive validation, list/copy/move/delete, permissions, comments/replies, revisions, change tokens, import/export format discovery, downloads, multipart/resumable uploads, progress, cancellation, and temporary content leases.
+## Upload and download a file
 
-`GoogleDriveClient.GetRequiredScopes(operation)` exposes the minimum default scope family. Applications can override read/write scopes through `GoogleDriveClientOptions` when their consent model differs. A `drive.file` token only sees files created or explicitly opened by the application; use a broader Drive scope only when the product really needs it.
+### C#
+
+```csharp
+using OfficeIMO.GoogleWorkspace;
+using OfficeIMO.GoogleWorkspace.Drive;
+
+using var credentials = GoogleServiceAccountCredentialSource.FromFile("service-account.json");
+var session = new GoogleWorkspaceSession(credentials);
+using var drive = new GoogleDriveClient(session);
+
+GoogleDriveFile uploaded = await drive.UploadMultipartAsync(
+    File.ReadAllBytes("report.pdf"),
+    new GoogleDriveUploadOptions {
+        Name = "report.pdf",
+        ContentType = "application/pdf",
+        ParentId = "folder-id"
+    });
+
+byte[] content = await drive.DownloadAsync(uploaded.Id!);
+File.WriteAllBytes("report-copy.pdf", content);
+```

@@ -1,18 +1,31 @@
 ---
-title: Word to Markdown
-description: Convert Word documents to a typed Markdown model, save Markdown to files or streams, and build Word documents from headings, lists and tables.
+title: "Convert Word to Markdown and Markdown to Word"
+description: "Convert DOCX to a typed Markdown model and save it as Markdown or HTML, and build Word documents from Markdown with OfficeIMO.Word.Markdown."
 order: 71
+packages:
+  - OfficeIMO.Word.Markdown
+  - OfficeIMO.Markdown
+  - OfficeIMO.Markdown.Html
+cmdlets:
+  - Convert-OfficeDocument
+  - New-OfficeWordMarkdownOptions
+  - New-OfficeMarkdownWordOptions
+commands:
+  - officeimo convert
+limits: "Nested tables, custom table styles, SmartArt, and embedded OLE objects have no Markdown equivalent and are simplified or left out."
+search_terms:
+  - docx to markdown
+  - markdown to docx
+  - word to md
+  - md to word
+verified: 2026-11-14
 ---
 
-`OfficeIMO.Word.Markdown` converts between `WordDocument` and `MarkdownDocument`. The returned model owns its save operations; call `ToMarkdown()` on that model when you need a string.
+`OfficeIMO.Word.Markdown` converts between `WordDocument` and the `MarkdownDocument` model from `OfficeIMO.Markdown`. `ToMarkdown()` on a Word document returns the model, which saves itself; call `ToMarkdown()` on the model when you need a string. `OfficeIMO.Markdown.Html` adds HTML on either side of that model.
 
-```bash
-dotnet add package OfficeIMO.Word.Markdown
-```
+## Convert a Word document to Markdown
 
-## Word to Markdown
-
-Load a Word document, convert it, and save or inspect the Markdown model:
+### C#
 
 ```csharp
 using OfficeIMO.Word;
@@ -29,7 +42,7 @@ foreach (var heading in markdown.DescendantHeadings()) {
 }
 ```
 
-Conversion runs in memory. `SaveAsync` handles asynchronous output. A caller-owned stream remains open after saving:
+Saving to a stream leaves the stream open:
 
 ```csharp
 using OfficeIMO.Word;
@@ -41,7 +54,25 @@ using var stream = File.Create("report-stream.md");
 markdown.Save(stream);
 ```
 
-Export options control Markdown features such as underline and highlighting:
+### PowerShell
+
+```powershell
+Convert-OfficeDocument -Path .\report.docx -To Markdown -OutputPath .\report.md
+```
+
+### CLI
+
+A `.md` destination uses the Reader's Markdown projection; [Convert documents with the CLI](/docs/cli/convert/#markdown-and-json-output) covers its options.
+
+```sh
+officeimo convert report.docx report.md
+```
+
+## Keep underline and highlighting
+
+Markdown has no standard underline or highlight. Export options turn them on as extensions.
+
+### C#
 
 ```csharp
 using OfficeIMO.Word;
@@ -55,9 +86,18 @@ using var markdown = document.ToMarkdown(new WordMarkdownExportOptions {
 Console.WriteLine(markdown.ToMarkdown());
 ```
 
-## Markdown to Word
+### PowerShell
 
-Parse Markdown into its native model, then convert that model to Word:
+```powershell
+$options = New-OfficeWordMarkdownOptions -EnableUnderline -EnableHighlight
+Convert-OfficeDocument -Path .\report.docx -To Markdown -OutputPath .\report.md -Options $options
+```
+
+## Create a Word document from Markdown
+
+Parse Markdown into its model, then convert the model to Word.
+
+### C#
 
 ```csharp
 using OfficeIMO.Markdown;
@@ -70,7 +110,7 @@ using var document = markdown.ToWord(options);
 document.Save("from-markdown.docx");
 ```
 
-Use the same conversion for a loaded file or caller-owned stream:
+The same conversion works for a file or a stream you own:
 
 ```csharp
 using OfficeIMO.Markdown;
@@ -86,15 +126,24 @@ using var streamedDocument = fromStream.ToWord();
 streamedDocument.Save("from-stream.docx");
 ```
 
-## HTML through Markdown
+### PowerShell
 
-Add the HTML adapter for conversions between HTML and the Markdown model:
-
-```bash
-dotnet add package OfficeIMO.Markdown.Html
+```powershell
+$options = New-OfficeMarkdownWordOptions -Template .\Templates\Runbook.dotx -BookmarkName Body
+Convert-OfficeDocument -Path .\runbook.md -To Word -OutputPath .\runbook.docx -Options $options
 ```
 
-Save a Word document's Markdown model as a complete HTML page:
+### CLI
+
+```sh
+officeimo convert notes.md notes.docx
+```
+
+## Convert through Markdown to and from HTML
+
+Save the Markdown model of a Word document as a complete HTML page:
+
+### C#
 
 ```csharp
 using OfficeIMO.Word;
@@ -105,7 +154,7 @@ using var markdown = document.ToMarkdown();
 markdown.SaveAsHtml("report.html");
 ```
 
-For HTML to Word, convert the HTML model to Markdown first:
+For HTML to Word through Markdown, convert the HTML to the Markdown model first:
 
 ```csharp
 using OfficeIMO.Html;
@@ -118,17 +167,15 @@ using var document = markdown.ToWord();
 document.Save("from-html.docx");
 ```
 
-## Element Mapping
+## How Word elements map to Markdown
 
-The converter maps between Word and Markdown elements:
-
-| Word Element | Markdown Element |
-|-------------|-----------------|
-| Heading1--Heading6 styles | `# ` through `###### ` |
-| Normal paragraph | Plain paragraph text |
+| Word element | Markdown |
+|---|---|
+| Heading1 to Heading6 styles | `#` to `######` |
+| Normal paragraph | Plain paragraph |
 | Bold run | `**bold**` |
 | Italic run | `*italic*` |
-| Bold + Italic run | `***bold italic***` |
+| Bold and italic run | `***bold italic***` |
 | Strikethrough | `~~strikethrough~~` |
 | Inline code style | `` `code` `` |
 | Hyperlink | `[text](url)` |
@@ -138,18 +185,3 @@ The converter maps between Word and Markdown elements:
 | Image | `![alt](path)` |
 | Horizontal rule | `---` |
 | Block quote style | `> text` |
-
-## From the Command Line
-
-The `officeimo` CLI runs both directions without writing code:
-
-```shell
-officeimo convert report.docx report.md
-officeimo convert notes.md notes.docx
-```
-
-A `.md` destination uses the Reader's Markdown projection. [Convert documents with the CLI](/docs/cli/convert/#markdown-and-json-output) covers the options.
-
-## Round-Trip Fidelity
-
-While the converters handle the most common elements, some formatting may be lost during round-trip conversion (Word -> Markdown -> Word or vice versa). Complex features like nested tables, custom table styles, SmartArt, and embedded OLE objects do not have Markdown equivalents and will be simplified or omitted.

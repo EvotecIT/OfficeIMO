@@ -1,32 +1,108 @@
 ---
-title: "Read and convert mailbox stores"
-description: "Read PST, OST, OLM, mbox, EMLX, Apple Mail, Maildir, and mailbox directories in .NET, export messages, and convert supported stores to PST."
-meta.seo_title: "Read PST, OST, OLM, and export stores to PST"
+title: "Read and Convert PST, OST, and Mailbox Stores"
+description: "Open PST, OST, OLM, mbox, EMLX, Apple Mail, and Maildir stores, export their messages, and convert a store to a new PST with verification."
+meta.seo_title: "Read PST, OST, OLM, and export stores to PST in .NET"
 order: 38
+packages:
+  - OfficeIMO.Email
+cmdlets:
+  - Open-OfficeEmailMailbox
+  - Save-OfficeEmailMailbox
+  - New-OfficeEmailMailboxReaderOptions
+commands:
+  - officeimo agent search-email
+limits: "Store conversion always writes a new PST; it never rewrites the source PST or OST in place."
+search_terms:
+  - read pst
+  - ost to pst
+  - olm to pst
+  - mbox
+  - extract emails from pst
+verified: 2026-11-14
 ---
 
-The Store API opens PST, OST, Outlook for Mac OLM, mbox, EMLX, Apple Mail, Maildir, and mailbox-directory sources without Outlook or COM. Store items are returned as ordinary `EmailDocument` objects while folder paths, store metadata, associated items, diagnostics, and bounded attachment access remain available.
+`EmailStoreSession` (namespace `OfficeIMO.Email.Store`) opens PST, OST, Outlook for Mac OLM, mbox, EMLX, Apple Mail, Maildir, and mailbox directories without Outlook. Items come back as ordinary `EmailDocument` objects, with folder, store metadata, and diagnostics alongside. Set `EmailStoreReaderOptions` limits before opening large or untrusted stores.
 
-## Enumerate and read a PST or OST
+## List folders and messages in a PST or OST
+
+### C#
+
+```csharp
+using OfficeIMO.Email.Store;
+
+using EmailStoreSession session = EmailStoreSession.Open("archive.pst");
+
+Dictionary<string, string> folderNames = session.Folders.ToDictionary(folder => folder.Id, folder => folder.Name);
+foreach (EmailStoreFolderInfo folder in session.Folders) {
+    Console.WriteLine($"{folder.Name}: {folder.ItemCount} items");
+}
+
+foreach (EmailStoreItemReference reference in session.EnumerateItems(
+    new EmailStoreEnumerationOptions(maxItems: 1000))) {
+    EmailStoreItem item = session.ReadItem(reference);
+    Console.WriteLine($"{folderNames[item.FolderId]}: {item.Document.Subject}");
+}
+```
+
+### CLI
+
+Search a mailbox and print bounded results:
+
+```sh
+officeimo agent search-email archive.pst --query invoice --take 10
+```
+
+## Export every message as EML
+
+### C#
 
 ```csharp
 using OfficeIMO.Email;
 using OfficeIMO.Email.Store;
 
-using EmailStoreSession session = EmailStoreSession.Open("archive.pst");
+Directory.CreateDirectory("messages");
 
-foreach (EmailStoreItemReference reference in session.EnumerateItems(
-    new EmailStoreEnumerationOptions(maxItems: 1000))) {
-    EmailStoreItem item = session.ReadItem(reference);
-    Console.WriteLine($"{reference.FolderPath}: {item.Document.Subject}");
+using EmailStoreSession session = EmailStoreSession.Open("archive.pst");
+int index = 0;
+
+foreach (EmailStoreItemReference reference in session.EnumerateItems()) {
+    EmailDocument message = session.ReadItem(reference).Document;
+    message.Save(Path.Combine("messages", $"{index++:D6}.eml"));
 }
 ```
 
-Use reader options to set item, attachment, and total attachment limits before opening untrusted or very large stores.
+Build file names from stable identifiers, not from subjects: subjects are untrusted input.
 
-## Convert OST or another supported store to PST
+## Read an mbox file
 
-`ExportToPst` and `EmailStoreConverter.ConvertToPst` write a new PST; they do not modify the source store.
+`EmailMailbox` loads a whole mbox file into memory and can save it again. For very large files, open it with `EmailStoreSession` as shown above.
+
+### C#
+
+```csharp
+using OfficeIMO.Email;
+
+EmailMailbox mailbox = EmailMailbox.Load("archive.mbox");
+
+foreach (EmailMailboxEntry entry in mailbox.Messages) {
+    Console.WriteLine($"{entry.Document.Date:u} {entry.Document.Subject}");
+}
+```
+
+### PowerShell
+
+```powershell
+$options = New-OfficeEmailMailboxReaderOptions -MaxMessageCount 5000
+$mailbox = Open-OfficeEmailMailbox -Path .\archive.mbox -Options $options
+$mailbox.Messages | ForEach-Object { $_.Document.Subject }
+$mailbox | Save-OfficeEmailMailbox -Path .\copy.mbox
+```
+
+## Convert an OST, OLM, or mbox store to PST
+
+`ExportToPst` and `EmailStoreConverter.ConvertToPst` write a new PST and, by default, verify it against the source after writing.
+
+### C#
 
 ```csharp
 using OfficeIMO.Email.Store;
@@ -45,54 +121,39 @@ Console.WriteLine($"Skipped: {report.SkippedItems}");
 Console.WriteLine($"Verified: {report.Verification?.IsSuccessful}");
 ```
 
-This is a source-to-new-PST conversion, not an in-place OST rewrite. The report distinguishes converted and skipped items and includes verification results when verification is enabled.
-
-For a path-based conversion with explicit input limits:
+For a path-to-path conversion with explicit input limits:
 
 ```csharp
+using OfficeIMO.Email.Store;
+
 var readerOptions = new EmailStoreReaderOptions(
     maxItemCount: 100_000,
-    maxAttachmentBytes: 64L * 1024L * 1024L,
-    maxTotalAttachmentBytes: 2L * 1024L * 1024L * 1024L,
-    retainAttachmentContent: false);
+    maxAttachmentBytes: 64L * 1024 * 1024,
+    maxTotalAttachmentBytes: 2L * 1024 * 1024 * 1024);
 
 EmailStorePstConversionReport report = EmailStoreConverter.ConvertToPst(
     "archive.olm",
     "archive.pst",
     readerOptions,
     new EmailStorePstConversionOptions(continueOnItemError: true));
+
+Console.WriteLine($"{report.ConvertedItems} converted, {report.SkippedItems} skipped");
 ```
 
-## Extract messages
+## Verify a migration without storing message content
 
-Read each store item and save it in the message format your workflow requires:
+Conversion can write a verification manifest of keyed fingerprints, match status, paths, and lengths. It holds no subjects, addresses, attachment names, or body text.
 
-```csharp
-Directory.CreateDirectory("messages");
-
-using EmailStoreSession session = EmailStoreSession.Open("archive.pst");
-int index = 0;
-
-foreach (EmailStoreItemReference reference in session.EnumerateItems()) {
-    EmailDocument message = session.ReadItem(reference).Document;
-    message.Save(Path.Combine("messages", $"{index++:D6}.eml"));
-}
-```
-
-Choose file names and directory layout from stable identifiers or sanitized metadata in production. Do not use untrusted subjects directly as paths.
-
-## Verify a migration without storing private values
-
-PST conversion can write a verification manifest containing keyed semantic fingerprints, match status, paths, and lengths without message subjects, addresses, attachment names, or body values:
+### C#
 
 ```csharp
-string encodedDigestKey =
-    Environment.GetEnvironmentVariable("OFFICEIMO_EMAIL_DIGEST_KEY")
-    ?? throw new InvalidOperationException(
-        "Set OFFICEIMO_EMAIL_DIGEST_KEY to a private Base64-encoded key.");
+using OfficeIMO.Email;
+using OfficeIMO.Email.Store;
 
-byte[] digestKey = Convert.FromBase64String(encodedDigestKey);
-var verificationOptions = new EmailSemanticComparisonOptions(digestKey: digestKey);
+string encodedKey = Environment.GetEnvironmentVariable("OFFICEIMO_EMAIL_DIGEST_KEY")
+    ?? throw new InvalidOperationException("Set OFFICEIMO_EMAIL_DIGEST_KEY to a Base64-encoded key of at least 16 bytes.");
+
+var verificationOptions = new EmailSemanticComparisonOptions(digestKey: Convert.FromBase64String(encodedKey));
 
 using EmailStoreSession source = EmailStoreSession.Open("source.ost");
 
@@ -104,9 +165,9 @@ EmailStorePstConversionReport report = source.ExportToPst(
 
 if (report.Verification is { IsSuccessful: false } verification) {
     foreach (EmailStorePstVerificationIssue issue in verification.Issues) {
-        Console.WriteLine(issue.SourceItemId);
+        Console.WriteLine($"{issue.SourceItemId}: {issue.Code}");
     }
 }
 ```
 
-Generate the digest key outside the application, store it as a secret, and provide at least 16 random bytes. Do not commit or log it. The same key is required when comparing persisted fingerprints later. See [safety and verification](/docs/email/safety-and-verification/) for comparison profiles and limits.
+Keep the digest key as a secret outside the application. The same key is needed to compare saved fingerprints later.
