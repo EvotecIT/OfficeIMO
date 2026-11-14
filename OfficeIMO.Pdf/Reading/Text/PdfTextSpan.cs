@@ -282,7 +282,9 @@ public sealed partial class PdfTextSpan {
         RotationDegrees = rotationDegrees;
         MarkedContentId = markedContentId;
         ContentStreamObjectNumber = contentStreamObjectNumber;
-        _clipPath = clipPath is PdfPageClipPath clip ? SharedValue<PdfPageClipPath>.Get(clip, SameClipPath) : null;
+        _clipPath = clipPath is PdfPageClipPath clip
+            ? SharedValue<PdfPageClipPath>.Get(clip, SameClipPath, retain: (clip.Commands?.Count ?? 0) <= MaximumRetainedClipCommands)
+            : null;
         PaintOrder = paintOrder;
         LogicalLineBreaksBefore = logicalLineBreaksBefore;
         LogicalLeadingSpace = logicalLeadingSpace;
@@ -315,6 +317,8 @@ public sealed partial class PdfTextSpan {
     private bool _completeTextProjectionSuppressed;
 
     private static readonly Func<OfficeColor, OfficeColor, bool> SameColor = static (left, right) => left.Equals(right);
+    // The last shared clip stays reachable from the thread after its spans are gone, so only small clips are kept.
+    private const int MaximumRetainedClipCommands = 64;
     private static readonly Func<PdfPageClipPath, PdfPageClipPath, bool> SameClipPath = static (left, right) => left.IsIdenticalTo(right);
     private static readonly Func<FontIdentity, FontIdentity, bool> SameFont = static (left, right) =>
         string.Equals(left.Resource, right.Resource, StringComparison.Ordinal) &&
@@ -350,10 +354,12 @@ public sealed partial class PdfTextSpan {
 
         internal T Value { get; }
 
-        internal static SharedValue<T> Get(T value, Func<T, T, bool> same) {
+        internal static SharedValue<T> Get(T value, Func<T, T, bool> same, bool retain = true) {
             SharedValue<T>? last = _last;
             if (last is not null && same(last.Value, value)) return last;
-            return _last = new SharedValue<T>(value);
+            var box = new SharedValue<T>(value);
+            if (retain) _last = box;
+            return box;
         }
     }
 
