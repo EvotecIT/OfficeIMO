@@ -10,7 +10,11 @@ public readonly struct OfficeTextMeasurementStyle {
         FontSizePixels = FontInfo.Size * Dpi / OfficeTextMeasurer.PointsPerInch;
         SpaceWidthPixels = FontSizePixels * 0.34D * OfficeTextMeasurer.GetFontFamilyWidthFactor(FontInfo) * OfficeTextMeasurer.GetStyleWidthFactor(FontInfo);
         MaximumDigitWidthPixels = FontSizePixels * OfficeTextMeasurer.DefaultDigitEmWidth * OfficeTextMeasurer.GetFontFamilyWidthFactor(FontInfo) * OfficeTextMeasurer.GetStyleWidthFactor(FontInfo);
+        WidthFactor = OfficeTextMeasurer.GetFontFamilyWidthFactor(FontInfo) * OfficeTextMeasurer.GetStyleWidthFactor(FontInfo);
     }
+
+    /// <summary>The font family and style width factor, or zero for a default instance.</summary>
+    internal double WidthFactor { get; }
 
     /// <summary>Normalized font descriptor used for this measurement style.</summary>
     public OfficeFontInfo FontInfo { get; }

@@ -403,12 +403,37 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            if (rowElement is ExcelStoredRow stored && stored.IsStoreAvailable) {
+            if (rowElement is ExcelStoredRow stored && stored.IsStoreAvailable && stored.HasOrderedCells) {
                 int index = stored.Find(column);
                 if (index >= 0) {
                     Cell promoted = stored.Promote(index);
                     CacheLastAccessedCell(rowElement, row, column, promoted);
                     return promoted;
+                }
+
+                using (ExcelStoredRow.BeginRawAccess()) {
+                    return TryGetCellInRow(rowElement, row, column);
+                }
+            }
+
+            return TryGetCellInRow(rowElement, row, column);
+        }
+
+        /// <summary>
+        /// Finds an existing cell for a read that does not keep the element: a stored cell stays stored and is read
+        /// through a detached copy with the same attributes and value. A row whose DOM cells lack canonical references
+        /// is searched in the DOM, where implicit columns count the stored cells before them.
+        /// </summary>
+        private Cell? TryGetCellForReading(int row, int column) {
+            Row? rowElement = TryGetRowElement(row, column);
+            if (rowElement == null) {
+                return null;
+            }
+
+            if (rowElement is ExcelStoredRow stored && stored.IsStoreAvailable && stored.HasOrderedCells) {
+                int index = stored.Find(column);
+                if (index >= 0) {
+                    return stored.CreateDetachedCell(index);
                 }
 
                 using (ExcelStoredRow.BeginRawAccess()) {
@@ -426,7 +451,7 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            if (rowElement is ExcelStoredRow stored && stored.IsStoreAvailable) {
+            if (rowElement is ExcelStoredRow stored && stored.IsStoreAvailable && stored.HasOrderedCells) {
                 using (ExcelStoredRow.BeginRawAccess()) {
                     return TryGetCellInRow(rowElement, row, column);
                 }
@@ -667,12 +692,12 @@ namespace OfficeIMO.Excel {
         // Exposed as internal so other components in the same assembly (e.g., ExcelReportBuilder)
         // can reuse the shared-string/inline-string resolution logic when they already have
         // a Cell reference. Prefer using public TryGetCellText(row,col, out text) when possible.
-        internal string GetCellText(Cell cell) {
+        internal string GetCellText(Cell cell, SharedStringCache? sharedStrings = null) {
             // Shared string lookup
             if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) {
                 var raw = ExcelWorksheetScan.FindValue(cell)?.InnerText;
                 if (!string.IsNullOrEmpty(raw) && TryParseCellTextSharedStringIndex(raw, out int id)) {
-                    return BuildCellTextSharedStringSnapshot().Get(id) ?? string.Empty;
+                    return (sharedStrings ?? BuildCellTextSharedStringSnapshot()).Get(id) ?? string.Empty;
                 }
 
                 return string.Empty;
