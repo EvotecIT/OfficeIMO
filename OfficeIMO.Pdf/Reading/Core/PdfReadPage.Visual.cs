@@ -271,11 +271,11 @@ public sealed partial class PdfReadPage {
                 !span.IsVisible || span.Color?.A == 0 ||
                 span.Text.Length == 0 || span.Text.Length == 1 && char.IsSurrogate(span.Text[0]) ||
                 span.DrawingFontFamily == null ||
-                span.GlyphBytes is not { Count: 1 } glyphBytes || glyphBytes[0].Length is < 1 or > 2 ||
+                span.GlyphBytes is not { Count: 1 } glyphBytes || glyphBytes[0].Length is < 1 or > 4 ||
                 !registeredFonts.TryGetValue(PaintedFontKey(span), out PdfFontResource? registered) ||
                 registered.DrawingProgram is not PdfDrawingFontProgram program) continue;
             byte[] code = glyphBytes[0];
-            int glyph = program.GlyphForCode(code.Length == 1 ? code[0] : (code[0] << 8) | code[1]);
+            int glyph = program.GlyphForCodeBytes(code);
             if (glyph == 0 && program.IsEmptyGlyph(0)) continue;
             var key = PaintedFontKey(span);
             if (!maps.TryGetValue(key, out PaintedGlyphMap? map)) {
