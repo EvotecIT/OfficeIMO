@@ -6,6 +6,27 @@ namespace OfficeIMO.CSV.Tests;
 
 public class CsvRowWriterPropertyStagingTests
 {
+    [Fact]
+    public void WriteObject_UsesTheCurrentNewLineForEveryStreamRow()
+    {
+        using var output = new MemoryStream();
+        var options = new CsvSaveOptions { NewLine = "\n" };
+        using (var writer = CsvRowWriter.CreateStream(output, options, leaveOpen: true))
+        {
+            writer.WriteObject(new PlainRow { Id = 1, Name = "a" });
+            options.NewLine = "\r\n";
+            writer.WriteObject(new PlainRow { Id = 2, Name = "b" });
+        }
+
+        Assert.Equal("Id,Name\n1,a\n2,b\r\n", Encoding.UTF8.GetString(output.ToArray()));
+    }
+
+    private sealed class PlainRow
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
