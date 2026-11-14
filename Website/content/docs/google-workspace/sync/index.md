@@ -20,7 +20,6 @@ Move to `read.NextCheckpoint` only after you have processed the returned changes
 
 ### C#
 
-<!-- docs-check: skip -->
 ```csharp
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.GoogleWorkspace.Sync;
