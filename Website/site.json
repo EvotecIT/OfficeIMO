@@ -387,6 +387,9 @@
         "Name": "docs",
         "Css": [
           "/css/docs.css"
+        ],
+        "Js": [
+          "/js/docs-language-tabs.js"
         ]
       },
       {
@@ -610,6 +613,7 @@
         "Match": "/api/**",
         "Bundles": [
           "global",
+          "docs",
           "api",
           "experience"
         ]
