@@ -372,6 +372,44 @@ Stable Apple M4 snapshot from the command above on 2026-07-14:
 These results use explicit field types, including nullable object-typed text
 columns, rather than inferring a convenient schema from the first row.
 
+### SQL Server export at one million rows, .NET Framework and .NET
+
+`CsvDbatoolsExportBenchmarks` writes one million `int`, `nvarchar`,
+`decimal(18,2)` and `datetime2` rows from a forward-only `DbDataReader` with
+typed getters, with no header and the `yyyy-MM-dd HH:mm:ss.fffffff` date
+format, then imports the same shape back through a typed reader. It compares
+OfficeIMO.CSV with the Dataplat.Dbatools.Csv writer behind `Export-DbaCsv`,
+Sylvan, CsvHelper and, on .NET 9 or later, Sep. A pass-through lane hands
+OfficeIMO the reader through a plain `IDataReader`, as `Export-OfficeCsv` does.
+Setup checks every written row the way the DbaClientX export benchmark does and
+checksums every imported value.
+
+The project also builds for `net472` on Windows, where Windows PowerShell 5.1
+runs; that build contains only this lane.
+
+```powershell
+dotnet build .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release
+.\OfficeIMO.CSV.Benchmarks\bin\Release\net472\OfficeIMO.CSV.Benchmarks.exe --filter *CsvDbatoolsExport* --inProcess
+dotnet .\OfficeIMO.CSV.Benchmarks\bin\Release\net10.0\OfficeIMO.CSV.Benchmarks.dll --filter *CsvDbatoolsExport* --inProcess
+```
+
+#### Dated export snapshot (2026-11-14)
+
+Mean of 8 iterations after 2 warmups, two rounds (shown as round 1 / round 2),
+64-bit in-process runs pinned to one CCD of a shared AMD Ryzen 9 9950X3D2
+workstation while other builds ran, so read ratios rather than absolutes.
+
+| Writer | .NET Framework 4.8 | Allocated | .NET 10 | Allocated |
+| --- | ---: | ---: | ---: | ---: |
+| OfficeIMO.CSV | 528 / 488 ms | 84 MB | 151 / 155 ms | 82 MB |
+| Dataplat.Dbatools.Csv 1.1.15 | 904 / 815 ms | 459 MB | 268 / 337 ms | 312 MB |
+| Sylvan.Data.Csv 1.4.4 | 830 / 704 ms | 383 MB | 205 / 256 ms | 83 MB |
+| CsvHelper 33.1 | 2,213 / 1,860 ms | 651 MB | 496 / 506 ms | 381 MB |
+| Sep 0.17.1 | n/a | n/a | 431 / 424 ms | 82 MB |
+
+About 84 MB of OfficeIMO's allocation on both runtimes is the reader's own
+`nvarchar` strings.
+
 ### Dated SQL-shaped DataReader write snapshot (2026-08-09)
 
 The same 25,000-row, 10-column contract was measured on .NET 10 with

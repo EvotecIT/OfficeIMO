@@ -3,6 +3,9 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <!-- Windows PowerShell 5.1 hosts PSWriteOffice and DbaClientX on .NET Framework; the lanes listed below for
+         net472 measure that runtime. -->
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
 
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
@@ -21,23 +24,33 @@
     <SylvanCsvBenchmarkVersion Condition="'$(OfficeImoLatestCompetitors)' == 'true'">*</SylvanCsvBenchmarkVersion>
   </PropertyGroup>
 
+  <!-- Windows PowerShell 5.1 is a 64-bit process; an SDK-style .NET Framework exe would otherwise run as x86. -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net472'">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageReference Include="CsvHelper" Version="$(CsvHelperBenchmarkVersion)" />
     <PackageReference Include="Dataplat.Dbatools.Csv" Version="1.1.15" />
+    <PackageReference Include="LumenWorksCsvReader2" Version="4.4.0" />
+    <PackageReference Include="Sylvan.Data.Csv" Version="$(SylvanCsvBenchmarkVersion)" />
+  </ItemGroup>
+
+  <!-- These packages need .NET 8 or later. -->
+  <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
       <!-- Runtime APIs are benchmarked directly. The source generator targets a newer Roslyn than the repository SDK ships. -->
       <PackageReference Include="ExcelReader.NET" Version="$(ExcelReaderBenchmarkVersion)" ExcludeAssets="analyzers" />
-    <PackageReference Include="LumenWorksCsvReader2" Version="4.4.0" />
     <PackageReference Include="RecordParser" Version="2.3.0" />
     <PackageReference Include="Sep" Version="$(SepBenchmarkVersion)" />
-    <PackageReference Include="Sylvan.Data.Csv" Version="$(SylvanCsvBenchmarkVersion)" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.CSV\OfficeIMO.CSV.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
     <Compile Include="..\Benchmarks\BenchmarkProcessorAffinity.cs" Link="Shared\BenchmarkProcessorAffinity.cs" />
     <Compile Include="..\Benchmarks\BenchmarkProcessPriority.cs" Link="Shared\BenchmarkProcessPriority.cs" />
     <Compile Include="..\Benchmarks\MarkPflug65KFixture.cs" Link="Shared\MarkPflug65KFixture.cs" />
@@ -46,6 +59,12 @@
     <Compile Include="..\Benchmarks\PackageAssetsCsvFixture.cs" Link="Shared\PackageAssetsCsvFixture.cs" />
     <Compile Include="..\Benchmarks\CsvWriteBenchmarkBase.cs" Link="Shared\CsvWriteBenchmarkBase.cs" />
     <Compile Include="..\Benchmarks\CsvWriteComparisonData.cs" Link="Shared\CsvWriteComparisonData.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Compile Remove="**/*.cs" />
+    <Compile Include="CsvDbatoolsExportBenchmarks.cs" />
+    <Compile Include="NetFramework/*.cs" />
   </ItemGroup>
 
   <Target Name="RemoveIncompatibleExcelReaderGenerator" BeforeTargets="CoreCompile">

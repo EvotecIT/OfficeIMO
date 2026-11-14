@@ -1,4 +1,3 @@
-#if NET8_0_OR_GREATER
 using System.Data;
 using System.Text;
 using OfficeIMO.SharedSource.IO;
@@ -18,12 +17,13 @@ public sealed partial class CsvRowWriter
         // Data table rows look values up per call; one boxed read answers both the null check and the value.
         Type readerType = reader.GetType();
         bool boxedValues = readerType == typeof(DataTableReader) || readerType == typeof(CsvDataTableRowReader);
+        bool rowPending = false;
+#if NET8_0_OR_GREATER
         CsvWriter.InvariantRecordLayout layout = !_useFormattedDefaultWritePath && _delimiter == ','
             && ReferenceEquals(_options.Culture, CultureInfo.InvariantCulture)
                 ? CsvWriter.GetInvariantRecordLayout(fieldKinds)
                 : CsvWriter.InvariantRecordLayout.None;
         bool invariantRows = layout != CsvWriter.InvariantRecordLayout.None;
-        bool rowPending = false;
         // Exactly UTF8Encoding: its encoder writes ASCII as is, so the bytes match what the text path would encode.
         if (invariantRows && _writer is PooledUtf8TextWriter utf8Writer && utf8Writer.Encoding.GetType() == typeof(UTF8Encoding))
         {
@@ -35,6 +35,7 @@ public sealed partial class CsvRowWriter
 
             invariantRows = false;
         }
+#endif
 
         var scratch = new StringBuilder();
         using var output = new CsvWriter.RecordBuffer<char>();
@@ -55,10 +56,14 @@ public sealed partial class CsvRowWriter
                 }
 
                 rowPending = false;
+#if NET8_0_OR_GREATER
                 if (!invariantRows || !TryAppendInvariantRecord(output, reader, fieldKinds, layout, boxedValues, _options.NewLine.AsSpan(), null))
+#endif
                 {
                     // After a rejected typed read every later row takes the per-field path, as before.
+#if NET8_0_OR_GREATER
                     invariantRows = false;
+#endif
                     CsvWriter.AppendDataReaderRecord(output, scratch, reader, fieldKinds, _delimiter, _options.NewLine,
                         _options.Culture, _useFormattedDefaultWritePath, _options.DateTimeFormat, _options.UseUtc, _options.NullValue, boxedValues);
                 }
@@ -80,6 +85,23 @@ public sealed partial class CsvRowWriter
             throw;
         }
     }
+
+    /// <summary>Writes the completed rows and empties the buffer, so a failing write is not repeated.</summary>
+    private static void Deliver(TextWriter writer, CsvWriter.RecordBuffer<char> output, ref int completed)
+    {
+        int length = completed;
+        completed = 0;
+        output.Length = 0;
+        if (length != 0)
+        {
+#if NET8_0_OR_GREATER
+            writer.Write(output.Prefix(length));
+#else
+            writer.Write(output.Units, 0, length);
+#endif
+        }
+    }
+#if NET8_0_OR_GREATER
 
     /// <summary>
     /// Writes rows of invariant values to a UTF-8 stream writer as bytes. Returns true when a typed read rejected
@@ -126,18 +148,6 @@ public sealed partial class CsvRowWriter
         {
             Deliver(writer, output, ref completed);
             throw;
-        }
-    }
-
-    /// <summary>Writes the completed rows and empties the buffer, so a failing write is not repeated.</summary>
-    private static void Deliver(TextWriter writer, CsvWriter.RecordBuffer<char> output, ref int completed)
-    {
-        int length = completed;
-        completed = 0;
-        output.Length = 0;
-        if (length != 0)
-        {
-            writer.Write(output.Prefix(length));
         }
     }
 
@@ -201,5 +211,5 @@ public sealed partial class CsvRowWriter
                 break;
         }
     }
-}
 #endif
+}
