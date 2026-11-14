@@ -81,6 +81,19 @@
     },
     {
       "task": "exec",
+      "id": "update-cli-catalog",
+      "timeoutSeconds": 1800,
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Update-CliCatalog.ps1"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
       "id": "build-aot-project-matrix",
       "dependsOn": [
         "build-capability-catalog"
