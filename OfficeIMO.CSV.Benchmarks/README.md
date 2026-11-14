@@ -393,6 +393,23 @@ dotnet build .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Relea
 dotnet .\OfficeIMO.CSV.Benchmarks\bin\Release\net10.0\OfficeIMO.CSV.Benchmarks.dll --filter *CsvDbatoolsExport* --inProcess
 ```
 
+#### Dated export snapshot (2026-11-14)
+
+Mean of 8 iterations after 2 warmups, two rounds (shown as round 1 / round 2),
+64-bit in-process runs pinned to one CCD of a shared AMD Ryzen 9 9950X3D2
+workstation while other builds ran, so read ratios rather than absolutes.
+
+| Writer | .NET Framework 4.8 | Allocated | .NET 10 | Allocated |
+| --- | ---: | ---: | ---: | ---: |
+| OfficeIMO.CSV | 528 / 488 ms | 84 MB | 151 / 155 ms | 82 MB |
+| Dataplat.Dbatools.Csv 1.1.15 | 904 / 815 ms | 459 MB | 268 / 337 ms | 312 MB |
+| Sylvan.Data.Csv 1.4.4 | 830 / 704 ms | 383 MB | 205 / 256 ms | 83 MB |
+| CsvHelper 33.1 | 2,213 / 1,860 ms | 651 MB | 496 / 506 ms | 381 MB |
+| Sep 0.17.1 | n/a | n/a | 431 / 424 ms | 82 MB |
+
+About 84 MB of OfficeIMO's allocation on both runtimes is the reader's own
+`nvarchar` strings.
+
 ### Dated SQL-shaped DataReader write snapshot (2026-08-09)
 
 The same 25,000-row, 10-column contract was measured on .NET 10 with
