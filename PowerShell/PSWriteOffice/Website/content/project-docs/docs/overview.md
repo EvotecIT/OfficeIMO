@@ -33,7 +33,7 @@ The module manifest is the source of truth for exported cmdlets and aliases. The
 - **TOML — 12 commands:** edit files without losing comments or layout, and read and write settings and lock files as PowerShell objects. See [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/).
 - **CSV — 4 commands:** import and export delimited data with explicit quoting, encoding, and formula-injection rules.
 - **Project — 20 commands:** create and schedule tasks, resources and assignments; exchange mapped tables; save native MPP or Project XML and export reports. See [Project, Access, and EPUB](/docs/pswriteoffice/project-access-epub/).
-- **Access — 9 commands:** inspect native MDB/ACCDB schemas and rows, and create inert table databases from PowerShell objects.
+- **Access — 10 commands:** inspect native MDB/ACCDB schemas and rows, and create inert table databases from PowerShell objects.
 - **EPUB — 8 commands:** build publications from chapters, resources and metadata, then inspect and save the package.
 - **Archive migration and evidence — 5 commands:** inspect package security and provenance, identify iWork files, and convert iWork and offline OneNote content with explicit fidelity evidence.
 - **Confluence Cloud — 7 commands:** plan, create, update, and remove pages; preserve managed sections; and list, upload, or download attachments.

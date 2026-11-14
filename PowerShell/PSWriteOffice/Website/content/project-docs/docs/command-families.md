@@ -16,7 +16,7 @@ The PSWriteOffice website catalog groups every exported cmdlet into exactly one 
 | Document operations and capabilities | 11 | [Document operations and capabilities](/docs/pswriteoffice/automation-patterns/) |
 | Before sharing | 5 | [Clean files before sharing](/docs/pswriteoffice/before-sharing/) |
 | Project | 20 | [Project, Access, and EPUB](/docs/pswriteoffice/project-access-epub/) |
-| Access | 9 | [Project, Access, and EPUB](/docs/pswriteoffice/project-access-epub/) |
+| Access | 10 | [Project, Access, and EPUB](/docs/pswriteoffice/project-access-epub/) |
 | EPUB | 8 | [Project, Access, and EPUB](/docs/pswriteoffice/project-access-epub/) |
 | PowerPoint | 53 | [PowerPoint automation](/docs/pswriteoffice/powerpoint/) |
 | Markdown | 33 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
