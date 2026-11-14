@@ -161,8 +161,10 @@ public partial class PdfPageImageRendererTests {
 
     [Fact]
     public void RenderPage_NonLatinSpacedTextChargesOnlyTheRejectedPrefix() {
-        byte[] pdf = BuildSingleStreamPdf("BT /F1 10 Tf 1 Tc 1000 100 Td (\\351" +
-            new string('A', 1000) + ") Tj ET");
+        // WinAnsi 0x88 is the spacing modifier U+02C6, which keeps whole-run shaping.
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf("BT /F1 10 Tf 1 Tc 1000 100 Td (\\210" +
+            new string('A', 1000) + ") Tj ET", "<< /Font << /F1 5 0 R >> >>", font);
         var document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxPositionedTextProjectionCharactersPerPage = 2 }
         });
