@@ -692,12 +692,12 @@ namespace OfficeIMO.Excel {
         // Exposed as internal so other components in the same assembly (e.g., ExcelReportBuilder)
         // can reuse the shared-string/inline-string resolution logic when they already have
         // a Cell reference. Prefer using public TryGetCellText(row,col, out text) when possible.
-        internal string GetCellText(Cell cell) {
+        internal string GetCellText(Cell cell, SharedStringCache? sharedStrings = null) {
             // Shared string lookup
             if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) {
                 var raw = ExcelWorksheetScan.FindValue(cell)?.InnerText;
                 if (!string.IsNullOrEmpty(raw) && TryParseCellTextSharedStringIndex(raw, out int id)) {
-                    return BuildCellTextSharedStringSnapshot().Get(id) ?? string.Empty;
+                    return (sharedStrings ?? BuildCellTextSharedStringSnapshot()).Get(id) ?? string.Empty;
                 }
 
                 return string.Empty;

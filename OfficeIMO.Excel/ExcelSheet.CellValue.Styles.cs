@@ -199,26 +199,79 @@ namespace OfficeIMO.Excel {
         public bool TryGetCellValueSnapshot(int row, int column, out ExcelNativeCellValueInfo? snapshot) {
             snapshot = null;
             try {
-                if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
-                    if (_excelDocument.HasDeferredDirectDataSetImport) {
-                        _excelDocument.MaterializeDeferredDataSetImportPreservingFastSaveModel();
-                    } else {
-                        MaterializeDeferredDataSetImportIfNeeded();
-                    }
-                }
-
+                MaterializeDeferredDataSetImportForReading();
                 Cell? cell = TryGetCellForReading(row, column);
                 if (cell == null) {
                     return false;
                 }
 
-                string text = GetCellText(cell);
+                snapshot = CreateCellValueSnapshot(cell, null, null);
+                return snapshot != null;
+            } catch {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Reads the native value metadata of one column for a range of rows in a single pass.
+        /// </summary>
+        /// <remarks>
+        /// Each element is what <see cref="TryGetCellValueSnapshot"/> returns for that row, or <see langword="null"/>
+        /// where it returns <see langword="false"/>. Reading a whole column this way resolves shared strings and date
+        /// formats once instead of once per cell.
+        /// </remarks>
+        /// <param name="column">The 1-based column index to read.</param>
+        /// <param name="firstRow">The 1-based first row to read.</param>
+        /// <param name="lastRow">The 1-based last row to read.</param>
+        /// <returns>One snapshot or <see langword="null"/> per row from <paramref name="firstRow"/> to <paramref name="lastRow"/>.</returns>
+        public IReadOnlyList<ExcelNativeCellValueInfo?> GetCellValueSnapshots(int column, int firstRow, int lastRow) {
+            if (column < 1 || column > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(column));
+            if (firstRow < 1 || firstRow > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(firstRow));
+            if (lastRow < firstRow || lastRow > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(lastRow));
+
+            var snapshots = new ExcelNativeCellValueInfo?[lastRow - firstRow + 1];
+            SharedStringCache sharedStrings;
+            var dateStyles = new Dictionary<uint, bool>();
+            try {
+                MaterializeDeferredDataSetImportForReading();
+                sharedStrings = BuildCellTextSharedStringSnapshot();
+            } catch {
+                return snapshots;
+            }
+
+            for (int i = 0; i < snapshots.Length; i++) {
+                try {
+                    Cell? cell = TryGetCellForReading(firstRow + i, column);
+                    if (cell != null) snapshots[i] = CreateCellValueSnapshot(cell, sharedStrings, dateStyles);
+                } catch {
+                    snapshots[i] = null;
+                }
+            }
+
+            return snapshots;
+        }
+
+        private void MaterializeDeferredDataSetImportForReading() {
+            if (_excelDocument.IsMaterializingDeferredDataSetImport) return;
+            if (_excelDocument.HasDeferredDirectDataSetImport) {
+                _excelDocument.MaterializeDeferredDataSetImportPreservingFastSaveModel();
+            } else {
+                MaterializeDeferredDataSetImportIfNeeded();
+            }
+        }
+
+        /// <summary>
+        /// Builds the value metadata of an existing cell, or null when it carries no value, inline string or formula.
+        /// Bulk reads pass their shared-string snapshot and a cache of which styles format dates.
+        /// </summary>
+        private ExcelNativeCellValueInfo? CreateCellValueSnapshot(Cell cell, SharedStringCache? sharedStrings, Dictionary<uint, bool>? dateStyles) {
+                string text = GetCellText(cell, sharedStrings);
                 if (string.IsNullOrEmpty(text) && cell.CellFormula != null && cell.CellValue == null && cell.InlineString == null) {
                     text = cell.CellFormula.Text ?? string.Empty;
                 }
 
                 if (cell.CellValue == null && cell.InlineString == null && string.IsNullOrEmpty(text)) {
-                    return false;
+                    return null;
                 }
 
                 DocumentFormat.OpenXml.Spreadsheet.CellValues? dataType = cell.DataType?.Value;
@@ -248,7 +301,7 @@ namespace OfficeIMO.Excel {
                     && (dataType == null || dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number);
                 if ((kind == ExcelCellValueKind.Number || formulaHasNumericCache)
                     && double.TryParse(storedValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double serial)
-                    && GetCellStyle(row, column).IsDateLike) {
+                    && IsDateStyle(cell.StyleIndex?.Value ?? 0U, dateStyles)) {
                     try {
                         dateTimeValue = ExcelDateSystemConverter.FromSerial(serial, _excelDocument.DateSystem);
                         if (kind == ExcelCellValueKind.Number) kind = ExcelCellValueKind.DateTime;
@@ -257,11 +310,17 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                snapshot = new ExcelNativeCellValueInfo(kind, text, rawValue, dataType.ToOfficeEnum(), dateTimeValue);
-                return true;
-            } catch {
-                return false;
+                return new ExcelNativeCellValueInfo(kind, text, rawValue, dataType.ToOfficeEnum(), dateTimeValue);
+        }
+
+        private bool IsDateStyle(uint styleIndex, Dictionary<uint, bool>? cache) {
+            if (cache == null) return GetCellStyleByIndex(styleIndex).IsDateLike;
+            if (!cache.TryGetValue(styleIndex, out bool isDate)) {
+                isDate = GetCellStyleByIndex(styleIndex).IsDateLike;
+                cache.Add(styleIndex, isDate);
             }
+
+            return isDate;
         }
 
         private void ApplyWrapText(int row, int column) {

@@ -161,6 +161,62 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CellValueSnapshots_ColumnReadMatchesSingleCellReadsOnLoadedAndImportedSheets() {
+            byte[] package;
+            using (var stream = new MemoryStream()) {
+                using (var document = ExcelDocument.Create(stream, new ExcelCreateOptions {
+                    PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
+                })) {
+                    var sheet = document.AddSheet("Values");
+                    sheet.Cell(1, 1).SetValue("Header");
+                    sheet.Cell(2, 1).SetValue("Text");
+                    sheet.Cell(3, 1).SetValue(42.5);
+                    sheet.Cell(4, 1).SetValue(new DateTime(2024, 2, 29));
+                    sheet.Cell(5, 1).SetValue(true);
+                    sheet.Cell(6, 1).SetFormula("1+1");
+                    sheet.Cell(8, 1).SetValue("Text");
+                    sheet.Cell(9, 1).SetValue(-3);
+                }
+
+                package = stream.ToArray();
+            }
+
+            void AssertColumnMatches(ExcelSheet sheet, int column, int firstRow, int lastRow) {
+                var snapshots = sheet.GetCellValueSnapshots(column, firstRow, lastRow);
+                Assert.Equal(lastRow - firstRow + 1, snapshots.Count);
+                for (int row = firstRow; row <= lastRow; row++) {
+                    bool found = sheet.TryGetCellValueSnapshot(row, column, out var expected);
+                    var actual = snapshots[row - firstRow];
+                    Assert.Equal(found, actual != null);
+                    if (!found) continue;
+                    Assert.Equal(expected!.Kind, actual!.Kind);
+                    Assert.Equal(expected.Text, actual.Text);
+                    Assert.Equal(expected.RawValue, actual.RawValue);
+                    Assert.Equal(expected.OpenXmlType, actual.OpenXmlType);
+                    Assert.Equal(expected.DateTimeValue, actual.DateTimeValue);
+                }
+            }
+
+            using (var loaded = ExcelDocument.Load(new MemoryStream(package))) {
+                var sheet = loaded["Values"];
+                AssertColumnMatches(sheet, 1, 1, 10);
+                Assert.Equal(ExcelCellValueKind.DateTime, sheet.GetCellValueSnapshots(1, 4, 4)[0]!.Kind);
+            }
+
+            var table = new DataTable();
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("Amount", typeof(double));
+            table.Columns.Add("When", typeof(DateTime));
+            for (int i = 0; i < 25; i++) table.Rows.Add("n" + (i % 4), i * 1.25, new DateTime(2020, 1, 1).AddDays(i));
+            using var imported = ExcelDocument.Create(new MemoryStream());
+            var importedSheet = imported.AddSheet("Imported");
+            importedSheet.AddTable(table, new ExcelTableOptions { Name = "Imported", AutoFit = false }, row: 1, column: 1);
+            for (int column = 1; column <= 3; column++) {
+                AssertColumnMatches(importedSheet, column, 1, 27);
+            }
+        }
+
+        [Fact]
         public void PerformanceReview_FileSnapshotKeepsAllViewsOnOneFileIdentity() {
             string path = Path.Combine(
                 Path.GetTempPath(),
