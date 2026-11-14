@@ -122,6 +122,10 @@ internal sealed class HiddenDataArguments {
         for (int index = 1; index < args.Length; index++) {
             string token = args[index];
             switch (token) {
+                case "--help":
+                case "-h":
+                    parsed.Help = true;
+                    return parsed;
                 case "--format":
                     parsed.Json = Read(args, ref index, token) switch {
                         "json" => true,

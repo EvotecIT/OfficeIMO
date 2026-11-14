@@ -47,6 +47,29 @@ public sealed class OfficeImoToolAppTests {
         Assert.Equal(string.Empty, error.ToString());
     }
 
+    [Theory]
+    [InlineData("officeimo workflow compare", "workflow", "compare", "--help")]
+    [InlineData("officeimo workflow job plan", "workflow", "job", "plan", "--help")]
+    [InlineData("officeimo workflow job run", "workflow", "job", "run", "-h")]
+    [InlineData("officeimo workflow job report", "workflow", "job", "report", "--help")]
+    [InlineData("officeimo invoice inspect", "invoice", "inspect", "--help")]
+    [InlineData("officeimo invoice convert", "invoice", "convert", "--help")]
+    [InlineData("officeimo invoice batch inspect|validate", "invoice", "batch", "validate", "--help")]
+    [InlineData("officeimo hidden-data inspect", "hidden-data", "inspect", "--help")]
+    [InlineData("officeimo hidden-data remove", "hidden-data", "remove", "-h")]
+    [InlineData("officeimo mcp serve --stdio", "mcp", "serve", "--help")]
+    public async Task SubcommandHelpPrintsUsageAndSucceeds(string expectedUsage, params string[] args) {
+        await using var input = new MemoryStream();
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        int exitCode = await OfficeImoToolApp.RunAsync(args, input, output, error);
+        string help = Encoding.UTF8.GetString(output.ToArray()) + error;
+
+        Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
+        Assert.Contains(expectedUsage, help, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task PdfRedactionCliPlansAndAppliesReviewedJsonWithoutLeakingMatchedText() {
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Tool.Redaction.Tests", Guid.NewGuid().ToString("N"));
@@ -494,6 +517,41 @@ profile: presentation
             Assert.Equal(target, envelope.RootElement.GetProperty("Target").GetString());
         } finally {
             Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData("export", "--target", "docx")]
+    [InlineData("emit", "--target", "csharp")]
+    public async Task MarkupOutputsReplaceExistingFilesOnlyWithForce(params string[] command) {
+        string root = Path.Combine(
+            Path.GetTempPath(),
+            "OfficeIMO.Tool.Tests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string outputPath = Path.Combine(root, "existing.out");
+        File.WriteAllText(outputPath, "keep");
+
+        try {
+            string[] args = ["markup", command[0], "-", .. command[1..], "--output", outputPath];
+            (int refused, string refusedError) = await RunMarkupAsync(args);
+            Assert.Equal((int)OfficeImoToolExitCode.OutputFailed, refused);
+            Assert.Contains("--force", refusedError, StringComparison.Ordinal);
+            Assert.Equal("keep", File.ReadAllText(outputPath));
+
+            (int replaced, _) = await RunMarkupAsync([.. args, "--force"]);
+            Assert.Equal((int)OfficeImoToolExitCode.Success, replaced);
+            Assert.NotEqual("keep", File.ReadAllText(outputPath));
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+
+        static async Task<(int ExitCode, string Error)> RunMarkupAsync(string[] args) {
+            await using var input = new MemoryStream(Encoding.UTF8.GetBytes("# Heading\n\nBody"));
+            await using var output = new MemoryStream();
+            using var error = new StringWriter();
+            int exitCode = await OfficeImoToolApp.RunAsync(args, input, output, error);
+            return (exitCode, error.ToString());
         }
     }
 }
