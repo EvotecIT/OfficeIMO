@@ -19,10 +19,13 @@ engines adjacent and alternates which engine runs first. PowerForge performs an
 explicit managed-memory cleanup after setup and data creation, outside the timed
 operation, so allocations from one engine do not become another engine's GC bill.
 
-`Export-OfficeExcel` and `Add-OfficeExcelTable` apply a table style, fitted
-columns and a frozen header row by default. The PSWriteOffice lanes keep those
-defaults, so default-export lanes do more formatting work than the plain
-`Export-Excel` and `Export-Workbook` calls they are compared with.
+`Export-OfficeExcel` and `Add-OfficeExcelTable` fit column widths by default,
+while plain `Export-Excel` and ExcelFast's `Export-Workbook` do not. Lanes whose
+competitors do not fit columns run the PSWriteOffice side with `-NoAutoFit` so
+both sides do the same work. `objects-table-autofit` and `report-workbook` keep
+fitting on both sides (`Export-Excel -AutoSize`) and are the like-for-like
+column-fitting comparison. PSWriteOffice still applies its table style and
+frozen header row in every lane.
 
 Every read comparison uses the same PSWriteOffice-produced workbook shape for
 the selected row count. The competing readers do not benchmark files created by
