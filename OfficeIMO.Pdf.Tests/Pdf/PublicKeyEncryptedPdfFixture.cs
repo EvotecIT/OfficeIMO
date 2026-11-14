@@ -42,8 +42,9 @@ public static class PublicKeyEncryptedPdfFixture {
         using RSA rsa = RSA.Create(2048);
         var request = new CertificateRequest("CN=" + name, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyEncipherment, critical: true));
-        using X509Certificate2 ephemeral = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(1));
-        return LoadPfx(ephemeral.Export(X509ContentType.Pfx, "fixture"), "fixture");
+        // Keep the in-memory key: a PKCS#12 round trip on .NET Framework moves it into CNG without plaintext export,
+        // which the Bouncy Castle recipient adapter needs there.
+        return request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(1));
     }
 
     internal static X509Certificate2 LoadPfx(byte[] pfx, string password) {
