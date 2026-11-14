@@ -245,27 +245,36 @@ internal static partial class CsvParser
     private static void UpdateQuotedRecordState(string text, char delimiter, bool trim, ref QuotedRecordState state) =>
         UpdateQuotedRecordState(text, delimiter, null, trim, ref state);
 
-    private static void UpdateQuotedRecordState(string text, string delimiter, bool trim, ref QuotedRecordState state) =>
-        UpdateQuotedRecordState(text, default, delimiter, trim, ref state);
+    private static void UpdateQuotedRecordState(string text, string delimiter, bool trim, ref QuotedRecordState state,
+        char quote = '"', char escape = '"') =>
+        UpdateQuotedRecordState(text, default, delimiter, trim, ref state, quote, escape);
 
     private static void UpdateQuotedRecordState(
         string text,
         char delimiter,
         string? delimiterText,
         bool trim,
-        ref QuotedRecordState state)
+        ref QuotedRecordState state,
+        char quote = '"',
+        char escape = '"')
     {
         for (var index = 0; index < text.Length; index++)
         {
             var current = text[index];
             if (state.InQuotes)
             {
-                if (current != '"')
+                if (current == escape && escape != quote)
+                {
+                    index++;
+                    continue;
+                }
+
+                if (current != quote)
                 {
                     continue;
                 }
 
-                if (index + 1 < text.Length && text[index + 1] == '"')
+                if (index + 1 < text.Length && text[index + 1] == quote)
                 {
                     index++;
                     continue;
@@ -287,7 +296,7 @@ internal static partial class CsvParser
                 continue;
             }
 
-            if (current == '"')
+            if (current == quote)
             {
                 if (state.AfterClosingQuote)
                 {

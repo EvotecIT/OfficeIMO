@@ -184,6 +184,7 @@ public sealed partial class CsvDocument
             options.ParseErrorAction != CsvParseErrorAction.Throw ||
             options.Delimiter is '\r' or '\n' or '"' ||
             !string.IsNullOrEmpty(options.DelimiterText) ||
+            options.UsesCustomQuoting ||
             options.DetectDelimiter ||
             options.StaticColumns is not null ||
             options.MaxFieldLength is not null ||

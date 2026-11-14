@@ -4,8 +4,12 @@ namespace OfficeIMO.CSV;
 
 internal static partial class CsvParser
 {
+    /// <summary>
+    /// Whether records are read by the general text parser: for a delimiter longer than one character, and for
+    /// quote or escape characters other than the RFC 4180 double quote, which the vectorized parsers assume.
+    /// </summary>
     internal static bool UsesTextDelimiter(CsvParsingSettings options) =>
-        !string.IsNullOrEmpty(options.DelimiterText) && options.DelimiterText!.Length > 1;
+        (!string.IsNullOrEmpty(options.DelimiterText) && options.DelimiterText!.Length > 1) || options.UsesCustomQuoting;
 
     internal static char GetDelimiterChar(CsvParsingSettings options) =>
         string.IsNullOrEmpty(options.DelimiterText)
@@ -62,6 +66,8 @@ internal static partial class CsvParser
         var trim = options.TrimWhitespace;
         var strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
         var allowEmpty = options.AllowEmptyLines;
+        var quote = options.QuoteCharacter;
+        var escape = options.EffectiveEscapeCharacter;
         var lineNumber = 1;
         var emittedRecordCount = 0;
         var stringCache = CreateStringCache(options);
@@ -80,13 +86,15 @@ internal static partial class CsvParser
                     emittedRecordCount,
                     delimiter,
                     trim,
+                    quote,
+                    escape,
                     ref lineNumber))
             {
                 lineNumber++;
                 continue;
             }
 
-            if (TrySplitUnquotedRecord(line, delimiter, trim, options.QuotesAreData, out var record))
+            if (TrySplitUnquotedRecord(line, delimiter, trim, options.QuotesAreData, quote, out var record))
             {
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount) &&
                     ShouldEmitRecord(record, allowEmpty))
@@ -109,12 +117,12 @@ internal static partial class CsvParser
             string[] fields;
             try
             {
-                if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, out fields))
+                if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, out fields, quote, escape))
                 {
                     var logicalRecord = new StringBuilder(line);
                     var pendingSeparator = lineSeparator;
                     var state = new QuotedRecordState();
-                    UpdateQuotedRecordState(line, delimiter, trim, ref state);
+                    UpdateQuotedRecordState(line, delimiter, trim, ref state, quote, escape);
                     while (state.InQuotes)
                     {
                         ThrowIfCancellationRequested(options);
@@ -127,11 +135,11 @@ internal static partial class CsvParser
                         logicalRecord.Append(pendingSeparator);
                         logicalRecord.Append(next);
                         lineNumber++;
-                        UpdateQuotedRecordState(next, delimiter, trim, ref state);
+                        UpdateQuotedRecordState(next, delimiter, trim, ref state, quote, escape);
                         pendingSeparator = nextSeparator;
                     }
 
-                    if (!TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, out fields))
+                    if (!TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, out fields, quote, escape))
                     {
                         throw new CsvParseException("Unterminated quoted field.", lineNumber);
                     }
@@ -161,10 +169,10 @@ internal static partial class CsvParser
         }
     }
 
-    private static bool TrySplitUnquotedRecord(string line, string delimiter, bool trim, bool quotesAreData, out string[] fields)
+    private static bool TrySplitUnquotedRecord(string line, string delimiter, bool trim, bool quotesAreData, char quote, out string[] fields)
     {
         fields = Array.Empty<string>();
-        if (!quotesAreData && line.IndexOf('"') >= 0)
+        if (!quotesAreData && line.IndexOf(quote) >= 0)
         {
             return false;
         }
@@ -186,7 +194,8 @@ internal static partial class CsvParser
         }
     }
 
-    private static bool TryParseQuotedRecord(string text, string delimiter, bool trim, bool strictQuotes, int lineNumber, out string[] fields)
+    private static bool TryParseQuotedRecord(string text, string delimiter, bool trim, bool strictQuotes, int lineNumber, out string[] fields,
+        char quote = '"', char escape = '"')
     {
         var parsedFields = new List<string>(16);
         var buffer = new StringBuilder();
@@ -201,12 +210,19 @@ internal static partial class CsvParser
 
             if (inQuotes)
             {
-                if (c == '"')
+                if (c == escape && escape != quote && i + 1 < text.Length)
                 {
-                    if (i + 1 < text.Length && text[i + 1] == '"')
+                    // An escape character keeps the next character, a quote or the escape itself, as data.
+                    i++;
+                    buffer.Append(text[i]);
+                    bufferIsWhitespaceOnly = false;
+                }
+                else if (c == quote)
+                {
+                    if (i + 1 < text.Length && text[i + 1] == quote)
                     {
                         i++;
-                        buffer.Append('"');
+                        buffer.Append(quote);
                         bufferIsWhitespaceOnly = false;
                     }
                     else
@@ -236,7 +252,7 @@ internal static partial class CsvParser
                 continue;
             }
 
-            if (c == '"')
+            if (c == quote)
             {
                 if (afterClosingQuote)
                 {
@@ -303,6 +319,8 @@ internal static partial class CsvParser
         int emittedRecordCount,
         string delimiter,
         bool trim,
+        char quote,
+        char escape,
         ref int lineNumber)
     {
         if (!ShouldSkipCommentRecordBeforeParsing(startsWithCommentCharacter, firstLine, options, emittedRecordCount))
@@ -311,16 +329,16 @@ internal static partial class CsvParser
         }
 
         if (options.QuotesAreData ||
-            firstLine.IndexOf('"') < 0 ||
+            firstLine.IndexOf(quote) < 0 ||
             !LooksLikeDelimitedRawComment(firstLine, delimiter) ||
-            TryParseQuotedRecord(firstLine, delimiter, trim, strictQuotes: false, lineNumber, out _))
+            TryParseQuotedRecord(firstLine, delimiter, trim, strictQuotes: false, lineNumber, out _, quote, escape))
         {
             return true;
         }
 
         var continuationCount = 0;
         var state = new QuotedRecordState();
-        UpdateQuotedRecordState(firstLine, delimiter, trim, ref state);
+        UpdateQuotedRecordState(firstLine, delimiter, trim, ref state, quote, escape);
         while (true)
         {
             ThrowIfCancellationRequested(options);
@@ -331,7 +349,7 @@ internal static partial class CsvParser
             }
 
             continuationCount++;
-            UpdateQuotedRecordState(next, delimiter, trim, ref state);
+            UpdateQuotedRecordState(next, delimiter, trim, ref state, quote, escape);
             if (!state.InQuotes)
             {
                 lineNumber += continuationCount;

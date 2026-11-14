@@ -7,6 +7,18 @@ internal static partial class CsvWriter
 {
     public static void Write(TextWriter writer, CsvDocument document, CsvSaveOptions options)
     {
+        if (options.UsesCustomQuoting)
+        {
+            using TextWriter quoting = CsvQuotingTextWriter.Wrap(writer, options, leaveOpen: true);
+            WriteCore(quoting, document, options);
+            return;
+        }
+
+        WriteCore(writer, document, options);
+    }
+
+    private static void WriteCore(TextWriter writer, CsvDocument document, CsvSaveOptions options)
+    {
         var delimiter = GetDelimiterChar(options);
         var delimiterText = GetDelimiterText(options);
         var culture = options.Culture;

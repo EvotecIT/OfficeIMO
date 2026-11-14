@@ -97,6 +97,37 @@ internal sealed class CsvParsingSettings
     /// <summary>Gets or sets escape decoding for unquoted fields.</summary>
     public CsvEscapeMode EscapeMode { get; set; }
 
+    /// <summary>Gets or sets the character that encloses quoted fields. Default is <c>"</c>.</summary>
+    public char QuoteCharacter { get; set; } = '"';
+
+    /// <summary>
+    /// Gets or sets the character that escapes the quote character, or itself, inside quoted fields. Leave unset to
+    /// double the quote character as RFC 4180 does; a doubled quote character is also accepted when it is set.
+    /// </summary>
+    public char? EscapeCharacter { get; set; }
+
+    /// <summary>Gets whether fields use a quote or escape character other than the RFC 4180 double quote.</summary>
+    internal bool UsesCustomQuoting
+    {
+        get
+        {
+            if (QuoteCharacter == '"' && (EscapeCharacter is null || EscapeCharacter == '"'))
+            {
+                return false;
+            }
+
+            if (QuoteCharacter is '\r' or '\n' || EscapeCharacter is '\r' or '\n')
+            {
+                throw new ArgumentException("Quote and escape characters cannot be line breaks.");
+            }
+
+            return true;
+        }
+    }
+
+    /// <summary>Gets the effective escape character: the quote character itself unless another one is set.</summary>
+    internal char EffectiveEscapeCharacter => EscapeCharacter ?? QuoteCharacter;
+
     /// <summary>Gets whether quote characters are ordinary data, so every physical line is one record.</summary>
     internal bool QuotesAreData => QuoteParsingMode == CsvQuoteParsingMode.None;
 

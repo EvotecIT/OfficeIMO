@@ -180,25 +180,11 @@ public sealed partial class CsvDocument
 
     private static CsvSaveOptions CopySaveOptions(CsvSaveOptions source, CsvCompressionType compressionType)
     {
-        return new CsvSaveOptions
-        {
-            Delimiter = source.Delimiter,
-            DelimiterText = source.DelimiterText,
-            NewLine = source.NewLine,
-            IncludeHeader = source.IncludeHeader,
-            Culture = source.Culture,
-            Encoding = source.Encoding,
-            CompressionType = compressionType,
-            CompressionLevel = source.CompressionLevel,
-            NullValue = source.NullValue,
-            DateTimeFormat = source.DateTimeFormat,
-            UseUtc = source.UseUtc,
-            FormulaInjectionPolicy = source.FormulaInjectionPolicy,
-            QuoteMode = source.QuoteMode,
-            EscapeMode = source.EscapeMode,
-            WriteUnquotedFieldsLiterally = source.WriteUnquotedFieldsLiterally,
-            QuoteFields = source.QuoteFields
-        };
+        CsvSaveOptions copy = source.Clone();
+        copy.CompressionType = compressionType;
+        copy.Append = false;
+        copy.NoClobber = false;
+        return copy;
     }
 
     private CsvSaveOptions ResolveSaveOptions(CsvSaveOptions? options, string? path = null)

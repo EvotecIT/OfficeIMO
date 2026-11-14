@@ -112,7 +112,7 @@ internal static partial class CsvParser
                                 TrySplitUnquotedRecord(first.Text, delimiter[0], _options.TrimWhitespace, _options.QuotesAreData, fields);
                             else
                             {
-                                TrySplitUnquotedRecord(first.Text, delimiter, _options.TrimWhitespace, _options.QuotesAreData, out string[] values);
+                                TrySplitUnquotedRecord(first.Text, delimiter, _options.TrimWhitespace, _options.QuotesAreData, '"', out string[] values);
                                 fields.Clear();
                                 fields.AddRange(values);
                             }
