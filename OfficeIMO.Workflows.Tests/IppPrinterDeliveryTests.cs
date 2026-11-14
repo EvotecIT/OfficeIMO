@@ -53,9 +53,9 @@ public sealed class IppPrinterDeliveryTests {
     [Theory]
     [InlineData(PdfPrintContentKind.Vector, PdfPrintColorMode.Grayscale)]
     [InlineData(PdfPrintContentKind.Raster, PdfPrintColorMode.Color)]
-    public void GrayscaleAndRasterJobsAlwaysUsePwgRaster(PdfPrintContentKind kind, PdfPrintColorMode color) {
+    public void RasterizedGrayscaleAndRasterJobsUsePwgRaster(PdfPrintContentKind kind, PdfPrintColorMode color) {
         IppDeliveryPlan plan = Plan(Sheets(PdfPageSizes.A4.Width, PdfPageSizes.A4.Height, 3, color), kind,
-            new PdfPrintDeliveryOptions { PrinterName = "p", Copies = 2, MaximumRasterDpi = 400 }, PdfAndRaster);
+            new PdfPrintDeliveryOptions { PrinterName = "p", Copies = 2, MaximumRasterDpi = 400, RasterizeGrayscale = true }, PdfAndRaster);
 
         Assert.Equal(IppDocumentKind.PwgRaster, plan.Kind);
         Assert.Equal("image/pwg-raster", plan.DocumentFormat);

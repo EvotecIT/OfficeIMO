@@ -168,8 +168,10 @@ internal static class IppPdfPrinter {
         bool rgb = printer.PwgRasterTypes.Contains("srgb_8"), gray = printer.PwgRasterTypes.Contains("sgray_8");
         bool acceptsPwg = rasterResolutions.Length > 0 && (rgb || gray);
 
+        // A printer that converts PDF to monochrome itself is sent the vector PDF; otherwise grayscale sheets are rasterized as the preview shows them.
+        bool printerConvertsGray = !options.RasterizeGrayscale && printer.ColorModes.Contains("monochrome");
         var plan = new IppDeliveryPlan();
-        if (contentKind == PdfPrintContentKind.Vector && !grayscale && acceptsPdf) plan.Kind = IppDocumentKind.VectorPdf;
+        if (contentKind == PdfPrintContentKind.Vector && acceptsPdf && (!grayscale || printerConvertsGray)) plan.Kind = IppDocumentKind.VectorPdf;
         else if (acceptsPwg) plan.Kind = IppDocumentKind.PwgRaster;
         else if (acceptsPdf) plan.Kind = IppDocumentKind.RasterPdf;
         else throw new NotSupportedException("The printer accepts neither application/pdf nor a supported PWG raster type (sgray_8 or srgb_8). It lists: "
