@@ -42,14 +42,18 @@ internal sealed class ReaderReadScope : IDisposable {
         options?.ResourceLimits == null && options?.Inspection == null ? null :
             new ReaderOperationBudget(options?.ResourceLimits ?? new ReaderResourceLimits(), options?.Inspection);
     private static ReaderProjection ResolveProjection(ReaderOptions? options) =>
-        Current?.Projection == ReaderProjection.TextAndMetadata
-            ? ReaderProjection.TextAndMetadata : options?.Projection ?? ReaderProjection.Full;
+        DocumentReaderEngine.NarrowestProjection(Current?.Projection ?? ReaderProjection.Full,
+            DocumentReaderEngine.RequestedProjection(options));
     internal static OfficeDocumentReadResult Complete(OfficeDocumentReadResult result) {
         var scope = Current;
         if (scope == null) return result;
         DocumentReaderEngine.ApplyProjectionCapability(result, scope.Projection);
-        lock (scope._nested) if (scope._nested.Count > 0)
-            result.NestedDocuments = result.NestedDocuments.Concat(scope._nested).Distinct().ToArray();
+        if (scope.Projection == ReaderProjection.Text) {
+            DocumentReaderEngine.ReduceToText(result);
+        } else {
+            lock (scope._nested) if (scope._nested.Count > 0)
+                result.NestedDocuments = result.NestedDocuments.Concat(scope._nested).Distinct().ToArray();
+        }
         scope.Budget?.AddDocument(result);
         return result;
     }

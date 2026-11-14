@@ -236,6 +236,26 @@ This projection avoids secondary work; it is not a hard process-memory limit. Ke
 package expansion and input limits alongside aggregate output budgets. Format owners document
 any source structures that must still be decoded or validated during loading.
 
+## Text projection
+
+`ReaderProjection.Text` returns only text chunks. `GetText()` gives the same text as the
+text-and-metadata projection, but the result carries no blocks, tables, pages, links,
+assets, metadata, Markdown or nested results; it keeps the source, diagnostics and
+`CapabilitiesUsed`, which includes `officeimo.reader.projection.text`:
+
+```csharp
+var options = ReaderOptions.CreateSafeIngestion();
+options.Projection = ReaderProjection.Text;
+string text = reader.ReadDocument("Policy.docx", options).GetText();
+```
+
+Every handler that supports the text-and-metadata projection supports this one, and the
+same handlers reject it. A handler may read the text directly without building its
+document model; otherwise Reader reduces the text-and-metadata result to one chunk per
+text block, fallback chunk and table row that `GetText()` writes. Each chunk keeps its
+source location, with its position in the text as `LogicalOrder`. The result has the
+same shape either way. Nested reads inherit the text profile.
+
 ## Nested results and qualified capabilities
 
 ZIP and email reads keep each delegated source's rich result in `NestedDocuments`, alongside the existing

@@ -6,20 +6,20 @@ using DocumentFormat.OpenXml.Packaging;
 namespace OfficeIMO.Reader.Word;
 
 /// <summary>
-/// Reads the plain text of a DOCX body with one forward pass over its main part, without building the Word
-/// document model. It writes the lines the text-and-metadata projection's GetText() writes: each body paragraph's
-/// visible run text, and each table as a column line followed by its rows with tab-separated cells. Any construct
-/// whose text depends on the full model (headers and footers, notes, fields, content controls, drawings, revisions,
-/// merged or nested table cells, long paragraphs) makes it decline, and the caller reads the document normally.
+/// Reads the plain text of a DOCX body for the text projection with one forward pass over its main part, without
+/// building the Word document model. It writes the lines the text-and-metadata projection's GetText() writes: each
+/// body paragraph's visible run text, and each table as a column line followed by its rows with tab-separated cells.
+/// Any construct whose text depends on the full model (headers and footers, notes, fields, content controls, drawings,
+/// revisions, merged or nested table cells, long paragraphs) makes it decline; the caller then builds the model and
+/// the read scope reduces that result to the same text chunks.
 /// </summary>
 internal static class WordStreamingTextReader {
     private const string WordNamespace = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
     private const string XmlNamespace = "http://www.w3.org/XML/1998/namespace";
 
-    /// <summary>Whether the request only needs the text this pass can reproduce.</summary>
-    internal static bool Applies(ReaderOptions readerOptions, ReaderWordOptions options) =>
-        options.StreamTextWhenPossible
-        && readerOptions.Projection == ReaderProjection.TextAndMetadata
+    /// <summary>Whether the read asked for the text projection and nothing this pass cannot honor.</summary>
+    internal static bool Applies(ReaderOptions readerOptions) =>
+        DocumentReaderEngine.IsTextProjection
         && string.IsNullOrEmpty(readerOptions.OpenPassword)
         && readerOptions.Inspection == null
         && FormatInternals.OpenXmlReaderAdmission.Policy(readerOptions, global::OfficeIMO.Word.WordLoadOptions.DefaultMaxInputBytes) == null;
@@ -76,8 +76,8 @@ internal static class WordStreamingTextReader {
                 Text = line
             });
         }
-        return DocumentReaderEngine.CreateDocumentResult(chunks, ReaderInputKind.Word,
-            capabilities: new[] { OfficeDocumentReaderBuilderWordExtensions.HandlerId, "officeimo.reader.word.streamed-text" });
+        return DocumentReaderEngine.CreateTextResult(chunks, ReaderInputKind.Word,
+            new[] { OfficeDocumentReaderBuilderWordExtensions.HandlerId, "officeimo.reader.word.streamed-text" });
     }
 
     private sealed class Context {

@@ -137,7 +137,8 @@ internal static partial class DocumentReaderEngine {
             (!sameDocument && string.IsNullOrWhiteSpace(document.Markdown))) {
             if (HasTextAndMetadataProjection(snapshot.Document)) {
                 document.Markdown = null;
-                ApplyProjectionCapability(document, ReaderProjection.TextAndMetadata);
+                ApplyProjectionCapability(document, snapshot.Document.CapabilitiesUsed.Contains(TextProjectionCapability, StringComparer.Ordinal)
+                    ? ReaderProjection.Text : ReaderProjection.TextAndMetadata);
             } else {
                 document.Markdown = BuildProcessedChunkMarkdown(chunks, snapshot.Chunks);
             }

@@ -49,11 +49,11 @@ public class WordReadComparisonBenchmarks {
         return observation;
     }
 
-    /// <summary>OfficeIMO.Reader's text projection: the plain-text route for ingestion and search.</summary>
+    /// <summary>OfficeIMO.Reader's text-and-metadata projection: the plain-text route for ingestion and search.</summary>
     [Benchmark]
     public WordReadObservation OfficeIMOReaderText() => WordReaderTextWorkload.Read(_fixture);
 
-    /// <summary>OfficeIMO.Reader's text projection with <c>StreamTextWhenPossible</c>.</summary>
+    /// <summary>OfficeIMO.Reader's <c>Text</c> projection, which returns only text chunks.</summary>
     [Benchmark]
     public WordReadObservation OfficeIMOReaderStreamedText() => WordReaderTextWorkload.ReadStreamed(_fixture);
 

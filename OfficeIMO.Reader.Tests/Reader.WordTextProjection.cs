@@ -5,25 +5,39 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
-public sealed class ReaderWordStreamedTextTests {
+public sealed class ReaderWordTextProjectionTests {
     private const string StreamedCapability = "officeimo.reader.word.streamed-text";
 
+    // A running header stops the streamed pass, so that row reads the Word model and reduces it to text.
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void StreamedTextMatchesTheModelProjectionAndDeclinesRunningHeaders(bool withHeader) {
+    public void TextProjectionReturnsOnlyTextChunksWithTheTextOfTheLeanRead(bool withHeader) {
         byte[] package = CreateDocument(withHeader);
-        var options = new ReaderOptions { Projection = ReaderProjection.TextAndMetadata };
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddWordHandler().Build();
 
-        OfficeDocumentReadResult model = new OfficeDocumentReaderBuilder().AddWordHandler().Build()
-            .ReadDocument(package, "streamed.docx", options);
-        OfficeDocumentReadResult streamed = new OfficeDocumentReaderBuilder()
-            .AddWordHandler(new ReaderWordOptions { StreamTextWhenPossible = true }).Build()
-            .ReadDocument(package, "streamed.docx", options);
+        OfficeDocumentReadResult lean = reader.ReadDocument(package, "report.docx",
+            new ReaderOptions { Projection = ReaderProjection.TextAndMetadata });
+        OfficeDocumentReadResult text = reader.ReadDocument(package, "report.docx",
+            new ReaderOptions { Projection = ReaderProjection.Text });
 
-        Assert.Equal(model.GetText(), streamed.GetText());
-        Assert.Equal(!withHeader, streamed.CapabilitiesUsed.Contains(StreamedCapability));
-        Assert.DoesNotContain(StreamedCapability, model.CapabilitiesUsed);
+        Assert.NotEmpty(lean.Tables);
+        Assert.Equal(lean.GetText(), text.GetText());
+        Assert.NotEmpty(text.Chunks);
+        Assert.All(text.Chunks, chunk => {
+            Assert.False(string.IsNullOrEmpty(chunk.Text));
+            Assert.Null(chunk.Tables);
+            Assert.Null(chunk.Markdown);
+        });
+        Assert.Empty(text.Blocks);
+        Assert.Empty(text.Tables);
+        Assert.Empty(text.Pages);
+        Assert.Empty(text.Links);
+        Assert.Empty(text.Metadata);
+        Assert.Null(text.Markdown);
+        Assert.Contains("officeimo.reader.projection.text", text.CapabilitiesUsed);
+        Assert.Equal(!withHeader, text.CapabilitiesUsed.Contains(StreamedCapability));
+        Assert.DoesNotContain(StreamedCapability, lean.CapabilitiesUsed);
     }
 
     // Paragraphs, list items, a hyperlink, a line break and tab, and a table with a repeated header row.
