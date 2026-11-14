@@ -862,6 +862,7 @@ public sealed partial class PdfReadPage {
                      content,
                      maxOperations: _limits.MaxContentOperations,
                      maxNestingDepth: _limits.MaxContentNestingDepth,
+                     maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
                      maxOperands: _limits.MaxContentOperands,
                      inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
                      cancellationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested)) {
@@ -1128,6 +1129,7 @@ public sealed partial class PdfReadPage {
             includeArtifactText: includeArtifactText,
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
             maxOperands: _limits.MaxContentOperands,
             maxActualTextCharacters: _limits.MaxActualTextCharacters,
             maxDecodedTextCharacters: _limits.MaxDecodedTextCharacters,
@@ -1332,6 +1334,7 @@ public sealed partial class PdfReadPage {
                       initialClipPath,
                      maxOperations: _limits.MaxContentOperations,
                      maxNestingDepth: _limits.MaxContentNestingDepth,
+                     maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
                      maxOperands: _limits.MaxContentOperands,
                      initialBlendMode: initialBlendMode,
                      initialAuthoredBlendMode: initialAuthoredBlendMode,

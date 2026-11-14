@@ -1450,6 +1450,29 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
+    public void GraphicsStateDepthBudgetCountsSavesAcrossInvokedForms() {
+        byte[] pdf = BuildPdfObjects(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /XObject << /Fm1 5 0 R >> >> /Contents 4 0 R >>",
+            "<< /Length 11 >>\nstream\nq q /Fm1 Do\nendstream",
+            "<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Length 22 >>\nstream\nq q 0 0 10 10 re f Q Q\nendstream");
+        PdfReadDocument limited = PdfReadDocument.Open(pdf, new PdfLoadOptions { Limits = new PdfReadLimits { MaxGraphicsStateDepth = 3 } });
+        PdfReadDocument sufficient = PdfReadDocument.Open(pdf, new PdfLoadOptions { Limits = new PdfReadLimits { MaxGraphicsStateDepth = 4 } });
+
+        PdfReadLimitException textException = Assert.Throws<PdfReadLimitException>(() => limited.Pages[0].ExtractText());
+        PdfReadLimitException drawingException = Assert.Throws<PdfReadLimitException>(() => limited.Pages[0].ToDrawing());
+
+        foreach (PdfReadLimitException exception in new[] { textException, drawingException }) {
+            Assert.Equal(PdfReadLimitKind.GraphicsStateDepth, exception.Kind);
+            Assert.Equal(3, exception.Limit);
+            Assert.Equal(4, exception.Actual);
+        }
+        _ = sufficient.Pages[0].ExtractText();
+        Assert.NotNull(sufficient.Pages[0].ToDrawing());
+    }
+
+    [Fact]
     public void ImageResourceTraversalUsesTheContentNestingBudget() {
         PdfReadDocument document = PdfReadDocument.Open(
             BuildNestedFormXObjectPdf(),

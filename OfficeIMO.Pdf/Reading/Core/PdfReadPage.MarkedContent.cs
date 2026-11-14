@@ -57,6 +57,7 @@ public sealed partial class PdfReadPage {
         },
             inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
             maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
             maxOperands: _limits.MaxContentOperands,
             dispatchInvalidOperations: true,
             operandBuffer: new PdfContentOperands());

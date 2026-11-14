@@ -266,6 +266,7 @@ internal static partial class PdfImageEditor {
                 }
             },
             maxNestingDepth: limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: limits.MaxGraphicsStateDepth,
             maxOperands: limits.MaxContentOperands);
         markedContentDepth = depth;
         return found;
@@ -624,6 +625,7 @@ internal static partial class PdfImageEditor {
                     operation.Operands[operation.Operands.Count - 1] is string name) names.Add(name);
             },
             maxNestingDepth: limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: limits.MaxGraphicsStateDepth,
             maxOperands: limits.MaxContentOperands);
         return names;
     }

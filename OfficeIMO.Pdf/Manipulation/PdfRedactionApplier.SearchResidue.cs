@@ -208,7 +208,7 @@ internal static partial class PdfRedactionApplier {
                                 if (cmap && !CMapSyntaxWords.Contains(operation.Name)) cmapWords.Append(operation.Name).Append(' ');
                                 if (cmap && operation.Name is "endbfchar" or "endbfrange" or "endcidchar" or "endcidrange") return;
                                 found |= operation.Operands.Any(OperandHolds);
-                            }, maxNestingDepth: limits.MaxContentNestingDepth, maxOperands: limits.MaxContentOperands);
+                            }, maxNestingDepth: limits.MaxContentNestingDepth, maxGraphicsStateDepth: limits.MaxGraphicsStateDepth, maxOperands: limits.MaxContentOperands);
                     } catch (FormatException) {
                         // A sniffed stream can contain arbitrary bytes rather than PDF operands.
                         // Inspect the entire payload, including valid strings after the bad token.

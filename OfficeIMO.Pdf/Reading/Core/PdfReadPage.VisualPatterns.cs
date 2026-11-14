@@ -717,6 +717,7 @@ public sealed partial class PdfReadPage {
                 }
             },
             maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
             maxOperands: _limits.MaxContentOperands);
         return consumesInheritedState;
     }

@@ -214,6 +214,7 @@ internal static partial class PdfPrintProductionStructureInspector {
                     _limits.MaxObjectNestingDepth,
                     _limits.MaxDecodedStreamBytes),
                 maxNestingDepth: _limits.MaxContentNestingDepth,
+                maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
                 maxOperands: _limits.MaxContentOperands,
                 dispatchInvalidOperations: true,
                 inlineImageArrayComponentCount: colorSpace => PdfPrintProductionColorInspector.ResolveInlineImageComponentCountForResources(

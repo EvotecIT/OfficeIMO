@@ -87,6 +87,7 @@ internal static partial class PdfRedactionApplier {
                 }
             },
             maxNestingDepth: limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: limits.MaxGraphicsStateDepth,
             maxOperands: limits.MaxContentOperands);
         state.Current = current;
         state.TextState = textState;

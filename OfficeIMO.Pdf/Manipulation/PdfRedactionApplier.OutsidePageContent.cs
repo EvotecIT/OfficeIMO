@@ -93,7 +93,7 @@ internal static partial class PdfRedactionApplier {
             if (operation.Name != "BDC" || operation.Operands.Count == 0 ||
                 operation.Operands[operation.Operands.Count - 1] is not PdfContentDictionary dictionary) return;
             if (AlternateTextKeys.Any(key => dictionary.Items.TryGetValue(key, out object? value) && value is byte[] bytes && matches(PdfTextString.Decode(bytes)))) edits.Add((start, previousEnd));
-        }, maxNestingDepth: limits.MaxContentNestingDepth, maxOperands: limits.MaxContentOperands);
+        }, maxNestingDepth: limits.MaxContentNestingDepth, maxGraphicsStateDepth: limits.MaxGraphicsStateDepth, maxOperands: limits.MaxContentOperands);
         found = edits.Count > 0;
         if (!found) return content;
         var builder = new StringBuilder(content.Length);
@@ -180,7 +180,7 @@ internal static partial class PdfRedactionApplier {
                     continue;
                 }
                 foreach (TextContentParser.FormInvocation invocation in TextContentParser.ExtractFormInvocations(PdfEncoding.Latin1GetString(decoded),
-                    maxOperations: limits.MaxContentOperations, maxNestingDepth: limits.MaxContentNestingDepth, maxOperands: limits.MaxContentOperands)) names.Add(invocation.Name);
+                    maxOperations: limits.MaxContentOperations, maxNestingDepth: limits.MaxContentNestingDepth, maxGraphicsStateDepth: limits.MaxGraphicsStateDepth, maxOperands: limits.MaxContentOperands)) names.Add(invocation.Name);
             }
         }
 
@@ -297,7 +297,7 @@ internal static partial class PdfRedactionApplier {
             var invoked = new HashSet<string>(StringComparer.Ordinal);
             PdfContentStreamInterpreter.Interpret(content, limits.MaxContentOperations, operation => {
                 if (operation.Name == "Do" && operation.Operands.Count > 0 && operation.Operands[operation.Operands.Count - 1] is string name) invoked.Add(name);
-            }, maxNestingDepth: limits.MaxContentNestingDepth, maxOperands: limits.MaxContentOperands);
+            }, maxNestingDepth: limits.MaxContentNestingDepth, maxGraphicsStateDepth: limits.MaxGraphicsStateDepth, maxOperands: limits.MaxContentOperands);
             foreach (KeyValuePair<string, PdfObject> entry in xObjects.Items) {
                 if (PdfObjectLookup.Resolve(objects, entry.Value) is not PdfStream form) continue;
                 string? subtype = form.Dictionary.Get<PdfName>("Subtype")?.Name;
@@ -394,7 +394,7 @@ internal static partial class PdfRedactionApplier {
         void Visit(string ownerContent, PdfDictionary resources) {
             if (ResolveDictionary(objects, resources.Items.TryGetValue("XObject", out PdfObject? value) ? value : null) is not PdfDictionary xObjects) return;
             var invoked = new HashSet<string>(TextContentParser.ExtractFormInvocations(ownerContent, maxOperations: limits.MaxContentOperations,
-                maxNestingDepth: limits.MaxContentNestingDepth, maxOperands: limits.MaxContentOperands).Select(static invocation => invocation.Name), StringComparer.Ordinal);
+                maxNestingDepth: limits.MaxContentNestingDepth, maxGraphicsStateDepth: limits.MaxGraphicsStateDepth, maxOperands: limits.MaxContentOperands).Select(static invocation => invocation.Name), StringComparer.Ordinal);
             foreach (KeyValuePair<string, PdfObject> entry in xObjects.Items) {
                 if (PdfObjectLookup.Resolve(objects, entry.Value) is not PdfStream form ||
                     !string.Equals(form.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) continue;
@@ -442,7 +442,7 @@ internal static partial class PdfRedactionApplier {
     private static bool HasInlineImage(string content, PdfReadLimits limits) {
         bool found = false;
         PdfContentStreamInterpreter.Interpret(content, limits.MaxContentOperations, operation => found |= operation.Name is "BI" or "ID" or "EI",
-            maxNestingDepth: limits.MaxContentNestingDepth, maxOperands: limits.MaxContentOperands);
+            maxNestingDepth: limits.MaxContentNestingDepth, maxGraphicsStateDepth: limits.MaxGraphicsStateDepth, maxOperands: limits.MaxContentOperands);
         return found;
     }
 
