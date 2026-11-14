@@ -1,0 +1,83 @@
+{
+  "areas": [
+    {
+      "id": "pdf",
+      "title": "PDF",
+      "summary": "Structured and HTML-to-PDF generation, merge, split, page selection and text extraction."
+    },
+    {
+      "id": "excel",
+      "title": "Excel",
+      "summary": "Typed reads of XLSX, XLSB and XLS files, and fast workbook writes from a data reader."
+    },
+    {
+      "id": "csv",
+      "title": "CSV",
+      "summary": "Decoded reads of a 65,000-record file and writes from a data reader."
+    },
+    {
+      "id": "word",
+      "title": "Word",
+      "summary": "DOCX creation, editing and reading against other .NET Word libraries."
+    },
+    {
+      "id": "powerpoint",
+      "title": "PowerPoint",
+      "summary": "PPTX creation and editing against other .NET presentation libraries."
+    },
+    {
+      "id": "markdown",
+      "title": "Markdown",
+      "summary": "CommonMark parsing and rendering."
+    },
+    {
+      "id": "html",
+      "title": "HTML",
+      "summary": "HTML to Markdown and HTML parsing workloads."
+    },
+    {
+      "id": "rtf",
+      "title": "RTF",
+      "summary": "RTF to HTML conversion."
+    },
+    {
+      "id": "image",
+      "title": "Images",
+      "summary": "TIFF and WebP encoding and decoding."
+    },
+    {
+      "id": "email",
+      "title": "Email",
+      "summary": "MIME message parsing."
+    },
+    {
+      "id": "epub",
+      "title": "EPUB",
+      "summary": "EPUB book reading."
+    },
+    {
+      "id": "opendocument",
+      "title": "OpenDocument",
+      "summary": "ODS spreadsheet reading and writing."
+    },
+    {
+      "id": "zip",
+      "title": "ZIP",
+      "summary": "Archive reading and writing."
+    }
+  ],
+  "platforms": [
+    {
+      "id": "windows",
+      "label": "Windows"
+    },
+    {
+      "id": "linux",
+      "label": "Linux"
+    },
+    {
+      "id": "macos",
+      "label": "macOS"
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+/* Benchmark overview, area pages and charts (partials/benchmark-overview, benchmark-area; js/benchmark-area.js). */
+.imo-bench-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.imo-bench-lead { max-width: 68ch; margin: 0; color: var(--imo-text-secondary); font-size: 1.08rem; line-height: 1.65; }
+.imo-bench-heading { display: grid; gap: .45rem; max-width: 760px; margin-bottom: 1.1rem; }
+.imo-bench-heading h2 { margin: 0; font-size: clamp(1.4rem, 1.15rem + 1vw, 1.9rem); }
+.imo-bench-heading p { margin: 0; color: var(--imo-text-secondary); line-height: 1.6; }
+.imo-bench-crumbs { margin: 0 0 .9rem; color: var(--imo-text-muted); font-size: .88rem; }
+.imo-bench-crumbs a { color: var(--imo-accent); text-decoration: none; font-weight: 600; }
+
+/* Area cards. */
+.imo-bench-areas__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.imo-bench-area > a, .imo-bench-area > div { display: flex; flex-direction: column; gap: .6rem; height: 100%; padding: 18px 20px; border: 1px solid var(--imo-border); border-radius: 12px; background: var(--imo-surface); color: var(--imo-text); text-decoration: none; }
+.imo-bench-area > a:hover { border-color: var(--imo-border-strong); box-shadow: 0 16px 36px -30px rgba(15, 23, 42, .5); }
+.imo-bench-area > a:focus-visible { outline: 2px solid var(--imo-accent); outline-offset: 2px; }
+.imo-bench-area--empty > div { background: var(--imo-bg-alt); border-style: dashed; }
+.imo-bench-area h3 { margin: 0; font-size: 1.2rem; }
+.imo-bench-area p { margin: 0; color: var(--imo-text-secondary); font-size: .92rem; line-height: 1.55; }
+.imo-bench-area__status { margin-top: auto !important; padding-top: .2rem; color: var(--imo-text-muted) !important; font-size: .82rem !important; font-variant-numeric: tabular-nums; }
+.imo-bench-lanes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 0; list-style: none; }
+.imo-bench-lane { display: flex; flex-direction: column; gap: 1px; padding: 6px 8px; border-radius: 6px; font-size: .78rem; }
+.imo-bench-lane span { font-weight: 650; }
+.imo-bench-lane small { font-size: .7rem; letter-spacing: .03em; }
+.imo-bench-lane--full { background: color-mix(in srgb, var(--imo-success) 13%, transparent); color: var(--imo-text); }
+.imo-bench-lane--full small { color: var(--imo-success); font-weight: 700; }
+.imo-bench-lane--quick { background: color-mix(in srgb, var(--imo-warning) 13%, transparent); color: var(--imo-text); }
+.imo-bench-lane--quick small { color: var(--imo-warning); font-weight: 700; }
+.imo-bench-lane--none { background: var(--imo-bg-alt); color: var(--imo-text-muted); }
+
+/* Test machines. */
+.imo-bench-machines { margin-top: clamp(2.5rem, 5vw, 3.5rem); }
+.imo-bench-machines ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.imo-bench-machines li { display: flex; flex-direction: column; gap: 3px; padding: 16px 18px; border: 1px solid var(--imo-border); border-radius: 12px; background: var(--imo-surface); }
+.imo-bench-machines strong { font: 700 1.05rem/1.3 var(--imo-font-display); }
+.imo-bench-machines span { color: var(--imo-text-secondary); font-size: .88rem; }
+
+/* Area page. */
+.imo-bench-area-page { display: grid; gap: clamp(2rem, 4vw, 3rem); }
+.imo-bench-area-page__header h1 { margin: 0 0 .6rem; }
+.imo-bench-area-page__header p { max-width: 70ch; margin: 0; color: var(--imo-text-secondary); font-size: 1.05rem; line-height: 1.65; }
+.imo-bench-workload { display: grid; gap: .9rem; padding-top: clamp(1.5rem, 3vw, 2rem); border-top: 1px solid var(--imo-border); scroll-margin-top: 6rem; }
+.imo-bench-workload h2 { margin: 0; font-size: clamp(1.2rem, 1.05rem + .6vw, 1.5rem); }
+.imo-bench-workload__suite { margin: .25rem 0 0; color: var(--imo-text-muted); font: 500 .82rem/1.5 var(--imo-font-mono); overflow-wrap: anywhere; }
+.imo-bench-runs { display: flex; flex-wrap: wrap; gap: 6px; }
+.imo-bench-run { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 6px 12px; border: 1px solid var(--imo-border); border-radius: 8px; background: var(--imo-surface); color: var(--imo-text); font: 600 .86rem/1.3 var(--imo-font-body); cursor: pointer; }
+.imo-bench-run small { color: var(--imo-text-muted); font-weight: 500; font-size: .74rem; font-variant-numeric: tabular-nums; }
+.imo-bench-run[aria-pressed="true"] { border-color: var(--imo-primary); box-shadow: inset 0 0 0 1px var(--imo-primary); background: var(--imo-primary-light); }
+.imo-bench-run:focus-visible { outline: 2px solid var(--imo-primary); outline-offset: 2px; }
+.imo-bench-chart { display: grid; gap: 1rem; min-width: 0; }
+.imo-bench-chart[aria-busy="true"] { opacity: .6; }
+.imo-bench-raw { margin: 0; padding-left: 1.1rem; color: var(--imo-text-secondary); font-size: .88rem; }
+.imo-bench-meta { margin: 0; color: var(--imo-text-secondary); font-size: .86rem; }
+.imo-bench-note { margin: 0; padding: 8px 12px; border-radius: 8px; background: color-mix(in srgb, var(--imo-warning) 12%, transparent); color: var(--imo-text); font-size: .86rem; }
+.imo-bench-links { margin: 0; color: var(--imo-text-muted); font-size: .82rem; }
+.imo-bench-links a { color: var(--imo-accent); font-weight: 600; }
+.imo-bench-figure { margin: 0; }
+.imo-bench-figure figcaption { margin-bottom: .45rem; color: var(--imo-text); font-weight: 650; font-size: .92rem; }
+.imo-bench-table-wrap { overflow-x: auto; border: 1px solid var(--imo-border); border-radius: 10px; background: var(--imo-surface); }
+.imo-bench-table { width: 100%; min-width: 620px; border-collapse: collapse; font-size: .88rem; font-variant-numeric: tabular-nums; }
+.imo-bench-table th, .imo-bench-table td { padding: 8px 12px; border-bottom: 1px solid var(--imo-border); text-align: left; white-space: nowrap; }
+.imo-bench-table thead th { background: var(--imo-bg-alt); color: var(--imo-text-muted); font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.imo-bench-table tbody tr:last-child > * { border-bottom: 0; }
+.imo-bench-table tbody th { font-weight: 650; }
+.imo-bench-table tbody th small { color: var(--imo-text-muted); font-weight: 500; }
+.imo-bench-num { text-align: right !important; }
+.imo-bench-table__bar { width: 34%; min-width: 140px; }
+.imo-bench-bar { display: block; height: 10px; border-radius: 3px; background: var(--imo-border-strong); }
+.imo-bench-table tr.is-officeimo > * { background: color-mix(in srgb, var(--imo-primary) 6%, transparent); }
+.imo-bench-table tr.is-officeimo th { color: var(--imo-primary); }
+.imo-bench-table tr.is-officeimo .imo-bench-bar { background: var(--imo-primary); }
+.imo-bench-empty, .imo-bench-method { display: grid; gap: .6rem; max-width: 760px; }
+.imo-bench-empty h2, .imo-bench-method h2 { margin: 0; font-size: 1.3rem; }
+.imo-bench-empty p, .imo-bench-method p { margin: 0; color: var(--imo-text-secondary); line-height: 1.6; }
+.imo-bench-empty a, .imo-bench-method a { color: var(--imo-accent); font-weight: 600; }
+.imo-bench-overview { display: grid; gap: clamp(2rem, 4vw, 3rem); }
+.imo-bench-areas__grid > li, .imo-bench-lanes > li, .imo-bench-machines li, .imo-bench-waiting li { list-style: none; }
+.imo-bench-areas__grid > li::marker, .imo-bench-lanes > li::marker { content: none; }
+.imo-bench-waiting { display: grid; gap: .6rem; margin-top: 1.25rem; padding: 16px 18px; border: 1px dashed var(--imo-border-strong); border-radius: 12px; background: var(--imo-bg-alt); }
+.imo-bench-waiting h3 { margin: 0; font-size: 1rem; }
+.imo-bench-waiting ul { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; }
+.imo-bench-waiting li a { display: inline-block; padding: 4px 10px; border: 1px solid var(--imo-border); border-radius: 999px; background: var(--imo-surface); color: var(--imo-text); font-size: .86rem; font-weight: 600; text-decoration: none; }
+.imo-bench-waiting li small { color: var(--imo-text-muted); }
+.imo-bench-waiting p { margin: 0; color: var(--imo-text-secondary); font-size: .9rem; }
+.imo-bench-waiting p a { color: var(--imo-accent); font-weight: 600; }

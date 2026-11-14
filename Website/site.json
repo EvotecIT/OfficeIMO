@@ -427,8 +427,20 @@
       },
       {
         "Name": "benchmarks",
+        "Css": [
+          "/css/benchmarks.css"
+        ],
         "Js": [
           "/js/benchmarks.js"
+        ]
+      },
+      {
+        "Name": "benchmark-area",
+        "Css": [
+          "/css/benchmarks.css"
+        ],
+        "Js": [
+          "/js/benchmark-area.js"
         ]
       },
       {
@@ -570,7 +582,25 @@
         "Match": "/benchmarks/",
         "Bundles": [
           "global",
+          "benchmark-area",
+          "product",
+          "experience"
+        ]
+      },
+      {
+        "Match": "/benchmarks/archive/",
+        "Bundles": [
+          "global",
           "benchmarks",
+          "product",
+          "experience"
+        ]
+      },
+      {
+        "Match": "/benchmarks/**",
+        "Bundles": [
+          "global",
+          "benchmark-area",
           "product",
           "experience"
         ]
