@@ -327,7 +327,7 @@ public sealed partial class PdfCreateOptions {
         }
 
         var embeddedFont = new PdfEmbeddedFont(font, data, normalizedFontName, cloneData, syntheticOblique, syntheticBold);
-        (_embeddedFonts ??= new System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>())[font] = embeddedFont;
+        (_embeddedFonts ??= new PdfFontMembershipMap<PdfStandardFont, PdfEmbeddedFont>())[font] = embeddedFont;
         _embeddedFontPrograms?.Remove(font);
         _embeddedOpenTypeCffFontPrograms?.Remove(font);
         _embeddedFontProgramFailures?.Remove(font);

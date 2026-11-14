@@ -311,15 +311,18 @@ internal sealed class HtmlCssPropertyNameComparer : IEqualityComparer<string> {
     }
 
     public bool Equals(string? x, string? y) {
-        bool xIsCustom = x?.StartsWith("--", StringComparison.Ordinal) == true;
-        bool yIsCustom = y?.StartsWith("--", StringComparison.Ordinal) == true;
-        return xIsCustom || yIsCustom
+        if (ReferenceEquals(x, y)) return true;
+        return IsCustomProperty(x) || IsCustomProperty(y)
             ? StringComparer.Ordinal.Equals(x, y)
             : StringComparer.OrdinalIgnoreCase.Equals(x, y);
     }
 
     public int GetHashCode(string value) =>
-        value.StartsWith("--", StringComparison.Ordinal)
+        IsCustomProperty(value)
             ? StringComparer.Ordinal.GetHashCode(value)
             : StringComparer.OrdinalIgnoreCase.GetHashCode(value);
+
+    // Every style lookup hashes its name; two character tests avoid a culture-free StartsWith call.
+    private static bool IsCustomProperty(string? value) =>
+        value != null && value.Length >= 2 && value[0] == '-' && value[1] == '-';
 }

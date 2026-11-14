@@ -80,7 +80,7 @@ public static partial class HtmlResourcePipeline {
                 return new FontFaceSheet(maximumDepth, faces);
             }
 
-            var parser = new CssParser();
+            CssParser parser = HtmlCssProviderParsers.Declarations;
             ICssStyleSheet stylesheet = parser.ParseStyleSheet(css);
             IReadOnlyList<IReadOnlyDictionary<string, string>> rawRules = ExtractRawFontFaceDescriptors(css, closures);
             var rawDescriptors = new Dictionary<ICssFontFaceRule, IReadOnlyDictionary<string, string>>();

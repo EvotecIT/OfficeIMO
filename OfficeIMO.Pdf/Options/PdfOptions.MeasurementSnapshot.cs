@@ -9,11 +9,11 @@ public sealed partial class PdfCreateOptions {
         view._themeDeferredTableStyle = null;
         // Font definitions and their immutable owned bytes can be borrowed. Dictionary
         // membership must be private because automatic fallback may register a family.
-        view._embeddedFonts = _embeddedFonts == null ? null : new Dictionary<PdfStandardFont, PdfEmbeddedFont>(_embeddedFonts);
+        view._embeddedFonts = _embeddedFonts?.CopyWithSameEntries();
         // A deferred default family resolves into whichever options ask first, so the view keeps its own record.
         view._pendingDefaultFontFamilies = ClonePendingDefaultFontFamilies();
         view._defaultEmbeddedFontFamilies = _defaultEmbeddedFontFamilies == null ? null : new HashSet<PdfStandardFont>(_defaultEmbeddedFontFamilies);
-        view._namedFontFamilies = _namedFontFamilies == null ? null : new Dictionary<string, PdfEmbeddedFontFamily>(_namedFontFamilies, StringComparer.Ordinal);
+        view._namedFontFamilies = _namedFontFamilies?.CopyWithSameEntries();
         view._namedFallbackPlanBindings = _namedFallbackPlanBindings == null ? null : new Dictionary<object, PdfEmbeddedFontFallbackCandidate>(_namedFallbackPlanBindings);
         view._embeddedFontPrograms = null;
         view._embeddedOpenTypeCffFontPrograms = null;
@@ -42,6 +42,11 @@ public sealed partial class PdfCreateOptions {
             _defaultFontSizeAssignmentVersion != source._defaultFontSizeAssignmentVersion ||
             (_embeddedFonts?.Count ?? 0) != (source._embeddedFonts?.Count ?? 0) ||
             (_namedFontFamilies?.Count ?? 0) != (source._namedFontFamilies?.Count ?? 0)) return false;
+        bool sameEmbedded = (_embeddedFonts?.Count ?? 0) == 0
+            || PdfFontMembershipMap<PdfStandardFont, PdfEmbeddedFont>.HaveSameEntries(_embeddedFonts, source._embeddedFonts);
+        bool sameNamed = (_namedFontFamilies?.Count ?? 0) == 0
+            || PdfFontMembershipMap<string, PdfEmbeddedFontFamily>.HaveSameEntries(_namedFontFamilies, source._namedFontFamilies);
+        if (sameEmbedded && sameNamed) return true;
         if (source._embeddedFonts != null) foreach (var entry in source._embeddedFonts)
             if (_embeddedFonts == null || !_embeddedFonts.TryGetValue(entry.Key, out var definition) || !ReferenceEquals(definition, entry.Value)) return false;
         if (source._namedFontFamilies != null) foreach (var entry in source._namedFontFamilies)

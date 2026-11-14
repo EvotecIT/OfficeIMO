@@ -13,7 +13,7 @@ public static partial class HtmlComputedStyleEngine {
         // Keep the existing parser as the grammar owner. Preserve only the native
         // length-math extension that it cannot parse, then validate the surrounding
         // repeat/minmax/track and line-name grammar through the same parser.
-        var parser = new CssParser();
+        CssParser parser = HtmlCssProviderParsers.Declarations;
         string? parsedValue = parser.ParseDeclaration(propertyName + ":" + value)?.GetPropertyValue(propertyName);
         if (!string.IsNullOrEmpty(parsedValue)) {
             return propertyName != "grid-template-areas" || AreGridTemplateAreasRectangular(parsedValue!);

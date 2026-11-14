@@ -102,7 +102,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
 
-                HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(element, width, parentStyle);
+                HtmlRenderBoxStyle childStyle = ResolveFlowChildStyle(element, width, parentStyle);
                 childStyle = ResolveColumnFragmentStyle(element,
                     ForwardContainingHeightBasis(element, childStyle, parentStyle));
                 if (childStyle.Display == "none") {

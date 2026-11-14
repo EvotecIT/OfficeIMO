@@ -3,6 +3,20 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    private const int MaximumPresizedTableEntries = 1 << 16;
+
+    /// <summary>Sizes the winner map for the remaining rows from the edges the first row contributed.</summary>
+    private static Dictionary<CollapsedBorderKey, CollapsedBorderCandidate> PresizeCollapsedBorderWinners(
+        Dictionary<CollapsedBorderKey, CollapsedBorderCandidate> winners, int tableLevelWinners, int rowCount, long gridEdges) {
+        long perRow = winners.Count - tableLevelWinners;
+        if (perRow <= 0 || rowCount <= 1) return winners;
+        long expected = Math.Min(Math.Min(tableLevelWinners + perRow * rowCount, gridEdges), MaximumPresizedTableEntries);
+        if (expected <= winners.Count) return winners;
+        var presized = new Dictionary<CollapsedBorderKey, CollapsedBorderCandidate>((int)expected);
+        foreach (KeyValuePair<CollapsedBorderKey, CollapsedBorderCandidate> entry in winners) presized.Add(entry.Key, entry.Value);
+        return presized;
+    }
+
     /// <summary>Resolves authored border conflicts before measuring cells, retaining full-width winners for paint.</summary>
     private CollapsedTableBorderLayout? ResolveCollapsedTableBorderLayout(
         IElement table,
@@ -12,8 +26,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth,
         int legacyBorderWidth) {
         if (tableStyle.BorderCollapse != "collapse" || rows.Count == 0 || columnCount <= 0) return null;
+        // Sizing the cell map up front avoids rebuilding it as a long table grows, which for a few hundred
+        // rows also put each rebuilt array on the large-object heap. The winner map is sized after the first
+        // row instead, once it shows how many edges each row actually borders; borderless tables add none.
+        long gridEdges = (long)(rows.Count + 1) * columnCount + (long)rows.Count * (columnCount + 1);
         var winners = new Dictionary<CollapsedBorderKey, CollapsedBorderCandidate>();
-        var placements = new Dictionary<TableFormattingCell, CollapsedTableCellPlacement>();
+        int cellCount = 0;
+        for (int index = 0; index < rows.Count; index++) cellCount += rows[index].Cells.Count;
+        var placements = new Dictionary<TableFormattingCell, CollapsedTableCellPlacement>(Math.Min(cellCount, MaximumPresizedTableEntries));
         int sourceOrder = 0;
         bool rtl = tableStyle.Direction == "rtl";
         AddHorizontalBorderRange(winners, 0, 0, columnCount, tableStyle.Borders.Top, CollapsedBorderOrigin.Table, ref sourceOrder);
@@ -24,6 +44,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddCollapsedRowGroupBorders(winners, rows, columnCount, rtl, ref sourceOrder);
 
         var occupancy = new int[columnCount];
+        int tableLevelWinners = winners.Count;
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
             CheckCancellation();
             TableFormattingRow row = rows[rowIndex];
@@ -60,6 +81,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 column += span;
             }
             DecrementOccupancy(occupancy);
+            if (rowIndex == 0) winners = PresizeCollapsedBorderWinners(winners, tableLevelWinners, rows.Count, gridEdges);
         }
 
         // Rows and tracks contribute only at cell edges. Their declarations
