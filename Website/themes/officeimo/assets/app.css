@@ -521,36 +521,18 @@ pre code{background:none;padding:0;color:inherit}
 .imo-api-used__link code{padding:0;border:0;background:none;font-size:.8rem;color:var(--imo-text)}
 .imo-api-used__link:hover{border-color:color-mix(in srgb,var(--imo-accent) 55%,var(--imo-border))}
 .imo-api-used__link:hover code{color:var(--imo-accent)}
-/* Docs closing blocks (partials/docs-closing.html) and reader feedback (partials/page-feedback.html). */
-.imo-docs-closing{margin:3rem 0 0;display:grid;gap:1rem}
-.imo-docs-closing__next{display:grid;grid-template-columns:1fr auto;align-items:center;gap:.15rem 1rem;padding:1rem 1.2rem;border:1px solid var(--imo-border);border-radius:14px;background:var(--imo-bg-elevated);color:var(--imo-text);text-decoration:none;transition:border-color var(--imo-duration) var(--imo-ease)}
-.imo-docs-closing__next:hover{border-color:color-mix(in srgb,var(--imo-accent) 55%,var(--imo-border))}
-.imo-docs-closing__next svg{grid-column:2;grid-row:1 / span 2;color:var(--imo-accent)}
-.imo-docs-closing__label{font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--imo-text-muted)}
-.imo-docs-closing__next strong{font-size:1.05rem;font-weight:600}
-.imo-docs-closing__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem}
-.imo-docs-closing__block{padding:1rem 1.2rem;border:1px solid var(--imo-border);border-radius:14px}
-.imo-docs-closing .imo-docs-closing__title{margin:0 0 .6rem;padding:0;border:0;font-size:.72rem;font-weight:700;letter-spacing:.12em;line-height:1.4;text-transform:uppercase;color:var(--imo-text-muted)}
-.imo-docs-closing__block p{margin:0 0 .6rem;font-size:.875rem;line-height:1.55;color:var(--imo-text-secondary)}
-.imo-docs-closing__block ul{margin:0;padding:0;list-style:none;display:grid;gap:.4rem}
-.imo-docs-closing__block li{margin:0;font-size:.9rem;line-height:1.45}
-.imo-docs-closing__block a{color:var(--imo-text);text-decoration:none}
-.imo-docs-closing__block a:hover{color:var(--imo-accent);text-decoration:underline;text-underline-offset:3px}
-.imo-docs-closing__block code{font-size:.82rem}
-.imo-page-feedback{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:1rem 2rem;margin:2.5rem 0 0;padding:1.2rem 0 0;border-top:1px solid var(--imo-border)}
-.imo-page-feedback__ask{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem 1rem;max-width:36rem}
-.imo-page-feedback .imo-page-feedback__title{margin:0;padding:0;border:0;font-size:.95rem;font-weight:600;line-height:1.4;color:var(--imo-text)}
-.imo-page-feedback__buttons{display:flex;gap:.5rem}
-.imo-page-feedback__button{min-width:3.5rem;min-height:2.25rem;padding:.35rem .9rem;border:1px solid var(--imo-border);border-radius:999px;background:var(--imo-bg);color:var(--imo-text);font:inherit;font-size:.875rem;cursor:pointer;transition:border-color var(--imo-duration) var(--imo-ease),background-color var(--imo-duration) var(--imo-ease)}
-.imo-page-feedback__button:hover{border-color:color-mix(in srgb,var(--imo-accent) 55%,var(--imo-border))}
-.imo-page-feedback__button:focus-visible{outline:2px solid var(--imo-accent);outline-offset:2px}
-.imo-page-feedback__button[aria-pressed="true"]{border-color:var(--imo-accent);background:color-mix(in srgb,var(--imo-accent) 12%,var(--imo-bg));color:var(--imo-accent)}
-.imo-page-feedback__reply{flex-basis:100%;margin:0;font-size:.875rem;line-height:1.55;color:var(--imo-text-secondary)}
-.imo-page-feedback__links{display:flex;flex-wrap:wrap;gap:.5rem 1.25rem;margin:0;padding:0;list-style:none}
-.imo-page-feedback__links li{margin:0;font-size:.875rem;line-height:2.25rem}
-.imo-page-feedback__links a{color:var(--imo-text-secondary);text-decoration:underline;text-decoration-color:color-mix(in srgb,currentColor 35%,transparent);text-underline-offset:3px}
-.imo-page-feedback__links a:hover{color:var(--imo-accent);text-decoration-color:currentColor}
-.imo-page-feedback[data-feedback-state="no"] [data-feedback-issue]{color:var(--imo-accent);font-weight:600}
+/* Page facts on docs pages (partials/docs-facts.html), in the same style as the API list. */
+.imo-docs-facts{margin:1.5rem 0 0;padding:1rem 1.2rem;border:1px solid var(--imo-border);border-radius:14px;background:var(--imo-bg-elevated)}
+.imo-docs-facts__list{display:grid;gap:.55rem;margin:0}
+.imo-docs-facts__list>div{display:grid;grid-template-columns:9.5rem minmax(0,1fr);gap:.2rem 1rem;align-items:baseline}
+.imo-docs-facts dt{font-size:.72rem;font-weight:700;letter-spacing:.12em;line-height:1.6;text-transform:uppercase;color:var(--imo-text-muted)}
+.imo-docs-facts dd{margin:0;font-size:.875rem;line-height:1.6;color:var(--imo-text-secondary);min-width:0}
+.imo-docs-facts ul{display:flex;flex-wrap:wrap;gap:.25rem 1rem;margin:0;padding:0;list-style:none}
+.imo-docs-facts li{margin:0}
+.imo-docs-facts a{color:var(--imo-text);text-decoration:underline;text-decoration-color:color-mix(in srgb,currentColor 30%,transparent);text-underline-offset:3px}
+.imo-docs-facts a:hover{color:var(--imo-accent);text-decoration-color:currentColor}
+.imo-docs-facts code{font-size:.8rem;overflow-wrap:anywhere}
+@media(max-width:640px){.imo-docs-facts__list>div{grid-template-columns:1fr}}
 .imo-code-ref{color:inherit;text-decoration:underline dotted;text-decoration-color:color-mix(in srgb,currentColor 45%,transparent);text-underline-offset:3px}
 .imo-code-ref:hover{color:var(--imo-accent);text-decoration-style:solid;text-decoration-color:currentColor}
 a.imo-code-ref > code{color:var(--imo-accent)}

@@ -26,6 +26,11 @@
     { "Source": "Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Bold.ttf", "Destination": "assets/report-fonts/Carlito-Bold.ttf" },
     { "Source": "Apps/OfficeIMO.Web.Converter/Assets/Fonts/OFL-Carlito.txt", "Destination": "assets/report-fonts/OFL-Carlito.txt" },
     { "Source": "data/pdf_corpus_report.json", "Destination": "data/corpus/pdf-quality-windows.json" },
+    { "Source": "data/documentation_catalog.json", "Destination": "data/packages.json" },
+    { "Source": "data/office_capabilities.json", "Destination": "data/capabilities.json" },
+    { "Source": "data/pswriteoffice_command_catalog.json", "Destination": "data/powershell/commands.json" },
+    { "Source": "data/cli/commands.json", "Destination": "data/cli/commands.json" },
+    { "Source": "data/benchmarks_index.json", "Destination": "data/benchmarks/index.json" },
     { "Source": "data/pdf_corpus_publication.json", "Destination": "data/corpus/pdf-quality-windows.provenance.json" },
     { "Source": "Apps/OfficeIMO.Web.Converter/wwwroot/samples/business-summary.docx", "Destination": "downloads/samples/business-summary.docx" },
     { "Source": "../OfficeIMO.Examples/Showcase/BrowserBusinessSample.cs", "Destination": "downloads/samples/BrowserBusinessSample.cs.txt" },
@@ -221,6 +226,7 @@
     "FaqPage": true,
     "HowTo": true,
     "SoftwareApplication": true,
+    "SoftwareSourceCode": true,
     "OrganizationLegalName": "Evotec Services sp. z o.o.",
     "OrganizationDescription": "Open source .NET libraries for creating, reading, and editing Office documents without Microsoft Office.",
     "OrganizationLogo": "https://evotec.xyz/favicon.svg",
@@ -389,8 +395,7 @@
           "/css/docs.css"
         ],
         "Js": [
-          "/js/docs-language-tabs.js",
-          "/js/page-feedback.js"
+          "/js/docs-language-tabs.js"
         ]
       },
       {

@@ -1,0 +1,78 @@
+{{~ # The facts every docs page carries, rendered for readers and as TechArticle JSON-LD for agents. ~}}
+{{~ # Front matter: packages, cmdlets, commands, limits, verified, related. Without packages, the ~}}
+{{~ # section default in data/docs_sections.json applies; APIs come from data/api_links.json. ~}}
+{{~
+func json_text(value)
+  ret "\"" + ((value ?? "") + "" | string.replace "\\" "\\\\" | string.replace "\"" "\\\"" | string.replace "\r" "" | string.replace "\n" " " | string.replace "</" "<\\/") + "\""
+end
+func as_list(value)
+  if value == null
+    ret []
+  end
+  if (object.typeof value) == "string"
+    ret [value]
+  end
+  ret value
+end
+~}}
+{{~ meta = page.meta ?? {} ~}}
+{{~ section = (current_path | string.replace "/docs/" "" | string.split "/")[0] ~}}
+{{~ packages = as_list(meta.packages ?? data.docs_sections.sections[section]) ~}}
+{{~ cmdlets = as_list(meta.cmdlets) ~}}
+{{~ commands = as_list(meta.commands) ~}}
+{{~ related = as_list(meta.related) ~}}
+{{~ components = {} ~}}{{~ for component in data.documentation_catalog.components ~}}{{~ components[component.name] = component ~}}{{~ end ~}}
+{{~ cap_slug = {} ~}}{{~ for cap in data.office_capabilities.packages ~}}{{~ cap_slug[cap.id] = cap.slug ~}}{{~ end ~}}
+{{~ frameworks = [] ~}}
+{{~ for name in packages ~}}{{~ component = components[name] ~}}{{~ for framework in (component ? component.targetFrameworks : null) ?? [] ~}}{{~ if !(frameworks | array.contains framework) ~}}{{~ frameworks = frameworks | array.add framework ~}}{{~ end ~}}{{~ end ~}}{{~ end ~}}
+{{~ apis = [] ~}}
+{{~ for link in data.api_links.pages[current_path] ?? [] ~}}{{~ if link.k == "type" && apis.size < 12 ~}}{{~ apis = apis | array.add link ~}}{{~ end ~}}{{~ end ~}}
+{{~ limit_links = [] ~}}
+{{~ for name in packages ~}}{{~ if cap_slug[name] ~}}{{~ limit_links = limit_links | array.add { url: "/compatibility/#package-" + cap_slug[name], title: name } ~}}{{~ end ~}}{{~ end ~}}
+{{~ api_indexes = [] ~}}
+{{~ for name in packages ~}}{{~ component = components[name] ~}}{{~ if component && component.apiUrl ~}}{{~ api_indexes = api_indexes | array.add { url: components[name].apiUrl + "index.json", title: name } ~}}{{~ end ~}}{{~ end ~}}
+{{~ page_url = base_url + current_path ~}}
+
+{{~ if packages.size > 0 || cmdlets.size > 0 || commands.size > 0 || apis.size > 0 || meta.limits ~}}
+<section class="imo-docs-facts" aria-label="Page facts">
+  <dl class="imo-docs-facts__list">
+    {{~ if packages.size > 0 ~}}
+    <div><dt>Packages</dt><dd><ul>{{ for name in packages }}{{ component = components[name] }}<li>{{ if component && component.packageUrl }}<a href="{{ components[name].packageUrl }}">{{ name }}</a>{{ else }}{{ name }}{{ end }} <code>dotnet add package {{ name }}</code></li>{{ end }}</ul></dd></div>
+    {{~ end ~}}
+    {{~ if packages.size > 0 || cmdlets.size > 0 || commands.size > 0 ~}}
+    <div><dt>Works with</dt><dd><ul>
+      {{~ if packages.size > 0 ~}}<li>.NET</li>{{~ end ~}}
+      {{~ if cmdlets.size > 0 ~}}<li><a href="/docs/pswriteoffice/install/">PowerShell</a> <code>Install-Module PSWriteOffice</code></li>{{~ end ~}}
+      {{~ if commands.size > 0 ~}}<li><a href="/docs/cli/install/">CLI</a> <code>dotnet tool install --global OfficeIMO.Tool</code></li>{{~ end ~}}
+    </ul></dd></div>
+    {{~ end ~}}
+    {{~ if frameworks.size > 0 ~}}
+    <div><dt>Target frameworks</dt><dd>{{ frameworks | array.join ", " }}</dd></div>
+    {{~ end ~}}
+    {{~ if apis.size > 0 ~}}
+    <div><dt>APIs</dt><dd><ul>{{ for link in apis }}<li><a href="{{ link.h }}"><code>{{ link.n }}</code></a></li>{{ end }}</ul></dd></div>
+    {{~ end ~}}
+    {{~ if cmdlets.size > 0 ~}}
+    <div><dt>Cmdlets</dt><dd><ul>{{ for cmdlet in cmdlets }}<li><a href="/api/powershell/{{ cmdlet | string.downcase }}/"><code>{{ cmdlet }}</code></a></li>{{ end }}</ul></dd></div>
+    {{~ end ~}}
+    {{~ if commands.size > 0 ~}}
+    <div><dt>Commands</dt><dd><ul>{{ for command in commands }}<li><code>{{ command }}</code></li>{{ end }}</ul></dd></div>
+    {{~ end ~}}
+    {{~ if limit_links.size > 0 || meta.limits ~}}
+    <div><dt>Limits</dt><dd>{{~ if meta.limits ~}}{{ meta.limits | html.escape | regex.replace "`([^`]+)`" "<code>$1</code>" | regex.replace "\\[([^\\]]+)\\]\\((/[^)\\s]*)\\)" "<a href=\"$2\">$1</a>" }} {{ end }}{{ for link in limit_links }}<a href="{{ link.url }}">{{ link.title }} support matrix</a>{{ if !for.last }}, {{ end }}{{ end }}</dd></div>
+    {{~ end ~}}
+    {{~ if meta.verified ~}}
+    <div><dt>Verified</dt><dd>Examples compiled against the source on <time datetime="{{ meta.verified }}">{{ meta.verified }}</time></dd></div>
+    {{~ end ~}}
+    {{~ if api_indexes.size > 0 || cmdlets.size > 0 || commands.size > 0 || limit_links.size > 0 ~}}
+    <div><dt>Data</dt><dd><ul>
+      {{~ for index in api_indexes ~}}<li><a href="{{ index.url }}" type="application/json">{{ index.title }} API index</a></li>{{~ end ~}}
+      {{~ if cmdlets.size > 0 ~}}<li><a href="/data/powershell/commands.json" type="application/json">PSWriteOffice command catalog</a></li>{{~ end ~}}
+      {{~ if commands.size > 0 ~}}<li><a href="/data/cli/commands.json" type="application/json">CLI command catalog</a></li>{{~ end ~}}
+      {{~ if limit_links.size > 0 ~}}<li><a href="/data/capabilities.json" type="application/json">Capability catalog</a></li>{{~ end ~}}
+    </ul></dd></div>
+    {{~ end ~}}
+  </dl>
+</section>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","@id":{{ json_text(page_url + "#article") }},"headline":{{ json_text(page.title) }},"description":{{ json_text(page.description) }},"url":{{ json_text(page_url) }},"inLanguage":"en","isPartOf":{"@id":{{ json_text(base_url + "/#website") }}},"mainEntityOfPage":{"@id":{{ json_text(page_url + "#webpage") }}}{{ if meta.verified }},"dateModified":{{ json_text(meta.verified) }}{{ end }}{{ if packages.size > 0 }},"dependencies":{{ json_text(packages | array.join ", ") }},"about":[{{ for name in packages }}{{ component = components[name] }}{"@type":"SoftwareSourceCode","name":{{ json_text(name) }},"programmingLanguage":"C#","codeRepository":"https://github.com/EvotecIT/OfficeIMO"{{ if component && component.packageUrl }},"url":{{ json_text(components[name].packageUrl) }}{{ end }}{{ if component && component.targetFrameworks }},"runtimePlatform":{{ json_text(components[name].targetFrameworks | array.join ", ") }}{{ end }}}{{ if !for.last }},{{ end }}{{ end }}]{{ end }}{{ if apis.size > 0 || cmdlets.size > 0 }},"mentions":[{{ for link in apis }}{"@type":"DefinedTerm","name":{{ json_text(link.n) }},"url":{{ json_text(base_url + link.h) }}}{{ if !for.last || cmdlets.size > 0 }},{{ end }}{{ end }}{{ for cmdlet in cmdlets }}{"@type":"DefinedTerm","name":{{ json_text(cmdlet) }},"url":{{ json_text(base_url + "/api/powershell/" + (cmdlet | string.downcase) + "/") }}}{{ if !for.last }},{{ end }}{{ end }}]{{ end }}{{ if related.size > 0 }},"relatedLink":[{{ for url in related }}{{ json_text(base_url + url) }}{{ if !for.last }},{{ end }}{{ end }}]{{ end }}}</script>
+{{~ end ~}}

@@ -9,7 +9,7 @@
     "validationProjectCount": 75,
     "apiReferenceCount": 129,
     "conceptualPageCount": 186,
-    "conceptualWordCount": 99520
+    "conceptualWordCount": 99923
   },
   "categories": [
     {
@@ -246,7 +246,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Access",
@@ -259,7 +265,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/access/",
       "apiUrl": "/api/access/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Access"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Access",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Adf",
@@ -272,7 +284,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/text-formats/",
       "apiUrl": "/api/adf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Adf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Adf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.AI",
@@ -285,7 +303,10 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/ai/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AI"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AI",
+      "targetFrameworks": [
+        "net10.0"
+      ]
     },
     {
       "name": "OfficeIMO.AI.Example",
@@ -298,7 +319,10 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
-      "packageUrl": null
+      "packageUrl": null,
+      "targetFrameworks": [
+        "net10.0"
+      ]
     },
     {
       "name": "OfficeIMO.AI.IntelligenceX",
@@ -311,7 +335,10 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/ai-intelligence-x/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AI.IntelligenceX"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AI.IntelligenceX",
+      "targetFrameworks": [
+        "net10.0"
+      ]
     },
     {
       "name": "OfficeIMO.Archives",
@@ -324,7 +351,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/archives/",
       "apiUrl": "/api/archives/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Archives"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Archives",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.AsciiDoc",
@@ -337,7 +370,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/text-formats/",
       "apiUrl": "/api/ascii-doc/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AsciiDoc"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AsciiDoc",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.AsciiDoc.Markdown",
@@ -350,7 +389,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/text-formats/",
       "apiUrl": "/api/ascii-doc-markdown/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AsciiDoc.Markdown"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AsciiDoc.Markdown",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.AsciiDoc.Pdf",
@@ -363,7 +408,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/text-formats/",
       "apiUrl": "/api/ascii-doc-pdf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AsciiDoc.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AsciiDoc.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Bibliography",
@@ -376,7 +427,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/text-formats/",
       "apiUrl": "/api/bibliography/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Bibliography"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Bibliography",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.ChartForgeX",
@@ -389,7 +446,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/foundations/",
       "apiUrl": "/api/chart-forge-x/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.ChartForgeX"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.ChartForgeX",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.ChartForgeX.Markdown",
@@ -402,7 +465,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/foundations/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.ChartForgeX.Markdown"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.ChartForgeX.Markdown",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Chm",
@@ -415,7 +484,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/text-formats/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Chm"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Chm",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Chm.Epub",
@@ -428,7 +503,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/text-formats/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Chm.Epub"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Chm.Epub",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Chm.Markdown",
@@ -441,7 +522,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/text-formats/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Chm.Markdown"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Chm.Markdown",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Chm.Pdf",
@@ -454,7 +541,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/text-formats/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Chm.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Chm.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Confluence",
@@ -467,7 +560,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/text-formats/",
       "apiUrl": "/api/confluence/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Confluence"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Confluence",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Core",
@@ -480,7 +579,13 @@
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Core"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Core",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.CSV",
@@ -493,7 +598,13 @@
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/csv/",
       "apiUrl": "/api/csv/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.CSV"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.CSV",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Data.Arrow",
@@ -506,7 +617,11 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/data-arrow/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Data.Arrow"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Data.Arrow",
+      "targetFrameworks": [
+        "net8.0",
+        "net10.0"
+      ]
     },
     {
       "name": "OfficeIMO.Data.Conversions",
@@ -519,7 +634,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/data-conversions/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Data.Conversions"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Data.Conversions",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Data.Conversions.Excel",
@@ -532,7 +653,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/data-conversions/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Data.Conversions.Excel"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Data.Conversions.Excel",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Data.Generators",
@@ -545,7 +672,10 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/data-generators/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Data.Generators"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Data.Generators",
+      "targetFrameworks": [
+        "netstandard2.0"
+      ]
     },
     {
       "name": "OfficeIMO.DjVu",
@@ -558,7 +688,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/text-formats/",
       "apiUrl": "/api/djvu/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.DjVu"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.DjVu",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.DjVu.Pdf",
@@ -571,7 +707,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/text-formats/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.DjVu.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.DjVu.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.DocBook",
@@ -584,7 +726,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/text-formats/",
       "apiUrl": "/api/doc-book/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.DocBook"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.DocBook",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Drawing.CodeGlyphX",
@@ -597,7 +745,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/drawing-code-glyph-x/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Drawing.CodeGlyphX"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Drawing.CodeGlyphX",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Drawing.HarfBuzz",
@@ -610,7 +764,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/drawing-harf-buzz/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Drawing.HarfBuzz"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Drawing.HarfBuzz",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Drawing.ImageIO",
@@ -623,7 +783,11 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Drawing.ImageIO"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Drawing.ImageIO",
+      "targetFrameworks": [
+        "net8.0",
+        "net10.0"
+      ]
     },
     {
       "name": "OfficeIMO.Email",
@@ -636,7 +800,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/email/",
       "apiUrl": "/api/email/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Email"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Email",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Email.Html",
@@ -649,7 +819,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/email/",
       "apiUrl": "/api/email-html/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Email.Html"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Email.Html",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Email.Image",
@@ -662,7 +838,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/email/",
       "apiUrl": "/api/email-image/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Email.Image"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Email.Image",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Epub",
@@ -675,7 +857,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/epub/",
       "apiUrl": "/api/epub/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Epub"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Epub",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Epub.Image",
@@ -688,7 +876,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/epub/",
       "apiUrl": "/api/epub-image/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Epub.Image"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Epub.Image",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Excel",
@@ -701,7 +895,13 @@
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Excel.Csv",
@@ -714,7 +914,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel-csv/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Csv"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Csv",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Excel.GoogleSheets",
@@ -727,7 +933,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel-google-sheets/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.GoogleSheets"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.GoogleSheets",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Excel.Html",
@@ -740,7 +952,13 @@
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel-html/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Html"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Html",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Excel.IWork",
@@ -753,7 +971,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/iwork/",
       "apiUrl": "/api/excel-iwork/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.IWork"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.IWork",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Excel.OpenDocument",
@@ -766,7 +990,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel-open-document/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.OpenDocument"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.OpenDocument",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Excel.Pdf",
@@ -779,7 +1009,13 @@
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel-pdf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.GoogleWorkspace",
@@ -792,7 +1028,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/google-workspace/",
       "apiUrl": "/api/google-workspace/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.GoogleWorkspace"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.GoogleWorkspace",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.GoogleWorkspace.Auth.GoogleApis",
@@ -805,7 +1047,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/google-workspace/",
       "apiUrl": "/api/google-workspace-auth/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.GoogleWorkspace.Auth.GoogleApis"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.GoogleWorkspace.Auth.GoogleApis",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.GoogleWorkspace.Drive",
@@ -818,7 +1066,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/google-workspace/",
       "apiUrl": "/api/google-workspace-drive/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.GoogleWorkspace.Drive"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.GoogleWorkspace.Drive",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.GoogleWorkspace.Sync",
@@ -831,7 +1085,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/google-workspace/",
       "apiUrl": "/api/google-workspace-sync/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.GoogleWorkspace.Sync"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.GoogleWorkspace.Sync",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Html",
@@ -844,7 +1104,13 @@
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Html.AngleSharp",
@@ -857,7 +1123,13 @@
       "referencingTestProjectCount": 0,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html-angle-sharp/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.AngleSharp"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.AngleSharp",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Html.Core",
@@ -870,7 +1142,13 @@
       "referencingTestProjectCount": 0,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html-core/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Core"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Core",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Html.Pdf",
@@ -883,7 +1161,13 @@
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html-pdf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Html.Pdf.Browser",
@@ -896,7 +1180,12 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html-pdf-browser/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Pdf.Browser"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Pdf.Browser",
+      "targetFrameworks": [
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Html.Pdf.Workbench",
@@ -909,7 +1198,10 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/html/",
       "apiUrl": null,
-      "packageUrl": null
+      "packageUrl": null,
+      "targetFrameworks": [
+        "net8.0"
+      ]
     },
     {
       "name": "OfficeIMO.Html.Rtf",
@@ -922,7 +1214,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html-rtf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Rtf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Rtf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Invoicing",
@@ -935,7 +1233,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/invoicing/",
       "apiUrl": "/api/invoicing/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Invoicing.KSeF",
@@ -948,7 +1252,11 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/invoicing/",
       "apiUrl": "/api/invoicing-ksef/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing.KSeF"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing.KSeF",
+      "targetFrameworks": [
+        "net8.0",
+        "net10.0"
+      ]
     },
     {
       "name": "OfficeIMO.Invoicing.Pdf",
@@ -961,7 +1269,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/invoicing/",
       "apiUrl": "/api/invoicing-pdf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Invoicing.Validation",
@@ -974,7 +1288,11 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/invoicing/",
       "apiUrl": "/api/invoicing-validation/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing.Validation"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing.Validation",
+      "targetFrameworks": [
+        "net8.0",
+        "net10.0"
+      ]
     },
     {
       "name": "OfficeIMO.IWork",
@@ -987,7 +1305,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/iwork/",
       "apiUrl": "/api/iwork/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.IWork"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.IWork",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.JavaScript.Assets",
@@ -1000,7 +1324,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.JavaScript.Assets"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.JavaScript.Assets",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Latex",
@@ -1013,7 +1343,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/text-formats/",
       "apiUrl": "/api/latex/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Latex"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Latex",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Latex.Markdown",
@@ -1026,7 +1362,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/text-formats/",
       "apiUrl": "/api/latex-markdown/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Latex.Markdown"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Latex.Markdown",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Latex.Pdf",
@@ -1039,7 +1381,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/text-formats/",
       "apiUrl": "/api/latex-pdf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Latex.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Latex.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Markdown",
@@ -1052,7 +1400,13 @@
       "referencingTestProjectCount": 7,
       "docsUrl": "/docs/markdown/",
       "apiUrl": "/api/markdown/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Markdown"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Markdown",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Markdown.Html",
@@ -1065,7 +1419,13 @@
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/markdown/",
       "apiUrl": "/api/markdown-html/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Markdown.Html"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Markdown.Html",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Markdown.Pdf",
@@ -1078,7 +1438,13 @@
       "referencingTestProjectCount": 7,
       "docsUrl": "/docs/markdown/",
       "apiUrl": "/api/markdown-pdf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Markdown.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Markdown.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.MarkdownRenderer",
@@ -1091,7 +1457,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/markdown/",
       "apiUrl": "/api/markdown-renderer/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.MarkdownRenderer.IntelligenceX",
@@ -1104,7 +1476,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/markdown/",
       "apiUrl": "/api/markdown-renderer-intelligence-x/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer.IntelligenceX"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer.IntelligenceX",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.MarkdownRenderer.Wpf",
@@ -1117,7 +1495,14 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/markdown/",
       "apiUrl": "/api/markdown-renderer-wpf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer.Wpf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer.Wpf",
+      "targetFrameworks": [
+        "net8.0",
+        "net10.0",
+        "net472",
+        "net8.0-windows",
+        "net10.0-windows"
+      ]
     },
     {
       "name": "OfficeIMO.Markup",
@@ -1130,7 +1515,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/text-formats/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Markup"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Markup",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Markup.Excel",
@@ -1143,7 +1534,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/text-formats/",
       "apiUrl": null,
-      "packageUrl": null
+      "packageUrl": null,
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Markup.PowerPoint",
@@ -1156,7 +1553,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/text-formats/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Markup.PowerPoint"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Markup.PowerPoint",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Markup.Word",
@@ -1169,7 +1572,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/text-formats/",
       "apiUrl": null,
-      "packageUrl": null
+      "packageUrl": null,
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Mhtml",
@@ -1182,7 +1591,13 @@
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/mhtml/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Mhtml"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Mhtml",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Mhtml.Pdf",
@@ -1195,7 +1610,13 @@
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/mhtml-pdf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Mhtml.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Mhtml.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Ocr",
@@ -1208,7 +1629,13 @@
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/foundations/",
       "apiUrl": "/api/ocr/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Ocr"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Ocr",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Ocr.Process",
@@ -1221,7 +1648,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/foundations/",
       "apiUrl": "/api/ocr-process/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Ocr.Process"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Ocr.Process",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Ocr.Tesseract",
@@ -1234,7 +1667,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/foundations/",
       "apiUrl": "/api/ocr-tesseract/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Ocr.Tesseract"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Ocr.Tesseract",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Odbc",
@@ -1247,7 +1686,10 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
-      "packageUrl": null
+      "packageUrl": null,
+      "targetFrameworks": [
+        "net10.0"
+      ]
     },
     {
       "name": "OfficeIMO.OneNote",
@@ -1260,7 +1702,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/onenote/",
       "apiUrl": "/api/onenote/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OneNote"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OneNote",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.OneNote.Html",
@@ -1273,7 +1721,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/onenote/",
       "apiUrl": "/api/one-note-html/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OneNote.Html"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OneNote.Html",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.OneNote.Markdown",
@@ -1286,7 +1740,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/onenote/",
       "apiUrl": "/api/one-note-markdown/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OneNote.Markdown"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OneNote.Markdown",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.OneNote.Pdf",
@@ -1299,7 +1759,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/onenote/",
       "apiUrl": "/api/one-note-pdf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OneNote.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OneNote.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.OpenDocument",
@@ -1312,7 +1778,13 @@
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/open-document/",
       "apiUrl": "/api/open-document/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.OpenDocument.Odg.Pdf",
@@ -1325,7 +1797,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/open-document/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument.Odg.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument.Odg.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.OpenDocument.Odp.Pdf",
@@ -1338,7 +1816,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/open-document/",
       "apiUrl": "/api/open-document-odp-pdf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument.Odp.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument.Odp.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.OpenDocument.Ods.Pdf",
@@ -1351,7 +1835,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/open-document/",
       "apiUrl": "/api/open-document-ods-pdf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument.Ods.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument.Ods.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.OpenDocument.Odt.Pdf",
@@ -1364,7 +1854,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/open-document/",
       "apiUrl": "/api/open-document-odt-pdf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument.Odt.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument.Odt.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Opml",
@@ -1377,7 +1873,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/text-formats/",
       "apiUrl": "/api/opml/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Opml"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Opml",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Pdf",
@@ -1390,7 +1892,13 @@
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Pdf.Excel",
@@ -1403,7 +1911,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/pdf/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf.Excel"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf.Excel",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Pdf.Ocr",
@@ -1416,7 +1930,13 @@
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf-ocr/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf.Ocr"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf.Ocr",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Pdf.PowerPoint",
@@ -1429,7 +1949,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/pdf/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf.PowerPoint"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf.PowerPoint",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Pdf.Testing",
@@ -1442,7 +1968,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/pdf/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf.Testing"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf.Testing",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Pdf.Word",
@@ -1455,7 +1987,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/pdf/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf.Word"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf.Word",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.PowerPoint",
@@ -1468,7 +2006,13 @@
       "referencingTestProjectCount": 8,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/powerpoint/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.PowerPoint.GoogleSlides",
@@ -1481,7 +2025,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/power-point-google-slides/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.GoogleSlides"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.GoogleSlides",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.PowerPoint.Html",
@@ -1494,7 +2044,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/power-point-html/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.Html"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.Html",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.PowerPoint.IWork",
@@ -1507,7 +2063,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/iwork/",
       "apiUrl": "/api/power-point-iwork/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.IWork"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.IWork",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.PowerPoint.OpenDocument",
@@ -1520,7 +2082,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/power-point-open-document/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.OpenDocument"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.OpenDocument",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.PowerPoint.Pdf",
@@ -1533,7 +2101,13 @@
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/power-point-pdf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Project",
@@ -1546,7 +2120,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/project/",
       "apiUrl": "/api/project/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Project"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Project",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Provenance.C2pa",
@@ -1559,7 +2139,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/foundations/",
       "apiUrl": "/api/provenance-c2pa/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Provenance.C2pa"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Provenance.C2pa",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Publisher",
@@ -1572,7 +2158,13 @@
       "referencingTestProjectCount": 0,
       "docsUrl": "/docs/publisher/",
       "apiUrl": "/api/publisher/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Publisher"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Publisher",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Publisher.Pdf",
@@ -1585,7 +2177,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/publisher/",
       "apiUrl": "/api/publisher-pdf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Publisher.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Publisher.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.All",
@@ -1598,7 +2196,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-all/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.All"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.All",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.AsciiDoc",
@@ -1611,7 +2215,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-ascii-doc/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.AsciiDoc"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.AsciiDoc",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Chm",
@@ -1624,7 +2234,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Chm"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Chm",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Core",
@@ -1637,7 +2253,13 @@
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Core"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Core",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Csv",
@@ -1650,7 +2272,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-csv/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Csv"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Csv",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Dbf",
@@ -1663,7 +2291,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Dbf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Dbf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.DjVu",
@@ -1676,7 +2310,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.DjVu"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.DjVu",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.DocBook",
@@ -1689,7 +2329,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-doc-book/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.DocBook"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.DocBook",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Email",
@@ -1702,7 +2348,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-email/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Email"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Email",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Epub",
@@ -1715,7 +2367,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-epub/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Epub"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Epub",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Excel",
@@ -1728,7 +2386,13 @@
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-excel/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Excel"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Excel",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Html",
@@ -1741,7 +2405,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-html/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Html"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Html",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Image",
@@ -1754,7 +2424,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-image/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Image"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Image",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.IWork",
@@ -1767,7 +2443,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/iwork/",
       "apiUrl": "/api/reader-iwork/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.IWork"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.IWork",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Json",
@@ -1780,7 +2462,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-json/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Json"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Json",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Latex",
@@ -1793,7 +2481,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-latex/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Latex"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Latex",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Markdown",
@@ -1806,7 +2500,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-markdown/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Markdown"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Markdown",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Notebook",
@@ -1819,7 +2519,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-notebook/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Notebook"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Notebook",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Ocr",
@@ -1832,7 +2538,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-ocr/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Ocr"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Ocr",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.OneNote",
@@ -1845,7 +2557,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-one-note/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.OneNote"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.OneNote",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.OpenDocument",
@@ -1858,7 +2576,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-open-document/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.OpenDocument"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.OpenDocument",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Opml",
@@ -1871,7 +2595,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-opml/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Opml"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Opml",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Pdf",
@@ -1884,7 +2614,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-pdf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.PowerPoint",
@@ -1897,7 +2633,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-power-point/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.PowerPoint"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.PowerPoint",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Publisher",
@@ -1910,7 +2652,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-publisher/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Publisher"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Publisher",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Rtf",
@@ -1923,7 +2671,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-rtf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Rtf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Rtf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Subtitles",
@@ -1936,7 +2690,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-subtitles/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Subtitles"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Subtitles",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Toml",
@@ -1949,7 +2709,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Toml"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Toml",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Visio",
@@ -1962,7 +2728,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-visio/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Visio"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Visio",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Web",
@@ -1975,7 +2747,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-web/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Web"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Web",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Word",
@@ -1988,7 +2766,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-word/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Word"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Word",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Xml",
@@ -2001,7 +2785,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-xml/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Xml"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Xml",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Xps",
@@ -2014,7 +2804,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Xps"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Xps",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Yaml",
@@ -2027,7 +2823,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-yaml/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Yaml"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Yaml",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Reader.Zip",
@@ -2040,7 +2842,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-zip/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Zip"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Zip",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Rtf",
@@ -2053,7 +2861,13 @@
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/rtf/",
       "apiUrl": "/api/rtf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Rtf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Rtf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Rtf.Markdown",
@@ -2066,7 +2880,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/rtf/",
       "apiUrl": "/api/rtf-markdown/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Rtf.Markdown"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Rtf.Markdown",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Rtf.Pdf",
@@ -2079,7 +2899,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/rtf/",
       "apiUrl": "/api/rtf-pdf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Rtf.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Rtf.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Security",
@@ -2092,7 +2918,13 @@
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/security/",
       "apiUrl": "/api/security/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Security"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Security",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Studio",
@@ -2105,7 +2937,10 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
-      "packageUrl": null
+      "packageUrl": null,
+      "targetFrameworks": [
+        "net10.0"
+      ]
     },
     {
       "name": "OfficeIMO.Studio.Core",
@@ -2118,7 +2953,10 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
-      "packageUrl": null
+      "packageUrl": null,
+      "targetFrameworks": [
+        "net10.0"
+      ]
     },
     {
       "name": "OfficeIMO.Studio.iOS",
@@ -2131,7 +2969,8 @@
       "referencingTestProjectCount": 0,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
-      "packageUrl": null
+      "packageUrl": null,
+      "targetFrameworks": []
     },
     {
       "name": "OfficeIMO.Studio.Native",
@@ -2144,7 +2983,10 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
-      "packageUrl": null
+      "packageUrl": null,
+      "targetFrameworks": [
+        "net10.0"
+      ]
     },
     {
       "name": "OfficeIMO.Toml",
@@ -2157,7 +2999,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/toml/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Toml"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Toml",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Toml.SourceGeneration",
@@ -2170,7 +3018,10 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/toml/",
       "apiUrl": null,
-      "packageUrl": null
+      "packageUrl": null,
+      "targetFrameworks": [
+        "netstandard2.0"
+      ]
     },
     {
       "name": "OfficeIMO.Tool",
@@ -2183,7 +3034,11 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/cli/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Tool"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Tool",
+      "targetFrameworks": [
+        "net8.0",
+        "net10.0"
+      ]
     },
     {
       "name": "OfficeIMO.Visio",
@@ -2196,7 +3051,13 @@
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/visio/",
       "apiUrl": "/api/visio/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Visio"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Visio",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Visio.Pdf",
@@ -2209,7 +3070,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/visio/",
       "apiUrl": "/api/visio-pdf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Visio.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Visio.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Word",
@@ -2222,7 +3089,13 @@
       "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Word.GoogleDocs",
@@ -2235,7 +3108,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word-google-docs/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.GoogleDocs"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.GoogleDocs",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Word.Html",
@@ -2248,7 +3127,13 @@
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word-html/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Html"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Html",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Word.IWork",
@@ -2261,7 +3146,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/iwork/",
       "apiUrl": "/api/word-iwork/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.IWork"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.IWork",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Word.Markdown",
@@ -2274,7 +3165,13 @@
       "referencingTestProjectCount": 7,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word-markdown/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Markdown"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Markdown",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Word.OpenDocument",
@@ -2287,7 +3184,13 @@
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word-open-document/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.OpenDocument"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.OpenDocument",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Word.Pdf",
@@ -2300,7 +3203,13 @@
       "referencingTestProjectCount": 7,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word-pdf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Word.Rtf",
@@ -2313,7 +3222,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word-rtf/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Rtf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Rtf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Workflows",
@@ -2326,7 +3241,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/workflows/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Workflows"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Workflows",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Workflows.IWork",
@@ -2339,7 +3260,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Workflows.IWork"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Workflows.IWork",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Xps",
@@ -2352,7 +3279,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/xps/",
       "apiUrl": "/api/xps/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Xps"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Xps",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Xps.Pdf",
@@ -2365,7 +3298,13 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/xps/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Xps.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Xps.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Yaml",
@@ -2378,7 +3317,13 @@
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/yaml/",
       "apiUrl": "/api/yaml/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Yaml"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Yaml",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
     },
     {
       "name": "OfficeIMO.Yaml.SourceGeneration",
@@ -2391,7 +3336,10 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/yaml/",
       "apiUrl": null,
-      "packageUrl": null
+      "packageUrl": null,
+      "targetFrameworks": [
+        "netstandard2.0"
+      ]
     },
     {
       "name": "PSWriteOffice",
@@ -2404,7 +3352,11 @@
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/pswriteoffice/",
       "apiUrl": null,
-      "packageUrl": null
+      "packageUrl": null,
+      "targetFrameworks": [
+        "net8.0",
+        "net472"
+      ]
     }
   ]
 }
