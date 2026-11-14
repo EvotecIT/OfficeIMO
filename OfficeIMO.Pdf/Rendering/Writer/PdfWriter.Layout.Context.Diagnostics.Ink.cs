@@ -101,13 +101,14 @@ internal static partial class PdfWriter {
                         && transform.M11 > 0D && transform.M22 > 0D
                         ? DiagnosticContainmentIntersection(sourceClips, targetClips, frameClip, pageClip, secondClip, transform)
                         : default;
-                    foreach (var part in line.Select((segment, partIndex) => (segment, partIndex))) {
-                        RichSeg segment = part.segment;
+                    Func<DiagnosticPaintBounds, bool>? containsGlyph = null;
+                    for (int partIndex = 0; partIndex < line.Count; partIndex++) {
+                        RichSeg segment = line[partIndex];
                         double gap = segment.LeadingSpace ? segment.LeadingAdvance +
                             (segment.LeadingSpaceIsExpandable ? wordSpacing * segment.LeadingSpaceCount : 0D) : 0D;
-                        double gapX = origin + (bidi == null ? cursor : dx + bidi.GapX[part.partIndex]);
+                        double gapX = origin + (bidi == null ? cursor : dx + bidi.GapX[partIndex]);
                         cursor += gap;
-                        if (bidi != null) cursor = dx + bidi.VisualX[part.partIndex];
+                        if (bidi != null) cursor = dx + bidi.VisualX[partIndex];
                         double x = origin + cursor;
                         double size = EffectiveRichFontSize(segment.FontSize, segment.Baseline);
                         double runY = lineY + TextRiseForBaseline(segment.FontSize, segment.Baseline) + segment.LineAlignmentRise;
@@ -161,7 +162,7 @@ internal static partial class PdfWriter {
                                 Paint(paint.Contours, imageClips);
                             }
                         } else if (segment.InlineElement == null && !segment.IsLineBoxStrut) {
-                            foreach (var glyph in DiagnosticGlyphContours(segment, segment.Text, x, runY, ContainsGlyph)) Paint(glyph.Contours, nominalGlyphBounds: glyph.NominalBounds);
+                            foreach (var glyph in DiagnosticGlyphContours(segment, segment.Text, x, runY, containsGlyph ??= ContainsGlyph)) Paint(glyph.Contours, nominalGlyphBounds: glyph.NominalBounds);
                             if (segment.Underline) {
                                 if (segment.UnderlineStyle == OfficeTextDecorationStyle.Words) {
                                     PdfTextShowCommand command = segment.KerningCommand ?? EncodeTextShowCommand(segment.Text,

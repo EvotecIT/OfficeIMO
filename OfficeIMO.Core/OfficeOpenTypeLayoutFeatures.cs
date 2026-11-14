@@ -19,7 +19,7 @@ internal static class OfficeOpenTypeLayoutFeatures {
 
     private static string Tag(OfficeOpenTypeReader reader, int offset) {
         int first = reader.ReadUInt16(offset), second = reader.ReadUInt16(offset + 2);
-        return new string(new[] { (char)(first >> 8), (char)(first & 255), (char)(second >> 8), (char)(second & 255) });
+        return OfficeOpenTypeTags.ToTag(((uint)first << 16) | (uint)second);
     }
 
     internal static int[]? GetLatinDefaultIndexes(OfficeOpenTypeReader reader, int table, int length, out int requiredFeature) {

@@ -29,7 +29,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
     private SubsetCacheEntry GetSubsetFontFileEntry(bool compact) {
         IReadOnlyList<int> usedGlyphIds = GetUsedGlyphIds();
         int[] glyphIds = usedGlyphIds as int[] ?? System.Linq.Enumerable.ToArray(usedGlyphIds);
-        var key = new SubsetCacheKey(_subsetFontFingerprint, glyphIds, compact);
+        var key = new SubsetCacheKey(_subsetFontFingerprint.Value, glyphIds, compact);
         if (SubsetFileCache.TryGet(key, out SubsetCacheEntry? cached)) {
             return cached!;
         }
@@ -72,6 +72,32 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
         public override bool Equals(object? obj) => obj is SubsetCacheKey other && Equals(other);
         public override int GetHashCode() => _hash;
+    }
+
+    /// <summary>
+    /// Hashes the font only when a subset is first written. Parsing a large installed font to check whether it
+    /// can be used, or to measure with it, no longer hashes every byte; document forks share one instance.
+    /// </summary>
+    private sealed class LazySubsetFontFingerprint {
+        private readonly byte[] _data;
+        private readonly object _lock = new();
+        private SubsetFontFingerprint _value;
+        private volatile bool _created;
+
+        internal LazySubsetFontFingerprint(byte[] data) => _data = data;
+
+        internal SubsetFontFingerprint Value {
+            get {
+                if (_created) return _value;
+                lock (_lock) {
+                    if (!_created) {
+                        _value = SubsetFontFingerprint.Create(_data);
+                        _created = true;
+                    }
+                }
+                return _value;
+            }
+        }
     }
 
     private readonly struct SubsetFontFingerprint : IEquatable<SubsetFontFingerprint> {
