@@ -4,7 +4,8 @@ namespace OfficeIMO.Markdown;
 
 public sealed partial class TableBlock {
     private IReadOnlyList<IMarkdownBlock>? TryParseStructuredCellBlocks(string? cell) {
-        if (string.IsNullOrEmpty(cell)) {
+        // A table read without cell blocks keeps edited cells as inline text, as the reader does.
+        if (string.IsNullOrEmpty(cell) || InlineRenderOptions is { ParseTableCellBlocks: false }) {
             return null;
         }
 
