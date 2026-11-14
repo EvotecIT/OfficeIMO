@@ -13,16 +13,10 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Id"); sheet.CellValue(1, 2, "Region"); sheet.CellValue(1, 3, "Note");
-                sheet.CellValue(1, 4, "Sales"); sheet.CellValue(1, 5, "Target");
-                string[] regions = { "NA", "EU", "APAC" };
-                for (int i = 0; i < regions.Length; i++) {
-                    sheet.CellValue(i + 2, 1, i + 1d);
-                    sheet.CellValue(i + 2, 2, regions[i]);
-                    sheet.CellValue(i + 2, 3, "n/a");
-                    sheet.CellValue(i + 2, 4, 10d * (i + 1));
-                    sheet.CellValue(i + 2, 5, 15d * (i + 1));
-                }
+                // Bulk-written rows stay on the direct save path, so the cache is read from that model.
+                sheet.WriteData(ExpectedRegions().Select((region, i) => (Id: i + 1, Region: region, Sales: 10d * (i + 1), Target: 15d * (i + 1))),
+                    ("Id", row => row.Id), ("Region", row => row.Region), ("Note", _ => "n/a"),
+                    ("Sales", row => row.Sales), ("Target", row => row.Target));
 
                 sheet.AddChartFromRanges(OfficeChartType.ColumnClustered, new[] {
                     new ExcelChartSeriesRange("Sales", "B2:B4", "D2:D4"),

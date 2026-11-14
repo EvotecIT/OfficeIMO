@@ -21,17 +21,19 @@ public partial class ExcelSheet {
         }
 
         ValidateChartPlacement(row, column, width, height);
-        ExcelChartRangeSeries rangeSeries = ExcelChartRangeSeries.Resolve(_excelDocument, Name, ranges);
+        // Like the chart-data sheet path, only a drawing is added, so bulk-written rows keep their direct save model.
+        using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateDuringDirtyMarks();
+        ExcelChartRangeSeries rangeSeries = ExcelChartRangeSeries.Resolve(this, ranges);
         ExcelChartData? data = native?.CachedData;
         if (data != null) {
             rangeSeries.ValidateCache(data);
         } else if (native?.IncludeCachedData ?? true) {
-            data = rangeSeries.ReadCache(_excelDocument);
+            data = rangeSeries.ReadCache();
         }
 
         // The range descriptor only shapes the series; ApplyFormulas then points each series at its own ranges.
         var shape = new ExcelChartDataRange(Name, 1, 1, rangeSeries.PointCount, ranges.Count, hasHeaderRow: false);
-        return AddChartInternal(shape, row, column, width, height, type, data, options?.Title,
+        return AddChartInternal(shape, row, column, width, height, type, data, options?.Title, preserveDeferredDataSetCandidate: true,
             nativeSeriesNames: rangeSeries.ResolveNames(data), rangeSeries: rangeSeries);
     }
 }

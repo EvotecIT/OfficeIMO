@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel {
 
         internal int PointCount => _categories.Count;
 
-        internal static ExcelChartRangeSeries Resolve(ExcelDocument document, string defaultSheetName, IReadOnlyList<ExcelChartSeriesRange> ranges) {
+        internal static ExcelChartRangeSeries Resolve(ExcelSheet owner, IReadOnlyList<ExcelChartSeriesRange> ranges) {
             if (ranges.Count == 0) throw new ArgumentException("At least one series range is required.", nameof(ranges));
             Vector? categories = null;
             var values = new Vector[ranges.Count];
@@ -28,14 +28,14 @@ namespace OfficeIMO.Excel {
                     throw new ArgumentException("Bubble size ranges apply only to bubble charts.", nameof(ranges));
                 }
 
-                Vector itemCategories = Vector.Parse(document, defaultSheetName, item.XRangeA1);
+                Vector itemCategories = Vector.Parse(owner, item.XRangeA1);
                 if (categories == null) {
                     categories = itemCategories;
                 } else if (!categories.SameCells(itemCategories)) {
                     throw new ArgumentException("Every series of a category chart must use the same category range.", nameof(ranges));
                 }
 
-                values[i] = Vector.Parse(document, defaultSheetName, item.YRangeA1);
+                values[i] = Vector.Parse(owner, item.YRangeA1);
                 if (values[i].Count != categories.Count) {
                     throw new ArgumentException($"Values range '{item.YRangeA1}' has {values[i].Count} cells but the category range has {categories.Count}.", nameof(ranges));
                 }
@@ -51,8 +51,8 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Reads the snapshot cache from the referenced cells, the same way linked range charts do.</summary>
-        internal ExcelChartData ReadCache(ExcelDocument document) {
-            ExcelSheet categorySheet = document[_categories.SheetName];
+        internal ExcelChartData ReadCache() {
+            ExcelSheet categorySheet = _categories.Sheet;
             var categories = new string[PointCount];
             for (int i = 0; i < categories.Length; i++) {
                 (int row, int column) = _categories.Cell(i);
@@ -62,7 +62,7 @@ namespace OfficeIMO.Excel {
             var series = new List<ExcelChartSeries>(_values.Length);
             for (int s = 0; s < _values.Length; s++) {
                 Vector vector = _values[s];
-                ExcelSheet sheet = document[vector.SheetName];
+                ExcelSheet sheet = vector.Sheet;
                 var points = new double[vector.Count];
                 for (int i = 0; i < points.Length; i++) {
                     (int row, int column) = vector.Cell(i);
@@ -109,30 +109,30 @@ namespace OfficeIMO.Excel {
 
         /// <summary>A single-row or single-column worksheet range.</summary>
         private sealed class Vector {
-            private Vector(string sheetName, int top, int left, int bottom, int right) {
-                SheetName = sheetName;
+            private Vector(ExcelSheet sheet, int top, int left, int bottom, int right) {
+                Sheet = sheet;
                 Top = top;
                 Left = left;
                 Bottom = bottom;
                 Right = right;
             }
 
-            internal string SheetName { get; }
+            internal ExcelSheet Sheet { get; }
             private int Top { get; }
             private int Left { get; }
             private int Bottom { get; }
             private int Right { get; }
             internal int Count => Math.Max(Bottom - Top, Right - Left) + 1;
-            internal string Formula => ExcelChartUtils.BuildSheetQualifiedRange(SheetName, ExcelChartUtils.BuildRangeA1(Top, Left, Bottom, Right));
+            internal string Formula => ExcelChartUtils.BuildSheetQualifiedRange(Sheet.Name, ExcelChartUtils.BuildRangeA1(Top, Left, Bottom, Right));
 
             internal (int Row, int Column) Cell(int index) => Top == Bottom ? (Top, Left + index) : (Top + index, Left);
 
             internal bool SameCells(Vector other) =>
-                string.Equals(SheetName, other.SheetName, StringComparison.OrdinalIgnoreCase) &&
+                ReferenceEquals(Sheet, other.Sheet) &&
                 Top == other.Top && Left == other.Left && Bottom == other.Bottom && Right == other.Right;
 
-            internal static Vector Parse(ExcelDocument document, string defaultSheetName, string rangeA1) {
-                string qualified = ExcelChartUtils.EnsureSheetQualifiedRange(defaultSheetName, rangeA1);
+            internal static Vector Parse(ExcelSheet owner, string rangeA1) {
+                string qualified = ExcelChartUtils.EnsureSheetQualifiedRange(owner.Name, rangeA1);
                 if (!ExcelChartUtils.TryParseSheetQualifiedRange(qualified, out string sheetName, out string reference)) {
                     throw new ArgumentException($"Invalid range '{rangeA1}'.", nameof(rangeA1));
                 }
@@ -154,11 +154,14 @@ namespace OfficeIMO.Excel {
                 if (top != bottom && left != right) {
                     throw new ArgumentException($"Range '{rangeA1}' must be a single row or a single column.", nameof(rangeA1));
                 }
-                if (!document.TryGetSheet(sheetName, out ExcelSheet? sheet) || sheet == null) {
+                // The owning sheet needs no workbook lookup, which would materialize bulk-written rows.
+                ExcelSheet? sheet = owner;
+                if (!string.Equals(sheetName, owner.Name, StringComparison.OrdinalIgnoreCase) &&
+                    (!owner.Document.TryGetSheet(sheetName, out sheet) || sheet == null)) {
                     throw new ArgumentException($"Range '{rangeA1}' refers to a missing sheet '{sheetName}'.", nameof(rangeA1));
                 }
 
-                return new Vector(sheet.Name, top, left, bottom, right);
+                return new Vector(sheet, top, left, bottom, right);
             }
         }
     }
