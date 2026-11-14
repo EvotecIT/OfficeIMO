@@ -83,6 +83,14 @@ internal sealed partial class PdfStandardSecurityHandler {
         string stringFilterName = encryptionDictionary.Get<PdfName>("StrF")?.Name ?? "Identity";
         bool streamIdentity = string.Equals(streamFilterName, "Identity", StringComparison.Ordinal);
         bool stringIdentity = string.Equals(stringFilterName, "Identity", StringComparison.Ordinal);
+        string embeddedFileFilterName = encryptionDictionary.Get<PdfName>("EFF")?.Name ?? streamFilterName;
+        if (!string.Equals(embeddedFileFilterName, streamFilterName, StringComparison.Ordinal)) {
+            // Embedded files are decrypted with the stream method; a separate /EFF filter would need its own key.
+            throw new PdfUnsupportedEncryptionException(
+                "Public-key PDFs whose embedded-file crypt filter (/" + embeddedFileFilterName +
+                ") differs from the stream crypt filter (/" + streamFilterName + ") are not supported.");
+        }
+
         if (streamIdentity && stringIdentity) {
             throw new PdfUnsupportedEncryptionException("The public-key encryption dictionary does not select an encrypting crypt filter.");
         }
@@ -138,14 +146,19 @@ internal sealed partial class PdfStandardSecurityHandler {
     }
 
     private static int? ResolveCryptFilterKeyLengthBits(PdfDictionary encryptionDictionary, PdfDictionary filter) {
+        // The selected crypt filter defines the key length for /V 4. Writers disagree on whether its /Length is in
+        // bytes or bits; values up to 16 can only be bytes. The document-level /Length is a compatibility fallback,
+        // and a value that disagrees with the filter is refused rather than guessed.
+        int? filterLength = GetOptionalInt(filter, "Length");
+        int? filterBits = filterLength is > 0 and <= 16 ? filterLength * 8 : filterLength;
         int? documentBits = GetOptionalInt(encryptionDictionary, "Length");
-        if (documentBits.HasValue) {
-            return documentBits;
+        if (filterBits.HasValue && documentBits.HasValue && filterBits.Value != documentBits.Value) {
+            throw new PdfUnsupportedEncryptionException(
+                "The public-key crypt filter /Length (" + filterBits.Value + " bits) disagrees with the encryption dictionary /Length (" +
+                documentBits.Value + " bits).");
         }
 
-        // Writers disagree on whether a crypt filter /Length is in bytes or bits; values up to 16 can only be bytes.
-        int? filterLength = GetOptionalInt(filter, "Length");
-        return filterLength is > 0 and <= 16 ? filterLength * 8 : filterLength;
+        return filterBits ?? documentBits;
     }
 
     private static int ValidateRc4KeyLength(int keyLengthBits) {

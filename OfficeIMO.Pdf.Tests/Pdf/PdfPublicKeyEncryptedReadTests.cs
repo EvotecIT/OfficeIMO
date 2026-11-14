@@ -125,6 +125,47 @@ public sealed class PdfPublicKeyEncryptedReadTests {
         Assert.Throws<PdfUnsupportedEncryptionException>(() => PdfReadDocument.Open(pdf, OptionsFor(_recipient)));
     }
 
+    [Theory]
+    [InlineData("40", "5")]
+    [InlineData(null, "40")]
+    [InlineData("40", null)]
+    public void Rc4CryptFilterKeyLengthComesFromTheFilter(string? documentLength, string? filterLength) {
+        byte[] pdf = Fixture.Create(new Fixture.Settings {
+            Version = 4,
+            Method = Fixture.Cipher.Rc4,
+            KeyLengthBits = 40,
+            DocumentLengthOverride = documentLength ?? "null",
+            FilterLengthOverride = filterLength ?? "null"
+        }, _recipient);
+
+        Assert.Equal(Fixture.Title, PdfInspector.Inspect(pdf, OptionsFor(_recipient)).Metadata.Title);
+    }
+
+    [Fact]
+    public void DisagreeingCryptFilterAndDocumentKeyLengthsFailClosed() {
+        byte[] pdf = Fixture.Create(new Fixture.Settings {
+            Version = 4,
+            Method = Fixture.Cipher.Rc4,
+            KeyLengthBits = 40,
+            DocumentLengthOverride = "128"
+        }, _recipient);
+
+        Assert.Throws<PdfUnsupportedEncryptionException>(() => PdfReadDocument.Open(pdf, OptionsFor(_recipient)));
+    }
+
+    [Theory]
+    [InlineData("DefaultCryptFilter", true)]
+    [InlineData("Identity", false)]
+    public void EmbeddedFileFilterMustMatchTheStreamFilter(string embeddedFileFilter, bool opens) {
+        byte[] pdf = Fixture.Create(new Fixture.Settings { EmbeddedFileFilter = embeddedFileFilter }, _recipient);
+
+        if (opens) {
+            Assert.Equal(Fixture.Title, PdfInspector.Inspect(pdf, OptionsFor(_recipient)).Metadata.Title);
+        } else {
+            Assert.Throws<PdfUnsupportedEncryptionException>(() => PdfReadDocument.Open(pdf, OptionsFor(_recipient)));
+        }
+    }
+
     [Fact]
     public void RecipientDataWithUnexpectedLengthFailsClosed() {
         byte[] pdf = Fixture.Create(new Fixture.Settings { RecipientContentLength = 20 }, _recipient);
