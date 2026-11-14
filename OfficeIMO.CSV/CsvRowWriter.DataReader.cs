@@ -56,7 +56,6 @@ public sealed partial class CsvRowWriter
 
         EnsureColumns(columns);
 
-#if NET8_0_OR_GREATER
         // Typed values keep the default quoting path, with or without date and null formatting.
         if ((_useDefaultWritePath || _useFormattedDefaultWritePath)
             && CsvWriter.TryCreateDataReaderFieldKinds(reader) is { } fieldKinds)
@@ -64,7 +63,7 @@ public sealed partial class CsvRowWriter
             WriteDataReaderRecords(reader, fieldKinds, cancellationToken);
             return;
         }
-#endif
+
         var usesBatchedRecords = _batchFormattedTextDataReader || _useDefaultWritePath;
         int flushThreshold = _useDefaultWritePath
             ? CsvWriter.DataReaderFlushThreshold
