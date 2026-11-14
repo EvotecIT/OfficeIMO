@@ -487,6 +487,9 @@ Compares two worksheets or ranges cell by cell.
 ### [Convert-OfficeDocument](Convert-OfficeDocument.md)
 Converts files through OfficeIMO's native routes and portable batch engine.
 
+### [ConvertFrom-OfficeCsv](ConvertFrom-OfficeCsv.md)
+Converts CSV text into PSCustomObjects, dictionaries, a DataTable, a data reader or a CsvDocument.
+
 ### [ConvertFrom-OfficeToml](ConvertFrom-OfficeToml.md)
 Converts TOML text to PowerShell objects, as ConvertFrom-Json does for JSON.
 
@@ -1509,6 +1512,9 @@ Creates a proof report for user-visible signals preserved by a PDF rewrite.
 
 ### [Test-OfficePowerPoint](Test-OfficePowerPoint.md)
 Inspects a live or saved presentation without changing or reopening a supplied document.
+
+### [Test-OfficeToml](Test-OfficeToml.md)
+Tests whether TOML files or text load, without changing them.
 
 ### [Test-OfficeYaml](Test-OfficeYaml.md)
 Tests whether YAML files or text load, without changing them.

@@ -3,7 +3,7 @@
 <!-- officeimo-api-map:begin -->
 ## OfficeIMO and PSWriteOffice 3.6
 
-OfficeIMO 3.6 and PSWriteOffice 3.6 change the public API in both languages and are released together. Nothing keeps a compatibility wrapper, so update scripts and code with the rules and tables below. PSWriteOffice goes from 594 commands and 383 aliases to 511 commands and 176 aliases; every job that worked before still works, usually through fewer commands. The [API design](Docs/officeimo.api-design.md) explains the rules.
+OfficeIMO 3.6 and PSWriteOffice 3.6 change the public API in both languages and are released together. Nothing keeps a compatibility wrapper, so update scripts and code with the rules and tables below. PSWriteOffice goes from 594 commands and 383 aliases to 513 commands and 176 aliases; every job that worked before still works, usually through fewer commands. The [API design](Docs/officeimo.api-design.md) explains the rules.
 
 ### What changed
 
@@ -5381,6 +5381,19 @@ code renderers or HTML render extensions. The Markdown-to-AsciiDoc, Markdown-to-
 Markdown-to-PowerPoint workflow routes capture it unless you pass your own reader options.
 `Get-OfficeMarkdownNode` and `Get-OfficeMarkdownFrontMatter` keep reporting source spans; for other
 cmdlets, pass reader options with `CaptureSyntaxTree` set.
+
+## Grayscale printing sends vector PDF to printers that convert it
+
+Grayscale print jobs for IPP printers and CUPS queues reached over IPP that list
+`application/pdf` and the `monochrome` print-color-mode are now sent as the vector PDF with
+`print-color-mode=monochrome`, and the printer converts them to gray. Before, every
+grayscale job was rasterized. Text stays sharp and jobs submit much faster, but the
+printer's conversion can differ from the preview in light fills and in how colors map
+to gray. To keep the previous output, set `PdfPrintDeliveryOptions.RasterizeGrayscale`,
+pass `--raster-grayscale` to `officeimo workflow print`, or add `-RasterizeGrayscale`
+to `Send-OfficePrinter -Grayscale`. Printers without `monochrome`, printers that
+cannot make the requested copies themselves and Windows queues still receive gray
+raster sheets, and CUPS queues printed through `lp` still receive rasterized PDF.
 
 ## OneNote visual PDF pages are vector
 

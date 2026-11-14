@@ -25,15 +25,20 @@ Merge-OfficeDocument [-OutputPath] <string> -LiteralPath <string[]> [-Password <
 ```
 
 ## DESCRIPTION
-Supports PDF, Open XML Word and Excel, and YAML files. Binary projection and conversion are not performed.
-Word, Excel and YAML live documents can receive appended files and remain caller-owned. PDF merging creates a new
-document, so live PDF targets are not supported. PassThru returns a saved FileInfo for file input or the live
+Supports PDF, Open XML Word and Excel, YAML and TOML files. Binary projection and conversion are not performed.
+Word, Excel, YAML and TOML live documents can receive appended files and remain caller-owned. PDF merging creates a
+new document, so live PDF targets are not supported. PassThru returns a saved FileInfo for file input or the live
 document for Document input. PassThruReport returns the native report for PDF file merges and one report per
-overlay for YAML merges. Native merge options determine which content is imported.
+overlay for YAML and TOML merges. Native merge options determine which content is imported.
 
 YAML inputs (.yaml and .yml mix freely) are overlaid in order onto the first file or the live document, the way
-Helm combines values files: mappings merge key by key, sequences follow YamlMergeOptions.Sequences, and only the
-lines the merge changes differ from the base file.
+Helm combines values files: mappings merge key by key, sequences follow the Sequences option ('Replace', 'Append',
+or @{ MergeByKey = 'name' }), and only the lines the merge changes differ from the base file.
+
+TOML inputs are overlaid the same way, as layered pyproject.toml, Cargo.toml or tool settings combine: tables
+merge key by key whatever their syntax, arrays and arrays of tables follow the Arrays option in the same three forms
+(@{ MergeByKey = 'name' } matches [[package]] tables by name), and the base keeps its comments and layout. A value
+that changes kind, such as a table over a string, takes the overlay's value and is reported in the merge report.
 
 ## EXAMPLES
 
@@ -57,6 +62,18 @@ Merge-OfficeDocument -Path ./values.yaml, ./values.prod.yaml -OutputPath ./value
 
 ### EXAMPLE 4
 ```powershell
+Merge-OfficeDocument -Path ./pyproject.toml, ./pyproject.local.toml -OutputPath ./pyproject.merged.toml -PassThruReport
+```
+
+
+### EXAMPLE 5
+```powershell
+Merge-OfficeDocument -Path ./plugins.toml, ./plugins.local.toml -OutputPath ./plugins.merged.toml -Options @{ Arrays = @{ MergeByKey = 'name' } }
+```
+
+
+### EXAMPLE 6
+```powershell
 Merge-OfficeDocument -Document $proposal -Path ./scope.docx, ./pricing.docx -OutputPath ./proposal.docx
 ```
 
@@ -64,7 +81,7 @@ Merge-OfficeDocument -Document $proposal -Path ./scope.docx, ./pricing.docx -Out
 ## PARAMETERS
 
 ### -Document
-A single editable Word, Excel or YAML document to append to; ownership stays with the caller.
+A single editable Word, Excel, YAML or TOML document to append to; ownership stays with the caller.
 
 ```yaml
 Type: IDisposable
@@ -160,7 +177,7 @@ Accept wildcard characters: False
 ```
 
 ### -PassThruReport
-Emit the native PDF merge report, or one YAML merge report per overlay, after a successful merge.
+Emit the native PDF merge report, or one YAML or TOML merge report per overlay, after a successful merge.
 
 ```yaml
 Type: SwitchParameter
@@ -238,6 +255,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 - `OfficeIMO.Excel.ExcelDocument`
 - `OfficeIMO.Pdf.PdfMergeReport`
 - `OfficeIMO.Yaml.YamlMergeReport`
+- `OfficeIMO.Toml.TomlMergeReport`
 
 ## RELATED LINKS
 

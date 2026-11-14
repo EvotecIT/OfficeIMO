@@ -118,6 +118,20 @@ Describe 'YAML document commands' {
         @($report.Removed) | Should -Be @('debug')
         [IO.File]::ReadAllText($output) | Should -BeExactly (Join-YamlLines "`n" @('# defaults', 'image:', "  tag: '1.27'   # overridden per environment", 'ports: [443]'))
     }
+
+    It 'binds the Sequences merge mode from a script form' {
+        $base = Join-Path $TestDrive 'containers.yaml'
+        $overlay = Join-Path $TestDrive 'containers.prod.yaml'
+        $output = Join-Path $TestDrive 'containers.merged.yaml'
+        [IO.File]::WriteAllText($base, (Join-YamlLines "`n" @('containers:', '  - name: web', '    image: web:1', '    port: 80', '  - name: db', '    image: db:1')))
+        [IO.File]::WriteAllText($overlay, (Join-YamlLines "`n" @('containers:', '  - name: web', '    image: web:2')))
+
+        Merge-OfficeDocument -Path $base, $overlay -OutputPath $output -Options @{ Sequences = @{ MergeByKey = 'name' } }
+
+        # Replace would drop port and the db container; MergeByKey keeps both.
+        [IO.File]::ReadAllText($output) | Should -BeExactly (Join-YamlLines "`n" @('containers:', '  - name: web', '    image: web:2', '    port: 80', '  - name: db', '    image: db:1'))
+        { Merge-OfficeDocument -Path $base, $overlay -OutputPath (Join-Path $TestDrive 'bad.yaml') -Options @{ Sequences = 'Sideways' } } | Should -Throw "*'Replace', 'Append'*"
+    }
 }
 
 Describe 'YAML data conversion' {
@@ -264,6 +278,22 @@ Describe 'YAML validation' {
         @($result.Diagnostics.Code) | Should -Contain $result.Code
 
         { Open-OfficeYaml -Text "ports: [80, 443`n" } | Should -Throw -ErrorId 'yaml-syntax-*'
+    }
+
+    It 'reports a file it cannot read and tests the rest' {
+        $locked = Join-Path $TestDrive 'locked.yaml'
+        $good = Join-Path $TestDrive 'readable.yaml'
+        [IO.File]::WriteAllText($locked, "a: 1`n")
+        [IO.File]::WriteAllText($good, "a: 1`n")
+        $stream = [IO.File]::Open($locked, 'Open', 'ReadWrite', 'None')
+        try {
+            $results = @(Test-OfficeYaml -LiteralPath $locked, $good -ErrorVariable failures -ErrorAction SilentlyContinue)
+        } finally {
+            $stream.Dispose()
+        }
+        $results | Should -Be @($true)
+        @($failures).Count | Should -Be 1
+        $failures[0].TargetObject | Should -Be $locked
     }
 
     It 'applies Strict to input the default mode accepts with a warning' {

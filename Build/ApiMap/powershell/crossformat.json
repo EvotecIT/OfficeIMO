@@ -8922,6 +8922,12 @@
               "pipeline": "none"
             },
             {
+              "name": "RasterizeGrayscale",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "Copies",
               "type": "int",
               "mandatory": false,
@@ -9027,6 +9033,12 @@
             },
             {
               "name": "Grayscale",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "RasterizeGrayscale",
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none"

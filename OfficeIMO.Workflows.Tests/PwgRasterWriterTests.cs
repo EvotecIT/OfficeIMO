@@ -3,8 +3,8 @@ using System.Diagnostics;
 namespace OfficeIMO.Workflows.Tests;
 
 public sealed class PwgRasterWriterTests {
-    internal const string RasterToTiff = "/usr/libexec/cups/filter/rastertotiff";
-    internal const string IppEvePcl = "/usr/libexec/cups/command/ippevepcl";
+    internal const string RasterToTiff = ExternalTool.RasterToTiff;
+    internal const string IppEvePcl = ExternalTool.IppEvePcl;
 
     [Fact]
     public void CompressesRepeatedLinesAndPixelRuns() {
@@ -28,7 +28,7 @@ public sealed class PwgRasterWriterTests {
         try {
             File.WriteAllBytes(path, Write(page));
             // rastertotiff reads the stream with the CUPS raster reader and writes uncompressed TIFF samples.
-            (int exit, byte[] tiff, string error) = Run(RasterToTiff, new[] { "1", "user", "title", "1", "", path }, null);
+            (int exit, byte[] tiff, string error) = Run(ExternalTool.Path(RasterToTiff), new[] { "1", "user", "title", "1", "", path }, null);
             Assert.True(exit == 0 && tiff.Length > 0, error);
             Assert.Equal(page.Pixels, UncompressedTiffSamples(tiff));
         } finally {
@@ -42,7 +42,7 @@ public sealed class PwgRasterWriterTests {
         string path = Path.Combine(Path.GetTempPath(), "officeimo-pwg-" + Guid.NewGuid().ToString("N") + ".pwg");
         try {
             File.WriteAllBytes(path, raster);
-            (int exit, byte[] output, string error) = Run(IppEvePcl, new[] { path }, new Dictionary<string, string> { ["CONTENT_TYPE"] = "image/pwg-raster" });
+            (int exit, byte[] output, string error) = Run(ExternalTool.Path(IppEvePcl), new[] { path }, new Dictionary<string, string> { ["CONTENT_TYPE"] = "image/pwg-raster" });
             Assert.True(exit == 0, error);
             Assert.True(output.Length > 1000);
         } finally {
@@ -122,10 +122,32 @@ public sealed class PwgRasterWriterTests {
     private static readonly TimeSpan ConverterTimeout = TimeSpan.FromSeconds(60);
 }
 
-/// <summary>Runs only where the named CUPS reference tools are installed (macOS and CUPS hosts).</summary>
+/// <summary>Runs only where the named CUPS reference tools are installed (macOS, and Linux hosts with the CUPS IPP tools).</summary>
 public sealed class ExternalToolFactAttribute : FactAttribute {
-    public ExternalToolFactAttribute(params string[] paths) {
-        string? missing = paths.FirstOrDefault(path => !File.Exists(path));
+    public ExternalToolFactAttribute(params string[] tools) {
+        string? missing = tools.FirstOrDefault(tool => ExternalTool.Find(tool) is null);
         if (missing is not null) Skip = $"{missing} is not installed on this host.";
     }
+}
+
+/// <summary>Finds CUPS reference tools by name: macOS keeps them under /usr/libexec/cups, Debian and Ubuntu under /usr/sbin or /usr/lib/cups.</summary>
+internal static class ExternalTool {
+    internal const string IppEvePrinter = "ippeveprinter", IppEvePcl = "ippevepcl", RasterToTiff = "rastertotiff";
+
+    private static readonly Dictionary<string, string[]> KnownLocations = new(StringComparer.Ordinal) {
+        [IppEvePrinter] = ["/usr/bin/ippeveprinter", "/usr/sbin/ippeveprinter"],
+        [IppEvePcl] = ["/usr/libexec/cups/command/ippevepcl", "/usr/lib/cups/command/ippevepcl", "/usr/sbin/ippevepcl"],
+        [RasterToTiff] = ["/usr/libexec/cups/filter/rastertotiff", "/usr/lib/cups/filter/rastertotiff"]
+    };
+
+    /// <summary>The tool's path, or null when it is not installed. A rooted name is checked as given.</summary>
+    internal static string? Find(string tool) {
+        if (System.IO.Path.IsPathRooted(tool)) return File.Exists(tool) ? tool : null;
+        if (OperatingSystem.IsWindows()) return null;
+        IEnumerable<string> onPath = (Environment.GetEnvironmentVariable("PATH") ?? string.Empty)
+            .Split(System.IO.Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries).Select(directory => System.IO.Path.Combine(directory, tool));
+        return (KnownLocations.TryGetValue(tool, out string[]? known) ? known : []).Concat(onPath).FirstOrDefault(File.Exists);
+    }
+
+    internal static string Path(string tool) => Find(tool) ?? throw new InvalidOperationException(tool + " is not installed on this host.");
 }
