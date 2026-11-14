@@ -288,6 +288,17 @@ public partial class WordList : WordElement {
         }
     }
 
+    /// <summary>Creates the list over items already resolved in document order, so building every list walks the paragraphs once.</summary>
+    internal WordList(WordDocument wordDocument, int numberId, List<WordParagraph> items) {
+        _document = wordDocument;
+        _wordprocessingDocument = wordDocument._wordprocessingDocument;
+        _numberId = numberId;
+        foreach (var p in items) {
+            p._list = this;
+            _listItems.Add(p);
+        }
+    }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="WordList"/> class for headers and footers.
     /// </summary>

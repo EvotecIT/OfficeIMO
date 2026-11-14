@@ -23,11 +23,26 @@ public static partial class OfficeDocumentReadResultExtensions {
         ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         var text = new StringBuilder();
-        void Append(string? value, bool continues = false) {
-            if (string.IsNullOrEmpty(value)) return;
-            if (text.Length > 0 && !continues) text.AppendLine();
-            text.Append(value);
+        foreach (TextSegment segment in EnumerateTextSegments(document, cancellationToken)) {
+            if (text.Length > 0 && !segment.Continues) text.AppendLine();
+            text.Append(segment.Text);
         }
+        return text.ToString().TrimEnd();
+    }
+
+    /// <summary>One nonempty piece of <see cref="GetText"/> output: a chunk, block or table line, in output order.</summary>
+    internal readonly struct TextSegment {
+        internal TextSegment(string text, bool continues, OfficeDocumentContentItem item) {
+            Text = text; Continues = continues; Item = item;
+        }
+        internal string Text { get; }
+        /// <summary>Appended without a line break, continuing the previous segment.</summary>
+        internal bool Continues { get; }
+        internal OfficeDocumentContentItem Item { get; }
+    }
+
+    /// <summary>The segments <see cref="GetText"/> joins, shared with the text projection so both produce the same text.</summary>
+    internal static IEnumerable<TextSegment> EnumerateTextSegments(OfficeDocumentReadResult document, CancellationToken cancellationToken) {
         var content = document.EnumerateContent().ToArray();
         var tableLocations = content.Where(item => item.Table != null && !string.IsNullOrWhiteSpace(item.Location?.BlockAnchor))
             .GroupBy(item => item.Location!.BlockAnchor!, StringComparer.Ordinal)
@@ -39,18 +54,21 @@ public static partial class OfficeDocumentReadResultExtensions {
         foreach (var item in content) {
             cancellationToken.ThrowIfCancellationRequested();
             if (item.Chunk != null) {
-                Append(item.Chunk.Text, item.Chunk.ContinuesPreviousChunk);
+                if (!string.IsNullOrEmpty(item.Chunk.Text)) yield return new TextSegment(item.Chunk.Text, item.Chunk.ContinuesPreviousChunk, item);
             } else if (item.Table is ReaderTable table && !chunkTables.Contains(table)) {
-                if (table.Columns.Count > 0) Append(string.Join("\t", table.Columns));
+                if (table.Columns.Count > 0) {
+                    string columns = string.Join("\t", table.Columns);
+                    if (columns.Length > 0) yield return new TextSegment(columns, false, item);
+                }
                 foreach (var row in table.Rows) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    Append(string.Join("\t", row));
+                    string line = string.Join("\t", row);
+                    if (line.Length > 0) yield return new TextSegment(line, false, item);
                 }
-            } else if (EmitsBlock(item)) {
-                Append(item.Block!.Text, item.Block.ChunkProjection?.ContinuesPreviousChunk == true);
+            } else if (EmitsBlock(item) && !string.IsNullOrEmpty(item.Block!.Text)) {
+                yield return new TextSegment(item.Block.Text, item.Block.ChunkProjection?.ContinuesPreviousChunk == true, item);
             }
         }
-        return text.ToString().TrimEnd();
     }
 
     /// <summary>Projects each existing page-like container into plain text with its original citation metadata.</summary>

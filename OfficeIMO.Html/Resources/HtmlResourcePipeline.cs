@@ -12,10 +12,42 @@ public static partial class HtmlResourcePipeline {
     private const int MaxCustomPropertyResolutionDepth = 8;
     private const string ResourceSelector = "image, meta[http-equiv], [src], [srcset], [href], [xlink\\:href], [data], [data-src], [data-original], [data-original-src], [data-lazy-src], [data-srcset], [data-original-srcset], [data-lazy-srcset], [poster], [data-poster], [action], [formaction], [background], [cite], [srcdoc], [imagesrcset]";
     private const string CssCustomPropertyNamePattern = "--(?:\\\\[0-9A-Fa-f]{1,6}\\s?|\\\\[^\\r\\n\\f]|[\\p{L}\\p{N}_-]|[^\\x00-\\x7F])+";
+    // Compiled regexes are emitted and jitted on first use, which every fresh process pays for;
+    // the source generator builds the same matcher at compile time.
+#if NET7_0_OR_GREATER
+    [GeneratedRegex("(?<name>(?:[uU]|\\\\0{0,4}(?:75|55)\\s?|\\\\[uU])(?:[rR]|\\\\0{0,4}(?:72|52)\\s?|\\\\[rR])(?:[lL]|\\\\0{0,4}(?:6[cC]|4[cC])\\s?|\\\\[lL]))\\(\\s*(?:\"(?<url>(?:\\\\[\\s\\S]|[^\"\\\\])+)\"|'(?<url>(?:\\\\[\\s\\S]|[^'\\\\])+)'|(?<url>[^)]+))\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex CssUrlExpressionGenerated();
+    private static Regex CssUrlExpression => CssUrlExpressionGenerated();
+#else
     private static readonly Regex CssUrlExpression = new Regex("(?<name>(?:[uU]|\\\\0{0,4}(?:75|55)\\s?|\\\\[uU])(?:[rR]|\\\\0{0,4}(?:72|52)\\s?|\\\\[rR])(?:[lL]|\\\\0{0,4}(?:6[cC]|4[cC])\\s?|\\\\[lL]))\\(\\s*(?:\"(?<url>(?:\\\\[\\s\\S]|[^\"\\\\])+)\"|'(?<url>(?:\\\\[\\s\\S]|[^'\\\\])+)'|(?<url>[^)]+))\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+#endif
+    // Compiled regexes are emitted and jitted on first use, which every fresh process pays for;
+    // the source generator builds the same matcher at compile time.
+#if NET7_0_OR_GREATER
+    [GeneratedRegex("(?<nameToken>(?:[vV]|\\\\0{0,4}(?:76|56)\\s?|\\\\[vV])(?:[aA]|\\\\0{0,4}(?:61|41)\\s?|\\\\[aA])(?:[rR]|\\\\0{0,4}(?:72|52)\\s?|\\\\[rR]))\\(\\s*(?<name>" + CssCustomPropertyNamePattern + ")", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex CssVarExpressionGenerated();
+    private static Regex CssVarExpression => CssVarExpressionGenerated();
+#else
     private static readonly Regex CssVarExpression = new Regex("(?<nameToken>(?:[vV]|\\\\0{0,4}(?:76|56)\\s?|\\\\[vV])(?:[aA]|\\\\0{0,4}(?:61|41)\\s?|\\\\[aA])(?:[rR]|\\\\0{0,4}(?:72|52)\\s?|\\\\[rR]))\\(\\s*(?<name>" + CssCustomPropertyNamePattern + ")", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+#endif
+    // Compiled regexes are emitted and jitted on first use, which every fresh process pays for;
+    // the source generator builds the same matcher at compile time.
+#if NET7_0_OR_GREATER
+    [GeneratedRegex("(?<name>" + CssCustomPropertyNamePattern + ")[\\s\\u0001]*:", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex CssCustomPropertyDeclarationExpressionGenerated();
+    private static Regex CssCustomPropertyDeclarationExpression => CssCustomPropertyDeclarationExpressionGenerated();
+#else
     private static readonly Regex CssCustomPropertyDeclarationExpression = new Regex("(?<name>" + CssCustomPropertyNamePattern + ")[\\s\\u0001]*:", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+#endif
+    // Compiled regexes are emitted and jitted on first use, which every fresh process pays for;
+    // the source generator builds the same matcher at compile time.
+#if NET7_0_OR_GREATER
+    [GeneratedRegex("\\(\\s*(?<name>max-width|max-height|width|height)\\s*:\\s*(?<value>[+-]?(?:\\d+\\.?\\d*|\\.\\d+))\\s*(?<unit>px|em|rem|vw|vh|vmin|vmax|cm|mm|in|pt|pc)?\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex MediaLengthFeatureExpressionGenerated();
+    private static Regex MediaLengthFeatureExpression => MediaLengthFeatureExpressionGenerated();
+#else
     private static readonly Regex MediaLengthFeatureExpression = new Regex("\\(\\s*(?<name>max-width|max-height|width|height)\\s*:\\s*(?<value>[+-]?(?:\\d+\\.?\\d*|\\.\\d+))\\s*(?<unit>px|em|rem|vw|vh|vmin|vmax|cm|mm|in|pt|pc)?\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+#endif
 
     /// <summary>
     /// Parses raw HTML and builds a resource manifest.

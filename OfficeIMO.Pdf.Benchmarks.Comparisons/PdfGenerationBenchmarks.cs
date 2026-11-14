@@ -22,6 +22,9 @@ public class PdfGenerationBenchmarks {
         Validate(nameof(QuestPDF), QuestPDF());
         Validate(nameof(MigraDoc), MigraDoc());
         Validate(nameof(IText), IText());
+#if NET10_0_OR_GREATER
+        Validate(nameof(OnePdfLayout), OnePdfLayout());
+#endif
     }
 
     [Benchmark(Baseline = true)]
@@ -36,6 +39,12 @@ public class PdfGenerationBenchmarks {
     [Benchmark]
     public byte[] IText() => ITextPdfGenerator.Generate(_scenario);
 
+#if NET10_0_OR_GREATER
+    /// <summary>OnePDF.Layout writes a tagged PDF by default; the other lanes write untagged or lightly tagged output.</summary>
+    [Benchmark]
+    public byte[] OnePdfLayout() => OnePdfComparisonEngines.Generate(_scenario);
+
+#endif
     private void Validate(string engine, byte[] bytes) =>
         PdfBenchmarkValidation.ValidateGenerated(bytes, _scenario, engine);
 }

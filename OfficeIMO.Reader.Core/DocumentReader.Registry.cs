@@ -123,15 +123,19 @@ internal static partial class DocumentReaderEngine {
 
     internal static ReaderOptions NormalizeOptions(ReaderOptions? options, bool inheritProjection = true) {
         ReaderOptions? source = options;
-        if (source != null && source.Projection != ReaderProjection.Full && source.Projection != ReaderProjection.TextAndMetadata)
+        if (source != null && source.Projection != ReaderProjection.Full && source.Projection != ReaderProjection.TextAndMetadata
+            && source.Projection != ReaderProjection.Text)
             throw new ArgumentOutOfRangeException(nameof(ReaderOptions.Projection));
         if (source?.OpenXmlMaxPartUncompressedBytes < 1)
             throw new ArgumentOutOfRangeException(nameof(ReaderOptions.OpenXmlMaxPartUncompressedBytes));
         if (source?.OpenXmlMaxTotalUncompressedBytes < 1)
             throw new ArgumentOutOfRangeException(nameof(ReaderOptions.OpenXmlMaxTotalUncompressedBytes));
+        ReaderProjection projection = RequestedProjection(source);
+        if (inheritProjection && ReaderReadScope.Current is { } scope) projection = NarrowestProjection(scope.Projection, projection);
         var clone = new ReaderOptions {
-            Projection = inheritProjection && ReaderReadScope.Current?.Projection == ReaderProjection.TextAndMetadata
-                ? ReaderProjection.TextAndMetadata : source?.Projection ?? ReaderProjection.Full,
+            // Handlers see the text-and-metadata profile for a text read; the read scope reduces the result to text.
+            Projection = projection == ReaderProjection.Text ? ReaderProjection.TextAndMetadata : projection,
+            TextOnly = projection == ReaderProjection.Text,
             FolderOptions = source?.FolderOptions == null ? null : NormalizeFolderOptions(source.FolderOptions),
             MaxInputBytes = source?.MaxInputBytes,
             InputByteBudget = source?.InputByteBudget,

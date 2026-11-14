@@ -116,19 +116,25 @@ internal static partial class PdfWriter {
         GetAutoFitPreferredWidthSegments(text, splitCamelCase).ToArray();
 
     private static IEnumerable<string> SplitAutoFitTechnicalToken(string token, bool splitCamelCase) {
-        foreach (string commaPart in token.Split(AutoFitTechnicalTokenSplitChars, StringSplitOptions.RemoveEmptyEntries)) {
+        foreach (string commaPart in SplitAutoFitNonEmpty(token, AutoFitTechnicalTokenSplitChars)) {
             string trimmed = commaPart.Trim();
             if (trimmed.Length == 0) {
                 continue;
             }
 
-            foreach (string valuePart in trimmed.Split(AutoFitKeyValuePartSplitChars, StringSplitOptions.RemoveEmptyEntries)) {
+            foreach (string valuePart in SplitAutoFitNonEmpty(trimmed, AutoFitKeyValuePartSplitChars)) {
                 foreach (string part in SplitAutoFitPreferredValuePart(valuePart, splitCamelCase)) {
                     yield return part;
                 }
             }
         }
     }
+
+    // Most cell tokens contain no separator; they are their own single part without a split array.
+    private static string[] SplitAutoFitNonEmpty(string value, char[] separators) =>
+        value.Length == 0 ? Array.Empty<string>()
+            : value.IndexOfAny(separators) < 0 ? new[] { value }
+            : value.Split(separators, StringSplitOptions.RemoveEmptyEntries);
 
     private static IEnumerable<string> SplitAutoFitPreferredValuePart(string value, bool splitCamelCase) {
         string trimmed = value.Trim();
@@ -203,11 +209,6 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        string[] parts = value.Split(AutoFitDelimitedCodeSplitChars, StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length < 2) {
-            return false;
-        }
-
         bool hasLetter = false;
         for (int i = 0; i < value.Length; i++) {
             char ch = value[i];
@@ -225,12 +226,13 @@ internal static partial class PdfWriter {
             }
         }
 
-        return hasLetter;
+        return hasLetter && value.Split(AutoFitDelimitedCodeSplitChars, StringSplitOptions.RemoveEmptyEntries).Length >= 2;
     }
 
     private static bool IsSingleLetterNumericDelimitedCodeAutoFitText(string text) {
         string value = text.Trim();
-        if (value.Length < 5) {
+        // Three non-empty parts need at least two delimiters.
+        if (value.Length < 5 || CountAutoFitCharacter(value, '-') < 2) {
             return false;
         }
 
@@ -239,6 +241,11 @@ internal static partial class PdfWriter {
     }
 
     private static bool IsSingleLetterNumericDelimitedCodeListAutoFitText(string text) {
+        // A list needs two entries, so it needs a separator.
+        if (text.IndexOfAny(AutoFitTechnicalTokenSplitChars) < 0) {
+            return false;
+        }
+
         string[] entries = GetSingleLetterNumericDelimitedCodeEntries(text);
         if (entries.Length < 2) {
             return false;

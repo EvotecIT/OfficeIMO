@@ -11,20 +11,21 @@ internal sealed partial class PdfTrueTypeFontProgram {
     private readonly int[] _advanceWidths1000;
     private readonly Dictionary<int, int> _cmap;
     private readonly Dictionary<string, TableRecord> _tables;
-    private readonly SubsetFontFingerprint _subsetFontFingerprint;
+    private readonly LazySubsetFontFingerprint _subsetFontFingerprint;
     private readonly OfficeOpenTypeTracking? _tracking;
     private readonly SortedSet<int> _usedGlyphIds = new();
     private readonly Dictionary<int, string> _usedGlyphToUnicode = new();
     private readonly PdfCanonicalGlyphText _canonicalGlyphText;
     private readonly PdfGlyphTextPins _textPins;
     private readonly object _usageLock = new();
-    private readonly PdfShortTextCache<PdfGlyphRun> _shortGlyphRuns = new();
+    private readonly PdfShortTextCache<PdfGlyphRun> _shortGlyphRuns;
     private readonly PdfShortTextCache<PdfMeasuredText> _shortMeasurements;
     private readonly ScalarCoverageProofs _scalarCoverageProofs;
 
     private PdfTrueTypeFontProgram(byte[] data, Dictionary<string, TableRecord> tables, string fontName, int unitsPerEm, int xMin, int yMin, int xMax, int yMax, int ascent, int descent, int capHeight, double italicAngle, int flags, int stemV, int[] advanceWidths1000, Dictionary<int, int> cmap) {
         _data = data.ToArray();
         _shortMeasurements = new();
+        _shortGlyphRuns = new();
         _scalarCoverageProofs = new();
         _fontUnitLayoutMetrics = new PdfFontUnitLayoutMetrics(_data);
         LineMetrics = OfficeOpenTypeLineMetrics.TryRead(_data);
@@ -45,7 +46,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         _cmap = cmap;
         _canonicalGlyphText = new PdfCanonicalGlyphText(cmap);
         _textPins = new PdfGlyphTextPins(_canonicalGlyphText, _advanceWidths1000.Length, allowAliases: true);
-        _subsetFontFingerprint = SubsetFontFingerprint.Create(_data);
+        _subsetFontFingerprint = new LazySubsetFontFingerprint(_data);
         SharedIdentity = new object();
     }
 
@@ -72,6 +73,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         _tracking = source._tracking;
         // Nominal advances and glyph identities depend only on immutable font
         // data. Every hit still replays usage into this document's own subset.
+        _shortGlyphRuns = source._shortGlyphRuns;
         _shortMeasurements = source._shortMeasurements;
         _scalarCoverageProofs = source._scalarCoverageProofs;
         SharedIdentity = source.SharedIdentity;
@@ -195,13 +197,18 @@ internal sealed partial class PdfTrueTypeFontProgram {
         Guard.NotNull(text, nameof(text));
         bool cacheable = PdfShortTextCache<PdfGlyphRun>.IsEligible(text, options);
         if (cacheable && _shortGlyphRuns.TryGet(text, options, out PdfGlyphRun cached)) {
-            foreach (PdfGlyphInfo glyph in cached.Glyphs) RecordGlyphUsage(glyph.GlyphId, glyph.UnicodeText);
+            ReplayGlyphRunUsage(cached);
             if (cached.SourceShapingResult != null || cached.IsAutomaticallyShaped) options.ProviderShapedTextRecorder?.Invoke(text, FontName, false, true);
             return cached;
         }
         PdfGlyphRun result = ShapeUncachedText(text, options);
         if (cacheable && !result.HasMissingGlyphs) _shortGlyphRuns.Add(text, options, result, result.Glyphs.Count);
         return result;
+    }
+
+    private void ReplayGlyphRunUsage(PdfGlyphRun run) {
+        IReadOnlyList<PdfGlyphInfo> glyphs = run.Glyphs;
+        for (int index = 0; index < glyphs.Count; index++) RecordGlyphUsage(glyphs[index].GlyphId, glyphs[index].UnicodeText);
     }
 
     private PdfGlyphRun ShapeUncachedText(string text, PdfTextShapingOptions options) {

@@ -10,6 +10,16 @@ internal sealed partial class PdfTrueTypeFontProgram {
             ReplayMeasuredGlyphUsage(cached);
             return cached.Advance;
         }
+        // Text is usually measured before it is drawn. Shaping the run here, when drawing would produce the
+        // same default Latin run, lets the draw and its paint inspection reuse it instead of shaping again.
+        if (_shortGlyphRuns.TryGet(text, options, out PdfGlyphRun shaped)) {
+            ReplayGlyphRunUsage(shaped);
+            return shaped.TotalAdvanceWidth1000;
+        }
+        if (PdfExternalTextShaper.TryShapeCacheableDefaultLatinText(text, this, options, out shaped)) {
+            _shortGlyphRuns.Add(text, options, shaped, shaped.Glyphs.Count);
+            return shaped.TotalAdvanceWidth1000;
+        }
         var usage = new List<(int, string)>(text.Length);
         int advance = PdfExternalTextShaper.MeasureDefaultLatinAdvanceWidth1000(text, this, options,
             (glyphId, unicode) => usage.Add((glyphId, unicode)));

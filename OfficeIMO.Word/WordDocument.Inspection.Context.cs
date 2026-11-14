@@ -29,6 +29,31 @@ namespace OfficeIMO.Word {
                 }
                 return style;
             }
+
+            private Dictionary<int, WordList>? _firstListByNumberId;
+            private readonly Dictionary<int, string?> _listStyleNames = new();
+
+            /// <summary>
+            /// Same result as <see cref="WordParagraph.ListStyle"/>, which builds every list in the document for each
+            /// call. The document is read-only for the inspection, so its lists are built once and the first list
+            /// with each number id answers every paragraph that uses it.
+            /// </summary>
+            internal string? ListStyleNameFor(WordParagraph paragraph) {
+                if (!paragraph.IsListItem) return null;
+                int? numberId = paragraph._listNumberId;
+                if (numberId == null || paragraph._document == null) return null;
+                if (_firstListByNumberId == null) {
+                    _firstListByNumberId = new Dictionary<int, WordList>();
+                    foreach (WordList list in paragraph._document.Lists) {
+                        if (!_firstListByNumberId.ContainsKey(list._numberId)) _firstListByNumberId.Add(list._numberId, list);
+                    }
+                }
+                if (!_listStyleNames.TryGetValue(numberId.Value, out string? name)) {
+                    name = _firstListByNumberId.TryGetValue(numberId.Value, out WordList? first) ? first.Style.ToString() : null;
+                    _listStyleNames.Add(numberId.Value, name);
+                }
+                return name;
+            }
         }
     }
 }

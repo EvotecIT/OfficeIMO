@@ -1,6 +1,5 @@
 using System.Globalization;
 using OfficeIMO.Drawing;
-using System.Text.RegularExpressions;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
@@ -16,11 +15,16 @@ namespace OfficeIMO.PowerPoint {
 
         internal static double Height(PowerPointLayoutContext context, PowerPointParagraph paragraph, double size,
             double width, double margin = 0D, double? spaceAfter = null, int start = 0, int? length = null,
-            PowerPointTextRole role = PowerPointTextRole.Body) {
-            var style = context.Style(role);
+            PowerPointTextRole role = PowerPointTextRole.Body) =>
             // Use the same font metrics as the shared Drawing renderer. Family factors are sufficient
             // for theme estimates, but can under-measure an authored face at a large native size.
-            var metrics = OfficeDrawingTextLayout.CreateMetrics((OfficeFontFaceCollection?)null);
+            Height(OfficeDrawingTextLayout.CreateMetrics((OfficeFontFaceCollection?)null), context, paragraph, size,
+                width, margin, spaceAfter, start, length, role);
+
+        /// <summary>Measures with caller-owned metrics so repeated probes of one paragraph share its measurement cache.</summary>
+        private static double Height(OfficeRasterCanvas metrics, PowerPointLayoutContext context, PowerPointParagraph paragraph,
+            double size, double width, double margin, double? spaceAfter, int start, int? length, PowerPointTextRole role) {
+            var style = context.Style(role);
             double available = Math.Max(1D, (width - (paragraph.LeftMargin?.ToPoints() ?? margin)
                 - (paragraph.Paragraph.ParagraphProperties?.RightMargin?.Value ?? 0) / 12700D
                 - Math.Max(0D, paragraph.Indent?.ToPoints() ?? 0D)) / 1.06D);
@@ -68,20 +72,26 @@ namespace OfficeIMO.PowerPoint {
                 // advance, and also retain room for positive tracking in native Office.
                 double Measure(string value) => metrics.MeasureText(value, points, font, fontStyle)
                     + Math.Max(0D, trackingPoints) * value.Length;
-                foreach (Match token in Regex.Matches(text, @"\n|[^\S\n]+|[^\s]+")) {
-                    if (token.Value == "\n") { Word(); Line(); spaces = 0D; }
-                    else if (char.IsWhiteSpace(token.Value[0])) {
+                // Tokens are a line feed, a run of other white space, or a run of non-white space.
+                int index = 0;
+                while (index < text.Length) {
+                    char first = text[index];
+                    if (first == '\n') { Word(); Line(); spaces = 0D; index++; continue; }
+                    int tokenStart = index;
+                    if (char.IsWhiteSpace(first)) {
+                        do index++; while (index < text.Length && text[index] != '\n' && char.IsWhiteSpace(text[index]));
                         Word();
-                        spaces += Measure(token.Value);
+                        spaces += Measure(text.Substring(tokenStart, index - tokenStart));
                     } else {
-                        wordWidth += Measure(token.Value);
+                        do index++; while (index < text.Length && !char.IsWhiteSpace(text[index]));
+                        wordWidth += Measure(text.Substring(tokenStart, index - tokenStart));
                         wordSize = Math.Max(wordSize, points);
                     }
                 }
             }
             Word();
             Line();
-            double markSize = MaximumSize(paragraph, size);
+            double markSize = maximumSize;
             double Spacing(DocumentFormat.OpenXml.OpenXmlCompositeElement? spacing, double fallback) =>
                 spacing?.GetFirstChild<A.SpacingPoints>()?.Val?.Value / 100D
                 ?? spacing?.GetFirstChild<A.SpacingPercent>()?.Val?.Value / 100000D * markSize
@@ -97,28 +107,71 @@ namespace OfficeIMO.PowerPoint {
             if (Height(context, paragraph, size, width, margin, spaceAfter, role: role) <= height) return new[] { paragraph };
             string text = paragraph.Text;
             if (text.Length == 0) throw new ArgumentException("The authored paragraph spacing cannot fit a content frame.");
-            int[] elements = StringInfo.ParseCombiningCharacters(text).Concat(new[] { text.Length }).ToArray();
+            int[] graphemes = StringInfo.ParseCombiningCharacters(text);
+            int[] elements = new int[graphemes.Length + 1];
+            Array.Copy(graphemes, elements, graphemes.Length);
+            elements[graphemes.Length] = text.Length;
+            var breaks = WhiteSpaceRuns.Create(text);
+            var metrics = OfficeDrawingTextLayout.CreateMetrics((OfficeFontFaceCollection?)null);
             var pieces = new List<string>();
             int offset = 0;
             while (offset < text.Length) {
                 int low = Array.BinarySearch(elements, offset) + 1, high = elements.Length - 1, best = offset;
                 while (low <= high) {
                     int mid = low + (high - low) / 2;
-                    if (Height(context, paragraph, size, width, margin, spaceAfter, start: offset, length: elements[mid] - offset, role: role) <= height) {
+                    if (Height(metrics, context, paragraph, size, width, margin, spaceAfter, offset, elements[mid] - offset, role) <= height) {
                         best = elements[mid]; low = mid + 1;
                     } else high = mid - 1;
                 }
                 if (best == offset) throw new ArgumentException("The authored native text size or spacing cannot fit a content frame.");
                 if (best < text.Length) {
-                    string candidate = text.Substring(offset, best - offset);
-                    int sentence = Regex.Matches(candidate, @"(?<=[.!?])\s+").Cast<Match>().Select(m => m.Index + m.Length).DefaultIfEmpty(0).Last();
-                    int word = Regex.Matches(candidate, @"\s+").Cast<Match>().Select(m => m.Index + m.Length).DefaultIfEmpty(0).Last();
-                    best = offset + (sentence > 0 ? sentence : word > 0 ? word : candidate.Length);
+                    int sentence = breaks.LastEnd(offset, best, afterSentence: true);
+                    int word = breaks.LastEnd(offset, best, afterSentence: false);
+                    best = offset + (sentence > 0 ? sentence : word > 0 ? word : best - offset);
                 }
                 pieces.Add(text.Substring(offset, best - offset));
                 offset = best;
             }
             return PowerPointLayoutNativeText.SplitParagraph(paragraph, pieces);
+        }
+
+        /// <summary>
+        /// Maximal white-space runs of a paragraph, found once so each split candidate can find its last break
+        /// without scanning the candidate again. Each run records whether it follows sentence punctuation.
+        /// </summary>
+        private sealed class WhiteSpaceRuns {
+            private readonly List<int> _starts = new();
+            private readonly List<int> _ends = new();
+            private readonly List<bool> _sentence = new();
+
+            internal static WhiteSpaceRuns Create(string text) {
+                var runs = new WhiteSpaceRuns();
+                int index = 0;
+                while (index < text.Length) {
+                    if (!char.IsWhiteSpace(text[index])) { index++; continue; }
+                    int start = index;
+                    do index++; while (index < text.Length && char.IsWhiteSpace(text[index]));
+                    runs._starts.Add(start);
+                    runs._ends.Add(index);
+                    runs._sentence.Add(start > 0 && text[start - 1] is '.' or '!' or '?');
+                }
+                return runs;
+            }
+
+            /// <summary>
+            /// The end, relative to <paramref name="offset"/>, of the last white-space run inside
+            /// <c>[offset, end)</c>, clipped to that range; 0 when there is none. A sentence break also needs its
+            /// punctuation inside the range, so a run starting at <paramref name="offset"/> does not qualify.
+            /// </summary>
+            internal int LastEnd(int offset, int end, bool afterSentence) {
+                int index = _starts.BinarySearch(end);
+                index = index < 0 ? ~index - 1 : index - 1;
+                for (; index >= 0 && _ends[index] > offset; index--) {
+                    if (afterSentence && (!_sentence[index] || _starts[index] <= offset)) continue;
+                    return Math.Min(_ends[index], end) - offset;
+                }
+                return 0;
+            }
         }
     }
     internal static partial class PowerPointLayoutEngine {

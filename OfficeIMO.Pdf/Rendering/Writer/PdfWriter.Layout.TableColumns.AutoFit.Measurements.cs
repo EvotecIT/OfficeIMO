@@ -220,6 +220,8 @@ internal static partial class PdfWriter {
             var cells = GetTableCellLayouts(table, rowIndex, cols);
             for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
                 TableCellLayout cell = cells[cellIndex];
+                // The imported measurements below read one wide layout of this cell; build it once.
+                TableCellTextLayout? noWrapLayout = null;
                 // Imported percentage preferences measure text in source
                 // twips before applying the layout's floating-point tolerance.
                 // Pictures and controls have independent geometry conversions.
@@ -233,7 +235,8 @@ internal static partial class PdfWriter {
                 double orientedTextWidth = cell.TextRotation != 0
                     ? MeasureOrientedTableTextWidth(cell, rowStandardFont, rowSize, GetTableLeading(style, rowSize), options) : 0D;
                 double measuredTextWidth = cell.TextRotation != 0 ? orientedTextWidth : style.AutoFitWidthUsesContentMinimum
-                    ? MeasureImportedTableTextWidth(cell, rowStandardFont, rowSize, options, wholeLine: true)
+                    ? MeasureImportedTableTextWidth(cell, rowStandardFont, rowSize, options, wholeLine: true,
+                        noWrapLayout: noWrapLayout ??= CreateImportedTableNoWrapLayout(cell, rowStandardFont, rowSize, options))
                     : cols == 1
                     ? measurer.MeasureWidth(cell.Text, measurementStyle) * 72D / measurementStyle.Dpi
                     : MeasureAutoFitPreferredTextWidth(
@@ -294,7 +297,8 @@ internal static partial class PdfWriter {
                     // Imported grids grow for unbreakable words and objects.
                     // Generic PDF technical-text heuristics are not a minimum
                     // width contract for an authored document table.
-                    double wordWidth = cell.TextRotation != 0 ? orientedTextWidth : MeasureImportedTableTextWidth(cell, rowStandardFont, rowSize, options);
+                    double wordWidth = cell.TextRotation != 0 ? orientedTextWidth : MeasureImportedTableTextWidth(cell, rowStandardFont, rowSize, options,
+                        noWrapLayout: noWrapLayout ??= CreateImportedTableNoWrapLayout(cell, rowStandardFont, rowSize, options));
                     // Subtracting the padding again during layout must not
                     // round the inner width below the measured word width.
                     double minimum = Math.Max(wordWidth, MeasureTableCellObjectWidth(cell)) + horizontalPadding;
@@ -303,7 +307,8 @@ internal static partial class PdfWriter {
                     minimum = Math.Max(1D, minimum + .001D);
                     if (physicalMinimumWidths != null) {
                         double indivisible = cell.NoWrap || cell.TextRotation != 0 ? wordWidth :
-                            MeasureImportedTableTextWidth(cell, rowStandardFont, rowSize, options, objectsOnly: true);
+                            MeasureImportedTableTextWidth(cell, rowStandardFont, rowSize, options, objectsOnly: true,
+                            noWrapLayout: noWrapLayout ??= CreateImportedTableNoWrapLayout(cell, rowStandardFont, rowSize, options));
                         double physical = Math.Max(indivisible, MeasureTableCellObjectWidth(cell)) + horizontalPadding;
                         if (cell.ColumnSpan == 1)
                             physicalMinimumWidths[cell.Column] = Math.Max(physicalMinimumWidths[cell.Column], physical);

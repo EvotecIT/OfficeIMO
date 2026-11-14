@@ -20,4 +20,5 @@ public sealed class ReaderWordOptions {
     /// PageIndex and PageCount are ignored because Reader always builds the complete page index.
     /// </summary>
     public WordImageExportOptions? PageLocationOptions { get; set; }
+
 }

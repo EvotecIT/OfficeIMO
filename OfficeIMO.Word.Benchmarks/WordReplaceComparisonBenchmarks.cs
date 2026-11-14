@@ -22,6 +22,9 @@ public class WordReplaceComparisonBenchmarks {
         SetupOfficeAndOpenXml();
         WordBenchmarkCorpus.ValidateReplacedDocument(DocX(), ItemCount, requireOpenXmlSdkConformance: false);
         WordBenchmarkCorpus.ValidateReplacedDocument(NPOI(), ItemCount);
+#if NET10_0_OR_GREATER
+        WordBenchmarkCorpus.ValidateReplacedDocument(OneDocument(), ItemCount);
+#endif
     }
 
     internal void SetupOfficeAndOpenXml() {
@@ -79,6 +82,11 @@ public class WordReplaceComparisonBenchmarks {
         return output.ToArray();
     }
 
+#if NET10_0_OR_GREATER
+    [Benchmark]
+    public byte[] OneDocument() => WordOneDocumentWorkloads.Replace(_fixture);
+
+#endif
     [Benchmark]
     public byte[] OpenXmlSdk() {
         using MemoryStream stream = WordBenchmarkCorpus.CreateEditableStream(_fixture);

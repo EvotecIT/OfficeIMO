@@ -21,6 +21,10 @@ public class WordReadComparisonBenchmarks {
         SetupOfficeAndOpenXml();
         EnsureExpected(nameof(DocX), DocX());
         EnsureExpected(nameof(NPOI), NPOI());
+#if NET10_0_OR_GREATER
+        EnsureExpected(nameof(OneDocument), OneDocument());
+        EnsureExpected(nameof(OneDocumentExtractText), OneDocumentExtractText());
+#endif
     }
 
     internal void SetupOfficeAndOpenXml() {
@@ -28,6 +32,8 @@ public class WordReadComparisonBenchmarks {
         _expected = WordBenchmarkCorpus.ObserveExpectedParagraphs(ItemCount);
         EnsureExpected(nameof(OfficeIMO), OfficeIMO());
         EnsureExpected(nameof(OpenXmlSdk), OpenXmlSdk());
+        EnsureExpected(nameof(OfficeIMOReaderText), OfficeIMOReaderText());
+        EnsureExpected(nameof(OfficeIMOReaderStreamedText), OfficeIMOReaderStreamedText());
     }
 
     internal int InputBytes => _fixture.Length;
@@ -42,6 +48,14 @@ public class WordReadComparisonBenchmarks {
         }
         return observation;
     }
+
+    /// <summary>OfficeIMO.Reader's text-and-metadata projection: the plain-text route for ingestion and search.</summary>
+    [Benchmark]
+    public WordReadObservation OfficeIMOReaderText() => WordReaderTextWorkload.Read(_fixture);
+
+    /// <summary>OfficeIMO.Reader's <c>Text</c> projection, which returns only text chunks.</summary>
+    [Benchmark]
+    public WordReadObservation OfficeIMOReaderStreamedText() => WordReaderTextWorkload.ReadStreamed(_fixture);
 
     [Benchmark]
     public WordReadObservation DocX() {
@@ -78,6 +92,15 @@ public class WordReadComparisonBenchmarks {
         return observation;
     }
 
+#if NET10_0_OR_GREATER
+    [Benchmark]
+    public WordReadObservation OneDocument() => WordOneDocumentWorkloads.ReadParagraphs(_fixture);
+
+    /// <summary>OneDocument's streaming extractor: same text, no document model.</summary>
+    [Benchmark]
+    public WordReadObservation OneDocumentExtractText() => WordOneDocumentWorkloads.ExtractText(_fixture);
+
+#endif
     private void EnsureExpected(string implementation, WordReadObservation actual) {
         if (actual != _expected) {
             throw new InvalidDataException(

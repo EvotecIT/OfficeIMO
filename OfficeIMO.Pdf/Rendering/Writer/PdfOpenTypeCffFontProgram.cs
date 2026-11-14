@@ -17,7 +17,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
     private readonly PdfCanonicalGlyphText _canonicalGlyphText;
     private readonly PdfGlyphTextPins _textPins;
     private readonly object _usageLock = new();
-    private readonly PdfShortTextCache<PdfGlyphRun> _shortGlyphRuns = new();
+    private readonly PdfShortTextCache<PdfGlyphRun> _shortGlyphRuns;
     private readonly PdfShortTextCache<PdfMeasuredText> _shortMeasurements;
 
     private PdfOpenTypeCffFontProgram(
@@ -40,6 +40,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         int cffTableLength) {
         _data = data.ToArray();
         _shortMeasurements = new();
+        _shortGlyphRuns = new();
         _fontUnitLayoutMetrics = new PdfFontUnitLayoutMetrics(_data);
         LineMetrics = OfficeOpenTypeLineMetrics.TryRead(_data);
         DecorationMetrics = OfficeOpenTypeDecorationMetrics.TryRead(_data);
@@ -81,6 +82,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         _canonicalGlyphText = source._canonicalGlyphText;
         _textPins = new PdfGlyphTextPins(_canonicalGlyphText, _advanceWidths1000.Length, allowAliases: false);
         CffTableLength = source.CffTableLength;
+        _shortGlyphRuns = source._shortGlyphRuns;
         _shortMeasurements = source._shortMeasurements;
         SharedIdentity = source.SharedIdentity;
         SubsettingForbidden = source.SubsettingForbidden;
@@ -246,7 +248,8 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         Guard.NotNull(text, nameof(text));
         bool cacheable = PdfShortTextCache<PdfGlyphRun>.IsEligible(text, options);
         if (cacheable && _shortGlyphRuns.TryGet(text, options, out PdfGlyphRun cached)) {
-            foreach (PdfGlyphInfo glyph in cached.Glyphs) RecordGlyphUsage(glyph.GlyphId, glyph.UnicodeText);
+            IReadOnlyList<PdfGlyphInfo> cachedGlyphs = cached.Glyphs;
+            for (int index = 0; index < cachedGlyphs.Count; index++) RecordGlyphUsage(cachedGlyphs[index].GlyphId, cachedGlyphs[index].UnicodeText);
             if (cached.SourceShapingResult != null || cached.IsAutomaticallyShaped) options.ProviderShapedTextRecorder?.Invoke(text, FontName, true, true);
             return cached;
         }

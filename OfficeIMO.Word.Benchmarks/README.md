@@ -12,8 +12,37 @@ compares the current `OfficeIMO.Word` source with:
 - [Open XML SDK 3.5.1](https://github.com/dotnet/Open-XML-SDK), Microsoft's MIT-
   licensed low-level API for the document format.
 
+- [RecursiveAI.OneDocument.Documents 1.0.0](https://www.nuget.org/packages/RecursiveAI.OneDocument.Documents/1.0.0),
+  a managed Word library licensed `MIT OR Apache-2.0`. It targets `net10.0`
+  only, so its lanes exist only when the runner is built for `net10.0`.
+
 These dependencies remain inside the benchmark project. They are not runtime
 dependencies of `OfficeIMO.Word`.
+
+### OneDocument lanes
+
+On `net10.0` the read, replace and structured-report comparisons gain a
+`OneDocument` lane, and read gains `OneDocumentExtractText`:
+
+| Lane | Measured operation | Correctness proof |
+| --- | --- | --- |
+| Read paragraphs, `OneDocument` | `Document.Open` and the text of every `Document.Paragraphs` entry | Same paragraph count, character count and checksum as every other reader |
+| Read paragraphs, `OfficeIMOReaderText` (all targets) | `OfficeIMO.Reader` with `ReaderProjection.TextAndMetadata`, then `GetText()`, split into lines | Same observation; this is OfficeIMO's plain-text route, so it pairs with OneDocument's extractor |
+| Read paragraphs, `OfficeIMOReaderStreamedText` (all targets) | The same Reader read with `ReaderProjection.Text`, which streams simple bodies without building the Word model | Same observation |
+| Read paragraphs, `OneDocumentExtractText` | `Document.Open` and `ExtractText()`, OneDocument's streaming extractor, split into lines | Same observation; it skips the document model, so it is the cheaper of the two OneDocument routes |
+| Replace and save | `Document.Open`, `Document.Replace` for `{{Status}}`, `SaveAs` to a DOCX stream | Every output paragraph and Open XML SDK validation |
+| Create structured report | `Document.Create`, header and footer stories, bold 18 pt title, summary, and a two-column table built from a cell array | The same structure, formatting, header/footer and Open XML SDK checks as the other lanes |
+
+OneDocument has no paragraph-level API on header and footer stories, so the
+report lane writes their text through the story's typed `w:hdr`/`w:ftr` view.
+Its table uses OneDocument's default 4680-twip grid columns rather than the
+2400-twip widths the Open XML SDK lane writes; the shared validator checks
+content and formatting, not column widths.
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Word.Benchmarks -- validate
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordReadComparisonBenchmarks*' '*WordReplaceComparisonBenchmarks*' '*WordCreateReportComparisonBenchmarks*' --job Short
+```
 
 ## Comparison workloads
 

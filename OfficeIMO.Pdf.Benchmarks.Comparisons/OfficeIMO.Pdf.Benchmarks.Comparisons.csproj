@@ -6,6 +6,8 @@
 
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
+    <!-- Docnet.Core's PDFium build fails fast under CET shadow stacks (0xC0000409). -->
+    <CETCompat>false</CETCompat>
     <PeachPdfBenchmarkVersion>0.9.25</PeachPdfBenchmarkVersion>
     <PdfPeckerBenchmarkVersion>1.22.0</PdfPeckerBenchmarkVersion>
     <QuestPdfBenchmarkVersion Condition="'$(QuestPdfBenchmarkVersion)' == ''">2026.5.0</QuestPdfBenchmarkVersion>
@@ -36,6 +38,8 @@
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    <!-- PDFium through Docnet.Core is the page-render comparison engine; it ships native PDFium binaries. -->
+    <PackageReference Include="Docnet.Core" Version="2.6.0" />
     <PackageReference Include="HtmlTinkerX" Version="3.0.5" Condition="'$(HtmlTinkerXProjectPath)' == ''" />
     <PackageReference Include="itext" Version="9.7.0" />
     <PackageReference Include="itext.pdfhtml" Version="6.3.3" />
@@ -50,6 +54,15 @@
       general-purpose PDF libraries. Keep this benchmark-only dependency pinned.
     -->
     <PackageReference Include="QuestPDF" Version="$(QuestPdfBenchmarkVersion)" />
+  </ItemGroup>
+
+  <!--
+    OnePDF ships net10.0 only, so its read and layout lanes compile only for that target.
+    The vendor releases often; keep both packages pinned to the same reviewed version.
+  -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="RecursiveAI.OnePdf" Version="1.22.0" />
+    <PackageReference Include="RecursiveAI.OnePdf.Layout" Version="1.22.0" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(HtmlTinkerXProjectPath)' != ''">
@@ -97,6 +110,9 @@
           CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\Assets\Brand\Evotec\evotec-logo-horizontal-gradient-2400.png"
           Link="Brand\evotec-logo-horizontal-gradient-2400.png"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Assets\Images\Others\Logo-evotec.png"
+          Link="Brand\Logo-evotec.png"
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

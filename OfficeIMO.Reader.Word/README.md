@@ -109,6 +109,28 @@ The combined registration applies the same immutable legacy options to both the 
 
 Legacy warnings include the detected profile, structured-versus-salvage quality, and feature-level losses. The handler never executes source macros or embedded code.
 
+## Read only text
+
+Use `ReaderProjection.Text` when only the text is needed. The result always holds
+text chunks only, with the same `GetText()` output as the text-and-metadata
+projection, and no blocks, tables, pages, links, metadata or inspection data:
+
+```csharp
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddWordHandler().Build();
+
+string text = reader.ReadDocument("notes.docx", new ReaderOptions {
+    Projection = ReaderProjection.Text
+}).GetText();
+```
+
+DOCX bodies made of paragraphs and simple tables are read in one forward pass over
+the main document part, without building the Word document model; those results list
+`officeimo.reader.word.streamed-text` in `CapabilitiesUsed`. A document with headers or
+footers, footnotes or endnotes, fields, content controls, text boxes, revisions, merged
+or nested table cells, or a paragraph longer than `MaxChars`, and any read with a
+password, inspection or package limits, builds the Word model instead and is reduced to
+the same text chunks.
+
 ## Inspect comments and tracked changes
 
 Use a rich read to retain native review and package evidence:
