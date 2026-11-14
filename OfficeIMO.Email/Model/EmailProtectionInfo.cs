@@ -33,6 +33,12 @@ public sealed class EmailProtectionInfo {
     /// </summary>
     public EmailAttachment? PayloadAttachment { get; internal set; }
 
+    /// <summary>
+    /// Inline ASCII-armored OpenPGP at the start of the plain-text body. Inline blocks travel inside the text, so they
+    /// do not make the message <see cref="IsProtected"/>; use <see cref="EmailPgp"/> to verify or decrypt them.
+    /// </summary>
+    public EmailInlinePgpKind InlinePgp { get; internal set; }
+
     /// <summary>True when a protected-message wrapper was detected.</summary>
     public bool IsProtected => Kind != EmailProtectionKind.None;
 }

@@ -7,7 +7,10 @@ internal static class MimeProtectionProjection {
             "text/plain", diagnostics, location);
         string protocol = contentType.GetParameter("protocol") ?? string.Empty;
         EmailProtectionKind kind = Classify(contentType.Value, protocol);
-        if (kind == EmailProtectionKind.None) return;
+        if (kind == EmailProtectionKind.None) {
+            document.Protection.InlinePgp = MimePgpExtractor.DetectInline(document.Body.Text);
+            return;
+        }
 
         document.Protection.Kind = kind;
         document.Protection.MessageClass = document.MessageClass;

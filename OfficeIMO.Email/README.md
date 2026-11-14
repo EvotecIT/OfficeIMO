@@ -485,7 +485,8 @@ RTF syntax editing and semantic conversion belong to `OfficeIMO.Rtf`. Generate R
 `EmailDocument.Protection` detects opaque and clear-signed S/MIME plus signed or encrypted OpenPGP/MIME wrappers. It
 retains the original artifact bytes automatically, including Outlook's complete outer `multipart/signed` attachment
 for `IPM.Note.SMIME.MultipartSigned`. `EmailSmime` creates and verifies clear/opaque S/MIME, creates and decrypts
-EnvelopedData, and supports sign-then-encrypt through an explicitly supplied security provider; OpenPGP remains outside this package.
+EnvelopedData, and supports sign-then-encrypt through an explicitly supplied security provider. `EmailPgp` verifies and
+decrypts OpenPGP, described below.
 Writing an unchanged protected document in its source format emits those bytes verbatim; an edited or cross-format
 write is blocked by default because regenerating the wrapper would invalidate its cryptographic meaning.
 
@@ -545,6 +546,40 @@ platform key handle without exporting private parameters. Keychain identity sele
 Other envelope profiles and older targets require an exportable RSA key and report
 `EnvelopePrivateKeyNotExportable` when export is unavailable.
 
+
+## OpenPGP
+
+`EmailPgp.Verify` checks PGP/MIME `multipart/signed` messages (RFC 3156) over the exact bytes of the signed part, and
+inline cleartext-signed bodies. `EmailPgp.Decrypt` opens `multipart/encrypted` messages and inline armored messages,
+then verifies signatures inside the encryption, either combined with it or as a nested `multipart/signed` entity.
+`EmailDocument.Protection.InlinePgp` reports an armored block at the start of a plain-text body; inline blocks travel in
+the text, so they do not make the message `IsProtected`.
+
+Keys are only those you pass in `OfficeOpenPgpKeySet`. Nothing reads a GnuPG keyring, agent or key server.
+`OfficeSecurityProvider` from `OfficeIMO.Security` implements `IOfficeOpenPgpProvider` with BouncyCastle.
+
+```csharp
+using OfficeIMO.Security;
+
+EmailDocument message = EmailDocument.Load("encrypted.eml");
+var keys = new OfficeOpenPgpKeySet(
+    publicKeys: new[] { File.ReadAllBytes("alice.asc") },
+    secretKeys: new[] { File.ReadAllBytes("bob-secret.asc") },
+    passphraseProvider: keyId => ReadPassphrase(keyId));
+
+EmailPgpDecryptionResult decrypted = EmailPgp.Decrypt(message, OfficeSecurityProvider.Default, keys);
+if (decrypted.IsDecrypted) {
+    Console.WriteLine(decrypted.DecryptedContent?.Body.Text);
+    Console.WriteLine(decrypted.IsSignatureValid);
+}
+```
+
+Results are typed rather than thrown. Encrypted data without a modification detection code is refused and altered
+data never releases plaintext. MD5, SHA-1 and RIPEMD-160 signatures, RSA/DSA keys under 2048 bits, revoked or expired
+keys, and subkeys without a valid binding never count as valid. User IDs are reported as claims; deciding whether to
+trust a signer stays with the caller. Version 4 keys and signatures (RFC 4880) are covered, including Ed25519 and
+Curve25519 keys. RFC 9580 version 6 keys, signatures and AEAD-encrypted data are reported as unsupported, as are
+password-only encrypted messages.
 ## Mailbox stores and store-backed content
 
 PST, OST, Outlook for Mac OLM, and Apple Mail EMLX containers are included in `OfficeIMO.Email`. The Store APIs yield ordinary `EmailDocument` instances while preserving folder paths, store metadata, diagnostics, and bounded attachment behavior.
@@ -805,7 +840,7 @@ foreach (OfficeDocumentAsset attachment in result.Assets) {
 
 ## Scope boundary
 
-`OfficeIMO.Email` owns offline artifact parsing, serialization, and format-neutral Outlook data. It does not connect to mail servers, authenticate users, send messages, discover certificates or private keys, or implement DKIM, ARC, or OpenPGP. `EmailSmime.Sign`, `Encrypt`, `SignAndEncrypt`, `Verify`, `Decrypt`, and `DecryptThenVerify` are thin data-oriented adapters over a caller-supplied `IOfficeSecurityProvider`: Email owns bounded MIME construction and exact protected-byte handling, while the provider owns CMS, certificates, and trust policy. The adapters create signed or encrypted MIME, verify exact clear-signed bytes and opaque signed-data, decrypt caller-selected EnvelopedData recipients, retain the original protected artifact, and return a separate parsed protected-content document when possible. Certificate/key and provider selection remain explicit and caller-owned.
+`OfficeIMO.Email` owns offline artifact parsing, serialization, and format-neutral Outlook data. It does not connect to mail servers, authenticate users, send messages, or discover certificates or private keys. `EmailSmime.Sign`, `Encrypt`, `SignAndEncrypt`, `Verify`, `Decrypt`, and `DecryptThenVerify` are thin data-oriented adapters over a caller-supplied `IOfficeSecurityProvider`: Email owns bounded MIME construction and exact protected-byte handling, while the provider owns CMS, certificates, and trust policy. The adapters create signed or encrypted MIME, verify exact clear-signed bytes and opaque signed-data, decrypt caller-selected EnvelopedData recipients, retain the original protected artifact, and return a separate parsed protected-content document when possible. Certificate/key and provider selection remain explicit and caller-owned.
 
 The package does not expose general-purpose CFB transactions. Its Store API area owns PST, OST, OLM, EMLX, Mbox,
 Apple Mail, and Maildir traversal, selection, validation, native export, verified conversion, multi-store merge, and
