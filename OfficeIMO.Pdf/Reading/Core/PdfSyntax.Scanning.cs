@@ -91,6 +91,9 @@ internal static partial class PdfSyntax {
                 // structurally bounded delimiter is accepted.
                 endStreamSearchFrom = endStreamIdx + 9;
             }
+
+            // The stream keyword ends the input (or the search window), so no endstream can follow.
+            return -1;
         }
 
         return -1;
