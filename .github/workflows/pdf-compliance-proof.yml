@@ -16,6 +16,7 @@ on:
       - 'OfficeIMO.Invoicing.Pdf/**'
       - 'OfficeIMO.Invoicing.Pdf.Tests/**'
       - 'OfficeIMO.Core/**'
+      - 'OfficeIMO.Security/**'
       - 'OfficeIMO.Html/**'
       - 'OfficeIMO.Html.Core/**'
       - 'OfficeIMO.Html.AngleSharp/**'
@@ -52,6 +53,7 @@ on:
       - 'OfficeIMO.Invoicing.Pdf/**'
       - 'OfficeIMO.Invoicing.Pdf.Tests/**'
       - 'OfficeIMO.Core/**'
+      - 'OfficeIMO.Security/**'
       - 'OfficeIMO.Html/**'
       - 'OfficeIMO.Html.Core/**'
       - 'OfficeIMO.Html.AngleSharp/**'
@@ -459,7 +461,7 @@ jobs:
             $lines.Add("| $($row.artifactFile) | $($row.validator) | $($row.profile) | $($row.status) |")
           }
           $lines.Add('')
-          $lines.Add('Signature trust uses ephemeral test roots and does not establish public trust or revocation status.')
+          $lines.Add('Signature trust uses ephemeral test roots and does not establish public trust. B-LT and B-LTA revocation data comes from OCSP and CRL responders started inside the fixture test.')
           $optimizer = Get-Content -LiteralPath '${{ env.PROOF_PATH }}/optimizer/measurements.json' -Raw | ConvertFrom-Json
           $lines.Add('')
           $lines.Add('### Optimizer sizes and compliance preservation')
