@@ -1,3 +1,4 @@
+using OfficeIMO.Tool.Commands.Accessibility;
 using OfficeIMO.Tool.Commands.Agent;
 using OfficeIMO.Tool.Commands.Convert;
 using OfficeIMO.Tool.Commands.HiddenData;
@@ -33,6 +34,7 @@ Usage:
   officeimo pdf <command> [options]
   officeimo provenance <command> [options]
   officeimo hidden-data <command> [options]
+  officeimo accessibility <input> [options]
   officeimo agent <command> [options]
   officeimo mcp serve --stdio
   officeimo --version
@@ -144,6 +146,14 @@ Run 'officeimo <area> --help' for area-specific commands and options.
                     return await HiddenDataCommand.RunAsync(
                         commandArguments,
                         hiddenDataOutput,
+                        standardError,
+                        cancellationToken).ConfigureAwait(false);
+                }
+            case "accessibility":
+                using (var accessibilityOutput = CreateUtf8Writer(standardOutput)) {
+                    return await AccessibilityCommand.RunAsync(
+                        commandArguments,
+                        accessibilityOutput,
                         standardError,
                         cancellationToken).ConfigureAwait(false);
                 }

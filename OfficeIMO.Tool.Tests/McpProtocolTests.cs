@@ -127,6 +127,7 @@ public sealed class McpProtocolTests {
         Assert.Equal(
             new[] {
                 "officeimo_capabilities",
+                "officeimo_check_accessibility",
                 "officeimo_convert",
                 "officeimo_fetch",
                 "officeimo_inspect",
