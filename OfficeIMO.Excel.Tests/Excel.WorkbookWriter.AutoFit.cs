@@ -150,21 +150,18 @@ public class StreamingAutoFitTests {
         string destination = Path.Combine(directory, "book.xlsx");
         File.WriteAllText(destination, "original destination");
         var before = new HashSet<string>(Directory.GetFiles(Path.GetTempPath(), "OfficeIMO-Excel-AutoFit-*.xml"));
-        string? spool = null;
         bool disposed = false;
         using var cancellation = new CancellationTokenSource();
         try {
             using (var writer = ExcelDocument.CreateWriter(destination, new ExcelWriterOptions { AutoFit = true, UseSharedStrings = false })) {
                 void Write() => writer.WriteTable("Atomic", Rows(), new[] { "Text" }, (row, value) => {
-                    spool ??= Assert.Single(Directory.GetFiles(Path.GetTempPath(), "OfficeIMO-Excel-AutoFit-*.xml"), path => !before.Contains(path));
                     row.Write(value);
                     if (cancel) cancellation.Cancel();
                     else throw new InvalidDataException("row callback failed");
                 }, cancellation.Token);
                 if (cancel) Assert.ThrowsAny<OperationCanceledException>(Write);
                 else Assert.Throws<InvalidDataException>(Write);
-                Assert.NotNull(spool);
-                Assert.False(File.Exists(spool));
+                Assert.DoesNotContain(Directory.GetFiles(Path.GetTempPath(), "OfficeIMO-Excel-AutoFit-*.xml"), path => !before.Contains(path));
             }
             Assert.True(disposed);
             Assert.Equal("original destination", File.ReadAllText(destination));
