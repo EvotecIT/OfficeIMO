@@ -170,7 +170,9 @@ namespace OfficeIMO.Word {
             RefreshGeneratedTableOfContent();
             new WordCustomProperties(this, true);
             var settingsPart = _wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart;
-            bool hasVariables = settingsPart?.Settings?.GetFirstChild<DocumentVariables>() != null;
+            // Variables of an unparsed settings part are untouched, so only a loaded one can need synchronizing.
+            bool hasVariables = settingsPart is { IsRootElementLoaded: true }
+                && settingsPart.Settings?.GetFirstChild<DocumentVariables>() != null;
             if (hasVariables || DocumentVariables.Count > 0) {
                 new WordDocumentVariables(this, true);
             }

@@ -684,6 +684,34 @@ var account = PdfTableCell.TextCell("A long account identifier")
     .WithShrinkTextToFit();
 ```
 
+#### Page subtotals and brought-forward amounts
+
+Long invoices and reports often need values that depend on where the table breaks. Declare column aggregates on `PdfTableStyle.PageSummary` and place their tokens in summary rows: page footer rows close every page that continues, continuation header rows open every following page after the repeated headers, and the table's own footer rows close the last page.
+
+<!-- powerforge:code source="Build/DocumentationExamples/Pdf/Program.cs" region="PageSubtotals" -->
+```csharp
+var invoiceStyle = PdfTableStyles.Minimal();
+invoiceStyle.FooterRowCount = 1;
+var pageSummary = invoiceStyle.PageSummary = new PdfTablePageSummary();
+PdfTableAggregate amount = pageSummary.Sum("amount", column: 2, format: "N2");
+pageSummary.AddContinuationHeaderRow("Brought forward", "", amount.BroughtForwardToken);
+pageSummary.AddPageFooterRow("Carried forward", "", amount.RunningToken);
+
+var invoiceLines = new List<string[]> { new[] { "Item", "Description", "Amount" } };
+for (int line = 1; line <= 120; line++) invoiceLines.Add(new[] { line.ToString(), "Consulting hour", "125.00" });
+invoiceLines.Add(new[] { "Total", "", amount.RunningToken });
+
+PdfDocument.Create(pdf => pdf.Content(content => content.AddTable(invoiceLines, style: invoiceStyle)))
+    .Save("Invoice-lines.pdf");
+```
+<!-- /powerforge:code -->
+
+Each aggregate offers three tokens. `PageToken` covers the rows on the current page, `BroughtForwardToken` the rows on earlier pages, and `RunningToken` every row up to the end of the current page, which is the carried-forward amount at a page break and the grand total on the last page. Continuation header rows are laid out before their page's rows are known, so they accept only brought-forward tokens. `Sum`, `Count`, `Minimum` and `Maximum` are available through `PdfTableAggregate`. Values are parsed from the column's body cell text with `FormatProvider`, or supplied by `ValueSelector`, and formatted with `Format`; both default to the invariant culture so output does not depend on the machine.
+
+Values describe the rows that actually landed on each page. A body row counts on the page where it starts, including a row that continues onto the next page. Summary rows are measured with the values they will show before a row is placed, so adding them never shifts a row onto a page whose totals were already drawn. Summary rows use the table's footer styling and the table's column widths.
+
+Set `PdfTableStyle.RepeatFooterRows = true` to close every page fragment with the table's own footer rows, with or without aggregates. A page whose single unsplittable row leaves no room for the page footer omits that footer; the next page's brought-forward amount still includes the row. Page summaries apply to eager flow tables and are rejected for deferred and positioned tables, tables in row columns, tables with block content in cells and tables with footnote references.
+
 #### Clipped table-cell fragments
 
 Use `PdfTableCell.WithViewport` when a cell is represented by a fragment of a larger cell. The viewport describes the full box, the visible fragment and its offset in one coordinate system. Text wraps and aligns in the full box; the renderer clips it to the fragment. Diagonal borders use the full box too, while ordinary edge borders follow the fragment's configured border style.

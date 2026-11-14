@@ -52,9 +52,14 @@ namespace OfficeIMO.Core.Internal {
         }
 
         private static bool TryValidateExact(DeflateBitReader reader, long count, long maximumOutputBytes,
-            out bool outputLimitExceeded, CancellationToken cancellationToken) {
+            out bool outputLimitExceeded, CancellationToken cancellationToken) =>
+            TryValidateStream(reader, maximumOutputBytes, out outputLimitExceeded, out _, cancellationToken)
+            && reader.ConsumedBytes == count;
+
+        private static bool TryValidateStream(DeflateBitReader reader, long maximumOutputBytes,
+            out bool outputLimitExceeded, out long outputCount, CancellationToken cancellationToken) {
             outputLimitExceeded = false;
-            long outputCount = 0;
+            outputCount = 0;
             bool final;
             do {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -89,7 +94,7 @@ namespace OfficeIMO.Core.Internal {
             } while (!final);
 
             cancellationToken.ThrowIfCancellationRequested();
-            return reader.ConsumedBytes == count;
+            return true;
         }
 
         private static bool TryValidateStoredBlock(
