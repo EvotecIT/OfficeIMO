@@ -195,14 +195,17 @@ if ($null -ne $affinityBeforePlan) {
             -Workload csv `
             -RunMode quick `
             -AffinityMask $singleProcessorMask `
-            -PowerForgeRoot (Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString('N'))) |
+            -PowerForgeRoot (Split-Path -Parent $PSScriptRoot) |
             Out-Null
     } catch {
+        if ($_.Exception.Message -notlike 'PowerForgeRoot must be at the pinned commit *') {
+            throw
+        }
         $failedAsExpected = $true
     }
     $affinityAfterFailure = [System.Diagnostics.Process]::GetCurrentProcess().ProcessorAffinity.ToInt64()
     if (-not $failedAsExpected -or $affinityAfterFailure -ne $affinityBeforePlan) {
-        throw 'The benchmark runner does not restore the invoking process affinity after a failed real run.'
+        throw 'The benchmark runner does not restore the invoking process affinity after rejected setup.'
     }
 }
 

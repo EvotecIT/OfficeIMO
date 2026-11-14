@@ -69,7 +69,8 @@ internal static class OfficeImoToolCommands {
                 new("--select", "Path to the rows to convert in a structured-data source, such as data.items."),
                 new("--iwork-mode", "How Pages, Numbers and Keynote documents are rebuilt: auto, editable or visual.")
             ],
-            InputFormats = static () => ConvertRoutes.All().SelectMany(static route => route.SourceExtensions),
+            InputFormats = static () => ConvertRoutes.All().SelectMany(static route => route.SourceExtensions)
+                .Concat(ReaderCommand.SupportedExtensions()),
             OutputFormats = static () => ConvertRoutes.All().Select(static route => route.TargetExtension),
             ResultFormats = ["path"]
         },
