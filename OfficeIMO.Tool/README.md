@@ -606,6 +606,7 @@ The server exposes:
 - `officeimo_pdf_ocr` — searchable copy through a registered provider
 - `officeimo_pdf_print_plan` — bounded sheet geometry without printer submission
 - `officeimo_pdf_compare` — selected-page rendered comparison saved as a standalone HTML report
+- `officeimo_pdf_redline` — word-level text changes marked on a copy of the newer PDF, with an optional JSON change list and HTML report
 
 Tool results contain a short text summary plus compact structured content. The server does not publish duplicate resources containing full documents or mailbox contents.
 
@@ -695,6 +696,24 @@ It reports rendered appearance, without semantic or moved-page detection.
 Existing reports require `--force`. `--password-env` and
 `--comparison-password-env` read independently selected password environment
 variables; credentials stay out of the report.
+
+### PDF text redlines
+
+```sh
+officeimo pdf redline contract-v1.pdf contract-v2.pdf --output contract-v2.redline.pdf \
+  --changes contract-changes.json --report contract-changes.html
+```
+
+The text of both PDFs is read in reading order and compared word by word, so
+reflowed lines and moved page breaks are not reported. The output is a copy of the
+newer PDF with review annotations: highlights on inserted, replaced and moved
+text, and a caret where text was deleted. Notes on replacements, deletions and
+moves carry the old text. `--changes` writes every change as JSON with page
+numbers and page rectangles on both sides; `--report` writes a side-by-side HTML
+comparison. `--algorithm patience|histogram` changes the word alignment and
+`--ignore-case` ignores letter case. PDFs without a text layer are refused; run
+`officeimo pdf ocr` first. The MCP tool `officeimo_pdf_redline` takes the
+`sourceId` values from inspection and the same outputs.
 
 For MCP, inspect both PDFs first and pass their returned `sourceId` values to
 `officeimo_pdf_compare` as `sourceId` and `comparisonSourceId`, with an explicit

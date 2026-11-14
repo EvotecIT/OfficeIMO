@@ -140,6 +140,7 @@ public sealed class McpProtocolTests {
                 "officeimo_pdf_ocr",
                 "officeimo_pdf_ocr_providers",
                 "officeimo_pdf_print_plan",
+                "officeimo_pdf_redline",
                 "officeimo_pdf_split",
                 "officeimo_remove_hidden_data",
                 "officeimo_search",

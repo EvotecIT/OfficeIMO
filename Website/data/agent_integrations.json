@@ -142,7 +142,8 @@
     { "name": "officeimo_pdf_ocr_providers", "writes": false, "detail": "Text-recognition providers the host registered" },
     { "name": "officeimo_pdf_ocr", "writes": true, "detail": "Make a searchable copy of a scanned PDF" },
     { "name": "officeimo_pdf_print_plan", "writes": false, "detail": "Plan printed sheets without contacting a printer" },
-    { "name": "officeimo_pdf_compare", "writes": true, "detail": "Compare pages of two PDFs and save an HTML report" }
+    { "name": "officeimo_pdf_compare", "writes": true, "detail": "Compare pages of two PDFs and save an HTML report" },
+    { "name": "officeimo_pdf_redline", "writes": true, "detail": "Mark text changes between two PDFs with review annotations and save a change list" }
   ],
   "site": [
     { "name": "llms.txt", "url": "/llms.txt", "detail": "A map of the documentation for language models, with llms-full.txt for the full text" },
