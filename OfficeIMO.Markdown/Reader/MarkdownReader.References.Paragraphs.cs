@@ -10,31 +10,47 @@ internal static partial class MarkdownReader {
         private readonly MarkdownLoadOptions _options;
         private int _decidingLine;
         private bool _forced;
+        // The answer for the deciding line, once a definition has asked for it.
+        private bool? _decided;
 
         internal LazyParagraphContinuation(string[] lines, MarkdownLoadOptions options) {
             _lines = lines;
             _options = options;
             _decidingLine = -1;
             _forced = false;
+            _decided = null;
         }
 
         internal void Clear() {
             _decidingLine = -1;
             _forced = false;
+            _decided = null;
         }
 
         internal void Set() {
             _decidingLine = -1;
             _forced = true;
+            _decided = null;
         }
 
         internal void DecideAt(int lineIndex) {
             _decidingLine = lineIndex;
             _forced = false;
+            _decided = null;
         }
 
-        internal bool IsOpen => _forced
-            || (_decidingLine >= 0 && IsReferenceDefinitionParagraphContinuationLine(_lines, _decidingLine, _options));
+        internal bool IsOpen() {
+            if (_forced) {
+                return true;
+            }
+
+            if (_decidingLine < 0) {
+                return false;
+            }
+
+            _decided ??= IsReferenceDefinitionParagraphContinuationLine(_lines, _decidingLine, _options);
+            return _decided.Value;
+        }
     }
 
     private static bool IsReferenceDefinitionParagraphContinuationLine(string[] lines, int index, MarkdownLoadOptions options) {

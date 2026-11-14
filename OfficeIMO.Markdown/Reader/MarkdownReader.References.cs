@@ -88,7 +88,7 @@ internal static partial class MarkdownReader {
                     continue;
                 }
 
-                if (openParagraph.IsOpen && !CanReferenceDefinitionResolveOpenShortcutParagraph(lines, idx)) {
+                if (openParagraph.IsOpen() && !CanReferenceDefinitionResolveOpenShortcutParagraph(lines, idx)) {
                     continue;
                 }
 
