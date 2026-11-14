@@ -3,7 +3,7 @@ using System.Security.Cryptography.X509Certificates;
 namespace OfficeIMO.Security;
 
 /// <summary>Default OfficeIMO cryptographic provider backed by the dependencies carried by this package.</summary>
-public sealed class OfficeSecurityProvider : IOfficeSecurityProvider, IOfficePublicKeySignatureVerifier {
+public sealed class OfficeSecurityProvider : IOfficeSecurityProvider, IOfficePublicKeySignatureVerifier, IOfficeOpenPgpProvider {
     /// <summary>Gets a reusable stateless provider instance.</summary>
     public static OfficeSecurityProvider Default { get; } = new OfficeSecurityProvider();
 
@@ -129,6 +129,28 @@ public sealed class OfficeSecurityProvider : IOfficeSecurityProvider, IOfficePub
         byte[] data,
         byte[] signature) =>
         PublicKeySignatureVerifier.Verify(algorithm, publicKey, data, signature);
+
+    /// <inheritdoc />
+    public OfficeOpenPgpVerificationResult VerifyDetached(
+        byte[] signature,
+        byte[] signedContent,
+        OfficeOpenPgpKeySet keys,
+        OfficeOpenPgpOptions? options = null) =>
+        OpenPgpService.VerifyDetached(signature, signedContent, keys, options);
+
+    /// <inheritdoc />
+    public OfficeOpenPgpVerificationResult VerifyCleartext(
+        byte[] armoredMessage,
+        OfficeOpenPgpKeySet keys,
+        OfficeOpenPgpOptions? options = null) =>
+        OpenPgpService.VerifyCleartext(armoredMessage, keys, options);
+
+    /// <inheritdoc />
+    public OfficeOpenPgpMessageResult OpenMessage(
+        byte[] message,
+        OfficeOpenPgpKeySet keys,
+        OfficeOpenPgpOptions? options = null) =>
+        OpenPgpService.OpenMessage(message, keys, options);
 
     private sealed class CmsVerificationSession : ICmsVerificationSession {
         private readonly CmsVerificationOptions _options;

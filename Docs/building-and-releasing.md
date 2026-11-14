@@ -253,7 +253,7 @@ unsigned module, exports help and command metadata, verifies the source revision
 and component fingerprints, and imports the command catalog, guides, and examples.
 No separate PSWriteOffice clone or repository release pin is required.
 
-Keep `/api/powershell/`, `/docs/pswriteoffice/`, and `/products/pswriteoffice/` as
+Keep `/api/powershell/`, `/docs/pswriteoffice/`, and `/powershell/` as
 the public routes. Update compiled cmdlet help and the module's maintained guide
 sources, then run the website pipeline; do not hand-edit generated command pages
 or API metadata.

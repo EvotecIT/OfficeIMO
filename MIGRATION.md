@@ -5361,10 +5361,9 @@ element beyond the rasterizer's work limit: the page is drawn without that conte
 `PdfPageRenderResult.CapabilityDiagnostics` reports
 `render.resource.form-nesting-stack-limit` or `render.raster.element-work-limit`.
 Annotations whose appearance has a missing or malformed bounding box are skipped with
-`render.resource.annotation-appearance-missing`. Page extraction writes references to
-objects the file never defines as `null`, as ISO 32000-2 reads them. When page extraction
-goes through the tagged or form-preserving writer, structure, navigation and field
-actions it cannot retarget are refused with `PdfMutationBlockedException` instead of
+`render.resource.annotation-appearance-missing`. Page extraction refuses a missing or
+mismatched object reference, and structure, navigation and field actions the
+catalog-preserving writer cannot retarget, with `PdfMutationBlockedException` instead of
 `InvalidOperationException`. Stray non-hex characters inside content-stream hex strings
 are skipped, as viewers do, instead of failing with `FormatException`.
 
@@ -6437,8 +6436,9 @@ save again. Use the named enum values when setting alignment.
 ## PDF named composite font mappings
 
 Text extraction throws `NotSupportedException` when shown text uses a named
-composite encoding without a supported Unicode mapping. `UniJIS-UCS2-H`,
-`UniGB-UCS2-H`, `UniCNS-UCS2-H` and `UniKS-UCS2-H` use bundled Adobe maps when the
+composite encoding without a supported Unicode mapping. The predefined Adobe CMaps
+of the GB1, CNS1, Japan1, Korea1 and KR character collections, such as `GBK-EUC-H`,
+`UniGB-UTF16-H`, `90ms-RKSJ-H` and `UniKS-UCS2-H`, use bundled Adobe maps when the
 font's character collection matches and no `ToUnicode` map is supplied. An explicit
 `ToUnicode` map takes precedence and must cover every shown code; other named
 encodings require that explicit map. Explicit `ActualText` and default artifact

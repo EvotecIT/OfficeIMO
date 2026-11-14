@@ -1,13 +1,1420 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "expectedPlatforms": [
     "windows",
     "linux",
     "macos"
   ],
+  "areas": [
+    "csv",
+    "email",
+    "epub",
+    "excel",
+    "html",
+    "image",
+    "markdown",
+    "opendocument",
+    "pdf",
+    "powerpoint",
+    "rtf",
+    "word",
+    "zip"
+  ],
+  "comparisons": [
+    {
+      "comparisonId": "csv-25k-datareader-write-net10.0",
+      "area": "csv",
+      "title": "CSV data-reader writing",
+      "libraries": [
+        "OfficeIMO",
+        "Sylvan"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "csv-25k-datareader-write-net8.0",
+      "area": "csv",
+      "title": "CSV data-reader writing",
+      "libraries": [
+        "OfficeIMO",
+        "Sylvan"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "csv-async-read-net10.0",
+      "area": "csv",
+      "title": "CSV asynchronous reading",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "csv-async-read-net8.0",
+      "area": "csv",
+      "title": "CSV asynchronous reading",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "csv-million-first-row-net10.0",
+      "area": "csv",
+      "title": "CSV million-row first-row access",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "csv-million-first-row-net8.0",
+      "area": "csv",
+      "title": "CSV million-row first-row access",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "csv-wide-async-read-net10.0",
+      "area": "csv",
+      "title": "Wide CSV asynchronous reading",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "csv-wide-async-read-net8.0",
+      "area": "csv",
+      "title": "Wide CSV asynchronous reading",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "email-mime-read-net10.0",
+      "area": "email",
+      "title": "MIME email reading",
+      "libraries": [
+        "OfficeIMO",
+        "MimeKit"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "email-mime-read-net8.0",
+      "area": "email",
+      "title": "MIME email reading",
+      "libraries": [
+        "OfficeIMO",
+        "MimeKit"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "email-mime-write-net10.0",
+      "area": "email",
+      "title": "MIME email writing",
+      "libraries": [
+        "OfficeIMO",
+        "MimeKit"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "email-mime-write-net8.0",
+      "area": "email",
+      "title": "MIME email writing",
+      "libraries": [
+        "OfficeIMO",
+        "MimeKit"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "epub-open-read-net10.0",
+      "area": "epub",
+      "title": "EPUB opening and reading",
+      "libraries": [
+        "OfficeIMO",
+        "VersOne.Epub",
+        "HtmlAgilityPack"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "epub-open-read-net8.0",
+      "area": "epub",
+      "title": "EPUB opening and reading",
+      "libraries": [
+        "OfficeIMO",
+        "VersOne.Epub",
+        "HtmlAgilityPack"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "html-to-markdown-net10.0",
+      "area": "html",
+      "title": "HTML to Markdown",
+      "libraries": [
+        "OfficeIMO",
+        "ReverseMarkdown"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "html-to-markdown-net8.0",
+      "area": "html",
+      "title": "HTML to Markdown",
+      "libraries": [
+        "OfficeIMO",
+        "ReverseMarkdown"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "image-jpeg-decode-net10.0",
+      "area": "image",
+      "title": "JPEG decoding",
+      "libraries": [
+        "OfficeIMO",
+        "SkiaSharp",
+        "Magick.NET",
+        "StbImageSharp"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "image-jpeg-decode-net8.0",
+      "area": "image",
+      "title": "JPEG decoding",
+      "libraries": [
+        "OfficeIMO",
+        "SkiaSharp",
+        "Magick.NET",
+        "StbImageSharp"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "image-png-decode-net10.0",
+      "area": "image",
+      "title": "PNG decoding",
+      "libraries": [
+        "OfficeIMO",
+        "SkiaSharp",
+        "Magick.NET",
+        "StbImageSharp"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "image-png-decode-net8.0",
+      "area": "image",
+      "title": "PNG decoding",
+      "libraries": [
+        "OfficeIMO",
+        "SkiaSharp",
+        "Magick.NET",
+        "StbImageSharp"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "image-png-encode-net10.0",
+      "area": "image",
+      "title": "PNG encoding",
+      "libraries": [
+        "OfficeIMO",
+        "SkiaSharp",
+        "Magick.NET"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "image-png-encode-net8.0",
+      "area": "image",
+      "title": "PNG encoding",
+      "libraries": [
+        "OfficeIMO",
+        "SkiaSharp",
+        "Magick.NET"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "image-resize-net10.0",
+      "area": "image",
+      "title": "Image resizing",
+      "libraries": [
+        "OfficeIMO",
+        "SkiaSharp",
+        "Magick.NET"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "image-resize-net8.0",
+      "area": "image",
+      "title": "Image resizing",
+      "libraries": [
+        "OfficeIMO",
+        "SkiaSharp",
+        "Magick.NET"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "image-tiff-lzw-net10.0",
+      "area": "image",
+      "title": "TIFF LZW round trip",
+      "libraries": [
+        "OfficeIMO",
+        "Magick.NET"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "image-tiff-lzw-net8.0",
+      "area": "image",
+      "title": "TIFF LZW round trip",
+      "libraries": [
+        "OfficeIMO",
+        "Magick.NET"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "image-webp-lossless-net10.0",
+      "area": "image",
+      "title": "Lossless WebP encoding and decoding",
+      "libraries": [
+        "OfficeIMO",
+        "Magick.NET"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "image-webp-lossless-net8.0",
+      "area": "image",
+      "title": "Lossless WebP encoding and decoding",
+      "libraries": [
+        "OfficeIMO",
+        "Magick.NET"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "markdown-commonmark-html-net10.0",
+      "area": "markdown",
+      "title": "CommonMark to HTML",
+      "libraries": [
+        "OfficeIMO",
+        "Markdig"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "markdown-commonmark-html-net8.0",
+      "area": "markdown",
+      "title": "CommonMark to HTML",
+      "libraries": [
+        "OfficeIMO",
+        "Markdig"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "markdown-commonmark-parse-net10.0",
+      "area": "markdown",
+      "title": "CommonMark semantic parsing",
+      "libraries": [
+        "OfficeIMO",
+        "Markdig"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "markdown-commonmark-parse-net8.0",
+      "area": "markdown",
+      "title": "CommonMark semantic parsing",
+      "libraries": [
+        "OfficeIMO",
+        "Markdig"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "markpflug-65k-csv-decoded-net10.0",
+      "area": "csv",
+      "title": "CSV 65K typed reading",
+      "libraries": [
+        "OfficeIMO",
+        "ExcelReader.NET",
+        "Sep",
+        "Sylvan",
+        "CsvHelper",
+        "Dataplat.Dbatools.Csv",
+        "LumenWorks"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "markpflug-65k-csv-decoded-net8.0",
+      "area": "csv",
+      "title": "CSV 65K typed reading",
+      "libraries": [
+        "OfficeIMO",
+        "ExcelReader.NET",
+        "Sep",
+        "Sylvan",
+        "CsvHelper",
+        "Dataplat.Dbatools.Csv",
+        "LumenWorks"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "markpflug-65k-xls-typed-net10.0",
+      "area": "excel",
+      "title": "XLS 65K typed reading",
+      "libraries": [
+        "OfficeIMO",
+        "ExcelReader.NET",
+        "Sylvan",
+        "ExcelDataReader"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "markpflug-65k-xls-typed-net8.0",
+      "area": "excel",
+      "title": "XLS 65K typed reading",
+      "libraries": [
+        "OfficeIMO",
+        "ExcelReader.NET",
+        "Sylvan",
+        "ExcelDataReader"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
+      "area": "excel",
+      "title": "XLSB 65K typed reading",
+      "libraries": [
+        "OfficeIMO",
+        "ExcelReader.NET",
+        "Sylvan",
+        "ExcelDataReader",
+        "Excel-PRIME"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsb-typed-net8.0",
+      "area": "excel",
+      "title": "XLSB 65K typed reading",
+      "libraries": [
+        "OfficeIMO",
+        "ExcelReader.NET",
+        "Sylvan",
+        "ExcelDataReader",
+        "Excel-PRIME"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
+      "area": "excel",
+      "title": "XLSX 65K typed reading",
+      "libraries": [
+        "OfficeIMO",
+        "ExcelReader.NET",
+        "Sylvan",
+        "ExcelDataReader",
+        "ClosedXML",
+        "EPPlus",
+        "MiniExcel",
+        "Excel-PRIME",
+        "HypeLab.IO.Excel",
+        "XLibur"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsx-typed-net8.0",
+      "area": "excel",
+      "title": "XLSX 65K typed reading",
+      "libraries": [
+        "OfficeIMO",
+        "ExcelReader.NET",
+        "Sylvan",
+        "ExcelDataReader",
+        "ClosedXML",
+        "EPPlus",
+        "MiniExcel",
+        "Excel-PRIME",
+        "HypeLab.IO.Excel",
+        "XLibur"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "officeimo-pdf-format-route-health-net10.0",
+      "area": "pdf",
+      "title": "PDF format route health",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "officeimo-pdf-format-route-health-net8.0",
+      "area": "pdf",
+      "title": "PDF format route health",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "officeimo-pdf-read-profile-route-health-net10.0",
+      "area": "pdf",
+      "title": "PDF read profile route health",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "officeimo-pdf-read-profile-route-health-net8.0",
+      "area": "pdf",
+      "title": "PDF read profile route health",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "opendocument-ods-create-net10.0",
+      "area": "opendocument",
+      "title": "ODS creation",
+      "libraries": [
+        "OfficeIMO",
+        "OpenStandardLibrary"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "opendocument-ods-create-net8.0",
+      "area": "opendocument",
+      "title": "ODS creation",
+      "libraries": [
+        "OfficeIMO",
+        "OpenStandardLibrary"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "opendocument-ods-read-net10.0",
+      "area": "opendocument",
+      "title": "ODS reading",
+      "libraries": [
+        "OfficeIMO",
+        "OpenStandardLibrary"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "opendocument-ods-read-net8.0",
+      "area": "opendocument",
+      "title": "ODS reading",
+      "libraries": [
+        "OfficeIMO",
+        "OpenStandardLibrary"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-corpus-text-extraction-net10.0",
+      "area": "pdf",
+      "title": "Independent PDF corpus text extraction",
+      "libraries": [
+        "OfficeIMO",
+        "PdfPig",
+        "iText"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-corpus-text-extraction-net10.0-affinity-0xffff0000",
+      "area": "pdf",
+      "title": "Independent PDF corpus text extraction (affinity-0xffff0000)",
+      "libraries": [
+        "OfficeIMO",
+        "PdfPig",
+        "iText"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-corpus-text-extraction-net8.0",
+      "area": "pdf",
+      "title": "Independent PDF corpus text extraction",
+      "libraries": [
+        "OfficeIMO",
+        "PdfPig",
+        "iText"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-html-21k-payload-net10.0",
+      "area": "pdf",
+      "title": "HTML 21 KiB payload to PDF",
+      "libraries": [
+        "OfficeIMO",
+        "PeachPDF",
+        "PdfPecker"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-html-21k-payload-net10.0-affinity-0xffff0000",
+      "area": "pdf",
+      "title": "HTML 21 KiB payload to PDF (affinity-0xffff0000)",
+      "libraries": [
+        "OfficeIMO",
+        "PeachPDF",
+        "PdfPecker"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-html-21k-payload-net8.0",
+      "area": "pdf",
+      "title": "HTML 21 KiB payload to PDF",
+      "libraries": [
+        "OfficeIMO",
+        "PeachPDF",
+        "PdfPecker"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-html-generation-net10.0",
+      "area": "pdf",
+      "title": "HTML to PDF",
+      "libraries": [
+        "OfficeIMO",
+        "PeachPDF",
+        "PdfPecker",
+        "iText pdfHTML",
+        "Chromium"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-html-generation-net8.0",
+      "area": "pdf",
+      "title": "HTML to PDF",
+      "libraries": [
+        "OfficeIMO",
+        "PeachPDF",
+        "PdfPecker",
+        "iText pdfHTML",
+        "Chromium"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-merge-net10.0",
+      "area": "pdf",
+      "title": "PDF merging",
+      "libraries": [
+        "OfficeIMO",
+        "iText",
+        "PDFsharp"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-merge-net8.0",
+      "area": "pdf",
+      "title": "PDF merging",
+      "libraries": [
+        "OfficeIMO",
+        "iText",
+        "PDFsharp"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-native-100-pages-net10.0",
+      "area": "pdf",
+      "title": "PDF native operations",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-native-100-pages-net8.0",
+      "area": "pdf",
+      "title": "PDF native operations",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-page-selection-net10.0",
+      "area": "pdf",
+      "title": "PDF page selection",
+      "libraries": [
+        "OfficeIMO",
+        "iText",
+        "PDFsharp"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-page-selection-net8.0",
+      "area": "pdf",
+      "title": "PDF page selection",
+      "libraries": [
+        "OfficeIMO",
+        "iText",
+        "PDFsharp"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-real-world-invoice-net10.0",
+      "area": "pdf",
+      "title": "PDF invoice generation",
+      "libraries": [
+        "OfficeIMO",
+        "QuestPDF",
+        "iText"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-real-world-invoice-net8.0",
+      "area": "pdf",
+      "title": "PDF invoice generation",
+      "libraries": [
+        "OfficeIMO",
+        "QuestPDF",
+        "iText"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-reverse-conversion-net10.0",
+      "area": "pdf",
+      "title": "PDF reverse conversion",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-reverse-conversion-net8.0",
+      "area": "pdf",
+      "title": "PDF reverse conversion",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-split-net10.0",
+      "area": "pdf",
+      "title": "PDF splitting",
+      "libraries": [
+        "OfficeIMO",
+        "iText",
+        "PDFsharp"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-split-net8.0",
+      "area": "pdf",
+      "title": "PDF splitting",
+      "libraries": [
+        "OfficeIMO",
+        "iText",
+        "PDFsharp"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-structured-generation-net10.0",
+      "area": "pdf",
+      "title": "Structured PDF generation",
+      "libraries": [
+        "OfficeIMO",
+        "QuestPDF",
+        "MigraDoc",
+        "iText"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-structured-generation-net10.0-affinity-0xffff",
+      "area": "pdf",
+      "title": "Structured PDF generation (affinity-0xffff)",
+      "libraries": [
+        "OfficeIMO",
+        "QuestPDF",
+        "MigraDoc",
+        "iText"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-structured-generation-net10.0-affinity-0xffff0000",
+      "area": "pdf",
+      "title": "Structured PDF generation (affinity-0xffff0000)",
+      "libraries": [
+        "OfficeIMO",
+        "QuestPDF",
+        "MigraDoc",
+        "iText"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-structured-generation-net8.0",
+      "area": "pdf",
+      "title": "Structured PDF generation",
+      "libraries": [
+        "OfficeIMO",
+        "QuestPDF",
+        "MigraDoc",
+        "iText"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-text-extraction-net10.0",
+      "area": "pdf",
+      "title": "PDF text extraction",
+      "libraries": [
+        "OfficeIMO",
+        "PdfPig",
+        "iText"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-text-extraction-net10.0-affinity-0xffff0000",
+      "area": "pdf",
+      "title": "PDF text extraction (affinity-0xffff0000)",
+      "libraries": [
+        "OfficeIMO",
+        "PdfPig",
+        "iText"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-text-extraction-net8.0",
+      "area": "pdf",
+      "title": "PDF text extraction",
+      "libraries": [
+        "OfficeIMO",
+        "PdfPig",
+        "iText"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-typed-invoice-workflow-net10.0",
+      "area": "pdf",
+      "title": "Typed invoice PDF workflow",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pdf-typed-invoice-workflow-net8.0",
+      "area": "pdf",
+      "title": "Typed invoice PDF workflow",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pptx-create-net10.0",
+      "area": "powerpoint",
+      "title": "PPTX create and save",
+      "libraries": [
+        "OfficeIMO",
+        "ShapeCrawler",
+        "Open XML SDK"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "pptx-edit-net10.0",
+      "area": "powerpoint",
+      "title": "PPTX open, edit, and save",
+      "libraries": [
+        "OfficeIMO",
+        "ShapeCrawler",
+        "Open XML SDK"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "rtf-to-html-net10.0",
+      "area": "rtf",
+      "title": "RTF to HTML",
+      "libraries": [
+        "OfficeIMO",
+        "RtfPipe"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "rtf-to-html-net8.0",
+      "area": "rtf",
+      "title": "RTF to HTML",
+      "libraries": [
+        "OfficeIMO",
+        "RtfPipe"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "word-docx-create-paragraphs-net10.0",
+      "area": "word",
+      "title": "DOCX paragraph creation",
+      "libraries": [
+        "OfficeIMO",
+        "DocX",
+        "NPOI",
+        "Open XML SDK"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "word-docx-create-paragraphs-net8.0",
+      "area": "word",
+      "title": "DOCX paragraph creation",
+      "libraries": [
+        "OfficeIMO",
+        "DocX",
+        "NPOI",
+        "Open XML SDK"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "word-docx-create-report-net10.0",
+      "area": "word",
+      "title": "DOCX report creation",
+      "libraries": [
+        "OfficeIMO",
+        "DocX",
+        "NPOI",
+        "Open XML SDK"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "word-docx-create-report-net8.0",
+      "area": "word",
+      "title": "DOCX report creation",
+      "libraries": [
+        "OfficeIMO",
+        "DocX",
+        "NPOI",
+        "Open XML SDK"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "word-docx-read-paragraphs-net10.0",
+      "area": "word",
+      "title": "DOCX paragraph reading",
+      "libraries": [
+        "OfficeIMO",
+        "DocX",
+        "NPOI",
+        "Open XML SDK"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "word-docx-read-paragraphs-net8.0",
+      "area": "word",
+      "title": "DOCX paragraph reading",
+      "libraries": [
+        "OfficeIMO",
+        "DocX",
+        "NPOI",
+        "Open XML SDK"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "word-docx-replace-and-save-net10.0",
+      "area": "word",
+      "title": "DOCX text replacement and save",
+      "libraries": [
+        "OfficeIMO",
+        "DocX",
+        "NPOI",
+        "Open XML SDK"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "word-docx-replace-and-save-net8.0",
+      "area": "word",
+      "title": "DOCX text replacement and save",
+      "libraries": [
+        "OfficeIMO",
+        "DocX",
+        "NPOI",
+        "Open XML SDK"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "xlsx-25k-datareader-write-net10.0",
+      "area": "excel",
+      "title": "XLSX data-reader writing",
+      "libraries": [
+        "OfficeIMO",
+        "SpreadCheetah",
+        "Sylvan",
+        "LargeXlsx"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "xlsx-25k-datareader-write-net8.0",
+      "area": "excel",
+      "title": "XLSX data-reader writing",
+      "libraries": [
+        "OfficeIMO",
+        "SpreadCheetah",
+        "Sylvan",
+        "LargeXlsx"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "zip-safe-traversal-net10.0",
+      "area": "zip",
+      "title": "ZIP guarded metadata traversal",
+      "libraries": [
+        "OfficeIMO",
+        "System.IO.Compression"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "zip-safe-traversal-net8.0",
+      "area": "zip",
+      "title": "ZIP guarded metadata traversal",
+      "libraries": [
+        "OfficeIMO",
+        "System.IO.Compression"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    }
+  ],
   "entries": [
     {
       "comparisonId": "csv-25k-datareader-write-net10.0",
+      "area": "csv",
       "platform": "macos",
       "runMode": "quick",
       "generatedUtc": "2026-07-31T12:57:12.894909+02:00",
@@ -55,6 +1462,7 @@
     },
     {
       "comparisonId": "csv-25k-datareader-write-net10.0",
+      "area": "csv",
       "platform": "windows",
       "runMode": "full",
       "generatedUtc": "2026-08-16T10:51:57.8134281+02:00",
@@ -102,6 +1510,7 @@
     },
     {
       "comparisonId": "image-tiff-lzw-net10.0",
+      "area": "image",
       "platform": "windows",
       "runMode": "quick",
       "generatedUtc": "2026-08-24T14:56:30.1963817+02:00",
@@ -141,6 +1550,7 @@
     },
     {
       "comparisonId": "image-webp-lossless-net10.0",
+      "area": "image",
       "platform": "windows",
       "runMode": "quick",
       "generatedUtc": "2026-08-24T14:57:15.33459+02:00",
@@ -180,6 +1590,7 @@
     },
     {
       "comparisonId": "markdown-commonmark-parse-net10.0",
+      "area": "markdown",
       "platform": "windows",
       "runMode": "quick",
       "generatedUtc": "2026-08-23T22:46:35.3302154+02:00",
@@ -218,6 +1629,7 @@
     },
     {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
+      "area": "csv",
       "platform": "linux",
       "runMode": "full",
       "generatedUtc": "2026-07-31T02:42:08.0680578+02:00",
@@ -270,6 +1682,7 @@
     },
     {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
+      "area": "csv",
       "platform": "windows",
       "runMode": "full",
       "generatedUtc": "2026-08-16T10:46:10.5871415+02:00",
@@ -322,6 +1735,7 @@
     },
     {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
+      "area": "csv",
       "platform": "windows",
       "runMode": "quick",
       "generatedUtc": "2026-07-31T02:16:03.0483052+02:00",
@@ -369,6 +1783,7 @@
     },
     {
       "comparisonId": "markpflug-65k-xls-typed-net10.0",
+      "area": "excel",
       "platform": "windows",
       "runMode": "full",
       "generatedUtc": "2026-08-16T10:53:25.5645046+02:00",
@@ -416,6 +1831,7 @@
     },
     {
       "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
+      "area": "excel",
       "platform": "linux",
       "runMode": "full",
       "generatedUtc": "2026-07-31T02:46:27.4196584+02:00",
@@ -468,6 +1884,7 @@
     },
     {
       "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
+      "area": "excel",
       "platform": "windows",
       "runMode": "full",
       "generatedUtc": "2026-08-16T11:04:20.1090395+02:00",
@@ -520,6 +1937,7 @@
     },
     {
       "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
+      "area": "excel",
       "platform": "windows",
       "runMode": "quick",
       "generatedUtc": "2026-07-31T02:17:41.778021+02:00",
@@ -567,6 +1985,7 @@
     },
     {
       "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
+      "area": "excel",
       "platform": "linux",
       "runMode": "full",
       "generatedUtc": "2026-07-31T02:45:36.048037+02:00",
@@ -619,6 +2038,7 @@
     },
     {
       "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
+      "area": "excel",
       "platform": "macos",
       "runMode": "quick",
       "generatedUtc": "2026-07-31T12:49:02.003238+02:00",
@@ -676,6 +2096,7 @@
     },
     {
       "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
+      "area": "excel",
       "platform": "windows",
       "runMode": "full",
       "generatedUtc": "2026-08-16T10:57:22.5678827+02:00",
@@ -728,6 +2149,7 @@
     },
     {
       "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
+      "area": "excel",
       "platform": "windows",
       "runMode": "quick",
       "generatedUtc": "2026-07-31T02:17:17.730363+02:00",
@@ -785,15 +2207,16 @@
     },
     {
       "comparisonId": "pdf-corpus-text-extraction-net10.0-affinity-0xffff0000",
+      "area": "pdf",
       "platform": "windows",
       "runMode": "full",
       "generatedUtc": "2026-11-08T02:56:32.9383573+00:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/pdf-corpus-text-extraction-net10.0-affinity-0xffff0000-windows-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-corpus-text-extraction-net10.0-affinity-0xffff0000-windows-full.d36fc7181b3ffe0b753c145e9fb48cca346a2745aeefb8e4f1f211d1c5ab0867.json",
       "resultSha256": "d36fc7181b3ffe0b753c145e9fb48cca346a2745aeefb8e4f1f211d1c5ab0867",
-      "artifactDestinationSha256": "ae0d00b36a570480f6b76de5fdee527237d6622f3d970689513460c6e24bbc89",
-      "artifactFileName": "pdf-corpus-text-extraction-net10.0-affinity-0xffff0000-windows-full.json",
-      "artifactRelativePath": "pdf-corpus-text-extraction-net10.0-affinity-0xffff0000-windows-full.json",
+      "artifactDestinationSha256": "c92ebaca271d571b996705b50365d60ea33fe088dda412ddb4f929957fd44705",
+      "artifactFileName": "pdf-corpus-text-extraction-net10.0-affinity-0xffff0000-windows-full.d36fc7181b3ffe0b753c145e9fb48cca346a2745aeefb8e4f1f211d1c5ab0867.json",
+      "artifactRelativePath": "pdf-corpus-text-extraction-net10.0-affinity-0xffff0000-windows-full.d36fc7181b3ffe0b753c145e9fb48cca346a2745aeefb8e4f1f211d1c5ab0867.json",
       "suite": "OfficeIMO.Pdf.CorpusTextExtraction",
       "environment": {
         "osFamily": "Windows",
@@ -836,15 +2259,16 @@
     },
     {
       "comparisonId": "pdf-html-21k-payload-net10.0",
+      "area": "pdf",
       "platform": "macos",
       "runMode": "full",
       "generatedUtc": "2026-10-20T20:29:40.055245+00:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-21k-payload-net10.0-macos-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-21k-payload-net10.0-macos-full.12462e973eb18b39ccf081d83c8217cf8d8b68753cb08fbe31b2a9baddc698a6.json",
       "resultSha256": "12462e973eb18b39ccf081d83c8217cf8d8b68753cb08fbe31b2a9baddc698a6",
-      "artifactDestinationSha256": "3b1357d46c1c9226cd9cf818d7807b9f019d99a00dc12933e0dfa5f57a96eb41",
-      "artifactFileName": "pdf-html-21k-payload-net10.0-macos-full.json",
-      "artifactRelativePath": "pdf-html-21k-payload-net10.0-macos-full.json",
+      "artifactDestinationSha256": "4785e35c5e7ca6509a7e634f68300173d34d881cfc8e04fdde9becb90c4fa764",
+      "artifactFileName": "pdf-html-21k-payload-net10.0-macos-full.12462e973eb18b39ccf081d83c8217cf8d8b68753cb08fbe31b2a9baddc698a6.json",
+      "artifactRelativePath": "pdf-html-21k-payload-net10.0-macos-full.12462e973eb18b39ccf081d83c8217cf8d8b68753cb08fbe31b2a9baddc698a6.json",
       "suite": "OfficeIMO.Pdf.Html21KiBPayload",
       "environment": {
         "osFamily": "macOS",
@@ -888,15 +2312,16 @@
     },
     {
       "comparisonId": "pdf-html-21k-payload-net10.0",
+      "area": "pdf",
       "platform": "macos",
       "runMode": "quick",
       "generatedUtc": "2026-10-20T20:33:57.704998+00:00",
       "publish": false,
-      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-21k-payload-net10.0-macos-quick.json",
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-21k-payload-net10.0-macos-quick.f97bc0708c24fab02ddae7dccb828a9143f467e8fdde9522fcfbd96dc79da21d.json",
       "resultSha256": "f97bc0708c24fab02ddae7dccb828a9143f467e8fdde9522fcfbd96dc79da21d",
-      "artifactDestinationSha256": "d9f253616c41b5f3c0684ac100404594ef56a5cd380a4b0b39a7f713b7a09bac",
-      "artifactFileName": "pdf-html-21k-payload-net10.0-macos-quick.json",
-      "artifactRelativePath": "pdf-html-21k-payload-net10.0-macos-quick.json",
+      "artifactDestinationSha256": "e144837d0f78c97efeeaebc0bf3770a52a304698c5ec9ebfb6abbfe75dc9cab9",
+      "artifactFileName": "pdf-html-21k-payload-net10.0-macos-quick.f97bc0708c24fab02ddae7dccb828a9143f467e8fdde9522fcfbd96dc79da21d.json",
+      "artifactRelativePath": "pdf-html-21k-payload-net10.0-macos-quick.f97bc0708c24fab02ddae7dccb828a9143f467e8fdde9522fcfbd96dc79da21d.json",
       "suite": "OfficeIMO.Pdf.Html21KiBPayload",
       "environment": {
         "osFamily": "macOS",
@@ -940,15 +2365,16 @@
     },
     {
       "comparisonId": "pdf-html-21k-payload-net10.0-affinity-0xffff0000",
+      "area": "pdf",
       "platform": "windows",
       "runMode": "full",
       "generatedUtc": "2026-11-08T06:34:57.7201979+00:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-21k-payload-net10.0-affinity-0xffff0000-windows-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-21k-payload-net10.0-affinity-0xffff0000-windows-full.e184156a9c31cd03e03bc243c584d887a53ef54d81c832abe5f6b744b3dc21f4.json",
       "resultSha256": "e184156a9c31cd03e03bc243c584d887a53ef54d81c832abe5f6b744b3dc21f4",
-      "artifactDestinationSha256": "534401705baa792733d5313b932e52da52c8d0f49053039e02312151591c824d",
-      "artifactFileName": "pdf-html-21k-payload-net10.0-affinity-0xffff0000-windows-full.json",
-      "artifactRelativePath": "pdf-html-21k-payload-net10.0-affinity-0xffff0000-windows-full.json",
+      "artifactDestinationSha256": "a483238738350db448a8df6393e3273b30659c9b2c943876949193a0dfa3b23b",
+      "artifactFileName": "pdf-html-21k-payload-net10.0-affinity-0xffff0000-windows-full.e184156a9c31cd03e03bc243c584d887a53ef54d81c832abe5f6b744b3dc21f4.json",
+      "artifactRelativePath": "pdf-html-21k-payload-net10.0-affinity-0xffff0000-windows-full.e184156a9c31cd03e03bc243c584d887a53ef54d81c832abe5f6b744b3dc21f4.json",
       "suite": "OfficeIMO.Pdf.Html21KiBPayload",
       "environment": {
         "osFamily": "Windows",
@@ -996,15 +2422,16 @@
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
+      "area": "pdf",
       "platform": "linux",
       "runMode": "full",
       "generatedUtc": "2026-08-30T16:28:47.8037167+00:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-linux-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-linux-full.2077fd4ec2f5a5d3d8b8f4a2683dfcdfa24c3c20a43f8518cda2eea0e878c4d5.json",
       "resultSha256": "2077fd4ec2f5a5d3d8b8f4a2683dfcdfa24c3c20a43f8518cda2eea0e878c4d5",
-      "artifactDestinationSha256": "5f8176805cb41dac1888f69619e22de6373d169380fbcfcea8345b3207ce53f1",
-      "artifactFileName": "pdf-html-generation-net10.0-linux-full.json",
-      "artifactRelativePath": "pdf-html-generation-net10.0-linux-full.json",
+      "artifactDestinationSha256": "fe2dcd350472224a33f9f63bf9ddbe6f0ce1ee16cdaccb5b19dfb4672cc3df1a",
+      "artifactFileName": "pdf-html-generation-net10.0-linux-full.2077fd4ec2f5a5d3d8b8f4a2683dfcdfa24c3c20a43f8518cda2eea0e878c4d5.json",
+      "artifactRelativePath": "pdf-html-generation-net10.0-linux-full.2077fd4ec2f5a5d3d8b8f4a2683dfcdfa24c3c20a43f8518cda2eea0e878c4d5.json",
       "suite": "OfficeIMO.Pdf.HtmlGeneration",
       "environment": {
         "osFamily": "Linux",
@@ -1043,6 +2470,7 @@
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
+      "area": "pdf",
       "platform": "linux",
       "runMode": "quick",
       "generatedUtc": "2026-08-23T17:29:33.5014744+02:00",
@@ -1093,15 +2521,16 @@
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
+      "area": "pdf",
       "platform": "windows",
       "runMode": "full",
       "generatedUtc": "2026-08-30T16:06:19.2263896+00:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-windows-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-windows-full.21954e6dc912bada74aba63362976bf5e6d68c9841075f1f689431b242442f74.json",
       "resultSha256": "21954e6dc912bada74aba63362976bf5e6d68c9841075f1f689431b242442f74",
-      "artifactDestinationSha256": "458dd48975fd71568139bfe12ca4e4126085c5ecebaaf613ae893faff67c4e0b",
-      "artifactFileName": "pdf-html-generation-net10.0-windows-full.json",
-      "artifactRelativePath": "pdf-html-generation-net10.0-windows-full.json",
+      "artifactDestinationSha256": "8b2a38b38cc847c368ed2b0b1018e51e3d37b1906ba3ea639719b8c8e603393e",
+      "artifactFileName": "pdf-html-generation-net10.0-windows-full.21954e6dc912bada74aba63362976bf5e6d68c9841075f1f689431b242442f74.json",
+      "artifactRelativePath": "pdf-html-generation-net10.0-windows-full.21954e6dc912bada74aba63362976bf5e6d68c9841075f1f689431b242442f74.json",
       "suite": "OfficeIMO.Pdf.HtmlGeneration",
       "environment": {
         "osFamily": "Windows",
@@ -1140,6 +2569,7 @@
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
+      "area": "pdf",
       "platform": "windows",
       "runMode": "quick",
       "generatedUtc": "2026-08-23T17:08:52.4492183+02:00",
@@ -1190,6 +2620,7 @@
     },
     {
       "comparisonId": "pdf-merge-net10.0",
+      "area": "pdf",
       "platform": "windows",
       "runMode": "full",
       "generatedUtc": "2026-08-16T12:16:12.4029791+02:00",
@@ -1237,6 +2668,7 @@
     },
     {
       "comparisonId": "pdf-page-selection-net10.0",
+      "area": "pdf",
       "platform": "windows",
       "runMode": "full",
       "generatedUtc": "2026-08-16T12:24:08.5364279+02:00",
@@ -1284,6 +2716,7 @@
     },
     {
       "comparisonId": "pdf-split-net10.0",
+      "area": "pdf",
       "platform": "windows",
       "runMode": "full",
       "generatedUtc": "2026-08-16T12:05:37.2179955+02:00",
@@ -1331,15 +2764,16 @@
     },
     {
       "comparisonId": "pdf-structured-generation-net10.0-affinity-0xffff",
+      "area": "pdf",
       "platform": "windows",
       "runMode": "full",
       "generatedUtc": "2026-09-17T20:54:33.5070851+00:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/pdf-structured-generation-net10.0-affinity-0xffff-windows-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-structured-generation-net10.0-affinity-0xffff-windows-full.e800bc678d6bc4a9f07664c8f4bc5bcb3ca34d179d4fa21a38f32b3ebc1379f2.json",
       "resultSha256": "e800bc678d6bc4a9f07664c8f4bc5bcb3ca34d179d4fa21a38f32b3ebc1379f2",
-      "artifactDestinationSha256": "b2718d517beb7312e10a57aed2e45fd61b423d5d328b85658ff54e86ccf300cf",
-      "artifactFileName": "pdf-structured-generation-net10.0-affinity-0xffff-windows-full.json",
-      "artifactRelativePath": "pdf-structured-generation-net10.0-affinity-0xffff-windows-full.json",
+      "artifactDestinationSha256": "9c438f5cdcb4b59021ffc39653371e776ca626b69f3edbc4e8144473ccf6d6b8",
+      "artifactFileName": "pdf-structured-generation-net10.0-affinity-0xffff-windows-full.e800bc678d6bc4a9f07664c8f4bc5bcb3ca34d179d4fa21a38f32b3ebc1379f2.json",
+      "artifactRelativePath": "pdf-structured-generation-net10.0-affinity-0xffff-windows-full.e800bc678d6bc4a9f07664c8f4bc5bcb3ca34d179d4fa21a38f32b3ebc1379f2.json",
       "suite": "OfficeIMO.Pdf.StructuredGeneration",
       "environment": {
         "osFamily": "Windows",
@@ -1380,15 +2814,16 @@
     },
     {
       "comparisonId": "pdf-structured-generation-net10.0-affinity-0xffff0000",
+      "area": "pdf",
       "platform": "windows",
       "runMode": "full",
       "generatedUtc": "2026-09-17T20:45:10.6247845+00:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/pdf-structured-generation-net10.0-affinity-0xffff0000-windows-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-structured-generation-net10.0-affinity-0xffff0000-windows-full.7e9d4855b1a44bf25bfd4e14ea2c51b01014d69d6b233c0480b84dce71ac5365.json",
       "resultSha256": "7e9d4855b1a44bf25bfd4e14ea2c51b01014d69d6b233c0480b84dce71ac5365",
-      "artifactDestinationSha256": "b53ab093006feee8fc9b319ddb7a114f6cc0273190b5a332e376ce9cea62653a",
-      "artifactFileName": "pdf-structured-generation-net10.0-affinity-0xffff0000-windows-full.json",
-      "artifactRelativePath": "pdf-structured-generation-net10.0-affinity-0xffff0000-windows-full.json",
+      "artifactDestinationSha256": "7d4d8d1ea1c7c14b4d64bb241377296c00d43e7ebf4fba1dad7907cd7c791e85",
+      "artifactFileName": "pdf-structured-generation-net10.0-affinity-0xffff0000-windows-full.7e9d4855b1a44bf25bfd4e14ea2c51b01014d69d6b233c0480b84dce71ac5365.json",
+      "artifactRelativePath": "pdf-structured-generation-net10.0-affinity-0xffff0000-windows-full.7e9d4855b1a44bf25bfd4e14ea2c51b01014d69d6b233c0480b84dce71ac5365.json",
       "suite": "OfficeIMO.Pdf.StructuredGeneration",
       "environment": {
         "osFamily": "Windows",
@@ -1429,15 +2864,16 @@
     },
     {
       "comparisonId": "pdf-text-extraction-net10.0-affinity-0xffff0000",
+      "area": "pdf",
       "platform": "windows",
       "runMode": "full",
       "generatedUtc": "2026-11-08T03:24:33.3281573+00:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/pdf-text-extraction-net10.0-affinity-0xffff0000-windows-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-text-extraction-net10.0-affinity-0xffff0000-windows-full.ed8b7617ca3f7f77d2b774a0a33de398665805ac76078f70dce40cb024e05455.json",
       "resultSha256": "ed8b7617ca3f7f77d2b774a0a33de398665805ac76078f70dce40cb024e05455",
-      "artifactDestinationSha256": "624d8373f1ab6fde7924948d367858e76e7e67c36da739e983db297ad75aa9f7",
-      "artifactFileName": "pdf-text-extraction-net10.0-affinity-0xffff0000-windows-full.json",
-      "artifactRelativePath": "pdf-text-extraction-net10.0-affinity-0xffff0000-windows-full.json",
+      "artifactDestinationSha256": "62b829e828b9b3ddbbd6c3899ab80b5f6caa0d22f730198306780532519821d7",
+      "artifactFileName": "pdf-text-extraction-net10.0-affinity-0xffff0000-windows-full.ed8b7617ca3f7f77d2b774a0a33de398665805ac76078f70dce40cb024e05455.json",
+      "artifactRelativePath": "pdf-text-extraction-net10.0-affinity-0xffff0000-windows-full.ed8b7617ca3f7f77d2b774a0a33de398665805ac76078f70dce40cb024e05455.json",
       "suite": "OfficeIMO.Pdf.TextExtraction",
       "environment": {
         "osFamily": "Windows",
@@ -1480,6 +2916,7 @@
     },
     {
       "comparisonId": "rtf-to-html-net8.0",
+      "area": "rtf",
       "platform": "windows",
       "runMode": "quick",
       "generatedUtc": "2026-08-23T19:04:34.7973563+02:00",
@@ -1519,6 +2956,7 @@
     },
     {
       "comparisonId": "xlsx-25k-datareader-write-net10.0",
+      "area": "excel",
       "platform": "macos",
       "runMode": "quick",
       "generatedUtc": "2026-07-31T12:28:47.27305+02:00",
@@ -1566,6 +3004,7 @@
     },
     {
       "comparisonId": "xlsx-25k-datareader-write-net10.0",
+      "area": "excel",
       "platform": "windows",
       "runMode": "full",
       "generatedUtc": "2026-08-16T11:00:53.6363585+02:00",
@@ -1616,16 +3055,6 @@
     {
       "comparisonId": "csv-25k-datareader-write-net10.0",
       "runMode": "full",
-      "platform": "windows",
-      "available": true,
-      "runModes": [
-        "full"
-      ],
-      "latestUtc": "2026-08-16T10:51:57.8134281+02:00"
-    },
-    {
-      "comparisonId": "csv-25k-datareader-write-net10.0",
-      "runMode": "full",
       "platform": "linux",
       "available": false,
       "runModes": [],
@@ -1641,11 +3070,13 @@
     },
     {
       "comparisonId": "csv-25k-datareader-write-net10.0",
-      "runMode": "quick",
+      "runMode": "full",
       "platform": "windows",
-      "available": false,
-      "runModes": [],
-      "latestUtc": null
+      "available": true,
+      "runModes": [
+        "full"
+      ],
+      "latestUtc": "2026-08-16T10:51:57.8134281+02:00"
     },
     {
       "comparisonId": "csv-25k-datareader-write-net10.0",
@@ -1666,14 +3097,588 @@
       "latestUtc": "2026-07-31T12:57:12.894909+02:00"
     },
     {
-      "comparisonId": "image-tiff-lzw-net10.0",
+      "comparisonId": "csv-25k-datareader-write-net10.0",
       "runMode": "quick",
       "platform": "windows",
-      "available": true,
-      "runModes": [
-        "quick"
-      ],
-      "latestUtc": "2026-08-24T14:56:30.1963817+02:00"
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-25k-datareader-write-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-25k-datareader-write-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-25k-datareader-write-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-async-read-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-async-read-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-async-read-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-async-read-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-async-read-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-async-read-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-million-first-row-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-million-first-row-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-million-first-row-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-million-first-row-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-million-first-row-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-million-first-row-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-wide-async-read-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-wide-async-read-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-wide-async-read-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-wide-async-read-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-wide-async-read-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-wide-async-read-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "email-mime-read-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "email-mime-read-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "email-mime-read-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "email-mime-read-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "email-mime-read-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "email-mime-read-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "email-mime-write-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "email-mime-write-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "email-mime-write-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "email-mime-write-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "email-mime-write-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "email-mime-write-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "epub-open-read-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "epub-open-read-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "epub-open-read-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "epub-open-read-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "epub-open-read-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "epub-open-read-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "html-to-markdown-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "html-to-markdown-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "html-to-markdown-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "html-to-markdown-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "html-to-markdown-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "html-to-markdown-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-jpeg-decode-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-jpeg-decode-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-jpeg-decode-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-jpeg-decode-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-jpeg-decode-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-jpeg-decode-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-png-decode-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-png-decode-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-png-decode-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-png-decode-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-png-decode-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-png-decode-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-png-encode-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-png-encode-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-png-encode-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-png-encode-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-png-encode-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-png-encode-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-resize-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-resize-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-resize-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-resize-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-resize-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-resize-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-tiff-lzw-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-tiff-lzw-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-tiff-lzw-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
     },
     {
       "comparisonId": "image-tiff-lzw-net10.0",
@@ -1685,6 +3690,80 @@
     },
     {
       "comparisonId": "image-tiff-lzw-net10.0",
+      "runMode": "quick",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-tiff-lzw-net10.0",
+      "runMode": "quick",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "quick"
+      ],
+      "latestUtc": "2026-08-24T14:56:30.1963817+02:00"
+    },
+    {
+      "comparisonId": "image-tiff-lzw-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-tiff-lzw-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-tiff-lzw-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-webp-lossless-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-webp-lossless-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-webp-lossless-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-webp-lossless-net10.0",
+      "runMode": "quick",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-webp-lossless-net10.0",
       "runMode": "quick",
       "platform": "macos",
       "available": false,
@@ -1702,7 +3781,103 @@
       "latestUtc": "2026-08-24T14:57:15.33459+02:00"
     },
     {
-      "comparisonId": "image-webp-lossless-net10.0",
+      "comparisonId": "image-webp-lossless-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-webp-lossless-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-webp-lossless-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markdown-commonmark-html-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markdown-commonmark-html-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markdown-commonmark-html-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markdown-commonmark-html-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markdown-commonmark-html-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markdown-commonmark-html-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markdown-commonmark-parse-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markdown-commonmark-parse-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markdown-commonmark-parse-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markdown-commonmark-parse-net10.0",
       "runMode": "quick",
       "platform": "linux",
       "available": false,
@@ -1710,7 +3885,7 @@
       "latestUtc": null
     },
     {
-      "comparisonId": "image-webp-lossless-net10.0",
+      "comparisonId": "markdown-commonmark-parse-net10.0",
       "runMode": "quick",
       "platform": "macos",
       "available": false,
@@ -1728,30 +3903,28 @@
       "latestUtc": "2026-08-23T22:46:35.3302154+02:00"
     },
     {
-      "comparisonId": "markdown-commonmark-parse-net10.0",
-      "runMode": "quick",
+      "comparisonId": "markdown-commonmark-parse-net8.0",
+      "runMode": "full",
       "platform": "linux",
       "available": false,
       "runModes": [],
       "latestUtc": null
     },
     {
-      "comparisonId": "markdown-commonmark-parse-net10.0",
-      "runMode": "quick",
+      "comparisonId": "markdown-commonmark-parse-net8.0",
+      "runMode": "full",
       "platform": "macos",
       "available": false,
       "runModes": [],
       "latestUtc": null
     },
     {
-      "comparisonId": "markpflug-65k-csv-decoded-net10.0",
+      "comparisonId": "markdown-commonmark-parse-net8.0",
       "runMode": "full",
       "platform": "windows",
-      "available": true,
-      "runModes": [
-        "full"
-      ],
-      "latestUtc": "2026-08-16T10:46:10.5871415+02:00"
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
     },
     {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
@@ -1773,13 +3946,13 @@
     },
     {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
-      "runMode": "quick",
+      "runMode": "full",
       "platform": "windows",
       "available": true,
       "runModes": [
-        "quick"
+        "full"
       ],
-      "latestUtc": "2026-07-31T02:16:03.0483052+02:00"
+      "latestUtc": "2026-08-16T10:46:10.5871415+02:00"
     },
     {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
@@ -1792,6 +3965,56 @@
     {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
       "runMode": "quick",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markpflug-65k-csv-decoded-net10.0",
+      "runMode": "quick",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "quick"
+      ],
+      "latestUtc": "2026-07-31T02:16:03.0483052+02:00"
+    },
+    {
+      "comparisonId": "markpflug-65k-csv-decoded-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markpflug-65k-csv-decoded-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markpflug-65k-csv-decoded-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markpflug-65k-xls-typed-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markpflug-65k-xls-typed-net10.0",
+      "runMode": "full",
       "platform": "macos",
       "available": false,
       "runModes": [],
@@ -1808,7 +4031,7 @@
       "latestUtc": "2026-08-16T10:53:25.5645046+02:00"
     },
     {
-      "comparisonId": "markpflug-65k-xls-typed-net10.0",
+      "comparisonId": "markpflug-65k-xls-typed-net8.0",
       "runMode": "full",
       "platform": "linux",
       "available": false,
@@ -1816,7 +4039,7 @@
       "latestUtc": null
     },
     {
-      "comparisonId": "markpflug-65k-xls-typed-net10.0",
+      "comparisonId": "markpflug-65k-xls-typed-net8.0",
       "runMode": "full",
       "platform": "macos",
       "available": false,
@@ -1824,14 +4047,12 @@
       "latestUtc": null
     },
     {
-      "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
+      "comparisonId": "markpflug-65k-xls-typed-net8.0",
       "runMode": "full",
       "platform": "windows",
-      "available": true,
-      "runModes": [
-        "full"
-      ],
-      "latestUtc": "2026-08-16T11:04:20.1090395+02:00"
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
     },
     {
       "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
@@ -1853,13 +4074,13 @@
     },
     {
       "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
-      "runMode": "quick",
+      "runMode": "full",
       "platform": "windows",
       "available": true,
       "runModes": [
-        "quick"
+        "full"
       ],
-      "latestUtc": "2026-07-31T02:17:41.778021+02:00"
+      "latestUtc": "2026-08-16T11:04:20.1090395+02:00"
     },
     {
       "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
@@ -1878,14 +4099,38 @@
       "latestUtc": null
     },
     {
-      "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
-      "runMode": "full",
+      "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
+      "runMode": "quick",
       "platform": "windows",
       "available": true,
       "runModes": [
-        "full"
+        "quick"
       ],
-      "latestUtc": "2026-08-16T10:57:22.5678827+02:00"
+      "latestUtc": "2026-07-31T02:17:41.778021+02:00"
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsb-typed-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsb-typed-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsb-typed-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
     },
     {
       "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
@@ -1907,13 +4152,13 @@
     },
     {
       "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
-      "runMode": "quick",
+      "runMode": "full",
       "platform": "windows",
       "available": true,
       "runModes": [
-        "quick"
+        "full"
       ],
-      "latestUtc": "2026-07-31T02:17:17.730363+02:00"
+      "latestUtc": "2026-08-16T10:57:22.5678827+02:00"
     },
     {
       "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
@@ -1934,14 +4179,254 @@
       "latestUtc": "2026-07-31T12:49:02.003238+02:00"
     },
     {
-      "comparisonId": "pdf-corpus-text-extraction-net10.0-affinity-0xffff0000",
-      "runMode": "full",
+      "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
+      "runMode": "quick",
       "platform": "windows",
       "available": true,
       "runModes": [
-        "full"
+        "quick"
       ],
-      "latestUtc": "2026-11-08T02:56:32.9383573+00:00"
+      "latestUtc": "2026-07-31T02:17:17.730363+02:00"
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsx-typed-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsx-typed-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsx-typed-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "officeimo-pdf-format-route-health-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "officeimo-pdf-format-route-health-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "officeimo-pdf-format-route-health-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "officeimo-pdf-format-route-health-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "officeimo-pdf-format-route-health-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "officeimo-pdf-format-route-health-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "officeimo-pdf-read-profile-route-health-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "officeimo-pdf-read-profile-route-health-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "officeimo-pdf-read-profile-route-health-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "officeimo-pdf-read-profile-route-health-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "officeimo-pdf-read-profile-route-health-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "officeimo-pdf-read-profile-route-health-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "opendocument-ods-create-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "opendocument-ods-create-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "opendocument-ods-create-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "opendocument-ods-create-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "opendocument-ods-create-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "opendocument-ods-create-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "opendocument-ods-read-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "opendocument-ods-read-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "opendocument-ods-read-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "opendocument-ods-read-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "opendocument-ods-read-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "opendocument-ods-read-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-corpus-text-extraction-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-corpus-text-extraction-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-corpus-text-extraction-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
     },
     {
       "comparisonId": "pdf-corpus-text-extraction-net10.0-affinity-0xffff0000",
@@ -1960,7 +4445,33 @@
       "latestUtc": null
     },
     {
-      "comparisonId": "pdf-html-21k-payload-net10.0",
+      "comparisonId": "pdf-corpus-text-extraction-net10.0-affinity-0xffff0000",
+      "runMode": "full",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "full"
+      ],
+      "latestUtc": "2026-11-08T02:56:32.9383573+00:00"
+    },
+    {
+      "comparisonId": "pdf-corpus-text-extraction-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-corpus-text-extraction-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-corpus-text-extraction-net8.0",
       "runMode": "full",
       "platform": "windows",
       "available": false,
@@ -1987,7 +4498,7 @@
     },
     {
       "comparisonId": "pdf-html-21k-payload-net10.0",
-      "runMode": "quick",
+      "runMode": "full",
       "platform": "windows",
       "available": false,
       "runModes": [],
@@ -2012,14 +4523,12 @@
       "latestUtc": "2026-10-20T20:33:57.704998+00:00"
     },
     {
-      "comparisonId": "pdf-html-21k-payload-net10.0-affinity-0xffff0000",
-      "runMode": "full",
+      "comparisonId": "pdf-html-21k-payload-net10.0",
+      "runMode": "quick",
       "platform": "windows",
-      "available": true,
-      "runModes": [
-        "full"
-      ],
-      "latestUtc": "2026-11-08T06:34:57.7201979+00:00"
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
     },
     {
       "comparisonId": "pdf-html-21k-payload-net10.0-affinity-0xffff0000",
@@ -2038,14 +4547,38 @@
       "latestUtc": null
     },
     {
-      "comparisonId": "pdf-html-generation-net10.0",
+      "comparisonId": "pdf-html-21k-payload-net10.0-affinity-0xffff0000",
       "runMode": "full",
       "platform": "windows",
       "available": true,
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-30T16:06:19.2263896+00:00"
+      "latestUtc": "2026-11-08T06:34:57.7201979+00:00"
+    },
+    {
+      "comparisonId": "pdf-html-21k-payload-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-html-21k-payload-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-html-21k-payload-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
@@ -2067,13 +4600,13 @@
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
-      "runMode": "quick",
+      "runMode": "full",
       "platform": "windows",
       "available": true,
       "runModes": [
-        "quick"
+        "full"
       ],
-      "latestUtc": "2026-08-23T17:08:52.4492183+02:00"
+      "latestUtc": "2026-08-30T16:06:19.2263896+00:00"
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
@@ -2094,14 +4627,38 @@
       "latestUtc": null
     },
     {
-      "comparisonId": "pdf-merge-net10.0",
-      "runMode": "full",
+      "comparisonId": "pdf-html-generation-net10.0",
+      "runMode": "quick",
       "platform": "windows",
       "available": true,
       "runModes": [
-        "full"
+        "quick"
       ],
-      "latestUtc": "2026-08-16T12:16:12.4029791+02:00"
+      "latestUtc": "2026-08-23T17:08:52.4492183+02:00"
+    },
+    {
+      "comparisonId": "pdf-html-generation-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-html-generation-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-html-generation-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
     },
     {
       "comparisonId": "pdf-merge-net10.0",
@@ -2113,6 +4670,104 @@
     },
     {
       "comparisonId": "pdf-merge-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-merge-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "full"
+      ],
+      "latestUtc": "2026-08-16T12:16:12.4029791+02:00"
+    },
+    {
+      "comparisonId": "pdf-merge-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-merge-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-merge-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-native-100-pages-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-native-100-pages-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-native-100-pages-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-native-100-pages-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-native-100-pages-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-native-100-pages-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-page-selection-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-page-selection-net10.0",
       "runMode": "full",
       "platform": "macos",
       "available": false,
@@ -2130,7 +4785,7 @@
       "latestUtc": "2026-08-16T12:24:08.5364279+02:00"
     },
     {
-      "comparisonId": "pdf-page-selection-net10.0",
+      "comparisonId": "pdf-page-selection-net8.0",
       "runMode": "full",
       "platform": "linux",
       "available": false,
@@ -2138,7 +4793,127 @@
       "latestUtc": null
     },
     {
-      "comparisonId": "pdf-page-selection-net10.0",
+      "comparisonId": "pdf-page-selection-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-page-selection-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-real-world-invoice-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-real-world-invoice-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-real-world-invoice-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-real-world-invoice-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-real-world-invoice-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-real-world-invoice-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-reverse-conversion-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-reverse-conversion-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-reverse-conversion-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-reverse-conversion-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-reverse-conversion-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-reverse-conversion-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-split-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-split-net10.0",
       "runMode": "full",
       "platform": "macos",
       "available": false,
@@ -2156,7 +4931,7 @@
       "latestUtc": "2026-08-16T12:05:37.2179955+02:00"
     },
     {
-      "comparisonId": "pdf-split-net10.0",
+      "comparisonId": "pdf-split-net8.0",
       "runMode": "full",
       "platform": "linux",
       "available": false,
@@ -2164,7 +4939,55 @@
       "latestUtc": null
     },
     {
-      "comparisonId": "pdf-split-net10.0",
+      "comparisonId": "pdf-split-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-split-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-structured-generation-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-structured-generation-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-structured-generation-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-structured-generation-net10.0-affinity-0xffff",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-structured-generation-net10.0-affinity-0xffff",
       "runMode": "full",
       "platform": "macos",
       "available": false,
@@ -2182,7 +5005,7 @@
       "latestUtc": "2026-09-17T20:54:33.5070851+00:00"
     },
     {
-      "comparisonId": "pdf-structured-generation-net10.0-affinity-0xffff",
+      "comparisonId": "pdf-structured-generation-net10.0-affinity-0xffff0000",
       "runMode": "full",
       "platform": "linux",
       "available": false,
@@ -2190,7 +5013,7 @@
       "latestUtc": null
     },
     {
-      "comparisonId": "pdf-structured-generation-net10.0-affinity-0xffff",
+      "comparisonId": "pdf-structured-generation-net10.0-affinity-0xffff0000",
       "runMode": "full",
       "platform": "macos",
       "available": false,
@@ -2208,7 +5031,7 @@
       "latestUtc": "2026-09-17T20:45:10.6247845+00:00"
     },
     {
-      "comparisonId": "pdf-structured-generation-net10.0-affinity-0xffff0000",
+      "comparisonId": "pdf-structured-generation-net8.0",
       "runMode": "full",
       "platform": "linux",
       "available": false,
@@ -2216,7 +5039,55 @@
       "latestUtc": null
     },
     {
-      "comparisonId": "pdf-structured-generation-net10.0-affinity-0xffff0000",
+      "comparisonId": "pdf-structured-generation-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-structured-generation-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-text-extraction-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-text-extraction-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-text-extraction-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-text-extraction-net10.0-affinity-0xffff0000",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-text-extraction-net10.0-affinity-0xffff0000",
       "runMode": "full",
       "platform": "macos",
       "available": false,
@@ -2234,7 +5105,7 @@
       "latestUtc": "2026-11-08T03:24:33.3281573+00:00"
     },
     {
-      "comparisonId": "pdf-text-extraction-net10.0-affinity-0xffff0000",
+      "comparisonId": "pdf-text-extraction-net8.0",
       "runMode": "full",
       "platform": "linux",
       "available": false,
@@ -2242,8 +5113,176 @@
       "latestUtc": null
     },
     {
-      "comparisonId": "pdf-text-extraction-net10.0-affinity-0xffff0000",
+      "comparisonId": "pdf-text-extraction-net8.0",
       "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-text-extraction-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-typed-invoice-workflow-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-typed-invoice-workflow-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-typed-invoice-workflow-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-typed-invoice-workflow-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-typed-invoice-workflow-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-typed-invoice-workflow-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pptx-create-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pptx-create-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pptx-create-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pptx-edit-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pptx-edit-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pptx-edit-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "rtf-to-html-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "rtf-to-html-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "rtf-to-html-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "rtf-to-html-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "rtf-to-html-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "rtf-to-html-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "rtf-to-html-net8.0",
+      "runMode": "quick",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "rtf-to-html-net8.0",
+      "runMode": "quick",
       "platform": "macos",
       "available": false,
       "runModes": [],
@@ -2260,16 +5299,208 @@
       "latestUtc": "2026-08-23T19:04:34.7973563+02:00"
     },
     {
-      "comparisonId": "rtf-to-html-net8.0",
-      "runMode": "quick",
+      "comparisonId": "word-docx-create-paragraphs-net10.0",
+      "runMode": "full",
       "platform": "linux",
       "available": false,
       "runModes": [],
       "latestUtc": null
     },
     {
-      "comparisonId": "rtf-to-html-net8.0",
-      "runMode": "quick",
+      "comparisonId": "word-docx-create-paragraphs-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "word-docx-create-paragraphs-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "word-docx-create-paragraphs-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "word-docx-create-paragraphs-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "word-docx-create-paragraphs-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "word-docx-create-report-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "word-docx-create-report-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "word-docx-create-report-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "word-docx-create-report-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "word-docx-create-report-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "word-docx-create-report-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "word-docx-read-paragraphs-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "word-docx-read-paragraphs-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "word-docx-read-paragraphs-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "word-docx-read-paragraphs-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "word-docx-read-paragraphs-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "word-docx-read-paragraphs-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "word-docx-replace-and-save-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "word-docx-replace-and-save-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "word-docx-replace-and-save-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "word-docx-replace-and-save-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "word-docx-replace-and-save-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "word-docx-replace-and-save-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "xlsx-25k-datareader-write-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "xlsx-25k-datareader-write-net10.0",
+      "runMode": "full",
       "platform": "macos",
       "available": false,
       "runModes": [],
@@ -2284,30 +5515,6 @@
         "full"
       ],
       "latestUtc": "2026-08-16T11:00:53.6363585+02:00"
-    },
-    {
-      "comparisonId": "xlsx-25k-datareader-write-net10.0",
-      "runMode": "full",
-      "platform": "linux",
-      "available": false,
-      "runModes": [],
-      "latestUtc": null
-    },
-    {
-      "comparisonId": "xlsx-25k-datareader-write-net10.0",
-      "runMode": "full",
-      "platform": "macos",
-      "available": false,
-      "runModes": [],
-      "latestUtc": null
-    },
-    {
-      "comparisonId": "xlsx-25k-datareader-write-net10.0",
-      "runMode": "quick",
-      "platform": "windows",
-      "available": false,
-      "runModes": [],
-      "latestUtc": null
     },
     {
       "comparisonId": "xlsx-25k-datareader-write-net10.0",
@@ -2326,6 +5533,86 @@
         "quick"
       ],
       "latestUtc": "2026-07-31T12:28:47.27305+02:00"
+    },
+    {
+      "comparisonId": "xlsx-25k-datareader-write-net10.0",
+      "runMode": "quick",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "xlsx-25k-datareader-write-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "xlsx-25k-datareader-write-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "xlsx-25k-datareader-write-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "zip-safe-traversal-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "zip-safe-traversal-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "zip-safe-traversal-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "zip-safe-traversal-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "zip-safe-traversal-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "zip-safe-traversal-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
     }
   ]
 }

@@ -1130,6 +1130,8 @@ OfficeIMO.Pdf.PdfTableStyle.RepeatFooterRows.get -> bool
 OfficeIMO.Pdf.PdfTableStyle.RepeatFooterRows.set -> void
 OfficeIMO.Pdf.PdfInvoiceComponent.CarryTotalsAcrossPages.get -> bool
 OfficeIMO.Pdf.PdfInvoiceComponent.CarryTotalsAcrossPages.set -> void
+OfficeIMO.Pdf.PdfEncryptedContentIntegrityException
+OfficeIMO.Pdf.PdfEncryptedContentIntegrityException.PdfEncryptedContentIntegrityException(string! message) -> void
 OfficeIMO.Pdf.PdfLoadOptions.PublicKeyDecryption.get -> OfficeIMO.Pdf.PdfPublicKeyDecryptionOptions?
 OfficeIMO.Pdf.PdfLoadOptions.PublicKeyDecryption.init -> void
 OfficeIMO.Pdf.PdfPasswordAuthenticationRole.PublicKeyRecipient = 3 -> OfficeIMO.Pdf.PdfPasswordAuthenticationRole

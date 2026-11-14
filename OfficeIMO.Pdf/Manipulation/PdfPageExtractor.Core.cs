@@ -13,6 +13,7 @@ internal static partial class PdfPageExtractor {
         PdfFileVersion fileVersion = PdfFileVersion.Pdf14,
         long? maximumOutputBytes = null,
         Action<IReadOnlyDictionary<int, int>>? captureObjectNumbers = null,
+        ICollection<string>? report = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (maximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
@@ -22,14 +23,14 @@ internal static partial class PdfPageExtractor {
             cancellationToken.ThrowIfCancellationRequested();
             copiedPageObjectIds.Add(pageObjectNumber);
         }
+        CatalogRewriteState sourceCatalogState = catalogState;
         catalogState = PruneCatalogStateForPages(sourceObjects, catalogState, copiedPageObjectIds, pageObjectNumbers,
             cancellationToken: cancellationToken);
+        if (report is not null) ReportPrunedCatalogNavigation(sourceObjects, sourceCatalogState, catalogState, report, cancellationToken);
         pageOverrides = BuildPageOverridesWithFilteredDestinationLinks(sourceObjects, pageObjectNumbers, pageOverrides,
-            catalogState, copiedPageObjectIds, cancellationToken);
+            catalogState, copiedPageObjectIds, removedDestinationNames: null, report, cancellationToken);
     
-        // ISO 32000-2 7.3.10 reads a reference to an undefined object as null, so a dangling reference is written as
-        // null instead of refusing to extract pages that otherwise copy completely.
-        var collector = new ObjectCollector(sourceObjects, pageOverrides, undefinedReferencesAreNull: true, cancellationToken: cancellationToken);
+        var collector = new ObjectCollector(sourceObjects, pageOverrides, cancellationToken: cancellationToken);
         foreach (int pageObjectNumber in pageObjectNumbers) {
             collector.CollectPage(pageObjectNumber);
         }
@@ -90,7 +91,7 @@ internal static partial class PdfPageExtractor {
         int catalogId = nextObjectId++;
         int infoId = nextObjectId;
         var context = new SerializationContext(numberMap, pagesId, collector.MaterializedPageValues, sourceObjects, pageOverrides,
-            undefinedObjectNumbers: collector.UndefinedObjectNumbers, cancellationToken: cancellationToken);
+            cancellationToken: cancellationToken);
         int serializedObjectCapacity = GetSerializedObjectCapacity(sourceIds.Count, extraObjects.Length, clonedPages, cancellationToken);
         var objects = new List<PdfSerializedObject>(serializedObjectCapacity);
         long serializedObjectBytes = 0L;

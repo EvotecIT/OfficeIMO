@@ -137,7 +137,8 @@ namespace OfficeIMO.Excel {
             }
             ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.CreateModel");
 
-            if (ShouldMaterializeMixedDirectWorkbookGlobalParts(model)
+            if ((ShouldMaterializeMixedDirectWorkbookGlobalParts(model)
+                    || !ExtendedWorkbookPackageWriter.CanWriteDirectStyles(model, _defaultFontTheme))
                 && _materializedDirectDataSetFastSaveModel != null) {
                 if (!_materializedDirectDataSetFastSaveModelHasMaterializedWorksheet) {
                     _materializingDeferredDataSetImport = true;

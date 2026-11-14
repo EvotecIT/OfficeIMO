@@ -659,6 +659,68 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>
+        /// Returns the header texts and last row of a pending single-sheet direct table that starts at A1 and is the
+        /// worksheet's only content, so a header lookup can answer without loading the rows.
+        /// </summary>
+        internal bool TryGetDirectTabularSaveCandidateHeaders(ExcelSheet sheet, out string[] headers, out int lastRow) {
+            headers = Array.Empty<string>();
+            lastRow = 0;
+            ArgumentNullException.ThrowIfNull(sheet);
+            var candidate = _directDataSetSaveCandidate;
+            if (!ReferenceEquals(sheet.Document, this) || candidate == null || !candidate.IsValid || candidate.Model.Sheets.Count != 1) {
+                return false;
+            }
+
+            var sheetModel = candidate.Model.Sheets[0];
+            if (!sheetModel.IncludeHeaders
+                || !sheetModel.Table.HasKnownRowCount
+                || !string.Equals(sheetModel.SheetName, sheet.Name, StringComparison.Ordinal)
+                || !TryGetDirectTabularSaveCandidateRange(sheet, out string usedRange)
+                || !string.Equals(usedRange, sheetModel.Range, StringComparison.OrdinalIgnoreCase)
+                || !ExcelA1.TryParseRange(usedRange, out int firstRow, out int firstColumn, out int endRow, out _)
+                || firstRow != 1
+                || firstColumn != 1) {
+                return false;
+            }
+
+            headers = sheetModel.Table.CreateColumnNameArray();
+            lastRow = endRow;
+            return true;
+        }
+
+        /// <summary>
+        /// Stores a number format for one column of a pending direct table when the range covers exactly that
+        /// column's data rows, the same result as formatting those cells. <c>updateWorksheet</c> is <c>true</c> when the
+        /// worksheet also holds the rows, so the caller formats them too.
+        /// </summary>
+        internal bool TrySetDirectTabularSaveCandidateColumnBodyNumberFormat(ExcelSheet sheet, int startRow, int column, int endRow,
+            string numberFormat, out bool updateWorksheet) {
+            updateWorksheet = false;
+            ArgumentNullException.ThrowIfNull(sheet);
+            if (startRow != 2 || string.IsNullOrWhiteSpace(numberFormat) || !ReferenceEquals(sheet.Document, this)) {
+                return false;
+            }
+
+            var candidate = _directDataSetSaveCandidate;
+            var sourceModel = candidate?.IsValid == true ? candidate.Model : _materializedDirectDataSetFastSaveModel;
+            var sheetModel = sourceModel?.Sheets.FirstOrDefault(item => string.Equals(item.SheetName, sheet.Name, StringComparison.Ordinal));
+            if (sheetModel == null
+                || !sheetModel.IncludeHeaders
+                || column <= 0
+                || column > sheetModel.Table.ColumnCount
+                || !sheetModel.Table.HasKnownRowCount
+                || endRow != sheetModel.Table.RowCount + 1
+                || !ExcelA1.TryParseRange(sheetModel.Range, out int firstRow, out int firstColumn, out _, out _)
+                || firstRow != 1
+                || firstColumn != 1) {
+                return false;
+            }
+
+            updateWorksheet = HasMaterializedDirectTabularFastSaveWorksheet(sheet);
+            return TrySetDirectTabularSaveCandidateColumnNumberFormat(sheet, column, numberFormat);
+        }
+
         internal bool HasMaterializedDirectTabularFastSaveWorksheet(ExcelSheet sheet) {
             ArgumentNullException.ThrowIfNull(sheet);
             if (!ReferenceEquals(sheet.Document, this) || !_materializedDirectDataSetFastSaveModelHasMaterializedWorksheet) {

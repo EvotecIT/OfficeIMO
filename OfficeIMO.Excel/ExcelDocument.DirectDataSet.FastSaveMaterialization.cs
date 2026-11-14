@@ -8,6 +8,13 @@ namespace OfficeIMO.Excel {
             MaterializePendingDirectCellValueSheetIfNeeded();
 
             var candidate = _directDataSetSaveCandidate;
+            if (candidate == null && _materializedDirectDataSetFastSaveModel != null) {
+                // A chart or a read already moved the rows to the direct-save model. Charts and pivots add parts
+                // without changing cells, so the model still matches the worksheet.
+                _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark = true;
+                return;
+            }
+
             if (candidate == null || !candidate.IsDeferred) {
                 ClearDirectDataSetSaveCandidate();
                 return;

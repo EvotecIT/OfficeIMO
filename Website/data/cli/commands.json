@@ -1,0 +1,4644 @@
+{
+  "schema": "officeimo.tool.commands.v1",
+  "tool": {
+    "command": "officeimo",
+    "package": "OfficeIMO.Tool",
+    "version": "3.6.0"
+  },
+  "groups": [
+    {
+      "id": "convert",
+      "title": "Convert",
+      "summary": "Convert one file; the input and output extensions select a route from the shared conversion catalog.",
+      "docsUrl": "/docs/cli/convert/",
+      "aliases": [],
+      "shortcutFor": null,
+      "usage": [
+        "officeimo convert <input> [output] [--output <file>] [--force] [--max-input-bytes <bytes>] [--max-output-bytes <bytes>] [--max-characters-in-part <characters>] [--text-encoding <name>] [--tab-size 1..32] [--allow-legacy-loss] [--diagram-layers screen|print] [--require-no-loss] [--text-only]",
+        "officeimo convert <data-input> <data-output> [--select <path>] [--columns <path,...>] [--root-name <name>] [--sheet <name>] [--range <A1:B2>] [--require-no-loss] [--force]",
+        "officeimo convert <input.pages|input.numbers|input.key> [output.docx|output.xlsx|output.pptx|output.pdf] [--iwork-mode auto|editable|visual] [--allow-partial] [--allow-incomplete-preview] [--normalize-worksheet-names] [--max-input-bytes <bytes>] [--max-output-bytes <bytes>] [--force]",
+        "officeimo convert <input> <output.md|output.markdown|output.json> [--assets <directory>] [--max-input-bytes <bytes>] [--force]"
+      ],
+      "subcommands": [],
+      "keyOptions": [
+        {
+          "name": "--output",
+          "value": "<file>",
+          "description": "Destination file; the default is a sibling PDF."
+        },
+        {
+          "name": "--force",
+          "value": null,
+          "description": "Replace an existing destination."
+        },
+        {
+          "name": "--require-no-loss",
+          "value": null,
+          "description": "Fail instead of publishing when the route reports source or output fidelity loss."
+        },
+        {
+          "name": "--max-input-bytes",
+          "value": "<bytes>",
+          "description": "Refuse inputs larger than this many bytes."
+        },
+        {
+          "name": "--max-output-bytes",
+          "value": "<bytes>",
+          "description": "Refuse to publish outputs larger than this many bytes."
+        },
+        {
+          "name": "--assets",
+          "value": "<directory>",
+          "description": "Directory for images extracted during Markdown or JSON output."
+        },
+        {
+          "name": "--select",
+          "value": "<path>",
+          "description": "Path to the rows to convert in a structured-data source, such as data.items."
+        },
+        {
+          "name": "--iwork-mode",
+          "value": "auto|editable|visual",
+          "description": "How Pages, Numbers and Keynote documents are rebuilt: auto, editable or visual."
+        }
+      ],
+      "inputFormats": [
+        "123",
+        "adoc",
+        "asc",
+        "asciidoc",
+        "bmp",
+        "chm",
+        "csv",
+        "dbf",
+        "dbk",
+        "dbx",
+        "dif",
+        "djv",
+        "djvu",
+        "doc",
+        "docbook",
+        "docm",
+        "docx",
+        "dot",
+        "dotm",
+        "dotx",
+        "emf",
+        "eml",
+        "emlx",
+        "epub",
+        "fodg",
+        "fodp",
+        "fods",
+        "fodt",
+        "gif",
+        "heic",
+        "heif",
+        "hif",
+        "htm",
+        "html",
+        "ical",
+        "ico",
+        "ics",
+        "ifb",
+        "ipynb",
+        "jpeg",
+        "jpg",
+        "json",
+        "jsonl",
+        "key",
+        "log",
+        "lwp",
+        "markdown",
+        "mbox",
+        "mbx",
+        "md",
+        "mdown",
+        "mdx",
+        "mht",
+        "mhtml",
+        "mkd",
+        "mp",
+        "mp1",
+        "mp2",
+        "mp3",
+        "msg",
+        "ndjson",
+        "numbers",
+        "oab",
+        "odg",
+        "odp",
+        "ods",
+        "odt",
+        "oft",
+        "oibook",
+        "olm",
+        "one",
+        "onepkg",
+        "onetoc2",
+        "opml",
+        "ost",
+        "oxps",
+        "pages",
+        "pcx",
+        "pdf",
+        "png",
+        "pot",
+        "potm",
+        "potx",
+        "ppa",
+        "ppam",
+        "pps",
+        "ppsm",
+        "ppsx",
+        "ppt",
+        "pptm",
+        "pptx",
+        "pst",
+        "pub",
+        "qpw",
+        "rtf",
+        "sam",
+        "slk",
+        "srt",
+        "svg",
+        "tab",
+        "tex",
+        "tif",
+        "tiff",
+        "tnef",
+        "toml",
+        "tsv",
+        "txt",
+        "vcard",
+        "vcf",
+        "vcs",
+        "vdx",
+        "vsd",
+        "vsdm",
+        "vsdx",
+        "vss",
+        "vssm",
+        "vssx",
+        "vst",
+        "vstm",
+        "vstx",
+        "vsx",
+        "vtt",
+        "vtx",
+        "wb1",
+        "wb2",
+        "wb3",
+        "webp",
+        "wk1",
+        "wk2",
+        "wk3",
+        "wk4",
+        "wks",
+        "wmf",
+        "wp",
+        "wp5",
+        "wp6",
+        "wpd",
+        "wps",
+        "wq1",
+        "wq2",
+        "wri",
+        "ws",
+        "ws3",
+        "ws4",
+        "ws5",
+        "ws6",
+        "ws7",
+        "xhtml",
+        "xla",
+        "xlam",
+        "xlm",
+        "xlr",
+        "xls",
+        "xlsb",
+        "xlsm",
+        "xlsx",
+        "xlt",
+        "xltm",
+        "xltx",
+        "xlw",
+        "xml",
+        "xps",
+        "yaml",
+        "yml",
+        "zip"
+      ],
+      "outputFormats": [
+        "csv",
+        "docx",
+        "epub",
+        "html",
+        "json",
+        "jsonl",
+        "md",
+        "odp",
+        "ods",
+        "odt",
+        "pdf",
+        "pptx",
+        "toml",
+        "tsv",
+        "xlsx",
+        "xml",
+        "yaml"
+      ],
+      "resultFormats": [
+        "path"
+      ],
+      "routes": [
+        {
+          "id": "book-project-epub",
+          "source": "Book project",
+          "target": "EPUB",
+          "sourceExtensions": [
+            ".oibook"
+          ],
+          "targetExtension": ".epub"
+        },
+        {
+          "id": "csv-json",
+          "source": "CSV",
+          "target": "JSON",
+          "sourceExtensions": [
+            ".csv"
+          ],
+          "targetExtension": ".json"
+        },
+        {
+          "id": "csv-jsonl",
+          "source": "CSV",
+          "target": "JSON Lines",
+          "sourceExtensions": [
+            ".csv"
+          ],
+          "targetExtension": ".jsonl"
+        },
+        {
+          "id": "csv-toml",
+          "source": "CSV",
+          "target": "TOML",
+          "sourceExtensions": [
+            ".csv"
+          ],
+          "targetExtension": ".toml"
+        },
+        {
+          "id": "csv-xlsx",
+          "source": "CSV",
+          "target": "XLSX",
+          "sourceExtensions": [
+            ".csv",
+            ".tsv"
+          ],
+          "targetExtension": ".xlsx"
+        },
+        {
+          "id": "csv-xml",
+          "source": "CSV",
+          "target": "XML",
+          "sourceExtensions": [
+            ".csv"
+          ],
+          "targetExtension": ".xml"
+        },
+        {
+          "id": "csv-yaml",
+          "source": "CSV",
+          "target": "YAML",
+          "sourceExtensions": [
+            ".csv"
+          ],
+          "targetExtension": ".yaml"
+        },
+        {
+          "id": "chm-epub",
+          "source": "Compiled HTML Help",
+          "target": "EPUB",
+          "sourceExtensions": [
+            ".chm"
+          ],
+          "targetExtension": ".epub"
+        },
+        {
+          "id": "chm-markdown",
+          "source": "Compiled HTML Help",
+          "target": "Markdown",
+          "sourceExtensions": [
+            ".chm"
+          ],
+          "targetExtension": ".md"
+        },
+        {
+          "id": "chm-pdf",
+          "source": "Compiled HTML Help",
+          "target": "PDF",
+          "sourceExtensions": [
+            ".chm"
+          ],
+          "targetExtension": ".pdf"
+        },
+        {
+          "id": "doc-pdf",
+          "source": "DOC",
+          "target": "PDF",
+          "sourceExtensions": [
+            ".doc",
+            ".dot"
+          ],
+          "targetExtension": ".pdf"
+        },
+        {
+          "id": "docx-odt",
+          "source": "DOCX",
+          "target": "ODT",
+          "sourceExtensions": [
+            ".docx",
+            ".docm",
+            ".dotx",
+            ".dotm"
+          ],
+          "targetExtension": ".odt"
+        },
+        {
+          "id": "docx-pdf",
+          "source": "DOCX",
+          "target": "PDF",
+          "sourceExtensions": [
+            ".docx",
+            ".docm",
+            ".dotx",
+            ".dotm"
+          ],
+          "targetExtension": ".pdf"
+        },
+        {
+          "id": "djvu-pdf",
+          "source": "DjVu",
+          "target": "PDF",
+          "sourceExtensions": [
+            ".djvu",
+            ".djv"
+          ],
+          "targetExtension": ".pdf"
+        },
+        {
+          "id": "epub-pdf",
+          "source": "EPUB",
+          "target": "PDF",
+          "sourceExtensions": [
+            ".epub"
+          ],
+          "targetExtension": ".pdf"
+        },
+        {
+          "id": "email-pdf",
+          "source": "Email",
+          "target": "PDF",
+          "sourceExtensions": [
+            ".eml",
+            ".msg",
+            ".oft",
+            ".tnef"
+          ],
+          "targetExtension": ".pdf"
+        },
+        {
+          "id": "heic-pdf",
+          "source": "HEIC",
+          "target": "PDF",
+          "sourceExtensions": [
+            ".heic",
+            ".heif",
+            ".hif"
+          ],
+          "targetExtension": ".pdf"
+        },
+        {
+          "id": "html-docx",
+          "source": "HTML",
+          "target": "DOCX",
+          "sourceExtensions": [
+            ".html",
+            ".htm",
+            ".txt"
+          ],
+          "targetExtension": ".docx"
+        },
+        {
+          "id": "html-pdf",
+          "source": "HTML",
+          "target": "PDF",
+          "sourceExtensions": [
+            ".html",
+            ".htm",
+            ".txt"
+          ],
+          "targetExtension": ".pdf"
+        },
+        {
+          "id": "json-csv",
+          "source": "JSON",
+          "target": "CSV",
+          "sourceExtensions": [
+            ".json"
+          ],
+          "targetExtension": ".csv"
+        },
+        {
+          "id": "json-jsonl",
+          "source": "JSON",
+          "target": "JSON Lines",
+          "sourceExtensions": [
+            ".json"
+          ],
+          "targetExtension": ".jsonl"
+        },
+        {
+          "id": "json-toml",
+          "source": "JSON",
+          "target": "TOML",
+          "sourceExtensions": [
+            ".json"
+          ],
+          "targetExtension": ".toml"
+        },
+        {
+          "id": "json-tsv",
+          "source": "JSON",
+          "target": "TSV",
+          "sourceExtensions": [
+            ".json"
+          ],
+          "targetExtension": ".tsv"
+        },
+        {
+          "id": "json-xlsx",
+          "source": "JSON",
+          "target": "XLSX",
+          "sourceExtensions": [
+            ".json"
+          ],
+          "targetExtension": ".xlsx"
+        },
+        {
+          "id": "json-xml",
+          "source": "JSON",
+          "target": "XML",
+          "sourceExtensions": [
+            ".json"
+          ],
+          "targetExtension": ".xml"
+        },
+        {
+          "id": "json-yaml",
+          "source": "JSON",
+          "target": "YAML",
+          "sourceExtensions": [
+            ".json"
+          ],
+          "targetExtension": ".yaml"
+        },
+        {
+          "id": "jsonl-csv",
+          "source": "JSON Lines",
+          "target": "CSV",
+          "sourceExtensions": [
+            ".jsonl",
+            ".ndjson"
+          ],
+          "targetExtension": ".csv"
+        },
+        {
+          "id": "jsonl-json",
+          "source": "JSON Lines",
+          "target": "JSON",
+          "sourceExtensions": [
+            ".jsonl",
+            ".ndjson"
+          ],
+          "targetExtension": ".json"
+        },
+        {
+          "id": "jsonl-toml",
+          "source": "JSON Lines",
+          "target": "TOML",
+          "sourceExtensions": [
+            ".jsonl",
+            ".ndjson"
+          ],
+          "targetExtension": ".toml"
+        },
+        {
+          "id": "jsonl-tsv",
+          "source": "JSON Lines",
+          "target": "TSV",
+          "sourceExtensions": [
+            ".jsonl",
+            ".ndjson"
+          ],
+          "targetExtension": ".tsv"
+        },
+        {
+          "id": "jsonl-xlsx",
+          "source": "JSON Lines",
+          "target": "XLSX",
+          "sourceExtensions": [
+            ".jsonl",
+            ".ndjson"
+          ],
+          "targetExtension": ".xlsx"
+        },
+        {
+          "id": "jsonl-xml",
+          "source": "JSON Lines",
+          "target": "XML",
+          "sourceExtensions": [
+            ".jsonl",
+            ".ndjson"
+          ],
+          "targetExtension": ".xml"
+        },
+        {
+          "id": "jsonl-yaml",
+          "source": "JSON Lines",
+          "target": "YAML",
+          "sourceExtensions": [
+            ".jsonl",
+            ".ndjson"
+          ],
+          "targetExtension": ".yaml"
+        },
+        {
+          "id": "markdown-docx",
+          "source": "Markdown",
+          "target": "DOCX",
+          "sourceExtensions": [
+            ".md",
+            ".markdown",
+            ".txt"
+          ],
+          "targetExtension": ".docx"
+        },
+        {
+          "id": "markdown-pdf",
+          "source": "Markdown",
+          "target": "PDF",
+          "sourceExtensions": [
+            ".md",
+            ".markdown",
+            ".txt"
+          ],
+          "targetExtension": ".pdf"
+        },
+        {
+          "id": "odg-pdf",
+          "source": "ODG/FODG",
+          "target": "PDF",
+          "sourceExtensions": [
+            ".odg",
+            ".fodg"
+          ],
+          "targetExtension": ".pdf"
+        },
+        {
+          "id": "odp-pdf",
+          "source": "ODP",
+          "target": "PDF",
+          "sourceExtensions": [
+            ".odp",
+            ".fodp"
+          ],
+          "targetExtension": ".pdf"
+        },
+        {
+          "id": "odp-pptx",
+          "source": "ODP",
+          "target": "PPTX",
+          "sourceExtensions": [
+            ".odp",
+            ".fodp"
+          ],
+          "targetExtension": ".pptx"
+        },
+        {
+          "id": "ods-pdf",
+          "source": "ODS",
+          "target": "PDF",
+          "sourceExtensions": [
+            ".ods",
+            ".fods"
+          ],
+          "targetExtension": ".pdf"
+        },
+        {
+          "id": "ods-xlsx",
+          "source": "ODS",
+          "target": "XLSX",
+          "sourceExtensions": [
+            ".ods",
+            ".fods"
+          ],
+          "targetExtension": ".xlsx"
+        },
+        {
+          "id": "odt-docx",
+          "source": "ODT",
+          "target": "DOCX",
+          "sourceExtensions": [
+            ".odt",
+            ".fodt"
+          ],
+          "targetExtension": ".docx"
+        },
+        {
+          "id": "odt-pdf",
+          "source": "ODT",
+          "target": "PDF",
+          "sourceExtensions": [
+            ".odt",
+            ".fodt"
+          ],
+          "targetExtension": ".pdf"
+        },
+        {
+          "id": "pdf-docx",
+          "source": "PDF",
+          "target": "DOCX",
+          "sourceExtensions": [
+            ".pdf"
+          ],
+          "targetExtension": ".docx"
+        },
+        {
+          "id": "pdf-html",
+          "source": "PDF",
+          "target": "HTML",
+          "sourceExtensions": [
+            ".pdf"
+          ],
+          "targetExtension": ".html"
+        },
+        {
+          "id": "pdf-pptx",
+          "source": "PDF",
+          "target": "PPTX",
+          "sourceExtensions": [
+            ".pdf"
+          ],
+          "targetExtension": ".pptx"
+        },
+        {
+          "id": "pdf-xlsx",
+          "source": "PDF",
+          "target": "XLSX",
+          "sourceExtensions": [
+            ".pdf"
+          ],
+          "targetExtension": ".xlsx"
+        },
+        {
+          "id": "pptx-odp",
+          "source": "PPTX",
+          "target": "ODP",
+          "sourceExtensions": [
+            ".pptx",
+            ".pptm",
+            ".potx",
+            ".potm",
+            ".ppsx",
+            ".ppsm",
+            ".ppam"
+          ],
+          "targetExtension": ".odp"
+        },
+        {
+          "id": "pptx-pdf",
+          "source": "PPTX",
+          "target": "PDF",
+          "sourceExtensions": [
+            ".pptx",
+            ".pptm",
+            ".potx",
+            ".potm",
+            ".ppsx",
+            ".ppsm",
+            ".ppam"
+          ],
+          "targetExtension": ".pdf"
+        },
+        {
+          "id": "txt-pdf",
+          "source": "Plain text",
+          "target": "PDF",
+          "sourceExtensions": [
+            ".txt"
+          ],
+          "targetExtension": ".pdf"
+        },
+        {
+          "id": "publisher-pdf",
+          "source": "Publisher",
+          "target": "PDF",
+          "sourceExtensions": [
+            ".pub"
+          ],
+          "targetExtension": ".pdf"
+        },
+        {
+          "id": "rtf-docx",
+          "source": "RTF",
+          "target": "DOCX",
+          "sourceExtensions": [
+            ".rtf"
+          ],
+          "targetExtension": ".docx"
+        },
+        {
+          "id": "rtf-pdf",
+          "source": "RTF",
+          "target": "PDF",
+          "sourceExtensions": [
+            ".rtf"
+          ],
+          "targetExtension": ".pdf"
+        },
+        {
+          "id": "toml-csv",
+          "source": "TOML",
+          "target": "CSV",
+          "sourceExtensions": [
+            ".toml"
+          ],
+          "targetExtension": ".csv"
+        },
+        {
+          "id": "toml-json",
+          "source": "TOML",
+          "target": "JSON",
+          "sourceExtensions": [
+            ".toml"
+          ],
+          "targetExtension": ".json"
+        },
+        {
+          "id": "toml-jsonl",
+          "source": "TOML",
+          "target": "JSON Lines",
+          "sourceExtensions": [
+            ".toml"
+          ],
+          "targetExtension": ".jsonl"
+        },
+        {
+          "id": "toml-tsv",
+          "source": "TOML",
+          "target": "TSV",
+          "sourceExtensions": [
+            ".toml"
+          ],
+          "targetExtension": ".tsv"
+        },
+        {
+          "id": "toml-xlsx",
+          "source": "TOML",
+          "target": "XLSX",
+          "sourceExtensions": [
+            ".toml"
+          ],
+          "targetExtension": ".xlsx"
+        },
+        {
+          "id": "toml-xml",
+          "source": "TOML",
+          "target": "XML",
+          "sourceExtensions": [
+            ".toml"
+          ],
+          "targetExtension": ".xml"
+        },
+        {
+          "id": "toml-yaml",
+          "source": "TOML",
+          "target": "YAML",
+          "sourceExtensions": [
+            ".toml"
+          ],
+          "targetExtension": ".yaml"
+        },
+        {
+          "id": "tsv-json",
+          "source": "TSV",
+          "target": "JSON",
+          "sourceExtensions": [
+            ".tsv",
+            ".tab"
+          ],
+          "targetExtension": ".json"
+        },
+        {
+          "id": "tsv-jsonl",
+          "source": "TSV",
+          "target": "JSON Lines",
+          "sourceExtensions": [
+            ".tsv",
+            ".tab"
+          ],
+          "targetExtension": ".jsonl"
+        },
+        {
+          "id": "tsv-toml",
+          "source": "TSV",
+          "target": "TOML",
+          "sourceExtensions": [
+            ".tsv",
+            ".tab"
+          ],
+          "targetExtension": ".toml"
+        },
+        {
+          "id": "tsv-xml",
+          "source": "TSV",
+          "target": "XML",
+          "sourceExtensions": [
+            ".tsv",
+            ".tab"
+          ],
+          "targetExtension": ".xml"
+        },
+        {
+          "id": "tsv-yaml",
+          "source": "TSV",
+          "target": "YAML",
+          "sourceExtensions": [
+            ".tsv",
+            ".tab"
+          ],
+          "targetExtension": ".yaml"
+        },
+        {
+          "id": "visio-pdf",
+          "source": "Visio",
+          "target": "PDF",
+          "sourceExtensions": [
+            ".vsdx",
+            ".vdx",
+            ".vtx"
+          ],
+          "targetExtension": ".pdf"
+        },
+        {
+          "id": "xlsx-csv",
+          "source": "XLSX",
+          "target": "CSV",
+          "sourceExtensions": [
+            ".xlsx",
+            ".xlsm",
+            ".xltx",
+            ".xltm",
+            ".xlam"
+          ],
+          "targetExtension": ".csv"
+        },
+        {
+          "id": "xlsx-json",
+          "source": "XLSX",
+          "target": "JSON",
+          "sourceExtensions": [
+            ".xlsx",
+            ".xlsm",
+            ".xltx",
+            ".xltm",
+            ".xlam"
+          ],
+          "targetExtension": ".json"
+        },
+        {
+          "id": "xlsx-jsonl",
+          "source": "XLSX",
+          "target": "JSON Lines",
+          "sourceExtensions": [
+            ".xlsx",
+            ".xlsm",
+            ".xltx",
+            ".xltm",
+            ".xlam"
+          ],
+          "targetExtension": ".jsonl"
+        },
+        {
+          "id": "xlsx-ods",
+          "source": "XLSX",
+          "target": "ODS",
+          "sourceExtensions": [
+            ".xlsx",
+            ".xlsm",
+            ".xltx",
+            ".xltm",
+            ".xlam"
+          ],
+          "targetExtension": ".ods"
+        },
+        {
+          "id": "xlsx-pdf",
+          "source": "XLSX",
+          "target": "PDF",
+          "sourceExtensions": [
+            ".xlsx",
+            ".xlsm",
+            ".xltx",
+            ".xltm",
+            ".xlam"
+          ],
+          "targetExtension": ".pdf"
+        },
+        {
+          "id": "xlsx-toml",
+          "source": "XLSX",
+          "target": "TOML",
+          "sourceExtensions": [
+            ".xlsx",
+            ".xlsm",
+            ".xltx",
+            ".xltm",
+            ".xlam"
+          ],
+          "targetExtension": ".toml"
+        },
+        {
+          "id": "xlsx-xml",
+          "source": "XLSX",
+          "target": "XML",
+          "sourceExtensions": [
+            ".xlsx",
+            ".xlsm",
+            ".xltx",
+            ".xltm",
+            ".xlam"
+          ],
+          "targetExtension": ".xml"
+        },
+        {
+          "id": "xlsx-yaml",
+          "source": "XLSX",
+          "target": "YAML",
+          "sourceExtensions": [
+            ".xlsx",
+            ".xlsm",
+            ".xltx",
+            ".xltm",
+            ".xlam"
+          ],
+          "targetExtension": ".yaml"
+        },
+        {
+          "id": "xml-csv",
+          "source": "XML",
+          "target": "CSV",
+          "sourceExtensions": [
+            ".xml"
+          ],
+          "targetExtension": ".csv"
+        },
+        {
+          "id": "xml-json",
+          "source": "XML",
+          "target": "JSON",
+          "sourceExtensions": [
+            ".xml"
+          ],
+          "targetExtension": ".json"
+        },
+        {
+          "id": "xml-jsonl",
+          "source": "XML",
+          "target": "JSON Lines",
+          "sourceExtensions": [
+            ".xml"
+          ],
+          "targetExtension": ".jsonl"
+        },
+        {
+          "id": "xml-toml",
+          "source": "XML",
+          "target": "TOML",
+          "sourceExtensions": [
+            ".xml"
+          ],
+          "targetExtension": ".toml"
+        },
+        {
+          "id": "xml-tsv",
+          "source": "XML",
+          "target": "TSV",
+          "sourceExtensions": [
+            ".xml"
+          ],
+          "targetExtension": ".tsv"
+        },
+        {
+          "id": "xml-xlsx",
+          "source": "XML",
+          "target": "XLSX",
+          "sourceExtensions": [
+            ".xml"
+          ],
+          "targetExtension": ".xlsx"
+        },
+        {
+          "id": "xml-yaml",
+          "source": "XML",
+          "target": "YAML",
+          "sourceExtensions": [
+            ".xml"
+          ],
+          "targetExtension": ".yaml"
+        },
+        {
+          "id": "xps-pdf",
+          "source": "XPS/OpenXPS",
+          "target": "PDF",
+          "sourceExtensions": [
+            ".xps",
+            ".oxps"
+          ],
+          "targetExtension": ".pdf"
+        },
+        {
+          "id": "yaml-csv",
+          "source": "YAML",
+          "target": "CSV",
+          "sourceExtensions": [
+            ".yaml",
+            ".yml"
+          ],
+          "targetExtension": ".csv"
+        },
+        {
+          "id": "yaml-json",
+          "source": "YAML",
+          "target": "JSON",
+          "sourceExtensions": [
+            ".yaml",
+            ".yml"
+          ],
+          "targetExtension": ".json"
+        },
+        {
+          "id": "yaml-jsonl",
+          "source": "YAML",
+          "target": "JSON Lines",
+          "sourceExtensions": [
+            ".yaml",
+            ".yml"
+          ],
+          "targetExtension": ".jsonl"
+        },
+        {
+          "id": "yaml-toml",
+          "source": "YAML",
+          "target": "TOML",
+          "sourceExtensions": [
+            ".yaml",
+            ".yml"
+          ],
+          "targetExtension": ".toml"
+        },
+        {
+          "id": "yaml-tsv",
+          "source": "YAML",
+          "target": "TSV",
+          "sourceExtensions": [
+            ".yaml",
+            ".yml"
+          ],
+          "targetExtension": ".tsv"
+        },
+        {
+          "id": "yaml-xlsx",
+          "source": "YAML",
+          "target": "XLSX",
+          "sourceExtensions": [
+            ".yaml",
+            ".yml"
+          ],
+          "targetExtension": ".xlsx"
+        },
+        {
+          "id": "yaml-xml",
+          "source": "YAML",
+          "target": "XML",
+          "sourceExtensions": [
+            ".yaml",
+            ".yml"
+          ],
+          "targetExtension": ".xml"
+        }
+      ]
+    },
+    {
+      "id": "read",
+      "title": "Read",
+      "summary": "Extract one document as Markdown or JSON; a shortcut for 'reader read'.",
+      "docsUrl": "/docs/cli/extract-and-inspect/",
+      "aliases": [
+        "extract"
+      ],
+      "shortcutFor": "reader read",
+      "usage": [
+        "officeimo read <path|-> [options]",
+        "officeimo extract <path|-> [options]"
+      ],
+      "subcommands": [],
+      "keyOptions": [],
+      "inputFormats": [
+        "123",
+        "adoc",
+        "asc",
+        "asciidoc",
+        "bmp",
+        "chm",
+        "csv",
+        "dbf",
+        "dbk",
+        "dbx",
+        "dif",
+        "djv",
+        "djvu",
+        "doc",
+        "docbook",
+        "docm",
+        "docx",
+        "dot",
+        "dotm",
+        "dotx",
+        "emf",
+        "eml",
+        "emlx",
+        "epub",
+        "fodg",
+        "fodp",
+        "fods",
+        "fodt",
+        "gif",
+        "htm",
+        "html",
+        "ical",
+        "ico",
+        "ics",
+        "ifb",
+        "ipynb",
+        "jpeg",
+        "jpg",
+        "json",
+        "key",
+        "log",
+        "lwp",
+        "markdown",
+        "mbox",
+        "mbx",
+        "md",
+        "mdown",
+        "mdx",
+        "mht",
+        "mhtml",
+        "mkd",
+        "mp",
+        "mp1",
+        "mp2",
+        "mp3",
+        "msg",
+        "numbers",
+        "oab",
+        "odg",
+        "odp",
+        "ods",
+        "odt",
+        "oft",
+        "olm",
+        "one",
+        "onepkg",
+        "onetoc2",
+        "opml",
+        "ost",
+        "oxps",
+        "pages",
+        "pcx",
+        "pdf",
+        "png",
+        "pot",
+        "potm",
+        "potx",
+        "ppa",
+        "ppam",
+        "pps",
+        "ppsm",
+        "ppsx",
+        "ppt",
+        "pptm",
+        "pptx",
+        "pst",
+        "pub",
+        "qpw",
+        "rtf",
+        "sam",
+        "slk",
+        "srt",
+        "svg",
+        "tex",
+        "tif",
+        "tiff",
+        "tnef",
+        "toml",
+        "tsv",
+        "txt",
+        "vcard",
+        "vcf",
+        "vcs",
+        "vdx",
+        "vsd",
+        "vsdm",
+        "vsdx",
+        "vss",
+        "vssm",
+        "vssx",
+        "vst",
+        "vstm",
+        "vstx",
+        "vsx",
+        "vtt",
+        "vtx",
+        "wb1",
+        "wb2",
+        "wb3",
+        "webp",
+        "wk1",
+        "wk2",
+        "wk3",
+        "wk4",
+        "wks",
+        "wmf",
+        "wp",
+        "wp5",
+        "wp6",
+        "wpd",
+        "wps",
+        "wq1",
+        "wq2",
+        "wri",
+        "ws",
+        "ws3",
+        "ws4",
+        "ws5",
+        "ws6",
+        "ws7",
+        "xhtml",
+        "xla",
+        "xlam",
+        "xlm",
+        "xlr",
+        "xls",
+        "xlsb",
+        "xlsm",
+        "xlsx",
+        "xlt",
+        "xltm",
+        "xltx",
+        "xlw",
+        "xml",
+        "xps",
+        "yaml",
+        "yml",
+        "zip"
+      ],
+      "outputFormats": [
+        "json",
+        "md"
+      ],
+      "resultFormats": [
+        "markdown",
+        "json"
+      ]
+    },
+    {
+      "id": "inspect",
+      "title": "Inspect",
+      "summary": "Return a compact, bounded JSON summary of one document; a shortcut for 'agent inspect'.",
+      "docsUrl": "/docs/cli/extract-and-inspect/#inspect-a-file",
+      "aliases": [],
+      "shortcutFor": "agent inspect",
+      "usage": [
+        "officeimo inspect <path> [options]"
+      ],
+      "subcommands": [],
+      "keyOptions": [],
+      "inputFormats": [
+        "123",
+        "adoc",
+        "asc",
+        "asciidoc",
+        "bmp",
+        "chm",
+        "csv",
+        "dbf",
+        "dbk",
+        "dbx",
+        "dif",
+        "djv",
+        "djvu",
+        "doc",
+        "docbook",
+        "docm",
+        "docx",
+        "dot",
+        "dotm",
+        "dotx",
+        "emf",
+        "eml",
+        "emlx",
+        "epub",
+        "fodg",
+        "fodp",
+        "fods",
+        "fodt",
+        "gif",
+        "htm",
+        "html",
+        "ical",
+        "ico",
+        "ics",
+        "ifb",
+        "ipynb",
+        "jpeg",
+        "jpg",
+        "json",
+        "key",
+        "log",
+        "lwp",
+        "markdown",
+        "mbox",
+        "mbx",
+        "md",
+        "mdown",
+        "mdx",
+        "mht",
+        "mhtml",
+        "mkd",
+        "mp",
+        "mp1",
+        "mp2",
+        "mp3",
+        "msg",
+        "numbers",
+        "oab",
+        "odg",
+        "odp",
+        "ods",
+        "odt",
+        "oft",
+        "olm",
+        "one",
+        "onepkg",
+        "onetoc2",
+        "opml",
+        "ost",
+        "oxps",
+        "pages",
+        "pcx",
+        "pdf",
+        "png",
+        "pot",
+        "potm",
+        "potx",
+        "ppa",
+        "ppam",
+        "pps",
+        "ppsm",
+        "ppsx",
+        "ppt",
+        "pptm",
+        "pptx",
+        "pst",
+        "pub",
+        "qpw",
+        "rtf",
+        "sam",
+        "slk",
+        "srt",
+        "svg",
+        "tex",
+        "tif",
+        "tiff",
+        "tnef",
+        "toml",
+        "tsv",
+        "txt",
+        "vcard",
+        "vcf",
+        "vcs",
+        "vdx",
+        "vsd",
+        "vsdm",
+        "vsdx",
+        "vss",
+        "vssm",
+        "vssx",
+        "vst",
+        "vstm",
+        "vstx",
+        "vsx",
+        "vtt",
+        "vtx",
+        "wb1",
+        "wb2",
+        "wb3",
+        "webp",
+        "wk1",
+        "wk2",
+        "wk3",
+        "wk4",
+        "wks",
+        "wmf",
+        "wp",
+        "wp5",
+        "wp6",
+        "wpd",
+        "wps",
+        "wq1",
+        "wq2",
+        "wri",
+        "ws",
+        "ws3",
+        "ws4",
+        "ws5",
+        "ws6",
+        "ws7",
+        "xhtml",
+        "xla",
+        "xlam",
+        "xlm",
+        "xlr",
+        "xls",
+        "xlsb",
+        "xlsm",
+        "xlsx",
+        "xlt",
+        "xltm",
+        "xltx",
+        "xlw",
+        "xml",
+        "xps",
+        "yaml",
+        "yml",
+        "zip"
+      ],
+      "outputFormats": [],
+      "resultFormats": [
+        "json"
+      ]
+    },
+    {
+      "id": "html",
+      "title": "HTML",
+      "summary": "Render HTML, MHTML and ZIP site bundles to PDF or to page images.",
+      "docsUrl": "/docs/cli/html/",
+      "aliases": [],
+      "shortcutFor": null,
+      "usage": [
+        "officeimo html <command> [options]"
+      ],
+      "subcommands": [
+        {
+          "name": "convert",
+          "names": [
+            "convert"
+          ],
+          "summary": "Render an HTML page, MHTML archive or ZIP site bundle to PDF.",
+          "usage": [
+            "officeimo html convert <input.html|input.mhtml|input.zip|-> [--input-format html|mhtml|site-bundle] [--output <file|->] [--stylesheet <file.css>] [--base-uri <absolute-uri>] [--font-family <name> --font-regular <file.ttf>] [--font-bold <file.ttf>] [--font-italic <file.ttf>] [--font-bold-italic <file.ttf>] [--max-input-bytes <bytes>] [--max-pages <count>] [--profile print-paged|screen-media-paged|screen-snapshot-paged] [--pages all|<page>|<first-last>|stitched] [--viewport-width <css-px>] [--viewport-height <css-px>] [--scale <factor>] [--entry-path <archive-path>] [--max-bundle-entry-bytes <bytes>] [--max-bundle-decoded-bytes <bytes>] [--max-bundle-entries <count>] [--pdf-ua-language <tag>] [--force]"
+          ],
+          "options": [
+            {
+              "name": "--input-format",
+              "value": "html|mhtml|site-bundle"
+            },
+            {
+              "name": "--output",
+              "value": "<file|->"
+            },
+            {
+              "name": "--stylesheet",
+              "value": "<file.css>"
+            },
+            {
+              "name": "--base-uri",
+              "value": "<absolute-uri>"
+            },
+            {
+              "name": "--font-family",
+              "value": "<name>"
+            },
+            {
+              "name": "--font-regular",
+              "value": "<file.ttf>"
+            },
+            {
+              "name": "--font-bold",
+              "value": "<file.ttf>"
+            },
+            {
+              "name": "--font-italic",
+              "value": "<file.ttf>"
+            },
+            {
+              "name": "--font-bold-italic",
+              "value": "<file.ttf>"
+            },
+            {
+              "name": "--max-input-bytes",
+              "value": "<bytes>"
+            },
+            {
+              "name": "--max-pages",
+              "value": "<count>"
+            },
+            {
+              "name": "--profile",
+              "value": "print-paged|screen-media-paged|screen-snapshot-paged"
+            },
+            {
+              "name": "--pages",
+              "value": "all|<page>|<first-last>|stitched"
+            },
+            {
+              "name": "--viewport-width",
+              "value": "<css-px>"
+            },
+            {
+              "name": "--viewport-height",
+              "value": "<css-px>"
+            },
+            {
+              "name": "--scale",
+              "value": "<factor>"
+            },
+            {
+              "name": "--entry-path",
+              "value": "<archive-path>"
+            },
+            {
+              "name": "--max-bundle-entry-bytes",
+              "value": "<bytes>"
+            },
+            {
+              "name": "--max-bundle-decoded-bytes",
+              "value": "<bytes>"
+            },
+            {
+              "name": "--max-bundle-entries",
+              "value": "<count>"
+            },
+            {
+              "name": "--pdf-ua-language",
+              "value": "<tag>"
+            },
+            {
+              "name": "--force",
+              "value": null
+            }
+          ]
+        },
+        {
+          "name": "render",
+          "names": [
+            "render"
+          ],
+          "summary": "Render pages to PNG or SVG images packaged in a ZIP archive with a manifest.",
+          "usage": [
+            "officeimo html render <input.html|input.mhtml|input.zip|-> [--input-format html|mhtml|site-bundle] [--output <archive.zip|->] [--profile screen-viewport|screen-full-page|print-paged|screen-media-paged|screen-snapshot-paged|continuous-vector] [--encoder png|svg] [--pages all|<page>|<first-last>|stitched] [--viewport-width <css-px>] [--viewport-height <css-px>] [--scale <factor>] [--stylesheet <file.css>] [--base-uri <absolute-uri>] [--font-family <name> --font-regular <file.ttf>] [--font-bold <file.ttf>] [--font-italic <file.ttf>] [--font-bold-italic <file.ttf>] [--max-input-bytes <bytes>] [--max-pages <count>] [--max-archive-bytes <bytes>] [--entry-path <archive-path>] [--max-bundle-entry-bytes <bytes>] [--max-bundle-decoded-bytes <bytes>] [--max-bundle-entries <count>] [--max-manifest-bytes <bytes>] [--force]"
+          ],
+          "options": [
+            {
+              "name": "--input-format",
+              "value": "html|mhtml|site-bundle"
+            },
+            {
+              "name": "--output",
+              "value": "<archive.zip|->"
+            },
+            {
+              "name": "--profile",
+              "value": "screen-viewport|screen-full-page|print-paged|screen-media-paged|screen-snapshot-paged|continuous-vector"
+            },
+            {
+              "name": "--encoder",
+              "value": "png|svg"
+            },
+            {
+              "name": "--pages",
+              "value": "all|<page>|<first-last>|stitched"
+            },
+            {
+              "name": "--viewport-width",
+              "value": "<css-px>"
+            },
+            {
+              "name": "--viewport-height",
+              "value": "<css-px>"
+            },
+            {
+              "name": "--scale",
+              "value": "<factor>"
+            },
+            {
+              "name": "--stylesheet",
+              "value": "<file.css>"
+            },
+            {
+              "name": "--base-uri",
+              "value": "<absolute-uri>"
+            },
+            {
+              "name": "--font-family",
+              "value": "<name>"
+            },
+            {
+              "name": "--font-regular",
+              "value": "<file.ttf>"
+            },
+            {
+              "name": "--font-bold",
+              "value": "<file.ttf>"
+            },
+            {
+              "name": "--font-italic",
+              "value": "<file.ttf>"
+            },
+            {
+              "name": "--font-bold-italic",
+              "value": "<file.ttf>"
+            },
+            {
+              "name": "--max-input-bytes",
+              "value": "<bytes>"
+            },
+            {
+              "name": "--max-pages",
+              "value": "<count>"
+            },
+            {
+              "name": "--max-archive-bytes",
+              "value": "<bytes>"
+            },
+            {
+              "name": "--entry-path",
+              "value": "<archive-path>"
+            },
+            {
+              "name": "--max-bundle-entry-bytes",
+              "value": "<bytes>"
+            },
+            {
+              "name": "--max-bundle-decoded-bytes",
+              "value": "<bytes>"
+            },
+            {
+              "name": "--max-bundle-entries",
+              "value": "<count>"
+            },
+            {
+              "name": "--max-manifest-bytes",
+              "value": "<bytes>"
+            },
+            {
+              "name": "--force",
+              "value": null
+            }
+          ]
+        },
+        {
+          "name": "capabilities",
+          "names": [
+            "capabilities"
+          ],
+          "summary": "List the HTML engine's supported features and profiles.",
+          "usage": [
+            "officeimo html capabilities [--format text|json]"
+          ],
+          "options": [
+            {
+              "name": "--format",
+              "value": "text|json"
+            }
+          ]
+        }
+      ],
+      "keyOptions": [
+        {
+          "name": "--profile",
+          "value": "print-paged|screen-media-paged|screen-snapshot-paged",
+          "description": "Rendering intent, such as print-paged or screen-full-page."
+        },
+        {
+          "name": "--pages",
+          "value": "all|<page>|<first-last>|stitched",
+          "description": "Pages to produce: all, one page, a range or stitched."
+        },
+        {
+          "name": "--stylesheet",
+          "value": "<file.css>",
+          "description": "Additional CSS file applied to the document."
+        },
+        {
+          "name": "--base-uri",
+          "value": "<absolute-uri>",
+          "description": "Absolute URI used to resolve relative links."
+        },
+        {
+          "name": "--font-family",
+          "value": "<name>",
+          "description": "Name a font family and register its faces with --font-regular and related options."
+        },
+        {
+          "name": "--max-pages",
+          "value": "<count>",
+          "description": "Refuse documents that would produce more pages than this."
+        },
+        {
+          "name": "--pdf-ua-language",
+          "value": "<tag>",
+          "description": "Language tag for PDF/UA groundwork."
+        }
+      ],
+      "inputFormats": [
+        "html",
+        "mhtml",
+        "zip"
+      ],
+      "outputFormats": [
+        "pdf",
+        "png",
+        "svg"
+      ],
+      "resultFormats": [
+        "text",
+        "json"
+      ]
+    },
+    {
+      "id": "reader",
+      "title": "Reader",
+      "summary": "Extract documents or whole folders as Markdown or JSON for search, review and language models.",
+      "docsUrl": "/docs/cli/extract-and-inspect/",
+      "aliases": [],
+      "shortcutFor": null,
+      "usage": [
+        "officeimo reader <command> [options]"
+      ],
+      "subcommands": [
+        {
+          "name": "read",
+          "names": [
+            "read"
+          ],
+          "summary": "Extract one document, or standard input, as Markdown or JSON.",
+          "usage": [
+            "officeimo reader read <path|-> [--name <source-name>] [--format markdown|json] [--output <file|->] [--assets <directory>] [--max-input-bytes <bytes>] [--force]"
+          ],
+          "options": [
+            {
+              "name": "--name",
+              "value": "<source-name>"
+            },
+            {
+              "name": "--format",
+              "value": "markdown|json"
+            },
+            {
+              "name": "--output",
+              "value": "<file|->"
+            },
+            {
+              "name": "--assets",
+              "value": "<directory>"
+            },
+            {
+              "name": "--max-input-bytes",
+              "value": "<bytes>"
+            },
+            {
+              "name": "--force",
+              "value": null
+            }
+          ]
+        },
+        {
+          "name": "folder",
+          "names": [
+            "folder"
+          ],
+          "summary": "Extract every supported document under a folder into an output folder.",
+          "usage": [
+            "officeimo reader folder <path> --output <directory> [--format markdown|json] [--assets <directory>] [--concurrency <1-64>] [--max-files <count>] [--max-total-bytes <bytes>] [--max-input-bytes <bytes>] [--no-recursive] [--force]"
+          ],
+          "options": [
+            {
+              "name": "--output",
+              "value": "<directory>"
+            },
+            {
+              "name": "--format",
+              "value": "markdown|json"
+            },
+            {
+              "name": "--assets",
+              "value": "<directory>"
+            },
+            {
+              "name": "--concurrency",
+              "value": "<1-64>"
+            },
+            {
+              "name": "--max-files",
+              "value": "<count>"
+            },
+            {
+              "name": "--max-total-bytes",
+              "value": "<bytes>"
+            },
+            {
+              "name": "--max-input-bytes",
+              "value": "<bytes>"
+            },
+            {
+              "name": "--no-recursive",
+              "value": null
+            },
+            {
+              "name": "--force",
+              "value": null
+            }
+          ]
+        },
+        {
+          "name": "capabilities",
+          "names": [
+            "capabilities"
+          ],
+          "summary": "List the formats the reader handles.",
+          "usage": [
+            "officeimo reader capabilities [--format text|json]"
+          ],
+          "options": [
+            {
+              "name": "--format",
+              "value": "text|json"
+            }
+          ]
+        }
+      ],
+      "keyOptions": [
+        {
+          "name": "--format",
+          "value": "markdown|json",
+          "description": "Output format: markdown or json."
+        },
+        {
+          "name": "--output",
+          "value": "<file|->",
+          "description": "Write to a file, or to a directory for folder extraction."
+        },
+        {
+          "name": "--assets",
+          "value": "<directory>",
+          "description": "Directory for extracted images."
+        },
+        {
+          "name": "--name",
+          "value": "<source-name>",
+          "description": "Source name used to choose a handler when reading standard input."
+        },
+        {
+          "name": "--concurrency",
+          "value": "<1-64>",
+          "description": "Number of documents extracted at once in folder mode."
+        },
+        {
+          "name": "--max-files",
+          "value": "<count>",
+          "description": "Stop folder extraction after this many files."
+        }
+      ],
+      "inputFormats": [
+        "123",
+        "adoc",
+        "asc",
+        "asciidoc",
+        "bmp",
+        "chm",
+        "csv",
+        "dbf",
+        "dbk",
+        "dbx",
+        "dif",
+        "djv",
+        "djvu",
+        "doc",
+        "docbook",
+        "docm",
+        "docx",
+        "dot",
+        "dotm",
+        "dotx",
+        "emf",
+        "eml",
+        "emlx",
+        "epub",
+        "fodg",
+        "fodp",
+        "fods",
+        "fodt",
+        "gif",
+        "htm",
+        "html",
+        "ical",
+        "ico",
+        "ics",
+        "ifb",
+        "ipynb",
+        "jpeg",
+        "jpg",
+        "json",
+        "key",
+        "log",
+        "lwp",
+        "markdown",
+        "mbox",
+        "mbx",
+        "md",
+        "mdown",
+        "mdx",
+        "mht",
+        "mhtml",
+        "mkd",
+        "mp",
+        "mp1",
+        "mp2",
+        "mp3",
+        "msg",
+        "numbers",
+        "oab",
+        "odg",
+        "odp",
+        "ods",
+        "odt",
+        "oft",
+        "olm",
+        "one",
+        "onepkg",
+        "onetoc2",
+        "opml",
+        "ost",
+        "oxps",
+        "pages",
+        "pcx",
+        "pdf",
+        "png",
+        "pot",
+        "potm",
+        "potx",
+        "ppa",
+        "ppam",
+        "pps",
+        "ppsm",
+        "ppsx",
+        "ppt",
+        "pptm",
+        "pptx",
+        "pst",
+        "pub",
+        "qpw",
+        "rtf",
+        "sam",
+        "slk",
+        "srt",
+        "svg",
+        "tex",
+        "tif",
+        "tiff",
+        "tnef",
+        "toml",
+        "tsv",
+        "txt",
+        "vcard",
+        "vcf",
+        "vcs",
+        "vdx",
+        "vsd",
+        "vsdm",
+        "vsdx",
+        "vss",
+        "vssm",
+        "vssx",
+        "vst",
+        "vstm",
+        "vstx",
+        "vsx",
+        "vtt",
+        "vtx",
+        "wb1",
+        "wb2",
+        "wb3",
+        "webp",
+        "wk1",
+        "wk2",
+        "wk3",
+        "wk4",
+        "wks",
+        "wmf",
+        "wp",
+        "wp5",
+        "wp6",
+        "wpd",
+        "wps",
+        "wq1",
+        "wq2",
+        "wri",
+        "ws",
+        "ws3",
+        "ws4",
+        "ws5",
+        "ws6",
+        "ws7",
+        "xhtml",
+        "xla",
+        "xlam",
+        "xlm",
+        "xlr",
+        "xls",
+        "xlsb",
+        "xlsm",
+        "xlsx",
+        "xlt",
+        "xltm",
+        "xltx",
+        "xlw",
+        "xml",
+        "xps",
+        "yaml",
+        "yml",
+        "zip"
+      ],
+      "outputFormats": [
+        "json",
+        "md"
+      ],
+      "resultFormats": [
+        "markdown",
+        "json",
+        "text"
+      ]
+    },
+    {
+      "id": "markup",
+      "title": "Markup",
+      "summary": "Parse, validate and preview OfficeIMO Markup, emit C# or PowerShell, and export Word, Excel or PowerPoint files.",
+      "docsUrl": "/docs/cli/markup/",
+      "aliases": [],
+      "shortcutFor": null,
+      "usage": [
+        "officeimo markup <command> [options]"
+      ],
+      "subcommands": [
+        {
+          "name": "parse",
+          "names": [
+            "parse"
+          ],
+          "summary": "Parse markup and print the document model with diagnostics as JSON.",
+          "usage": [
+            "officeimo markup parse <file|-> [--profile presentation|document|workbook|common]"
+          ],
+          "options": [
+            {
+              "name": "--profile",
+              "value": "presentation|document|workbook|common"
+            }
+          ]
+        },
+        {
+          "name": "validate",
+          "names": [
+            "validate"
+          ],
+          "summary": "Validate markup; exit code 1 when it has errors.",
+          "usage": [
+            "officeimo markup validate <file|-> [--profile presentation|document|workbook|common]"
+          ],
+          "options": [
+            {
+              "name": "--profile",
+              "value": "presentation|document|workbook|common"
+            }
+          ]
+        },
+        {
+          "name": "preview",
+          "names": [
+            "preview"
+          ],
+          "summary": "Print the parsed document model as JSON for previews.",
+          "usage": [
+            "officeimo markup preview <file|-> [--profile presentation|document|workbook|common]"
+          ],
+          "options": [
+            {
+              "name": "--profile",
+              "value": "presentation|document|workbook|common"
+            }
+          ]
+        },
+        {
+          "name": "emit",
+          "names": [
+            "emit"
+          ],
+          "summary": "Generate C# or PowerShell code that builds the document.",
+          "usage": [
+            "officeimo markup emit <file|-> --target csharp|powershell [--output <file>]"
+          ],
+          "options": [
+            {
+              "name": "--target",
+              "value": "csharp|powershell"
+            },
+            {
+              "name": "--output",
+              "value": "<file>"
+            }
+          ]
+        },
+        {
+          "name": "export",
+          "names": [
+            "export"
+          ],
+          "summary": "Write the markup as a PPTX, XLSX or DOCX file.",
+          "usage": [
+            "officeimo markup export <file|-> --target pptx --output <file.pptx>",
+            "officeimo markup export <file|-> --target xlsx --output <file.xlsx>",
+            "officeimo markup export <file|-> --target docx --output <file.docx>"
+          ],
+          "options": [
+            {
+              "name": "--target",
+              "value": "pptx"
+            },
+            {
+              "name": "--output",
+              "value": "<file.pptx>"
+            }
+          ]
+        }
+      ],
+      "keyOptions": [
+        {
+          "name": "--profile",
+          "value": "presentation|document|workbook|common",
+          "description": "Markup profile: presentation, document, workbook or common."
+        },
+        {
+          "name": "--target",
+          "value": "csharp|powershell",
+          "description": "Code or file target for emit and export."
+        },
+        {
+          "name": "--output",
+          "value": "<file>",
+          "description": "Destination file for emit or export."
+        },
+        {
+          "name": "--stdin",
+          "value": null,
+          "description": "Read markup from standard input."
+        },
+        {
+          "name": "--max-input-bytes",
+          "value": "<bytes>",
+          "description": "Bound input size (default: 67108864)."
+        },
+        {
+          "name": "--no-safe-preflight",
+          "value": null,
+          "description": "Disable Excel safe preflight."
+        },
+        {
+          "name": "--no-defined-name-repair",
+          "value": null,
+          "description": "Disable Excel defined-name repair."
+        },
+        {
+          "name": "--no-openxml-validation",
+          "value": null,
+          "description": "Disable Excel Open XML validation."
+        },
+        {
+          "name": "--mermaid-renderer",
+          "value": "<mmdc>",
+          "description": "Configure the Mermaid renderer for PowerPoint."
+        },
+        {
+          "name": "--no-mermaid",
+          "value": null,
+          "description": "Disable Mermaid rendering."
+        }
+      ],
+      "inputFormats": [
+        "md"
+      ],
+      "outputFormats": [
+        "cs",
+        "docx",
+        "pptx",
+        "ps1",
+        "xlsx"
+      ],
+      "resultFormats": [
+        "json",
+        "text"
+      ]
+    },
+    {
+      "id": "tabular",
+      "title": "Tabular",
+      "summary": "List worksheets, report column schemas and convert between CSV, TSV and workbook formats.",
+      "docsUrl": "/docs/cli/convert/#spreadsheets-and-delimited-files",
+      "aliases": [],
+      "shortcutFor": null,
+      "usage": [
+        "officeimo tabular <command> [options]"
+      ],
+      "subcommands": [
+        {
+          "name": "sheets",
+          "names": [
+            "sheets"
+          ],
+          "summary": "List the worksheets in a workbook.",
+          "usage": [
+            "officeimo tabular sheets <workbook>"
+          ],
+          "options": []
+        },
+        {
+          "name": "schema",
+          "names": [
+            "schema"
+          ],
+          "summary": "Report column names and inferred types for a worksheet or CSV file.",
+          "usage": [
+            "officeimo tabular schema <workbook|csv> [--sheet <name>|--sheet-index <index>] [--delimiter <character|\\t>] [--no-header]"
+          ],
+          "options": [
+            {
+              "name": "--sheet",
+              "value": "<name>"
+            },
+            {
+              "name": "--sheet-index",
+              "value": "<index>"
+            },
+            {
+              "name": "--delimiter",
+              "value": "<character|\\t>"
+            },
+            {
+              "name": "--no-header",
+              "value": null
+            }
+          ]
+        },
+        {
+          "name": "convert",
+          "names": [
+            "convert"
+          ],
+          "summary": "Convert between CSV, TSV and workbook formats.",
+          "usage": [
+            "officeimo tabular convert <input> <output> [--sheet <name>|--sheet-index <index>] [--delimiter <character|\\t>] [--output-delimiter <character|\\t>] [--no-header] [--force]"
+          ],
+          "options": [
+            {
+              "name": "--sheet",
+              "value": "<name>"
+            },
+            {
+              "name": "--sheet-index",
+              "value": "<index>"
+            },
+            {
+              "name": "--delimiter",
+              "value": "<character|\\t>"
+            },
+            {
+              "name": "--output-delimiter",
+              "value": "<character|\\t>"
+            },
+            {
+              "name": "--no-header",
+              "value": null
+            },
+            {
+              "name": "--force",
+              "value": null
+            }
+          ]
+        }
+      ],
+      "keyOptions": [
+        {
+          "name": "--sheet",
+          "value": "<name>",
+          "description": "Worksheet to read by name."
+        },
+        {
+          "name": "--sheet-index",
+          "value": "<index>",
+          "description": "Worksheet to read by position."
+        },
+        {
+          "name": "--delimiter",
+          "value": "<character|\\t>",
+          "description": "Delimiter of delimited input."
+        },
+        {
+          "name": "--output-delimiter",
+          "value": "<character|\\t>",
+          "description": "Delimiter of delimited output."
+        },
+        {
+          "name": "--no-header",
+          "value": null,
+          "description": "Treat the first row as data."
+        }
+      ],
+      "inputFormats": [
+        "csv",
+        "tsv",
+        "xlam",
+        "xls",
+        "xlsb",
+        "xlsm",
+        "xlsx",
+        "xltm",
+        "xltx"
+      ],
+      "outputFormats": [
+        "csv",
+        "tsv",
+        "xls",
+        "xlsb",
+        "xlsx"
+      ],
+      "resultFormats": [
+        "text"
+      ]
+    },
+    {
+      "id": "workflow",
+      "title": "Workflow",
+      "summary": "Batch conversion with checkpoints, saved jobs, page images, assembly, comparison, print plans and printing.",
+      "docsUrl": "/docs/cli/batch-and-jobs/",
+      "aliases": [],
+      "shortcutFor": null,
+      "usage": [
+        "officeimo workflow <command> [options]"
+      ],
+      "subcommands": [
+        {
+          "name": "compare",
+          "names": [
+            "compare"
+          ],
+          "summary": "Compare two PDFs and write an HTML difference report.",
+          "usage": [
+            "officeimo workflow compare <expected.pdf> <actual.pdf> --output <report.html> [--expected-pages <selection>] [--actual-pages <selection>] [--force] [--password-env <name>] [--comparison-password-env <name>] [--format json|text]"
+          ],
+          "options": [
+            {
+              "name": "--output",
+              "value": "<report.html>"
+            },
+            {
+              "name": "--expected-pages",
+              "value": "<selection>"
+            },
+            {
+              "name": "--actual-pages",
+              "value": "<selection>"
+            },
+            {
+              "name": "--force",
+              "value": null
+            },
+            {
+              "name": "--password-env",
+              "value": "<name>"
+            },
+            {
+              "name": "--comparison-password-env",
+              "value": "<name>"
+            },
+            {
+              "name": "--format",
+              "value": "json|text"
+            }
+          ]
+        },
+        {
+          "name": "optimize-images",
+          "names": [
+            "optimize-images"
+          ],
+          "summary": "Analyze or reduce the images in Word documents.",
+          "usage": [
+            "officeimo workflow optimize-images <input.docx|input.doc>... [--analyze] [--output <file> | --output-directory <folder>] [--output-format docx|doc|pdf] [--mode downsample|recompress|both] [--dpi <36-1200>] [--quality <1-100>] [--force] [--format json|text]"
+          ],
+          "options": [
+            {
+              "name": "--analyze",
+              "value": null
+            },
+            {
+              "name": "--output",
+              "value": "<file>"
+            },
+            {
+              "name": "--output-directory",
+              "value": "<folder>"
+            },
+            {
+              "name": "--output-format",
+              "value": "docx|doc|pdf"
+            },
+            {
+              "name": "--mode",
+              "value": "downsample|recompress|both"
+            },
+            {
+              "name": "--dpi",
+              "value": "<36-1200>"
+            },
+            {
+              "name": "--quality",
+              "value": "<1-100>"
+            },
+            {
+              "name": "--force",
+              "value": null
+            },
+            {
+              "name": "--format",
+              "value": "json|text"
+            }
+          ]
+        },
+        {
+          "name": "export-pages",
+          "names": [
+            "export-pages"
+          ],
+          "summary": "Render PDF pages to PNG, JPEG, WebP, TIFF or SVG images.",
+          "usage": [
+            "officeimo workflow export-pages <input.pdf> --output <folder> [--pages <selection>] [--image-format png|jpeg|webp|tiff|svg] [--dpi <36-600>] [--max-dimension <pixels>] [--force] [--format json|text]"
+          ],
+          "options": [
+            {
+              "name": "--output",
+              "value": "<folder>"
+            },
+            {
+              "name": "--pages",
+              "value": "<selection>"
+            },
+            {
+              "name": "--image-format",
+              "value": "png|jpeg|webp|tiff|svg"
+            },
+            {
+              "name": "--dpi",
+              "value": "<36-600>"
+            },
+            {
+              "name": "--max-dimension",
+              "value": "<pixels>"
+            },
+            {
+              "name": "--force",
+              "value": null
+            },
+            {
+              "name": "--format",
+              "value": "json|text"
+            }
+          ]
+        },
+        {
+          "name": "assemble",
+          "names": [
+            "assemble"
+          ],
+          "summary": "Combine documents, folders and ZIP archives into one PDF.",
+          "usage": [
+            "officeimo workflow assemble <source>... --output <output.pdf> [--no-recursive] [--force] [--format json|text]"
+          ],
+          "options": [
+            {
+              "name": "--output",
+              "value": "<output.pdf>"
+            },
+            {
+              "name": "--no-recursive",
+              "value": null
+            },
+            {
+              "name": "--force",
+              "value": null
+            },
+            {
+              "name": "--format",
+              "value": "json|text"
+            }
+          ]
+        },
+        {
+          "name": "print-plan",
+          "names": [
+            "print-plan"
+          ],
+          "summary": "Plan how a PDF lays out on printed sheets without printing.",
+          "usage": [
+            "officeimo workflow print-plan <input.pdf> [--pages <selection>] [--paper A4|Letter|Legal|A3] [--password-env <name>] [--orientation auto|portrait|landscape] [--pages-per-sheet 1|2|4|6|9] [--scale fit|actual|fill|custom] [--custom-scale <percent>] [--margin <points>] [--margin-left <points>] [--margin-top <points>] [--margin-right <points>] [--margin-bottom <points>] [--alignment center|top-left|top|top-right|left|right|bottom-left|bottom|bottom-right] [--page-subset all|odd|even] [--color color|grayscale] [--format json|text]"
+          ],
+          "options": [
+            {
+              "name": "--pages",
+              "value": "<selection>"
+            },
+            {
+              "name": "--paper",
+              "value": "A4|Letter|Legal|A3"
+            },
+            {
+              "name": "--password-env",
+              "value": "<name>"
+            },
+            {
+              "name": "--orientation",
+              "value": "auto|portrait|landscape"
+            },
+            {
+              "name": "--pages-per-sheet",
+              "value": "1|2|4|6|9"
+            },
+            {
+              "name": "--scale",
+              "value": "fit|actual|fill|custom"
+            },
+            {
+              "name": "--custom-scale",
+              "value": "<percent>"
+            },
+            {
+              "name": "--margin",
+              "value": "<points>"
+            },
+            {
+              "name": "--margin-left",
+              "value": "<points>"
+            },
+            {
+              "name": "--margin-top",
+              "value": "<points>"
+            },
+            {
+              "name": "--margin-right",
+              "value": "<points>"
+            },
+            {
+              "name": "--margin-bottom",
+              "value": "<points>"
+            },
+            {
+              "name": "--alignment",
+              "value": "center|top-left|top|top-right|left|right|bottom-left|bottom|bottom-right"
+            },
+            {
+              "name": "--page-subset",
+              "value": "all|odd|even"
+            },
+            {
+              "name": "--color",
+              "value": "color|grayscale"
+            },
+            {
+              "name": "--format",
+              "value": "json|text"
+            }
+          ]
+        },
+        {
+          "name": "batch",
+          "names": [
+            "batch"
+          ],
+          "summary": "Convert many files with per-file results, retries and optional checkpoints.",
+          "usage": [
+            "officeimo workflow batch [<source>...] --output <folder> [--input-directory <folder>] [--target pdf|docx|xlsx|pptx|html|json|jsonl|yaml|toml|xml|csv|tsv] [--checkpoint <folder>] [--route <id>] [--source-extension <extension>] [--no-recursive] [--concurrency 1..32] [--conflict fail|rename|replace] [--retry-failed] [--text-encoding <name>] [--tab-size 1..32] [--allow-legacy-loss] [--pages <selection>] [--profile faithful|lightweight|printready|textonly] [--maximum-files <count>] [--maximum-input-bytes <bytes>] [--maximum-output-bytes <bytes>] [--maximum-xml-characters-in-part <characters>] [--diagram-layers screen|print] [--require-no-loss] [--source-password-env <name>] [--pdf-password-env <name>] [--allow-empty] [--verbose] [--format json|ndjson] [--save-job <new-job.json>]"
+          ],
+          "options": [
+            {
+              "name": "--output",
+              "value": "<folder>"
+            },
+            {
+              "name": "--input-directory",
+              "value": "<folder>"
+            },
+            {
+              "name": "--target",
+              "value": "pdf|docx|xlsx|pptx|html|json|jsonl|yaml|toml|xml|csv|tsv"
+            },
+            {
+              "name": "--checkpoint",
+              "value": "<folder>"
+            },
+            {
+              "name": "--route",
+              "value": "<id>"
+            },
+            {
+              "name": "--source-extension",
+              "value": "<extension>"
+            },
+            {
+              "name": "--no-recursive",
+              "value": null
+            },
+            {
+              "name": "--concurrency",
+              "value": "1..32"
+            },
+            {
+              "name": "--conflict",
+              "value": "fail|rename|replace"
+            },
+            {
+              "name": "--retry-failed",
+              "value": null
+            },
+            {
+              "name": "--text-encoding",
+              "value": "<name>"
+            },
+            {
+              "name": "--tab-size",
+              "value": "1..32"
+            },
+            {
+              "name": "--allow-legacy-loss",
+              "value": null
+            },
+            {
+              "name": "--pages",
+              "value": "<selection>"
+            },
+            {
+              "name": "--profile",
+              "value": "faithful|lightweight|printready|textonly"
+            },
+            {
+              "name": "--maximum-files",
+              "value": "<count>"
+            },
+            {
+              "name": "--maximum-input-bytes",
+              "value": "<bytes>"
+            },
+            {
+              "name": "--maximum-output-bytes",
+              "value": "<bytes>"
+            },
+            {
+              "name": "--maximum-xml-characters-in-part",
+              "value": "<characters>"
+            },
+            {
+              "name": "--diagram-layers",
+              "value": "screen|print"
+            },
+            {
+              "name": "--require-no-loss",
+              "value": null
+            },
+            {
+              "name": "--source-password-env",
+              "value": "<name>"
+            },
+            {
+              "name": "--pdf-password-env",
+              "value": "<name>"
+            },
+            {
+              "name": "--allow-empty",
+              "value": null
+            },
+            {
+              "name": "--verbose",
+              "value": null
+            },
+            {
+              "name": "--format",
+              "value": "json|ndjson"
+            },
+            {
+              "name": "--save-job",
+              "value": "<new-job.json>"
+            }
+          ]
+        },
+        {
+          "name": "job plan",
+          "names": [
+            "job plan"
+          ],
+          "summary": "Show what a saved job would convert.",
+          "usage": [
+            "officeimo workflow job plan <job.json>"
+          ],
+          "options": []
+        },
+        {
+          "name": "job run",
+          "names": [
+            "job run"
+          ],
+          "summary": "Run a saved job.",
+          "usage": [
+            "officeimo workflow job run <job.json> [--retry-failed] [--allow-empty] [--verbose] [--format json|ndjson] [--report <new-report.json>]"
+          ],
+          "options": [
+            {
+              "name": "--retry-failed",
+              "value": null
+            },
+            {
+              "name": "--allow-empty",
+              "value": null
+            },
+            {
+              "name": "--verbose",
+              "value": null
+            },
+            {
+              "name": "--format",
+              "value": "json|ndjson"
+            },
+            {
+              "name": "--report",
+              "value": "<new-report.json>"
+            }
+          ]
+        },
+        {
+          "name": "job report",
+          "names": [
+            "job report"
+          ],
+          "summary": "Inspect a saved run report.",
+          "usage": [
+            "officeimo workflow job report <run-report.json>"
+          ],
+          "options": []
+        },
+        {
+          "name": "printers",
+          "names": [
+            "printers"
+          ],
+          "summary": "List printers, their capabilities or their paper sources.",
+          "usage": [
+            "officeimo workflow printers [--capabilities <printer> | --paper-sources <printer>] [--format json|text]"
+          ],
+          "options": [
+            {
+              "name": "--capabilities",
+              "value": "<printer>"
+            },
+            {
+              "name": "--paper-sources",
+              "value": "<printer>"
+            },
+            {
+              "name": "--format",
+              "value": "json|text"
+            }
+          ]
+        },
+        {
+          "name": "print",
+          "names": [
+            "print"
+          ],
+          "summary": "Print a document to a queue or an IPP printer.",
+          "usage": [
+            "officeimo workflow print <document> --printer <queue|ipp://uri> [print-plan options; --paper defaults to the printer's media] [--copies 1..100] [--duplex default|off|long|short] [--paper-source <id>] [--dpi 72..600] [--output-file <new-local-path>] [--format json|text]"
+          ],
+          "options": [
+            {
+              "name": "--printer",
+              "value": "<queue|ipp://uri>"
+            },
+            {
+              "name": "--copies",
+              "value": "1..100"
+            },
+            {
+              "name": "--duplex",
+              "value": "default|off|long|short"
+            },
+            {
+              "name": "--paper-source",
+              "value": "<id>"
+            },
+            {
+              "name": "--dpi",
+              "value": "72..600"
+            },
+            {
+              "name": "--output-file",
+              "value": "<new-local-path>"
+            },
+            {
+              "name": "--format",
+              "value": "json|text"
+            }
+          ]
+        },
+        {
+          "name": "print-job status|wait|cancel",
+          "names": [
+            "print-job status",
+            "print-job wait",
+            "print-job cancel"
+          ],
+          "summary": "Check, wait for or cancel a submitted print job.",
+          "usage": [
+            "officeimo workflow print-job status|wait|cancel --printer <queue|ipp://uri> --job <id> [--timeout <seconds>] [--format json|text]"
+          ],
+          "options": [
+            {
+              "name": "--printer",
+              "value": "<queue|ipp://uri>"
+            },
+            {
+              "name": "--job",
+              "value": "<id>"
+            },
+            {
+              "name": "--timeout",
+              "value": "<seconds>"
+            },
+            {
+              "name": "--format",
+              "value": "json|text"
+            }
+          ]
+        }
+      ],
+      "keyOptions": [
+        {
+          "name": "--output",
+          "value": "<report.html>",
+          "description": "Destination file or folder."
+        },
+        {
+          "name": "--input-directory",
+          "value": "<folder>",
+          "description": "Folder to convert in a batch."
+        },
+        {
+          "name": "--target",
+          "value": "pdf|docx|xlsx|pptx|html|json|jsonl|yaml|toml|xml|csv|tsv",
+          "description": "Batch target format; PDF by default."
+        },
+        {
+          "name": "--checkpoint",
+          "value": "<folder>",
+          "description": "Folder that records verified outputs so a rerun resumes where it stopped."
+        },
+        {
+          "name": "--conflict",
+          "value": "fail|rename|replace",
+          "description": "What a batch does with an existing output: fail, rename or replace."
+        },
+        {
+          "name": "--retry-failed",
+          "value": null,
+          "description": "Retry items that failed in an earlier checkpointed run."
+        },
+        {
+          "name": "--concurrency",
+          "value": "1..32",
+          "description": "Number of files converted at once."
+        },
+        {
+          "name": "--pages",
+          "value": "<selection>",
+          "description": "Page selection such as 1-3,last."
+        },
+        {
+          "name": "--save-job",
+          "value": "<new-job.json>",
+          "description": "Write the batch settings to a new job file without converting."
+        },
+        {
+          "name": "--format",
+          "value": "json|text",
+          "description": "Result format: json, ndjson for batches, or text for single operations."
+        },
+        {
+          "name": "--force",
+          "value": null,
+          "description": "Replace an existing output."
+        }
+      ],
+      "inputFormats": [
+        "chm",
+        "csv",
+        "djv",
+        "djvu",
+        "doc",
+        "docm",
+        "docx",
+        "dot",
+        "dotm",
+        "dotx",
+        "eml",
+        "epub",
+        "fodg",
+        "fodp",
+        "fods",
+        "fodt",
+        "heic",
+        "heif",
+        "hif",
+        "htm",
+        "html",
+        "json",
+        "jsonl",
+        "markdown",
+        "md",
+        "msg",
+        "ndjson",
+        "odg",
+        "odp",
+        "ods",
+        "odt",
+        "oft",
+        "oibook",
+        "oxps",
+        "pdf",
+        "potm",
+        "potx",
+        "ppam",
+        "ppsm",
+        "ppsx",
+        "pptm",
+        "pptx",
+        "pub",
+        "rtf",
+        "tab",
+        "tnef",
+        "toml",
+        "tsv",
+        "txt",
+        "vdx",
+        "vsdx",
+        "vtx",
+        "xlam",
+        "xlsm",
+        "xlsx",
+        "xltm",
+        "xltx",
+        "xml",
+        "xps",
+        "yaml",
+        "yml",
+        "zip"
+      ],
+      "outputFormats": [
+        "csv",
+        "docx",
+        "html",
+        "jpeg",
+        "json",
+        "jsonl",
+        "pdf",
+        "png",
+        "pptx",
+        "svg",
+        "tiff",
+        "toml",
+        "tsv",
+        "webp",
+        "xlsx",
+        "xml",
+        "yaml"
+      ],
+      "resultFormats": [
+        "json",
+        "ndjson",
+        "text"
+      ]
+    },
+    {
+      "id": "invoice",
+      "title": "Invoice",
+      "summary": "Inspect, validate, edit, convert and render CII and UBL electronic invoices, including Factur-X hybrid PDFs.",
+      "docsUrl": "/docs/cli/invoices/",
+      "aliases": [],
+      "shortcutFor": null,
+      "usage": [
+        "officeimo invoice <command> [options]"
+      ],
+      "subcommands": [
+        {
+          "name": "inspect|validate",
+          "names": [
+            "inspect",
+            "validate"
+          ],
+          "summary": "Read an invoice into the model; validate returns exit code 1 when it has errors.",
+          "usage": [
+            "officeimo invoice inspect|validate <input.xml> [options]"
+          ],
+          "options": []
+        },
+        {
+          "name": "convert|render|hybrid",
+          "names": [
+            "convert",
+            "render",
+            "hybrid"
+          ],
+          "summary": "Convert to another syntax or profile, render a presentation PDF, or embed the XML in a hybrid PDF.",
+          "usage": [
+            "officeimo invoice convert|render|hybrid <input.xml> --output <path> <target options> [options]"
+          ],
+          "options": [
+            {
+              "name": "--output",
+              "value": "<path>"
+            }
+          ]
+        },
+        {
+          "name": "batch inspect|validate",
+          "names": [
+            "batch inspect",
+            "batch validate"
+          ],
+          "summary": "Inspect or validate many invoices with one result per item.",
+          "usage": [
+            "officeimo invoice batch inspect|validate <input.xml>... [options]"
+          ],
+          "options": []
+        },
+        {
+          "name": "batch convert|render|hybrid",
+          "names": [
+            "batch convert",
+            "batch render",
+            "batch hybrid"
+          ],
+          "summary": "Convert or render many invoices into an output directory.",
+          "usage": [
+            "officeimo invoice batch convert|render|hybrid <input.xml>... --output-directory <path> <target options> [options]"
+          ],
+          "options": [
+            {
+              "name": "--output-directory",
+              "value": "<path>"
+            }
+          ]
+        },
+        {
+          "name": "edit",
+          "names": [
+            "edit"
+          ],
+          "summary": "Replace selected header fields while keeping the rest of the XML.",
+          "usage": [
+            "officeimo invoice edit <input.xml> --output <path> <field replacements> [options]"
+          ],
+          "options": [
+            {
+              "name": "--output",
+              "value": "<path>"
+            }
+          ]
+        },
+        {
+          "name": "batch edit",
+          "names": [
+            "batch edit"
+          ],
+          "summary": "Apply the same field replacements to many invoices.",
+          "usage": [
+            "officeimo invoice batch edit <input.xml>... --output-directory <path> <field replacements> [options]"
+          ],
+          "options": [
+            {
+              "name": "--output-directory",
+              "value": "<path>"
+            }
+          ]
+        }
+      ],
+      "keyOptions": [
+        {
+          "name": "--release",
+          "value": "En16931_1_3_16|FacturX_1_09_2_Zugferd_2_5_2|XRechnung_3_0_2_2026_08_31|PeppolBis_3_0_21",
+          "description": "Pinned standards release of the target, such as En16931_1_3_16."
+        },
+        {
+          "name": "--syntax",
+          "value": "Cii|Ubl",
+          "description": "Target syntax: Cii or Ubl."
+        },
+        {
+          "name": "--profile",
+          "value": "Minimum|BasicWithoutLines|Basic|En16931|Extended|XRechnung|PeppolBis",
+          "description": "Target profile, such as En16931 or XRechnung."
+        },
+        {
+          "name": "--output",
+          "value": "<path>",
+          "description": "Destination file for a single invoice."
+        },
+        {
+          "name": "--output-directory",
+          "value": "<path>",
+          "description": "Destination folder for a batch."
+        },
+        {
+          "name": "--rule-bundle",
+          "value": "<pinned-xrechnung.zip>",
+          "description": "Pinned XRechnung rule bundle for standards validation."
+        },
+        {
+          "name": "--language",
+          "value": "<en-US,pl-PL,...>",
+          "description": "Languages of the rendered presentation."
+        },
+        {
+          "name": "--allow-profile-loss",
+          "value": null,
+          "description": "Allow documented lower-profile reductions, reported as warnings"
+        },
+        {
+          "name": "--columns",
+          "value": "<Item,Quantity,Unit,NetPrice,Vat,NetAmount>",
+          "description": "Two to eight distinct columns including Item and NetAmount"
+        }
+      ],
+      "inputFormats": [
+        "xml"
+      ],
+      "outputFormats": [
+        "pdf",
+        "xml"
+      ],
+      "resultFormats": [
+        "json"
+      ]
+    },
+    {
+      "id": "pdf",
+      "title": "PDF",
+      "summary": "Extract pages, split, decrypt, flatten, optimize, sanitize, OCR, convert to PDF/A and redact PDFs into separate copies.",
+      "docsUrl": "/docs/cli/pdf/",
+      "aliases": [],
+      "shortcutFor": null,
+      "usage": [
+        "officeimo pdf <command> [options]"
+      ],
+      "subcommands": [
+        {
+          "name": "extract",
+          "names": [
+            "extract"
+          ],
+          "summary": "Copy selected pages into a new PDF.",
+          "usage": [
+            "officeimo pdf extract <input.pdf> --pages <selection> --output <copy.pdf> [--force]"
+          ],
+          "options": [
+            {
+              "name": "--pages",
+              "value": "<selection>"
+            },
+            {
+              "name": "--output",
+              "value": "<copy.pdf>"
+            },
+            {
+              "name": "--force",
+              "value": null
+            }
+          ]
+        },
+        {
+          "name": "split",
+          "names": [
+            "split"
+          ],
+          "summary": "Split a PDF into parts of a fixed page count.",
+          "usage": [
+            "officeimo pdf split <input.pdf> --output <new-folder> [--pages-per-document <count>] [--force]"
+          ],
+          "options": [
+            {
+              "name": "--output",
+              "value": "<new-folder>"
+            },
+            {
+              "name": "--pages-per-document",
+              "value": "<count>"
+            },
+            {
+              "name": "--force",
+              "value": null
+            }
+          ]
+        },
+        {
+          "name": "decrypt",
+          "names": [
+            "decrypt"
+          ],
+          "summary": "Write an unencrypted copy using the owner password from an environment variable.",
+          "usage": [
+            "officeimo pdf decrypt <input.pdf> --password-env <owner-password-variable> --output <copy.pdf> [--force]"
+          ],
+          "options": [
+            {
+              "name": "--password-env",
+              "value": "<owner-password-variable>"
+            },
+            {
+              "name": "--output",
+              "value": "<copy.pdf>"
+            },
+            {
+              "name": "--force",
+              "value": null
+            }
+          ]
+        },
+        {
+          "name": "flatten",
+          "names": [
+            "flatten"
+          ],
+          "summary": "Replace pages with their rendered appearance.",
+          "usage": [
+            "officeimo pdf flatten <input.pdf> --output <copy.pdf> --acknowledge-raster-output [--pages <selection>] [--dpi 36..600] [--force]"
+          ],
+          "options": [
+            {
+              "name": "--output",
+              "value": "<copy.pdf>"
+            },
+            {
+              "name": "--acknowledge-raster-output",
+              "value": null
+            },
+            {
+              "name": "--pages",
+              "value": "<selection>"
+            },
+            {
+              "name": "--dpi",
+              "value": "36..600"
+            },
+            {
+              "name": "--force",
+              "value": null
+            }
+          ]
+        },
+        {
+          "name": "ocr",
+          "names": [
+            "ocr"
+          ],
+          "summary": "Add searchable text from an OCR provider.",
+          "usage": [
+            "officeimo pdf ocr <input.pdf> --output <copy.pdf> --ocr-provider <id> --ocr-provider-assembly <provider.dll> [--ocr-language <language>] [--ocr-option <key=value>] [--ocr-min-confidence 0..1] [--pages <selection>] [--dpi 36..600] [--force]"
+          ],
+          "options": [
+            {
+              "name": "--output",
+              "value": "<copy.pdf>"
+            },
+            {
+              "name": "--ocr-provider",
+              "value": "<id>"
+            },
+            {
+              "name": "--ocr-provider-assembly",
+              "value": "<provider.dll>"
+            },
+            {
+              "name": "--ocr-language",
+              "value": "<language>"
+            },
+            {
+              "name": "--ocr-option",
+              "value": "<key=value>"
+            },
+            {
+              "name": "--ocr-min-confidence",
+              "value": "0..1"
+            },
+            {
+              "name": "--pages",
+              "value": "<selection>"
+            },
+            {
+              "name": "--dpi",
+              "value": "36..600"
+            },
+            {
+              "name": "--force",
+              "value": null
+            }
+          ]
+        },
+        {
+          "name": "optimize|sanitize",
+          "names": [
+            "optimize",
+            "sanitize"
+          ],
+          "summary": "Write a smaller copy, or a copy without active content.",
+          "usage": [
+            "officeimo pdf optimize|sanitize <input.pdf> --output <copy.pdf> [--force]"
+          ],
+          "options": [
+            {
+              "name": "--output",
+              "value": "<copy.pdf>"
+            },
+            {
+              "name": "--force",
+              "value": null
+            }
+          ]
+        },
+        {
+          "name": "convert-to-pdfa",
+          "names": [
+            "convert-to-pdfa"
+          ],
+          "summary": "Write a PDF/A copy, or refuse and report every violation.",
+          "usage": [
+            "officeimo pdf convert-to-pdfa <input.pdf> --output <copy.pdf> [--profile 2b|2u|3b|3u|4|4f] [--attachments remove|refuse] [--font <family>[:bold|italic|bold-italic]=<font.ttf>]... [--font-substitution installed-fonts|none] [--output-intent <profile.icc> --output-condition-identifier <id>] [--password-env <name>] [--force]"
+          ],
+          "options": [
+            {
+              "name": "--output",
+              "value": "<copy.pdf>"
+            },
+            {
+              "name": "--profile",
+              "value": "2b|2u|3b|3u|4|4f"
+            },
+            {
+              "name": "--attachments",
+              "value": "remove|refuse"
+            },
+            {
+              "name": "--font",
+              "value": "<family>"
+            },
+            {
+              "name": "--font-substitution",
+              "value": "installed-fonts|none"
+            },
+            {
+              "name": "--output-intent",
+              "value": "<profile.icc>"
+            },
+            {
+              "name": "--output-condition-identifier",
+              "value": "<id>"
+            },
+            {
+              "name": "--password-env",
+              "value": "<name>"
+            },
+            {
+              "name": "--force",
+              "value": null
+            }
+          ]
+        },
+        {
+          "name": "providers",
+          "names": [
+            "providers"
+          ],
+          "summary": "List the OCR providers that are loaded.",
+          "usage": [
+            "officeimo pdf providers [--ocr-provider-assembly <provider.dll>]"
+          ],
+          "options": [
+            {
+              "name": "--ocr-provider-assembly",
+              "value": "<provider.dll>"
+            }
+          ]
+        },
+        {
+          "name": "redact providers",
+          "names": [
+            "redact providers"
+          ],
+          "summary": "List the OCR providers available to redaction.",
+          "usage": [
+            "officeimo pdf redact providers [--ocr-provider-assembly <provider.dll>]"
+          ],
+          "options": [
+            {
+              "name": "--ocr-provider-assembly",
+              "value": "<provider.dll>"
+            }
+          ]
+        },
+        {
+          "name": "redact batch",
+          "names": [
+            "redact batch"
+          ],
+          "summary": "Run several redactions from one request file.",
+          "usage": [
+            "officeimo pdf redact batch --request <batch.json> [--force]"
+          ],
+          "options": [
+            {
+              "name": "--request",
+              "value": "<batch.json>"
+            },
+            {
+              "name": "--force",
+              "value": null
+            }
+          ]
+        },
+        {
+          "name": "redact plan",
+          "names": [
+            "redact plan"
+          ],
+          "summary": "Find redaction candidates and write a reviewable plan.",
+          "usage": [
+            "officeimo pdf redact plan <input.pdf> --recipe <recipe.json> --evidence <plan.json>"
+          ],
+          "options": [
+            {
+              "name": "--recipe",
+              "value": "<recipe.json>"
+            },
+            {
+              "name": "--evidence",
+              "value": "<plan.json>"
+            }
+          ]
+        },
+        {
+          "name": "redact apply",
+          "names": [
+            "redact apply"
+          ],
+          "summary": "Apply reviewed redaction decisions to a new PDF.",
+          "usage": [
+            "officeimo pdf redact apply <input.pdf> --recipe <recipe.json> --decisions <decisions.json> --output <output.pdf> --evidence <evidence.json> [--force]"
+          ],
+          "options": [
+            {
+              "name": "--recipe",
+              "value": "<recipe.json>"
+            },
+            {
+              "name": "--decisions",
+              "value": "<decisions.json>"
+            },
+            {
+              "name": "--output",
+              "value": "<output.pdf>"
+            },
+            {
+              "name": "--evidence",
+              "value": "<evidence.json>"
+            },
+            {
+              "name": "--force",
+              "value": null
+            }
+          ]
+        },
+        {
+          "name": "redact verify",
+          "names": [
+            "redact verify"
+          ],
+          "summary": "Check that an existing redacted PDF matches the reviewed decisions.",
+          "usage": [
+            "officeimo pdf redact verify <input.pdf> --recipe <recipe.json> --decisions <decisions.json> --output <existing-output.pdf> --evidence <evidence.json> [--expected-output-sha256 <hash>] [--force]"
+          ],
+          "options": [
+            {
+              "name": "--recipe",
+              "value": "<recipe.json>"
+            },
+            {
+              "name": "--decisions",
+              "value": "<decisions.json>"
+            },
+            {
+              "name": "--output",
+              "value": "<existing-output.pdf>"
+            },
+            {
+              "name": "--evidence",
+              "value": "<evidence.json>"
+            },
+            {
+              "name": "--expected-output-sha256",
+              "value": "<hash>"
+            },
+            {
+              "name": "--force",
+              "value": null
+            }
+          ]
+        }
+      ],
+      "keyOptions": [
+        {
+          "name": "--output",
+          "value": "<copy.pdf>",
+          "description": "Destination file or folder; the source is never changed."
+        },
+        {
+          "name": "--pages",
+          "value": "<selection>",
+          "description": "Page selection such as 1-3,last, odd, even or all,!2."
+        },
+        {
+          "name": "--password-env",
+          "value": "<owner-password-variable>",
+          "description": "Name of the environment variable that holds the owner password."
+        },
+        {
+          "name": "--recipe",
+          "value": "<recipe.json>",
+          "description": "Redaction recipe JSON."
+        },
+        {
+          "name": "--decisions",
+          "value": "<decisions.json>",
+          "description": "Reviewed redaction decisions JSON."
+        },
+        {
+          "name": "--evidence",
+          "value": "<plan.json>",
+          "description": "Path for the redaction evidence JSON."
+        },
+        {
+          "name": "--ocr-provider",
+          "value": "<id>",
+          "description": "OCR provider id."
+        },
+        {
+          "name": "--ocr-provider-assembly",
+          "value": "<provider.dll>",
+          "description": "Trusted assembly that contains an OCR provider."
+        },
+        {
+          "name": "--maximum-pages",
+          "value": "1..10000",
+          "description": "Page limit; 100 by default."
+        },
+        {
+          "name": "--force",
+          "value": null,
+          "description": "Replace an existing output."
+        }
+      ],
+      "inputFormats": [
+        "pdf"
+      ],
+      "outputFormats": [
+        "json",
+        "pdf"
+      ],
+      "resultFormats": [
+        "json"
+      ]
+    },
+    {
+      "id": "provenance",
+      "title": "Provenance",
+      "summary": "Inspect, assess and remove Content Credentials (C2PA) and AI-source labels, and audit files for suspicious Unicode in CI.",
+      "docsUrl": "/docs/cli/before-sharing/#content-credentials-and-ai-labels",
+      "aliases": [],
+      "shortcutFor": null,
+      "usage": [
+        "officeimo provenance <command> [options]"
+      ],
+      "subcommands": [
+        {
+          "name": "doctor",
+          "names": [
+            "doctor"
+          ],
+          "summary": "Check that a host-supplied c2patool executable runs.",
+          "usage": [
+            "officeimo provenance doctor --c2patool <trusted-executable> [--format json|text]"
+          ],
+          "options": [
+            {
+              "name": "--c2patool",
+              "value": "<trusted-executable>"
+            },
+            {
+              "name": "--format",
+              "value": "json|text"
+            }
+          ]
+        },
+        {
+          "name": "capabilities",
+          "names": [
+            "capabilities"
+          ],
+          "summary": "List the formats and provenance carriers the tool understands.",
+          "usage": [
+            "officeimo provenance capabilities [--format json|text]"
+          ],
+          "options": [
+            {
+              "name": "--format",
+              "value": "json|text"
+            }
+          ]
+        },
+        {
+          "name": "inspect",
+          "names": [
+            "inspect"
+          ],
+          "summary": "Report the provenance carriers in one file.",
+          "usage": [
+            "officeimo provenance inspect <input> [--no-embedded] [--max-input-bytes <bytes>] [--format json|text]"
+          ],
+          "options": [
+            {
+              "name": "--no-embedded",
+              "value": null
+            },
+            {
+              "name": "--max-input-bytes",
+              "value": "<bytes>"
+            },
+            {
+              "name": "--format",
+              "value": "json|text"
+            }
+          ]
+        },
+        {
+          "name": "assess",
+          "names": [
+            "assess"
+          ],
+          "summary": "Inspect and verify provenance, optionally with c2patool and trust anchors.",
+          "usage": [
+            "officeimo provenance assess <input> [--no-embedded] [--no-text-integrity] [--max-input-bytes <bytes>] [--format json|text] [--c2patool <trusted-executable>] [--trust-anchors <pem>] [--allowed-list <pem>] [--verification-timeout-seconds <1-300>]"
+          ],
+          "options": [
+            {
+              "name": "--no-embedded",
+              "value": null
+            },
+            {
+              "name": "--no-text-integrity",
+              "value": null
+            },
+            {
+              "name": "--max-input-bytes",
+              "value": "<bytes>"
+            },
+            {
+              "name": "--format",
+              "value": "json|text"
+            },
+            {
+              "name": "--c2patool",
+              "value": "<trusted-executable>"
+            },
+            {
+              "name": "--trust-anchors",
+              "value": "<pem>"
+            },
+            {
+              "name": "--allowed-list",
+              "value": "<pem>"
+            },
+            {
+              "name": "--verification-timeout-seconds",
+              "value": "<1-300>"
+            }
+          ]
+        },
+        {
+          "name": "remove",
+          "names": [
+            "remove"
+          ],
+          "summary": "Write a copy without selected provenance carriers.",
+          "usage": [
+            "officeimo provenance remove <input> [--output <path>] [--force] [--keep-c2pa] [--keep-external-c2pa] [--keep-ai-source] [--remove-invalidated-signatures] [--no-embedded] [--max-input-bytes <bytes>] [--max-output-bytes <bytes>] [--format json|text]"
+          ],
+          "options": [
+            {
+              "name": "--output",
+              "value": "<path>"
+            },
+            {
+              "name": "--force",
+              "value": null
+            },
+            {
+              "name": "--keep-c2pa",
+              "value": null
+            },
+            {
+              "name": "--keep-external-c2pa",
+              "value": null
+            },
+            {
+              "name": "--keep-ai-source",
+              "value": null
+            },
+            {
+              "name": "--remove-invalidated-signatures",
+              "value": null
+            },
+            {
+              "name": "--no-embedded",
+              "value": null
+            },
+            {
+              "name": "--max-input-bytes",
+              "value": "<bytes>"
+            },
+            {
+              "name": "--max-output-bytes",
+              "value": "<bytes>"
+            },
+            {
+              "name": "--format",
+              "value": "json|text"
+            }
+          ]
+        },
+        {
+          "name": "audit",
+          "names": [
+            "audit"
+          ],
+          "summary": "Report provenance and dangerous Unicode across files and folders without changing them.",
+          "usage": [
+            "officeimo provenance audit <file-or-directory>... [--include <wildcard>] [--exclude <wildcard>] [--no-recursive] [--max-items <1-10000>] [--format json|text|ndjson|sarif]"
+          ],
+          "options": [
+            {
+              "name": "--include",
+              "value": "<wildcard>"
+            },
+            {
+              "name": "--exclude",
+              "value": "<wildcard>"
+            },
+            {
+              "name": "--no-recursive",
+              "value": null
+            },
+            {
+              "name": "--max-items",
+              "value": "<1-10000>"
+            },
+            {
+              "name": "--format",
+              "value": "json|text|ndjson|sarif"
+            }
+          ]
+        },
+        {
+          "name": "check",
+          "names": [
+            "check"
+          ],
+          "summary": "Audit and return exit code 1 when the selected findings are present.",
+          "usage": [
+            "officeimo provenance check <file-or-directory>... [--fail-on dangerous-text|carriers|any] [audit options]"
+          ],
+          "options": [
+            {
+              "name": "--fail-on",
+              "value": "dangerous-text|carriers|any"
+            }
+          ]
+        },
+        {
+          "name": "batch inspect|assess",
+          "names": [
+            "batch inspect",
+            "batch assess"
+          ],
+          "summary": "Inspect or assess many files with one result per item.",
+          "usage": [
+            "officeimo provenance batch inspect|assess <input>... [--max-items <1-10000>] [options]"
+          ],
+          "options": [
+            {
+              "name": "--max-items",
+              "value": "<1-10000>"
+            }
+          ]
+        },
+        {
+          "name": "batch remove",
+          "names": [
+            "batch remove"
+          ],
+          "summary": "Remove provenance from many files into an output directory.",
+          "usage": [
+            "officeimo provenance batch remove <input>... --output-directory <path> [--max-items <1-10000>] [options]"
+          ],
+          "options": [
+            {
+              "name": "--output-directory",
+              "value": "<path>"
+            },
+            {
+              "name": "--max-items",
+              "value": "<1-10000>"
+            }
+          ]
+        }
+      ],
+      "keyOptions": [
+        {
+          "name": "--format",
+          "value": "json|text",
+          "description": "Result format; JSON by default."
+        },
+        {
+          "name": "--fail-on",
+          "value": "dangerous-text|carriers|any",
+          "description": "Findings that fail check: dangerous-text, carriers or any."
+        },
+        {
+          "name": "--include",
+          "value": "<wildcard>",
+          "description": "Wildcard of files to include in an audit."
+        },
+        {
+          "name": "--exclude",
+          "value": "<wildcard>",
+          "description": "Wildcard of files to skip in an audit."
+        },
+        {
+          "name": "--c2patool",
+          "value": "<trusted-executable>",
+          "description": "Trusted c2patool executable used for verification."
+        },
+        {
+          "name": "--output",
+          "value": "<path>",
+          "description": "Destination file for remove."
+        },
+        {
+          "name": "--force",
+          "value": null,
+          "description": "Replace an existing output."
+        }
+      ],
+      "inputFormats": [],
+      "outputFormats": [],
+      "resultFormats": [
+        "json",
+        "text",
+        "ndjson",
+        "sarif"
+      ]
+    },
+    {
+      "id": "hidden-data",
+      "title": "Hidden data",
+      "summary": "Find and remove metadata, comments, tracked changes, hidden content and active content before sharing a file.",
+      "docsUrl": "/docs/cli/before-sharing/#hidden-data",
+      "aliases": [],
+      "shortcutFor": null,
+      "usage": [
+        "officeimo hidden-data <command> [options]"
+      ],
+      "subcommands": [
+        {
+          "name": "inspect",
+          "names": [
+            "inspect"
+          ],
+          "summary": "List the hidden data a file carries without changing it.",
+          "usage": [
+            "officeimo hidden-data inspect <input> [--format json|text]"
+          ],
+          "options": [
+            {
+              "name": "--format",
+              "value": "json|text"
+            }
+          ]
+        },
+        {
+          "name": "remove",
+          "names": [
+            "remove"
+          ],
+          "summary": "Write a cleaned copy; the input is never changed.",
+          "usage": [
+            "officeimo hidden-data remove <input> [--output <path>] [--force] [--kinds <kind>[,<kind>...]] [--tracked-changes keep|accept|reject] [--keep-provenance c2pa,external,ai-source] [--anonymous-author <name>] [--remove-invalidated-signatures] [--format json|text]"
+          ],
+          "options": [
+            {
+              "name": "--output",
+              "value": "<path>"
+            },
+            {
+              "name": "--force",
+              "value": null
+            },
+            {
+              "name": "--kinds",
+              "value": "<kind>"
+            },
+            {
+              "name": "--tracked-changes",
+              "value": "keep|accept|reject"
+            },
+            {
+              "name": "--keep-provenance",
+              "value": "c2pa,external,ai-source"
+            },
+            {
+              "name": "--anonymous-author",
+              "value": "<name>"
+            },
+            {
+              "name": "--remove-invalidated-signatures",
+              "value": null
+            },
+            {
+              "name": "--format",
+              "value": "json|text"
+            }
+          ]
+        }
+      ],
+      "keyOptions": [
+        {
+          "name": "--kinds",
+          "value": "<kind>",
+          "description": "What to remove: default, all, or named kinds such as provenance or tracked-changes."
+        },
+        {
+          "name": "--tracked-changes",
+          "value": "keep|accept|reject",
+          "description": "Keep, accept or reject tracked changes."
+        },
+        {
+          "name": "--keep-provenance",
+          "value": "c2pa,external,ai-source",
+          "description": "Provenance carriers to keep when provenance is removed."
+        },
+        {
+          "name": "--output",
+          "value": "<path>",
+          "description": "Destination file; the default is <input>.cleaned<ext>."
+        },
+        {
+          "name": "--force",
+          "value": null,
+          "description": "Replace an existing output."
+        }
+      ],
+      "inputFormats": [
+        "docx",
+        "epub",
+        "gif",
+        "jpeg",
+        "odp",
+        "ods",
+        "odt",
+        "pdf",
+        "png",
+        "pptx",
+        "tiff",
+        "vsdx",
+        "webp",
+        "xlsx"
+      ],
+      "outputFormats": [
+        "docx",
+        "epub",
+        "gif",
+        "jpeg",
+        "odp",
+        "ods",
+        "odt",
+        "pdf",
+        "png",
+        "pptx",
+        "tiff",
+        "vsdx",
+        "webp",
+        "xlsx"
+      ],
+      "resultFormats": [
+        "json",
+        "text"
+      ]
+    },
+    {
+      "id": "agent",
+      "title": "Agent",
+      "summary": "Inspect, search, fetch and convert documents and mailboxes with compact, bounded JSON results.",
+      "docsUrl": "/docs/cli/mcp-and-agents/#agent-commands",
+      "aliases": [],
+      "shortcutFor": null,
+      "usage": [
+        "officeimo agent <command> [options]"
+      ],
+      "subcommands": [
+        {
+          "name": "inspect",
+          "names": [
+            "inspect"
+          ],
+          "summary": "Summarize one document as compact JSON.",
+          "usage": [
+            "officeimo agent inspect <path> [--max-output-characters <512-64000>]"
+          ],
+          "options": [
+            {
+              "name": "--max-output-characters",
+              "value": "<512-64000>"
+            }
+          ]
+        },
+        {
+          "name": "inspect-email",
+          "names": [
+            "inspect-email"
+          ],
+          "summary": "Summarize one message or mailbox as compact JSON.",
+          "usage": [
+            "officeimo agent inspect-email <path> [--max-output-characters <512-64000>]"
+          ],
+          "options": [
+            {
+              "name": "--max-output-characters",
+              "value": "<512-64000>"
+            }
+          ]
+        },
+        {
+          "name": "search",
+          "names": [
+            "search"
+          ],
+          "summary": "Search the messages of a mailbox by metadata.",
+          "usage": [
+            "officeimo agent search <path> [--query <text>] [--subject <text>] [--sender <text>] [--folder-id <id>] [--since <ISO-8601>] [--before <ISO-8601>] [--has-attachments <bool>] [--is-read <bool>] [--include-descendants] [--take <1-25>] [--cursor <n>] [--max-output-characters <512-64000>]"
+          ],
+          "options": [
+            {
+              "name": "--query",
+              "value": "<text>"
+            },
+            {
+              "name": "--subject",
+              "value": "<text>"
+            },
+            {
+              "name": "--sender",
+              "value": "<text>"
+            },
+            {
+              "name": "--folder-id",
+              "value": "<id>"
+            },
+            {
+              "name": "--since",
+              "value": "<ISO-8601>"
+            },
+            {
+              "name": "--before",
+              "value": "<ISO-8601>"
+            },
+            {
+              "name": "--has-attachments",
+              "value": "<bool>"
+            },
+            {
+              "name": "--is-read",
+              "value": "<bool>"
+            },
+            {
+              "name": "--include-descendants",
+              "value": null
+            },
+            {
+              "name": "--take",
+              "value": "<1-25>"
+            },
+            {
+              "name": "--cursor",
+              "value": "<n>"
+            },
+            {
+              "name": "--max-output-characters",
+              "value": "<512-64000>"
+            }
+          ]
+        },
+        {
+          "name": "fetch",
+          "names": [
+            "fetch"
+          ],
+          "summary": "Fetch one result returned by inspect or search.",
+          "usage": [
+            "officeimo agent fetch --source-id <id> --id <result-id> [--path <original-path>] [--cursor <n>] [--max-output-characters <512-64000>]"
+          ],
+          "options": [
+            {
+              "name": "--source-id",
+              "value": "<id>"
+            },
+            {
+              "name": "--id",
+              "value": "<result-id>"
+            },
+            {
+              "name": "--path",
+              "value": "<original-path>"
+            },
+            {
+              "name": "--cursor",
+              "value": "<n>"
+            },
+            {
+              "name": "--max-output-characters",
+              "value": "<512-64000>"
+            }
+          ]
+        },
+        {
+          "name": "search-email",
+          "names": [
+            "search-email"
+          ],
+          "summary": "Search the content of a mailbox's messages.",
+          "usage": [
+            "officeimo agent search-email <mailbox> --query <text> [--fields <names>] [--checkpoint <value>] [--take <1-25>] [--max-items-scanned <1-10000>] [--max-decoded-bytes <1-67108864>] [--max-searchable-characters <1-2000000>] [--max-output-characters <512-64000>] [mailbox filters as above]"
+          ],
+          "options": [
+            {
+              "name": "--query",
+              "value": "<text>"
+            },
+            {
+              "name": "--fields",
+              "value": "<names>"
+            },
+            {
+              "name": "--checkpoint",
+              "value": "<value>"
+            },
+            {
+              "name": "--take",
+              "value": "<1-25>"
+            },
+            {
+              "name": "--max-items-scanned",
+              "value": "<1-10000>"
+            },
+            {
+              "name": "--max-decoded-bytes",
+              "value": "<1-67108864>"
+            },
+            {
+              "name": "--max-searchable-characters",
+              "value": "<1-2000000>"
+            },
+            {
+              "name": "--max-output-characters",
+              "value": "<512-64000>"
+            }
+          ]
+        },
+        {
+          "name": "convert",
+          "names": [
+            "convert"
+          ],
+          "summary": "Convert a document to Markdown, JSON or an Office or PDF file.",
+          "usage": [
+            "officeimo agent convert <path> --output <file> [--format markdown|json|docx|xlsx|pptx|pdf] [--force]"
+          ],
+          "options": [
+            {
+              "name": "--output",
+              "value": "<file>"
+            },
+            {
+              "name": "--format",
+              "value": "markdown|json|docx|xlsx|pptx|pdf"
+            },
+            {
+              "name": "--force",
+              "value": null
+            }
+          ]
+        },
+        {
+          "name": "capabilities",
+          "names": [
+            "capabilities"
+          ],
+          "summary": "List the operations available for each format.",
+          "usage": [
+            "officeimo agent capabilities [--extension <.ext>] [--operation create|read|edit|preserve|inspect|validate|remove|search|fetch|convert|export] [--cursor <n>] [--conversion-cursor <n>] [--max-output-characters <512-64000>]"
+          ],
+          "options": [
+            {
+              "name": "--extension",
+              "value": "<.ext>"
+            },
+            {
+              "name": "--operation",
+              "value": "create|read|edit|preserve|inspect|validate|remove|search|fetch|convert|export"
+            },
+            {
+              "name": "--cursor",
+              "value": "<n>"
+            },
+            {
+              "name": "--conversion-cursor",
+              "value": "<n>"
+            },
+            {
+              "name": "--max-output-characters",
+              "value": "<512-64000>"
+            }
+          ]
+        }
+      ],
+      "keyOptions": [
+        {
+          "name": "--max-output-characters",
+          "value": "<512-64000>",
+          "description": "Upper bound on the size of the JSON result."
+        },
+        {
+          "name": "--query",
+          "value": "<text>",
+          "description": "Text to search for."
+        },
+        {
+          "name": "--take",
+          "value": "<1-25>",
+          "description": "Number of results per page."
+        },
+        {
+          "name": "--cursor",
+          "value": "<n>",
+          "description": "Continue from a previous page of results."
+        },
+        {
+          "name": "--source-id",
+          "value": "<id>",
+          "description": "Source returned by inspect or search, used by fetch."
+        }
+      ],
+      "inputFormats": [
+        "123",
+        "adoc",
+        "asc",
+        "asciidoc",
+        "bmp",
+        "chm",
+        "csv",
+        "dbf",
+        "dbk",
+        "dbx",
+        "dif",
+        "djv",
+        "djvu",
+        "doc",
+        "docbook",
+        "docm",
+        "docx",
+        "dot",
+        "dotm",
+        "dotx",
+        "emf",
+        "eml",
+        "emlx",
+        "epub",
+        "fodg",
+        "fodp",
+        "fods",
+        "fodt",
+        "gif",
+        "htm",
+        "html",
+        "ical",
+        "ico",
+        "ics",
+        "ifb",
+        "ipynb",
+        "jpeg",
+        "jpg",
+        "json",
+        "key",
+        "log",
+        "lwp",
+        "markdown",
+        "mbox",
+        "mbx",
+        "md",
+        "mdown",
+        "mdx",
+        "mht",
+        "mhtml",
+        "mkd",
+        "mp",
+        "mp1",
+        "mp2",
+        "mp3",
+        "msg",
+        "numbers",
+        "oab",
+        "odg",
+        "odp",
+        "ods",
+        "odt",
+        "oft",
+        "olm",
+        "one",
+        "onepkg",
+        "onetoc2",
+        "opml",
+        "ost",
+        "oxps",
+        "pages",
+        "pcx",
+        "pdf",
+        "png",
+        "pot",
+        "potm",
+        "potx",
+        "ppa",
+        "ppam",
+        "pps",
+        "ppsm",
+        "ppsx",
+        "ppt",
+        "pptm",
+        "pptx",
+        "pst",
+        "pub",
+        "qpw",
+        "rtf",
+        "sam",
+        "slk",
+        "srt",
+        "svg",
+        "tex",
+        "tif",
+        "tiff",
+        "tnef",
+        "toml",
+        "tsv",
+        "txt",
+        "vcard",
+        "vcf",
+        "vcs",
+        "vdx",
+        "vsd",
+        "vsdm",
+        "vsdx",
+        "vss",
+        "vssm",
+        "vssx",
+        "vst",
+        "vstm",
+        "vstx",
+        "vsx",
+        "vtt",
+        "vtx",
+        "wb1",
+        "wb2",
+        "wb3",
+        "webp",
+        "wk1",
+        "wk2",
+        "wk3",
+        "wk4",
+        "wks",
+        "wmf",
+        "wp",
+        "wp5",
+        "wp6",
+        "wpd",
+        "wps",
+        "wq1",
+        "wq2",
+        "wri",
+        "ws",
+        "ws3",
+        "ws4",
+        "ws5",
+        "ws6",
+        "ws7",
+        "xhtml",
+        "xla",
+        "xlam",
+        "xlm",
+        "xlr",
+        "xls",
+        "xlsb",
+        "xlsm",
+        "xlsx",
+        "xlt",
+        "xltm",
+        "xltx",
+        "xlw",
+        "xml",
+        "xps",
+        "yaml",
+        "yml",
+        "zip"
+      ],
+      "outputFormats": [
+        "docx",
+        "json",
+        "md",
+        "pdf",
+        "pptx",
+        "xlsx"
+      ],
+      "resultFormats": [
+        "json"
+      ]
+    },
+    {
+      "id": "mcp",
+      "title": "MCP server",
+      "summary": "Serve OfficeIMO tools to MCP clients over standard input and output, limited to the folders in OFFICEIMO_MCP_ALLOWED_ROOTS.",
+      "docsUrl": "/docs/cli/mcp-and-agents/",
+      "aliases": [],
+      "shortcutFor": null,
+      "usage": [
+        "officeimo mcp serve --stdio"
+      ],
+      "subcommands": [
+        {
+          "name": "serve",
+          "names": [
+            "serve"
+          ],
+          "summary": "Start the MCP server on standard input and output.",
+          "usage": [
+            "officeimo mcp serve --stdio [--ocr-provider-assembly <trusted-provider.dll>] [--ocr-option <key=value>] [--pdf-password-env <admitted-variable>]"
+          ],
+          "options": [
+            {
+              "name": "--stdio",
+              "value": null
+            },
+            {
+              "name": "--ocr-provider-assembly",
+              "value": "<trusted-provider.dll>"
+            },
+            {
+              "name": "--ocr-option",
+              "value": "<key=value>"
+            },
+            {
+              "name": "--pdf-password-env",
+              "value": "<admitted-variable>"
+            }
+          ]
+        }
+      ],
+      "keyOptions": [
+        {
+          "name": "--stdio",
+          "value": null,
+          "description": "Use standard input and output as the transport."
+        },
+        {
+          "name": "--pdf-password-env",
+          "value": "<admitted-variable>",
+          "description": "Admit an environment variable that PDF tools may read a password from."
+        },
+        {
+          "name": "--ocr-provider-assembly",
+          "value": "<trusted-provider.dll>",
+          "description": "Trusted OCR provider assembly loaded at startup."
+        }
+      ],
+      "inputFormats": [],
+      "outputFormats": [],
+      "resultFormats": [
+        "json"
+      ]
+    }
+  ],
+  "exitCodes": [
+    {
+      "code": 0,
+      "name": "Success",
+      "meaning": "The command completed."
+    },
+    {
+      "code": 1,
+      "name": "ValidationFailed",
+      "meaning": "The requested validation ran and found errors, for example invoice validate, markup validate or provenance check."
+    },
+    {
+      "code": 2,
+      "name": "Usage",
+      "meaning": "The command or an option is invalid, including a conversion with no matching route."
+    },
+    {
+      "code": 3,
+      "name": "InputNotFound",
+      "meaning": "An input file or folder was not found."
+    },
+    {
+      "code": 4,
+      "name": "UnsupportedInput",
+      "meaning": "The input is unsupported or could not be read."
+    },
+    {
+      "code": 5,
+      "name": "OperationFailed",
+      "meaning": "The document operation failed, including batches with failed items."
+    },
+    {
+      "code": 6,
+      "name": "OutputFailed",
+      "meaning": "The output could not be written, including a refused overwrite or an output over its size limit."
+    },
+    {
+      "code": 130,
+      "name": "Cancelled",
+      "meaning": "The command was cancelled."
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{{~ if app.recipes && app.recipes.items ~}}
+<section class="imo-container imo-surface-section imo-surface-recipes" aria-labelledby="recipes-title">
+  <div class="imo-surface-head"><h2 id="recipes-title">{{ app.recipes.title }}</h2></div>
+  <ul class="imo-surface-recipes__grid">
+    {{~ for recipe in app.recipes.items ~}}
+    <li><a href="{{ recipe.url }}"><strong>{{ recipe.title }}</strong><span>{{ recipe.summary }}</span><em>{{ recipe.label }} <span aria-hidden="true">→</span></em></a></li>
+    {{~ end ~}}
+  </ul>
+  {{ if app.recipes.moreUrl }}<p class="imo-surface-more"><a href="{{ app.recipes.moreUrl }}">{{ app.recipes.moreLabel }} <span aria-hidden="true">→</span></a></p>{{ end }}
+</section>
+{{~ end ~}}

@@ -162,19 +162,6 @@ public sealed class PdfMalformedInputHardeningTests {
     }
 
     [Fact]
-    public void ExtractPages_WritesReferencesToUndefinedObjectsAsNull() {
-        byte[] pdf = BuildPdf(
-            "<< /Type /Catalog /Pages 2 0 R >>",
-            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources " + HelveticaResources + " /Contents 4 0 R /PieceInfo 9 0 R >>",
-            Stream("BT /F1 12 Tf 10 100 Td (Dangling) Tj ET"));
-
-        PdfDocument extracted = PdfDocument.Load(new MemoryStream(pdf)).Pages.Extract("1");
-
-        Assert.Contains("Dangling", PdfDocument.Load(new MemoryStream(extracted.ToBytes())).ExtractText(), StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void ExtractPages_DropsUndefinedStructureTreeRootAndBlocksUnusableStructureTrees() {
         string[] common = {
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
