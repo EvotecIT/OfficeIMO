@@ -427,7 +427,9 @@ public sealed partial class PdfReadPage {
             try {
                 RegisterEmbeddedFonts(drawing, formResources, visitedForms, depth + 1, registeredFonts, preserveExistingFaces, cancellationToken);
             } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion) {
-                // The drawing walkers skip forms nested this deep, so their fonts are not needed.
+                // The drawing walkers skip forms nested this deep. A shallower reference to the same form still
+                // registers its fonts, so it is not left marked as visited.
+                visitedForms.Remove(form);
             }
         }
     }
