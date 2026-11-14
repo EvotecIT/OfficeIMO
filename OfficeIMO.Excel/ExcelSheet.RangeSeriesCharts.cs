@@ -1,9 +1,10 @@
 namespace OfficeIMO.Excel;
 
 public partial class ExcelSheet {
-    /// <summary>Adds an editable chart whose series reference their own worksheet ranges, which need not be adjacent.</summary>
+    /// <summary>Adds an editable chart of any type whose series reference their own worksheet ranges, which need not be adjacent.</summary>
     /// <remarks>
-    /// Category charts take the categories from each series' X range; every series must use the same category range and a
+    /// For category charts X is the categories and Y the values: categories come from each series' X range; every series
+    /// must use the same category range and a
     /// values range with the same number of cells. Ranges without a sheet name refer to this worksheet. A cached snapshot is
     /// read from the referenced cells unless ExcelChartOptions.CachedData supplies one or IncludeCachedData is false.
     /// Scatter and bubble charts use the X, Y and bubble-size ranges as given and store formulas only.

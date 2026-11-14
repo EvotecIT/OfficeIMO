@@ -194,6 +194,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_RangeChartCacheFromDeferredRowsMatchesTheWrittenCells() {
+            var table = new DataTable();
+            table.Columns.Add("Region", typeof(object));
+            table.Columns.Add("Score", typeof(object));
+            table.Columns.Add("Count", typeof(object));
+            object?[][] rows = {
+                new object?[] { "NA", 1.0 / 3.0, 7 },
+                new object?[] { "EU & UK", 12.5m, 3L },
+                new object?[] { 2024, 1e21, (byte)4 },
+                new object?[] { null, null, 0.1f },
+                new object?[] { "LATAM", "42", -5 }
+            };
+            foreach (object?[] row in rows) table.Rows.Add(row);
+
+            string ChartXml(bool writeRowsFirst) {
+                using var stream = new MemoryStream();
+                using (var document = ExcelDocument.Create(stream)) {
+                    var sheet = document.AddSheet("Data");
+                    sheet.AddTable(table, new ExcelTableOptions { Name = "Scores", AutoFit = false }, row: 1, column: 1);
+                    if (writeRowsFirst) sheet.Cell(1, 10).SetValue("note");
+                    sheet.AddChart(OfficeChartType.ColumnClustered, "A1:C6", new ExcelChartOptions { Row = 2, Column = 6 });
+                    if (!writeRowsFirst) sheet.Cell(1, 10).SetValue("note");
+                    document.Save(stream);
+                }
+
+                using var archive = new ZipArchive(new MemoryStream(stream.ToArray()), ZipArchiveMode.Read);
+                var entry = archive.Entries.Single(item => item.FullName.Contains("/charts/chart") && item.FullName.EndsWith(".xml", StringComparison.Ordinal)
+                    && !item.FullName.Contains("/_rels/"));
+                using var reader = new StreamReader(entry.Open());
+                string xml = reader.ReadToEnd();
+                return string.Join("|", System.Text.RegularExpressions.Regex.Matches(xml, "<c:(strCache|numCache)>.*?</c:\\1>")
+                    .Cast<System.Text.RegularExpressions.Match>().Select(match => match.Value));
+            }
+
+            string deferred = ChartXml(writeRowsFirst: false);
+            Assert.Contains("EU &amp; UK", deferred);
+            Assert.Equal(ChartXml(writeRowsFirst: true), deferred);
+        }
+
+        [Fact]
         public void PerformanceReview_SheetViewEditsAfterFreezingADataTableKeepBothSettings() {
             var table = new DataTable();
             table.Columns.Add("Region", typeof(object));
