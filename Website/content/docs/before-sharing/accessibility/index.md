@@ -1,6 +1,6 @@
 ---
 title: "Check accessibility"
-description: "Check Word, Excel and PowerPoint files for missing alt text, headings, table headers, unclear links, low contrast, title and language, write SARIF for CI, and apply safe fixes."
+description: "Check Word, Excel and PowerPoint files for missing alt text, table headers, unclear links, low contrast, title and language, and write SARIF for CI."
 layout: docs
 ---
 
