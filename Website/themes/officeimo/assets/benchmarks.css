@@ -81,3 +81,6 @@
 .imo-bench-waiting li small { color: var(--imo-text-muted); }
 .imo-bench-waiting p { margin: 0; color: var(--imo-text-secondary); font-size: .9rem; }
 .imo-bench-waiting p a { color: var(--imo-accent); font-weight: 600; }
+.imo-bench-planned { display: grid; gap: 6px; margin: .4rem 0; padding: 0; list-style: none; }
+.imo-bench-planned li { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 10px 14px; border: 1px solid var(--imo-border); border-radius: 8px; background: var(--imo-surface); }
+.imo-bench-planned span { color: var(--imo-text-muted); font-size: .88rem; }

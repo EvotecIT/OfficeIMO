@@ -6,7 +6,7 @@
 {{~ workloads = bench_stats[area.id].workloads ~}}
 {{~ lookup = bench_stats[area.id].lookup ~}}
 {{~ titles = {} ~}}
-{{~ if bench_index && bench_index.comparisons ~}}{{~ for comparison in bench_index.comparisons ~}}{{~ titles[comparison.id] = comparison ~}}{{~ end ~}}{{~ end ~}}
+{{~ if bench_index && bench_index.comparisons ~}}{{~ for comparison in bench_index.comparisons ~}}{{~ titles[comparison.comparisonId] = comparison ~}}{{~ end ~}}{{~ end ~}}
 <div class="imo-bench-area-page" data-benchmark-area="{{ area.id }}">
   <nav class="imo-bench-crumbs" aria-label="Breadcrumb"><a href="/benchmarks/">Benchmarks</a> <span aria-hidden="true">/</span> <span>{{ area.title }}</span></nav>
   <p class="imo-bench-lead">Each table compares libraries doing the same validated work on one machine and one operating system. Lower is better. Pick another run to switch operating system or run type.</p>
@@ -14,6 +14,13 @@
   <section class="imo-bench-empty">
     <h2>No published results yet</h2>
     <p>The suites for this area are part of the benchmark runner. Results appear here after the next measured run on Windows, Linux and macOS.</p>
+    {{~ if bench_index && bench_index.comparisons ~}}
+    <ul class="imo-bench-planned">
+      {{~ for comparison in bench_index.comparisons ~}}{{~ if comparison.area == area.id ~}}
+      <li><strong>{{ comparison.title ?? bench_title(comparison.comparisonId) }}</strong>{{ if comparison.libraries }}<span>compared with {{ comparison.libraries | array.join ", " }}</span>{{ end }}</li>
+      {{~ end ~}}{{~ end ~}}
+    </ul>
+    {{~ end ~}}
     <p><a href="/docs/capabilities/benchmarks/">Run the suites yourself <span aria-hidden="true">→</span></a></p>
   </section>
   {{~ end ~}}

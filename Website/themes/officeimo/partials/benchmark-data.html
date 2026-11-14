@@ -23,7 +23,7 @@
   {{~ if bench_index.comparisons ~}}
     {{~ for comparison in bench_index.comparisons ~}}
       {{~ stat = bench_stats[comparison.area] ~}}
-      {{~ if stat && !stat.ids[comparison.id] ~}}{{~ stat.planned = stat.planned + 1 ~}}{{~ end ~}}
+      {{~ if stat && !stat.ids[comparison.comparisonId] ~}}{{~ stat.planned = stat.planned + 1 ~}}{{~ end ~}}
     {{~ end ~}}
   {{~ end ~}}
 {{~ end ~}}
