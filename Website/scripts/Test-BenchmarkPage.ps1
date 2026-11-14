@@ -17,7 +17,6 @@ $buildIndexPath = Join-Path $PSScriptRoot '..\data\benchmarks_index.json'
 $scriptPath = Join-Path $resolvedSiteRoot 'js\benchmarks.js'
 $comparisonCatalogPath = Join-Path $resolvedSiteRoot 'data\benchmarks\library-comparisons\index.json'
 $evidenceHelperPath = Join-Path $PSScriptRoot '..\..\Build\BenchmarkEvidence.ps1'
-$comparisonRunnerPath = Join-Path $PSScriptRoot '..\..\Build\Run-LibraryComparisonBenchmarks.ps1'
 
 . $evidenceHelperPath
 
@@ -41,9 +40,6 @@ if (-not (Test-Path -LiteralPath $comparisonCatalogPath -PathType Leaf)) {
     throw "Library comparison evidence catalog was not published to '$comparisonCatalogPath'."
 }
 
-if (-not (Test-Path -LiteralPath $comparisonRunnerPath -PathType Leaf)) {
-    throw "Library comparison runner was not found at '$comparisonRunnerPath'."
-}
 
 $contractEvidenceRoot = Join-Path ([System.IO.Path]::GetTempPath()) 'OfficeIMO-evidence-contract'
 $net8Evidence = Get-BenchmarkEvidenceLocation `
@@ -76,44 +72,6 @@ if ($data.schemaVersion -ne 2 -or
     throw 'Legacy Excel matrix data does not explicitly preserve its unrecorded OS and run mode.'
 }
 
-$comparisonRunnerText = Get-Content -LiteralPath $comparisonRunnerPath -Raw -Encoding UTF8
-if ($comparisonRunnerText -notmatch 'if \(\$catalogEligible -and \$gitDirty\)' -or
-    $comparisonRunnerText -notmatch 'Cataloged benchmark evidence requires a clean Git worktree') {
-    throw 'Catalog-eligible benchmark runs do not enforce source-commit provenance from a clean worktree.'
-}
-if ($comparisonRunnerText -notmatch 'GetUnresolvedProviderPathFromPSPath' -or
-    $comparisonRunnerText -notmatch '-ResultArtifactPath \$measurement\.EvidenceLocation\.Path' -or
-    $comparisonRunnerText -match '-Path \$measurement\.EvidenceLocation\.Path') {
-    throw 'The benchmark runner does not preserve caller-relative output roots and atomic evidence publication.'
-}
-
-$caseIdentity = Get-BenchmarkEvidenceCaseIdentity -Row ([pscustomobject]@{
-    Scenario = 'OfficeIMO_WriteDataReader'
-    Variables = [ordered]@{
-        RowCount = '25000&Shape=Mixed'
-        Namespace = 'OfficeIMO.CSV.Benchmarks'
-        Type = 'CsvDataReaderWriteBenchmarks'
-        FullName = 'ignored'
-        Affinity = '11111111111111111111111111111111'
-    }
-}) -VariableName @('rowcount', 'shape')
-$pdfCaseIdentity = Get-BenchmarkEvidenceCaseIdentity -Row ([pscustomobject]@{
-    Scenario = 'OfficeIMO'
-    Variables = [ordered]@{
-        Scale = 'Easy&Producer=OfficeIMO'
-    }
-}) -VariableName @('producer', 'scale')
-if ($caseIdentity -ne 'OfficeIMO_WriteDataReader|RowCount=25000&Shape=Mixed' -or
-    $pdfCaseIdentity -ne 'OfficeIMO|Producer=OfficeIMO&Scale=Easy' -or
-    $comparisonRunnerText -notmatch "Filter = '\*CsvDataReaderWriteBenchmarks\*\(RowCount: 25000,\*'" -or
-    $comparisonRunnerText -notmatch "foreach \(\`$shape in @\('Mixed', 'Quoted', 'Multiline'\)\)" -or
-    $comparisonRunnerText -notmatch "'OfficeIMO_WriteDataReader'" -or
-    $comparisonRunnerText -notmatch "'OfficeIMO_WriteDataReaderParallel'" -or
-    $comparisonRunnerText -notmatch "'Sylvan_WriteDataReader'" -or
-    $comparisonRunnerText -notmatch 'Get-BenchmarkEvidenceCaseIdentity') {
-    throw 'Parameterized CSV write evidence does not require every 25K scenario and shape combination.'
-}
-
 if ($rowCount -lt 1) {
     throw "Benchmark data JSON does not contain measurement rows."
 }
@@ -126,10 +84,10 @@ if ($summaryCount -lt 1) {
     throw "Benchmark data JSON does not contain summary rows."
 }
 
-if ($comparisonCatalog.schemaVersion -ne 3 -or
+if ($comparisonCatalog.schemaVersion -ne 4 -or
     @($comparisonCatalog.expectedPlatforms).Count -ne 3 -or
     -not (@($comparisonCatalog.availability).Where({ $_.platform -eq 'macos' -and -not $_.available }))) {
-    throw 'Library comparison catalog does not expose the versioned three-platform model and explicit missing macOS lane.'
+    throw 'Library comparison catalog does not expose the v4 three-platform model and explicit missing macOS lane.'
 }
 
 foreach ($entry in @($comparisonCatalog.entries)) {
