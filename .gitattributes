@@ -11,6 +11,9 @@
 Website/static/downloads/integrations/** -text -whitespace
 Website/static/downloads/integrations/**/*.pdf -diff
 
+# Email authentication vectors are signed over exact CRLF bytes.
+OfficeIMO.Email.Tests/Fixtures/Authentication/*.eml -text
+
 # Imported PowerShell API components are bound to release fingerprints.
 Website/data/apidocs/powershell/PSWriteOffice.psd1 -text -diff
 Website/data/apidocs/powershell/PSWriteOffice-Help.xml -text -diff
