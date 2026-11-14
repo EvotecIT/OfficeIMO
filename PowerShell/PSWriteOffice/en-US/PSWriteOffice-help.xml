@@ -1197,7 +1197,7 @@
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>NoCachedData</maml:name>
           <maml:description>
-            <maml:para>Omit cached chart values. Requires a contiguous category/value source block.</maml:para>
+            <maml:para>Omit cached chart values. Not available for scatter charts of non-adjacent table columns.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -1430,7 +1430,7 @@
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>NoCachedData</maml:name>
           <maml:description>
-            <maml:para>Omit cached chart values. Requires a contiguous category/value source block.</maml:para>
+            <maml:para>Omit cached chart values. Not available for scatter charts of non-adjacent table columns.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -1675,7 +1675,7 @@
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>NoCachedData</maml:name>
           <maml:description>
-            <maml:para>Omit cached chart values. Requires a contiguous category/value source block.</maml:para>
+            <maml:para>Omit cached chart values. Not available for scatter charts of non-adjacent table columns.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -1908,7 +1908,7 @@
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>NoCachedData</maml:name>
         <maml:description>
-          <maml:para>Omit cached chart values. Requires a contiguous category/value source block.</maml:para>
+          <maml:para>Omit cached chart values. Not available for scatter charts of non-adjacent table columns.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>

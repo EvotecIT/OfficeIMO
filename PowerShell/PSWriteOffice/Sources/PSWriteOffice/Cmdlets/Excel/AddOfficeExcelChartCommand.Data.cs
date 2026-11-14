@@ -53,11 +53,26 @@ public sealed partial class AddOfficeExcelChartCommand {
         var chartData = ReadData(sheet, firstRow, lastRow, tableBounds.Left + categoryIndex,
             valueColumns, valueIndexes.Select(index => names[index]).ToArray());
         bool contiguous = valueIndexes.Select((index, offset) => index == categoryIndex + offset + 1).All(matches => matches);
-        string? source = contiguous
-            ? ExcelA1.CellReference(table.HasHeaderRow ? tableBounds.Top : firstRow, tableBounds.Left + categoryIndex) + ":" +
-              ExcelA1.CellReference(lastRow, valueColumns[valueColumns.Length - 1])
-            : null;
+        if (!contiguous) {
+            // Non-adjacent columns are charted in place; each series references its own column.
+            string ColumnRange(int column) => ExcelA1.CellReference(firstRow, column) + ":" + ExcelA1.CellReference(lastRow, column);
+            string categories = ColumnRange(tableBounds.Left + categoryIndex);
+            var ranges = valueIndexes.Select(index => new ExcelChartSeriesRange(names[index], categories, ColumnRange(tableBounds.Left + index))).ToArray();
+            return new ChartPlan(chartData, null, table.HasHeaderRow, seriesRanges: ranges);
+        }
+
+        string source = ExcelA1.CellReference(table.HasHeaderRow ? tableBounds.Top : firstRow, tableBounds.Left + categoryIndex) + ":" +
+            ExcelA1.CellReference(lastRow, valueColumns[valueColumns.Length - 1]);
         return new ChartPlan(chartData, source, table.HasHeaderRow);
+    }
+
+    /// <summary>Adds a chart whose series reference non-adjacent worksheet columns, reusing the values already read as its cache.</summary>
+    internal static ExcelChart AddRangeSeriesChart(ExcelSheet sheet, OfficeChartType kind, ChartPlan plan, ExcelChartOptions options, bool includeCachedData) {
+        options.IncludeCachedData = includeCachedData;
+        options.CachedData = includeCachedData
+            ? new ExcelChartData(plan.Data.Categories, plan.Data.Series.Select(series => new ExcelChartSeries(series.Name, series.Values)))
+            : null;
+        return sheet.AddChartFromRanges(kind, plan.SeriesRanges!, options);
     }
 
     /// <summary>Normalizes pipeline input through the shared table owner and reserves unused worksheet rows.</summary>
@@ -170,13 +185,19 @@ public sealed partial class AddOfficeExcelChartCommand {
     }
 
     internal sealed class ChartPlan {
-        internal ChartPlan(OfficeChartData data, string? sourceRange, bool hasHeaders, DataTable? inputTable = null, int startRow = 0) {
+        internal ChartPlan(OfficeChartData data, string? sourceRange, bool hasHeaders, DataTable? inputTable = null, int startRow = 0,
+            IReadOnlyList<ExcelChartSeriesRange>? seriesRanges = null) {
             Data = data;
             SourceRange = sourceRange;
             HasHeaders = hasHeaders;
             InputTable = inputTable;
             StartRow = startRow;
+            SeriesRanges = seriesRanges;
         }
+        internal IReadOnlyList<ExcelChartSeriesRange>? SeriesRanges { get; }
+
+        /// <summary>Whether the chart can reference the worksheet columns in place. Scatter charts keep their numeric X snapshot.</summary>
+        internal bool UsesSeriesRanges(OfficeChartType kind) => SeriesRanges != null && kind != OfficeChartType.Scatter;
         internal OfficeChartData Data { get; }
         internal string? SourceRange { get; }
         internal bool HasHeaders { get; }
