@@ -130,7 +130,10 @@ internal static partial class PdfPageImageRenderer {
         options.TextShapingProvider is null &&
         options.Fonts.Faces.All(face => face.HasBuiltInProgram);
 
-    internal static PdfPageRenderResult RenderPage(PdfReadDocument document, int pageNumber, PdfPageRenderOptions options, CancellationToken cancellationToken, bool forDisplay = false) {
+    // printing paints only annotations with the Print flag, as a printed page shows them. A raster sink receives the PNG
+    // render's pixels instead of encoding them, and the result then carries no bytes.
+    internal static PdfPageRenderResult RenderPage(PdfReadDocument document, int pageNumber, PdfPageRenderOptions options, CancellationToken cancellationToken, bool forDisplay = false,
+        bool printing = false, Action<global::OfficeIMO.Drawing.OfficeRasterImage>? rasterSink = null) {
         var timer = Stopwatch.StartNew();
         IReadOnlyList<PdfRenderCapabilityDiagnostic> capabilityDiagnostics = Array.Empty<PdfRenderCapabilityDiagnostic>();
         try {
@@ -144,7 +147,7 @@ internal static partial class PdfPageImageRenderer {
             }
             var pageSize = document.Pages[pageNumber - 1].GetVisualPageSize();
             double functionScale = options.GetScale(pageSize.Width, pageSize.Height);
-            OfficeDrawing drawing = forDisplay ? document.Pages[pageNumber - 1].ToDisplayDrawing(cancellationToken, ConfigureDrawing, functionScale, options.MaxPixelsPerPage)
+            OfficeDrawing drawing = forDisplay ? document.Pages[pageNumber - 1].ToDisplayDrawing(cancellationToken, ConfigureDrawing, functionScale, options.MaxPixelsPerPage, printing: printing)
                 : document.Pages[pageNumber - 1].ToDrawing(cancellationToken, ConfigureDrawing, functionScale, options.MaxPixelsPerPage);
             double scale = options.GetScale(drawing);
             int width = checked((int)Math.Ceiling(drawing.Width * scale));
@@ -156,7 +159,17 @@ internal static partial class PdfPageImageRenderer {
 
             cancellationToken.ThrowIfCancellationRequested();
             byte[] bytes;
-            if (options.Format == global::OfficeIMO.Drawing.OfficeImageExportFormat.Png) {
+            if (options.Format == global::OfficeIMO.Drawing.OfficeImageExportFormat.Png && rasterSink != null) {
+                rasterSink(OfficeDrawingRasterRenderer.Render(drawing, RasterOptions(
+                    scale,
+                    options.Background,
+                    options.ImageCodec,
+                    options.MaxPixelsPerPage,
+                    options.TextShapingProvider,
+                    options.TextShapingLanguage,
+                    cancellationToken)));
+                bytes = Array.Empty<byte>();
+            } else if (options.Format == global::OfficeIMO.Drawing.OfficeImageExportFormat.Png) {
                 bytes = RenderDrawingAsPng(
                     drawing,
                     scale,
@@ -167,15 +180,17 @@ internal static partial class PdfPageImageRenderer {
                     options.TextShapingLanguage,
                     cancellationToken);
             } else {
+                if (drawing.PostCompositionColorTransform != null)
+                    drawing = PdfImageExportEngine.AddBackground(drawing, options.Background);
                 try {
                     bytes = OfficeDrawingSvgExporter.ToSvgBytes(
                         drawing,
                         scale,
                         OfficeSvgSizeUnit.Point,
-                        imageCodec: null,
+                        imageCodec: options.ImageCodec,
                         resourceIdPrefix: null,
                         maximumUtf8Bytes: options.MaxOutputBytesPerPage,
-                        cancellationToken: cancellationToken);
+                        cancellationToken: cancellationToken, maximumRasterPixels: options.MaxPixelsPerPage);
                 } catch (OfficeImageExportBatchLimitException exception) {
                     throw PdfReadLimitException.Create(
                         PdfReadLimitKind.RenderBytes,

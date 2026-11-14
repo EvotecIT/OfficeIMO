@@ -169,9 +169,11 @@ officeimo workflow batch report.pdf appendix.pdf --output ./HTML --target html
 officeimo workflow batch --input-directory ./config --output ./json --route toml-json
 
 officeimo workflow printers
-officeimo workflow printers --paper-sources "Office printer"
+officeimo workflow printers --capabilities "Office printer"
 officeimo workflow print report.pdf --printer "Office printer" --pages 1-3 `
   --pages-per-sheet 2 --copies 1 --duplex long
+officeimo workflow print proposal.docx --printer ipp://printer.local/ipp/print
+officeimo workflow print-job wait --printer "Office printer" --job Office_printer-42 --timeout 300
 officeimo workflow print-plan report.pdf --pages-per-sheet 6 --page-subset odd `
   --scale custom --custom-scale 40 --alignment bottom-right --margin 18 `
   --margin-left 24 --margin-right 24 --color grayscale
@@ -179,9 +181,13 @@ officeimo workflow print-plan report.pdf --pages-per-sheet 6 --page-subset odd `
 
 Ordinary batches accept `--conflict fail|rename|replace`. Checkpoint jobs require `fail` and separate source, output and state trees. Changed completed inputs/settings/resources, altered or missing outputs and existing outputs without a verified receipt require inspection. Concurrency and execution budgets can change without discarding verified artifacts. Item failures produce a nonzero exit code. See [the batch contract](../OfficeIMO.Workflows/README.md#optional-checkpoints) for resource limits, diagnostics and recorded-artifact reuse across compatible engine updates.
 
-Printer submission uses prepared raster sheets. The returned job identifier proves queue acceptance; physical delivery is unconfirmed. After an interrupted submission, check the queue before retrying. Windows file printers require `--output-file` naming a new local file. macOS/Linux delivery uses the existing CUPS service boundary and requires its command-line tools.
+`print` accepts PDF and every format the conversion catalog turns into PDF; other formats are converted in memory and conversion warnings are written to standard error. `--printer` takes an installed queue name or an `ipp://` or `ipps://` printer URI. IPP printers and CUPS queues receive vector PDF where they accept it and PWG raster otherwise; CUPS queues are reached over IPP at the local scheduler, with `lp` as the fallback. Windows drivers receive one rasterized sheet at a time. Raster delivery uses up to `--dpi` (300 by default). Without `--paper`, sheets use the printer's default media. Attributes the printer ignored are written to standard error. `printers --capabilities <printer>` lists media, trays, duplex, color, collation, copies and resolutions; `printers --paper-sources <printer>` lists only the trays. Windows file printers require `--output-file` naming a new local file.
 
-Both `print-plan` and `print` accept 1/2/4/6/9 pages per sheet, `--page-subset all|odd|even`, nine-position `--alignment`, and per-edge point margins (`--margin-left`, `--margin-top`, `--margin-right`, `--margin-bottom`). Odd/even refers to original document page numbers within `--pages`. `--scale custom --custom-scale <percent>` uses 1–1000 percent of source physical size and clips overflow. `--color grayscale` changes the prepared pixels; `--color color` retains source colors, subject to the device's capabilities. Layout margins do not remove printer hardware margins.
+The returned job identifier proves queue acceptance; physical delivery is unconfirmed. `print-job status|wait|cancel --printer <printer> --job <id>` reads the job's state (Pending, Held, Processing, Stopped, Canceled, Aborted, Completed or Removed), waits up to `--timeout` seconds (300 by default) for it to finish, or cancels it. After an interrupted submission, check the queue before retrying.
+
+`print-plan` and `print` read the password of an encrypted PDF from the environment variable named by `--password-env`, never from the command line. Printing permissions stay enforced: a document that denies printing, or a wrong password, fails before anything is submitted.
+
+Both `print-plan` and `print` accept 1/2/4/6/9 pages per sheet, `--page-subset all|odd|even`, nine-position `--alignment`, and per-edge point margins (`--margin-left`, `--margin-top`, `--margin-right`, `--margin-bottom`). Odd/even refers to original document page numbers within `--pages`. `--scale custom --custom-scale <percent>` uses 1–1000 percent of source physical size and clips overflow. `--color grayscale` rasterizes the sheets in grayscale for preview and delivery; `--color color` retains source colors, subject to the device's capabilities. Layout margins do not remove printer hardware margins.
 
 ## Saved conversion jobs
 
@@ -299,6 +305,10 @@ officeimo convert response.json items.csv --select data.items --columns id,name,
 officeimo convert people.json people.xml --root-name people
 officeimo convert budget.xlsx budget.json --sheet Summary --range A1:D20
 
+# CSV or TSV to a typed workbook, and the first worksheet back to CSV
+officeimo convert people.csv people.xlsx
+officeimo convert budget.xlsx budget.csv
+
 # Supported documents to Markdown or JSON through OfficeIMO.Reader
 officeimo convert workbook.xlsx workbook.md
 officeimo convert report.docx report.json
@@ -326,7 +336,7 @@ officeimo workflow optimize-images input.docx --analyze
 officeimo workflow optimize-images input.docx --output optimized.docx --mode both --dpi 144 --quality 85
 
 # Process an explicit batch; each output is independently staged and reopened
-officeimo workflow optimize-images first.docx second.docx --output-directory optimized --format pdf --mode both
+officeimo workflow optimize-images first.docx second.docx --output-directory optimized --output-format pdf --mode both
 
 # Export selected PDF pages to validated images
 officeimo workflow export-pages report.pdf --output .\report-pages --pages 1-3,last --image-format png
@@ -337,7 +347,7 @@ officeimo workflow assemble cover.png report.docx appendices .\attachments.zip -
 # Inspect print-sheet placement without requiring a platform printer driver
 officeimo workflow print-plan complete.pdf --paper A4 --pages-per-sheet 2 --scale fit
 
-# export-pages, assemble and print-plan write versioned JSON; --format text prints a summary
+# Workflow commands other than batch write versioned JSON; --format text prints a summary
 officeimo workflow print-plan complete.pdf --format text
 
 # Inspect or assess provenance with versioned JSON output

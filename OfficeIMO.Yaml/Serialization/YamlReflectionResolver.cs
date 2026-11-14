@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Reflection;
+using OfficeIMO.Serialization;
 
 namespace OfficeIMO.Yaml;
 
@@ -50,29 +51,29 @@ internal sealed class YamlReflectionResolver : IYamlTypeInfoResolver {
             return Invoke(nameof(CreateArray), new[] { type.GetElementType()! }, options);
         }
 
-        if (YamlTypeShapes.TryGetDictionary(type, out Type? key, out Type? value, out YamlCollectionKind dictionaryKind)) {
-            if (!YamlTypeShapes.IsKeyType(key!)) throw Unsupported(type, "dictionary keys must be strings, numbers, enums or other scalar types");
+        if (SerializerTypeShapes.TryGetDictionary(type, out Type? key, out Type? value, out SerializerCollectionKind dictionaryKind)) {
+            if (!SerializerTypeShapes.IsKeyType(key!)) throw Unsupported(type, "dictionary keys must be strings, numbers, enums or other scalar types");
             string method = dictionaryKind switch {
-                YamlCollectionKind.Identity => nameof(CreateDictionary),
-                YamlCollectionKind.Custom => nameof(CreateCustomDictionary),
+                SerializerCollectionKind.Identity => nameof(CreateDictionary),
+                SerializerCollectionKind.Custom => nameof(CreateCustomDictionary),
                 _ => throw Unsupported(type, "it implements a dictionary interface but has no public parameterless constructor")
             };
             return Invoke(method, new[] { type, key!, value! }, options);
         }
 
-        if (YamlTypeShapes.TryGetCollection(type, out Type? element, out YamlCollectionKind collectionKind)) {
+        if (SerializerTypeShapes.TryGetCollection(type, out Type? element, out SerializerCollectionKind collectionKind)) {
             string method = collectionKind switch {
-                YamlCollectionKind.Identity => nameof(CreateList),
-                YamlCollectionKind.Set => nameof(CreateSet),
-                YamlCollectionKind.Custom => nameof(CreateCustomCollection),
+                SerializerCollectionKind.Identity => nameof(CreateList),
+                SerializerCollectionKind.Set => nameof(CreateSet),
+                SerializerCollectionKind.Custom => nameof(CreateCustomCollection),
                 _ => throw Unsupported(type, "it is a collection without a public parameterless constructor, or implements IEnumerable<T> more than once")
             };
             return Invoke(method, new[] { type, element! }, options);
         }
         if (typeof(System.Collections.IEnumerable).IsAssignableFrom(type)) throw Unsupported(type, "non-generic collections are not supported");
 
-        bool polymorphic = type.GetCustomAttributes(typeof(YamlDerivedTypeAttribute), inherit: false).Length > 0;
-        if ((type.IsAbstract || type.IsInterface) && !polymorphic) throw Unsupported(type, "it is abstract and registers no derived types with [YamlDerivedType]");
+        bool polymorphic = type.GetCustomAttributes(typeof(OfficeDerivedTypeAttribute), inherit: false).Length > 0;
+        if ((type.IsAbstract || type.IsInterface) && !polymorphic) throw Unsupported(type, "it is abstract and registers no derived types with [OfficeDerivedType]");
         return Invoke(nameof(CreateObject), new[] { type }, options);
     }
 
@@ -168,10 +169,10 @@ internal sealed class YamlReflectionResolver : IYamlTypeInfoResolver {
     private static YamlTypeInfo CreateObject<T>(YamlSerializerOptions options) {
         Type type = typeof(T);
         var values = new YamlObjectInfoValues<T>();
-        List<PropertyInfo> properties = YamlTypeShapes.GetProperties(type);
+        List<PropertyInfo> properties = SerializerTypeShapes.GetProperties(type);
 
         if (!type.IsAbstract && !type.IsInterface) {
-            ConstructorInfo? constructor = YamlTypeShapes.SelectConstructor(type, out bool useDefault);
+            ConstructorInfo? constructor = SerializerTypeShapes.SelectConstructor(type, out bool useDefault);
             if (useDefault) {
                 values.ObjectCreator = static () => Activator.CreateInstance<T>();
             } else if (constructor is not null) {
@@ -195,10 +196,10 @@ internal sealed class YamlReflectionResolver : IYamlTypeInfoResolver {
             return infos;
         };
 
-        object[] derived = type.GetCustomAttributes(typeof(YamlDerivedTypeAttribute), inherit: false);
+        object[] derived = type.GetCustomAttributes(typeof(OfficeDerivedTypeAttribute), inherit: false);
         if (derived.Length > 0) {
-            values.DerivedTypes = Array.ConvertAll(derived, static attribute => (YamlDerivedTypeAttribute)attribute);
-            values.DiscriminatorPropertyName = type.GetCustomAttribute<YamlPolymorphicAttribute>(inherit: false)?.DiscriminatorPropertyName;
+            values.DerivedTypes = Array.ConvertAll(derived, static attribute => (OfficeDerivedTypeAttribute)attribute);
+            values.DiscriminatorPropertyName = type.GetCustomAttribute<OfficePolymorphicAttribute>(inherit: false)?.DiscriminatorPropertyName;
         }
         return YamlMetadataServices.CreateObjectInfo(options, values);
     }
@@ -223,9 +224,9 @@ internal sealed class YamlReflectionResolver : IYamlTypeInfoResolver {
     private static YamlPropertyInfo CreateProperty<TDeclaring, TProperty>(YamlSerializerOptions options, PropertyInfo property) {
         var values = new YamlPropertyInfoValues<TProperty> {
             Name = property.Name,
-            YamlName = property.GetCustomAttribute<YamlPropertyNameAttribute>()?.Name,
-            IsRequired = YamlTypeShapes.IsRequired(property),
-            IgnoreCondition = property.GetCustomAttribute<YamlIgnoreAttribute>()?.Condition
+            YamlName = property.GetCustomAttribute<OfficePropertyNameAttribute>()?.Name,
+            IsRequired = SerializerTypeShapes.IsRequired(property),
+            IgnoreCondition = property.GetCustomAttribute<OfficeIgnoreAttribute>()?.Condition
         };
         MethodInfo getter = property.GetMethod!;
         MethodInfo? setter = property.SetMethod is { IsPublic: true } set ? set : null;
@@ -255,175 +256,5 @@ internal sealed class YamlReflectionResolver : IYamlTypeInfoResolver {
         } catch (ArgumentException) {
             return (owner, value) => property.SetValue(owner, value);
         }
-    }
-}
-
-/// <summary>How a collection or dictionary type is created from the list or dictionary the serializer reads into.</summary>
-internal enum YamlCollectionKind {
-    /// <summary>The list or dictionary is the result: <see cref="List{T}"/>, <see cref="Dictionary{TKey, TValue}"/> or an interface they implement.</summary>
-    Identity,
-    /// <summary>A <see cref="HashSet{T}"/> is built from the list.</summary>
-    Set,
-    /// <summary>A concrete type with a public parameterless constructor is filled with <c>Add</c>.</summary>
-    Custom,
-    /// <summary>The type cannot be created.</summary>
-    Unsupported
-}
-
-/// <summary>
-/// The shape rules shared by reflection metadata, mirrored by the source generator: which types are collections and
-/// dictionaries, which properties an object has and in what order, and which constructor reading uses.
-/// </summary>
-[RequiresUnreferencedCode(YamlReflectionResolver.UnreferencedCodeMessage)]
-internal static class YamlTypeShapes {
-    private const BindingFlags Declared = BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly;
-
-    public static bool TryGetDictionary(Type type, out Type? key, out Type? value, out YamlCollectionKind kind) {
-        key = value = null;
-        kind = YamlCollectionKind.Unsupported;
-        Type? found = null;
-        if (type.IsGenericType) {
-            Type definition = type.GetGenericTypeDefinition();
-            if (definition == typeof(Dictionary<,>) || definition == typeof(IDictionary<,>) || definition == typeof(IReadOnlyDictionary<,>)) {
-                found = type;
-                kind = YamlCollectionKind.Identity;
-            }
-        }
-        if (found is null) {
-            found = FindInterface(type, typeof(IDictionary<,>)) ?? FindInterface(type, typeof(IReadOnlyDictionary<,>));
-            if (found is null) return false;
-            kind = !type.IsAbstract && !type.IsInterface && FindInterface(type, typeof(IDictionary<,>)) is not null && HasPublicParameterlessConstructor(type)
-                ? YamlCollectionKind.Custom
-                : YamlCollectionKind.Unsupported;
-        }
-        Type[] arguments = found.GetGenericArguments();
-        key = arguments[0];
-        value = arguments[1];
-        return true;
-    }
-
-    public static bool TryGetCollection(Type type, out Type? element, out YamlCollectionKind kind) {
-        element = null;
-        kind = YamlCollectionKind.Unsupported;
-        if (type == typeof(string)) return false;
-        if (type.IsGenericType) {
-            Type definition = type.GetGenericTypeDefinition();
-            Type argument = type.GetGenericArguments()[0];
-            if (definition == typeof(List<>) || definition == typeof(IEnumerable<>) || definition == typeof(ICollection<>) || definition == typeof(IList<>)
-                || definition == typeof(IReadOnlyCollection<>) || definition == typeof(IReadOnlyList<>)) {
-                element = argument;
-                kind = YamlCollectionKind.Identity;
-                return true;
-            }
-            if (definition == typeof(HashSet<>) || definition == typeof(ISet<>) || definition.FullName == "System.Collections.Generic.IReadOnlySet`1") {
-                element = argument;
-                kind = YamlCollectionKind.Set;
-                return true;
-            }
-        }
-        Type? enumerable = null;
-        foreach (Type candidate in type.GetInterfaces()) {
-            if (!candidate.IsGenericType || candidate.GetGenericTypeDefinition() != typeof(IEnumerable<>)) continue;
-            if (enumerable is not null) return true;
-            enumerable = candidate;
-        }
-        if (enumerable is null) return false;
-        element = enumerable.GetGenericArguments()[0];
-        if (!type.IsAbstract && !type.IsInterface && FindInterface(type, typeof(ICollection<>)) is Type collection
-            && collection.GetGenericArguments()[0] == element && HasPublicParameterlessConstructor(type)) {
-            kind = YamlCollectionKind.Custom;
-        }
-        return true;
-    }
-
-    /// <summary>Whether a type can be a mapping key: a string or another type written as a single scalar.</summary>
-    public static bool IsKeyType(Type type) =>
-        type == typeof(string) || type.IsEnum || type == typeof(bool) || type == typeof(char)
-        || type == typeof(byte) || type == typeof(sbyte) || type == typeof(short) || type == typeof(ushort)
-        || type == typeof(int) || type == typeof(uint) || type == typeof(long) || type == typeof(ulong)
-        || type == typeof(float) || type == typeof(double) || type == typeof(decimal) || type == typeof(BigInteger)
-        || type == typeof(Guid) || type == typeof(DateTime) || type == typeof(DateTimeOffset) || type == typeof(TimeSpan)
-#if NET6_0_OR_GREATER
-        || type == typeof(DateOnly) || type == typeof(TimeOnly)
-#endif
-        || type == typeof(Uri);
-
-    private static Type? FindInterface(Type type, Type definition) {
-        if (type.IsGenericType && type.GetGenericTypeDefinition() == definition) return type;
-        foreach (Type candidate in type.GetInterfaces()) {
-            if (candidate.IsGenericType && candidate.GetGenericTypeDefinition() == definition) return candidate;
-        }
-        return null;
-    }
-
-    private static bool HasPublicParameterlessConstructor(Type type) => type.IsValueType || type.GetConstructor(Type.EmptyTypes) is not null;
-
-    /// <summary>
-    /// Returns the serialized properties: public instance properties with a public getter, base types first in
-    /// declaration order. A redeclared property keeps its base position with the most derived declaration, and
-    /// <see cref="YamlIgnoreAttribute"/> with <see cref="YamlIgnoreCondition.Always"/> removes it.
-    /// </summary>
-    public static List<PropertyInfo> GetProperties(Type type) {
-        var chain = new List<Type>();
-        if (type.IsInterface) {
-            chain.Add(type);
-        } else {
-            for (Type? current = type; current is not null && current != typeof(object) && current != typeof(ValueType); current = current.BaseType) chain.Insert(0, current);
-        }
-        var result = new List<PropertyInfo?>();
-        var positions = new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (Type declaring in chain) {
-            foreach (PropertyInfo property in declaring.GetProperties(Declared)) {
-                if (property.GetIndexParameters().Length > 0) continue;
-                bool ignored = property.GetCustomAttribute<YamlIgnoreAttribute>() is { Condition: YamlIgnoreCondition.Always };
-                bool readable = property.GetMethod is { IsPublic: true, IsStatic: false };
-                PropertyInfo? entry = ignored || !readable ? null : property;
-                if (positions.TryGetValue(property.Name, out int position)) {
-                    result[position] = entry;
-                } else {
-                    positions.Add(property.Name, result.Count);
-                    result.Add(entry);
-                }
-            }
-        }
-        var properties = new List<PropertyInfo>(result.Count);
-        foreach (PropertyInfo? property in result) {
-            if (property is not null) properties.Add(property);
-        }
-        return properties;
-    }
-
-    /// <summary>Whether a property is required: <see cref="YamlRequiredAttribute"/> or a C# <c>required</c> member.</summary>
-    public static bool IsRequired(PropertyInfo property) {
-        if (Attribute.IsDefined(property, typeof(YamlRequiredAttribute), inherit: true)) return true;
-        foreach (CustomAttributeData attribute in property.CustomAttributes) {
-            if (attribute.AttributeType.FullName == "System.Runtime.CompilerServices.RequiredMemberAttribute") return true;
-        }
-        return false;
-    }
-
-    /// <summary>
-    /// Selects the constructor reading uses: the one marked <see cref="YamlConstructorAttribute"/>; for a struct, its
-    /// parameterless form; the public parameterless constructor; or the only public constructor. Returns null when
-    /// none qualifies. <paramref name="useDefault"/> is set for a struct without a marked constructor.
-    /// </summary>
-    public static ConstructorInfo? SelectConstructor(Type type, out bool useDefault) {
-        useDefault = false;
-        ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
-        ConstructorInfo? marked = null;
-        foreach (ConstructorInfo constructor in constructors) {
-            if (!constructor.IsDefined(typeof(YamlConstructorAttribute), inherit: false)) continue;
-            if (marked is not null) throw new NotSupportedException("The type " + YamlSerializationErrors.TypeName(type) + " marks more than one constructor with [YamlConstructor].");
-            marked = constructor;
-        }
-        if (marked is not null) return marked;
-        if (type.IsValueType) {
-            useDefault = true;
-            return null;
-        }
-        foreach (ConstructorInfo constructor in constructors) {
-            if (constructor.GetParameters().Length == 0) return constructor;
-        }
-        return constructors.Length == 1 ? constructors[0] : null;
     }
 }

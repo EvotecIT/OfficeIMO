@@ -18,7 +18,7 @@ namespace OfficeIMO.Yaml;
 /// a typed alias is read again from its anchored node. <c>&lt;&lt;</c> merge keys apply. Values that do not fit
 /// their type fail with a <see cref="YamlException"/> whose <see cref="YamlException.Code"/> is
 /// <see cref="YamlErrorCodes.TypeMismatch"/> and whose position points at the node. Tags never select a .NET type:
-/// only discriminators registered with <see cref="YamlDerivedTypeAttribute"/> do.</para>
+/// only discriminators registered with <see cref="OfficeDerivedTypeAttribute"/> do.</para>
 /// <para>Text, stream and text-reader input must hold at most one document; read a multi-document stream with a
 /// <see cref="YamlReader"/>, one call per document.</para>
 /// </remarks>

@@ -1,0 +1,14 @@
+<Project>
+  <!-- Reflection-based TOML serialization is off by default in trimmed and NativeAOT applications, which use generated
+       TomlSerializerContext metadata instead. Set TomlSerializerIsReflectionEnabledByDefault to override. -->
+  <PropertyGroup>
+    <TomlSerializerIsReflectionEnabledByDefault Condition="'$(TomlSerializerIsReflectionEnabledByDefault)' == '' And ('$(PublishAot)' == 'true' Or '$(PublishTrimmed)' == 'true')">false</TomlSerializerIsReflectionEnabledByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="OfficeIMO.Toml.TomlSerializer.IsReflectionEnabledByDefault"
+                                    Condition="'$(TomlSerializerIsReflectionEnabledByDefault)' != ''"
+                                    Value="$(TomlSerializerIsReflectionEnabledByDefault)"
+                                    Trim="true" />
+  </ItemGroup>
+</Project>

@@ -489,6 +489,28 @@ public sealed class TabularCommandTests {
     }
 
     [Fact]
+    public async Task TabularCliReportsAMissingSheetAsAUsageErrorListingTheWorkbookSheets() {
+        string directory = CreateTestDirectory();
+        string inputPath = Path.Combine(directory, "input.xlsx");
+        string outputPath = Path.Combine(directory, "output.csv");
+        using (ExcelDocument document = ExcelDocument.Create()) {
+            document.AddSheet("Data");
+            document.AddSheet("Totals");
+            document.Save(inputPath);
+        }
+
+        try {
+            (int exitCode, _, string error) = await RunAsync("tabular", "convert", inputPath, outputPath, "--sheet", "Missing");
+
+            Assert.Equal((int)OfficeImoToolExitCode.Usage, exitCode);
+            Assert.Contains("Sheet 'Missing' was not found. The workbook has: Data, Totals.", error, StringComparison.Ordinal);
+            Assert.False(File.Exists(outputPath));
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task TabularCliRejectsOptionsThatWorkbookToWorkbookConversionWouldIgnore() {
         string directory = CreateTestDirectory();
         string inputPath = Path.Combine(directory, "input.xlsx");

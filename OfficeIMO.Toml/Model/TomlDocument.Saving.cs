@@ -1,3 +1,5 @@
+using OfficeIMO.Core.Internal;
+
 namespace OfficeIMO.Toml;
 
 public sealed partial class TomlDocument {
@@ -12,15 +14,17 @@ public sealed partial class TomlDocument {
     }
 
     /// <summary>
-    /// Saves the document to a file as UTF-8, with a byte-order mark when the input had one. An unchanged document
-    /// reproduces the loaded bytes exactly.
+    /// Saves the document to a file as UTF-8, with a byte-order mark when the input had one, and makes the file its
+    /// <see cref="FilePath"/>. The file is replaced atomically, so a failed save leaves the old contents. An unchanged
+    /// document reproduces the loaded bytes exactly.
     /// </summary>
     /// <param name="path">The file to create or overwrite.</param>
     public void Save(string path) {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        string fullPath = Path.GetFullPath(path);
         List<TomlTextSegment> segments = TomlRendering.Collect(this);
-        using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, FileBufferSize);
-        Write(stream, segments);
+        OfficeFileCommit.Write(fullPath, stream => Write(stream, segments));
+        FilePath = fullPath;
     }
 
     /// <summary>Saves the document to a caller-owned stream as UTF-8, with a byte-order mark when the input had one. The stream is not disposed.</summary>
@@ -43,9 +47,10 @@ public sealed partial class TomlDocument {
     /// <param name="cancellationToken">Observed between writes.</param>
     public async Task SaveAsync(string path, CancellationToken cancellationToken = default) {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        string fullPath = Path.GetFullPath(path);
         List<TomlTextSegment> segments = TomlRendering.Collect(this);
-        using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, FileBufferSize, FileOptions.Asynchronous);
-        await WriteAsync(stream, segments, cancellationToken).ConfigureAwait(false);
+        await OfficeFileCommit.WriteAsync(fullPath, (stream, token) => WriteAsync(stream, segments, token), cancellationToken: cancellationToken).ConfigureAwait(false);
+        FilePath = fullPath;
     }
 
     /// <summary>Saves the document to a caller-owned stream asynchronously; see <see cref="Save(Stream)"/>.</summary>

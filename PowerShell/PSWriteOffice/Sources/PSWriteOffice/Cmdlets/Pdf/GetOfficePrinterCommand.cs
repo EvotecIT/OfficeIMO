@@ -6,6 +6,7 @@ using OfficeIMO.Workflows;
 namespace PSWriteOffice.Cmdlets.Pdf;
 
 /// <summary>Lists system printer queues, or the paper sources of a named queue. Requires PowerShell 7.4 or newer.</summary>
+/// <para>Use Get-OfficePrinterCapability for media, duplex, color and resolution details of a queue or IPP printer.</para>
 /// <example><summary>Discover queues and trays.</summary><prefix>PS&gt; </prefix>
 /// <code>Get-OfficePrinter
 /// Get-OfficePrinter -Name 'Office printer' -PaperSource</code></example>
@@ -14,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 [OutputType(typeof(PdfPrinterInfo), typeof(PdfPaperSourceInfo))]
 #endif
 public sealed class GetOfficePrinterCommand : AsyncPSCmdlet {
-    /// <summary>Printer name patterns; PaperSource requires one exact printer name.</summary>
+    /// <summary>Printer name patterns; PaperSource requires one exact printer name or IPP printer URI.</summary>
     [Parameter(Position = 0, ParameterSetName = "Printer")]
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = "PaperSource")]
     [SupportsWildcards]
@@ -24,6 +25,7 @@ public sealed class GetOfficePrinterCommand : AsyncPSCmdlet {
     /// <summary>List paper sources of the single printer selected by Name.</summary>
     [Parameter(Mandatory = true, ParameterSetName = "PaperSource")]
     public SwitchParameter PaperSource { get; set; }
+
     /// <inheritdoc />
     protected override async Task ProcessRecordAsync() {
 #if FRAMEWORK
@@ -34,7 +36,7 @@ public sealed class GetOfficePrinterCommand : AsyncPSCmdlet {
         if (PaperSource) {
             if (Name.Length != 1 || WildcardPattern.ContainsWildcardCharacters(Name[0]))
                 throw new PSArgumentException("PaperSource requires one exact printer name.", nameof(Name));
-            foreach (var source in await service.GetPaperSourcesAsync(Name[0], CancelToken)) WriteObject(source);
+            foreach (var source in (await service.GetCapabilitiesAsync(Name[0], CancelToken)).PaperSources) WriteObject(source);
         } else {
             var patterns = Name.Select(name => new WildcardPattern(name, WildcardOptions.IgnoreCase)).ToArray();
             foreach (var printer in await service.GetPrintersAsync(CancelToken))

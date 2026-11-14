@@ -12,7 +12,7 @@ The PSWriteOffice website catalog groups every exported cmdlet into exactly one 
 | --- | ---: | --- |
 | Excel | 103 | [Excel automation](/docs/pswriteoffice/excel/) |
 | Word | 81 | [Word automation](/docs/pswriteoffice/word/) |
-| PDF | 77 | [PDF automation](/docs/pswriteoffice/pdf/) |
+| PDF | 80 | [PDF automation](/docs/pswriteoffice/pdf/) |
 | Document operations and capabilities | 11 | [Document operations and capabilities](/docs/pswriteoffice/automation-patterns/) |
 | Before sharing | 5 | [Clean files before sharing](/docs/pswriteoffice/before-sharing/) |
 | Project | 20 | [Project, Access, and EPUB](/docs/pswriteoffice/project-access-epub/) |
@@ -28,7 +28,7 @@ The PSWriteOffice website catalog groups every exported cmdlet into exactly one 
 | RTF | 8 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | CSV | 3 | [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/) |
 | YAML | 12 | [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/) |
-| TOML | 4 | [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/) |
+| TOML | 11 | [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/) |
 | OpenDocument | 11 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | Email | 9 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | AsciiDoc | 3 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |

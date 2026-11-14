@@ -47,7 +47,12 @@ public sealed class WorkflowCommandTests {
         var copied = await RunAsync(["workflow", "optimize-images", input, "--output", output, "--dpi", "72"]);
         var exported = await RunAsync(["workflow", "optimize-images", input, "--output", pdf, "--mode", "recompress", "--quality", "40"]);
         Assert.Equal((int)OfficeImoToolExitCode.Success, analysis.ExitCode);
-        Assert.Contains("WordImageInventory", analysis.Output);
+        using (JsonDocument json = JsonDocument.Parse(analysis.Output)) {
+            Assert.Equal("officeimo.workflow.optimize-images.v1", json.RootElement.GetProperty("schema").GetString());
+            Assert.Equal("analyze", json.RootElement.GetProperty("mode").GetString());
+            JsonElement file = Assert.Single(json.RootElement.GetProperty("files").EnumerateArray().ToArray());
+            Assert.Contains(file.GetProperty("diagnostics").EnumerateArray(), item => item.GetProperty("code").GetString() == "WordImageInventory");
+        }
         Assert.Equal((int)OfficeImoToolExitCode.Success, copied.ExitCode);
         Assert.Equal((int)OfficeImoToolExitCode.Success, exported.ExitCode);
         Assert.Equal(before, File.ReadAllBytes(input));
@@ -168,6 +173,7 @@ public sealed class WorkflowCommandTests {
     [Theory]
     [InlineData("assemble", "--image-format", "png", "--image-format is not valid with assemble")]
     [InlineData("export-pages", "--format", "webp", "Use --image-format webp")]
+    [InlineData("optimize-images", "--format", "pdf", "Use --output-format pdf")]
     public async Task InvalidWorkflowOptionsReturnSharedUsageCode(string command, string option, string value, string expected) {
         ToolResult result = await RunAsync(["workflow", command, "source.pdf", option, value, "--output", "result"]);
 

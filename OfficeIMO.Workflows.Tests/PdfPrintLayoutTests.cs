@@ -69,6 +69,27 @@ public sealed class PdfPrintLayoutTests {
         Assert.Equal(plan.SelectedPages, Assert.Single(plan.Sheets).Placements.Select(p => p.PageNumber));
     }
 
+    [Theory]
+    [InlineData(1, false)]
+    [InlineData(2, true)]
+    [InlineData(4, false)]
+    [InlineData(6, true)]
+    [InlineData(9, false)]
+    public void AutomaticOrientationTurnsTheSheetWhenThatPlacesPagesLarger(int pagesPerSheet, bool landscape) {
+        PdfDocument document = PdfDocument.Create(c => {
+            for (int page = 0; page < pagesPerSheet; page++) c.Page(p => p.Size(PdfPageSizes.A4.Width, PdfPageSizes.A4.Height).Margin(OfficeIMO.OfficeLength.Zero));
+        });
+        PdfPrintPlan automatic = PdfPrintPlanner.Create(document, new() { InputPath = "snapshot.pdf", PagesPerSheet = pagesPerSheet });
+        PdfPrintSheet sheet = Assert.Single(automatic.Sheets);
+        Assert.Equal(landscape, sheet.PaperSize.Width.ToPoints() > sheet.PaperSize.Height.ToPoints());
+        PdfPrintPlan other = PdfPrintPlanner.Create(document, new() {
+            InputPath = "snapshot.pdf", PagesPerSheet = pagesPerSheet,
+            Orientation = landscape ? PdfPrintOrientation.Portrait : PdfPrintOrientation.Landscape
+        });
+        Assert.True(sheet.Placements[0].Scale > other.Sheets[0].Placements[0].Scale);
+        Assert.Equal(landscape, other.Sheets[0].PaperSize.Width.ToPoints() < other.Sheets[0].PaperSize.Height.ToPoints());
+    }
+
     [Fact]
     public void EmptySubsetAndImpossibleMarginsFailBeforeProducingSheets() {
         PdfDocument document = Pages(1);
@@ -76,7 +97,7 @@ public sealed class PdfPrintLayoutTests {
             InputPath = "snapshot.pdf", PageSubset = PdfPrintPageSubset.Even
         }));
         Assert.Throws<ArgumentException>(() => PdfPrintPlanner.Create(document, new() {
-            InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(100),OfficeIMO.OfficeLength.Points(120)), MarginLeft = 70, MarginRight = 30
+            InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(100),OfficeIMO.OfficeLength.Points(120)), MarginLeft = 70, MarginRight = 60
         }));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfPrintPlanner.Create(document, new() {
             InputPath = "snapshot.pdf", ScaleMode = PdfPrintScaleMode.Custom, CustomScalePercent = double.NaN

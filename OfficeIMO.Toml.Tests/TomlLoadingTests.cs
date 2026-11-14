@@ -49,6 +49,23 @@ public class TomlLoadingTests {
     }
 
     [Fact]
+    public void SavingToAPathMakesItTheFileLaterSavesWrite() {
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-toml-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string path = Path.Combine(directory, "out.toml");
+            using TomlDocument doc = TomlDocument.Parse("a = 1\n");
+            doc.Save(path);
+            Assert.Equal(path, doc.FilePath);
+            doc.Root.Add("b", 2);
+            doc.Save();
+            Assert.Equal("a = 1\nb = 2\n", File.ReadAllText(path));
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void InvalidUtf8ReportsTheLineOfTheBadByte() {
         byte[] bytes = Encoding.UTF8.GetBytes("a = 1\nb = \"x\"\n").Concat(new byte[] { (byte)'c', (byte)' ', (byte)'=', (byte)' ', (byte)'"', 0xC3, 0x28, (byte)'"', (byte)'\n' }).ToArray();
         TomlException ex = Assert.Throws<TomlException>(() => TomlDocument.Load(new MemoryStream(bytes)));
@@ -70,6 +87,39 @@ public class TomlLoadingTests {
         TomlException ex = Assert.Throws<TomlException>(() => TomlDocument.Parse(toml));
         Assert.Equal(code, ex.Code);
         Assert.Equal((line, column), (ex.Line, ex.Column));
+    }
+
+    [Fact]
+    public void ErrorsConvertToDiagnosticsWithTheCatalogCodeAndASeparateLocation() {
+        TomlException ex = Assert.Throws<TomlException>(() => TomlDocument.Parse("a = 1\na = 2\n"));
+
+        OfficeDiagnostic diagnostic = ex.ToDiagnostic();
+
+        Assert.Equal("toml-load-duplicate-key", diagnostic.Code);
+        Assert.Equal(OfficeDiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Equal("2:1", diagnostic.Location);
+        Assert.Equal("TOML", diagnostic.Format);
+        Assert.Equal("The key 'a' is already defined.", diagnostic.Message);
+    }
+
+    [Fact]
+    public void KeysReportTheSourceTextOfTheSegmentThatNamesThem() {
+        const string toml = "title = 1\nsite . \"base.url\" = 2\n[a.b]\nx = 3\n[[c]]\n[[c]]\n";
+        using TomlDocument doc = TomlDocument.Parse(toml);
+        string KeyText(TomlNode node) => toml.Substring((int)node.KeyStart.Offset, (int)(node.KeyEnd.Offset - node.KeyStart.Offset));
+
+        Assert.Equal("title", KeyText(doc.Root["title"]));
+        Assert.Equal((1, 1), (doc.Root["title"].KeyStart.Line, doc.Root["title"].KeyStart.Column));
+        // A table made by a dotted key is named by its segment of that key; a quoted segment keeps its quotes.
+        Assert.Equal("site", KeyText(doc.Root["site"]));
+        Assert.Equal("\"base.url\"", KeyText(doc.Select("site[\"base.url\"]")!));
+        // An implicit table is named by its segment of the first header that goes through it.
+        Assert.Equal((3, 2), (doc.Root["a"].KeyStart.Line, doc.Root["a"].KeyStart.Column));
+        Assert.Equal("b", KeyText(doc.Select("a.b")!));
+        Assert.Equal("c", KeyText(doc.Root["c"]));
+        Assert.Equal((5, 3), (doc.Root["c"].KeyStart.Line, doc.Root["c"].KeyStart.Column));
+        Assert.Equal(default, doc.Select("c[1]")!.KeyStart);
+        Assert.Equal(default, doc.Root.Add("added", 1).KeyStart);
     }
 
     [Fact]

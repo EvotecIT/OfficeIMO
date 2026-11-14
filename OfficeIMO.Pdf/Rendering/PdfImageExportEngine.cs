@@ -175,7 +175,8 @@ internal static class PdfImageExportEngine {
                     fallbackCodec,
                     resourceIdPrefix: null,
                     maximumUtf8Bytes: maximumBytes,
-                    cancellationToken: cancellationToken),
+                    cancellationToken: cancellationToken, maximumRasterPixels: effective.MaximumRasterPixels,
+                    diagnosticSink: diagnostics, diagnosticSource: source),
                 cancellationToken);
             return options.EnsureAccepted(new OfficeImageExportResult(
                 format,
@@ -332,7 +333,7 @@ internal static class PdfImageExportEngine {
     private static int Scaled(double value, double scale) =>
         Math.Max(1, checked((int)OfficeRasterScaleLimiter.CeilingPixels(value * scale)));
 
-    private static OfficeDrawing AddBackground(OfficeDrawing drawing, OfficeColor color) {
+    internal static OfficeDrawing AddBackground(OfficeDrawing drawing, OfficeColor color) {
         var composed = new OfficeDrawing(drawing.Width, drawing.Height);
         composed.Fonts.AddRange(drawing.Fonts);
         OfficeShape background = OfficeShape.Rectangle(drawing.Width, drawing.Height);
@@ -340,10 +341,12 @@ internal static class PdfImageExportEngine {
         background.StrokeWidth = 0D;
         composed.AddShape(background, 0D, 0D);
         composed.AddClippedDrawing(
-            drawing,
+            drawing.CreateCompositionSource(),
             0D,
             0D,
             OfficeClipPath.Rectangle(drawing.Width, drawing.Height));
+        if (drawing.PostCompositionColorTransform != null)
+            composed.SetPostCompositionColorTransform(drawing.PostCompositionColorTransform);
         return composed;
     }
 }

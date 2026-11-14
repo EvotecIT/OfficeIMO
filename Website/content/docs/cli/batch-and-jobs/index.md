@@ -116,7 +116,7 @@ officeimo workflow batch people.csv --output ./converted --route csv-toml
 | TSV (`.tsv`, `.tab`) | JSON, JSON Lines, YAML, TOML, XML |
 | XLSX (`.xlsx`) | JSON, JSON Lines, YAML, TOML, XML |
 
-Use `jsonl`, `yaml`, `toml`, `xml`, `csv`, `tsv`, `json` or `xlsx` as the `--target` value. For CSV or TSV to and from workbooks, use [`officeimo tabular convert`](/docs/cli/convert/#spreadsheets-and-delimited-files).
+Use `jsonl`, `yaml`, `toml`, `xml`, `csv`, `tsv`, `json` or `xlsx` as the `--target` value. CSV and TSV files with `--target xlsx`, and workbooks with `--target csv`, run the spreadsheet routes described in [Convert documents](/docs/cli/convert/#csv-and-workbooks). For a chosen sheet, delimiter, XLSB or XLS, use [`officeimo tabular convert`](/docs/cli/convert/#spreadsheets-and-delimited-files).
 
 Each conversion reports what the target format could not hold. TOML has no null, for example, so null values are omitted and reported. Loss diagnostics appear on standard error and in the report item, with a `lossKind` and `hasLoss: true`:
 

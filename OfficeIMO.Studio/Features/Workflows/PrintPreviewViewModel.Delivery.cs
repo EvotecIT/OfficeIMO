@@ -18,7 +18,7 @@ public sealed partial class PrintPreviewViewModel {
     [NotifyPropertyChangedFor(nameof(HasPrinterDiscoveryError))]
     private string _printerDiscoveryError = string.Empty;
     [ObservableProperty] private int _copies = 1;
-    [ObservableProperty] private int _printDpi = 150;
+    [ObservableProperty] private int _printDpi = 300;
     [ObservableProperty] private PrintDuplexChoice? _selectedDuplex;
     [ObservableProperty] private string _printOutputPath = string.Empty;
     private IReadOnlyList<PrintDuplexChoice>? _duplexChoices;
@@ -38,9 +38,11 @@ public sealed partial class PrintPreviewViewModel {
     protected override void OnPropertyChanged(PropertyChangedEventArgs e) {
         base.OnPropertyChanged(e);
         if (e.PropertyName is nameof(InputPath) or nameof(Pages) or nameof(SelectedPaper) or nameof(SelectedOrientation)
-            or nameof(SelectedScale) or nameof(SelectedPagesPerSheet) or nameof(PrintDpi)
+            or nameof(SelectedScale) or nameof(SelectedPagesPerSheet)
             or nameof(CustomScalePercent) or nameof(SelectedAlignment) or nameof(SelectedPageSubset) or nameof(SelectedColor)
             or nameof(MarginLeft) or nameof(MarginTop) or nameof(MarginRight) or nameof(MarginBottom)) InvalidatePreparedSheets();
+        // Raster content is composed at the print resolution; vector content applies it only at delivery.
+        if (e.PropertyName == nameof(PrintDpi) && _preparedPrint?.ContentKind == PdfPrintContentKind.Raster) InvalidatePreparedSheets();
         if (e.PropertyName is nameof(IsBusy) or nameof(SelectedPrinter) or nameof(PrintOutputPath) or nameof(HasPreview) or nameof(IsDiscoveringPaperSources) or nameof(IsDiscoveringPrinters)) {
             OnPropertyChanged(nameof(CanChangePrintSettings));
             OnPropertyChanged(nameof(CanPrint));
@@ -107,7 +109,8 @@ public sealed partial class PrintPreviewViewModel {
                 PrinterName = printer.Name, DocumentName = InputName, Copies = Copies,
                 Duplex = SelectedDuplex?.Value ?? PdfPrintDuplex.PrinterDefault,
                 PaperSourceId = SelectedPaperSource?.Id,
-                OutputFilePath = printer.RequiresOutputFile ? PrintOutputPath : null
+                OutputFilePath = printer.RequiresOutputFile ? PrintOutputPath : null,
+                MaximumRasterDpi = PrintDpi
             };
             job = _jobHistory?.Start(T("JobTitle"), InputName, printer.Name, operation.Cancel);
             using IDisposable? permit = _jobHistory is null ? null : await _jobHistory.EnterAsync(operation.Token).ConfigureAwait(true);

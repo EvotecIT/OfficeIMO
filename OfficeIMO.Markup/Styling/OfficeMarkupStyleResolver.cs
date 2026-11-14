@@ -10,8 +10,8 @@ public sealed class OfficeMarkupStyleResolver {
         _styles = styles;
     }
 
-    /// <summary>Creates a resolver using the document's current <c>theme</c> metadata value.</summary>
-    /// <remarks>The palette is selected at creation; later metadata changes do not update this resolver.</remarks>
+    /// <summary>Creates a resolver using the document's current <c>theme</c> front matter value.</summary>
+    /// <remarks>The palette is selected at creation; later front matter changes do not update this resolver.</remarks>
     public static OfficeMarkupStyleResolver Create(OfficeMarkupDocument document) {
         return Create(document, null);
     }
@@ -20,7 +20,9 @@ public sealed class OfficeMarkupStyleResolver {
     public static OfficeMarkupStyleResolver Create(OfficeMarkupDocument document, OfficeTheme? theme) {
         ArgumentNullException.ThrowIfNull(document);
 
-        var styles = CreateBaseStyles(document.Metadata.TryGetValue("theme", out var themeName) ? themeName : null);
+        string? themeName = null;
+        document.FrontMatter?.TryGetValue("theme", out themeName);
+        var styles = CreateBaseStyles(themeName);
         if (theme != null) {
             foreach (var pair in styles) {
                 var style = pair.Value;

@@ -8733,17 +8733,384 @@
           ]
         }
       ],
-      "notes": "Printers are a system resource, not a document format, so the noun stays OfficePrinter (like Get-Printer). Supports Send-OfficePdfPrinter (PDF area).",
+      "notes": "Printers are a system resource, not a document format, so the noun stays OfficePrinter (like Get-Printer). Supports Send-OfficePrinter. Get-OfficePrinterCapability reports media, duplex, color and resolution.",
       "examples": [
         {
           "title": "List printers",
-          "description": "Lists the printers available for Send-OfficePdfPrinter, including the default.",
+          "description": "Lists the printers available for Send-OfficePrinter, including the default.",
           "code": "Get-OfficePrinter"
         },
         {
           "title": "Print from a specific tray",
           "description": "Finds the letterhead tray of the finance printer and prints a statement from it.",
-          "code": "$tray = Get-OfficePrinter -Name 'Finance-HP' -PaperSource | Where-Object Name -like '*Tray 2*'\nSend-OfficePdfPrinter -Path .\\Finance\\Statement-September.pdf -PrinterName 'Finance-HP' -PaperSourceId $tray.Id"
+          "code": "$tray = Get-OfficePrinter -Name 'Finance-HP' -PaperSource | Where-Object Name -like '*Tray 2*'\nSend-OfficePrinter -Path .\\Finance\\Statement-September.pdf -PrinterName 'Finance-HP' -PaperSourceId $tray.Id"
+        }
+      ]
+    },
+    {
+      "name": "Get-OfficePrinterCapability",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Reports the media, paper sources, duplex, color, resolution and copy capabilities of a printer queue or IPP printer.",
+      "outputType": "PdfPrinterCapabilities",
+      "shouldProcess": false,
+      "notes": "Requires PowerShell 7.4+. -Name takes an installed queue name or an ipp:// or ipps:// printer URI. Reading capabilities does not change printer settings.",
+      "examples": [
+        {
+          "title": "Read printer capabilities",
+          "description": "Shows the default paper and whether the printer prints two-sided.",
+          "code": "Get-OfficePrinterCapability -Name 'Finance-HP' | Select-Object DefaultMedia, SupportsDuplex, SupportsColor"
+        }
+      ],
+      "parameterSets": [
+        {
+          "name": "Default",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "propertyName"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Get-OfficePrintJob",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Reports the state of a print job submitted with Send-OfficePrinter, optionally waiting until it finishes.",
+      "outputType": "PdfPrintJobStatus",
+      "shouldProcess": false,
+      "notes": "Requires PowerShell 7.4+. States are the same for every transport: Pending, Held, Processing, Stopped, Canceled, Aborted, Completed and Removed.",
+      "examples": [
+        {
+          "title": "Wait for a print job",
+          "description": "Prints a report and waits up to two minutes for the printer to finish it.",
+          "code": "Send-OfficePrinter -Path .\\Report.pdf -PrinterName 'Finance-HP' | Get-OfficePrintJob -Wait -TimeoutSeconds 120"
+        }
+      ],
+      "parameterSets": [
+        {
+          "name": "Default",
+          "default": true,
+          "parameters": [
+            {
+              "name": "PrinterName",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "propertyName"
+            },
+            {
+              "name": "JobId",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "propertyName"
+            },
+            {
+              "name": "Wait",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "TimeoutSeconds",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Stop-OfficePrintJob",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Cancels a print job submitted with Send-OfficePrinter and returns its state afterwards.",
+      "outputType": "PdfPrintJobStatus",
+      "shouldProcess": true,
+      "notes": "Requires PowerShell 7.4+. A job that has already finished is reported unchanged.",
+      "examples": [
+        {
+          "title": "Cancel a print job",
+          "description": "Cancels the job a submission returned.",
+          "code": "$receipt = Send-OfficePrinter -Path .\\Report.pdf -PrinterName 'Finance-HP'\n$receipt | Stop-OfficePrintJob"
+        }
+      ],
+      "parameterSets": [
+        {
+          "name": "Default",
+          "default": true,
+          "parameters": [
+            {
+              "name": "PrinterName",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "propertyName"
+            },
+            {
+              "name": "JobId",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "propertyName"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Send-OfficePrinter",
+      "alias": null,
+      "compatibilityAliases": [
+        "Send-OfficePdfPrinter"
+      ],
+      "status": "existing",
+      "synopsis": "Prints a PDF or any document OfficeIMO converts to PDF on a named printer queue or IPP printer.",
+      "outputType": "PdfPrintSubmission",
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none",
+              "wildcards": true,
+              "note": "A PDF or any format OfficeIMO converts to PDF."
+            },
+            {
+              "name": "PrinterName",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "Page",
+              "type": "OfficePageSelector",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Replaces -Pages.",
+              "note": "Preserves the native print selection grammar, including last, odd, even and exclusions."
+            },
+            {
+              "name": "PagesPerSheet",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PageSubset",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Grayscale",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Copies",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Duplex",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PaperSourceId",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Print-to-file target; replaces -OutputFilePath."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Margin",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Orientation",
+              "type": "OfficePageOrientation",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ScaleMode",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PaperSize",
+              "type": "OfficePageSize",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "wildcards": false,
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ],
+              "note": "A PDF or any format OfficeIMO converts to PDF."
+            },
+            {
+              "name": "PrinterName",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "Page",
+              "type": "OfficePageSelector",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Preserves the native print selection grammar, including last, odd, even and exclusions."
+            },
+            {
+              "name": "PagesPerSheet",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PageSubset",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Grayscale",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Copies",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Duplex",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PaperSourceId",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Margin",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Orientation",
+              "type": "OfficePageOrientation",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ScaleMode",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PaperSize",
+              "type": "OfficePageSize",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "shouldProcess": true,
+      "notes": "Requires PowerShell 7.4+. Send-OfficePdfPrinter remains an alias. PDF files print directly; other formats are converted to PDF in memory first. -PrinterName takes an installed queue name or an ipp:// or ipps:// printer URI. -PaperSize takes the shared OfficePageSize: a name (A3, A4, A5, Letter, Legal, Executive, Tabloid) or a size such as 210mm x 297mm.",
+      "examples": [
+        {
+          "title": "Print a PDF",
+          "description": "Sends a PDF to a named printer queue.",
+          "code": "Send-OfficePrinter -Path .\\Report.pdf -PrinterName 'Finance-HP-4th-Floor'"
+        },
+        {
+          "title": "Print handouts double-sided",
+          "description": "Prints the first ten pages two to a sheet, double-sided, in three copies on the default printer.",
+          "code": "$printer = Get-OfficePrinter | Where-Object IsDefault | Select-Object -First 1\nSend-OfficePrinter -Path .\\Training\\Security-Awareness.pdf -PrinterName $printer.Name -Page '1-10' -PagesPerSheet 2 -Duplex LongEdge -Copies 3"
+        },
+        {
+          "title": "Print a Word document to an IPP printer",
+          "description": "Converts the document in memory, prints it in grayscale and waits until the printer finishes.",
+          "code": "Send-OfficePrinter -Path .\\Letter.docx -PrinterName 'ipp://printer.local/ipp/print' -Grayscale | Get-OfficePrintJob -Wait"
         }
       ]
     },

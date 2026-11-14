@@ -14,8 +14,8 @@ public interface IYamlTypeInfoResolver {
 /// </summary>
 public sealed class YamlSerializerOptions {
     private readonly ConcurrentDictionary<Type, YamlTypeInfo> _cache = new ConcurrentDictionary<Type, YamlTypeInfo>();
-    private YamlNamingPolicy? _namingPolicy;
-    private YamlIgnoreCondition _defaultIgnoreCondition;
+    private OfficeNamingPolicy? _namingPolicy;
+    private OfficeIgnoreCondition _defaultIgnoreCondition;
     private YamlReferenceHandling _referenceHandling;
     private bool _copyAliases;
     private YamlReaderOptions? _readerOptions;
@@ -47,9 +47,9 @@ public sealed class YamlSerializerOptions {
 
     /// <summary>
     /// Gets or sets the policy that turns property names into mapping keys, or null (the default) to use the names as
-    /// declared. <see cref="YamlPropertyNameAttribute"/> wins over it.
+    /// declared. <see cref="OfficePropertyNameAttribute"/> wins over it.
     /// </summary>
-    public YamlNamingPolicy? PropertyNamingPolicy {
+    public OfficeNamingPolicy? PropertyNamingPolicy {
         get => _namingPolicy;
         set {
             CheckWritable();
@@ -58,14 +58,14 @@ public sealed class YamlSerializerOptions {
     }
 
     /// <summary>
-    /// Gets or sets when properties are left out of written YAML: <see cref="YamlIgnoreCondition.Never"/> (the default),
-    /// <see cref="YamlIgnoreCondition.WhenWritingNull"/> or <see cref="YamlIgnoreCondition.WhenWritingDefault"/>.
+    /// Gets or sets when properties are left out of written YAML: <see cref="OfficeIgnoreCondition.Never"/> (the default),
+    /// <see cref="OfficeIgnoreCondition.WhenWritingNull"/> or <see cref="OfficeIgnoreCondition.WhenWritingDefault"/>.
     /// </summary>
-    public YamlIgnoreCondition DefaultIgnoreCondition {
+    public OfficeIgnoreCondition DefaultIgnoreCondition {
         get => _defaultIgnoreCondition;
         set {
             CheckWritable();
-            if (value == YamlIgnoreCondition.Always) throw new ArgumentException("Always applies to single properties through YamlIgnoreAttribute.", nameof(value));
+            if (value == OfficeIgnoreCondition.Always) throw new ArgumentException("Always applies to single properties through OfficeIgnoreAttribute.", nameof(value));
             _defaultIgnoreCondition = value;
         }
     }

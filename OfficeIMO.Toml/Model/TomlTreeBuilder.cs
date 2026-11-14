@@ -8,7 +8,6 @@ namespace OfficeIMO.Toml;
 internal sealed class TomlTreeBuilder {
     private readonly TomlDocument _document;
     private readonly TomlLoadOptions _options;
-    private readonly KeyCache _cache = new KeyCache();
     private readonly List<Frame> _frames = new List<Frame>();
     private readonly Frame _top = new Frame();
     private int _nodes;
@@ -21,9 +20,15 @@ internal sealed class TomlTreeBuilder {
     /// <summary>The key/value pair being read at one nesting level: its keys and the container they belong to.</summary>
     private sealed class Frame {
         public TomlNode Container = null!;
+        /// <summary>The container's nesting depth; nodes do not store theirs, since only loading checks it.</summary>
+        public int Depth;
         public readonly List<string> Keys = new List<string>(4);
         public readonly List<int> KeyOffsets = new List<int>(4);
-        public int KeyEnd;
+        /// <summary>
+        /// Holds the items of the array or inline table being read at this level; on its closing bracket they move to an
+        /// array of the exact size, so the model keeps no spare slots and growing leaves no garbage.
+        /// </summary>
+        public TomlNode[] Buffer = Array.Empty<TomlNode>();
     }
 
     public void Run(TomlReader reader) {
@@ -35,19 +40,24 @@ internal sealed class TomlTreeBuilder {
             switch (type) {
                 case TomlTokenType.TableHeaderStart:
                 case TomlTokenType.ArrayOfTablesHeaderStart:
-                    section = ReadHeader(reader, type == TomlTokenType.ArrayOfTablesHeaderStart);
+                    section = ReadHeader(reader, type == TomlTokenType.ArrayOfTablesHeaderStart, out _top.Depth);
                     _top.Container = section;
                     break;
                 case TomlTokenType.Key:
-                    frame.Keys.Add(_cache.Get(reader));
+                    frame.Keys.Add(reader.GetString());
                     frame.KeyOffsets.Add(reader.TokenStartOffset);
-                    frame.KeyEnd = reader.TokenEndOffset;
                     break;
                 case TomlTokenType.EndArray:
                 case TomlTokenType.EndInlineTable:
                     TomlNode closed = frame.Container;
                     closed._end = reader.TokenEndOffset;
-                    if (closed is TomlTable inline) inline._state |= TomlNodeState.Sealed;
+                    if (closed is TomlTable inline) {
+                        inline._state |= TomlNodeState.Sealed;
+                        inline._nodes = Exact(frame, inline._nodes, inline._count);
+                    } else {
+                        var array = (TomlArray)closed;
+                        array._items = Exact(frame, array._items, array._count);
+                    }
                     _frames.RemoveAt(_frames.Count - 1);
                     break;
                 case TomlTokenType.Comment:
@@ -61,19 +71,34 @@ internal sealed class TomlTreeBuilder {
 
     private void AddValue(TomlReader reader, TomlTokenType type, Frame frame) {
         TomlNode node = CreateNode(reader, type);
+        int depth;
         if (frame.Container is TomlArray array) {
-            SetDepth(node, array, reader.TokenStartOffset);
+            depth = CheckDepth(frame.Depth, reader.TokenStartOffset);
             array.AddLoaded(node);
         } else {
-            Place((TomlTable)frame.Container, frame, node);
+            depth = Place((TomlTable)frame.Container, frame, node);
         }
         if (node is TomlArray || node is TomlTable) {
             Frame inner = _frames.Count < _pool.Count ? _pool[_frames.Count] : NewFrame();
             inner.Container = node;
+            inner.Depth = depth;
             inner.Keys.Clear();
             inner.KeyOffsets.Clear();
+            if (inner.Buffer.Length == 0) inner.Buffer = new TomlNode[8];
+            if (node is TomlArray items) items._items = inner.Buffer;
+            else ((TomlTable)node)._nodes = inner.Buffer;
             _frames.Add(inner);
         }
+    }
+
+    /// <summary>Copies a closed container's items from the frame's buffer to an array of their exact count.</summary>
+    private static TomlNode[] Exact(Frame frame, TomlNode[] items, int count) {
+        // Adding past the buffer replaced it with a larger array; keep that one for the next container.
+        if (items.Length > frame.Buffer.Length) frame.Buffer = items;
+        if (count == 0) return Array.Empty<TomlNode>();
+        var exact = new TomlNode[count];
+        Array.Copy(items, exact, count);
+        return exact;
     }
 
     private readonly List<Frame> _pool = new List<Frame>();
@@ -118,54 +143,59 @@ internal sealed class TomlTreeBuilder {
         _ => TomlNodeKind.DateTime
     };
 
-    /// <summary>Places a key/value pair in its table, creating the dotted tables of a dotted key.</summary>
-    private void Place(TomlTable owner, Frame frame, TomlNode node) {
+    /// <summary>
+    /// Places a key/value pair in its table, creating the dotted tables of a dotted key, and returns the node's depth.
+    /// </summary>
+    private int Place(TomlTable owner, Frame frame, TomlNode node) {
         List<string> keys = frame.Keys;
         TomlTable table = owner;
+        int depth = frame.Depth;
         for (int i = 0; i < keys.Count - 1; i++) {
             int index = table.IndexOf(keys[i]);
             if (index >= 0) {
                 if (table._nodes[index] is TomlTable dotted && dotted._tableKind == TomlTableKind.Dotted) {
                     table = dotted;
+                    depth++;
                     continue;
                 }
                 throw Error(TomlErrorCodes.InvalidTable, "The dotted key goes through '" + keys[i] + "', which is already defined and cannot be extended here.", frame.KeyOffsets[i]);
             }
             var created = new TomlTable(_document, TomlTableKind.Dotted) { _state = TomlNodeState.Loaded };
             CountNode(frame.KeyOffsets[i]);
-            SetDepth(created, table, frame.KeyOffsets[i]);
+            depth = CheckDepth(depth, frame.KeyOffsets[i]);
             table.AddEntry(keys[i], created);
             table = created;
         }
         string last = keys[keys.Count - 1];
         if (table.IndexOf(last) >= 0) throw Error(TomlErrorCodes.DuplicateKey, "The key '" + last + "' is already defined.", frame.KeyOffsets[keys.Count - 1]);
-        SetDepth(node, table, frame.KeyOffsets[keys.Count - 1]);
+        depth = CheckDepth(depth, frame.KeyOffsets[keys.Count - 1]);
         table.AddEntry(last, node);
         node._keyStart = frame.KeyOffsets[0];
-        node._keyEnd = frame.KeyEnd;
         keys.Clear();
         frame.KeyOffsets.Clear();
+        return depth;
     }
 
-    /// <summary>Reads a header's keys and returns the table it opens.</summary>
-    private TomlTable ReadHeader(TomlReader reader, bool arrayOfTables) {
+    /// <summary>Reads a header's keys and returns the table it opens, with that table's depth.</summary>
+    private TomlTable ReadHeader(TomlReader reader, bool arrayOfTables, out int resultDepth) {
         int start = reader.TokenStartOffset;
         Frame frame = _top;
         frame.Keys.Clear();
         frame.KeyOffsets.Clear();
         while (reader.Read() && reader.TokenType == TomlTokenType.Key) {
-            frame.Keys.Add(_cache.Get(reader));
+            frame.Keys.Add(reader.GetString());
             frame.KeyOffsets.Add(reader.TokenStartOffset);
         }
         int end = reader.TokenEndOffset;
         List<string> keys = frame.Keys;
         TomlTable table = _document._root;
+        int depth = 0;
         for (int i = 0; i < keys.Count - 1; i++) {
             int index = table.IndexOf(keys[i]);
             if (index < 0) {
                 var created = new TomlTable(_document, TomlTableKind.Implicit) { _state = TomlNodeState.Loaded };
                 CountNode(frame.KeyOffsets[i]);
-                SetDepth(created, table, frame.KeyOffsets[i]);
+                depth = CheckDepth(depth, frame.KeyOffsets[i]);
                 table.AddEntry(keys[i], created);
                 table = created;
                 continue;
@@ -173,9 +203,11 @@ internal sealed class TomlTreeBuilder {
             switch (table._nodes[index]) {
                 case TomlTable existing when existing._tableKind != TomlTableKind.Inline:
                     table = existing;
+                    depth++;
                     break;
                 case TomlTableArray tables:
                     table = tables._items[tables._items.Count - 1];
+                    depth += 2;
                     break;
                 default:
                     throw Error(TomlErrorCodes.InvalidTable, "The header goes through '" + keys[i] + "', which is not a table that can be extended.", frame.KeyOffsets[i]);
@@ -190,7 +222,7 @@ internal sealed class TomlTreeBuilder {
             if (found < 0) {
                 tables = new TomlTableArray(_document) { _state = TomlNodeState.Loaded };
                 CountNode(lastOffset);
-                SetDepth(tables, table, lastOffset);
+                CheckDepth(depth, lastOffset);
                 table.AddEntry(last, tables);
             } else if (table._nodes[found] is TomlTableArray existing) {
                 tables = existing;
@@ -199,16 +231,17 @@ internal sealed class TomlTreeBuilder {
             }
             result = new TomlTable(_document, TomlTableKind.ArrayItem);
             CountNode(lastOffset);
-            SetDepth(result, tables, lastOffset);
+            resultDepth = CheckDepth(depth + 1, lastOffset);
             tables.AddLoaded(result);
         } else if (found < 0) {
             result = new TomlTable(_document, TomlTableKind.Header);
             CountNode(lastOffset);
-            SetDepth(result, table, lastOffset);
+            resultDepth = CheckDepth(depth, lastOffset);
             table.AddEntry(last, result);
         } else if (table._nodes[found] is TomlTable existing && existing._tableKind == TomlTableKind.Implicit) {
             existing._tableKind = TomlTableKind.Header;
             result = existing;
+            resultDepth = depth + 1;
         } else {
             throw Error(TomlErrorCodes.InvalidTable, "The table '" + last + "' is already defined.", lastOffset);
         }
@@ -225,31 +258,12 @@ internal sealed class TomlTreeBuilder {
         if (++_nodes > _options.MaxNodes) throw new TomlLimitExceededException(nameof(TomlLoadOptions.MaxNodes), _options.MaxNodes, _document.GetPosition(offset));
     }
 
-    private void SetDepth(TomlNode node, TomlNode parent, int offset) {
-        int depth = parent._depth + 1;
+    /// <summary>Returns the depth of a child of a container at <paramref name="parentDepth"/>, failing past the limit.</summary>
+    private int CheckDepth(int parentDepth, int offset) {
+        int depth = parentDepth + 1;
         if (depth > _options.MaxDepth) throw new TomlLimitExceededException(nameof(TomlLoadOptions.MaxDepth), _options.MaxDepth, _document.GetPosition(offset));
-        node._depth = depth;
+        return depth;
     }
 
     private TomlException Error(string code, string message, int offset) => new TomlException(code, message, _document.GetPosition(offset));
-
-    /// <summary>Reuses the strings of repeated keys (<c>name</c>, <c>version</c>, <c>dependencies</c>) instead of allocating each time.</summary>
-    private sealed class KeyCache {
-        private const int Size = 256;
-        private const int MaxLength = 32;
-        private readonly string?[] _entries = new string?[Size];
-
-        public string Get(TomlReader reader) {
-            ReadOnlySpan<char> raw = reader.ValueSpan;
-            if (reader.StringStyle != TomlStringStyle.Bare || raw.Length > MaxLength) return reader.GetString();
-            int hash = raw.Length;
-            for (int i = 0; i < raw.Length; i++) hash = unchecked(hash * 31 + raw[i]);
-            int slot = hash & (Size - 1);
-            string? cached = _entries[slot];
-            if (cached != null && raw.SequenceEqual(cached.AsSpan())) return cached;
-            string created = raw.ToString();
-            _entries[slot] = created;
-            return created;
-        }
-    }
 }

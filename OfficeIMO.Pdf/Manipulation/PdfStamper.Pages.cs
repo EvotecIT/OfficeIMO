@@ -24,10 +24,10 @@ internal static partial class PdfStamper {
     }
 
     internal static byte[] StampPages(byte[] targetPdf, byte[] sourcePdf, IReadOnlyList<PdfPageOverlayOptions> placements,
-        long maximumOutputBytes) {
+        long maximumOutputBytes, CancellationToken cancellationToken = default) {
         Guard.NotNull(placements, nameof(placements));
         return StampPageSetCore(targetPdf, placements.Select(options => new PageStampRequest(sourcePdf, options.Clone())).ToArray(),
-            allowVisualOnlySource: true, maximumOutputBytes: maximumOutputBytes);
+            allowVisualOnlySource: true, maximumOutputBytes: maximumOutputBytes, cancellationToken: cancellationToken);
     }
 
     /// <summary>Imports a source PDF page onto target pages read from streams.</summary>
@@ -368,6 +368,7 @@ internal static partial class PdfStamper {
             content.TransformMatrix(rotation.M11, rotation.M12, rotation.M21, rotation.M22, rotation.OffsetX, rotation.OffsetY, preciseCoordinates: true);
         }
         if (options.Fit == PdfPageOverlayFit.Cover) content.Rectangle(frameX, frameY, frameWidth, frameHeight).ClipPath().EndPath();
+        if (options.ClipRectangle is { } clip) content.Rectangle(clip.Left, clip.Bottom, clip.Right - clip.Left, clip.Top - clip.Bottom).ClipPath().EndPath();
         if (graphicsStateResourceName != null) content.GraphicsState(graphicsStateResourceName);
         content.TransformMatrix(drawWidth / sourceWidth, 0D, 0D, drawHeight / sourceHeight, drawX, drawY)
             .XObject(formResourceName)

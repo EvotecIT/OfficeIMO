@@ -466,6 +466,9 @@ Closes a project without implicitly saving it.
 ### [Close-OfficeRtf](Close-OfficeRtf.md)
 Releases an RtfDocument without saving.
 
+### [Close-OfficeToml](Close-OfficeToml.md)
+Completes a live TOML document's lifetime without saving.
+
 ### [Close-OfficeVisio](Close-OfficeVisio.md)
 Releases a live Visio document without saving.
 
@@ -650,7 +653,7 @@ Gets native data validation snapshots, with worksheet and source-path metadata.
 Reports the metadata and hidden data that would leave with a file. The file is never changed.
 
 ### [Get-OfficeMarkdownFrontMatter](Get-OfficeMarkdownFrontMatter.md)
-Gets top-level YAML front matter entries from a Markdown document as Key, Value, Node and SourceSpan objects.
+Gets top-level YAML or TOML front matter entries from a Markdown document as Key, Value, Node and SourceSpan objects.
 
 ### [Get-OfficeMarkdownHeading](Get-OfficeMarkdownHeading.md)
 Gets heading metadata from a Markdown document.
@@ -718,6 +721,12 @@ Reads the selected slide master's theme, colors and fonts.
 ### [Get-OfficePrinter](Get-OfficePrinter.md)
 Lists system printer queues, or the paper sources of a named queue. Requires PowerShell 7.4 or newer.
 
+### [Get-OfficePrinterCapability](Get-OfficePrinterCapability.md)
+Reports the media, paper sources, duplex, color, resolution and copy capabilities of a printer queue or IPP printer. Requires PowerShell 7.4 or newer.
+
+### [Get-OfficePrintJob](Get-OfficePrintJob.md)
+Reports the state of a print job submitted with Send-OfficePrinter, optionally waiting until it finishes. Requires PowerShell 7.4 or newer.
+
 ### [Get-OfficeProjectAssignment](Get-OfficeProjectAssignment.md)
 Returns project assignments.
 
@@ -735,6 +744,9 @@ Returns project tasks as pipeline objects.
 
 ### [Get-OfficeProjectView](Get-OfficeProjectView.md)
 Captures a portable report from a current calculated schedule.
+
+### [Get-OfficeTomlNode](Get-OfficeTomlNode.md)
+Gets nodes of a live TOML document by path, as Path, Value, Node, Line and Column objects.
 
 ### [Get-OfficeWordBookmark](Get-OfficeWordBookmark.md)
 Gets bookmarks, optionally by name (wildcards).
@@ -1075,6 +1087,9 @@ Creates discoverable RTF-to-PDF conversion options for Export-OfficeDocumentPdf.
 ### [New-OfficeTextPdfOptions](New-OfficeTextPdfOptions.md)
 Creates literal text decoding and PDF layout settings for Export-OfficeDocumentPdf.
 
+### [New-OfficeToml](New-OfficeToml.md)
+Creates a live TOML document, or atomically publishes a completed content block.
+
 ### [New-OfficeVisio](New-OfficeVisio.md)
 Creates a Visio document with an initial page, returning it live or saving a completed content block.
 
@@ -1162,6 +1177,9 @@ Loads a project without calculating or executing its content.
 ### [Open-OfficeRtf](Open-OfficeRtf.md)
 Reads an RTF file or RTF text into a read result with the document, embedded payloads and diagnostics.
 
+### [Open-OfficeToml](Open-OfficeToml.md)
+Opens a TOML file, stream or text as a lossless live document; a file content block saves atomically.
+
 ### [Open-OfficeVisio](Open-OfficeVisio.md)
 Loads an existing .vsdx file as an OfficeIMO.Visio document.
 
@@ -1212,6 +1230,9 @@ Removes selected pages from a live PDF or writes edited file copies.
 
 ### [Remove-OfficePowerPointSlide](Remove-OfficePowerPointSlide.md)
 Removes selected native slides or one-based slide positions.
+
+### [Remove-OfficeTomlNode](Remove-OfficeTomlNode.md)
+Removes keys, tables or array items from a live TOML document by path.
 
 ### [Remove-OfficeWordTableOfContents](Remove-OfficeWordTableOfContents.md)
 Removes the table of contents from a Word document.
@@ -1270,6 +1291,9 @@ Saves a project through the qualified native codec with loss protection.
 ### [Save-OfficeRtf](Save-OfficeRtf.md)
 Saves an RtfDocument to its original path or to a new path.
 
+### [Save-OfficeToml](Save-OfficeToml.md)
+Saves a live TOML document and keeps it available.
+
 ### [Save-OfficeVisio](Save-OfficeVisio.md)
 Saves an OfficeIMO.Visio document.
 
@@ -1285,8 +1309,8 @@ Finds regular-expression or literal matches across supported files and folders.
 ### [Send-OfficeConfluenceAttachment](Send-OfficeConfluenceAttachment.md)
 Uploads or versions a Confluence page attachment.
 
-### [Send-OfficePdfPrinter](Send-OfficePdfPrinter.md)
-Prepares PDF sheets and submits them to an explicitly named printer. Requires PowerShell 7.4 or newer.
+### [Send-OfficePrinter](Send-OfficePrinter.md)
+Prints a document of any format OfficeIMO converts to PDF on an explicitly named printer queue or IPP printer. Requires PowerShell 7.4 or newer.
 
 ### [Set-OfficeConfluenceManagedSection](Set-OfficeConfluenceManagedSection.md)
 Safely replaces one marker-delimited section in a Confluence storage body.
@@ -1432,6 +1456,9 @@ Restyles a deck or changes the selected masters' colors, fonts and theme name.
 ### [Set-OfficeProjectTask](Set-OfficeProjectTask.md)
 Updates selected task fields without implicitly recalculating its schedule.
 
+### [Set-OfficeTomlNode](Set-OfficeTomlNode.md)
+Sets the value at a path in a live TOML document, adding missing tables on the way.
+
 ### [Set-OfficeVisioShapeLayout](Set-OfficeVisioShapeLayout.md)
 Applies OfficeIMO Visio selection layout and layer operations to shapes.
 
@@ -1467,6 +1494,9 @@ Sets the value at a path in a live YAML document, creating missing mappings on t
 
 ### [Split-OfficeDocument](Split-OfficeDocument.md)
 Splits PDF files into consecutive groups, selected ranges or top-level bookmarked chapters.
+
+### [Stop-OfficePrintJob](Stop-OfficePrintJob.md)
+Cancels a print job submitted with Send-OfficePrinter and returns its state afterwards. Requires PowerShell 7.4 or newer.
 
 ### [Test-OfficeDocument](Test-OfficeDocument.md)
 Validates native document structure, schema, security, accessibility or compliance without changing the input.

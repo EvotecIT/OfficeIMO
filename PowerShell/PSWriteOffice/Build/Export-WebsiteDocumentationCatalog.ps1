@@ -78,7 +78,7 @@ $familyDefinitions = @(
         id = 'pdf'; title = 'PDF'; description = 'Author, inspect, transform, sign, annotate, extract, preflight, and combine PDF files.'
         docs = 'pdf'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Pdf'
         samples = @('New-OfficePdf', 'Merge-OfficeDocument', 'Test-OfficeDocument', 'Set-OfficePdfSignature')
-        match = { param($name) $name -match 'OfficePdf|OfficeDocumentPdf|OfficeTextPdf|OfficePrinter' }
+        match = { param($name) $name -match 'OfficePdf|OfficeDocumentPdf|OfficeTextPdf|OfficePrinter|OfficePrintJob' }
     }
     [ordered]@{
         id = 'reader'; title = 'Reader, extraction, and OCR'; description = 'Detect formats and extract normalized documents, chunks, tables, visuals, assets, OCR text, and ingest results.'
@@ -135,9 +135,9 @@ $familyDefinitions = @(
         match = { param($name) $name -match 'OfficeYaml' }
     }
     [ordered]@{
-        id = 'toml'; title = 'TOML'; description = 'Read and write TOML configuration and lock files as PowerShell objects.'
-        docs = 'config-data-formats'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Data'
-        samples = @('ConvertFrom-OfficeToml', 'Import-OfficeToml', 'Export-OfficeToml')
+        id = 'toml'; title = 'TOML'; description = 'Edit TOML files without losing comments or layout, and read and write TOML configuration and lock files as PowerShell objects.'
+        docs = 'config-data-formats'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Toml'
+        samples = @('Open-OfficeToml', 'Set-OfficeTomlNode', 'Import-OfficeToml', 'Export-OfficeToml')
         match = { param($name) $name -match 'OfficeToml' }
     }
     [ordered]@{

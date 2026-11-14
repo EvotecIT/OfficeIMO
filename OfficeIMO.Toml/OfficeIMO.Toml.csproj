@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>A dependency-free TOML 1.1 engine for OfficeIMO: a low-allocation pull reader, a lossless document model that saves unchanged input byte for byte and edits with minimal diffs, and a writer.</Description>
+    <Description>A dependency-free TOML 1.1 engine for OfficeIMO: a low-allocation pull reader, a lossless document model that saves unchanged input byte for byte and edits with minimal diffs, a writer, and an object serializer with a NativeAOT source generator.</Description>
 
     <VersionPrefix>3.6.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0;net472</TargetFrameworks>
@@ -25,6 +25,13 @@
     <LangVersion>Latest</LangVersion>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Include="..\\Assets\\OfficeIMO.png">
       <Pack>True</Pack>
@@ -34,7 +41,23 @@
       <Pack>True</Pack>
       <PackagePath>README.md</PackagePath>
     </None>
+    <None Include="buildTransitive\OfficeIMO.Toml.targets" Pack="true" PackagePath="buildTransitive\OfficeIMO.Toml.targets" />
+    <None Include="buildTransitive\OfficeIMO.Toml.targets" Pack="true" PackagePath="build\OfficeIMO.Toml.targets" />
   </ItemGroup>
+
+  <!-- The serializer's source generator ships in this package as an analyzer, so it always matches the runtime. -->
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Toml.SourceGeneration\OfficeIMO.Toml.SourceGeneration.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+  </ItemGroup>
+
+  <Target Name="PackTomlSourceGenerator" BeforeTargets="_GetPackageFiles">
+    <MSBuild Projects="..\OfficeIMO.Toml.SourceGeneration\OfficeIMO.Toml.SourceGeneration.csproj" Targets="GetTargetPath" Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" ItemName="_OfficeIMOTomlGenerator" />
+    </MSBuild>
+    <ItemGroup>
+      <None Include="@(_OfficeIMOTomlGenerator)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    </ItemGroup>
+  </Target>
 
   <ItemGroup>
     <Using Include="System.Buffers" />
@@ -50,6 +73,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The reflection shape rules YamlSerializer applies too. -->
+    <Compile Include="..\OfficeIMO.SharedSource\Serialization\*.cs" Link="SharedSource\Serialization\%(Filename)%(Extension)" />
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
   </ItemGroup>
 

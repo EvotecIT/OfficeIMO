@@ -3,7 +3,7 @@
 <!-- officeimo-api-map:begin -->
 ## OfficeIMO and PSWriteOffice 3.6
 
-OfficeIMO 3.6 and PSWriteOffice 3.6 change the public API in both languages and are released together. Nothing keeps a compatibility wrapper, so update scripts and code with the rules and tables below. PSWriteOffice goes from 594 commands and 383 aliases to 494 commands and 176 aliases; every job that worked before still works, usually through fewer commands. The [API design](Docs/officeimo.api-design.md) explains the rules.
+OfficeIMO 3.6 and PSWriteOffice 3.6 change the public API in both languages and are released together. Nothing keeps a compatibility wrapper, so update scripts and code with the rules and tables below. PSWriteOffice goes from 594 commands and 383 aliases to 511 commands and 176 aliases; every job that worked before still works, usually through fewer commands. The [API design](Docs/officeimo.api-design.md) explains the rules.
 
 ### What changed
 
@@ -1045,7 +1045,7 @@ Every PSWriteOffice 3.5 command and alias appears once, sorted by name. **Use in
 #### PDF
 
 <details>
-<summary>93 commands, 40 renamed, merged or removed</summary>
+<summary>93 commands, 41 renamed, merged or removed</summary>
 
 | 3.5 command | 3.6 command | Change | Parameter changes | Use instead |
 | --- | --- | --- | --- | --- |
@@ -1125,7 +1125,7 @@ Every PSWriteOffice 3.5 command and alias appears once, sorted by name. **Use in
 | `Remove-OfficePdfAnnotation` | `Remove-OfficePdfAnnotation` | Kept | `-PassThruReport` &rarr; `-PassThru`<br>`-PageNumber` &rarr; `-Page` |   |
 | `Remove-OfficePdfPage` | `Remove-OfficePdfPage` | Kept | `-FilePath` &rarr; `-Path`<br>`-PageRange` &rarr; `-Page` |   |
 | `Save-OfficePdf` | `Save-OfficePdf` | Kept | `-Open` &rarr; `-Show`<br>`-UserPassword` &rarr; `-Password`<br>`-Permissions` &rarr; `-Permission` |   |
-| `Send-OfficePdfPrinter` | `Send-OfficePdfPrinter` | Kept | `-Pages` &rarr; `-Page`<br>`-OutputFilePath` &rarr; `-OutputPath` |   |
+| `Send-OfficePdfPrinter` | `Send-OfficePrinter` | Renamed | `-Pages` &rarr; `-Page`<br>`-OutputFilePath` &rarr; `-OutputPath` | `Send-OfficePrinter -Path .\Report.pdf -PrinterName 'Office printer'` |
 | `Set-OfficePdfAnnotation` | `Set-OfficePdfAnnotation` | Kept | `-PassThruReport` &rarr; `-PassThru` |   |
 | `Set-OfficePdfBackground` | `Set-OfficePdfBackground` | Kept | Removed: `-Document`, `-PassThru` |   |
 | `Set-OfficePdfBackgroundImage` | `Set-OfficePdfBackground` (`Image` set) | Merged | `-Path`, `-FilePath` &rarr; `-ImagePath`<br>`-Clear` &rarr; `-Clear -Target Image` | `PdfBackground -ImagePath .\paper.png -Fit Cover -Opacity 0.2` |
@@ -5847,9 +5847,18 @@ Other sources, such as DOCX or PDF, still write Reader JSON to a `.json` destina
 
 `tabular schema` prints `string`, `integer`, `number`, `boolean` and `datetime` instead of .NET type names such as `System.String`. Update scripts that compare the `type` column.
 
-## JSON output from workflow export-pages, assemble and print-plan
+## JSON output from the workflow commands
 
-`officeimo workflow export-pages`, `workflow assemble` and `workflow print-plan` now write one JSON result to standard output, like the `pdf`, `hidden-data` and `provenance` commands. The schemas are `officeimo.workflow.export-pages.v1`, `officeimo.workflow.assemble.v1` and `officeimo.workflow.print-plan.v1`. Scripts that read the previous text lines can switch to the JSON fields, or add `--format text` to keep the summary.
+`officeimo workflow compare`, `optimize-images`, `export-pages`, `assemble`, `print-plan`, `printers` and `print` now write one JSON result to standard output, like the `pdf`, `hidden-data` and `provenance` commands. The schemas are `officeimo.workflow.compare.v1`, `officeimo.workflow.optimize-images.v1`, `officeimo.workflow.export-pages.v1`, `officeimo.workflow.assemble.v1`, `officeimo.workflow.print-plan.v1`, `officeimo.workflow.printers.v1` (`officeimo.workflow.paper-sources.v1` with `--paper-sources`) and `officeimo.workflow.print.v1`. Scripts that read the previous text lines can switch to the JSON fields, or add `--format text` to keep the summary. A failed `compare` now also writes its JSON result, with `succeeded` set to `false`.
+
+`optimize-images` takes the output document format as `--output-format`, because `--format` now chooses the output:
+
+```shell
+# Before
+officeimo workflow optimize-images first.docx second.docx --output-directory optimized --format pdf
+# After
+officeimo workflow optimize-images first.docx second.docx --output-directory optimized --output-format pdf
+```
 
 `export-pages` takes the image format as `--image-format` because `--format` now chooses the output:
 
@@ -5860,7 +5869,9 @@ officeimo workflow export-pages report.pdf --output pages --format webp
 officeimo workflow export-pages report.pdf --output pages --image-format webp
 ```
 
-`officeimo convert` with an unknown `--sheet` or a malformed `--range` now exits with code `2` instead of `5`, and the error lists the sheets the workbook has. In .NET, an `OfficeConverter` data conversion from XLSX with the same `DataConversionOptions.Sheet` or `Range` throws `OfficeConversionException` with a `conversion-request-invalid` diagnostic instead of `KeyNotFoundException` or `ArgumentException`.
+`officeimo convert` and `workflow batch` now convert CSV and TSV to XLSX and XLSX to CSV. A batch with `--target xlsx` or `--target csv` that previously skipped those files now converts them; add `--source-extension` to keep a narrower selection.
+
+`officeimo convert` with an unknown `--sheet` or a malformed `--range`, and `officeimo tabular` with an unknown `--sheet` or an out-of-range `--sheet-index`, now exit with code `2` instead of `5`, and the error lists the sheets the workbook has. In .NET, an `OfficeConverter` data conversion from XLSX with the same `DataConversionOptions.Sheet` or `Range` throws `OfficeConversionException` with a `conversion-request-invalid` diagnostic instead of `KeyNotFoundException` or `ArgumentException`.
 
 ## Removed obsolete image and HTML capability aliases
 
@@ -9965,3 +9976,9 @@ JSON, JSON Lines, YAML, TOML, XML, CSV, TSV and worksheet data convert through `
 - **Loss reporting.** Data routes report what the target cannot hold, such as TOML nulls, YAML tags or XML attributes, as diagnostics on `OfficeConversionReport`. Set `FailOnLoss` (or `-FailOnLoss`) to stop instead.
 - **CSV UTF-8 rows.** `CsvRowWriter.WriteUtf8Row` now rejects a field that unquoted output cannot hold before writing any of that row, instead of leaving a partly written row.
 - **PowerShell TOML commands.** `ConvertFrom-OfficeToml`, `ConvertTo-OfficeToml`, `Import-OfficeToml` and `Export-OfficeToml` read and write TOML as PowerShell objects, as the JSON commands do.
+
+## Printing any document from PowerShell
+
+`Send-OfficePdfPrinter` is now `Send-OfficePrinter`, which prints PDF files and every format OfficeIMO converts to PDF. `Send-OfficePdfPrinter` remains an alias with the same parameters and the same behavior for PDF files, so existing scripts keep working; use `Send-OfficePrinter` in new scripts. `-PrinterName` also accepts an `ipp://` or `ipps://` printer URI.
+
+Printer capabilities come from `Get-OfficePrinterCapability -Name <printer>`. Follow or cancel a submitted job with `Get-OfficePrintJob` and `Stop-OfficePrintJob`, which take the receipt from the pipeline.

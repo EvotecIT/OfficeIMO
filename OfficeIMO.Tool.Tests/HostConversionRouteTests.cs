@@ -209,6 +209,29 @@ public sealed class HostConversionRouteTests {
         } finally { Directory.Delete(directory, true); }
     }
 
+    [Fact]
+    public async Task DelimitedRoutesConvertToAWorkbookAndBack() {
+        string directory = CreateDirectory();
+        try {
+            string csv = Path.Combine(directory, "source.csv"), tsv = Path.Combine(directory, "source.tsv");
+            string fromCsv = Path.Combine(directory, "from-csv.xlsx"), fromTsv = Path.Combine(directory, "from-tsv.xlsx");
+            string back = Path.Combine(directory, "back.csv");
+            await File.WriteAllTextAsync(csv, "Name,Qty\nAlpha,1\nBeta,2\n");
+            await File.WriteAllTextAsync(tsv, "Name\tQty\nAlpha\t1\nBeta\t2\n");
+
+            await ConvertAsync(csv, fromCsv);
+            await ConvertAsync(tsv, fromTsv);
+            await ConvertAsync(fromCsv, back);
+
+            using (ExcelWorkbookDataReader rows = ExcelDocument.OpenReader(fromTsv, new ExcelReaderOptions())) {
+                Assert.Equal("Qty", rows.GetName(1));
+                Assert.True(rows.Read() && rows.Read());
+                Assert.Equal("Beta", rows.GetValue(0)?.ToString());
+            }
+            Assert.Equal(["Name,Qty", "Alpha,1", "Beta,2"], (await File.ReadAllLinesAsync(back)).Where(line => line.Length > 0));
+        } finally { Directory.Delete(directory, true); }
+    }
+
     private static async Task ConvertAsync(string input, string output, params string[] options) {
         await using var standardOutput = new MemoryStream();
         using var error = new StringWriter();

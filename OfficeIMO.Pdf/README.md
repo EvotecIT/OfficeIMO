@@ -37,7 +37,7 @@ dotnet add package OfficeIMO.Pdf
 | Convert PDF to Word, Excel or PowerPoint | `OfficeIMO.Pdf.Word`, `OfficeIMO.Pdf.Excel`, `OfficeIMO.Pdf.PowerPoint` |
 | Read scanned pages with an OCR provider | `OfficeIMO.Pdf.Ocr` |
 | Render an invoice with its Factur-X XML | `OfficeIMO.Invoicing.Pdf` |
-| Print to an installed printer | [`OfficeIMO.Workflows`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Workflows/README.md#print-a-pdf) |
+| Print to an installed printer | [`OfficeIMO.Workflows`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Workflows/README.md#print-a-document) |
 | Full OpenType shaping for complex scripts | `OfficeIMO.Drawing.HarfBuzz` |
 
 ## Examples
@@ -131,6 +131,8 @@ PdfPageRenderResult preview = PdfDocument.Load("Service-review.pdf")
 File.WriteAllBytes("Service-review-page-1.png", preview.Bytes!);
 ```
 <!-- /powerforge:code -->
+
+Pages with a supported destination ICC output profile and explicit transparency are composited before relative-colorimetric soft proofing. Their per-page reports include `render.colorspace.icc-output-intent-post-composition` as supported. SVG embeds the proofed raster surface; text extraction and the retained drawing scene keep their text and geometry. Other color-profile and transparency limitations remain diagnostic-driven; see the [producer corpus](../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Rendering/OutputIntent/SOURCE.md) for the qualified cases.
 
 ## More
 

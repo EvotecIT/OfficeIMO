@@ -11,9 +11,15 @@ namespace OfficeIMO.Toml;
 /// such as duplicate keys and table redefinition, are checked by <see cref="TomlDocument"/>.</para>
 /// <para>A key/value pair reads as one <see cref="TomlTokenType.Key"/> token per dotted segment followed by the value;
 /// a header reads as its start token, its key segments and its end token.</para>
+/// <para>Over a <see cref="Stream"/> or <see cref="TextReader"/> the reader keeps whole lines in a pooled sliding buffer.
+/// It retains only the text the current token needs, and the buffer grows only while one line or multi-line string is
+/// longer than it. Positions, tokens and errors are the same as for the same text in memory. <see cref="ValueSpan"/> is
+/// valid until the next <see cref="Read"/>. A reader is not thread-safe. Dispose it to return pooled buffers; the reader
+/// never disposes a caller's stream or text reader.</para>
 /// </remarks>
-public sealed partial class TomlReader {
+public sealed partial class TomlReader : IDisposable {
     private const int CancellationInterval = 4096;
+    private const int InitialBufferSize = 16 * 1024;
 
     private enum State : byte {
         LineStart,
@@ -36,6 +42,19 @@ public sealed partial class TomlReader {
     private readonly ReadOnlyMemory<char> _text;
     private readonly TomlReaderOptions _options;
     private readonly CancellationToken _cancellationToken;
+
+    // Buffered input; in-memory text has no source and is final from the start. Offsets in the fields below are relative
+    // to the buffer, whose first character is at absolute offset _base. Until the input ends, the visible text stops
+    // after the last line feed read, so only skipping blank lines and comments and multi-line strings reach its end.
+    private readonly TomlCharSource? _source;
+    private readonly long _maxInput = long.MaxValue;
+    private char[]? _buffer;
+    private int _length;
+    private int _visible;
+    private int _base;
+    private bool _final = true;
+    private bool _disposed;
+
     private byte[] _contexts = new byte[8];
     private int _depth;
     private State _state;
@@ -70,6 +89,48 @@ public sealed partial class TomlReader {
         _text = toml;
         _options = options ?? new TomlReaderOptions();
         _cancellationToken = cancellationToken;
+        if (_options.MaxInputBytes is long max && toml.Length > max) {
+            throw new TomlLimitExceededException(nameof(TomlReaderOptions.MaxInputBytes), max, new TomlPosition(max, 0, 0));
+        }
+    }
+
+    /// <summary>
+    /// Creates a reader over a caller-owned <see cref="TextReader"/>, reading its text into a pooled sliding buffer.
+    /// <see cref="TomlReaderOptions.MaxInputBytes"/> counts characters.
+    /// </summary>
+    /// <param name="reader">The source of TOML text. It is not disposed by the reader.</param>
+    /// <param name="options">Reader settings, or <see langword="null"/> for the defaults.</param>
+    /// <param name="cancellationToken">Observed at bounded intervals while reading.</param>
+    public TomlReader(TextReader reader, TomlReaderOptions? options = null, CancellationToken cancellationToken = default)
+        : this(new TomlTextReaderSource(reader ?? throw new ArgumentNullException(nameof(reader))), options, cancellationToken, InitialBufferSize) {
+    }
+
+    /// <summary>
+    /// Creates a reader over a caller-owned UTF-8 stream, from its current position, decoding it into a pooled sliding
+    /// buffer. A UTF-8 byte-order mark is skipped. Invalid UTF-8 throws <see cref="TomlException"/> with
+    /// <see cref="TomlErrorCodes.InvalidEncoding"/> at the position of the first invalid byte.
+    /// </summary>
+    /// <param name="stream">A readable stream. It is not disposed by the reader.</param>
+    /// <param name="options">Reader settings, or <see langword="null"/> for the defaults.</param>
+    /// <param name="cancellationToken">Observed at bounded intervals while reading.</param>
+    public TomlReader(Stream stream, TomlReaderOptions? options = null, CancellationToken cancellationToken = default)
+        : this(new TomlStreamSource(RequireReadable(stream)), options, cancellationToken, InitialBufferSize) {
+    }
+
+    /// <summary>Creates a buffered reader; tests pass a tiny buffer so compaction and growth happen at every offset.</summary>
+    internal TomlReader(TomlCharSource source, TomlReaderOptions? options, CancellationToken cancellationToken, int bufferSize) {
+        _options = options ?? new TomlReaderOptions();
+        _cancellationToken = cancellationToken;
+        _source = source;
+        _maxInput = _options.MaxInputBytes ?? long.MaxValue;
+        _buffer = ArrayPool<char>.Shared.Rent(Math.Max(2, bufferSize));
+        _final = false;
+    }
+
+    private static Stream RequireReadable(Stream stream) {
+        if (stream is null) throw new ArgumentNullException(nameof(stream));
+        if (!stream.CanRead) throw new ArgumentException("The stream must be readable.", nameof(stream));
+        return stream;
     }
 
     /// <summary>Gets the token the reader is on.</summary>
@@ -79,16 +140,16 @@ public sealed partial class TomlReader {
     public int Depth => _tokenType is TomlTokenType.StartArray or TomlTokenType.StartInlineTable ? _depth - 1 : _depth;
 
     /// <summary>Gets where the current token starts.</summary>
-    public TomlPosition Start => new TomlPosition(_tokenStart, _startLine, _startColumn);
+    public TomlPosition Start => new TomlPosition((long)_base + _tokenStart, _startLine, _startColumn);
 
     /// <summary>Gets where the current token ends (exclusive).</summary>
-    public TomlPosition End => new TomlPosition(_tokenEnd, _endLine, _endColumn);
+    public TomlPosition End => new TomlPosition((long)_base + _tokenEnd, _endLine, _endColumn);
 
     /// <summary>
     /// Gets the current token's source text: a key or string with its quotes, a number, date-time or boolean as written,
-    /// a bracket or brace, or a comment with its <c>#</c>.
+    /// a bracket or brace, or a comment with its <c>#</c>. Valid until the next <see cref="Read"/>.
     /// </summary>
-    public ReadOnlySpan<char> ValueSpan => _text.Span.Slice(_tokenStart, _tokenEnd - _tokenStart);
+    public ReadOnlySpan<char> ValueSpan => Text.Slice(_tokenStart, _tokenEnd - _tokenStart);
 
     /// <summary>
     /// Gets how the current <see cref="TomlTokenType.Key"/> or <see cref="TomlTokenType.String"/> is quoted:
@@ -96,9 +157,12 @@ public sealed partial class TomlReader {
     /// </summary>
     public TomlStringStyle StringStyle => _style;
 
-    internal int TokenStartOffset => _tokenStart;
+    internal int TokenStartOffset => _base + _tokenStart;
 
-    internal int TokenEndOffset => _tokenEnd;
+    internal int TokenEndOffset => _base + _tokenEnd;
+
+    /// <summary>The text the reader can scan now: all in-memory input, or the visible part of the buffer.</summary>
+    private ReadOnlySpan<char> Text => _buffer is null ? _text.Span : new ReadOnlySpan<char>(_buffer, 0, _visible);
 
     /// <summary>
     /// Returns the decoded text of a key or string (escapes applied, the first newline of a multi-line string trimmed,
@@ -156,13 +220,15 @@ public sealed partial class TomlReader {
     /// </summary>
     /// <exception cref="TomlException">The input is malformed or exceeds a limit.</exception>
     /// <exception cref="OperationCanceledException">The cancellation token was cancelled.</exception>
+    /// <exception cref="ObjectDisposedException">The reader was disposed.</exception>
     public bool Read() {
+        if (_disposed) throw new ObjectDisposedException(nameof(TomlReader));
         if (++_tokenCount % CancellationInterval == 0) _cancellationToken.ThrowIfCancellationRequested();
-        ReadOnlySpan<char> s = _text.Span;
+        ReadOnlySpan<char> s = Text;
         while (true) {
             switch (_state) {
                 case State.LineStart:
-                    if (SkipTrivia(s, newlines: true)) return true;
+                    if (SkipTrivia(ref s, newlines: true)) return true;
                     if (_pos >= s.Length) {
                         _state = State.End;
                         _tokenType = TomlTokenType.None;
@@ -224,14 +290,14 @@ public sealed partial class TomlReader {
                     return true;
                 case State.AfterValue:
                     if (_depth == 0) {
-                        if (SkipTrivia(s, newlines: false)) return true;
+                        if (SkipTrivia(ref s, newlines: false)) return true;
                         if (_pos < s.Length && s[_pos] != '\n') {
                             throw Error(TomlErrorCodes.UnexpectedToken, "Expected a newline or the end of the input after the value.", _pos);
                         }
                         _state = State.LineStart;
                         continue;
                     }
-                    if (SkipTrivia(s, newlines: true)) return true;
+                    if (SkipTrivia(ref s, newlines: true)) return true;
                     if (_pos >= s.Length) throw Error(TomlErrorCodes.UnexpectedToken, Context == ArrayContext ? "The array is not closed." : "The inline table is not closed.", _pos);
                     if (s[_pos] == ',') {
                         _pos++;
@@ -242,14 +308,14 @@ public sealed partial class TomlReader {
                     throw Error(TomlErrorCodes.UnexpectedToken, Context == ArrayContext ? "Expected ',' or ']' in the array." : "Expected ',' or '}' in the inline table.", _pos);
                 case State.ArrayFirst:
                 case State.ArrayItem:
-                    if (SkipTrivia(s, newlines: true)) return true;
+                    if (SkipTrivia(ref s, newlines: true)) return true;
                     if (_pos >= s.Length) throw Error(TomlErrorCodes.UnexpectedToken, "The array is not closed.", _pos);
                     if (Close(s)) return true;
                     ScanValue(s);
                     return true;
                 case State.InlineFirst:
                 case State.InlineKey:
-                    if (SkipTrivia(s, newlines: true)) return true;
+                    if (SkipTrivia(ref s, newlines: true)) return true;
                     if (_pos >= s.Length) throw Error(TomlErrorCodes.UnexpectedToken, "The inline table is not closed.", _pos);
                     if (Close(s)) return true;
                     ScanKey(s);
@@ -307,11 +373,19 @@ public sealed partial class TomlReader {
     }
 
     /// <summary>
-    /// Skips spaces, tabs, comments and (when allowed) newlines. Returns <see langword="true"/> when it stopped on a
-    /// comment that the caller asked to see. Without newlines it stops at the first line break, leaving it unread.
+    /// Skips spaces, tabs, comments and (when allowed) newlines, reading more buffered input as needed. Returns
+    /// <see langword="true"/> when it stopped on a comment that the caller asked to see. Without newlines it stops at the
+    /// first line break, leaving it unread.
     /// </summary>
-    private bool SkipTrivia(ReadOnlySpan<char> s, bool newlines) {
-        while (_pos < s.Length) {
+    private bool SkipTrivia(ref ReadOnlySpan<char> s, bool newlines) {
+        while (true) {
+            if (_pos >= s.Length) {
+                // The visible text ends after a line feed, so only a skip across lines reaches it before the input ends.
+                if (_final || !newlines) return false;
+                Fill(_pos);
+                s = Text;
+                continue;
+            }
             char ch = s[_pos];
             if (ch == ' ' || ch == '\t') {
                 _pos++;
@@ -343,7 +417,6 @@ public sealed partial class TomlReader {
                 return false;
             }
         }
-        return false;
     }
 
     private void NewLine() {
@@ -420,22 +493,86 @@ public sealed partial class TomlReader {
         _state = State.AfterValue;
     }
 
-    internal TomlPosition Position(int offset) {
-        // Offsets are on the current line except for errors detected after the reader advanced past newlines.
-        return offset >= _lineStart ? new TomlPosition(offset, _line, offset - _lineStart + 1) : PositionSlow(offset);
+    /// <summary>Returns the position of a buffer offset on the current line.</summary>
+    internal TomlPosition Position(int offset) => Position(offset, _line, _lineStart);
+
+    private TomlPosition Position(int offset, int line, int lineStart) => new TomlPosition((long)_base + offset, line, offset - lineStart + 1);
+
+    private TomlException Error(string code, string message, int offset) => new TomlException(code, message, Position(offset));
+
+    /// <summary>
+    /// Reads more input and makes the text through the last line feed visible, or all of it at the end of the input. Text
+    /// before <paramref name="keepFrom"/> may be dropped; returns how far the kept text moved toward the start of the
+    /// buffer, which callers subtract from the offsets they hold in locals.
+    /// </summary>
+    private int Fill(int keepFrom) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        int shift = 0;
+        while (true) {
+            char[] buffer = _buffer ?? throw new ObjectDisposedException(nameof(TomlReader));
+            if (buffer.Length - _length < 2) {
+                // Move the kept text to the start when that frees at least half the buffer, which keeps copying
+                // amortized; otherwise grow the buffer.
+                if (keepFrom >= buffer.Length / 2) {
+                    Array.Copy(buffer, keepFrom, buffer, 0, _length - keepFrom);
+                    _length -= keepFrom;
+                    _visible -= keepFrom;
+                    _base += keepFrom;
+                    _pos -= keepFrom;
+                    _lineStart -= keepFrom;
+                    shift += keepFrom;
+                    keepFrom = 0;
+                } else {
+                    if (buffer.Length > int.MaxValue / 2) throw new TomlLimitExceededException("MaxInputLength", int.MaxValue / 2, Position(_pos));
+                    char[] larger = ArrayPool<char>.Shared.Rent(buffer.Length * 2);
+                    Array.Copy(buffer, larger, _length);
+                    _buffer = larger;
+                    ArrayPool<char>.Shared.Return(buffer);
+                    continue;
+                }
+            }
+            int read = _source!.Read(buffer, _length, buffer.Length - _length);
+            if (read < 0) throw EncodingError();
+            if (read == 0) {
+                _final = true;
+                _visible = _length;
+                return shift;
+            }
+            _length += read;
+            if (_source.Consumed > _maxInput) {
+                throw new TomlLimitExceededException(nameof(TomlReaderOptions.MaxInputBytes), _maxInput, new TomlPosition(_maxInput, 0, 0));
+            }
+            if ((long)_base + _length >= int.MaxValue - 1) {
+                throw new TomlLimitExceededException("MaxInputLength", int.MaxValue - 1, Position(_pos));
+            }
+            int lineFeed = Array.LastIndexOf(buffer, '\n', _length - 1, read);
+            if (lineFeed >= 0) {
+                _visible = lineFeed + 1;
+                return shift;
+            }
+        }
     }
 
-    private TomlPosition PositionSlow(int offset) {
-        ReadOnlySpan<char> s = _text.Span;
-        int line = 1, lineStart = 0;
-        for (int i = 0; i < offset && i < s.Length; i++) {
-            if (s[i] == '\n') {
+    /// <summary>Reports invalid UTF-8 just after the last decoded character, counting the lines not scanned yet.</summary>
+    private TomlException EncodingError() {
+        int line = _line, lineStart = _lineStart;
+        char[] buffer = _buffer!;
+        for (int i = _pos; i < _length; i++) {
+            if (buffer[i] == '\n') {
                 line++;
                 lineStart = i + 1;
             }
         }
-        return new TomlPosition(offset, line, offset - lineStart + 1);
+        return new TomlException(TomlErrorCodes.InvalidEncoding, "The input is not valid UTF-8.", Position(_length, line, lineStart));
     }
 
-    private TomlException Error(string code, string message, int offset) => new TomlException(code, message, Position(offset));
+    /// <summary>Returns pooled buffers. The caller's stream or text reader is not disposed.</summary>
+    public void Dispose() {
+        if (_disposed) return;
+        _disposed = true;
+        _source?.Release();
+        char[]? buffer = _buffer;
+        _buffer = null;
+        if (buffer is not null) ArrayPool<char>.Shared.Return(buffer);
+    }
 }

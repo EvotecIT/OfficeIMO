@@ -52,6 +52,7 @@
     <ProjectReference Include="..\OfficeIMO.Invoicing.Validation\OfficeIMO.Invoicing.Validation.csproj" Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'" />
     <ProjectReference Include="..\OfficeIMO.Project\OfficeIMO.Project.csproj" />
     <ProjectReference Include="..\OfficeIMO.CSV\OfficeIMO.CSV.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel.Csv\OfficeIMO.Excel.Csv.csproj" />
     <ProjectReference Include="..\OfficeIMO.Epub\OfficeIMO.Epub.csproj" />
     <ProjectReference Include="..\OfficeIMO.Epub.Image\OfficeIMO.Epub.Image.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
@@ -84,6 +85,7 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
     <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Net.Http" />
     <Reference Include="System.IO.Compression.FileSystem" />
   </ItemGroup>
 

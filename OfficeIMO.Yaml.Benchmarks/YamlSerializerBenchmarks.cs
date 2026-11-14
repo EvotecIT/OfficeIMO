@@ -131,8 +131,8 @@ public partial class BenchOneYamlContext : One.YamlSerializerContext {
 
 /// <summary>The three serializer workloads, each with an operation per library.</summary>
 public abstract class YamlSerializerBenchmarkBase {
-    protected static readonly BenchYamlContext Context = new BenchYamlContext(new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase });
-    protected static readonly YamlSerializerOptions Reflection = new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase };
+    protected static readonly BenchYamlContext Context = new BenchYamlContext(new YamlSerializerOptions { PropertyNamingPolicy = OfficeNamingPolicy.CamelCase });
+    protected static readonly YamlSerializerOptions Reflection = new YamlSerializerOptions { PropertyNamingPolicy = OfficeNamingPolicy.CamelCase };
     protected static readonly BenchSharpYamlContext SharpContext = BenchSharpYamlContext.Default;
     protected static readonly BenchOneYamlContext OneContext = BenchOneYamlContext.Default;
     protected static readonly DotNet.ISerializer DotNetSerializer = new DotNet.SerializerBuilder().WithNamingConvention(DotNet.NamingConventions.CamelCaseNamingConvention.Instance).Build();
@@ -257,7 +257,7 @@ public class YamlDeserializeBenchmarks : YamlSerializerBenchmarkBase {
 
 /// <summary>Builds the workloads and checks every lane's output before timing.</summary>
 internal static class YamlSerializerWorkloads {
-    private static readonly BenchYamlContext Context = new BenchYamlContext(new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase });
+    private static readonly BenchYamlContext Context = new BenchYamlContext(new YamlSerializerOptions { PropertyNamingPolicy = OfficeNamingPolicy.CamelCase });
 
     public static object Create(string workload) => workload switch {
         "SmallConfig" => Config(),
@@ -278,7 +278,7 @@ internal static class YamlSerializerWorkloads {
         var sharp = BenchSharpYamlContext.Default;
         DotNet.ISerializer dotNetWriter = new DotNet.SerializerBuilder().WithNamingConvention(DotNet.NamingConventions.CamelCaseNamingConvention.Instance).Build();
         DotNet.IDeserializer dotNetReader = new DotNet.DeserializerBuilder().WithNamingConvention(DotNet.NamingConventions.CamelCaseNamingConvention.Instance).Build();
-        var reflection = new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase };
+        var reflection = new YamlSerializerOptions { PropertyNamingPolicy = OfficeNamingPolicy.CamelCase };
         BenchOneYamlContext one = BenchOneYamlContext.Default;
         var outputs = new Dictionary<string, string> {
             ["OfficeIMO reflection"] = YamlSerializer.Serialize(value, type, reflection),

@@ -78,25 +78,29 @@ internal static partial class PdfPageImageRenderer {
     /// Renders a one-based PDF page to UTF-8 SVG bytes through the shared OfficeIMO drawing SVG exporter.
     /// </summary>
     public static byte[] RenderPageAsSvg(byte[] pdf, int pageNumber = 1, double scale = 1D) =>
-        OfficeDrawingSvgExporter.ToSvgBytes(RenderPage(PdfReadDocument.Open(pdf), pageNumber, CancellationToken.None, scale), scale);
+        RenderDrawingAsSvg(RenderPage(PdfReadDocument.Open(pdf), pageNumber, CancellationToken.None, scale), scale);
 
     /// <summary>
     /// Renders a one-based PDF page to UTF-8 SVG bytes from the current stream position.
     /// </summary>
     public static byte[] RenderPageAsSvg(Stream stream, int pageNumber = 1, double scale = 1D) =>
-        OfficeDrawingSvgExporter.ToSvgBytes(RenderPage(stream, pageNumber, readOptions: null, functionShadingScale: scale), scale);
+        RenderDrawingAsSvg(RenderPage(stream, pageNumber, readOptions: null, functionShadingScale: scale), scale);
 
     /// <summary>
     /// Renders a one-based PDF page to UTF-8 SVG bytes from a file path.
     /// </summary>
     public static byte[] RenderPageAsSvg(string path, int pageNumber = 1, double scale = 1D) =>
-        OfficeDrawingSvgExporter.ToSvgBytes(RenderPage(path, pageNumber, readOptions: null, functionShadingScale: scale), scale);
+        RenderDrawingAsSvg(RenderPage(path, pageNumber, readOptions: null, functionShadingScale: scale), scale);
 
     private static void ValidatePageNumber(PdfReadDocument document, int pageNumber) {
         if (pageNumber <= 0 || pageNumber > document.Pages.Count) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must refer to an existing one-based PDF page.");
         }
     }
+
+    private static byte[] RenderDrawingAsSvg(OfficeDrawing drawing, double scale) =>
+        OfficeDrawingSvgExporter.ToSvgBytes(drawing.PostCompositionColorTransform == null
+            ? drawing : PdfImageExportEngine.AddBackground(drawing, OfficeColor.White), scale);
 
     private static byte[] RenderDrawingAsPng(
         OfficeDrawing drawing,
@@ -106,9 +110,19 @@ internal static partial class PdfPageImageRenderer {
         long maximumRasterPixels = OfficeImageExportOptions.DefaultMaximumRasterPixels,
         IOfficeTextShapingProvider? textShapingProvider = null,
         string? textShapingLanguage = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default) =>
+        OfficeDrawingRasterRenderer.ToPng(drawing, RasterOptions(scale, background, imageCodec, maximumRasterPixels,
+            textShapingProvider, textShapingLanguage, cancellationToken));
 
-        return OfficeDrawingRasterRenderer.ToPng(drawing, new OfficeDrawingRasterRenderOptions {
+    /// <summary>Raster settings shared by PNG page renders and in-process pixel renders, so both produce the same pixels.</summary>
+    private static OfficeDrawingRasterRenderOptions RasterOptions(
+        double scale,
+        OfficeColor? background,
+        IOfficeRasterImageCodec? imageCodec,
+        long maximumRasterPixels,
+        IOfficeTextShapingProvider? textShapingProvider,
+        string? textShapingLanguage,
+        CancellationToken cancellationToken) => new() {
             Scale = scale,
             Background = background ?? OfficeColor.White,
             ImageCodec = imageCodec,
@@ -118,6 +132,5 @@ internal static partial class PdfPageImageRenderer {
             MaximumRasterPixels = maximumRasterPixels,
             PdfRasterConventions = true,
             CancellationToken = cancellationToken
-        });
-    }
+        };
 }
