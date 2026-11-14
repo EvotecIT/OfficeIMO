@@ -491,6 +491,8 @@ internal static partial class PdfTextDiagnostics {
             int scalarStart = index;
             int sourceIndex = scalarStart + indexOffset;
             int scalar = ReadScalar(text, ref index);
+            // Every condition below starts at U+0300 (combining marks) or later.
+            if (scalar < 0x0300) continue;
 
             if (OfficeTextElements.IsRightToLeftScalar(scalar)) {
                 AddFirstDiagnostic(
