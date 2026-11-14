@@ -19,10 +19,13 @@ engines adjacent and alternates which engine runs first. PowerForge performs an
 explicit managed-memory cleanup after setup and data creation, outside the timed
 operation, so allocations from one engine do not become another engine's GC bill.
 
-`Export-OfficeExcel` and `Add-OfficeExcelTable` apply a table style, fitted
-columns and a frozen header row by default. The PSWriteOffice lanes keep those
-defaults, so default-export lanes do more formatting work than the plain
-`Export-Excel` and `Export-Workbook` calls they are compared with.
+`Export-OfficeExcel` and `Add-OfficeExcelTable` fit column widths by default,
+while plain `Export-Excel` and ExcelFast's `Export-Workbook` do not. Lanes whose
+competitors do not fit columns run the PSWriteOffice side with `-NoAutoFit` so
+both sides do the same work. `objects-table-autofit` and `report-workbook` keep
+fitting on both sides (`Export-Excel -AutoSize`) and are the like-for-like
+column-fitting comparison. PSWriteOffice still applies its table style and
+frozen header row in every lane.
 
 Every read comparison uses the same PSWriteOffice-produced workbook shape for
 the selected row count. The competing readers do not benchmark files created by
@@ -85,84 +88,78 @@ Managed allocation fell from about 12.37 MB to 3.00 MB in both processor
 domains. These are workstation observations; the paired processor runs are kept
 visible because the faster CPU domain can change by sub-operation.
 
+The Excel table below comes from PowerShell 7 runs of the Standard suite at
+1,000, 5,000 and 10,000 rows. ExcelFast appears only in the lanes it supports.
+
 <!-- BENCHMARK:ExcelComparison:START -->
 | Scenario | Rows | PSWriteOffice | ExcelFast | ImportExcel | Result |
 | --- | ---: | ---: | ---: | ---: | --- |
-| append-existing-table | 1000 | 100.2 ms (1.00x) | Skipped | 340.0 ms (3.39x slower) | PSWriteOffice fastest |
-| append-existing-table | 5000 | 323.2 ms (1.00x) | Skipped | 1.14 s (3.52x slower) | PSWriteOffice fastest |
-| append-existing-table | 10000 | 741.3 ms (1.00x) | Skipped | 2.17 s (2.93x slower) | PSWriteOffice fastest |
-| chart-only-workbook | 1000 | 91.0 ms (1.00x) | Skipped | 285.2 ms (3.13x slower) | PSWriteOffice fastest |
-| chart-only-workbook | 5000 | 348.1 ms (1.00x) | Skipped | 1.07 s (3.09x slower) | PSWriteOffice fastest |
-| chart-only-workbook | 10000 | 949.7 ms (1.00x) | Skipped | 2.01 s (2.12x slower) | PSWriteOffice fastest |
-| csv-to-excel | 1000 | 73.4 ms (1.00x) | Skipped | 422.1 ms (5.75x slower) | PSWriteOffice fastest |
-| csv-to-excel | 5000 | 270.0 ms (1.00x) | Skipped | 1.65 s (6.12x slower) | PSWriteOffice fastest |
-| csv-to-excel | 10000 | 571.4 ms (1.00x) | Skipped | 3.40 s (5.95x slower) | PSWriteOffice fastest |
-| datatable-default | 1000 | 21.0 ms (1.00x) | Skipped | 263.1 ms (12.52x slower) | PSWriteOffice fastest |
-| datatable-default | 5000 | 27.1 ms (1.00x) | Skipped | 777.1 ms (28.62x slower) | PSWriteOffice fastest |
-| datatable-default | 10000 | 36.1 ms (1.00x) | Skipped | 1.50 s (41.72x slower) | PSWriteOffice fastest |
-| import-default-full | 1000 | 20.7 ms (1.00x) | 42.6 ms (2.06x slower) | 121.5 ms (5.86x slower) | PSWriteOffice fastest |
-| import-default-full | 5000 | 96.4 ms (1.00x) | 106.3 ms (1.10x slower) | 276.7 ms (2.87x slower) | PSWriteOffice fastest |
-| import-default-full | 10000 | 189.6 ms (1.00x) | 226.6 ms (1.19x slower) | 520.5 ms (2.75x slower) | PSWriteOffice fastest |
-| import-default-range | 1000 | 18.0 ms (1.00x) | 48.2 ms (2.67x slower) | 125.0 ms (6.93x slower) | PSWriteOffice fastest |
-| import-default-range | 5000 | 74.1 ms (1.00x) | 115.6 ms (1.56x slower) | 276.7 ms (3.73x slower) | PSWriteOffice fastest |
-| import-default-range | 10000 | 110.7 ms (1.00x) | 224.6 ms (2.03x slower) | 399.2 ms (3.61x slower) | PSWriteOffice fastest |
-| many-small-sheets | 1000 | 129.5 ms (1.00x) | Skipped | 373.1 ms (2.88x slower) | PSWriteOffice fastest |
-| many-small-sheets | 5000 | 499.4 ms (1.00x) | Skipped | 1.22 s (2.44x slower) | PSWriteOffice fastest |
-| many-small-sheets | 10000 | 989.5 ms (1.00x) | Skipped | 2.94 s (2.97x slower) | PSWriteOffice fastest |
-| multi-sheet-regions | 1000 | 91.8 ms (1.00x) | Skipped | 284.5 ms (3.10x slower) | PSWriteOffice fastest |
-| multi-sheet-regions | 5000 | 405.4 ms (1.00x) | Skipped | 1.04 s (2.57x slower) | PSWriteOffice fastest |
-| multi-sheet-regions | 10000 | 801.6 ms (1.00x) | Skipped | 2.00 s (2.50x slower) | PSWriteOffice fastest |
-| named-range-workbook | 1000 | 85.7 ms (1.00x) | Skipped | 289.6 ms (3.38x slower) | PSWriteOffice fastest |
-| named-range-workbook | 5000 | 328.0 ms (1.00x) | Skipped | 1.06 s (3.25x slower) | PSWriteOffice fastest |
-| named-range-workbook | 10000 | 792.0 ms (1.00x) | Skipped | 2.00 s (2.53x slower) | PSWriteOffice fastest |
-| objects-default | 1000 | 45.4 ms (1.00x) | Skipped | 302.2 ms (6.65x slower) | PSWriteOffice fastest |
-| objects-default | 5000 | 101.0 ms (1.00x) | Skipped | 1.06 s (10.52x slower) | PSWriteOffice fastest |
-| objects-default | 10000 | 226.3 ms (1.00x) | Skipped | 2.11 s (9.33x slower) | PSWriteOffice fastest |
-| objects-no-table | 1000 | 25.6 ms (1.00x) | Skipped | 280.9 ms (10.98x slower) | PSWriteOffice fastest |
-| objects-no-table | 5000 | 62.3 ms (1.00x) | Skipped | 1.05 s (16.88x slower) | PSWriteOffice fastest |
-| objects-no-table | 10000 | 238.4 ms (1.00x) | Skipped | 2.29 s (9.60x slower) | PSWriteOffice fastest |
-| objects-table | 1000 | 29.4 ms (1.00x) | Skipped | 318.9 ms (10.86x slower) | PSWriteOffice fastest |
-| objects-table | 5000 | 63.7 ms (1.00x) | Skipped | 995.8 ms (15.63x slower) | PSWriteOffice fastest |
-| objects-table | 10000 | 175.2 ms (1.00x) | Skipped | 2.05 s (11.68x slower) | PSWriteOffice fastest |
-| objects-table-autofit | 1000 | 47.4 ms (1.00x) | Skipped | 299.2 ms (6.31x slower) | PSWriteOffice fastest |
-| objects-table-autofit | 5000 | 70.7 ms (1.00x) | Skipped | 1.11 s (15.67x slower) | PSWriteOffice fastest |
-| objects-table-autofit | 10000 | 203.8 ms (1.00x) | Skipped | 2.01 s (9.85x slower) | PSWriteOffice fastest |
-| objects-title-freeze | 1000 | 89.5 ms (1.00x) | Skipped | 278.2 ms (3.11x slower) | PSWriteOffice fastest |
-| objects-title-freeze | 5000 | 349.2 ms (1.00x) | Skipped | 970.0 ms (2.78x slower) | PSWriteOffice fastest |
-| objects-title-freeze | 10000 | 892.7 ms (1.00x) | Skipped | 1.78 s (1.99x slower) | PSWriteOffice fastest |
-| pivot-only-workbook | 1000 | 59.7 ms (1.00x) | Skipped | 288.2 ms (4.83x slower) | PSWriteOffice fastest |
-| pivot-only-workbook | 5000 | 182.5 ms (1.00x) | Skipped | 1.04 s (5.71x slower) | PSWriteOffice fastest |
-| pivot-only-workbook | 10000 | 408.0 ms (1.00x) | Skipped | 2.08 s (5.10x slower) | PSWriteOffice fastest |
-| read-named-range-metadata | 1000 | 17.4 ms (1.00x) | Skipped | Skipped | PSWriteOffice fastest |
-| read-named-range-metadata | 5000 | 19.1 ms (1.00x) | Skipped | Skipped | PSWriteOffice fastest |
-| read-named-range-metadata | 10000 | 18.1 ms (1.00x) | Skipped | Skipped | PSWriteOffice fastest |
-| read-no-header-range | 1000 | 18.0 ms (1.00x) | 46.0 ms (2.56x slower) | 126.2 ms (7.02x slower) | PSWriteOffice fastest |
-| read-no-header-range | 5000 | 84.9 ms (1.00x) | 97.6 ms (1.15x slower) | 252.2 ms (2.97x slower) | PSWriteOffice fastest |
-| read-no-header-range | 10000 | 110.7 ms (1.00x) | 220.1 ms (1.99x slower) | 427.8 ms (3.86x slower) | PSWriteOffice fastest |
-| read-table-metadata | 1000 | 15.8 ms (1.00x) | Skipped | Skipped | PSWriteOffice fastest |
-| read-table-metadata | 5000 | 45.7 ms (1.00x) | Skipped | Skipped | PSWriteOffice fastest |
-| read-table-metadata | 10000 | 15.3 ms (1.00x) | Skipped | Skipped | PSWriteOffice fastest |
-| read-used-range-datatable | 1000 | 19.0 ms (1.00x) | Skipped | Skipped | PSWriteOffice fastest |
-| read-used-range-datatable | 5000 | 42.3 ms (1.00x) | Skipped | Skipped | PSWriteOffice fastest |
-| read-used-range-datatable | 10000 | 75.3 ms (1.00x) | Skipped | Skipped | PSWriteOffice fastest |
-| report-workbook | 1000 | 100.9 ms (1.00x) | Skipped | 309.1 ms (3.06x slower) | PSWriteOffice fastest |
-| report-workbook | 5000 | 374.6 ms (1.00x) | Skipped | 1.07 s (2.85x slower) | PSWriteOffice fastest |
-| report-workbook | 10000 | 889.0 ms (1.00x) | Skipped | 2.09 s (2.35x slower) | PSWriteOffice fastest |
-| summary-formulas | 1000 | 86.4 ms (1.00x) | Skipped | 272.5 ms (3.15x slower) | PSWriteOffice fastest |
-| summary-formulas | 5000 | 298.0 ms (1.00x) | Skipped | 1.05 s (3.53x slower) | PSWriteOffice fastest |
-| summary-formulas | 10000 | 748.6 ms (1.00x) | Skipped | 1.98 s (2.64x slower) | PSWriteOffice fastest |
-| text-objects-default | 1000 | 73.2 ms (1.00x) | 194.1 ms (2.65x slower) | 424.1 ms (5.79x slower) | PSWriteOffice fastest |
-| text-objects-default | 5000 | 99.5 ms (1.00x) | 427.8 ms (4.30x slower) | 1.71 s (17.14x slower) | PSWriteOffice fastest |
-| text-objects-default | 10000 | 160.8 ms (1.00x) | 790.5 ms (4.92x slower) | 3.17 s (19.71x slower) | PSWriteOffice fastest |
-| update-existing-workbook | 1000 | 170.8 ms (1.00x) | Skipped | 333.1 ms (1.95x slower) | PSWriteOffice fastest |
-| update-existing-workbook | 5000 | 913.2 ms (1.00x) | Skipped | 1.38 s (1.51x slower) | PSWriteOffice fastest |
-| update-existing-workbook | 10000 | 2.39 s (1.00x) | Skipped | 2.65 s (1.11x slower) | PSWriteOffice fastest |
-| wide-objects-default | 1000 | 73.7 ms (1.00x) | Skipped | 227.7 ms (3.09x slower) | PSWriteOffice fastest |
-| wide-objects-default | 5000 | 281.9 ms (1.00x) | Skipped | 827.0 ms (2.93x slower) | PSWriteOffice fastest |
-| wide-objects-default | 10000 | 298.3 ms (1.00x) | Skipped | 1.52 s (5.09x slower) | PSWriteOffice fastest |
-| workbook-package-merge | 1000 | 266.0 ms (1.00x) | Skipped | 653.3 ms (2.46x slower) | PSWriteOffice fastest |
-| workbook-package-merge | 5000 | 857.1 ms (1.00x) | Skipped | 1.56 s (1.82x slower) | PSWriteOffice fastest |
-| workbook-package-merge | 10000 | 1.45 s (1.00x) | Skipped | 2.66 s (1.83x slower) | PSWriteOffice fastest |
+| append-existing-table | 1000 | 75.5 ms (1.00x) | n/a | 309.3 ms (4.09x slower) | PSWriteOffice fastest |
+| append-existing-table | 5000 | 325.1 ms (1.00x) | n/a | 1.44 s (4.43x slower) | PSWriteOffice fastest |
+| append-existing-table | 10000 | 523.7 ms (1.00x) | n/a | 1.68 s (3.21x slower) | PSWriteOffice fastest |
+| chart-only-workbook | 1000 | 65.8 ms (1.00x) | n/a | 219.1 ms (3.33x slower) | PSWriteOffice fastest |
+| chart-only-workbook | 5000 | 280.1 ms (1.00x) | n/a | 759.4 ms (2.71x slower) | PSWriteOffice fastest |
+| chart-only-workbook | 10000 | 595.0 ms (1.00x) | n/a | 1.45 s (2.45x slower) | PSWriteOffice fastest |
+| csv-to-excel | 1000 | 46.1 ms (1.00x) | n/a | 391.0 ms (8.48x slower) | PSWriteOffice fastest |
+| csv-to-excel | 5000 | 52.1 ms (1.00x) | n/a | 1.28 s (24.62x slower) | PSWriteOffice fastest |
+| csv-to-excel | 10000 | 95.7 ms (1.00x) | n/a | 2.44 s (25.45x slower) | PSWriteOffice fastest |
+| datatable-default | 1000 | 6.9 ms (1.00x) | n/a | 201.7 ms (29.43x slower) | PSWriteOffice fastest |
+| datatable-default | 5000 | 11.0 ms (1.00x) | n/a | 578.2 ms (52.71x slower) | PSWriteOffice fastest |
+| datatable-default | 10000 | 17.2 ms (1.00x) | n/a | 1.16 s (67.61x slower) | PSWriteOffice fastest |
+| import-default-full | 1000 | 28.5 ms (1.00x) | 67.7 ms (2.38x slower) | 110.9 ms (3.90x slower) | PSWriteOffice fastest |
+| import-default-full | 5000 | 34.9 ms (1.00x) | 117.2 ms (3.36x slower) | 169.7 ms (4.86x slower) | PSWriteOffice fastest |
+| import-default-full | 10000 | 92.3 ms (1.00x) | 259.6 ms (2.81x slower) | 319.7 ms (3.46x slower) | PSWriteOffice fastest |
+| import-default-range | 1000 | 16.8 ms (1.00x) | 23.1 ms (1.37x slower) | 114.3 ms (6.80x slower) | PSWriteOffice fastest |
+| import-default-range | 5000 | 63.7 ms (1.00x) | 119.2 ms (1.87x slower) | 222.7 ms (3.50x slower) | PSWriteOffice fastest |
+| import-default-range | 10000 | 120.8 ms (1.00x) | 267.1 ms (2.21x slower) | 364.7 ms (3.02x slower) | PSWriteOffice fastest |
+| many-small-sheets | 1000 | 41.1 ms (1.00x) | n/a | 225.4 ms (5.49x slower) | PSWriteOffice fastest |
+| many-small-sheets | 5000 | 181.2 ms (1.00x) | n/a | 770.3 ms (4.25x slower) | PSWriteOffice fastest |
+| many-small-sheets | 10000 | 443.2 ms (1.00x) | n/a | 1.52 s (3.44x slower) | PSWriteOffice fastest |
+| multi-sheet-regions | 1000 | 119.6 ms (1.00x) | n/a | 269.2 ms (2.25x slower) | PSWriteOffice fastest |
+| multi-sheet-regions | 5000 | 343.3 ms (1.00x) | n/a | 901.0 ms (2.62x slower) | PSWriteOffice fastest |
+| multi-sheet-regions | 10000 | 358.0 ms (1.00x) | n/a | 1.46 s (4.06x slower) | PSWriteOffice fastest |
+| named-range-workbook | 1000 | 36.6 ms (1.00x) | n/a | 200.3 ms (5.48x slower) | PSWriteOffice fastest |
+| named-range-workbook | 5000 | 108.5 ms (1.00x) | n/a | 699.9 ms (6.45x slower) | PSWriteOffice fastest |
+| named-range-workbook | 10000 | 289.3 ms (1.00x) | n/a | 1.42 s (4.90x slower) | PSWriteOffice fastest |
+| objects-default | 1000 | 12.4 ms (1.00x) | n/a | 208.8 ms (16.85x slower) | PSWriteOffice fastest |
+| objects-default | 5000 | 31.5 ms (1.00x) | n/a | 693.9 ms (22.05x slower) | PSWriteOffice fastest |
+| objects-default | 10000 | 57.9 ms (1.00x) | n/a | 1.26 s (21.84x slower) | PSWriteOffice fastest |
+| objects-no-table | 1000 | 12.1 ms (1.00x) | n/a | 210.5 ms (17.39x slower) | PSWriteOffice fastest |
+| objects-no-table | 5000 | 29.3 ms (1.00x) | n/a | 672.5 ms (22.99x slower) | PSWriteOffice fastest |
+| objects-no-table | 10000 | 55.8 ms (1.00x) | n/a | 1.32 s (23.70x slower) | PSWriteOffice fastest |
+| objects-table | 1000 | 23.3 ms (1.00x) | n/a | 211.1 ms (9.07x slower) | PSWriteOffice fastest |
+| objects-table | 5000 | 66.8 ms (1.00x) | n/a | 738.7 ms (11.06x slower) | PSWriteOffice fastest |
+| objects-table | 10000 | 54.6 ms (1.00x) | n/a | 1.27 s (23.28x slower) | PSWriteOffice fastest |
+| objects-table-autofit | 1000 | 60.7 ms (1.00x) | n/a | 194.4 ms (3.20x slower) | PSWriteOffice fastest |
+| objects-table-autofit | 5000 | 251.9 ms (1.00x) | n/a | 770.3 ms (3.06x slower) | PSWriteOffice fastest |
+| objects-table-autofit | 10000 | 505.3 ms (1.00x) | n/a | 1.34 s (2.65x slower) | PSWriteOffice fastest |
+| objects-title-freeze | 1000 | 10.8 ms (1.00x) | n/a | 203.2 ms (18.85x slower) | PSWriteOffice fastest |
+| objects-title-freeze | 5000 | 31.4 ms (1.00x) | n/a | 693.6 ms (22.08x slower) | PSWriteOffice fastest |
+| objects-title-freeze | 10000 | 58.7 ms (1.00x) | n/a | 1.26 s (21.40x slower) | PSWriteOffice fastest |
+| pivot-only-workbook | 1000 | 37.9 ms (1.00x) | n/a | 204.4 ms (5.39x slower) | PSWriteOffice fastest |
+| pivot-only-workbook | 5000 | 128.9 ms (1.00x) | n/a | 794.6 ms (6.16x slower) | PSWriteOffice fastest |
+| pivot-only-workbook | 10000 | 268.5 ms (1.00x) | n/a | 1.31 s (4.89x slower) | PSWriteOffice fastest |
+| read-no-header-range | 1000 | 17.5 ms (1.00x) | 18.0 ms (1.03x slower) | 108.9 ms (6.21x slower) | PSWriteOffice and ExcelFast within 5% |
+| read-no-header-range | 5000 | 83.4 ms (1.00x) | 109.1 ms (1.31x slower) | 213.3 ms (2.56x slower) | PSWriteOffice fastest |
+| read-no-header-range | 10000 | 170.6 ms (1.00x) | 231.0 ms (1.35x slower) | 365.0 ms (2.14x slower) | PSWriteOffice fastest |
+| report-workbook | 1000 | 75.7 ms (1.00x) | n/a | 251.6 ms (3.33x slower) | PSWriteOffice fastest |
+| report-workbook | 5000 | 364.7 ms (1.00x) | n/a | 760.5 ms (2.09x slower) | PSWriteOffice fastest |
+| report-workbook | 10000 | 722.8 ms (1.00x) | n/a | 1.42 s (1.96x slower) | PSWriteOffice fastest |
+| summary-formulas | 1000 | 23.5 ms (1.00x) | n/a | 186.7 ms (7.96x slower) | PSWriteOffice fastest |
+| summary-formulas | 5000 | 84.6 ms (1.00x) | n/a | 704.6 ms (8.33x slower) | PSWriteOffice fastest |
+| summary-formulas | 10000 | 224.3 ms (1.00x) | n/a | 1.28 s (5.73x slower) | PSWriteOffice fastest |
+| text-objects-default | 1000 | 27.3 ms (1.00x) | 275.4 ms (10.10x slower) | 295.6 ms (10.84x slower) | PSWriteOffice fastest |
+| text-objects-default | 5000 | 31.4 ms (1.00x) | 326.7 ms (10.41x slower) | 1.12 s (35.63x slower) | PSWriteOffice fastest |
+| text-objects-default | 10000 | 59.8 ms (1.00x) | 512.3 ms (8.56x slower) | 2.23 s (37.27x slower) | PSWriteOffice fastest |
+| update-existing-workbook | 1000 | 101.4 ms (1.00x) | n/a | 373.3 ms (3.68x slower) | PSWriteOffice fastest |
+| update-existing-workbook | 5000 | 325.9 ms (1.00x) | n/a | 993.2 ms (3.05x slower) | PSWriteOffice fastest |
+| update-existing-workbook | 10000 | 707.6 ms (1.00x) | n/a | 1.85 s (2.62x slower) | PSWriteOffice fastest |
+| wide-objects-default | 1000 | 25.8 ms (1.00x) | n/a | 162.0 ms (6.29x slower) | PSWriteOffice fastest |
+| wide-objects-default | 5000 | 82.9 ms (1.00x) | n/a | 609.2 ms (7.35x slower) | PSWriteOffice fastest |
+| wide-objects-default | 10000 | 180.3 ms (1.00x) | n/a | 1.22 s (6.75x slower) | PSWriteOffice fastest |
+| workbook-package-merge | 1000 | 80.9 ms (1.00x) | n/a | 548.2 ms (6.78x slower) | PSWriteOffice fastest |
+| workbook-package-merge | 5000 | 270.7 ms (1.00x) | n/a | 1.21 s (4.48x slower) | PSWriteOffice fastest |
+| workbook-package-merge | 10000 | 488.2 ms (1.00x) | n/a | 2.03 s (4.16x slower) | PSWriteOffice fastest |
 <!-- BENCHMARK:ExcelComparison:END -->
 
 ## CSV
@@ -326,8 +323,9 @@ than only PowerShell object output:
 <!-- BENCHMARK:CsvDataTableComparison:START -->
 | Scenario | Rows | PSWriteOffice | NativeCsv | Result |
 | --- | ---: | ---: | ---: | --- |
-| csv-read-datatable-mixed | 100000 | 219.6 ms (1.00x) | 2.57 s (11.72x slower) | PSWriteOffice fastest |
-| csv-read-datatable-wide | 100000 | 1.60 s (1.00x) | 10.85 s (6.78x slower) | PSWriteOffice fastest |
+| csv-read-datatable-mixed | 100000 | 131.3 ms (1.00x) | 1.44 s (10.99x slower) | PSWriteOffice fastest |
+| csv-read-datatable-wide | 100000 | 556.7 ms (1.00x) | 5.16 s (9.27x slower) | PSWriteOffice fastest |
+| csv-write-datatable | 100000 | 37.6 ms (1.00x) | 235.7 ms (6.28x slower) | PSWriteOffice fastest |
 <!-- BENCHMARK:CsvDataTableComparison:END -->
 
 Focused local GZip CSV run, generated by the benchmark updater. The write lanes
@@ -337,10 +335,10 @@ DataTable row count.
 <!-- BENCHMARK:CsvGZipComparison:START -->
 | Scenario | Rows | PSWriteOffice | NativeCsv | Result |
 | --- | ---: | ---: | ---: | --- |
-| csv-read-gzip-datatable-mixed | 10000 | 77.5 ms (1.00x) | 205.2 ms (2.65x slower) | PSWriteOffice fastest |
-| csv-read-gzip-datatable-wide | 10000 | 45.2 ms (1.00x) | 706.0 ms (15.63x slower) | PSWriteOffice fastest |
-| csv-write-gzip-mixed | 10000 | 86.7 ms (1.00x) | 192.1 ms (2.22x slower) | PSWriteOffice fastest |
-| csv-write-gzip-wide | 10000 | 118.8 ms (1.00x) | 397.7 ms (3.35x slower) | PSWriteOffice fastest |
+| csv-read-gzip-datatable-mixed | 10000 | 11.5 ms (1.00x) | 134.6 ms (11.71x slower) | PSWriteOffice fastest |
+| csv-read-gzip-datatable-wide | 10000 | 42.2 ms (1.00x) | 449.6 ms (10.65x slower) | PSWriteOffice fastest |
+| csv-write-gzip-mixed | 10000 | 23.8 ms (1.00x) | 128.1 ms (5.38x slower) | PSWriteOffice fastest |
+| csv-write-gzip-wide | 10000 | 63.1 ms (1.00x) | 233.1 ms (3.69x slower) | PSWriteOffice fastest |
 <!-- BENCHMARK:CsvGZipComparison:END -->
 
 The 100,000-row values pool two independent 20-iteration runs for each
@@ -349,8 +347,10 @@ operation.
 <!-- BENCHMARK:CsvComparison:START -->
 | Scenario | Rows | PSWriteOffice | NativeCsv | Result |
 | --- | ---: | ---: | ---: | --- |
-| csv-read-source-mixed | 100000 | 471.7 ms (1.00x) | 554.4 ms (1.18x slower) | PSWriteOffice fastest |
-| csv-write-mixed | 100000 | 209.0 ms (1.00x) | 225.2 ms (1.08x slower) | PSWriteOffice fastest |
+| csv-convertfrom-mixed | 100000 | 348.9 ms (1.00x) | 445.8 ms (1.28x slower) | PSWriteOffice fastest |
+| csv-convertto-mixed | 100000 | 160.7 ms (1.00x) | 182.6 ms (1.14x slower) | PSWriteOffice fastest |
+| csv-read-source-mixed | 100000 | 381.4 ms (1.00x) | 456.1 ms (1.20x slower) | PSWriteOffice fastest |
+| csv-write-mixed | 100000 | 138.0 ms (1.00x) | 172.6 ms (1.25x slower) | PSWriteOffice fastest |
 <!-- BENCHMARK:CsvComparison:END -->
 
 The same 100,000-row object import comparison across other file shapes:
