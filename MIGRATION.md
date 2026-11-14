@@ -5765,6 +5765,14 @@ set custom limits, account for these operations as well as lexical operands
 and form nesting. Over-complex input raises `PdfReadLimitException`; simplify
 the input or adjust the relevant limit for a trusted workload.
 
+`PdfReadLimits.MaxGraphicsStateDepth` (default 1,024) bounds graphics states
+saved with `q` and not yet restored with `Q` in one content stream: page
+contents, a form XObject, a pattern, a Type 3 glyph or an annotation
+appearance. Drawing adds one or two saves to position and clip that content,
+and those count too. Content that exceeds it raises `PdfReadLimitException` with `PdfReadLimitKind.GraphicsStateDepth` from
+text extraction, rendering, inspection and editing. If a trusted document saves
+more states without restoring them, raise the limit for that workload.
+
 Rotation normalization rejects destination coordinates or zoom operands that
 resolve to values other than numbers or `null`. Repair invalid destination
 operands before calling `Pages.NormalizeRotation`.

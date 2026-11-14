@@ -228,6 +228,7 @@ public sealed partial class PdfReadPage {
         },
         inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
         maxNestingDepth: _limits.MaxContentNestingDepth,
+        maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
         maxOperands: _limits.MaxContentOperands,
         inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
         return found;
@@ -450,7 +451,7 @@ public sealed partial class PdfReadPage {
                     Scan(PdfEncoding.Latin1GetString(budget.Decode(form)), formResources,
                         selectedFont, depth + 1);
                 } finally { activeForms.Remove(form); }
-            }, maxNestingDepth: _limits.MaxContentNestingDepth, maxOperands: _limits.MaxContentOperands);
+            }, maxNestingDepth: _limits.MaxContentNestingDepth, maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth, maxOperands: _limits.MaxContentOperands);
         }
     }
 
@@ -506,7 +507,7 @@ public sealed partial class PdfReadPage {
                             formResources, key, depth + 1);
                     } finally { activeForms.Remove(stream); }
                 }
-            }, maxNestingDepth: _limits.MaxContentNestingDepth, maxOperands: _limits.MaxContentOperands);
+            }, maxNestingDepth: _limits.MaxContentNestingDepth, maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth, maxOperands: _limits.MaxContentOperands);
         }
     }
 

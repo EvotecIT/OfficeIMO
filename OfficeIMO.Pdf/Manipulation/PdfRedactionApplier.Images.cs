@@ -158,7 +158,7 @@ internal static partial class PdfRedactionApplier {
         bool changed = false;
         string rewrittenContent = content;
         var changedInvocations = new HashSet<string>(StringComparer.Ordinal);
-        ImageResourceInvocation[] invocations = ExtractImageResourceInvocations(content, graphicsState);
+        ImageResourceInvocation[] invocations = ExtractImageResourceInvocations(content, graphicsState, limits.MaxGraphicsStateDepth);
         for (int invocationIndex = invocations.Length - 1; invocationIndex >= 0; invocationIndex--) {
             ImageResourceInvocation invocation = invocations[invocationIndex];
             if (!TryGetFormXObject(objects, xObjects, invocation.Name, out PdfReference reference, out PdfStream formStream) ||
@@ -342,7 +342,7 @@ internal static partial class PdfRedactionApplier {
                     args.Clear();
                     break;
                 case "q":
-                    graphicsState.Stack.Push(graphicsState.Transform);
+                    graphicsState.Save(limits.MaxGraphicsStateDepth);
                     args.Clear();
                     break;
                 case "Q":
@@ -581,6 +581,7 @@ internal static partial class PdfRedactionApplier {
             content,
             maxOperations: limits.MaxContentOperations,
             maxNestingDepth: limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: limits.MaxGraphicsStateDepth,
             maxOperands: limits.MaxContentOperands);
 
     private static bool RemoveUnusedImageObjectReferences(
@@ -647,6 +648,7 @@ internal static partial class PdfRedactionApplier {
                 content,
                 maxOperations: limits.MaxContentOperations,
                 maxNestingDepth: limits.MaxContentNestingDepth,
+                maxGraphicsStateDepth: limits.MaxGraphicsStateDepth,
                 maxOperands: limits.MaxContentOperands)) {
                 invokedNames.Add(invocation.Name);
             }
@@ -924,6 +926,13 @@ internal static partial class PdfRedactionApplier {
         public Matrix2D BaseTransform { get; }
         public Matrix2D Transform { get; set; }
         public Stack<Matrix2D> Stack { get; } = new Stack<Matrix2D>();
+
+        public void Save(int maxDepth) {
+            if (Stack.Count >= maxDepth) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.GraphicsStateDepth, maxDepth, Stack.Count + 1L);
+            }
+            Stack.Push(Transform);
+        }
     }
 
     private readonly struct ImageContentOperand {
