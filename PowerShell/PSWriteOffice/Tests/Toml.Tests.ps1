@@ -189,6 +189,22 @@ Describe 'Test-OfficeToml' {
         $valid.Code | Should -BeNullOrEmpty
     }
 
+    It 'reports a file it cannot read and tests the rest' {
+        $locked = Join-Path $TestDrive 'locked.toml'
+        $good = Join-Path $TestDrive 'readable.toml'
+        [IO.File]::WriteAllText($locked, "a = 1`n")
+        [IO.File]::WriteAllText($good, "a = 1`n")
+        $stream = [IO.File]::Open($locked, 'Open', 'ReadWrite', 'None')
+        try {
+            $results = @(Test-OfficeToml -LiteralPath $locked, $good -ErrorVariable failures -ErrorAction SilentlyContinue)
+        } finally {
+            $stream.Dispose()
+        }
+        $results | Should -Be @($true)
+        @($failures).Count | Should -Be 1
+        $failures[0].TargetObject | Should -Be $locked
+    }
+
     It 'applies the untrusted limits with Untrusted' {
         $deep = ('a' + ('.a' * 70)) + " = 1`n"
         Test-OfficeToml -Text $deep | Should -BeTrue

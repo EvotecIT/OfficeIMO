@@ -57,6 +57,10 @@ public sealed class TestOfficeTomlCommand : OfficeCmdlet {
             result = new OfficeTomlTestResult(path);
         } catch (TomlException error) {
             result = new OfficeTomlTestResult(path, error);
+        } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+            // A file that cannot be read is not a verdict on its TOML; report it and test the rest.
+            WriteError(OfficeTomlDocuments.Error(error, path));
+            return;
         }
         if (Detailed) WriteObject(result);
         else WriteObject(result.IsValid);

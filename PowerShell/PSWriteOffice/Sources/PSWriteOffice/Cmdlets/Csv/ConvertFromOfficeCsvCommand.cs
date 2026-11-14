@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Globalization;
 using System.Management.Automation;
+using System.Reflection;
 using OfficeIMO.CSV;
 
 namespace PSWriteOffice.Cmdlets.Csv;
@@ -174,7 +175,9 @@ public sealed class ConvertFromOfficeCsvCommand : PSCmdlet {
         // Import-OfficeCsv owns the parsing options and output shapes; this command only collects the text.
         _import = new ImportOfficeCsvCommand();
         foreach (KeyValuePair<string, object> bound in MyInvocation.BoundParameters) {
-            if (bound.Key == nameof(InputObject)) continue;
+            // Only this command's CSV and output parameters carry over; common parameters such as -ErrorAction and
+            // -Verbose already apply through the shared command runtime.
+            if (bound.Key == nameof(InputObject) || GetType().GetProperty(bound.Key, BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly) is null) continue;
             typeof(ImportOfficeCsvCommand).GetProperty(bound.Key)!.SetValue(_import, bound.Value);
         }
         _import.ImportText(CommandRuntime, string.Join("\n", _lines));

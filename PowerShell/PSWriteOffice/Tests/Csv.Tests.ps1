@@ -77,6 +77,11 @@ Describe 'CSV cmdlets' {
         { 'a,b' | ConvertFrom-OfficeCsv -Delimiter '' } | Should -Throw '*Delimiter cannot be empty*'
     }
 
+    It 'accepts common parameters with ConvertFrom-OfficeCsv' {
+        ("Name,Total`nAlpha,10" | ConvertFrom-OfficeCsv -ErrorAction Stop).Total | Should -Be '10'
+        ("Name,Total`nAlpha,10" | ConvertFrom-OfficeCsv -Verbose 4>$null).Name | Should -Be 'Alpha'
+    }
+
     It 'imports quoted multiline and padded fields as row objects' {
         $path = Join-Path $TestDrive 'multiline-padded.csv'
         [System.IO.File]::WriteAllText(
