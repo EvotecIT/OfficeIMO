@@ -198,7 +198,7 @@ Convert-OfficeDocument -Path .\service.json -OutputPath .\service.toml -FailOnLo
 
 ## CSV with explicit rules
 
-`Export-OfficeCsv` and `ConvertTo-OfficeCsv` write delimited data with explicit delimiter, quoting, encoding, and spreadsheet formula-injection choices (`-FormulaInjectionPolicy`), and `Import-OfficeCsv` reads it back with typed options. `ConvertFrom-OfficeCsv` reads CSV text from the pipeline, such as `ConvertTo-OfficeCsv` output or lines from `Get-Content`, with `Import-OfficeCsv`'s parsing options and `-As` output shapes. It doesn't take the file options (encoding and compression) or `-Mode`; use `Import-OfficeCsv -Text` when you need those:
+`Export-OfficeCsv` and `ConvertTo-OfficeCsv` write delimited data with explicit delimiter, quoting, encoding, and spreadsheet formula-injection choices (`-FormulaInjectionPolicy`), and `Import-OfficeCsv` reads it back with typed options. `ConvertFrom-OfficeCsv` reads CSV text from the pipeline, such as `ConvertTo-OfficeCsv` output or lines from `Get-Content`, with `Import-OfficeCsv`'s parsing options and `-As` output shapes. It doesn't take `-Mode`, `-Encoding` or `-CompressionType`: use `Import-OfficeCsv -Text` to set `-Mode`, and `Import-OfficeCsv -Path` for encoding or compression:
 
 ```powershell
 Get-Content -Path .\export.txt | ConvertFrom-OfficeCsv -Delimiter ';' -As DataTable -InferSchema
