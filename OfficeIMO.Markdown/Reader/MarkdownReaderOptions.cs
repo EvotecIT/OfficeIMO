@@ -17,11 +17,11 @@ public enum MarkdownCalloutTitleMode {
 /// </summary>
 public sealed class MarkdownLoadOptions {
     /// <summary>
-    /// Retains the syntax tree, source spans and <see cref="MarkdownDocument.ParseInfo"/>. Off by default:
-    /// a parse builds the semantic document, which renders and writes the same output. Turn it on for
-    /// source spans, syntax nodes, source slices, source edits or render extensions that read them.
+    /// Retains the syntax tree, source spans and <see cref="MarkdownDocument.ParseInfo"/>. Default: true.
+    /// Set it to false when nothing reads source information: the parse then builds the same semantic
+    /// document, which renders and writes the same output, in less time and memory.
     /// </summary>
-    public bool CaptureSyntaxTree { get; set; }
+    public bool CaptureSyntaxTree { get; set; } = true;
 
     /// <summary>Creates bounded parser settings for documents from outside.</summary>
     public static MarkdownLoadOptions UntrustedDefaults => new MarkdownLoadOptions {

@@ -82,7 +82,6 @@ public sealed class Markdown_Reader_Semantic_Parse_Tests {
             "  trailing paragraph\n" +
             "- second `code` item\n";
         var options = MarkdownLoadOptions.CreateCommonMarkProfile();
-        options.CaptureSyntaxTree = true;
 
         var document = MarkdownDocument.Parse(markdown, options);
         var explicitSyntax = MarkdownReader.ParseWithSyntaxTree(markdown, options);
@@ -269,7 +268,7 @@ public sealed class Markdown_Reader_Semantic_Parse_Tests {
         const string markdown = "```text\n\ta\tb\n```\n";
 
         var semanticDocument = MarkdownReader.ParseSemantic(markdown);
-        var sourceBackedDocument = MarkdownDocument.Parse(markdown, new MarkdownLoadOptions { CaptureSyntaxTree = true });
+        var sourceBackedDocument = MarkdownDocument.Parse(markdown);
 
         Assert.Equal("\ta\tb", Assert.Single(semanticDocument.DescendantObjectsOfType<CodeBlock>()).Content);
         Assert.Equal(

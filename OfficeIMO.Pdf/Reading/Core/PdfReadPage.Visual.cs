@@ -928,7 +928,7 @@ public sealed partial class PdfReadPage {
         renderedType3PaintOrders ??= new RenderedType3TextTracker();
         type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         var tilingPatternResourceCache = new TilingPatternResourceCache(cancellationToken);
-        string content = GetContentStreamContent(pageContentBudget);
+        PdfContentSource content = GetContentStreamSequence(pageContentBudget).Source;
         if (content.Length > 0) {
             CollectVisualPrimitivesAndForms(
                 content,
@@ -997,7 +997,7 @@ public sealed partial class PdfReadPage {
     }
 
     private void CollectVisualPrimitivesAndForms(
-        string content,
+        PdfContentSource content,
         PdfDictionary? resources,
         Matrix2D baseTransform,
         double pageWidth,
@@ -1161,7 +1161,7 @@ public sealed partial class PdfReadPage {
                 patternTextClippingBudget: patternTextClippingBudget,
                 invokedPatternIntents: invokedPatternIntents)
             : null;
-        string transformedContent = WrapReusedContentWithTransform(content, baseTransform, out int transformedContentOffset);
+        PdfContentSource transformedContent = WrapReusedContentWithTransform(content, baseTransform, out int transformedContentOffset);
         Action<PdfPageVisualPrimitive> currentPrimitiveVisitor = contentOrderPrefix == null
             ? primitiveVisitor
             : primitive => primitiveVisitor(primitive.WithContentOrderKey(contentOrderPrefix.Append(primitive.SourceOperatorIndex - transformedContentOffset)));
@@ -3165,9 +3165,9 @@ public sealed partial class PdfReadPage {
         Dictionary<string, PdfFontResource> pageFonts = _fontResourceCache.GetFonts(pageResources, _objects);
         var activeForms = new HashSet<PdfStream>();
 
-        string content = GetContentStreamContent(pageContentBudget);
+        PdfContentSource content = GetContentStreamSequence(pageContentBudget).Source;
         if (content.Length > 0) {
-            string transformedContent = WrapContentWithTransform(content, pageTransform, out int transformedContentOffset);
+            PdfContentSource transformedContent = WrapContentBytesWithTransform(content, pageTransform, out int transformedContentOffset);
             CollectTextAndForms(
                 transformedContent,
                 pageResources,
@@ -3299,7 +3299,7 @@ public sealed partial class PdfReadPage {
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
 
-        string content = GetContentStreamContent(pageContentBudget);
+        PdfContentSource content = GetContentStreamSequence(pageContentBudget).Source;
         if (content.Length > 0) {
             CollectImagePlacementsAndForms(
                 content,

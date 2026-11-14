@@ -166,6 +166,36 @@ public sealed partial class PdfRenderingResourceBoundaryTests {
         Assert.Equal("F2", drawing.Fonts["F2"].ResourceName);
     }
 
+    [Fact]
+    public void FontCacheKeepsRecentFontsAndDecodesEvictedOnesAfterSixtyFourFonts() {
+        // Each font maps code 65 to its own glyph, so a font served for the wrong dictionary shows up as wrong text.
+        string[] glyphs = { "a", "b", "c", "d", "e", "f", "g", "h", "i", "j" };
+        var resources = new List<PdfDictionary>();
+        for (int index = 0; index < 70; index++) {
+            var encoding = new PdfDictionary();
+            encoding.Items["Differences"] = new PdfArray { Items = { new PdfNumber(65), new PdfName(glyphs[index % glyphs.Length]) } };
+            var font = new PdfDictionary();
+            font.Items["Type"] = new PdfName("Font");
+            font.Items["Subtype"] = new PdfName("Type1");
+            font.Items["BaseFont"] = new PdfName("Helvetica");
+            font.Items["Encoding"] = encoding;
+            var fonts = new PdfDictionary(); fonts.Items["F"] = font;
+            var resource = new PdfDictionary(); resource.Items["Font"] = fonts;
+            resources.Add(resource);
+        }
+        var graph = new Dictionary<int, PdfIndirectObject>();
+        var cache = new PdfFontResourceCache();
+        foreach (PdfDictionary resource in resources) cache.GetOrCreate(resource, graph);
+
+        for (int index = 0; index < resources.Count; index++) {
+            PdfFontResource again = cache.GetOrCreate(resources[index], graph).Fonts["F"];
+            Assert.Equal(glyphs[index % glyphs.Length], ResourceResolver.CreateBudgetedDecoder(again)(new byte[] { 65 }, 8));
+        }
+        // The last fonts read stay cached once the cache is full instead of being rebuilt on every read.
+        Assert.Same(cache.GetOrCreate(resources[69], graph).Fonts["F"], cache.GetOrCreate(resources[69], graph).Fonts["F"]);
+        Assert.Same(cache.GetOrCreate(resources[0], graph).Fonts["F"], cache.GetOrCreate(resources[0], graph).Fonts["F"]);
+    }
+
     private static PdfDictionary Type1Resource(byte[] program) {
         var descriptor = new PdfDictionary(); descriptor.Items["FontFile"] = new PdfStream(new PdfDictionary(), program);
         var font = new PdfDictionary(); font.Items["Subtype"] = new PdfName("Type1");

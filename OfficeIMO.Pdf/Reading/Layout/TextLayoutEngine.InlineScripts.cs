@@ -76,10 +76,9 @@ internal static partial class TextLayoutEngine {
             cancellationCheck?.Invoke();
             int count = groups[index].Spans.Count;
             consumeWork?.Invoke((long)count * Math.Max(1, (int)Math.Ceiling(Math.Log(Math.Max(2, count), 2D))));
-            orderedSpans[index] = groups[index].Spans.OrderBy(span => {
-                cancellationCheck?.Invoke();
-                return coordinates.Along(span);
-            }).ToList();
+            cancellationCheck?.Invoke();
+            // Groups change below while these orders are still read, so each is its own list.
+            orderedSpans[index] = new List<PdfTextSpan>(OrderAlongBaseline(groups[index].Spans, coordinates));
             AddInlineScriptRuns(runs, index, orderedSpans[index], coordinates, direction, explicitDirection, consumeWork, cancellationCheck);
         }
 

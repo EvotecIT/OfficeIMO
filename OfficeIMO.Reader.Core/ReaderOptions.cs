@@ -7,9 +7,13 @@ public sealed class ReaderOptions {
     /// <summary>Optional defaults for file and folder selection. Explicit folder options replace this policy.</summary>
     public ReaderFolderOptions? FolderOptions { get; set; }
 
-    /// <summary>Requested derived representations. Unsupported handlers reject TextAndMetadata before parsing.
+    /// <summary>Requested derived representations. Unsupported handlers reject TextAndMetadata and Text before parsing.
     /// The ordinary rich projection is the default.</summary>
     public ReaderProjection Projection { get; set; }
+
+    /// <summary>Set on normalized options when <see cref="ReaderProjection.Text"/> was requested. Handlers then receive
+    /// <see cref="ReaderProjection.TextAndMetadata"/>, and the read scope reduces the result to text chunks.</summary>
+    internal bool TextOnly { get; set; }
 
     /// <summary>Optional aggregate resource budgets for a read, including nested inputs.</summary>
     public ReaderResourceLimits? ResourceLimits { get; set; }

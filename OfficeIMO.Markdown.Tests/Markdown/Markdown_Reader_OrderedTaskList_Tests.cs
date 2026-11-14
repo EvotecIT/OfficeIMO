@@ -25,10 +25,8 @@ public class Markdown_Reader_OrderedTaskList_Tests {
     [Fact]
     public void Ordered_Task_List_Markers_Require_Boundary_Whitespace_And_Support_Uppercase_X() {
         var md = "1. [X]\tUpper\n2. [ ]   Open\n3. [x]tight\n";
-        var options = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
-        options.CaptureSyntaxTree = true;
 
-        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options);
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
         var list = Assert.IsType<OrderedListBlock>(Assert.Single(doc.Blocks));
 
         Assert.Collection(
@@ -60,7 +58,6 @@ public class Markdown_Reader_OrderedTaskList_Tests {
         const string md = "a. [x] Alpha\n";
         var options = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
         options.ListExtras = true;
-        options.CaptureSyntaxTree = true;
 
         var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options);
         var list = Assert.IsType<OrderedListBlock>(Assert.Single(doc.Blocks));

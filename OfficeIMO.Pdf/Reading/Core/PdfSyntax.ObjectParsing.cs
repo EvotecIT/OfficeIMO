@@ -199,9 +199,9 @@ internal static partial class PdfSyntax {
         }
 
         using var tokens = Tokenize(source, start, length, effectiveLimits, trackEncodedStringSourceSpans, cancellationToken);
-        var d = new PdfDictionary(tokens.Count > 0 && tokens[0].Equals(tokens.Source, "<<")
-            ? EstimateDictionaryKeyCount(tokens, 0, cancellationToken)
-            : 0);
+        // Object bodies usually arrive without their opening delimiter. Size them like a nested dictionary.
+        var d = new PdfDictionary(EstimateDictionaryKeyCount(tokens,
+            tokens.Count > 0 && tokens[0].Equals(tokens.Source, "<<") ? 0 : -1, cancellationToken));
         for (int i = 0; i < tokens.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfToken token = tokens[i];
@@ -531,7 +531,7 @@ internal static partial class PdfSyntax {
         internal PooledTokenBuffer(TText source, int initialCapacity) {
             _source = source;
 #if NET8_0_OR_GREATER
-            _rented = ArrayPool<PdfToken>.Shared.Rent(Math.Max(initialCapacity, 16));
+            _rented = RentTokens(Math.Max(initialCapacity, 16));
 #else
             _small = new List<PdfToken>(initialCapacity);
 #endif
@@ -554,9 +554,9 @@ internal static partial class PdfSyntax {
         internal void Add(PdfToken token) {
 #if NET8_0_OR_GREATER
             if (_count == _rented!.Length) {
-                PdfToken[] expanded = ArrayPool<PdfToken>.Shared.Rent(checked(_count * 2));
+                PdfToken[] expanded = RentTokens(checked(_count * 2));
                 Array.Copy(_rented, expanded, _count);
-                ArrayPool<PdfToken>.Shared.Return(_rented, clearArray: true);
+                ReturnTokens(_rented);
                 _rented = expanded;
             }
 
@@ -571,12 +571,49 @@ internal static partial class PdfSyntax {
         public void Dispose() {
 #if NET8_0_OR_GREATER
             if (_rented is not null) {
-                ArrayPool<PdfToken>.Shared.Return(_rented, clearArray: true);
+                ReturnTokens(_rented);
                 _rented = null;
             }
 #endif
         }
     }
+
+#if NET8_0_OR_GREATER
+    // Token arrays above this size are large-object-heap allocations. The shared pool drops its
+    // arrays on every gen2 collection, so a document with one dense object (a structure parent
+    // tree, say) allocated a fresh large array on each load. Each thread keeps its largest
+    // array instead; a nested tokenization while it is lent out uses the shared pool.
+    private const int LargeTokenArrayLength = 2048;
+    // Bounds what an idle thread retains after an unusually dense object.
+    private const int MaximumCachedTokenArrayLength = 1 << 17;
+    [ThreadStatic] private static PdfToken[]? t_largeTokens;
+
+    private static PdfToken[] RentTokens(int minimumLength) {
+        if (minimumLength > LargeTokenArrayLength) {
+            PdfToken[]? cached = t_largeTokens;
+            // A much larger array would make every return clear far more slots than this object used.
+            if (cached is not null && cached.Length >= minimumLength && cached.Length / 4 <= minimumLength) {
+                t_largeTokens = null;
+                return cached;
+            }
+        }
+        return ArrayPool<PdfToken>.Shared.Rent(minimumLength);
+    }
+
+    private static void ReturnTokens(PdfToken[] tokens) {
+        if (tokens.Length > LargeTokenArrayLength && tokens.Length <= MaximumCachedTokenArrayLength) {
+            PdfToken[]? cached = t_largeTokens;
+            if (cached is null || cached.Length < tokens.Length) {
+                // Tokens can reference source strings; clear them before keeping the array.
+                Array.Clear(tokens);
+                t_largeTokens = tokens;
+                if (cached is not null) ArrayPool<PdfToken>.Shared.Return(cached, clearArray: true);
+                return;
+            }
+        }
+        ArrayPool<PdfToken>.Shared.Return(tokens, clearArray: true);
+    }
+#endif
 
     private readonly struct PdfToken {
         private readonly string? _text;

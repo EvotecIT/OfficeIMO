@@ -40,11 +40,15 @@ internal static class WorkflowPrintCommand {
         var planner = new List<string> { "print-plan" };
         string? printer = null, paperSource = null, outputFile = null;
         int copies = 1;
-        bool json = true;
+        bool json = true, rasterGrayscale = false;
         double dpi = 300;
         PdfPrintDuplex duplex = PdfPrintDuplex.PrinterDefault;
         for (int index = 1; index < args.Length; index++) {
             string option = args[index];
+            if (option == "--raster-grayscale") {
+                rasterGrayscale = true;
+                continue;
+            }
             if (option is "--format" or "--printer" or "--copies" or "--duplex" or "--paper-source" or "--dpi" or "--output-file") {
                 if (++index >= args.Length) throw new WorkflowUsageException(option + " requires a value.");
                 string value = args[index];
@@ -82,7 +86,7 @@ internal static class WorkflowPrintCommand {
                 UsePrinterPaper = !parsed.PaperSpecified,
                 Delivery = new PdfPrintDeliveryOptions {
                     PrinterName = printer!, DocumentName = Path.GetFileName(layout.InputPath), Copies = copies, Duplex = duplex, PaperSourceId = paperSource,
-                    OutputFilePath = outputFile, MaximumRasterDpi = dpi
+                    OutputFilePath = outputFile, MaximumRasterDpi = dpi, RasterizeGrayscale = rasterGrayscale
                 }
             }, token).ConfigureAwait(false);
             if (result.Conversion is { } conversion)

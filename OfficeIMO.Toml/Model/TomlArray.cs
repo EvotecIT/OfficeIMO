@@ -76,11 +76,16 @@ public sealed class TomlArray : TomlNode, IReadOnlyList<TomlNode> {
         TomlNode current = this[index];
         if (current is TomlValue scalar && TomlValueConverter.IsScalar(value)) return scalar.SetValue(value);
         TomlNode node = TomlValueConverter.CreateNode(_document, value, nameof(value), TomlEditing.PreferredStringStyle(this));
-        TomlEditing.Adopt(current, node);
+        PutAt(index, node);
+        return node;
+    }
+
+    /// <summary>Replaces the item at a position with a new node written at the old item's position.</summary>
+    internal void PutAt(int index, TomlNode node) {
+        TomlEditing.Adopt(_items[index], node);
         node._parent = this;
         _items[index] = node;
         TomlEditing.MarkChanged(this);
-        return node;
     }
 
     /// <summary>Removes the item at a zero-based position. On save its text and one separating comma are deleted.</summary>

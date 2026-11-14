@@ -44,6 +44,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Fixtures\PromptInjection\*.eml" />
+    <EmbeddedResource Include="Fixtures\Authentication\*.eml;Fixtures\Authentication\*.json" />
   </ItemGroup>
 
   <ItemGroup>

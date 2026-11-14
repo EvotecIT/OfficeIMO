@@ -42,6 +42,10 @@ internal static partial class TextLayoutEngine {
         internal double BaselineNormal { get; }
         internal double BaselineStart { get; }
         internal double BaselineEnd { get; }
+        // Table detection derives positioned cells from a line under several strategies; the line and its
+        // spans do not change, so each derivation is kept with the line (a boxed null when it has none).
+        internal object? PositionedCells;
+        internal object? CompactPositionedCells;
         public TextLine(double y, double xs, double xe, string text, List<PdfTextSpan> spans, PdfReadingDirection readingDirection = PdfReadingDirection.Auto,
             double? baselineNormal = null) {
             Y = y; XStart = xs; XEnd = xe; Text = text; Spans = spans;
@@ -348,7 +352,10 @@ internal static partial class TextLayoutEngine {
             ? baselineSpans.Average(new PdfTextBaselineCoordinates(RotationKey(baselineSpans[0]), useLogicalLayoutBaseline: true).Normal) : null;
         spans.Sort(static (left, right) => left.X.CompareTo(right.X));
         List<PdfTextSpan> visualOrder = OrderAlongBaseline(spans, coordinates);
-        IReadOnlyList<PdfTextSpan> textSpans = options?.ReadingDirection == PdfReadingDirection.LeftToRight
+        // Left-to-right text without right-to-left fragments keeps its visual order, so it is read in place.
+        IReadOnlyList<PdfTextSpan> textSpans = options?.ReadingDirection == PdfReadingDirection.LeftToRight ||
+            direction != PdfReadingDirection.RightToLeft &&
+            !PdfTextDirectionAnalysis.HasRightToLeftFragment(visualOrder, static span => span.Text, default)
             ? visualOrder
             : PdfTextDirectionAnalysis.RestoreLogicalFragmentOrder(visualOrder, static span => span.Text, direction);
         double xs = double.PositiveInfinity;
@@ -459,10 +466,11 @@ internal static partial class TextLayoutEngine {
     private static double MaximumSkippingNaN(double maximum, double value) =>
         double.IsNaN(maximum) || value > maximum ? value : maximum;
 
-    // Stable ascending order along the baseline; equal positions keep their list order.
+    // Stable ascending order along the baseline; equal positions keep their list order. A list that is
+    // already in that order is returned itself, so callers that change either list copy it first.
     private static List<PdfTextSpan> OrderAlongBaseline(List<PdfTextSpan> spans, PdfTextBaselineCoordinates coordinates) {
         int count = spans.Count;
-        if (count == 1) return new List<PdfTextSpan>(spans);
+        if (count <= 1) return spans;
         var keys = new double[count];
         bool alreadyOrdered = true;
         for (int index = 0; index < count; index++) {
@@ -470,7 +478,7 @@ internal static partial class TextLayoutEngine {
             if (index > 0 && keys[index - 1].CompareTo(keys[index]) > 0) alreadyOrdered = false;
         }
         // Spans usually arrive sorted along the baseline; the stable key sort would keep them as they are.
-        if (alreadyOrdered) return new List<PdfTextSpan>(spans);
+        if (alreadyOrdered) return spans;
         var order = new int[count];
         for (int index = 0; index < count; index++) order[index] = index;
         Array.Sort(order, (left, right) => {
