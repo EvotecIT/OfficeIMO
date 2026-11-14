@@ -41,6 +41,10 @@ namespace OfficeIMO.Excel {
                 ReportTiming("Save.ExtendedPackage.WriteFixedEntries");
 
                 bool keepsWorkbookStyles = model.DirectDataSetModel?.WorkbookStyles != null;
+                string? directStylesXml = directWritePlan == null || keepsWorkbookStyles
+                    ? null
+                    : DirectDataSetWorkbookWriter.CreateExtendedStylesXml(directWritePlan.StylePlan, GetWorkbookStylesheet(model), defaultFontTheme)
+                        ?? throw new InvalidOperationException("Workbook styles conflict with the direct worksheet styles.");
                 bool wroteDirectStyles = false;
                 bool wroteDirectSharedStrings = false;
 #if NET8_0_OR_GREATER
@@ -48,8 +52,8 @@ namespace OfficeIMO.Excel {
 #endif
                 foreach (var part in model.Parts) {
                     ct.ThrowIfCancellationRequested();
-                    if (directWritePlan != null && !keepsWorkbookStyles && part.Part is WorkbookStylesPart) {
-                        DirectDataSetWorkbookWriter.WriteExtendedStyles(archive, directWritePlan, defaultFontTheme);
+                    if (directStylesXml != null && part.Part is WorkbookStylesPart) {
+                        DirectDataSetWorkbookWriter.WriteExtendedStyles(archive, directStylesXml);
                         wroteDirectStyles = true;
                         ReportTiming("Save.ExtendedPackage.WriteDirectStyles");
                     } else if (directWritePlan?.HasSharedStrings == true && part.Part is SharedStringTablePart) {
@@ -112,8 +116,8 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                if (directWritePlan != null && !wroteDirectStyles && !keepsWorkbookStyles) {
-                    DirectDataSetWorkbookWriter.WriteExtendedStyles(archive, directWritePlan, defaultFontTheme);
+                if (directStylesXml != null && !wroteDirectStyles) {
+                    DirectDataSetWorkbookWriter.WriteExtendedStyles(archive, directStylesXml);
                     ReportTiming("Save.ExtendedPackage.WriteDirectStyles");
                 }
 
@@ -121,6 +125,22 @@ namespace OfficeIMO.Excel {
                     DirectDataSetWorkbookWriter.WriteExtendedSharedStrings(archive, directWritePlan);
                     ReportTiming("Save.ExtendedPackage.WriteDirectSharedStrings");
                 }
+            }
+
+            internal static Stylesheet? GetWorkbookStylesheet(ExtendedWorkbookPackageModel model) {
+                foreach (var part in model.Parts) {
+                    if (part.Part is WorkbookStylesPart stylesPart) return stylesPart.Stylesheet;
+                }
+
+                return null;
+            }
+
+            /// <summary>Whether the direct worksheet styles can carry the workbook's differential and custom number formats.</summary>
+            internal static bool CanWriteDirectStyles(ExtendedWorkbookPackageModel model, OfficeTheme? defaultFontTheme) {
+                return model.DirectDataSetModel == null
+                    || model.DirectDataSetModel.WorkbookStyles != null
+                    || DirectDataSetWorkbookWriter.CreateExtendedStylesXml(
+                        DirectDataSetWorkbookWriter.DirectStylePlan.Create(model.DirectDataSetModel), GetWorkbookStylesheet(model), defaultFontTheme) != null;
             }
 
             private static bool CanUseDirectWorksheetEntries(ExtendedWorkbookPackageModel model) {
