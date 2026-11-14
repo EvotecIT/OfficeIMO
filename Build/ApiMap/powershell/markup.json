@@ -9636,6 +9636,578 @@
       ]
     },
     {
+      "name": "ConvertFrom-OfficeCsv",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Converts CSV text into objects, hashtables, a DataTable, a data reader or a CsvDocument.",
+      "outputType": "PSCustomObject, Hashtable, System.Data.DataTable, System.Data.IDataReader, OfficeIMO.CSV.CsvDocument",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "InputObject",
+          "default": true,
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "NoHeader",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Header",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SkipRows",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Delimiter",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "TrimWhitespace",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllowEmptyLines",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoSkipCommentRowsBeforeHeader",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SkipCommentRows",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "CommentCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoW3CFieldsHeader",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ColumnCountMismatchPolicy",
+              "type": "CsvColumnCountMismatchPolicy",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DuplicateHeaderBehavior",
+              "type": "CsvDuplicateHeaderBehavior",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NullValue",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DateTimeFormats",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteParsingMode",
+              "type": "CsvQuoteParsingMode",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "StaticColumns",
+              "type": "IDictionary",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Culture",
+              "type": "CultureInfo",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ParseErrorAction",
+              "type": "CsvParseErrorAction",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "CollectParseErrors",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxParseErrors",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxFieldLength",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxQuotedFieldLength",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NormalizeQuotes",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "InternStrings",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "InferSchema",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SchemaSampleRows",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ColumnType",
+              "type": "IDictionary",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "As",
+              "type": "OfficeCsvOutput",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "InputObjectDetect",
+          "default": false,
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "NoHeader",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Header",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SkipRows",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DetectDelimiter",
+              "type": "switch",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "DelimiterCandidates",
+              "type": "char[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "TrimWhitespace",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllowEmptyLines",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoSkipCommentRowsBeforeHeader",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SkipCommentRows",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "CommentCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoW3CFieldsHeader",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ColumnCountMismatchPolicy",
+              "type": "CsvColumnCountMismatchPolicy",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DuplicateHeaderBehavior",
+              "type": "CsvDuplicateHeaderBehavior",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NullValue",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DateTimeFormats",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteParsingMode",
+              "type": "CsvQuoteParsingMode",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "StaticColumns",
+              "type": "IDictionary",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Culture",
+              "type": "CultureInfo",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ParseErrorAction",
+              "type": "CsvParseErrorAction",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "CollectParseErrors",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxParseErrors",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxFieldLength",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxQuotedFieldLength",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NormalizeQuotes",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "InternStrings",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "InferSchema",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SchemaSampleRows",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ColumnType",
+              "type": "IDictionary",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "As",
+              "type": "OfficeCsvOutput",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "InputObjectCulture",
+          "default": false,
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "NoHeader",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Header",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SkipRows",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "UseCulture",
+              "type": "switch",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "TrimWhitespace",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllowEmptyLines",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoSkipCommentRowsBeforeHeader",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SkipCommentRows",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "CommentCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoW3CFieldsHeader",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ColumnCountMismatchPolicy",
+              "type": "CsvColumnCountMismatchPolicy",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DuplicateHeaderBehavior",
+              "type": "CsvDuplicateHeaderBehavior",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NullValue",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DateTimeFormats",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteParsingMode",
+              "type": "CsvQuoteParsingMode",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "StaticColumns",
+              "type": "IDictionary",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Culture",
+              "type": "CultureInfo",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ParseErrorAction",
+              "type": "CsvParseErrorAction",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "CollectParseErrors",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxParseErrors",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxFieldLength",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxQuotedFieldLength",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NormalizeQuotes",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "InternStrings",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "InferSchema",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SchemaSampleRows",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ColumnType",
+              "type": "IDictionary",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "As",
+              "type": "OfficeCsvOutput",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "The reverse of ConvertTo-OfficeCsv and the text form of Import-OfficeCsv: piped strings are joined as lines of one CSV text and parsed with Import-OfficeCsv's options and -As output shapes. File-only options (encoding, compression, progress) stay on Import-OfficeCsv.",
+      "examples": [
+        {
+          "title": "Read CSV text as objects",
+          "description": "Emits one object per row with property names from the header.",
+          "code": "\"Name,Total`nAlpha,10`nBeta,7\" | ConvertFrom-OfficeCsv"
+        },
+        {
+          "title": "Read exported lines as a typed table",
+          "description": "Joins the lines Get-Content emits and infers column types.",
+          "code": "Get-Content -Path .\\export.txt | ConvertFrom-OfficeCsv -Delimiter ';' -As DataTable -InferSchema"
+        }
+      ]
+    },
+    {
       "name": "New-OfficeYaml",
       "alias": null,
       "status": "new",
@@ -11400,6 +11972,106 @@
           "title": "Export an inventory without replacing a file",
           "description": "Writes the server list as [[server]] sections and refuses to overwrite an existing file.",
           "code": "Import-OfficeCsv -Path ./servers.csv | Export-OfficeToml -Path ./inventory.toml -RootName server -NoClobber -PassThru"
+        }
+      ]
+    },
+    {
+      "name": "Test-OfficeToml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Tests whether TOML files or text load, returning a Boolean or the error position.",
+      "outputType": "System.Boolean, PSWriteOffice.Models.Toml.OfficeTomlTestResult",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Detailed",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "byPropertyName",
+              "aliases": [
+                "FullName",
+                "PSPath"
+              ]
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Detailed",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "Text",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Detailed",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Returns $true or $false for each input, as Test-Json does. -Detailed returns the engine error code, message, and 1-based line and column. Loading checks all of TOML 1.1; -Untrusted applies the untrusted limits.",
+      "examples": [
+        {
+          "title": "Gate a pipeline on a valid file",
+          "description": "Stops the script when the project file does not load.",
+          "code": "if (-not (Test-OfficeToml -Path .\\pyproject.toml)) { throw 'pyproject.toml is not valid TOML.' }"
+        },
+        {
+          "title": "Report where broken files fail",
+          "description": "Tests every TOML file under the crates folder and lists the position of each failure.",
+          "code": "Get-ChildItem -Path .\\Crates -Recurse -Filter *.toml | Test-OfficeToml -Detailed |\n    Where-Object { -not $_.IsValid } |\n    Select-Object -Property Path, Line, Column, Code, Message"
         }
       ]
     },

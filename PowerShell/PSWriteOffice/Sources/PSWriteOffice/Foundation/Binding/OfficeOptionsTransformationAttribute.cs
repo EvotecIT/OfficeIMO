@@ -57,6 +57,8 @@ public sealed class OfficeOptionsTransformationAttribute : ArgumentTransformatio
                     (property.PropertyType.GetGenericTypeDefinition() == typeof(IReadOnlyList<>) ||
                      property.PropertyType.GetGenericTypeDefinition() == typeof(IReadOnlyCollection<>)))
                     converted = LanguagePrimitives.ConvertTo(input, property.PropertyType.GetGenericArguments()[0].MakeArrayType(), CultureInfo.InvariantCulture);
+                else if (property.PropertyType == typeof(OfficeIMO.Toml.TomlArrayMerge) || property.PropertyType == typeof(OfficeIMO.Yaml.YamlSequenceMerge))
+                    converted = OfficeMergeArrayMode.Convert(property.PropertyType, input);
                 else if (input is IDictionary nested && property.PropertyType.IsClass && property.PropertyType != typeof(string) &&
                     property.PropertyType.GetConstructor(Type.EmptyTypes) != null && !typeof(IDictionary).IsAssignableFrom(property.PropertyType))
                     converted = new OfficeOptionsTransformationAttribute(property.PropertyType).ApplyTo(engineIntrinsics,

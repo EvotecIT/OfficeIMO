@@ -36,6 +36,19 @@ Saving an unchanged document reproduces the input byte for byte: comments, blank
 
 Paths use dots, `["key"]` for keys containing dots or brackets, and `[n]` for array items and array-of-tables entries (`package[3].name`). Typed reads cover `string`, `bool`, `int`, `long`, `double`, `float`, `decimal`, `TomlDateTime`, `DateTime`, `DateTimeOffset` and `TimeSpan`, plus `DateOnly` and `TimeOnly` on .NET 8 and later. `TomlDateTime` keeps all four TOML date-time kinds with nanosecond precision.
 
+## Merge layered files
+
+```csharp
+using var config = TomlDocument.Load("pyproject.toml");
+using var local = TomlDocument.Load("pyproject.local.toml");
+TomlMergeReport report = config.Merge(local, new TomlMergeOptions {
+    Arrays = TomlArrayMerge.MergeByKey("name")
+});
+config.Save("pyproject.merged.toml");
+```
+
+Tables merge key by key whether they are written as `[header]` sections, dotted keys or inline tables, and values are assigned, so an equal value keeps the base's spelling. Arrays and arrays of tables are replaced by default, or appended, or matched by a key such as `name` for the `[[package]]` tables of a lock file. A value that changes kind, such as a table over a string, takes the overlay's value and is listed in `report.Diagnostics`. TOML has no null, so where tables merge an overlay cannot remove a key; only a replaced array drops the items, and keys of table items, that the overlay's array lacks. The merged file keeps the base's comments and layout and differs only where `report.Added` and `report.Replaced` say it does.
+
 ## Read tokens
 
 ```csharp

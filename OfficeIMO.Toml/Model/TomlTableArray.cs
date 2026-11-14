@@ -33,10 +33,15 @@ public sealed class TomlTableArray : TomlNode, IReadOnlyList<TomlTable> {
     /// </summary>
     public TomlTable AddTable() {
         var table = new TomlTable(_document, TomlTableKind.ArrayItem);
+        AddItem(table);
+        return table;
+    }
+
+    /// <summary>Appends a new table of this array's kind, with its contents.</summary>
+    internal void AddItem(TomlTable table) {
         table._parent = this;
         _items.Add(table);
         TomlEditing.MarkChanged(this);
-        return table;
     }
 
     /// <summary>Removes the table at a zero-based position. On save its sections are deleted.</summary>

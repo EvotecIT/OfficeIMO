@@ -121,4 +121,94 @@ Describe 'TOML document commands' {
     It 'fails on invalid TOML with the engine code in the error ID' {
         { Open-OfficeToml -Text "a = 1`na = 2`n" -ErrorAction Stop } | Should -Throw -ErrorId 'toml-Toml.Load.DuplicateKey*'
     }
+
+    It 'merges overlays through Merge-OfficeDocument, keeping the base comments, and reports what changed' {
+        $base = Join-Path $TestDrive 'pyproject.toml'
+        $overlay = Join-Path $TestDrive 'pyproject.local.toml'
+        $output = Join-Path $TestDrive 'pyproject.merged.toml'
+        [IO.File]::WriteAllText($base, (Join-TomlLines "`n" @('# shared settings', '[tool.ruff]', 'line-length = 88 # team default', 'exclude = ["build"]')))
+        [IO.File]::WriteAllText($overlay, (Join-TomlLines "`n" @('[tool.ruff]', 'line-length = 100', '', '[tool.ruff.lint]', 'select = ["E"]')))
+
+        $report = Merge-OfficeDocument -Path $base, $overlay -OutputPath $output -PassThruReport
+
+        @($report).Count | Should -Be 1
+        @($report.Replaced) | Should -Be @('tool.ruff.line-length')
+        @($report.Added) | Should -Be @('tool.ruff.lint')
+        [IO.File]::ReadAllText($output) | Should -BeExactly (Join-TomlLines "`n" @('# shared settings', '[tool.ruff]', 'line-length = 100 # team default', 'exclude = ["build"]', '', '[tool.ruff.lint]', 'select = ["E"]'))
+    }
+
+    It 'merges arrays of tables by key into a live document through the Arrays option' {
+        $overlay = Join-Path $TestDrive 'plugins.local.toml'
+        [IO.File]::WriteAllText($overlay, (Join-TomlLines "`n" @('[[plugin]]', 'name = "lint"', 'version = "2.0"', '', '[[plugin]]', 'name = "docs"', 'version = "1.0"')))
+        $document = Open-OfficeToml -Text (Join-TomlLines "`n" @('[[plugin]]', 'name = "lint"', 'version = "1.0"'))
+        try {
+            $report = Merge-OfficeDocument -Document $document -Path $overlay -Options @{ Arrays = @{ MergeByKey = 'name' } } -PassThruReport
+            @($report.Replaced) | Should -Be @('plugin[0].version')
+            @($report.Added) | Should -Be @('plugin[1]')
+            $document.ToString() | Should -BeExactly (Join-TomlLines "`n" @('[[plugin]]', 'name = "lint"', 'version = "2.0"', '', '[[plugin]]', 'name = "docs"', 'version = "1.0"'))
+        } finally {
+            Close-OfficeToml -Document $document
+        }
+    }
+
+    It 'reports kind conflicts in the merge report and rejects passwords' {
+        $base = Join-Path $TestDrive 'conflict.toml'
+        $overlay = Join-Path $TestDrive 'conflict.local.toml'
+        $output = Join-Path $TestDrive 'conflict.merged.toml'
+        [IO.File]::WriteAllText($base, "log = `"info`"`n")
+        [IO.File]::WriteAllText($overlay, "[log]`nlevel = `"debug`"`n")
+
+        $report = Merge-OfficeDocument -Path $base, $overlay -OutputPath $output -PassThruReport
+        @($report.Diagnostics.Code) | Should -Be @('toml-merge-kind-conflict')
+        (Import-OfficeToml -Path $output).log.level | Should -Be 'debug'
+        { Merge-OfficeDocument -Path $base, $overlay -OutputPath (Join-Path $TestDrive 'other.toml') -Password 'x' } | Should -Throw '*no password*'
+    }
+}
+
+Describe 'Test-OfficeToml' {
+    It 'returns a Boolean per file and the error code and position with Detailed' {
+        $good = Join-Path $TestDrive 'good.toml'
+        $bad = Join-Path $TestDrive 'bad.toml'
+        [IO.File]::WriteAllText($good, "[server]`nport = 8080`n")
+        [IO.File]::WriteAllText($bad, "[server]`nport = 8080`nport = 9090`n")
+
+        Test-OfficeToml -Path $bad, $good | Should -Be @($false, $true)
+        @(Get-ChildItem -LiteralPath $TestDrive -Filter '*.toml' | Where-Object Name -in 'good.toml', 'bad.toml' | Sort-Object Name | Test-OfficeToml) | Should -Be @($false, $true)
+
+        $result = Test-OfficeToml -LiteralPath $bad -Detailed
+        $result.IsValid | Should -BeFalse
+        $result.Path | Should -Be $bad
+        $result.Code | Should -Be 'toml-load-duplicate-key'
+        $result.Line | Should -Be 3
+        $result.Column | Should -Be 1
+        $result.Message | Should -Not -BeLike '*line 3*'
+
+        $valid = Test-OfficeToml -Text 'a = 1' -Detailed
+        $valid.IsValid | Should -BeTrue
+        $valid.Path | Should -BeNullOrEmpty
+        $valid.Code | Should -BeNullOrEmpty
+    }
+
+    It 'reports a file it cannot read and tests the rest' {
+        $locked = Join-Path $TestDrive 'locked.toml'
+        $good = Join-Path $TestDrive 'readable.toml'
+        [IO.File]::WriteAllText($locked, "a = 1`n")
+        [IO.File]::WriteAllText($good, "a = 1`n")
+        $stream = [IO.File]::Open($locked, 'Open', 'ReadWrite', 'None')
+        try {
+            $results = @(Test-OfficeToml -LiteralPath $locked, $good -ErrorVariable failures -ErrorAction SilentlyContinue)
+        } finally {
+            $stream.Dispose()
+        }
+        $results | Should -Be @($true)
+        @($failures).Count | Should -Be 1
+        $failures[0].TargetObject | Should -Be $locked
+    }
+
+    It 'applies the untrusted limits with Untrusted' {
+        $deep = ('a' + ('.a' * 70)) + " = 1`n"
+        Test-OfficeToml -Text $deep | Should -BeTrue
+        Test-OfficeToml -Text $deep -Untrusted | Should -BeFalse
+        (Test-OfficeToml -Text $deep -Untrusted -Detailed).Code | Should -BeLike 'toml-limit*'
+    }
 }
