@@ -43,6 +43,9 @@ public sealed class AccessibilityCommandTests {
             Assert.StartsWith("Excel | Default | 1 error(s)", text.output, StringComparison.Ordinal);
             Assert.Contains("Error | " + OfficeDiagnosticCodes.AccessibilityMissingTableHeader + " | Data!A1:B2 (Scores)", text.output, StringComparison.Ordinal);
 
+            byte[] workbookBytes = File.ReadAllBytes(errors);
+            Assert.Equal(2, (await RunAsync("accessibility", errors, "--output", Path.Combine(directory, ".", "errors.xlsx"))).ExitCode);
+            Assert.Equal(workbookBytes, File.ReadAllBytes(errors));
             Assert.Equal(2, (await RunAsync("accessibility", errors, "--format", "xml")).ExitCode);
             Assert.Equal(3, (await RunAsync("accessibility", Path.Combine(directory, "missing.xlsx"))).ExitCode);
             string notes = Path.Combine(directory, "notes.txt");

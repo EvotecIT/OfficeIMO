@@ -20,8 +20,9 @@ namespace PSWriteOffice.Cmdlets.Accessibility;
 /// <example>
 ///   <summary>Fail a build when any document in a folder has accessibility errors.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>Get-ChildItem .\Docs -Include *.docx, *.xlsx, *.pptx -Recurse | Test-OfficeAccessibility -Strict |
-///     Where-Object { -not $_.IsSuccessful }</code>
+///   <code>$failed = Get-ChildItem .\Docs -Include *.docx, *.xlsx, *.pptx -Recurse | Test-OfficeAccessibility -Strict |
+///     Where-Object { -not $_.IsSuccessful }
+/// if ($failed) { throw "Accessibility errors in $($failed.Count) document(s)." }</code>
 /// </example>
 /// <example>
 ///   <summary>Write a SARIF log for code-scanning tools.</summary>

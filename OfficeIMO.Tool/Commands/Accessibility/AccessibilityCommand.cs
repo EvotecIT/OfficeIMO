@@ -40,6 +40,10 @@ The input is opened read-only and never changed.
             await standardError.WriteLineAsync("Input file was not found: " + input).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.InputNotFound;
         }
+        if (parsed.Output != null && SamePath(Path.GetFullPath(parsed.Output), input)) {
+            await standardError.WriteLineAsync("--output must not point at the input document, which is never changed.").ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.Usage;
+        }
         if (!OfficeDocument.SupportsAccessibility(input)) {
             await standardError.WriteLineAsync("Accessibility inspection supports Word, Excel and PowerPoint files.").ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.UnsupportedInput;
@@ -75,6 +79,9 @@ The input is opened read-only and never changed.
         bool failed = report.ErrorCount > 0 || parsed.FailOnWarnings && report.WarningCount > 0;
         return (int)(failed ? OfficeImoToolExitCode.ValidationFailed : OfficeImoToolExitCode.Success);
     }
+
+    private static bool SamePath(string left, string right) =>
+        string.Equals(left, right, OperatingSystem.IsLinux() ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
 
     internal static string Render(OfficeAccessibilityReport report, AccessibilityOutputFormat format, string input) => format switch {
         AccessibilityOutputFormat.Sarif => report.ToSarif(input),

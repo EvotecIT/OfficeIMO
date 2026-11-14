@@ -88,7 +88,8 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            SheetScan scan = ScanCells(worksheet, context, hyperlinkCells);
+            var readHyperlinkCells = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            SheetScan scan = ScanCells(worksheet, context, hyperlinkCells, readHyperlinkCells);
 
             SheetStateValues? state = sheet.SheetElement.State?.Value;
             if (options.CheckHiddenSheets && scan.HasContent && state != null && state.Value != SheetStateValues.Visible) {
@@ -124,6 +125,8 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (KeyValuePair<string, string?> link in hyperlinkCells) {
+                // A cell past MaximumCellCount was never read, so its label is unknown rather than empty.
+                if (!readHyperlinkCells.Contains(link.Key)) continue;
                 if (OfficeAccessibilityText.IsMeaningfulLinkLabel(link.Value)) continue;
                 Add(OfficeAccessibilitySeverity.Error, OfficeDiagnosticCodes.AccessibilityUnclearLinkLabel,
                     string.IsNullOrWhiteSpace(link.Value)
@@ -208,12 +211,13 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static SheetScan ScanCells(Worksheet? worksheet, ExcelAccessibilityContext context, Dictionary<string, string?> hyperlinkCells) {
+        private static SheetScan ScanCells(Worksheet? worksheet, ExcelAccessibilityContext context,
+            Dictionary<string, string?> hyperlinkCells, HashSet<string> readHyperlinkCells) {
             var scan = new SheetScan();
             SheetData? data = worksheet?.GetFirstChild<SheetData>();
             if (data == null) return scan;
-            var contrastByStyle = new Dictionary<uint, ContrastIssue?>();
-            var issues = new Dictionary<uint, ContrastIssue>();
+            var contrastByFormat = new Dictionary<string, ContrastIssue?>(StringComparer.Ordinal);
+            var issues = new Dictionary<string, ContrastIssue>(StringComparer.Ordinal);
             int visited = 0;
             uint previousRow = 0;
             foreach (Row row in data.Elements<Row>()) {
@@ -234,24 +238,59 @@ namespace OfficeIMO.Excel {
                     previousColumn = column;
                     string address = ExcelA1.CellReference((int)rowIndex, column);
                     string? text = context.CellText(cell);
-                    if (hyperlinkCells.ContainsKey(address)) hyperlinkCells[address] = text;
+                    if (hyperlinkCells.ContainsKey(address)) {
+                        hyperlinkCells[address] = text;
+                        readHyperlinkCells.Add(address);
+                    } else if (context.Options.CheckMeaningfulLinks && TryReadHyperlinkFormula(cell, out string? label)) {
+                        // HYPERLINK(location, friendly_name) shows the cached result, or the friendly name when there is none.
+                        hyperlinkCells[address] = cell.CellValue?.Text is { Length: > 0 } cached ? cached : label;
+                        readHyperlinkCells.Add(address);
+                    }
                     if (string.IsNullOrWhiteSpace(text)) continue;
 
                     scan.Add((int)rowIndex, column);
                     if (!context.Options.CheckContrast) continue;
                     uint style = cell.StyleIndex?.Value ?? 0;
-                    if (!contrastByStyle.TryGetValue(style, out ContrastIssue? template)) {
-                        template = context.MeasureContrast(style);
-                        contrastByStyle[style] = template;
+                    // Rich-text runs can override the cell font, so each differently formatted run is measured on its own.
+                    foreach (RunProperties? run in context.TextRunFormats(cell)) {
+                        string key = ExcelAccessibilityContext.FormatKey(style, run);
+                        if (!contrastByFormat.TryGetValue(key, out ContrastIssue? template)) {
+                            template = context.MeasureContrast(style, run);
+                            contrastByFormat[key] = template;
+                        }
+                        if (template == null) continue;
+                        if (issues.TryGetValue(key, out ContrastIssue? issue)) {
+                            if (issue.LastAddress != address) issue.CellCount++;
+                        } else {
+                            issue = new ContrastIssue(template.Measured, template.Required) { FirstAddress = address, CellCount = 1 };
+                            issues[key] = issue;
+                        }
+                        issue.LastAddress = address;
                     }
-                    if (template == null) continue;
-                    if (issues.TryGetValue(style, out ContrastIssue? issue)) issue.CellCount++;
-                    else issues[style] = new ContrastIssue(template.Measured, template.Required) { FirstAddress = address, CellCount = 1 };
                 }
                 if (scan.Truncated) break;
             }
             scan.ContrastIssues.AddRange(issues.Values);
             return scan;
+        }
+
+        private static readonly Regex HyperlinkFormulaPattern = new Regex(
+            "^\\s*=?\\s*HYPERLINK\\s*\\(\\s*\"((?:[^\"]|\"\")*)\"\\s*(?:,\\s*\"((?:[^\"]|\"\")*)\"\\s*)?\\)\\s*$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        /// <summary>Reads the visible label of a <c>HYPERLINK("location", "friendly name")</c> formula with literal arguments.</summary>
+        /// <remarks>Formulas whose arguments are references or expressions are skipped unless the cell has a cached result.</remarks>
+        private static bool TryReadHyperlinkFormula(Cell cell, out string? label) {
+            label = null;
+            string? formula = cell.CellFormula?.Text;
+            if (string.IsNullOrWhiteSpace(formula) || formula!.IndexOf("HYPERLINK", StringComparison.OrdinalIgnoreCase) < 0) return false;
+            Match match = HyperlinkFormulaPattern.Match(formula);
+            if (match.Success) {
+                label = (match.Groups[2].Success ? match.Groups[2].Value : match.Groups[1].Value).Replace("\"\"", "\"");
+                return true;
+            }
+            if (cell.CellValue?.Text is not { Length: > 0 }) return false;
+            return formula.TrimStart('=', ' ').StartsWith("HYPERLINK", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string DescribeGraphicFrame(string? uri) {
@@ -324,6 +363,7 @@ namespace OfficeIMO.Excel {
             internal double Measured { get; }
             internal double Required { get; }
             internal string? FirstAddress { get; set; }
+            internal string? LastAddress { get; set; }
             internal int CellCount { get; set; }
         }
 
@@ -358,20 +398,44 @@ namespace OfficeIMO.Excel {
                 return value;
             }
 
-            /// <summary>Returns the contrast failure for a cell format, or null when it passes or uses default colours.</summary>
-            internal ContrastIssue? MeasureContrast(uint styleIndex) {
-                if (styleIndex >= _cellFormats.Length) return null;
-                CellFormat format = _cellFormats[styleIndex];
-                Font? font = format.FontId?.Value is uint fontId && fontId < _fonts.Length ? _fonts[fontId] : null;
-                Fill? fill = format.FillId?.Value is uint fillId && fillId < _fills.Length ? _fills[fillId] : null;
-                OfficeColor? foreground = ResolveColor(font?.Color);
+            /// <summary>
+            /// Returns the formatting of each text run in the cell: one null entry for plain text that uses the cell font,
+            /// or the run properties of every non-empty rich-text run.
+            /// </summary>
+            internal IEnumerable<RunProperties?> TextRunFormats(Cell cell) {
+                OpenXmlElement? rich = null;
+                CellValues? type = cell.DataType?.Value;
+                if (type == CellValues.InlineString) {
+                    rich = cell.InlineString;
+                } else if (type == CellValues.SharedString &&
+                    int.TryParse(cell.CellValue?.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index) &&
+                    index >= 0 && index < _sharedStrings.Length) {
+                    rich = _sharedStrings[index];
+                }
+                List<Run>? runs = rich?.Elements<Run>().Where(run => !string.IsNullOrWhiteSpace(run.Text?.Text)).ToList();
+                if (runs == null || runs.Count == 0) return new RunProperties?[] { null };
+                return runs.Select(run => run.RunProperties);
+            }
+
+            internal static string FormatKey(uint styleIndex, RunProperties? run) =>
+                run == null ? styleIndex.ToString(CultureInfo.InvariantCulture) : styleIndex.ToString(CultureInfo.InvariantCulture) + "|" + run.OuterXml;
+
+            /// <summary>Returns the contrast failure for a cell format and optional run override, or null when it passes or uses default colours.</summary>
+            internal ContrastIssue? MeasureContrast(uint styleIndex, RunProperties? run = null) {
+                CellFormat? format = styleIndex < _cellFormats.Length ? _cellFormats[styleIndex] : null;
+                if (format == null && run == null) return null;
+                Font? font = format?.FontId?.Value is uint fontId && fontId < _fonts.Length ? _fonts[fontId] : null;
+                Fill? fill = format?.FillId?.Value is uint fillId && fillId < _fills.Length ? _fills[fillId] : null;
+                Color? runColor = run?.GetFirstChild<Color>();
+                OfficeColor? foreground = ResolveColor(runColor ?? font?.Color);
                 OfficeColor? background = null;
                 PatternFill? pattern = fill?.PatternFill;
                 if (pattern?.PatternType?.Value == PatternValues.Solid) background = ResolveColor(pattern.ForegroundColor);
                 if (foreground == null && background == null) return null;
 
-                double size = font?.FontSize?.Val?.Value ?? 11D;
-                bool bold = font?.Bold != null && (font.Bold.Val == null || font.Bold.Val.Value);
+                double size = run?.GetFirstChild<FontSize>()?.Val?.Value ?? font?.FontSize?.Val?.Value ?? 11D;
+                Bold? boldElement = run?.GetFirstChild<Bold>() ?? font?.Bold;
+                bool bold = boldElement != null && (boldElement.Val == null || boldElement.Val.Value);
                 bool large = size >= 18D || bold && size >= 14D;
                 double required = large ? Options.MinimumLargeTextContrastRatio : Options.MinimumTextContrastRatio;
                 double measured = OfficeColorContrast.ContrastRatio(foreground ?? OfficeColor.Black, background ?? OfficeColor.White);

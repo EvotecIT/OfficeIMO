@@ -67,7 +67,7 @@ internal static class OfficeAccessibilitySarif {
                 ["ruleId"] = finding.Code,
                 ["ruleIndex"] = ruleIndexes[finding.Code],
                 ["level"] = Level(finding.Severity),
-                ["message"] = new JsonObject { ["text"] = finding.Message },
+                ["message"] = new JsonObject { ["text"] = EscapeMessage(finding.Message) },
                 ["locations"] = new List<object?> { location },
                 ["properties"] = properties
             });
@@ -130,6 +130,10 @@ internal static class OfficeAccessibilitySarif {
         }
         return name.Length == 0 ? "Unknown" : name.ToString();
     }
+
+    /// <summary>SARIF message strings use braces for placeholders, so literal braces from document text are doubled.</summary>
+    internal static string EscapeMessage(string message) =>
+        message.IndexOf('{') < 0 && message.IndexOf('}') < 0 ? message : message.Replace("{", "{{").Replace("}", "}}");
 
     private static string Level(OfficeAccessibilitySeverity severity) => severity switch {
         OfficeAccessibilitySeverity.Error => "error",

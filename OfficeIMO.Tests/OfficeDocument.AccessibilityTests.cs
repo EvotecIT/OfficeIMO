@@ -85,6 +85,21 @@ public sealed class OfficeDocumentAccessibilityTests {
     }
 
     [Fact]
+    public void SarifMessagesDoubleLiteralBraces() {
+        using ExcelDocument workbook = ExcelDocument.Create();
+        workbook.AddSheet("Links").SetHyperlink("A1", "https://officeimo.com", "{}");
+        OfficeAccessibilityReport report = OfficeDocument.InspectAccessibility(workbook);
+        OfficeAccessibilityFinding finding = Assert.Single(report.Findings, item => item.Code == OfficeDiagnosticCodes.AccessibilityUnclearLinkLabel);
+        Assert.Contains("'{}'", finding.Message, StringComparison.Ordinal);
+
+        using JsonDocument log = JsonDocument.Parse(report.ToSarif());
+        string? text = log.RootElement.GetProperty("runs")[0].GetProperty("results").EnumerateArray()
+            .Single(result => result.GetProperty("ruleId").GetString() == OfficeDiagnosticCodes.AccessibilityUnclearLinkLabel)
+            .GetProperty("message").GetProperty("text").GetString();
+        Assert.Contains("'{{}}'", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RelativeArtifactPathsStayRelative() {
         using ExcelDocument workbook = ExcelDocument.Create();
         workbook.AddSheet("Data").Cell(1, 1).SetValue("x");

@@ -135,6 +135,61 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HyperlinkFormulasAreCheckedByTheirVisibleLabel() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddSheet("Links");
+            sheet.Cell(1, 1).SetFormula("HYPERLINK(\"https://officeimo.com\",\"click here\")");
+            sheet.Cell(2, 1).SetFormula("HYPERLINK(\"https://officeimo.com/docs\")");
+            sheet.Cell(3, 1).SetFormula("HYPERLINK(\"https://officeimo.com/guide\",\"Excel accessibility guide\")");
+
+            List<OfficeAccessibilityFinding> findings = Findings(document, OfficeDiagnosticCodes.AccessibilityUnclearLinkLabel);
+            Assert.Equal(new[] { "Links!A1", "Links!A2" }, findings.Select(finding => finding.Location));
+        }
+
+        [Fact]
+        public void HyperlinkCellsPastTheCellLimitAreNotReportedAsEmpty() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddSheet("Links");
+            sheet.SetHyperlink("A1", "https://officeimo.com", "click here");
+            sheet.SetHyperlink("A2", "https://officeimo.com/docs", "click here");
+
+            List<OfficeAccessibilityFinding> findings = Findings(document, OfficeDiagnosticCodes.AccessibilityUnclearLinkLabel,
+                options: new ExcelAccessibilityOptions { MaximumCellCount = 1 });
+            Assert.Equal("Links!A1", Assert.Single(findings).Location);
+        }
+
+        [Fact]
+        public void RichTextRunsAreMeasuredWithTheirOwnColour() {
+            string path = Path.Combine(Path.GetTempPath(), "officeimo-accessibility-runs-" + Guid.NewGuid().ToString("N") + ".xlsx");
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(path)) {
+                    ExcelSheet sheet = document.AddSheet("Runs");
+                    sheet.Cell(1, 1).SetValue("Plain");
+                    document.Save();
+                }
+                using (var package = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(path, true)) {
+                    var sheetData = package.WorkbookPart!.WorksheetParts.First().Worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetData>()!;
+                    var row = sheetData.Elements<DocumentFormat.OpenXml.Spreadsheet.Row>().First();
+                    var cell = new DocumentFormat.OpenXml.Spreadsheet.Cell { CellReference = "B1", DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString };
+                    var inline = new DocumentFormat.OpenXml.Spreadsheet.InlineString();
+                    inline.Append(new DocumentFormat.OpenXml.Spreadsheet.Run(new DocumentFormat.OpenXml.Spreadsheet.Text("Visible ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }));
+                    inline.Append(new DocumentFormat.OpenXml.Spreadsheet.Run(
+                        new DocumentFormat.OpenXml.Spreadsheet.RunProperties(new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = "FFFFFFFF" }),
+                        new DocumentFormat.OpenXml.Spreadsheet.Text("hidden")));
+                    cell.Append(inline);
+                    row.Append(cell);
+                    package.Save();
+                }
+                using ExcelDocument loaded = ExcelDocument.Load(path);
+                OfficeAccessibilityFinding finding = Assert.Single(Findings(loaded, OfficeDiagnosticCodes.AccessibilityLowContrast));
+                Assert.Equal("Runs!B1", finding.Location);
+                Assert.Equal(1D, finding.MeasuredValue!.Value, 2);
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
         public void LowContrastCellsAreGroupedByFormatting() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Colors");
