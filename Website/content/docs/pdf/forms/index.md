@@ -2,6 +2,16 @@
 title: "Fill and Flatten PDF Forms"
 description: "List AcroForm fields, fill them by name, flatten the result, exchange XFDF data, and add form fields to new PDFs with OfficeIMO.Pdf and PSWriteOffice."
 layout: docs
+packages:
+  - OfficeIMO.Pdf
+cmdlets:
+  - Set-OfficePdfFormField
+limits: "On hybrid AcroForm/XFA forms the AcroForm fields are filled; XFA-aware viewers may keep showing the original XFA data. For signed or certified forms, `Forms.AppendRevision(values)` adds the values as a new revision after the original bytes instead of rewriting the file."
+search_terms:
+  - fill pdf form
+  - acroform
+  - flatten pdf
+verified: 2026-11-14
 ---
 
 PDF forms (AcroForms) are named fields: text boxes, check boxes, choice lists, and radio groups. Fill them by field name. Filling keeps the fields editable; flattening turns their values into ordinary page content so they can no longer be changed.
@@ -113,9 +123,3 @@ New-OfficePdf -Path .\Review.pdf {
     PdfFormField -Name Decision -Type Choice -Option Approve,Reject,Defer -Value Defer
 }
 ```
-
-## Limits and reference
-
-**Limits:** on hybrid AcroForm/XFA forms the AcroForm fields are filled; XFA-aware viewers may keep showing the original XFA data. For signed or certified forms, `Forms.AppendRevision(values)` adds the values as a new revision after the original bytes instead of rewriting the file. See the [PDF package row](/compatibility/#package-pdf).
-
-**Reference:** [OfficeIMO.Pdf API](/api/pdf/) · [Set-OfficePdfFormField](/api/powershell/set-officepdfformfield/)

@@ -3,6 +3,7 @@ title: "ZIP, CAB and MSI Archives"
 description: "Inspect, verify, read and safely extract ZIP, Microsoft Cabinet and Windows Installer payloads in managed .NET with explicit resource limits."
 order: 58
 meta.seo_title: "Read and extract ZIP, CAB and MSI files in C#"
+verified: 2026-11-14
 ---
 
 `OfficeIMO.Archives` inspects ZIP and Microsoft Cabinet archives and ordinary Windows Installer (MSI) databases, reads complete verified members into memory and extracts payloads to disk. It is fully managed, needs no native archive tools and never runs installer actions, scripts or custom actions.
@@ -62,6 +63,8 @@ The format is detected from bytes, not the file name. The destination must be ab
 ## Read ZIP content in memory
 
 ```csharp
+using OfficeIMO.Archives;
+
 var files = ArchiveReader.ReadZip(File.ReadAllBytes("package.zip"), new ArchiveReadOptions {
     IncludeFile = path => path.EndsWith(".xml", StringComparison.OrdinalIgnoreCase),
     MaxEntryBytes = 8L * 1024 * 1024

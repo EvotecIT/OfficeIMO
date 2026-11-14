@@ -1,9 +1,21 @@
 ---
-title: Google Workspace package ownership
-description: "Choose the OfficeIMO Google Workspace packages and use explicit fidelity, import, replacement, and synchronization contracts."
+title: "Choose Google Workspace Packages"
+description: "Which OfficeIMO Google Workspace package owns transport, Drive, authentication, synchronization, and each document format."
 order: 90
 aliases:
   - /docs/google-workspace/migration/
+packages:
+  - OfficeIMO.GoogleWorkspace
+  - OfficeIMO.GoogleWorkspace.Drive
+  - OfficeIMO.GoogleWorkspace.Auth.GoogleApis
+  - OfficeIMO.GoogleWorkspace.Sync
+  - OfficeIMO.Word.GoogleDocs
+  - OfficeIMO.Excel.GoogleSheets
+  - OfficeIMO.PowerPoint.GoogleSlides
+search_terms:
+  - google workspace packages
+  - google workspace migration
+  - fidelity policy
 ---
 
 OfficeIMO separates transport, Drive operations, authentication, synchronization, and document-format mapping so applications depend only on the capabilities they use.
@@ -38,4 +50,4 @@ Use native import when editable target semantics matter and Drive Office-format 
 
 The synchronization package owns change-feed cursors, plan/apply outcomes, and bounded execution. Applications own checkpoint persistence, schedules, approval UI, conflict decisions, and the mutation callback.
 
-The current feature catalog is published in the [support matrix](/docs/google-workspace/support/).
+What each translator supports is listed in the [support matrix](/docs/google-workspace/support/).

@@ -1,43 +1,69 @@
 ---
-title: PowerPoint Templates and Brand Kits
-description: "Inspect corporate PPTX and POTX templates, resolve named layouts and placeholders, and generate editable branded decks. Includes examples and API links."
+title: "Create PowerPoint Decks from Templates"
+description: "Inspect a corporate PPTX or POTX template, pick layouts and placeholders by name, create decks from it, and reuse its brand colors and fonts."
 order: 34
+packages:
+  - OfficeIMO.PowerPoint
+cmdlets:
+  - New-OfficePowerPoint
+  - Get-OfficePowerPointLayout
+  - Get-OfficePowerPointPlaceholder
+  - Set-OfficePowerPointPlaceholder
+  - Set-OfficePowerPointTheme
+limits: OfficeIMO copies the template's masters, layouts, and theme as they are; it does not redesign a template or rebuild one from screenshots.
+search_terms:
+  - potx
+  - powerpoint template
+  - slide master
+  - layout placeholder
+  - brand kit
+verified: 2026-11-14
 ---
 
-Use a template workflow when the organization already owns the slide master, layouts, theme, logos, and footer rules. OfficeIMO copies that package structure and adds editable slides; it does not rebuild a corporate template from screenshots or a parallel JSON theme.
+Use a template when your organization already owns the slide master, layouts, theme, logos, and footer rules. `PowerPointTemplate` reads a `.pptx` or `.potx`, tells you what layouts and placeholders it has, and creates a new presentation that keeps all of that. You then add slides by layout name instead of by index, so the code keeps working when the template gains a layout.
 
-## Inspect before generating
+## Inspect a template
+
+`Inspect` returns masters, layouts, placeholders with their roles and bounds, theme colors and fonts, logos, footer content, and a content safe area.
+
+### C#
 
 ```csharp
-PowerPointTemplateInventory inventory =
-    PowerPointTemplate.Inspect("Corporate.potx");
+using OfficeIMO.PowerPoint;
 
-foreach (PowerPointTemplateMasterInfo master in inventory.Masters)
-{
+PowerPointTemplateInventory inventory = PowerPointTemplate.Inspect("Corporate.potx");
+
+foreach (PowerPointTemplateMasterInfo master in inventory.Masters) {
     Console.WriteLine($"{master.Name}: {master.Layouts.Count} layouts");
+    foreach (PowerPointTemplateLayoutInfo layout in master.Layouts) {
+        Console.WriteLine($"  {layout.Name} ({layout.Placeholders.Count} placeholders)");
+    }
 }
-
-PowerPointTemplateLayoutInfo summary =
-    inventory.ResolveLayout("Executive Summary");
-
-PowerPointTemplatePlaceholderInfo visual =
-    summary.ResolvePlaceholder(PowerPointTemplatePlaceholderRole.Image);
 ```
 
-The inventory includes:
+### PowerShell
 
-- master and layout names, indexes, and native layout types;
-- placeholder names, indexes, inferred roles, default text, and bounds;
-- theme colors and major/minor fonts;
-- master/layout pictures and likely logo identification;
-- distinct footer content, slide size, title area, and a derived content safe area.
+```powershell
+$deck = Open-OfficePowerPoint -Path .\Corporate.potx
+Get-OfficePowerPointLayout -Document $deck
+Get-OfficePowerPointTheme -Document $deck
+Close-OfficePowerPoint -Document $deck
+```
 
-Semantic lookup is deliberately strict. If two layouts or placeholders match, `PowerPointTemplateResolutionException` reports a stable code and the candidate names so a pipeline or UI can ask for a precise selection.
+## Create a deck from a template
 
-## Create from PPTX or POTX
+`ResolveLayout` and `ResolvePlaceholder` match by name and role. When two layouts or placeholders match, they throw `PowerPointTemplateResolutionException` with the candidate names, so a pipeline can ask for an exact choice instead of guessing. `SlideRetention` decides whether the template's own sample slides are kept.
+
+### C#
 
 ```csharp
-using var presentation = PowerPointTemplate.CreatePresentation(
+using OfficeIMO.PowerPoint;
+
+PowerPointTemplateInventory inventory = PowerPointTemplate.Inspect("Corporate.potx");
+PowerPointTemplateLayoutInfo summary = inventory.ResolveLayout("Executive Summary");
+PowerPointTemplatePlaceholderInfo visual = summary.ResolvePlaceholder(PowerPointTemplatePlaceholderRole.Image);
+
+using PowerPointDocument presentation = PowerPointTemplate.CreateDocument(
     "Corporate.potx",
     "Quarterly Review.pptx",
     new PowerPointTemplateCreationOptions {
@@ -45,42 +71,80 @@ using var presentation = PowerPointTemplate.CreatePresentation(
     });
 
 PowerPointSlide slide = presentation.AddSlide(summary);
-slide.AddImage("evidence.png", visual.Bounds!.Value);
+if (visual.Bounds is PowerPointLayoutBox bounds) {
+    slide.AddImage("evidence.png", bounds);
+}
 presentation.Save();
 ```
 
-`All`, `None`, and `Selected` retention modes are explicit. Selected source slides can be hidden for appendix or reference use. Masters, layouts, themes, and their assets remain in the copied package even when all source slides are removed.
+### PowerShell
 
-## Render semantic plans into named layouts
+```powershell
+New-OfficePowerPoint -Path .\QuarterlyReview.pptx -Template .\Corporate.potx {
+    Add-OfficePowerPointSlide -TemplateLayout 'Title and Content' {
+        Set-OfficePowerPointPlaceholder -Type Title 'Quarterly review'
+        Set-OfficePowerPointPlaceholder -Type Body {
+            Add-OfficePowerPointParagraph 'All regions are operational.'
+        }
+    }
+}
+```
+
+## Map semantic slides to template layouts
+
+A [designer deck plan](/docs/powerpoint/designer/) describes slides by intent (section, process, capability). `PowerPointTemplateLayoutMap` sends each kind to a named template layout, and `CreateDesignBrief` carries the template's colors and fonts into the composition. Keep `ApplyTheme` off to leave the template's theme untouched.
+
+### C#
 
 ```csharp
+using OfficeIMO.PowerPoint;
+
+PowerPointTemplateInventory inventory = PowerPointTemplate.Inspect("Corporate.potx");
+
 var map = new PowerPointTemplateLayoutMap()
     .Map(PowerPointDeckPlanSlideKind.Section, inventory, "Title")
-    .Map(PowerPointDeckPlanSlideKind.Process, inventory, "Process")
-    .Map(PowerPointDeckPlanSlideKind.Capability, inventory, "Executive Summary");
+    .Map(PowerPointDeckPlanSlideKind.Process, inventory, "Process");
 
 var plan = new PowerPointDeckPlan()
     .AddSection("Delivery review", "Generated from the corporate template")
-    .AddProcess("Implementation", null, steps)
-    .AddCapability("Operating model", null, capabilities);
+    .AddProcess("Implementation", null, new[] {
+        new PowerPointProcessStep("Discover", "Collect constraints."),
+        new PowerPointProcessStep("Design", "Choose the target model."),
+        new PowerPointProcessStep("Roll out", "Deliver in waves.")
+    });
+
+using PowerPointDocument presentation = PowerPointTemplate.CreateDocument("Corporate.potx", "Delivery.pptx",
+    new PowerPointTemplateCreationOptions { SlideRetention = PowerPointTemplateSlideRetention.None });
 
 PowerPointCompositionOptions composition = PowerPointCompositionOptions.FromBrief(
     inventory.CreateDesignBrief("qbr-seed", "quarterly business review"));
 composition.TemplateLayouts = map;
 composition.ApplyTheme = false;
 presentation.Compose(plan, composition);
+presentation.Save();
 ```
 
-The template remains the package owner. `CreateDesignBrief(...)` imports its brand tokens while `TemplateLayouts` maps semantic intent to named native layouts. Keeping `ApplyTheme` false preserves the copied corporate theme; callers can opt into applying generated theme tokens explicitly.
+## Apply a template's brand to another deck
 
-## Brand reuse without copying the template
+`ApplyBrandTo` copies the template's color and font tokens into every master of an existing presentation without copying its layouts.
+
+### C#
 
 ```csharp
-PowerPointDesignBrief brief = inventory.CreateDesignBrief(
-    "campaign-seed",
-    "product launch");
+using OfficeIMO.PowerPoint;
 
-inventory.ApplyBrandTo(anotherPresentation);
+PowerPointTemplateInventory inventory = PowerPointTemplate.Inspect("Corporate.potx");
+
+using PowerPointDocument presentation = PowerPointDocument.Load("partner-deck.pptx");
+inventory.ApplyBrandTo(presentation);
+presentation.Save();
 ```
 
-The first call maps theme colors, fonts, name, and footer identity into designer inputs. The second applies the imported color and font tokens to native theme parts across all target masters.
+### PowerShell
+
+```powershell
+$deck = Open-OfficePowerPoint -Path .\partner-deck.pptx
+Set-OfficePowerPointTheme -Document $deck -Colors @{ Accent1 = '#0F766E' } -HeadingFont 'Segoe UI Semibold' -BodyFont 'Segoe UI' -AllMasters
+Save-OfficePowerPoint -Document $deck
+Close-OfficePowerPoint -Document $deck
+```

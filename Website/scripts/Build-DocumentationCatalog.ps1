@@ -20,6 +20,23 @@ function Get-ProjectValue {
     return ''
 }
 
+function Get-TargetFrameworks {
+    param([xml] $Project)
+
+    # Union of every TargetFramework(s) value, so a Windows-only net472 added under a condition is listed too.
+    $frameworks = [System.Collections.Generic.List[string]]::new()
+    foreach ($name in 'TargetFrameworks', 'TargetFramework') {
+        foreach ($value in @($Project.Project.PropertyGroup.$name)) {
+            $text = if ($value -is [System.Xml.XmlElement]) { $value.InnerText } else { [string] $value }
+            foreach ($framework in $text.Split(';')) {
+                $framework = $framework.Trim()
+                if ($framework -and $framework -notlike '*$(*' -and -not $frameworks.Contains($framework)) { $frameworks.Add($framework) }
+            }
+        }
+    }
+    return @($frameworks)
+}
+
 function Get-ComponentCategory {
     param([string] $Name)
 
@@ -135,6 +152,7 @@ $components = foreach ($projectFile in ($productionProjects | Sort-Object BaseNa
         docsUrl = Get-DocumentationUrl -Name $name
         apiUrl = if ($apiRoutes.ContainsKey((Get-ProjectValue -Project $project -Name 'AssemblyName'))) { $apiRoutes[(Get-ProjectValue -Project $project -Name 'AssemblyName')] } elseif ($apiRoutes.ContainsKey($name)) { $apiRoutes[$name] } else { $null }
         packageUrl = if ($isPackable) { "https://www.nuget.org/packages/$packageId" } else { $null }
+        targetFrameworks = @(Get-TargetFrameworks -Project $project)
     }
 }
 

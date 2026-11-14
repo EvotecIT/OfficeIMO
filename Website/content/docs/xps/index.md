@@ -3,6 +3,7 @@ title: "XPS and OpenXPS"
 description: "Read, create, edit and save XPS and OpenXPS documents, extract text and logical structure, and convert fixed pages to SVG, images and tagged PDF in .NET."
 order: 57
 meta.seo_title: "Read, create and convert XPS and OpenXPS in .NET"
+verified: 2026-11-14
 ---
 
 `OfficeIMO.Xps` reads, creates, edits and saves Microsoft XPS and ECMA-388 OpenXPS packages without Windows desktop APIs or an external conversion process. Pages convert to SVG and images through the shared OfficeIMO drawing engine. `OfficeIMO.Xps.Pdf` adds vector PDF output with a searchable text layer and tags from the document's native structure.
@@ -54,6 +55,8 @@ Use `XpsFormat.Xps` for Microsoft's original dialect; the file extension does no
 ## Edit pages and documents
 
 ```csharp
+using OfficeIMO.Xps;
+
 XpsDocument document = XpsDocument.Load("report.oxps");
 XpsFixedDocument appendix = document.AddDocument();
 document.Documents[0].MovePageTo(0, appendix, 0);
@@ -69,6 +72,9 @@ Saving keeps the original dialect, opaque package parts and native page markup. 
 ## Read logical structure
 
 ```csharp
+using OfficeIMO.Xps;
+
+XpsDocument document = XpsDocument.Load("report.oxps");
 XpsLogicalStructure structure = document.ReadLogicalStructure();
 foreach (XpsLogicalStory story in structure.Stories)
     foreach (XpsStructureNode block in story.Blocks)

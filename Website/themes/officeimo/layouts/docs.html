@@ -41,10 +41,12 @@
           <p class="imo-docs__description">{{ page.description }}</p>
           {{ end }}
           {{ include "article-meta" }}
+          {{ include "docs-facts" }}
         </header>
         <div class="imo-docs__content imo-prose">
 {{ content }}
         </div>
+        {{~ api_links_quiet = true ~}}
         {{ include "api-links" }}
       </article>
     </main>

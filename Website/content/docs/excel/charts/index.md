@@ -2,6 +2,16 @@
 title: "Add Charts to Excel Workbooks"
 description: Add native, editable Excel charts from objects, cell ranges, or tables, and style titles, axes, legends, and data labels with OfficeIMO.Excel.
 order: 26
+packages:
+  - OfficeIMO.Excel
+  - OfficeIMO.Excel.Pdf
+limits: "Native chart fidelity is listed on the [Excel format card](/compatibility/#excel)."
+search_terms:
+  - excel chart
+  - xlsx chart
+  - line chart
+  - pie chart
+verified: 2026-11-14
 ---
 
 OfficeIMO.Excel writes native Excel charts. They stay editable in Excel and keep a link to their source cells, so they update when the data changes. The chart type comes from the shared `OfficeChartType` enum (`Column`, `ColumnClustered`, `Bar`, `Line`, `Pie`, `Area`, `Scatter`, and more).
@@ -90,9 +100,3 @@ New-OfficeExcel -Path .\Reports\Regions.xlsx {
     }
 }
 ```
-
-## Limits and reference
-
-**Limits:** chart rendering in Excel PDF and image export is covered by the [Excel PDF row](/compatibility/#package-excel-pdf); native chart fidelity is in the [Excel format card](/compatibility/#excel).
-
-**Reference:** [OfficeIMO.Excel API](/api/excel/) · [PSWriteOffice cmdlets](/api/powershell/)

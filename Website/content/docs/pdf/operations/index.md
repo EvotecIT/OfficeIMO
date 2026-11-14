@@ -2,6 +2,7 @@
 title: "PDF Inspection, Extraction, and Operations"
 description: "Preflight, repair, extract, merge, split, stamp, optimize, convert to PDF/A, redact, and inspect PDFs with structured reports. Includes examples and API links."
 layout: docs
+verified: 2026-11-14
 ---
 
 `OfficeIMO.Pdf` can operate on existing PDFs as well as author new ones. The read path exposes preflight and diagnostic reports so an application can distinguish a readable file from one that required recovery or cannot be safely rewritten.
@@ -23,6 +24,8 @@ if (!analysis.CanRead) {
 ## Extract content and assets
 
 ```csharp
+using OfficeIMO.Pdf;
+
 PdfDocumentReadResult result = PdfDocument.Load("Service-review.pdf").Read();
 foreach (PdfLogicalPage page in result.Pages) {
     Console.WriteLine($"Page {page.PageNumber}: {page.Paragraphs.Count} paragraphs, {page.Tables.Count} tables");
@@ -35,6 +38,8 @@ Console.WriteLine(result.ExtractMarkdown());
 ## Compose existing documents
 
 ```csharp
+using OfficeIMO.Pdf;
+
 PdfDocument.Load("Service-review.pdf")
     .MergeWith("Appendix.pdf")
     .Pages.Rotate(90, "2")
@@ -51,6 +56,8 @@ Stamp and watermark operations support text, images and imported pages. Annotati
 ## Convert an existing PDF to PDF/A
 
 ```csharp
+using OfficeIMO.Pdf;
+
 PdfAConversionResult archive = PdfDocument.Load("Service-review.pdf").ConvertToPdfA(new PdfAConversionOptions {
     Profile = PdfComplianceProfile.PdfA3B,
     Attachments = PdfAAttachmentPolicy.Refuse

@@ -3,6 +3,7 @@ title: "Access Databases"
 description: "Read MDB and ACCDB tables, inspect queries, forms and VBA, edit qualified VBA projects, and create Jet 4 or ACE databases in .NET."
 order: 54
 meta.seo_title: "Read and create Access MDB and ACCDB files in .NET"
+verified: 2026-11-14
 ---
 
 `OfficeIMO.Access` reads native Microsoft Access databases through one typed `AccessDocument` model. It decodes catalogs, table schemas, indexes, relationships, saved-query records and forward-only rows for Jet 3/Jet 4 MDB and ACE ACCDB files, inspects application objects and VBA, edits qualified VBA projects, and creates new Jet 4 or ACE 12 table databases. Microsoft Access, DAO, OLE DB and database providers are not required.
@@ -48,6 +49,8 @@ The same calls read MDB and ACCDB files. `AccessDataReader` is a `DbDataReader`,
 ## Inspect queries, links and application objects
 
 ```csharp
+using OfficeIMO.Access;
+
 using AccessDocument database = AccessDocument.Load("application.accdb");
 
 foreach (AccessQueryDefinition query in database.Queries)
@@ -85,6 +88,8 @@ database.Save("edited.accdb");
 ## Create a database
 
 ```csharp
+using OfficeIMO.Access;
+
 using AccessDocument database = AccessDocument.Create(new AccessCreateOptions {
     Format = AccessFileFormat.Accdb,
     DatabaseTitle = "Contacts"

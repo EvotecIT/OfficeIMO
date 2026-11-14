@@ -2,6 +2,21 @@
 title: "Merge, Split, and Select PDF Pages"
 description: "Merge PDFs, split a PDF into parts, and extract, delete, reorder, rotate, or duplicate pages with OfficeIMO.Pdf, PSWriteOffice, and the officeimo CLI."
 layout: docs
+packages:
+  - OfficeIMO.Pdf
+cmdlets:
+  - Merge-OfficeDocument
+  - Split-OfficeDocument
+search_terms:
+  - merge pdf
+  - split pdf
+  - combine pdf
+  - extract pages
+commands:
+  - officeimo workflow assemble
+  - officeimo pdf split
+  - officeimo pdf extract
+verified: 2026-11-14
 ---
 
 Page operations never change the loaded document in place: each call returns a new `PdfDocument`, so you can chain operations and save the result. Pages are numbered from 1, and page selections use the familiar print-dialog syntax: `"1-3,5"`, `"2"`, `"3,1-2"`.
@@ -106,9 +121,3 @@ Open-OfficePdf .\Report.pdf { Remove-OfficePdfPage -Page last }
 ```sh
 officeimo pdf extract packet.pdf --pages last,1-3 --output selected.pdf
 ```
-
-## Limits and reference
-
-**Limits:** see the [PDF package row](/compatibility/#package-pdf).
-
-**Reference:** [OfficeIMO.Pdf API](/api/pdf/) · [Merge-OfficeDocument](/api/powershell/merge-officedocument/) · [Split-OfficeDocument](/api/powershell/split-officedocument/)

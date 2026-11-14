@@ -1,133 +1,138 @@
 ---
-title: Word Documents
-description: "Overview of the OfficeIMO.Word package for creating and manipulating Microsoft Word documents. Includes examples and API links."
+title: Create and Edit Word Documents in .NET
+description: Create, open, read, edit, and save DOCX files with OfficeIMO.Word, PSWriteOffice, and the officeimo CLI, without Microsoft Word installed.
 order: 10
+packages:
+  - OfficeIMO.Word
+cmdlets:
+  - New-OfficeWord
+  - Open-OfficeWord
+  - Get-OfficeWordText
+  - Export-OfficeWord
+search_terms:
+  - docx
+  - word document
+  - create word file
+  - read docx
+  - doc to docx
+commands:
+  - officeimo read
+verified: 2026-11-14
 ---
 
-The `OfficeIMO.Word` package provides a higher-level API for creating, reading, and modifying Microsoft Word documents (`.docx`) without requiring Microsoft Office. It wraps the Open XML SDK with an approachable object model and adds workflow-oriented capabilities for template binding, review inspection, structural comparison, redlines, content-control forms, package signatures, conversion, legacy DOC import/export, and page rendering.
+`OfficeIMO.Word` creates, reads, and edits Word documents (`.docx`, `.docm`, `.dotx`) and opens legacy binary `.doc` files into the same model. `WordDocument` is the document; it holds sections, and sections hold paragraphs, tables, images, headers, and footers. It runs anywhere .NET runs, with no Word or COM automation.
 
-## Choose a workflow
+The guides in this section cover each part of a document: text and paragraphs, tables, images, headers and footers, lists, fields and the table of contents, templates, review, protection, and conversion.
 
-| Goal | Start here |
-|---|---|
-| Compose reports, contracts, and invoices | Paragraphs, tables, images, lists, charts, sections, fields, and reusable styles on this page and the focused authoring guides |
-| Use an approved DOCX as the layout | [Templates, forms, and mail merge](/docs/word/templates/) |
-| Process comments and tracked changes | [Review, comparison, revisions, and signatures](/docs/word/review/) |
-| Publish or exchange the document | [Word conversion and rendering](/docs/word/conversion/) |
-| Evaluate a feature against the current implementation | [Market readiness](/docs/word/market-readiness/) and the generated [Word API](/api/word/) |
+## Create a document
 
-## Key Classes
-
-| Class | Description |
-|-------|-------------|
-| `WordDocument` | The root class representing a Word document. Provides factory methods for creating and loading documents. |
-| `WordSection` | Represents a section within a document. Controls page layout, headers, footers, and contains paragraphs and tables. |
-| `WordParagraph` | Represents a paragraph with text, formatting, images, hyperlinks, bookmarks, and field codes. |
-| `WordTable` | Represents a table with rows, cells, and 105+ built-in table styles. |
-| `WordImage` | Represents an inline or anchored image with sizing, cropping, and positioning controls. |
-| `WordHeader` / `WordFooter` | Header and footer instances attached to sections. |
-| `WordChart` | Embeds bar, line, area, pie, scatter, and radar charts. |
-| `WordList` | Manages numbered and bulleted lists with customizable styles. |
-| `WordBookmark` | Represents a named bookmark within the document. |
-| `WordTableOfContent` | Inserts and manages a table of contents. |
-
-## Creating a Document
+### C#
 
 ```csharp
 using OfficeIMO.Word;
 
-// Create and save to a file
-using var document = WordDocument.Create("output.docx");
-
-document.AddParagraph("Welcome to OfficeIMO");
+using WordDocument document = WordDocument.Create("welcome.docx");
+document.AddParagraph("Welcome").Style = WordParagraphStyles.Heading1;
+document.AddParagraph("This document was generated with OfficeIMO.Word.");
 document.Save();
 ```
 
-To create a document in memory (no file path):
+### PowerShell
+
+```powershell
+New-OfficeWord -Path .\welcome.docx {
+    Add-OfficeWordHeading 'Welcome'
+    Add-OfficeWordParagraph -Text 'This document was generated with PSWriteOffice.'
+}
+```
+
+## Open a document and read its text
+
+`Paragraphs` covers the whole body across sections, in document order.
+
+### C#
 
 ```csharp
-using var document = WordDocument.Create();
-document.AddParagraph("In-memory document");
+using OfficeIMO.Word;
 
-// Save to a stream later
+using WordDocument document = WordDocument.Load("report.docx");
+foreach (WordParagraph paragraph in document.Paragraphs) {
+    if (!string.IsNullOrWhiteSpace(paragraph.Text)) Console.WriteLine(paragraph.Text);
+}
+Console.WriteLine($"{document.Sections.Count} sections, {document.Tables.Count} tables, {document.Images.Count} images");
+```
+
+### PowerShell
+
+```powershell
+Get-OfficeWordText -Path .\report.docx
+```
+
+### CLI
+
+```sh
+officeimo read report.docx
+```
+
+## Edit a document and save a copy
+
+`Save(path)` writes the edited document to the path you give, so the result can go to a new file.
+
+### C#
+
+```csharp
+using OfficeIMO.Word;
+
+using WordDocument document = WordDocument.Load("report.docx");
+document.ReplaceAll("DRAFT", "FINAL");
+document.AddParagraph("Approved on " + DateTime.Today.ToString("yyyy-MM-dd"));
+document.Save("report-final.docx");
+```
+
+### PowerShell
+
+```powershell
+Open-OfficeWord -Path .\report.docx {
+    Add-OfficeWordParagraph -Text 'Approved'
+}
+```
+
+## Create a document in memory
+
+Create without a path and save to any stream, for example an HTTP response.
+
+### C#
+
+```csharp
+using OfficeIMO.Word;
+
+using WordDocument document = WordDocument.Create();
+document.AddParagraph("Generated in memory");
+
 using var stream = new MemoryStream();
 document.Save(stream);
+Console.WriteLine($"{stream.Length} bytes");
 ```
 
-## Loading an Existing Document
+## Turn a list of objects into a document
+
+`Export-OfficeWord` writes a title and a table from pipeline objects in one call.
+
+### PowerShell
+
+```powershell
+Get-Service | Select-Object Name, Status, StartType | Export-OfficeWord -Path .\services.docx -Title 'Services'
+```
+
+## Convert a legacy DOC file to DOCX
+
+`Load` reads binary `.doc` files into the same model, so saving to `.docx` converts them.
+
+### C#
 
 ```csharp
-using var document = WordDocument.Load("existing.docx");
+using OfficeIMO.Word;
 
-// Read all paragraphs
-foreach (var paragraph in document.Paragraphs) {
-    Console.WriteLine(paragraph.Text);
-}
-
-// Modify and save
-document.AddParagraph("Appended paragraph");
-document.Save();
+using WordDocument document = WordDocument.Load("old-letter.doc");
+document.Save("old-letter.docx");
 ```
-
-## Document Structure
-
-A `WordDocument` contains one or more `WordSection` instances. Each section can have its own page layout (size, orientation, margins), headers, and footers. Sections contain paragraphs, tables, images, and other block-level elements.
-
-```
-WordDocument
-  +-- Sections[]
-  |     +-- Paragraphs[]
-  |     +-- Tables[]
-  |     +-- Images[]
-  |     +-- Header (Default, First, Even)
-  |     +-- Footer (Default, First, Even)
-  +-- Paragraphs      (all paragraphs across sections)
-  +-- Tables           (all tables across sections)
-  +-- Lists            (all list definitions)
-  +-- Bookmarks        (all bookmark paragraphs)
-```
-
-## Document Properties
-
-```csharp
-using var document = WordDocument.Create("props.docx");
-
-document.Properties.Title = "Quarterly Report";
-document.Properties.Creator = "OfficeIMO";
-document.Properties.Description = "Q4 2025 financial summary";
-
-document.ApplicationProperties.Company = "Evotec";
-
-document.Save();
-```
-
-## Sections
-
-Add a new section to change page layout mid-document:
-
-```csharp
-using var document = WordDocument.Create("sections.docx");
-
-document.AddParagraph("Portrait section content");
-
-// Start a new section in landscape
-var section = document.AddSection();
-section.PageSetup.Orientation = Orientation.Landscape;
-section.PageSetup.Size.Width = 15840;
-section.PageSetup.Size.Height = 12240;
-
-document.AddParagraph("Landscape section content");
-
-document.Save();
-```
-
-## Further Reading
-
-- [Paragraphs](/docs/word/paragraphs/) — Text formatting, alignment, spacing, and fonts.
-- [Tables](/docs/word/tables/) — Creating, styling, merging, and inspecting tables.
-- [Images](/docs/word/images/) — Adding images from files, streams, URLs, and base64.
-- [Headers and Footers](/docs/word/headers-footers/) — Page numbers, different first-page headers, and section-specific content.
-- [Templates, forms, and mail merge](/docs/word/templates/) — Preflight and bind layout-owned templates.
-- [Review and comparison](/docs/word/review/) — Inspect comments and revisions, compare structure, create redlines, and enforce signed-document policy.
-- [Conversion and rendering](/docs/word/conversion/) — Choose HTML, Markdown, PDF, OpenDocument, RTF, Google Docs, or image output.
-- [Production workflows](/docs/word/market-readiness/) — Template assembly, conversion, review, proof artifacts, and validation.

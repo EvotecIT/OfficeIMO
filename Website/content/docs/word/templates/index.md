@@ -1,8 +1,23 @@
 ---
-title: "Generate DOCX from Templates in .NET"
-description: "Bind C# models to ordinary DOCX placeholders, repeat Word blocks, add conditional content, images, and links, or use MERGEFIELD and content-control workflows."
-layout: docs
+title: Generate Word Documents from DOCX Templates
+description: "Fill DOCX templates from C# data with placeholders, repeated and conditional blocks and images, run MERGEFIELD mail merge, and fill content controls."
+order: 17
+packages:
+  - OfficeIMO.Word
+cmdlets:
+  - Invoke-OfficeWordMailMerge
+  - Update-OfficeWordText
+  - Add-OfficeWordContentControl
+  - Get-OfficeWordContentControl
+limits: Repeated and conditional block markers must sit in their own paragraphs; a marker inside running text is not expanded.
+search_terms:
+  - word template
+  - mail merge
+  - docx placeholders
+  - generate docx from template
+  - content controls
 meta.seo_title: "Generate DOCX from Word templates in .NET | OfficeIMO"
+verified: 2026-11-14
 ---
 
 OfficeIMO.Word supports three template styles. Choose the one that matches who owns the document and how much structure the application needs.
@@ -33,9 +48,12 @@ Logo: {{Logo}}
 
 Repeated and conditional markers must be placed on their own paragraphs. The content between them can contain normal paragraphs, styled runs, lists, tables, text boxes, and nested blocks. Scalar placeholders can be split across Word runs; the replacement inherits the formatting of the first run containing the marker.
 
-The dictionary overload avoids reflection and is the recommended path for trimming and NativeAOT:
+The dictionary overload avoids reflection and is the recommended path for trimming and NativeAOT. `WordTemplateHyperlink` and `WordTemplateImage` values become a link or a picture in place of the placeholder.
+
+### C#
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Word;
 
 using WordDocument document = WordDocument.Load("service-template.docx");
@@ -62,9 +80,9 @@ var values = new Dictionary<string, object?> {
     ["Logo"] = new WordTemplateImage(
         File.ReadAllBytes("logo.png"),
         "logo.png",
-        width: global::OfficeIMO.OfficeLength.Pixels(96),
-        height: global::OfficeIMO.OfficeLength.Pixels(32),
-        description: "Company logo")
+        width: OfficeLength.Pixels(96),
+        height: OfficeLength.Pixels(32),
+        altText: "Company logo")
 };
 
 WordTemplateResult result = WordTemplate.Apply(document, values).EnsureComplete();
@@ -89,56 +107,130 @@ Nested blocks inherit their parent scope. An item can therefore use both `{{Name
 
 Missing scalar values are preserved in the DOCX by default and reported through `WordTemplateResult`. This makes a bad binding visible instead of silently turning it into blank content.
 
+### C#
+
 ```csharp
+using OfficeIMO.Word;
+
+using WordDocument document = WordDocument.Load("service-template.docx");
+var values = new Dictionary<string, object?> { ["Client"] = new Dictionary<string, object?> { ["Name"] = "Northwind" } };
+
 WordTemplateResult result = WordTemplate.Apply(document, values);
-
 if (!result.IsComplete) {
-    Console.Error.WriteLine(string.Join(", ", result.MissingValueNames));
+    Console.Error.WriteLine("Missing: " + string.Join(", ", result.MissingValueNames));
+    return;
 }
-
-result.EnsureComplete();
+document.Save("service-summary.docx");
 ```
 
 Set `WordTemplateOptions.RemoveMissingPlaceholders` only when blank output is an intentional application policy. Missing or non-Boolean block values and non-enumerable repeated values fail immediately because leaving half-expanded document structure would be ambiguous.
 
-## Preflight classic mail merge templates
+## Run a MERGEFIELD mail merge
 
 `WordMailMerge.PreflightTemplate` inspects Word `MERGEFIELD` fields and reports conditional blocks, repeating blocks, malformed markers, and requested names that are missing. Run preflight when a template is uploaded or promoted, not only after a production batch has failed.
 
-```csharp
-using var template = WordDocument.Load("contract-template.docx");
-var report = WordMailMerge.PreflightTemplate(
-    template,
-    mergeFieldNames: new[] { "CustomerName", "ContractNumber", "EffectiveDate" });
+### C#
 
-if (!report.CanBindTemplate) {
-    throw new InvalidOperationException(report.ToJson());
+```csharp
+using OfficeIMO.Word;
+
+using (WordDocument template = WordDocument.Load("contract-template.docx")) {
+    WordTemplatePreflightReport report = WordMailMerge.PreflightTemplate(
+        template,
+        mergeFieldNames: new[] { "CustomerName", "ContractNumber", "EffectiveDate" });
+    if (!report.CanBindTemplate) throw new InvalidOperationException(report.ToJson());
 }
+
+var records = new List<IDictionary<string, string>> {
+    new Dictionary<string, string> { ["CustomerName"] = "Northwind", ["ContractNumber"] = "C-1001", ["EffectiveDate"] = "2026-12-01" },
+    new Dictionary<string, string> { ["CustomerName"] = "Contoso", ["ContractNumber"] = "C-1002", ["EffectiveDate"] = "2027-01-01" }
+};
+IReadOnlyList<string> written = WordMailMerge.ExecuteBatch("contract-template.docx", records,
+    (index, record) => $"contract-{record["ContractNumber"]}.docx");
+Console.WriteLine($"{written.Count} contracts written");
+```
+
+### PowerShell
+
+```powershell
+$document = Open-OfficeWord -Path .\letter-template.docx
+Invoke-OfficeWordMailMerge -Document $document -InputObject @{ FirstName = 'John'; OrderId = 12345 }
+Save-OfficeWord -Document $document -Path .\letter-john.docx
+Close-OfficeWord -Document $document
 ```
 
 `WordMailMerge.Execute` replaces fields in an already loaded document. `ExecuteBatch` loads the template for every record and writes one output per value set. Table-row and grouped-row helpers repeat structured table regions without rebuilding layout in code.
 
-## Content-control forms
+## Fill a content-control form
 
-`ExtractContentControlValues` reads tagged controls into a dictionary. `ValidateContentControlValues` reports missing, unused, duplicate, and invalid values. `FillContentControlValues` applies validated values to supported text, choice, date, checkbox, image, and repeating-section controls.
+Tagged content controls make a typed form: text, drop-down, date, check box, picture, and repeating-section controls. `ExtractContentControlValues` reads them into a dictionary, `ValidateContentControlValues` reports missing, unused, duplicate, and invalid values, and `FillContentControlValues` writes values into the matching controls. Pick one key policy (tag, alias, or tag then alias) and use it for creating, validating, and filling.
 
-Choose one key policy—tag, alias, or a documented fallback order—and use it consistently across template creation, validation, and filling. Export validation reports as JSON or Markdown when template approval is part of an operational workflow.
+### C#
 
-## Delivery checklist
+```csharp
+using OfficeIMO.Word;
 
-- Choose plain placeholders, `MERGEFIELD`, or content controls deliberately; do not mix them by accident.
-- Validate required data before mutating the document.
-- Generate into a new output path; keep the approved template immutable.
-- Reopen the output and inspect expected sections, controls, and review metadata.
-- Refresh fields and tables of contents where the target client requires it.
-- Apply document protection or package signing only after content generation is complete.
+using (WordDocument form = WordDocument.Create("request-form.docx")) {
+    form.AddParagraph("Requester: ").AddStructuredDocumentTag("Name", alias: "Requester", tag: "Requester");
+    form.AddParagraph("Approved: ").AddCheckBox(false, alias: "Approved", tag: "Approved");
+    form.AddParagraph("Due: ").AddDatePicker(null, alias: "Due date", tag: "DueDate");
+    form.Save();
+}
 
-## Executable evidence
+using WordDocument document = WordDocument.Load("request-form.docx");
+var values = new Dictionary<string, object?> {
+    ["Requester"] = "Alice Smith",
+    ["Approved"] = true,
+    ["DueDate"] = new DateTime(2026, 12, 15)
+};
 
-The repository proof gallery generates a plain-placeholder template and its bound DOCX, records replacement and block counts, and validates every generated DOCX with the Open XML validator. It also keeps the existing `MERGEFIELD`, repeated-row, and content-control examples in the same scenario.
+WordContentControlFormValidationResult validation = document.ValidateContentControlValues(values);
+if (!validation.IsValid) {
+    Console.WriteLine(validation.ToMarkdown());
+    return;
+}
+document.FillContentControlValues(values);
+document.Save("request-filled.docx");
 
-```shell
-dotnet run --project OfficeIMO.Examples -- --word-market-readiness
+foreach (var pair in document.ExtractContentControlValues()) {
+    Console.WriteLine($"{pair.Key} = {pair.Value}");
+}
 ```
 
-[Inspect the template proof source](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Examples/Word/MarketReadiness/MarketReadinessProofGallery.TemplateBinding.cs) or continue with the [production Word workflow](/docs/word/market-readiness/).
+### PowerShell
+
+```powershell
+New-OfficeWord -Path .\request-form.docx {
+    Add-OfficeWordParagraph { Add-OfficeWordText 'Requester: '; Add-OfficeWordContentControl -Text 'Name' -Alias 'Requester' -Tag 'Requester' }
+    Add-OfficeWordParagraph { Add-OfficeWordText 'Approved: '; Add-OfficeWordCheckBox -Alias 'Approved' -Tag 'Approved' }
+}
+Get-OfficeWordContentControl -Path .\request-form.docx
+```
+
+## Replace text in an existing document
+
+For simple one-off substitutions without template markers, replace text directly.
+
+### C#
+
+```csharp
+using OfficeIMO.Word;
+
+using WordDocument document = WordDocument.Load("report.docx");
+int count = document.ReplaceAll("FY25", "FY26");
+Console.WriteLine($"{count} replacements");
+document.Save();
+```
+
+### PowerShell
+
+```powershell
+Update-OfficeWordText -Path .\report.docx -OldValue 'FY25' -NewValue 'FY26'
+```
+
+## Keep templates reliable
+
+- Generate into a new file and keep the approved template unchanged.
+- Validate the data before changing the document, and check `WordTemplateResult` or the preflight report after.
+- Refresh fields and the table of contents if the template has them (see [fields and table of contents](/docs/word/fields-toc/)).
+- Apply [protection or encryption](/docs/word/protection/) last, after all content is in place.

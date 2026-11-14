@@ -1,162 +1,197 @@
 ---
-title: Headers and Footers
-description: "Adding headers, footers, and page numbers to Word documents with OfficeIMO.Word. Includes practical examples, limits, and API links."
+title: "Add Headers, Footers and Page Numbers"
+description: "Add headers and footers to DOCX files, insert page numbers and \"Page X of Y\", and use a different first page or odd and even pages with OfficeIMO.Word."
 order: 14
+packages:
+  - OfficeIMO.Word
+cmdlets:
+  - Add-OfficeWordHeader
+  - Add-OfficeWordFooter
+  - Add-OfficeWordPageNumber
+  - Add-OfficeWordSection
+  - Set-OfficeWordPageSetup
+search_terms:
+  - word header
+  - word footer
+  - page numbers
+  - page x of y
+  - landscape section
+verified: 2026-11-14
 ---
 
-OfficeIMO provides full support for document headers and footers, including different content for the first page, odd/even pages, and section-specific headers and footers. Page numbers can be inserted in various formats.
+Headers, footers, page size, margins, and orientation belong to a section, and every document has at least one. `document.PageSetup` is the first section's setup; `section.PageSetup` is any other's. `Header` and `Footer` create the default story on first use. `FirstPageHeader`/`FirstPageFooter` and `EvenPageHeader`/`EvenPageFooter` also turn on `DifferentFirstPage` or `DifferentOddAndEvenPages` when they create their story.
 
-## Page Setup
+## Add a header and a footer
 
-Running content belongs to a section's `PageSetup`, next to its page size, margins and orientation. `document.PageSetup` is the first section's setup. `Header` and `Footer` create the default header and footer on first use; `FirstPageHeader`/`FirstPageFooter` and `EvenPageHeader`/`EvenPageFooter` enable `DifferentFirstPage` or `DifferentOddAndEvenPages` when they create their story. `GetHeader(type)` and `GetFooter(type)` return an existing story or `null` without creating one.
+Headers and footers take the same paragraph API as the document body.
+
+### C#
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Word;
+
+using WordDocument document = WordDocument.Create("headers.docx");
+
+WordParagraph header = document.PageSetup.Header.AddParagraph("Contoso - Confidential");
+header.ParagraphAlignment = WordParagraphAlignment.Right;
+header.FontSize = OfficeLength.Points(9);
+
+document.PageSetup.Footer.AddParagraph("Printed " + DateTime.Today.ToString("yyyy-MM-dd"));
+
+document.AddParagraph("Body text.");
+document.Save();
+```
+
+### PowerShell
+
+```powershell
+New-OfficeWord -Path .\headers.docx {
+    Add-OfficeWordSection {
+        Add-OfficeWordHeader { Add-OfficeWordParagraph -Text 'Contoso - Confidential' -Alignment Right }
+        Add-OfficeWordFooter { Add-OfficeWordParagraph -Text 'Internal use only' }
+        Add-OfficeWordParagraph -Text 'Body text.'
+    }
+}
+```
+
+## Add page numbers
+
+`AddPageNumber(includeTotalPages: true)` writes "1 of 5" style numbering with PAGE and NUMPAGES fields, which Word updates as the document changes.
+
+### C#
 
 ```csharp
 using OfficeIMO.Word;
 
-using var document = WordDocument.Create("headers.docx");
-WordPageSetup setup = document.PageSetup;
+using WordDocument document = WordDocument.Create("numbered.docx");
+
+WordParagraph footer = document.PageSetup.Footer.AddParagraph("Page ");
+footer.ParagraphAlignment = WordParagraphAlignment.Center;
+footer.AddPageNumber(includeTotalPages: true);
+
+for (int i = 1; i <= 3; i++) {
+    document.AddParagraph($"Chapter {i}").Style = WordParagraphStyles.Heading1;
+    document.AddPageBreak();
+}
+document.Save();
 ```
 
-## Adding Header Content
+### PowerShell
 
-Each section has three headers: `Header`, `FirstPageHeader`, and `EvenPageHeader`.
-
-```csharp
-// Default header (appears on all pages unless overridden)
-document.PageSetup.Header.AddParagraph("Company Name - Confidential");
-
-// First page header (different from the rest)
-document.PageSetup.DifferentFirstPage = true;
-document.PageSetup.FirstPageHeader.AddParagraph("COVER PAGE HEADER");
-
-// Even page header (for double-sided printing)
-document.PageSetup.DifferentOddAndEvenPages = true;
-document.PageSetup.EvenPageHeader.AddParagraph("Even Page Header");
+```powershell
+New-OfficeWord -Path .\numbered.docx {
+    Add-OfficeWordSection {
+        Add-OfficeWordFooter { Add-OfficeWordPageNumber -IncludeTotal }
+        Add-OfficeWordParagraph -Text 'Chapter 1' -Style Heading1
+    }
+}
 ```
 
-## Adding Footer Content
+## Use a different first page
 
-Footers work identically to headers:
+A cover page usually has no header. Setting content on `FirstPageHeader` switches the section to a separate first-page story.
 
-```csharp
-document.PageSetup.Footer.AddParagraph("Copyright 2025 - All Rights Reserved");
-
-document.PageSetup.FirstPageFooter.AddParagraph("Draft Document");
-```
-
-## Page Numbers
-
-Add page numbers to headers or footers using `AddPageNumber`:
+### C#
 
 ```csharp
-// Add page number to the default footer
-document.PageSetup.Footer.AddPageNumber(WordPageNumberStyle.Normal);
-```
+using OfficeIMO.Word;
 
-Available `WordPageNumberStyle` values:
+using WordDocument document = WordDocument.Create("cover.docx");
 
-| Style | Output |
-|-------|--------|
-| `WordPageNumberStyle.Normal` | 1, 2, 3... |
-| `WordPageNumberStyle.PageOfTotal` | Page 1 of 5 |
+document.PageSetup.FirstPageHeader.AddParagraph(string.Empty);
+document.PageSetup.Header.AddParagraph("Annual report 2026");
 
-### Centering Page Numbers
-
-```csharp
-var footerParagraph = document.PageSetup.Footer.AddParagraph();
-footerParagraph.ParagraphAlignment = WordParagraphAlignment.Center;
-document.PageSetup.Footer.AddPageNumber(WordPageNumberStyle.Normal);
-```
-
-## Different First Page
-
-Set `DifferentFirstPage` to use separate header/footer content on the first page of a section:
-
-```csharp
-using var document = WordDocument.Create("first-page.docx");
-document.PageSetup.DifferentFirstPage = true;
-
-// First page gets a special header
-document.PageSetup.FirstPageHeader.AddParagraph("TITLE PAGE");
-
-// All other pages get the default header
-document.PageSetup.Header.AddParagraph("Chapter 1 - Introduction");
-
-document.AddParagraph("Title page content...");
+document.AddParagraph("Annual report").Style = WordParagraphStyles.Title;
 document.AddPageBreak();
-document.AddParagraph("Second page content...");
+document.AddParagraph("The header appears from page two.");
 
 document.Save();
 ```
 
-## Different Odd and Even Pages
+### PowerShell
 
-For double-sided printing, enable different odd/even page headers:
-
-```csharp
-document.PageSetup.DifferentOddAndEvenPages = true;
-
-document.PageSetup.Header.AddParagraph("Odd Page Header");   // Appears on odd pages
-document.PageSetup.EvenPageHeader.AddParagraph("Even Page Header");
+```powershell
+New-OfficeWord -Path .\cover.docx {
+    Add-OfficeWordSection {
+        Add-OfficeWordHeader -Type First { Add-OfficeWordParagraph -Text '' }
+        Add-OfficeWordHeader { Add-OfficeWordParagraph -Text 'Annual report 2026' }
+        Add-OfficeWordParagraph -Text 'Annual report' -Style Title
+    }
+}
 ```
 
-## Section-Specific Headers and Footers
+## Use odd and even page headers
 
-Each section can have independent headers and footers. Add a new section and configure its headers separately:
+For double-sided printing, the default header is used on odd pages and `EvenPageHeader` on even pages.
+
+### C#
 
 ```csharp
-using var document = WordDocument.Create("sections.docx");
+using OfficeIMO.Word;
 
-// Section 1
-document.PageSetup.Header.AddParagraph("Chapter 1");
-document.AddParagraph("Chapter 1 content...");
+using WordDocument document = WordDocument.Create("book.docx");
 
-// Section 2 with different header
-var section2 = document.AddSection();
-section2.PageSetup.Header.AddParagraph("Chapter 2");
-document.AddParagraph("Chapter 2 content...");
+document.PageSetup.Header.AddParagraph("Chapter title").ParagraphAlignment = WordParagraphAlignment.Right;
+document.PageSetup.EvenPageHeader.AddParagraph("Book title").ParagraphAlignment = WordParagraphAlignment.Left;
+
+for (int i = 0; i < 4; i++) {
+    document.AddParagraph($"Page {i + 1}");
+    document.AddPageBreak();
+}
+document.Save();
+```
+
+## Change page layout and headers for a new section
+
+A new section starts on a new page and can have its own orientation, size, margins, and headers.
+
+### C#
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Word;
+
+using WordDocument document = WordDocument.Create("sections.docx");
+
+document.PageSetup.Header.AddParagraph("Report");
+document.AddParagraph("Portrait content.");
+
+WordSection appendix = document.AddSection();
+appendix.PageSetup.Orientation = OfficePageOrientation.Landscape;
+appendix.PageSetup.Header.AddParagraph("Appendix - wide tables");
+appendix.AddParagraph("Landscape content.");
 
 document.Save();
 ```
 
-## Adding Images to Headers
+### PowerShell
 
-```csharp
-// Add a logo to the default header using VML
-document.Sections[0].PageSetup.Header.AddImageVml("logo.png", width: 120, height: 40);
+```powershell
+New-OfficeWord -Path .\sections.docx {
+    Add-OfficeWordSection {
+        Add-OfficeWordHeader { Add-OfficeWordParagraph -Text 'Report' }
+        Add-OfficeWordParagraph -Text 'Portrait content.'
+    }
+    Add-OfficeWordSection -BreakType NextPage {
+        Set-OfficeWordPageSetup -PageSize A4 -Orientation Landscape
+        Add-OfficeWordHeader { Add-OfficeWordParagraph -Text 'Appendix - wide tables' }
+        Add-OfficeWordParagraph -Text 'Landscape content.'
+    }
+}
 ```
 
-## Removing Headers
+## Add an image to a header
 
-Remove all headers from the document:
-
-```csharp
-WordHeader.RemoveHeaders(document._wordprocessingDocument);
-```
-
-Or remove specific header types:
+### C#
 
 ```csharp
-WordHeader.RemoveHeaders(
-    document,
-    WordHeaderFooterType.Default,
-    WordHeaderFooterType.First
-);
-```
+using OfficeIMO;
+using OfficeIMO.Word;
 
-## Header and Footer Paragraphs
-
-Headers and footers support the full paragraph API, including formatted text, hyperlinks, fields, and tab stops:
-
-```csharp
-var headerParagraph = document.PageSetup.Header.AddParagraph();
-headerParagraph.Text = "Document Title";
-headerParagraph.Bold = true;
-headerParagraph.FontSize = 10;
-headerParagraph.ParagraphAlignment = WordParagraphAlignment.Center;
-
-var footerParagraph = document.PageSetup.Footer.AddParagraph();
-footerParagraph.Text = "Printed: " + DateTime.Now.ToString("yyyy-MM-dd");
-footerParagraph.FontSize = 8;
-footerParagraph.Color = OfficeIMO.OfficeColor.Gray;
+using WordDocument document = WordDocument.Create("logo-header.docx");
+document.PageSetup.Header.AddParagraph().AddImage("logo.png", OfficeLength.Centimeters(3), OfficeLength.Centimeters(1),
+    new WordImageOptions { AltText = "Contoso logo" });
+document.AddParagraph("Body text.");
+document.Save();
 ```

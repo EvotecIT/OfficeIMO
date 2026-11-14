@@ -1,166 +1,242 @@
 ---
-title: Slides
-description: "Build PowerPoint slides with titles, text boxes, bullets, tables, charts, notes, and slide management helpers. Includes examples and API links."
+title: "Add Slides, Text and Images to PowerPoint"
+description: "Add slides with titles, text, bullets, pictures and speaker notes, and duplicate, import, reorder, hide or group slides into sections in .NET."
 order: 31
+packages:
+  - OfficeIMO.PowerPoint
+cmdlets:
+  - Add-OfficePowerPointSlide
+  - Add-OfficePowerPointTextBox
+  - Add-OfficePowerPointList
+  - Add-OfficePowerPointImage
+  - Set-OfficePowerPointNotes
+  - Copy-OfficePowerPointSlide
+  - Import-OfficePowerPointSlide
+search_terms:
+  - powerpoint slide
+  - speaker notes
+  - pptx bullets
+  - slide text box
+  - reorder slides
+verified: 2026-11-14
 ---
 
-This guide covers the main `OfficeIMO.PowerPoint` slide-building workflow. Instead of manually creating `SlidePart` trees, you work with `PowerPointSlide`, `PowerPointTextBox`, `PowerPointTable`, and related helpers directly.
+`PowerPointSlide` is where slide content goes. Text boxes, pictures, tables, and charts are placed by position and size. `OfficeLength` states the unit (`Centimeters`, `Points`, `Inches`, `Emus`), and `PowerPointLayoutBox` bundles a position and size so you can reuse one region. For tables and charts see [PowerPoint charts and tables](/docs/powerpoint/charts-tables/).
 
-## Start with a title and body region
+## Add a title and a text box
+
+### C#
 
 ```csharp
 using OfficeIMO;
 using OfficeIMO.PowerPoint;
-using OfficeIMO.Drawing;
 
-using var presentation = PowerPointDocument.Create("presentation.pptx");
-const double marginCm = 1.5;
+using PowerPointDocument presentation = PowerPointDocument.Create("results.pptx");
+PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeLength.Centimeters(1.5));
 
-var content = presentation.SlideSize.GetContentBox(OfficeLength.Centimeters(marginCm));
-var slide = presentation.AddSlide();
+PowerPointSlide slide = presentation.AddSlide();
+PowerPointTextBox title = slide.AddTitle("Quarterly results", new PowerPointLayoutBox(
+    content.Left, content.Top, content.Width, OfficeLength.Centimeters(1.4)));
+PowerPointTextStyle.Title.WithColor(OfficeColor.Parse("1F4E79")).Apply(title.Paragraphs[0]);
 
-slide.AddTitle(
-    "Quarterly Results",
-    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),
-    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),
-    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),
-    OfficeIMO.OfficeLength.Centimeters(1.4));
+PowerPointTextBox intro = slide.AddTextBox("Generated from the reporting pipeline.", new PowerPointLayoutBox(
+    content.Left, content.Top + OfficeLength.Centimeters(1.8), content.Width, OfficeLength.Centimeters(1)));
+intro.ApplyTextStyle(PowerPointTextStyle.Body);
 
-slide.AddTextBox(
-    "Generated from the reporting pipeline.",
-    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),
-    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 1.8),
-    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),
-    OfficeIMO.OfficeLength.Centimeters(1.0));
+presentation.Save();
 ```
 
-## Add bullets and formatted text
+### PowerShell
+
+```powershell
+New-OfficePowerPoint -Path .\results.pptx {
+    Add-OfficePowerPointSlide -Title 'Quarterly results' {
+        Add-OfficePowerPointTextBox -Text 'Generated from the reporting pipeline.' -X 2cm -Y 4cm -Width 20cm -Height 2cm
+    }
+}
+```
+
+## Format text in a paragraph
+
+`AddText` and `AddFormattedText` return the run they create, so formatting applies to that run only. Paragraph-level settings such as alignment and spacing go in the `AddParagraph` callback.
+
+### C#
 
 ```csharp
 using OfficeIMO;
 using OfficeIMO.PowerPoint;
-using A = DocumentFormat.OpenXml.Drawing;
 
-var text = slide.AddTextBox(
-    string.Empty,
-    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),
-    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 3.0),
-    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters() / 2),
-    OfficeIMO.OfficeLength.Centimeters(4.5));
+using PowerPointDocument presentation = PowerPointDocument.Create("formatted.pptx");
+PowerPointSlide slide = presentation.AddSlide();
 
-text.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2));
-text.TextAutoFit = PowerPointTextAutoFit.Normal;
+PowerPointTextBox box = slide.AddTextBox(string.Empty, OfficeLength.Centimeters(2), OfficeLength.Centimeters(2),
+    OfficeLength.Centimeters(20), OfficeLength.Centimeters(6));
+box.SetTextMargins(OfficeLength.Centimeters(0.3), OfficeLength.Centimeters(0.2),
+    OfficeLength.Centimeters(0.3), OfficeLength.Centimeters(0.2));
+box.TextAutoFit = PowerPointTextAutoFit.Normal;
 
-var heading = text.AddParagraph("Highlights", p => {
+PowerPointParagraph heading = box.AddParagraph("Highlights", p => {
     p.Alignment = PowerPointTextAlignment.Left;
-    p.SpaceAfter = global::OfficeIMO.OfficeLength.Points(6);
+    p.SpaceAfter = OfficeLength.Points(6);
 });
-PowerPointTextStyle.Subtitle.WithColor(OfficeColor.Parse("1F4E79")).Apply(heading);
+PowerPointTextStyle.Subtitle.Apply(heading);
 
-var line = text.AddParagraph();
+PowerPointParagraph line = box.AddParagraph();
 line.AddText("Ship ");
 line.AddFormattedText("faster", bold: true).SetColor(OfficeColor.Parse("C00000"));
-line.AddText(" with cleaner automated decks.");
+line.AddText(" with generated decks.");
 
-text.AddBullet("Release completed on schedule");
-text.AddBullet("Customer guide updated");
-text.AddNumberedItem("Review adoption metrics");
-text.AddNumberedItem("Prepare next milestone");
-text.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfter: global::OfficeIMO.OfficeLength.Points(2));
+presentation.Save();
 ```
 
-`AddText` and `AddFormattedText` return the run they create, so `SetBold`, `SetColor` and the other run setters format only that text. The same setters on a paragraph format every run already in it.
+### PowerShell
 
-## Build tables and charts from data
+```powershell
+New-OfficePowerPoint -Path .\formatted.pptx {
+    Add-OfficePowerPointSlide -Title 'Highlights' {
+        Add-OfficePowerPointTextBox -X 2cm -Y 4cm -Width 20cm -Height 4cm {
+            Add-OfficePowerPointParagraph {
+                Add-OfficePowerPointText 'Ship '
+                Add-OfficePowerPointText 'faster' -Bold -Color '#C00000'
+                Add-OfficePowerPointText ' with generated decks.'
+            }
+        }
+    }
+}
+```
+
+## Add bullets and numbered items
+
+### C#
 
 ```csharp
 using OfficeIMO;
 using OfficeIMO.PowerPoint;
 
-var rows = new[] {
-    new { Product = "Alpha", Q1 = 12, Q2 = 15, Q3 = 18, Q4 = 20 },
-    new { Product = "Beta",  Q1 =  9, Q2 = 11, Q3 = 13, Q4 = 14 },
-    new { Product = "Gamma", Q1 =  6, Q2 =  9, Q3 = 12, Q4 = 16 }
-};
+using PowerPointDocument presentation = PowerPointDocument.Create("agenda.pptx");
+PowerPointSlide slide = presentation.AddSlide();
+slide.AddTitle("Agenda");
 
-var tableSlide = presentation.AddSlide();
-tableSlide.AddTitle("Sales by Product", OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(1.4));
+PowerPointTextBox list = slide.AddTextBox(string.Empty, OfficeLength.Centimeters(2), OfficeLength.Centimeters(4),
+    OfficeLength.Centimeters(20), OfficeLength.Centimeters(8));
+list.AddBullet("Release completed on schedule");
+list.AddBullet("Customer guide updated");
+list.AddNumberedItem("Review adoption metrics");
+list.AddNumberedItem("Prepare the next milestone");
+list.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfter: OfficeLength.Points(2));
 
-var table = tableSlide.AddTable(
-    rows,
-    options => {
-        options.HeaderCase = HeaderCase.Title;
-        options.PinFirst("Product");
-    },
-    includeHeaders: true,
-    left: content.Left,
-    top: content.Top + OfficeLength.Centimeters(2.0),
-    width: content.Width,
-    height: OfficeLength.Centimeters(4.5));
-
-table.SetColumnWidthsEvenly();
-
-var chartSlide = presentation.AddSlide();
-chartSlide.AddTitle("Quarterly Performance", OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(1.4));
-
-var chartData = new OfficeChartData(
-    rows.Select(r => r.Product),
-    new[] {
-        new OfficeSeries("Q1", rows.Select(r => (double)r.Q1)),
-        new OfficeSeries("Q2", rows.Select(r => (double)r.Q2)),
-        new OfficeSeries("Q3", rows.Select(r => (double)r.Q3)),
-        new OfficeSeries("Q4", rows.Select(r => (double)r.Q4))
-    });
-
-chartSlide.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()), Top = OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 2.0), Width = OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()), Height = OfficeIMO.OfficeLength.Centimeters(4.8) });
-chartSlide.Notes.Text = "Chart and table share the same source data.";
+presentation.Save();
 ```
 
-For a native bubble chart, create each series with explicit X, Y, and size values:
+### PowerShell
+
+```powershell
+New-OfficePowerPoint -Path .\agenda.pptx {
+    Add-OfficePowerPointSlide -Title 'Agenda' {
+        Add-OfficePowerPointList -Items 'Release completed on schedule', 'Customer guide updated'
+        Add-OfficePowerPointList -Numbered -Items 'Review adoption metrics', 'Prepare the next milestone'
+    }
+}
+```
+
+## Add a picture
+
+Give pictures alternative text so screen readers and exported PDFs describe them.
+
+### C#
 
 ```csharp
-var bubbleData = new OfficeChartData(
-    new[] { "1", "2", "3" },
-    new[] {
-        OfficeSeries.CreateBubble(
-            "Portfolio",
-            xValues: new[] { 1D, 2D, 3D },
-            yValues: new[] { 12D, 18D, 15D },
-            bubbleSizes: new[] { 9D, 36D, 16D })
-    });
+using OfficeIMO;
+using OfficeIMO.PowerPoint;
 
-chartSlide.AddChart(OfficeChartType.Bubble, bubbleData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()), Top = OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 2.0), Width = OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()), Height = OfficeIMO.OfficeLength.Centimeters(4.8) });
+using PowerPointDocument presentation = PowerPointDocument.Create("evidence.pptx");
+PowerPointSlide slide = presentation.AddSlide();
+slide.AddTitle("Deployment health");
+
+PowerPointImage picture = slide.AddImage("dashboard.png", OfficeLength.Centimeters(2), OfficeLength.Centimeters(4),
+    OfficeLength.Centimeters(16), OfficeLength.Centimeters(9));
+picture.AltText = "Dashboard showing all regions healthy";
+
+presentation.Save();
 ```
 
-Bubble sizes must be finite and non-negative, with one size for every X/Y point. The chart remains editable in PowerPoint, and `UpdateData(...)` refreshes both cached chart values and the embedded workbook.
+### PowerShell
 
-## Manage slide order and reuse
+```powershell
+New-OfficePowerPoint -Path .\evidence.pptx {
+    Add-OfficePowerPointSlide -Title 'Deployment health' {
+        Add-OfficePowerPointImage -Path .\dashboard.png -X 2cm -Y 4cm -Width 16cm -Height 9cm -AlternativeText 'Dashboard showing all regions healthy'
+    }
+}
+```
+
+## Add speaker notes
+
+`Notes.Text` sets the notes for a slide, and `Notes.TryGetText` reads them back without creating an empty notes page.
+
+### C#
 
 ```csharp
-var intro = presentation.AddSlide();
-intro.AddTitle("Intro", OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(1.4));
+using OfficeIMO.PowerPoint;
 
-var duplicate = presentation.DuplicateSlide(0);
-duplicate.Hidden = true;
+using PowerPointDocument presentation = PowerPointDocument.Create("review.pptx");
+PowerPointSlide slide = presentation.AddSlide();
+slide.AddTitle("Service review");
+slide.Notes.Text = "Pause for questions before discussing capacity.";
 
-using var source = PowerPointDocument.Create("source-deck.pptx");
-source.AddSlide().AddTitle("Imported slide", OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(1.4));
-source.Save();
+foreach (PowerPointSlide s in presentation.Slides) {
+    if (s.Notes.TryGetText(out string notes)) Console.WriteLine(notes);
+}
 
-presentation.ImportSlide(source, 0, insertAt: 1);
-presentation.MoveSlide(2, 0);
+presentation.Save();
 ```
 
-## Common patterns
+### PowerShell
 
-- Use `AddTitleCm` and `AddTextBoxCm` when you want a readable layout in source code.
-- Use `SetTextMargins`, `ApplyTextStyle`, and `TextAutoFit` early so slides stay legible as content grows.
-- Build data-heavy slides from objects with `AddTable` and shared `OfficeChartData` instead of hard-coded cell text.
-- Use `Notes.Text` for speaker notes and `DuplicateSlide`, `ImportSlide`, and `MoveSlide` when you need reusable deck templates.
+```powershell
+New-OfficePowerPoint -Path .\review.pptx {
+    Add-OfficePowerPointSlide -Title 'Service review' {
+        Add-OfficePowerPointParagraph 'All regions healthy'
+        Set-OfficePowerPointNotes 'Pause for questions before discussing capacity.'
+    }
+}
 
-## Related guides
+$deck = Open-OfficePowerPoint -Path .\review.pptx
+Get-OfficePowerPointNotes -Document $deck | Select-Object SlideIndex, Text
+Close-OfficePowerPoint -Document $deck
+```
 
-- [PowerPoint overview](/docs/powerpoint/) — Package scope and workflow.
-- [Designer Decks](/docs/powerpoint/designer/) — Use higher-level design briefs, semantic plans, and composer primitives when manual placement becomes too repetitive.
-- [PSWriteOffice PowerPoint Cmdlets](/docs/pswriteoffice/powerpoint/) — Build slides from PowerShell.
-- [OfficeIMO.PowerPoint product page](/products/powerpoint/) — Install and package overview.
+## Duplicate, import, reorder, and hide slides
+
+Slide indexes start at 0 in C#. `ImportSlide` copies a slide from another presentation together with its layout and pictures.
+
+### C#
+
+```csharp
+using OfficeIMO.PowerPoint;
+
+using PowerPointDocument library = PowerPointDocument.Load("slide-library.pptx");
+using PowerPointDocument presentation = PowerPointDocument.Load("review.pptx");
+
+PowerPointSlide copy = presentation.DuplicateSlide(0);
+copy.Hidden = true;
+
+presentation.ImportSlide(library, 2, insertAt: 1);
+presentation.MoveSlide(presentation.Slides.Count - 1, 0);
+presentation.AddSection("Appendix", presentation.Slides.Count - 1);
+
+presentation.Save();
+```
+
+### PowerShell
+
+PowerShell slide numbers start at 1.
+
+```powershell
+$deck = Open-OfficePowerPoint -Path .\review.pptx
+Copy-OfficePowerPointSlide -Document $deck -Slide 1 -Position 3
+Import-OfficePowerPointSlide -Document $deck -Path .\slide-library.pptx -SourceSlide 3 -Position 2
+Add-OfficePowerPointSection -Document $deck -Name Appendix -Slide 5
+Save-OfficePowerPoint -Document $deck
+Close-OfficePowerPoint -Document $deck
+```

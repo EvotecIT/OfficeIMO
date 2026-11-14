@@ -2,6 +2,21 @@
 title: "Extract Text and Tables from PDF"
 description: "Extract plain text, page text, Markdown, paragraphs, and tables from existing PDF files with OfficeIMO.Pdf, PSWriteOffice, and the officeimo CLI."
 layout: docs
+packages:
+  - OfficeIMO.Pdf
+  - OfficeIMO.Pdf.Excel
+cmdlets:
+  - Read-OfficeDocument
+limits: "Table detection works from the drawn layout, so tables without ruling lines or with merged cells may be split or merged differently from the source."
+search_terms:
+  - extract text pdf
+  - pdf to text
+  - pdf table
+  - read pdf
+commands:
+  - officeimo read
+  - officeimo convert
+verified: 2026-11-14
 ---
 
 `ExtractText` returns the text of the whole document in reading order. `Read` returns a logical model: pages with paragraphs and detected tables, plus a Markdown rendering. Both work on PDFs produced by any application; scanned pages without a text layer need OCR first (see [PDF workflows in the CLI](/docs/cli/pdf/)).
@@ -74,9 +89,3 @@ officeimo convert statement.pdf statement.xlsx
 ```
 
 For searchable chunks with page locations, read the PDF through [OfficeIMO.Reader](/docs/reader/chunking/) instead.
-
-## Limits and reference
-
-**Limits:** table detection works from the drawn layout, so tables without ruling lines or with merged cells may be split or merged differently from the source. See the [PDF package row](/compatibility/#package-pdf) and the [PDF to Excel row](/compatibility/#package-pdf-excel).
-
-**Reference:** [OfficeIMO.Pdf API](/api/pdf/) · [Read-OfficeDocument](/api/powershell/read-officedocument/)
