@@ -39,6 +39,7 @@ public static class ArchiveInspector {
             limits.Operation.AdmitInput(length);
             source.Position = 0;
             ArchiveFormat format = ArchiveExtractor.Detect(source, cancellationToken);
+            ArchiveInspection.RejectUninventoried(format);
             source.Position = 0;
             if (format == ArchiveFormat.Zip && length > MaximumInMemorySnapshotBytes) {
                 Stream snapshot = ArchiveTemporaryFile.Create();

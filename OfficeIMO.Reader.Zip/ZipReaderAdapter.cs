@@ -5,7 +5,7 @@ using OfficeIMO.Archives;
 namespace OfficeIMO.Reader.Zip;
 
 /// <summary>
-/// ZIP ingestion adapter for <see cref="OfficeDocumentReader"/>.
+/// ZIP, TAR, .tar.gz and gzip ingestion adapter for <see cref="OfficeDocumentReader"/>.
 /// </summary>
 internal static partial class ZipReaderAdapter {
     private static readonly HashSet<string> TextLikeExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
@@ -46,6 +46,14 @@ internal static partial class ZipReaderAdapter {
         Stream archiveStream = ReaderInputLimits.EnsureSeekableReadStream(fs, inputLimit,
             cancellationToken, out bool ownsArchiveStream);
         try {
+            if (IsTarOrGZip(archiveStream, cancellationToken)) {
+                var tarSource = BuildArchiveSourceMetadataFromPath(zipPath, archiveStream, effectiveReaderOptions.ComputeHashes);
+                foreach (var chunk in ReadTarOrGZip(archiveStream, tarSource, tarSource.Path, effectiveReaderOptions,
+                             effectiveZipOptions, warningCounter, cancellationToken)) {
+                    yield return chunk;
+                }
+                yield break;
+            }
             ArchiveReader.ValidateZipSource(archiveStream, effectiveZipOptions, cancellationToken);
             var archiveSource = BuildArchiveSourceMetadataFromPath(zipPath, archiveStream,
                 effectiveReaderOptions.ComputeHashes);
@@ -112,6 +120,14 @@ internal static partial class ZipReaderAdapter {
             : maximumArchiveBytes;
         var archiveStream = ReaderInputLimits.EnsureSeekableReadStream(zipStream, inputLimit, cancellationToken, out var ownsArchiveStream);
         try {
+            if (IsTarOrGZip(archiveStream, cancellationToken)) {
+                var tarSource = BuildArchiveSourceMetadataFromStream(archiveStream, logicalSourceName, effectiveReaderOptions.ComputeHashes);
+                foreach (var chunk in ReadTarOrGZip(archiveStream, tarSource, logicalSourceName, effectiveReaderOptions,
+                             effectiveZipOptions, warningCounter, cancellationToken)) {
+                    yield return chunk;
+                }
+                yield break;
+            }
             ArchiveReader.ValidateZipSource(archiveStream, effectiveZipOptions, cancellationToken);
             var archiveSource = BuildArchiveSourceMetadataFromStream(archiveStream, logicalSourceName, effectiveReaderOptions.ComputeHashes);
             using var archive = OpenInspection(archiveStream, InspectionOptions(effectiveZipOptions,

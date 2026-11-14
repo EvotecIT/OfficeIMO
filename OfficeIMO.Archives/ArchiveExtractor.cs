@@ -4,7 +4,9 @@ namespace OfficeIMO.Archives;
 
 /// <summary>Extracts one managed archive container into a fresh directory without executing its contents.</summary>
 public static partial class ArchiveExtractor {
-    /// <summary>Verifies and extracts selected files from a ZIP, CAB or ordinary MSI package.
+    /// <summary>Verifies and extracts selected files from a ZIP, CAB, ordinary MSI, TAR, .tar.gz or single-file gzip package.
+    /// TAR symbolic links, hard links and device records are never created; selecting one fails the extraction.
+    /// A gzip file is extracted under its stored name, or the package name without ".gz".
     /// The destination must be absent or empty. A completed staging directory is published by a same-volume move.</summary>
     /// <exception cref="OfficeInspectionResourceLimitException">A configured or fixed managed admission ceiling is exhausted.</exception>
     /// <exception cref="InvalidDataException">The input is corrupt, unsafe or conflicting.</exception>
@@ -38,6 +40,9 @@ public static partial class ArchiveExtractor {
                 case ArchiveFormat.Cab: ExtractCab(source, staging, limits, files, ref total, cancellationToken); break;
                 case ArchiveFormat.Msi: ExtractMsi(source, staging, limits, files, ref total, cancellationToken); break;
                 case ArchiveFormat.Zip: ExtractZip(source, staging, limits, files, ref total, cancellationToken); break;
+                case ArchiveFormat.Tar:
+                case ArchiveFormat.TarGZip: ExtractTar(source, staging, limits, files, ref total, cancellationToken); break;
+                case ArchiveFormat.GZip: ExtractGZip(source, package, staging, limits, files, ref total, cancellationToken); break;
                 default: throw new NotSupportedException("Unsupported archive format.");
             }
             cancellationToken.ThrowIfCancellationRequested();
@@ -57,34 +62,50 @@ public static partial class ArchiveExtractor {
         if (File.Exists(destination) || Directory.Exists(destination) && Directory.EnumerateFileSystemEntries(destination).Any())
             throw new IOException("Extraction requires an absent or empty destination directory.");
     }
-    /// <summary>Detects a seekable container from its initial header and restores the caller's stream position.</summary>
+    /// <summary>Detects a seekable container from its initial bytes and restores the caller's stream position.
+    /// Gzip input is classified as TAR when its first decompressed block is a TAR header.</summary>
     internal static ArchiveFormat Detect(Stream source, CancellationToken token) {
         long originalPosition = source.Position;
         try {
             source.Position = 0;
-            var header = new byte[8];
-            int headerLength = 0;
-            while (headerLength < header.Length) {
-                token.ThrowIfCancellationRequested();
-                int read = source.Read(header, headerLength, header.Length - headerLength);
-                if (read == 0) break;
-                headerLength += read;
+            // Read only the 8-byte magic first; TAR detection needs the whole first header block.
+            var header = new byte[1024];
+            int headerLength = Fill(source, header, 8, token);
+            if (GZipContent.HasSignature(header, headerLength)) {
+                source.Position = 0;
+                var peek = new byte[1024];
+                return LooksLikeTar(peek, GZipContent.Peek(source, peek, peek.Length)) ? ArchiveFormat.TarGZip : ArchiveFormat.GZip;
             }
-            return Detect(header, headerLength);
+            if (TryDetectMagic(header, headerLength, out ArchiveFormat format)) return format;
+            if (headerLength == 8) headerLength = Fill(source, header, header.Length, token, start: 8);
+            if (LooksLikeTar(header, headerLength)) return ArchiveFormat.Tar;
+            throw new NotSupportedException("The package is not a supported ZIP, Cabinet, Windows Installer, TAR or gzip container.");
         } finally {
             source.Position = originalPosition;
         }
     }
-    private static ArchiveFormat Detect(byte[] bytes, int length) {
-        if (length >= 4 && bytes[0] == 'M' && bytes[1] == 'S' && bytes[2] == 'C' && bytes[3] == 'F') return ArchiveFormat.Cab;
-        byte[] compound = { 0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1 };
-        if (length == 8 && bytes.SequenceEqual(compound)) return ArchiveFormat.Msi;
-        // A local file header, or the directory signature/classic/ZIP64 end record of an empty archive.
-        if (length >= 4 && bytes[0] == 'P' && bytes[1] == 'K' && (bytes[2] == 3 && bytes[3] == 4
-            || bytes[2] == 5 && (bytes[3] == 5 || bytes[3] == 6) || bytes[2] == 6 && bytes[3] == 6))
-            return ArchiveFormat.Zip;
-        throw new NotSupportedException("The package is not a supported ZIP, Cabinet or Windows Installer container.");
+    private static int Fill(Stream source, byte[] buffer, int count, CancellationToken token, int start = 0) {
+        int length = start;
+        while (length < count) {
+            token.ThrowIfCancellationRequested();
+            int read = source.Read(buffer, length, count - length);
+            if (read == 0) break;
+            length += read;
+        }
+        return length;
     }
+    private static bool TryDetectMagic(byte[] bytes, int length, out ArchiveFormat format) {
+        format = ArchiveFormat.Zip;
+        if (length >= 4 && bytes[0] == 'M' && bytes[1] == 'S' && bytes[2] == 'C' && bytes[3] == 'F') { format = ArchiveFormat.Cab; return true; }
+        byte[] compound = { 0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1 };
+        if (length >= 8 && bytes.Take(8).SequenceEqual(compound)) { format = ArchiveFormat.Msi; return true; }
+        // A local file header, or the directory signature/classic/ZIP64 end record of an empty archive.
+        return length >= 4 && bytes[0] == 'P' && bytes[1] == 'K' && (bytes[2] == 3 && bytes[3] == 4
+            || bytes[2] == 5 && (bytes[3] == 5 || bytes[3] == 6) || bytes[2] == 6 && bytes[3] == 6);
+    }
+    /// <summary>A checksum-valid TAR header, or the two zero blocks of an empty TAR archive.</summary>
+    internal static bool LooksLikeTar(byte[] bytes, int length) => TarArchiveContent.IsHeader(bytes, length)
+        || length >= 1024 && TarArchiveContent.IsZeroBlock(bytes) && TarArchiveContent.IsZeroBlock(bytes, 512);
     private static void ExtractCab(Stream source, string staging, ArchiveLimits limits, List<ExtractedArchiveFile> files,
         ref long total, CancellationToken token) {
         var paths = new ArchivePaths(limits);
