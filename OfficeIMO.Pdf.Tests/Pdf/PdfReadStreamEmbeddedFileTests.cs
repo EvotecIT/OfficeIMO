@@ -79,7 +79,7 @@ public partial class PdfReadStreamTests {
     }
 
     [Fact]
-    public void RewriteApis_RejectUnsupportedCatalogNameTreesWithClearUnsupportedDiagnostic() {
+    public void PageExtractionKeepsButOtherRewriteApisRejectUnsupportedCatalogNameTreesWithClearUnsupportedDiagnostic() {
         byte[] nameTreePdf = BuildUnsupportedCatalogNameTreePdf();
 
         static void AssertCatalogNameTrees(Action action) {
@@ -87,15 +87,14 @@ public partial class PdfReadStreamTests {
             Assert.Contains("catalog name trees", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
-        AssertCatalogNameTrees(() => PdfPageExtractor.ExtractPages(nameTreePdf, 1));
-        AssertCatalogNameTrees(() => PdfPageExtractor.SplitPages(nameTreePdf));
+        AssertExtractionKeepsCatalogStructure(nameTreePdf);
         AssertCatalogNameTrees(() => PdfMetadataEditor.UpdateMetadata(nameTreePdf, title: "Updated"));
         AssertCatalogNameTrees(() => PdfMerger.Merge(nameTreePdf));
         AssertCatalogNameTrees(() => PdfStamper.StampText(nameTreePdf, "STAMP"));
     }
 
     [Fact]
-    public void RewriteApis_RejectComplexEmbeddedFilePdfsWithClearUnsupportedDiagnostic() {
+    public void PageExtractionKeepsButOtherRewriteApisRejectComplexEmbeddedFilePdfsWithClearUnsupportedDiagnostic() {
         byte[] embeddedFilePdf = BuildComplexEmbeddedFilePdf();
 
         static void AssertEmbeddedFiles(Action action) {
@@ -103,15 +102,14 @@ public partial class PdfReadStreamTests {
             Assert.Contains("PDF embedded files are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
 
-        AssertEmbeddedFiles(() => PdfPageExtractor.ExtractPages(embeddedFilePdf, 1));
-        AssertEmbeddedFiles(() => PdfPageExtractor.SplitPages(embeddedFilePdf));
+        AssertExtractionKeepsCatalogStructure(embeddedFilePdf);
         AssertEmbeddedFiles(() => PdfMetadataEditor.UpdateMetadata(embeddedFilePdf, title: "Updated"));
         AssertEmbeddedFiles(() => PdfMerger.Merge(embeddedFilePdf));
         AssertEmbeddedFiles(() => PdfStamper.StampText(embeddedFilePdf, "STAMP"));
     }
 
     [Fact]
-    public void RewriteApis_RejectComplexAssociatedFilePdfsWithClearUnsupportedDiagnostic() {
+    public void PageExtractionKeepsButOtherRewriteApisRejectComplexAssociatedFilePdfsWithClearUnsupportedDiagnostic() {
         byte[] associatedFilePdf = BuildComplexAssociatedFilePdf();
 
         static void AssertEmbeddedFiles(Action action) {
@@ -119,8 +117,7 @@ public partial class PdfReadStreamTests {
             Assert.Contains("PDF embedded files are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
 
-        AssertEmbeddedFiles(() => PdfPageExtractor.ExtractPages(associatedFilePdf, 1));
-        AssertEmbeddedFiles(() => PdfPageExtractor.SplitPages(associatedFilePdf));
+        AssertExtractionKeepsCatalogStructure(associatedFilePdf);
         AssertEmbeddedFiles(() => PdfMetadataEditor.UpdateMetadata(associatedFilePdf, title: "Updated"));
         AssertEmbeddedFiles(() => PdfMerger.Merge(associatedFilePdf));
         AssertEmbeddedFiles(() => PdfStamper.StampText(associatedFilePdf, "STAMP"));

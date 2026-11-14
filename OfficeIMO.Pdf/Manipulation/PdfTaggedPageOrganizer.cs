@@ -8,7 +8,8 @@ internal static partial class PdfTaggedPageOrganizer {
 
     internal static byte[] Rewrite(byte[] source, PdfReadDocument document, IReadOnlyList<int> pageNumbers,
         PdfLoadOptions? options, long? maximumOutputBytes = null,
-        Action<IReadOnlyDictionary<int, int>>? captureObjectNumbers = null, CancellationToken token = default) {
+        Action<IReadOnlyDictionary<int, int>>? captureObjectNumbers = null, ICollection<string>? report = null,
+        CancellationToken token = default) {
         Guard.NotNull(pageNumbers, nameof(pageNumbers)); token.ThrowIfCancellationRequested();
         if (pageNumbers.Count == 0 || pageNumbers.Any(page => page < 1 || page > document.Pages.Count))
             throw new ArgumentException("Select at least one existing page.", nameof(pageNumbers));
@@ -23,7 +24,9 @@ internal static partial class PdfTaggedPageOrganizer {
                     throw new InvalidOperationException("Tagged page organization cannot update XFA page ownership.");
                 var state = PdfPageExtractor.ExtractCatalogRewriteState(objects, document.TrailerRaw, document, token);
                 var pruned = PdfPageExtractor.PruneCatalogStateForPages(objects, state, retained, ordered, cancellationToken: token);
-                var overrides = PdfPageExtractor.BuildPageOverridesWithFilteredDestinationLinks(objects, ordered, null, pruned, retained, token);
+                var removedNames = CollectRemovedDestinationNames(objects, catalog, removed, token);
+                var overrides = PdfPageExtractor.BuildPageOverridesWithFilteredDestinationLinks(objects, ordered, null, pruned, retained,
+                    removedNames, report, token);
                 var removedAnnotations = new HashSet<int>();
                 foreach (int page in removed) {
                     var dictionary = (PdfDictionary)objects[page].Value;
@@ -41,7 +44,7 @@ internal static partial class PdfTaggedPageOrganizer {
                     }
                 }
                 ordered = CopyRepeatedPages(objects, catalog, ordered, token);
-                ApplyNavigation(objects, catalog, pruned, removed, token);
+                ApplyNavigation(objects, catalog, pruned, removed, removedNames, removedAnnotations, report, token);
                 RemoveFieldsForAnnotations(objects, catalog, removedAnnotations, token);
                 if (catalog.Items.ContainsKey("StructTreeRoot")) PruneStructure(objects, catalog, removed, removedAnnotations, token);
                 int pagesObject = -1; while (objects.ContainsKey(pagesObject)) pagesObject--;

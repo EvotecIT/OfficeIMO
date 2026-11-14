@@ -261,7 +261,7 @@ public partial class PdfInspectorTests {
         Assert.True(report.CanExtractText);
         Assert.True(report.CanExtractImages);
         Assert.True(report.CanReadLogicalObjects);
-        Assert.False(report.CanManipulatePages);
+        Assert.True(report.CanManipulatePages);
         Assert.False(report.CanFillSimpleFormFields);
         Assert.False(report.CanFlattenSimpleFormFields);
         Assert.False(report.CanFillAndFlattenSimpleFormFields);

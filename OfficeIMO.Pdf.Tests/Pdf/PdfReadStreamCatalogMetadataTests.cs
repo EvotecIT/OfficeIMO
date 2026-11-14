@@ -82,7 +82,7 @@ public partial class PdfReadStreamTests {
     }
 
     [Fact]
-    public void RewriteApis_RejectComplexCatalogUriWithClearUnsupportedDiagnostic() {
+    public void PageExtractionKeepsButOtherRewriteApisRejectComplexCatalogUriWithClearUnsupportedDiagnostic() {
         byte[] catalogUriPdf = BuildComplexCatalogUriPdf();
 
         static void AssertCatalogUri(Action action) {
@@ -90,8 +90,7 @@ public partial class PdfReadStreamTests {
             Assert.Contains("PDF catalog URI dictionaries are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
 
-        AssertCatalogUri(() => PdfPageExtractor.ExtractPages(catalogUriPdf, 1));
-        AssertCatalogUri(() => PdfPageExtractor.SplitPages(catalogUriPdf));
+        AssertExtractionKeepsCatalogStructure(catalogUriPdf);
         AssertCatalogUri(() => PdfMetadataEditor.UpdateMetadata(catalogUriPdf, title: "Updated"));
         AssertCatalogUri(() => PdfMerger.Merge(catalogUriPdf));
         AssertCatalogUri(() => PdfStamper.StampText(catalogUriPdf, "STAMP"));
@@ -236,7 +235,7 @@ public partial class PdfReadStreamTests {
     }
 
     [Fact]
-    public void RewriteApis_RejectComplexPageLabelsWithClearUnsupportedDiagnostic() {
+    public void PageExtractionKeepsButOtherRewriteApisRejectComplexPageLabelsWithClearUnsupportedDiagnostic() {
         byte[] pageLabelPdf = BuildComplexPageLabelPdf();
 
         static void AssertPageLabels(Action action) {
@@ -244,8 +243,7 @@ public partial class PdfReadStreamTests {
             Assert.Contains("page labels", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
-        AssertPageLabels(() => PdfPageExtractor.ExtractPages(pageLabelPdf, 1));
-        AssertPageLabels(() => PdfPageExtractor.SplitPages(pageLabelPdf));
+        AssertExtractionKeepsCatalogStructure(pageLabelPdf);
         AssertPageLabels(() => PdfMetadataEditor.UpdateMetadata(pageLabelPdf, title: "Updated"));
         AssertPageLabels(() => PdfMerger.Merge(pageLabelPdf));
         AssertPageLabels(() => PdfStamper.StampText(pageLabelPdf, "STAMP"));
