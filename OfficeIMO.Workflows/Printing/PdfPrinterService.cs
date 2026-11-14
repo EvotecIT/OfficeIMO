@@ -107,6 +107,7 @@ public interface IPdfPrinterService {
 /// </remarks>
 public sealed class PdfPrinterService : IPdfPrinterService {
     private readonly CupsScheduler _cups;
+    private readonly PrinterCapabilityCache _capabilities = new();
 
     /// <summary>Creates a service that uses the local CUPS scheduler where one is installed.</summary>
     public PdfPrinterService() : this(CupsScheduler.Local) { }
@@ -118,10 +119,10 @@ public sealed class PdfPrinterService : IPdfPrinterService {
         ValidatePrinterName(printerName, nameof(printerName));
         cancellationToken.ThrowIfCancellationRequested();
         if (PdfPrinterAddress.TryGetIppUri(printerName, nameof(printerName), out Uri? uri))
-            return IppPdfPrinter.GetCapabilitiesAsync(IppPrinterEndpoint.ForUri(printerName, uri!), cancellationToken);
+            return IppPdfPrinter.GetCapabilitiesAsync(IppPrinterEndpoint.ForUri(printerName, uri!), _capabilities, cancellationToken);
         return OfficeRuntimeCompatibility.IsWindows
-            ? WindowsPdfPrinter.GetCapabilitiesAsync(printerName, cancellationToken)
-            : CupsPdfPrinter.GetCapabilitiesAsync(_cups, printerName, cancellationToken);
+            ? WindowsPdfPrinter.GetCapabilitiesAsync(printerName, _capabilities, cancellationToken)
+            : CupsPdfPrinter.GetCapabilitiesAsync(_cups, printerName, _capabilities, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -131,16 +132,28 @@ public sealed class PdfPrinterService : IPdfPrinterService {
             : CupsPdfPrinter.GetPrintersAsync(_cups, cancellationToken);
 
     /// <inheritdoc />
+    /// <remarks>Printer capabilities read by <see cref="GetCapabilitiesAsync"/> or an earlier submission within the last minute are reused.
+    /// A failed submission discards them, so the next attempt reads the printer again.</remarks>
     public Task<PdfPrintSubmission> SubmitAsync(PdfPrintJob job, PdfPrintDeliveryOptions options, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(options);
         PdfPrintDeliveryOptions snapshot = options.Snapshot();
         cancellationToken.ThrowIfCancellationRequested();
-        if (PdfPrinterAddress.TryGetIppUri(snapshot.PrinterName, nameof(options), out Uri? uri))
-            return IppPdfPrinter.SubmitAsync(IppPrinterEndpoint.ForUri(snapshot.PrinterName, uri!), job, snapshot, cancellationToken);
-        return OfficeRuntimeCompatibility.IsWindows
-            ? WindowsPdfPrinter.SubmitAsync(job, snapshot, cancellationToken)
-            : CupsPdfPrinter.SubmitAsync(_cups, job, snapshot, cancellationToken);
+        _ = PdfPrinterAddress.TryGetIppUri(snapshot.PrinterName, nameof(options), out Uri? uri);
+        return SubmitAsync(job, snapshot, uri, cancellationToken);
+    }
+
+    private async Task<PdfPrintSubmission> SubmitAsync(PdfPrintJob job, PdfPrintDeliveryOptions snapshot, Uri? uri, CancellationToken cancellationToken) {
+        try {
+            if (uri is not null)
+                return await IppPdfPrinter.SubmitAsync(IppPrinterEndpoint.ForUri(snapshot.PrinterName, uri), job, snapshot, _capabilities, cancellationToken).ConfigureAwait(false);
+            return await (OfficeRuntimeCompatibility.IsWindows
+                ? WindowsPdfPrinter.SubmitAsync(job, snapshot, _capabilities, cancellationToken)
+                : CupsPdfPrinter.SubmitAsync(_cups, job, snapshot, _capabilities, cancellationToken)).ConfigureAwait(false);
+        } catch {
+            _capabilities.Remove(snapshot.PrinterName);
+            throw;
+        }
     }
 
     /// <inheritdoc />

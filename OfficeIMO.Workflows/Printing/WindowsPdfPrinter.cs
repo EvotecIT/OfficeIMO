@@ -12,8 +12,8 @@ namespace OfficeIMO.Workflows;
 #endif
 internal static partial class WindowsPdfPrinter {
     internal static Task<IReadOnlyList<PdfPrinterInfo>> GetPrintersAsync(CancellationToken token) => Task.Run(() => GetPrinters(token), token);
-    internal static Task<PdfPrintSubmission> SubmitAsync(PdfPrintJob job, PdfPrintDeliveryOptions options, CancellationToken token) =>
-        Task.Run(() => Submit(job, options, token), CancellationToken.None);
+    internal static Task<PdfPrintSubmission> SubmitAsync(PdfPrintJob job, PdfPrintDeliveryOptions options, PrinterCapabilityCache cache, CancellationToken token) =>
+        Task.Run(() => Submit(job, options, cache, token), CancellationToken.None);
 
     internal static IReadOnlyList<PdfPrinterInfo> GetPrinters(CancellationToken token) => GetPrinterDetails(token).Select(printer => printer.Info).ToArray();
 
@@ -55,11 +55,14 @@ internal static partial class WindowsPdfPrinter {
         } finally { Marshal.FreeHGlobal(buffer); }
     }
 
-    internal static PdfPrintSubmission Submit(PdfPrintJob job, PdfPrintDeliveryOptions options, CancellationToken token) {
+    internal static PdfPrintSubmission Submit(PdfPrintJob job, PdfPrintDeliveryOptions options, PrinterCapabilityCache cache, CancellationToken token) {
         PrinterDetails details = FindPrinter(options.PrinterName, token);
         PdfPrinterInfo printer = details.Info;
         string? output = ValidateOutput(job.SourcePath, printer, options.OutputFilePath);
-        PdfPrinterCapabilities capabilities = WindowsPrinterSettings.BuildCapabilities(printer.Name, ReadDriverCapabilities(details, token));
+        if (!cache.TryGet(options.PrinterName, out PdfPrinterCapabilities capabilities)) {
+            capabilities = WindowsPrinterSettings.BuildCapabilities(printer.Name, ReadDriverCapabilities(details, token));
+            cache.Set(options.PrinterName, capabilities);
+        }
         if (options.PaperSourceId is not null && !capabilities.PaperSources.Any(source => source.Id == options.PaperSourceId))
             throw new ArgumentException("The selected paper source is no longer available on this printer.", nameof(options));
         IReadOnlyList<PdfPrintSheet> sheets = job.Plan.Sheets;
@@ -72,7 +75,7 @@ internal static partial class WindowsPdfPrinter {
         if (!Native.OpenPrinter(printer.Name, out IntPtr printerHandle, IntPtr.Zero)) throw new Win32Exception();
         IntPtr mode = IntPtr.Zero, dc = IntPtr.Zero;
         int jobId = 0;
-        bool completed = false;
+        bool completed = false, outputExisted = false;
         Native.AbortProcedure abort = (_, _) => !token.IsCancellationRequested;
         try {
             int modeBytes = Native.DocumentProperties(IntPtr.Zero, printerHandle, printer.Name, IntPtr.Zero, IntPtr.Zero, 0);
@@ -94,6 +97,7 @@ internal static partial class WindowsPdfPrinter {
             if (Native.SetAbortProc(dc, abort) <= 0) throw GdiFailure("SetAbortProc");
             token.ThrowIfCancellationRequested();
             var info = new Native.DocInfo { Size = Marshal.SizeOf<Native.DocInfo>(), DocumentName = options.DocumentName, Output = output };
+            outputExisted = output is not null && (File.Exists(output) || Directory.Exists(output));
             jobId = Native.StartDoc(dc, ref info);
             if (jobId <= 0) throw GdiFailure("StartDoc");
             int softwareCopies = options.Copies / driverCopies;
@@ -156,6 +160,8 @@ internal static partial class WindowsPdfPrinter {
             if (mode != IntPtr.Zero) Marshal.FreeHGlobal(mode);
             _ = Native.ClosePrinter(printerHandle);
             GC.KeepAlive(abort);
+            // A file printer creates its output when the job starts; an aborted job leaves it empty.
+            if (!completed && jobId > 0 && output is not null) PrintOutputFile.DiscardEmpty(output, outputExisted);
         }
     }
 

@@ -18,12 +18,14 @@ internal static partial class WindowsPdfPrinter {
     // its count between calls, so list buffers reserve the entire identifier space.
     private const int MaximumListEntries = 65536, MaximumResolutions = 4096;
 
-    internal static Task<PdfPrinterCapabilities> GetCapabilitiesAsync(string printerName, CancellationToken token) =>
-        Task.Run(() => GetCapabilities(printerName, token), token);
+    internal static Task<PdfPrinterCapabilities> GetCapabilitiesAsync(string printerName, PrinterCapabilityCache cache, CancellationToken token) =>
+        Task.Run(() => GetCapabilities(printerName, cache, token), token);
 
-    private static PdfPrinterCapabilities GetCapabilities(string printerName, CancellationToken token) {
+    private static PdfPrinterCapabilities GetCapabilities(string printerName, PrinterCapabilityCache cache, CancellationToken token) {
         PrinterDetails printer = FindPrinter(printerName, token);
-        return WindowsPrinterSettings.BuildCapabilities(printer.Info.Name, ReadDriverCapabilities(printer, token));
+        PdfPrinterCapabilities capabilities = WindowsPrinterSettings.BuildCapabilities(printer.Info.Name, ReadDriverCapabilities(printer, token));
+        cache.Set(printerName, capabilities);
+        return capabilities;
     }
 
     private static PrinterDetails FindPrinter(string printerName, CancellationToken token) =>
