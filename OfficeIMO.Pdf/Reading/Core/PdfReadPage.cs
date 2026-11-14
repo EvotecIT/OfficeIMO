@@ -881,7 +881,7 @@ public sealed partial class PdfReadPage {
 
                 var formResources = ResolveDictionary(formStream.Dictionary.Items.TryGetValue("Resources", out var resObj) ? resObj : null) ?? resources;
                 CollectUnsupportedFormFilters(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formResources, unsupported, activeForms, pageContentBudget, contentNestingDepth + 1);
-            } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion) {
+            } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion && pageContentBudget.SkipsFormsBeyondStack) {
                 // A form nested deeper than this thread's stack allows is skipped; the rest of the content is kept.
                 pageContentBudget.RecordRenderDegradation(PdfRenderCapabilities.FormNestingStackId, invocation.Name);
             } finally {
@@ -1258,7 +1258,7 @@ public sealed partial class PdfReadPage {
                     onUnmappableText: onUnmappableText,
                     onCompletedDrawingActualText: onCompletedDrawingActualText,
                     retainEditingEvidence: retainEditingEvidence);
-            } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion) {
+            } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion && pageContentBudget.SkipsFormsBeyondStack) {
                 // A form nested deeper than this thread's stack allows is skipped; the rest of the content is kept.
                 pageContentBudget.RecordRenderDegradation(PdfRenderCapabilities.FormNestingStackId, invocation.Name);
             } finally {
@@ -1500,7 +1500,7 @@ public sealed partial class PdfReadPage {
                     maximumPlacements: maximumPlacements,
                     consumeWork: consumeWork,
                     cancellationCheck: cancellationCheck);
-            } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion) {
+            } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion && pageContentBudget.SkipsFormsBeyondStack) {
                 // A form nested deeper than this thread's stack allows is skipped; the rest of the content is kept.
                 pageContentBudget.RecordRenderDegradation(PdfRenderCapabilities.FormNestingStackId, invocation.Name);
             } finally {

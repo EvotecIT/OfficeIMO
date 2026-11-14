@@ -9,6 +9,12 @@ public sealed partial class PdfReadPage {
         private List<PdfRenderCapabilityDiagnostic>? _renderDegradations;
         private HashSet<string>? _renderDegradationKeys;
 
+        /// <summary>
+        /// Whether walkers skip a form nested beyond the thread's stack. Only page rendering does, because it reports
+        /// the skip; text, redaction and analysis callers get the typed limit exception instead of silently missing content.
+        /// </summary>
+        internal bool SkipsFormsBeyondStack { get; init; }
+
         /// <summary>Content skipped while drawing the page, which the capability pre-scan cannot predict.</summary>
         internal IReadOnlyList<PdfRenderCapabilityDiagnostic> RenderDegradations =>
             _renderDegradations ?? (IReadOnlyList<PdfRenderCapabilityDiagnostic>)Array.Empty<PdfRenderCapabilityDiagnostic>();

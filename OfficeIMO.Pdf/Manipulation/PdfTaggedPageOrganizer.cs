@@ -58,7 +58,7 @@ internal static partial class PdfTaggedPageOrganizer {
                 objects.Add(pagesObject, new PdfIndirectObject(pagesObject, 0, root));
                 catalog.Items["Pages"] = new PdfReference(pagesObject, 0);
                 // Unknown catalog extensions may reference pages. Fail before serialization rather than retain a removed page invisibly.
-                var collector = new PdfPageExtractor.ObjectCollector(objects, cancellationToken: token);
+                var collector = new PdfPageExtractor.ObjectCollector(objects, undefinedReferencesAreNull: true, cancellationToken: token);
                 collector.CollectObjectGraph(new PdfReference(security.RootObjectNumber.Value, objects[security.RootObjectNumber.Value].Generation));
                 if (collector.ObjectIds.Any(removed.Contains))
                     throw new InvalidOperationException("Tagged page organization found an unsupported surviving reference to a removed page.");

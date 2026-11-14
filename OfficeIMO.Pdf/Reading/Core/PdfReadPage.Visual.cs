@@ -148,7 +148,9 @@ public sealed partial class PdfReadPage {
         Matrix2D pageTransform = GetVisualPageTransform();
         var drawing = new OfficeDrawing(size.Width, size.Height);
         var textOutputBudget = CreateTextOutputBudget();
-        var pageContentBudget = new PageContentBudget(this, configureDrawing, cancellationToken) { FunctionShadingScale = functionShadingScale, MaximumFunctionPixels = maximumFunctionPixels };
+        var pageContentBudget = new PageContentBudget(this, configureDrawing, cancellationToken) {
+            FunctionShadingScale = functionShadingScale, MaximumFunctionPixels = maximumFunctionPixels, SkipsFormsBeyondStack = true
+        };
         var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         var invocationTextClippingBudget = new PdfTextClippingBudget(_limits);
         var patternTextClippingBudget = new PdfTextClippingBudget(_limits);
@@ -422,7 +424,11 @@ public sealed partial class PdfReadPage {
                 !string.Equals(form.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal) ||
                 !visitedForms.Add(form)) continue;
             PdfDictionary? formResources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceValue) ? formResourceValue : null) ?? resources;
-            RegisterEmbeddedFonts(drawing, formResources, visitedForms, depth + 1, registeredFonts, preserveExistingFaces, cancellationToken);
+            try {
+                RegisterEmbeddedFonts(drawing, formResources, visitedForms, depth + 1, registeredFonts, preserveExistingFaces, cancellationToken);
+            } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion) {
+                // The drawing walkers skip forms nested this deep, so their fonts are not needed.
+            }
         }
     }
 
@@ -1583,7 +1589,7 @@ public sealed partial class PdfReadPage {
                     initialStrokeColorSelection: invocation.StrokeColorSelection,
                     scaleStrokeWidthWithTransform: scaleStrokeWidthWithTransform,
                     initialTextState: formTextState, inheritedFontResources: formFonts);
-            } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion) {
+            } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion && pageContentBudget.SkipsFormsBeyondStack) {
                 // A form nested deeper than this thread's stack allows is skipped; the rest of the page is kept.
                 if (requireSupportedType3Content) type3GlyphBudget.RecordFailure();
                 pageContentBudget.RecordRenderDegradation(PdfRenderCapabilities.FormNestingStackId, invocation.Name);

@@ -1184,6 +1184,27 @@ public sealed partial class PdfReadPage {
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget,
         int depth = 0) {
+        try {
+            return ResolveXObjectPaintChannelsCore(resources, name, invocationState, pageWidth, pageHeight, cache, activeStreams,
+                pageContentBudget, type3GlyphBudget, depth);
+        } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion) {
+            // Assume the form may paint both channels, as for other forms that cannot be analysed.
+            pageContentBudget.RecordRenderDegradation(PdfRenderCapabilities.FormNestingStackId, name);
+            return PdfType3PaintChannels.Both;
+        }
+    }
+
+    private PdfType3PaintChannels ResolveXObjectPaintChannelsCore(
+        PdfDictionary? resources,
+        string name,
+        PdfPageXObjectPaintState invocationState,
+        double pageWidth,
+        double pageHeight,
+        Type3PaintChannelCache cache,
+        HashSet<PdfStream> activeStreams,
+        PageContentBudget pageContentBudget,
+        Type3GlyphBudget type3GlyphBudget,
+        int depth) {
         EnsureContentNestingBudget(depth);
         if (TryGetImageXObject(resources, name, out int objectNumber, out int directStreamIdentity, out PdfStream? imageStream)) {
             PdfImagePlacement placement = BuildImagePlacement(
