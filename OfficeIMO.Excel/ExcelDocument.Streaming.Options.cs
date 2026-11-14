@@ -32,6 +32,7 @@ namespace OfficeIMO.Excel {
                 UseSharedStrings = options.UseSharedStrings,
                 RequireStreaming = options.RequireStreaming,
                 DateSystem = options.DateSystem,
+                DateTimeOffsetWriteMode = options.DateTimeOffsetWriteMode,
                 Styles = options.Styles,
                 DefaultRowStyle = options.DefaultRowStyle,
                 ColumnStyles = options.ColumnStyles

@@ -83,18 +83,19 @@ namespace OfficeIMO.Excel {
                 ushort number => PivotFieldValue.FromNumber(number),
                 int number => PivotFieldValue.FromNumber(number),
                 uint number => PivotFieldValue.FromNumber(number),
-                long number => PivotFieldValue.FromNumber(number),
-                ulong number when number <= long.MaxValue => PivotFieldValue.FromNumber(number),
+                long number when ExcelExactNumber.FitsNumberCell(number) => PivotFieldValue.FromNumber(number),
+                ulong number when ExcelExactNumber.FitsNumberCell(number) => PivotFieldValue.FromNumber(number),
                 float number => PivotFieldValue.FromNumber(number),
                 double number => PivotFieldValue.FromNumber(number),
-                decimal number => PivotFieldValue.FromNumber((double)number),
+                decimal number when ExcelExactNumber.FitsNumberCell(number) => PivotFieldValue.FromNumber((double)number),
                 DateTime dateTime => CreatePivotFieldDateValue(dateTime),
-                DateTimeOffset dateTimeOffset => CreatePivotFieldDateValue(_excelDocument.DateTimeOffsetWriteStrategy(dateTimeOffset)),
+                DateTimeOffset dateTimeOffset when _excelDocument.DateTimeOffsetWriteMode == ExcelDateTimeOffsetWriteMode.Serial =>
+                    CreatePivotFieldDateValue(_excelDocument.DateTimeOffsetWriteStrategy(dateTimeOffset)),
 #if NET6_0_OR_GREATER
                 DateOnly dateOnly => CreatePivotFieldDateValue(dateOnly.ToDateTime(TimeOnly.MinValue)),
 #endif
                 string text => CreatePivotFieldTextValue(text),
-                _ => PivotFieldValue.FromText(FormatPivotFieldText(value, _excelDocument.DateTimeOffsetWriteStrategy, _excelDocument.DateSystem))
+                _ => PivotFieldValue.FromText(FormatPivotFieldText(value, _excelDocument.EffectiveDateTimeOffsetWriteStrategy, _excelDocument.DateSystem))
             };
         }
 
@@ -103,7 +104,7 @@ namespace OfficeIMO.Excel {
                 return string.Empty;
             }
 
-            return FormatPivotFieldText(value, _excelDocument.DateTimeOffsetWriteStrategy, _excelDocument.DateSystem);
+            return FormatPivotFieldText(value, _excelDocument.EffectiveDateTimeOffsetWriteStrategy, _excelDocument.DateSystem);
         }
 
         private static PivotFieldValue CreatePivotFieldTextValue(string text)
@@ -117,7 +118,9 @@ namespace OfficeIMO.Excel {
                 string text => text,
                 bool boolean => boolean ? "1" : "0",
                 DateTime dateTime => InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(dateTime, dateSystem)),
-                DateTimeOffset dateTimeOffset => InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(dateTimeOffsetWriteStrategy(dateTimeOffset), dateSystem)),
+                DateTimeOffset dateTimeOffset => CoerceValueHelper.IsTextStrategy(dateTimeOffsetWriteStrategy)
+                    ? CoerceValueHelper.FormatDateTimeOffsetText(dateTimeOffset)
+                    : InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(dateTimeOffsetWriteStrategy(dateTimeOffset), dateSystem)),
 #if NET6_0_OR_GREATER
                 DateOnly dateOnly => InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(dateOnly.ToDateTime(TimeOnly.MinValue), dateSystem)),
 #endif

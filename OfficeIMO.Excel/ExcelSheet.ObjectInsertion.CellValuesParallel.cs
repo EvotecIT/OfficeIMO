@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
         }
 
         private CellUpdate PrepareCellUpdate(int row, int column, object value) {
-            var dateTimeOffsetStrategy = _excelDocument.DateTimeOffsetWriteStrategy;
+            var dateTimeOffsetStrategy = _excelDocument.EffectiveDateTimeOffsetWriteStrategy;
             var (cellValue, dataType) = CoerceValueHelper.Coerce(
                 value,
                 s => new CellValue(s),

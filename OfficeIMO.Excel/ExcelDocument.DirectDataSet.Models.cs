@@ -38,9 +38,9 @@ namespace OfficeIMO.Excel {
             internal DirectWorkbookCellStyles? WorkbookStyles { get; }
 
             internal static DirectDataSetWorkbookModel CreateStreaming(IReadOnlyList<DirectDataSetSheetModel> sheets,
-                ExcelDateSystem dateSystem, ExcelTabularStylePlan? styles) =>
+                ExcelWriterOptions options, ExcelTabularStylePlan? styles) =>
                 new DirectDataSetWorkbookModel(sheets, Array.Empty<ExcelDataSetImportResult>(),
-                    DefaultDateTimeOffsetWriteStrategy, dateSystem, styles);
+                    GetDateTimeOffsetWriteStrategy(options), options.DateSystem, styles);
 
             internal DirectDataSetWorkbookModel WithDateSystem(ExcelDateSystem dateSystem) {
                 return dateSystem == DateSystem

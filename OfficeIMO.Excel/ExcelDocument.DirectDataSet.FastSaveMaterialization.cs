@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel {
             }
 
             var sourceModel = DirectDataSetWorkbookModel.CreateFromCellValueBuffers(
-                buffers, _dateTimeOffsetWriteStrategy, DateSystem, buffers[0].Sheet.CreateWorkbookCellStyles());
+                buffers, EffectiveDateTimeOffsetWriteStrategy, DateSystem, buffers[0].Sheet.CreateWorkbookCellStyles());
             if (!TryCreateDirectPackageModel(sourceModel, out DirectDataSetWorkbookModel packageModel, out _, allowDrawings: true)) {
                 return;
             }

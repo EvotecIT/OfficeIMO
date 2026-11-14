@@ -540,3 +540,10 @@ OfficeIMO.Excel.ExcelReaderOptions.EnableSinglePassReading.get -> bool
 OfficeIMO.Excel.ExcelReaderOptions.EnableSinglePassReading.set -> void
 OfficeIMO.Excel.ExcelSheet.AddChartFromRanges(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<OfficeIMO.Excel.ExcelChartSeriesRange!>! series, OfficeIMO.OfficeChartOptions? options = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.GetCellValueSnapshots(int column, int firstRow, int lastRow) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelNativeCellValueInfo?>!
+OfficeIMO.Excel.ExcelDateTimeOffsetWriteMode
+OfficeIMO.Excel.ExcelDateTimeOffsetWriteMode.Serial = 1 -> OfficeIMO.Excel.ExcelDateTimeOffsetWriteMode
+OfficeIMO.Excel.ExcelDateTimeOffsetWriteMode.Text = 0 -> OfficeIMO.Excel.ExcelDateTimeOffsetWriteMode
+OfficeIMO.Excel.ExcelDocument.DateTimeOffsetWriteMode.get -> OfficeIMO.Excel.ExcelDateTimeOffsetWriteMode
+OfficeIMO.Excel.ExcelDocument.DateTimeOffsetWriteMode.set -> void
+OfficeIMO.Excel.ExcelWriterOptions.DateTimeOffsetWriteMode.get -> OfficeIMO.Excel.ExcelDateTimeOffsetWriteMode
+OfficeIMO.Excel.ExcelWriterOptions.DateTimeOffsetWriteMode.set -> void

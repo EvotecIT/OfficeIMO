@@ -152,7 +152,7 @@ public partial class ExcelDocument {
                     showFirstColumn: _options.ShowFirstColumn, showLastColumn: _options.ShowLastColumn,
                     showRowStripes: _options.ShowRowStripes, showColumnStripes: _options.ShowColumnStripes,
                     includeCellReferences: _options.IncludeCellReferences) { StreamingLayout = layout };
-                var model = DirectDataSetWorkbookModel.CreateStreaming(new[] { sheet }, _options.DateSystem, styles);
+                var model = DirectDataSetWorkbookModel.CreateStreaming(new[] { sheet }, _options, styles);
                 if (_archive == null && _format != ExcelFileFormat.Xls) {
                     if (_output.CanSeek) PrepareDestinationStreamForWrite(_output);
                     // XLSB parts keep the reproducible 1980 timestamp; XLSX parts are stamped with the creation time.
@@ -188,7 +188,7 @@ public partial class ExcelDocument {
                     if (!_failed && _sheets.Count == 0)
                         throw new InvalidOperationException("Write at least one table before disposing the writer; a workbook needs a worksheet.");
                     if (!_failed) {
-                        var model = DirectDataSetWorkbookModel.CreateStreaming(_sheets, _options.DateSystem, _styles);
+                        var model = DirectDataSetWorkbookModel.CreateStreaming(_sheets, _options, _styles);
                         if (_format == ExcelFileFormat.Xlsx) DirectDataSetWorkbookWriter.CompleteStreamingWorkbook(_archive!, model, _theme);
                         else _binary!.Complete(_output, _sheets.Select(sheet => sheet.SheetName).ToArray());
                     }

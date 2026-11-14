@@ -82,6 +82,10 @@ namespace OfficeIMO.Excel {
                 SetTableHeaderValue(table, headerIndex, cell.ToValue());
                 return true;
             }
+            if (cell.Reference is DateTimeOffset textDateTimeOffset && WritesDateTimeOffsetAsText) {
+                return TrySetPendingDirectCellLocked(row, column, ExcelBufferedCell.Text(CoerceValueHelper.FormatDateTimeOffsetText(textDateTimeOffset)));
+            }
+
             bool prepareDateTimeOffset = cell.Reference is DateTimeOffset;
             if (!CanAcceptPendingDirectCell()
                 || (!prepareDateTimeOffset && !CanBufferDirectCell(cell))) {
