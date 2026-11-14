@@ -558,6 +558,12 @@ internal static class DataValueConverter {
             else if (targetType == typeof(DateTime) && dateTimeFormats is { Count: > 0 } &&
                      DateTime.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.RoundtripKind, out DateTime formattedDateTime)) result = formattedDateTime;
             else if (targetType == typeof(DateTime)) result = DateTime.Parse(text, culture, DateTimeStyles.RoundtripKind);
+            else if (targetType == typeof(DateTimeOffset) && dateTimeFormats is { Count: > 0 } &&
+                     DateTimeOffset.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out DateTimeOffset formattedOffset)) result = formattedOffset;
+            else if (targetType == typeof(DateTimeOffset)) result = DateTimeOffset.Parse(text, culture, DateTimeStyles.None);
+            else if (targetType == typeof(TimeSpan) && TimeSpan.TryParseExact(text, "c", CultureInfo.InvariantCulture, out TimeSpan invariantTimeSpan)) result = invariantTimeSpan;
+            else if (targetType == typeof(TimeSpan)) result = TimeSpan.Parse(text, culture);
+            else if (targetType == typeof(byte[])) result = Convert.FromBase64String(text);
 #if NET6_0_OR_GREATER
             else if (targetType == typeof(DateOnly) && dateTimeFormats is { Count: > 0 } &&
                      DateOnly.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out DateOnly formattedDateOnly)) result = formattedDateOnly;

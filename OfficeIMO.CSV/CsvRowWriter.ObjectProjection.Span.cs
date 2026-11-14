@@ -75,7 +75,7 @@ public sealed partial class CsvRowWriter
                 return;
             }
         }
-        writer.StageProjectedSpanText(ordinal, value.ToString(format, options.Culture));
+        writer.StageProjectedSpanText(ordinal, CsvWriter.FormatDateText(value, format, options.Culture));
     }
 
     /// <summary>Stages any value with the configured date, UTC and null rules of row writing.</summary>
