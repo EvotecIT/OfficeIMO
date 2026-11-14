@@ -13,13 +13,13 @@ public sealed partial class PdfTextSpan {
     public PdfTextDecodingEvidence DecodingEvidence { get; private set; } = PdfTextDecodingEvidence.Unknown;
     internal void SetDecodingEvidence(PdfTextDecodingEvidence evidence) => DecodingEvidence = evidence;
     /// <summary>Font resource name from the page resources (e.g., F1).</summary>
-    public string FontResource { get; }
+    public string FontResource => _font.Value.Resource;
     /// <summary>PDF base font name resolved from the active resource dictionary, when available.</summary>
-    public string? BaseFont { get; }
+    public string? BaseFont => _font.Value.BaseFont;
     /// <summary>Font descriptor weight from 1 through 1000, when declared by the PDF.</summary>
-    public int? FontWeight { get; }
+    public int? FontWeight => _font.Value.Weight;
     /// <summary>Raw PDF font descriptor flags, when declared by the PDF.</summary>
-    public int? FontDescriptorFlags { get; }
+    public int? FontDescriptorFlags => _font.Value.DescriptorFlags;
     /// <summary>True when declared weight or legacy font-name evidence identifies a bold face.</summary>
     public bool IsBold => PdfFontStyleEvidence.IsBold(BaseFont, FontWeight);
     /// <summary>True when descriptor flags or legacy font-name evidence identifies an italic face.</summary>
@@ -71,7 +71,11 @@ public sealed partial class PdfTextSpan {
     internal double LogicalLayoutY => !StoredLogicalLayoutBaselineOffset.HasValue ? Y
         : Y + Math.Cos(RotationDegrees * Math.PI / 180D) * StoredLogicalLayoutBaselineOffset.Value;
     /// <summary>Fill color used for visual text rendering, when it could be read from the content stream.</summary>
-    public OfficeColor? Color { get; }
+    public OfficeColor? Color => _color?.Value;
+
+    // A positioned glyph can be its own span, and neighbouring spans nearly always share their paint and
+    // clip. Those values are held in shared immutable boxes instead of inline in every span.
+    private readonly SharedValue<OfficeColor>? _color;
     /// <summary>True when the text span should be painted during visual rendering.</summary>
     public bool IsVisible { get; }
     /// <summary>Baseline rotation in PDF user-space degrees, where positive angles are counter-clockwise.</summary>
@@ -81,8 +85,11 @@ public sealed partial class PdfTextSpan {
     /// <summary>Form XObject or other content-stream object owning the MCID, or null for page content.</summary>
     public int? ContentStreamObjectNumber { get; }
     /// <summary>Optional visual clipping path in page top-left coordinates.</summary>
-    internal PdfPageClipPath? ClipPath { get; }
-    internal string? DrawingFontFamily { get; }
+    internal PdfPageClipPath? ClipPath => _clipPath?.Value;
+    private readonly SharedValue<PdfPageClipPath>? _clipPath;
+    internal string? DrawingFontFamily => _font.Value.DrawingFamily;
+    // Every span of one font repeats these, so they share one box like paint and clip.
+    private readonly SharedValue<FontIdentity> _font;
     internal double PaintOrder { get; }
     internal PdfContentOrderKey? ContentOrderKey { get; }
     // Source-run occurrence within a text-show operator, assigned by encoded-glyph reading.
@@ -125,7 +132,11 @@ public sealed partial class PdfTextSpan {
     internal string RestampText { get; }
     // Authored Tf size remains in text space when layout clones expose a page-space FontSize.
     internal double TextSpaceFontSize { get; private set; }
-    internal Matrix2D? TextToPageTransform { get; }
+    internal Matrix2D? TextToPageTransform => _hasTextToPageTransform ? _textToPageTransform : null;
+    // Unlike paint and clip, the transform differs for each positioned glyph. Kept without Nullable<T>
+    // so its flag packs with the other flags instead of padding a separate eight bytes.
+    private readonly Matrix2D _textToPageTransform;
+    private readonly bool _hasTextToPageTransform;
     internal string? VisualPaintIdentity { get; }
     /// <summary>True when marked-content ActualText replaced the logical text.</summary>
     public bool HasActualText { get; }
@@ -259,23 +270,22 @@ public sealed partial class PdfTextSpan {
         }
         if (fontDescriptorFlags < 0) throw new ArgumentOutOfRangeException(nameof(fontDescriptorFlags));
         Text = text;
-        FontResource = fontResource;
-        BaseFont = baseFont;
-        FontWeight = fontWeight;
-        FontDescriptorFlags = fontDescriptorFlags;
+        _font = SharedValue<FontIdentity>.Get(
+            new FontIdentity(fontResource, baseFont, fontWeight, fontDescriptorFlags, drawingFontFamily), SameFont);
         FontSize = fontSize;
         TextSpaceFontSize = fontSize;
         X = x;
         Y = y;
         Advance = advance;
-        Color = color;
+        _color = color is OfficeColor paint ? SharedValue<OfficeColor>.Get(paint, SameColor) : null;
         IsVisible = isVisible;
         RotationDegrees = rotationDegrees;
         MarkedContentId = markedContentId;
         ContentStreamObjectNumber = contentStreamObjectNumber;
-        ClipPath = clipPath;
+        _clipPath = clipPath is PdfPageClipPath clip
+            ? SharedValue<PdfPageClipPath>.Get(clip, SameClipPath, retain: (clip.Commands?.Count ?? 0) <= MaximumRetainedClipCommands)
+            : null;
         PaintOrder = paintOrder;
-        DrawingFontFamily = drawingFontFamily;
         LogicalLineBreaksBefore = logicalLineBreaksBefore;
         LogicalLeadingSpace = logicalLeadingSpace;
         LogicalTrailingSpace = logicalTrailingSpace;
@@ -293,7 +303,10 @@ public sealed partial class PdfTextSpan {
         CanScaleAggregateAdvance = canScaleAggregateAdvance;
         RestampFontSize = restampFontSize ?? fontSize;
         RestampText = restampText ?? text;
-        TextToPageTransform = textToPageTransform;
+        if (textToPageTransform is Matrix2D transform) {
+            _textToPageTransform = transform;
+            _hasTextToPageTransform = true;
+        }
         VisualPaintIdentity = visualPaintIdentity;
         HasActualText = hasActualText;
         IsType3Font = isType3Font;
@@ -302,6 +315,53 @@ public sealed partial class PdfTextSpan {
     }
 
     private bool _completeTextProjectionSuppressed;
+
+    private static readonly Func<OfficeColor, OfficeColor, bool> SameColor = static (left, right) => left.Equals(right);
+    // The last shared clip stays reachable from the thread after its spans are gone, so only small clips are kept.
+    private const int MaximumRetainedClipCommands = 64;
+    private static readonly Func<PdfPageClipPath, PdfPageClipPath, bool> SameClipPath = static (left, right) => left.IsIdenticalTo(right);
+    private static readonly Func<FontIdentity, FontIdentity, bool> SameFont = static (left, right) =>
+        string.Equals(left.Resource, right.Resource, StringComparison.Ordinal) &&
+        string.Equals(left.BaseFont, right.BaseFont, StringComparison.Ordinal) &&
+        left.Weight == right.Weight &&
+        left.DescriptorFlags == right.DescriptorFlags &&
+        string.Equals(left.DrawingFamily, right.DrawingFamily, StringComparison.Ordinal);
+
+    private readonly struct FontIdentity {
+        internal FontIdentity(string resource, string? baseFont, int? weight, int? descriptorFlags, string? drawingFamily) {
+            Resource = resource;
+            BaseFont = baseFont;
+            Weight = weight;
+            DescriptorFlags = descriptorFlags;
+            DrawingFamily = drawingFamily;
+        }
+
+        internal string Resource { get; }
+        internal string? BaseFont { get; }
+        internal int? Weight { get; }
+        internal int? DescriptorFlags { get; }
+        internal string? DrawingFamily { get; }
+    }
+
+    /// <summary>
+    /// An immutable box shared by spans whose value is identical. Each thread reuses the box it made last,
+    /// which covers runs of spans painted in one state without a lookup table.
+    /// </summary>
+    private sealed class SharedValue<T> where T : struct {
+        [ThreadStatic] private static SharedValue<T>? _last;
+
+        private SharedValue(T value) => Value = value;
+
+        internal T Value { get; }
+
+        internal static SharedValue<T> Get(T value, Func<T, T, bool> same, bool retain = true) {
+            SharedValue<T>? last = _last;
+            if (last is not null && same(last.Value, value)) return last;
+            var box = new SharedValue<T>(value);
+            if (retain) _last = box;
+            return box;
+        }
+    }
 
     internal PdfTextSpan WithCanRestamp(bool canRestamp) {
         PdfTextSpan copy = CloneSharingGlyphEvidence();

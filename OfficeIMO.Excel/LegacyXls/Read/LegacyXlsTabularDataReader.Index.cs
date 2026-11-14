@@ -312,9 +312,9 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             }
         }
 
+        /// <remarks>The reader leaves indexed validation only once discovery has finished and matched, so a cancelled or failed
+        /// fallback is attempted again by the next read instead of reading rows it never found.</remarks>
         private void FallBackToFullDiscovery(int[] rowOffsets) {
-            _indexedValidatedRowEnd = int.MaxValue;
-            _usedIndexedDiscovery = false;
             Discover(
                 _worksheetStartOffset,
                 rowOffsets,
@@ -335,6 +335,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                     "The XLS worksheet INDEX and DBCELL records describe a different table than its cell records.");
             }
             _bufferedWorksheetEndOffset = worksheetEndOffset;
+            _indexedValidatedRowEnd = int.MaxValue;
+            _usedIndexedDiscovery = false;
         }
 
         private bool TryReadIndexedHeaderValues(

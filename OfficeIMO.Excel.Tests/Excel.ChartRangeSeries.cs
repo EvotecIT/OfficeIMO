@@ -8,6 +8,19 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]
+        public void Test_ExcelCharts_FromRanges_RejectSuppliedCacheWithShortSeries() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            var sheet = document.AddSheet("Data");
+            var cache = new ExcelChartData(new[] { "NA", "EU", "APAC" },
+                new[] { new ExcelChartSeries("Sales", new[] { 1d, 2d }, new[] { 1d, 2d }) });
+
+            Assert.Throws<ArgumentException>(() => sheet.AddChartFromRanges(OfficeChartType.ColumnClustered,
+                new[] { new ExcelChartSeriesRange("Sales", "A2:A4", "B2:B4") },
+                new OfficeIMO.Excel.ExcelChartOptions { CachedData = cache }));
+            Assert.Empty(sheet.Charts);
+        }
+
+        [Fact]
         public void Test_ExcelCharts_FromRanges_ReferenceNonAdjacentColumnsWithoutChartDataSheet() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.NonAdjacentRanges.xlsx");
 

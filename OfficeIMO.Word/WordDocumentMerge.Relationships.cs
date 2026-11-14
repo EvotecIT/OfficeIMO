@@ -45,7 +45,7 @@ namespace OfficeIMO.Word {
             if (source.TryGetPartById(relationshipId, out OpenXmlPart? sourcePart)) {
                 OpenXmlPart destinationPart = ClonePart(sourcePart, destination);
                 newId = GetOrCreateRelationshipId(destination, destinationPart);
-            } else if (source.HyperlinkRelationships.FirstOrDefault(_ => _.Id == relationshipId) is HyperlinkRelationship hyperlink) {
+            } else if (WordHyperLink.FindHyperlinkRelationship(source, relationshipId) is HyperlinkRelationship hyperlink) {
                 newId = destination.AddHyperlinkRelationship(hyperlink.Uri, hyperlink.IsExternal).Id;
             } else if (source.ExternalRelationships.FirstOrDefault(_ => _.Id == relationshipId) is ExternalRelationship external) {
                 newId = destination.AddExternalRelationship(external.RelationshipType, external.Uri).Id;
@@ -91,7 +91,7 @@ namespace OfficeIMO.Word {
             }
 
             foreach (HyperlinkRelationship hyperlink in sourcePart.HyperlinkRelationships) {
-                if (!cloned.HyperlinkRelationships.Any(_ => _.Id == hyperlink.Id)) {
+                if (WordHyperLink.FindHyperlinkRelationship(cloned, hyperlink.Id) == null) {
                     cloned.AddHyperlinkRelationship(hyperlink.Uri, hyperlink.IsExternal, hyperlink.Id);
                 }
             }

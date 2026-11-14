@@ -175,6 +175,8 @@ namespace OfficeIMO.Word {
             var bookmark = paragraph.Bookmark;
             var bookmarkStart = paragraph._paragraph.ChildElements.OfType<BookmarkStart>().FirstOrDefault();
             bool hasListMarker = expansionContext.ListMarkers.TryGetValue(paragraph, out WordDocumentTraversal.ResolvedListMarker listMarker);
+            // A border view reads the paragraph's live properties, so one view serves all sixteen reads.
+            WordParagraphBorders borders = paragraph.Borders;
             var snapshot = new WordParagraphInfo {
                 Text = string.Concat(paragraph.GetRuns().Select(run => run.Text)),
                 StyleId = paragraph.StyleId,
@@ -184,7 +186,7 @@ namespace OfficeIMO.Word {
                 ListLevel = paragraph.ListItemLevel,
                 ListMarker = hasListMarker ? listMarker.Marker : null,
                 ListIndex = hasListMarker && listMarker.Info.Ordered ? listMarker.Index : null,
-                ListStyleName = paragraph.ListStyle?.ToString(),
+                ListStyleName = expansionContext.ListStyleNameFor(paragraph),
                 Alignment = NormalizeOpenXmlEnumValue(paragraph._paragraphProperties?.Justification?.Val),
                 IndentStart = paragraph.IndentationBefore,
                 IndentEnd = paragraph.IndentationAfter,
@@ -198,25 +200,25 @@ namespace OfficeIMO.Word {
                 ShadingFillColor = paragraph.ShadingFillColor,
                 ShadingPattern = paragraph.ShadingPattern,
                 LeftBorder = BuildParagraphBorderSnapshot(
-                    NormalizeOpenXmlEnumValue(paragraph.Borders.LeftStyle),
-                    paragraph.Borders.LeftColorValue,
-                    paragraph.Borders.LeftSize,
-                    paragraph.Borders.LeftSpace),
+                    NormalizeOpenXmlEnumValue(borders.LeftStyle),
+                    borders.LeftColorValue,
+                    borders.LeftSize,
+                    borders.LeftSpace),
                 RightBorder = BuildParagraphBorderSnapshot(
-                    NormalizeOpenXmlEnumValue(paragraph.Borders.RightStyle),
-                    paragraph.Borders.RightColorValue,
-                    paragraph.Borders.RightSize,
-                    paragraph.Borders.RightSpace),
+                    NormalizeOpenXmlEnumValue(borders.RightStyle),
+                    borders.RightColorValue,
+                    borders.RightSize,
+                    borders.RightSpace),
                 TopBorder = BuildParagraphBorderSnapshot(
-                    NormalizeOpenXmlEnumValue(paragraph.Borders.TopStyle),
-                    paragraph.Borders.TopColorValue,
-                    paragraph.Borders.TopSize,
-                    paragraph.Borders.TopSpace),
+                    NormalizeOpenXmlEnumValue(borders.TopStyle),
+                    borders.TopColorValue,
+                    borders.TopSize,
+                    borders.TopSpace),
                 BottomBorder = BuildParagraphBorderSnapshot(
-                    NormalizeOpenXmlEnumValue(paragraph.Borders.BottomStyle),
-                    paragraph.Borders.BottomColorValue,
-                    paragraph.Borders.BottomSize,
-                    paragraph.Borders.BottomSpace),
+                    NormalizeOpenXmlEnumValue(borders.BottomStyle),
+                    borders.BottomColorValue,
+                    borders.BottomSize,
+                    borders.BottomSpace),
                 IsRightToLeft = paragraph.BiDi,
                 KeepWithNext = paragraph.KeepWithNext,
                 KeepLinesTogether = paragraph.KeepLinesTogether,

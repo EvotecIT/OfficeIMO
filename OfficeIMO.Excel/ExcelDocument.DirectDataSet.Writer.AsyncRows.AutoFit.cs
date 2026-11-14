@@ -103,8 +103,10 @@ namespace OfficeIMO.Excel {
                 bool[]? measured = sheet.StreamingLayout?.AutoFitColumns;
                 int row = 0;
                 int column = 0;
-                int cells = 0;
+                int tokens = 0;
+                ct.ThrowIfCancellationRequested();
                 while (true) {
+                    if ((++tokens & 0xFF) == 0) ct.ThrowIfCancellationRequested();
                     switch (scanner.Next(out int rowNumber, out ExcelSheet.AutoFitCellParts parts)) {
                         case ExcelSheet.AutoFitSpoolScanner.Token.End:
                             return true;
@@ -113,7 +115,6 @@ namespace OfficeIMO.Excel {
                         case ExcelSheet.AutoFitSpoolScanner.Token.Row:
                             row = rowNumber > 0 ? rowNumber : row + 1;
                             column = 0;
-                            if ((++cells & 0xFF) == 0) ct.ThrowIfCancellationRequested();
                             break;
                         default:
                             if (column >= widths.Length) return false;

@@ -426,10 +426,11 @@ namespace OfficeIMO.Excel {
         /// </summary>
         private Cell? TryGetCellForReading(int row, int column) {
             Row? rowElement = TryGetRowElement(row, column);
-            if (rowElement == null) {
-                return null;
-            }
+            return rowElement == null ? null : TryGetCellForReading(rowElement, row, column);
+        }
 
+        /// <summary>Finds a cell of a row element already located, without moving a stored cell into the DOM.</summary>
+        private Cell? TryGetCellForReading(Row rowElement, int row, int column) {
             if (rowElement is ExcelStoredRow stored && stored.IsStoreAvailable && stored.HasOrderedCells) {
                 int index = stored.Find(column);
                 if (index >= 0) {

@@ -45,35 +45,43 @@ namespace OfficeIMO.Excel {
         }
 
         internal void ValidateCache(ExcelChartData data) {
-            if (data.Series.Count != _values.Length || data.Categories.Count != PointCount) {
-                throw new ArgumentException("Cached chart data must have one series per range and one category per referenced cell.", nameof(data));
+            if (data.Series.Count != _values.Length || data.Categories.Count != PointCount
+                || data.Series.Any(series => series.Values.Count != PointCount)) {
+                throw new ArgumentException("Cached chart data must have one series per range and one category and value per referenced cell.", nameof(data));
             }
         }
 
         /// <summary>Reads the snapshot cache from the referenced cells, the same way linked range charts do.</summary>
         internal ExcelChartData ReadCache() {
-            ExcelSheet categorySheet = _categories.Sheet;
+            string?[] categoryTexts = ReadTexts(_categories);
             var categories = new string[PointCount];
-            for (int i = 0; i < categories.Length; i++) {
-                (int row, int column) = _categories.Cell(i);
-                categories[i] = categorySheet.TryGetCellText(row, column, out string? text) ? text ?? string.Empty : string.Empty;
-            }
+            for (int i = 0; i < categories.Length; i++) categories[i] = categoryTexts[i] ?? string.Empty;
 
             var series = new List<ExcelChartSeries>(_values.Length);
             for (int s = 0; s < _values.Length; s++) {
-                Vector vector = _values[s];
-                ExcelSheet sheet = vector.Sheet;
-                var points = new double[vector.Count];
-                for (int i = 0; i < points.Length; i++) {
-                    (int row, int column) = vector.Cell(i);
-                    points[i] = sheet.TryGetCellText(row, column, out string? raw) &&
-                        double.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out double value) ? value : 0D;
-                }
-
+                string?[] raw = ReadTexts(_values[s]);
+                var points = new double[raw.Length];
+                for (int i = 0; i < points.Length; i++) points[i] = ExcelDocument.ParseChartNumber(raw[i]);
                 series.Add(ExcelChartSeries.CreateOwned(NameAt(s, null), points));
             }
 
             return new ExcelChartData(categories, series);
+        }
+
+        /// <summary>
+        /// Reads a range's cell texts, from deferred table rows when they hold them so the rows stay on the direct
+        /// writer, otherwise from the cells; an empty cell reads as null.
+        /// </summary>
+        private static string?[] ReadTexts(Vector vector) {
+            ExcelSheet sheet = vector.Sheet;
+            if (sheet.Document.TryReadDeferredTabularCellTexts(sheet, vector.Count, vector.Cell, out string?[] deferred)) return deferred;
+            var texts = new string?[vector.Count];
+            for (int i = 0; i < texts.Length; i++) {
+                (int row, int column) = vector.Cell(i);
+                texts[i] = sheet.TryGetCellText(row, column, out string? text) ? text : null;
+            }
+
+            return texts;
         }
 
         internal IReadOnlyList<string> ResolveNames(ExcelChartData? data) {

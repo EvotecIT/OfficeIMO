@@ -39,12 +39,16 @@ public sealed partial class PdfDocumentPreflight {
                     encryption += string.Join(", ", parts) + ")";
                 }
 
-                encryption += security.PasswordAuthenticationRole == PdfPasswordAuthenticationRole.None
-                    ? ". No password authorization was established."
-                    : ". The supplied password authenticated as " + security.PasswordAuthenticationRole + ".";
+                encryption += security.PasswordAuthenticationRole switch {
+                    PdfPasswordAuthenticationRole.None => ". No password authorization was established.",
+                    PdfPasswordAuthenticationRole.PublicKeyRecipient => ". A supplied certificate opened the document as a public-key recipient.",
+                    _ => ". The supplied password authenticated as " + security.PasswordAuthenticationRole + "."
+                };
                 AddDistinct(messages, encryption);
 
-                if (security.EncryptionPermissions.HasValue) {
+                if (security.EncryptionPermissions.HasValue && security.PasswordAuthenticationRole == PdfPasswordAuthenticationRole.PublicKeyRecipient) {
+                    AddDistinct(messages, "Recipient permissions " + security.EncryptionPermissions.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + " from the public-key recipient data are enforced unless the caller explicitly ignores restrictions.");
+                } else if (security.EncryptionPermissions.HasValue) {
                     AddDistinct(messages, "Raw encryption permissions /P=" + security.EncryptionPermissions.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + " were detected and are enforced for user-password operations unless the caller explicitly ignores restrictions.");
                 }
 

@@ -801,6 +801,8 @@ public partial class PdfTableStyle {
         if (ImportedColumnWidthFractions != null) clone.ImportedColumnWidthFractions = new System.Collections.Generic.List<double?>(ImportedColumnWidthFractions);
         if (ColumnMaxWidths != null) clone.ColumnMaxWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>(ColumnMaxWidths);
         if (ColumnWidthWeights != null) clone.ColumnWidthWeights = new System.Collections.Generic.List<double>(ColumnWidthWeights);
+        clone.RepeatFooterRows = RepeatFooterRows;
+        clone.PageSummary = PageSummary?.Clone();
         return clone;
     }
 

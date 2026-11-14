@@ -825,25 +825,36 @@ internal static partial class PdfWriter {
             List<(string Name, int Id)> usedGraphicsStateResources;
             List<(string Name, int Id)> usedShadingResources;
 
-            // When a page has no background, header/footer, images, effects, flattened annotations or
-            // colour transform, the assembled content stream is exactly the content already produced by
-            // layout. If that content is pure ASCII (matching the ASCII.GetBytes used below), the stored
-            // bytes are byte-identical to the assembled bytes, so skip the bytes -> string decode, the
-            // string assembly and the string -> bytes re-encode entirely.
+            // When a page has no header/footer, images, effects, flattened annotations or colour transform,
+            // the assembled content stream is the page background followed by the content layout produced.
+            // If both are pure ASCII (matching the ASCII.GetBytes used below), concatenating the stored bytes
+            // gives the assembled bytes, so skip the bytes -> string decode, the string assembly and the
+            // string -> bytes re-encode. A background ending in white space cannot join a resource name with
+            // the layout content, so the page's names are the union of both parts' names.
             if (page.Images.Count == 0 &&
                 page.EffectGroups.Count == 0 &&
                 !flattenVisualAnnotations &&
                 pageColorTransform == null &&
-                pageBackgroundContent.Length == 0 &&
                 headerFooterShapeContent.Length == 0 &&
                 !pageOpts.HasHeaderTextContentForPage(headerFooterVariantPageNumber) &&
                 !pageOpts.HasFooterTextContentForPage(headerFooterVariantPageNumber) &&
+                IsAsciiPrefix(pageBackgroundContent) &&
                 IsAsciiContent(pageContentBytes)) {
-                contentBytes = pageContentBytes;
-                usedFontResources = FilterPdfResources(pageResourceNames, fontResources);
-                usedXObjectResources = FilterPdfResources(pageResourceNames, xobjects);
-                usedGraphicsStateResources = FilterPdfResources(pageResourceNames, graphicsStates);
-                usedShadingResources = FilterPdfResources(pageResourceNames, shadings);
+                HashSet<string> contentResourceNames = pageResourceNames;
+                if (pageBackgroundContent.Length == 0) {
+                    contentBytes = pageContentBytes;
+                } else {
+                    byte[] backgroundBytes = Encoding.ASCII.GetBytes(pageBackgroundContent);
+                    contentBytes = new byte[backgroundBytes.Length + pageContentBytes.Length];
+                    Buffer.BlockCopy(backgroundBytes, 0, contentBytes, 0, backgroundBytes.Length);
+                    Buffer.BlockCopy(pageContentBytes, 0, contentBytes, backgroundBytes.Length, pageContentBytes.Length);
+                    contentResourceNames = CollectPdfResourceNames(backgroundBytes);
+                    contentResourceNames.UnionWith(pageResourceNames);
+                }
+                usedFontResources = FilterPdfResources(contentResourceNames, fontResources);
+                usedXObjectResources = FilterPdfResources(contentResourceNames, xobjects);
+                usedGraphicsStateResources = FilterPdfResources(contentResourceNames, graphicsStates);
+                usedShadingResources = FilterPdfResources(contentResourceNames, shadings);
             } else {
                 string pageLayoutContent = layout.ReadContent(page.Content);
                 string contentStr = pageBackgroundContent + WrapArtifactContent(headerFooterShapeContent, markInfo, "/Type /Pagination");
@@ -1644,6 +1655,16 @@ internal static partial class PdfWriter {
 
     // True when every byte is ASCII (< 0x80). Only then does the stored content (Latin1-encoded) round-trip
     // to the same bytes as Encoding.ASCII.GetBytes(decoded content), which the plain-page fast path relies on.
+    // Empty, or ASCII ending in white space: such a prefix keeps its resource names apart from what follows.
+    private static bool IsAsciiPrefix(string content) {
+        if (content.Length == 0) return true;
+        if (!char.IsWhiteSpace(content[content.Length - 1])) return false;
+        foreach (char character in content) {
+            if (character >= 0x80) return false;
+        }
+        return true;
+    }
+
     private static bool IsAsciiContent(byte[] content) {
         for (int i = 0; i < content.Length; i++) {
             if (content[i] >= 0x80) {

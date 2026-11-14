@@ -38,6 +38,17 @@ internal static class MarkdownListRendering {
         Func<int, string> topLevelAttributesFactory,
         bool renderItemAttributes = false) {
         var sb = new System.Text.StringBuilder();
+        AppendHtml(sb, listTag, items, attributes, topLevelAttributesFactory, renderItemAttributes);
+        return sb.ToString();
+    }
+
+    internal static void AppendHtml(
+        System.Text.StringBuilder sb,
+        string listTag,
+        IReadOnlyList<ListItem> items,
+        MarkdownAttributeSet? attributes,
+        Func<int, string> topLevelAttributesFactory,
+        bool renderItemAttributes = false) {
         renderItemAttributes = renderItemAttributes || HtmlRenderContext.RenderListItemAttributes;
 
         var scopeStarts = new List<int>();
@@ -141,15 +152,14 @@ internal static class MarkdownListRendering {
             sb.Append("<li")
                 .Append(MarkdownHtmlAttributes.Render(itemAttributes, options, additionalClasses: itemClasses))
                 .Append(taskMarkerStyle)
-                .Append('>')
-                .Append(item.RenderHtml(renderLoose, renderGenericAttributeConsumedWhitespace: !renderItemAttributes));
+                .Append('>');
+            item.AppendHtml(sb, renderLoose, renderGenericAttributeConsumedWhitespace: !renderItemAttributes);
             liOpen = true;
         }
 
         if (liOpen) { sb.Append("</li>"); }
         for (int k = currentLevel; k > 0; k--) { sb.Append("</").Append(listTag).Append("></li>"); }
         sb.Append("</").Append(listTag).Append('>');
-        return sb.ToString();
     }
 
     private static void AppendItemMarkdown(System.Text.StringBuilder sb, string content, string baseIndent, string firstPrefix, string contPrefix) {

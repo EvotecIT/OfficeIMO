@@ -239,9 +239,21 @@ namespace OfficeIMO.Excel {
                 return snapshots;
             }
 
+            // One walk over the rows finds each requested row, so gaps cost nothing; the first row with an index wins,
+            // as a single-cell lookup finds it.
+            var rows = new Row?[snapshots.Length];
+            SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
+            int previousRowIndex = 0;
+            for (OpenXmlElement? child = sheetData?.FirstChild; child != null; child = child.NextSibling()) {
+                if (child is not Row row) continue;
+                int rowIndex = ExcelWorksheetCoordinates.GetRowIndex(row, ref previousRowIndex);
+                if (rowIndex >= firstRow && rowIndex <= lastRow && rows[rowIndex - firstRow] == null) rows[rowIndex - firstRow] = row;
+            }
+
             for (int i = 0; i < snapshots.Length; i++) {
+                if (rows[i] == null) continue;
                 try {
-                    Cell? cell = TryGetCellForReading(firstRow + i, column);
+                    Cell? cell = TryGetCellForReading(rows[i]!, firstRow + i, column);
                     if (cell != null) snapshots[i] = CreateCellValueSnapshot(cell, sharedStrings, dateStyles);
                 } catch {
                     snapshots[i] = null;

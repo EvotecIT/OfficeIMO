@@ -36,7 +36,6 @@ public sealed partial class CsvRowWriter
         if (utf8Writer != null)
         {
             _propertyUtf8Writer = utf8Writer;
-            _propertyNewLineBytes ??= utf8Writer.Encoding.GetBytes(_options.NewLine);
         }
         else if (useSpanBuffer)
         {

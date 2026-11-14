@@ -51,11 +51,17 @@ public sealed class IppPrinterDeliveryTests {
     }
 
     [Theory]
-    [InlineData(PdfPrintContentKind.Vector, PdfPrintColorMode.Grayscale)]
-    [InlineData(PdfPrintContentKind.Raster, PdfPrintColorMode.Color)]
-    public void GrayscaleAndRasterJobsAlwaysUsePwgRaster(PdfPrintContentKind kind, PdfPrintColorMode color) {
+    [InlineData(PdfPrintContentKind.Vector, PdfPrintColorMode.Grayscale, true, 99)]
+    [InlineData(PdfPrintContentKind.Raster, PdfPrintColorMode.Color, false, 99)]
+    // A monochrome PDF printer that cannot make the copies itself keeps the raster path and its document copies.
+    [InlineData(PdfPrintContentKind.Vector, PdfPrintColorMode.Grayscale, false, 1)]
+    public void RasterizedGrayscaleAndRasterJobsUsePwgRaster(PdfPrintContentKind kind, PdfPrintColorMode color, bool rasterizeGrayscale, int maxCopies) {
         IppDeliveryPlan plan = Plan(Sheets(PdfPageSizes.A4.Width, PdfPageSizes.A4.Height, 3, color), kind,
-            new PdfPrintDeliveryOptions { PrinterName = "p", Copies = 2, MaximumRasterDpi = 400 }, PdfAndRaster);
+            new PdfPrintDeliveryOptions { PrinterName = "p", Copies = 2, MaximumRasterDpi = 400, RasterizeGrayscale = rasterizeGrayscale },
+            new IppPrinterCapabilities {
+                DocumentFormats = PdfAndRaster.DocumentFormats, Media = PdfAndRaster.Media, MediaSizes = PdfAndRaster.MediaSizes, ColorModes = PdfAndRaster.ColorModes,
+                MaxCopies = maxCopies, PwgRasterResolutions = PdfAndRaster.PwgRasterResolutions, PwgRasterTypes = PdfAndRaster.PwgRasterTypes
+            });
 
         Assert.Equal(IppDocumentKind.PwgRaster, plan.Kind);
         Assert.Equal("image/pwg-raster", plan.DocumentFormat);

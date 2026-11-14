@@ -4,6 +4,7 @@ internal static class MarkdownBlockSyntaxBuilder {
     private static readonly MarkdownBlockSyntaxBuilderContext _context = new();
 
     internal static MarkdownSyntaxNode BuildBlock(IMarkdownBlock block, MarkdownSourceSpan? span = null, bool isGenerated = false) {
+        System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
         var effectiveSpan = span ?? (block as MarkdownObject)?.SourceSpan;
         MarkdownSyntaxNode node;
 

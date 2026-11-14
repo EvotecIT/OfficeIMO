@@ -19,14 +19,14 @@ internal static class PowerShellRowObject
 
     /// <summary>
     /// Returns whether row properties with these names can be added with <c>preValidated: true</c>, which skips the
-    /// per-property duplicate lookup. Empty or duplicate names keep the validated add and its usual error.
+    /// per-property duplicate lookup. Empty, duplicate or reserved member-set names keep the validated add and its usual error.
     /// </summary>
     public static bool CanAddPrevalidated(IEnumerable<string?> names)
     {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var name in names)
         {
-            if (string.IsNullOrEmpty(name) || !seen.Add(name!))
+            if (string.IsNullOrEmpty(name) || ReservedNames.Contains(name!) || !seen.Add(name!))
             {
                 return false;
             }
@@ -34,6 +34,12 @@ internal static class PowerShellRowObject
 
         return true;
     }
+
+    // PowerShell's intrinsic member sets; a note property with one of these names would hide it.
+    private static readonly HashSet<string> ReservedNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "PSObject", "PSBase", "PSAdapted", "PSExtended", "PSTypeNames"
+    };
 
     private static Func<int, PSObject>? CreateCapacityFactory()
     {

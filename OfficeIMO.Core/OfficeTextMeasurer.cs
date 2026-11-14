@@ -65,8 +65,8 @@ public sealed class OfficeTextMeasurer {
             return 0D;
         }
 
-        double fontWidthFactor = style.WidthFactor > 0D
-            ? style.WidthFactor
+        double fontWidthFactor = style.FontWidthFactor > 0D
+            ? style.FontWidthFactor
             : GetFontFamilyWidthFactor(style.FontInfo) * GetStyleWidthFactor(style.FontInfo);
         if (TryMeasureAsciiWidth(text!, style, fontWidthFactor, out double asciiWidth)) {
             return asciiWidth;

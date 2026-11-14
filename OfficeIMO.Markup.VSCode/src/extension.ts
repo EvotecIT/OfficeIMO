@@ -419,7 +419,7 @@ async function exportPowerPoint(context: vscode.ExtensionContext, resource?: vsc
     return;
   }
 
-  const exportArgs = ['--target', 'pptx', '--output', output.fsPath];
+  const exportArgs = ['--target', 'pptx', '--output', output.fsPath, '--force'];
   const config = vscode.workspace.getConfiguration('officeimoMarkup');
   if (!config.get<boolean>('renderMermaidOnExport', true)) {
     exportArgs.push('--no-mermaid');
@@ -451,7 +451,7 @@ async function exportExcel(context: vscode.ExtensionContext, resource?: vscode.U
     return;
   }
 
-  const result = await runCli(context, document, 'export', ['--target', 'xlsx', '--output', output.fsPath]);
+  const result = await runCli(context, document, 'export', ['--target', 'xlsx', '--output', output.fsPath, '--force']);
   if (result.code !== 0) {
     vscode.window.showErrorMessage(result.stderr || 'OfficeIMO Markup Excel export failed.');
     return;
@@ -471,7 +471,7 @@ async function exportWord(context: vscode.ExtensionContext, resource?: vscode.Ur
     return;
   }
 
-  const result = await runCli(context, document, 'export', ['--target', 'docx', '--output', output.fsPath]);
+  const result = await runCli(context, document, 'export', ['--target', 'docx', '--output', output.fsPath, '--force']);
   if (result.code !== 0) {
     vscode.window.showErrorMessage(result.stderr || 'OfficeIMO Markup Word export failed.');
     return;
@@ -606,7 +606,7 @@ async function runExportToPath(
   saveLabel: string
 ): Promise<vscode.Uri | undefined> {
 
-  const exportArgs = ['--target', target, '--output', output.fsPath];
+  const exportArgs = ['--target', target, '--output', output.fsPath, '--force'];
   if (target === 'pptx') {
     const config = vscode.workspace.getConfiguration('officeimoMarkup');
     if (!config.get<boolean>('renderMermaidOnExport', true)) {

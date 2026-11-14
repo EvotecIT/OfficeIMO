@@ -10,10 +10,52 @@ namespace OfficeIMO.Excel {
         /// </summary>
         internal bool TryReadDeferredTabularChartData(ExcelSheet sheet, ExcelChartDataRange range, out ExcelChartData? data) {
             data = null;
-            var candidate = _directDataSetSaveCandidate;
-            if (candidate == null || !candidate.IsValid || !candidate.IsDeferred || candidate.Model.Sheets.Count != 1
-                || range.Orientation != ExcelChartDataOrientation.Vertical
+            if (range.Orientation != ExcelChartDataOrientation.Vertical
                 || !string.Equals(range.SheetName, sheet.Name, StringComparison.Ordinal)) {
+                return false;
+            }
+
+            if (!TryReadDeferredTabularCellTexts(sheet, range.CategoryCount,
+                    index => (range.CategoryStartRow + index, range.CategoryStartColumn), out string?[] categories)) {
+                return false;
+            }
+
+            var series = new List<ExcelChartSeries>(range.SeriesCount);
+            for (int s = 0; s < range.SeriesCount; s++) {
+                string name = "Series " + (s + 1).ToString(CultureInfo.InvariantCulture);
+                if (range.HasHeaderRow) {
+                    if (!TryReadDeferredTabularCellTexts(sheet, 1, _ => (range.StartRow, range.SeriesStartColumn + s), out string?[] header)) {
+                        return false;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(header[0])) name = header[0]!;
+                }
+
+                int column = range.SeriesStartColumn + s;
+                if (!TryReadDeferredTabularCellTexts(sheet, range.CategoryCount, index => (range.CategoryStartRow + index, column), out string?[] raw)) {
+                    return false;
+                }
+
+                series.Add(new ExcelChartSeries(name, raw.Select(ParseChartNumber)));
+            }
+
+            data = new ExcelChartData(categories.Select(text => text ?? string.Empty), series);
+            return true;
+        }
+
+        /// <summary>The number a chart cache takes from a cell's text, as linked range charts read it.</summary>
+        internal static double ParseChartNumber(string? text) =>
+            text != null && double.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out double value) ? value : 0D;
+
+        /// <summary>
+        /// Reads cell texts on <paramref name="sheet"/> from a table whose rows still wait for the direct writer: each as the
+        /// text its cell would hold, or null for an empty cell. Returns false when the rows are not deferred, a cell lies
+        /// outside the table, or a value is anything but plain text or a plain number.
+        /// </summary>
+        internal bool TryReadDeferredTabularCellTexts(ExcelSheet sheet, int count, Func<int, (int Row, int Column)> cellAt, out string?[] texts) {
+            texts = Array.Empty<string?>();
+            var candidate = _directDataSetSaveCandidate;
+            if (candidate == null || !candidate.IsValid || !candidate.IsDeferred || candidate.Model.Sheets.Count != 1) {
                 return false;
             }
 
@@ -26,56 +68,35 @@ namespace OfficeIMO.Excel {
 
             var table = sheetModel.Table;
             int dataStartRow = firstRow + (sheetModel.IncludeHeaders ? 1 : 0);
-            bool TryGetText(int row, int column, out string? text) {
-                text = null;
+            var result = new string?[count];
+            for (int i = 0; i < count; i++) {
+                (int row, int column) = cellAt(i);
                 int columnIndex = column - firstColumn;
                 if (columnIndex < 0 || columnIndex >= table.ColumnCount) return false;
                 if (sheetModel.IncludeHeaders && row == firstRow) {
-                    text = table.GetColumnName(columnIndex);
-                    return IsPlainText(text);
+                    result[i] = table.GetColumnName(columnIndex);
+                    if (!IsPlainText(result[i])) return false;
+                    continue;
                 }
 
                 int rowIndex = row - dataStartRow;
                 if (rowIndex < 0 || rowIndex >= table.RowCount) return false;
                 object? value = table.GetValue(rowIndex, columnIndex);
-                if (value == null) return true;
-                if (value is string stringValue) {
-                    text = stringValue;
-                    return IsPlainText(text);
+                if (value == null) continue;
+                if (value is string text) {
+                    if (!IsPlainText(text)) return false;
+                    result[i] = text;
+                    continue;
                 }
 
                 // Plain numbers read back as their stored text; dates, durations, Booleans and other values keep the cell read.
                 if (value is not (double or float or decimal or int or long or short or sbyte or uint or ulong or ushort or byte)) return false;
                 var (cellValue, cellType) = CoerceValueHelper.Coerce(value, static shared => new CellValue(shared), dateSystem: DateSystem);
                 if (cellType != CellValues.Number) return false;
-                text = cellValue.Text;
-                return true;
+                result[i] = cellValue.Text;
             }
 
-            var categories = new List<string>(range.CategoryCount);
-            for (int i = 0; i < range.CategoryCount; i++) {
-                if (!TryGetText(range.CategoryStartRow + i, range.CategoryStartColumn, out string? category)) return false;
-                categories.Add(category ?? string.Empty);
-            }
-
-            var series = new List<ExcelChartSeries>(range.SeriesCount);
-            for (int s = 0; s < range.SeriesCount; s++) {
-                string name = "Series " + (s + 1).ToString(CultureInfo.InvariantCulture);
-                if (range.HasHeaderRow) {
-                    if (!TryGetText(range.StartRow, range.SeriesStartColumn + s, out string? header)) return false;
-                    if (!string.IsNullOrWhiteSpace(header)) name = header!;
-                }
-
-                var values = new List<double>(range.CategoryCount);
-                for (int i = 0; i < range.CategoryCount; i++) {
-                    if (!TryGetText(range.CategoryStartRow + i, range.SeriesStartColumn + s, out string? raw)) return false;
-                    values.Add(raw != null && double.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out double value) ? value : 0D);
-                }
-
-                series.Add(new ExcelChartSeries(name, values));
-            }
-
-            data = new ExcelChartData(categories, series);
+            texts = result;
             return true;
         }
 
