@@ -12,6 +12,17 @@ public sealed class PdfDocumentSecurity {
     /// <summary>Attempts to encrypt an unencrypted PDF through the shared mutation planner.</summary>
     internal PdfOperationResult<PdfSecurityMutationResult> EncryptResult(PdfStandardEncryptionOptions encryption) => _document.EncryptResult(encryption);
 
+    /// <summary>
+    /// Encrypts an unencrypted PDF for certificate recipients (public-key security, AES-256) and returns the rewritten
+    /// document with preservation proof. Recipients open it with <see cref="PdfLoadOptions.PublicKeyDecryption"/>.
+    /// </summary>
+    public PdfSecurityMutationResult EncryptForRecipients(PdfPublicKeyEncryptionOptions encryption) =>
+        _document.Encrypt(PdfStandardEncryptionOptions.ForPublicKey(encryption));
+
+    /// <summary>Encrypts this PDF for certificate recipients with cancellation through rewriting and preservation readback.</summary>
+    public PdfSecurityMutationResult EncryptForRecipients(PdfPublicKeyEncryptionOptions encryption, System.Threading.CancellationToken cancellationToken) =>
+        _document.Encrypt(PdfStandardEncryptionOptions.ForPublicKey(encryption), cancellationToken);
+
     /// <summary>Removes Standard password security using the current owner password.</summary>
     public PdfSecurityMutationResult Decrypt(string ownerPassword) => _document.Decrypt(ownerPassword);
 

@@ -309,6 +309,29 @@ public sealed partial class PdfLoadOptions {
         };
     }
 
+    internal static PdfLoadOptions WithPublicKeyDecryption(PdfLoadOptions? options, PdfPublicKeyDecryptionOptions? publicKeyDecryption) {
+        PdfLoadOptions effective = Resolve(options);
+        return new PdfLoadOptions {
+            ParsingMode = effective.ParsingMode,
+            Profile = effective.Profile,
+            IncludeImages = effective.IncludeImages,
+            IncludeFormWidgets = effective.IncludeFormWidgets,
+            RecoverDecodableTextForInspection = effective.RecoverDecodableTextForInspection,
+            PageSelection = effective.PageSelection,
+            LayoutOptions = CloneLayoutOptions(effective.LayoutOptions),
+            Pipeline = ClonePipelineOptions(effective.Pipeline),
+            Limits = effective.Limits,
+            Password = effective.Password,
+            AesCryptographyProvider = effective.AesCryptographyProvider,
+            PublicKeyDecryption = publicKeyDecryption,
+            PermissionPolicy = effective.PermissionPolicy,
+            PreferToUnicode = effective.PreferToUnicode,
+            UseWinAnsiFallback = effective.UseWinAnsiFallback,
+            AdjustKerningFromTJ = effective.AdjustKerningFromTJ,
+            IncludeArtifactText = effective.IncludeArtifactText
+        };
+    }
+
     internal static PdfLoadOptions WithAesCryptographyProvider(
         PdfLoadOptions? options,
         IOfficeAesCryptographyProvider? aesCryptographyProvider) {

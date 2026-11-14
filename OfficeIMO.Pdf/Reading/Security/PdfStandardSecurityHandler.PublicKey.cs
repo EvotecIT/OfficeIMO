@@ -208,6 +208,10 @@ internal sealed partial class PdfStandardSecurityHandler {
         IReadOnlyList<byte[]> recipients,
         PdfPublicKeyDecryptionOptions options,
         CancellationToken cancellationToken) {
+        if (options.KnownRecipientContent is byte[] known) {
+            return (byte[])known.Clone();
+        }
+
         var envelopeOptions = new CmsEnvelopeOptions {
             MaxContentBytes = 4096,
             MaxEncodedBytes = MaxPublicKeyRecipientBytes,

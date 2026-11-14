@@ -110,11 +110,15 @@ internal static class PdfSecurityEditor {
         byte[] rewrittenPdf = PdfDocumentObjectGraphRewriter.Rewrite(sourcePdf, sourceDocument, sourceReadOptions, outputEncryption,
             maximumOutputBytes: maximumOutputBytes, cancellationToken: cancellationToken, preserveSourceEncryption: false);
         cancellationToken.ThrowIfCancellationRequested();
+        PdfLoadOptions? verificationReadOptions = outputEncryption?.PublicKey is null
+            ? sourceReadOptions
+            : PdfLoadOptions.WithPublicKeyDecryption(sourceReadOptions, PdfPublicKeyDecryptionOptions.ForWriterVerification(
+                PdfStandardSecurityWriter.CreatePublicKeyRecipientContent(outputEncryption.PublicKeySeed!, outputEncryption.Permissions)));
         PdfLoadOptions outputReadOptions = PdfLoadOptions.WithMinimumInputBytes(
             PdfLoadOptions.WithAesCryptographyProvider(
                 PdfLoadOptions.WithPassword(
-                    sourceReadOptions,
-                    outputEncryption?.OwnerPassword ?? outputEncryption?.UserPassword),
+                    verificationReadOptions,
+                    outputEncryption?.PublicKey is null ? outputEncryption?.OwnerPassword ?? outputEncryption?.UserPassword : null),
                 outputEncryption?.AesCryptographyProvider ?? sourceReadOptions?.AesCryptographyProvider),
             rewrittenPdf.LongLength);
 
