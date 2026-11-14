@@ -624,6 +624,7 @@ if (-not $InternalQuestPdf) {
     }
     $baseDefinitions = Get-LibraryComparisonDefinitions -Framework $Framework
     foreach ($definition in $baseDefinitions.Values) {
+        if ($definition.Frameworks -and $Framework -notin $definition.Frameworks) { continue }
         $catalogDeclarations[$definition.ComparisonId] = [pscustomobject]@{
             comparisonId = $definition.ComparisonId
             area = $definition.Area
@@ -633,7 +634,9 @@ if (-not $InternalQuestPdf) {
         }
     }
     foreach ($item in $executionPlan) {
-        $baseId = $baseDefinitions[$item.Workload].ComparisonId
+        $definition = $baseDefinitions[$item.Workload]
+        if ($definition.Frameworks -and $Framework -notin $definition.Frameworks) { continue }
+        $baseId = $definition.ComparisonId
         if ($item.CatalogComparisonId -eq $baseId) { continue }
         $catalogDeclarations[$item.CatalogComparisonId] = [pscustomobject]@{
             comparisonId = $item.CatalogComparisonId
