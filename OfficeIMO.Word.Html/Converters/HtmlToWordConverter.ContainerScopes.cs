@@ -1,6 +1,7 @@
 using AngleSharp.Dom;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Internal;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
@@ -34,23 +35,8 @@ namespace OfficeIMO.Word.Html {
         private static List<WordParagraph> GetParagraphsInScope(WordSection section, WordTableCell? cell, WordHeaderFooter? headerFooter) =>
             cell?.Paragraphs ?? headerFooter?.Paragraphs ?? section.Paragraphs;
 
-        private static int GetGeneratedParagraphStartIndex(WordSection section, WordTableCell? cell, WordHeaderFooter? headerFooter) {
-            List<WordParagraph> paragraphs = GetParagraphsInScope(section, cell, headerFooter);
-            return cell != null &&
-                   paragraphs.Count == 1 &&
-                   IsReplaceableEmptyCellParagraph(paragraphs[0])
-                ? 0
-                : paragraphs.Count;
-        }
-
-        private static List<WordParagraph> GetGeneratedParagraphs(WordSection section, WordTableCell? cell, WordHeaderFooter? headerFooter, int startIndex) =>
-            GetParagraphsInScope(section, cell, headerFooter).Skip(startIndex).ToList();
-
         private static List<WordTable> GetTablesInScope(WordSection section, WordTableCell? cell, WordHeaderFooter? headerFooter) =>
             cell?.DirectNestedTables ?? headerFooter?.Tables ?? section.Tables;
-
-        private static List<WordTable> GetGeneratedTables(WordSection section, WordTableCell? cell, WordHeaderFooter? headerFooter, int startIndex) =>
-            GetTablesInScope(section, cell, headerFooter).Skip(startIndex).ToList();
 
         private List<WordParagraph> GetMaterializedContainerParagraphs(
             IElement element,
@@ -58,15 +44,13 @@ namespace OfficeIMO.Word.Html {
             WordTableCell? cell,
             WordHeaderFooter? headerFooter,
             WordParagraph? currentParagraph,
-            int paragraphStartIndex,
-            int tableStartIndex) {
-            List<WordParagraph> paragraphs = GetGeneratedParagraphs(section, cell, headerFooter, paragraphStartIndex);
-            List<WordTable> tables = GetGeneratedTables(section, cell, headerFooter, tableStartIndex);
+            ScopeMark mark) {
+            List<WordParagraph> paragraphs = GetGeneratedParagraphs(section, cell, headerFooter, mark);
+            List<WordTable> tables = GetGeneratedTables(section, cell, headerFooter, mark);
             paragraphs.RemoveAll(paragraph => IsGeneratedNestedTableTrailingAnchor(paragraph, tables));
             if (paragraphs.Count == 0 &&
                 currentParagraph != null &&
-                GetParagraphsInScope(section, cell, headerFooter)
-                    .Any(paragraph => ReferenceEquals(paragraph._paragraph, currentParagraph._paragraph))) {
+                IsParagraphInScope(section, cell, headerFooter, mark, currentParagraph)) {
                 paragraphs.Add(currentParagraph);
             }
             if (paragraphs.Count == 0 &&
@@ -74,7 +58,7 @@ namespace OfficeIMO.Word.Html {
                 tables.Count == 0 &&
                 RequiresEmptyBlockParagraph(element)) {
                 AddParagraphInScope(section, cell, headerFooter);
-                paragraphs = GetGeneratedParagraphs(section, cell, headerFooter, paragraphStartIndex);
+                paragraphs = GetGeneratedParagraphs(section, cell, headerFooter, mark);
             }
 
             return paragraphs;
@@ -83,9 +67,10 @@ namespace OfficeIMO.Word.Html {
         private static bool IsGeneratedNestedTableTrailingAnchor(
             WordParagraph paragraph,
             IReadOnlyList<WordTable> generatedTables) {
+            // Checking each generated table's next sibling avoids PreviousSibling, which scans from the
+            // first child of the parent.
             if (!string.IsNullOrEmpty(paragraph._paragraph.InnerText) ||
-                paragraph._paragraph.PreviousSibling() is not Table previousTable ||
-                !generatedTables.Any(table => ReferenceEquals(table._table, previousTable))) {
+                !generatedTables.Any(table => ReferenceEquals(table._table.NextSibling(), paragraph._paragraph))) {
                 return false;
             }
 
@@ -161,13 +146,14 @@ namespace OfficeIMO.Word.Html {
             IReadOnlyList<WordTable> tables,
             bool first) {
             var candidates = new List<OpenXmlElement>(paragraphs.Count + tables.Count);
+            var candidateSet = new HashSet<OpenXmlElement>(OfficeReferenceEqualityComparer<OpenXmlElement>.Instance);
             foreach (WordParagraph paragraph in paragraphs) {
-                if (!candidates.Any(candidate => ReferenceEquals(candidate, paragraph._paragraph))) {
+                if (candidateSet.Add(paragraph._paragraph)) {
                     candidates.Add(paragraph._paragraph);
                 }
             }
             foreach (WordTable table in tables) {
-                if (!candidates.Any(candidate => ReferenceEquals(candidate, table._table))) {
+                if (candidateSet.Add(table._table)) {
                     candidates.Add(table._table);
                 }
             }
@@ -180,12 +166,38 @@ namespace OfficeIMO.Word.Html {
                 return first ? candidates[0] : candidates[candidates.Count - 1];
             }
 
-            IEnumerable<OpenXmlElement> siblings = first
-                ? parent.ChildElements
-                : parent.ChildElements.Reverse();
-            return siblings.FirstOrDefault(
-                       sibling => candidates.Any(candidate => ReferenceEquals(candidate, sibling))) ??
-                   (first ? candidates[0] : candidates[candidates.Count - 1]);
+            // Generated blocks sit at the end of their container. Walking forward from the first
+            // generated paragraph or table usually reaches every other candidate, which avoids
+            // scanning all earlier siblings; Open XML siblings cannot be walked backwards cheaply.
+            int inParent = candidates.Count(candidate => ReferenceEquals(candidate.Parent, parent));
+            OpenXmlElement? firstTable = tables.Count > 0 && ReferenceEquals(tables[0]._table.Parent, parent) ? tables[0]._table : null;
+            if (TryFindCandidateRange(candidates[0], candidateSet, inParent, out OpenXmlElement? earliest, out OpenXmlElement? latest) ||
+                (firstTable != null && TryFindCandidateRange(firstTable, candidateSet, inParent, out earliest, out latest)) ||
+                TryFindCandidateRange(parent.FirstChild, candidateSet, inParent, out earliest, out latest)) {
+                return first ? earliest : latest;
+            }
+
+            return first ? candidates[0] : candidates[candidates.Count - 1];
+        }
+
+        private static bool TryFindCandidateRange(
+            OpenXmlElement? start,
+            HashSet<OpenXmlElement> candidates,
+            int expected,
+            out OpenXmlElement? earliest,
+            out OpenXmlElement? latest) {
+            earliest = null;
+            latest = null;
+            int found = 0;
+            for (OpenXmlElement? sibling = start; sibling != null; sibling = sibling.NextSibling()) {
+                if (candidates.Contains(sibling)) {
+                    earliest ??= sibling;
+                    latest = sibling;
+                    found++;
+                }
+            }
+
+            return found == expected;
         }
 
         private static void InsertPageBreakAdjacentToTable(WordTable table, bool before) {

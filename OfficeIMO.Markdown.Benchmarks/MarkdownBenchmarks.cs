@@ -74,16 +74,20 @@ public class MarkdownHtmlBenchmarks {
         MarkdownBenchmarkValidation.AssertCommonMarkEquivalent(CorpusName, _markdown, _commonMarkOptions, _commonMarkHtmlOptions);
     }
 
-    [Benchmark(Baseline = true, Description = "OfficeIMO")]
+    [Benchmark(Baseline = true, Description = "OfficeIMO source-backed")]
     public string OfficeIMO_ToHtml_CommonMark() => MarkdownDocument.Parse(_markdown, _commonMarkOptions).ToHtml(_commonMarkHtmlOptions);
+
+    [Benchmark(Description = "OfficeIMO-Semantic")]
+    public string OfficeIMO_ToHtml_Semantic_CommonMark() =>
+        MarkdownBenchmarkParsing.ParseSemantic(_markdown, _commonMarkOptions).ToHtml(_commonMarkHtmlOptions);
 
     [Benchmark(Description = "Markdig")]
     public string Markdig_ToHtml_CommonMark() => Markdig.Markdown.ToHtml(_markdown, MarkdigCommonMarkPipeline);
 
-    [Benchmark]
+    [Benchmark(Description = "OfficeIMO default")]
     public string OfficeIMO_ToHtml_Default() => MarkdownDocument.Parse(_markdown).ToHtml();
 
-    [Benchmark]
+    [Benchmark(Description = "OfficeIMO portable")]
     public string OfficeIMO_ToHtml_Portable() => MarkdownDocument.Parse(_markdown, _portableOptions).ToHtml();
 }
 

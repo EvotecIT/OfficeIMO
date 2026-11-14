@@ -79,10 +79,44 @@ namespace OfficeIMO.Word {
             _tableOfContentEnabledUpdateFieldsOnOpen = false;
         }
 
+        private bool _deferHeadingModified;
+        private bool _headingModifiedWhileDeferred;
+
+        /// <summary>
+        /// Runs a bulk edit that styles many headings and applies the heading notification once
+        /// afterwards. Each notification looks up the table of contents, which scans the body, so
+        /// notifying per heading makes bulk generation quadratic. The notification is idempotent
+        /// and only reads the final table-of-contents state, so one call at the end is equivalent.
+        /// </summary>
+        internal void RunWithDeferredHeadingModified(Action action) {
+            ArgumentNullException.ThrowIfNull(action);
+            if (_deferHeadingModified) {
+                action();
+                return;
+            }
+
+            bool headingModified;
+            _deferHeadingModified = true;
+            try {
+                action();
+            } finally {
+                _deferHeadingModified = false;
+                headingModified = _headingModifiedWhileDeferred;
+                _headingModifiedWhileDeferred = false;
+            }
+
+            if (headingModified) HeadingModified();
+        }
+
         /// <summary>
         /// Ensures heading edits keep the table-of-contents refresh state aligned with the document settings.
         /// </summary>
         internal void HeadingModified() {
+            if (_deferHeadingModified) {
+                _headingModifiedWhileDeferred = true;
+                return;
+            }
+
             var updateOnOpen = Settings.UpdateFieldsOnOpen;
 
             if (_tableOfContentUpdateQueued) {

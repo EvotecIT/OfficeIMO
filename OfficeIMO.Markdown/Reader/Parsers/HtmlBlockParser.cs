@@ -379,6 +379,10 @@ internal static partial class MarkdownReader {
         internal static bool TryParseHtmlTag(string line, out string tagName, out bool isClosing, out int endIndex) =>
             TryParseTag(line, out tagName, out isClosing, out endIndex);
 
+        // endIndex is an absolute index into line.
+        internal static bool TryParseHtmlTag(string line, int startIndex, out string tagName, out bool isClosing, out int endIndex) =>
+            TryParseTagCore(line, startIndex, out tagName, out isClosing, out endIndex);
+
         private static readonly HashSet<string> s_BlankLineFriendlyTags = new(StringComparer.OrdinalIgnoreCase) {
             "details",
             "table",

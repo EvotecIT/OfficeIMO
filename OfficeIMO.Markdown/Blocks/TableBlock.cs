@@ -6,7 +6,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Pipe table with optional header row.
 /// </summary>
-public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock {
+public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock, IHtmlAppendableMarkdownBlock {
     internal const int MaxEffectiveColumnCount = 4096;
     internal const string HeaderlessSingleRowTableMarker = "<!-- OfficeIMO:RTF:HeaderlessSingleRowTable -->";
 
@@ -253,7 +253,14 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
 
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() {
-        StringBuilder sb = new StringBuilder();
+        var sb = new StringBuilder();
+        AppendHtml(sb);
+        return sb.ToString();
+    }
+
+    void IHtmlAppendableMarkdownBlock.AppendHtml(StringBuilder builder) => AppendHtml(builder);
+
+    private void AppendHtml(StringBuilder sb) {
         bool[] numericColumns = ResolveNumericColumns();
         sb.Append("<table").Append(MarkdownHtmlAttributes.Render(Attributes, null)).Append(">");
         AppendColumnGroupHtml(sb, GetEffectiveColumnCount());
@@ -307,7 +314,6 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
             sb.Append("</tbody>");
         }
         sb.Append("</table>");
-        return sb.ToString();
     }
 
     private void AppendTableAttributesToFirstCell(IList<string> cells) {
