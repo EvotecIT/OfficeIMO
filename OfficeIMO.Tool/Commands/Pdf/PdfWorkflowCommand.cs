@@ -25,6 +25,7 @@ Usage:
              [--output-intent <profile.icc> --output-condition-identifier <id>] [--password-env <name>] [--force]
   officeimo pdf providers [--ocr-provider-assembly <provider.dll>]
   officeimo pdf redact <command> [options]
+  officeimo pdf redline <old.pdf> <new.pdf> --output <annotated.pdf> [--changes <changes.json>] [--report <report.html>] [--force]
 
 Page selections preserve order and repeats and accept 1-3,last, odd, even, all, and ! exclusions.
 Passwords are read only from --password-env, never from command-line values or result JSON.
