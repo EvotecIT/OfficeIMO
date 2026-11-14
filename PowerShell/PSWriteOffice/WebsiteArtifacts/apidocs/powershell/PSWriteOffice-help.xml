@@ -175803,7 +175803,7 @@ document through the writer.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Grayscale</maml:name>
           <maml:description>
-            <maml:para>Print in grayscale, exactly as the sheets are previewed, regardless of the device's color support.</maml:para>
+            <maml:para>Print in grayscale, regardless of the device's color support. IPP printers and CUPS queues reached over IPP that list monochrome printing receive the vector PDF and convert it to gray themselves; others receive gray raster sheets.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -175961,6 +175961,18 @@ document through the writer.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RasterizeGrayscale</maml:name>
+          <maml:description>
+            <maml:para>With Grayscale, always send gray raster sheets, so the printout matches the preview pixel for pixel. Slower than letting the printer convert vector PDF. Windows queues always receive raster sheets.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>ScaleMode</maml:name>
           <maml:description>
             <maml:para>Scaling of source pages.</maml:para>
@@ -176025,7 +176037,7 @@ document through the writer.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Grayscale</maml:name>
           <maml:description>
-            <maml:para>Print in grayscale, exactly as the sheets are previewed, regardless of the device's color support.</maml:para>
+            <maml:para>Print in grayscale, regardless of the device's color support. IPP printers and CUPS queues reached over IPP that list monochrome printing receive the vector PDF and convert it to gray themselves; others receive gray raster sheets.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -176183,6 +176195,18 @@ document through the writer.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RasterizeGrayscale</maml:name>
+          <maml:description>
+            <maml:para>With Grayscale, always send gray raster sheets, so the printout matches the preview pixel for pixel. Slower than letting the printer convert vector PDF. Windows queues always receive raster sheets.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>ScaleMode</maml:name>
           <maml:description>
             <maml:para>Scaling of source pages.</maml:para>
@@ -176247,7 +176271,7 @@ document through the writer.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>Grayscale</maml:name>
         <maml:description>
-          <maml:para>Print in grayscale, exactly as the sheets are previewed, regardless of the device's color support.</maml:para>
+          <maml:para>Print in grayscale, regardless of the device's color support. IPP printers and CUPS queues reached over IPP that list monochrome printing receive the vector PDF and convert it to gray themselves; others receive gray raster sheets.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -176412,6 +176436,18 @@ document through the writer.</maml:para>
         <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
         <dev:type>
           <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>RasterizeGrayscale</maml:name>
+        <maml:description>
+          <maml:para>With Grayscale, always send gray raster sheets, so the printout matches the preview pixel for pixel. Slower than letting the printer convert vector PDF. Windows queues always receive raster sheets.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -206278,6 +206314,401 @@ signature and preservation policies. Only the selected files are written; other 
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
         <dev:code>Send-OfficePrinter -Path .\Report.pdf -PrinterName 'Office printer' | Stop-OfficePrintJob</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
+      <command:name>Test-OfficeAccessibility</command:name>
+      <command:verb>Test</command:verb>
+      <command:noun>OfficeAccessibility</command:noun>
+      <maml:description>
+        <maml:para>Checks Word, Excel and PowerPoint files for accessibility issues. The input is never changed.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Runs the rules of the Office Accessibility Checker: alternative text, table header rows, document title and language,
+headings, hyperlink text, text contrast, slide titles, merged cells, default and hidden sheets, and blank cells or paragraphs
+used for spacing. All three formats return the same finding codes and severities. Strict turns structural warnings into errors
+and requires a document title; heuristic findings stay warnings.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Path">
+        <maml:name>Test-OfficeAccessibility</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>IncludeWarnings</maml:name>
+          <maml:description>
+            <maml:para>With Quiet, warnings also make the result false.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Password</maml:name>
+          <maml:description>
+            <maml:para>Password for an encrypted path input. Accepts SecureString or PSCredential; plain strings are transformed with a warning.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
+          <dev:type>
+            <maml:name>SecureString</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Files to inspect; supports wildcards.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Quiet</maml:name>
+          <maml:description>
+            <maml:para>Returns a Boolean per input: true when there are no errors (and no warnings with IncludeWarnings).</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Sarif</maml:name>
+          <maml:description>
+            <maml:para>Returns each report as a SARIF 2.1.0 log string instead of a report object.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Strict</maml:name>
+          <maml:description>
+            <maml:para>Uses the strict profile: structural warnings become errors and a document title is required.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="LiteralPath">
+        <maml:name>Test-OfficeAccessibility</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>IncludeWarnings</maml:name>
+          <maml:description>
+            <maml:para>With Quiet, warnings also make the result false.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="PSPath,FullName">
+          <maml:name>LiteralPath</maml:name>
+          <maml:description>
+            <maml:para>Exact file paths, including FileInfo.FullName and provider PSPath pipeline properties.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Password</maml:name>
+          <maml:description>
+            <maml:para>Password for an encrypted path input. Accepts SecureString or PSCredential; plain strings are transformed with a warning.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
+          <dev:type>
+            <maml:name>SecureString</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Quiet</maml:name>
+          <maml:description>
+            <maml:para>Returns a Boolean per input: true when there are no errors (and no warnings with IncludeWarnings).</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Sarif</maml:name>
+          <maml:description>
+            <maml:para>Returns each report as a SARIF 2.1.0 log string instead of a report object.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Strict</maml:name>
+          <maml:description>
+            <maml:para>Uses the strict profile: structural warnings become errors and a document title is required.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="Document">
+        <maml:name>Test-OfficeAccessibility</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>An open Word, Excel or PowerPoint document, including unsaved edits.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+          <dev:type>
+            <maml:name>Object</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>IncludeWarnings</maml:name>
+          <maml:description>
+            <maml:para>With Quiet, warnings also make the result false.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Quiet</maml:name>
+          <maml:description>
+            <maml:para>Returns a Boolean per input: true when there are no errors (and no warnings with IncludeWarnings).</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Sarif</maml:name>
+          <maml:description>
+            <maml:para>Returns each report as a SARIF 2.1.0 log string instead of a report object.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Strict</maml:name>
+          <maml:description>
+            <maml:para>Uses the strict profile: structural warnings become errors and a document title is required.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>An open Word, Excel or PowerPoint document, including unsaved edits.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+        <dev:type>
+          <maml:name>Object</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>IncludeWarnings</maml:name>
+        <maml:description>
+          <maml:para>With Quiet, warnings also make the result false.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="PSPath,FullName">
+        <maml:name>LiteralPath</maml:name>
+        <maml:description>
+          <maml:para>Exact file paths, including FileInfo.FullName and provider PSPath pipeline properties.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Password</maml:name>
+        <maml:description>
+          <maml:para>Password for an encrypted path input. Accepts SecureString or PSCredential; plain strings are transformed with a warning.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
+        <dev:type>
+          <maml:name>SecureString</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>Files to inspect; supports wildcards.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Quiet</maml:name>
+        <maml:description>
+          <maml:para>Returns a Boolean per input: true when there are no errors (and no warnings with IncludeWarnings).</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Sarif</maml:name>
+        <maml:description>
+          <maml:para>Returns each report as a SARIF 2.1.0 log string instead of a report object.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Strict</maml:name>
+        <maml:description>
+          <maml:para>Uses the strict profile: structural warnings become errors and a document title is required.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>PSWriteOffice.Models.OfficeAccessibilityFileReport</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>Accessibility findings for one Word, Excel or PowerPoint file or open document.</maml:para>
+        </maml:description>
+      </command:returnValue>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+        </dev:type>
+      </command:returnValue>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>System.Boolean</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>List the accessibility findings of a workbook.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>(Test-OfficeAccessibility -Path .\Budget.xlsx).Findings | Format-Table Severity, Code, Location, Message</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Fail a build when any document in a folder has accessibility errors.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>Get-ChildItem .\Docs -Include *.docx, *.xlsx, *.pptx -Recurse | Test-OfficeAccessibility -Strict |
+                Where-Object { -not $_.IsSuccessful }</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Write a SARIF log for code-scanning tools.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>Test-OfficeAccessibility -Path .\Deck.pptx -Sarif | Set-Content .\Deck.sarif</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>

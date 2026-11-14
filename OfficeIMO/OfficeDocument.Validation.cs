@@ -48,16 +48,8 @@ public static partial class OfficeDocument {
         cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions? pdfRead = extension == ".pdf" ? ValidationPdfRead(settings) : null;
         // Every owned Office model uses explicit persistence. Borrowed models use the object overload below.
-        object? document = extension switch {
-            ".docx" or ".docm" or ".dotx" or ".dotm" or ".doc" or ".dot" => WordDocument.Load(path,
-                new WordLoadOptions { AccessMode = DocumentAccessMode.ReadOnly, PersistenceMode = DocumentPersistenceMode.Explicit, Password = settings.Password }),
-            ".xlsx" or ".xlsm" or ".xltx" or ".xltm" or ".xls" or ".xlt" or ".xlsb" => ExcelDocument.Load(path,
-                new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly, PersistenceMode = DocumentPersistenceMode.Explicit, Password = settings.Password }, cancellationToken),
-            ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" or ".ppt" or ".pps" or ".pot" => PowerPointDocument.Load(path,
-                new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly, PersistenceMode = DocumentPersistenceMode.Explicit, Password = settings.Password }, cancellationToken),
-            ".pdf" => PdfDocument.Load(path, pdfRead, cancellationToken),
-            _ => null
-        };
+        object? document = extension == ".pdf" ? (object)PdfDocument.Load(path, pdfRead, cancellationToken)
+            : LoadOfficeModelReadOnly(path, extension, settings.Password, cancellationToken);
         if (document == null) {
             foreach (var check in selected) ValidationNotApplicable(diagnostics, check, extension, "No native validator is registered in OfficeIMO for this format.");
         } else {
@@ -145,16 +137,16 @@ public static partial class OfficeDocument {
                     }
                     break;
                 case OfficeDocumentCheck.Accessibility:
-                    if (document is ExcelDocument workbook) {
-                        var report = workbook.AnalyzeAccessibility();
-                        evidence.Add(report);
-                        foreach (var finding in report.Findings) diagnostics.Add(new OfficeDiagnostic("Excel.Accessibility." + finding.Category,
-                            (OfficeDiagnosticSeverity)(int)finding.Severity, finding.Message, finding.SheetName + ":" + finding.Address, "Excel"));
-                    } else if (document is PowerPointDocument presentation) {
-                        var report = presentation.InspectAccessibility(options.PowerPointAccessibility);
-                        evidence.Add(report);
-                        foreach (var finding in report.Findings) diagnostics.Add(new OfficeDiagnostic(finding.Code,
-                            (OfficeDiagnosticSeverity)(int)finding.Severity, finding.Message, finding.Location, report.Format));
+                    OfficeAccessibilityReport? accessibility = document switch {
+                        ExcelDocument workbook => workbook.InspectAccessibility(options.ExcelAccessibility),
+                        PowerPointDocument presentation => presentation.InspectAccessibility(options.PowerPointAccessibility),
+                        WordDocument word => word.InspectAccessibility(options.WordAccessibility),
+                        _ => null
+                    };
+                    if (accessibility != null) {
+                        evidence.Add(accessibility);
+                        foreach (var finding in accessibility.Findings) diagnostics.Add(new OfficeDiagnostic(finding.Code,
+                            (OfficeDiagnosticSeverity)(int)finding.Severity, finding.Message, finding.Location, accessibility.Format));
                     } else ValidationNotApplicable(diagnostics, check, document.GetType().Name);
                     break;
                 default:
@@ -168,4 +160,15 @@ public static partial class OfficeDocument {
     private static void ValidationNotApplicable(List<OfficeDiagnostic> diagnostics, OfficeDocumentCheck check, string format, string? reason = null) =>
         diagnostics.Add(new OfficeDiagnostic("Validation.NotApplicable", OfficeDiagnosticSeverity.Information,
             check + " is not applicable to this input. " + reason, check.ToString(), format));
+
+    /// <summary>Opens a Word, Excel or PowerPoint file read-only with explicit persistence, or returns null for other formats.</summary>
+    private static IDisposable? LoadOfficeModelReadOnly(string path, string extension, string? password, CancellationToken cancellationToken) => extension switch {
+        ".docx" or ".docm" or ".dotx" or ".dotm" or ".doc" or ".dot" => WordDocument.Load(path,
+            new WordLoadOptions { AccessMode = DocumentAccessMode.ReadOnly, PersistenceMode = DocumentPersistenceMode.Explicit, Password = password }),
+        ".xlsx" or ".xlsm" or ".xltx" or ".xltm" or ".xls" or ".xlt" or ".xlsb" => ExcelDocument.Load(path,
+            new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly, PersistenceMode = DocumentPersistenceMode.Explicit, Password = password }, cancellationToken),
+        ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" or ".ppt" or ".pps" or ".pot" => PowerPointDocument.Load(path,
+            new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly, PersistenceMode = DocumentPersistenceMode.Explicit, Password = password }, cancellationToken),
+        _ => null
+    };
 }

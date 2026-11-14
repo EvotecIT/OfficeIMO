@@ -115,7 +115,7 @@ public partial class WordDocument {
         }
 
         if (headingCount == 0 && textParagraphCount >= LongDocumentParagraphCount) {
-            findings.Add(new OfficeAccessibilityFinding(context.Structural, "accessibility-missing-headings",
+            findings.Add(new OfficeAccessibilityFinding(context.Structural, OfficeDiagnosticCodes.AccessibilityMissingHeadings,
                 "The document has " + textParagraphCount.ToString(CultureInfo.InvariantCulture) + " paragraphs of text but no headings to navigate by.", "Document"));
         }
     }
@@ -126,7 +126,7 @@ public partial class WordDocument {
         int paragraphIndex = context.IndexOf(table);
         string location = "Table " + tableNumber.ToString(CultureInfo.InvariantCulture);
         if (IsLikelyLayoutTable(table, rows)) {
-            findings.Add(new OfficeAccessibilityFinding(OfficeAccessibilitySeverity.Warning, "accessibility-layout-table",
+            findings.Add(new OfficeAccessibilityFinding(OfficeAccessibilitySeverity.Warning, OfficeDiagnosticCodes.AccessibilityLayoutTable,
                 "The table looks like it is used for layout; screen readers announce it as a data table.", location,
                 paragraphIndex < 0 ? null : paragraphIndex, isHeuristic: true));
             return;
@@ -178,7 +178,7 @@ public partial class WordDocument {
                 "The " + kind + " is neither decorative nor described with alternative text.", ParagraphLocation(index), index, objectId, name));
         }
         if (context.Options.CheckFloatingObjects && anchor != null) {
-            findings.Add(new OfficeAccessibilityFinding(context.Structural, "accessibility-floating-object",
+            findings.Add(new OfficeAccessibilityFinding(context.Structural, OfficeDiagnosticCodes.AccessibilityFloatingObject,
                 "The " + kind + " floats over the text instead of sitting inline, so its reading order is unclear.", ParagraphLocation(index), index, objectId, name));
         }
     }
@@ -228,7 +228,7 @@ public partial class WordDocument {
             }
             if (count >= 2 && first != null) {
                 int index = context.IndexOf(first);
-                findings.Add(new OfficeAccessibilityFinding(context.Structural, "accessibility-blank-paragraph-spacing",
+                findings.Add(new OfficeAccessibilityFinding(context.Structural, OfficeDiagnosticCodes.AccessibilityBlankParagraphSpacing,
                     count.ToString(CultureInfo.InvariantCulture) + " consecutive empty paragraphs are used for spacing; use paragraph spacing or a page break instead.",
                     ParagraphLocation(index), index));
             }

@@ -9985,3 +9985,11 @@ JSON, JSON Lines, YAML, TOML, XML, CSV, TSV and worksheet data convert through `
 `Send-OfficePdfPrinter` is now `Send-OfficePrinter`, which prints PDF files and every format OfficeIMO converts to PDF. `Send-OfficePdfPrinter` remains an alias with the same parameters and the same behavior for PDF files, so existing scripts keep working; use `Send-OfficePrinter` in new scripts. `-PrinterName` also accepts an `ipp://` or `ipps://` printer URI.
 
 Printer capabilities come from `Get-OfficePrinterCapability -Name <printer>`. Follow or cancel a submitted job with `Get-OfficePrintJob` and `Stop-OfficePrintJob`, which take the receipt from the pipeline.
+
+## Excel accessibility report
+
+Excel workbooks return the `OfficeAccessibilityReport` that Word and PowerPoint use, with the same finding codes and severities.
+
+- **Inspection.** `ExcelDocument.AnalyzeAccessibility()` is obsolete. Call `InspectAccessibility(ExcelAccessibilityOptions?)` and read `Code`, `Severity` and `Location` (such as `Data!B3`) instead of `Category`, `SheetName` and `Address`. `AnalyzeAccessibility()` still works and keeps its category names, but pictures without alternative text and tables without a header row are now errors, and hidden sheets are reported only when they contain values.
+- **Validation codes.** `OfficeDocument.Validate` with `OfficeDocumentCheck.Accessibility` reports Excel findings with the shared codes, such as `accessibility-merged-cells` and `accessibility-missing-table-header`, instead of `Excel.Accessibility.<Category>`, and the location is a sheet-qualified reference such as `Data!A1:B1` instead of `Data:A1:B1`. Word documents are now checked too instead of reporting the check as not applicable. Pass `ExcelAccessibility` or `WordAccessibility` on `OfficeDocumentValidationOptions` to change their policies.
+- **Decorative pictures.** `ExcelImage.Decorative()` now also sets the Office decorative flag, so Excel's own checker and `InspectAccessibility` skip the picture. Before, it only cleared the alternative text, and the picture was reported as missing it.

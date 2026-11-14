@@ -4,22 +4,38 @@ namespace OfficeIMO;
 
 /// <summary>Stable diagnostic codes shared by document formats and converters.</summary>
 public static partial class OfficeDiagnosticCodes {
+    /// <summary>Stable code: <c>accessibility-blank-cell-layout</c>.</summary>
+    public const string AccessibilityBlankCellLayout = "accessibility-blank-cell-layout";
+    /// <summary>Stable code: <c>accessibility-blank-paragraph-spacing</c>.</summary>
+    public const string AccessibilityBlankParagraphSpacing = "accessibility-blank-paragraph-spacing";
     /// <summary>Stable code: <c>accessibility-chart-color-only-meaning</c>.</summary>
     public const string AccessibilityChartColorOnlyMeaning = "accessibility-chart-color-only-meaning";
+    /// <summary>Stable code: <c>accessibility-default-sheet-name</c>.</summary>
+    public const string AccessibilityDefaultSheetName = "accessibility-default-sheet-name";
+    /// <summary>Stable code: <c>accessibility-floating-object</c>.</summary>
+    public const string AccessibilityFloatingObject = "accessibility-floating-object";
     /// <summary>Stable code: <c>accessibility-heading-level-skipped</c>.</summary>
     public const string AccessibilityHeadingLevelSkipped = "accessibility-heading-level-skipped";
+    /// <summary>Stable code: <c>accessibility-hidden-sheet-content</c>.</summary>
+    public const string AccessibilityHiddenSheetContent = "accessibility-hidden-sheet-content";
     /// <summary>Stable code: <c>accessibility-image-missing-alt</c>.</summary>
     public const string AccessibilityImageMissingAlt = "accessibility-image-missing-alt";
+    /// <summary>Stable code: <c>accessibility-layout-table</c>.</summary>
+    public const string AccessibilityLayoutTable = "accessibility-layout-table";
     /// <summary>Stable code: <c>accessibility-link-text-missing</c>.</summary>
     public const string AccessibilityLinkTextMissing = "accessibility-link-text-missing";
     /// <summary>Stable code: <c>accessibility-link-text-weak</c>.</summary>
     public const string AccessibilityLinkTextWeak = "accessibility-link-text-weak";
     /// <summary>Stable code: <c>accessibility-low-contrast</c>.</summary>
     public const string AccessibilityLowContrast = "accessibility-low-contrast";
+    /// <summary>Stable code: <c>accessibility-merged-cells</c>.</summary>
+    public const string AccessibilityMergedCells = "accessibility-merged-cells";
     /// <summary>Stable code: <c>accessibility-missing-alternative-text</c>.</summary>
     public const string AccessibilityMissingAlternativeText = "accessibility-missing-alternative-text";
     /// <summary>Stable code: <c>accessibility-missing-document-title</c>.</summary>
     public const string AccessibilityMissingDocumentTitle = "accessibility-missing-document-title";
+    /// <summary>Stable code: <c>accessibility-missing-headings</c>.</summary>
+    public const string AccessibilityMissingHeadings = "accessibility-missing-headings";
     /// <summary>Stable code: <c>accessibility-missing-language</c>.</summary>
     public const string AccessibilityMissingLanguage = "accessibility-missing-language";
     /// <summary>Stable code: <c>accessibility-missing-link-tooltip</c>.</summary>

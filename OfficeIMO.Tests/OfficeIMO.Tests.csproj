@@ -10,6 +10,8 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
+    <!-- Test-only: validates SARIF output against the official 2.1.0 schema. -->
+    <PackageReference Include="JsonSchema.Net" Version="7.4.0" />
     <ProjectReference Include="../OfficeIMO/OfficeIMO.csproj">
       <SetTargetFramework Condition="'$(OfficeIMOCompatibilityTarget)' != ''">TargetFramework=$(OfficeIMOCompatibilityTarget)</SetTargetFramework>
     </ProjectReference>
@@ -20,6 +22,7 @@
   <ItemGroup>
     <None Include="../OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/pronom-visio2003.vsd" Link="Fixtures/Visio/pronom-visio2003.vsd" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/pronom-visio2003.vss" Link="Fixtures/Visio/pronom-visio2003.vss" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Fixtures/Sarif/sarif-schema-2.1.0.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/pronom-visio2003.vst" Link="Fixtures/Visio/pronom-visio2003.vst" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

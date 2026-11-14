@@ -12,7 +12,7 @@ A document that leaves your team carries more than its visible text. Author and 
 - **[Content Credentials and AI labels](/docs/before-sharing/provenance/):** does the file say how it was made, for example that a picture is AI-generated? Reported and removed as the `Provenance` category of hidden data, or on their own with `RemoveProvenance` and `officeimo provenance`.
 - **[Accessibility](/docs/before-sharing/accessibility/):** can everyone read it, including people who use a screen reader? `InspectAccessibility()` and `FixAccessibility(options)`.
 
-Hidden data covers Word, Excel, PowerPoint, Visio, OpenDocument, EPUB, PDF and JPEG, PNG, WebP, GIF and TIFF images, and the accessibility checker covers Word and PowerPoint. `RemoveProvenance` removes origin records and leaves every other byte alone.
+Hidden data covers Word, Excel, PowerPoint, Visio, OpenDocument, EPUB, PDF and JPEG, PNG, WebP, GIF and TIFF images, and the accessibility checker covers Word, Excel and PowerPoint. `RemoveProvenance` removes origin records and leaves every other byte alone.
 
 ## One pass in code
 

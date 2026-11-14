@@ -538,3 +538,39 @@ OfficeIMO.Excel.ExcelDocument.InspectHiddenData() -> OfficeIMO.OfficeHiddenDataR
 OfficeIMO.Excel.ExcelDocument.RemoveHiddenData(OfficeIMO.OfficeHiddenDataOptions? options = null) -> OfficeIMO.OfficeHiddenDataReport!
 OfficeIMO.Excel.ExcelReaderOptions.EnableSinglePassReading.get -> bool
 OfficeIMO.Excel.ExcelReaderOptions.EnableSinglePassReading.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckBlankCellLayout.get -> bool
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckBlankCellLayout.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckContrast.get -> bool
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckContrast.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckDefaultSheetNames.get -> bool
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckDefaultSheetNames.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckHiddenSheets.get -> bool
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckHiddenSheets.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckMeaningfulLinks.get -> bool
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckMeaningfulLinks.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckMergedCells.get -> bool
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckMergedCells.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.ExcelAccessibilityOptions() -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.MaximumCellCount.get -> int
+OfficeIMO.Excel.ExcelAccessibilityOptions.MaximumCellCount.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.MinimumLargeTextContrastRatio.get -> double
+OfficeIMO.Excel.ExcelAccessibilityOptions.MinimumLargeTextContrastRatio.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.MinimumTextContrastRatio.get -> double
+OfficeIMO.Excel.ExcelAccessibilityOptions.MinimumTextContrastRatio.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.Profile.get -> OfficeIMO.OfficeAccessibilityPolicyProfile
+OfficeIMO.Excel.ExcelAccessibilityOptions.Profile.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.RequireAlternativeText.get -> bool
+OfficeIMO.Excel.ExcelAccessibilityOptions.RequireAlternativeText.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.RequireDocumentTitle.get -> bool
+OfficeIMO.Excel.ExcelAccessibilityOptions.RequireDocumentTitle.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.RequireTableHeaders.get -> bool
+OfficeIMO.Excel.ExcelAccessibilityOptions.RequireTableHeaders.set -> void
+OfficeIMO.Excel.ExcelDocument.InspectAccessibility(OfficeIMO.Excel.ExcelAccessibilityOptions? options = null) -> OfficeIMO.OfficeAccessibilityReport!
+static OfficeIMO.Excel.ExcelAccessibilityOptions.ForProfile(OfficeIMO.OfficeAccessibilityPolicyProfile profile) -> OfficeIMO.Excel.ExcelAccessibilityOptions!
+OfficeIMO.Excel.ExcelChart.AltText.get -> string!
+OfficeIMO.Excel.ExcelChart.AltTextTitle.get -> string!
+OfficeIMO.Excel.ExcelChart.Decorative() -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.IsDecorative.get -> bool
+OfficeIMO.Excel.ExcelChart.SetAltText(string! description, string? title = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelImage.IsDecorative.get -> bool

@@ -117,3 +117,9 @@ static OfficeIMO.OfficeDocument.SupportsHiddenData(string! path) -> bool
 static OfficeIMO.OfficeDocument.RemoveHiddenData(byte[]! data, string! fileName, OfficeIMO.OfficeHiddenDataOptions? options = null, OfficeIMO.OfficeSignatureMutationPolicy signatureMutationPolicy = OfficeIMO.OfficeSignatureMutationPolicy.BlockSave) -> OfficeIMO.OfficeHiddenDataResult!
 static OfficeIMO.OfficeDocument.InspectHiddenData(byte[]! data, string! fileName) -> OfficeIMO.OfficeHiddenDataReport!
 static OfficeIMO.OfficeDocument.InspectHiddenData(string! path) -> OfficeIMO.OfficeHiddenDataReport!
+OfficeIMO.OfficeDocumentValidationOptions.ExcelAccessibility.get -> OfficeIMO.Excel.ExcelAccessibilityOptions?
+OfficeIMO.OfficeDocumentValidationOptions.ExcelAccessibility.set -> void
+OfficeIMO.OfficeDocumentValidationOptions.WordAccessibility.get -> OfficeIMO.Word.WordAccessibilityOptions?
+OfficeIMO.OfficeDocumentValidationOptions.WordAccessibility.set -> void
+static OfficeIMO.OfficeDocument.SupportsAccessibility(string! path) -> bool
+static OfficeIMO.OfficeDocument.InspectAccessibility(object! document, OfficeIMO.OfficeAccessibilityPolicyProfile profile = OfficeIMO.OfficeAccessibilityPolicyProfile.Default, string? password = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeAccessibilityReport!
