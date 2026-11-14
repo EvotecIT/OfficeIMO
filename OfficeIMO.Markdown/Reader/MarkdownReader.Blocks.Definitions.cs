@@ -85,8 +85,18 @@ internal static partial class MarkdownReader {
         return !ContainsLiteralAutolinkLikeToken(term);
     }
 
+    // Read-only: the token checks below only read the default autolink settings.
+    private static readonly MarkdownLoadOptions DefaultAutolinkOptions = new MarkdownLoadOptions();
+
+    // Angle autolinks need '<', URLs ':' or "www.", and emails '@'.
+    private static readonly char[] AutolinkTokenMarkers = { '<', ':', '.', '@' };
+
     private static bool ContainsLiteralAutolinkLikeToken(string text) {
-        var autolinkOptions = new MarkdownLoadOptions();
+        if (text.IndexOfAny(AutolinkTokenMarkers) < 0) {
+            return false;
+        }
+
+        var autolinkOptions = DefaultAutolinkOptions;
         foreach (var rawToken in text.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries)) {
             if (LooksLikeMarkdownLinkToken(rawToken)) continue;
 

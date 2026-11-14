@@ -14,6 +14,8 @@ Run benchmarks from the repository root with the repo's normal .NET SDK:
 dotnet run --project OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks.csproj -c Release -f net8.0
 ```
 
+On Windows the project also targets `net472`, the runtime Windows PowerShell 5.1 hosts the engines in, and builds it as a 64-bit process. Run it with `-f net472` and `--inProcess`. The `--parse-evidence` runner is available on .NET only.
+
 Run a narrower benchmark by class when you only need one lane:
 
 ```powershell

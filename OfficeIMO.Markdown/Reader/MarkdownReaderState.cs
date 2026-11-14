@@ -146,6 +146,15 @@ public sealed class MarkdownReaderState {
         return _abbreviations;
     }
 
+    private MarkdownReaderParseCache? _parseCache;
+
+    /// <summary>Values derived from the parse options, shared by this state and the states cloned from it.</summary>
+    internal MarkdownReaderParseCache ParseCache => _parseCache ??= new MarkdownReaderParseCache();
+
+    internal void ShareParseCacheWith(MarkdownReaderState source) {
+        _parseCache = source.ParseCache;
+    }
+
     /// <summary>Starts this state from the definitions of <paramref name="source"/> without copying them.</summary>
     internal void ShareDefinitionsWith(MarkdownReaderState source) {
         _linkRefs = source._linkRefs;

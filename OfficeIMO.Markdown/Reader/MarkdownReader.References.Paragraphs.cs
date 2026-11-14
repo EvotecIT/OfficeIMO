@@ -1,6 +1,42 @@
 namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
+    /// <summary>
+    /// Whether a paragraph is open in front of a line during the reference pre-scan. The line that
+    /// decides it is checked only when a definition follows it.
+    /// </summary>
+    private struct LazyParagraphContinuation {
+        private readonly string[] _lines;
+        private readonly MarkdownLoadOptions _options;
+        private int _decidingLine;
+        private bool _forced;
+
+        internal LazyParagraphContinuation(string[] lines, MarkdownLoadOptions options) {
+            _lines = lines;
+            _options = options;
+            _decidingLine = -1;
+            _forced = false;
+        }
+
+        internal void Clear() {
+            _decidingLine = -1;
+            _forced = false;
+        }
+
+        internal void Set() {
+            _decidingLine = -1;
+            _forced = true;
+        }
+
+        internal void DecideAt(int lineIndex) {
+            _decidingLine = lineIndex;
+            _forced = false;
+        }
+
+        internal bool IsOpen => _forced
+            || (_decidingLine >= 0 && IsReferenceDefinitionParagraphContinuationLine(_lines, _decidingLine, _options));
+    }
+
     private static bool IsReferenceDefinitionParagraphContinuationLine(string[] lines, int index, MarkdownLoadOptions options) {
         if (lines == null || index < 0 || index >= lines.Length) {
             return false;

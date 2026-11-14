@@ -193,59 +193,61 @@ internal static class MarkdownObjectTreeBinder {
         }
     }
 
-    // Parsed and hand-built trees can be deeper than the call stack allows, so both passes walk
-    // the tree with an explicit stack. Children are pushed in reverse to keep pre-order binding.
-    private readonly struct BindWork {
-        internal BindWork(MarkdownObject node, MarkdownObject? parent, int? indexInParent, MarkdownObject? previousSibling, MarkdownObject? nextSibling) {
-            Node = node;
-            Parent = parent;
-            IndexInParent = indexInParent;
-            PreviousSibling = previousSibling;
-            NextSibling = nextSibling;
-        }
-
-        internal MarkdownObject Node { get; }
-        internal MarkdownObject? Parent { get; }
-        internal int? IndexInParent { get; }
-        internal MarkdownObject? PreviousSibling { get; }
-        internal MarkdownObject? NextSibling { get; }
-    }
-
+    // Parsed and hand-built trees can be deeper than the call stack allows, so binding walks the
+    // tree with an explicit stack. A parent places its children when it is visited and children
+    // are pushed in reverse, so containers are still visited in pre-order. Leaf text, code and
+    // break nodes, most of a parsed tree, are placed without being visited.
     private static void BindObject(
         MarkdownObject node,
         MarkdownObject? parent,
         int? indexInParent,
         MarkdownObject? previousSibling,
         MarkdownObject? nextSibling) {
-        var pending = new Stack<BindWork>();
-        var children = new List<BindWork>();
-        pending.Push(new BindWork(node, parent, indexInParent, previousSibling, nextSibling));
+        node.SetTreePosition(parent, indexInParent, previousSibling, nextSibling);
+        var pending = new Stack<MarkdownObject>();
+        var children = new List<MarkdownObject>();
+        pending.Push(node);
 
         while (pending.Count > 0) {
-            BindWork work = pending.Pop();
-            work.Node.SetTreePosition(work.Parent, work.IndexInParent, work.PreviousSibling, work.NextSibling);
+            MarkdownObject current = pending.Pop();
 
             children.Clear();
-            if (!TryCollectKnownChildren(work.Node, children)) {
-                var childObjects = GetChildObjects(work.Node);
+            if (!TryCollectKnownChildren(current, children)) {
+                var childObjects = GetChildObjects(current);
                 for (int i = 0; i < childObjects.Count; i++) {
-                    children.Add(new BindWork(
-                        childObjects[i],
-                        work.Node,
+                    childObjects[i].SetTreePosition(
+                        current,
                         i,
                         i > 0 ? childObjects[i - 1] : null,
-                        i + 1 < childObjects.Count ? childObjects[i + 1] : null));
+                        i + 1 < childObjects.Count ? childObjects[i + 1] : null);
+                    children.Add(childObjects[i]);
                 }
             }
 
             for (int i = children.Count - 1; i >= 0; i--) {
-                pending.Push(children[i]);
+                MarkdownObject child = children[i];
+                if (!IsLeafObject(child)) {
+                    pending.Push(child);
+                }
             }
         }
     }
 
-    private static bool TryCollectKnownChildren(MarkdownObject parent, List<BindWork> output) {
+    // Sealed types that never hold child objects.
+    private static bool IsLeafObject(MarkdownObject node) =>
+        node is MarkdownTextRun or CodeSpanInline or SoftBreakInline or HardBreakInline or CodeBlock;
+
+    private static bool TryCollectKnownChildren(MarkdownObject parent, List<MarkdownObject> output) {
         switch (parent) {
+            // The two most common containers come first; neither matches an earlier case below.
+            case InlineSequence inlineSequence:
+                CollectChildren(parent, leadingChild: null, inlineSequence.Nodes, output);
+                return true;
+
+            case ParagraphBlock paragraph:
+                CollectOnlyChild(parent, ((IInlineSyntaxMarkdownBlock)paragraph).SyntaxInlines, output);
+                return true;
+
             case MarkdownDocument document when document.DocumentHeader == null:
                 CollectChildren(parent, leadingChild: null, document.Blocks, output);
                 return true;
@@ -284,10 +286,6 @@ internal static class MarkdownObjectTreeBinder {
                 CollectChildren(parent, leadingChild: null, cell.ChildBlocks, output);
                 return true;
 
-            case InlineSequence inlineSequence:
-                CollectChildren(parent, leadingChild: null, inlineSequence.Nodes, output);
-                return true;
-
             case IInlineSyntaxMarkdownBlock inlineBlock:
                 CollectOnlyChild(parent, inlineBlock.SyntaxInlines, output);
                 return true;
@@ -305,11 +303,12 @@ internal static class MarkdownObjectTreeBinder {
         }
     }
 
-    private static void CollectOnlyChild(MarkdownObject parent, MarkdownObject child, List<BindWork> output) {
-        output.Add(new BindWork(child, parent, indexInParent: 0, previousSibling: null, nextSibling: null));
+    private static void CollectOnlyChild(MarkdownObject parent, MarkdownObject child, List<MarkdownObject> output) {
+        child.SetTreePosition(parent, indexInParent: 0, previousSibling: null, nextSibling: null);
+        output.Add(child);
     }
 
-    private static void CollectChildren<T>(MarkdownObject parent, MarkdownObject? leadingChild, IReadOnlyList<T> children, List<BindWork> output) {
+    private static void CollectChildren<T>(MarkdownObject parent, MarkdownObject? leadingChild, IReadOnlyList<T> children, List<MarkdownObject> output) {
         MarkdownObject? previousSibling = null;
         MarkdownObject? pendingChild = leadingChild;
         int childIndex = leadingChild == null ? 0 : 1;
@@ -320,7 +319,8 @@ internal static class MarkdownObjectTreeBinder {
             }
 
             if (pendingChild != null) {
-                output.Add(new BindWork(pendingChild, parent, childIndex - 1, previousSibling, child));
+                pendingChild.SetTreePosition(parent, childIndex - 1, previousSibling, child);
+                output.Add(pendingChild);
                 previousSibling = pendingChild;
             }
 
@@ -329,7 +329,8 @@ internal static class MarkdownObjectTreeBinder {
         }
 
         if (pendingChild != null) {
-            output.Add(new BindWork(pendingChild, parent, childIndex - 1, previousSibling, nextSibling: null));
+            pendingChild.SetTreePosition(parent, childIndex - 1, previousSibling, nextSibling: null);
+            output.Add(pendingChild);
         }
     }
 
