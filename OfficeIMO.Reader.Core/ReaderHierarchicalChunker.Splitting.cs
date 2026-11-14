@@ -360,7 +360,7 @@ public static partial class ReaderHierarchicalChunker {
         builder.Append(value);
     }
 
-    private static ReaderLocation CloneLocation(ReaderLocation? source) {
+    internal static ReaderLocation CloneLocation(ReaderLocation? source) {
         if (source == null) return new ReaderLocation();
         return new ReaderLocation {
             Path = source.Path,

@@ -54,8 +54,8 @@ public static partial class OfficeWorkflow {
 
         private static Task<MarkdownDocument> LoadMarkdownAsync(Stream input, OfficeConversionOptions options,
             OfficeWorkflowRouteSettings settings, CancellationToken token, bool captureSyntaxTree = false) {
-            MarkdownLoadOptions load = settings.MarkdownLoad ?? new();
-            if (captureSyntaxTree && settings.MarkdownLoad == null) load.CaptureSyntaxTree = true;
+            // The document is converted and disposed; reader options the caller passed keep their own setting.
+            MarkdownLoadOptions load = settings.MarkdownLoad ?? new() { CaptureSyntaxTree = captureSyntaxTree };
             load.MaxInputBytes = Math.Min(load.MaxInputBytes ?? options.MaximumInputBytes, options.MaximumInputBytes);
             return MarkdownDocument.LoadAsync(input, load, token);
         }

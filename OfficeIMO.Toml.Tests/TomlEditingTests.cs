@@ -163,6 +163,28 @@ public class TomlEditingTests {
     }
 
     [Fact]
+    public void LinesAddedToTheLastSubTableStayAboveANewSiblingSection() {
+        using TomlDocument doc = TomlDocument.Parse("[a]\n[a.y]\nq = 1\n");
+        doc.Set("a.y.k", 2);
+        doc.Set("a.z.w", 3);
+        Assert.Equal("[a]\n[a.y]\nq = 1\nk = 2\n[a.z]\nw = 3\n", doc.ToString());
+    }
+
+    [Fact]
+    public void ARootLineStaysAboveANewSectionUnderADottedTable() {
+        using TomlDocument doc = TomlDocument.Parse("a.x = 1\n");
+        doc.Set("a.child.y", 2);
+        doc.Set("b", 3);
+        Assert.Equal("a.x = 1\nb = 3\n\n[a.child]\ny = 2\n", doc.ToString());
+    }
+
+    [Fact]
+    public void ATableWithDottedKeysAndSubTableSectionsPrintsBoth() {
+        using TomlDocument doc = TomlDocument.Parse("[a]\nb.c = 1\n[a.b.d]\nx = 2\n");
+        Assert.Equal("[a]\nb.c = 1\n[a.b.d]\nx = 2\n", doc.Root["a"].ToString());
+    }
+
+    [Fact]
     public void PathsSelectSetAndRemove() {
         using TomlDocument doc = TomlDocument.Parse("[a]\nlist = [1, 2]\n\"dotted.key\" = 3\n[[p]]\nn = 1\n[[p]]\nn = 2\n");
         Assert.Equal(2L, doc.Select("p[1].n")!.GetValue<long>());

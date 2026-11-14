@@ -19,6 +19,10 @@ internal static class WordReaderAdapter {
         if (routeWordForDos && LegacyWordReaderAdapter.HasWordForDosHeader(path, cancellationToken)) {
             return LegacyWordReaderAdapter.ReadWordForDosDocument(path, readerOptions, options, legacyImportOptions, cancellationToken);
         }
+        if (WordStreamingTextReader.Applies(readerOptions)) {
+            using FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (WordStreamingTextReader.TryRead(file, path, readerOptions, cancellationToken) is { } streamed) return streamed;
+        }
         using WordDocument document = Load(path, readerOptions);
         return Project(document, path, readerOptions, options, cancellationToken);
     }
@@ -28,6 +32,9 @@ internal static class WordReaderAdapter {
         if (routeWordForDos && LegacyWordReaderAdapter.HasWordForDosHeader(stream, sourceName, cancellationToken)) {
             return LegacyWordReaderAdapter.ReadWordForDosDocument(stream, sourceName, readerOptions, options, legacyImportOptions, cancellationToken);
         }
+        string name = string.IsNullOrWhiteSpace(sourceName) ? "document.docx" : sourceName!;
+        if (WordStreamingTextReader.Applies(readerOptions)
+            && WordStreamingTextReader.TryRead(stream, name, readerOptions, cancellationToken) is { } streamed) return streamed;
         using WordDocument document = Load(stream, readerOptions);
         return Project(document, string.IsNullOrWhiteSpace(sourceName) ? "document.docx" : sourceName!, readerOptions, options, cancellationToken);
     }

@@ -15,7 +15,8 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
     internal void MergeTextPinsFrom(PdfTrueTypeFontProgram source) {
         if (ReferenceEquals(this, source)) return;
-        if (!_subsetFontFingerprint.Equals(source._subsetFontFingerprint))
+        if (!ReferenceEquals(_subsetFontFingerprint, source._subsetFontFingerprint) &&
+            !_subsetFontFingerprint.Value.Equals(source._subsetFontFingerprint.Value))
             throw new InvalidOperationException("Glyph text pins can only be merged for the same TrueType font program.");
         _textPins.MergeFrom(source._textPins);
     }
@@ -26,7 +27,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
             int[]? glyphOrder = GetCompactSubsetGlyphOrder();
             // The program's fingerprint is the SHA-256 of these bytes; rehashing a large
             // fallback font for every subset name dominated small documents.
-            return glyphOrder == null ? FontName : PdfSubsetTag.ApplyWithFontHash(FontName, glyphOrder, _subsetFontFingerprint.ToHashBytes());
+            return glyphOrder == null ? FontName : PdfSubsetTag.ApplyWithFontHash(FontName, glyphOrder, _subsetFontFingerprint.Value.ToHashBytes());
         }
     }
 

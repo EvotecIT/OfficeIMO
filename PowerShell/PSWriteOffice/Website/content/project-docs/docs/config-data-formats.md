@@ -10,11 +10,11 @@ Configuration and data files are a large part of everyday scripting: Helm values
 | --- | --- |
 | Change a YAML file and keep its comments and layout | `Open-OfficeYaml`, `Set-OfficeYamlNode`, `Remove-OfficeYamlNode`, `Save-OfficeYaml` |
 | Change a TOML file and keep its comments and layout | `Open-OfficeToml`, `Set-OfficeTomlNode`, `Remove-OfficeTomlNode`, `Save-OfficeToml` |
-| Layer one YAML file over another | `Merge-OfficeDocument` |
+| Layer one YAML or TOML file over another | `Merge-OfficeDocument` |
 | Read or write YAML and TOML as objects | `Import-OfficeYaml`, `Export-OfficeYaml`, `Import-OfficeToml`, `Export-OfficeToml` and the `ConvertFrom-`/`ConvertTo-` forms |
-| Check YAML before a deployment | `Test-OfficeYaml` |
+| Check YAML or TOML before a deployment | `Test-OfficeYaml`, `Test-OfficeToml` |
 | Convert a file between data formats | `Convert-OfficeDocument` |
-| Write CSV with explicit quoting rules | `Export-OfficeCsv`, `ConvertTo-OfficeCsv`, `Import-OfficeCsv` |
+| Write CSV with explicit quoting rules, and read it back | `Export-OfficeCsv`, `ConvertTo-OfficeCsv`, `Import-OfficeCsv`, `ConvertFrom-OfficeCsv` |
 
 ## Edit YAML without rewriting it
 
@@ -83,7 +83,7 @@ IsValid Code                         Line Column
   False yaml-syntax-unexpected-token    3      2
 ```
 
-Use `-Untrusted` on `Import-OfficeYaml` and `Import-OfficeToml` for files from outside your pipeline. It applies tighter limits on depth, size, and alias expansion.
+Use `-Untrusted` on `Import-OfficeYaml`, `Import-OfficeToml` and the `Test-` commands for files from outside your pipeline. It applies tighter limits on depth, size, and alias expansion.
 
 ## Read and write TOML
 
@@ -129,6 +129,36 @@ Open-OfficeToml -Path .\pyproject.toml {
 
 A key below a missing table, such as `tool.ruff` above, adds the table's `[header]` section. `Get-OfficeTomlNode` reads values by the same path grammar as `Get-OfficeYamlNode`, with their line and column. `New-OfficeToml` creates a file, and `Save-OfficeToml` and `Close-OfficeToml` keep a document open across several steps.
 
+## Merge and check TOML files
+
+`Merge-OfficeDocument` layers TOML files the same way it layers YAML: a shared `pyproject.toml` with local overrides, or a tool's settings per environment. Tables merge key by key whether they are written as `[header]` sections, dotted keys or inline tables, later files win, and the base file keeps its comments and layout. `-Options @{ Arrays = ... }` chooses how arrays combine: `'Replace'` (the default), `'Append'`, or `@{ MergeByKey = 'name' }` to update `[[plugin]]` or `[[package]]` tables that share a name and add the rest:
+
+```powershell
+Merge-OfficeDocument -Path .\pyproject.toml, .\pyproject.local.toml -OutputPath .\pyproject.merged.toml `
+    -Options @{ Arrays = @{ MergeByKey = 'name' } } -PassThruReport |
+    Select-Object -Property Added, Replaced
+```
+
+```text
+Added                                       Replaced
+-----                                       --------
+{tool.ruff.lint, tool.reporting.plugin[1]}  {tool.ruff.line-length, tool.reporting.plugin[0].version}
+```
+
+TOML has no null, so where tables merge an overlay cannot remove a key; only a replaced array drops the items, and keys of table items, that the overlay's array lacks. When an overlay changes a value's kind, such as a table where the base has a string, the overlay wins and the report's `Diagnostics` lists a `toml-merge-kind-conflict` warning.
+
+`Test-OfficeToml` returns `$true` or `$false` for each file, and `-Detailed` gives the stable error code with its line and column. A file that can't be read gets an error instead of a result, so a deployment gate should also stop on errors, for example with `-ErrorAction Stop`:
+
+```powershell
+Test-OfficeToml -Path .\Cargo.toml -Detailed | Select-Object IsValid, Code, Line, Column
+```
+
+```text
+IsValid Code                     Line Column
+------- ----                     ---- ------
+  False toml-load-duplicate-key    12      1
+```
+
 ## Convert between data formats
 
 `Convert-OfficeDocument` converts between JSON, JSON Lines (`.jsonl`, `.ndjson`), YAML, TOML, XML, CSV, TSV, and Excel worksheets. The output extension selects the target, and the data streams through without being loaded into an object model first:
@@ -168,12 +198,19 @@ Convert-OfficeDocument -Path .\service.json -OutputPath .\service.toml -FailOnLo
 
 ## CSV with explicit rules
 
-`Export-OfficeCsv` and `ConvertTo-OfficeCsv` write delimited data with explicit delimiter, quoting, encoding, and spreadsheet formula-injection choices (`-FormulaInjectionPolicy`), and `Import-OfficeCsv` reads it back with typed options. Use them when the CSV is a contract with another system. Use the Excel commands when formatting, formulas, or charts are part of the result. The [safe CSV export recipe](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Csv/Recipe-Csv-SafeExport.ps1) shows the choices side by side.
+`Export-OfficeCsv` and `ConvertTo-OfficeCsv` write delimited data with explicit delimiter, quoting, encoding, and spreadsheet formula-injection choices (`-FormulaInjectionPolicy`), and `Import-OfficeCsv` reads it back with typed options. `ConvertFrom-OfficeCsv` reads CSV text from the pipeline, such as `ConvertTo-OfficeCsv` output or lines from `Get-Content`, with `Import-OfficeCsv`'s parsing options and `-As` output shapes. It doesn't take `-Mode`, `-Encoding` or `-CompressionType`: use `Import-OfficeCsv -Text` to set `-Mode`, and `Import-OfficeCsv -Path` for encoding or compression:
+
+```powershell
+Get-Content -Path .\export.txt | ConvertFrom-OfficeCsv -Delimiter ';' -As DataTable -InferSchema
+```
+
+Use the CSV commands when the file is a contract with another system. Use the Excel commands when formatting, formulas, or charts are part of the result. The [safe CSV export recipe](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Csv/Recipe-Csv-SafeExport.ps1) shows the choices side by side.
 
 ## Runnable examples
 
 - [Edit, merge, and read YAML configuration](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Yaml/Example-YamlEditMergeConvert.ps1)
 - [Edit a TOML project file in place](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Toml/Example-TomlEditInPlace.ps1)
+- [Check and merge layered TOML settings](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Toml/Example-TomlMergeAndTest.ps1)
 - [TOML lock files and data conversions](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Data/Example-DataConversions.ps1)
 - [Safe CSV export](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Csv/Recipe-Csv-SafeExport.ps1)
 
