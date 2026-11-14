@@ -21,8 +21,13 @@ internal static partial class PdfWriter {
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<IOfficeBoundedFontProgram, SharedDiagnosticGlyphOutlines>
             SharedGlyphOutlines = new();
 
-        /// <summary>Releases this writer's borrowed placement storage; shared outlines stay with their font program.</summary>
-        private void ClearDiagnosticGlyphCache() => ClearDiagnosticGlyphWorkspace();
+        /// <summary>Releases this writer's placement storage and its references to evicted fonts; shared outlines stay with their font program.</summary>
+        private void ClearDiagnosticGlyphCache() {
+            ClearDiagnosticGlyphWorkspace();
+            _diagnosticGlyphOutlines?.Clear();
+            _diagnosticGlyphOutlineFont = null;
+            _diagnosticGlyphOutlineShared = null;
+        }
 
         // This writer's view of the shared outlines. Paint inspection asks for the same few glyphs thousands of
         // times per document; answering repeats here avoids the shared table's lock on every glyph.
