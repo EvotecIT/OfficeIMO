@@ -48,7 +48,14 @@ OfficeIMO provides access to all of Excel's built-in table styles through the `E
 | Dark | `ExcelTableStyle.TableStyleDark1` through `ExcelTableStyle.TableStyleDark11` |
 
 ```csharp
+using OfficeIMO.Excel;
+
+using var workbook = ExcelDocument.Create("Example.xlsx");
+var sheet = workbook.AddSheet("Data");
+
 sheet.AddTable("A1:D10", name: "MyTable", style: ExcelTableStyle.TableStyleDark3);
+
+workbook.Save();
 ```
 
 ## Table Name Validation
@@ -56,15 +63,28 @@ sheet.AddTable("A1:D10", name: "MyTable", style: ExcelTableStyle.TableStyleDark3
 Table names must be unique within a workbook. OfficeIMO validates this automatically:
 
 ```csharp
+using OfficeIMO.Excel;
+
+using var workbook = ExcelDocument.Create("Example.xlsx");
+
 // The workbook tracks table names for uniqueness
 workbook.TableNameComparer = StringComparer.OrdinalIgnoreCase;
+
+workbook.Save();
 ```
 
 By default an invalid or duplicate name is sanitized. Use `Strict` to throw instead:
 
 ```csharp
+using OfficeIMO.Excel;
+
+using var workbook = ExcelDocument.Create("Example.xlsx");
+var sheet = workbook.AddSheet("Data");
+
 sheet.AddTable("A1:C5", name: "MyTable", style: ExcelTableStyle.TableStyleMedium2,
     validationMode: ExcelTableNameValidationMode.Strict);
+
+workbook.Save();
 ```
 
 ## AutoFilter
@@ -74,9 +94,16 @@ Tables automatically include AutoFilter (drop-down filters on each column header
 For standalone AutoFilter without a formal table, add it to the range and set criteria by header:
 
 ```csharp
+using OfficeIMO.Excel;
+
+using var workbook = ExcelDocument.Create("Example.xlsx");
+var sheet = workbook.AddSheet("Data");
+
 sheet.Range("A1:C10").AutoFilter()
     .Column("Region").Equals("North", "South")
     .Column("Amount").GreaterThanOrEqual(1000);
+
+workbook.Save();
 ```
 
 ## Add a typed table
@@ -99,6 +126,11 @@ workbook.Save();
 Apply data validation rules to cells to restrict user input:
 
 ```csharp
+using OfficeIMO.Excel;
+
+using var workbook = ExcelDocument.Create("Example.xlsx");
+var sheet = workbook.AddSheet("Data");
+
 // Dropdown list validation
 sheet.Range("B2:B100").Validation().List("High", "Medium", "Low");
 
@@ -109,6 +141,8 @@ sheet.Range("C2:C100").Validation().WholeNumber(ExcelDataValidationOperator.Betw
 // Date validation
 sheet.Range("D2:D100").Validation().Date(ExcelDataValidationOperator.Between,
     new DateTime(2025, 1, 1), new DateTime(2025, 12, 31));
+
+workbook.Save();
 ```
 
 ## Conditional Formatting
@@ -118,6 +152,9 @@ Apply visual formatting rules based on cell values:
 ```csharp
 using OfficeIMO;
 using OfficeIMO.Excel;
+
+using var workbook = ExcelDocument.Create("Example.xlsx");
+var sheet = workbook.AddSheet("Data");
 
 // Highlight cells greater than a threshold
 sheet.Range("B2:B100").ConditionalFormat()
@@ -135,6 +172,8 @@ sheet.Range("D2:D100").ConditionalFormat().DataBar(OfficeColor.Parse("4472C4"));
 
 // Icon sets
 sheet.Range("E2:E100").ConditionalFormat().IconSet(ExcelIconSet.ThreeArrows);
+
+workbook.Save();
 ```
 
 Each call returns the rule it added. List, update, reorder and remove existing rules with
@@ -150,6 +189,9 @@ using System.Data;
 using OfficeIMO;
 using OfficeIMO.Excel;
 
+using var workbook = ExcelDocument.Create("Example.xlsx");
+var sheet = workbook.AddSheet("Data");
+
 var dataTable = new System.Data.DataTable();
 dataTable.Columns.Add("Name", typeof(string));
 dataTable.Columns.Add("Value", typeof(double));
@@ -157,6 +199,8 @@ dataTable.Rows.Add("Item A", 100.5);
 dataTable.Rows.Add("Item B", 200.75);
 
 sheet.AddTable(dataTable, new OfficeTableOptions { Name = "Items" }, row: 1, column: 1);
+
+workbook.Save();
 ```
 
 ## Reading Tables

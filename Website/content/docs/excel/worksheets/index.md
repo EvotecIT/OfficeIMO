@@ -46,6 +46,11 @@ Console.WriteLine(sheet.Name);
 Address cells with A1 references or with row and column numbers. `SetValue` keeps the .NET type: numbers stay numbers, dates become Excel dates, and booleans become `TRUE`/`FALSE`.
 
 ```csharp
+using OfficeIMO.Excel;
+
+using var workbook = ExcelDocument.Create("Example.xlsx");
+var sheet = workbook.AddSheet("Data");
+
 // Text
 sheet.Cell("A1").SetValue("Name");
 sheet.Cell("B1").SetValue("Score");
@@ -71,6 +76,8 @@ sheet.Range("D1:E2").SetValues(new object?[,] {
 // Read values back
 double score = sheet.Cell("B2").GetValue<double>();
 string text = sheet.Cell("B3").GetFormattedText();
+
+workbook.Save();
 ```
 
 ## Cell Formatting
@@ -82,6 +89,11 @@ Format a block of cells through its range rather than cell by cell: one range ca
 Number formats use Excel's format codes:
 
 ```csharp
+using OfficeIMO.Excel;
+
+using var workbook = ExcelDocument.Create("Example.xlsx");
+var sheet = workbook.AddSheet("Data");
+
 // Currency
 sheet.Cell("B2").SetNumberFormat("$#,##0.00");
 
@@ -90,6 +102,8 @@ sheet.Cell("B3").SetNumberFormat("yyyy-mm-dd");
 
 // Percentage, applied to a whole range
 sheet.Range("C2:C10").SetNumberFormat("0.00%");
+
+workbook.Save();
 ```
 
 For columns written from objects, `sheet.ColumnStyleByHeader("Revenue").Currency(decimals: 2)` applies a preset by header name. See [Styles and Number Formats](/docs/excel/styles-number-formats/).
@@ -98,6 +112,10 @@ For columns written from objects, `sheet.ColumnStyleByHeader("Revenue").Currency
 
 ```csharp
 using OfficeIMO;
+using OfficeIMO.Excel;
+
+using var workbook = ExcelDocument.Create("Example.xlsx");
+var sheet = workbook.AddSheet("Data");
 
 sheet.Cell("A1")
     .SetBold()
@@ -105,6 +123,8 @@ sheet.Cell("A1")
     .SetFontSize(OfficeLength.Points(14))
     .SetFontFamily("Arial")
     .SetColor(OfficeColor.Parse("FF0000"));  // Red text
+
+workbook.Save();
 ```
 
 ### Cell Fills and Borders
@@ -113,10 +133,15 @@ sheet.Cell("A1")
 using OfficeIMO;
 using OfficeIMO.Excel;
 
+using var workbook = ExcelDocument.Create("Example.xlsx");
+var sheet = workbook.AddSheet("Data");
+
 sheet.Range("A1:B1")
     .SetFillColor(OfficeColor.Parse("4472C4"))   // Blue background
     .SetColor(OfficeColor.Parse("FFFFFF"))       // White text
     .SetBorder(ExcelBorderStyle.Thin, OfficeColor.Parse("1F3864"));
+
+workbook.Save();
 ```
 
 ### Alignment
@@ -124,10 +149,15 @@ sheet.Range("A1:B1")
 ```csharp
 using OfficeIMO.Excel;
 
+using var workbook = ExcelDocument.Create("Example.xlsx");
+var sheet = workbook.AddSheet("Data");
+
 sheet.Cell("A1")
     .SetHorizontalAlignment(ExcelHorizontalAlignment.Center)
     .SetVerticalAlignment(ExcelVerticalAlignment.Center)
     .SetWrapText();
+
+workbook.Save();
 ```
 
 ## Formulas
@@ -135,6 +165,11 @@ sheet.Cell("A1")
 Set formulas with `SetFormula`, using standard Excel syntax without the leading `=`:
 
 ```csharp
+using OfficeIMO.Excel;
+
+using var workbook = ExcelDocument.Create("Example.xlsx");
+var sheet = workbook.AddSheet("Data");
+
 sheet.Cell("A1").SetValue(100);
 sheet.Cell("A2").SetValue(200);
 sheet.Cell("A3").SetValue(300);
@@ -150,6 +185,8 @@ sheet.Cell("B1").SetFormula("IF(A1>150,\"High\",\"Low\")");
 
 // VLOOKUP, COUNTIF, and other functions work the same way
 sheet.Cell("C1").SetFormula("COUNTIF(A1:A3,\">150\")");
+
+workbook.Save();
 ```
 
 Call `workbook.Calculate()` to compute the supported functions and cache their results. See [Formulas and Named Ranges](/docs/excel/formulas/).
@@ -160,6 +197,9 @@ Call `workbook.Calculate()` to compute the supported functions and cache their r
 using OfficeIMO;
 using OfficeIMO.Excel;
 
+using var workbook = ExcelDocument.Create("Example.xlsx");
+var sheet = workbook.AddSheet("Data");
+
 // Set column width
 sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(25));
 sheet.SetColumnWidth(2, ExcelColumnWidth.Length(OfficeLength.Centimeters(3)));
@@ -168,6 +208,8 @@ sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeLength.Points(24)));
 // Auto-fit (requires data to be populated first)
 sheet.AutoFitColumn(1);
 sheet.AutoFitColumns();
+
+workbook.Save();
 ```
 
 ## Named Ranges
@@ -201,6 +243,9 @@ Configure print settings:
 using OfficeIMO;
 using OfficeIMO.Excel;
 
+using var workbook = ExcelDocument.Create("Example.xlsx");
+var sheet = workbook.AddSheet("Data");
+
 sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
 sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
 sheet.PageSetup.FitToWidth = 1;
@@ -208,6 +253,8 @@ sheet.PageSetup.FitToHeight = 0;  // 0 = as many pages as needed
 sheet.PageSetup.SetMargins(ExcelMarginPreset.Narrow);
 sheet.PageSetup.PrintArea = "A1:F40";
 sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1);
+
+workbook.Save();
 ```
 
 ## Sheet Headers and Footers
@@ -215,6 +262,11 @@ sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1);
 Each header and footer has left, center and right sections. Excel codes such as `&P` (page), `&N` (pages) and `&D` (date) are kept.
 
 ```csharp
+using OfficeIMO.Excel;
+
+using var workbook = ExcelDocument.Create("Example.xlsx");
+var sheet = workbook.AddSheet("Data");
+
 sheet.PageSetup.Header.Center.Text = "Monthly Sales Report";
 sheet.PageSetup.Footer.Left.Text = "Page &P of &N";
 sheet.PageSetup.Footer.Right.Text = "&D";
@@ -223,6 +275,8 @@ sheet.PageSetup.Header.Right.SetImage(File.ReadAllBytes("logo.png"), "image/png"
 // A different first page
 sheet.PageSetup.DifferentFirstPage = true;
 sheet.PageSetup.FirstPageHeader.Center.Text = "Monthly Sales Report - cover";
+
+workbook.Save();
 ```
 
 ## Images
@@ -233,15 +287,25 @@ Add an image anchored at a cell:
 using OfficeIMO;
 using OfficeIMO.Excel;
 
+using var workbook = ExcelDocument.Create("Example.xlsx");
+var sheet = workbook.AddSheet("Data");
+
 sheet.AddImage("A10", "chart.png", new ExcelImageOptions {
     Width = OfficeLength.Pixels(400),
     Height = OfficeLength.Pixels(300)
 });
+
+workbook.Save();
 ```
 
 ## Freezing Panes
 
 ```csharp
+using OfficeIMO.Excel;
+
+using var workbook = ExcelDocument.Create("Example.xlsx");
+var sheet = workbook.AddSheet("Data");
+
 // Freeze the top row
 sheet.View.Freeze(topRows: 1);
 
@@ -250,13 +314,22 @@ sheet.View.Freeze(leftColumns: 1);
 
 // Freeze both (top-left corner stays fixed)
 sheet.View.Freeze(1, 1);
+
+workbook.Save();
 ```
 
 Gridlines, zero values, row and column headings, direction and zoom are on `sheet.View` too:
 
 ```csharp
+using OfficeIMO.Excel;
+
+using var workbook = ExcelDocument.Create("Example.xlsx");
+var sheet = workbook.AddSheet("Data");
+
 sheet.View.ShowGridlines = false;
 sheet.View.ZoomScale = 90;
+
+workbook.Save();
 ```
 
 ## Iterating Over Sheets

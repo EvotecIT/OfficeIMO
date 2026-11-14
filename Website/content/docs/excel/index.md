@@ -36,6 +36,8 @@ workbook.Save();
 Create with a named worksheet in one call:
 
 ```csharp
+using OfficeIMO.Excel;
+
 using var workbook = ExcelDocument.Create("report.xlsx", new ExcelCreateOptions { FirstSheetName = "Sales" });
 var sheet = workbook.Sheets[0]; // "Sales" sheet
 ```
@@ -43,6 +45,8 @@ var sheet = workbook.Sheets[0]; // "Sales" sheet
 ## Creating a Workbook in Memory
 
 ```csharp
+using OfficeIMO.Excel;
+
 using var stream = new MemoryStream();
 using var workbook = ExcelDocument.Create(stream);
 var sheet = workbook.AddSheet("Data");
@@ -53,6 +57,8 @@ workbook.Save();
 ## Loading an Existing Workbook
 
 ```csharp
+using OfficeIMO.Excel;
+
 using var workbook = ExcelDocument.Load("existing.xlsx");
 
 foreach (var sheet in workbook.Sheets) {
@@ -81,6 +87,8 @@ workbook.Save();
 ## Document Properties
 
 ```csharp
+using OfficeIMO.Excel;
+
 using var workbook = ExcelDocument.Create("props.xlsx");
 
 workbook.Properties.Title = "Financial Report";
@@ -95,6 +103,8 @@ workbook.Save();
 Control parallel vs sequential operations for large workbooks:
 
 ```csharp
+using OfficeIMO.Excel;
+
 var workbook = ExcelDocument.Create("large.xlsx");
 workbook.Execution.Mode = ExcelExecutionMode.Parallel;
 workbook.Execution.MaxDegreeOfParallelism = 4;
@@ -105,7 +115,13 @@ workbook.Execution.MaxDegreeOfParallelism = 4;
 For very large workbooks, you can disable sheet wrapper caching to reduce memory:
 
 ```csharp
+using OfficeIMO.Excel;
+
+using var workbook = ExcelDocument.Create("Example.xlsx");
+
 workbook.SheetCachingEnabled = false;
+
+workbook.Save();
 ```
 
 ## CSV interoperability
