@@ -1320,6 +1320,9 @@ public sealed partial class PdfReadPage {
             PdfDictionary? resources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ?? parentResources;
             string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
             CollectRenderCapabilityDiagnostics(content, resources, diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget, textClippingBudget, contentNestingDepth, auxiliarySurfaceDepth + 1);
+        } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion) {
+            // The page render skips content nested this deep; report it once instead of failing the scan.
+            AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.FormNestingStackId, "auxiliary surface");
         } finally {
             activeForms.Remove(stream);
         }

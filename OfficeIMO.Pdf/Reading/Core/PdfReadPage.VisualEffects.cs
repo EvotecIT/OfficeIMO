@@ -960,6 +960,8 @@ public sealed partial class PdfReadPage {
                     inherited,
                     formOrderPrefix?.Append(int.MaxValue),
                     contentNestingDepth));
+            } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion) {
+                // The drawing walker skips this form for the same reason, so it has no effects to resolve.
             } finally {
                 activeForms.Remove(formStream);
             }
