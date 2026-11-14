@@ -154,4 +154,4 @@ Automating repeatable reports like this takes the manual export step out of the 
 - [OfficeIMO.Excel](/products/excel/) for the package overview and reporting-focused capabilities.
 - [Excel documentation](/docs/excel/) for workbook structure, tables, formulas, and formatting patterns.
 - [Building Excel Reports with Parallel Compute](/blog/excel-parallel-reports/) if your scheduled reports are large enough to benefit from parallel writes.
-- [PSWriteOffice](/products/pswriteoffice/) if you want a PowerShell-driven automation path instead of a C# console app.
+- [PSWriteOffice](/powershell/) if you want a PowerShell-driven automation path instead of a C# console app.

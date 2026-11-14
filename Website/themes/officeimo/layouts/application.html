@@ -40,6 +40,7 @@
             <a class="imo-btn imo-btn-ghost" href="{{ app.secondaryUrl }}">{{ app.secondaryLabel }}</a>
             {{ end }}
           </div>
+          {{ if app.install && !app.terminal }}<p class="imo-surface-install"><span>Install</span><code>{{ app.install }}</code><button type="button" data-copy="{{ app.install }}" aria-label="Copy the install command">Copy</button></p>{{ end }}
           <ul class="imo-workbench__facts">{{ for fact in app.facts }}<li>{{ fact }}</li>{{ end }}</ul>
           <p class="imo-workbench__availability">{{ app.availability }}</p>
         </div>
@@ -49,49 +50,40 @@
         <a class="imo-workbench__window" data-pf-media data-pf-media-group="studio" data-pf-media-caption="Studio · Document workspace" data-pf-media-light="{{ app.image }}" data-pf-media-dark="{{ app.imageDark ?? app.image }}" href="{{ app.image }}" aria-label="Open full-size Studio screenshot">
           <picture class="imo-theme-light-only">
             <source srcset="{{ app.image | string.replace '.png' '.webp' }}" type="image/webp" />
-            <img src="{{ app.image }}" width="1440" height="960" alt="{{ app.imageAlt }}" loading="lazy" decoding="async" fetchpriority="high" />
+            <img src="{{ app.image }}" width="1440" height="960" alt="{{ app.imageAlt }}" decoding="async" fetchpriority="high" />
           </picture>
           <picture class="imo-theme-dark-only">
             <source srcset="{{ (app.imageDark ?? app.image) | string.replace '.png' '.webp' }}" type="image/webp" />
-            <img src="{{ app.imageDark ?? app.image }}" width="1440" height="960" alt="{{ app.imageAlt }}" loading="lazy" decoding="async" fetchpriority="high" />
+            <img src="{{ app.imageDark ?? app.image }}" width="1440" height="960" alt="{{ app.imageAlt }}" decoding="async" />
           </picture>
         </a>
         <figcaption>{{ app.caption }}</figcaption>
       </figure>
+      {{ else if app.proofShowcase }}
+      {{ include "sections/surface-proof" }}
       {{ else if app.terminal }}
       {{ agent_version = data.agent_integrations.pluginVersion }}
       <figure class="imo-workbench__stage imo-workbench__stage--single">
-        <div class="imo-terminal imo-terminal--hero" style="--imo-dot: #a78bfa">
-          <p class="imo-terminal__bar"><span>{{ app.terminalTitle }}</span><button type="button" data-copy="{{ app.terminal[0].command }}" aria-label="Copy the first command">Copy</button></p>
-<pre aria-label="Commands that add OfficeIMO to AI agents">{{ for line in app.terminal }}<span class="imo-t-muted"># {{ line.comment }}</span>
+        <div class="imo-terminal imo-terminal--hero">
+          <p class="imo-terminal__bar"><span>{{ app.terminalTitle }}</span><button type="button" data-copy="{{ app.terminal[0].command | string.replace "{version}" agent_version }}" aria-label="Copy the first command">Copy</button></p>
+<pre aria-label="{{ page.title }} commands">{{ for line in app.terminal }}<span class="imo-t-muted"># {{ line.comment }}</span>
 <span class="imo-t-prompt">❯</span> {{ line.command | string.replace "{version}" agent_version }}{{ if !for.last }}
 
 {{ end }}{{ end }}</pre>
         </div>
       </figure>
-      {{ else }}
-      <figure class="imo-workbench__stage imo-workbench__stage--single">
-        <div class="imo-terminal imo-terminal--hero" style="--imo-dot: #5bd39a">
-          <p class="imo-terminal__bar"><span>pwsh · OfficeIMO.Tool</span><button type="button" data-copy="{{ app.install }}" aria-label="Copy CLI installation command">Copy install</button></p>
-<pre aria-label="OfficeIMO CLI install and example commands"><span class="imo-t-muted"># Install once with the .NET SDK</span>
-<span class="imo-t-prompt">❯</span> {{ app.install }}
-
-<span class="imo-t-muted"># Convert a Word document to PDF</span>
-<span class="imo-t-prompt">❯</span> <span class="imo-t-cmd">officeimo</span> convert <span class="imo-t-arg">report.docx</span> <span class="imo-t-arg">report.pdf</span>
-
-<span class="imo-t-muted"># Extract the content as Markdown for search or AI</span>
-<span class="imo-t-prompt">❯</span> <span class="imo-t-cmd">officeimo</span> convert <span class="imo-t-arg">report.pdf</span> <span class="imo-t-arg">report.md</span>
-
-<span class="imo-t-muted"># Give an AI agent the same tools over MCP</span>
-<span class="imo-t-prompt">❯</span> <span class="imo-t-cmd">officeimo</span> mcp serve --stdio</pre>
-        </div>
-      </figure>
       {{ end }}
     </section>
-    <div class="imo-container" id="application-guide"><article class="imo-application-guide imo-prose">{{ content }}</article></div>
+    {{ include "sections/surface-stats" }}
+    {{ include "sections/surface-explorer" }}
+    {{ include "sections/surface-recipes" }}
+    {{ if content | string.strip != "" }}<div class="imo-container" id="application-guide"><article class="imo-application-guide imo-prose">{{ content }}</article></div>{{ end }}
     {{ if page.meta.application == "studio" }}{{ include "sections/studio-features" }}{{ end }}
     {{ if page.meta.application == "agents" }}{{ include "sections/agent-integrations" }}{{ end }}
-    <section class="imo-container imo-application-channels" aria-labelledby="channels-title">
+    {{ include "sections/surface-built-for" }}
+    {{ include "sections/surface-performance" }}
+    {{ include "sections/surface-docs" }}
+    <section class="imo-container imo-application-channels"{{ if page.meta.application != "agents" }} id="install"{{ end }} aria-labelledby="channels-title">
       <h2 id="channels-title">Installation channels</h2>
       {{ if app.stores }}{{ stores = app.stores }}{{ store_filter = "all" }}<div class="imo-application-stores">{{ include "sections/store-badges" }}</div>{{ end }}
       <div class="imo-application-channel-grid">
@@ -110,7 +102,7 @@
       </div>
     </section>
     {{ end }}
-    {{ current_surface = page.meta.application }}{{ if current_surface == "tool" }}{{ current_surface = "cli" }}{{ end }}{{ include "sections/surface-switcher" }}
+    {{ current_surface = page.meta.application }}{{ include "sections/surface-switcher" }}
   </main>
   {{ include "footer" }}
   {{ assets.js_html }}

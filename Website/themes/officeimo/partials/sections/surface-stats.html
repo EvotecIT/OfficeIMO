@@ -1,0 +1,29 @@
+{{~ # Numbers strip for a surface page. Each stat has a literal value or a source resolved from generated data. ~}}
+{{~ if app.stats && app.stats.size > 0 ~}}
+{{~ ps_catalog = data.pswriteoffice_command_catalog ~}}
+{{~ cli_catalog = data.cli && data.cli.commands ? data.cli.commands : null ~}}
+{{~ cli_command_total = 0 ~}}
+{{~ if cli_catalog ~}}{{~ for group in cli_catalog.groups ~}}{{~ cli_command_total = cli_command_total + group.commands.size ~}}{{~ end ~}}{{~ end ~}}
+<section class="imo-container imo-surface-stats" aria-label="{{ page.title }} at a glance">
+  <dl>
+    {{~ for stat in app.stats ~}}
+    {{~ value = stat.value ~}}
+    {{~ if stat.source == "powershell.commands" && ps_catalog ~}}{{~ value = ps_catalog.module.commandCount ~}}{{~ end ~}}
+    {{~ if stat.source == "powershell.families" && ps_catalog ~}}{{~ value = ps_catalog.families.size ~}}{{~ end ~}}
+    {{~ if stat.source == "powershell.aliases" && ps_catalog ~}}{{~ value = ps_catalog.module.aliasCount ~}}{{~ end ~}}
+    {{~ if stat.source == "cli.groups" && cli_catalog ~}}{{~ value = cli_catalog.groups.size ~}}{{~ end ~}}
+    {{~ if stat.source == "cli.commands" && cli_catalog ~}}{{~ value = cli_command_total ~}}{{~ end ~}}
+    {{~ if stat.source == "cli.exitCodes" && cli_catalog ~}}{{~ value = cli_catalog.exitCodes.size ~}}{{~ end ~}}
+    {{~ if stat.source == "agents.tools" && data.agent_integrations ~}}{{~ value = data.agent_integrations.tools.size ~}}{{~ end ~}}
+    {{~ if stat.source == "agents.skills" && data.agent_integrations ~}}{{~ value = data.agent_integrations.skills.size ~}}{{~ end ~}}
+    {{~ if stat.source == "agents.clients" && data.agent_integrations ~}}{{~ value = data.agent_integrations.clients.size ~}}{{~ end ~}}
+    {{~ if stat.source == "formats" && data.format_map ~}}{{~ value = data.format_map.formats.size ~}}{{~ end ~}}
+    {{~ if stat.source == "conversions" && data.format_map ~}}{{~ value = data.format_map.routes.size ~}}{{~ end ~}}
+    {{~ if stat.source == "components" && data.documentation_catalog ~}}{{~ value = data.documentation_catalog.components.size ~}}{{~ end ~}}
+    {{~ if value != null && value != "" ~}}
+    <div><dt>{{ stat.label }}</dt><dd>{{ value }}</dd></div>
+    {{~ end ~}}
+    {{~ end ~}}
+  </dl>
+</section>
+{{~ end ~}}

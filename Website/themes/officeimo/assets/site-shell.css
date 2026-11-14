@@ -431,16 +431,16 @@ body.imo-body::after {
 /* One color per product, keyed by destination so the menu stays data driven. */
 .imo-header .imo-nav__link[href="/studio/"] { --imo-product: var(--imo-p-studio); }
 .imo-header .imo-nav__link[href="/convert/"] { --imo-product: var(--imo-p-browser); }
-.imo-header .imo-nav__link[href="/tool/"] { --imo-product: var(--imo-p-cli); }
+.imo-header .imo-nav__link[href="/cli/"] { --imo-product: var(--imo-p-cli); }
 .imo-header .imo-nav__link[href="/libraries/"] { --imo-product: var(--imo-p-dotnet); }
-.imo-header .imo-nav__link[href="/products/pswriteoffice/"] { --imo-product: var(--imo-p-powershell); }
+.imo-header .imo-nav__link[href="/powershell/"] { --imo-product: var(--imo-p-powershell); }
 .imo-header .imo-nav__link[href="/extension/"] { --imo-product: var(--imo-p-extension); }
 .imo-header .imo-nav__link { gap: 8px; }
 .imo-header a.imo-nav__link[href="/studio/"]::before,
 .imo-header a.imo-nav__link[href="/convert/"]::before,
-.imo-header a.imo-nav__link[href="/tool/"]::before,
+.imo-header a.imo-nav__link[href="/cli/"]::before,
 .imo-header a.imo-nav__link[href="/libraries/"]::before,
-.imo-header a.imo-nav__link[href="/products/pswriteoffice/"]::before,
+.imo-header a.imo-nav__link[href="/powershell/"]::before,
 .imo-header a.imo-nav__link[href="/extension/"]::before {
   content: "";
   width: 7px;

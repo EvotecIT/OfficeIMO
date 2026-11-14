@@ -1,0 +1,67 @@
+{{~ # Capability explorer: groups of commands with counts, a short real example and links. Tabs are added by surface-explorer.js; without script every group is listed. ~}}
+{{~ if app.explorer ~}}
+{{~ groups = [] ~}}
+{{~ unit = "commands" ~}}
+{{~ if app.explorer.source == "powershell" && data.pswriteoffice_command_catalog ~}}
+  {{~ families = data.pswriteoffice_command_catalog.families | array.sort "commandCount" | array.reverse ~}}
+  {{~ for family in families ~}}
+    {{~ snippet = app.explorer.snippets ? app.explorer.snippets[family.id] : null ~}}
+    {{~ groups = groups | array.add { id: family.id, title: family.title, count: family.commandCount, summary: family.description, items: family.featuredCommands, docs: family.docsUrl, reference: family.apiUrl, snippet: snippet, details: null } ~}}
+  {{~ end ~}}
+{{~ else if app.explorer.source == "cli" && data.cli && data.cli.commands ~}}
+  {{~ for group in data.cli.commands.groups ~}}
+    {{~ names = [] ~}}
+    {{~ for command in group.commands ~}}{{~ names = names | array.add command.name ~}}{{~ end ~}}
+    {{~ groups = groups | array.add { id: group.id, title: group.title, count: group.commands.size, summary: group.summary, items: names, docs: group.docsUrl, reference: null, snippet: group.example ? { file: null, code: group.example } : null, details: group } ~}}
+  {{~ end ~}}
+{{~ end ~}}
+{{~ if groups.size > 0 ~}}
+<section class="imo-container imo-surface-section imo-surface-explorer" aria-labelledby="explorer-title" data-surface-explorer>
+  <div class="imo-surface-head">
+    <h2 id="explorer-title">{{ app.explorer.title }}</h2>
+    {{ if app.explorer.intro }}<p>{{ app.explorer.intro }}</p>{{ end }}
+  </div>
+  <div class="imo-surface-explorer__frame">
+    <div class="imo-surface-explorer__tabs" role="tablist" aria-label="{{ app.explorer.title }}" hidden>
+      {{~ for group in groups ~}}
+      <button type="button" role="tab" id="sx-tab-{{ group.id }}" aria-controls="sx-panel-{{ group.id }}" aria-selected="false" tabindex="-1"><span>{{ group.title }}</span><small>{{ group.count }}</small></button>
+      {{~ end ~}}
+    </div>
+    <div class="imo-surface-explorer__panels">
+      {{~ for group in groups ~}}
+      <article class="imo-surface-explorer__panel" id="sx-panel-{{ group.id }}" role="tabpanel" aria-labelledby="sx-tab-{{ group.id }}">
+        <h3>{{ group.title }} <small>{{ group.count }} {{ if group.count == 1 }}command{{ else }}{{ unit }}{{ end }}</small></h3>
+        {{ if group.summary }}<p>{{ group.summary }}</p>{{ end }}
+        {{~ if group.details && group.details.commands ~}}
+        <dl class="imo-surface-explorer__commands">
+          {{~ for command in group.details.commands ~}}
+          <div><dt><code>{{ command.usage ?? command.name }}</code></dt>{{ if command.summary }}<dd>{{ command.summary }}</dd>{{ end }}</div>
+          {{~ end ~}}
+        </dl>
+        {{~ if group.details.options && group.details.options.size > 0 ~}}
+        <p class="imo-surface-explorer__label">Key options</p>
+        <ul class="imo-surface-explorer__items">{{ for option in group.details.options }}<li title="{{ option.description | html.escape }}"><code>{{ option.name }}</code></li>{{ end }}</ul>
+        {{~ end ~}}
+        {{~ if group.details.outputFormats && group.details.outputFormats.size > 0 ~}}
+        <p class="imo-surface-explorer__label">Output: {{ group.details.outputFormats | array.join ", " }}</p>
+        {{~ end ~}}
+        {{~ else ~}}
+        <ul class="imo-surface-explorer__items">{{ for item in group.items }}<li><code>{{ item }}</code></li>{{ end }}</ul>
+        {{~ end ~}}
+        {{~ if group.snippet ~}}
+        <figure class="imo-terminal imo-surface-explorer__code">
+          <p class="imo-terminal__bar"><span>{{ if group.snippet.file }}{{ group.snippet.file }}{{ else }}Example{{ end }}</span><button type="button" data-copy="{{ group.snippet.code | html.escape }}" aria-label="Copy the {{ group.title }} example">Copy</button></p>
+          <pre tabindex="0"><code>{{ group.snippet.code | html.escape }}</code></pre>
+        </figure>
+        {{~ end ~}}
+        <p class="imo-surface-explorer__links">
+          {{ if group.docs }}<a href="{{ group.docs }}">{{ group.title }} guide <span aria-hidden="true">→</span></a>{{ end }}
+          {{ if group.reference }}<a href="{{ group.reference }}">Command reference <span aria-hidden="true">→</span></a>{{ end }}
+        </p>
+      </article>
+      {{~ end ~}}
+    </div>
+  </div>
+</section>
+{{~ end ~}}
+{{~ end ~}}

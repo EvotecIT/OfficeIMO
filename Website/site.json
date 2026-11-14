@@ -408,7 +408,11 @@
       {
         "Name": "applications",
         "Css": [
-          "/css/applications.css"
+          "/css/applications.css",
+          "/css/surfaces.css"
+        ],
+        "Js": [
+          "/js/surface-explorer.js"
         ]
       },
       {
@@ -473,7 +477,15 @@
         ]
       },
       {
-        "Match": "/tool/",
+        "Match": "/cli/",
+        "Bundles": [
+          "global",
+          "experience",
+          "applications"
+        ]
+      },
+      {
+        "Match": "/powershell/",
         "Bundles": [
           "global",
           "experience",
@@ -784,7 +796,7 @@
         },
         {
           "Title": "CLI",
-          "Url": "/tool/",
+          "Url": "/cli/",
           "CssClass": "imo-nav__item--product",
           "Description": "Scripts, CI jobs and MCP"
         },
@@ -802,7 +814,7 @@
         },
         {
           "Title": "PowerShell",
-          "Url": "/products/pswriteoffice/",
+          "Url": "/powershell/",
           "CssClass": "imo-nav__item--product",
           "Description": "PSWriteOffice module"
         },
@@ -890,7 +902,7 @@
         },
         {
           "Title": "CLI",
-          "Url": "/tool/"
+          "Url": "/cli/"
         },
         {
           "Title": "AI agents",
@@ -902,7 +914,7 @@
         },
         {
           "Title": "PowerShell",
-          "Url": "/products/pswriteoffice/"
+          "Url": "/powershell/"
         },
         {
           "Title": "Downloads",
@@ -1029,6 +1041,20 @@
     "IncludeExternal": false
   },
   "Redirects": [
+    {
+      "From": "/tool/",
+      "To": "/cli/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/products/pswriteoffice/",
+      "To": "/powershell/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
     {
       "From": "/showcase/html-rendering/",
       "To": "/showcase/?format=html",

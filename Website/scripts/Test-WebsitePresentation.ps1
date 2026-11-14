@@ -140,7 +140,7 @@ foreach ($route in $presentationRoutes) {
     if ($navigationCount -ne 1) {
         throw "Route '/$route/' must render one global navigation menu; found $navigationCount."
     }
-    foreach ($destination in @('/studio/', '/convert/', '/tool/', '/libraries/', '/docs/', '/downloads/')) {
+    foreach ($destination in @('/studio/', '/convert/', '/cli/', '/libraries/', '/docs/', '/downloads/')) {
         Assert-ContainsAttribute -Text $routeHtml -Name 'href' -Value $destination -Contract "global navigation on /$route/"
     }
 }
