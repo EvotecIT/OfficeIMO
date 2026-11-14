@@ -485,8 +485,8 @@ RTF syntax editing and semantic conversion belong to `OfficeIMO.Rtf`. Generate R
 `EmailDocument.Protection` detects opaque and clear-signed S/MIME plus signed or encrypted OpenPGP/MIME wrappers. It
 retains the original artifact bytes automatically, including Outlook's complete outer `multipart/signed` attachment
 for `IPM.Note.SMIME.MultipartSigned`. `EmailSmime` creates and verifies clear/opaque S/MIME, creates and decrypts
-EnvelopedData, and supports sign-then-encrypt through an explicitly supplied security provider; OpenPGP remains outside this package.
-DKIM and ARC verification are described below.
+EnvelopedData, and supports sign-then-encrypt through an explicitly supplied security provider. `EmailPgp` verifies and
+decrypts OpenPGP, and `EmailDkim` and `EmailArc` verify transport signatures; both are described below.
 Writing an unchanged protected document in its source format emits those bytes verbatim; an edited or cross-format
 write is blocked by default because regenerating the wrapper would invalidate its cryptographic meaning.
 
@@ -580,6 +580,41 @@ for one selector, never passes. Signatures with an `l=` body length limit are ev
 `UnsignedBodyBytes`; set `EmailAuthenticationOptions.RejectBodyLengthLimit` to refuse them. Temporary key lookup
 failures report `TempError` (DKIM) or `NotVerified` (ARC), never a failure or a pass. Bare LF line endings from files
 saved on disk are treated as CRLF and reported in the diagnostics.
+
+## OpenPGP
+
+`EmailPgp.Verify` checks PGP/MIME `multipart/signed` messages (RFC 3156) over the exact bytes of the signed part, and
+inline cleartext-signed bodies. `EmailPgp.Decrypt` opens `multipart/encrypted` messages and inline armored messages,
+then verifies signatures inside the encryption, either combined with it or as a nested `multipart/signed` entity.
+`EmailDocument.Protection.InlinePgp` reports an armored block at the start of a plain-text body; inline blocks travel in
+the text, so they do not make the message `IsProtected`.
+
+Keys are only those you pass in `OfficeOpenPgpKeySet`. Nothing reads a GnuPG keyring, agent or key server.
+`OfficeSecurityProvider` from `OfficeIMO.Security` implements `IOfficeOpenPgpProvider` with BouncyCastle.
+
+```csharp
+using OfficeIMO.Security;
+
+EmailDocument message = EmailDocument.Load("encrypted.eml");
+var keys = new OfficeOpenPgpKeySet(
+    publicKeys: new[] { File.ReadAllBytes("alice.asc") },
+    secretKeys: new[] { File.ReadAllBytes("bob-secret.asc") },
+    passphraseProvider: keyId => ReadPassphrase(keyId));
+
+EmailPgpDecryptionResult decrypted = EmailPgp.Decrypt(message, OfficeSecurityProvider.Default, keys);
+if (decrypted.IsDecrypted) {
+    Console.WriteLine(decrypted.DecryptedContent?.Body.Text);
+    Console.WriteLine(decrypted.IsSignatureValid);
+}
+```
+
+Results are typed rather than thrown. Encrypted data without a modification detection code is refused and altered
+data never releases plaintext. MD5, SHA-1 and RIPEMD-160 signatures, RSA/DSA keys under 2048 bits, revoked or expired
+keys, and subkeys without a valid binding never count as valid. User IDs are reported as claims; deciding whether to
+trust a signer stays with the caller. Version 4 keys and signatures (RFC 4880) are covered, including Ed25519 and
+Curve25519 keys. RFC 9580 version 6 keys, signatures and AEAD-encrypted data are reported as unsupported, as are
+password-only encrypted messages.
+
 ## Mailbox stores and store-backed content
 
 PST, OST, Outlook for Mac OLM, and Apple Mail EMLX containers are included in `OfficeIMO.Email`. The Store APIs yield ordinary `EmailDocument` instances while preserving folder paths, store metadata, diagnostics, and bounded attachment behavior.
