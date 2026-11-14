@@ -34,7 +34,8 @@ internal static partial class PdfRedactionApplier {
                 resources,
                 effectiveFontDecoders,
                 effectiveFontWidthProviders,
-                effectiveVerticalWritingFonts));
+                effectiveVerticalWritingFonts),
+            limits.MaxGraphicsStateDepth);
         var replacedInvocations = new Dictionary<string, int>(StringComparer.Ordinal);
         var changedInvocations = new HashSet<string>(StringComparer.Ordinal);
         for (int invocationIndex = invocations.Length - 1; invocationIndex >= 0; invocationIndex--) {

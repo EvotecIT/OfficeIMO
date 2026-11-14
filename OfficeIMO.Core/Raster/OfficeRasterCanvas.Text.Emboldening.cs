@@ -16,6 +16,6 @@ public sealed partial class OfficeRasterCanvas {
     private void FillTextContourUnion(IReadOnlyList<List<OfficePoint>> contours, IReadOnlyList<List<OfficePoint>> shifted, OfficeColor color) {
         if (_textInkObserver != null) {
             if (color.A != 0) { _textInkObserver(contours); _textInkObserver(shifted); }
-        } else FillContourPaint(contours, OfficeFillRule.NonZero, (_, _) => color, shifted);
+        } else FillContourPaint(contours, OfficeFillRule.NonZero, SolidPaint(color), shifted);
     }
 }

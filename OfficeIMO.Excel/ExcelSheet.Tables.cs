@@ -512,7 +512,10 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            return _excelDocument.ExecuteReadAfterMaterializing(() => GetTableRangeWithoutMaterializing(tableName));
+            // A table part keeps its reference whether or not deferred rows have been written, so only a table that
+            // does not exist yet waits for them; reading the range then leaves the direct-save rows in place.
+            return _excelDocument.ExecuteReadWithoutMaterializing(() => GetTableRangeWithoutMaterializing(tableName))
+                ?? _excelDocument.ExecuteReadAfterMaterializing(() => GetTableRangeWithoutMaterializing(tableName));
         }
 
         private string? GetTableRangeWithoutMaterializing(string tableName) {

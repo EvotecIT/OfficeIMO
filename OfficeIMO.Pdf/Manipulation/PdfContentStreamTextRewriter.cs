@@ -165,6 +165,7 @@ internal static class PdfContentStreamTextRewriter {
                 return true;
             },
             maxNestingDepth: limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: limits.MaxGraphicsStateDepth,
             maxOperands: limits.MaxContentOperands,
             dispatchInvalidOperations: true);
 
@@ -210,6 +211,7 @@ internal static class PdfContentStreamTextRewriter {
                     : bytes.Length * 500D,
                 initialTextState: initialTextState,
                 maxNestingDepth: limits.MaxContentNestingDepth,
+                maxGraphicsStateDepth: limits.MaxGraphicsStateDepth,
                 graphicsStates: graphicsStates,
                 // Rewrites map one span to each encoded string of a TJ array.
                 mergeKernedTextArrays: false);

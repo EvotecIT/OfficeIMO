@@ -68,8 +68,12 @@ namespace OfficeIMO.Excel {
 
         internal bool RequiresSavePreparation => _requiresSavePreparation;
 
+        // A direct-save model kept beside materialized rows must see every edit, or the save writes it instead.
+        private bool CanSkipSavePreparationMark
+            => _requiresSavePreparation && _excelDocument.IsPackageDirty && !_excelDocument.HasMaterializedDirectDataSetFastSaveModel;
+
         internal void MarkRequiresSavePreparation() {
-            if (_requiresSavePreparation && _excelDocument.IsPackageDirty) {
+            if (CanSkipSavePreparationMark) {
                 return;
             }
 
@@ -78,7 +82,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal void MarkRequiresWorksheetPreparation() {
-            if (_requiresSavePreparation && _excelDocument.IsPackageDirty) {
+            if (CanSkipSavePreparationMark) {
                 return;
             }
 

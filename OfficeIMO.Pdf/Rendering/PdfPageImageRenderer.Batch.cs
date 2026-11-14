@@ -184,6 +184,7 @@ internal static partial class PdfPageImageRenderer {
                     options.TextShapingProvider,
                     options.TextShapingLanguage,
                     rasterOmissions,
+                    options.RasterEncoding?.Png,
                     cancellationToken);
             } else {
                 if (drawing.PostCompositionColorTransform != null)

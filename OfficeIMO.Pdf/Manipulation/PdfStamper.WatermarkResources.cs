@@ -46,7 +46,7 @@ internal static partial class PdfStamper {
                     if (operation.Name is "Do" or "gs" && operation.Operands.Count > 0
                         && operation.Operands[operation.Operands.Count - 1] is string name)
                         used.Add(operation.Name + ":" + name);
-                }, maxNestingDepth: limits.MaxContentNestingDepth, maxOperands: limits.MaxContentOperands);
+                }, maxNestingDepth: limits.MaxContentNestingDepth, maxGraphicsStateDepth: limits.MaxGraphicsStateDepth, maxOperands: limits.MaxContentOperands);
             }
         } catch (System.IO.IOException) {
             // Pruning is optional. An unreadable or over-limit stream, including an unused

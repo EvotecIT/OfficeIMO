@@ -17,7 +17,7 @@ public static partial class OfficeTextBlockRenderer {
         }
         // One non-zero union prevents overlapping wave outline pieces from blending
         // translucent color more than once.
-        canvas.FillContourPaint(contours, OfficeFillRule.NonZero, (_, _) => paint.Color);
+        canvas.FillContourPaint(contours, OfficeFillRule.NonZero, OfficeRasterCanvas.SolidPaint(paint.Color));
     }
 
     private static StringBuilder AppendSvgTabLineLeader(StringBuilder builder, OfficeTextTabLineLeaderPaint paint,

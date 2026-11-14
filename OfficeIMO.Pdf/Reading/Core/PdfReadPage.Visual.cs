@@ -1111,6 +1111,7 @@ public sealed partial class PdfReadPage {
                 initialStrokeLineJoin: initialStrokeLineJoin,
                 maxOperations: _limits.MaxContentOperations,
                 maxNestingDepth: _limits.MaxContentNestingDepth,
+                maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
                 maxOperands: _limits.MaxContentOperands,
                 fonts: fonts,
                 fontWidthProviders: widthProviders,
@@ -1203,6 +1204,7 @@ public sealed partial class PdfReadPage {
             maxOperations: _limits.MaxContentOperations,
             patternBaseColorSpaces: patternBaseColorSpaces,
             maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
             maxOperands: _limits.MaxContentOperands,
             strokeDashProjectionConsumer: pageContentBudget.ChargeStrokeDashProjection,
             primitiveVisitor: currentPrimitiveVisitor,
@@ -1270,6 +1272,7 @@ public sealed partial class PdfReadPage {
                       outputIntentColorTransform: EffectiveOutputIntentColorTransform,
                       maxOperations: _limits.MaxContentOperations,
                       maxNestingDepth: _limits.MaxContentNestingDepth,
+                      maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
                       maxOperands: _limits.MaxContentOperands,
                       fonts: fonts,
                       fontWidthProviders: widthProviders,
@@ -1494,7 +1497,7 @@ public sealed partial class PdfReadPage {
                 PdfFontResourceSet formFonts = CreateInheritedFormFontResources(fontResources, formResources,
                     invocation.TextState, out PdfTextStateSnapshot formTextState, pageContentBudget.CancellationToken);
                 if (!requireSupportedType3Content && type3GroupVisitor != null &&
-                    formOrderPrefix != null && IsSupportedOrdinaryTransparencyGroup(formDictionary)) {
+                    formOrderPrefix != null && IsSupportedOrdinaryTransparencyGroup(formDictionary, formResources, invocation)) {
                     OfficeDrawing group = CreateOrdinaryTransparencyGroupDrawing(formContent, formResources, formTransform,
                         pageWidth, pageHeight, invocation, activeForms, activeType3Glyphs, renderedType3PaintOrders,
                         type3GlyphBudget, paintOrderScale, textOutputBudget, pageContentBudget,
@@ -2545,6 +2548,7 @@ public sealed partial class PdfReadPage {
             GetOptionalContentVisibility(resources),
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
             maxOperands: _limits.MaxContentOperands,
             pageWidth: pageSize.Width,
             xObjectPaintChannelResolver: (name, paintState) => {
@@ -3580,15 +3584,21 @@ public sealed partial class PdfReadPage {
         }
 
         double dot = (m11 * m21) + (m12 * m22);
-        if (requireExactOrthogonality ? dot != 0D : !NearlyEqual(dot, 0D)) {
+        // Producers write rotated image matrices with a few significant digits, so the axes of a
+        // large image are orthogonal only relative to its size. An absolute tolerance would drop
+        // such a rotation and paint the image's axis-aligned bounds instead.
+        if (requireExactOrthogonality ? dot != 0D : Math.Abs(dot) > Math.Max(0.001D, RotatedImageTolerance * width * height)) {
             return false;
         }
 
-        return TryCreateImageProjectionCandidate(m11, m12, m21, m22, offsetX, offsetY, width, height, flipHorizontal: false, flipVertical: false, drawingWidth, drawingHeight, out projection) ||
-               TryCreateImageProjectionCandidate(m11, m12, m21, m22, offsetX, offsetY, width, height, flipHorizontal: true, flipVertical: false, drawingWidth, drawingHeight, out projection) ||
-               TryCreateImageProjectionCandidate(m11, m12, m21, m22, offsetX, offsetY, width, height, flipHorizontal: false, flipVertical: true, drawingWidth, drawingHeight, out projection) ||
-               TryCreateImageProjectionCandidate(m11, m12, m21, m22, offsetX, offsetY, width, height, flipHorizontal: true, flipVertical: true, drawingWidth, drawingHeight, out projection);
+        double rowTolerance = requireExactOrthogonality ? 0.001D : Math.Max(0.001D, RotatedImageTolerance * height);
+        return TryCreateImageProjectionCandidate(m11, m12, m21, m22, offsetX, offsetY, width, height, flipHorizontal: false, flipVertical: false, drawingWidth, drawingHeight, rowTolerance, out projection) ||
+               TryCreateImageProjectionCandidate(m11, m12, m21, m22, offsetX, offsetY, width, height, flipHorizontal: true, flipVertical: false, drawingWidth, drawingHeight, rowTolerance, out projection) ||
+               TryCreateImageProjectionCandidate(m11, m12, m21, m22, offsetX, offsetY, width, height, flipHorizontal: false, flipVertical: true, drawingWidth, drawingHeight, rowTolerance, out projection) ||
+               TryCreateImageProjectionCandidate(m11, m12, m21, m22, offsetX, offsetY, width, height, flipHorizontal: true, flipVertical: true, drawingWidth, drawingHeight, rowTolerance, out projection);
     }
+
+    private const double RotatedImageTolerance = 0.0001D;
 
     private static bool TryCreateImageProjectionCandidate(
         double m11,
@@ -3603,6 +3613,7 @@ public sealed partial class PdfReadPage {
         bool flipVertical,
         double drawingWidth,
         double drawingHeight,
+        double rowTolerance,
         out OfficeImageProjection projection) {
         projection = default;
         double columnSign = flipHorizontal ? -1D : 1D;
@@ -3613,8 +3624,8 @@ public sealed partial class PdfReadPage {
         double baseColumnY = width * sin;
         double baseRowX = -height * sin;
         double baseRowY = height * cos;
-        if (!NearlyEqual(m21, rowSign * baseRowX) ||
-            !NearlyEqual(m22, rowSign * baseRowY)) {
+        if (Math.Abs(m21 - rowSign * baseRowX) > rowTolerance ||
+            Math.Abs(m22 - rowSign * baseRowY) > rowTolerance) {
             return false;
         }
 

@@ -72,6 +72,8 @@ internal static partial class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("EPPlus", "Write sales data, add a clustered column chart over regional totals, and save.", () => EpPlusWriteRealWorldCharts(rows))
         ]);
 
+        AddTableChartColumnScenarioGroup(scenarios, scenarioFilter, rows, warmupIterations, measuredIterations);
+
         AddScenarioGroup(scenarios, scenarioFilter, RealWorldPivotTableScenario, warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Write sales data, add a pivot table with row, column, and sum data fields, and save.", () => OfficeImoWriteRealWorldPivotTable(rows)),
             new LibraryComparisonCase("EPPlus", "Write sales data, add a pivot table with row, column, and sum data fields, and save.", () => EpPlusWriteRealWorldPivotTable(rows))

@@ -45,6 +45,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_IndexedReaderFallsBackWhenALaterBlockHasAMismatchedRowRecord() {
+            byte[] workbookStream = ReadCompoundStream(CreateDenseIndexedWorkbook(("Data", 1)), "Workbook");
+            IndexedWorksheetLayout layout = Assert.Single(ReadIndexedWorksheetLayouts(workbookStream));
+            Assert.True(layout.DbCellOffsets.Count > 3);
+            int dbCellOffset = layout.DbCellOffsets[3];
+            int firstRowRecord = checked(dbCellOffset - (int)ReadUInt32(workbookStream, dbCellOffset + 4));
+            Assert.Equal(0x0208, ReadUInt16(workbookStream, firstRowRecord));
+            // The ROW record names another row; the cell records themselves stay intact.
+            WriteUInt16(workbookStream, firstRowRecord + 4, 0xfff0);
+            byte[] mutated = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            var options = new ExcelReaderOptions();
+            using LegacyXlsTabularWorkbook workbook = LegacyXlsTabularWorkbook.Open(mutated, options);
+            using var reader = Assert.IsType<LegacyXlsTabularDataReader>(
+                workbook.OpenTable("Data", hasHeaderRow: true, options));
+            Assert.True(reader.UsedIndexedDiscovery);
+
+            int rowCount = 0;
+            while (reader.Read()) {
+                Assert.Equal(1 + rowCount, reader.GetInt32(0));
+                rowCount++;
+            }
+            Assert.Equal(255, rowCount);
+            Assert.False(reader.UsedIndexedDiscovery);
+        }
+
+        [Fact]
         public void LegacyXls_IndexedReaderStillObservesConfiguredCancellation() {
             byte[] xls = CreateDenseIndexedWorkbook(("Data", 1));
             using var cancellation = new CancellationTokenSource();

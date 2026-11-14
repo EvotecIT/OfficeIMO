@@ -409,6 +409,7 @@ internal static partial class PdfRedactionApplier {
                 }
             },
             maxNestingDepth: limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: limits.MaxGraphicsStateDepth,
             maxOperands: limits.MaxContentOperands);
         return spans;
     }
@@ -532,7 +533,8 @@ internal static partial class PdfRedactionApplier {
                 : bytes is null ? 0D : bytes.Length * 500D;
 
         return TextContentParser.Parse(content, DecodeWithFont, SumWidth1000, initialTextState: initialTextState,
-            maxNestingDepth: limits.MaxContentNestingDepth);
+            maxNestingDepth: limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: limits.MaxGraphicsStateDepth);
     }
 
     private static RedactionTextBounds AddSpanBounds(RedactionTextBounds? current, PdfTextSpan span) {

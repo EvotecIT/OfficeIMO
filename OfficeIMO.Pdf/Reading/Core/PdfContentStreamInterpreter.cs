@@ -16,7 +16,8 @@ internal static class PdfContentStreamInterpreter {
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
         bool dispatchInvalidOperations = false,
         Func<PdfArray, int>? inlineImageArrayComponentCount = null,
-        PdfContentOperands? operandBuffer = null) {
+        PdfContentOperands? operandBuffer = null,
+        int maxGraphicsStateDepth = PdfReadLimits.DefaultMaxGraphicsStateDepth) {
         content.ThrowIfNull(nameof(content));
         Guard.NotNull(visit, nameof(visit));
         Func<PdfContentOperation, bool> visitAll = operation => {
@@ -24,10 +25,10 @@ internal static class PdfContentStreamInterpreter {
             return true;
         };
         if (content.Bytes is byte[] bytes) {
-            new Reader<PdfByteContentText>(new PdfByteContentText(bytes), maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations, operandBuffer)
+            new Reader<PdfByteContentText>(new PdfByteContentText(bytes), maxOperations, maxOperands, maxNestingDepth, maxGraphicsStateDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations, operandBuffer)
                 .InterpretUntil(visitAll);
         } else {
-            new Reader<PdfStringContentText>(new PdfStringContentText(content.Text!), maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations, operandBuffer)
+            new Reader<PdfStringContentText>(new PdfStringContentText(content.Text!), maxOperations, maxOperands, maxNestingDepth, maxGraphicsStateDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations, operandBuffer)
                 .InterpretUntil(visitAll);
         }
     }
@@ -40,15 +41,23 @@ internal static class PdfContentStreamInterpreter {
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
         bool dispatchInvalidOperations = false,
-        Func<PdfArray, int>? inlineImageArrayComponentCount = null) {
+        Func<PdfArray, int>? inlineImageArrayComponentCount = null,
+        int maxGraphicsStateDepth = PdfReadLimits.DefaultMaxGraphicsStateDepth) {
         content.ThrowIfNull(nameof(content));
         Guard.NotNull(visit, nameof(visit));
         return content.Bytes is byte[] bytes
-            ? new Reader<PdfByteContentText>(new PdfByteContentText(bytes), maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations)
+            ? new Reader<PdfByteContentText>(new PdfByteContentText(bytes), maxOperations, maxOperands, maxNestingDepth, maxGraphicsStateDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations)
                 .InterpretUntil(visit)
-            : new Reader<PdfStringContentText>(new PdfStringContentText(content.Text!), maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations)
+            : new Reader<PdfStringContentText>(new PdfStringContentText(content.Text!), maxOperations, maxOperands, maxNestingDepth, maxGraphicsStateDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations)
                 .InterpretUntil(visit);
     }
+
+    // Graphics states saved by content streams still being interpreted on this thread. When a visitor
+    // interprets a nested stream from the callback of the stream that invokes it, both keep their saved
+    // states, so the nested stream starts from the open stream's count. Each reader restores the value it
+    // started with when it finishes or throws.
+    [ThreadStatic]
+    private static int t_activeGraphicsStateDepth;
 
     // Operators are short Latin-1 tokens; reusing one instance per operator avoids a string per operation.
     private static readonly Dictionary<int, string> KnownOperators = CreateKnownOperators();
@@ -94,6 +103,7 @@ internal static class PdfContentStreamInterpreter {
         private readonly int _maxOperations;
         private readonly int _maxOperands;
         private readonly int _maxNestingDepth;
+        private readonly int _maxGraphicsStateDepth;
         private readonly Func<string, int>? _inlineImageComponentCount;
         private readonly Func<PdfArray, int>? _inlineImageArrayComponentCount;
         private readonly bool _dispatchInvalidOperations;
@@ -103,6 +113,7 @@ internal static class PdfContentStreamInterpreter {
         private int _operationCount;
         private int _operandCount;
         private int _markedContentDepth;
+        private int _graphicsStateDepth;
         private bool _hasInvalidOperand;
         private string?[]? _rawNames;
         private string?[]? _decodedNames;
@@ -117,6 +128,7 @@ internal static class PdfContentStreamInterpreter {
             int maxOperations,
             int maxOperands,
             int maxNestingDepth,
+            int maxGraphicsStateDepth,
             Func<string, int>? inlineImageComponentCount,
             Func<PdfArray, int>? inlineImageArrayComponentCount,
             bool dispatchInvalidOperations,
@@ -125,6 +137,7 @@ internal static class PdfContentStreamInterpreter {
             _maxOperations = maxOperations;
             _maxOperands = maxOperands;
             _maxNestingDepth = maxNestingDepth;
+            _maxGraphicsStateDepth = maxGraphicsStateDepth;
             _inlineImageComponentCount = inlineImageComponentCount;
             _inlineImageArrayComponentCount = inlineImageArrayComponentCount;
             _dispatchInvalidOperations = dispatchInvalidOperations;
@@ -136,6 +149,15 @@ internal static class PdfContentStreamInterpreter {
         }
 
         internal bool InterpretUntil(Func<PdfContentOperation, bool> visit) {
+            int inheritedGraphicsStateDepth = t_activeGraphicsStateDepth;
+            try {
+                return InterpretOperations(visit, inheritedGraphicsStateDepth);
+            } finally {
+                t_activeGraphicsStateDepth = inheritedGraphicsStateDepth;
+            }
+        }
+
+        private bool InterpretOperations(Func<PdfContentOperation, bool> visit, int inheritedGraphicsStateDepth) {
             while (_index < _content.Length) {
                 SkipWhitespaceAndComments();
                 if (_index >= _content.Length) {
@@ -193,6 +215,14 @@ internal static class PdfContentStreamInterpreter {
                         throw PdfReadLimitException.Create(PdfReadLimitKind.ContentNestingDepth, _maxNestingDepth, _markedContentDepth);
                 } else if (name == "EMC" && _markedContentDepth > 0) {
                     _markedContentDepth--;
+                } else if (name == "q") {
+                    long activeDepth = (long)inheritedGraphicsStateDepth + ++_graphicsStateDepth;
+                    if (activeDepth > _maxGraphicsStateDepth)
+                        throw PdfReadLimitException.Create(PdfReadLimitKind.GraphicsStateDepth, _maxGraphicsStateDepth, activeDepth);
+                    t_activeGraphicsStateDepth = (int)activeDepth;
+                } else if (name == "Q" && _graphicsStateDepth > 0) {
+                    // A stream restores only states it saved; extra Q cannot reach the invoking content's states.
+                    t_activeGraphicsStateDepth = inheritedGraphicsStateDepth + --_graphicsStateDepth;
                 }
 
                 bool keepReading;

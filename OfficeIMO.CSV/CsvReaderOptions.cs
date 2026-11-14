@@ -38,7 +38,7 @@ public sealed class CsvReaderOptions
     /// </remarks>
     public CsvDataReaderParallelOptions? ParallelProcessing { get; set; }
 
-    internal CsvParsingSettings Parsing { get; set; } = new();
+    internal CsvParsingSettings Parsing { get; set; } = new() { StreamsInput = true };
 
         /// <summary>Default maximum complete stream input size (256 MiB).</summary>
     public const long DefaultMaxInputBytes = CsvParsingSettings.DefaultMaxInputBytes;
@@ -206,8 +206,9 @@ public sealed class CsvReaderOptions
     public long? MaxDecompressedBytes { get => Parsing.MaxDecompressedBytes; set => Parsing.MaxDecompressedBytes = value; }
 
     /// <summary>
-    /// Gets or sets the maximum number of bytes accepted by stream-based and uncompressed path-based load APIs.
-    /// Defaults to 256 MiB so untrusted inputs cannot be buffered without bound.
+    /// Gets or sets the maximum number of input bytes. APIs that hold the whole input in memory (loading a document,
+    /// buffering a stream) default to 256 MiB so untrusted inputs cannot be buffered without bound. Streamed reads
+    /// (readers, data readers and row enumeration) apply a limit only when one is set here.
     /// </summary>
     public long MaxInputBytes { get => Parsing.MaxInputBytes; set => Parsing.MaxInputBytes = value; }
 

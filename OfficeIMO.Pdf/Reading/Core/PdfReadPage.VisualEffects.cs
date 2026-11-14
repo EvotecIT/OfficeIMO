@@ -333,6 +333,7 @@ public sealed partial class PdfReadPage {
             initialStrokeLineJoin: initialState?.StrokeLineJoin,
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
             maxOperands: _limits.MaxContentOperands,
             fonts: fonts,
             fontWidthProviders: widthProviders,
@@ -398,6 +399,7 @@ public sealed partial class PdfReadPage {
             maxOperations: _limits.MaxContentOperations,
             patternBaseColorSpaces: patternBaseColorSpaces,
             maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
             maxOperands: _limits.MaxContentOperands,
             strokeDashProjectionConsumer: pageContentBudget.ChargeStrokeDashProjection,
             retainPrimitiveData: false,
@@ -439,6 +441,7 @@ public sealed partial class PdfReadPage {
             initialStrokeLineJoin: initialState?.StrokeLineJoin,
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
             maxOperands: _limits.MaxContentOperands,
             fonts: fonts,
             fontWidthProviders: widthProviders,
@@ -716,6 +719,7 @@ public sealed partial class PdfReadPage {
                 return !dependsOnUnsupportedInheritedColor;
             },
             maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
             maxOperands: _limits.MaxContentOperands);
         return dependsOnUnsupportedInheritedColor;
     }
@@ -857,7 +861,8 @@ public sealed partial class PdfReadPage {
             _limits.MaxContentOperands,
             inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
-            cancellationToken: pageContentBudget.CancellationToken);
+            cancellationToken: pageContentBudget.CancellationToken,
+            maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth);
         var local = new List<PdfPageDrawingEffectTransition>(parsed.Count);
         for (int transitionIndex = 0; transitionIndex < parsed.Count; transitionIndex++) {
             PdfPageDrawingEffectTransition transition = parsed[transitionIndex];
@@ -908,7 +913,8 @@ public sealed partial class PdfReadPage {
                      outputIntentColorTransform: EffectiveOutputIntentColorTransform,
                      textClippingBudget: textClippingBudget,
                      initialStrokeDashPattern: initialStrokeDashPattern,
-                     operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested)) {
+                     operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested,
+                     maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream) || !activeForms.Add(formStream)) continue;
             PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
             if (pageContentBudget.HasProjectedTransparencyGroup(formOrderPrefix)) {

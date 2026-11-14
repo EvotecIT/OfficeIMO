@@ -206,7 +206,7 @@ public sealed partial class PdfReadPage {
                         }
                         break;
                 }
-            }, maxNestingDepth: _limits.MaxContentNestingDepth, maxOperands: _limits.MaxContentOperands);
+            }, maxNestingDepth: _limits.MaxContentNestingDepth, maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth, maxOperands: _limits.MaxContentOperands);
 
             void ScanShownType3Glyphs(PdfDictionary font, PdfContentOperation operation,
                 PdfDictionary? inheritedResources, bool glyphFillRgb, bool glyphStrokeRgb,
@@ -374,6 +374,7 @@ public sealed partial class PdfReadPage {
         },
         inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
         maxNestingDepth: _limits.MaxContentNestingDepth,
+        maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
         maxOperands: _limits.MaxContentOperands,
         inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
         return found;
@@ -457,6 +458,7 @@ public sealed partial class PdfReadPage {
             GetOptionalContentVisibility(resources),
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
             maxOperands: _limits.MaxContentOperands,
             fonts: fonts,
             fontWidthProviders: fontResources?.WidthProviders ??

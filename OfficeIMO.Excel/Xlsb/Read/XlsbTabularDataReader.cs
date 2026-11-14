@@ -345,7 +345,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _logicalRowBudget.Consume();
             _hasPendingRow = false;
             bool reachedRowBoundary = _options.CellValueConverter == null
-                ? TryReadValidatedRowPlan(currentRowIndex) || ReadCurrentRowRecordsFast()
+                ? _validatedRowPlan != null && TryReadValidatedRowPlan(currentRowIndex) || ReadCurrentRowRecordsFast()
                 : ReadCurrentRowRecordsConverted();
 
             if (!reachedRowBoundary) {
@@ -568,11 +568,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             return ApplyCellValueConverter(cell, styleIndex, record.Type);
         }
 
-        private static XlsbTabularValueKind NumericKind(ExcelSerialDateStyle style) => style switch {
-            ExcelSerialDateStyle.Calendar => XlsbTabularValueKind.Date,
-            ExcelSerialDateStyle.Time => XlsbTabularValueKind.Time,
-            _ => XlsbTabularValueKind.Number
-        };
+        // Runs for every numeric cell; a switch here was compiled as a separate call.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static XlsbTabularValueKind NumericKind(ExcelSerialDateStyle style) =>
+            style == ExcelSerialDateStyle.Calendar ? XlsbTabularValueKind.Date
+            : style == ExcelSerialDateStyle.Time ? XlsbTabularValueKind.Time
+            : XlsbTabularValueKind.Number;
 
         private static DecodedCell NumericCell(int column, double number, ExcelSerialDateStyle dateStyle) =>
             new(column, NumericKind(dateStyle)) {

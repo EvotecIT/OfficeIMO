@@ -460,7 +460,8 @@ internal static partial class TextContentParser {
         int initialStrokeLineCap = 0,
         Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null,
         bool retainEditingEvidence = true,
-        FormInvocationCollector? formInvocations = null) {
+        FormInvocationCollector? formInvocations = null,
+        int maxGraphicsStateDepth = PdfReadLimits.DefaultMaxGraphicsStateDepth) {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
 
@@ -1001,7 +1002,7 @@ internal static partial class TextContentParser {
                     break;
                 default: args.Clear(); break;
             }
-        }, inlineImageComponentCount: inlineImageComponentCount, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands, inlineImageArrayComponentCount: inlineImageArrayComponentCount, operandBuffer: args);
+        }, inlineImageComponentCount: inlineImageComponentCount, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands, inlineImageArrayComponentCount: inlineImageArrayComponentCount, operandBuffer: args, maxGraphicsStateDepth: maxGraphicsStateDepth);
         ApplyPendingTextClippingPath();
         return spans;
 
@@ -2155,7 +2156,8 @@ internal static partial class TextContentParser {
         Action? cancellationCheck = null,
         PdfTextStateSnapshot? initialTextState = null,
         double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D,
-        bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0", int initialStrokeLineCap = 0) {
+        bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0", int initialStrokeLineCap = 0,
+        int maxGraphicsStateDepth = PdfReadLimits.DefaultMaxGraphicsStateDepth) {
         FormInvocationCollector collector = CreateFormInvocationCollector(
             optionalContentVisibility: optionalContentVisibility,
             paintOrderBase: paintOrderBase,
@@ -2195,7 +2197,8 @@ internal static partial class TextContentParser {
             initialStrokeLineCap: initialStrokeLineCap);
         PdfContentStreamInterpreter.Interpret(content, maxOperations, collector.VisitBorrowed,
             inlineImageComponentCount: inlineImageComponentCount, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands,
-            inlineImageArrayComponentCount: inlineImageArrayComponentCount, operandBuffer: collector.Operands);
+            inlineImageArrayComponentCount: inlineImageArrayComponentCount, operandBuffer: collector.Operands,
+            maxGraphicsStateDepth: maxGraphicsStateDepth);
         return collector.Invocations;
     }
 

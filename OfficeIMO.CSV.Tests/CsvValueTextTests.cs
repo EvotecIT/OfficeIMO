@@ -1,11 +1,12 @@
 #if NET8_0_OR_GREATER
 using System.Globalization;
+using System.Text;
 using OfficeIMO.CSV;
 using Xunit;
 
 namespace OfficeIMO.CSV.Tests;
 
-/// <summary>Number and date text written by the CSV writers must equal the runtime's text for every value.</summary>
+/// <summary>Number and date text written by the CSV writers, in UTF-16 and UTF-8, must equal the runtime's text for every value.</summary>
 public class CsvValueTextTests
 {
     [Fact]
@@ -49,10 +50,14 @@ public class CsvValueTextTests
         }
 
         Span<char> text = stackalloc char[64];
+        Span<byte> utf8 = stackalloc byte[64];
         foreach (double value in values)
         {
+            string expected = value.ToString(CultureInfo.InvariantCulture);
             Assert.True(CsvWriter.TryFormatInvariant(value, text, out int written));
-            Assert.Equal(value.ToString(CultureInfo.InvariantCulture), text[..written].ToString());
+            Assert.Equal(expected, text[..written].ToString());
+            Assert.True(CsvWriter.TryFormatInvariant(value, utf8, out written));
+            Assert.Equal(expected, Encoding.ASCII.GetString(utf8[..written]));
         }
     }
 

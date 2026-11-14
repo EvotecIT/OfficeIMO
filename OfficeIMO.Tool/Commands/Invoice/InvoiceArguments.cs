@@ -20,7 +20,7 @@ internal sealed class InvoiceArguments {
 
     internal static InvoiceArguments Parse(string[] args) {
         var result = new InvoiceArguments();
-        if (args.Length == 0 || args[0] is "help" or "--help" or "-h") { result.Help = true; return result; }
+        if (args.Length == 0 || args[0] is "help" || args.Any(argument => argument is "--help" or "-h")) { result.Help = true; return result; }
         int index = 0;
         if (args[0] == "batch") { result.Batch = true; index++; }
         if (index >= args.Length) throw new ArgumentException("Choose an invoice operation.");
