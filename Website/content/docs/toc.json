@@ -412,6 +412,21 @@
         "href": "/docs/open-document/"
       },
       {
+        "title": "Create, Read and Edit ODT, ODS and ODP",
+        "path": "open-document/create-read/index.md",
+        "href": "/docs/open-document/create-read/"
+      },
+      {
+        "title": "Convert OpenDocument and Office Formats",
+        "path": "open-document/convert-office/index.md",
+        "href": "/docs/open-document/convert-office/"
+      },
+      {
+        "title": "Convert OpenDocument to PDF and Images",
+        "path": "open-document/convert-pdf/index.md",
+        "href": "/docs/open-document/convert-pdf/"
+      },
+      {
         "title": "Apple iWork",
         "path": "iwork/index.md",
         "href": "/docs/iwork/"
@@ -470,6 +485,21 @@
         "title": "YAML Overview",
         "path": "yaml/index.md",
         "href": "/docs/yaml/"
+      },
+      {
+        "title": "Read YAML into Typed Objects",
+        "path": "yaml/read-typed/index.md",
+        "href": "/docs/yaml/read-typed/"
+      },
+      {
+        "title": "Edit and Merge YAML",
+        "path": "yaml/edit-merge/index.md",
+        "href": "/docs/yaml/edit-merge/"
+      },
+      {
+        "title": "Write YAML Files",
+        "path": "yaml/write/index.md",
+        "href": "/docs/yaml/write/"
       }
     ]
   },
@@ -557,6 +587,16 @@
         "href": "/docs/toml/"
       },
       {
+        "title": "Read TOML into Typed Objects",
+        "path": "toml/read-typed/index.md",
+        "href": "/docs/toml/read-typed/"
+      },
+      {
+        "title": "Edit and Write TOML Files",
+        "path": "toml/edit-write/index.md",
+        "href": "/docs/toml/edit-write/"
+      },
+      {
         "title": "Data Conversions",
         "path": "data-conversions/index.md",
         "href": "/docs/data-conversions/"
@@ -570,6 +610,16 @@
         "title": "Signatures and Encryption",
         "path": "security/index.md",
         "href": "/docs/security/"
+      },
+      {
+        "title": "Sign and Verify Documents",
+        "path": "security/sign-documents/index.md",
+        "href": "/docs/security/sign-documents/"
+      },
+      {
+        "title": "CMS Signatures and Encryption",
+        "path": "security/cms/index.md",
+        "href": "/docs/security/cms/"
       },
       {
         "title": "Charts, OCR and Provenance",

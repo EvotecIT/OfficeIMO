@@ -1,82 +1,106 @@
 ---
 title: "Signatures and Encryption"
-description: "Optional CMS, S/MIME, RFC 3161 timestamp, X.509 trust and XML Digital Signature provider for signing, verifying and encrypting with OfficeIMO packages."
+description: "Sign and verify documents and data, validate certificates and encrypt for recipients with OfficeIMO.Security, the optional CMS, S/MIME, RFC 3161, X.509 and XML signature provider."
 order: 59
+verified: 2026-11-14
 meta.seo_title: "Sign, verify and encrypt documents in C#"
+packages:
+  - OfficeIMO.Security
+related:
+  - /docs/security/sign-documents/
+  - /docs/security/cms/
+  - /docs/pdf/encrypt-sign/
+  - /docs/email/safety-and-verification/
+limits: Key custody, certificate and recipient selection and trust policy belong to your application; the provider does not search certificate stores or enable network revocation on its own.
+search_terms:
+  - digital signature
+  - cms
+  - pkcs7
+  - smime
+  - x509
+  - encrypt document
 ---
 
 `OfficeIMO.Security` is the optional cryptographic provider for OfficeIMO. It implements bounded CMS/PKCS#7 signing and verification, CMS EnvelopedData encryption, RFC 3161 timestamps, X.509 trust validation and XML Digital Signatures. Format packages such as Word, PDF and Email do not depend on it: install it when you need cryptography and pass the provider to the format API.
 
-```shell
+```sh
 dotnet add package OfficeIMO.Security
 ```
 
-Targets .NET Standard 2.0, .NET 8, .NET 10 and .NET Framework 4.7.2. It depends on `BouncyCastle.Cryptography` 2.x and `System.Security.Cryptography.Xml`. The `IOfficeSecurityProvider` contract and result models live in the dependency-free `OfficeIMO.Core`, so structural signature inspection works without this package.
+It targets .NET Standard 2.0, .NET 8, .NET 10 and .NET Framework 4.7.2, and depends on `BouncyCastle.Cryptography` 2.x and `System.Security.Cryptography.Xml`. The `IOfficeSecurityProvider` contract and its result models live in the dependency-free `OfficeIMO.Core`, so structural signature inspection and fail-safe mutation policies work without this package.
 
-## Sign and validate a Word package
+| Task | Where |
+|---|---|
+| Sign and verify DOCX, XLSX, PPTX, VSDX and ODT/ODS/ODP packages | [Sign and verify documents](/docs/security/sign-documents/) |
+| Sign, verify and encrypt raw data with CMS; validate certificates; timestamps | [CMS signatures and encryption](/docs/security/cms/) |
+| Sign and verify PDFs | [PDF encryption and signing](/docs/pdf/encrypt-sign/), through `PdfCmsExternalSigner` and `PdfCmsSignatureCryptographyProvider` |
+| Verify and decrypt S/MIME email | [Email safety and verification](/docs/email/safety-and-verification/), through `EmailSmime.Verify` and `EmailSmime.Decrypt` |
+
+Password encryption for Office, PDF and OpenDocument files is owned by each format package and does not need this provider.
+
+## Pass the provider to a format package
+
+Create the provider once and hand it to the API that owns the document. The format package selects the signed parts and keeps mutation safe; the provider does the cryptography.
+
+### C#
 
 ```csharp
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using OfficeIMO.Security;
 using OfficeIMO.Word;
 
-// signingCertificate is an X509Certificate2 with an accessible private key.
 IOfficeSecurityProvider security = OfficeSecurityProvider.Default;
-WordDocument.SignPackage("report.docx", security, signingCertificate);
+
+using (WordDocument document = WordDocument.Create("report.docx")) {
+    document.AddParagraph("Quarterly report.");
+    document.Save();
+}
+
+// A throwaway test certificate; load your real signing certificate the way your application manages keys.
+using RSA rsa = RSA.Create(2048);
+var request = new CertificateRequest("CN=Report Signing Test", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, critical: true));
+using X509Certificate2 certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(1));
+
+WordDocument.SignPackage("report.docx", security, certificate);
 
 using WordDocument signed = WordDocument.Load("report.docx");
 WordSignatureValidationReport validation = signed.ValidateSignatures(security);
+Console.WriteLine($"Signature math: {validation.CryptographicStatus}, signer trust: {validation.CertificateChainStatus}");
 ```
 
-`OfficeIMO.Pdf` accepts the provider through `PdfCmsExternalSigner` and `PdfCmsSignatureCryptographyProvider`, and `OfficeIMO.Email` through `EmailSmime.Verify` and `EmailSmime.Decrypt`. The format package owns document structure, signed-part selection and mutation safety.
+With default options the test certificate's chain is reported as untrusted, because no root vouches for it. [Choose a trust policy](/docs/security/sign-documents/#choose-a-trust-policy) shows how to pin a certificate or a private root.
 
-## CMS signing and verification
+## Sign and verify bytes directly
+
+### C#
 
 ```csharp
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using OfficeIMO.Security;
+
+IOfficeSecurityProvider security = OfficeSecurityProvider.Default;
+
+using ECDsa key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+var request = new CertificateRequest("CN=Payload Signing Test", key, HashAlgorithmName.SHA256);
+request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, critical: true));
+using X509Certificate2 certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(1));
+
 byte[] content = File.ReadAllBytes("payload.bin");
-byte[] signature = security.SignCmsDetached(content, signingCertificate);
+byte[] signature = security.SignCmsDetached(content, certificate);
 CmsVerificationResult result = security.VerifyCmsDetached(signature, content);
 
-foreach (CmsSignerVerificationResult signer in result.Signers)
-    Console.WriteLine($"{signer.Subject}: {signer.SignatureStatus}, {signer.CertificateValidation.ChainStatus}");
+Console.WriteLine(result.IsCryptographicallyValid ? "Content matches the signature" : "Content or signature changed");
 ```
 
-Signing uses the certificate's platform `RSA` or `ECDsa` key without exporting it. `CmsSigningOptions.UsePadesBaseline` produces baseline CMS with a SHA-256 signing-certificate-v2 binding. Verification reports the mathematical signature, message digest, certificate trust, revocation and timestamp outcomes separately.
+RSA and ECDSA signers are supported. See [CMS signatures and encryption](/docs/security/cms/) for trust options, encapsulated signatures, recipient encryption and timestamps.
 
-## Certificate trust
+## Know what the provider covers
 
-```csharp
-using System.Security.Cryptography.X509Certificates;
-
-var options = new CertificateValidationOptions {
-    RevocationMode = X509RevocationMode.NoCheck,
-    DisableCertificateDownloads = true
-};
-CertificateTrustValidationResult trust = security.ValidateCertificate(
-    signingCertificate,
-    additionalCertificates: new[] { intermediateCertificate },
-    options: options,
-    purpose: CertificateValidationPurpose.DocumentSigning);
-Console.WriteLine($"Chain: {trust.Validation.ChainStatus}, revocation: {trust.Validation.RevocationStatus}");
-```
-
-Additional certificates are chain-building candidates, not trusted anchors. The defaults disable certificate downloads and revocation checks; set a revocation mode, verification time or chain evaluator when your application owns a different trust policy. Key-usage checks stay active even without platform chain building.
-
-## Encryption and timestamps
-
-```csharp
-byte[] envelope = security.EncryptCms(content, new[] { recipientCertificate });
-CmsDecryptionResult decrypted = security.DecryptCms(envelope, recipientWithPrivateKey);
-```
-
-On .NET 8 and later, RSA PKCS#1 and OAEP recipients with AES-CBC content decrypt through the platform key handle, so non-exportable keys work. Other profiles and older targets use Bouncy Castle and need an exportable RSA key.
-
-`VerifyTimestamp` validates RFC 3161 tokens, message imprints and TSA certificates. `Rfc3161TimestampClient` requests timestamps through a transport callback you supply, so your HTTP client owns timeouts and response limits. `CreateXmlSignature`, `VerifyXmlSignature` and `CanonicalizeXml` cover a closed set of RSA/SHA signature, digest, canonicalization and enveloped-signature algorithms; external references and other transforms are rejected.
-
-## Limits
-
-- Key custody, certificate and recipient selection and trust policy belong to your application. The provider does not discover keys or search certificate stores for you.
-- Network revocation and certificate downloads are off unless you enable them.
-- XML DSig algorithms cannot be extended beyond the built-in set.
-- A separate NativeAOT smoke executable signs and verifies CMS and XML DSig; consumers need no linker descriptors.
-
-See the [package README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Security/README.md), [PDF security](/docs/pdf/security/) and [email safety and verification](/docs/email/safety-and-verification/).
+- **CMS/PKCS#7:** detached and encapsulated SignedData, including baseline CMS for PDF signatures; verification with separate signature, digest, trust, revocation and timestamp outcomes.
+- **EnvelopedData:** AES-128/192/256-CBC content for RSA recipients. On .NET 8 and later, RSA PKCS#1 and OAEP recipients decrypt through the platform key handle, so non-exportable keys work.
+- **RFC 3161:** timestamp requests through a transport callback you supply, and token verification.
+- **XML DSig:** `CreateXmlSignature`, `VerifyXmlSignature` and `CanonicalizeXml` over a closed set of RSA/SHA signature, digest, canonicalization and enveloped-signature algorithms; external references and other transforms are rejected.
+- **NativeAOT:** a separate smoke executable signs and verifies CMS and XML DSig under NativeAOT; consumers need no linker descriptors.
