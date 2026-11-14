@@ -3,8 +3,8 @@ namespace OfficeIMO.Pdf;
 /// <summary>Organizes tagged pages through the catalog-rooted writer without rebuilding the catalog from a subset.</summary>
 internal static partial class PdfTaggedPageOrganizer {
     internal static bool IsTagged(PdfReadDocument document) =>
-        document.Security.RootObjectNumber is int root && document.Objects[root].Value is PdfDictionary catalog &&
-        catalog.Items.ContainsKey("StructTreeRoot");
+        document.Security.RootObjectNumber is int root && document.Objects.TryGetValue(root, out PdfIndirectObject? rootObject) &&
+        rootObject.Value is PdfDictionary catalog && catalog.Items.ContainsKey("StructTreeRoot");
 
     internal static byte[] Rewrite(byte[] source, PdfReadDocument document, IReadOnlyList<int> pageNumbers,
         PdfLoadOptions? options, long? maximumOutputBytes = null,
@@ -43,7 +43,11 @@ internal static partial class PdfTaggedPageOrganizer {
                 ordered = CopyRepeatedPages(objects, catalog, ordered, token);
                 ApplyNavigation(objects, catalog, pruned, removed, token);
                 RemoveFieldsForAnnotations(objects, catalog, removedAnnotations, token);
-                if (catalog.Items.ContainsKey("StructTreeRoot")) PruneStructure(objects, catalog, removed, removedAnnotations, token);
+                if (catalog.Items.TryGetValue("StructTreeRoot", out var structureRoot)) {
+                    // A root that is undefined or not a dictionary carries no structure (an undefined reference reads as null).
+                    if (PdfObjectLookup.Resolve(objects, structureRoot) is PdfDictionary) PruneStructure(objects, catalog, removed, removedAnnotations, token);
+                    else catalog.Items.Remove("StructTreeRoot");
+                }
                 int pagesObject = -1; while (objects.ContainsKey(pagesObject)) pagesObject--;
                 var root = new PdfDictionary(); root.Items["Type"] = new PdfName("Pages"); root.Items["Count"] = new PdfNumber(ordered.Length);
                 var kids = new PdfArray(); root.Items["Kids"] = kids;

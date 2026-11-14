@@ -27,7 +27,9 @@ internal static partial class PdfPageExtractor {
         pageOverrides = BuildPageOverridesWithFilteredDestinationLinks(sourceObjects, pageObjectNumbers, pageOverrides,
             catalogState, copiedPageObjectIds, cancellationToken);
     
-        var collector = new ObjectCollector(sourceObjects, pageOverrides, cancellationToken: cancellationToken);
+        // ISO 32000-2 7.3.10 reads a reference to an undefined object as null, so a dangling reference is written as
+        // null instead of refusing to extract pages that otherwise copy completely.
+        var collector = new ObjectCollector(sourceObjects, pageOverrides, undefinedReferencesAreNull: true, cancellationToken: cancellationToken);
         foreach (int pageObjectNumber in pageObjectNumbers) {
             collector.CollectPage(pageObjectNumber);
         }
@@ -88,7 +90,7 @@ internal static partial class PdfPageExtractor {
         int catalogId = nextObjectId++;
         int infoId = nextObjectId;
         var context = new SerializationContext(numberMap, pagesId, collector.MaterializedPageValues, sourceObjects, pageOverrides,
-            cancellationToken: cancellationToken);
+            undefinedObjectNumbers: collector.UndefinedObjectNumbers, cancellationToken: cancellationToken);
         int serializedObjectCapacity = GetSerializedObjectCapacity(sourceIds.Count, extraObjects.Length, clonedPages, cancellationToken);
         var objects = new List<PdfSerializedObject>(serializedObjectCapacity);
         long serializedObjectBytes = 0L;

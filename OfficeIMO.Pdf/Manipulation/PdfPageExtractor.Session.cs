@@ -4,6 +4,7 @@ internal static partial class PdfPageExtractor {
     /// <summary>One validated input and catalog snapshot shared by a compound page extraction.</summary>
     internal sealed class ExtractionSession {
         private readonly PdfReadDocument _document;
+        private readonly PdfMutationPlan _plan;
         private PdfDocumentProperties? _metadata;
         private readonly CatalogRewriteState _catalog;
         private readonly PdfFileVersion _fileVersion;
@@ -22,7 +23,7 @@ internal static partial class PdfPageExtractor {
             _cancellationToken = cancellationToken;
             _source = pdf;
             _options = options;
-            (_, _document) = documentFactory == null
+            (_plan, _document) = documentFactory == null
                 ? PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.ExtractPages, options, cancellationToken: cancellationToken)
                 : PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.ExtractPages, documentFactory, options, cancellationToken: cancellationToken);
             _catalog = _document.GetCatalogRewriteState(cancellationToken);
@@ -36,8 +37,15 @@ internal static partial class PdfPageExtractor {
             Guard.NotNull(pageNumbers, nameof(pageNumbers));
             if (pageNumbers.Length == 0) throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
             ValidatePageNumbers(pageNumbers, PageCount, nameof(pageNumbers), _cancellationToken);
-            if (PdfTaggedPageOrganizer.IsTagged(_document) || _document.FormFields.Count > 0)
-                return PdfTaggedPageOrganizer.Rewrite(_source, _document, pageNumbers, _options, maximumOutputBytes, token: _cancellationToken);
+            if (PdfTaggedPageOrganizer.IsTagged(_document) || _document.FormFields.Count > 0) {
+                try {
+                    return PdfTaggedPageOrganizer.Rewrite(_source, _document, pageNumbers, _options, maximumOutputBytes, token: _cancellationToken);
+                } catch (InvalidOperationException exception) {
+                    // The organizer refuses structure, navigation and form graphs it cannot retarget without losing
+                    // or misattributing content; report that as a blocked mutation rather than an internal failure.
+                    throw PdfMutationBlockedException.PolicyConflict(_plan, "FullRewrite.TaggedPageOrganization", exception.Message);
+                }
+            }
             var objects = new int[pageNumbers.Length];
             for (int index = 0; index < pageNumbers.Length; index++) {
                 _cancellationToken.ThrowIfCancellationRequested();

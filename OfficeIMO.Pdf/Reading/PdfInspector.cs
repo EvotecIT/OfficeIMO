@@ -436,7 +436,9 @@ internal static class PdfInspector {
         cancellationToken.ThrowIfCancellationRequested();
         Dictionary<int, PdfIndirectObject> objects = document.Objects;
         var catalogState = document.GetCatalogRewriteState(cancellationToken);
-        var collector = new PdfPageExtractor.ObjectCollector(objects, cancellationToken: cancellationToken);
+        // A reference to an object the file never defines reads as null (ISO 32000-2 7.3.10) and is written as null.
+        // Objects that exist but cannot be parsed are reported separately as an incomplete object graph.
+        var collector = new PdfPageExtractor.ObjectCollector(objects, undefinedReferencesAreNull: true, cancellationToken: cancellationToken);
 
         for (int i = 0; i < document.Pages.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
