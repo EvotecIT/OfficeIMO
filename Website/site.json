@@ -389,7 +389,8 @@
           "/css/docs.css"
         ],
         "Js": [
-          "/js/docs-language-tabs.js"
+          "/js/docs-language-tabs.js",
+          "/js/page-feedback.js"
         ]
       },
       {

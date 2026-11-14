@@ -1,0 +1,23 @@
+{{~ # Reader feedback for docs pages. Nothing is sent anywhere: "No" points the reader at a prefilled GitHub issue. ~}}
+{{~ # static/js/page-feedback.js handles the buttons; layouts/api-reference.html carries a static copy for API pages. ~}}
+{{~ feedback_url = base_url + current_path ~}}
+{{~ discord_url = "https://evo.yt/discord" ~}}{{~ for link in data.community.links ~}}{{~ if link.id == "discord" ~}}{{~ discord_url = link.url ~}}{{~ end ~}}{{~ end ~}}
+{{~ feedback_packages = (packages ?? []) | array.join ", " ~}}
+{{~ feedback_body = "Page: " + feedback_url + "\nTitle: " + page.title + (feedback_packages != "" ? "\nPackage: " + feedback_packages : "") + "\n\nWhat is wrong or missing?\n\n" ~}}
+{{~ feedback_issue = "https://github.com/EvotecIT/OfficeIMO/issues/new?labels=documentation&title=" + ("Docs: " + page.title | html.url_encode) + "&body=" + (feedback_body | html.url_encode) ~}}
+<section class="imo-page-feedback" data-page-feedback data-feedback-package="{{ feedback_packages }}" aria-labelledby="imo-page-feedback-title">
+  <div class="imo-page-feedback__ask">
+    <h2 id="imo-page-feedback-title" class="imo-page-feedback__title">Was this page helpful?</h2>
+    <div class="imo-page-feedback__buttons" role="group" aria-labelledby="imo-page-feedback-title">
+      <button type="button" class="imo-page-feedback__button" data-feedback-answer="yes" aria-pressed="false">Yes</button>
+      <button type="button" class="imo-page-feedback__button" data-feedback-answer="no" aria-pressed="false">No</button>
+    </div>
+    <p class="imo-page-feedback__reply" data-feedback-reply="yes" role="status" hidden>Thanks. Good to know it helped.</p>
+    <p class="imo-page-feedback__reply" data-feedback-reply="no" role="status" hidden>Sorry it fell short. Tell us what was missing or wrong in an issue; it takes a minute and the page link is filled in for you.</p>
+  </div>
+  <ul class="imo-page-feedback__links">
+    <li><a href="{{ feedback_issue }}" target="_blank" rel="noopener" data-feedback-issue>Report a problem with this page</a></li>
+    <li><a href="{{ discord_url }}" target="_blank" rel="noopener">Ask on Discord</a></li>
+    {{~ if page.edit_url ~}}<li><a href="{{ page.edit_url }}" target="_blank" rel="noopener">Edit this page on GitHub</a></li>{{~ end ~}}
+  </ul>
+</section>

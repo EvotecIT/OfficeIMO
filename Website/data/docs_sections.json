@@ -1,0 +1,32 @@
+{
+  "description": "Default packages for each docs section. A page's front matter `packages` replaces these. The closing blocks on docs pages use them for the Limits and API reference links.",
+  "sections": {
+    "access": ["OfficeIMO.Access"],
+    "archives": ["OfficeIMO.Archives"],
+    "csv": ["OfficeIMO.CSV"],
+    "data-conversions": ["OfficeIMO.Data.Conversions"],
+    "email": ["OfficeIMO.Email"],
+    "epub": ["OfficeIMO.Epub"],
+    "excel": ["OfficeIMO.Excel"],
+    "foundations": ["OfficeIMO.Core"],
+    "google-workspace": ["OfficeIMO.GoogleWorkspace"],
+    "html": ["OfficeIMO.Html"],
+    "invoicing": ["OfficeIMO.Invoicing"],
+    "iwork": ["OfficeIMO.IWork"],
+    "markdown": ["OfficeIMO.Markdown"],
+    "onenote": ["OfficeIMO.OneNote"],
+    "open-document": ["OfficeIMO.OpenDocument"],
+    "pdf": ["OfficeIMO.Pdf"],
+    "powerpoint": ["OfficeIMO.PowerPoint"],
+    "project": ["OfficeIMO.Project"],
+    "publisher": ["OfficeIMO.Publisher"],
+    "reader": ["OfficeIMO.Reader.All"],
+    "rtf": ["OfficeIMO.Rtf"],
+    "security": ["OfficeIMO.Security"],
+    "toml": ["OfficeIMO.Toml"],
+    "visio": ["OfficeIMO.Visio"],
+    "word": ["OfficeIMO.Word"],
+    "xps": ["OfficeIMO.Xps"],
+    "yaml": ["OfficeIMO.Yaml"]
+  }
+}
