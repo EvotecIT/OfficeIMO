@@ -572,9 +572,11 @@ internal static partial class MarkdownReader {
 
     private static MarkdownColumnAlignment ParseAlignmentCell(string cell) {
         var t = cell.Trim();
-        if (t.StartsWith(":")) { if (t.EndsWith(":")) return MarkdownColumnAlignment.Center; return MarkdownColumnAlignment.Left; }
-        if (t.EndsWith(":")) return MarkdownColumnAlignment.Right;
-        return MarkdownColumnAlignment.None;
+        if (t.Length == 0) return MarkdownColumnAlignment.None;
+        bool left = t[0] == ':';
+        bool right = t[t.Length - 1] == ':';
+        if (left) return right ? MarkdownColumnAlignment.Center : MarkdownColumnAlignment.Left;
+        return right ? MarkdownColumnAlignment.Right : MarkdownColumnAlignment.None;
     }
 
     private static List<string> SplitTableRow(string line) {
