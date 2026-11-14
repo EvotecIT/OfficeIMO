@@ -3,7 +3,7 @@
 {{~ ps_catalog = data.pswriteoffice_command_catalog ~}}
 {{~ cli_catalog = data.cli && data.cli.commands ? data.cli.commands : null ~}}
 {{~ cli_command_total = 0 ~}}
-{{~ if cli_catalog ~}}{{~ for group in cli_catalog.groups ~}}{{~ cli_command_total = cli_command_total + group.commands.size ~}}{{~ end ~}}{{~ end ~}}
+{{~ if cli_catalog ~}}{{~ for group in cli_catalog.groups ~}}{{~ cli_command_total = cli_command_total + (group.subcommands.size > 0 ? group.subcommands.size : 1) ~}}{{~ end ~}}{{~ end ~}}
 <section class="imo-container imo-surface-stats" aria-label="{{ page.title }} at a glance">
   <dl>
     {{~ for stat in app.stats ~}}

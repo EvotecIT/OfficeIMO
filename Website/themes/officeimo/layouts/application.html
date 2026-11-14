@@ -40,7 +40,7 @@
             <a class="imo-btn imo-btn-ghost" href="{{ app.secondaryUrl }}">{{ app.secondaryLabel }}</a>
             {{ end }}
           </div>
-          {{ if app.install && !app.terminal }}<p class="imo-surface-install"><span>Install</span><code>{{ app.install }}</code><button type="button" data-copy="{{ app.install }}" aria-label="Copy the install command">Copy</button></p>{{ end }}
+          {{ if app.install && !app.terminal }}<div class="imo-surface-install"><span>Install</span><code>{{ app.install }}</code><button type="button" data-copy="{{ app.install }}" aria-label="Copy the install command">Copy</button></div>{{ end }}
           <ul class="imo-workbench__facts">{{ for fact in app.facts }}<li>{{ fact }}</li>{{ end }}</ul>
           <p class="imo-workbench__availability">{{ app.availability }}</p>
         </div>

@@ -10,9 +10,8 @@
   {{~ end ~}}
 {{~ else if app.explorer.source == "cli" && data.cli && data.cli.commands ~}}
   {{~ for group in data.cli.commands.groups ~}}
-    {{~ names = [] ~}}
-    {{~ for command in group.commands ~}}{{~ names = names | array.add command.name ~}}{{~ end ~}}
-    {{~ groups = groups | array.add { id: group.id, title: group.title, count: group.commands.size, summary: group.summary, items: names, docs: group.docsUrl, reference: null, snippet: group.example ? { file: null, code: group.example } : null, details: group } ~}}
+    {{~ count = group.subcommands.size > 0 ? group.subcommands.size : 1 ~}}
+    {{~ groups = groups | array.add { id: group.id, title: group.title, count: count, summary: group.summary, items: [], docs: group.docsUrl, reference: null, snippet: null, details: group } ~}}
   {{~ end ~}}
 {{~ end ~}}
 {{~ if groups.size > 0 ~}}
@@ -32,18 +31,24 @@
       <article class="imo-surface-explorer__panel" id="sx-panel-{{ group.id }}" role="tabpanel" aria-labelledby="sx-tab-{{ group.id }}">
         <h3>{{ group.title }} <small>{{ group.count }} {{ if group.count == 1 }}command{{ else }}{{ unit }}{{ end }}</small></h3>
         {{ if group.summary }}<p>{{ group.summary }}</p>{{ end }}
-        {{~ if group.details && group.details.commands ~}}
+        {{~ if group.details ~}}
+        {{~ cli_group = group.details ~}}
+        {{ if cli_group.shortcutFor }}<p class="imo-surface-explorer__label">Shortcut for <code>officeimo {{ cli_group.shortcutFor | html.escape }}</code></p>{{ end }}
         <dl class="imo-surface-explorer__commands">
-          {{~ for command in group.details.commands ~}}
-          <div><dt><code>{{ command.usage ?? command.name }}</code></dt>{{ if command.summary }}<dd>{{ command.summary }}</dd>{{ end }}</div>
+          {{~ if cli_group.subcommands.size > 0 ~}}
+          {{~ for command in cli_group.subcommands ~}}
+          <div><dt><code>{{ (command.usage | array.first) ?? command.name | html.escape }}</code></dt>{{ if command.summary }}<dd>{{ command.summary | html.escape }}</dd>{{ end }}</div>
+          {{~ end ~}}
+          {{~ else ~}}
+          {{~ for line in cli_group.usage ~}}<div><dt><code>{{ line | html.escape }}</code></dt></div>{{~ end ~}}
           {{~ end ~}}
         </dl>
-        {{~ if group.details.options && group.details.options.size > 0 ~}}
+        {{~ if cli_group.keyOptions.size > 0 ~}}
         <p class="imo-surface-explorer__label">Key options</p>
-        <ul class="imo-surface-explorer__items">{{ for option in group.details.options }}<li title="{{ option.description | html.escape }}"><code>{{ option.name }}</code></li>{{ end }}</ul>
+        <ul class="imo-surface-explorer__options">{{ for option in cli_group.keyOptions }}<li><code>{{ option.name | html.escape }}{{ if option.value }} {{ option.value | html.escape }}{{ end }}</code>{{ if option.description }}<span>{{ option.description | html.escape }}</span>{{ end }}</li>{{ end }}</ul>
         {{~ end ~}}
-        {{~ if group.details.outputFormats && group.details.outputFormats.size > 0 ~}}
-        <p class="imo-surface-explorer__label">Output: {{ group.details.outputFormats | array.join ", " }}</p>
+        {{~ if cli_group.outputFormats.size > 0 || cli_group.resultFormats.size > 0 ~}}
+        <p class="imo-surface-explorer__formats">{{ if cli_group.outputFormats.size > 0 }}<span>Writes {{ cli_group.outputFormats | array.join ", " }}</span>{{ end }}{{ if cli_group.resultFormats.size > 0 }}<span>Prints {{ cli_group.resultFormats | array.join ", " }}</span>{{ end }}</p>
         {{~ end ~}}
         {{~ else ~}}
         <ul class="imo-surface-explorer__items">{{ for item in group.items }}<li><code>{{ item }}</code></li>{{ end }}</ul>

@@ -822,6 +822,7 @@
       "id": "build-site",
       "dependsOn": [
         "test-documentation-contracts",
+        "update-cli-catalog",
         "build-api-net8-0-optional",
         "build-release-hub",
         "build-ecosystem-stats",

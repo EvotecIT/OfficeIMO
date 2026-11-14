@@ -11,7 +11,7 @@
 
 .imo-surface-install { display: flex; align-items: center; gap: 10px; max-width: 34em; margin: 1rem 0 0; padding: 8px 8px 8px 12px; border: 1px solid var(--imo-border); border-radius: 8px; background: var(--imo-terminal-bg); color: var(--imo-terminal-text); font: 13px/1.5 var(--imo-font-mono); }
 .imo-surface-install > span { color: var(--imo-terminal-muted); font: 700 11px/1 var(--imo-font-body); letter-spacing: .1em; text-transform: uppercase; }
-.imo-surface-install code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; background: none; border: 0; padding: 0; color: inherit; font: inherit; }
+.imo-workbench .imo-surface-install code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; background: none; border: 0; padding: 0; color: inherit; font: 13px/1.5 var(--imo-font-mono); }
 .imo-surface-install button { padding: 4px 10px; border: 1px solid rgba(255, 255, 255, .16); border-radius: 6px; background: transparent; color: var(--imo-terminal-text); font: 600 12px/1.4 var(--imo-font-body); cursor: pointer; }
 .imo-surface-install button:hover { border-color: rgba(255, 255, 255, .35); }
 
@@ -52,10 +52,9 @@
 .imo-surface-explorer__items code { display: inline-block; padding: 3px 8px; border: 1px solid var(--imo-border); border-radius: 6px; background: var(--imo-bg-alt); color: var(--imo-text); font-size: .8rem; }
 .imo-surface-explorer__label { margin: .2rem 0 0; color: var(--imo-text-muted); font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .imo-surface-explorer__commands { display: grid; gap: 0; margin: 0; border-top: 1px solid var(--imo-border); }
-.imo-surface-explorer__commands > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 4px 18px; padding: 9px 0; border-bottom: 1px solid var(--imo-border); }
-.imo-surface-explorer__commands dt code { background: none; border: 0; padding: 0; color: var(--imo-text); font-size: .84rem; overflow-wrap: anywhere; }
+.imo-surface-explorer__commands > div { display: grid; gap: 3px; padding: 9px 0; border-bottom: 1px solid var(--imo-border); }
+.imo-surface-explorer__commands dt code { display: block; background: none; border: 0; padding: 0; color: var(--imo-text); font-size: .82rem; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 .imo-surface-explorer__commands dd { margin: 0; color: var(--imo-text-secondary); font-size: .9rem; line-height: 1.5; }
-@media (max-width: 640px) { .imo-surface-explorer__commands > div { grid-template-columns: minmax(0, 1fr); } }
 .imo-surface-explorer__code { margin: 0; }
 .imo-surface-explorer__code pre { padding: 14px 16px; }
 .imo-surface-explorer__links { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; }
@@ -116,3 +115,10 @@
 .imo-workbench__window img { aspect-ratio: 3 / 2; }
 
 .imo-switcher__card--agents { --s: var(--imo-p-agents); }
+.imo-surface-explorer__options { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.imo-surface-explorer__options li { display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr); gap: 4px 14px; align-items: baseline; font-size: .88rem; }
+.imo-surface-explorer__options code { justify-self: start; padding: 2px 7px; border: 1px solid var(--imo-border); border-radius: 6px; background: var(--imo-bg-alt); color: var(--imo-text); font-size: .78rem; overflow-wrap: anywhere; }
+.imo-surface-explorer__options span { color: var(--imo-text-secondary); line-height: 1.5; }
+@media (max-width: 640px) { .imo-surface-explorer__options li { grid-template-columns: minmax(0, 1fr); } }
+.imo-surface-explorer__formats { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; color: var(--imo-text-muted); font-size: .84rem; }
+.imo-surface-explorer__formats span { overflow-wrap: anywhere; }
