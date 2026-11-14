@@ -439,37 +439,6 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Reports workbook accessibility and compliance issues such as missing alt text, hidden sheets, merged cells, and missing table headers.
-        /// </summary>
-        public ExcelAccessibilityReport AnalyzeAccessibility() {
-            var findings = new List<ExcelAccessibilityFinding>();
-            foreach (ExcelSheet sheet in Sheets) {
-                foreach (ExcelImage image in sheet.Images) {
-                    if (string.IsNullOrWhiteSpace(image.Description) && string.IsNullOrWhiteSpace(image.Title)) {
-                        findings.Add(new ExcelAccessibilityFinding("ImageAltText", ExcelFindingSeverity.Warning, "Image has no title or alternative text.", sheet.Name, ExcelA1.CellReference(image.RowIndex, image.ColumnIndex)));
-                    }
-                }
-            }
-
-            ExcelWorkbookInfo snapshot = Inspect();
-            foreach (ExcelWorksheetInfo worksheet in snapshot.Worksheets) {
-                if (worksheet.Hidden) {
-                    findings.Add(new ExcelAccessibilityFinding("HiddenData", ExcelFindingSeverity.Info, "Worksheet is hidden and may contain data excluded from normal review.", worksheet.Name));
-                }
-
-                foreach (ExcelMergedRangeInfo merge in worksheet.MergedRanges) {
-                    findings.Add(new ExcelAccessibilityFinding("MergedCells", ExcelFindingSeverity.Warning, "Merged cells can make sorting, filtering, and screen-reader navigation harder.", worksheet.Name, merge.A1Range));
-                }
-
-                foreach (ExcelTableInspectionInfo table in worksheet.Tables.Where(table => !table.HasHeaderRow)) {
-                    findings.Add(new ExcelAccessibilityFinding("TableHeaders", ExcelFindingSeverity.Warning, $"Table '{table.Name}' has no header row.", worksheet.Name, table.A1Range));
-                }
-            }
-
-            return new ExcelAccessibilityReport(findings);
-        }
-
-        /// <summary>
         /// Returns a streaming/read-write contract summary for large workbook workflows.
         /// </summary>
         public ExcelStreamingContractReport GetStreamingContract() {

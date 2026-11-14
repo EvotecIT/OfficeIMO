@@ -1,6 +1,6 @@
 namespace OfficeIMO;
 
-/// <summary>One stable, machine-readable accessibility finding in a Word or PowerPoint document.</summary>
+/// <summary>One stable, machine-readable accessibility finding in a Word, PowerPoint or Excel document.</summary>
 public sealed class OfficeAccessibilityFinding {
     internal OfficeAccessibilityFinding(OfficeAccessibilitySeverity severity, string code, string message, string location,
         int? locationIndex = null, uint? objectId = null, string? objectName = null, bool isHeuristic = false,
@@ -19,15 +19,15 @@ public sealed class OfficeAccessibilityFinding {
 
     /// <summary>Finding severity.</summary>
     public OfficeAccessibilitySeverity Severity { get; }
-    /// <summary>Stable diagnostic code suitable for CI policies. Word and PowerPoint use the same code for the same rule.</summary>
+    /// <summary>Stable diagnostic code suitable for CI policies. Word, PowerPoint and Excel use the same code for the same rule.</summary>
     public string Code { get; }
     /// <summary>Human-readable explanation.</summary>
     public string Message { get; }
-    /// <summary>Where the finding is, such as <c>Document</c>, <c>Paragraph 12</c>, <c>Table 2</c> or <c>Slide 3</c>.</summary>
+    /// <summary>Where the finding is, such as <c>Document</c>, <c>Paragraph 12</c>, <c>Table 2</c>, <c>Slide 3</c> or <c>Data!B3</c>.</summary>
     public string Location { get; }
-    /// <summary>Zero-based index of the paragraph (Word) or slide (PowerPoint) the finding belongs to, when it has one.</summary>
+    /// <summary>Zero-based index of the paragraph (Word), slide (PowerPoint) or worksheet (Excel) the finding belongs to, when it has one.</summary>
     public int? LocationIndex { get; }
-    /// <summary>Drawing object identifier of the affected image, shape, chart or table, when applicable.</summary>
+    /// <summary>Drawing object identifier of the affected image, shape, chart or table (for Excel tables, the table id), when applicable.</summary>
     public uint? ObjectId { get; }
     /// <summary>Name of the affected image, shape, chart or table, when applicable.</summary>
     public string? ObjectName { get; }

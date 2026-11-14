@@ -312,6 +312,7 @@ namespace OfficeIMO.Excel {
         public ExcelImage SetAltText(string description, string? title = null) {
             if (DrawingProperties != null) {
                 DrawingProperties.Description = description ?? string.Empty;
+                ExcelDrawingAccessibility.ClearDecorative(DrawingProperties);
                 if (title != null) {
                     DrawingProperties.Title = title;
                 }
@@ -321,13 +322,16 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
+        /// <summary>Gets whether the image is marked decorative, so screen readers and accessibility checks skip it.</summary>
+        public bool IsDecorative => ExcelDrawingAccessibility.IsDecorative(DrawingProperties);
+
         /// <summary>
-        /// Clears image alt text metadata for decorative images.
+        /// Marks the image as decorative: clears its alt text metadata and sets the Office decorative flag,
+        /// so Excel and accessibility checkers skip it.
         /// </summary>
         public ExcelImage Decorative() {
             if (DrawingProperties != null) {
-                DrawingProperties.Description = string.Empty;
-                DrawingProperties.Title = string.Empty;
+                ExcelDrawingAccessibility.MarkDecorative(DrawingProperties);
                 Save();
             }
 
