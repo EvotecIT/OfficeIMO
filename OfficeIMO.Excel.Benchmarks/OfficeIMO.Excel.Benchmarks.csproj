@@ -5,6 +5,9 @@
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <!-- .NET Framework builds only the engine lanes (EPPlus and ClosedXML), so they compare on both runtimes. -->
     <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">$(TargetFrameworks);net472</TargetFrameworks>
+    <!-- Windows PowerShell 5.1 is a 64-bit process; an SDK-style .NET Framework exe would otherwise run as x86. -->
+    <PlatformTarget Condition="'$(TargetFramework)' == 'net472'">x64</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
 
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>

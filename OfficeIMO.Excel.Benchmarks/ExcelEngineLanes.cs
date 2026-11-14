@@ -74,7 +74,7 @@ internal static class ExcelEngineLanes {
         var lanes = Lanes.Where(lane => selected == null || selected.Contains(lane.Name, StringComparer.OrdinalIgnoreCase)).ToArray();
 
         string runtime = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription;
-        Console.WriteLine($"Runtime: {runtime}; iterations {iterations}, warmups {warmups}; median ms");
+        Console.WriteLine($"Runtime: {runtime}, {(Environment.Is64BitProcess ? "64" : "32")}-bit; iterations {iterations}, warmups {warmups}; median ms");
         Console.WriteLine();
         Console.WriteLine("| Lane | Rows | " + string.Join(" | ", Libraries.Select(library => library.Name)) + " | OfficeIMO vs best |");
         Console.WriteLine("| --- | ---: | " + string.Join(" | ", Libraries.Select(_ => "---:")) + " | --- |");
