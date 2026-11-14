@@ -17,6 +17,12 @@ internal static partial class CsvWriter
     /// <summary>Writes the round-trip text of a date and time; false when it does not fit.</summary>
     internal static bool TryFormatRoundTrip(DateTime value, Span<char> destination, out int written)
     {
+#if NET8_0_OR_GREATER
+        if (value.Kind != DateTimeKind.Local && destination.Length >= OfficeRoundTripText.MaximumDateTimeLength)
+        {
+            return TryFormatIsoDateTime(value, destination, out written);
+        }
+#endif
         char[] buffer = OfficeRoundTripText.Buffer;
         return TryCopyRoundTrip(buffer, OfficeRoundTripText.Write(value, buffer), destination, out written);
     }
@@ -24,6 +30,13 @@ internal static partial class CsvWriter
     /// <summary>Writes the round-trip text of a date, time and offset; false when it does not fit.</summary>
     internal static bool TryFormatRoundTrip(DateTimeOffset value, Span<char> destination, out int written)
     {
+#if NETCOREAPP
+        if (destination.Length >= OfficeRoundTripText.MaximumDateTimeLength)
+        {
+            written = OfficeRoundTripText.Write(value, destination);
+            return true;
+        }
+#endif
         char[] buffer = OfficeRoundTripText.Buffer;
         return TryCopyRoundTrip(buffer, OfficeRoundTripText.Write(value, buffer), destination, out written);
     }
@@ -75,6 +88,12 @@ internal static partial class CsvWriter
     internal static bool TryFormatRoundTripDate<T, TChar>(T value, Span<TChar> destination, out int written)
         where TChar : unmanaged
     {
+        if (typeof(T) == typeof(DateTime) && ((DateTime)(object)value!).Kind != DateTimeKind.Local &&
+            destination.Length >= OfficeRoundTripText.MaximumDateTimeLength)
+        {
+            return TryFormatIsoDateTime((DateTime)(object)value!, destination, out written);
+        }
+
         if (typeof(TChar) == typeof(char))
         {
             return TryFormatRoundTripDate(value, MemoryMarshal.Cast<TChar, char>(destination), out written);
@@ -91,6 +110,46 @@ internal static partial class CsvWriter
         for (int index = 0; index < written; index++)
         {
             bytes[index] = (byte)characters[index];
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Writes the round-trip text of an unspecified or UTC date through the runtime's "s" and "o" formats, which
+    /// write UTF-16 and UTF-8 directly; the "o" fraction loses its trailing zeros and "Z" follows a UTC value.
+    /// </summary>
+    private static bool TryFormatIsoDateTime<TChar>(DateTime value, Span<TChar> destination, out int written)
+        where TChar : unmanaged
+    {
+        long fraction = value.Ticks % TimeSpan.TicksPerSecond;
+        ReadOnlySpan<char> format = fraction == 0 ? "s" : "o";
+        bool formatted = typeof(TChar) == typeof(byte)
+            ? value.TryFormat(MemoryMarshal.Cast<TChar, byte>(destination), out written, format, CultureInfo.InvariantCulture)
+            : value.TryFormat(MemoryMarshal.Cast<TChar, char>(destination), out written, format, CultureInfo.InvariantCulture);
+        if (!formatted || destination.Length <= written)
+        {
+            written = 0;
+            return false;
+        }
+
+        bool utc = value.Kind == DateTimeKind.Utc;
+        if (fraction != 0)
+        {
+            // "o" wrote seven fraction digits after position 19, then Z for a UTC value.
+            int zeros = 0;
+            while (fraction % 10 == 0)
+            {
+                fraction /= 10;
+                zeros++;
+            }
+
+            written = 27 - zeros;
+        }
+
+        if (utc)
+        {
+            destination[written++] = CsvShortestDouble.Unit<TChar>('Z');
         }
 
         return true;

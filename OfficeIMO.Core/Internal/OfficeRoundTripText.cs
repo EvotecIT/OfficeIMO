@@ -1,4 +1,9 @@
 using System.Globalization;
+#if NETCOREAPP
+using CharBuffer = System.Span<char>;
+#else
+using CharBuffer = char[];
+#endif
 
 namespace OfficeIMO.Core.Internal;
 
@@ -121,12 +126,16 @@ internal static class OfficeRoundTripText
     /// Writes <see cref="DateTimeFormat"/> text into at least <see cref="MaximumDateTimeLength"/> characters without
     /// parsing the format and returns its length. Local values take the runtime's text, which looks up the offset.
     /// </summary>
-    internal static int Write(DateTime value, char[] destination)
+    internal static int Write(DateTime value, CharBuffer destination)
     {
         if (value.Kind == DateTimeKind.Local)
         {
             string text = value.ToString(DateTimeFormat, CultureInfo.InvariantCulture);
+#if NETCOREAPP
+            text.AsSpan().CopyTo(destination);
+#else
             text.CopyTo(0, destination, 0, text.Length);
+#endif
             return text.Length;
         }
 
@@ -140,7 +149,7 @@ internal static class OfficeRoundTripText
     }
 
     /// <summary>Writes <see cref="DateTimeOffsetFormat"/> text into at least <see cref="MaximumDateTimeLength"/> characters and returns its length.</summary>
-    internal static int Write(DateTimeOffset value, char[] destination)
+    internal static int Write(DateTimeOffset value, CharBuffer destination)
     {
         int position = WriteDateAndTime(value.Ticks, destination);
         int offsetMinutes = (int)(value.Offset.Ticks / TimeSpan.TicksPerMinute);
@@ -153,16 +162,20 @@ internal static class OfficeRoundTripText
     }
 
     /// <summary>Writes yyyy-MM-ddTHH:mm:ss and, when the second has a fraction, a point and its digits without trailing zeros.</summary>
-    private static int WriteDateAndTime(long ticks, char[] destination)
+    private static int WriteDateAndTime(long ticks, CharBuffer destination)
     {
         var date = new DateTime(ticks);
-        int year = date.Year;
+#if NET8_0_OR_GREATER
+        date.Deconstruct(out int year, out int month, out int day);
+#else
+        int year = date.Year, month = date.Month, day = date.Day;
+#endif
         WriteTwoDigits(destination, 0, year / 100);
         WriteTwoDigits(destination, 2, year % 100);
         destination[4] = '-';
-        WriteTwoDigits(destination, 5, date.Month);
+        WriteTwoDigits(destination, 5, month);
         destination[7] = '-';
-        WriteTwoDigits(destination, 8, date.Day);
+        WriteTwoDigits(destination, 8, day);
         destination[10] = 'T';
         long dayTicks = ticks % TimeSpan.TicksPerDay;
         int seconds = (int)(dayTicks / TimeSpan.TicksPerSecond);
@@ -194,7 +207,7 @@ internal static class OfficeRoundTripText
         return 20 + digits;
     }
 
-    private static void WriteTwoDigits(char[] destination, int position, int value)
+    private static void WriteTwoDigits(CharBuffer destination, int position, int value)
     {
         destination[position] = (char)('0' + value / 10);
         destination[position + 1] = (char)('0' + value % 10);
