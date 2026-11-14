@@ -3266,6 +3266,22 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeTextMeasurerMeasuresAsciiTextLikeTheTextElementPath() {
+        var measurer = OfficeTextMeasurer.Create(OfficeFontInfo.Default);
+        var texts = new List<string> { "Tab\there", "Line\r\nbreak\rand\nmore", "\u0001\u007f controls", "John Doe <john.doe@example.com>", "12345.67" };
+        for (char character = ' '; character < '\u007f'; character++) texts.Add(new string(character, 3));
+        foreach (OfficeFontInfo font in new[] {
+            OfficeFontInfo.Default, new OfficeFontInfo("Courier New", 10, OfficeFontStyle.Bold),
+            new OfficeFontInfo("Times New Roman", 14, OfficeFontStyle.Italic), new OfficeFontInfo("Unknown Sans", 9) }) {
+            OfficeTextMeasurementStyle style = measurer.CreateStyle(font, 120);
+            foreach (string text in texts) {
+                // A zero-width space measures nothing and sends the text through the general text-element path.
+                Assert.Equal(measurer.MeasureWidth(text + "​", style), measurer.MeasureWidth(text, style));
+            }
+        }
+    }
+
+    [Fact]
     public void OfficeTextMeasurerTreatsMalformedSurrogatesAsSingleReplacementScalars() {
         var measurer = OfficeTextMeasurer.Create(OfficeFontInfo.Default);
         OfficeTextMeasurementStyle style = measurer.CreateStyle(new OfficeFontInfo("Arial", 12));
