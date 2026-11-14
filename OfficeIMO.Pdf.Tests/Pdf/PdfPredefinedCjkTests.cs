@@ -230,6 +230,37 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal(expectedAdvance, span.Advance, 5);
         }
 
+        // Codes are the standard GBK, Big5, Shift JIS, UHC, UTF-16 and UTF-8 encodings of the expected text,
+        // covering one- to four-byte codes and vertical CMaps that inherit their horizontal parent.
+        [Theory]
+        [InlineData("GBK-EUC-H", "GB1", "41D6D0CEC4", "A中文")]
+        [InlineData("UniGB-UTF16-H", "GB1", "4E2D6587", "中文")]
+        [InlineData("UniGB-UTF8-H", "GB1", "E4B8ADE69687", "中文")]
+        [InlineData("B5pc-H", "CNS1", "A4A4A4E5", "中文")]
+        [InlineData("UniCNS-UTF16-H", "CNS1", "4E2D6587", "中文")]
+        [InlineData("90ms-RKSJ-H", "Japan1", "4193FA967BB1", "A日本ｱ")]
+        [InlineData("90ms-RKSJ-V", "Japan1", "93FA967B", "日本")]
+        [InlineData("UniJIS-UTF16-H", "Japan1", "65E5672CD842DFB7", "日本\U00020BB7")]
+        [InlineData("KSCms-UHC-H", "Korea1", "41C7D1B1B9", "A한국")]
+        [InlineData("UniKS-UTF16-H", "Korea1", "D55CAD6D", "한국")]
+        [InlineData("UniAKR-UTF16-H", "KR", "D55CAD6D", "한국")]
+        public void PredefinedEncodingCMapsDecodeTextWithoutToUnicode(string encoding, string ordering, string code, string expected) {
+            byte[] source = BuildMappedTextSource(encoding, ordering, code, "");
+
+            Assert.Equal(expected, PdfReadDocument.Open(source).Pages[0].ExtractText().Trim());
+        }
+
+        [Fact]
+        public void MixedLengthPredefinedCodesMeasureEachCodeByItsCid() {
+            // GBK-EUC-H maps the one-byte A to CID 846; the two-byte ideographs use the default width.
+            byte[] source = BuildMappedTextSource("GBK-EUC-H", "GB1", "41D6D0CEC4", "846 [500]");
+
+            PdfTextSpan span = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans());
+
+            Assert.Equal("A中文", span.Text);
+            Assert.Equal(45D, span.Advance, 5);
+        }
+
         [Fact]
         public void IdentityFontsAlsoUseCompleteCidWidthRanges() {
             byte[] source = BuildMappedTextSource("Identity-H", "Japan1", "12DA", "0 65535 700", "12DA> <0041");
