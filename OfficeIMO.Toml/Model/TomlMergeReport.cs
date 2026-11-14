@@ -22,7 +22,8 @@ public sealed class TomlMergeReport {
 
     /// <summary>
     /// Gets the findings of the merge: a <c>toml-merge-kind-conflict</c> warning for each base value the overlay replaced
-    /// with one of another kind, such as a table over a string.
+    /// with one of another kind where tables merge, such as a table over a string. Items of a replaced array are not
+    /// reported.
     /// </summary>
     public IReadOnlyList<OfficeDiagnostic> Diagnostics { get; }
 }

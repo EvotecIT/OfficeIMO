@@ -145,7 +145,7 @@ Added                                       Replaced
 {tool.ruff.lint, tool.reporting.plugin[1]}  {tool.ruff.line-length, tool.reporting.plugin[0].version}
 ```
 
-TOML has no null, so an overlay cannot remove a key. When an overlay changes a value's kind, such as a table where the base has a string, the overlay wins and the report's `Diagnostics` lists a `toml-merge-kind-conflict` warning.
+TOML has no null, so where tables merge an overlay cannot remove a key; only a replaced array drops the items, and keys of table items, that the overlay's array lacks. When an overlay changes a value's kind, such as a table where the base has a string, the overlay wins and the report's `Diagnostics` lists a `toml-merge-kind-conflict` warning.
 
 `Test-OfficeToml` returns `$true` or `$false` for each file, and `-Detailed` gives the stable error code with its line and column:
 

@@ -290,7 +290,8 @@ internal sealed class TomlRendering {
                 anchor = _source.Length;
             } else {
                 anchor = _text.BlockStart(_text.LineStart(_document._headers[0]._start), 0);
-                separateFromHeader = Layout.BlankLineBeforeHeaders;
+                // No blank line is owed to headers whose sections are all being deleted.
+                separateFromHeader = Layout.BlankLineBeforeHeaders && _document._headers.Exists(header => !IsRemoved(header));
             }
         } else {
             anchor = _text.LineEnd(owner._end);
@@ -302,6 +303,13 @@ internal sealed class TomlRendering {
         foreach (TomlNode node in nodes) AppendLine(text, indent, prefix, node, separator);
         if (separateFromHeader) text.Append(Layout.NewLine);
         Insert(anchor, text.ToString());
+    }
+
+    private static bool IsRemoved(TomlNode node) {
+        for (TomlNode? current = node; current != null; current = current._parent) {
+            if ((current._state & TomlNodeState.Detached) != 0) return true;
+        }
+        return false;
     }
 
     /// <summary>Gives an implicit table its own <c>[header]</c>, placed before its first sub-table, for new key/value lines.</summary>

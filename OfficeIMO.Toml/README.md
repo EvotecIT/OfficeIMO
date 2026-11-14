@@ -66,7 +66,7 @@ config.Save();
 // report.Added, report.Replaced: paths such as tool.ruff.line-length
 ```
 
-`TomlMergeOptions.Arrays` chooses how arrays combine: `TomlArrayMerge.Replace` (the default), `Append`, or `MergeByKey("name")` to match `[[package]]` tables of a lock file by name and append the rest. When a value changes kind, such as a table over a string, the overlay wins and `report.Diagnostics` lists a `toml-merge-kind-conflict` warning. TOML has no null, so a merge never removes a key.
+`TomlMergeOptions.Arrays` chooses how arrays combine: `TomlArrayMerge.Replace` (the default), `Append`, or `MergeByKey("name")` to match `[[package]]` tables of a lock file by name and append the rest. When a value changes kind, such as a table over a string, the overlay wins and `report.Diagnostics` lists a `toml-merge-kind-conflict` warning. TOML has no null, so where tables merge an overlay cannot remove a key; only a replaced array drops the items, and keys of table items, that the overlay's array lacks.
 
 ## Reading tokens
 

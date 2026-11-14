@@ -39,6 +39,15 @@ public class TomlMergeTests {
         Assert.Equal("[[package]]\nname = \"a\"\nfeatures = [\"std\", \"serde\"]\n", saved);
     }
 
+    [Theory]
+    [InlineData("p = [1]\n", "p = []\n")]
+    [InlineData("[[p]]\nname = \"a\"\n", "p = []\n")]
+    public void MergeByKeyReplacesWithAnEmptyOverlayArray(string baseText, string overlayText) {
+        (string saved, TomlMergeReport report) = Merge(baseText, overlayText, TomlArrayMerge.MergeByKey("name"));
+        Assert.Equal("p = []\n", saved);
+        Assert.Equal(new[] { "p" }, report.Replaced);
+    }
+
     [Fact]
     public void AppendAddsOverlayItemsAfterTheBaseItems() {
         const string Base = "plugins = [\"a\"]\n\n[[server]]\nhost = \"one\"\n";
@@ -87,6 +96,7 @@ public class TomlMergeTests {
     [InlineData("[a]\nb.c = 1\nb.d = 2\n[[q]]\nr = 1\n", "[a]\nb = {}\n[[q]]\nr = 1\ns.t = 2\n")]
     [InlineData("v = 1\n[a]\n", "v = { x = 1 }\na = 3\n[z]\nw.x.y = 1\n[z.w.q]\nr = 1\n")]
     [InlineData("x = [[1, 2], [3]]\n", "x = [[1, 9], { a = 1 }, \"s\"]\n")]
+    [InlineData("a.x = 1\n", "b = 3\n[a.child]\ny = 2\n")]
     public void TheSavedTextReloadsToTheMergedData(string baseText, string overlayText) {
         foreach (TomlArrayMerge mode in new[] { TomlArrayMerge.Replace, TomlArrayMerge.Append, TomlArrayMerge.MergeByKey("n") }) {
             using TomlDocument doc = TomlDocument.Parse(baseText);
@@ -94,7 +104,7 @@ public class TomlMergeTests {
             doc.Merge(overlay, new TomlMergeOptions { Arrays = mode });
             string saved = doc.ToString();
             using TomlDocument reloaded = TomlDocument.Parse(saved);
-            Assert.Equal(Data(doc.Root), Data(reloaded.Root));
+            AssertSameData(doc.Root, reloaded.Root, "$");
         }
     }
 
@@ -118,21 +128,33 @@ public class TomlMergeTests {
         TomlMergeReport report = doc.Merge(overlay, new TomlMergeOptions { Arrays = arrays ?? TomlArrayMerge.Replace });
         string saved = doc.ToString();
         using TomlDocument reloaded = TomlDocument.Parse(saved);
-        Assert.Equal(Data(doc.Root), Data(reloaded.Root));
+        AssertSameData(doc.Root, reloaded.Root, "$");
         return (saved, report);
     }
 
-    /// <summary>The data a node holds, independent of syntax: arrays of tables and array values read alike.</summary>
-    private static string Data(TomlNode node) {
-        switch (node) {
+    /// <summary>Asserts two nodes hold the same data whatever their syntax: arrays of tables and array values read alike.</summary>
+    private static void AssertSameData(TomlNode expected, TomlNode actual, string path) {
+        switch (expected) {
             case TomlValue value:
-                return value.Kind + ":" + Convert.ToString(value.Value, CultureInfo.InvariantCulture);
+                TomlValue other = Assert.IsType<TomlValue>(actual);
+                Assert.True(value.Kind == other.Kind && value.Value.Equals(other.Value), path + ": " + value.Kind + " " + value.Value + " vs " + other.Kind + " " + other.Value);
+                break;
             case TomlTable table:
-                return "{" + string.Join(",", table.OrderBy(e => e.Key, StringComparer.Ordinal).Select(e => e.Key + "=" + Data(e.Value))) + "}";
-            case TomlArray array:
-                return "[" + string.Join(",", array.Select(Data)) + "]";
+                TomlTable otherTable = Assert.IsType<TomlTable>(actual);
+                Assert.Equal(table.Keys.OrderBy(k => k, StringComparer.Ordinal), otherTable.Keys.OrderBy(k => k, StringComparer.Ordinal));
+                foreach (KeyValuePair<string, TomlNode> entry in table) AssertSameData(entry.Value, otherTable[entry.Key], path + "." + entry.Key);
+                break;
             default:
-                return "[" + string.Join(",", ((TomlTableArray)node).Select(Data)) + "]";
+                List<TomlNode> items = Items(expected), otherItems = Items(actual);
+                Assert.True(items.Count == otherItems.Count, path + ": " + items.Count + " items vs " + otherItems.Count);
+                for (int i = 0; i < items.Count; i++) AssertSameData(items[i], otherItems[i], path + "[" + i + "]");
+                break;
         }
     }
+
+    private static List<TomlNode> Items(TomlNode node) => node switch {
+        TomlArray array => array.ToList(),
+        TomlTableArray tables => tables.Cast<TomlNode>().ToList(),
+        _ => throw new Xunit.Sdk.XunitException("Expected an array but found " + node.Kind + ".")
+    };
 }

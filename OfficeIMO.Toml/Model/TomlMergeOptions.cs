@@ -24,8 +24,8 @@ public sealed class TomlArrayMerge {
     /// Table items are matched by the value of a key, for example the <c>[[package]]</c> tables of a lock file by
     /// <c>name</c>: an overlay table merges into the first base table with an equal value under that key that no earlier
     /// overlay table matched, so repeated values pair up in order, and tables without a match are appended. An array is
-    /// matched this way only when every overlay item is a table with a value under the key; any other array, such as
-    /// <c>features = ["std"]</c>, is replaced as with <see cref="Replace"/>.
+    /// matched this way only when it has items and every overlay item is a table with a value under the key; any other
+    /// array, such as <c>features = ["std"]</c> or an empty <c>[]</c>, is replaced as with <see cref="Replace"/>.
     /// </summary>
     /// <param name="keyName">The key whose value identifies a table item.</param>
     /// <exception cref="ArgumentException"><paramref name="keyName"/> is null or empty.</exception>

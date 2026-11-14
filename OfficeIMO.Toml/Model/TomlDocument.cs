@@ -92,11 +92,16 @@ public sealed partial class TomlDocument : IDisposable {
     /// data. Copies take the syntax their place allows: inside an inline table everything stays inline and an array of
     /// tables becomes an array of inline tables; elsewhere tables made by dotted keys stay dotted when they hold only
     /// key/value pairs, and other tables become <c>[header]</c> sections.</para>
-    /// <para>When a value changes kind, such as a table over a string or an array over a table, the overlay wins and the
-    /// conflict is reported as a <c>toml-merge-kind-conflict</c> warning. Array values and arrays of tables are both
-    /// arrays and merge as such; an array of tables that would receive items other than tables, or no items, is replaced
-    /// by the overlay's array value. TOML has no null, so a merge never removes a key; remove keys with
-    /// <see cref="Remove"/>. A merge is not transactional: when an edit fails, the edits before it stay.</para>
+    /// <para>When a value changes kind where tables merge, such as a table over a string or an array over a table, the
+    /// overlay wins and the conflict is reported as a <c>toml-merge-kind-conflict</c> warning. Inside an array that
+    /// <see cref="TomlArrayMerge.Replace"/> replaces, items and their entries take the overlay's value whatever their kind,
+    /// without a warning, since the overlay's array replaces the base's. Array values and arrays of tables are both arrays
+    /// and merge as such; an array of tables that would receive items other than tables, or no items, is replaced by the
+    /// overlay's array value.</para>
+    /// <para>TOML has no null, so where tables merge an overlay cannot remove a key; remove keys with <see cref="Remove"/>.
+    /// Replacing an array does remove what the overlay's array lacks: base items beyond its length, and the keys of a
+    /// replaced table item that the overlay's item does not have. A merge is not transactional: when an edit fails, the
+    /// edits before it stay.</para>
     /// </remarks>
     /// <example>
     /// <code>

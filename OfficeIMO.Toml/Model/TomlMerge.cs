@@ -70,7 +70,8 @@ internal sealed class TomlMerge {
 
     private void MergeArrays(TomlTable owner, string key, TomlNode current, TomlNode incoming, string path) {
         TomlArrayMerge mode = _options.Arrays;
-        if (mode.Mode == TomlArrayMergeMode.MergeByKey && AllKeyed(incoming, mode.Key!)) {
+        // An empty overlay array has nothing to match, so it replaces the base array as any other unkeyed array does.
+        if (mode.Mode == TomlArrayMergeMode.MergeByKey && ItemCount(incoming) > 0 && AllKeyed(incoming, mode.Key!)) {
             int count = ItemCount(incoming);
             var matched = new HashSet<int>();
             for (int i = 0; i < count; i++) {
