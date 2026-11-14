@@ -197,6 +197,11 @@ internal static class OfficeTextElements {
     internal static bool ContainsCombiningMark(string? value) {
         if (string.IsNullOrEmpty(value)) return false;
         for (int index = 0; index < value!.Length;) {
+            // No character below the combining marks is one; skip the category lookup.
+            if (value[index] < FirstCombiningMark) {
+                index++;
+                continue;
+            }
             int scalarIndex = index;
             ReadScalar(value, ref index);
             UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(value, scalarIndex);

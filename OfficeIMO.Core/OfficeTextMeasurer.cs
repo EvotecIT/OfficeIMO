@@ -66,7 +66,7 @@ public sealed class OfficeTextMeasurer {
         }
 
         double width = 0D;
-        double fontWidthFactor = GetFontFamilyWidthFactor(style.FontInfo) * GetStyleWidthFactor(style.FontInfo);
+        double fontWidthFactor = style.FontWidthFactor;
         foreach (string element in OfficeTextElements.Enumerate(text)) {
             if (element == "\t") {
                 width += style.SpaceWidthPixels * 4D;
