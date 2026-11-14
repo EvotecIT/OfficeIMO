@@ -317,7 +317,7 @@ namespace OfficeIMO.Word {
             }
 
             var prefix = new Paragraph();
-            ParagraphProperties? properties = paragraph.GetFirstChild<ParagraphProperties>();
+            ParagraphProperties? properties = WordElementWalk.FirstChild<ParagraphProperties>(paragraph);
             if (properties != null) {
                 prefix.Append((ParagraphProperties)properties.CloneNode(true));
             }
@@ -432,7 +432,7 @@ namespace OfficeIMO.Word {
             }
 
             var prefix = new Paragraph();
-            ParagraphProperties? properties = paragraph.GetFirstChild<ParagraphProperties>();
+            ParagraphProperties? properties = WordElementWalk.FirstChild<ParagraphProperties>(paragraph);
             if (properties != null) {
                 prefix.Append((ParagraphProperties)properties.CloneNode(true));
             }
@@ -502,7 +502,7 @@ namespace OfficeIMO.Word {
             }
 
             var prefix = new Paragraph();
-            ParagraphProperties? properties = paragraph.GetFirstChild<ParagraphProperties>();
+            ParagraphProperties? properties = WordElementWalk.FirstChild<ParagraphProperties>(paragraph);
             if (properties != null) {
                 prefix.Append((ParagraphProperties)properties.CloneNode(true));
             }
@@ -970,7 +970,7 @@ namespace OfficeIMO.Word {
 
         private static bool IsSectionBoundaryParagraph(Paragraph paragraph) {
             // A plain child scan; the schema-driven ParagraphProperties lookup costs more per body paragraph.
-            return paragraph.GetFirstChild<ParagraphProperties>()?.SectionProperties != null;
+            return WordElementWalk.FirstChild<ParagraphProperties>(paragraph)?.SectionProperties != null;
         }
 
         private static bool IsPureSectionBreakParagraph(Paragraph paragraph) {

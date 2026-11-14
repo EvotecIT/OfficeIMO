@@ -413,7 +413,7 @@ namespace OfficeIMO.Word {
                 if (element is Paragraph) {
                     Paragraph paragraph = (Paragraph)element;
                     // A plain child scan; the schema-driven ParagraphProperties lookup costs more per body paragraph.
-                    if (paragraph.GetFirstChild<ParagraphProperties>()?.SectionProperties is { } sectionProperties) {
+                    if (WordElementWalk.FirstChild<ParagraphProperties>(paragraph)?.SectionProperties is { } sectionProperties) {
                         wordSection = new WordSection(this, sectionProperties, paragraph);
                     }
                 } else if (element is Table) {

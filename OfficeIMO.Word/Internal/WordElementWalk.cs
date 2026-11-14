@@ -9,6 +9,17 @@ internal static class WordElementWalk {
     internal static bool IsFormattingOrText(OpenXmlElement element) =>
         element is ParagraphProperties or RunProperties or Text;
 
+    /// <summary>
+    /// Returns the first child of type <typeparamref name="T"/> by following sibling links, without the iterator of
+    /// <c>GetFirstChild</c> or the schema lookup of the typed child properties.
+    /// </summary>
+    internal static T? FirstChild<T>(OpenXmlElement parent) where T : OpenXmlElement {
+        for (OpenXmlElement? child = parent.FirstChild; child != null; child = child.NextSibling()) {
+            if (child is T match) return match;
+        }
+        return null;
+    }
+
     /// <summary>Returns the element after <paramref name="element"/> in document order inside <paramref name="root"/>.</summary>
     /// <param name="element">Current descendant of <paramref name="root"/>.</param>
     /// <param name="root">Element whose descendants are walked.</param>

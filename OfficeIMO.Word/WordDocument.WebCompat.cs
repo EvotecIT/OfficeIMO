@@ -73,7 +73,7 @@ namespace OfficeIMO.Word {
                 foreach (TableCell cell in row.Elements<TableCell>()) {
                     cellCount++;
                     // Plain child scans; the schema-driven property lookups cost more for every cell.
-                    TableCellWidth? width = cell.GetFirstChild<TableCellProperties>()?.GetFirstChild<TableCellWidth>();
+                    TableCellWidth? width = WordElementWalk.FirstChild<TableCellProperties>(cell) is { } cellProperties ? WordElementWalk.FirstChild<TableCellWidth>(cellProperties) : null;
                     if (width?.Type?.Value != TableWidthUnitValues.Dxa || width.Width?.Value != uniformWidth) return false;
                 }
                 if (cellCount != columnCount) return false;
