@@ -58,6 +58,10 @@ public sealed class OfficeImoToolAppTests {
     [InlineData("officeimo hidden-data inspect", "hidden-data", "inspect", "--help")]
     [InlineData("officeimo hidden-data remove", "hidden-data", "remove", "-h")]
     [InlineData("officeimo mcp serve --stdio", "mcp", "serve", "--help")]
+    [InlineData("officeimo workflow compare", "workflow", "compare", "--format", "--help")]
+    [InlineData("officeimo workflow job plan", "workflow", "job", "plan", "--target", "-h")]
+    [InlineData("officeimo invoice inspect", "invoice", "inspect", "--language", "--help")]
+    [InlineData("officeimo mcp serve --stdio", "mcp", "serve", "--pdf-password-env", "--help")]
     public async Task SubcommandHelpPrintsUsageAndSucceeds(string expectedUsage, params string[] args) {
         await using var input = new MemoryStream();
         await using var output = new MemoryStream();

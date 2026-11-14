@@ -110,7 +110,7 @@ internal sealed class HiddenDataArguments {
 
     internal static HiddenDataArguments Parse(string[] args) {
         var parsed = new HiddenDataArguments();
-        if (args.Length == 0 || args[0] is "help" or "--help" or "-h") {
+        if (args.Length == 0 || args[0] is "help" || args.Any(argument => argument is "--help" or "-h")) {
             parsed.Help = true;
             return parsed;
         }
@@ -122,10 +122,6 @@ internal sealed class HiddenDataArguments {
         for (int index = 1; index < args.Length; index++) {
             string token = args[index];
             switch (token) {
-                case "--help":
-                case "-h":
-                    parsed.Help = true;
-                    return parsed;
                 case "--format":
                     parsed.Json = Read(args, ref index, token) switch {
                         "json" => true,

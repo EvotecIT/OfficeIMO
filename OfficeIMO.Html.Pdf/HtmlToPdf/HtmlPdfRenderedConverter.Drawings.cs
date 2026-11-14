@@ -106,6 +106,13 @@ internal static partial class HtmlPdfRenderedConverter {
                         masked.Fonts.AddRange(source.Fonts);
                         masked.AddEffectDrawing(effectGroup.Drawing, effectGroup.Transform,
                             effectGroup.BlendMode, effectGroup.SoftMask, effectGroup.Opacity);
+                        masked.RewriteLinks(uri => {
+                            string normalized = IsFragmentLink(uri) ? "#" + DecodeFragmentName(uri.Substring(1)) : uri;
+                            if (linkTargets?.Include(normalized, visual.Source) == false) return null;
+                            return IsFragmentLink(normalized)
+                                ? "#" + Uri.EscapeDataString(MapNamedDestination(normalized.Substring(1)))
+                                : normalized;
+                        }, cancellationToken);
                         target.DrawingForClippedRendering(masked, originX, originY,
                             visual.Width * PointsPerCssPixel, visual.Height * PointsPerCssPixel);
                         continue;
