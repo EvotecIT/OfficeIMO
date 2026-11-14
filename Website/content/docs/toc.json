@@ -147,7 +147,7 @@
         "href": "/docs/word/"
       },
       {
-        "title": "Paragraphs",
+        "title": "Text and Paragraphs",
         "path": "word/paragraphs/index.md",
         "href": "/docs/word/paragraphs/"
       },
@@ -162,12 +162,22 @@
         "href": "/docs/word/images/"
       },
       {
-        "title": "Headers & Footers",
+        "title": "Headers, Footers, and Page Numbers",
         "path": "word/headers-footers/index.md",
         "href": "/docs/word/headers-footers/"
       },
       {
-        "title": "Templates and Forms",
+        "title": "Bulleted and Numbered Lists",
+        "path": "word/lists/index.md",
+        "href": "/docs/word/lists/"
+      },
+      {
+        "title": "Table of Contents and Fields",
+        "path": "word/fields-toc/index.md",
+        "href": "/docs/word/fields-toc/"
+      },
+      {
+        "title": "Templates and Mail Merge",
         "path": "word/templates/index.md",
         "href": "/docs/word/templates/"
       },
@@ -177,7 +187,12 @@
         "href": "/docs/word/review/"
       },
       {
-        "title": "Word Conversion and Rendering",
+        "title": "Protect and Encrypt",
+        "path": "word/protection/index.md",
+        "href": "/docs/word/protection/"
+      },
+      {
+        "title": "Convert to PDF, HTML, and Markdown",
         "path": "word/conversion/index.md",
         "href": "/docs/word/conversion/"
       },
@@ -252,9 +267,14 @@
         "href": "/docs/powerpoint/"
       },
       {
-        "title": "Slides",
+        "title": "Slides, Text, and Notes",
         "path": "powerpoint/slides/index.md",
         "href": "/docs/powerpoint/slides/"
+      },
+      {
+        "title": "Charts and Tables",
+        "path": "powerpoint/charts-tables/index.md",
+        "href": "/docs/powerpoint/charts-tables/"
       },
       {
         "title": "Designer Decks",
@@ -267,12 +287,17 @@
         "href": "/docs/powerpoint/templates/"
       },
       {
-        "title": "PowerPoint Image Export",
+        "title": "Convert to PDF, HTML, and ODP",
+        "path": "powerpoint/convert/index.md",
+        "href": "/docs/powerpoint/convert/"
+      },
+      {
+        "title": "Export Slides to Images",
         "path": "powerpoint/image-export/index.md",
         "href": "/docs/powerpoint/image-export/"
       },
       {
-        "title": "Capability Matrix",
+        "title": "Feature Support",
         "path": "powerpoint/capabilities/index.md",
         "href": "/docs/powerpoint/capabilities/"
       }

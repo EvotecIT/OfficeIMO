@@ -1,69 +1,120 @@
 ---
-title: "Production Word workflows"
-description: "Build template-driven DOCX files, review document changes, convert HTML and Markdown, and generate inspectable validation proof with OfficeIMO.Word."
-meta.seo_title: "Production DOCX automation workflows with OfficeIMO.Word"
+title: Production Workflows for Word Documents
+description: Combine Word templates, validation, comparison, and conversion into repeatable DOCX pipelines that check their own output, with OfficeIMO.Word.
 order: 60
+packages:
+  - OfficeIMO.Word
+  - OfficeIMO.Word.Html
+  - OfficeIMO.Word.Markdown
+  - OfficeIMO.Word.Pdf
+cmdlets:
+  - Test-OfficeDocument
+  - Convert-OfficeDocument
+search_terms:
+  - docx automation
+  - document generation pipeline
+  - validate docx
+  - batch word documents
+  - report generation
+meta.seo_title: Production DOCX automation workflows with OfficeIMO.Word
+commands:
+  - officeimo convert
+verified: 2026-11-14
 ---
 
-OfficeIMO.Word creates and edits `.docx` files without Microsoft Word or COM automation. These workflows combine the Word object model with templates, converters, structured comparison, diagnostics, and Open XML validation so an evaluator can inspect both the code and the resulting artifact.
+A production pipeline does more than write a file: it checks the input, generates the document, checks the output, and records what happened. The tasks below chain the APIs from the other Word guides into that shape. The repository's `OfficeIMO.Examples` project runs the full set as a proof gallery (`dotnet run --project OfficeIMO.Examples -- --word-market-readiness`), writing each input, output, diagnostic list, and validation result next to a `proof-manifest.json`.
 
-## Generate documents from templates and data
+## Generate a document from a template and validate it
 
-Use merge fields, repeated table rows, repeated blocks, and content controls to turn one template into many documents. Template inspection can identify missing or ambiguous bindings before a batch is written.
+Bind the data, refuse incomplete output, then run the Open XML validator before the file leaves the pipeline.
 
-Typical uses include:
-
-- contracts and policy documents assembled from approved clauses
-- invoices, order confirmations, and customer statements
-- status reports and evidence packs built from application data
-- forms that must be filled and read through content controls
-
-Start with [templates and forms](/docs/word/templates/) for the binding APIs and validation flow.
-
-## Compare documents and produce a redline
-
-OfficeIMO.Word can compare document structure, generate a visible comparison document, and work with comments and supported revision metadata.
+### C#
 
 ```csharp
-WordComparisonResult result =
-    WordDocumentComparer.CompareStructure(original, updated);
+using OfficeIMO.Word;
 
-foreach (WordComparisonFinding finding in result.Findings) {
-    Console.WriteLine($"{finding.ChangeKind}: {finding.DetailedLocation}");
+var values = new Dictionary<string, object?> {
+    ["Customer"] = "Northwind Traders",
+    ["Total"] = "12,400 EUR"
+};
+
+using WordDocument document = WordDocument.Load("invoice-template.docx");
+WordTemplate.Apply(document, values).EnsureComplete();
+
+var errors = document.ValidateDocument();
+if (errors.Count > 0) {
+    foreach (var error in errors) Console.Error.WriteLine($"{error.Id}: {error.Description}");
+    return;
+}
+document.Save("invoice-northwind.docx");
+```
+
+### PowerShell
+
+```powershell
+Test-OfficeDocument -Path .\invoice-northwind.docx
+```
+
+## Check what changed between two releases of a document
+
+Use structured comparison as a gate: fail the build when a controlled document changes outside the expected sections.
+
+### C#
+
+```csharp
+using OfficeIMO.Word;
+
+WordComparisonResult result = WordDocumentComparer.CompareStructure("terms-approved.docx", "terms-generated.docx");
+if (result.HasChanges) {
+    foreach (WordComparisonFinding finding in result.Findings) {
+        Console.WriteLine($"{finding.ChangeKind}: {finding.DetailedLocation}");
+    }
+    Environment.ExitCode = 1;
 }
 ```
 
-Structured comparison covers paragraphs, tables, rows, cells, headers, footers, and images. Use the [review and comparison guide](/docs/word/review/) for comments, tracked changes, accepting or rejecting supported revisions, and redline output.
+## Build a DOCX from Markdown and publish it as PDF
 
-## Convert HTML and Markdown to DOCX
+Authors write Markdown in a repository; the pipeline turns it into a styled DOCX for editing and a PDF for distribution, and keeps both conversion reports.
 
-`OfficeIMO.Word.Html` and `OfficeIMO.Word.Markdown` convert web and Markdown content through dedicated packages. The proof workflow retains the source input, generated DOCX, round-trip output where meaningful, conversion diagnostics, and validation status.
+### C#
 
-Continue with [Word conversion and rendering](/docs/word/conversion/) for supported entry points and package selection.
+```csharp
+using OfficeIMO;
+using OfficeIMO.Markdown;
+using OfficeIMO.Word;
+using OfficeIMO.Word.Markdown;
+using OfficeIMO.Word.Pdf;
 
-## Run the proof gallery
+MarkdownDocument markdown = MarkdownDocument.Load("handbook.md");
+using WordDocument document = markdown.ToWord();
+document.Save("handbook.docx");
 
-The repository contains an executable gallery that produces:
-
-- two HTML-to-DOCX scenarios
-- two Markdown-to-DOCX scenarios
-- a template assembly and form-binding scenario
-- a review and structured-diff scenario
-- source inputs, generated artifacts, diagnostics, validation results, and `proof-manifest.json`
-
-```shell
-dotnet run --project OfficeIMO.Examples -- --word-market-readiness
+OfficeConversionReport pdf = document.SaveAsPdf("handbook.pdf");
+Console.WriteLine($"{pdf.ItemsWritten} pages, {pdf.Diagnostics.Count} diagnostics");
 ```
 
-[Inspect the proof-gallery source](https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Examples/Word/MarketReadiness) before running it, or browse the [Word API reference](/api/word/) for the underlying types.
+### PowerShell
 
-## Choose the right package
+```powershell
+Convert-OfficeDocument -Path .\handbook.md -To Word -OutputPath .\handbook.docx
+Convert-OfficeDocument -Path .\handbook.docx -OutputPath .\handbook.pdf -FailOnLoss
+```
 
-| Workflow | Package |
+### CLI
+
+```sh
+officeimo convert handbook.md handbook.docx
+officeimo convert handbook.docx handbook.pdf --require-no-loss
+```
+
+## Pick the packages for a pipeline
+
+Each package carries only its own dependencies, so a service installs just the steps it runs.
+
+| Step | Package |
 |---|---|
-| Create, edit, inspect, compare, or validate DOCX | `OfficeIMO.Word` |
-| Convert between Word and HTML | `OfficeIMO.Word.Html` |
-| Convert between Word and Markdown | `OfficeIMO.Word.Markdown` |
-| Render Word content to PDF | `OfficeIMO.Word.Pdf` with `OfficeIMO.Pdf` |
-
-Each package keeps its own dependencies and API surface, so an application can install only the workflow it uses.
+| Create, edit, template, compare, validate DOCX | `OfficeIMO.Word` |
+| HTML in or out | `OfficeIMO.Word.Html` |
+| Markdown in or out | `OfficeIMO.Word.Markdown` |
+| PDF output | `OfficeIMO.Word.Pdf` |
