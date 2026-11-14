@@ -276,7 +276,7 @@ internal static partial class MarkdownReader {
                     if (i < lines.Length && string.IsNullOrWhiteSpace(lines[i])) i++;
                 }
 
-                var pipeline = MarkdownReaderPipeline.Default(options);
+                var pipeline = GetPipeline(options, state);
                 // Pre-scan for reference-style link definitions so inline refs in earlier paragraphs can resolve
                 PreScanReferenceLinkDefinitions(lines, state, options);
                 PreScanAbbreviationDefinitions(lines, state, options);

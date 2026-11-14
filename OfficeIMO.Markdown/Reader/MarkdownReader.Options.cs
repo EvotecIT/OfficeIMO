@@ -4,6 +4,35 @@ using System.Text;
 namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
+    // Nested containers parse with the same options without front matter, and every nested parse
+    // needs the block parser pipeline for its options. Both are made once per parse; the shared
+    // options copy is read-only.
+    private static MarkdownLoadOptions GetSharedOptionsWithoutFrontMatter(MarkdownLoadOptions source, MarkdownReaderState state) {
+        var cache = state.ParseCache;
+        if (!ReferenceEquals(cache.OptionsWithoutFrontMatterSource, source) || cache.OptionsWithoutFrontMatter == null) {
+            cache.OptionsWithoutFrontMatter = CloneOptionsWithoutFrontMatter(source);
+            cache.OptionsWithoutFrontMatterSource = source;
+        }
+
+        return cache.OptionsWithoutFrontMatter;
+    }
+
+    private static MarkdownReaderPipeline GetPipeline(MarkdownLoadOptions options, MarkdownReaderState state) {
+        var pipelines = state.ParseCache.Pipelines;
+        for (int i = 0; i < pipelines.Count; i++) {
+            if (ReferenceEquals(pipelines[i].Key, options)) {
+                return pipelines[i].Value;
+            }
+        }
+
+        var pipeline = MarkdownReaderPipeline.Default(options);
+        if (pipelines.Count < MarkdownReaderParseCache.MaxPipelines) {
+            pipelines.Add(new KeyValuePair<MarkdownLoadOptions, MarkdownReaderPipeline>(options, pipeline));
+        }
+
+        return pipeline;
+    }
+
     private static MarkdownLoadOptions CloneOptionsWithoutFrontMatter(MarkdownLoadOptions source) {
         var clone = new MarkdownLoadOptions {
             FrontMatter = false,
@@ -204,6 +233,7 @@ internal static partial class MarkdownReader {
     private static MarkdownReaderState CloneState(MarkdownReaderState state) {
         var clone = new MarkdownReaderState();
         clone.ShareDefinitionsWith(state);
+        clone.ShareParseCacheWith(state);
         clone.SourceLineOffset = state.SourceLineOffset;
         clone.SourceTextMap = state.SourceTextMap;
         clone.SourceLineAbsoluteNumbers = state.SourceLineAbsoluteNumbers;
@@ -310,4 +340,12 @@ internal static partial class MarkdownReader {
             target.DocumentTransforms.Add(transform);
         }
     }
+}
+
+/// <summary>Values derived from the options of one parse and reused by its nested parses.</summary>
+internal sealed class MarkdownReaderParseCache {
+    internal const int MaxPipelines = 8;
+    internal MarkdownLoadOptions? OptionsWithoutFrontMatterSource;
+    internal MarkdownLoadOptions? OptionsWithoutFrontMatter;
+    internal readonly List<KeyValuePair<MarkdownLoadOptions, MarkdownReaderPipeline>> Pipelines = new List<KeyValuePair<MarkdownLoadOptions, MarkdownReaderPipeline>>(2);
 }

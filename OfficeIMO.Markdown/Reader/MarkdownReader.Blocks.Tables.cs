@@ -187,7 +187,7 @@ internal static partial class MarkdownReader {
             return table;
         }
 
-        var inlineOptions = CloneOptionsWithoutFrontMatter(options);
+        var inlineOptions = GetSharedOptionsWithoutFrontMatter(options, state);
         var inlineState = CloneState(state);
         table.InlineRenderOptions = inlineOptions;
         table.InlineRenderState = inlineState;
