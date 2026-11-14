@@ -599,6 +599,30 @@ claim the allocation lead. The prior OfficeIMO path measured approximately
 compact worksheet cells, and ordered parallel PSObject projection account for
 the improvement while preserving valid XLSX output and source-row order.
 
+## Engine lanes on .NET Framework and .NET
+
+`--compare-engine-lanes` measures the workbook shapes PSWriteOffice produces, so Windows
+PowerShell 5.1 gaps show up at the engine level. The project also builds for `net472` on
+Windows; that target compiles only these lanes, with EPPlus and ClosedXML.
+
+- `table-save`: a styled table from 10 mixed-type columns typed as `object`, as PowerShell
+  objects arrive (`New-OfficeExcel` with `Add-OfficeExcelTable`).
+- `autofit`: the same table with fitted column widths.
+- `autofit-writer`: the same rows through `ExcelDocument.CreateWriter` with `AutoFit`, as
+  `Export-OfficeExcel` writes them. The competitors run their `autofit` code.
+- `table-chart`: the table with a clustered column chart over two adjacent columns. ClosedXML
+  does not create charts.
+
+Each lane first checks the saved package: every row, a table part, a fitted width for every
+column in the fitting lanes and a chart part in the chart lane.
+
+```powershell
+dotnet run -c Release -f net10.0 --project OfficeIMO.Excel.Benchmarks -- --compare-engine-lanes --rows 5000,10000,25000
+dotnet run -c Release -f net472 --project OfficeIMO.Excel.Benchmarks -- --compare-engine-lanes --rows 5000,10000,25000
+```
+
+`--lane` selects lanes by name, and `--iterations` and `--warmups` set the median sample.
+
 ## Library comparison
 
 ```powershell
