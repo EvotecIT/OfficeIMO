@@ -2,10 +2,19 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <!-- Windows PowerShell 5.1 hosts PSWriteOffice on .NET Framework; the comparisons listed below for net472
+         measure that runtime. -->
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
 
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
     <AcceptNPOIOSMFLicense>true</AcceptNPOIOSMFLicense>
+  </PropertyGroup>
+
+  <!-- Windows PowerShell 5.1 is a 64-bit process; an SDK-style .NET Framework exe would otherwise run as x86. -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net472'">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
@@ -19,8 +28,19 @@
     <ProjectReference Include="..\OfficeIMO.Word.Html\OfficeIMO.Word.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.Markdown\OfficeIMO.Word.Markdown.csproj" />
   </ItemGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Compile Remove="**/*.cs" />
+    <Compile Include="WordBenchmarkCorpus.cs" />
+    <Compile Include="WordCreateComparisonBenchmarks.cs" />
+    <Compile Include="WordReadComparisonBenchmarks.cs" />
+    <Compile Include="WordReplaceComparisonBenchmarks.cs" />
+    <Compile Include="NetFramework/*.cs" />
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
     <Compile Include="..\Build\Benchmarks\OfficeEvidenceBudget.cs" Link="OfficeEvidenceBudget.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <None Include="..\OfficeIMO.TestAssets\Images\EvotecLogo.png" Link="benchmark-logo.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
