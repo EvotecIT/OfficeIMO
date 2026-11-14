@@ -31,6 +31,10 @@ public class PdfReadBenchmarks {
         Validate(nameof(OfficeIMO), OfficeIMO());
         Validate(nameof(PdfPig), PdfPig());
         Validate(nameof(IText), IText());
+#if NET10_0_OR_GREATER
+        Validate(nameof(OnePdf), OnePdf());
+        Validate(nameof(OnePdfParallel), OnePdfParallel());
+#endif
     }
 
     [Benchmark(Baseline = true)]
@@ -42,6 +46,15 @@ public class PdfReadBenchmarks {
     [Benchmark]
     public PdfReadObservation IText() => PdfDocumentReaders.Read(PdfReaderEngine.IText, _pdf);
 
+#if NET10_0_OR_GREATER
+    [Benchmark]
+    public PdfReadObservation OnePdf() => OnePdfComparisonEngines.Read(_pdf);
+
+    /// <summary>OnePDF's default whole-document extraction, which reads up to four pages at once.</summary>
+    [Benchmark]
+    public PdfReadObservation OnePdfParallel() => OnePdfComparisonEngines.ReadParallel(_pdf);
+
+#endif
     private void Validate(string engine, PdfReadObservation observation) =>
         PdfBenchmarkValidation.ValidateRead(observation, _scenario, engine + " reading " + Producer);
 }
