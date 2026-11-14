@@ -352,6 +352,24 @@ public class CsvDbatoolsExportBenchmarks {
             return (T)GetValue(ordinal);
         }
 
+        /// <summary>The column schema a <c>SqlDataReader</c> reports; Sylvan's .NET build reads it.</summary>
+        public override DataTable GetSchemaTable() {
+            var schema = new DataTable("SchemaTable") { Locale = CultureInfo.InvariantCulture };
+            schema.Columns.Add(SchemaTableColumn.ColumnName, typeof(string));
+            schema.Columns.Add(SchemaTableColumn.ColumnOrdinal, typeof(int));
+            schema.Columns.Add(SchemaTableColumn.ColumnSize, typeof(int));
+            schema.Columns.Add(SchemaTableColumn.NumericPrecision, typeof(short));
+            schema.Columns.Add(SchemaTableColumn.NumericScale, typeof(short));
+            schema.Columns.Add(SchemaTableColumn.DataType, typeof(Type));
+            schema.Columns.Add(SchemaTableColumn.AllowDBNull, typeof(bool));
+            schema.Columns.Add("DataTypeName", typeof(string));
+            schema.Rows.Add(Columns[0], 0, 4, (short)10, (short)0, typeof(int), false, "int");
+            schema.Rows.Add(Columns[1], 1, 100, (short)255, (short)255, typeof(string), false, "nvarchar");
+            schema.Rows.Add(Columns[2], 2, 17, (short)18, (short)2, typeof(decimal), false, "decimal");
+            schema.Rows.Add(Columns[3], 3, 8, (short)27, (short)7, typeof(DateTime), false, "datetime2");
+            return schema;
+        }
+
         public override bool IsDBNull(int ordinal) => false;
         public override bool GetBoolean(int ordinal) => throw new InvalidCastException();
         public override byte GetByte(int ordinal) => throw new InvalidCastException();
