@@ -130,7 +130,7 @@ def main():
     out += array("RangeValues", "ushort", [str(value) for value in values], 20)
     out += ["}", ""]
 
-    target = (Path(__file__).resolve().parents[1] / "OfficeIMO.SharedSource" / "TextAnalysis" /
+    target = (Path(__file__).resolve().parents[1] / "OfficeIMO.Core" / "TextAnalysis" /
               "UnicodeSegmentationData.Generated.cs")
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes("\n".join(out).encode("utf-8"))
