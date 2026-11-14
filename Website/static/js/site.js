@@ -146,7 +146,7 @@
 
     var actualCurrent = normalizePath(window.location.pathname);
     var current = actualCurrent;
-    if (current.indexOf('/products/') === 0 && current !== '/products/pswriteoffice') current = '/libraries';
+    if (current.indexOf('/products/') === 0) current = '/libraries';
     if (document.body.classList.contains('imo-body--docs')) current = '/docs';
     var navLinks = Array.prototype.slice.call(document.querySelectorAll(".imo-header .imo-nav a[href]"));
     var matchingLinks = [];

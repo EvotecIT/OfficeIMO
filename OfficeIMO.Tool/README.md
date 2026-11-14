@@ -396,7 +396,7 @@ All `convert`, `read`, `extract`, `reader` and `agent convert` destinations are 
 - `officeimo agent` returns bounded JSON for inspection, search, selected fetch, conversion, and capability discovery.
 - `officeimo mcp serve --stdio` exposes the compact agent operations to MCP clients.
 
-Run `officeimo help` or append `<area> --help` for the complete command contract.
+Run `officeimo help` or append `<area> --help` for the complete command contract. `officeimo help --format json` prints the same commands, usage lines, options, formats and exit codes as one JSON document (schema `officeimo.tool.commands.v1`) for scripts and documentation generators.
 
 Workflow output is protected from accidental replacement. Pass `--force` to replace an
 existing image folder or assembled PDF. Assembly preserves caller source order, expands
