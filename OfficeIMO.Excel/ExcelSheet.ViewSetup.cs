@@ -230,6 +230,9 @@ namespace OfficeIMO.Excel {
         }
 
         private SheetView GetOrCreateSheetView() {
+            // A deferred table keeps its frozen panes in its own sheet view, which would replace this one when its
+            // rows are written, so they are written first.
+            if (_excelDocument.HasDeferredDirectDataSetImport) _excelDocument.MaterializeDeferredDataSetImport();
             Worksheet worksheet = WorksheetRoot;
             SheetViews? sheetViews = worksheet.GetFirstChild<SheetViews>();
             if (sheetViews == null) {

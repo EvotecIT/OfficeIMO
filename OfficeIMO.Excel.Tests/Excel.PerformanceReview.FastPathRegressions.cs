@@ -194,6 +194,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_SheetViewEditsAfterFreezingADataTableKeepBothSettings() {
+            var table = new DataTable();
+            table.Columns.Add("Region", typeof(object));
+            table.Columns.Add("Sales", typeof(object));
+            table.Rows.Add("NA", 100);
+            table.Rows.Add("EMEA", 200);
+
+            using var stream = new MemoryStream();
+            using (var document = ExcelDocument.Create(stream)) {
+                var sheet = document.AddSheet("Data");
+                var created = sheet.AddTable(table, new ExcelTableOptions { Name = "Sales", AutoFit = false }, row: 1, column: 1);
+                Assert.Equal("A1:B3", created.Range);
+                sheet.View.Freeze(1);
+                sheet.View.ShowGridlines = false;
+                document.Save(stream);
+            }
+
+            using var loaded = ExcelDocument.Load(new MemoryStream(stream.ToArray()));
+            var view = loaded.Sheets[0].View;
+            Assert.False(view.ShowGridlines);
+            Assert.Equal(1, view.FrozenRows);
+            Assert.True(loaded.Sheets[0].TryGetCellText(3, 1, out string last));
+            Assert.Equal("EMEA", last);
+        }
+
+        [Fact]
         public void PerformanceReview_EditsAfterReadingDataTableCellsReachTheSavedWorksheet() {
             var table = new DataTable();
             table.Columns.Add("Id", typeof(int));
