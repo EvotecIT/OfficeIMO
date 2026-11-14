@@ -3,7 +3,15 @@ using System.Text.RegularExpressions;
 namespace OfficeIMO.Html;
 
 public static partial class HtmlNormalizer {
+    // Compiled regexes are emitted and jitted on first use, which every fresh process pays for;
+    // the source generator builds the same matcher at compile time.
+#if NET7_0_OR_GREATER
+    [GeneratedRegex("(?<name>(?:[uU]|\\\\0{0,4}(?:75|55)\\s?|\\\\[uU])(?:[rR]|\\\\0{0,4}(?:72|52)\\s?|\\\\[rR])(?:[lL]|\\\\0{0,4}(?:6[cC]|4[cC])\\s?|\\\\[lL]))\\(\\s*(?:\"(?<url>[^\"]*)\"|'(?<url>[^']*)'|(?<url>[^)]+))\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex CssUrlExpressionGenerated();
+    private static Regex CssUrlExpression => CssUrlExpressionGenerated();
+#else
     private static readonly Regex CssUrlExpression = new Regex("(?<name>(?:[uU]|\\\\0{0,4}(?:75|55)\\s?|\\\\[uU])(?:[rR]|\\\\0{0,4}(?:72|52)\\s?|\\\\[rR])(?:[lL]|\\\\0{0,4}(?:6[cC]|4[cC])\\s?|\\\\[lL]))\\(\\s*(?:\"(?<url>[^\"]*)\"|'(?<url>[^']*)'|(?<url>[^)]+))\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+#endif
 
     private static string NormalizeCssUrls(string css, Uri? baseUri, HtmlUrlPolicy policy, HtmlConversionLimits limits, CancellationToken cancellationToken, bool trimOuterWhitespace = false) {
         cancellationToken.ThrowIfCancellationRequested();

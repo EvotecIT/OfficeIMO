@@ -107,7 +107,8 @@ internal static class ExcelEngineLanes {
                         continue;
                     }
 
-                    string? problem = Validate(library.Write(table, lane), rowCount, lane);
+                    byte[] saved = library.Write(table, lane);
+                    string? problem = Validate(saved, rowCount, lane) ?? ValidateValues(saved, table);
                     if (problem != null) {
                         Console.Error.WriteLine($"{library.Name} {lane.Name} {rowCount}: {problem}");
                         failures++;
@@ -351,6 +352,40 @@ internal static class ExcelEngineLanes {
         }
 
         return null;
+    }
+
+    /// <summary>Reads every header and value back and compares it with the source row by type.</summary>
+    private static string? ValidateValues(byte[] package, DataTable table) {
+        using var document = ExcelDocument.Load(new MemoryStream(package));
+        var sheet = document.Sheets[0];
+        for (int column = 0; column < ColumnNames.Length; column++) {
+            if (!sheet.TryGetCellText(1, column + 1, out string header) || header != ColumnNames[column]) return "header " + (column + 1) + " is '" + header + "'";
+            var cells = sheet.GetCellValueSnapshots(column + 1, 2, table.Rows.Count + 1);
+            for (int row = 0; row < table.Rows.Count; row++) {
+                if (!SameValue(table.Rows[row][column], cells[row])) {
+                    return "row " + (row + 2) + " column " + ColumnNames[column] + " is '" + (cells[row]?.RawValue ?? "missing") + "'";
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static bool SameValue(object expected, ExcelNativeCellValueInfo? cell) {
+        if (cell == null) return false;
+        double number;
+        switch (expected) {
+            case string text:
+                return cell.Text == text;
+            case bool flag:
+                return cell.RawValue == (flag ? "1" : "0") || string.Equals(cell.RawValue, flag.ToString(), StringComparison.OrdinalIgnoreCase);
+            case DateTime date:
+                return cell.DateTimeValue == date
+                    || double.TryParse(cell.RawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out number) && Math.Abs(number - date.ToOADate()) < 1e-6;
+            default:
+                return double.TryParse(cell.RawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out number)
+                    && Math.Abs(number - Convert.ToDouble(expected, CultureInfo.InvariantCulture)) < 1e-9;
+        }
     }
 
     private static string? ReadOption(string[] args, string name) {

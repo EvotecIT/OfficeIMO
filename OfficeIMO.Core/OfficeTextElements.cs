@@ -275,7 +275,9 @@ internal static class OfficeTextElements {
     }
 
     /// <summary>Determines whether a Unicode scalar belongs to a right-to-left script range.</summary>
+    // Latin, Greek and Cyrillic text fails every range below; test the lowest bound first.
     public static bool IsRightToLeftScalar(int scalar) =>
+        scalar >= 0x0590 && (
         IsInRange(scalar, 0x0590, 0x05FF) ||
         IsInRange(scalar, 0x0600, 0x06FF) ||
         IsInRange(scalar, 0x0700, 0x074F) ||
@@ -291,7 +293,7 @@ internal static class OfficeTextElements {
         IsInRange(scalar, 0x10800, 0x10FFF) ||
         IsInRange(scalar, 0x1E800, 0x1E8DF) ||
         IsInRange(scalar, 0x1E900, 0x1E95F) ||
-        IsInRange(scalar, 0x1EE00, 0x1EEFF);
+        IsInRange(scalar, 0x1EE00, 0x1EEFF));
 
     internal static bool IsJoiningScriptScalar(int scalar) =>
         IsInRange(scalar, 0x0600, 0x08FF)
@@ -300,6 +302,7 @@ internal static class OfficeTextElements {
         || IsInRange(scalar, 0x1EE00, 0x1EEFF);
 
     private static bool IsShapingRequiredScriptScalar(int scalar) =>
+        scalar >= 0x0900 && (
         IsInRange(scalar, 0x0900, 0x0DFF) // Indic scripts
         || IsInRange(scalar, 0x0E00, 0x0FFF) // Thai, Lao, Tibetan
         || IsInRange(scalar, 0x1000, 0x109F) // Myanmar
@@ -316,7 +319,7 @@ internal static class OfficeTextElements {
         || IsInRange(scalar, 0xA980, 0xAA7F) // Javanese, Myanmar extensions, Cham
         || IsInRange(scalar, 0xAA80, 0xAADF) // Tai Viet
         || IsInRange(scalar, 0xABC0, 0xABFF) // Meetei Mayek
-        || IsInRange(scalar, 0x11000, 0x11FFF); // Supplementary Brahmic scripts
+        || IsInRange(scalar, 0x11000, 0x11FFF)); // Supplementary Brahmic scripts
 
     private static bool IsStrongLeftToRightCategory(UnicodeCategory category) =>
         IsLetterCategory(category);

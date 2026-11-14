@@ -12,7 +12,10 @@ internal sealed class PdfFontResourceCache {
         new Dictionary<string, Func<byte[], int, string>>(StringComparer.Ordinal),
         new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal));
 
-    private Dictionary<PdfDictionary, PdfFontResource>? _fonts;
+    // Most recently used entries sit at the front. Documents with more fonts than the cache holds
+    // evict the least recently used font instead of rebuilding every later font on each page or form.
+    private Dictionary<PdfDictionary, LinkedListNode<CachedFont>>? _fonts;
+    private readonly LinkedList<CachedFont> _recency = new();
     private readonly object _sync = new();
     private long _estimatedRetainedFontBytes;
 
@@ -48,33 +51,61 @@ internal sealed class PdfFontResourceCache {
         string resourceName,
         PdfDictionary font,
         Dictionary<int, PdfIndirectObject> objects) {
-        Dictionary<PdfDictionary, PdfFontResource> fonts =
-            _fonts ??= new Dictionary<PdfDictionary, PdfFontResource>();
-        if (fonts.TryGetValue(font, out PdfFontResource? existing)) {
-            return existing.WithResourceName(resourceName);
+        Dictionary<PdfDictionary, LinkedListNode<CachedFont>> fonts =
+            _fonts ??= new Dictionary<PdfDictionary, LinkedListNode<CachedFont>>();
+        if (fonts.TryGetValue(font, out LinkedListNode<CachedFont>? existing)) {
+            if (!ReferenceEquals(_recency.First, existing)) {
+                _recency.Remove(existing);
+                _recency.AddFirst(existing);
+            }
+            return existing.Value.Resource.WithResourceName(resourceName);
         }
 
         PdfFontResource created = ResourceResolver.CreateFontResource(resourceName, font, objects);
         long estimatedBytes = EstimateRetainedBytes(created);
-        if (fonts.Count < MaxFontResources &&
-            estimatedBytes <= MaxEstimatedRetainedFontBytes - _estimatedRetainedFontBytes) {
-            fonts.Add(font, created);
-            _estimatedRetainedFontBytes += estimatedBytes;
-            created.ObserveDrawingResolution(resolved => {
-                lock (_sync) {
-                    if (!fonts.TryGetValue(font, out PdfFontResource? current) || !ReferenceEquals(current, created)) return;
-                    long projected = EstimateRetainedBytes(resolved);
-                    long withoutCurrent = _estimatedRetainedFontBytes - estimatedBytes;
-                    if (projected > MaxEstimatedRetainedFontBytes - withoutCurrent) {
-                        fonts.Remove(font);
-                        _estimatedRetainedFontBytes = withoutCurrent;
-                    } else {
-                        _estimatedRetainedFontBytes = withoutCurrent + projected;
-                    }
-                }
-            });
+        if (estimatedBytes > MaxEstimatedRetainedFontBytes) return created;
+        while (_recency.Last is LinkedListNode<CachedFont> oldest &&
+               (fonts.Count >= MaxFontResources ||
+                estimatedBytes > MaxEstimatedRetainedFontBytes - _estimatedRetainedFontBytes)) {
+            Evict(fonts, oldest);
         }
+
+        var entry = new CachedFont(font, created, estimatedBytes);
+        LinkedListNode<CachedFont> node = _recency.AddFirst(entry);
+        fonts.Add(font, node);
+        _estimatedRetainedFontBytes += estimatedBytes;
+        created.ObserveDrawingResolution(resolved => {
+            lock (_sync) {
+                if (!fonts.TryGetValue(font, out LinkedListNode<CachedFont>? current) || !ReferenceEquals(current, node)) return;
+                long projected = EstimateRetainedBytes(resolved);
+                long withoutCurrent = _estimatedRetainedFontBytes - entry.EstimatedBytes;
+                if (projected > MaxEstimatedRetainedFontBytes - withoutCurrent) {
+                    Evict(fonts, node);
+                } else {
+                    _estimatedRetainedFontBytes = withoutCurrent + projected;
+                    entry.EstimatedBytes = projected;
+                }
+            }
+        });
         return created;
+    }
+
+    private void Evict(Dictionary<PdfDictionary, LinkedListNode<CachedFont>> fonts, LinkedListNode<CachedFont> node) {
+        _recency.Remove(node);
+        fonts.Remove(node.Value.Font);
+        _estimatedRetainedFontBytes -= node.Value.EstimatedBytes;
+    }
+
+    private sealed class CachedFont {
+        internal CachedFont(PdfDictionary font, PdfFontResource resource, long estimatedBytes) {
+            Font = font;
+            Resource = resource;
+            EstimatedBytes = estimatedBytes;
+        }
+
+        internal PdfDictionary Font { get; }
+        internal PdfFontResource Resource { get; }
+        internal long EstimatedBytes { get; set; }
     }
 
     private static long EstimateRetainedBytes(PdfFontResource font) {

@@ -24,6 +24,7 @@ public sealed partial class CsvRowWriter
 
     private PooledUtf8TextWriter? _propertyUtf8Writer;
     private byte[]? _propertyNewLineBytes;
+    private string? _propertyNewLine;
 
     /// <summary>
     /// The UTF-8 writer's byte buffer while a row is staged in it, from <see cref="_propertyOrigin"/> up to
@@ -140,7 +141,15 @@ public sealed partial class CsvRowWriter
     /// <summary>Commits a staged UTF-8 row with its line terminator.</summary>
     private void WriteProjectedUtf8Row()
     {
-        byte[] newLine = _propertyNewLineBytes!;
+        // NewLine can change between rows, as it can for the other row paths.
+        string currentNewLine = _options.NewLine;
+        if (_propertyNewLineBytes == null || !string.Equals(_propertyNewLine, currentNewLine, StringComparison.Ordinal))
+        {
+            _propertyNewLineBytes = _propertyUtf8Writer!.Encoding.GetBytes(currentNewLine);
+            _propertyNewLine = currentNewLine;
+        }
+
+        byte[] newLine = _propertyNewLineBytes;
         int end = _propertyCharacterCount;
         if (newLine.AsSpan().TryCopyTo(_propertyBytes.AsSpan(end)))
         {

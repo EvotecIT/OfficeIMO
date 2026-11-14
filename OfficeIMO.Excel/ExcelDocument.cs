@@ -371,6 +371,14 @@ namespace OfficeIMO.Excel {
         public SpreadsheetDocument OpenXmlDocument {
             get {
                 _openXmlDocumentExposed = true;
+                if (_materializedDirectDataSetFastSaveModel != null) {
+                    // Rows kept for the direct writer would replace edits made through the package, so the worksheet
+                    // holds them from here on and the save writes it.
+                    MaterializeDirectDataSetFastSaveModelIfNeeded();
+                    _materializedDirectDataSetFastSaveModel = null;
+                    _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet = false;
+                }
+
                 SpreadsheetDocument document = _spreadSheetDocument;
                 CommitPendingStylesheet();
                 ExcelSheet.MarkPackageExposed(document);

@@ -315,8 +315,10 @@ namespace OfficeIMO.Tests {
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
         }
 
-        [Fact]
-        public void PerformanceReview_RangeChartCacheFromDeferredRowsMatchesTheWrittenCells() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void PerformanceReview_RangeChartCacheFromDeferredRowsMatchesTheWrittenCells(bool separateRanges) {
             var table = new DataTable();
             table.Columns.Add("Region", typeof(object));
             table.Columns.Add("Score", typeof(object));
@@ -336,7 +338,14 @@ namespace OfficeIMO.Tests {
                     var sheet = document.AddSheet("Data");
                     sheet.AddTable(table, new ExcelTableOptions { Name = "Scores", AutoFit = false }, row: 1, column: 1);
                     if (writeRowsFirst) sheet.Cell(1, 10).SetValue("note");
-                    sheet.AddChart(OfficeChartType.ColumnClustered, "A1:C6", new ExcelChartOptions { Row = 2, Column = 6 });
+                    if (separateRanges) {
+                        sheet.AddChartFromRanges(OfficeChartType.ColumnClustered, new[] {
+                            new ExcelChartSeriesRange("Score", "A2:A6", "B2:B6"),
+                            new ExcelChartSeriesRange("Count", "A2:A6", "C2:C6")
+                        }, new ExcelChartOptions { Row = 2, Column = 6 });
+                    } else {
+                        sheet.AddChart(OfficeChartType.ColumnClustered, "A1:C6", new ExcelChartOptions { Row = 2, Column = 6 });
+                    }
                     if (!writeRowsFirst) sheet.Cell(1, 10).SetValue("note");
                     document.Save(stream);
                 }
@@ -379,6 +388,33 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, view.FrozenRows);
             Assert.True(loaded.Sheets[0].TryGetCellText(3, 1, out string last));
             Assert.Equal("EMEA", last);
+        }
+
+        [Fact]
+        public void PerformanceReview_PackageEditsAfterReadingDataTableCellsReachTheSavedWorksheet() {
+            var table = new DataTable();
+            table.Columns.Add("Id", typeof(int));
+            table.Columns.Add("Name", typeof(object));
+            for (int i = 1; i <= 10; i++) table.Rows.Add(i, "n" + i);
+
+            using var stream = new MemoryStream();
+            using (var document = ExcelDocument.Create(stream)) {
+                var sheet = document.AddSheet("Data");
+                sheet.AddTable(table, new ExcelTableOptions { Name = "Names", AutoFit = false }, row: 1, column: 1);
+                Assert.True(sheet.TryGetCellText(3, 2, out _));
+                var worksheet = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet!;
+                var cell = worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single(item => item.CellReference?.Value == "B3");
+                cell.InlineString = null;
+                cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String;
+                cell.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("edited");
+                document.Save(stream);
+            }
+
+            using var loaded = ExcelDocument.Load(new MemoryStream(stream.ToArray()));
+            Assert.True(loaded.Sheets[0].TryGetCellText(3, 2, out string text));
+            Assert.Equal("edited", text);
+            Assert.True(loaded.Sheets[0].TryGetCellText(11, 2, out string last));
+            Assert.Equal("n10", last);
         }
 
         [Fact]

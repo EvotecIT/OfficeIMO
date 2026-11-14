@@ -274,13 +274,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
 
     private string ReadTag(int offset) {
         Ensure(offset, 4);
-        uint tag = _reader.ReadUInt32(offset);
-        return new string(new[] {
-            (char)((tag >> 24) & 0xFF),
-            (char)((tag >> 16) & 0xFF),
-            (char)((tag >> 8) & 0xFF),
-            (char)(tag & 0xFF)
-        });
+        return OfficeOpenTypeTags.ToTag(_reader.ReadUInt32(offset));
     }
 
     internal readonly struct GlyphToken {

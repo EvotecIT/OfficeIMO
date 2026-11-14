@@ -18,30 +18,18 @@ internal static class OfficeTextLigatures {
             return false;
         }
 
-        if (StartsWithOrdinal(text, index, "ffi")) {
-            ligatureScalar = 0xFB03;
-            utf16Length = 3;
-            return true;
-        }
-        if (StartsWithOrdinal(text, index, "ffl")) {
-            ligatureScalar = 0xFB04;
-            utf16Length = 3;
-            return true;
-        }
-        if (StartsWithOrdinal(text, index, "ff")) {
-            ligatureScalar = 0xFB00;
-            utf16Length = 2;
-            return true;
-        }
-        if (StartsWithOrdinal(text, index, "fi")) {
-            ligatureScalar = 0xFB01;
-            utf16Length = 2;
-            return true;
-        }
-        if (StartsWithOrdinal(text, index, "fl")) {
-            ligatureScalar = 0xFB02;
-            utf16Length = 2;
-            return true;
+        // Every form starts with 'f'. Text renderers ask at each index of every run, so reject
+        // the common case with one character test before comparing the longer sequences.
+        if (text[index] == 'f' && index + 1 < text.Length) {
+            char second = text[index + 1];
+            if (second == 'f') {
+                char third = index + 2 < text.Length ? text[index + 2] : default;
+                if (third == 'i') return Found(0xFB03, 3, out ligatureScalar, out utf16Length);
+                if (third == 'l') return Found(0xFB04, 3, out ligatureScalar, out utf16Length);
+                return Found(0xFB00, 2, out ligatureScalar, out utf16Length);
+            }
+            if (second == 'i') return Found(0xFB01, 2, out ligatureScalar, out utf16Length);
+            if (second == 'l') return Found(0xFB02, 2, out ligatureScalar, out utf16Length);
         }
 
         ligatureScalar = 0;
@@ -49,7 +37,9 @@ internal static class OfficeTextLigatures {
         return false;
     }
 
-    private static bool StartsWithOrdinal(string text, int index, string value) =>
-        index <= text.Length - value.Length &&
-        string.Compare(text, index, value, 0, value.Length, StringComparison.Ordinal) == 0;
+    private static bool Found(int scalar, int length, out int ligatureScalar, out int utf16Length) {
+        ligatureScalar = scalar;
+        utf16Length = length;
+        return true;
+    }
 }

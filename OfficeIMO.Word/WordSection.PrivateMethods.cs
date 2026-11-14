@@ -1025,9 +1025,33 @@ namespace OfficeIMO.Word {
                 return new List<WordList>(0);
             }
 
-            return numbering.ChildElements.OfType<NumberingInstance>()
-                .Select(element => new WordList(document, element.NumberID!.Value))
-                .ToList();
+            // Each list owns the wrappers of its items. Resolving every paragraph's list membership once
+            // replaces one full paragraph walk per numbering instance; an id that repeats takes the walk again so
+            // its list still gets wrappers of its own, as before.
+            Dictionary<int, List<WordParagraph>>? itemsByNumberId = null;
+            var used = new HashSet<int>();
+            var lists = new List<WordList>();
+            foreach (NumberingInstance element in numbering.ChildElements.OfType<NumberingInstance>()) {
+                int numberId = element.NumberID!.Value;
+                if (!used.Add(numberId)) {
+                    lists.Add(new WordList(document, numberId));
+                    continue;
+                }
+                itemsByNumberId ??= GroupListItemsByNumberId(document);
+                lists.Add(new WordList(document, numberId,
+                    itemsByNumberId.TryGetValue(numberId, out List<WordParagraph>? items) ? items : new List<WordParagraph>()));
+            }
+            return lists;
+        }
+
+        private static Dictionary<int, List<WordParagraph>> GroupListItemsByNumberId(WordDocument document) {
+            var groups = new Dictionary<int, List<WordParagraph>>();
+            foreach (WordParagraph paragraph in document.EnumerateAllParagraphs()) {
+                if (!paragraph.IsListItem || paragraph._listNumberId is not int numberId) continue;
+                if (!groups.TryGetValue(numberId, out List<WordParagraph>? items)) groups.Add(numberId, items = new List<WordParagraph>());
+                items.Add(paragraph);
+            }
+            return groups;
         }
 
         /// <summary>
