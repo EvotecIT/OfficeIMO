@@ -108,11 +108,12 @@ function Invoke-ExcelBenchmarkConvertToCsvText {
 function Invoke-ExcelBenchmarkConvertFromCsvText {
     param([string] $Engine, [object] $Run)
 
-    $rows = switch ($Engine) {
-        PSWriteOffice { @(Import-OfficeCsv -Text $Run.SourceText) }
-        NativeCsv { @(ConvertFrom-Csv -InputObject $Run.SourceText) }
+    # The switch unrolls a one-row result, so the whole expression stays an array for Count on Windows PowerShell 5.1.
+    $rows = @(switch ($Engine) {
+        PSWriteOffice { Import-OfficeCsv -Text $Run.SourceText }
+        NativeCsv { ConvertFrom-Csv -InputObject $Run.SourceText }
         default { throw "Engine '$Engine' does not support CSV text parsing." }
-    }
+    })
     $Run.ConvertedRows = $rows
     $Run.ActualRows = $rows.Count
 }
