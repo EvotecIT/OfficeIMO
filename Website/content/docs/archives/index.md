@@ -1,11 +1,11 @@
 ---
-title: "ZIP, CAB and MSI Archives"
-description: "Inspect, verify, read and safely extract ZIP, Microsoft Cabinet and Windows Installer payloads in managed .NET with explicit resource limits."
+title: "ZIP, TAR, CAB and MSI Archives"
+description: "Inspect, verify, read and safely extract ZIP, TAR, gzip, Microsoft Cabinet and Windows Installer payloads, and create reproducible ZIP and TAR archives, in managed .NET."
 order: 58
-meta.seo_title: "Read and extract ZIP, CAB and MSI files in C#"
+meta.seo_title: "Create and extract ZIP, TAR, CAB and MSI files in C#"
 ---
 
-`OfficeIMO.Archives` inspects ZIP and Microsoft Cabinet archives and ordinary Windows Installer (MSI) databases, reads complete verified members into memory and extracts payloads to disk. It is fully managed, needs no native archive tools and never runs installer actions, scripts or custom actions.
+`OfficeIMO.Archives` inspects ZIP and Microsoft Cabinet archives and ordinary Windows Installer (MSI) databases, reads complete verified members into memory and extracts payloads to disk. It also reads and extracts TAR, .tar.gz and gzip files, and creates ZIP, TAR and gzip archives whose bytes depend only on their input. It is fully managed, needs no native archive tools and never runs installer actions, scripts or custom actions.
 
 ```shell
 dotnet add package OfficeIMO.Archives
@@ -72,12 +72,41 @@ foreach (var file in files)
 
 `ReadZip` applies the same name, path and CRC-32 rules as extraction and creates no files. `ArchiveReader.TraverseZip` enumerates metadata with ingestion warnings without verifying content.
 
+## Create ZIP and TAR archives
+
+```csharp
+using OfficeIMO.Archives;
+
+ZipArchiveWriter.CreateFromDirectory("site", "site.zip");
+TarArchiveWriter.CreateFromDirectory("site", "site.tar.gz", new TarArchiveWriterOptions { GZip = true });
+
+ZipArchiveWriter.Create("report.zip", new[] {
+    ArchiveWriteEntry.Directory("data"),
+    ArchiveWriteEntry.File("data/summary.csv", () => File.OpenRead("summary.csv"))
+}, new ZipArchiveWriterOptions { Timestamp = ArchiveTimestamp.FromSourceDateEpoch() });
+```
+
+The same input gives the same bytes on Windows, macOS and Linux and on every target framework: Deflate uses a managed encoder rather than the platform's zlib, timestamps are fixed (or taken from `SOURCE_DATE_EPOCH`), attributes are constant and folder entries are sorted. ZIP members are stored or Deflate-compressed with UTF-8 names and ZIP64 only where sizes, offsets or counts need it. TAR uses ustar headers and adds pax records only for long or non-ASCII names, large sizes and out-of-range times. Names go through the same safety checks as extraction.
+
+## Read TAR and gzip
+
+```csharp
+foreach (TarArchiveEntry entry in ArchiveReader.ListTar(File.OpenRead("site.tar.gz")))
+    Console.WriteLine($"{entry.Kind} {entry.Name} {entry.LinkTarget}");
+var files = ArchiveReader.ReadTar(File.ReadAllBytes("site.tar.gz"));
+ArchiveExtractor.Extract("site.tar.gz", "site-copy");
+```
+
+ustar, pax, GNU long names and base-256 numbers and v7 headers are read with every header checksum checked. Symbolic and hard links and device records are listed with their targets but never created; extraction fails if one is selected. `GZipArchive` reads concatenated gzip members with CRC-32 and length checks and writes gzip with the same deterministic encoder.
+
 ## What it covers
 
 | Container | Supported profile |
 |---|---|
 | ZIP | Single-disk archives with stored or Deflate members, ZIP64, UTF-8 names; legacy code pages only through an explicit `ZipLegacyCodePage` |
 | CAB | Single cabinets with Store, MSZIP and LZX compression |
+| TAR | ustar, pax, GNU and v7 headers, plain or gzip-compressed; regular files and directories are extracted, links and devices are listed only |
+| gzip | Single and concatenated RFC 1952 members |
 | MSI | Ordinary installer databases with Directory, Component, File and Media tables and embedded cabinets; raw storage streams are listed |
 
 Every operation is bounded: input size, entry count, per-member and aggregate expansion, decompression work, MSI metadata and path length and depth. Pass one `ArchiveOperationBudget` to related operations, and `CreateNested()` to child containers, to share those limits. Quota failures throw `OfficeInspectionResourceLimitException` with the exact limit name; malformed content throws `InvalidDataException`.
@@ -86,6 +115,8 @@ Every operation is bounded: input size, entry count, per-member and aggregate ex
 
 - Encrypted ZIP members, other compression methods, multi-disk archives and prepended self-extracting stubs are rejected. Ambiguous ZIP layouts fail rather than being guessed.
 - Cabinet sets, continued records and Quantum compression are not supported.
+- Sparse and multi-volume TAR members are rejected. `ArchiveInspector` does not inventory TAR or gzip; use `ArchiveReader.ListTar` and `ReadTar`.
+- 7z, RAR, XZ, Zstandard, Brotli, encryption and split archives are not supported.
 - External MSI cabinets and loose source files are listed with diagnostics but never opened. Transforms, patches, features, conditions and properties are not evaluated, so extraction shows the authored layout rather than a simulated installation.
 - CAB checksums and ZIP CRC-32 detect corruption; they do not prove authenticity.
 - Limits bound logical data, not process peak memory.
