@@ -1,6 +1,6 @@
 ---
 title: Add Tables to Word Documents
-description: Create Word tables from .NET objects or cell by cell, apply built-in table styles, merge cells, set widths and borders, and repeat header rows on every page with OfficeIMO.Word.
+description: "Create Word tables from .NET objects or cell by cell, apply table styles, merge cells, set widths and borders, and repeat header rows with OfficeIMO.Word."
 order: 12
 packages:
   - OfficeIMO.Word

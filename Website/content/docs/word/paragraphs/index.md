@@ -1,6 +1,6 @@
 ---
-title: Format Text and Paragraphs in Word Documents
-description: Add paragraphs and headings to DOCX files and set fonts, bold and italic text, colors, alignment, spacing, indentation, hyperlinks, bookmarks, and page breaks with OfficeIMO.Word.
+title: "Format Text and Paragraphs in Word"
+description: "Add paragraphs and headings to DOCX files and set fonts, bold, colors, alignment, spacing, indentation, hyperlinks and page breaks with OfficeIMO.Word."
 order: 11
 packages:
   - OfficeIMO.Word

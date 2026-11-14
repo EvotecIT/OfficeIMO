@@ -1,6 +1,6 @@
 ---
 title: Markdown in .NET
-description: Create, parse, edit and render Markdown files in .NET with OfficeIMO.Markdown and the PSWriteOffice Markdown cmdlets.
+description: "Create, parse, edit and render Markdown files in .NET with OfficeIMO.Markdown, plus the PSWriteOffice Markdown cmdlets for scripts and jobs."
 order: 40
 search_terms:
   - markdown

@@ -1,6 +1,6 @@
 ---
 title: Convert Word to PDF, HTML, and Markdown
-description: Convert DOCX files to PDF, HTML, Markdown, ODT, and RTF, and create Word documents from HTML or Markdown, with OfficeIMO.Word converters, PSWriteOffice, and the officeimo CLI.
+description: "Convert DOCX to PDF, HTML, Markdown, ODT and RTF, and create Word documents from HTML or Markdown, with OfficeIMO.Word converters and PSWriteOffice."
 order: 20
 packages:
   - OfficeIMO.Word

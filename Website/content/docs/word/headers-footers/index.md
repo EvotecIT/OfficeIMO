@@ -1,6 +1,6 @@
 ---
-title: Add Headers, Footers, and Page Numbers in Word
-description: Add headers and footers to DOCX files, insert page numbers and "Page X of Y", use a different first page or odd and even pages, and change page size and orientation per section with OfficeIMO.Word.
+title: "Add Headers, Footers and Page Numbers"
+description: "Add headers and footers to DOCX files, insert page numbers and \"Page X of Y\", and use a different first page or odd and even pages with OfficeIMO.Word."
 order: 14
 packages:
   - OfficeIMO.Word

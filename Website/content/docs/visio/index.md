@@ -1,6 +1,6 @@
 ---
 title: "Create, Edit, and Export Visio Diagrams"
-description: "OfficeIMO.Visio creates, edits, validates, and exports VSDX diagrams without Microsoft Visio installed."
+description: "OfficeIMO.Visio creates, edits, validates and exports VSDX diagrams in .NET without Microsoft Visio, with builders for common diagram types."
 meta.seo_title: "Create, edit, and export VSDX Visio diagrams in .NET"
 order: 52
 packages:

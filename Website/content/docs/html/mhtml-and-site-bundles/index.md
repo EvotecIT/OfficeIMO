@@ -1,6 +1,6 @@
 ---
-title: Read MHTML Web Archives and ZIP Site Bundles
-description: Open MHT and MHTML web archives or zipped websites, read their HTML and embedded resources, create new archives, and convert them to PDF or images without network access.
+title: "Read MHTML Web Archives and Site Bundles"
+description: "Open MHTML web archives or zipped websites, read their HTML and resources, create new archives, and convert them to PDF or images offline."
 order: 44
 search_terms:
   - mhtml

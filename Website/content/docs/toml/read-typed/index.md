@@ -1,6 +1,6 @@
 ---
 title: Read TOML into Typed Objects
-description: Deserialize TOML files such as Cargo.toml and pyproject.toml into .NET classes and records with OfficeIMO.Toml, with reflection or a source-generated context for NativeAOT.
+description: "Deserialize TOML files such as Cargo.toml and pyproject.toml into .NET classes and records with OfficeIMO.Toml, including NativeAOT contexts."
 order: 58
 verified: 2026-11-14
 packages:

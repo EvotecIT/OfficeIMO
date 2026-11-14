@@ -1,6 +1,6 @@
 ---
-title: Design PowerPoint Decks from Briefs and Deck Plans
-description: Generate designed, editable PowerPoint decks from a brand brief and a semantic deck plan, compare design alternatives, and add custom slides with composition presets in OfficeIMO.PowerPoint.
+title: "Design PowerPoint Decks from a Brief"
+description: "Generate designed, editable PowerPoint decks from a brand brief and a deck plan, compare design alternatives, and add slides with composition presets."
 order: 33
 packages:
   - OfficeIMO.PowerPoint

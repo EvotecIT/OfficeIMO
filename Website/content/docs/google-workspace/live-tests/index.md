@@ -1,6 +1,6 @@
 ---
 title: "Run the Google Workspace Live Tests"
-description: "Run the opt-in Google Docs, Sheets, Slides, Drive, shared-drive, and change-feed tests against a disposable folder."
+description: "Run the opt-in Google Docs, Sheets, Slides, Drive, shared-drive and change-feed tests for OfficeIMO against a disposable Drive folder."
 order: 75
 packages:
   - OfficeIMO.GoogleWorkspace

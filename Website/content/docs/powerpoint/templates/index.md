@@ -1,6 +1,6 @@
 ---
-title: Generate PowerPoint Decks from Corporate Templates
-description: Inspect a corporate PPTX or POTX template, pick layouts and placeholders by name, create new decks from it, and reuse its brand colors and fonts with OfficeIMO.PowerPoint.
+title: "Create PowerPoint Decks from Templates"
+description: "Inspect a corporate PPTX or POTX template, pick layouts and placeholders by name, create decks from it, and reuse its brand colors and fonts."
 order: 34
 packages:
   - OfficeIMO.PowerPoint

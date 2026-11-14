@@ -1,6 +1,6 @@
 ---
 title: "Export Visio Diagrams to Images and PDF"
-description: "Render VSDX pages to SVG, PNG, JPEG, TIFF, WebP, or PDF without Microsoft Visio installed."
+description: "Render VSDX diagram pages to SVG, PNG, JPEG, TIFF, WebP or PDF in .NET with OfficeIMO.Visio, without Microsoft Visio installed on the machine."
 meta.seo_title: "Convert VSDX to SVG, PNG, JPEG, WebP, and PDF"
 order: 56
 packages:

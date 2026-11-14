@@ -1,5 +1,5 @@
 ---
-title: "Convert Word to Markdown and Markdown to Word"
+title: "Convert Between Word and Markdown"
 description: "Convert DOCX to a typed Markdown model and save it as Markdown or HTML, and build Word documents from Markdown with OfficeIMO.Word.Markdown."
 order: 71
 packages:

@@ -1,6 +1,6 @@
 ---
 title: Generate Word Documents from DOCX Templates
-description: Fill DOCX templates from C# data with {{placeholders}}, repeated and conditional blocks, images, and links, run classic MERGEFIELD mail merge, and fill content-control forms with OfficeIMO.Word.
+description: "Fill DOCX templates from C# data with placeholders, repeated and conditional blocks and images, run MERGEFIELD mail merge, and fill content controls."
 order: 17
 packages:
   - OfficeIMO.Word

@@ -1,6 +1,6 @@
 ---
-title: Add a Table of Contents and Fields to Word Documents
-description: Insert a table of contents, page and date fields, and document property fields into DOCX files, refresh them on open or in code, and read existing fields with OfficeIMO.Word.
+title: "Add a Table of Contents and Fields in Word"
+description: "Insert a table of contents, page, date and property fields into DOCX files, refresh them on open or in code, and read fields with OfficeIMO.Word."
 order: 16
 packages:
   - OfficeIMO.Word

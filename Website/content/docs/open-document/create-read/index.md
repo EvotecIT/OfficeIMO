@@ -1,6 +1,6 @@
 ---
-title: Create, Read and Edit ODT, ODS and ODP Files
-description: Create OpenDocument text documents, spreadsheets and presentations, read their content, edit them without rewriting untouched package entries, and open password-protected files.
+title: "Create and Read ODT, ODS and ODP Files"
+description: "Create OpenDocument text, spreadsheet and presentation files, read their content, edit them in place, and open password-protected files."
 order: 39
 verified: 2026-11-14
 commands:

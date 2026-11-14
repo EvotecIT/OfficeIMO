@@ -1,6 +1,6 @@
 ---
 title: Create and Edit EPUB Files
-description: Create EPUB 3 or EPUB 2 e-books in .NET with chapters, stylesheets, images and a table of contents, turn an HTML manuscript into an EPUB, edit existing books, and run a preflight check.
+description: "Create EPUB 3 or EPUB 2 e-books in .NET with chapters, styles, images and a table of contents, import an HTML manuscript, and run a preflight check."
 order: 42
 search_terms:
   - create epub

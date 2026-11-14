@@ -1,6 +1,6 @@
 ---
 title: "TOML Files"
-description: "Read, edit and write TOML 1.1 files in .NET with a lossless document model that saves unchanged input byte for byte, a streaming pull reader and an object serializer."
+description: "Read, edit and write TOML 1.1 files in .NET with a lossless document model, a streaming pull reader and an object serializer from OfficeIMO.Toml."
 order: 57
 verified: 2026-11-14
 commands:

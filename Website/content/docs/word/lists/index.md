@@ -1,6 +1,6 @@
 ---
-title: Add Bulleted and Numbered Lists to Word Documents
-description: Create bulleted, numbered, multi-level, and custom-numbered lists in DOCX files, start numbering at any value, and read list items from existing documents with OfficeIMO.Word.
+title: "Add Bulleted and Numbered Lists in Word"
+description: "Create bulleted, numbered, multi-level and custom-numbered lists in DOCX files, start numbering at any value, and read existing list items in .NET."
 order: 15
 packages:
   - OfficeIMO.Word

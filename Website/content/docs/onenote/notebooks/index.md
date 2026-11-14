@@ -1,6 +1,6 @@
 ---
-title: Read and Write OneNote Notebooks and Packages
-description: Open OneNote notebooks from a folder, an Open Notebook.onetoc2 file or a .onepkg export, walk section groups and sections, and write notebooks and packages offline.
+title: "Read and Write OneNote Notebooks"
+description: "Open OneNote notebooks from a folder, a .onetoc2 file or a .onepkg export, walk section groups and sections, and write notebooks offline."
 order: 38
 search_terms:
   - onenote notebook

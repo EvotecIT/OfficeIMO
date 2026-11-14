@@ -1,6 +1,6 @@
 ---
 title: "Read, Write, and Convert Email and Outlook Files"
-description: "OfficeIMO.Email reads and writes EML, MSG, OFT, TNEF, PST, OST, OLM, mbox, calendar, and contact files without Outlook."
+description: "OfficeIMO.Email reads and writes EML, MSG, OFT, TNEF, PST, OST, OLM, mbox, calendar and contact files in .NET, with no Outlook installed."
 meta.seo_title: "Read and convert email and Outlook files in .NET"
 order: 36
 packages:

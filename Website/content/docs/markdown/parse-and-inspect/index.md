@@ -1,6 +1,6 @@
 ---
 title: Parse and Inspect Markdown Files
-description: Load a Markdown file into a typed model, list headings and anchors, read and edit YAML or TOML front matter, extract tables and code blocks, and check parse diagnostics.
+description: "Load Markdown into a typed model, list headings, read and edit YAML or TOML front matter, extract tables and code blocks, and check diagnostics."
 order: 42
 search_terms:
   - parse markdown

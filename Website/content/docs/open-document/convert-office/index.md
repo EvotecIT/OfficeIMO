@@ -1,6 +1,6 @@
 ---
-title: Convert OpenDocument to and from Word, Excel and PowerPoint
-description: Convert ODT to DOCX, ODS to XLSX and ODP to PPTX and back with the OfficeIMO OpenDocument adapters, and read the per-feature report of what was mapped, approximated or lost.
+title: "Convert OpenDocument to and from Office"
+description: "Convert ODT to DOCX, ODS to XLSX and ODP to PPTX and back, and read the per-feature report of what was mapped, approximated or lost."
 order: 40
 verified: 2026-11-14
 commands:

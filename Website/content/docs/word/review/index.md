@@ -1,6 +1,6 @@
 ---
-title: Review, Compare, and Track Changes in Word Documents
-description: Add comments, read comments and tracked changes, accept or reject revisions by author or type, compare two DOCX versions, and create a redline document with OfficeIMO.Word.
+title: "Track Changes and Compare Word Documents"
+description: "Add and read comments and tracked changes, accept or reject revisions by author or type, compare two DOCX versions, and create a redline document."
 order: 18
 packages:
   - OfficeIMO.Word

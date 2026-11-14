@@ -1,6 +1,6 @@
 ---
 title: Protect and Encrypt Word Documents
-description: Restrict editing of DOCX files to read-only, comments, tracked changes, or forms, mark documents as final, encrypt them with a password, and open encrypted files with OfficeIMO.Word and PSWriteOffice.
+description: "Restrict editing of DOCX files to read-only, comments, tracked changes or forms, mark them final, and encrypt or open them with a password in .NET."
 order: 19
 packages:
   - OfficeIMO.Word

@@ -1,6 +1,6 @@
 ---
 title: PowerPoint Feature Support in OfficeIMO
-description: Which PowerPoint features OfficeIMO.PowerPoint can author, edit, preserve, and render to PDF or images, and how to check a deck or a legacy PPT file before publishing.
+description: "Which PowerPoint features OfficeIMO.PowerPoint can author, edit, preserve and render, and how to check a deck or legacy PPT file before publishing."
 order: 38
 packages:
   - OfficeIMO.PowerPoint

@@ -1,6 +1,6 @@
 ---
 title: Convert HTML to PDF
-description: Convert HTML pages and HTML reports to PDF in .NET without a browser, with page size, margins, extra CSS, page headers and footers, local images and fonts, and conversion diagnostics.
+description: "Convert HTML pages and reports to PDF in .NET without a browser, with page size, margins, extra CSS, headers and footers, and local images and fonts."
 order: 43
 search_terms:
   - html to pdf

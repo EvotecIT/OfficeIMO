@@ -1,6 +1,6 @@
 ---
 title: "Signatures and Encryption"
-description: "Sign and verify documents and data, validate certificates and encrypt for recipients with OfficeIMO.Security, the optional CMS, S/MIME, RFC 3161, X.509 and XML signature provider."
+description: "Sign and verify documents and data, validate certificates and encrypt for recipients with OfficeIMO.Security: CMS, S/MIME, RFC 3161, X.509 and XML."
 order: 59
 verified: 2026-11-14
 meta.seo_title: "Sign, verify and encrypt documents in C#"

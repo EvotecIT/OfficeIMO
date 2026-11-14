@@ -1,6 +1,6 @@
 ---
 title: Edit and Merge YAML Without Losing Comments
-description: Change values in YAML files by path, add and remove entries, set comments, and merge Helm-style overlays while every untouched comment, blank line and spelling stays as it was.
+description: "Change values in YAML files by path, add and remove entries, set comments, and merge Helm-style overlays while untouched comments and spacing stay as they were."
 order: 53
 verified: 2026-11-14
 packages:

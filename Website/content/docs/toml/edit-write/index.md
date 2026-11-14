@@ -1,6 +1,6 @@
 ---
 title: Edit and Write TOML Files
-description: Change values, tables and arrays in TOML files by path while comments and formatting stay byte for byte, and write new TOML from objects or with a forward-only writer.
+description: "Change values, tables and arrays in TOML files by path while comments and formatting stay byte for byte, and write new TOML from .NET objects."
 order: 59
 verified: 2026-11-14
 commands:

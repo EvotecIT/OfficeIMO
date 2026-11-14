@@ -1,6 +1,6 @@
 ---
 title: Convert PowerPoint to PDF, HTML, and ODP
-description: Convert PPTX presentations to PDF slides, notes pages, or handouts, to HTML, and to OpenDocument ODP with OfficeIMO.PowerPoint.Pdf, PSWriteOffice, and the officeimo CLI.
+description: "Convert PPTX presentations to PDF slides, notes pages or handouts, to HTML, and to ODP with OfficeIMO.PowerPoint.Pdf, PSWriteOffice and the CLI."
 order: 36
 packages:
   - OfficeIMO.PowerPoint

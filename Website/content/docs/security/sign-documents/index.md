@@ -1,6 +1,6 @@
 ---
-title: Sign and Verify Word, Excel, PowerPoint and OpenDocument Files
-description: Add digital signatures to DOCX, XLSX, PPTX and ODT/ODS/ODP packages with OfficeIMO.Security, validate existing signatures, and choose a certificate trust policy.
+title: "Sign and Verify Office and ODF Files"
+description: "Add digital signatures to DOCX, XLSX, PPTX and ODT/ODS/ODP files with OfficeIMO.Security, validate existing signatures, and set a trust policy."
 order: 60
 verified: 2026-11-14
 packages:

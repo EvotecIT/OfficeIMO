@@ -1,6 +1,6 @@
 ---
 title: Add Images to Word Documents
-description: Insert pictures into DOCX files from files, streams, or byte arrays, size them, wrap text around them, add alt text, and read or crop existing images with OfficeIMO.Word.
+description: "Insert pictures into DOCX files from files, streams or bytes, size them, wrap text around them, add alt text, and crop existing images with OfficeIMO.Word."
 order: 13
 packages:
   - OfficeIMO.Word

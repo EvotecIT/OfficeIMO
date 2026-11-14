@@ -1,6 +1,6 @@
 ---
 title: Add Charts and Tables to PowerPoint Slides
-description: Add native, editable PowerPoint tables and charts from .NET objects, merge table cells, continue long tables across slides, and style chart titles, axes, legends, and data labels.
+description: "Add native, editable PowerPoint tables and charts from .NET objects, merge cells, continue long tables across slides, and style chart axes and labels."
 order: 32
 packages:
   - OfficeIMO.PowerPoint

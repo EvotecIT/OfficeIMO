@@ -1,6 +1,6 @@
 ---
 title: Read YAML into Typed Objects
-description: Deserialize YAML files into .NET classes and records with OfficeIMO.Yaml, use source-generated contexts for trimmed and NativeAOT apps, and read multi-document streams.
+description: "Deserialize YAML files into .NET classes and records with OfficeIMO.Yaml, use source-generated contexts for NativeAOT apps, and read multi-document streams."
 order: 52
 verified: 2026-11-14
 packages:

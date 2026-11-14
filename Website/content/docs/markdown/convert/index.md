@@ -1,6 +1,6 @@
 ---
 title: Convert Markdown to HTML, PDF and Word
-description: Convert Markdown files to HTML pages, PDF and Word documents, and turn HTML back into Markdown, with conversion reports that list anything that could not be kept.
+description: "Convert Markdown to HTML, PDF and Word, and HTML back to Markdown, with conversion reports that list anything that could not be kept."
 order: 43
 search_terms:
   - markdown to pdf

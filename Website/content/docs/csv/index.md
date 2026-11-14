@@ -1,6 +1,6 @@
 ---
 title: CSV Documents
-description: Create, load, validate and save CSV files with the OfficeIMO.CSV document model, with links to the CSV task guides.
+description: "Create, load, validate and save CSV files in .NET with the OfficeIMO.CSV document model, with links to the CSV reading, writing and conversion guides."
 order: 50
 verified: 2026-11-14
 ---

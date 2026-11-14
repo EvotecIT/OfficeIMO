@@ -1,6 +1,6 @@
 ---
-title: Add Slides, Text, Images, and Notes to PowerPoint
-description: Add slides with titles, formatted text, bullets, pictures, and speaker notes, and duplicate, import, reorder, hide, or group slides into sections with OfficeIMO.PowerPoint.
+title: "Add Slides, Text and Images to PowerPoint"
+description: "Add slides with titles, text, bullets, pictures and speaker notes, and duplicate, import, reorder, hide or group slides into sections in .NET."
 order: 31
 packages:
   - OfficeIMO.PowerPoint

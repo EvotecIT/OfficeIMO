@@ -1,6 +1,6 @@
 ---
 title: Sign, Verify and Encrypt Data with CMS
-description: Create detached or encapsulated CMS/PKCS#7 signatures, verify them with a trust policy, validate certificates, and encrypt data for X.509 recipients with OfficeIMO.Security.
+description: "Create detached or encapsulated CMS/PKCS#7 signatures, verify them with a trust policy, and encrypt data for X.509 recipients with OfficeIMO.Security."
 order: 61
 verified: 2026-11-14
 packages:

@@ -1,6 +1,6 @@
 ---
 title: "Authenticate to Google Workspace"
-description: "Create a GoogleWorkspaceSession from a service account, a short-lived access token, or Google APIs credentials."
+description: "Create a GoogleWorkspaceSession in .NET from a service account, a short-lived access token, or existing Google APIs credentials."
 order: 60
 packages:
   - OfficeIMO.GoogleWorkspace

@@ -1,6 +1,6 @@
 ---
 title: HTML and MHTML in .NET
-description: Parse HTML and MHTML safely in .NET and turn web content into PDF, images, Word, Markdown or RTF with one shared HTML engine, PSWriteOffice and the officeimo CLI.
+description: "Parse HTML and MHTML safely in .NET and turn web content into PDF, images, Word, Markdown or RTF with one HTML engine, PSWriteOffice and the CLI."
 order: 39
 search_terms:
   - html parser

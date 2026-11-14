@@ -1,6 +1,6 @@
 ---
-title: Create and Edit PowerPoint Presentations in .NET
-description: Create, open, edit, and save PPTX and PowerPoint 97-2003 presentations with OfficeIMO.PowerPoint, PSWriteOffice, and the officeimo CLI, without PowerPoint installed.
+title: "Create and Edit PowerPoint Files in .NET"
+description: "Create, open, edit and save PPTX and PowerPoint 97-2003 files with OfficeIMO.PowerPoint, PSWriteOffice and the officeimo CLI, without PowerPoint."
 order: 30
 packages:
   - OfficeIMO.PowerPoint
