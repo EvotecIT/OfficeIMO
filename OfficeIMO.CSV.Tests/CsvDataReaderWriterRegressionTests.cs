@@ -289,6 +289,53 @@ public class CsvDataReaderWriterRegressionTests
     }
 
     [Theory]
+    [InlineData("", null, null,
+        "-2147483648,-9223372036854775808,1234.50,0.00,-0.05,79228162514264337593543950335,0.0000000000000000000000000001,0.5,1.25,True,07/08/2026 09:10:11,01/02/2026 03:04:05 +02:00,00000001-0002-0003-0405-060708090a0b,1.02:03:04,-7,255,AQID,\"a,\"\"b\"\"\"\n" +
+        ",,,,,,,,,,,,,,,,,\n")]
+    [InlineData("", "yyyy-MM-dd HH:mm:ss.fffffff", "NULL",
+        "-2147483648,-9223372036854775808,1234.50,0.00,-0.05,79228162514264337593543950335,0.0000000000000000000000000001,0.5,1.25,True,2026-07-08 09:10:11.1234567,2026-01-02 03:04:05.0000000,00000001-0002-0003-0405-060708090a0b,1.02:03:04,-7,255,AQID,\"a,\"\"b\"\"\"\n" +
+        "NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL\n")]
+    [InlineData("pl-PL", "yyyy-MM-dd HH:mm:ss.fffffff", null,
+        "-2147483648,-9223372036854775808,\"1234,50\",\"0,00\",\"-0,05\",79228162514264337593543950335,\"0,0000000000000000000000000001\",\"0,5\",\"1,25\",True,2026-07-08 09:10:11.1234567,2026-01-02 03:04:05.0000000,00000001-0002-0003-0405-060708090a0b,1.02:03:04,-7,255,AQID,\"a,\"\"b\"\"\"\n" +
+        ",,,,,,,,,,,,,,,,,\n")]
+    public void WriteDataReader_TypedValuesIgnoreTheCurrentCulture(string cultureName, string? dateFormat, string? nullValue, string expected)
+    {
+        string[] headers = { "Int", "Long", "Decimal", "Zero", "Small", "Large", "Tiny", "Double", "Single", "Bool", "Date", "Offset", "Guid", "Span", "Short", "Byte", "Binary", "Text" };
+        object?[][] rows = {
+            new object?[] {
+                int.MinValue, long.MinValue, 1234.50m, 0.00m, -0.05m, decimal.MaxValue, 0.0000000000000000000000000001m, 0.5, 1.25f, true, new DateTime(2026, 7, 8, 9, 10, 11).AddTicks(1234567),
+                new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.FromHours(2)), new Guid(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11),
+                new TimeSpan(1, 2, 3, 4), (short)-7, (byte)255, new byte[] { 1, 2, 3 }, "a,\"b\""
+            },
+            Enumerable.Repeat<object?>(DBNull.Value, headers.Length).ToArray()
+        };
+        var options = new CsvSaveOptions {
+            IncludeHeader = false, NewLine = "\n", DateTimeFormat = dateFormat, NullValue = nullValue,
+            Culture = cultureName.Length == 0 ? CultureInfo.InvariantCulture : CultureInfo.GetCultureInfo(cultureName)
+        };
+        using var table = new DataTable();
+        for (int column = 0; column < headers.Length; column++) table.Columns.Add(headers[column], rows[0][column]!.GetType());
+        foreach (object?[] row in rows) table.Rows.Add(row);
+
+        CultureInfo current = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("pl-PL");
+            using var typed = new StringWriter(CultureInfo.InvariantCulture);
+            using (var reader = new ThrowingGetValuesDataReader(headers, rows)) CsvDocument.WriteDataReader(typed, reader, options);
+            using var stream = new MemoryStream();
+            using (var reader = table.CreateDataReader()) CsvDocument.WriteDataReader(stream, reader, options, leaveOpen: true);
+
+            Assert.Equal(expected, typed.ToString());
+            Assert.Equal(expected, Encoding.UTF8.GetString(stream.ToArray()));
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = current;
+        }
+    }
+
+    [Theory]
     [InlineData("Mixed", false)]
     [InlineData("Mixed", true)]
     [InlineData("Text", false)]
