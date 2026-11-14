@@ -412,8 +412,9 @@ namespace OfficeIMO.Word {
             foreach (var element in list) {
                 if (element is Paragraph) {
                     Paragraph paragraph = (Paragraph)element;
-                    if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
-                        wordSection = new WordSection(this, paragraph.ParagraphProperties.SectionProperties, paragraph);
+                    // A plain child scan; the schema-driven ParagraphProperties lookup costs more per body paragraph.
+                    if (paragraph.GetFirstChild<ParagraphProperties>()?.SectionProperties is { } sectionProperties) {
+                        wordSection = new WordSection(this, sectionProperties, paragraph);
                     }
                 } else if (element is Table) {
                     // WordTable wordTable = new WordTable(this, wordSection, (Table)element);

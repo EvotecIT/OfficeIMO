@@ -54,9 +54,7 @@ namespace OfficeIMO.Word {
         internal void MarkTableNormalizationRequired() => _tableNormalizationRequired = true;
 
         private static bool IsCanonicalDefaultTable(Table table) {
-            if (table.Parent is TableCell ||
-                table.Descendants<HorizontalMerge>().Any() ||
-                table.Descendants<GridSpan>().Any()) return false;
+            if (table.Parent is TableCell || HasMergedCells(table)) return false;
             TableWidth? tableWidth = table.GetFirstChild<TableProperties>()?.TableWidth;
             if (tableWidth?.Type?.Value != TableWidthUnitValues.Auto || tableWidth.Width?.Value != "0") return false;
 
@@ -74,12 +72,21 @@ namespace OfficeIMO.Word {
                 int cellCount = 0;
                 foreach (TableCell cell in row.Elements<TableCell>()) {
                     cellCount++;
-                    TableCellWidth? width = cell.TableCellProperties?.TableCellWidth;
+                    // Plain child scans; the schema-driven property lookups cost more for every cell.
+                    TableCellWidth? width = cell.GetFirstChild<TableCellProperties>()?.GetFirstChild<TableCellWidth>();
                     if (width?.Type?.Value != TableWidthUnitValues.Dxa || width.Width?.Value != uniformWidth) return false;
                 }
                 if (cellCount != columnCount) return false;
             }
             return true;
+        }
+
+        private static bool HasMergedCells(Table table) {
+            for (OpenXmlElement? element = table.FirstChild; element != null;
+                 element = WordElementWalk.Next(element, table, descend: !WordElementWalk.IsFormattingOrText(element))) {
+                if (element is HorizontalMerge or GridSpan) return true;
+            }
+            return false;
         }
     }
 }
