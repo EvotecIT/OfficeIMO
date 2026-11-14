@@ -25,6 +25,9 @@ Adds chapter content, reading order and a navigation entry.
 ### [Add-OfficeEpubResource](Add-OfficeEpubResource.md)
 Adds an image, font, stylesheet or media payload without executing it.
 
+### [Add-OfficeExcelBarcode](Add-OfficeExcelBarcode.md)
+Adds a QR code or barcode anchored at a worksheet cell.
+
 ### [Add-OfficeExcelChart](Add-OfficeExcelChart.md)
 Adds a native Excel chart from a range, named table or input rows.
 
@@ -172,6 +175,9 @@ Adds an embedded file attachment to a generated PDF document.
 ### [Add-OfficePdfBackgroundShape](Add-OfficePdfBackgroundShape.md)
 Adds a decorative generated PDF page background shape or band.
 
+### [Add-OfficePdfBarcode](Add-OfficePdfBarcode.md)
+Adds a QR code or barcode to PDF content as a vector drawing.
+
 ### [Add-OfficePdfBookmark](Add-OfficePdfBookmark.md)
 Adds a named bookmark at the current generated PDF flow position.
 
@@ -231,6 +237,9 @@ Adds one styled run inside a PDF paragraph or running header/footer, or a standa
 
 ### [Add-OfficePdfWatermark](Add-OfficePdfWatermark.md)
 Adds a generated-document text watermark.
+
+### [Add-OfficePowerPointBarcode](Add-OfficePowerPointBarcode.md)
+Adds a QR code or barcode to a slide.
 
 ### [Add-OfficePowerPointCard](Add-OfficePowerPointCard.md)
 Adds a narrative card or logo tile to the current designed slide.
@@ -330,6 +339,9 @@ Adds a stencil shape to the current Visio page.
 
 ### [Add-OfficeVisioTextBox](Add-OfficeVisioTextBox.md)
 Adds a text box to the current Visio page.
+
+### [Add-OfficeWordBarcode](Add-OfficeWordBarcode.md)
+Adds a QR code or barcode to a Word paragraph.
 
 ### [Add-OfficeWordBookmark](Add-OfficeWordBookmark.md)
 Adds a bookmark to the current paragraph.

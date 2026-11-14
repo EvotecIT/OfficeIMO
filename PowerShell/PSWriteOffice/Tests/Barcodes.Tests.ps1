@@ -20,9 +20,9 @@ Describe 'QR codes and barcodes' {
         try {
             $document.Images.Count | Should -Be 2
             $document.Images[0].AltText | Should -Be 'QR Code: https://evotec.xyz/events'
-            [math]::Round($document.Images[0].Width.Value.ToPoints(), 1) | Should -Be 90
+            [math]::Round($document.Images[0].Width.ToPoints(), 1) | Should -Be 90
             $document.Images[1].AltText | Should -Be 'Order number'
-            [math]::Round($document.Images[1].Width.Value.ToCentimeters(), 2) | Should -Be 6
+            [math]::Round($document.Images[1].Width.ToCentimeters(), 2) | Should -Be 6
         } finally {
             $document.Dispose()
         }

@@ -8,7 +8,7 @@ using PSWriteOffice.Services.Visuals;
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
 /// <summary>Adds a QR code or barcode to a slide.</summary>
-/// <para>Inside PowerPointSlide without coordinates or a size, the code flows through the slide layout and keeps its proportions. X, Y, Width, Height or Slide place it at a fixed position instead. The code is an SVG picture with a PNG fallback; PDF conversion keeps it as vector content. The alternative text defaults to the symbology and the encoded text.</para>
+/// <para>Inside PowerPointSlide without coordinates or a size, the code flows through the slide layout and keeps its proportions. X, Y, Width, Height or Slide place it at a fixed position instead. The code is an SVG picture with a PNG fallback; OfficeIMO's PDF conversion places it at print resolution. The alternative text defaults to the symbology and the encoded text.</para>
 /// <example><summary>Close a talk with a link to the slides.</summary>
 /// <code>PowerPointSlide -Title 'Thank you' {
 ///     PowerPointBarcode 'https://evotec.xyz/talks/officeimo'

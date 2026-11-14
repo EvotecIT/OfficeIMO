@@ -6,7 +6,7 @@ using PSWriteOffice.Services.Word;
 namespace PSWriteOffice.Cmdlets.Word;
 
 /// <summary>Adds a QR code or barcode to a Word paragraph.</summary>
-/// <para>The code is an SVG picture with a PNG fallback, so Word draws it sharply and older readers still show it; PDF conversion keeps it as vector content. Two-dimensional codes default to 1.25 inches wide; linear barcodes to 0.33 mm per bar module, with their text underneath. The alternative text defaults to the symbology and the encoded text.</para>
+/// <para>The code is an SVG picture with a PNG fallback, so Word draws it sharply and older readers still show it; OfficeIMO's PDF conversion places it at print resolution. Two-dimensional codes default to 1.25 inches wide; linear barcodes to 0.33 mm per bar module, with their text underneath. The alternative text defaults to the symbology and the encoded text.</para>
 /// <example><summary>Add a QR code that opens a web page.</summary>
 /// <code>New-OfficeWord -Path .\Flyer.docx {
 ///     WordParagraph 'Scan for the event agenda:'
