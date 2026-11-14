@@ -26,11 +26,11 @@ internal static class MarkdownBenchmarkValidation {
     }
 
     internal static string NormalizeHtml(string html) {
-        string normalized = html.Replace("\r\n", "\n", StringComparison.Ordinal)
+        string normalized = html.Replace("\r\n", "\n")
             .Replace('\r', '\n')
             .Trim();
         normalized = Regex.Replace(normalized, ">\\n+<", "><");
-        normalized = normalized.Replace("<br />", "<br>", StringComparison.Ordinal).Trim();
+        normalized = normalized.Replace("<br />", "<br>").Trim();
         return NormalizeCollapsibleWhitespace(normalized);
     }
 
@@ -65,6 +65,6 @@ internal static class MarkdownBenchmarkValidation {
     private static string GetDifferenceWindow(string value, int difference) {
         int start = Math.Max(0, difference - 30);
         int length = Math.Min(120, value.Length - start);
-        return value.Substring(start, length).Replace("\n", "\\n", StringComparison.Ordinal);
+        return value.Substring(start, length).Replace("\n", "\\n");
     }
 }
