@@ -202,7 +202,7 @@ internal static class ReliabilityWorker {
         // Larger samples spread the remaining pages evenly between the first and the last page.
         int wanted = Math.Min(sample, pageCount);
         for (int step = 1; pages.Count < wanted && step < wanted - 1; step++) {
-            pages.Add(1 + (int)Math.Round(step * (pageCount - 1) / (double)(wanted - 1), MidpointRounding.AwayFromZero));
+            pages.Add(1 + (int)Math.Round(step * (double)(pageCount - 1) / (wanted - 1), MidpointRounding.AwayFromZero));
         }
         for (int page = 2; pages.Count < wanted; page++) pages.Add(page);
         return pages.Take(sample).ToArray();

@@ -212,6 +212,17 @@ internal static partial class ReliabilityReport {
         return builder.ToString();
     }
 
+    /// <summary>Wraps text in a Markdown code span whose delimiter is longer than any backtick run inside it.</summary>
+    private static string CodeSpan(string text) {
+        int longest = 0, run = 0;
+        foreach (char character in text) {
+            run = character == '`' ? run + 1 : 0;
+            longest = Math.Max(longest, run);
+        }
+        string fence = new('`', longest + 1);
+        return longest == 0 ? fence + text + fence : fence + " " + text + " " + fence;
+    }
+
     private static long Percentile(long[] sorted, double percentile) =>
         sorted.Length == 0 ? 0 : sorted[Math.Min(sorted.Length - 1, (int)Math.Ceiling(percentile * sorted.Length) - 1)];
 
@@ -260,7 +271,7 @@ internal static partial class ReliabilityReport {
         foreach (FileResult result in processFailures) {
             md.AppendLine($"- **{result.Outcome}** in `{result.InFlightOperation ?? "?"}`: `{result.Path}` ({result.Bytes:N0} bytes, qpdf {Qpdf(result.QpdfExitCode)}, peak {result.PeakWorkingSetBytes / (1024 * 1024)} MB, {result.WallMilliseconds} ms)");
             md.AppendLine($"  - SHA-256 `{result.Sha256}`; {Cell(result.ProcessFailure)}");
-            md.AppendLine($"  - Repro (POSIX shell): `{Repro(result, options)}`");
+            md.AppendLine($"  - Repro (POSIX shell): {CodeSpan(Repro(result, options))}");
         }
         md.AppendLine();
 
