@@ -109,29 +109,27 @@ The combined registration applies the same immutable legacy options to both the 
 
 Legacy warnings include the detected profile, structured-versus-salvage quality, and feature-level losses. The handler never executes source macros or embedded code.
 
-## Stream plain text
+## Read only text
 
-When only text is needed, set `StreamTextWhenPossible` with the text-and-metadata
-projection. DOCX bodies made of paragraphs and simple tables are then read in one
-forward pass over the main document part, without building the Word document model:
+Use `ReaderProjection.Text` when only the text is needed. The result always holds
+text chunks only, with the same `GetText()` output as the text-and-metadata
+projection, and no blocks, tables, pages, links, metadata or inspection data:
 
 ```csharp
-OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
-    .AddWordHandler(new ReaderWordOptions { StreamTextWhenPossible = true })
-    .Build();
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddWordHandler().Build();
 
 string text = reader.ReadDocument("notes.docx", new ReaderOptions {
-    Projection = ReaderProjection.TextAndMetadata
+    Projection = ReaderProjection.Text
 }).GetText();
 ```
 
-`GetText()` returns the same text as the normal projection. The streamed result holds
-only text chunks: no tables, links, blocks, metadata or inspection data. A document with
-headers or footers, footnotes or endnotes, fields, content controls, text boxes,
-revisions, merged or nested table cells, or a paragraph longer than `MaxChars` is read
-through the normal projection, as is any read with a password, inspection or package
-limits. Results read this way list `officeimo.reader.word.streamed-text` in
-`CapabilitiesUsed`.
+DOCX bodies made of paragraphs and simple tables are read in one forward pass over
+the main document part, without building the Word document model; those results list
+`officeimo.reader.word.streamed-text` in `CapabilitiesUsed`. A document with headers or
+footers, footnotes or endnotes, fields, content controls, text boxes, revisions, merged
+or nested table cells, or a paragraph longer than `MaxChars`, and any read with a
+password, inspection or package limits, builds the Word model instead and is reduced to
+the same text chunks.
 
 ## Inspect comments and tracked changes
 

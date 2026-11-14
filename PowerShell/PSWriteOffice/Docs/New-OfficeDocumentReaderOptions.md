@@ -266,7 +266,7 @@ Derived representations to retain.
 Type: ReaderProjection
 Parameter Sets: Default
 Aliases: None
-Possible values: Full, TextAndMetadata
+Possible values: Full, TextAndMetadata, Text
 
 Required: False
 Position: named

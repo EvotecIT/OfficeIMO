@@ -66,6 +66,10 @@ public sealed class TestOfficeYamlCommand : OfficeCmdlet {
             result = new OfficeYamlTestResult(path, document.Diagnostics);
         } catch (YamlException error) {
             result = new OfficeYamlTestResult(path, Array.Empty<OfficeDiagnostic>(), error);
+        } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+            // A file that cannot be read is not a verdict on its YAML; report it and test the rest.
+            WriteError(OfficeYamlDocuments.Error(error, path));
+            return;
         }
         if (Detailed) WriteObject(result);
         else WriteObject(result.IsValid);

@@ -33,6 +33,19 @@ internal readonly partial struct PdfPageClipPath {
             ComputeCanServeAsExactPathClip(isRectangle, isExact, commands);
     }
 
+    /// <summary>True when every field matches bit for bit and both share the same command list.</summary>
+    internal bool IsIdenticalTo(PdfPageClipPath other) =>
+        BitConverter.DoubleToInt64Bits(X) == BitConverter.DoubleToInt64Bits(other.X) &&
+        BitConverter.DoubleToInt64Bits(Y) == BitConverter.DoubleToInt64Bits(other.Y) &&
+        BitConverter.DoubleToInt64Bits(Width) == BitConverter.DoubleToInt64Bits(other.Width) &&
+        BitConverter.DoubleToInt64Bits(Height) == BitConverter.DoubleToInt64Bits(other.Height) &&
+        IsRectangle == other.IsRectangle &&
+        FillRule == other.FillRule &&
+        ReferenceEquals(Commands, other.Commands) &&
+        IsExact == other.IsExact &&
+        ContainsTextClipping == other.ContainsTextClipping &&
+        _canServeAsExactPathClip == other._canServeAsExactPathClip;
+
     public static PdfPageClipPath Rectangle(double x, double y, double width, double height) =>
         new PdfPageClipPath(x, y, width, height, true, OfficeFillRule.EvenOdd, Array.Empty<OfficePathCommand>());
 

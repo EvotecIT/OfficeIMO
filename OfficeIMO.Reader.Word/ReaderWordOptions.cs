@@ -21,13 +21,4 @@ public sealed class ReaderWordOptions {
     /// </summary>
     public WordImageExportOptions? PageLocationOptions { get; set; }
 
-    /// <summary>
-    /// When true and <see cref="ReaderOptions.Projection"/> is <see cref="ReaderProjection.TextAndMetadata"/>, DOCX
-    /// bodies made of paragraphs and simple tables are read in one streaming pass without building the Word document
-    /// model. The result gives the same <c>GetText()</c> output and carries only text chunks: no tables, links,
-    /// blocks or document metadata. Documents with headers or footers, notes, fields, content controls, drawings,
-    /// revisions or merged and nested table cells, and reads with a password, inspection or package limits, use the
-    /// normal projection.
-    /// </summary>
-    public bool StreamTextWhenPossible { get; set; }
 }

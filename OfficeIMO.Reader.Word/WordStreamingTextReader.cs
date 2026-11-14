@@ -6,20 +6,20 @@ using DocumentFormat.OpenXml.Packaging;
 namespace OfficeIMO.Reader.Word;
 
 /// <summary>
-/// Reads the plain text of a DOCX body with one forward pass over its main part, without building the Word
-/// document model. It writes the lines the text-and-metadata projection's GetText() writes: each body paragraph's
-/// visible run text, and each table as a column line followed by its rows with tab-separated cells. Any construct
-/// whose text depends on the full model (headers and footers, notes, fields, content controls, drawings, revisions,
-/// merged or nested table cells, long paragraphs) makes it decline, and the caller reads the document normally.
+/// Reads the plain text of a DOCX body for the text projection with one forward pass over its main part, without
+/// building the Word document model. It writes the lines the text-and-metadata projection's GetText() writes: each
+/// body paragraph's visible run text, and each table as a column line followed by its rows with tab-separated cells.
+/// Any construct whose text depends on the full model (headers and footers, notes, fields, content controls, drawings,
+/// revisions, merged or nested table cells, long paragraphs) makes it decline; the caller then builds the model and
+/// the read scope reduces that result to the same text chunks.
 /// </summary>
 internal static class WordStreamingTextReader {
     private const string WordNamespace = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
     private const string XmlNamespace = "http://www.w3.org/XML/1998/namespace";
 
-    /// <summary>Whether the request only needs the text this pass can reproduce.</summary>
-    internal static bool Applies(ReaderOptions readerOptions, ReaderWordOptions options) =>
-        options.StreamTextWhenPossible
-        && readerOptions.Projection == ReaderProjection.TextAndMetadata
+    /// <summary>Whether the read asked for the text projection and nothing this pass cannot honor.</summary>
+    internal static bool Applies(ReaderOptions readerOptions) =>
+        DocumentReaderEngine.IsTextProjection
         && string.IsNullOrEmpty(readerOptions.OpenPassword)
         && readerOptions.Inspection == null
         && FormatInternals.OpenXmlReaderAdmission.Policy(readerOptions, global::OfficeIMO.Word.WordLoadOptions.DefaultMaxInputBytes) == null;
@@ -76,8 +76,8 @@ internal static class WordStreamingTextReader {
                 Text = line
             });
         }
-        return DocumentReaderEngine.CreateDocumentResult(chunks, ReaderInputKind.Word,
-            capabilities: new[] { OfficeDocumentReaderBuilderWordExtensions.HandlerId, "officeimo.reader.word.streamed-text" });
+        return DocumentReaderEngine.CreateTextResult(chunks, ReaderInputKind.Word,
+            new[] { OfficeDocumentReaderBuilderWordExtensions.HandlerId, "officeimo.reader.word.streamed-text" });
     }
 
     private sealed class Context {
@@ -293,28 +293,22 @@ internal static class WordStreamingTextReader {
     private static bool ReadTable(XmlReader reader, Context context) {
         if (reader.IsEmptyElement) return true;
         int depth = reader.Depth;
-        int gridColumns = 0;
         bool repeatsHeader = false;
         var rows = new List<List<string>>();
         while (reader.Read()) {
             if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth) break;
             if (reader.NodeType != XmlNodeType.Element) continue;
             if (reader.NamespaceURI != WordNamespace) return false;
+            context.CancellationToken.ThrowIfCancellationRequested();
             switch (reader.LocalName) {
                 case "tblPr":
-                    Skip(reader);
-                    break;
                 case "tblGrid":
-                    if (!reader.IsEmptyElement) {
-                        int gridDepth = reader.Depth;
-                        while (reader.Read() && !(reader.NodeType == XmlNodeType.EndElement && reader.Depth == gridDepth)) {
-                            if (reader.NodeType == XmlNodeType.Element && reader.NamespaceURI == WordNamespace && reader.LocalName == "gridCol") gridColumns++;
-                        }
-                    }
+                    // The model sizes the table from its widest row, not its grid.
+                    Skip(reader);
                     break;
                 case "tr":
                     var cells = new List<string>();
-                    if (!ReadRow(reader, cells, out bool header)) return false;
+                    if (!ReadRow(reader, cells, out bool header, context.CancellationToken)) return false;
                     if (rows.Count == 0) repeatsHeader = header;
                     rows.Add(cells);
                     break;
@@ -325,7 +319,7 @@ internal static class WordStreamingTextReader {
                     return false;
             }
         }
-        int columns = gridColumns;
+        int columns = 0;
         foreach (List<string> row in rows) columns = Math.Max(columns, row.Count);
         bool hasHeader = repeatsHeader && rows.Count > 0;
         if (columns > 0) {
@@ -349,7 +343,7 @@ internal static class WordStreamingTextReader {
 
     private static string Cell(List<string> row, int index) => index < row.Count ? row[index] : string.Empty;
 
-    private static bool ReadRow(XmlReader reader, List<string> cells, out bool repeatsHeader) {
+    private static bool ReadRow(XmlReader reader, List<string> cells, out bool repeatsHeader, CancellationToken cancellationToken) {
         repeatsHeader = false;
         if (reader.IsEmptyElement) return true;
         int depth = reader.Depth;
@@ -360,15 +354,23 @@ internal static class WordStreamingTextReader {
             switch (reader.LocalName) {
                 case "trPr": case "tblPrEx":
                     if (!reader.IsEmptyElement) {
+                        bool rowProperties = reader.LocalName == "trPr";
+                        bool headerSeen = false;
                         int propertiesDepth = reader.Depth;
                         while (reader.Read() && !(reader.NodeType == XmlNodeType.EndElement && reader.Depth == propertiesDepth)) {
                             if (reader.NodeType != XmlNodeType.Element || reader.NamespaceURI != WordNamespace) continue;
-                            if (reader.LocalName == "tblHeader") repeatsHeader = IsOn(reader);
-                            else if (reader.LocalName is "gridBefore" or "gridAfter") return false;
+                            // Revised row properties are a revision; the model read handles those.
+                            if (reader.LocalName is "gridBefore" or "gridAfter" or "trPrChange" or "tblPrExChange") return false;
+                            // Like the model, only the first direct tblHeader of the row's own properties counts.
+                            if (rowProperties && !headerSeen && reader.LocalName == "tblHeader" && reader.Depth == propertiesDepth + 1) {
+                                repeatsHeader = IsOn(reader);
+                                headerSeen = true;
+                            }
                         }
                     }
                     break;
                 case "tc":
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (!ReadCell(reader, out string? value)) return false;
                     cells.Add(value!);
                     break;

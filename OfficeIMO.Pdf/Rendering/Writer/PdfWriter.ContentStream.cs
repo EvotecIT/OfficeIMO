@@ -553,6 +553,9 @@ internal sealed partial class ContentStreamBuilder {
     // Matrix coefficients multiply page coordinates; three decimals can move glyphs by tenths of a point.
     private static ReadOnlySpan<char> MatrixNumber(double value) {
         value = Math.Abs(value) < 0.0000005D ? 0D : value;
+        // Most placement matrices are translations; their unit and zero coefficients skip the custom format.
+        if (value == 0D) return "0".AsSpan();
+        if (value == 1D) return "1".AsSpan();
         return FormatNumber(value, "0.######");
     }
 
