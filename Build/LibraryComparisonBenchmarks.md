@@ -11,14 +11,14 @@ merge retains the other lanes already in the destination catalog.
   SDK/runtime used by the pinned PowerForge module. Package restore and the first
   PowerForge source checkout need network access. The initializer reads
   `Build/benchmark-powerforge.json`, caches source under `EVOTEC_SCRATCH_ROOT` when configured (otherwise local application data), builds the unsigned net8.0 module, and imports
-  it. `-PowerForgeRoot` selects an existing clean checkout at that exact commit;
+  it. Builds reuse the ordinary machine NuGet cache. `-PowerForgeRoot` selects an existing clean checkout at that exact commit;
   it does not change the pin or update a shared checkout.
 - Clear `OFFICEIMO_MARKDOWN_BENCHMARK_CORPUS` before collecting the fixed seven-corpus CommonMark matrix.
 - Use a clean OfficeIMO checkout for cataloged measurements. If selecting a
   local HtmlTinkerX source through `-HtmlTinkerXRoot`, keep it clean too. Record
   the actual source, dependencies and environment; copying a bundle does not
   turn one machine's results into another platform's evidence.
-- Reserve the machine through the normal resource procedure before measurements.
+- Run collection when the machine is available for measurements.
   Keep equivalent engines on the same processor domain and settings. Leave
   `-AffinityMask 0` on macOS. A nonzero mask on Windows or Linux identifies a
   separate comparison profile; select it from the host's actual topology.

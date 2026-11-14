@@ -60,9 +60,23 @@ if ($LASTEXITCODE -ne 0 -or $dirty.Count -gt 0) {
 $modulePath = Join-Path $PowerForgeRoot "PSPublishModule/bin/Release/$($pin.framework)/PSPublishModule.dll"
 $previousNodeReuse = $env:MSBUILDDISABLENODEREUSE
 $previousBuildServer = $env:DOTNET_CLI_USE_MSBUILD_SERVER
+$previousPackageCache = $env:NUGET_PACKAGES
 try {
     $env:MSBUILDDISABLENODEREUSE = '1'
     $env:DOTNET_CLI_USE_MSBUILD_SERVER = '0'
+    if ([string]::IsNullOrWhiteSpace($env:NUGET_PACKAGES)) {
+        # Resolve the machine cache outside the source checkout's private NuGet.Config.
+        Push-Location -LiteralPath ([Environment]::GetFolderPath('UserProfile'))
+        try {
+            $cacheOutput = @(& dotnet nuget locals global-packages --list --force-english-output)
+            if ($LASTEXITCODE -ne 0) { throw 'Could not resolve the ordinary NuGet package cache.' }
+            $cacheLine = @($cacheOutput | Where-Object { $_.StartsWith('global-packages: ', [StringComparison]::Ordinal) })
+            if ($cacheLine.Count -ne 1) { throw 'NuGet did not report one global package cache.' }
+            $env:NUGET_PACKAGES = $cacheLine[0].Substring('global-packages: '.Length).Trim()
+        } finally {
+            Pop-Location
+        }
+    }
     Push-Location -LiteralPath $PowerForgeRoot
     try {
         & dotnet build PSPublishModule/PSPublishModule.csproj -c Release -f $pin.framework -m:2 -nodeReuse:false --nologo --verbosity quiet | Out-Host
@@ -74,6 +88,7 @@ try {
 } finally {
     $env:MSBUILDDISABLENODEREUSE = $previousNodeReuse
     $env:DOTNET_CLI_USE_MSBUILD_SERVER = $previousBuildServer
+    $env:NUGET_PACKAGES = $previousPackageCache
 }
 [pscustomobject]@{
     Repository = $pin.repository
