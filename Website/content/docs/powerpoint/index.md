@@ -1,163 +1,119 @@
 ---
-title: PowerPoint Presentations
-description: "Overview of OfficeIMO.PowerPoint for creating and editing PPTX and PowerPoint 97-2003 decks. Includes examples and API links."
+title: Create and Edit PowerPoint Presentations in .NET
+description: Create, open, edit, and save PPTX and PowerPoint 97-2003 presentations with OfficeIMO.PowerPoint, PSWriteOffice, and the officeimo CLI, without PowerPoint installed.
 order: 30
+packages:
+  - OfficeIMO.PowerPoint
+cmdlets:
+  - New-OfficePowerPoint
+  - Add-OfficePowerPointSlide
+  - Open-OfficePowerPoint
+  - Update-OfficePowerPointText
+search_terms:
+  - pptx
+  - powerpoint presentation
+  - create slides
+  - ppt
+  - slide deck
+verified: 2026-11-14
 ---
 
-`OfficeIMO.PowerPoint` lets you build and edit `.pptx`, `.ppt`, `.pot`, and `.pps` presentations from one higher-level object model. It is designed for generated decks, reporting pipelines, legacy presentation maintenance, demo content, and repeatable presentation output.
+`OfficeIMO.PowerPoint` creates and edits `.pptx` presentations, and opens binary `.ppt`, `.pot`, and `.pps` files into the same object model. `PowerPointDocument` is the presentation, `PowerPointSlide` is one slide, and slides hold text boxes, tables, charts, pictures, and speaker notes. Nothing needs PowerPoint installed, so it runs on servers, in containers, and in CI.
 
-## Good fit scenarios
+Use this page for the basics. The guides in this section cover slide content, charts and tables, designer decks, corporate templates, and PDF and image export.
 
-- Create status decks, release reviews, and customer reports from application data.
-- Generate training material or runbook slides as part of CI, build, or scheduled jobs.
-- Reuse the same source data across Word, Excel, PowerPoint, and Reader pipelines.
-- Produce presentations on servers, containers, or developer machines without PowerPoint installed.
+## Create a presentation
 
-## Core building blocks
+`SlideSize.GetContentBox` returns the slide area inside a margin, so titles and body text line up across slides.
 
-| Type | Purpose |
-|------|---------|
-| `PowerPointDocument` | Root document for creating, loading, saving, and organizing slides |
-| `PowerPointSlide` | Individual slide surface for titles, text boxes, tables, charts, images, and notes |
-| `PowerPointTextBox` | Rich text container with bullets, formatted runs, margins, and auto-fit |
-| `PowerPointTable` | Strongly typed table surface with styles, column widths, row heights, and merged cells |
-| `PowerPointChart` | Chart host for series-driven visualizations inside a slide |
-| `PowerPointNotes` | Speaker notes attached to a slide |
-| `PowerPointLayoutBox` | Measurement helper for content regions, columns, and spacing |
-| `PowerPointDesignBrief` | Brand, purpose, palette, and design preferences used to generate alternatives |
-| `PowerPointDeckPlan` | Semantic sequence of designer slides that can be scored before rendering |
-| `PowerPointTemplateInventory` | Masters, layouts, placeholders, theme tokens, assets, footer content, and safe areas read from `.pptx` or `.potx` |
-
-## Designer decks
-
-For decks that should look intentional without hand-positioning every object, use designer briefs and semantic deck plans. A brief can propose several visual directions from the same brand, while a deck plan lets the library score how well those directions fit the content before rendering editable slides.
-
-<a href="/images/powerpoint/examples/deck-plan-process.png" data-pf-media><img src="/images/powerpoint/examples/deck-plan-process.png" alt="PowerPoint designer deck plan process slide" width="1600" height="900" loading="lazy" decoding="async" /></a>
-
-```csharp
-PowerPointDesignBrief brief = PowerPointDesignBrief
-    .FromBrand("#008C95", "client-demo", "technical rollout proposal")
-    .WithIdentity("Client Theme", footerLeft: "CLIENT", footerRight: "Service deck")
-    .WithVariety(PowerPointDesignVariety.Exploratory);
-
-PowerPointDeckPlan plan = new PowerPointDeckPlan()
-    .AddSection("Service proposal", "Generated from a semantic plan.")
-    .AddProcess("Implementation path", "The selected design handles layout.",
-        new[] {
-            new PowerPointProcessStep("Discover", "Collect constraints."),
-            new PowerPointProcessStep("Design", "Choose the target model."),
-            new PowerPointProcessStep("Roll out", "Deliver in waves.")
-        });
-
-var best = brief.DescribeDeckPlanAlternatives(plan, 3)
-    .OrderByDescending(alternative => alternative.ContentFitScore)
-    .First();
-
-using var presentation = PowerPointDocument.Create("proposal.pptx");
-presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-PowerPointCompositionOptions composition = PowerPointCompositionOptions.FromBrief(brief);
-composition.SelectBestAlternative = false;
-composition.AlternativeIndex = best.Index;
-presentation.Compose(plan, composition);
-presentation.Save();
-```
-
-[Designer Decks](/docs/powerpoint/designer/) shows design recommendations, deck-plan scoring, raw composition primitives, and screenshots from runnable examples.
-
-## Quick start
+### C#
 
 ```csharp
 using OfficeIMO;
 using OfficeIMO.PowerPoint;
 
-using var presentation = PowerPointDocument.Create("status-update.pptx");
-const double marginCm = 1.5;
+using PowerPointDocument presentation = PowerPointDocument.Create("status-update.pptx");
+PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeLength.Centimeters(1.5));
 
-var content = presentation.SlideSize.GetContentBox(OfficeLength.Centimeters(marginCm));
-var slide = presentation.AddSlide();
+PowerPointSlide slide = presentation.AddSlide();
+slide.AddTitle("Weekly status", new PowerPointLayoutBox(
+    content.Left, content.Top, content.Width, OfficeLength.Centimeters(1.4)));
 
-var title = slide.AddTitle(
-    "Weekly Status",
-    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),
-    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),
-    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),
-    OfficeIMO.OfficeLength.Centimeters(1.4));
-
-if (title.Paragraphs.Count > 0)
-{
-    PowerPointTextStyle.Title.WithColor(OfficeColor.Parse("1F4E79")).Apply(title.Paragraphs[0]);
-}
-
-var agenda = slide.AddTextBox(
-    string.Empty,
-    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),
-    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 2.0),
-    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),
-    OfficeIMO.OfficeLength.Centimeters(content.Height.ToCentimeters() - 2.0));
-
-agenda.AddBullets(new[]
-{
-    "Deployment completed successfully",
-    "Customer onboarding toolkit updated",
-    "Performance metrics improved week over week"
+PowerPointTextBox body = slide.AddTextBox(string.Empty, new PowerPointLayoutBox(
+    content.Left, content.Top + OfficeLength.Centimeters(2),
+    content.Width, content.Height - OfficeLength.Centimeters(2)));
+body.AddBullets(new[] {
+    "Deployment completed",
+    "Onboarding guide updated",
+    "Response times improved week over week"
 });
 
 presentation.Save();
 ```
 
-## Recommended workflow
+### PowerShell
 
-1. Create a presentation and get a content box from `SlideSize` so positioning stays consistent.
-2. Add slides and establish structure with title, body, and supporting shapes or tables.
-3. Populate content from your domain data, not from hard-coded presentation markup.
-4. Add speaker notes, sections, theme tweaks, or layout helpers when the deck grows.
-5. Save the file and ship it as a build artifact, report attachment, or generated deliverable.
+```powershell
+New-OfficePowerPoint -Path .\status-update.pptx {
+    Add-OfficePowerPointSlide -Title 'Weekly status' {
+        Add-OfficePowerPointList -Items 'Deployment completed', 'Onboarding guide updated', 'Response times improved week over week'
+    }
+}
+```
 
-For report-sized content, use `AddTableSlides(...)` or semantic composition's continuation policy so source rows and semantic items continue instead of being clipped or dropped. Call `InspectPreflight()` before publishing to produce a deterministic layout report or fail at a selected severity.
+## Open a presentation and replace text
 
-## PowerPoint 97-2003 files
+`Load` opens `.pptx`, `.pptm`, `.potx`, and the binary `.ppt` family. `ReplaceAll` returns the number of replacements.
 
-Normal `Load(...)` routing detects binary `.ppt`, `.pot`, and `.pps` files and projects supported content into
-the same editable model. Saving back to a binary extension uses native or preservation-aware writing and
-blocks known loss by default:
+### C#
 
 ```csharp
+using OfficeIMO.PowerPoint;
+
+using PowerPointDocument presentation = PowerPointDocument.Load("account-review.pptx");
+int replaced = presentation.ReplaceAll("{{Customer}}", "Northwind Traders");
+Console.WriteLine($"{replaced} replacements on {presentation.Slides.Count} slides");
+presentation.Save();
+```
+
+### PowerShell
+
+```powershell
+Open-OfficePowerPoint -Path .\account-review.pptx {
+    Update-OfficePowerPointText '{{Customer}}' 'Northwind Traders' -IncludeNotes
+}
+```
+
+## Save a PowerPoint 97-2003 file
+
+Saving to `.ppt`, `.pot`, or `.pps` writes the binary format and blocks known loss by default. Run the write preflight first to see what would not survive.
+
+### C#
+
+```csharp
+using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 
-using var presentation = PowerPointDocument.Load("legacy-deck.ppt");
+using PowerPointDocument presentation = PowerPointDocument.Load("legacy-deck.ppt");
 presentation.ReplaceAll("Draft", "Approved");
 
 LegacyPptWritePreflightReport report = presentation.AnalyzeLegacyPptWrite();
 if (!report.CanWrite) {
-    throw new InvalidOperationException(string.Join(
-        Environment.NewLine, report.Findings));
+    foreach (var finding in report.Findings) Console.WriteLine(finding);
+    return;
 }
 presentation.SaveCopy("approved.ppt");
 ```
 
-Use `LegacyPptCapabilityCatalog` for the versioned import, authoring, round-trip, and PPTX-conversion contract.
-Tables, charts, and SmartArt require explicit acceptance when converted to static binary visuals; other unsafe
-conversions are blocked. Password-protected binary files use RC4 CryptoAPI for legacy compatibility.
+`LegacyPptCapabilityCatalog` lists what each binary feature supports for import, authoring, round-trip, and conversion from PPTX. Tables, charts, and SmartArt convert to static pictures in binary files only when you accept that loss explicitly.
 
-## Layout and content model
+## Turn a list of objects into a deck
 
-- Use `SlideSize.GetContentBox(OfficeLength.Centimeters(...))` to reserve consistent margins around the live slide area.
-- Use `GetColumnsCm(...)` when you want balanced two- or three-column compositions.
-- Work in centimeters, points, or EMUs through the built-in unit helpers depending on the scenario.
-- Add titles, text boxes, tables, charts, images, and notes to the same `PowerPointSlide` surface.
+`Export-OfficePowerPoint` builds a title slide, a table, and a chart from pipeline objects in one call.
 
-## Related workflows
+### PowerShell
 
-- Pair `OfficeIMO.PowerPoint` with `OfficeIMO.Excel` when chart/table data already exists in workbook form.
-- Use `OfficeIMO.Reader` when the same pipeline later needs extraction or chunking from generated decks.
-- Use PSWriteOffice when you want the same presentation automation from PowerShell rather than C#.
-
-## Further reading
-
-- [Slides](/docs/powerpoint/slides) — Creating slides with text boxes, shapes, images, and charts.
-- [Designer Decks](/docs/powerpoint/designer/) — Build visually structured decks with design briefs, recommendations, semantic plans, and screenshots.
-- [Templates and Brand Kits](/docs/powerpoint/templates/) — Consume corporate `.pptx` and `.potx` files through named layouts, semantic placeholders, and imported theme tokens.
-- [Image export](/docs/powerpoint/image-export/) — Render slides for previews, review, and visual baselines.
-- [Capability Matrix](/docs/powerpoint/capabilities/) — Understand native authoring, preservation, preview, and reporting boundaries.
-- [PSWriteOffice PowerPoint Cmdlets](/docs/pswriteoffice/powerpoint/) — Build decks from PowerShell with DSL aliases and cmdlets.
-- [OfficeIMO.PowerPoint product page](/products/powerpoint/) — Package-level overview, install command, and positioning.
+```powershell
+$sales = Import-Csv .\sales.csv
+$sales | Export-OfficePowerPoint -Path .\Sales.pptx -Title 'Regional sales' -Property Region, Revenue -Category Region -Value Revenue -Theme Boardroom
+```

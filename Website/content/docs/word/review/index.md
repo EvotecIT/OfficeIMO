@@ -1,38 +1,136 @@
 ---
-title: "Review, Revisions, and Security"
-description: "Inspect comments and tracked changes, compare document structure, produce redlines, accept or reject revisions, and protect signed packages."
-layout: docs
+title: Review, Compare, and Track Changes in Word Documents
+description: Add comments, read comments and tracked changes, accept or reject revisions by author or type, compare two DOCX versions, and create a redline document with OfficeIMO.Word.
+order: 18
+packages:
+  - OfficeIMO.Word
+cmdlets:
+  - Get-OfficeWordReview
+  - Resolve-OfficeWordRevision
+  - New-OfficeWordRevisionFilter
+  - Compare-OfficeDocument
+  - New-OfficeWordComparisonOptions
+limits: Newer review extensions that OfficeIMO detects but does not parse are kept in the file and listed in UnsupportedMetadata rather than exposed in the review model.
+search_terms:
+  - track changes
+  - word comments
+  - compare docx
+  - redline
+  - accept revisions
+verified: 2026-11-14
 ---
 
-OfficeIMO.Word includes a structured review model for documents that move through approval workflows. It can inspect comments, replies, resolved state, targets, tracked revisions, and unsupported review metadata without mutating the source.
+`OfficeIMO.Word` reads the review state of a document without changing it: comments, replies, resolved state, the text they point at, and tracked insertions, deletions, and moves. It can accept or reject revisions selectively, and compare two versions either as structured findings for code or as a redline document for people.
 
-## Inspect review state
+## Add comments and turn on track changes
+
+### C#
 
 ```csharp
 using OfficeIMO.Word;
 
-using var document = WordDocument.Load("proposal-reviewed.docx");
-WordReviewInfo review = document.InspectReview();
+using WordDocument document = WordDocument.Create("proposal.docx");
 
-Console.WriteLine($"Comments: {review.CommentCount}");
-Console.WriteLine($"Open comments: {review.UnresolvedCommentCount}");
-Console.WriteLine($"Revisions: {review.Revisions.Count}");
+WordParagraph scope = document.AddParagraph("The project covers 12 sites.");
+scope.AddComment("Alice Smith", "AS", "Confirm the site count with operations.");
+
+document.TrackChanges = true;
+document.Save();
 ```
 
-`InspectReviewReport` packages inspection results with optional accept/reject operation reports. Preserve its unsupported-metadata list: Office documents can contain newer review extensions that are retained but not fully mapped into the public model.
+## Read comments and tracked changes
+
+`InspectReview` returns a snapshot. Keep `UnsupportedMetadata` in mind: it lists review data in the file that the model does not map.
+
+### C#
+
+```csharp
+using OfficeIMO.Word;
+
+using WordDocument document = WordDocument.Load("proposal-reviewed.docx");
+WordReviewInfo review = document.InspectReview();
+
+Console.WriteLine($"{review.CommentCount} comments, {review.UnresolvedCommentCount} open, {review.RevisionCount} revisions");
+foreach (WordCommentInfo comment in review.Comments) {
+    Console.WriteLine($"{comment.Author}: {comment.Text} (on \"{comment.TargetText}\")");
+}
+```
+
+### PowerShell
+
+```powershell
+Get-OfficeWordReview -Path .\proposal-reviewed.docx
+```
+
+## Accept or reject tracked changes
+
+Accept or reject everything, or pass a `WordRevisionFilter` to limit the operation by author, revision type, date, or location. The filtered overload returns a report of what changed.
+
+### C#
+
+```csharp
+using OfficeIMO.Word;
+
+using WordDocument document = WordDocument.Load("contract-draft.docx");
+
+WordRevisionOperationReport report = document.AcceptRevisions(new WordRevisionFilter { Author = "Legal" });
+Console.WriteLine(report);
+
+document.RejectRevisions("External reviewer");
+document.Save("contract-clean.docx");
+```
+
+### PowerShell
+
+```powershell
+$filter = New-OfficeWordRevisionFilter -Author 'Legal'
+Resolve-OfficeWordRevision -Path .\contract-draft.docx -OutputPath .\contract-clean.docx -Action Accept -Filter $filter
+```
 
 ## Compare two versions
 
-`WordDocumentComparer.CompareStructure` compares text, ordering, tables, images, effective formatting, fields, content controls, bookmarks, hyperlinks, lists, comments, and revisions. `WordComparisonOptions` lets you exclude volatile identifiers or a feature family when it is irrelevant to your approval policy.
+`CompareStructure` compares text and order, tables, images, formatting, fields, content controls, bookmarks, hyperlinks, lists, comments, and revisions. Each finding has a stable code, a location, and the old and new text, which suits CI checks and audit reports.
 
-Use the structured result for CI, audit, or custom reporting. Use the redline path when reviewers need a document representation of inserted, deleted, moved, or changed content.
+### C#
 
-## Accept and reject revisions
+```csharp
+using OfficeIMO.Word;
 
-`AcceptRevisions` and `RejectRevisions` support whole-document and filtered operations, including paragraph-scoped variants. Capture the returned operation report when a workflow must show what changed. Save to a new file until the result has passed semantic readback.
+WordComparisonResult result = WordDocumentComparer.CompareStructure("policy-v1.docx", "policy-v2.docx");
 
-## Protection and package signatures
+foreach (WordComparisonFinding finding in result.Findings) {
+    Console.WriteLine($"{finding.ChangeKind} at {finding.DetailedLocation}: {finding.Message}");
+}
+File.WriteAllText("policy-changes.md", result.ToMarkdown());
+```
 
-Document editing protection and package signatures solve different problems. Protection requests an editing mode and can be password-backed; it is not a cryptographic proof of origin. Package signing uses an X.509 certificate and should be applied after all document mutations.
+### PowerShell
 
-The default signed-document save policy blocks edits that would invalidate a signature. Inspect and validate signature coverage before relying on a signed artifact, and define an explicit re-signing policy for approved modifications.
+```powershell
+$options = New-OfficeWordComparisonOptions -IgnoreWhitespace -NoVolatileMetadata
+Compare-OfficeDocument -ReferencePath .\policy-v1.docx -DifferencePath .\policy-v2.docx -Options $options
+```
+
+## Create a redline document
+
+A redline is a DOCX for reviewers who work in Word. The default `ReportArtifact` mode writes a review document with a summary, a findings table, and tracked snippets. `InPlaceTarget` copies the new version and applies the supported differences to it as tracked changes.
+
+### C#
+
+```csharp
+using OfficeIMO.Word;
+
+WordComparisonResult result = WordDocumentComparer.CreateRedlineDocument(
+    "policy-v1.docx", "policy-v2.docx", "policy-redline.docx",
+    new WordComparisonRedlineOptions {
+        Mode = WordComparisonRedlineMode.InPlaceTarget,
+        Author = "Policy review"
+    });
+Console.WriteLine($"{result.Findings.Count} differences");
+```
+
+### PowerShell
+
+```powershell
+Compare-OfficeDocument -ReferencePath .\policy-v1.docx -DifferencePath .\policy-v2.docx -OutputPath .\policy-redline.docx
+```

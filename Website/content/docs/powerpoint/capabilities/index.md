@@ -1,7 +1,19 @@
 ---
-title: PowerPoint Capability Matrix
-description: "Tested authoring, editing, preservation, rendering, and reporting boundaries for OfficeIMO.PowerPoint. Includes examples and API links."
-order: 35
+title: PowerPoint Feature Support in OfficeIMO
+description: Which PowerPoint features OfficeIMO.PowerPoint can author, edit, preserve, and render to PDF or images, and how to check a deck or a legacy PPT file before publishing.
+order: 38
+packages:
+  - OfficeIMO.PowerPoint
+cmdlets:
+  - Test-OfficePowerPoint
+  - New-OfficePowerPointInspectionOptions
+search_terms:
+  - powerpoint features
+  - pptx support
+  - ppt binary support
+  - preflight check
+  - supported charts
+verified: 2026-11-14
 ---
 
 OfficeIMO.PowerPoint is strongest when the output must stay editable and the workflow can use tested Open XML features. The table below separates native authoring from preservation and preview support so a successful save is not confused with full edit fidelity.
@@ -30,39 +42,67 @@ OfficeIMO.PowerPoint is strongest when the output must stay editable and the wor
 | Custom XML and ActiveX | No general authoring contract | Preserve/report where possible | Not a fidelity promise | Use `InspectFeatures()` before edit-heavy round trips. |
 | Digital signatures | Inspect/report only | Save policy applies | Not applicable | Editing a signed package can invalidate its signature. |
 
-## Generation checks
+## Check a generated deck before publishing
+
+`InspectPreflight` measures text and shape bounds and reports clipped or unreadably small text, shapes outside the slide, and broken picture links. Finding codes are stable, so CI can fail on them; the messages are for people.
+
+### C#
 
 ```csharp
+using OfficeIMO.PowerPoint;
+
+using PowerPointDocument presentation = PowerPointDocument.Load("deck.pptx");
+
 PowerPointDeckPreflightReport report = presentation.InspectPreflight();
 report.SaveJson("deck.preflight.json");
 
 var options = new PowerPointDeckPreflightOptions {
     FailureSeverity = PowerPointDeckPreflightSeverity.Error
 };
-PowerPointDeckPreflightReport gate = presentation.InspectPreflight(options);
-gate.ThrowIfFindings(options.FailureSeverity);
-presentation.Save();
+presentation.InspectPreflight(options).ThrowIfFindings(options.FailureSeverity);
 ```
 
-The preflight report is the same contract returned by designer generation and `OfficeIMO.Markup.PowerPoint`. Stable finding codes are intended for CI policy; human messages are supporting context.
+### PowerShell
 
-For imported presentations, combine layout preflight with `InspectFeatures()` so the pipeline sees both generated-content risks and package features outside the editable surface.
+```powershell
+Get-ChildItem .\Publish -Filter *.pptx | Test-OfficePowerPoint
+```
 
-## PowerPoint 97-2003 capability contract
+## Check an imported deck for features outside the editable model
 
-Binary `.ppt`, `.pot`, and `.pps` support has four independently reported directions: import into the editable
-model, new binary authoring, binary round-trip, and PPTX-to-binary conversion. Query the versioned catalog
-instead of inferring support from a successful open:
+`InspectFeatures` lists package content such as ActiveX, custom XML, media, and macros that OfficeIMO preserves but does not edit. Run it before an edit-heavy round trip.
+
+### C#
+
+```csharp
+using OfficeIMO.PowerPoint;
+
+using PowerPointDocument presentation = PowerPointDocument.Load("imported.pptx");
+PowerPointFeatureReport features = presentation.InspectFeatures();
+foreach (PowerPointFeatureFinding finding in features.PreservedFeatures.Concat(features.UnsupportedFeatures)) {
+    Console.WriteLine($"{finding.Category} / {finding.Name}: {finding.SupportLevel} ({finding.Count})");
+}
+```
+
+### PowerShell
+
+```powershell
+$policy = New-OfficePowerPointInspectionOptions -Features -Visuals
+Test-OfficePowerPoint -Path .\imported.pptx -Options $policy
+```
+
+## Query PowerPoint 97-2003 support
+
+Binary `.ppt`, `.pot`, and `.pps` support is reported in four directions: import into the editable model, new binary authoring, binary round trip, and conversion from PPTX. Each direction is `Native`, `Preserved`, `Converted`, or `Blocked`. Query the versioned catalog instead of assuming support from a successful open.
+
+### C#
 
 ```csharp
 using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
 
-LegacyPptCapability capability = LegacyPptCapabilityCatalog.Get(
-    LegacyPptFeature.RasterPictures);
-string json = LegacyPptCapabilityCatalog.ToJson();
+LegacyPptCapability capability = LegacyPptCapabilityCatalog.Get(LegacyPptFeature.RasterPictures);
+Console.WriteLine(capability);
+File.WriteAllText("ppt-capabilities.json", LegacyPptCapabilityCatalog.ToJson());
 ```
 
-Each direction is `Native`, `Preserved`, `Converted`, or `Blocked`. There are no provisional catalog rows.
-Saving blocks known loss by default. Imported files preserve unrelated compound-file records and streams;
-tables, charts, and SmartArt can convert to static PNG visuals only with explicit loss acceptance; features
-without a safe mapping remain blocked.
+Saving blocks known loss by default. Imported files keep unrelated binary records and streams; tables, charts, and SmartArt convert to static pictures only when you accept that loss explicitly, and features without a safe mapping stay blocked.

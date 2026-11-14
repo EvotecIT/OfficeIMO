@@ -1,189 +1,179 @@
 ---
-title: Tables
-description: Creating and styling tables in OfficeIMO.Word with rows, cells, merging, borders, and the built-in styles exposed by the WordTableStyle enum.
+title: Add Tables to Word Documents
+description: Create Word tables from .NET objects or cell by cell, apply built-in table styles, merge cells, set widths and borders, and repeat header rows on every page with OfficeIMO.Word.
 order: 12
+packages:
+  - OfficeIMO.Word
+cmdlets:
+  - Add-OfficeWordTable
+  - Add-OfficeWordTableCondition
+  - Get-OfficeWordTable
+search_terms:
+  - word table
+  - docx table
+  - table from objects
+  - merge cells
+  - table style
+verified: 2026-11-14
 ---
 
-The `WordTable` class provides the table-focused API for creating and manipulating tables in Word documents. The current repo surface includes the built-in styles exposed by `WordTableStyle`, plus cell merging, custom borders, header row repetition, and automatic table generation from object collections.
+`WordTable` is a native Word table. Build one from a list of objects when the data already exists in your application, or by row and column count when you need full control over each cell. The `WordTableStyle` enum exposes Word's built-in table styles (`TableGrid`, `GridTable4Accent1`, `ListTable3Accent2`, and the rest of the gallery).
 
-## Creating a Table
+## Add a table from a list of objects
+
+Each public property becomes a column, and the property names become the header row. `WordTableOptions` adds a style, a caption, and column selection on top of the shared `OfficeTableOptions`.
+
+### C#
 
 ```csharp
 using OfficeIMO.Word;
 
-using var document = WordDocument.Create("tables.docx");
+Employee[] employees = [
+    new("Alice", "Engineering", 95_000),
+    new("Bob", "Design", 85_000),
+    new("Carol", "Operations", 105_000)
+];
 
-// Create a 4-row, 3-column table with the TableGrid style
-var table = document.AddTable(4, 3, WordTableStyle.TableGrid);
+using WordDocument document = WordDocument.Create("employees.docx");
+document.AddParagraph("Employees").Style = WordParagraphStyles.Heading1;
+document.AddTable(employees, new WordTableOptions {
+    Style = WordTableStyle.GridTable4Accent1,
+    Caption = "Table 1. Employees by department"
+});
+document.Save();
 
-// Populate the header row
-table.Rows[0].Cells[0].Paragraphs[0].Text = "Name";
-table.Rows[0].Cells[1].Paragraphs[0].Text = "Department";
-table.Rows[0].Cells[2].Paragraphs[0].Text = "Start Date";
+record Employee(string Name, string Department, int Salary);
+```
 
-// Populate data rows
-table.Rows[1].Cells[0].Paragraphs[0].Text = "Alice";
-table.Rows[1].Cells[1].Paragraphs[0].Text = "Engineering";
-table.Rows[1].Cells[2].Paragraphs[0].Text = "2024-01-15";
+### PowerShell
 
-table.Rows[2].Cells[0].Paragraphs[0].Text = "Bob";
-table.Rows[2].Cells[1].Paragraphs[0].Text = "Design";
-table.Rows[2].Cells[2].Paragraphs[0].Text = "2024-03-01";
+`Add-OfficeWordTableCondition` highlights rows that match a filter.
 
-table.Rows[3].Cells[0].Paragraphs[0].Text = "Carol";
-table.Rows[3].Cells[1].Paragraphs[0].Text = "Marketing";
-table.Rows[3].Cells[2].Paragraphs[0].Text = "2024-06-10";
+```powershell
+$rows = Get-Service | Select-Object -First 10 Name, Status, StartType
+New-OfficeWord -Path .\services.docx {
+    Add-OfficeWordHeading 'Services'
+    Add-OfficeWordTable -InputObject $rows -Style GridTable4Accent1 {
+        Add-OfficeWordTableCondition -FilterScript { $_.Status -eq 'Stopped' } -BackgroundColor '#FDE2E1'
+    }
+}
+```
+
+## Build a table cell by cell
+
+Every cell starts with one empty paragraph, so `Paragraphs[0]` is always there to write into. Add more paragraphs to a cell with `AddParagraph`.
+
+### C#
+
+```csharp
+using OfficeIMO.Word;
+
+using WordDocument document = WordDocument.Create("schedule.docx");
+
+WordTable table = document.AddTable(3, 3, WordTableStyle.GridTable1Light);
+string[,] values = {
+    { "Name", "Department", "Start date" },
+    { "Alice", "Engineering", "2026-01-15" },
+    { "Bob", "Design", "2026-03-01" }
+};
+for (int r = 0; r < 3; r++) {
+    for (int c = 0; c < 3; c++) {
+        table.Rows[r].Cells[c].Paragraphs[0].Text = values[r, c];
+    }
+}
+foreach (WordTableCell header in table.Rows[0].Cells) header.Paragraphs[0].Bold = true;
+
+WordTableRow row = table.AddRow(3);
+row.Cells[0].Paragraphs[0].Text = "Carol";
+row.Cells[1].Paragraphs[0].Text = "Operations";
+row.Cells[2].Paragraphs[0].Text = "2026-06-10";
 
 document.Save();
 ```
 
-## Table Styles
+## Merge cells
 
-OfficeIMO includes over 105 built-in table styles accessible through the `WordTableStyle` enum. Some commonly used styles:
+`MergeCells` takes the top-left cell and how many rows and columns to span.
 
-| Style | Description |
-|-------|-------------|
-| `WordTableStyle.TableGrid` | Simple grid with all borders |
-| `WordTableStyle.PlainTable1` | Minimal borders, clean look |
-| `WordTableStyle.GridTable1Light` | Light grid with subtle shading |
-| `WordTableStyle.GridTable4Accent1` | Colored banded rows with accent color 1 |
-| `WordTableStyle.ListTable3Accent2` | List-style with accent color 2 |
-| `WordTableStyle.TableGridLight` | Very light grid borders |
-
-Apply a style when creating:
+### C#
 
 ```csharp
-var table = document.AddTable(3, 3, WordTableStyle.GridTable4Accent1);
+using OfficeIMO.Word;
+
+using WordDocument document = WordDocument.Create("merged.docx");
+WordTable table = document.AddTable(4, 4, WordTableStyle.TableGrid);
+
+table.Rows[0].Cells[0].Paragraphs[0].Text = "2026 sales by quarter";
+table.MergeCells(0, 0, rowSpan: 1, colSpan: 4);
+
+table.Rows[1].Cells[0].Paragraphs[0].Text = "Hardware";
+table.MergeCells(1, 0, rowSpan: 3, colSpan: 1);
+
+document.Save();
 ```
 
-Or change the style after creation:
+## Repeat the header row and control page breaks
+
+For long tables, repeat the first row at the top of every page and keep rows from splitting across a page break.
+
+### C#
 
 ```csharp
-table.Style = WordTableStyle.ListTable3Accent2;
-```
+using OfficeIMO.Word;
 
-## Adding Rows and Cells
+using WordDocument document = WordDocument.Create("long-table.docx");
+WordTable table = document.AddTable(Enumerable.Range(1, 200)
+    .Select(i => new[] { $"Item {i}", (i * 3).ToString() })
+    .Prepend(new[] { "Item", "Quantity" }));
 
-```csharp
-// Add a new row to an existing table
-var row = table.AddRow();
-row.Cells[0].Paragraphs[0].Text = "New entry";
-row.Cells[1].Paragraphs[0].Text = "Operations";
-row.Cells[2].Paragraphs[0].Text = "2025-01-01";
-```
-
-## Cell Content
-
-Each cell contains a list of paragraphs. You can add multiple paragraphs to a cell, format text within cells, and even nest tables:
-
-```csharp
-var cell = table.Rows[1].Cells[0];
-
-// The first paragraph is created automatically
-cell.Paragraphs[0].Text = "First line";
-cell.Paragraphs[0].Bold = true;
-
-// Add more paragraphs to the same cell
-var secondParagraph = cell.AddParagraph();
-secondParagraph.Text = "Second line";
-secondParagraph.Italic = true;
-```
-
-## Header Row Repetition
-
-For long tables that span multiple pages, repeat the header row at the top of each page:
-
-```csharp
 table.RepeatAsHeaderRowAtTheTopOfEachPage = true;
+table.AllowRowToBreakAcrossPages = false;
+table.Style = WordTableStyle.ListTable3Accent2;
+
+document.Save();
 ```
 
-## Row Break Across Pages
+## Set table width, layout, and borders
 
-Control whether rows can break across page boundaries:
-
-```csharp
-// Allow all rows to break across pages
-table.AllowRowToBreakAcrossPages = true;
-
-// Or control individual rows
-table.Rows[2].AllowRowToBreakAcrossPages = false;
-```
-
-## Cell Merging
-
-### Horizontal Merge (across columns)
+### C#
 
 ```csharp
-// Merge cells 0-2 in the first row (spans 3 columns)
-table.Rows[0].Cells[0].HorizontalMerge = WordCellMerge.Restart;
-table.Rows[0].Cells[1].HorizontalMerge = WordCellMerge.Continue;
-table.Rows[0].Cells[2].HorizontalMerge = WordCellMerge.Continue;
-```
+using OfficeIMO;
+using OfficeIMO.Word;
 
-### Vertical Merge (across rows)
+using WordDocument document = WordDocument.Create("borders.docx");
+WordTable table = document.AddTable(2, 3, WordTableStyle.TableGrid);
+table.SetWidthPercentage(100);
+table.LayoutMode = WordTableLayoutMode.Fixed;
 
-```csharp
-// Merge first column across rows 1-3
-table.Rows[1].Cells[0].VerticalMerge = WordCellMerge.Restart;
-table.Rows[2].Cells[0].VerticalMerge = WordCellMerge.Continue;
-table.Rows[3].Cells[0].VerticalMerge = WordCellMerge.Continue;
-```
-
-## Table Borders
-
-```csharp
-// Access and customize borders on a table cell
-var borders = table.Rows[0].Cells[0].Borders;
-borders.TopStyle = WordBorderStyle.Single;
-borders.TopSize = 12;
-borders.TopColor = OfficeColor.Parse("FF0000");
+WordTableCellBorder borders = table.Rows[0].Cells[0].Borders;
 borders.BottomStyle = WordBorderStyle.Double;
-borders.BottomSize = 6;
-borders.BottomColor = OfficeColor.Parse("0000FF");
+borders.BottomSize = OfficeLength.Points(1.5);
+borders.BottomColor = OfficeColor.Parse("1F4E79");
+
+document.Save();
 ```
 
-## Table Layout
+## Read tables from an existing document
 
-Control whether the table uses a fixed or auto-fit layout:
+`document.Tables` lists every top-level table. Each cell's text is available through its paragraphs.
 
-```csharp
-table.LayoutMode = WordTableLayoutType.FixedWidth;
-// or
-table.LayoutMode = WordTableLayoutType.AutoFitToContents;
-```
-
-## Table Width
+### C#
 
 ```csharp
-table.Width = 5000;     // in fiftieths of a percent or twips
-table.WidthType = WordTableWidthUnit.Pct;
-```
+using OfficeIMO.Word;
 
-## Generate Tables from Objects
-
-Create a table automatically from a collection of objects:
-
-```csharp
-var employees = new[] {
-    new { Name = "Alice", Role = "Developer", Salary = 95000 },
-    new { Name = "Bob", Role = "Designer", Salary = 85000 },
-    new { Name = "Carol", Role = "Manager", Salary = 105000 },
-};
-
-var table = document.AddTable(employees, new WordTableOptions {
-    Style = WordTableStyle.GridTable4Accent1,
-    Caption = "Table 1. Employees"
-});
-```
-
-## Accessing All Table Paragraphs
-
-Iterate over every paragraph in a table (useful for search/replace):
-
-```csharp
-foreach (var paragraph in table.Paragraphs) {
-    if (paragraph.Text.Contains("placeholder")) {
-        paragraph.Text = paragraph.Text.Replace("placeholder", "actual value");
+using WordDocument document = WordDocument.Load("employees.docx");
+foreach (WordTable table in document.Tables) {
+    foreach (WordTableRow row in table.Rows) {
+        Console.WriteLine(string.Join(" | ", row.Cells.Select(cell =>
+            string.Join(" ", cell.Paragraphs.Select(p => p.Text)))));
     }
 }
+```
+
+### PowerShell
+
+```powershell
+Get-OfficeWordTable -Path .\employees.docx
 ```
