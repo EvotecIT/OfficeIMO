@@ -538,3 +538,4 @@ OfficeIMO.Excel.ExcelDocument.InspectHiddenData() -> OfficeIMO.OfficeHiddenDataR
 OfficeIMO.Excel.ExcelDocument.RemoveHiddenData(OfficeIMO.OfficeHiddenDataOptions? options = null) -> OfficeIMO.OfficeHiddenDataReport!
 OfficeIMO.Excel.ExcelReaderOptions.EnableSinglePassReading.get -> bool
 OfficeIMO.Excel.ExcelReaderOptions.EnableSinglePassReading.set -> void
+OfficeIMO.Excel.ExcelSheet.AddChartFromRanges(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<OfficeIMO.Excel.ExcelChartSeriesRange!>! series, OfficeIMO.OfficeChartOptions? options = null) -> OfficeIMO.Excel.ExcelChart!
