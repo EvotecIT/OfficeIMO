@@ -1449,16 +1449,19 @@ public class PdfReadLimitTests {
         Assert.Equal(2, exception.Actual);
     }
 
-    [Fact]
-    public void GraphicsStateDepthBudgetCountsSavesAcrossInvokedForms() {
+    [Theory]
+    [InlineData("q q q q 0 0 10 10 re f", "0 0 10 10 re f")]
+    [InlineData("/Fm1 Do", "q q q q 0 0 10 10 re f")]
+    public void GraphicsStateDepthBudgetStopsUnrestoredSavesInPagesAndForms(string pageContent, string formContent) {
         byte[] pdf = BuildPdfObjects(
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /XObject << /Fm1 5 0 R >> >> /Contents 4 0 R >>",
-            "<< /Length 11 >>\nstream\nq q /Fm1 Do\nendstream",
-            "<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Length 22 >>\nstream\nq q 0 0 10 10 re f Q Q\nendstream");
+            $"<< /Length {pageContent.Length} >>\nstream\n{pageContent}\nendstream",
+            $"<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Length {formContent.Length} >>\nstream\n{formContent}\nendstream");
         PdfReadDocument limited = PdfReadDocument.Open(pdf, new PdfLoadOptions { Limits = new PdfReadLimits { MaxGraphicsStateDepth = 3 } });
-        PdfReadDocument sufficient = PdfReadDocument.Open(pdf, new PdfLoadOptions { Limits = new PdfReadLimits { MaxGraphicsStateDepth = 4 } });
+        // Four authored saves plus the saves drawing adds to position and clip the content.
+        PdfReadDocument sufficient = PdfReadDocument.Open(pdf, new PdfLoadOptions { Limits = new PdfReadLimits { MaxGraphicsStateDepth = 6 } });
 
         PdfReadLimitException textException = Assert.Throws<PdfReadLimitException>(() => limited.Pages[0].ExtractText());
         PdfReadLimitException drawingException = Assert.Throws<PdfReadLimitException>(() => limited.Pages[0].ToDrawing());

@@ -147,11 +147,13 @@ public sealed partial class PdfReadLimits {
     /// <summary>Maximum nested lexical arrays/dictionaries, marked-content scopes, or form XObjects while parsing page content. Default: 128.</summary>
     public int MaxContentNestingDepth { get; init; } = DefaultMaxContentNestingDepth;
 
-    /// <summary>Maximum graphics states saved with <c>q</c> and not yet restored with <c>Q</c> while interpreting page content,
-    /// counted across the page and the nested form XObjects and Type 3 glyph programs it invokes. Default: 1,024.</summary>
+    /// <summary>Maximum graphics states saved with <c>q</c> and not yet restored with <c>Q</c> in one content stream:
+    /// page contents, a form XObject, a pattern, a Type 3 glyph or an annotation appearance. Default: 1,024.</summary>
     /// <remarks>
-    /// ISO 32000 leaves the depth to implementations, and the PDF 1.7 reference lists 28 for Acrobat. The default
-    /// leaves wide room above that for documents that save without restoring, while bounding the state kept for them.
+    /// The count includes the save the reader adds when it positions or clips that content for drawing, and a stream
+    /// interpreted while another is still open adds to the open stream's count. ISO 32000 leaves the depth to
+    /// implementations, and the PDF 1.7 reference lists 28 for Acrobat. The default leaves wide room above that for
+    /// documents that save without restoring, while bounding the state kept for them.
     /// </remarks>
     public int MaxGraphicsStateDepth { get; init; } = DefaultMaxGraphicsStateDepth;
 

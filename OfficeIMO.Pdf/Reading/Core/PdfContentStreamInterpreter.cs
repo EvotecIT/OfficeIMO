@@ -52,10 +52,10 @@ internal static class PdfContentStreamInterpreter {
                 .InterpretUntil(visit);
     }
 
-    // Graphics states saved by content streams that are still being interpreted on this thread. Visitors
-    // interpret nested form XObjects and Type 3 glyph programs synchronously from their parent's callback,
-    // so this counts every unrestored q from the page down to the innermost stream, whichever visitor keeps
-    // the saved states. Each reader restores the value it started with when it finishes or throws.
+    // Graphics states saved by content streams still being interpreted on this thread. When a visitor
+    // interprets a nested stream from the callback of the stream that invokes it, both keep their saved
+    // states, so the nested stream starts from the open stream's count. Each reader restores the value it
+    // started with when it finishes or throws.
     [ThreadStatic]
     private static int t_activeGraphicsStateDepth;
 

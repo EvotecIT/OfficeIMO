@@ -19,6 +19,10 @@ internal static partial class PdfRedactionApplier {
             operation => {
                 switch (operation.Name) {
                     case "q":
+                        // The stack carries over between content segments, so bound it here as well as per stream.
+                        if (stack.Count >= limits.MaxGraphicsStateDepth) {
+                            throw PdfReadLimitException.Create(PdfReadLimitKind.GraphicsStateDepth, limits.MaxGraphicsStateDepth, stack.Count + 1L);
+                        }
                         stack.Push(new TextScrubStateSnapshot(current, textState));
                         break;
                     case "Q":

@@ -5755,9 +5755,10 @@ and form nesting. Over-complex input raises `PdfReadLimitException`; simplify
 the input or adjust the relevant limit for a trusted workload.
 
 `PdfReadLimits.MaxGraphicsStateDepth` (default 1,024) bounds graphics states
-saved with `q` and not yet restored with `Q`. The count runs across the page
-and the form XObjects and Type 3 glyphs it invokes. Content that exceeds it
-raises `PdfReadLimitException` with `PdfReadLimitKind.GraphicsStateDepth` from
+saved with `q` and not yet restored with `Q` in one content stream: page
+contents, a form XObject, a pattern, a Type 3 glyph or an annotation
+appearance. Drawing adds one or two saves to position and clip that content,
+and those count too. Content that exceeds it raises `PdfReadLimitException` with `PdfReadLimitKind.GraphicsStateDepth` from
 text extraction, rendering, inspection and editing. If a trusted document saves
 more states without restoring them, raise the limit for that workload.
 
