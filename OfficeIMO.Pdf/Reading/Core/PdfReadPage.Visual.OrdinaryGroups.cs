@@ -3,13 +3,49 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
-    private bool IsSupportedOrdinaryTransparencyGroup(PdfDictionary form) {
+    private bool IsSupportedOrdinaryTransparencyGroup(PdfDictionary form, PdfPageXObjectInvocation invocation) {
         if (ResolveEffectObject(form.Items.TryGetValue("Group", out var groupObject) ? groupObject : null) is not PdfDictionary group ||
-            !HasOrdinaryTransparencyGroupDeclaration(group) ||
-            ResolveEffectObject(group.Items.TryGetValue("I", out var isolated) ? isolated : null) is not PdfBoolean { Value: true }) return false;
+            !HasOrdinaryTransparencyGroupDeclaration(group)) return false;
         if (group.Items.TryGetValue("K", out var knockout) && ResolveEffectObject(knockout) is not PdfNull and not PdfBoolean { Value: false }) return false;
-        if (group.Items.TryGetValue("CS", out var color) && ResolveEffectObject(color) is not PdfNull and not PdfName { Name: "DeviceRGB" }) return false;
+        bool isolated = ResolveEffectObject(group.Items.TryGetValue("I", out var isolatedObject) ? isolatedObject : null) is PdfBoolean { Value: true };
+        PdfObject? color = group.Items.TryGetValue("CS", out var colorObject) ? ResolveEffectObject(colorObject) : null;
+        bool deviceRgb = color is null or PdfNull or PdfName { Name: "DeviceRGB" };
+        if (isolated && deviceRgb) return TryReadFormMatrix(form, out _);
+        // A group composited through a blend mode or constant alpha must be painted as one surface:
+        // applying the invocation effect to each member is replaced by the members' own graphics state.
+        // Members that paint only with Normal blending give the same result whether or not the group
+        // is isolated, and an RGB ICC blending space is treated like DeviceRGB.
+        if (invocation.BlendMode == OfficeBlendMode.Normal && (invocation.FillOpacity ?? 1D) >= 1D) return false;
+        if (!deviceRgb && !IsThreeComponentIccColorSpace(color)) return false;
+        if (!isolated && !PaintsOnlyWithNormalBlending(form)) return false;
         return TryReadFormMatrix(form, out _);
+    }
+
+    private bool IsThreeComponentIccColorSpace(PdfObject? color) =>
+        color is PdfArray { Items.Count: 2 } array &&
+        ResolveEffectObject(array.Items[0]) is PdfName { Name: "ICCBased" } &&
+        ResolveEffectObject(array.Items[1]) is PdfStream profile &&
+        ResolveEffectObject(profile.Dictionary.Items.TryGetValue("N", out PdfObject? components) ? components : null) is PdfNumber { Value: 3D };
+
+    // Conservative: every graphics state the Form can select keeps Normal blending and no soft mask,
+    // and the Form invokes no nested Forms whose own states would also apply.
+    private bool PaintsOnlyWithNormalBlending(PdfDictionary form) {
+        PdfDictionary? resources = ResolveDictionary(form.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null);
+        if (resources == null) return true;
+        if (ResolveDictionary(resources.Items.TryGetValue("ExtGState", out PdfObject? statesObject) ? statesObject : null) is PdfDictionary states) {
+            foreach (PdfObject stateObject in states.Items.Values) {
+                if (ResolveEffectObject(stateObject) is not PdfDictionary state) return false;
+                if (state.Items.ContainsKey("BM") && ReadBlendMode(state) != OfficeBlendMode.Normal) return false;
+                if (state.Items.TryGetValue("SMask", out PdfObject? mask) && ResolveEffectObject(mask) is not PdfName { Name: "None" }) return false;
+            }
+        }
+        if (ResolveDictionary(resources.Items.TryGetValue("XObject", out PdfObject? xObjects) ? xObjects : null) is PdfDictionary objects) {
+            foreach (PdfObject value in objects.Items.Values) {
+                if (ResolveEffectObject(value) is PdfStream stream &&
+                    ResolveEffectObject(stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) ? subtype : null) is PdfName { Name: "Form" }) return false;
+            }
+        }
+        return true;
     }
 
     // An isolated Form starts with opaque paint and no inherited blend/mask.

@@ -126,6 +126,23 @@ public sealed class PdfImageExportContractTests {
     }
 
     [Fact]
+    public void PageRenderEncodesPngWithTheConfiguredRasterEncoding() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Page one")).ToBytes();
+        PdfPageRenderResult compressed = PdfDocument.Load(new MemoryStream(pdf)).Render.Pages("1",
+            new PdfPageRenderOptions { Format = OfficeImageExportFormat.Png })[0];
+        PdfPageRenderResult stored = PdfDocument.Load(new MemoryStream(pdf)).Render.Pages("1",
+            new PdfPageRenderOptions {
+                Format = OfficeImageExportFormat.Png,
+                RasterEncoding = new OfficeRasterEncodingOptions { Png = new OfficePngEncodeOptions { Compression = OfficePngCompression.Stored } }
+            })[0];
+
+        // Stored zlib blocks hold every RGBA sample, so the configured compression must reach the encoder.
+        Assert.True(stored.Bytes!.Length > stored.Width * stored.Height * 4);
+        Assert.True(compressed.Bytes!.Length < stored.Bytes.Length / 4);
+        Assert.Equal(OfficeRasterImageDecoder.Decode(compressed.Bytes).GetPixels(), OfficeRasterImageDecoder.Decode(stored.Bytes).GetPixels());
+    }
+
+    [Fact]
     public void PdfRasterFitPreservesDensityRelativeToThePreFitScale() {
         PdfReadPage page = LoadTwoPageDocument().Pages[0];
         OfficeImageExportResult baseline = page.ToImage(OfficeImageExportFormat.Png);

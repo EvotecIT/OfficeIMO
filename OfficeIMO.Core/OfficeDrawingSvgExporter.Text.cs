@@ -10,10 +10,9 @@ public static partial class OfficeDrawingSvgExporter {
         string idPrefix,
         ref int clipPathId,
         bool textAsPaths, System.Collections.Generic.ISet<string> requiredFontFamilies) {
-        var fragment = new StringBuilder(Math.Min(256, sb.MaxCapacity - sb.Length), sb.MaxCapacity - sb.Length);
-        AppendTextCore(fragment, text, textMetrics, idPrefix, ref clipPathId, textAsPaths);
-        CollectSvgTextFontFamilies(fragment.ToString(), requiredFontFamilies, textMetrics.CancellationToken);
-        sb.Append(fragment);
+        int start = sb.Length;
+        AppendTextCore(sb, text, textMetrics, idPrefix, ref clipPathId, textAsPaths);
+        CollectSvgTextFontFamilies(sb, start, requiredFontFamilies, textMetrics.CancellationToken);
     }
 
     private static void AppendTextCore(StringBuilder sb, OfficeDrawingText text, OfficeRasterCanvas textMetrics,
@@ -200,10 +199,9 @@ public static partial class OfficeDrawingSvgExporter {
 
     private static void AppendRichText(StringBuilder sb, OfficeDrawingRichText text, OfficeRasterCanvas textMetrics,
         System.Collections.Generic.ISet<string> requiredFontFamilies) {
-        var fragment = new StringBuilder(Math.Min(256, sb.MaxCapacity - sb.Length), sb.MaxCapacity - sb.Length);
-        AppendRichTextCore(fragment, text, textMetrics);
-        CollectSvgTextFontFamilies(fragment.ToString(), requiredFontFamilies, textMetrics.CancellationToken);
-        sb.Append(fragment);
+        int start = sb.Length;
+        AppendRichTextCore(sb, text, textMetrics);
+        CollectSvgTextFontFamilies(sb, start, requiredFontFamilies, textMetrics.CancellationToken);
     }
 
     private static void AppendRichTextCore(StringBuilder sb, OfficeDrawingRichText text, OfficeRasterCanvas textMetrics) {

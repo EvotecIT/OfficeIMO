@@ -41,9 +41,7 @@ namespace OfficeIMO.PowerPoint {
         public void Show() => Hidden = false;
 
         private SlideId GetSlideId() {
-            PresentationPart presentationPart = _slidePart.GetParentParts()
-                .OfType<PresentationPart>()
-                .FirstOrDefault()
+            PresentationPart presentationPart = _slidePart.GetParentPresentationPart()
                 ?? throw new InvalidOperationException("Slide is not attached to a presentation.");
 
             SlideIdList? slideIdList = presentationPart.Presentation?.SlideIdList;

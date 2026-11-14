@@ -118,7 +118,12 @@ public static partial class OfficeConverter {
             case "ppt-pdf":
             case "pptx-pdf":
             case "pptx-html": {
-                using PowerPointDocument document = await PowerPointDocument.LoadAsync(input, PowerPointInputOptions(settings), token).ConfigureAwait(false);
+                PowerPointLoadOptions loadOptions = PowerPointInputOptions(settings);
+                // A PPTX to PDF route only reads the presentation. Opening it read-only keeps
+                // disposal from rewriting every package entry the conversion read. Caller-supplied
+                // load options keep the access they asked for.
+                if (id == "pptx-pdf" && settings.PowerPointLoad == null) loadOptions.AccessMode = DocumentAccessMode.ReadOnly;
+                using PowerPointDocument document = await PowerPointDocument.LoadAsync(input, loadOptions, token).ConfigureAwait(false);
                 sourceReport = document.CreateLoadReport(settings.SourceName!, timer.Elapsed);
                 if (settings.FailOnLoss) sourceReport.ThrowIfLoss();
                 if (id == "pptx-html") result = await ConvertPowerPointHtmlAsync(document, output, settings, token).ConfigureAwait(false);

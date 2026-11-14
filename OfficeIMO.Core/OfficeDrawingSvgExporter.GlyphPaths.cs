@@ -119,8 +119,8 @@ public static partial class OfficeDrawingSvgExporter {
                 OfficePoint point = contour[index];
                 var placed = new OfficePoint(x + point.X * scaleX, y + point.Y);
                 if (text.GlyphTransform.HasValue) placed = text.GlyphTransform.Value.TransformPoint(placed);
-                output.Append(index == 0 ? 'M' : 'L').Append(Format(placed.X))
-                    .Append(' ').Append(Format(placed.Y)).Append(' ');
+                output.Append(index == 0 ? 'M' : 'L').AppendNumber(placed.X)
+                    .Append(' ').AppendNumber(placed.Y).Append(' ');
             }
             output.Append('Z');
         }
@@ -175,6 +175,34 @@ public static partial class OfficeDrawingSvgExporter {
             }
         }
         foreach (XNode node in root.Nodes()) output.Append(node.ToString(SaveOptions.DisableFormatting));
+    }
+
+    // Text is appended straight to the document; only a fragment that has a text or tspan
+    // element is copied out and parsed.
+    private static void CollectSvgTextFontFamilies(StringBuilder output, int start, ISet<string> families, CancellationToken token) {
+        token.ThrowIfCancellationRequested();
+        if (output.Length == start || !MayContainSvgTextElement(output, start)) return;
+        CollectSvgTextFontFamilies(output.ToString(start, output.Length - start), families, token);
+    }
+
+    private static bool MayContainSvgTextElement(StringBuilder output, int start) {
+#if NET8_0_OR_GREATER
+        int offset = 0;
+        foreach (ReadOnlyMemory<char> chunk in output.GetChunks()) {
+            ReadOnlySpan<char> span = chunk.Span;
+            int chunkStart = offset;
+            offset += span.Length;
+            if (offset <= start) continue;
+            if (chunkStart < start) span = span.Slice(start - chunkStart);
+            if (ContainsSvgTextElement(span)) return true;
+            // A start tag split across chunks is treated as present; the parse decides.
+            int tail = span.LastIndexOf('<');
+            if (tail >= 0 && span.Length - tail <= 6 && offset < output.Length) return true;
+        }
+        return false;
+#else
+        return ContainsSvgTextElement(output.ToString(start, output.Length - start));
+#endif
     }
 
     private static void CollectSvgTextFontFamilies(string fragment, ISet<string> families, CancellationToken token) {

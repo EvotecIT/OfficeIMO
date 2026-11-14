@@ -14,6 +14,7 @@ public static partial class WordPdfConverterExtensions {
         out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         var timer = Stopwatch.StartNew();
         PdfDocumentConversionResult converted = document.ConvertToPdfWithEvidence(options, cancellationToken);
+        using IDisposable layoutScope = UseDeferredLayoutScope(document, cancellationToken);
         return PdfConversionEvidence.CompleteModel(converted, "Word", options?.FailOnLoss == true,
             timer, cancellationToken, out report);
     }
@@ -39,6 +40,7 @@ public static partial class WordPdfConverterExtensions {
         var timer = Stopwatch.StartNew();
         PdfDocumentConversionResult converted = document.ConvertToPdfWithEvidence(options, cancellationToken);
         using PdfDocument model = converted.Value;
+        using IDisposable layoutScope = UseDeferredLayoutScope(document, cancellationToken);
         PdfSaveResult saved = options?.FailOnLoss == true
             ? PdfConversionEvidence.SaveLossless(converted, "Word", path, timer, cancellationToken) : PdfConversionEvidence.RunOutput(converted, "Word", () => converted.Save(path, cancellationToken));
         return PdfConversionEvidence.CreateReport("Word", saved.ConversionReports, saved.OutputPath, timer.Elapsed, saved.Pipeline.Output?.PageCount ?? 0);
@@ -51,6 +53,7 @@ public static partial class WordPdfConverterExtensions {
         var timer = Stopwatch.StartNew();
         PdfDocumentConversionResult converted = document.ConvertToPdfWithEvidence(options, cancellationToken);
         using PdfDocument model = converted.Value;
+        using IDisposable layoutScope = UseDeferredLayoutScope(document, cancellationToken);
         PdfSaveResult saved = options?.FailOnLoss == true
             ? PdfConversionEvidence.SaveLossless(converted, "Word", stream, timer, cancellationToken) : PdfConversionEvidence.RunOutput(converted, "Word", () => converted.Save(stream, cancellationToken));
         return PdfConversionEvidence.CreateReport("Word", saved.ConversionReports, elapsed: timer.Elapsed, itemsWritten: saved.Pipeline.Output?.PageCount ?? 0);
@@ -66,6 +69,7 @@ public static partial class WordPdfConverterExtensions {
         PdfDocumentConversionResult converted = await Task.Run(
             () => document.ConvertToPdfWithEvidence(options, cancellationToken), cancellationToken).ConfigureAwait(false);
         using PdfDocument model = converted.Value;
+        using IDisposable layoutScope = UseDeferredLayoutScope(document, cancellationToken);
         PdfSaveResult saved = options?.FailOnLoss == true
             ? await PdfConversionEvidence.SaveLosslessAsync(converted, "Word", path, timer, cancellationToken).ConfigureAwait(false)
             : await PdfConversionEvidence.RunOutputAsync(converted, "Word", () => converted.SaveAsync(path, cancellationToken)).ConfigureAwait(false);
@@ -82,9 +86,37 @@ public static partial class WordPdfConverterExtensions {
         PdfDocumentConversionResult converted = await Task.Run(
             () => document.ConvertToPdfWithEvidence(options, cancellationToken), cancellationToken).ConfigureAwait(false);
         using PdfDocument model = converted.Value;
+        using IDisposable layoutScope = UseDeferredLayoutScope(document, cancellationToken);
         PdfSaveResult saved = options?.FailOnLoss == true
             ? await PdfConversionEvidence.SaveLosslessAsync(converted, "Word", stream, timer, cancellationToken).ConfigureAwait(false)
             : await PdfConversionEvidence.RunOutputAsync(converted, "Word", () => converted.SaveAsync(stream, cancellationToken)).ConfigureAwait(false);
         return PdfConversionEvidence.CreateReport("Word", saved.ConversionReports, elapsed: timer.Elapsed, itemsWritten: saved.Pipeline.Output?.PageCount ?? 0);
+    }
+
+    /// <summary>
+    /// Header, footer and paragraph callbacks run while the PDF model lays out pages, after
+    /// the conversion's own scopes have ended. Without them every list lookup in those
+    /// callbacks rebuilds the styles and numbering catalog, once per page and paragraph, and
+    /// run paint resolution walks table and style chains again for each run. The document is
+    /// not edited during layout, so one catalog and one run paint cache serve the whole pass.
+    /// </summary>
+    private static IDisposable UseDeferredLayoutScope(WordDocument document, CancellationToken cancellationToken) =>
+        new DeferredLayoutScope(
+            WordRunFormatting.BeginConversionScope(cancellationToken),
+            WordDocumentTraversal.UseListNumberingCatalog(document));
+
+    private sealed class DeferredLayoutScope : IDisposable {
+        private readonly IDisposable _runPaint;
+        private readonly IDisposable _listCatalog;
+
+        internal DeferredLayoutScope(IDisposable runPaint, IDisposable listCatalog) {
+            _runPaint = runPaint;
+            _listCatalog = listCatalog;
+        }
+
+        public void Dispose() {
+            _listCatalog.Dispose();
+            _runPaint.Dispose();
+        }
     }
 }

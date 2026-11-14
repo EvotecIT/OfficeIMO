@@ -55,7 +55,7 @@ public sealed partial class OfficeRasterCanvas {
         if (outlines.Count == 0) return;
         OfficeColor strokeColor = stroke.Color;
         StrokeContours(outlines, stroke.Width > 0D ? stroke.Width : 1E-9D, stroke.Cap, stroke.Join, stroke.MiterLimit,
-            stroke.Pattern, stroke.Offset, (_, _) => strokeColor, hairline: stroke.Width <= 0D);
+            stroke.Pattern, stroke.Offset, SolidPaint(strokeColor), hairline: stroke.Width <= 0D);
     }
 
     private double DevicePixelsPerLogicalUnit => Math.Sqrt(Math.Abs(CoordinateScaleX * CoordinateScaleY));

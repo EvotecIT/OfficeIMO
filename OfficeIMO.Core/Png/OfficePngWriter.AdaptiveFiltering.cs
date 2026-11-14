@@ -55,12 +55,9 @@ public static partial class OfficePngWriter {
                     if (paeth < best) filter = 4;
                     if (filter != 0) {
                         selected[0] = (byte)filter;
-                        for (int i = 0; i < stride; i++) {
-                            CheckColorBlock(i, token, observer);
-                            int left = i >= bpp ? current[i - bpp] : 0;
-                            int up = previous[i], upperLeft = i >= bpp ? previous[i - bpp] : 0;
-                            int prediction = filter == 1 ? left : filter == 2 ? up : filter == 3 ? (left + up) / 2 : ColorPaeth(left, up, upperLeft);
-                            selected[i + 1] = unchecked((byte)(current[i] - prediction));
+                        for (int blockStart = 0; blockStart < stride; blockStart += 4096) {
+                            CheckColorBlock(blockStart, token, observer);
+                            ApplyColorFilter(filter, current, previous, selected, bpp, blockStart, Math.Min(stride, blockStart + 4096));
                         }
                     }
                 }
@@ -72,25 +69,93 @@ public static partial class OfficePngWriter {
         WriteAdler32(destination, (adlerB << 16) | adlerA);
     }
 
+    // Pixels are copied in blocks of 1024 so the filtering checkpoint still follows every 4096 source bytes.
     private static void FillColorRow(byte[] row, int width, int y, byte[]? rgba, ushort[]? rgba64,
         PngColorLayout layout, CancellationToken token, Action<OfficeRasterEncodingCheckpoint>? observer) {
-        int source = checked(y * width * 4), target = 0;
+        int rowSource = checked(y * width * 4);
         if (layout.Depth < 8) Array.Clear(row, 0, layout.RowBytes(width));
-        for (int x = 0; x < width; x++, source += 4) {
-            CheckColorBlock(x * 4, token, observer);
-            if (layout.Type == 3 || layout.Depth < 8) {
-                int value = layout.Type == 3 ? layout.Palette![RgbaKey(rgba!, source)] : rgba![source] * ((1 << layout.Depth) - 1) / 255;
-                int bit = x * layout.Depth;
-                if (layout.Depth == 8) row[x] = (byte)value;
-                else row[bit >> 3] |= (byte)(value << (8 - layout.Depth - (bit & 7)));
-            } else {
-                for (int c = 0; c < layout.Channels; c++) {
-                    int channel = layout.Type == 4 && c == 1 ? 3 : c;
-                    if (rgba64 != null) {
-                        ushort value = rgba64[source + channel]; row[target++] = (byte)(value >> 8); row[target++] = (byte)value;
-                    } else row[target++] = rgba![source + channel];
+        bool packed = layout.Type == 3 || layout.Depth < 8;
+        uint lastKey = 0;
+        int lastIndex = -1;
+        for (int blockStart = 0; blockStart < width; blockStart += 1024) {
+            CheckColorBlock(blockStart * 4, token, observer);
+            int blockEnd = Math.Min(width, blockStart + 1024);
+            int source = rowSource + blockStart * 4;
+            if (packed) {
+                for (int x = blockStart; x < blockEnd; x++, source += 4) {
+                    int value;
+                    if (layout.Type == 3) {
+                        uint key = RgbaKey(rgba!, source);
+                        if (lastIndex < 0 || key != lastKey) { lastIndex = layout.Palette![key]; lastKey = key; }
+                        value = lastIndex;
+                    } else value = rgba![source] * ((1 << layout.Depth) - 1) / 255;
+                    int bit = x * layout.Depth;
+                    if (layout.Depth == 8) row[x] = (byte)value;
+                    else row[bit >> 3] |= (byte)(value << (8 - layout.Depth - (bit & 7)));
                 }
+            } else if (rgba64 != null) {
+                int target = blockStart * layout.Channels * 2;
+                for (int x = blockStart; x < blockEnd; x++, source += 4) {
+                    for (int c = 0; c < layout.Channels; c++) {
+                        ushort value = rgba64[source + (layout.Type == 4 && c == 1 ? 3 : c)];
+                        row[target++] = (byte)(value >> 8); row[target++] = (byte)value;
+                    }
+                }
+            } else if (layout.Type == 6) {
+                Buffer.BlockCopy(rgba!, source, row, blockStart * 4, (blockEnd - blockStart) * 4);
+            } else if (layout.Type == 2) {
+                for (int x = blockStart, target = blockStart * 3; x < blockEnd; x++, source += 4, target += 3) {
+                    row[target] = rgba![source]; row[target + 1] = rgba[source + 1]; row[target + 2] = rgba[source + 2];
+                }
+            } else if (layout.Type == 4) {
+                for (int x = blockStart, target = blockStart * 2; x < blockEnd; x++, source += 4, target += 2) {
+                    row[target] = rgba![source]; row[target + 1] = rgba[source + 3];
+                }
+            } else {
+                for (int x = blockStart; x < blockEnd; x++, source += 4) row[x] = rgba![source];
             }
+        }
+    }
+
+    // Writes filtered bytes [start, end) after the filter-type byte, with the same predictions as the
+    // PNG reference filters. Sub, Up and Average have no carried state and run on vectors.
+    private static void ApplyColorFilter(int filter, byte[] current, byte[] previous, byte[] selected, int bpp, int start, int end) {
+        int i = start;
+        for (; i < end && i < bpp; i++) {
+            int up = previous[i];
+            int prediction = filter == 1 ? 0 : filter == 2 ? up : filter == 3 ? up / 2 : ColorPaeth(0, up, 0);
+            selected[i + 1] = unchecked((byte)(current[i] - prediction));
+        }
+#if NET8_0_OR_GREATER
+        if (filter != 4 && System.Numerics.Vector.IsHardwareAccelerated) {
+            int width = System.Numerics.Vector<byte>.Count;
+            for (; i <= end - width; i += width) {
+                var value = new System.Numerics.Vector<byte>(current, i);
+                var up = new System.Numerics.Vector<byte>(previous, i);
+                System.Numerics.Vector<byte> prediction;
+                if (filter == 2) prediction = up;
+                else {
+                    var left = new System.Numerics.Vector<byte>(current, i - bpp);
+                    // floor((left + up) / 2) without leaving eight bits.
+                    prediction = filter == 1 ? left : (left & up) + System.Numerics.Vector.ShiftRightLogical(left ^ up, 1);
+                }
+                (value - prediction).CopyTo(selected, i + 1);
+            }
+        }
+#endif
+        switch (filter) {
+            case 1:
+                for (; i < end; i++) selected[i + 1] = unchecked((byte)(current[i] - current[i - bpp]));
+                break;
+            case 2:
+                for (; i < end; i++) selected[i + 1] = unchecked((byte)(current[i] - previous[i]));
+                break;
+            case 3:
+                for (; i < end; i++) selected[i + 1] = unchecked((byte)(current[i] - ((current[i - bpp] + previous[i]) >> 1)));
+                break;
+            default:
+                for (; i < end; i++) selected[i + 1] = unchecked((byte)(current[i] - ColorPaeth(current[i - bpp], previous[i], previous[i - bpp])));
+                break;
         }
     }
 

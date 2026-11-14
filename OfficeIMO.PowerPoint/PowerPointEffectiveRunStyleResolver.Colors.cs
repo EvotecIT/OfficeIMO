@@ -29,8 +29,7 @@ namespace OfficeIMO.PowerPoint {
             sources.Clear();
             sources.AddRange(FindDefaultRunProperties(ResolveTextMasterStyle(textBox), level));
             SlidePart? slidePart = textBox.OwnerSlide?.SlidePart ?? textBox.SlidePart;
-            P.DefaultTextStyle? presentationDefaults = slidePart?.GetParentParts()
-                .OfType<PresentationPart>().FirstOrDefault()?.Presentation?.DefaultTextStyle;
+            P.DefaultTextStyle? presentationDefaults = slidePart?.GetParentPresentationPart()?.Presentation?.DefaultTextStyle;
             sources.AddRange(FindDefaultRunProperties(presentationDefaults, level));
             return ResolveTextSourceColors(sources, textBox, fontReference);
         }

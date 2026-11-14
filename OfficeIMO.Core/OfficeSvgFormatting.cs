@@ -23,6 +23,16 @@ public static partial class OfficeSvgFormatting {
         return value.ToString("0.###", CultureInfo.InvariantCulture);
     }
 
+    /// <summary>Appends <see cref="FormatNumber"/> text without allocating an intermediate string where the runtime allows.</summary>
+    internal static StringBuilder AppendNumber(this StringBuilder builder, double value) {
+#if NET8_0_OR_GREATER
+        if (System.Math.Abs(value) < 0.0000001D) value = 0D;
+        Span<char> buffer = stackalloc char[32];
+        if (value.TryFormat(buffer, out int written, "0.###", CultureInfo.InvariantCulture)) return builder.Append(buffer.Slice(0, written));
+#endif
+        return builder.Append(FormatNumber(value));
+    }
+
     /// <summary>
     /// Escapes text for XML/SVG attribute or element content.
     /// </summary>
@@ -97,7 +107,7 @@ public static partial class OfficeSvgFormatting {
     /// <param name="value">Numeric attribute value.</param>
     /// <returns>The supplied builder for call chaining.</returns>
     public static StringBuilder AppendNumberAttribute(this StringBuilder builder, string attributeName, double value) =>
-        builder.AppendAttribute(attributeName, FormatNumber(value));
+        builder.Append(' ').Append(attributeName).Append("=\"").AppendNumber(value).Append('"');
 
     /// <summary>
     /// Extracts the content inside an SVG root element.

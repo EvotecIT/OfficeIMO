@@ -136,8 +136,7 @@ public static partial class PowerPointPdfConverterExtensions {
         SlideMasterPart? master = ResolveTableMasterPart(cell);
         OpenXmlCompositeElement? otherStyle = master?.SlideMaster?.TextStyles?.OtherStyle;
         sources.AddRange(FindDefaultRunProperties(otherStyle, level));
-        sources.AddRange(FindDefaultRunProperties((cell.SlidePart ?? (OpenXmlPart?)master)?.GetParentParts()
-            .OfType<DocumentFormat.OpenXml.Packaging.PresentationPart>().FirstOrDefault()?
+        sources.AddRange(FindDefaultRunProperties((cell.SlidePart ?? (OpenXmlPart?)master)?.GetParentPresentationPart()?
             .Presentation?.DefaultTextStyle, level));
         return sources;
     }

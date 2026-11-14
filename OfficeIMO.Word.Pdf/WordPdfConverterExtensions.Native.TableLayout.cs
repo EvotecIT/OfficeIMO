@@ -664,8 +664,7 @@ namespace OfficeIMO.Word.Pdf {
         private static global::OfficeIMO.OfficeAlignment GetNativeCellHorizontalAlignment(WordTableCell cell) {
             global::OfficeIMO.OfficeAlignment? alignment = null;
             foreach (WordParagraph paragraph in cell.Paragraphs) {
-                string text = GetNativeCellParagraphText(paragraph);
-                if (string.IsNullOrWhiteSpace(text)) {
+                if (!HasNativeCellParagraphVisibleText(paragraph)) {
                     continue;
                 }
 
