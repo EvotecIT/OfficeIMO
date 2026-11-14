@@ -17,6 +17,7 @@ Create, read and change PDF files in .NET with OfficeIMO's own PDF engine — no
 - **Remove hidden data** before sharing: metadata, comments, scripts and other active content, attachments, bookmarks and layers, with the same `InspectHiddenData` and `RemoveHiddenData` report as the Office formats.
 - **Produce standard output**: PDF/A, PDF/UA, PDF/X, Factur-X and ZUGFeRD, checked against the saved bytes.
 - **Render** pages to PNG, JPEG, TIFF, WebP or SVG, and compare two PDFs page by page.
+- **Redline** two versions of a document: compare their text word by word and mark insertions, deletions, replacements and moves on the newer PDF, with a JSON change list and a side-by-side HTML report.
 - **Print** to installed printers on Windows, macOS and Linux, with page ranges, 1, 2, 4, 6 or 9 pages per sheet, scaling, duplex and paper source, through `OfficeIMO.Workflows`.
 - **Convert** Word, Excel, PowerPoint, HTML and Markdown to PDF, and PDF back to Word, Excel, PowerPoint, HTML or Markdown.
 
