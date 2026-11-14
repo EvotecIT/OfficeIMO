@@ -27,7 +27,7 @@ PDF tools may read only password variable names admitted at startup with --pdf-p
         TextWriter standardError,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(args);
-        if (args.Length == 1 && args[0] is "help" or "--help" or "-h") {
+        if (args.Length == 1 && args[0] is "help" || args.Any(argument => argument is "--help" or "-h")) {
             await standardError.WriteLineAsync(Usage).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.Success;
         }

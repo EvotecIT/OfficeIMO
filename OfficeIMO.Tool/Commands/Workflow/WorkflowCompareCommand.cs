@@ -5,6 +5,10 @@ namespace OfficeIMO.Tool.Commands.Workflow;
 
 internal static class WorkflowCompareCommand {
     internal static async Task<int> RunAsync(string[] args, TextWriter output, TextWriter error, CancellationToken token) {
+        if (args.Any(argument => argument is "--help" or "-h")) {
+            await output.WriteLineAsync(WorkflowCommand.Usage).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.Success;
+        }
         var inputs = new List<string>();
         string? destination = null, expectedPages = null, actualPages = null, passwordName = null, actualPasswordName = null;
         bool overwrite = false, json = true;
