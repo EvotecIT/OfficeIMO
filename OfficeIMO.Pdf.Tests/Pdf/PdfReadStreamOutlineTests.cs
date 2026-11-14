@@ -168,7 +168,7 @@ public partial class PdfReadStreamTests {
     }
 
     [Fact]
-    public void RewriteApis_RejectComplexOutlinePdfsWithClearUnsupportedDiagnostic() {
+    public void PageExtractionKeepsButOtherRewriteApisRejectComplexOutlinePdfsWithClearUnsupportedDiagnostic() {
         byte[] outline = BuildUriActionOutlinePdf();
 
         static void AssertOutline(Action action) {
@@ -176,11 +176,22 @@ public partial class PdfReadStreamTests {
             Assert.Contains("PDF outlines are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
 
-        AssertOutline(() => PdfPageExtractor.ExtractPages(outline, 1));
-        AssertOutline(() => PdfPageExtractor.SplitPages(outline));
+        AssertExtractionKeepsCatalogStructure(outline);
         AssertOutline(() => PdfMetadataEditor.UpdateMetadata(outline, title: "Updated"));
         AssertOutline(() => PdfMerger.Merge(outline));
         AssertOutline(() => PdfStamper.StampText(outline, "STAMP"));
+    }
+
+    /// <summary>Extraction and splitting succeed and still carry every structure the source's other rewriters refuse.</summary>
+    private static void AssertExtractionKeepsCatalogStructure(byte[] pdf) {
+        PdfDocumentPreflight source = PdfInspector.Preflight(pdf);
+        Assert.NotEmpty(source.RewriteBlockers);
+        foreach (byte[] output in PdfPageExtractor.SplitPages(pdf).Prepend(PdfPageExtractor.ExtractPages(pdf, 1))) {
+            PdfDocumentPreflight result = PdfInspector.Preflight(output);
+            Assert.True(result.CanRead, string.Join(" ", result.Diagnostics));
+            foreach (PdfRewriteBlocker blocker in source.RewriteBlockers)
+                Assert.True(result.HasRewriteBlocker(blocker.Kind), blocker.Kind + " was not kept.");
+        }
     }
 
 
