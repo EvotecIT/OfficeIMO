@@ -1,10 +1,10 @@
 ---
 title: "Check accessibility"
-description: "Check Word and PowerPoint files for missing alt text, headings, table headers, unclear links, low contrast, title and language, and apply safe fixes."
+description: "Check Word, Excel and PowerPoint files for missing alt text, headings, table headers, unclear links, low contrast, title and language, write SARIF for CI, and apply safe fixes."
 layout: docs
 ---
 
-A shared document should work for everyone who receives it, including people who use a screen reader or high contrast. `InspectAccessibility()` checks a loaded Word document or PowerPoint presentation and returns findings with a severity, a stable rule code and a location. Word also has `FixAccessibility`, which applies the fixes that can't change meaning.
+A shared document should work for everyone who receives it, including people who use a screen reader or high contrast. `InspectAccessibility()` checks a loaded Word document, Excel workbook or PowerPoint presentation and returns findings with a severity, a stable rule code and a location. Word also has `FixAccessibility`, which applies the fixes that can't change meaning.
 
 ## Word
 
@@ -70,7 +70,37 @@ report.SaveJson("Pitch-accessibility.json");
 
 The presentation checker covers the title, slide titles, alternative text, table headers, link labels and tooltips, contrast and charts that rely on colour alone. `InspectReadingOrder()` lists every slide's shapes in the order a screen reader reads them.
 
-Word and PowerPoint return the same `OfficeAccessibilityReport`: each finding has a `Severity`, a rule `Code`, a `Message` and a `Location`, and `LocationIndex` holds the slide or paragraph number where there is one. `ToJson()` and `SaveJson(path)` write it as JSON.
+## Excel
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+
+using var workbook = ExcelDocument.Load("Budget.xlsx");
+
+OfficeAccessibilityReport report = workbook.InspectAccessibility();
+foreach (OfficeAccessibilityFinding finding in report.Findings) {
+    Console.WriteLine($"{finding.Severity} {finding.Code} at {finding.Location}: {finding.Message}");
+}
+```
+
+The workbook checker follows the Excel rules of the Office Accessibility Checker:
+
+- alternative text on pictures, charts and shapes, unless they are marked decorative (`SetAltText` and `Decorative()` on `ExcelImage` and `ExcelChart`);
+- a header row on Excel tables;
+- merged cells, and sheets with content that keep a default name such as `Sheet1`;
+- hidden or very hidden sheets that still contain values;
+- hyperlink cells whose text is a bare URL or "click here";
+- cell text below 4.5:1 contrast (3:1 for large text) against the cell fill;
+- blank rows and columns inside a sheet's data area, a heuristic that stays a warning.
+
+Locations are sheet-qualified references such as `Data!B3`, and `LocationIndex` is the sheet number. `ExcelAccessibilityOptions.ForProfile(OfficeAccessibilityPolicyProfile.Strict)` also requires a workbook title and turns merged cells, default names and hidden sheets into errors.
+
+## One report for every format
+
+Word, Excel and PowerPoint return the same `OfficeAccessibilityReport`: each finding has a `Severity`, a rule `Code`, a `Message` and a `Location`, and `LocationIndex` holds the slide, paragraph or sheet number where there is one. The same rule has the same code in every format. `ToJson()` and `SaveJson(path)` write it as JSON, and `ToSarif(path)` and `SaveSarif(sarifPath, path)` write a SARIF 2.1.0 log that code-scanning tools can show next to a pull request.
+
+`OfficeDocument.InspectAccessibility(path)` opens any of the three formats read-only with the default or strict profile. From the command line, `officeimo accessibility Budget.xlsx --format sarif --output Budget.sarif` writes the same log and exits with 1 when there are errors. In PowerShell, `Test-OfficeAccessibility -Path .\Docs\* -Strict` returns one report per file, and agents can call the `officeimo_check_accessibility` MCP tool.
 
 ## Before you send
 
