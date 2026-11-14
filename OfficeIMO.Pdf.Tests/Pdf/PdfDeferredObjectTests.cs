@@ -65,6 +65,50 @@ public class PdfDeferredObjectTests {
         Assert.Equal(PdfReadLimitKind.ObjectNestingDepth, exception.Kind);
     }
 
+    [Fact]
+    public void InvalidHexStringsAreReportedAtLoadInsteadOfFailingOnFirstRead() {
+        const string invalidHex = "<< /Kind /BadHex /Unused <GG> >>";
+        foreach (byte[] pdf in new[] { BuildXrefStreamPdf((6, invalidHex)), BuildClassicPdf((6, invalidHex)) }) {
+            PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+            Assert.Equal("Deferred page", document.ExtractText().Trim());
+            Assert.Contains(document.RepairReport.Diagnostics, diagnostic =>
+                diagnostic.Code == "unreadable-indirect-object" && diagnostic.ObjectNumber == 6);
+            foreach (PdfIndirectObject indirect in document.Objects.Values) {
+                _ = indirect.Value;
+            }
+        }
+    }
+
+    private static byte[] BuildClassicPdf(params (int ObjectNumber, string Body)[] extraObjects) {
+        string content = "BT /F1 12 Tf 72 720 Td (Deferred page) Tj ET";
+        var objects = new List<(int ObjectNumber, string Body)> {
+            (1, Catalog), (2, Pages), (3, Page),
+            (4, "<< /Length " + content.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + content + "\nendstream"),
+            (5, Font)
+        };
+        objects.AddRange(extraObjects);
+
+        using var output = new MemoryStream();
+        var offsets = new Dictionary<int, int>();
+        Write(output, "%PDF-1.4\n");
+        foreach (var (objectNumber, objectBody) in objects) {
+            offsets[objectNumber] = (int)output.Position;
+            Write(output, objectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj\n" + objectBody + "\nendobj\n");
+        }
+        int size = objects.Max(entry => entry.ObjectNumber) + 1;
+        int xref = (int)output.Position;
+        var table = new StringBuilder("xref\n0 " + size.ToString(CultureInfo.InvariantCulture) + "\n0000000000 65535 f \n");
+        for (int objectNumber = 1; objectNumber < size; objectNumber++) {
+            table.Append(offsets.TryGetValue(objectNumber, out int offset)
+                ? offset.ToString("D10", CultureInfo.InvariantCulture) + " 00000 n \n"
+                : "0000000000 65535 f \n");
+        }
+        Write(output, table + "trailer\n<< /Size " + size.ToString(CultureInfo.InvariantCulture) +
+            " /Root 1 0 R >>\nstartxref\n" + xref.ToString(CultureInfo.InvariantCulture) + "\n%%EOF\n");
+        return output.ToArray();
+    }
+
     private static byte[] BuildXrefStreamPdf(params (int ObjectNumber, string Body)[] extraObjects) {
         var packed = new List<(int ObjectNumber, string Body)> { (1, Catalog), (2, Pages), (3, Page), (5, Font) };
         packed.AddRange(extraObjects);

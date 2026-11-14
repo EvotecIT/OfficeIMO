@@ -167,9 +167,12 @@ internal static partial class PdfSyntax {
         if (token.Length > 0 && token.GetCharacter(source, 0) == '/') {
             return scan.TryAddName(token, source, topLevelKey);
         }
-        if (token.IsString && token.Length > 0 && (token.GetCharacter(source, 0) == '(' ||
-            token.GetCharacter(source, 0) == '<' && (token.Length == 1 || token.GetCharacter(source, 1) != '<'))) {
+        if (token.IsString && token.Length > 0 && token.GetCharacter(source, 0) == '(') {
             return token.IsTerminated;
+        }
+        if (token.IsString && token.Length > 0 && token.GetCharacter(source, 0) == '<' &&
+            (token.Length == 1 || token.GetCharacter(source, 1) != '<')) {
+            return token.IsTerminated && HasOnlyHexDigits(token, source);
         }
         if (token.Equals(source, "true") || token.Equals(source, "false") || token.Equals(source, "null")) return true;
         if (token.Length > 0 && IsPdfNumberStart(token.GetCharacter(source, 0))) {
@@ -183,6 +186,17 @@ internal static partial class PdfSyntax {
             return token.TryParseDouble(source, out _, cancellationToken);
         }
         return false;
+    }
+
+    // PdfTextString.DecodeHexBytes throws for anything other than hex digits and whitespace, so such a string
+    // stays on the eager path, which recovers from that failure.
+    private static bool HasOnlyHexDigits(PdfToken token, PdfByteContentText source) {
+        for (int k = 1; k < token.Length - 1; k++) {
+            char ch = token.GetCharacter(source, k);
+            if (char.IsWhiteSpace(ch)) continue;
+            if (!(ch >= '0' && ch <= '9' || ch >= 'a' && ch <= 'f' || ch >= 'A' && ch <= 'F')) return false;
+        }
+        return true;
     }
 
     private static TopLevelKey ClassifyTopLevelKey(PdfToken key, PdfByteContentText source) {
