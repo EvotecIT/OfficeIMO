@@ -1159,7 +1159,10 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Html",
       "injectCriticalCss": true,
-      "packageId": "OfficeIMO.Html.Rtf"
+      "packageId": "OfficeIMO.Html.Rtf",
+      "relatedContentManifests": [
+        "./data/apidocs/related/html-rtf.json"
+      ]
     },
     {
       "task": "apidocs",
@@ -1188,7 +1191,10 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Mhtml",
       "injectCriticalCss": true,
-      "packageId": "OfficeIMO.Mhtml"
+      "packageId": "OfficeIMO.Mhtml",
+      "relatedContentManifests": [
+        "./data/apidocs/related/mhtml.json"
+      ]
     },
     {
       "task": "apidocs",
@@ -1217,7 +1223,10 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Email",
       "injectCriticalCss": true,
-      "packageId": "OfficeIMO.Email.Image"
+      "packageId": "OfficeIMO.Email.Image",
+      "relatedContentManifests": [
+        "./data/apidocs/related/email-image.json"
+      ]
     },
     {
       "task": "apidocs",

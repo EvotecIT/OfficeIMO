@@ -1,0 +1,3 @@
+[
+  {"title":"Read and Convert Email Messages","url":"/docs/email/messages-and-conversion/","summary":"Read EML, MSG, OFT, and TNEF (winmail.dat) messages, convert between them, check for conversion loss, stream large attachments, and render a message to PDF.","kind":"guide","targets":["OfficeIMO.Email.EmailPdfExportOptions"]}
+]
