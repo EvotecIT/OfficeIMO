@@ -384,7 +384,8 @@ namespace OfficeIMO.Excel {
         }
 
         private ExcelChart AddChartInternal(ExcelChartDataRange range, int row, int column, OfficeLength width, OfficeLength height,
-            OfficeChartType type, ExcelChartData? data, string? title, bool preserveDeferredDataSetCandidate = false, IReadOnlyList<string>? nativeSeriesNames = null) {
+            OfficeChartType type, ExcelChartData? data, string? title, bool preserveDeferredDataSetCandidate = false, IReadOnlyList<string>? nativeSeriesNames = null,
+            ExcelChartRangeSeries? rangeSeries = null) {
             ValidateChartTypes(type, data);
             ValidateChartPlacement(row, column, width, height);
             if (data != null && !preserveDeferredDataSetCandidate) {
@@ -422,6 +423,7 @@ namespace OfficeIMO.Excel {
 
                 stageWatch?.Restart();
                 ExcelChartUtils.PopulateChart(chartPart, type, range, data, title, nativeSeriesNames);
+                rangeSeries?.ApplyFormulas(chartPart);
                 if (_excelDocument.DefaultChartStylePreset == null)
                     OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.Apply(chartPart, OfficeTheme.Default);
                 ReportChartTiming(stageWatch, "AddChartInternal.PopulateChart");
@@ -479,7 +481,7 @@ namespace OfficeIMO.Excel {
                 _excelDocument.PreserveDeferredDataSetFastSaveModelAndClearCandidate();
             }
 
-            return new ExcelChart(frame!, drawingPart!, this, range);
+            return new ExcelChart(frame!, drawingPart!, this, rangeSeries == null ? range : null);
         }
 
         private static void ValidateChartPlacement(int row, int column, OfficeLength width, OfficeLength height) {

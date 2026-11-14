@@ -1,17 +1,17 @@
 namespace OfficeIMO.Excel {
     /// <summary>
-    /// Describes chart series ranges for scatter/bubble charts.
+    /// Describes the worksheet ranges of one chart series: categories (X) and values (Y) for category and scatter charts, plus bubble sizes for bubble charts.
     /// </summary>
     public sealed class ExcelChartSeriesRange {
         /// <summary>
-        /// Creates a series range definition for scatter charts.
+        /// Creates a series range definition from a category or X range and a values or Y range.
         /// </summary>
         public ExcelChartSeriesRange(string xRangeA1, string yRangeA1)
             : this(string.Empty, xRangeA1, yRangeA1, null) {
         }
 
         /// <summary>
-        /// Creates a series range definition for scatter/bubble charts.
+        /// Creates a named series range definition; bubble charts also take a bubble size range.
         /// </summary>
         public ExcelChartSeriesRange(string name, string xRangeA1, string yRangeA1, string? bubbleSizeRangeA1 = null) {
             ArgumentException.ThrowIfNullOrWhiteSpace(xRangeA1);
@@ -32,12 +32,12 @@ namespace OfficeIMO.Excel {
         public string Name { get; }
 
         /// <summary>
-        /// Gets the X values range (A1 notation).
+        /// Gets the categories range of a category chart, or the X values range of a scatter or bubble chart (A1 notation).
         /// </summary>
         public string XRangeA1 { get; }
 
         /// <summary>
-        /// Gets the Y values range (A1 notation).
+        /// Gets the values range of a category chart, or the Y values range of a scatter or bubble chart (A1 notation).
         /// </summary>
         public string YRangeA1 { get; }
 

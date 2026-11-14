@@ -127,7 +127,7 @@ public sealed partial class AddOfficeExcelChartCommand : PSCmdlet {
     [Parameter(ParameterSetName = "Range")]
     public SwitchParameter NoHeader { get; set; }
 
-    /// <summary>Omit cached chart values. Requires a contiguous category/value source block.</summary>
+    /// <summary>Omit cached chart values. Not available for scatter charts of non-adjacent table columns.</summary>
     [Parameter()]
     public SwitchParameter NoCachedData { get; set; }
 
@@ -163,8 +163,8 @@ public sealed partial class AddOfficeExcelChartCommand : PSCmdlet {
         var plan = ParameterSetName == DataSet ? PlanInput(sheet) : PlanWorksheet(sheet);
         var kind = ResolveChartKind();
         ValidateChartData(plan.Data, kind);
-        if (NoCachedData.IsPresent && plan.SourceRange == null && plan.InputTable == null) {
-            throw new PSArgumentException("-NoCachedData requires contiguous category/value columns. The native snapshot chart API always writes cached data.", nameof(NoCachedData));
+        if (NoCachedData.IsPresent && plan.SourceRange == null && plan.InputTable == null && !plan.UsesSeriesRanges(kind)) {
+            throw new PSArgumentException("-NoCachedData is not available for scatter charts of non-adjacent columns. The native snapshot chart API always writes cached data.", nameof(NoCachedData));
         }
 
         // All mapping, source, dimensions and family validation precede worksheet writes.
@@ -188,6 +188,9 @@ public sealed partial class AddOfficeExcelChartCommand : PSCmdlet {
                 StyleId = Style,
                 ColorStyleId = ColorStyle
             });
+        } else if (plan.UsesSeriesRanges(kind)) {
+            chart = AddRangeSeriesChart(sheet, kind, plan, new ExcelChartOptions { Row = placement.Row, Column = placement.Column, Width = OfficeLength.Pixels(placement.Width), Height = OfficeLength.Pixels(placement.Height), Title = Title }, !NoCachedData.IsPresent);
+            chart.ApplyDashboardPreset(Preset, Style, ColorStyle);
         } else {
             chart = sheet.AddChart(kind, plan.Data, new ExcelChartOptions { Row = placement.Row, Column = placement.Column, Width = OfficeLength.Pixels(placement.Width), Height = OfficeLength.Pixels(placement.Height), Title = Title });
             chart.ApplyDashboardPreset(Preset, Style, ColorStyle);
