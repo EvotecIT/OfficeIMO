@@ -101,6 +101,10 @@ public sealed class NewOfficeExcelCommand : OfficeNewLifecycleCmdlet<ExcelDocume
     [Parameter()]
     public ExcelDateSystem? DateSystem { get; set; }
 
+    /// <summary>How DateTimeOffset values are written: Text (default) keeps the offset as ISO 8601 text; Serial writes local-time Excel dates.</summary>
+    [Parameter()]
+    public ExcelDateTimeOffsetWriteMode DateTimeOffsetMode { get; set; } = ExcelDateTimeOffsetWriteMode.Text;
+
     /// <summary>Maximum parallel workers; 1 runs sequentially. Omission retains the native execution policy.</summary>
     [Parameter()]
     [ValidateRange(1, int.MaxValue)]
@@ -117,6 +121,7 @@ public sealed class NewOfficeExcelCommand : OfficeNewLifecycleCmdlet<ExcelDocume
             ExcelDocument document = path == null ? ExcelDocument.Create(options) : ExcelDocument.Create(path, options);
             try {
                 if (DateSystem.HasValue) document.DateSystem = DateSystem.Value;
+                document.DateTimeOffsetWriteMode = DateTimeOffsetMode;
                 if (MaxDegreeOfParallelism.HasValue) document.Execution.MaxDegreeOfParallelism = MaxDegreeOfParallelism.Value;
                 if (DocumentProperty != null) {
                     foreach (DictionaryEntry property in DocumentProperty)
