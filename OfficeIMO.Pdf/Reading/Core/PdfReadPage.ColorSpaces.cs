@@ -207,7 +207,8 @@ public sealed partial class PdfReadPage {
                 array.Items[3],
                 _objects,
                 lookupLimit,
-                out byte[] lookupBytes)) return false;
+                out byte[] lookupBytes,
+                _limits.MaxDecodedStreamBytes)) return false;
         if (lookupBytes.Length < paletteCount * componentCount) return false;
 
         var lookupComponents = new IReadOnlyList<double>[paletteCount];

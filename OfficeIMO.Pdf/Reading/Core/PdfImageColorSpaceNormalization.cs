@@ -550,7 +550,8 @@ internal sealed class PdfImageColorSpaceNormalization {
                 colorSpaceArray.Items[3],
                 objects,
                 Math.Min(lookupLength, maxDecodedStreamBytes),
-                out byte[] lookup) || lookup.Length < lookupLength) return false;
+                out byte[] lookup,
+                maxDecodedStreamBytes) || lookup.Length < lookupLength) return false;
         var palette = new OfficeColor[paletteCount];
         IReadOnlyList<double>[]? lookupComponents =
             baseColorSpace._colorSpace.IsNativeDeviceRgb || baseColorSpace._colorSpace.IsNativeDeviceCmyk
