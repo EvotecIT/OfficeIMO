@@ -12,7 +12,7 @@ internal static partial class MarkdownReader {
         bool suppressBlockGenericAttributes = false) {
 
         var nestedOptions = options.FrontMatter
-            ? CloneOptionsWithoutFrontMatter(options)
+            ? GetSharedOptionsWithoutFrontMatter(options, state)
             : options;
         var nestedState = CreateNestedState(state, options);
         nestedState.SuppressBlockGenericAttributes = suppressBlockGenericAttributes;
@@ -37,7 +37,7 @@ internal static partial class MarkdownReader {
 
         var markdown = string.Join("\n", sourceLines.Select(line => line.Text ?? string.Empty));
         var nestedOptions = options.FrontMatter
-            ? CloneOptionsWithoutFrontMatter(options)
+            ? GetSharedOptionsWithoutFrontMatter(options, state)
             : options;
         var nestedState = CreateNestedState(state, options);
         nestedState.SuppressBlockGenericAttributes = suppressBlockGenericAttributes;
@@ -96,6 +96,43 @@ internal static partial class MarkdownReader {
         if (state.NestedBlockDepth >= options.MaxNestingDepth) {
             throw new InvalidDataException(
                 $"Markdown block nesting exceeds MaxNestingDepth ({options.MaxNestingDepth}).");
+        }
+    }
+
+    // Inline containers are built with an explicit frame stack, but the syntax builder, renderers,
+    // writers and visitors descend them recursively. Rejecting the tree here keeps every consumer
+    // within the same bound that MaxNestingDepth already gives block containers.
+    private static void EnsureInlineNestingDepthAvailable(
+        InlineSequence sequence,
+        MarkdownLoadOptions options) {
+        int maximumDepth = options.MaxNestingDepth;
+        // Every inline parse ends here, and most sequences hold no containers at all, so the
+        // walk only allocates its stack once a nested sequence actually has to be visited.
+        Stack<(InlineSequence Sequence, int Depth)>? pending = null;
+        var current = sequence;
+        int depth = 0;
+        while (true) {
+            var nodes = current.Nodes;
+            for (int i = 0; i < nodes.Count; i++) {
+                if (nodes[i] is not IInlineContainerMarkdownInline container
+                    || container.NestedInlines is not InlineSequence nested
+                    || nested.Nodes.Count == 0) {
+                    continue;
+                }
+
+                if (depth >= maximumDepth) {
+                    throw new InvalidDataException(
+                        $"Markdown inline nesting exceeds MaxNestingDepth ({maximumDepth}).");
+                }
+
+                (pending ??= new Stack<(InlineSequence Sequence, int Depth)>()).Push((nested, depth + 1));
+            }
+
+            if (pending == null || pending.Count == 0) {
+                return;
+            }
+
+            (current, depth) = pending.Pop();
         }
     }
 

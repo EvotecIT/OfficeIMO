@@ -28,6 +28,13 @@ internal static partial class MarkdownReader {
         public int OpenIndex { get; }
     }
 
+    private static InlineFrame PeekSecondFrame(Stack<InlineFrame> stack) {
+        InlineFrame top = stack.Pop();
+        InlineFrame second = stack.Peek();
+        stack.Push(top);
+        return second;
+    }
+
     private static bool TryCloseFrame(
         Stack<InlineFrame> stack,
         char marker,
@@ -123,7 +130,7 @@ internal static partial class MarkdownReader {
             sourceMap.GetSpan(closingIndex, closingLength));
     }
 
-    private static bool ShouldTreatSingleMarkerAsLiteralInsideBold(string text, int start, char marker, int runLen, Stack<InlineFrame> stack, bool cjkFriendlyEmphasis) {
+    private static bool ShouldTreatSingleMarkerAsLiteralInsideBold(string text, int start, char marker, int runLen, Stack<InlineFrame> stack, bool cjkFriendlyEmphasis, EmphasisClosingRunIndex? closingRuns) {
         if (runLen != 1) return false;
         if (marker != '*' && marker != '_') return false;
         if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return false;
@@ -132,9 +139,9 @@ internal static partial class MarkdownReader {
         var top = stack.Peek();
         if (top.Kind != FrameKind.Bold || top.Marker != marker || top.OpenLen != 2) return false;
 
-        int nextDoubleClose = FindNextClosingDelimiterRunIndex(text, start + 1, marker, requiredRunLength: 2, cjkFriendlyEmphasis);
+        int nextDoubleClose = FindNextClosingDelimiterRunIndex(text, start + 1, marker, requiredRunLength: 2, cjkFriendlyEmphasis, closingRuns);
         if (nextDoubleClose >= 0) {
-            int trailingSingleClose = FindNextClosingDelimiterRunIndex(text, nextDoubleClose + 2, marker, requiredRunLength: 1, cjkFriendlyEmphasis);
+            int trailingSingleClose = FindNextClosingDelimiterRunIndex(text, nextDoubleClose + 2, marker, requiredRunLength: 1, cjkFriendlyEmphasis, closingRuns);
             if (trailingSingleClose >= 0) return false;
         }
 
@@ -142,7 +149,7 @@ internal static partial class MarkdownReader {
         return nextRun == 2;
     }
 
-    private static bool ShouldTreatDelimiterRunAsLiteral(string text, int start, char marker, int runLen, Stack<InlineFrame> stack, bool splitDoubleRunIntoDualItalic, bool cjkFriendlyEmphasis, out int literalRunLength) {
+    private static bool ShouldTreatDelimiterRunAsLiteral(string text, int start, char marker, int runLen, Stack<InlineFrame> stack, bool splitDoubleRunIntoDualItalic, bool cjkFriendlyEmphasis, EmphasisClosingRunIndex? closingRuns, out int literalRunLength) {
         literalRunLength = 0;
         if (runLen != 2) return false;
         if (marker != '*' && marker != '_') return false;
@@ -152,14 +159,14 @@ internal static partial class MarkdownReader {
         var top = stack.Peek();
         if (top.Kind != FrameKind.Italic || top.Marker != marker || top.OpenLen != 1) return false;
 
-        var frames = stack.ToArray();
-        if (frames.Length >= 2) {
-            var parent = frames[1];
+        // Only the two innermost frames matter; copying the whole stack per delimiter was quadratic in depth.
+        if (stack.Count >= 2) {
+            var parent = PeekSecondFrame(stack);
             // Keep the leading triple-delimiter path available for rebalancing into <em><strong>... later.
             if (parent.Kind == FrameKind.Bold && parent.Marker == marker && parent.OpenLen == 2 && parent.Seq.Nodes.Count == 0) return false;
 
             if (parent.Kind == FrameKind.Bold && parent.Marker == marker && parent.OpenLen == 2 && parent.Seq.Nodes.Count > 0) {
-                int trailingSingleClose = FindNextClosingDelimiterRunIndex(text, start + 2, marker, requiredRunLength: 1, cjkFriendlyEmphasis);
+                int trailingSingleClose = FindNextClosingDelimiterRunIndex(text, start + 2, marker, requiredRunLength: 1, cjkFriendlyEmphasis, closingRuns);
                 if (trailingSingleClose >= 0) return false;
             }
         }
@@ -201,9 +208,8 @@ internal static partial class MarkdownReader {
         if (marker != '*' && marker != '_') return false;
         if (stack == null || stack.Count < 3) return false;
 
-        var frames = stack.ToArray();
-        var top = frames[0];
-        var parent = frames[1];
+        var top = stack.Peek();
+        var parent = PeekSecondFrame(stack);
         if (top.Kind != FrameKind.Italic || top.Marker != marker || top.OpenLen != 1) return false;
         if (parent.Kind != FrameKind.Bold || parent.Marker != marker || parent.OpenLen != 2) return false;
         if (parent.Seq.Nodes.Count != 0) return false;
@@ -218,21 +224,20 @@ internal static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryRebalanceParentBoldWithInnerItalicIntoDualItalic(string text, int start, Stack<InlineFrame> stack, char marker, int remaining, bool cjkFriendlyEmphasis, out int consumed) {
+    private static bool TryRebalanceParentBoldWithInnerItalicIntoDualItalic(string text, int start, Stack<InlineFrame> stack, char marker, int remaining, bool cjkFriendlyEmphasis, EmphasisClosingRunIndex? closingRuns, out int consumed) {
         consumed = 0;
         if (remaining != 2) return false;
         if (marker != '*' && marker != '_') return false;
         if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return false;
         if (stack == null || stack.Count < 3) return false;
 
-        var frames = stack.ToArray();
-        var top = frames[0];
-        var parent = frames[1];
+        var top = stack.Peek();
+        var parent = PeekSecondFrame(stack);
         if (top.Kind != FrameKind.Italic || top.Marker != marker || top.OpenLen != 1) return false;
         if (parent.Kind != FrameKind.Bold || parent.Marker != marker || parent.OpenLen != 2) return false;
         if (parent.Seq.Nodes.Count == 0) return false;
 
-        int trailingSingleClose = FindNextClosingDelimiterRunIndex(text, start + 2, marker, requiredRunLength: 1, cjkFriendlyEmphasis);
+        int trailingSingleClose = FindNextClosingDelimiterRunIndex(text, start + 2, marker, requiredRunLength: 1, cjkFriendlyEmphasis, closingRuns);
         if (trailingSingleClose < 0) return false;
 
         stack.Pop();
@@ -409,7 +414,7 @@ internal static partial class MarkdownReader {
         return outerCanClose;
     }
 
-    private static bool ShouldSplitDoubleRunIntoDualItalic(string text, int start, char marker, int runLen, Stack<InlineFrame> stack, bool cjkFriendlyEmphasis) {
+    private static bool ShouldSplitDoubleRunIntoDualItalic(string text, int start, char marker, int runLen, Stack<InlineFrame> stack, bool cjkFriendlyEmphasis, EmphasisClosingRunIndex? closingRuns) {
         if (runLen != 2) return false;
         if (marker != '*' && marker != '_') return false;
         if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return false;
@@ -418,15 +423,15 @@ internal static partial class MarkdownReader {
         var top = stack.Peek();
         if (top.Kind != FrameKind.Italic || top.Marker != marker || top.OpenLen != 1) return false;
 
-        int singleClose = FindNextClosingDelimiterRunIndex(text, start + 2, marker, requiredRunLength: 1, cjkFriendlyEmphasis);
+        int singleClose = FindNextClosingDelimiterRunIndex(text, start + 2, marker, requiredRunLength: 1, cjkFriendlyEmphasis, closingRuns);
         if (singleClose < 0) return false;
 
-        int immediateDoubleClose = FindNextClosingDelimiterRunIndex(text, start + 2, marker, requiredRunLength: 2, cjkFriendlyEmphasis);
+        int immediateDoubleClose = FindNextClosingDelimiterRunIndex(text, start + 2, marker, requiredRunLength: 2, cjkFriendlyEmphasis, closingRuns);
         if (immediateDoubleClose >= 0 && immediateDoubleClose < singleClose) return false;
 
         if (HasOpeningDelimiterRunBefore(text, start + 2, singleClose, marker, requiredRunLength: 1, cjkFriendlyEmphasis)) return false;
 
-        int doubleClose = FindNextClosingDelimiterRunIndex(text, singleClose + 1, marker, requiredRunLength: 2, cjkFriendlyEmphasis);
+        int doubleClose = FindNextClosingDelimiterRunIndex(text, singleClose + 1, marker, requiredRunLength: 2, cjkFriendlyEmphasis, closingRuns);
         if (doubleClose < 0) return false;
 
         int afterSingle = singleClose + 1;
@@ -472,11 +477,26 @@ internal static partial class MarkdownReader {
         return -1;
     }
 
-    private static int FindNextClosingDelimiterRunIndex(string text, int start, char marker, int requiredRunLength, bool cjkFriendlyEmphasis) {
+    private static int FindNextClosingDelimiterRunIndex(string text, int start, char marker, int requiredRunLength, bool cjkFriendlyEmphasis, EmphasisClosingRunIndex? closingRuns) {
         if (string.IsNullOrEmpty(text)) return -1;
         if (requiredRunLength <= 0) requiredRunLength = 1;
 
-        for (int i = Math.Max(0, start); i < text.Length; i++) {
+        int first = Math.Max(0, start);
+        if (closingRuns != null && (marker == '*' || marker == '_') && requiredRunLength <= 2) {
+            // The index holds whole closing runs. A start inside a run is checked as the partial
+            // run a scan would see there, and the lookup continues after that run.
+            if (first < text.Length && first > 0 && text[first] == marker && text[first - 1] == marker && !IsEscapedEmphasisMarker(text, first - 1)) {
+                int partialLength = 1;
+                while (first + partialLength < text.Length && text[first + partialLength] == marker) partialLength++;
+                GetDelimiterFlags(text, first, marker, partialLength, cjkFriendlyEmphasis, out _, out bool partialCanClose);
+                if (partialCanClose && partialLength == requiredRunLength) return first;
+                first += partialLength;
+            }
+
+            return closingRuns.FindFirstRun(first, marker, requiredRunLength);
+        }
+
+        for (int i = first; i < text.Length; i++) {
             if (text[i] != marker || IsEscapedEmphasisMarker(text, i)) continue;
 
             int runLen = 1;

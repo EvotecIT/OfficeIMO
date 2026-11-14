@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Sequence of inline nodes used in paragraphs and list items.
 /// </summary>
-public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
+public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IHtmlAppendableMarkdownInline {
     private readonly List<IMarkdownInline> _inlines;
 
     /// <summary>Creates an empty inline sequence.</summary>
@@ -80,6 +80,9 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
 
     internal string RenderMarkdown() {
         MarkdownRenderContext.ThrowIfCancellationRequested();
+        // Rendering descends nested sequences recursively; a hand-built tree deeper than the stack
+        // fails with a catchable exception instead of ending the process.
+        System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
         StringBuilder sb = new StringBuilder();
         var options = MarkdownRenderContext.Options;
         MarkdownInlineMarkdownRenderContext? context = options == null
@@ -105,6 +108,7 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
             return RenderMarkdown();
         }
 
+        System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
         StringBuilder sb = new StringBuilder();
         var options = MarkdownRenderContext.Options;
         MarkdownInlineMarkdownRenderContext? context = options == null
@@ -127,9 +131,21 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
     }
 
     internal string RenderHtml() {
-        StringBuilder sb = new StringBuilder();
+        if (_inlines.Count == 0) {
+            return string.Empty;
+        }
+
+        var sb = new StringBuilder();
+        AppendHtml(sb);
+        return sb.ToString();
+    }
+
+    internal void AppendHtml(StringBuilder sb) {
+        System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
         var options = HtmlRenderContext.Options;
+        // Only render extensions read the inline context, so it is created when one is registered.
         MarkdownInlineHtmlRenderContext? context = options == null
+            || (options.InlineRenderExtensions.Count == 0 && options.SyntaxInlineRenderExtensions.Count == 0)
             ? null
             : new MarkdownInlineHtmlRenderContext(options, HtmlRenderContext.BodyContext);
         for (int i = 0; i < _inlines.Count; i++) {
@@ -139,13 +155,13 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
                 if (prev is not HardBreakInline && cur is not HardBreakInline &&
                     prev is not SoftBreakInline && cur is not SoftBreakInline) sb.Append(' ');
             }
-            sb.Append(RenderHtml(_inlines[i], options, context));
+            AppendHtml(sb, _inlines[i], options, context);
         }
-        return sb.ToString();
     }
 
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
+    void IHtmlAppendableMarkdownInline.AppendHtml(StringBuilder builder) => AppendHtml(builder);
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => InlinePlainText.AppendPlainText(sb, this);
 
     private static IRenderableMarkdownInline GetRenderable(IMarkdownInline node) {
@@ -279,22 +295,33 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
         return null;
     }
 
-    private static string RenderHtml(IMarkdownInline node, MarkdownHtmlExportOptions? options, MarkdownInlineHtmlRenderContext? context) {
+    private static void AppendHtml(StringBuilder sb, IMarkdownInline node, MarkdownHtmlExportOptions? options, MarkdownInlineHtmlRenderContext? context) {
         var overridden = TryRenderInlineSyntaxOverride(node, context);
         if (overridden != null) {
-            return overridden;
+            sb.Append(overridden);
+            return;
         }
 
         overridden = TryRenderInlineOverride(node, context);
         if (overridden != null) {
-            return overridden;
+            sb.Append(overridden);
+            return;
         }
 
         if (options != null && node is IContextualHtmlMarkdownInline contextualInline) {
-            return MarkdownInlineAttributeRenderer.RenderHtml(node, contextualInline.RenderHtml(options), options);
+            sb.Append(MarkdownInlineAttributeRenderer.RenderHtml(node, contextualInline.RenderHtml(options), options));
+            return;
         }
 
-        return MarkdownInlineAttributeRenderer.RenderHtml(node, GetRenderable(node).RenderHtml(), options);
+        // Generic attributes are spliced into the rendered opening tag, so only attribute-free
+        // nodes can write straight into the shared buffer.
+        if (node is IHtmlAppendableMarkdownInline appendable
+            && (node is not MarkdownObject markdownObject || markdownObject.Attributes.IsEmpty)) {
+            appendable.AppendHtml(sb);
+            return;
+        }
+
+        sb.Append(MarkdownInlineAttributeRenderer.RenderHtml(node, GetRenderable(node).RenderHtml(), options));
     }
 
     private static string? TryRenderInlineSyntaxOverride(IMarkdownInline node, MarkdownInlineHtmlRenderContext? context) {

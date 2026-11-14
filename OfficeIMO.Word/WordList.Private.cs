@@ -20,32 +20,21 @@ public partial class WordList : WordElement {
                 _abstractId = (int)instance.AbstractNumId.Val.Value;
             }
         }
-        return numbering.Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId != null && a.AbstractNumberId.Value == _abstractId);
+        // List formatting reads the definition many times; reuse the last match while it is still
+        // attached to this numbering part with the same id instead of scanning every definition.
+        AbstractNum? cached = _abstractNumLookup;
+        if (cached != null &&
+            ReferenceEquals(cached.Parent, numbering) &&
+            cached.AbstractNumberId != null &&
+            cached.AbstractNumberId.Value == _abstractId) {
+            return cached;
+        }
+
+        _abstractNumLookup = numbering.Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId != null && a.AbstractNumberId.Value == _abstractId);
+        return _abstractNumLookup;
     }
 
-    /// <summary>
-    /// Gets the next available abstract numbering ID.
-    /// </summary>
-    /// <param name="numbering">The numbering definitions.</param>
-    private static int GetNextAbstractNum(Numbering numbering) {
-        var ids = numbering.ChildElements
-            .OfType<AbstractNum>()
-            .Select(element => (int)(element.AbstractNumberId?.Value ?? 0))
-            .ToList();
-        return ids.Count > 0 ? ids.Max() + 1 : 0;
-    }
-
-    /// <summary>
-    /// Gets the next available numbering instance ID.
-    /// </summary>
-    /// <param name="numbering">The numbering definitions.</param>
-    private static int GetNextNumberingInstance(Numbering numbering) {
-        var ids = numbering.ChildElements
-            .OfType<NumberingInstance>()
-            .Select(element => (int)(element.NumberID?.Value ?? 0))
-            .ToList();
-        return ids.Count > 0 ? ids.Max() + 1 : 1;
-    }
+    private AbstractNum? _abstractNumLookup;
 
     /// <summary>
     /// Gets a numbering property using a selector function.
@@ -152,8 +141,7 @@ public partial class WordList : WordElement {
         CreateNumberingDefinition(_document);
         var numbering = EnsureNumberingRoot();
 
-        _abstractId = GetNextAbstractNum(numbering);
-        _numberId = GetNextNumberingInstance(numbering);
+        _document.GetNextNumberingIds(numbering, out _abstractId, out _numberId);
 
         var abstractNum = WordListStyles.GetStyle(style);
         abstractNum.AbstractNumberId = _abstractId;
@@ -162,6 +150,7 @@ public partial class WordList : WordElement {
         };
         NumberingInstance numberingInstance = DefaultNumberingInstance(abstractNumId, _numberId);
         numbering.Append(abstractNum, numberingInstance);
+        _document.NumberingIdsUsed(numbering, _abstractId, _numberId);
     }
 
     private WordList Clone(OpenXmlElement referenceParagraph, bool after) {
@@ -175,8 +164,7 @@ public partial class WordList : WordElement {
         var originalAbstract = numbering.Elements<AbstractNum>().First(a => a.AbstractNumberId != null && a.AbstractNumberId.Value == _abstractId);
         var originalInstance = numbering.Elements<NumberingInstance>().First(n => n.NumberID != null && n.NumberID.Value == _numberId);
 
-        int newAbstractId = GetNextAbstractNum(numbering);
-        int newNumberId = GetNextNumberingInstance(numbering);
+        _document.GetNextNumberingIds(numbering, out int newAbstractId, out int newNumberId);
 
         var newAbstract = (AbstractNum)originalAbstract.CloneNode(true);
         newAbstract.AbstractNumberId = newAbstractId;
@@ -195,6 +183,7 @@ public partial class WordList : WordElement {
             newInstance.Append((LevelOverride)levelOverride.CloneNode(true));
         }
         numbering.Append(newInstance);
+        _document.NumberingIdsUsed(numbering, newAbstractId, newNumberId);
 
         WordList clonedList;
         if (_headerFooter != null) {

@@ -231,7 +231,7 @@ namespace OfficeIMO.Word {
                         part = footer.FooterPart;
                     }
 
-                    var rel = part?.HyperlinkRelationships.FirstOrDefault(r => r.Id == _hyperlink.Id);
+                    var rel = WordHyperLink.FindHyperlinkRelationship(part, _hyperlink.Id?.Value);
                     if (rel != null && part != null) {
                         part.DeleteReferenceRelationship(rel);
                     }

@@ -73,19 +73,18 @@ namespace OfficeIMO.Word.Html {
                                 }
                             }
                             foreach (var child in element.ChildNodes) {
-                                int paragraphCount = GetParagraphsInScope(section, cell, headerFooter).Count;
                                 bool standaloneResource = ShouldStartBodyResourceParagraph(child);
                                 bool startsOwnParagraph = standaloneResource ||
                                     child is IElement childElement &&
                                     ShouldStartContainerChildParagraph(childElement);
+                                ScopeMark? childMark = !startsOwnParagraph && para == null
+                                    ? MarkScope(section, cell, headerFooter, replaceableCellParagraphIsGenerated: false, includeTables: false)
+                                    : null;
                                 ProcessNode(child, doc, section, options, startsOwnParagraph ? null : para, listStack, fmt, cell, headerFooter, headingList);
                                 if (startsOwnParagraph) {
                                     para = null;
-                                } else if (para == null) {
-                                    var scopedParagraphs = GetParagraphsInScope(section, cell, headerFooter);
-                                    if (scopedParagraphs.Count > paragraphCount) {
-                                        para = scopedParagraphs[scopedParagraphs.Count - 1];
-                                    }
+                                } else if (childMark.HasValue) {
+                                    para = GetLastGeneratedParagraph(section, cell, headerFooter, childMark.Value);
                                 }
                             }
                             break;
@@ -101,8 +100,7 @@ namespace OfficeIMO.Word.Html {
                             if (options.SectionTagHandling == WordHtmlSectionTagHandling.WordSection && cell == null) {
                                 var newSection = ShouldReuseInitialWordSection(element, doc, section) ? section : doc.AddSection();
                                 ApplyExportedSectionMetadata(element, newSection);
-                                int startIndex = newSection.Paragraphs.Count;
-                                int tableStartIndex = GetTablesInScope(newSection, null, headerFooter).Count;
+                                ScopeMark scopeMark = MarkScope(newSection, null, headerFooter);
                                 WordParagraph? para = null;
                                 foreach (var child in element.ChildNodes) {
                                     if (mergeSectionStyleIntoChildren && !string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
@@ -122,20 +120,18 @@ namespace OfficeIMO.Word.Html {
                                         null,
                                         headerFooter,
                                         null,
-                                        startIndex,
-                                        tableStartIndex);
-                                    List<WordTable> generatedTables = GetGeneratedTables(newSection, null, headerFooter, tableStartIndex);
+                                        scopeMark);
+                                    List<WordTable> generatedTables = GetGeneratedTables(newSection, null, headerFooter, scopeMark);
                                     ApplyContainerFrameFromCss(element, generatedParagraphs, generatedTables);
                                     ApplyContainerPageBreaksFromCss(element, generatedParagraphs, generatedTables);
                                 }
                                 var secId = element.GetAttribute("id");
                                 if (!string.IsNullOrEmpty(secId)) {
-                                    var paragraph = newSection.Paragraphs.Count > startIndex ? newSection.Paragraphs[startIndex] : newSection.AddParagraph("");
+                                    var paragraph = GetFirstGeneratedParagraph(newSection, null, headerFooter, scopeMark) ?? newSection.AddParagraph("");
                                     WordBookmark.AddBookmark(paragraph, $"section:{secId}");
                                 }
                             } else {
-                                int startIndex = GetGeneratedParagraphStartIndex(section, cell, headerFooter);
-                                int tableStartIndex = GetTablesInScope(section, cell, headerFooter).Count;
+                                ScopeMark scopeMark = MarkScope(section, cell, headerFooter);
                                 WordParagraph? para = currentParagraph;
                                 foreach (var child in element.ChildNodes) {
                                     if (mergeSectionStyleIntoChildren && !string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
@@ -155,16 +151,14 @@ namespace OfficeIMO.Word.Html {
                                         cell,
                                         headerFooter,
                                         currentParagraph,
-                                        startIndex,
-                                        tableStartIndex);
-                                    List<WordTable> generatedTables = GetGeneratedTables(section, cell, headerFooter, tableStartIndex);
+                                        scopeMark);
+                                    List<WordTable> generatedTables = GetGeneratedTables(section, cell, headerFooter, scopeMark);
                                     ApplyContainerFrameFromCss(element, generatedParagraphs, generatedTables);
                                     ApplyContainerPageBreaksFromCss(element, generatedParagraphs, generatedTables);
                                 }
                                 var secId = element.GetAttribute("id");
                                 if (!string.IsNullOrEmpty(secId)) {
-                                    var scopedParagraphs = GetParagraphsInScope(section, cell, headerFooter);
-                                    var paragraph = scopedParagraphs.Count > startIndex ? scopedParagraphs[startIndex] : AddParagraphInScope(section, cell, headerFooter);
+                                    var paragraph = GetFirstGeneratedParagraph(section, cell, headerFooter, scopeMark) ?? AddParagraphInScope(section, cell, headerFooter);
                                     WordBookmark.AddBookmark(paragraph, $"section:{secId}");
                                 }
                             }
@@ -184,8 +178,7 @@ namespace OfficeIMO.Word.Html {
                                 ApplySpanStyles(element, ref fmt);
                                 PreserveBlockBackgroundAsTextBackdrop(ref fmt, formatting);
                             }
-                            int scopeStartIndex = GetGeneratedParagraphStartIndex(section, cell, headerFooter);
-                            int tableStartIndex = GetTablesInScope(section, cell, headerFooter).Count;
+                            ScopeMark scopeMark = MarkScope(section, cell, headerFooter);
                             WordParagraph? para = currentParagraph;
                             foreach (var child in element.ChildNodes) {
                                 if (!string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
@@ -200,8 +193,7 @@ namespace OfficeIMO.Word.Html {
                             }
                             var id = element.GetAttribute("id");
                             if (!string.IsNullOrEmpty(id)) {
-                                var scopedParagraphs = GetParagraphsInScope(section, cell, headerFooter);
-                                var paragraph = scopedParagraphs.Count > scopeStartIndex ? scopedParagraphs[scopeStartIndex] : AddParagraphInScope(section, cell, headerFooter);
+                                var paragraph = GetFirstGeneratedParagraph(section, cell, headerFooter, scopeMark) ?? AddParagraphInScope(section, cell, headerFooter);
                                 WordBookmark.AddBookmark(paragraph, $"{element.TagName.ToLowerInvariant()}:{id}");
                             }
                             var generatedParagraphs = GetMaterializedContainerParagraphs(
@@ -210,9 +202,8 @@ namespace OfficeIMO.Word.Html {
                                 cell,
                                 headerFooter,
                                 currentParagraph,
-                                scopeStartIndex,
-                                tableStartIndex);
-                            List<WordTable> generatedTables = GetGeneratedTables(section, cell, headerFooter, tableStartIndex);
+                                scopeMark);
+                            List<WordTable> generatedTables = GetGeneratedTables(section, cell, headerFooter, scopeMark);
                             ApplyContainerFrameFromCss(element, generatedParagraphs, generatedTables);
                             ApplyContainerPageBreaksFromCss(element, generatedParagraphs, generatedTables);
                             break;
@@ -319,7 +310,7 @@ namespace OfficeIMO.Word.Html {
                             break;
                         }
                     case "blockquote": {
-                            var startIndex = GetGeneratedParagraphStartIndex(section, cell, headerFooter);
+                            ScopeMark scopeMark = MarkScope(section, cell, headerFooter, includeTables: false);
                             var cite = element.GetAttribute("cite");
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
@@ -327,18 +318,13 @@ namespace OfficeIMO.Word.Html {
                             WordParagraph? firstPara = null;
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, firstPara, listStack, fmt, cell, headerFooter, headingList);
-                                var scopedParagraphs = GetParagraphsInScope(section, cell, headerFooter);
-                                if (firstPara == null && scopedParagraphs.Count > startIndex) {
-                                    firstPara = scopedParagraphs[startIndex];
-                                }
+                                firstPara ??= GetFirstGeneratedParagraph(section, cell, headerFooter, scopeMark);
                             }
                             if (firstPara == null) {
                                 firstPara = AddParagraphInScope(section, cell, headerFooter);
                             }
-                            var blockquoteParagraphs = GetParagraphsInScope(section, cell, headerFooter);
-                            var endIndex = blockquoteParagraphs.Count;
-                            for (int i = startIndex; i < endIndex; i++) {
-                                var para = blockquoteParagraphs[i];
+                            List<WordParagraph> generatedBlockquoteParagraphs = GetGeneratedParagraphs(section, cell, headerFooter, scopeMark);
+                            foreach (var para in generatedBlockquoteParagraphs) {
                                 if (doc.StyleExists("Quote")) {
                                     para.SetStyleId("Quote");
                                 }
@@ -354,8 +340,6 @@ namespace OfficeIMO.Word.Html {
                                     AddBookmarkIfPresent(element, para);
                                 }
                             }
-                            List<WordParagraph> generatedBlockquoteParagraphs =
-                                blockquoteParagraphs.Skip(startIndex).Take(endIndex - startIndex).ToList();
                             ApplyContainerFrameFromCss(
                                 element,
                                 generatedBlockquoteParagraphs,
@@ -405,11 +389,9 @@ namespace OfficeIMO.Word.Html {
                                 ApplySpanStyles(element, ref fmt);
                                 PreserveBlockBackgroundAsTextBackdrop(ref fmt, formatting);
                             }
-                            int startIndex = GetGeneratedParagraphStartIndex(section, cell, headerFooter);
-                            int tableStartIndex = GetTablesInScope(section, cell, headerFooter).Count;
+                            ScopeMark scopeMark = MarkScope(section, cell, headerFooter);
                             WordParagraph? para = currentParagraph;
                             foreach (var child in element.ChildNodes) {
-                                int paragraphCount = GetParagraphsInScope(section, cell, headerFooter).Count;
                                 if (!string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
                                     ResolveComputedFontSizePixels(childElement);
                                     var merged = MergeStyles(divStyle, childElement);
@@ -420,6 +402,9 @@ namespace OfficeIMO.Word.Html {
                                 bool startsOwnParagraph =
                                     child is IElement blockChild &&
                                     ShouldStartContainerChildParagraph(blockChild);
+                                ScopeMark? childMark = !startsOwnParagraph && para == null
+                                    ? MarkScope(section, cell, headerFooter, replaceableCellParagraphIsGenerated: false, includeTables: false)
+                                    : null;
                                 ProcessNode(
                                     child,
                                     doc,
@@ -433,11 +418,8 @@ namespace OfficeIMO.Word.Html {
                                     headingList);
                                 if (startsOwnParagraph) {
                                     para = null;
-                                } else if (para == null) {
-                                    var scopedParagraphs = GetParagraphsInScope(section, cell, headerFooter);
-                                    if (scopedParagraphs.Count > paragraphCount) {
-                                        para = scopedParagraphs[scopedParagraphs.Count - 1];
-                                    }
+                                } else if (childMark.HasValue) {
+                                    para = GetLastGeneratedParagraph(section, cell, headerFooter, childMark.Value);
                                 }
                             }
                             var generatedParagraphs = GetMaterializedContainerParagraphs(
@@ -446,9 +428,8 @@ namespace OfficeIMO.Word.Html {
                                 cell,
                                 headerFooter,
                                 currentParagraph,
-                                startIndex,
-                                tableStartIndex);
-                            List<WordTable> generatedTables = GetGeneratedTables(section, cell, headerFooter, tableStartIndex);
+                                scopeMark);
+                            List<WordTable> generatedTables = GetGeneratedTables(section, cell, headerFooter, scopeMark);
                             ApplyContainerFrameFromCss(element, generatedParagraphs, generatedTables);
                             ApplyContainerPageBreaksFromCss(element, generatedParagraphs, generatedTables);
                             break;

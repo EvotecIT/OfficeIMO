@@ -49,6 +49,8 @@ internal sealed class PdfTableStyleOptions
     internal int? HeaderRowCount { get; set; }
     internal int? RepeatHeaderRowCount { get; set; }
     internal int? FooterRowCount { get; set; }
+    internal bool? RepeatFooterRows { get; set; }
+    internal PdfTablePageSummary? PageSummary { get; set; }
 
     internal bool HasAnyValue =>
         !string.IsNullOrWhiteSpace(TableStyle) ||
@@ -92,7 +94,9 @@ internal sealed class PdfTableStyleOptions
         NoRowStripeFill.HasValue ||
         HeaderRowCount.HasValue ||
         RepeatHeaderRowCount.HasValue ||
-        FooterRowCount.HasValue;
+        FooterRowCount.HasValue ||
+        RepeatFooterRows.HasValue ||
+        PageSummary != null;
 
     private static bool HasValues<T>(T[]? value) => value != null && value.Length > 0;
 }
@@ -154,6 +158,8 @@ internal static class PdfTableStyleBuilder
         if (options.HeaderRowCount.HasValue) style.HeaderRowCount = options.HeaderRowCount.Value;
         if (options.RepeatHeaderRowCount.HasValue) style.RepeatHeaderRowCount = options.RepeatHeaderRowCount.Value;
         if (options.FooterRowCount.HasValue) style.FooterRowCount = options.FooterRowCount.Value;
+        if (options.RepeatFooterRows.HasValue) style.RepeatFooterRows = options.RepeatFooterRows.Value;
+        if (options.PageSummary != null) style.PageSummary = options.PageSummary;
 
         return style;
     }

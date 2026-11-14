@@ -10,7 +10,9 @@ internal static partial class MarkdownReader {
             && options.InlineParserExtensions.Count == 0
             && !options.Math
             && !hasRegisteredAbbreviations
-            && !ContainsPotentialInlineSyntax(text, options, allowLinks: true, allowImages: true)) {
+            && !ContainsPotentialInlineSyntax(text, options, allowLinks: true, allowImages: true)
+            // Angle autolinks parse whether or not inline HTML is enabled.
+            && text.IndexOf('<') < 0) {
             sequence = new InlineSequence { AutoSpacing = false };
             if (!string.IsNullOrEmpty(text)) {
                 sequence.AddRaw(new MarkdownTextRun(text));
@@ -49,11 +51,15 @@ internal static partial class MarkdownReader {
         if (sourceMap == null
             && inlineParserExtensions.Count == 0
             && !(options.Abbreviations && state?.Abbreviations.Count > 0)
-            && !ContainsPotentialInlineSyntax(text, options, allowLinks, allowImages)) {
+            && !ContainsPotentialInlineSyntax(text, options, allowLinks, allowImages)
+            // A syntax-capturing parse reaches the scanner below with a source map, where an angle
+            // autolink parses even with inline HTML off; a semantic parse has to reach it too.
+            && (state?.CaptureSyntaxTree != false || text.IndexOf('<') < 0)) {
             root.AddRaw(new MarkdownTextRun(text));
             return root;
         }
 
+        using var scanIndexScope = InlineScanIndexCache.Enter();
         inlineHtmlWrapperMatches ??= options.InlineHtml
             ? BuildInlineHtmlWrapperMatchIndex(text)
             : InlineHtmlWrapperMatchIndex.Empty;
@@ -163,7 +169,10 @@ internal static partial class MarkdownReader {
             int targetStart,
             int targetLength,
             bool angleWrapped) {
-            var link = new LinkInline(label, resolvedHref, null);
+            var link = new LinkInline(label, resolvedHref, null) {
+                // Without spans the writer still needs to know this link was written as an autolink.
+                ParsedAsAutolinkWithoutSyntaxTree = !captureSyntaxMetadata
+            };
             AddRawNode(link, start, length);
             MarkdownInlineMetadataSourceSpans.SetLinkParts(
                 link,
@@ -464,25 +473,7 @@ internal static partial class MarkdownReader {
             if (text[pos] == '`') {
                 // Support multi-backtick code spans: count fence length and find a matching run
                 int fenceLen = 0; int k = pos; while (k < text.Length && text[k] == '`') { fenceLen++; k++; }
-                int j = k; int matchStart = -1;
-                while (j < text.Length) {
-                    if (text[j] != '`') {
-                        j++;
-                        continue;
-                    }
-
-                    int candidateStart = j;
-                    int candidateLen = 0;
-                    while (j < text.Length && text[j] == '`') {
-                        candidateLen++;
-                        j++;
-                    }
-
-                    if (candidateLen == fenceLen) {
-                        matchStart = candidateStart;
-                        break;
-                    }
-                }
+                int matchStart = FindClosingBacktickRun(text, k, fenceLen);
                 if (matchStart >= 0) {
                     int contentStart = pos + fenceLen;
                     int contentLen = matchStart - contentStart;
@@ -700,7 +691,7 @@ internal static partial class MarkdownReader {
 
                     if (state != null && TryParseCollapsedRef(text, pos, options, out int consumedC, out var lbl2, inlineHtmlWrapperMatches)) {
                         var key = NormalizeReferenceLabel(lbl2);
-                        if (ContainsResolvedLinkInLabel(lbl2, options, state)) {
+                        if (ContainsResolvedLinkInLabel(text, pos + 1, pos + 1 + lbl2.Length, options, state, inlineHtmlWrapperMatches)) {
                             AddTextNode("[", pos, 1);
                             pos++;
                             continue;
@@ -720,13 +711,15 @@ internal static partial class MarkdownReader {
                         AddTextNode(text.Substring(pos, consumedC), pos, consumedC);
                         pos += consumedC; continue;
                     }
-                    if (state != null && TryParseRefLink(text, pos, options, out int consumedR, out var lbl, out var refLabel, inlineHtmlWrapperMatches)) {
+                    if (state != null && TryParseRefLink(text, pos, options, out int consumedR, out int lblLength, out var refLabel, inlineHtmlWrapperMatches)) {
                         var key = NormalizeReferenceLabel(refLabel);
-                        if (ContainsResolvedLinkInLabel(lbl, options, state)) {
+                        if (ContainsResolvedLinkInLabel(text, pos + 1, pos + 1 + lblLength, options, state, inlineHtmlWrapperMatches)) {
                             AddTextNode("[", pos, 1);
                             pos++;
                             continue;
                         }
+
+                        var lbl = text.Substring(pos + 1, lblLength);
 
                         var labelSeq = ParseInlinesInternal(lbl, options, state, allowLinks: false, allowImages, SliceMap(pos + 1, lbl.Length), inlineHtmlWrapperMatches.Slice(pos + 1), inlineHtmlWrapperDepth, imageAltDepth, tableCellHtmlMode);
                         if (state.LinkRefs.TryGetValue(key, out var def)) {
@@ -741,7 +734,7 @@ internal static partial class MarkdownReader {
                     }
                     if (state != null && TryParseShortcutRef(text, pos, options, out int consumedS, out var lbl3, inlineHtmlWrapperMatches)) {
                         var key = NormalizeReferenceLabel(lbl3);
-                        if (ContainsResolvedLinkInLabel(lbl3, options, state)) {
+                        if (ContainsResolvedLinkInLabel(text, pos + 1, pos + 1 + lbl3.Length, options, state, inlineHtmlWrapperMatches)) {
                             AddTextNode("[", pos, 1);
                             pos++;
                             continue;
@@ -791,15 +784,15 @@ internal static partial class MarkdownReader {
                     continue;
                 }
 
-                bool splitDoubleRunIntoDualItalic = ShouldSplitDoubleRunIntoDualItalic(text, pos, marker, runLen, stack, options.CjkFriendlyEmphasis);
+                bool splitDoubleRunIntoDualItalic = ShouldSplitDoubleRunIntoDualItalic(text, pos, marker, runLen, stack, options.CjkFriendlyEmphasis, emphasisClosingRuns);
 
-                if (ShouldTreatDelimiterRunAsLiteral(text, pos, marker, runLen, stack, splitDoubleRunIntoDualItalic, options.CjkFriendlyEmphasis, out int literalRunLength)) {
+                if (ShouldTreatDelimiterRunAsLiteral(text, pos, marker, runLen, stack, splitDoubleRunIntoDualItalic, options.CjkFriendlyEmphasis, emphasisClosingRuns, out int literalRunLength)) {
                     AddTextNode(new string(marker, literalRunLength), pos, literalRunLength);
                     pos += literalRunLength;
                     continue;
                 }
 
-                if (ShouldTreatSingleMarkerAsLiteralInsideBold(text, pos, marker, runLen, stack, options.CjkFriendlyEmphasis)) {
+                if (ShouldTreatSingleMarkerAsLiteralInsideBold(text, pos, marker, runLen, stack, options.CjkFriendlyEmphasis, emphasisClosingRuns)) {
                     AddTextNode(marker.ToString(), pos, 1);
                     pos++;
                     continue;
@@ -861,7 +854,7 @@ internal static partial class MarkdownReader {
                 int remaining = runLen;
                 if (canClose) {
                     while (remaining > 0) {
-                        if (TryRebalanceParentBoldWithInnerItalicIntoDualItalic(text, pos, stack, marker, remaining, options.CjkFriendlyEmphasis, out int dualItalicRebalanced)) {
+                        if (TryRebalanceParentBoldWithInnerItalicIntoDualItalic(text, pos, stack, marker, remaining, options.CjkFriendlyEmphasis, emphasisClosingRuns, out int dualItalicRebalanced)) {
                             remaining -= dualItalicRebalanced;
                             continue;
                         }
@@ -1026,6 +1019,9 @@ internal static partial class MarkdownReader {
             foreach (var node in f.Seq.Nodes) parent.AddRaw(node);
         }
 
+        // Link labels and inline HTML wrappers are parsed here too, so their depth is checked
+        // before a parent derives text from them.
+        EnsureInlineNestingDepthAvailable(root, options);
         return root;
     }
 

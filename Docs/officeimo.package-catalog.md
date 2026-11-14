@@ -72,6 +72,8 @@ _Dependency footprint:_ zero third-party runtime dependencies.
 - [x] Managed single-cabinet extraction with Store, MSZIP, and LZX compression
 - [x] Passive MSI extraction maps embedded CAB members through authored Directory, Component, File, and Media tables
 - [x] Selective output, path and collision validation, finite resource limits, cancellation, and atomic destination publication
+- [x] TAR (ustar, pax, GNU, v7) and gzip reading and extraction; links and device records are listed but never created
+- [x] Reproducible ZIP, TAR, .tar.gz and gzip creation with a managed Deflate encoder that gives identical bytes on every platform
 
 _Dependency footprint:_ only `OfficeIMO.Core`; extraction does not execute installers or custom actions. Cabinet sets, external MSI payloads, and action-dependent installation layouts are unsupported; see the [support matrix](../OfficeIMO.Archives/SUPPORT.md).
 

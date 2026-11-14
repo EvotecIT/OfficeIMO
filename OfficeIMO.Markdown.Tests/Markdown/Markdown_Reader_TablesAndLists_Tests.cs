@@ -149,6 +149,25 @@ First paragraph
         }
 
         [Fact]
+        public void Edited_Table_Cells_Keep_Inline_Text_When_Cell_Blocks_Are_Disabled() {
+            const string md = """
+| Col |
+| --- |
+| Plain |
+""";
+            var options = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
+            options.ParseTableCellBlocks = false;
+
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+            table.Rows[0] = new[] { "# Edited" };
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { BodyClass = null });
+
+            Assert.DoesNotContain("<h1", html, StringComparison.Ordinal);
+            Assert.Contains("<td># Edited</td>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Structured_Table_Cells_Preserve_ListExtras_When_Reparsed() {
             const string md = """
 | Col |

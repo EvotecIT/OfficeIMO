@@ -101,6 +101,14 @@ drawing conclusions:
 dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*Word*ComparisonBenchmarks*'
 ```
 
+On Windows the project also builds for `net472`, the runtime of Windows
+PowerShell 5.1. That build contains the paragraph and report creation, read and
+replace comparisons:
+
+```powershell
+dotnet run -c Release -f net472 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordCreate*' '*WordRead*' '*WordReplace*'
+```
+
 ### Shared custom-data snapshots
 
 The opt-in PowerForge suite measures load, public legacy-write assessment and disposal with one
@@ -190,3 +198,53 @@ dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filte
 
 Those workflows have no directly equivalent public API in every comparison
 library, so they stay outside the cross-library rankings.
+
+`WordMarkdownConversionBenchmarks` converts generated Markdown (headings,
+paragraphs, nested lists and tables) to Word and back, whole and as
+`ExtractMarkdownChunks` chunks, at 100 and 400 sections. Setup checks that every
+heading, list and table survives each direction. Compare the two sizes: each
+lane should grow about four times, not sixteen.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordMarkdownConversionBenchmarks*'
+```
+
+`WordHtmlImportBenchmarks` converts generated HTML to Word in three shapes:
+nested containers (divs, articles and blockquotes), small tables inside divs,
+and nested lists inside divs, each at 100 and 400 blocks. Setup checks that
+every block, table and list item reaches the document. As above, the larger
+size should take about four times as long.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordHtmlImportBenchmarks*'
+```
+
+`WordLoadBenchmarks` loads a DOCX of 50 or 500 distinct images (about 1 MB and
+10 MB) from memory, read-only and editable. Setup prints the input size and
+checks the image count; allocation divided by the input size shows how many
+copies of the package a load makes.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordLoadBenchmarks*'
+```
+
+`WordRunEnumerationBenchmarks` loads a document of 1,000 or 4,000 two-run
+paragraphs, with a field in every hundredth, and enumerates `GetRuns()` for every
+entry of `Paragraphs`. Setup checks the run count. Four times the paragraphs
+should cost about four times as much.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordRunEnumerationBenchmarks*'
+```
+
+`WordSectionCollectionBenchmarks` reads the document-wide lists (`Paragraphs`,
+`Tables`, `ParagraphsHyperLinks`, `Elements`, `Fields`, `HyperLinks`,
+`Bookmarks`, `CheckBoxes`, `StructuredDocumentTags`, `FootNotes` and
+`TablesIncludingNestedTables`) of a loaded document with 25 and 100 sections.
+Each section has 20 paragraphs, two tables, a hyperlink, a field, a bookmark, a
+check box and a footnote. Setup checks the lists against the sections. Four times the sections should cost about four times
+as much.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordSectionCollectionBenchmarks*'
+```
