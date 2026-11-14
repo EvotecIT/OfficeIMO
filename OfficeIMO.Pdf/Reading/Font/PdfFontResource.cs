@@ -19,6 +19,13 @@ internal sealed partial class PdfFontResource {
     public bool IsVerticalWriting { get; }
     public ToUnicodeCMap? CMap { get; }
     internal Lazy<PdfPredefinedCMap>? PredefinedCMap { get; }
+
+    /// <summary>Byte length of the composite code at <paramref name="offset"/>; two bytes unless a predefined CMap says otherwise.</summary>
+    internal int GetCompositeCodeLength(byte[] bytes, int offset) => PredefinedCMap?.Value.GetCodeLength(bytes, offset) ?? 2;
+
+    /// <summary>True when the bytes divide into complete composite codes.</summary>
+    internal bool HasCompleteCompositeCodes(byte[] bytes, int offset, int count) =>
+        PredefinedCMap?.Value.HasCompleteCodes(bytes, offset, count) ?? (count & 1) == 0;
     public IReadOnlyDictionary<int, string>? Differences { get; }
     private readonly byte[]? _embeddedTrueTypeFont;
     public byte[]? EmbeddedTrueTypeFont => _embeddedTrueTypeFont ?? RetainedDrawingResource?._embeddedTrueTypeFont;
