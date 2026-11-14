@@ -19,6 +19,17 @@ Create, read and change PDF files in .NET with OfficeIMO's own PDF engine — no
 - **Print** to installed printers on Windows, macOS and Linux, with page ranges, 1, 2, 4, 6 or 9 pages per sheet, scaling, duplex and paper source, through `OfficeIMO.Workflows`.
 - **Convert** Word, Excel, PowerPoint, HTML and Markdown to PDF, and PDF back to Word, Excel, PowerPoint, HTML or Markdown.
 
+## Task guides
+
+- [Quick start](/docs/pdf/quick-start/): create a PDF and read it back.
+- [Merge, split, and select pages](/docs/pdf/merge-split/)
+- [Extract text and tables](/docs/pdf/extract-text-tables/)
+- [Fill and flatten forms](/docs/pdf/forms/)
+- [Redact content](/docs/pdf/redaction/)
+- [Encrypt, decrypt, and sign](/docs/pdf/encrypt-sign/)
+- [Convert to PDF/A](/docs/pdf/pdfa/)
+- [Watermarks, stamps, and metadata](/docs/pdf/watermarks-stamps/)
+
 ## Install
 
 ```shell
