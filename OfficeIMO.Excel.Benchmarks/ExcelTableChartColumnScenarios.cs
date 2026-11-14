@@ -20,24 +20,28 @@ internal static partial class ExcelLibraryComparisonRunner {
         int measuredIterations) {
         const string notes = "Write a sales table and chart Amount (column E) by Region (column B) over every row, then save.";
         AddScenarioGroup(scenarios, scenarioFilter, RealWorldTableChartColumnsScenario, warmupIterations, measuredIterations, [
-            new LibraryComparisonCase("OfficeIMO.Excel", notes + " Series reference the table columns.", () => ByteCount(OfficeImoWriteTableChartColumns(rows, copyChartData: false))),
-            new LibraryComparisonCase("OfficeIMO.Excel (chart-data copy)", notes + " Points are copied to a hidden chart-data sheet.", () => ByteCount(OfficeImoWriteTableChartColumns(rows, copyChartData: true))),
+            new LibraryComparisonCase("OfficeIMO.Excel", notes + " Series reference the table columns; the cache comes from the same in-memory rows.", () => ByteCount(OfficeImoWriteTableChartColumns(rows, TableChartSource.RangesWithCache))),
+            new LibraryComparisonCase("OfficeIMO.Excel (cache read from cells)", notes + " Series reference the table columns; the cache is read back from the cells.", () => ByteCount(OfficeImoWriteTableChartColumns(rows, TableChartSource.Ranges))),
+            new LibraryComparisonCase("OfficeIMO.Excel (chart-data copy)", notes + " Points are copied to a hidden chart-data sheet.", () => ByteCount(OfficeImoWriteTableChartColumns(rows, TableChartSource.ChartDataCopy))),
             new LibraryComparisonCase("EPPlus", notes, () => ByteCount(EpPlusWriteTableChartColumns(rows)))
         ]);
     }
 
-    private static byte[] OfficeImoWriteTableChartColumns(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows, bool copyChartData) {
+    private enum TableChartSource { RangesWithCache, Ranges, ChartDataCopy }
+
+    private static byte[] OfficeImoWriteTableChartColumns(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows, TableChartSource source) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Data");
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
             ExcelBenchmarkScenarioFactory.AddOfficeImoTable(sheet, rows.Count);
             var options = new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 10, Width = OfficeLength.Pixels(640), Height = OfficeLength.Pixels(360), Title = "Amount by region" };
-            if (copyChartData) {
-                var data = new ExcelChartData(rows.Select(static row => row.Region),
-                    [new ExcelChartSeries("Amount", rows.Select(static row => row.Amount))]);
-                sheet.AddChart(OfficeChartType.ColumnClustered, data, options);
+            var data = source == TableChartSource.Ranges ? null : new ExcelChartData(rows.Select(static row => row.Region),
+                [new ExcelChartSeries("Amount", rows.Select(static row => row.Amount))]);
+            if (source == TableChartSource.ChartDataCopy) {
+                sheet.AddChart(OfficeChartType.ColumnClustered, data!, options);
             } else {
+                options.CachedData = data;
                 string last = (rows.Count + 1).ToString(CultureInfo.InvariantCulture);
                 sheet.AddChartFromRanges(OfficeChartType.ColumnClustered, [new ExcelChartSeriesRange("Amount", "B2:B" + last, "E2:E" + last)], options);
             }
