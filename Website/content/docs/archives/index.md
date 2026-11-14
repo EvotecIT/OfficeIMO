@@ -1,6 +1,6 @@
 ---
 title: "ZIP, TAR, CAB and MSI Archives"
-description: "Inspect, verify, read and safely extract ZIP, TAR, gzip, Microsoft Cabinet and Windows Installer payloads, and create reproducible ZIP and TAR archives, in managed .NET."
+description: "Read, verify and safely extract ZIP, TAR, gzip, CAB and MSI files, and create reproducible ZIP and TAR archives, in managed .NET."
 order: 58
 meta.seo_title: "Create and extract ZIP, TAR, CAB and MSI files in C#"
 ---
