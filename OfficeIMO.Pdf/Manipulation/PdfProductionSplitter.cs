@@ -306,6 +306,7 @@ internal static class PdfProductionSplitter {
             Limits = effective.Limits,
             Password = effective.Password,
             AesCryptographyProvider = effective.AesCryptographyProvider,
+            PublicKeyDecryption = effective.PublicKeyDecryption,
             PermissionPolicy = effective.PermissionPolicy,
             PreferToUnicode = effective.PreferToUnicode,
             UseWinAnsiFallback = effective.UseWinAnsiFallback,

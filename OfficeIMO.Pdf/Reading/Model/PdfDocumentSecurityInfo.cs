@@ -119,7 +119,7 @@ public sealed class PdfDocumentSecurityInfo {
     /// <summary>Encryption key length in bits from /Length, when readable.</summary>
     public int? EncryptionLengthBits { get; }
 
-    /// <summary>Raw standard-security-handler permission bits from /P, when readable.</summary>
+    /// <summary>Raw permission bits: /P for the Standard handler, or the authenticated recipient's permissions for the public-key handler.</summary>
     public int? EncryptionPermissions { get; }
 
     /// <summary>Typed Standard security permissions, when a raw `/P` mask is present.</summary>
@@ -131,7 +131,7 @@ public sealed class PdfDocumentSecurityInfo {
     /// <summary>Encryption /EncryptMetadata flag, when readable.</summary>
     public bool? EncryptMetadata { get; }
 
-    /// <summary>Role established by the supplied Standard-security password, or <see cref="PdfPasswordAuthenticationRole.None"/> when no authentication was performed.</summary>
+    /// <summary>Role established by the supplied Standard-security password or public-key recipient certificate, or <see cref="PdfPasswordAuthenticationRole.None"/> when no authentication was performed.</summary>
     public PdfPasswordAuthenticationRole PasswordAuthenticationRole { get; }
 
     /// <summary>True when the supplied password authenticated as the Standard-security owner password.</summary>

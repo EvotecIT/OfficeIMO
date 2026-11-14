@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfLoadOptions {
-    /// <summary>Snapshots all load settings and resource limits. The caller-supplied AES provider is retained.</summary>
+    /// <summary>Snapshots all load settings and resource limits. The caller-supplied AES provider and public-key decryption options are retained.</summary>
     public PdfLoadOptions Clone() => Snapshot(null, null);
 
     /// <summary>Copies the complete policy, optionally tightening its input ceiling and overriding the open password.</summary>
@@ -24,6 +24,7 @@ public sealed partial class PdfLoadOptions {
             Limits = effective.Limits.CloneWithMaximumInputBytes(maximumInputBytes),
             Password = passwordOverride ?? effective.Password,
             AesCryptographyProvider = effective.AesCryptographyProvider,
+            PublicKeyDecryption = effective.PublicKeyDecryption,
             PermissionPolicy = permissionPolicyOverride ?? effective.PermissionPolicy,
             PreferToUnicode = effective.PreferToUnicode,
             UseWinAnsiFallback = effective.UseWinAnsiFallback,

@@ -39,6 +39,12 @@ public sealed partial class PdfLoadOptions {
     public IOfficeAesCryptographyProvider? AesCryptographyProvider { get; init; }
 
     /// <summary>
+    /// Recipient certificates and the security provider used to open PDFs encrypted with the public-key
+    /// security handler (/Filter /Adobe.PubSec, /SubFilter adbe.pkcs7.s3, s4 or s5).
+    /// </summary>
+    public PdfPublicKeyDecryptionOptions? PublicKeyDecryption { get; init; }
+
+    /// <summary>
     /// Controls whether authenticated user-password permission restrictions are enforced.
     /// Ignoring restrictions still requires the PDF to be successfully decrypted with a valid password.
     /// </summary>
@@ -80,6 +86,7 @@ public sealed partial class PdfLoadOptions {
             Limits = effective.Limits.WithMinimumInputBytes(minimumInputBytes),
             Password = effective.Password,
             AesCryptographyProvider = effective.AesCryptographyProvider,
+            PublicKeyDecryption = effective.PublicKeyDecryption,
             PermissionPolicy = effective.PermissionPolicy,
             PreferToUnicode = effective.PreferToUnicode,
             UseWinAnsiFallback = effective.UseWinAnsiFallback,
@@ -104,6 +111,7 @@ public sealed partial class PdfLoadOptions {
             Limits = effective.Limits,
             Password = effective.Password,
             AesCryptographyProvider = effective.AesCryptographyProvider,
+            PublicKeyDecryption = effective.PublicKeyDecryption,
             PermissionPolicy = permissionPolicy,
             PreferToUnicode = effective.PreferToUnicode,
             UseWinAnsiFallback = effective.UseWinAnsiFallback,
@@ -129,6 +137,7 @@ public sealed partial class PdfLoadOptions {
             Limits = effective.Limits.WithGeneratedOutput(effective.Limits.MaxInputBytes, minimumIndirectObjects, growth),
             Password = effective.Password,
             AesCryptographyProvider = effective.AesCryptographyProvider,
+            PublicKeyDecryption = effective.PublicKeyDecryption,
             PermissionPolicy = effective.PermissionPolicy,
             PreferToUnicode = effective.PreferToUnicode,
             UseWinAnsiFallback = effective.UseWinAnsiFallback,
@@ -194,6 +203,7 @@ public sealed partial class PdfLoadOptions {
             Limits = source.Limits.WithGeneratedOutput(outputPdf.LongLength, Math.Max(outputHeaders, reservedObjects), effectiveGrowth),
             Password = source.Password,
             AesCryptographyProvider = source.AesCryptographyProvider,
+            PublicKeyDecryption = source.PublicKeyDecryption,
             PermissionPolicy = source.PermissionPolicy,
             PreferToUnicode = source.PreferToUnicode,
             UseWinAnsiFallback = source.UseWinAnsiFallback,
@@ -267,6 +277,7 @@ public sealed partial class PdfLoadOptions {
                 preserveExistingRawStreamLimit),
             Password = effective.Password,
             AesCryptographyProvider = effective.AesCryptographyProvider,
+            PublicKeyDecryption = effective.PublicKeyDecryption,
             PermissionPolicy = effective.PermissionPolicy,
             PreferToUnicode = effective.PreferToUnicode,
             UseWinAnsiFallback = effective.UseWinAnsiFallback,
@@ -289,6 +300,7 @@ public sealed partial class PdfLoadOptions {
             Limits = effective.Limits,
             Password = password,
             AesCryptographyProvider = effective.AesCryptographyProvider,
+            PublicKeyDecryption = effective.PublicKeyDecryption,
             PermissionPolicy = effective.PermissionPolicy,
             PreferToUnicode = effective.PreferToUnicode,
             UseWinAnsiFallback = effective.UseWinAnsiFallback,
@@ -313,6 +325,7 @@ public sealed partial class PdfLoadOptions {
             Limits = effective.Limits,
             Password = effective.Password,
             AesCryptographyProvider = aesCryptographyProvider,
+            PublicKeyDecryption = effective.PublicKeyDecryption,
             PermissionPolicy = effective.PermissionPolicy,
             PreferToUnicode = effective.PreferToUnicode,
             UseWinAnsiFallback = effective.UseWinAnsiFallback,
@@ -336,6 +349,7 @@ public sealed partial class PdfLoadOptions {
             Limits = effective.Limits,
             Password = effective.Password,
             AesCryptographyProvider = effective.AesCryptographyProvider,
+            PublicKeyDecryption = effective.PublicKeyDecryption,
             PermissionPolicy = effective.PermissionPolicy,
             PreferToUnicode = effective.PreferToUnicode,
             UseWinAnsiFallback = effective.UseWinAnsiFallback,

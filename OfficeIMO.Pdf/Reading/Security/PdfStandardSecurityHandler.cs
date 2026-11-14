@@ -20,6 +20,7 @@ internal sealed partial class PdfStandardSecurityHandler {
     private readonly bool _encryptMetadata;
     private readonly PdfPasswordAuthenticationRole _authenticationRole;
     private readonly IOfficeAesCryptographyProvider? _aesCryptographyProvider;
+    private readonly int? _recipientPermissions;
 
     private PdfStandardSecurityHandler(
         byte[] fileKey,
@@ -29,8 +30,10 @@ internal sealed partial class PdfStandardSecurityHandler {
         PdfCryptMethod stringMethod,
         bool encryptMetadata,
         PdfPasswordAuthenticationRole authenticationRole,
-        IOfficeAesCryptographyProvider? aesCryptographyProvider) {
+        IOfficeAesCryptographyProvider? aesCryptographyProvider,
+        int? recipientPermissions = null) {
         _fileKey = fileKey;
+        _recipientPermissions = recipientPermissions;
         _revision = revision;
         _keyLengthBytes = keyLengthBytes;
         _streamMethod = streamMethod;
@@ -42,17 +45,25 @@ internal sealed partial class PdfStandardSecurityHandler {
 
     internal PdfPasswordAuthenticationRole AuthenticationRole => _authenticationRole;
 
+    /// <summary>Permission flags granted to the matched public-key recipient; null for password-based handlers.</summary>
+    internal int? RecipientPermissions => _recipientPermissions;
+
     public static PdfStandardSecurityHandler Create(
         PdfDictionary encryptionDictionary,
         byte[] fileId,
         string? password,
         bool passwordWasSupplied,
         IOfficeAesCryptographyProvider? aesCryptographyProvider,
+        PdfPublicKeyDecryptionOptions? publicKeyDecryption = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         string filter = encryptionDictionary.Get<PdfName>("Filter")?.Name ?? string.Empty;
+        if (string.Equals(filter, PublicKeyFilterName, StringComparison.Ordinal)) {
+            return CreatePublicKey(encryptionDictionary, publicKeyDecryption, aesCryptographyProvider, cancellationToken);
+        }
+
         if (!string.Equals(filter, "Standard", StringComparison.Ordinal)) {
-            throw new PdfUnsupportedEncryptionException("Only PDF Standard password encryption is supported.");
+            throw new PdfUnsupportedEncryptionException("Only the PDF Standard password and Adobe.PubSec public-key security handlers are supported.");
         }
 
         int version = GetRequiredInt(encryptionDictionary, "V");

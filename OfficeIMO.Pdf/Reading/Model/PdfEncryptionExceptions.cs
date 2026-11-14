@@ -27,3 +27,27 @@ public sealed class PdfUnsupportedEncryptionException : PdfEncryptionException {
     public PdfUnsupportedEncryptionException(string message) : base(message) {
     }
 }
+
+/// <summary>Thrown when a public-key encrypted PDF is opened without <see cref="PdfLoadOptions.PublicKeyDecryption"/>.</summary>
+public sealed class PdfRecipientCertificateRequiredException : PdfEncryptionException {
+    /// <summary>Creates a recipient-certificate-required exception.</summary>
+    public PdfRecipientCertificateRequiredException(string message) : base(message) {
+    }
+}
+
+/// <summary>Thrown when none of the supplied certificates is a recipient of a public-key encrypted PDF.</summary>
+public sealed class PdfRecipientNotFoundException : PdfEncryptionException {
+    /// <summary>Creates a recipient-not-found exception.</summary>
+    public PdfRecipientNotFoundException(string message) : base(message) {
+    }
+}
+
+/// <summary>
+/// Thrown when a recipient entry of a public-key encrypted PDF could not be decrypted with a supplied certificate,
+/// for example because its private key is missing or the envelope uses an algorithm the provider does not support.
+/// </summary>
+public sealed class PdfRecipientDecryptionException : PdfEncryptionException {
+    /// <summary>Creates a recipient-decryption exception.</summary>
+    public PdfRecipientDecryptionException(string message) : base(message) {
+    }
+}

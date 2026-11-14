@@ -114,6 +114,7 @@ internal static partial class PdfSyntax {
             if (TryCreateDecryptor(objects, trailerRaw, options, out PdfStandardSecurityHandler? authenticatedHandler, cancellationToken) &&
                 authenticatedHandler is not null) {
                 passwordAuthenticationRole = authenticatedHandler.AuthenticationRole;
+                encryptionPermissions = authenticatedHandler.RecipientPermissions ?? encryptionPermissions;
             }
         }
 
