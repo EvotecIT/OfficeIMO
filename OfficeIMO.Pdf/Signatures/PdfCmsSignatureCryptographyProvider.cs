@@ -151,7 +151,7 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
             input,
             encoded,
             isTimestampToken: false,
-            ResolveSignerValidationTime(first),
+            ResolveSignerValidationTime(security.Signers),
             findings);
         if (revocation is not null) {
             revocationStatus = CombineRevocation(revocationStatus, MapStatus(revocation.Status));
@@ -179,14 +179,16 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
 
     /// <summary>
     /// The signer path is checked at the earliest trusted signature time-stamp, the best proof of when the
-    /// signature existed, unless the caller fixed a verification time.
+    /// signature existed, unless the caller fixed a verification time. A container with several signers has
+    /// no single signature time, so its signers are checked at the current time.
     /// </summary>
-    private DateTimeOffset? ResolveSignerValidationTime(CmsSignerVerificationResult signer) {
+    private DateTimeOffset? ResolveSignerValidationTime(IReadOnlyList<CmsSignerVerificationResult> signers) {
         if (_options.CertificateValidation.VerificationTime is DateTime fixedTime) {
             return new DateTimeOffset(DateTime.SpecifyKind(fixedTime.ToUniversalTime(), DateTimeKind.Utc));
         }
+        if (signers.Count != 1) return null;
         DateTimeOffset? earliest = null;
-        foreach (Rfc3161TimestampVerificationResult token in signer.TimestampTokens) {
+        foreach (Rfc3161TimestampVerificationResult token in signers[0].TimestampTokens) {
             if (token.Status != SecurityValidationStatus.Valid || !token.Timestamp.HasValue) continue;
             if (!earliest.HasValue || token.Timestamp.Value < earliest.Value) earliest = token.Timestamp.Value;
         }

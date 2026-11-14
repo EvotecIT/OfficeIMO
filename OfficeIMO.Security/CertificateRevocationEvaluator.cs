@@ -3,6 +3,7 @@ using System.Security.Cryptography.X509Certificates;
 using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Asn1.Cms;
 using Org.BouncyCastle.Asn1.Ocsp;
+using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Cms;
 using Org.BouncyCastle.Ocsp;
 using Org.BouncyCastle.Tsp;
@@ -22,6 +23,8 @@ internal static class CertificateRevocationEvaluator {
     private const string AdobeRevocationInfoArchivalOid = "1.2.840.113583.1.1.8";
     private const string OcspResponseRevocationInfoFormatOid = "1.3.6.1.5.5.7.16.2";
     private const string OcspSigningExtendedKeyUsageOid = "1.3.6.1.5.5.7.3.9";
+    private static readonly DerObjectIdentifier OcspArchiveCutoffOid = new("1.3.6.1.5.5.7.48.1.6");
+    private static readonly DerObjectIdentifier ExpiredCertificatesOnCrlOid = new("2.5.29.60");
     private const int MaxPathLength = 16;
     private const int MaxTokens = 512;
     private static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(5);
@@ -302,7 +305,7 @@ internal static class CertificateRevocationEvaluator {
         }
         if (single is null) return null;
 
-        BcX509Certificate? responder = FindOcspResponder(context, response, issuer);
+        BcX509Certificate? responder = FindOcspResponder(response, issuer, context.Pool.All);
         if (responder is null) {
             reasons.Add("the OCSP response (" + Describe(token) + ") is not signed by the issuer or an authorized responder");
             return null;
@@ -345,7 +348,90 @@ internal static class CertificateRevocationEvaluator {
             reasons.Add(StaleReason("OCSP response", token, thisUpdate, nextUpdate));
             return null;
         }
+        // RFC 6960 section 4.4.4: after expiry a "good" answer only proves history back to the archive cutoff.
+        if (thisUpdate > certificate.NotAfter.ToUniversalTime() &&
+            !(ReadGeneralizedTime(response.GetExtensionValue(OcspArchiveCutoffOid)) is DateTime cutoff &&
+              cutoff <= certificate.NotAfter.ToUniversalTime())) {
+            reasons.Add("the OCSP response (" + Describe(token) + ") was produced after the certificate expired and has no archive cutoff covering its validity");
+            return null;
+        }
         return new Candidate(token);
+    }
+
+    /// <summary>True when an OCSP response carries a status for the certificate signed by its issuer or an authorized responder.</summary>
+    internal static bool HasVerifiedStatus(BasicOcspResp response, BcX509Certificate certificate, BcX509Certificate issuer) {
+        bool covered = response.Responses.Any(single => {
+            CertificateID id = single.GetCertID();
+            try {
+                return id.SerialNumber.Equals(certificate.SerialNumber) && id.MatchesIssuer(issuer) &&
+                    single.GetCertStatus() is not UnknownStatus;
+            } catch (OcspException) {
+                return false;
+            }
+        });
+        if (!covered) return false;
+        BcX509Certificate? responder = FindOcspResponder(response, issuer, Array.Empty<BcX509Certificate>());
+        if (responder is null) return false;
+        try {
+            return response.Verify(responder.GetPublicKey());
+        } catch (Exception exception) when (IsValidationException(exception)) {
+            return false;
+        }
+    }
+
+    private static DateTime? ReadGeneralizedTime(Asn1OctetString? extension) {
+        if (extension is null) return null;
+        try {
+            return Asn1GeneralizedTime.GetInstance(Asn1Object.FromByteArray(extension.GetOctets())).ToDateTime().ToUniversalTime();
+        } catch (Exception exception) when (IsValidationException(exception)) {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Only complete, direct CRLs are evaluated: delta CRLs and partitioned or reason-limited scopes
+    /// (RFC 5280 sections 5.2.4 and 5.2.5) cannot prove that a certificate is absent.
+    /// </summary>
+    private static string? CheckCrlScope(X509Crl crl, BcX509Certificate certificate) {
+        if (crl.GetExtensionValue(X509Extensions.DeltaCrlIndicator) is not null) return "is a delta CRL, which is not supported";
+        Asn1OctetString? value = crl.GetExtensionValue(X509Extensions.IssuingDistributionPoint);
+        if (value is null) return null;
+        IssuingDistributionPoint scope;
+        try {
+            scope = IssuingDistributionPoint.GetInstance(Asn1Object.FromByteArray(value.GetOctets()));
+        } catch (Exception exception) when (IsValidationException(exception)) {
+            return "has an unreadable issuing distribution point";
+        }
+        if (scope.IsIndirectCrl) return "is an indirect CRL, which is not supported";
+        if (scope.OnlySomeReasons is not null) return "covers only some revocation reasons";
+        if (scope.OnlyContainsAttributeCerts) return "covers only attribute certificates";
+        bool isAuthority = certificate.GetBasicConstraints() >= 0;
+        if (scope.OnlyContainsCACerts && !isAuthority) return "covers only CA certificates";
+        if (scope.OnlyContainsUserCerts && isAuthority) return "covers only end-entity certificates";
+        if (scope.DistributionPoint?.Type == DistributionPointName.FullName) {
+            HashSet<string> crlNames = UriNames(scope.DistributionPoint.Name);
+            Asn1OctetString? points = certificate.GetExtensionValue(X509Extensions.CrlDistributionPoints);
+            if (points is not null) {
+                var certificateNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (DistributionPoint point in CrlDistPoint.GetInstance(Asn1Object.FromByteArray(points.GetOctets())).GetDistributionPoints()) {
+                    if (point.DistributionPointName?.Type == DistributionPointName.FullName) {
+                        certificateNames.UnionWith(UriNames(point.DistributionPointName.Name));
+                    }
+                }
+                if (certificateNames.Count > 0 && crlNames.Count > 0 && !certificateNames.Overlaps(crlNames)) {
+                    return "belongs to a different distribution point than the certificate names";
+                }
+            }
+        }
+        return null;
+    }
+
+    private static HashSet<string> UriNames(Asn1Encodable names) {
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (GeneralName name in GeneralNames.GetInstance(names).GetNames()) {
+            if (name.TagNo == GeneralName.UniformResourceIdentifier) result.Add(DerIA5String.GetInstance(name.Name).GetString());
+        }
+        return result;
     }
 
     private static Candidate? EvaluateCrl(
@@ -357,6 +443,11 @@ internal static class CertificateRevocationEvaluator {
         List<string> reasons) {
         X509Crl crl = token.Crl!;
         if (!crl.IssuerDN.Equivalent(issuer.SubjectDN, inOrder: true)) return null;
+        string? scopeProblem = CheckCrlScope(crl, certificate);
+        if (scopeProblem is not null) {
+            reasons.Add("the CRL (" + Describe(token) + ") " + scopeProblem);
+            return null;
+        }
         if (!AllowsUsage(issuer, Org.BouncyCastle.Asn1.X509.KeyUsage.CrlSign)) {
             reasons.Add("the CRL issuer key usage does not permit CRL signing (" + Describe(token) + ")");
             return null;
@@ -388,6 +479,14 @@ internal static class CertificateRevocationEvaluator {
         }
         if (!IsFresh(thisUpdate, nextUpdate, validationTime, context.Now)) {
             reasons.Add(StaleReason("CRL", token, thisUpdate, nextUpdate));
+            return null;
+        }
+        // RFC 5280 section 3.3: CAs may drop expired certificates, so absence after expiry proves nothing
+        // unless the CRL declares it keeps entries for certificates that expired since ExpiredCertsOnCRL.
+        if (thisUpdate > certificate.NotAfter.ToUniversalTime() &&
+            !(ReadGeneralizedTime(crl.GetExtensionValue(ExpiredCertificatesOnCrlOid)) is DateTime kept &&
+              kept <= certificate.NotAfter.ToUniversalTime())) {
+            reasons.Add("the CRL (" + Describe(token) + ") was issued after the certificate expired and does not state that it keeps expired certificates");
             return null;
         }
         return new Candidate(token);
@@ -430,10 +529,10 @@ internal static class CertificateRevocationEvaluator {
         return true;
     }
 
-    private static BcX509Certificate? FindOcspResponder(EvaluationContext context, BasicOcspResp response, BcX509Certificate issuer) {
+    private static BcX509Certificate? FindOcspResponder(BasicOcspResp response, BcX509Certificate issuer, IEnumerable<BcX509Certificate> pool) {
         if (MatchesResponderId(response.ResponderId, issuer)) return issuer;
         IEnumerable<BcX509Certificate> candidates = response.GetCerts() ?? Array.Empty<BcX509Certificate>();
-        foreach (BcX509Certificate candidate in candidates.Concat(context.Pool.All)) {
+        foreach (BcX509Certificate candidate in candidates.Concat(pool)) {
             if (!MatchesResponderId(response.ResponderId, candidate)) continue;
             // RFC 6960 section 4.2.2.2: a delegated responder is issued directly by the CA and carries id-kp-OCSPSigning.
             if (!candidate.IssuerDN.Equivalent(issuer.SubjectDN, inOrder: true) || !IsSignedBy(candidate, issuer)) continue;
@@ -744,22 +843,25 @@ internal static class CertificateRevocationEvaluator {
             }
 
             parsed.AddContainer(signedData);
-            SignerInformation? signer = signedData.GetSignerInfos().GetSigners().FirstOrDefault();
-            if (signer is null) throw new InvalidDataException("The CMS container has no signer.");
-            parsed.Subjects.Add(new RevocationSubject("Signer",
-                FindSigner(parsed.Certificates, signer.SignerID), null, isTimestampAuthority: false));
+            List<SignerInformation> signers = signedData.GetSignerInfos().GetSigners().ToList();
+            if (signers.Count == 0) throw new InvalidDataException("The CMS container has no signer.");
+            // Every signer is checked, so one revoked signer cannot hide behind another's good status.
+            parsed.HasSigningCertificateAttribute = true;
+            for (int signerIndex = 0; signerIndex < signers.Count; signerIndex++) {
+                SignerInformation signer = signers[signerIndex];
+                string role = signers.Count > 1 ? "Signer " + (signerIndex + 1) : "Signer";
+                parsed.Subjects.Add(new RevocationSubject(role,
+                    FindSigner(parsed.Certificates, signer.SignerID), null, isTimestampAuthority: false));
 
-            Org.BouncyCastle.Asn1.Cms.AttributeTable? signedAttributes = signer.SignedAttributes;
-            if (signedAttributes is not null) {
-                parsed.HasSigningCertificateAttribute =
-                    signedAttributes[new DerObjectIdentifier(SigningCertificateV2Oid)] is not null ||
-                    signedAttributes[new DerObjectIdentifier(SigningCertificateOid)] is not null;
-                Org.BouncyCastle.Asn1.Cms.Attribute? archival = signedAttributes[new DerObjectIdentifier(AdobeRevocationInfoArchivalOid)];
+                Org.BouncyCastle.Asn1.Cms.AttributeTable? signedAttributes = signer.SignedAttributes;
+                parsed.HasSigningCertificateAttribute &= signedAttributes is not null &&
+                    (signedAttributes[new DerObjectIdentifier(SigningCertificateV2Oid)] is not null ||
+                     signedAttributes[new DerObjectIdentifier(SigningCertificateOid)] is not null);
+                Org.BouncyCastle.Asn1.Cms.Attribute? archival = signedAttributes?[new DerObjectIdentifier(AdobeRevocationInfoArchivalOid)];
                 if (archival is not null) parsed.AddRevocationInfoArchival(archival);
-            }
 
-            Org.BouncyCastle.Asn1.Cms.Attribute? timestamps = signer.UnsignedAttributes?[new DerObjectIdentifier(SignatureTimestampTokenOid)];
-            if (timestamps is not null) {
+                Org.BouncyCastle.Asn1.Cms.Attribute? timestamps = signer.UnsignedAttributes?[new DerObjectIdentifier(SignatureTimestampTokenOid)];
+                if (timestamps is null) continue;
                 int index = 0;
                 foreach (Asn1Encodable value in timestamps.AttrValues) {
                     index++;
@@ -768,7 +870,7 @@ internal static class CertificateRevocationEvaluator {
                         var token = new TimeStampToken(tokenData);
                         parsed.AddContainer(tokenData);
                         parsed.Subjects.Add(new RevocationSubject(
-                            "Signature time-stamp authority" + (timestamps.AttrValues.Count > 1 ? " " + index : string.Empty),
+                            role + " time-stamp authority" + (timestamps.AttrValues.Count > 1 ? " " + index : string.Empty),
                             FindSigner(token.GetCertificates().EnumerateMatches(null), token.SignerID),
                             token.TimeStampInfo.GenTime.ToUniversalTime(), isTimestampAuthority: true));
                     } catch (Exception exception) when (IsValidationException(exception)) {

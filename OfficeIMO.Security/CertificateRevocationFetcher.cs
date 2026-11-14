@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -30,19 +29,23 @@ public sealed class CertificateRevocationFetcherOptions {
 /// authority information access and CRL distribution points extensions.
 /// </summary>
 /// <remarks>
-/// OCSP is tried first; CRLs are fetched when no OCSP location returns a status for the certificate.
-/// Responses are cached for the lifetime of the instance, so one instance serves one validation run.
-/// Only http and https locations are used and connections go directly to the server, without a proxy.
-/// Non-public addresses are refused unless <see cref="CertificateRevocationFetcherOptions.AllowNonPublicAddresses"/>
-/// is set; on .NET 8 and later the address is checked when the connection is made, on older frameworks
-/// after name resolution.
+/// OCSP is tried first; CRLs are fetched when no OCSP location returns a status signed by the issuer or its
+/// responder. Responses are cached by the instance until their nextUpdate. Only http and https locations are used
+/// and connections go directly to the server, without a proxy. Non-public addresses are refused unless
+/// <see cref="CertificateRevocationFetcherOptions.AllowNonPublicAddresses"/> is set; on .NET 8 and later the
+/// address is checked when the connection is made, on older frameworks the request is sent to the checked address
+/// and https locations are refused.
 /// </remarks>
 public sealed class CertificateRevocationFetcher : ICertificateRevocationFetcher, IDisposable {
     private const string OcspAccessMethodOid = "1.3.6.1.5.5.7.48.1";
     private const int MaxRedirects = 3;
+    private static readonly TimeSpan UndatedResponseLifetime = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan FailureLifetime = TimeSpan.FromMinutes(1);
     private readonly CertificateRevocationFetcherOptions _options;
     private readonly HttpClient _client;
-    private readonly ConcurrentDictionary<string, Lazy<Task<byte[]>>> _cache = new(StringComparer.Ordinal);
+    private readonly CancellationTokenSource _disposal = new();
+    private readonly Dictionary<string, CacheEntry> _cache = new(StringComparer.Ordinal);
+    private readonly object _cacheLock = new();
     private bool _disposed;
 
     /// <summary>Creates a fetcher. The options are copied.</summary>
@@ -85,13 +88,15 @@ public sealed class CertificateRevocationFetcher : ICertificateRevocationFetcher
                 "Certificate " + label + " names no OCSP responder or CRL distribution point."));
         }
 
+        // Stop at the first source whose answer is signed by the issuer or its responder; an unusable answer
+        // must not hide the remaining responders and distribution points.
         bool settled = false;
         if (ocspLocations.Count > 0) {
             byte[] request = CreateOcspRequest(subject, issuerCertificate);
             foreach (Uri location in ocspLocations) {
                 byte[]? response = await TryGetAsync(location, request, label, findings, cancellationToken).ConfigureAwait(false);
                 if (response is null) continue;
-                if (!HasStatusFor(response, subject, issuerCertificate, out string? problem)) {
+                if (!HasVerifiedStatus(response, subject, issuerCertificate, out string? problem)) {
                     findings.Add(Finding("RevocationOcspNoStatus",
                         "The OCSP responder " + location + " returned no usable status for " + label + ": " + problem));
                     continue;
@@ -106,26 +111,31 @@ public sealed class CertificateRevocationFetcher : ICertificateRevocationFetcher
             foreach (Uri location in crlLocations) {
                 byte[]? response = await TryGetAsync(location, null, label, findings, cancellationToken).ConfigureAwait(false);
                 if (response is null) continue;
+                Org.BouncyCastle.X509.X509Crl? crl;
                 try {
-                    if (new Org.BouncyCastle.X509.X509CrlParser().ReadCrl(response) is null) throw new InvalidDataException("No CRL was decoded.");
+                    crl = new Org.BouncyCastle.X509.X509CrlParser().ReadCrl(response) ?? throw new InvalidDataException("No CRL was decoded.");
                 } catch (Exception exception) when (IsRecoverable(exception)) {
                     findings.Add(Finding("RevocationTokenMalformed",
                         "The CRL from " + location + " could not be decoded: " + exception.Message));
                     continue;
                 }
                 crls.Add(response);
-                break;
+                if (IsCurrentCrlFrom(crl, issuerCertificate)) break;
+                findings.Add(Finding("RevocationCrlNotCurrent",
+                    "The CRL from " + location + " is not signed by the issuer of " + label + " or is past its next update."));
             }
         }
 
         return new CertificateRevocationEvidence(new[] { issuer.RawData }, ocspResponses, crls, findings);
     }
 
-    /// <summary>Releases the HTTP connection pool.</summary>
+    /// <summary>Releases the HTTP connection pool and abandons requests still in flight.</summary>
     public void Dispose() {
         if (_disposed) return;
         _disposed = true;
+        _disposal.Cancel();
         _client.Dispose();
+        _disposal.Dispose();
     }
 
     private async Task<byte[]?> TryGetAsync(
@@ -135,12 +145,19 @@ public sealed class CertificateRevocationFetcher : ICertificateRevocationFetcher
         List<SecurityFinding> findings,
         CancellationToken cancellationToken) {
         string key = (ocspRequest is null ? "GET " : "POST " + Convert.ToBase64String(ocspRequest) + " ") + location.AbsoluteUri;
-        Lazy<Task<byte[]>> entry = _cache.GetOrAdd(key, _ => new Lazy<Task<byte[]>>(
-            () => SendAsync(location, ocspRequest, cancellationToken), LazyThreadSafetyMode.ExecutionAndPublication));
+        CacheEntry entry;
+        lock (_cacheLock) {
+            // A cached answer is reused until its nextUpdate, so a long-lived fetcher does not serve stale data.
+            if (!_cache.TryGetValue(key, out entry!) || entry.IsExpired(DateTime.UtcNow)) {
+                entry = new CacheEntry();
+                entry.Task = FetchAndStampAsync(entry, location, ocspRequest);
+                _cache[key] = entry;
+            }
+        }
         try {
-            return await entry.Value.ConfigureAwait(false);
+            // Each caller may stop waiting; the shared request keeps running for the others.
+            return await WaitAsync(entry.Task, cancellationToken).ConfigureAwait(false);
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
-            _cache.TryRemove(key, out _);
             throw;
         } catch (Exception exception) when (IsRecoverable(exception)) {
             findings.Add(Finding("RevocationFetchFailed",
@@ -149,19 +166,40 @@ public sealed class CertificateRevocationFetcher : ICertificateRevocationFetcher
         }
     }
 
-    private async Task<byte[]> SendAsync(Uri location, byte[]? ocspRequest, CancellationToken cancellationToken) {
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+    private async Task<byte[]> FetchAndStampAsync(CacheEntry entry, Uri location, byte[]? ocspRequest) {
+        try {
+            byte[] response = await SendAsync(location, ocspRequest).ConfigureAwait(false);
+            entry.ExpiresUtc = ReadNextUpdate(response, ocspRequest is not null) ?? DateTime.UtcNow + UndatedResponseLifetime;
+            return response;
+        } catch {
+            entry.ExpiresUtc = DateTime.UtcNow + FailureLifetime;
+            throw;
+        }
+    }
+
+    private static async Task<T> WaitAsync<T>(Task<T> task, CancellationToken cancellationToken) {
+#if NET6_0_OR_GREATER
+        return await task.WaitAsync(cancellationToken).ConfigureAwait(false);
+#else
+        if (!cancellationToken.CanBeCanceled) return await task.ConfigureAwait(false);
+        var cancelled = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using (cancellationToken.Register(static state => ((TaskCompletionSource<bool>)state!).TrySetResult(true), cancelled)) {
+            if (await Task.WhenAny(task, cancelled.Task).ConfigureAwait(false) != task) {
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+        }
+        return await task.ConfigureAwait(false);
+#endif
+    }
+
+    private async Task<byte[]> SendAsync(Uri location, byte[]? ocspRequest) {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(_disposal.Token);
         timeout.CancelAfter(_options.Timeout);
         try {
             Uri current = location;
             for (int redirect = 0; ; redirect++) {
-                await EnsureAllowedAsync(current, timeout.Token).ConfigureAwait(false);
-                using HttpRequestMessage request = new HttpRequestMessage(ocspRequest is null ? HttpMethod.Get : HttpMethod.Post, current);
-                if (ocspRequest is not null) {
-                    request.Content = new ByteArrayContent(ocspRequest);
-                    request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/ocsp-request");
-                    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/ocsp-response"));
-                }
+                IPAddress? pinned = await EnsureAllowedAsync(current, timeout.Token).ConfigureAwait(false);
+                using HttpRequestMessage request = CreateRequest(current, pinned, ocspRequest);
                 using HttpResponseMessage response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token)
                     .ConfigureAwait(false);
                 int code = (int)response.StatusCode;
@@ -178,9 +216,30 @@ public sealed class CertificateRevocationFetcher : ICertificateRevocationFetcher
                 }
                 return await ReadBoundedAsync(response.Content, timeout.Token).ConfigureAwait(false);
             }
-        } catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) {
+        } catch (OperationCanceledException) when (!_disposal.IsCancellationRequested) {
             throw new TimeoutException("The request did not complete within " + _options.Timeout.TotalSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture) + " seconds.");
         }
+    }
+
+    private static HttpRequestMessage CreateRequest(Uri location, IPAddress? pinned, byte[]? ocspRequest) {
+        Uri target = location;
+        string? host = null;
+        if (pinned is not null) {
+            // Connect to the checked address and name the original host, so a second name lookup cannot
+            // redirect the request to an internal address.
+            target = new UriBuilder(location) {
+                Host = pinned.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 ? "[" + pinned + "]" : pinned.ToString()
+            }.Uri;
+            host = location.IsDefaultPort ? location.Host : location.Host + ":" + location.Port.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+        var request = new HttpRequestMessage(ocspRequest is null ? HttpMethod.Get : HttpMethod.Post, target);
+        if (host is not null) request.Headers.Host = host;
+        if (ocspRequest is not null) {
+            request.Content = new ByteArrayContent(ocspRequest);
+            request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/ocsp-request");
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/ocsp-response"));
+        }
+        return request;
     }
 
     private async Task<byte[]> ReadBoundedAsync(HttpContent content, CancellationToken cancellationToken) {
@@ -211,14 +270,18 @@ public sealed class CertificateRevocationFetcher : ICertificateRevocationFetcher
         return buffer.ToArray();
     }
 
-    private async Task EnsureAllowedAsync(Uri location, CancellationToken cancellationToken) {
+    /// <summary>
+    /// Checks the location and, on frameworks without a connect callback, returns the checked public address
+    /// the request must be sent to. Returns null when the handler checks addresses itself or checks are off.
+    /// </summary>
+    private async Task<IPAddress?> EnsureAllowedAsync(Uri location, CancellationToken cancellationToken) {
         if (!location.IsAbsoluteUri || (location.Scheme != Uri.UriSchemeHttp && location.Scheme != Uri.UriSchemeHttps)) {
             throw new HttpRequestException("Only http and https locations are fetched.");
         }
         if (!string.IsNullOrEmpty(location.UserInfo)) {
             throw new HttpRequestException("Locations with user information are not fetched.");
         }
-        if (_options.AllowNonPublicAddresses) return;
+        if (_options.AllowNonPublicAddresses) return null;
         IPAddress[] addresses = IPAddress.TryParse(location.DnsSafeHost, out IPAddress? literal)
             ? new[] { literal }
 #if NET6_0_OR_GREATER
@@ -232,6 +295,14 @@ public sealed class CertificateRevocationFetcher : ICertificateRevocationFetcher
                 throw new HttpRequestException("The location resolves to the non-public address " + address + ".");
             }
         }
+#if NET8_0_OR_GREATER
+        return null;
+#else
+        if (location.Scheme == Uri.UriSchemeHttps) {
+            throw new HttpRequestException("On this framework an https location cannot be bound to its checked public address, so it is not fetched.");
+        }
+        return addresses[0];
+#endif
     }
 
 #if NET8_0_OR_GREATER
@@ -247,26 +318,32 @@ public sealed class CertificateRevocationFetcher : ICertificateRevocationFetcher
                 IPAddress[] addresses = IPAddress.TryParse(context.DnsEndPoint.Host, out IPAddress? literal)
                     ? new[] { literal }
                     : await Dns.GetHostAddressesAsync(context.DnsEndPoint.Host, cancellationToken).ConfigureAwait(false);
-                IPAddress? address = addresses.FirstOrDefault(PublicNetworkAddress.IsPublic);
-                if (address is null || addresses.Any(candidate => !PublicNetworkAddress.IsPublic(candidate))) {
+                if (addresses.Length == 0 || addresses.Any(candidate => !PublicNetworkAddress.IsPublic(candidate))) {
                     throw new HttpRequestException("The location resolves to a non-public address.");
                 }
-                var socket = new System.Net.Sockets.Socket(address.AddressFamily, System.Net.Sockets.SocketType.Stream,
-                    System.Net.Sockets.ProtocolType.Tcp) { NoDelay = true };
-                try {
-                    await socket.ConnectAsync(new IPEndPoint(address, context.DnsEndPoint.Port), cancellationToken).ConfigureAwait(false);
-                    return new System.Net.Sockets.NetworkStream(socket, ownsSocket: true);
-                } catch {
-                    socket.Dispose();
-                    throw;
+                Exception? last = null;
+                foreach (IPAddress address in addresses) {
+                    var socket = new System.Net.Sockets.Socket(address.AddressFamily, System.Net.Sockets.SocketType.Stream,
+                        System.Net.Sockets.ProtocolType.Tcp) { NoDelay = true };
+                    try {
+                        await socket.ConnectAsync(new IPEndPoint(address, context.DnsEndPoint.Port), cancellationToken).ConfigureAwait(false);
+                        return new System.Net.Sockets.NetworkStream(socket, ownsSocket: true);
+                    } catch (System.Net.Sockets.SocketException exception) {
+                        socket.Dispose();
+                        last = exception;
+                    } catch {
+                        socket.Dispose();
+                        throw;
+                    }
                 }
+                throw new HttpRequestException("No checked address of the location accepted a connection.", last);
             };
         }
         return handler;
     }
 #else
     private static HttpClientHandler CreateHandler(bool allowNonPublicAddresses) {
-        // Older frameworks have no connect callback; EnsureAllowedAsync checks resolved addresses instead.
+        // Older frameworks have no connect callback; requests are sent to the address EnsureAllowedAsync checked.
         _ = allowNonPublicAddresses;
         return new HttpClientHandler {
             AllowAutoRedirect = false,
@@ -276,7 +353,6 @@ public sealed class CertificateRevocationFetcher : ICertificateRevocationFetcher
         };
     }
 #endif
-
     private static byte[] CreateOcspRequest(BcX509Certificate certificate, BcX509Certificate issuer) {
         // SHA-1 CertID is the interoperable choice for lightweight responders (RFC 5019 section 2.1.1).
         var generator = new OcspReqGenerator();
@@ -284,7 +360,7 @@ public sealed class CertificateRevocationFetcher : ICertificateRevocationFetcher
         return generator.Generate().GetEncoded();
     }
 
-    private static bool HasStatusFor(byte[] encoded, BcX509Certificate certificate, BcX509Certificate issuer, out string? problem) {
+    private static bool HasVerifiedStatus(byte[] encoded, BcX509Certificate certificate, BcX509Certificate issuer, out string? problem) {
         try {
             var response = new OcspResp(encoded);
             if (response.Status != OcspRespStatus.Successful) {
@@ -295,22 +371,52 @@ public sealed class CertificateRevocationFetcher : ICertificateRevocationFetcher
                 problem = "not a basic OCSP response.";
                 return false;
             }
-            foreach (SingleResp single in basic.Responses) {
-                CertificateID id = single.GetCertID();
-                if (id.SerialNumber.Equals(certificate.SerialNumber) && id.MatchesIssuer(issuer) &&
-                    single.GetCertStatus() is not UnknownStatus) {
-                    problem = null;
-                    return true;
-                }
+            if (!CertificateRevocationEvaluator.HasVerifiedStatus(basic, certificate, issuer)) {
+                problem = "the response does not cover the certificate or is not signed by its issuer or an authorized responder.";
+                return false;
             }
-            problem = "the response does not cover the certificate.";
-            return false;
+            problem = null;
+            return true;
         } catch (Exception exception) when (IsRecoverable(exception)) {
             problem = exception.Message;
             return false;
         }
     }
 
+    private static bool IsCurrentCrlFrom(Org.BouncyCastle.X509.X509Crl crl, BcX509Certificate issuer) {
+        if (!crl.IssuerDN.Equivalent(issuer.SubjectDN, inOrder: true)) return false;
+        try {
+            crl.Verify(issuer.GetPublicKey());
+        } catch (Exception exception) when (IsRecoverable(exception)) {
+            return false;
+        }
+        return crl.NextUpdate is not DateTime next || next.ToUniversalTime() >= DateTime.UtcNow;
+    }
+
+    private static DateTime? ReadNextUpdate(byte[] encoded, bool isOcsp) {
+        try {
+            if (isOcsp) {
+                if (new OcspResp(encoded).GetResponseObject() is not BasicOcspResp basic) return null;
+                DateTime? earliest = null;
+                foreach (SingleResp single in basic.Responses) {
+                    if (single.NextUpdate is not DateTime next) return null;
+                    next = next.ToUniversalTime();
+                    if (!earliest.HasValue || next < earliest.Value) earliest = next;
+                }
+                return earliest;
+            }
+            return new Org.BouncyCastle.X509.X509CrlParser().ReadCrl(encoded)?.NextUpdate?.ToUniversalTime();
+        } catch (Exception exception) when (IsRecoverable(exception)) {
+            return null;
+        }
+    }
+
+    private sealed class CacheEntry {
+        internal Task<byte[]> Task { get; set; } = null!;
+        internal DateTime? ExpiresUtc { get; set; }
+
+        internal bool IsExpired(DateTime now) => ExpiresUtc is DateTime expires && now >= expires;
+    }
     private static List<Uri> ReadOcspLocations(BcX509Certificate certificate, List<SecurityFinding> findings, string label) {
         var result = new List<Uri>();
         try {
@@ -394,7 +500,11 @@ internal static class PublicNetworkAddress {
         if (bytes[0] == 0x20 && bytes[1] == 0x02) {                                       // 2002::/16 6to4 embeds IPv4
             return IsPublicIPv4(new[] { bytes[2], bytes[3], bytes[4], bytes[5] });
         }
-        if (bytes[0] == 0x00 && bytes[1] == 0x64 && bytes[2] == 0xFF && bytes[3] == 0x9B) { // 64:ff9b::/96 NAT64 embeds IPv4
+        if (bytes[0] == 0x00 && bytes[1] == 0x64 && bytes[2] == 0xFF && bytes[3] == 0x9B && bytes[4] == 0x00 && bytes[5] == 0x01) {
+            return false;                                                                  // 64:ff9b:1::/48 local-use translation
+        }
+        if (bytes[0] == 0x00 && bytes[1] == 0x64 && bytes[2] == 0xFF && bytes[3] == 0x9B &&
+            bytes.Skip(4).Take(8).All(static b => b == 0)) {                              // 64:ff9b::/96 NAT64 embeds IPv4
             return IsPublicIPv4(new[] { bytes[12], bytes[13], bytes[14], bytes[15] });
         }
         return true;

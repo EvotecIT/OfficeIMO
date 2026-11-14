@@ -139,9 +139,11 @@ using var fetcher = new CertificateRevocationFetcher(new CertificateRevocationFe
 CertificateRevocationEvidence evidence = await fetcher.FetchAsync(certificate, issuer, cancellationToken);
 ```
 
-Only http and https locations are used, connections go directly to the server, and responses are cached for the
-lifetime of the instance. Loopback, private, link-local and other non-public addresses are refused unless
-`AllowNonPublicAddresses` is set for an internal PKI. The returned responses are untrusted input: validators check
+Only http and https locations are used and connections go directly to the server. Responses are cached by the
+instance until their `nextUpdate` (five minutes when they have none; failures for one minute). Loopback, private,
+link-local and other non-public addresses are refused unless `AllowNonPublicAddresses` is set for an internal PKI.
+On .NET 8 and later the address is checked when the connection is made. On older frameworks the request is sent to
+the checked address, and https locations are refused because they cannot be bound to it. The returned responses are untrusted input: validators check
 their signatures, issuers and freshness. `OfficeIMO.Pdf` uses the fetcher for PAdES B-LT enrichment and for its
 online revocation policies.
 

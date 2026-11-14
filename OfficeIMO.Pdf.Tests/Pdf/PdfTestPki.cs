@@ -38,6 +38,7 @@ internal sealed class PdfTestPki : IDisposable {
     private readonly Task _serverLoop;
     private readonly bool _ocsp;
     private readonly bool _crl;
+    private readonly bool _crlCoversOnlyAuthorities;
     private readonly BcCertificate _rootCertificate;
     private readonly BcCertificate _tsaCertificate;
     private readonly BcCertificate? _responderCertificate;
@@ -45,7 +46,9 @@ internal sealed class PdfTestPki : IDisposable {
     private int _ocspRequests;
     private int _crlRequests;
 
-    internal PdfTestPki(DateTime now, bool ocsp = true, bool crl = true, bool delegatedResponder = true, DateTime? responderNotAfter = null) {
+    internal PdfTestPki(DateTime now, bool ocsp = true, bool crl = true, bool delegatedResponder = true, DateTime? responderNotAfter = null,
+        bool crlCoversOnlyAuthorities = false) {
+        _crlCoversOnlyAuthorities = crlCoversOnlyAuthorities;
         Now = now;
         ResponderTime = now;
         _ocsp = ocsp;
@@ -214,6 +217,10 @@ internal sealed class PdfTestPki : IDisposable {
             generator.AddCrlEntry(new BigInteger(revoked.Key, 16), revoked.Value, CrlReason.KeyCompromise);
         }
         generator.AddExtension(X509Extensions.CrlNumber, false, new CrlNumber(BigInteger.ValueOf(ResponderTime.Ticks)));
+        if (_crlCoversOnlyAuthorities) {
+            generator.AddExtension(X509Extensions.IssuingDistributionPoint, true,
+                new IssuingDistributionPoint(null, false, true, null, false, false));
+        }
         return generator.Generate(new Asn1SignatureFactory("SHA256WITHRSA", _rootKey.Private, Random)).GetEncoded();
     }
 

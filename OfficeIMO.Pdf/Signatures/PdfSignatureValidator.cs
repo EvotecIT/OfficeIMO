@@ -300,6 +300,40 @@ internal static class PdfSignatureValidator {
             }
         }
 
+        // Proof from a later time-stamp can make an earlier time-stamp valid, which can add proof in turn,
+        // so repeat until the proof set stops changing. Proof only grows, so this ends.
+        var revisionHashes = new Dictionary<long, string[]>();
+        var proof = new Dictionary<string, DateTimeOffset>(StringComparer.Ordinal);
+        int timestampCount = security.Signatures.Count(static signature => signature.IsDocumentTimestamp);
+        for (int pass = 0; pass <= timestampCount; pass++) {
+            ValidateDocumentTimestamps(pdf, security, provider, context, cancellationToken);
+            if (context.ValidationData.Revocation.Count == 0) break;
+            var next = new Dictionary<string, DateTimeOffset>(StringComparer.Ordinal);
+            foreach (TimestampCoverage coverage in context.ValidTimestampCoverage.OrderBy(static item => item.Time)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!revisionHashes.TryGetValue(coverage.RevisionEnd, out string[]? hashes)) {
+                    hashes = ReadRevisionValidationHashes(pdf, coverage.RevisionEnd, options, maxDecodedBytes, cancellationToken);
+                    revisionHashes[coverage.RevisionEnd] = hashes;
+                }
+                foreach (string hash in hashes) {
+                    if (!next.ContainsKey(hash)) next[hash] = coverage.Time;
+                }
+            }
+            if (next.Count == proof.Count && next.All(item => proof.TryGetValue(item.Key, out DateTimeOffset time) && time == item.Value)) break;
+            proof = next;
+            context.ValidationData = context.ValidationData.WithProofOfExistence(proof);
+        }
+        return context;
+    }
+
+    private static void ValidateDocumentTimestamps(
+        byte[] pdf,
+        PdfDocumentSecurityInfo security,
+        IPdfSignatureCryptographyProvider provider,
+        CryptographicContext context,
+        CancellationToken cancellationToken) {
+        context.DocumentTimestamps.Clear();
+        context.ValidTimestampCoverage.Clear();
         foreach (PdfSignatureInfo signature in security.Signatures) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!signature.IsDocumentTimestamp) continue;
@@ -316,23 +350,19 @@ internal static class PdfSignatureValidator {
                 context.ValidationData,
                 cancellationToken);
             context.DocumentTimestamps[signature] = new PrecomputedCryptography(result, timestampFindings);
-            if (usable &&
+            // Coverage counts only when the time-stamp excludes exactly its own /Contents, so every other byte
+            // of the revision is authenticated by it.
+            if (usable && IsContentsGapBound(signature) &&
                 result is { IsMathematicallyValid: true, TimestampStatus: PdfCryptographicValidationStatus.Valid, TimestampTime: DateTimeOffset time }) {
                 context.ValidTimestampCoverage.Add(new TimestampCoverage(revisionEnd, time));
             }
         }
+    }
 
-        if (context.ValidTimestampCoverage.Count > 0 && context.ValidationData.Revocation.Count > 0) {
-            var proof = new Dictionary<string, DateTimeOffset>(StringComparer.Ordinal);
-            foreach (TimestampCoverage coverage in context.ValidTimestampCoverage.OrderBy(static item => item.Time)) {
-                cancellationToken.ThrowIfCancellationRequested();
-                foreach (string hash in ReadRevisionValidationHashes(pdf, coverage.RevisionEnd, options, maxDecodedBytes, cancellationToken)) {
-                    if (!proof.ContainsKey(hash)) proof[hash] = coverage.Time;
-                }
-            }
-            context.ValidationData = context.ValidationData.WithProofOfExistence(proof);
-        }
-        return context;
+    private static bool IsContentsGapBound(PdfSignatureInfo signature) {
+        IReadOnlyList<long> values = signature.ByteRangeValues;
+        return values.Count == 4 && signature.ContentsEncodedSizeBytes.HasValue &&
+            values[2] - (values[0] + values[1]) == signature.ContentsEncodedSizeBytes.Value;
     }
 
     /// <summary>Reads the DSS revocation values present in the revision a document time-stamp covers.</summary>

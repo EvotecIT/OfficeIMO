@@ -57,6 +57,24 @@ public sealed class PdfSignatureRevocationTests {
     }
 
     [Fact]
+    public void CrlScopedToAuthoritiesDoesNotProveSignerIsGood() {
+        using var pki = new PdfTestPki(Now, ocsp: false, crlCoversOnlyAuthorities: true);
+        using X509Certificate2 signer = pki.IssueSigner("Out of CRL scope", Now.AddDays(-30), Now.AddDays(30));
+        byte[] signed = pki.Sign(signer, timestampTime: Now.AddHours(-1));
+        using var fetcher = InternalFetcher();
+        var provider = new PdfCmsSignatureCryptographyProvider(OfficeSecurityProvider.Default, pki.VerificationOptions()) {
+            RevocationPolicy = CertificateRevocationPolicy.Online,
+            RevocationFetcher = fetcher
+        };
+
+        PdfSignatureValidationResult signature = Assert.Single(PdfDocument.Load(signed).Security.ValidateSignatures(provider).Signatures);
+
+        Assert.Equal(PdfCryptographicValidationStatus.Indeterminate, signature.CryptographicResult!.RevocationStatus);
+        Assert.Contains(signature.Findings, finding => finding.Code == "RevocationDataUnusable" &&
+            finding.Message.Contains("covers only CA certificates", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task ExpiredSignerRemainsValidWhenDocumentTimestampProvesTheValidationData() {
         // The signer and the OCSP responder certificates have both expired by now. The signature time-stamp
         // proves when the signature existed; the document time-stamp proves the DSS data existed while the
