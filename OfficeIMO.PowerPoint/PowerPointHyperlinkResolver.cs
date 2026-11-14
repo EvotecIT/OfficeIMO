@@ -16,7 +16,7 @@ namespace OfficeIMO.PowerPoint {
 
             if (string.Equals(hyperlink.Action?.Value, "ppaction://hlinkshowjump?jump=nextslide",
                     StringComparison.OrdinalIgnoreCase)) {
-                PresentationPart? show = sourceSlidePart?.GetParentParts().OfType<PresentationPart>().FirstOrDefault();
+                PresentationPart? show = sourceSlidePart?.GetParentPresentationPart();
                 P.SlideIdList? orderedSlides = show?.Presentation?.SlideIdList;
                 if (show != null && orderedSlides != null) {
                     int position = 0;
@@ -47,7 +47,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             PresentationPart? presentationPart = sourceSlidePart?
-                .GetParentParts().OfType<PresentationPart>().FirstOrDefault();
+                .GetParentPresentationPart();
             SlidePart? targetSlidePart = null;
             if (relationship?.IsExternal == false && ownerPart is OpenXmlPart hyperlinkOwner) {
                 Uri targetUri = ResolvePartUri(hyperlinkOwner.Uri, relationship.Uri);
@@ -96,8 +96,7 @@ namespace OfficeIMO.PowerPoint {
             targetSlidePart = null;
             if (!TryParseSlideFragment(uri, out int slideNumber)) return false;
 
-            PresentationPart? presentationPart = sourceSlidePart.GetParentParts()
-                .OfType<PresentationPart>().FirstOrDefault();
+            PresentationPart? presentationPart = sourceSlidePart.GetParentPresentationPart();
             P.SlideIdList? slideIds = presentationPart?.Presentation?.SlideIdList;
             P.SlideId? slideId = slideIds?.Elements<P.SlideId>()
                 .Skip(slideNumber - 1).FirstOrDefault();

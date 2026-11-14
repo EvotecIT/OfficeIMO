@@ -25,7 +25,7 @@ internal static partial class PdfPageContentVisualParser {
     }
 
     public static IReadOnlyList<PdfPageVisualPrimitive> Parse(
-        string content,
+        PdfContentSource content,
         double pageWidth,
         double pageHeight,
         IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates,
@@ -71,12 +71,13 @@ internal static partial class PdfPageContentVisualParser {
         PdfStrokeDashPattern? initialStrokeDashPattern = null,
         Action? operationCheck = null,
         double? initialMiterLimit = null,
-        Action<int>? strokeDashProjectionConsumer = null) {
-        if (string.IsNullOrEmpty(content)) {
+        Action<int>? strokeDashProjectionConsumer = null,
+        int maxGraphicsStateDepth = PdfReadLimits.DefaultMaxGraphicsStateDepth) {
+        if (content.IsNullOrEmpty) {
             return Array.Empty<PdfPageVisualPrimitive>();
         }
 
-        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands, primitiveVisitor, retainPrimitiveData, scaleStrokeWidthWithTransform, unsupportedShadingTransformVisitor, requireExactType3ShadingProjection, authoredShadingInvocationVisitor, unrenderedShadingVisitor, unsupportedOperatorVisitor, initialFillPattern, initialStrokePattern, textClippingBudget, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection, outputIntentColorTransform, inlineImageArrayComponentCount, initialStrokeDashPattern, operationCheck, initialMiterLimit);
+        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands, primitiveVisitor, retainPrimitiveData, scaleStrokeWidthWithTransform, unsupportedShadingTransformVisitor, requireExactType3ShadingProjection, authoredShadingInvocationVisitor, unrenderedShadingVisitor, unsupportedOperatorVisitor, initialFillPattern, initialStrokePattern, textClippingBudget, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection, outputIntentColorTransform, inlineImageArrayComponentCount, initialStrokeDashPattern, operationCheck, initialMiterLimit, maxGraphicsStateDepth);
         parser.SetStrokeDashProjectionConsumer(strokeDashProjectionConsumer);
         return parser.Parse();
     }
@@ -215,7 +216,7 @@ internal static partial class PdfPageContentVisualParser {
     }
 
     private sealed partial class Parser {
-        private readonly string _content;
+        private readonly PdfContentSource _content;
         private readonly double _pageWidth;
         private readonly double _pageHeight;
         private readonly IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? _graphicsStates;
@@ -269,6 +270,7 @@ internal static partial class PdfPageContentVisualParser {
         private bool _currentSubpathHasDraw;
         private readonly int _maxOperations;
         private readonly int _maxNestingDepth;
+        private readonly int _maxGraphicsStateDepth;
         private readonly int _maxOperands;
         private int _compatibilityDepth;
         private bool _hasInexactDash;
@@ -283,7 +285,7 @@ internal static partial class PdfPageContentVisualParser {
         private PdfPaintColorSelection? _strokeColorSelection;
 
         public Parser(
-            string content,
+            PdfContentSource content,
             double pageWidth,
             double pageHeight,
             IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates,
@@ -328,7 +330,8 @@ internal static partial class PdfPageContentVisualParser {
             Func<PdfArray, int>? inlineImageArrayComponentCount,
             PdfStrokeDashPattern? initialStrokeDashPattern,
             Action? operationCheck,
-            double? initialMiterLimit = null) {
+            double? initialMiterLimit,
+            int maxGraphicsStateDepth) {
             _content = content;
             _pageWidth = pageWidth;
             _pageHeight = pageHeight;
@@ -344,6 +347,7 @@ internal static partial class PdfPageContentVisualParser {
             _paintOrderOffset = paintOrderOffset;
             _maxOperations = maxOperations;
             _maxNestingDepth = maxNestingDepth;
+            _maxGraphicsStateDepth = maxGraphicsStateDepth;
             _maxOperands = maxOperands;
             _primitiveVisitor = primitiveVisitor;
             _retainPrimitiveData = primitiveVisitor == null || retainPrimitiveData;
@@ -462,7 +466,8 @@ internal static partial class PdfPageContentVisualParser {
                 maxOperands: _maxOperands,
                 dispatchInvalidOperations: _unsupportedOperatorVisitor != null,
                 inlineImageArrayComponentCount: _inlineImageArrayComponentCount,
-                operandBuffer: _args);
+                operandBuffer: _args,
+                maxGraphicsStateDepth: _maxGraphicsStateDepth);
 
             return _primitives == null || _primitives.Count == 0
                 ? Array.Empty<PdfPageVisualPrimitive>()

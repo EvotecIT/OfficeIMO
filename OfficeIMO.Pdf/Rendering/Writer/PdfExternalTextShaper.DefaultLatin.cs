@@ -3,6 +3,20 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfExternalTextShaper {
+    /// <summary>
+    /// Shapes the run <see cref="TryShapeText(string, PdfTrueTypeFontProgram, PdfTextShapingOptions, out PdfGlyphRun)"/>
+    /// would produce through default Latin shaping, or declines when drawing would take another path.
+    /// </summary>
+    internal static bool TryShapeCacheableDefaultLatinText(string text, PdfTrueTypeFontProgram font, PdfTextShapingOptions options, out PdfGlyphRun glyphRun) {
+        if (options.PreservesPaintedGlyphs || options.ReportControlCharacters || !options.FeatureSettings.IsDefault ||
+            !UsesDefaultLatinShaping(text, options) || RequiresCompleteDefaultLatinShaping(text)) {
+            glyphRun = null!;
+            return false;
+        }
+        return TryShapeDefaultLatinText(text, font.FontName, font.FontDataForInspection, false, font.UnitsPerEm, font.GlyphCount,
+            font.GetGlyphWidth1000, options.RecordGlyphUsage ? font.RecordGlyphUsage : null, options, out glyphRun);
+    }
+
     // Default Latin shaping has nominal advances plus default pair kerning. Project the shared
     // substituted tokens directly, retaining each source index and continuation cluster.
     private static bool TryShapeDefaultLatinText(string text, string fontName, byte[] fontData,

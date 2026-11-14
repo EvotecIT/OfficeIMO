@@ -135,6 +135,20 @@ but cannot register or enable another implementation. External references and un
 Document packages remain responsible for package relationships, content types, signed-part selection, and mutation
 safety.
 
+## Raw public-key signatures
+
+`OfficeSecurityProvider` also implements `IOfficePublicKeySignatureVerifier`: RSASSA-PKCS1-v1_5 with SHA-256 or SHA-1
+over DER SubjectPublicKeyInfo or PKCS #1 RSA keys, and Ed25519 (RFC 8032) over raw 32-byte keys. `OfficeIMO.Email`
+uses it for DKIM and ARC. Malformed keys and signatures are reported as typed statuses rather than exceptions, and RSA
+keys above 16384 bits are refused.
+
+## OpenPGP
+
+`OfficeSecurityProvider` implements `IOfficeOpenPgpProvider` over BouncyCastle: detached and cleartext signature
+verification and message decryption with integrity checks, using only the keys in the caller's
+`OfficeOpenPgpKeySet`. It covers version 4 (RFC 4880) keys and signatures; RFC 9580 version 6 packets and AEAD
+encrypted data are reported as unsupported. `OfficeIMO.Email` uses it for PGP/MIME.
+
 ## NativeAOT and trimming
 
 Ordinary OfficeIMO applications do not carry this package unless they opt in. The repository publishes a separate

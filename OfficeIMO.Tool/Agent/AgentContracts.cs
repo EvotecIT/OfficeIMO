@@ -97,6 +97,8 @@ public sealed class AgentSearchHit {
     public string? FolderId { get; set; }
     public string? MatchedFields { get; set; }
     public IReadOnlyList<int>? Pages { get; set; }
+    /// <summary>BM25 relevance for ranked document hits; absent for literal matches and mailbox results.</summary>
+    public double? Score { get; set; }
 }
 
 /// <summary>Bounded content retrieved for one opaque result identifier.</summary>

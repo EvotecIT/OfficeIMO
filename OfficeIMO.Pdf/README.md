@@ -150,13 +150,13 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Create | 2 | 0 | 0 | 0 | 0 | 0 |
-| Read | 2 | 0 | 0 | 0 | 0 | 0 |
-| Edit | 2 | 0 | 0 | 0 | 0 | 0 |
+| Create | 2 | 0 | 0 | 0 | 1 | 0 |
+| Read | 3 | 0 | 0 | 0 | 0 | 0 |
+| Edit | 2 | 0 | 0 | 0 | 1 | 0 |
 | Preserve | 0 | 1 | 0 | 0 | 0 | 0 |
-| Inspect | 3 | 0 | 0 | 0 | 0 | 0 |
-| Validate | 2 | 0 | 0 | 0 | 0 | 1 |
-| Remove | 2 | 0 | 0 | 0 | 0 | 0 |
+| Inspect | 4 | 0 | 0 | 0 | 0 | 0 |
+| Validate | 2 | 0 | 0 | 0 | 0 | 2 |
+| Remove | 2 | 0 | 0 | 1 | 0 | 0 |
 | Convert | 0 | 2 | 0 | 0 | 0 | 0 |
 | Export | 5 | 0 | 0 | 0 | 0 | 0 |
 

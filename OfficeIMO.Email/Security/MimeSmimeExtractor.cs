@@ -187,7 +187,7 @@ internal static class MimeSmimeExtractor {
         return false;
     }
 
-    private static byte[] DecodePart(
+    internal static byte[] DecodePart(
         ArraySegment<byte> part,
         byte[] source,
         EmailReaderOptions options,

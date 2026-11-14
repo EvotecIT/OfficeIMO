@@ -29,15 +29,22 @@ namespace OfficeIMO.Pdf {
         }
 
         private static double SumPredefinedCidWidths(byte[] bytes, CidWidthMap? widths, Lazy<PdfPredefinedCMap> predefined, PdfFontResource font) {
-            if (bytes == null || bytes.Length < 2 || bytes.Length % 2 != 0) return 0D;
-            double sum = 0D;
+            if (bytes == null || bytes.Length == 0) return 0D;
             PdfPredefinedCMap mapping = predefined.Value;
             // An embedded CMap this reader cannot use selects no CIDs. Measure as an unmapped composite font does,
             // not as CID 0 for every code, so text decoded through ToUnicode keeps its positions.
-            if (ReferenceEquals(mapping, PdfPredefinedCMap.Empty)) return widths != null ? SumWidthsCid(bytes, widths) : bytes.Length / 2D * 1000D;
-            for (int index = 0; index < bytes.Length; index += 2) {
-                if (!mapping.TryGetPaintedCid(bytes, index, out ushort cid)) throw new PdfUnsupportedTextMappingException(font);
+            if (ReferenceEquals(mapping, PdfPredefinedCMap.Empty)) {
+                if (bytes.Length % 2 != 0) return 0D;
+                return widths != null ? SumWidthsCid(bytes, widths) : bytes.Length / 2D * 1000D;
+            }
+            // A string that ends inside a code is a prefix probe; it has no advance yet.
+            if (!mapping.HasCompleteCodes(bytes, 0, bytes.Length)) return 0D;
+            double sum = 0D;
+            for (int index = 0; index < bytes.Length;) {
+                int length = mapping.GetCodeLength(bytes, index);
+                if (!mapping.TryGetPaintedCid(bytes, index, length, out int cid)) throw new PdfUnsupportedTextMappingException(font);
                 sum += widths?.GetWidth(cid) ?? 1000D;
+                index += length;
             }
             return sum;
         }

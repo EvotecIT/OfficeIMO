@@ -11,7 +11,8 @@ internal sealed class PdfShortTextCache<T> where T : class {
     private const int MaximumEntries = 64;
     private const int MaximumGlyphs = 8192;
     private readonly object _lock = new();
-    private readonly Dictionary<(string Text, string? Language, OfficeTextDirection Direction), LinkedListNode<Entry>> _entries = new();
+    private readonly Dictionary<(string Text, string? Language, OfficeTextDirection Direction), LinkedListNode<Entry>> _entries =
+        new(KeyComparer.Instance);
     private readonly LinkedList<Entry> _recent = new();
     private int _glyphs;
 
@@ -53,6 +54,21 @@ internal sealed class PdfShortTextCache<T> where T : class {
             _entries.Add(key, node);
             _glyphs += glyphs;
         }
+    }
+
+    // The same equality as the default tuple comparer, without its per-field generic comparer dispatch, which
+    // .NET Framework does not devirtualize.
+    private sealed class KeyComparer : IEqualityComparer<(string Text, string? Language, OfficeTextDirection Direction)> {
+        internal static readonly KeyComparer Instance = new();
+
+        public bool Equals((string Text, string? Language, OfficeTextDirection Direction) x,
+            (string Text, string? Language, OfficeTextDirection Direction) y) =>
+            x.Direction == y.Direction && string.Equals(x.Text, y.Text, StringComparison.Ordinal)
+            && string.Equals(x.Language, y.Language, StringComparison.Ordinal);
+
+        public int GetHashCode((string Text, string? Language, OfficeTextDirection Direction) key) =>
+            unchecked(StringComparer.Ordinal.GetHashCode(key.Text) * 31
+                + (key.Language == null ? 0 : StringComparer.Ordinal.GetHashCode(key.Language)) * 7 + (int)key.Direction);
     }
 
     private sealed class Entry {

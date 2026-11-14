@@ -50,11 +50,11 @@ public static partial class OfficeDrawingRasterRenderer {
     private static Func<double, double, OfficeColor> CreateMarkerPaint(OfficeColor fallback, OfficeLinearGradient? linear,
         OfficeRadialGradient? radial, (double X, double Y, double Width, double Height) bounds,
         OfficeTransform contourToLocal, OfficeTransform localToRaster, OfficePoint endpoint) {
-        if (linear == null && radial == null) return (_, _) => fallback;
+        if (linear == null && radial == null) return OfficeRasterCanvas.SolidPaint(fallback);
         if (!localToRaster.TryInvert(out var rasterToLocal) || !contourToLocal.TryInvert(out var localToPaint)) {
             // A collapsed transform has no inverse field. Retain the endpoint brush.
             OfficeColor endpointColor = SampleStrokeGradient(linear, radial, bounds.X, bounds.Y, bounds.Width, bounds.Height, endpoint.X, endpoint.Y) ?? fallback;
-            return (_, _) => endpointColor;
+            return OfficeRasterCanvas.SolidPaint(endpointColor);
         }
         OfficeTransform rasterToPaint = rasterToLocal.Then(localToPaint);
         return (x, y) => {

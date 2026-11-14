@@ -599,6 +599,61 @@ claim the allocation lead. The prior OfficeIMO path measured approximately
 compact worksheet cells, and ordered parallel PSObject projection account for
 the improvement while preserving valid XLSX output and source-row order.
 
+## Engine lanes on .NET Framework and .NET
+
+`--compare-engine-lanes` measures the workbook shapes PSWriteOffice produces, so Windows
+PowerShell 5.1 gaps show up at the engine level. The project also builds for `net472` on
+Windows; that target compiles only these lanes, with EPPlus and ClosedXML.
+
+- `table-save`: a styled table from 10 mixed-type columns typed as `object`, as PowerShell
+  objects arrive (`New-OfficeExcel` with `Add-OfficeExcelTable`).
+- `autofit`: the same table with fitted column widths.
+- `autofit-writer`: the same rows through `ExcelDocument.CreateWriter` with `AutoFit`, as
+  `Export-OfficeExcel` writes them. The competitors run their `autofit` code.
+- `table-chart`: the table with a clustered column chart over two adjacent columns. ClosedXML
+  does not create charts.
+- `table-pivot`: the table with a pivot of average Score and summed TicketCount by Region and
+  Department, each measure with a number format.
+- `report`: the `report-workbook` sheet without its chart: the frozen table, a cell-value rule,
+  a data bar, a color scale and an icon set, a list validation, number formats on two columns
+  and the pivot. The pivot lanes compare with EPPlus.
+
+Each lane first checks the saved package: every row, a table part, a fitted width for every
+column in the fitting lanes, a chart part in the chart lane, a pivot cache in the pivot lanes
+and the four rules and the validation in the report lane.
+
+```powershell
+dotnet run -c Release -f net10.0 --project OfficeIMO.Excel.Benchmarks -- --compare-engine-lanes --rows 5000,10000,25000
+dotnet run -c Release -f net472 --project OfficeIMO.Excel.Benchmarks -- --compare-engine-lanes --rows 5000,10000,25000
+```
+
+`--lane` selects lanes by name, and `--iterations` and `--warmups` set the median sample.
+
+### Dated engine-lane snapshot (2026-11-14)
+
+Median ms of 7 runs after 2 warmups, 64-bit processes pinned to one CCD of a shared AMD
+Ryzen 9 9950X3D2 workstation; other builds ran at the same time, so read ratios, not absolutes.
+
+| Lane | Rows | .NET 10 OfficeIMO | EPPlus | ClosedXML | .NET Framework OfficeIMO | EPPlus | ClosedXML |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| table-save | 10000 | 13.7 | 298.4 | 363.0 | 54.1 | 257.4 | 466.2 |
+| autofit | 10000 | 17.9 | 385.6 | 640.3 | 64.5 | 650.5 | 1038.6 |
+| autofit-writer | 10000 | 67.6 | 317.7 | 581.6 | 170.6 | 661.5 | 902.3 |
+| table-chart | 10000 | 127.6 | 222.1 | n/a | 258.2 | 261.5 | n/a |
+| table-save | 25000 | 31.8 | 611.1 | 672.9 | 106.3 | 572.2 | 1047.6 |
+| autofit | 25000 | 35.9 | 621.1 | 1412.0 | 127.0 | 889.7 | 2361.4 |
+| autofit-writer | 25000 | 140.6 | 634.3 | 1510.1 | 319.0 | 948.5 | 2307.6 |
+| table-chart | 25000 | 513.5 | 537.3 | n/a | 584.2 | 622.8 | n/a |
+
+The pivot lanes, measured the same way later that day (EPPlus only):
+
+| Lane | Rows | .NET 10 OfficeIMO | EPPlus | .NET Framework OfficeIMO | EPPlus |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| table-pivot | 5000 | 9.0 | 514.6 | 33.9 | 158.8 |
+| report | 5000 | 12.4 | 218.8 | 28.4 | 136.5 |
+| table-pivot | 10000 | 18.1 | 439.0 | 58.4 | 329.1 |
+| report | 10000 | 31.0 | 470.1 | 61.0 | 347.2 |
+
 ## Library comparison
 
 ```powershell

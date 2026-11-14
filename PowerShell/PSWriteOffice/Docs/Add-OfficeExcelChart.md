@@ -163,7 +163,7 @@ Accept wildcard characters: False
 ```
 
 ### -NoCachedData
-Omit cached chart values. Requires a contiguous category/value source block.
+Omit cached chart values. Not available for scatter charts of non-adjacent table columns.
 
 ```yaml
 Type: SwitchParameter

@@ -16,6 +16,18 @@ public sealed partial class CsvRowWriter
         WriteDataReader(reader, CancellationToken.None);
 
     /// <summary>
+    /// Writes the rows of a <see cref="DataTable"/> using its column names as CSV columns: the rows in order without
+    /// the deleted ones, each value from the row's current version, as writing the table's data reader does.
+    /// </summary>
+    /// <param name="table">Source table with at least one column.</param>
+    public void WriteDataTable(DataTable table)
+    {
+        ArgumentNullException.ThrowIfNull(table);
+        using var reader = new CsvDataTableRowReader(table);
+        WriteDataReader(reader, CancellationToken.None);
+    }
+
+    /// <summary>
     /// Writes all rows from an <see cref="IDataReader"/> using the reader field names as CSV columns.
     /// </summary>
     /// <param name="reader">Source data reader positioned before the first row.</param>
@@ -44,7 +56,6 @@ public sealed partial class CsvRowWriter
 
         EnsureColumns(columns);
 
-#if NET8_0_OR_GREATER
         // Typed values keep the default quoting path, with or without date and null formatting.
         if ((_useDefaultWritePath || _useFormattedDefaultWritePath)
             && CsvWriter.TryCreateDataReaderFieldKinds(reader) is { } fieldKinds)
@@ -52,7 +63,7 @@ public sealed partial class CsvRowWriter
             WriteDataReaderRecords(reader, fieldKinds, cancellationToken);
             return;
         }
-#endif
+
         var usesBatchedRecords = _batchFormattedTextDataReader || _useDefaultWritePath;
         int flushThreshold = _useDefaultWritePath
             ? CsvWriter.DataReaderFlushThreshold

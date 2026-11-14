@@ -15,22 +15,29 @@ namespace OfficeIMO.Word {
             }
 
             var body = BodyRoot;
-            var finalSectionProperties = GetFinalSectionPropertiesInsertionBoundary();
+            var finalSectionProperties = GetFinalSectionPropertiesInsertionBoundary(body);
             if (finalSectionProperties != null) {
-                if (_lastAppendedBodyBlock?.Parent == body
-                    && ReferenceEquals(_lastAppendedBodyBlock.NextSibling(), finalSectionProperties)) {
-                    body.InsertAfter(element, _lastAppendedBodyBlock);
-                } else {
-                    body.InsertBefore(element, finalSectionProperties);
-                }
+                InsertBodyBlockBefore(body, element, finalSectionProperties);
             } else {
                 body.AppendChild(element);
+                _lastAppendedBodyBlock = element;
+            }
+        }
+
+        /// <summary>Inserts a body block before <paramref name="boundary"/>, a direct child of the body.</summary>
+        internal void InsertBodyBlockBefore(Body body, OpenXmlElement element, OpenXmlElement boundary) {
+            if (_lastAppendedBodyBlock?.Parent == body
+                && ReferenceEquals(_lastAppendedBodyBlock.NextSibling(), boundary)) {
+                body.InsertAfter(element, _lastAppendedBodyBlock);
+            } else {
+                body.InsertBefore(element, boundary);
             }
             _lastAppendedBodyBlock = element;
         }
 
-        internal SectionProperties? GetFinalSectionPropertiesInsertionBoundary() {
-            var body = BodyRoot;
+        internal SectionProperties? GetFinalSectionPropertiesInsertionBoundary() => GetFinalSectionPropertiesInsertionBoundary(BodyRoot);
+
+        private static SectionProperties? GetFinalSectionPropertiesInsertionBoundary(Body body) {
             var finalSectionProperties = body.LastChild as SectionProperties;
             if (finalSectionProperties != null) {
                 return finalSectionProperties;

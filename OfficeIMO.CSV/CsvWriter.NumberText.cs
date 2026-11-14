@@ -1,5 +1,7 @@
 #if NET8_0_OR_GREATER
 using System.Globalization;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace OfficeIMO.CSV;
@@ -11,12 +13,14 @@ internal static partial class CsvWriter
     internal const int IntegerMaximumLength = 20;
 
     /// <summary>
-    /// Formats with the invariant culture and default format. Integers, doubles that are short exact decimals and
-    /// decimals with a 64-bit coefficient are written here, the remaining doubles by <see cref="CsvShortestDouble"/>;
-    /// each gives the runtime's text with less work.
+    /// Formats with the invariant culture and default format into UTF-16 or UTF-8 units. Integers, doubles that are
+    /// short exact decimals and decimals with a 64-bit coefficient are written here, the remaining doubles by
+    /// <see cref="CsvShortestDouble"/>; each gives the runtime's text with less work.
     /// </summary>
-    internal static bool TryFormatInvariant<T>(T value, Span<char> destination, out int written)
-        where T : ISpanFormattable
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool TryFormatInvariant<T, TChar>(T value, Span<TChar> destination, out int written)
+        where T : ISpanFormattable, IUtf8SpanFormattable
+        where TChar : unmanaged
     {
         if (typeof(T) == typeof(int) && destination.Length >= IntegerMaximumLength)
         {
@@ -44,7 +48,9 @@ internal static partial class CsvWriter
             return true;
         }
 
-        return value.TryFormat(destination, out written, default, CultureInfo.InvariantCulture);
+        return typeof(TChar) == typeof(byte)
+            ? value.TryFormat(MemoryMarshal.Cast<TChar, byte>(destination), out written, default, CultureInfo.InvariantCulture)
+            : value.TryFormat(MemoryMarshal.Cast<TChar, char>(destination), out written, default, CultureInfo.InvariantCulture);
     }
 
     /// <summary>
@@ -136,32 +142,44 @@ internal static partial class CsvWriter
             return false;
         }
 
-        if (magnitude < 1e8)
+        // The digit stores below assume little-endian order; elsewhere the scale loop answers for these values too.
+        if (magnitude < 1e8 && BitConverter.IsLittleEndian)
         {
             // Below 10^8 the product with 10^7 is within 0.15 of the scaled decimal, so one check at the largest
-            // scale answers for every smaller one: k places pass exactly when m * 10^(7-k) passes at seven places,
-            // and stripping its trailing zeros gives the smallest scale.
+            // scale answers for every smaller one: k places pass exactly when m * 10^(7-k) passes at seven places.
             double scaled = Math.Round(magnitude * 1e7);
             if (scaled / 1e7 != magnitude)
             {
                 return false;
             }
 
-            long fixedDigits = (long)scaled;
-            int fixedScale = DecimalScales.Length - 1;
-            while (fixedScale > 0)
+            // The integer part has at most eight digits and the fraction seven; both are converted to eight
+            // digits at once and written without per-digit branches, the fraction without its trailing zeros.
+            ulong fixedDigits = (ulong)scaled;
+            uint integer = (uint)(fixedDigits / 10_000_000);
+            uint fraction = (uint)(fixedDigits - integer * 10_000_000UL);
+            ref TChar first = ref MemoryMarshal.GetReference(destination);
+            int position = 0;
+            if (value < 0)
             {
-                long quotient = fixedDigits / 10;
-                if (fixedDigits - quotient * 10 != 0)
-                {
-                    break;
-                }
-
-                fixedDigits = quotient;
-                fixedScale--;
+                first = CsvShortestDouble.Unit<TChar>('-');
+                position = 1;
             }
 
-            written = WriteFixed(value < 0, (ulong)fixedDigits, fixedScale, destination);
+            int integerDigits = CsvShortestDouble.CountDigits(integer | 1);
+            StoreEightDigits(ref Unsafe.Add(ref first, position), EightDigits(integer) >> ((8 - integerDigits) * 8));
+            position += integerDigits;
+            if (fraction == 0)
+            {
+                written = position;
+                return true;
+            }
+
+            Unsafe.Add(ref first, position) = CsvShortestDouble.Unit<TChar>('.');
+            ulong fractionDigits = EightDigits(fraction * 10);
+            StoreEightDigits(ref Unsafe.Add(ref first, position + 1), fractionDigits);
+            // The last digit is the appended zero; each trailing zero digit is a zero byte of the digit values.
+            written = position + 1 + 8 - (BitOperations.LeadingZeroCount(fractionDigits - AsciiZeros) >> 3);
             return true;
         }
 
@@ -181,6 +199,46 @@ internal static partial class CsvWriter
         }
 
         return false;
+    }
+
+    private const ulong AsciiZeros = 0x30303030_30303030UL;
+
+    /// <summary>
+    /// The eight decimal digits of a value below 10^8, leading zeros included, as ASCII bytes with the first digit
+    /// in the lowest byte: the value is split into two four-digit halves, each half into two-digit quarters and each
+    /// quarter into its digits, all lanes at once, dividing by multiplying with scaled reciprocals that are exact in
+    /// these ranges (x * 10486 >> 20 is x / 100 below 10^4, y * 103 >> 10 is y / 10 below 100).
+    /// </summary>
+    private static ulong EightDigits(uint value)
+    {
+        uint high = value / 10_000;
+        ulong halves = high | ((ulong)(value - high * 10_000) << 32);
+        ulong hundreds = ((halves * 10486) >> 20) & 0x0000007F_0000007FUL;
+        ulong quarters = hundreds | ((halves - hundreds * 100) << 16);
+        ulong tens = ((quarters * 103) >> 10) & 0x000F000F_000F000FUL;
+        return (tens | ((quarters - tens * 10) << 8)) + AsciiZeros;
+    }
+
+    /// <summary>Stores the bytes of <see cref="EightDigits"/>, lowest first, as eight UTF-8 or UTF-16 units on a little-endian machine.</summary>
+    private static void StoreEightDigits<TChar>(ref TChar target, ulong digits)
+        where TChar : unmanaged
+    {
+        if (typeof(TChar) == typeof(byte))
+        {
+            Unsafe.WriteUnaligned(ref Unsafe.As<TChar, byte>(ref target), digits);
+            return;
+        }
+
+        ref byte bytes = ref Unsafe.As<TChar, byte>(ref target);
+        Unsafe.WriteUnaligned(ref bytes, Widen((uint)digits));
+        Unsafe.WriteUnaligned(ref Unsafe.Add(ref bytes, 8), Widen((uint)(digits >> 32)));
+
+        // Four bytes to four 16-bit lanes, lowest first.
+        static ulong Widen(uint four)
+        {
+            ulong value = (four | ((ulong)four << 16)) & 0x0000FFFF_0000FFFFUL;
+            return (value | (value << 8)) & 0x00FF00FF_00FF00FFUL;
+        }
     }
 
     /// <summary>

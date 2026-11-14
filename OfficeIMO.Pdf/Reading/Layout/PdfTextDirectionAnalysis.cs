@@ -16,7 +16,7 @@ internal static class PdfTextDirectionAnalysis {
             direction == PdfReadingDirection.RightToLeft ? OfficeTextDirection.RightToLeft : OfficeTextDirection.LeftToRight, token);
     }
 
-    private static bool HasRightToLeftFragment<T>(IReadOnlyList<T> fragments, Func<T, string> getText,
+    internal static bool HasRightToLeftFragment<T>(IReadOnlyList<T> fragments, Func<T, string> getText,
         System.Threading.CancellationToken token) {
         for (int index = 0; index < fragments.Count; index++) {
             if ((index & 255) == 0) token.ThrowIfCancellationRequested();

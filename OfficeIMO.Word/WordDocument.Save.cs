@@ -459,6 +459,16 @@ namespace OfficeIMO.Word {
 
         private byte[] CreateClonedPackageSnapshot(string? filePath) {
             using var memoryStream = new MemoryStream();
+            // Without a document type to align, the copy is final once written; reopening it through the SDK only
+            // to copy core properties and dispose it rewrote the whole package again.
+            if (string.IsNullOrEmpty(filePath) &&
+                WordPackageSnapshot.TryWriteFinalCopy(_wordprocessingDocument, memoryStream, out bool needsNormalization)) {
+                if (needsNormalization) {
+                    memoryStream.Seek(0, SeekOrigin.Begin);
+                    WordPackageCompatibility.NormalizeOpenOfficeRelationships(memoryStream);
+                }
+                return memoryStream.ToArray();
+            }
             using (var clone = WordPackageSnapshot.Clone(_wordprocessingDocument, memoryStream)) {
                 if (!string.IsNullOrEmpty(filePath)) {
                     AlignDocumentTypeWithFilePath(clone, filePath!);
@@ -475,7 +485,10 @@ namespace OfficeIMO.Word {
             _wordprocessingDocument.Save();
             _ownedPackageStream!.Flush();
             byte[] packageBytes = _ownedPackageStream.ToArray();
-            if (!_normalizeOpenOfficeRelationshipsOnSave && string.IsNullOrEmpty(filePath)) {
+            // Normalizing reopens and rewrites the package, so it runs only when a relationship target needs it.
+            bool normalize = _normalizeOpenOfficeRelationshipsOnSave &&
+                WordPackageSnapshot.NeedsOpenOfficeNormalization(_wordprocessingDocument);
+            if (!normalize && string.IsNullOrEmpty(filePath)) {
                 return packageBytes;
             }
             using var output = new MemoryStream(packageBytes.Length + 4096);
@@ -485,7 +498,7 @@ namespace OfficeIMO.Word {
                 using WordprocessingDocument savedDocument = WordprocessingDocument.Open(output, true);
                 AlignDocumentTypeWithFilePath(savedDocument, filePath!);
             }
-            if (_normalizeOpenOfficeRelationshipsOnSave) {
+            if (normalize) {
                 output.Position = 0;
                 WordPackageCompatibility.NormalizeOpenOfficeRelationships(output);
             }

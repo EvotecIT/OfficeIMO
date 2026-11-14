@@ -7115,6 +7115,12 @@
               "pipeline": "none"
             },
             {
+              "name": "MaxInputBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "Encoding",
               "type": "Encoding",
               "mandatory": false,
@@ -7323,6 +7329,12 @@
             },
             {
               "name": "MaxDecompressedBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxInputBytes",
               "type": "long",
               "mandatory": false,
               "pipeline": "none"
@@ -7547,6 +7559,12 @@
               "pipeline": "none"
             },
             {
+              "name": "MaxInputBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "Encoding",
               "type": "Encoding",
               "mandatory": false,
@@ -7764,6 +7782,12 @@
               "pipeline": "none"
             },
             {
+              "name": "MaxInputBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "Encoding",
               "type": "Encoding",
               "mandatory": false,
@@ -7975,6 +7999,12 @@
             },
             {
               "name": "MaxDecompressedBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxInputBytes",
               "type": "long",
               "mandatory": false,
               "pipeline": "none"
@@ -8197,6 +8227,12 @@
             },
             {
               "name": "MaxDecompressedBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxInputBytes",
               "type": "long",
               "mandatory": false,
               "pipeline": "none"
@@ -9386,504 +9422,6 @@
               "pipeline": "none"
             }
           ]
-        },
-        {
-          "name": "DocumentPath",
-          "default": false,
-          "parameters": [
-            {
-              "name": "Document",
-              "type": "CsvDocument",
-              "mandatory": true,
-              "pipeline": "byValue"
-            },
-            {
-              "name": "Path",
-              "type": "string",
-              "mandatory": true,
-              "position": 0,
-              "pipeline": "none",
-              "wildcards": false
-            },
-            {
-              "name": "Delimiter",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none",
-              "notes": "One or more characters; replaces -Delimiter [char] and -DelimiterText."
-            },
-            {
-              "name": "NoHeader",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NewLine",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Culture",
-              "type": "CultureInfo",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "FormulaInjectionPolicy",
-              "type": "CsvFormulaInjectionPolicy",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseQuotes",
-              "type": "CsvQuoteMode",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "QuoteFields",
-              "type": "string[]",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NullValue",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "DateTimeFormat",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseUtc",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Encoding",
-              "type": "Encoding",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "CompressionType",
-              "type": "CsvCompressionType",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "CompressionLevel",
-              "type": "CompressionLevel",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Append",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NoClobber",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Force",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none",
-              "notes": "As in Export-Csv: overwrite read-only files and append rows that lack existing columns."
-            },
-            {
-              "name": "PassThru",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            }
-          ]
-        },
-        {
-          "name": "DocumentPathCulture",
-          "default": false,
-          "parameters": [
-            {
-              "name": "Document",
-              "type": "CsvDocument",
-              "mandatory": true,
-              "pipeline": "byValue"
-            },
-            {
-              "name": "Path",
-              "type": "string",
-              "mandatory": true,
-              "position": 0,
-              "pipeline": "none",
-              "wildcards": false
-            },
-            {
-              "name": "UseCulture",
-              "type": "switch",
-              "mandatory": true,
-              "pipeline": "none"
-            },
-            {
-              "name": "NoHeader",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NewLine",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Culture",
-              "type": "CultureInfo",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "FormulaInjectionPolicy",
-              "type": "CsvFormulaInjectionPolicy",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseQuotes",
-              "type": "CsvQuoteMode",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "QuoteFields",
-              "type": "string[]",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NullValue",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "DateTimeFormat",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseUtc",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Encoding",
-              "type": "Encoding",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "CompressionType",
-              "type": "CsvCompressionType",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "CompressionLevel",
-              "type": "CompressionLevel",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Append",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NoClobber",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Force",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none",
-              "notes": "As in Export-Csv: overwrite read-only files and append rows that lack existing columns."
-            },
-            {
-              "name": "PassThru",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            }
-          ]
-        },
-        {
-          "name": "DocumentLiteralPath",
-          "default": false,
-          "parameters": [
-            {
-              "name": "Document",
-              "type": "CsvDocument",
-              "mandatory": true,
-              "pipeline": "byValue"
-            },
-            {
-              "name": "LiteralPath",
-              "type": "string",
-              "mandatory": true,
-              "pipeline": "none",
-              "wildcards": false,
-              "aliases": [
-                "PSPath"
-              ]
-            },
-            {
-              "name": "Delimiter",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none",
-              "notes": "One or more characters; replaces -Delimiter [char] and -DelimiterText."
-            },
-            {
-              "name": "NoHeader",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NewLine",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Culture",
-              "type": "CultureInfo",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "FormulaInjectionPolicy",
-              "type": "CsvFormulaInjectionPolicy",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseQuotes",
-              "type": "CsvQuoteMode",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "QuoteFields",
-              "type": "string[]",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NullValue",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "DateTimeFormat",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseUtc",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Encoding",
-              "type": "Encoding",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "CompressionType",
-              "type": "CsvCompressionType",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "CompressionLevel",
-              "type": "CompressionLevel",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Append",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NoClobber",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Force",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none",
-              "notes": "As in Export-Csv: overwrite read-only files and append rows that lack existing columns."
-            },
-            {
-              "name": "PassThru",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            }
-          ]
-        },
-        {
-          "name": "DocumentLiteralPathCulture",
-          "default": false,
-          "parameters": [
-            {
-              "name": "Document",
-              "type": "CsvDocument",
-              "mandatory": true,
-              "pipeline": "byValue"
-            },
-            {
-              "name": "LiteralPath",
-              "type": "string",
-              "mandatory": true,
-              "pipeline": "none",
-              "wildcards": false,
-              "aliases": [
-                "PSPath"
-              ]
-            },
-            {
-              "name": "UseCulture",
-              "type": "switch",
-              "mandatory": true,
-              "pipeline": "none"
-            },
-            {
-              "name": "NoHeader",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NewLine",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Culture",
-              "type": "CultureInfo",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "FormulaInjectionPolicy",
-              "type": "CsvFormulaInjectionPolicy",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseQuotes",
-              "type": "CsvQuoteMode",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "QuoteFields",
-              "type": "string[]",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NullValue",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "DateTimeFormat",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseUtc",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Encoding",
-              "type": "Encoding",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "CompressionType",
-              "type": "CsvCompressionType",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "CompressionLevel",
-              "type": "CompressionLevel",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Append",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NoClobber",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Force",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none",
-              "notes": "As in Export-Csv: overwrite read-only files and append rows that lack existing columns."
-            },
-            {
-              "name": "PassThru",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            }
-          ]
         }
       ],
       "notes": "Replaces the existing file by default; -NoClobber refuses. -InputObject enumerates arrays as rows. Rows stream to the file as they arrive.",
@@ -10011,7 +9549,7 @@
             {
               "name": "UseCulture",
               "type": "switch",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "none"
             },
             {
@@ -10077,151 +9615,6 @@
             {
               "name": "MaxNestingDepth",
               "type": "int",
-              "mandatory": false,
-              "pipeline": "none"
-            }
-          ]
-        },
-        {
-          "name": "Document",
-          "default": false,
-          "parameters": [
-            {
-              "name": "Document",
-              "type": "CsvDocument",
-              "mandatory": true,
-              "pipeline": "byValue"
-            },
-            {
-              "name": "Delimiter",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none",
-              "notes": "One or more characters; replaces -Delimiter [char] and -DelimiterText."
-            },
-            {
-              "name": "NoHeader",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NewLine",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Culture",
-              "type": "CultureInfo",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "FormulaInjectionPolicy",
-              "type": "CsvFormulaInjectionPolicy",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseQuotes",
-              "type": "CsvQuoteMode",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "QuoteFields",
-              "type": "string[]",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NullValue",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "DateTimeFormat",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseUtc",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            }
-          ]
-        },
-        {
-          "name": "DocumentCulture",
-          "default": false,
-          "parameters": [
-            {
-              "name": "Document",
-              "type": "CsvDocument",
-              "mandatory": true,
-              "pipeline": "byValue"
-            },
-            {
-              "name": "UseCulture",
-              "type": "switch",
-              "mandatory": true,
-              "pipeline": "none"
-            },
-            {
-              "name": "NoHeader",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NewLine",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Culture",
-              "type": "CultureInfo",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "FormulaInjectionPolicy",
-              "type": "CsvFormulaInjectionPolicy",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseQuotes",
-              "type": "CsvQuoteMode",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "QuoteFields",
-              "type": "string[]",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NullValue",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "DateTimeFormat",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseUtc",
-              "type": "switch",
               "mandatory": false,
               "pipeline": "none"
             }

@@ -48,6 +48,15 @@ public static partial class OfficePngWriter {
             compression, null, null, cancellationToken);
     }
 
+    /// <summary>Encodes without physical-resolution metadata, using the compression and effort of the supplied options.</summary>
+    internal static byte[] EncodeWithoutResolution(OfficeRasterImage image, OfficePngEncodeOptions? options,
+        System.Threading.CancellationToken cancellationToken) {
+        ArgumentNullException.ThrowIfNull(image);
+        return EncodeRgbaMaterialized(image.Width, image.Height, image.PixelBuffer,
+            options?.Compression ?? OfficePngCompression.Optimal, null, null, cancellationToken,
+            effort: options?.Effort ?? OfficeImageEncodingEffort.Balanced);
+    }
+
     /// <summary>Encodes an RGBA image with explicit compression and physical-resolution metadata.</summary>
     public static byte[] Encode(OfficeRasterImage image, OfficePngEncodeOptions options) {
         ArgumentNullException.ThrowIfNull(image);

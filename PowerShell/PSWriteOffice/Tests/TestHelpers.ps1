@@ -307,6 +307,14 @@ function Get-TestPSWriteOfficeAssembly {
         return $assembly
     }
 
+    # Windows PowerShell shares one AppDomain. Load a module dependency from the module's own folder rather than
+    # asking every AssemblyResolve handler in the session for it by simple name.
+    $moduleLibrary = Split-Path -Parent (Get-Command $CommandName -ErrorAction Stop).ImplementingType.Assembly.Location
+    $modulePath = Join-Path $moduleLibrary "$Name.dll"
+    if (Test-Path -LiteralPath $modulePath) {
+        return [System.Reflection.Assembly]::LoadFrom($modulePath)
+    }
+
     [System.Reflection.Assembly]::Load($Name)
 }
 

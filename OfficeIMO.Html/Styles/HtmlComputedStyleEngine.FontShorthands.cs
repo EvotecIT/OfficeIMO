@@ -21,7 +21,7 @@ public static partial class HtmlComputedStyleEngine {
         // original cascade priority and order when applying its longhands.
         string providerValue = PreserveProviderLengths(value, out IReadOnlyDictionary<string, string> originals,
             expression => ContainsContainerLength(expression) && (expression.IsCalculated || expression.Value >= 0D));
-        var parsed = new CssParser().ParseDeclaration("font:" + providerValue);
+        var parsed = HtmlCssProviderParsers.Declarations.ParseDeclaration("font:" + providerValue);
         var expanded = new List<KeyValuePair<string, string>>();
         if (parsed != null) {
             foreach (string name in FontShorthandLonghands) {

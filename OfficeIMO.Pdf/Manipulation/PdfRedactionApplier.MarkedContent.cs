@@ -59,7 +59,7 @@ internal static partial class PdfRedactionApplier {
             } else {
                 painted.Append(content, start, previousEnd - start).Append('\n');
             }
-        }, maxNestingDepth: limits.MaxContentNestingDepth, maxOperands: limits.MaxContentOperands);
+        }, maxNestingDepth: limits.MaxContentNestingDepth, maxGraphicsStateDepth: limits.MaxGraphicsStateDepth, maxOperands: limits.MaxContentOperands);
         return scopes;
     }
 
@@ -144,7 +144,7 @@ internal static partial class PdfRedactionApplier {
         PdfContentStreamInterpreter.Interpret(content, limits.MaxContentOperations, operation => {
             if (operation.Name == "Do" && operation.Operands.Count > 0 && operation.Operands[operation.Operands.Count - 1] is string name && changedNames.Contains(name))
                 invocations.Add((operation.OperatorOffset, operation.OperatorOffset + 2));
-        }, maxNestingDepth: limits.MaxContentNestingDepth, maxOperands: limits.MaxContentOperands);
+        }, maxNestingDepth: limits.MaxContentNestingDepth, maxGraphicsStateDepth: limits.MaxGraphicsStateDepth, maxOperands: limits.MaxContentOperands);
         return ClearAlternateTextAround(content, Array.Empty<TextObjectRewrite>(), invocations, propertyText, limits);
     }
 
@@ -194,7 +194,7 @@ internal static partial class PdfRedactionApplier {
         if (content.IndexOf("BDC", StringComparison.Ordinal) < 0) return names;
         PdfContentStreamInterpreter.Interpret(content, limits.MaxContentOperations, operation => {
             if (operation.Name == "BDC" && operation.Operands.Count > 1 && operation.Operands[operation.Operands.Count - 1] is string name) names.Add(name);
-        }, maxNestingDepth: limits.MaxContentNestingDepth, maxOperands: limits.MaxContentOperands);
+        }, maxNestingDepth: limits.MaxContentNestingDepth, maxGraphicsStateDepth: limits.MaxGraphicsStateDepth, maxOperands: limits.MaxContentOperands);
         return names;
     }
 

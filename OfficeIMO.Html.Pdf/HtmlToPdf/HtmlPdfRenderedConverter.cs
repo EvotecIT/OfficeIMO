@@ -346,6 +346,7 @@ internal static partial class HtmlPdfRenderedConverter {
         }
 
         var imageResources = new PdfImageResourceCache(options, conversionReport, cancellationToken);
+        var linkTargets = new LinkTargets(rendered, documentOptions, conversionReport, cancellationToken);
         var reservedFontSlots = new HashSet<PdfCore.PdfStandardFont>();
         if (options.FontFamily != null) reservedFontSlots.Add(PdfCore.PdfStandardFont.Helvetica);
         RegisteredWebFonts webFonts = RegisterWebFonts(
@@ -424,10 +425,10 @@ internal static partial class HtmlPdfRenderedConverter {
                     // Keep that source boundary outside print and element transforms.
                     canvas.SourceClip(0D, 0D, pageWidth, pageHeight, sourcePaint => {
                         if (printLayoutScale == 1D) {
-                            AddPageVisuals(sourcePaint, renderedPage, webFonts, imageResources, conversionReport, options.InteractiveFormControls, cancellationToken, mathMlFiles);
+                            AddPageVisuals(sourcePaint, renderedPage, webFonts, imageResources, conversionReport, options.InteractiveFormControls, cancellationToken, mathMlFiles, linkTargets);
                         } else {
                             sourcePaint.Effect(OfficeTransform.Scale(printLayoutScale, printLayoutScale), 1D,
-                                content => AddPageVisuals(content, renderedPage, webFonts, imageResources, conversionReport, options.InteractiveFormControls, cancellationToken, mathMlFiles));
+                                content => AddPageVisuals(content, renderedPage, webFonts, imageResources, conversionReport, options.InteractiveFormControls, cancellationToken, mathMlFiles, linkTargets));
                         }
                     });
                     AddPageOutlines(canvas, headingsByPage[renderedPage.PageNumber], headingDocumentOrder, printLayoutScale, cancellationToken);
@@ -488,8 +489,8 @@ internal static partial class HtmlPdfRenderedConverter {
         }
     }
 
-    private static void AddPageVisuals(PdfCore.PdfPageCanvas canvas, HtmlRenderPage page, RegisteredWebFonts webFonts, PdfImageResourceCache imageResources, PdfCore.PdfConversionReport conversionReport, bool interactiveFormControls, CancellationToken cancellationToken, HtmlPdfMathMlFiles mathMlFiles) {
-        HtmlPdfPagePaintContext pagePaint = HtmlPdfPagePaintContext.Create(page, mathMlFiles);
+    private static void AddPageVisuals(PdfCore.PdfPageCanvas canvas, HtmlRenderPage page, RegisteredWebFonts webFonts, PdfImageResourceCache imageResources, PdfCore.PdfConversionReport conversionReport, bool interactiveFormControls, CancellationToken cancellationToken, HtmlPdfMathMlFiles mathMlFiles, LinkTargets linkTargets) {
+        HtmlPdfPagePaintContext pagePaint = HtmlPdfPagePaintContext.Create(page, mathMlFiles, linkTargets);
         foreach (HtmlRenderVisual visual in InPaintOrder(page.Scene)) {
             cancellationToken.ThrowIfCancellationRequested();
             AddVisual(canvas, visual, webFonts, imageResources, conversionReport, page.Width, page.Height, interactiveFormControls, cancellationToken, pagePaint: pagePaint);
@@ -543,10 +544,10 @@ internal static partial class HtmlPdfRenderedConverter {
         } else if (visual is HtmlRenderAnchorFragment anchorFragment) {
             if (pagePaint?.IsActive(anchorFragment) == true) AddAnchorFragment(canvas, anchorFragment);
         } else if (visual is HtmlRenderShape shape) {
-            AddShape(canvas, shape, imageResources, conversionReport, cancellationToken, pagePaint?.Covers(shape) == true);
+            AddShape(canvas, shape, imageResources, conversionReport, cancellationToken, pagePaint?.SuppressesLink(shape) == true);
         } else if (visual is HtmlRenderText text) {
             AddText(canvas, text, webFonts, conversionReport, surfaceWidth, textAsSpan, logicalTextOwned, cancellationToken,
-                suppressLink: pagePaint?.Covers(text) == true,
+                suppressLink: pagePaint?.SuppressesLink(text) == true,
                 constrainToSurface: !activeClip.HasValue || activeClip.Value.ConstrainToSurface,
                 logicalClip: activeClip ?? new ClipBounds(0D, 0D, surfaceWidth, surfaceHeight));
         } else if (visual is HtmlRenderNamedDestination destination) {
@@ -556,7 +557,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 global::OfficeIMO.OfficeLength.Points(destination.Y * PointsPerCssPixel));
         } else if (visual is HtmlRenderImage image) {
             try {
-                if (!AddImage(canvas, image, imageResources, pagePaint?.Covers(image) == true)) {
+                if (!AddImage(canvas, image, imageResources, pagePaint?.SuppressesLink(image) == true)) {
                     ReportImagePayloadOmitted(conversionReport, image,
                         "The image payload could not be prepared as a PDF raster resource.");
                 }
@@ -564,7 +565,8 @@ internal static partial class HtmlPdfRenderedConverter {
                 ReportImagePayloadOmitted(conversionReport, image, exception.Message);
             }
         } else if (visual is HtmlRenderDrawing drawing) {
-            AddDrawing(canvas, drawing, webFonts, imageResources, conversionReport, cancellationToken, pagePaint?.Covers(drawing) == true);
+            AddDrawing(canvas, drawing, webFonts, imageResources, conversionReport, cancellationToken,
+                pagePaint?.SuppressesLink(drawing) == true, pagePaint?.LinkTargets);
         } else if (visual is HtmlRenderImagePattern imagePattern) {
             AddImagePattern(canvas, imagePattern, imageResources, cancellationToken);
         } else if (visual is HtmlRenderClipGroup group) {

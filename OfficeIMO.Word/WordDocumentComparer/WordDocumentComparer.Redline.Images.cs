@@ -447,7 +447,7 @@ namespace OfficeIMO.Word {
         }
 
         private static string? CopyRelationship(OpenXmlPart sourcePart, OpenXmlPart targetPart, string relationshipId) {
-            HyperlinkRelationship? hyperlinkRelationship = sourcePart.HyperlinkRelationships.FirstOrDefault(relationship => relationship.Id == relationshipId);
+            HyperlinkRelationship? hyperlinkRelationship = WordHyperLink.FindHyperlinkRelationship(sourcePart, relationshipId);
             if (hyperlinkRelationship != null) {
                 HyperlinkRelationship targetRelationship = targetPart.AddHyperlinkRelationship(hyperlinkRelationship.Uri, hyperlinkRelationship.IsExternal);
                 return targetRelationship.Id;

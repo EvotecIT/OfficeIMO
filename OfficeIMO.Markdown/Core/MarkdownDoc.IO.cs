@@ -119,7 +119,7 @@ public partial class MarkdownDocument : IDisposable {
         if (options?.FrontMatterRendering == MarkdownFrontMatterRenderingMode.Omit && HasDocumentHeader)
             diagnostics.Add(new OfficeDiagnostic(OfficeDiagnosticCodes.ContentOmitted, OfficeDiagnosticSeverity.Warning,
                 "Native save would omit document front matter.", "FrontMatter", "Markdown", OfficeConversionLossKind.Omission));
-        if (options?.AbbreviationDefinitionRendering == MarkdownAbbreviationDefinitionRenderingMode.Omit && _parseResult?.AbbreviationDefinitions.Count > 0)
+        if (options?.AbbreviationDefinitionRendering == MarkdownAbbreviationDefinitionRenderingMode.Omit && ParseOwnedAbbreviationDefinitions?.Count > 0)
             diagnostics.Add(new OfficeDiagnostic(OfficeDiagnosticCodes.ContentOmitted, OfficeDiagnosticSeverity.Warning,
                 "Native save would omit abbreviation definitions.", "Abbreviations", "Markdown", OfficeConversionLossKind.Omission));
         return new OfficeConversionReport("Markdown", "Markdown", diagnostics: diagnostics);

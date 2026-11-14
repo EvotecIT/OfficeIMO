@@ -165,5 +165,8 @@ public enum PdfReadLimitKind {
     FunctionShadingPixels = 53,
 
     /// <summary>Aggregate calculator work spent sampling function shadings on one page.</summary>
-    FunctionShadingEvaluationWork = 54
+    FunctionShadingEvaluationWork = 54,
+
+    /// <summary>Graphics states saved with <c>q</c> and not yet restored in one content stream.</summary>
+    GraphicsStateDepth = 55
 }

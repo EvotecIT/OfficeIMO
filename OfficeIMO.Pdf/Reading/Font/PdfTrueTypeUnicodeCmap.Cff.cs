@@ -38,7 +38,8 @@ internal static partial class PdfTrueTypeUnicodeCmap {
         if (mappings == null || mappings.Count == 0 || mappings.Count > OfficeOpenTypeCmap.MaximumFormat12Groups) return null;
         byte[] program = BuildOpenTypeCff(cff, mappings, advances, unitsPerEm);
         return IsLoadable(program, cff: true)
-            ? new PdfDrawingFontProgram(program, mappings, codeToGlyph, isEmptyGlyph, cidToGlyphMap, originalProgramByteCount)
+            ? new PdfDrawingFontProgram(program, mappings, codeToGlyph, isEmptyGlyph, cidToGlyphMap, originalProgramByteCount,
+                GetCodeMap(font, cidToGlyphMap))
             : null;
     }
 

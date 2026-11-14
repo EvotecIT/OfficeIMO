@@ -11,6 +11,36 @@ using Xunit;
 namespace OfficeIMO.Tool.Tests;
 
 public sealed class HiddenDataCommandTests {
+    [Theory]
+    [InlineData("remove", "--anonymous-author", "--help")]
+    [InlineData("inspect", "--format", "--help")]
+    [InlineData("remove", "--anonymous-author", "-h")]
+    public async Task HelpBeforeAnOptionValuePrintsUsageWithoutWritingOutput(string operation, string option, string help) {
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-hidden-data-help-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string input = Path.Combine(directory, "input.docx");
+            using (WordDocument document = WordDocument.Create(input)) {
+                document.Properties.Creator = "Private Author";
+                document.AddParagraph("Body");
+                document.Save();
+            }
+            byte[] original = File.ReadAllBytes(input);
+            using var output = new MemoryStream();
+            using var error = new StringWriter();
+
+            int exitCode = await OfficeImoToolApp.RunAsync(["hidden-data", operation, input, option, help], Stream.Null, output, error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
+            Assert.Contains("officeimo hidden-data", Encoding.UTF8.GetString(output.ToArray()), StringComparison.Ordinal);
+            Assert.Equal(string.Empty, error.ToString());
+            Assert.Equal(original, File.ReadAllBytes(input));
+            Assert.Equal(new[] { input }, Directory.GetFiles(directory));
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     [Fact]
     public async Task CliAndMcpWriteACleanCopyAndKeepProvenanceUnlessItIsSelected() {
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-tool-hidden-data-" + Guid.NewGuid().ToString("N"));

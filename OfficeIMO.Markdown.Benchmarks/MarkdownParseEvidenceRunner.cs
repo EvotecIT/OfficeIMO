@@ -1,3 +1,4 @@
+#if NET
 using Markdig;
 using System.Diagnostics;
 using System.Reflection;
@@ -484,3 +485,4 @@ internal sealed record MarkdownParseEvidenceReport(
     IReadOnlyList<string> ValidatedEquivalentCorpora,
     IReadOnlyList<MarkdownParseEvidenceMeasurement> Measurements,
     IReadOnlyList<MarkdownParseEvidenceSummary> Summaries);
+#endif

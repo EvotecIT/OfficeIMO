@@ -47,7 +47,7 @@ public sealed partial class PdfReadPage {
         var budget = new PageContentBudget(this, cancellationToken);
         var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         if (ContentUsesOptionalContent(
-                GetContentStreamContent(budget),
+                GetContentStreamSequence(budget).Source,
                 resources,
                 activeStreams,
                 budget,
@@ -109,7 +109,7 @@ public sealed partial class PdfReadPage {
     }
 
     private bool ContentUsesOptionalContent(
-        string content,
+        PdfContentSource content,
         PdfDictionary? resources,
         HashSet<PdfStream> activeStreams,
         PageContentBudget budget,
@@ -228,6 +228,7 @@ public sealed partial class PdfReadPage {
         },
         inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
         maxNestingDepth: _limits.MaxContentNestingDepth,
+        maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
         maxOperands: _limits.MaxContentOperands,
         inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
         return found;
@@ -450,7 +451,7 @@ public sealed partial class PdfReadPage {
                     Scan(PdfEncoding.Latin1GetString(budget.Decode(form)), formResources,
                         selectedFont, depth + 1);
                 } finally { activeForms.Remove(form); }
-            }, maxNestingDepth: _limits.MaxContentNestingDepth, maxOperands: _limits.MaxContentOperands);
+            }, maxNestingDepth: _limits.MaxContentNestingDepth, maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth, maxOperands: _limits.MaxContentOperands);
         }
     }
 
@@ -506,7 +507,7 @@ public sealed partial class PdfReadPage {
                             formResources, key, depth + 1);
                     } finally { activeForms.Remove(stream); }
                 }
-            }, maxNestingDepth: _limits.MaxContentNestingDepth, maxOperands: _limits.MaxContentOperands);
+            }, maxNestingDepth: _limits.MaxContentNestingDepth, maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth, maxOperands: _limits.MaxContentOperands);
         }
     }
 

@@ -333,6 +333,7 @@ public sealed partial class PdfReadPage {
             initialStrokeLineJoin: initialState?.StrokeLineJoin,
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
             maxOperands: _limits.MaxContentOperands,
             fonts: fonts,
             fontWidthProviders: widthProviders,
@@ -398,6 +399,7 @@ public sealed partial class PdfReadPage {
             maxOperations: _limits.MaxContentOperations,
             patternBaseColorSpaces: patternBaseColorSpaces,
             maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
             maxOperands: _limits.MaxContentOperands,
             strokeDashProjectionConsumer: pageContentBudget.ChargeStrokeDashProjection,
             retainPrimitiveData: false,
@@ -439,6 +441,7 @@ public sealed partial class PdfReadPage {
             initialStrokeLineJoin: initialState?.StrokeLineJoin,
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
             maxOperands: _limits.MaxContentOperands,
             fonts: fonts,
             fontWidthProviders: widthProviders,
@@ -716,6 +719,7 @@ public sealed partial class PdfReadPage {
                 return !dependsOnUnsupportedInheritedColor;
             },
             maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
             maxOperands: _limits.MaxContentOperands);
         return dependsOnUnsupportedInheritedColor;
     }
@@ -774,12 +778,12 @@ public sealed partial class PdfReadPage {
 
     private IReadOnlyList<PdfPageDrawingEffectTransition> GetGraphicsEffectTransitions(Matrix2D pageTransform, double pageHeight, PageContentBudget? pageContentBudget = null) {
         pageContentBudget ??= new PageContentBudget(this);
-        return GetGraphicsEffectTransitions(GetContentStreamContent(pageContentBudget), pageTransform, pageHeight, pageContentBudget);
+        return GetGraphicsEffectTransitions(GetContentStreamSequence(pageContentBudget).Source, pageTransform, pageHeight, pageContentBudget);
     }
 
     // Reuse the caller's decoded root content without charging its bytes again.
     // Invoked forms retain their ordinary per-invocation decode accounting.
-    private IReadOnlyList<PdfPageDrawingEffectTransition> GetGraphicsEffectTransitions(string content,
+    private IReadOnlyList<PdfPageDrawingEffectTransition> GetGraphicsEffectTransitions(PdfContentSource content,
         Matrix2D pageTransform, double pageHeight, PageContentBudget pageContentBudget) {
         var transitions = new List<PdfPageDrawingEffectTransition>();
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
@@ -807,7 +811,7 @@ public sealed partial class PdfReadPage {
     }
 
     private void CollectGraphicsEffectTransitions(
-        string content,
+        PdfContentSource content,
         PdfDictionary? resources,
         Matrix2D baseTransform,
         double pageHeight,
@@ -857,7 +861,8 @@ public sealed partial class PdfReadPage {
             _limits.MaxContentOperands,
             inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
-            cancellationToken: pageContentBudget.CancellationToken);
+            cancellationToken: pageContentBudget.CancellationToken,
+            maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth);
         var local = new List<PdfPageDrawingEffectTransition>(parsed.Count);
         for (int transitionIndex = 0; transitionIndex < parsed.Count; transitionIndex++) {
             PdfPageDrawingEffectTransition transition = parsed[transitionIndex];
@@ -908,7 +913,8 @@ public sealed partial class PdfReadPage {
                      outputIntentColorTransform: EffectiveOutputIntentColorTransform,
                      textClippingBudget: textClippingBudget,
                      initialStrokeDashPattern: initialStrokeDashPattern,
-                     operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested)) {
+                     operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested,
+                     maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream) || !activeForms.Add(formStream)) continue;
             PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
             if (pageContentBudget.HasProjectedTransparencyGroup(formOrderPrefix)) {

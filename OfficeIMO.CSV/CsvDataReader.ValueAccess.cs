@@ -11,7 +11,7 @@ public partial class CsvDataReader
 #if NET8_0_OR_GREATER
         if (_currentUtf8TextRows is { } utf8Rows)
         {
-            return utf8Rows.GetString(ordinal);
+            return utf8Rows.GetByteString(ordinal);
         }
 #endif
         if (_useDirectTextSourceStrings)
@@ -66,7 +66,7 @@ public partial class CsvDataReader
 #if NET8_0_OR_GREATER
         if (_currentUtf8TextRows is { } utf8Rows)
         {
-            return utf8Rows.GetString(ordinal);
+            return utf8Rows.GetByteString(ordinal);
         }
 #endif
         if (_useDirectTextSourceStrings)

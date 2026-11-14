@@ -118,7 +118,12 @@ public static partial class OfficeConverter {
             case "ppt-pdf":
             case "pptx-pdf":
             case "pptx-html": {
-                using PowerPointDocument document = await PowerPointDocument.LoadAsync(input, PowerPointInputOptions(settings), token).ConfigureAwait(false);
+                PowerPointLoadOptions loadOptions = PowerPointInputOptions(settings);
+                // A PPTX to PDF route only reads the presentation. Opening it read-only keeps
+                // disposal from rewriting every package entry the conversion read. Caller-supplied
+                // load options keep the access they asked for.
+                if (id == "pptx-pdf" && settings.PowerPointLoad == null) loadOptions.AccessMode = DocumentAccessMode.ReadOnly;
+                using PowerPointDocument document = await PowerPointDocument.LoadAsync(input, loadOptions, token).ConfigureAwait(false);
                 sourceReport = document.CreateLoadReport(settings.SourceName!, timer.Elapsed);
                 if (settings.FailOnLoss) sourceReport.ThrowIfLoss();
                 if (id == "pptx-html") result = await ConvertPowerPointHtmlAsync(document, output, settings, token).ConfigureAwait(false);
@@ -155,9 +160,16 @@ public static partial class OfficeConverter {
             case "markdown-pdf":
             case "markdown-docx":
             case "markdown-html": {
-                MarkdownLoadOptions load = id == "markdown-html" ? settings.MarkdownHtml?.ReaderOptions?.Clone() ?? new()
+                MarkdownLoadOptions? callerLoad = id == "markdown-html" ? settings.MarkdownHtml?.ReaderOptions
+                    : id == "markdown-docx" ? settings.MarkdownWord?.ReaderOptions : null;
+                MarkdownLoadOptions load = id == "markdown-html" ? callerLoad?.Clone() ?? new()
                     : id == "markdown-docx" ? (settings.MarkdownWord ?? new()).CreateReaderOptions() : new();
                 load.MaxInputBytes = Math.Min(load.MaxInputBytes ?? settings.MaximumInputBytes, settings.MaximumInputBytes);
+                // The document is converted once and disposed, so only caller code can read its source
+                // information: HTML renderers and extensions receive parsed blocks with their source spans.
+                // Reader options the caller passed keep their own setting.
+                load.CaptureSyntaxTree = callerLoad?.CaptureSyntaxTree
+                    ?? (id == "markdown-html" && settings.MarkdownHtml?.HasCallerRenderHooks == true);
                 using MarkdownDocument document = await MarkdownDocument.LoadAsync(input, load, token).ConfigureAwait(false);
                 if (id == "markdown-pdf") {
                     MarkdownPdfExportOptions options = settings.Markdown ?? new(); options.FailOnLoss |= settings.FailOnLoss;

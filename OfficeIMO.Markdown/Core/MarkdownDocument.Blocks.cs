@@ -38,7 +38,7 @@ public partial class MarkdownDocument {
                 _lastBlock = block;
             }
         }
-        _parseResult = null;
+        ClearParseOwnedState();
         MarkdownObjectTreeBinder.BindDocument(this);
         return Array.AsReadOnly(added);
     }
@@ -51,7 +51,7 @@ public partial class MarkdownDocument {
             _blocks.Add(block);
             _lastBlock = block;
         }
-        _parseResult = null;
+        ClearParseOwnedState();
         RequestObjectTreeBinding();
         return this;
     }

@@ -12,7 +12,11 @@ internal sealed partial class ContentStreamBuilder {
                 // The need for synthesis may first appear halfway through a rich
                 // paragraph. Scope its entire text object, including already written
                 // runs, so stroke width, join and colour cannot leak into later paint.
-                _sb.Insert(T._textObjectStart, "q\n");
+                // StringBuilder.Insert splits a large chunk, and a page builder then re-joins
+                // its chunks when it is cleared. Rewriting the short tail keeps one chunk.
+                string textObject = _sb.ToString(T._textObjectStart, _sb.Length - T._textObjectStart);
+                _sb.Length = T._textObjectStart;
+                _sb.Append("q\n").Append(textObject);
                 if (T._showStart >= T._textObjectStart) T._showStart += 2;
                 if (T._showEnd >= T._textObjectStart) T._showEnd += 2;
                 if (T._lastNumberStart >= T._textObjectStart) T._lastNumberStart += 2;

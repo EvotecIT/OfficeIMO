@@ -273,16 +273,30 @@ internal sealed class PdfIndirectObject : PdfObject {
 internal sealed class PdfDeferredObjectSource {
     private readonly byte[] _data;
     private readonly PdfReadLimits _limits;
+    private readonly bool _classicDictionaries;
 
     internal PdfDeferredObjectSource(byte[] data, PdfReadLimits limits) {
         _data = data;
         _limits = limits;
     }
 
+    private PdfDeferredObjectSource(byte[] data, PdfReadLimits limits, bool classicDictionaries) : this(data, limits) {
+        _classicDictionaries = classicDictionaries;
+    }
+
+    /// <summary>
+    /// Dictionaries of top-level indirect objects in an owned input file. Their summaries span the text between
+    /// the outer delimiters, which is what the eager load parses for such an object.
+    /// </summary>
+    internal static PdfDeferredObjectSource ForClassicDictionaries(byte[] ownedPdf, PdfReadLimits limits) =>
+        new(ownedPdf, limits, classicDictionaries: true);
+
     internal bool Holds(byte[] data) => ReferenceEquals(_data, data);
 
     // The load-time scan accepted these bytes under the same limits, so this parse cannot fail or exceed them.
-    internal PdfObject Parse(int start, int length) => PdfSyntax.ParseDeferredObject(_data, start, length, _limits);
+    internal PdfObject Parse(int start, int length) => _classicDictionaries
+        ? PdfSyntax.ParseDeferredClassicDictionary(_data, start, length, _limits)
+        : PdfSyntax.ParseDeferredObject(_data, start, length, _limits);
 }
 
 /// <summary>

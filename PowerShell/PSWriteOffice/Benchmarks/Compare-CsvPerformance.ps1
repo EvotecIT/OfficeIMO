@@ -39,10 +39,6 @@ $benchmarkHelperPath = Join-Path $PSScriptRoot 'Excel\excel-performance.helpers.
 $resultValidationHelperPath = Join-Path $PSScriptRoot 'Benchmark.ResultValidation.ps1'
 $officeIMOSourceHelperPath = Join-Path $PSScriptRoot 'OfficeIMO.Source.ps1'
 
-Import-Module PSPublishModule -MinimumVersion 3.0.64 -Force -ErrorAction Stop
-if (-not (Get-Command Invoke-BenchmarkSuite -ErrorAction SilentlyContinue)) {
-    throw 'The imported PSPublishModule does not expose Invoke-BenchmarkSuite.'
-}
 . $benchmarkHelperPath
 . $resultValidationHelperPath
 . $officeIMOSourceHelperPath
@@ -123,6 +119,13 @@ if ($requiresPSWriteOffice) {
     $env:PSWRITEOFFICE_USE_DEVELOPMENT_BINARIES = 'true'
     $env:PSWRITEOFFICE_DEVELOPMENT_CONFIGURATION = $PSWriteOfficeConfiguration
     Import-Module $moduleManifest -Force -ErrorAction Stop
+}
+
+# PSPublishModule carries its own OfficeIMO assemblies. Windows PowerShell cannot load a second copy, so the
+# development module is imported first.
+Import-Module PSPublishModule -MinimumVersion 3.0.64 -Force -ErrorAction Stop
+if (-not (Get-Command Invoke-BenchmarkSuite -ErrorAction SilentlyContinue)) {
+    throw 'The imported PSPublishModule does not expose Invoke-BenchmarkSuite.'
 }
 
 $benchmarkVariables = @{

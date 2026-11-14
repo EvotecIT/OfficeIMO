@@ -63,7 +63,7 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     private static bool ProviderAcceptsBackgroundImage(string image) {
-        var parsed = new CssParser().ParseDeclaration("background-image:" + image);
+        var parsed = HtmlCssProviderParsers.Declarations.ParseDeclaration("background-image:" + image);
         return parsed != null && parsed.Length > 0;
     }
 

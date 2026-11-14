@@ -24,7 +24,7 @@ public sealed partial class PdfReadPage {
         var pageContentBudget = new PageContentBudget(this, context.CancellationToken);
         Matrix2D transform = GetVisualPageTransform();
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
-        string content = GetContentStreamContent(pageContentBudget);
+        PdfContentSource content = GetContentStreamSequence(pageContentBudget).Source;
         if (content.Length == 0) return Array.Empty<PdfTableRuling>();
         PdfPageInvokedResourceNames invoked = GetRootInvokedResourceNames(content, resources, () => context.ConsumeWork());
         // This profile accepts root strokes only. Decline invoked objects before

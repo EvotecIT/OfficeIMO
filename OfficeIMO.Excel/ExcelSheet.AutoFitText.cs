@@ -70,11 +70,16 @@ namespace OfficeIMO.Excel {
                 return FormatAutoFitTextValue(cell, GetCachedSharedStringText(cell, context), context);
             }
 
+            uint styleIndex = GetCellDisplayStyleIndex(cell);
             if (dataType == XCellValues.InlineString) {
-                return FormatAutoFitTextValue(cell, GetInlineStringText(cell.InlineString), context);
+                return FormatAutoFitTextValue(GetInlineStringText(cell.InlineString), styleIndex, context);
             }
 
-            string raw = cell.CellValue?.InnerText ?? string.Empty;
+            return GetAutoFitText(dataType, styleIndex, cell.CellValue?.InnerText ?? string.Empty, context, dateSystem);
+        }
+
+        /// <summary>The display text of a cell value that is neither a shared nor an inline string, from the cell's parts.</summary>
+        private static string GetAutoFitText(XCellValues? dataType, uint styleIndex, string raw, AutoFitTextContext context, ExcelDateSystem dateSystem) {
             if (string.IsNullOrEmpty(raw)) {
                 return string.Empty;
             }
@@ -89,7 +94,7 @@ namespace OfficeIMO.Excel {
 
             if (dataType == XCellValues.Date
                 && DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime date)) {
-                uint numberFormatId = GetCellNumberFormatId(cell, context);
+                uint numberFormatId = GetCellNumberFormatId(styleIndex, context);
                 string? formatCode = GetNumberFormatCode(numberFormatId, context);
                 if (!string.IsNullOrWhiteSpace(formatCode) && !string.Equals(formatCode, "General", StringComparison.OrdinalIgnoreCase)) {
                     return ExcelNumberFormatDisplay.FormatDateTimeText(date, numberFormatId, formatCode!,
@@ -98,10 +103,10 @@ namespace OfficeIMO.Excel {
             }
 
             if (dataType == null || dataType == XCellValues.Number) {
-                return FormatAutoFitNumericText(cell, raw, context, dateSystem);
+                return FormatAutoFitNumericText(styleIndex, raw, context, dateSystem);
             }
 
-            return dataType == XCellValues.String ? FormatAutoFitTextValue(cell, Utilities.ExcelSanitizer.DecodeXString(raw), context) : raw;
+            return dataType == XCellValues.String ? FormatAutoFitTextValue(Utilities.ExcelSanitizer.DecodeXString(raw), styleIndex, context) : raw;
         }
 
         private static string FormatAutoFitTextValue(Cell cell, string text, AutoFitTextContext context) =>
@@ -110,12 +115,12 @@ namespace OfficeIMO.Excel {
         private static string FormatAutoFitTextValue(string text, uint styleIndex, AutoFitTextContext context) =>
             SpreadsheetNumberFormatDisplay.FormatTextValue(text, GetNumberFormatCode(GetCellNumberFormatId(styleIndex, context), context));
 
-        private static string FormatAutoFitNumericText(Cell cell, string raw, AutoFitTextContext context, ExcelDateSystem dateSystem) {
+        private static string FormatAutoFitNumericText(uint styleIndex, string raw, AutoFitTextContext context, ExcelDateSystem dateSystem) {
             if (!double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) {
                 return raw;
             }
 
-            uint numberFormatId = GetCellNumberFormatId(cell, context);
+            uint numberFormatId = GetCellNumberFormatId(styleIndex, context);
             if (numberFormatId == 0U) {
                 return raw;
             }
@@ -237,6 +242,8 @@ namespace OfficeIMO.Excel {
             internal Dictionary<uint, string?>? CustomNumberFormats { get; }
             internal Dictionary<uint, uint> NumberFormatIdsByStyle { get; } = new Dictionary<uint, uint>();
             internal Dictionary<uint, string?> NumberFormatCodes { get; } = new Dictionary<uint, string?>();
+            /// <summary>Date width samples by number format and value sign (0 positive, 1 negative, 2 zero); null when the format shows no date.</summary>
+            internal Dictionary<(uint NumberFormatId, int Sign), string?> DateSamples { get; } = new Dictionary<(uint NumberFormatId, int Sign), string?>();
             internal Dictionary<int, string> SharedStringTexts { get; } = new Dictionary<int, string>();
             internal Dictionary<int, IReadOnlyList<AutoFitTextRun>?> SharedStringRichTextRuns { get; } = new Dictionary<int, IReadOnlyList<AutoFitTextRun>?>();
         }

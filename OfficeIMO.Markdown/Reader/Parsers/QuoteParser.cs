@@ -179,12 +179,41 @@ internal static partial class MarkdownReader {
                     || IsOrderedListLine(line, options, out _, out _)
                     || HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(line, options)
                     || TryGetSetextHeadingUnderlineLevel(line, out _)
-                    || LooksLikeReferenceDefinition(line)) {
+                    || LooksLikeReferenceDefinition(line)
+                    || MayStartExtensionBlock(line, options)
+                    || (options.DefinitionLists && ShouldTreatAsDefinitionLine(lines, lineIndex, options))) {
                     return false;
                 }
             }
 
             return true;
+        }
+
+        // Callouts, TOC markers, footnotes, block images, containers, math blocks, abbreviation
+        // definitions and definition markers each have their own block parser when enabled.
+        private static bool MayStartExtensionBlock(string line, MarkdownLoadOptions options) {
+            int index = 0;
+            while (index < line.Length && (line[index] == ' ' || line[index] == '\t')) {
+                index++;
+            }
+
+            if (index >= line.Length) {
+                return false;
+            }
+
+            char first = line[index];
+            char next = index + 1 < line.Length ? line[index + 1] : '\0';
+            return first switch {
+                '[' => (next == '!' && options.Callouts)
+                    || (next == '^' && options.Footnotes)
+                    || (options.TocPlaceholders && (next == '[' || next is 'T' or 't')),
+                '{' => options.TocPlaceholders && next == ':',
+                '!' => next == '[' && options.Images,
+                ':' => options.CustomContainers || options.DefinitionLists,
+                '$' => options.Math,
+                '*' => next == '[' && options.Abbreviations,
+                _ => false
+            };
         }
 
         private static bool LooksLikeReferenceDefinition(string line) {
