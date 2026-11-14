@@ -14,6 +14,7 @@ related:
   - /docs/open-document/create-read/
 limits: Signing works on saved files; editing a signed package afterwards invalidates its signatures, and format packages refuse such saves unless you remove the signatures explicitly.
 search_terms:
+  - sign document
   - digital signature
   - sign docx
   - sign xlsx
