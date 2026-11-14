@@ -23,6 +23,9 @@ public sealed class HtmlPdfUnavailableLinkTests {
         Assert.DoesNotContain("terms.html", info.LinkUris);
         Assert.Contains("https://example.test/absolute", info.LinkUris);
         Assert.Contains("Body", PdfReadDocument.Open(bytes).ExtractText());
+        if (body.Contains("<img", StringComparison.Ordinal)) {
+            Assert.NotEmpty(PdfReadDocument.Open(bytes).Pages[0].GetImages());
+        }
         Assert.Contains(result.Report.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.HyperlinkTargetUnavailable
             && warning.LossKind == OfficeConversionLossKind.Omission);
 
