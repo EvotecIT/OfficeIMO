@@ -33,6 +33,9 @@ public static class PublicKeyEncryptedPdfFixture {
         internal int RecipientContentLength { get; init; } = 24;
         internal string? StringFilterOverride { get; init; }
         internal string? CfmOverride { get; init; }
+        internal string? DocumentLengthOverride { get; init; }
+        internal string? FilterLengthOverride { get; init; }
+        internal string? EmbeddedFileFilter { get; init; }
     }
 
     internal static X509Certificate2 CreateRecipient(string name) {
@@ -125,7 +128,7 @@ public static class PublicKeyEncryptedPdfFixture {
         var builder = new StringBuilder();
         builder.Append("<< /Filter /Adobe.PubSec /SubFilter /").Append(settings.SubFilter)
             .Append(" /V ").Append(settings.Version.ToString(CultureInfo.InvariantCulture))
-            .Append(" /Length ").Append(settings.KeyLengthBits.ToString(CultureInfo.InvariantCulture));
+            .Append(" /Length ").Append(settings.DocumentLengthOverride ?? settings.KeyLengthBits.ToString(CultureInfo.InvariantCulture));
         if (settings.SubFilter != "adbe.pkcs7.s5") {
             builder.Append(" /Recipients ").Append(recipients).Append(" >>");
             return builder.ToString();
@@ -136,9 +139,13 @@ public static class PublicKeyEncryptedPdfFixture {
             Cipher.AesV2 => "AESV2",
             _ => "AESV3"
         };
+        if (settings.EmbeddedFileFilter is not null) {
+            builder.Append(" /EFF /").Append(settings.EmbeddedFileFilter);
+        }
+
         builder.Append(" /StmF /DefaultCryptFilter /StrF /").Append(settings.StringFilterOverride ?? "DefaultCryptFilter")
             .Append(" /CF << /DefaultCryptFilter << /Type /CryptFilter /AuthEvent /DocOpen /CFM /").Append(cfm)
-            .Append(" /Length ").Append(settings.KeyLengthBits.ToString(CultureInfo.InvariantCulture))
+            .Append(" /Length ").Append(settings.FilterLengthOverride ?? settings.KeyLengthBits.ToString(CultureInfo.InvariantCulture))
             .Append(" /EncryptMetadata ").Append(settings.EncryptMetadata ? "true" : "false")
             .Append(" /Recipients ").Append(recipients)
             .Append(" >> /OtherCryptFilter << /Type /CryptFilter /CFM /AESV3 /Recipients <3000> >> >> >>");
