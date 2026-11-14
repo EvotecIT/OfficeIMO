@@ -10,7 +10,7 @@ internal static partial class PdfWriter {
             d = 0D;
         }
 
-        return d.ToString("0.###", CultureInfo.InvariantCulture);
+        return PdfNumberFormatter.FixedDecimals(d, 3);
     }
     private static string F0(double d) => d.ToString("0", CultureInfo.InvariantCulture);
 

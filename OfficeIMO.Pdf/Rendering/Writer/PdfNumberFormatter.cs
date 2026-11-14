@@ -30,4 +30,52 @@ internal static class PdfNumberFormatter {
             : digits.Insert(point, ".");
         return negative ? "-" + expanded : expanded;
     }
+
+    private static readonly double[] DecimalScales = { 1D, 10D, 100D, 1000D, 10000D, 100000D, 1000000D };
+
+    /// <summary>
+    /// Formats <paramref name="value"/> exactly as <c>value.ToString("0.###…", InvariantCulture)</c> with
+    /// <paramref name="decimals"/> optional digits. A value that is the nearest double to a decimal with at most
+    /// that many fraction digits and 15 significant digits is written from its integer scaled form; other values
+    /// use the framework formatter. .NET Framework formats doubles slowly, and content streams are full of them.
+    /// </summary>
+    internal static string FixedDecimals(double value, int decimals) {
+        if (BitConverter.DoubleToInt64Bits(value) == 0L) return "0";
+        double scale = DecimalScales[decimals];
+        double scaled = value * scale;
+        if (scaled > -1E15D && scaled < 1E15D) {
+            long units = (long)Math.Round(scaled);
+            if (units != 0 && units / scale == value) {
+                return FormatScaled(units, decimals);
+            }
+        }
+        return value.ToString(FixedDecimalFormats[decimals], CultureInfo.InvariantCulture);
+    }
+
+    private static readonly string[] FixedDecimalFormats = { "0", "0.#", "0.##", "0.###", "0.####", "0.#####", "0.######" };
+
+    private static string FormatScaled(long units, int decimals) {
+        bool negative = units < 0;
+        ulong magnitude = negative ? (ulong)(-units) : (ulong)units;
+        int fraction = decimals;
+        while (fraction > 0 && magnitude % 10UL == 0UL) {
+            magnitude /= 10UL;
+            fraction--;
+        }
+
+        // 15 integer digits, a point, up to six fraction digits, a sign and a leading zero.
+        char[] buffer = new char[24];
+        int position = buffer.Length;
+        for (int digit = 0; digit < fraction; digit++) {
+            buffer[--position] = (char)('0' + (int)(magnitude % 10UL));
+            magnitude /= 10UL;
+        }
+        if (fraction > 0) buffer[--position] = '.';
+        do {
+            buffer[--position] = (char)('0' + (int)(magnitude % 10UL));
+            magnitude /= 10UL;
+        } while (magnitude != 0UL);
+        if (negative) buffer[--position] = '-';
+        return new string(buffer, position, buffer.Length - position);
+    }
 }

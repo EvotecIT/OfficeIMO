@@ -603,14 +603,32 @@ internal sealed partial class ContentStreamBuilder {
 #else
     // Matrix coefficients multiply page coordinates; three decimals can move glyphs by tenths of a point.
     private static string MatrixNumber(double value) =>
-        (Math.Abs(value) < 0.0000005D ? 0D : value).ToString("0.######", CultureInfo.InvariantCulture);
+        PdfNumberFormatter.FixedDecimals(Math.Abs(value) < 0.0000005D ? 0D : value, 6);
 
     private static string F(double value) {
         if (Math.Abs(value) < 0.0005D) {
             value = 0D;
         }
 
-        return value.ToString("0.###", CultureInfo.InvariantCulture);
+        // Content streams repeat the same few numbers, so each thread keeps the last string written for each
+        // slot of a small direct-mapped table. The clamp above keeps -0 out of the table; NaN never matches.
+        double[] keys = _fKeys ??= new double[FCacheSlots];
+        string?[] texts = _fTexts ??= new string?[FCacheSlots];
+        long bits = BitConverter.DoubleToInt64Bits(value);
+        int slot = (int)((ulong)(bits * unchecked((long)0x9E3779B97F4A7C15UL)) >> (64 - FCacheBits));
+        string? text = texts[slot];
+        if (text != null && keys[slot] == value) {
+            return text;
+        }
+
+        text = PdfNumberFormatter.FixedDecimals(value, 3);
+        keys[slot] = value;
+        texts[slot] = text;
+        return text;
     }
+
+    private const int FCacheBits = 10, FCacheSlots = 1 << FCacheBits;
+    [ThreadStatic] private static double[]? _fKeys;
+    [ThreadStatic] private static string?[]? _fTexts;
 #endif
 }
