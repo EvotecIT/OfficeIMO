@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.InteropServices;
 
 namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 
@@ -11,15 +12,15 @@ internal static class BenchmarkAffinityGuard {
         if (string.IsNullOrWhiteSpace(configured)) return;
 
         string value = configured.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
-            ? configured[2..]
+            ? configured.Substring(2)
             : configured;
         if (!ulong.TryParse(value, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out ulong expected)) {
             throw new InvalidOperationException($"Invalid {EnvironmentVariable} value '{configured}'.");
         }
         long signed;
-        if (OperatingSystem.IsWindows()) {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
             signed = Process.GetCurrentProcess().ProcessorAffinity.ToInt64();
-        } else if (OperatingSystem.IsLinux()) {
+        } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
             signed = Process.GetCurrentProcess().ProcessorAffinity.ToInt64();
         } else {
             throw new PlatformNotSupportedException("Benchmark affinity validation requires Windows or Linux.");

@@ -301,6 +301,12 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmar
 
 These single-column generated pages measure word recovery and table-row order, not multi-column or real-world reading order; that needs independently transcribed pages.
 
+On Windows the project also builds for `net472`, the runtime of Windows PowerShell 5.1. That build contains the generation and read comparisons only; PeachPDF needs .NET 8, so the read lane there covers the OfficeIMO, QuestPDF, MigraDoc and iText producers and always generates its inputs in process:
+
+```powershell
+dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net472 -- --filter "*PdfGenerationBenchmarks*" "*PdfReadBenchmarks*" --job Short
+```
+
 Generate the deterministic semantic accuracy report separately from timings:
 
 ```powershell

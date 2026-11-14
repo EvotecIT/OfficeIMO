@@ -3,6 +3,9 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <!-- Windows PowerShell 5.1 hosts PSWriteOffice on .NET Framework; the comparisons listed below for net472
+         measure that runtime. -->
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
 
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
@@ -13,6 +16,12 @@
     <QuestPdfBenchmarkVersion Condition="'$(QuestPdfBenchmarkVersion)' == ''">2026.5.0</QuestPdfBenchmarkVersion>
     <QuestPdfInternalAuthorization Condition="'$(QuestPdfInternalAuthorization)' == ''">false</QuestPdfInternalAuthorization>
     <HtmlTinkerXProjectPath Condition="'$(HtmlTinkerXProjectPath)' == '' and '$(HTMLTINKERX_PROJECT_PATH)' != ''">$(HTMLTINKERX_PROJECT_PATH)</HtmlTinkerXProjectPath>
+  </PropertyGroup>
+
+  <!-- Windows PowerShell 5.1 is a 64-bit process; an SDK-style .NET Framework exe would otherwise run as x86. -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net472'">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
 
   <ItemGroup>
@@ -38,15 +47,9 @@
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
-    <!-- PDFium through Docnet.Core is the page-render comparison engine; it ships native PDFium binaries. -->
-    <PackageReference Include="Docnet.Core" Version="2.6.0" />
-    <PackageReference Include="HtmlTinkerX" Version="3.0.5" Condition="'$(HtmlTinkerXProjectPath)' == ''" />
     <PackageReference Include="itext" Version="9.7.0" />
-    <PackageReference Include="itext.pdfhtml" Version="6.3.3" />
     <PackageReference Include="PdfPig" Version="0.1.15" />
     <PackageReference Include="PDFsharp-MigraDoc" Version="6.2.4" />
-    <PackageReference Include="PeachPDF" Version="$(PeachPdfBenchmarkVersion)" />
-    <PackageReference Include="PdfPecker" Version="$(PdfPeckerBenchmarkVersion)" GeneratePathProperty="true" />
     <!--
       2026.5.0 is the last QuestPDF release whose embedded Community license
       grants eligible open-source projects the MIT license. Starting with
@@ -63,6 +66,32 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <PackageReference Include="RecursiveAI.OnePdf" Version="1.22.0" />
     <PackageReference Include="RecursiveAI.OnePdf.Layout" Version="1.22.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
+    <!-- PDFium through Docnet.Core is the page-render comparison engine; it ships native PDFium binaries. -->
+    <PackageReference Include="Docnet.Core" Version="2.6.0" />
+    <PackageReference Include="HtmlTinkerX" Version="3.0.5" Condition="'$(HtmlTinkerXProjectPath)' == ''" />
+    <PackageReference Include="itext.pdfhtml" Version="6.3.3" />
+    <PackageReference Include="PeachPDF" Version="$(PeachPdfBenchmarkVersion)" />
+    <PackageReference Include="PdfPecker" Version="$(PdfPeckerBenchmarkVersion)" GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Compile Remove="**/*.cs" />
+    <Compile Include="BenchmarkAffinityGuard.cs" />
+    <Compile Include="ITextPdfGenerator.cs" />
+    <Compile Include="MigraDocPdfGenerator.cs" />
+    <Compile Include="OfficeImoPdfGenerator.cs" />
+    <Compile Include="PdfBenchmarkScenarios.cs" />
+    <Compile Include="PdfBenchmarkValidation.cs" />
+    <Compile Include="PdfDocumentGenerators.cs" />
+    <Compile Include="PdfDocumentReaders.cs" />
+    <Compile Include="PdfGenerationBenchmarks.cs" />
+    <Compile Include="PdfReadBenchmarks.cs" />
+    <Compile Include="QuestPdfBenchmarkPolicy.cs" />
+    <Compile Include="QuestPdfGenerator.cs" />
+    <Compile Include="NetFramework/*.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(HtmlTinkerXProjectPath)' != ''">
@@ -116,7 +145,7 @@
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
     <None Include="$(PkgPdfPecker)/pdfpecker.nuspec;$(PkgPdfPecker)/LICENSE;$(PkgPdfPecker)/THIRD-PARTY-NOTICES.md;$(PkgPdfPecker)/pdfpecker.$(PdfPeckerBenchmarkVersion).nupkg.sha512"
           Link="Licenses/PdfPecker/%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest" />
