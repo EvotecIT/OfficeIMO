@@ -78,6 +78,21 @@
       "unsupportedOperations":[]
     },
     {
+      "id":"pdf-recipient",
+      "formatId":"PDF",
+      "packageId":"OfficeIMO.Pdf + optional provider",
+      "kind":"RecipientEncryption",
+      "inspect":"Supported",
+      "open":"Supported",
+      "create":"NotSupported",
+      "validate":"NotApplicable",
+      "mutate":"NotSupported",
+      "remove":"Blocked",
+      "api":"PdfLoadOptions.PublicKeyDecryption",
+      "limitation":"Adobe.PubSec adbe.pkcs7.s3/s4/s5 files with RC4, AESV2 or AESV3 open for a matching recipient certificate; the recipient's permission bits apply and removing encryption needs owner authorization, which recipients do not have.",
+      "unsupportedOperations":[{"operation":"Create","disposition":"RoadmapTracked","rationale":"PDF certificate-recipient encryption","roadmapReference":"../../ROADMAP.md#security-and-protected-content"},{"operation":"Mutate","disposition":"RoadmapTracked","rationale":"PDF certificate-recipient encryption","roadmapReference":"../../ROADMAP.md#security-and-protected-content"}]
+    },
+    {
       "id":"odf-password",
       "formatId":"ODT/ODS/ODP",
       "packageId":"OfficeIMO.OpenDocument",

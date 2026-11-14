@@ -10755,6 +10755,20 @@
       "limitation":"Typed PDF security options and operation results report encryption policy."
     },
     {
+      "id":"protection:pdf-recipient:pdf:create",
+      "packageId":"OfficeIMO.Pdf",
+      "formatId":"PDF",
+      "targetFormatId":"",
+      "capabilityId":"pdf-recipient",
+      "operation":"Create",
+      "state":"Unsupported",
+      "publicApi":"PdfLoadOptions.PublicKeyDecryption",
+      "evidence":"OfficeProtectionCapabilityCatalog.Current::pdf-recipient::create",
+      "sourceCatalog":"OfficeIMO.ProtectedContent",
+      "extensions":[".pdf"],
+      "limitation":"Adobe.PubSec adbe.pkcs7.s3/s4/s5 files with RC4, AESV2 or AESV3 open for a matching recipient certificate; the recipient's permission bits apply and removing encryption needs owner authorization, which recipients do not have."
+    },
+    {
       "id":"protection:pdf-password:pdf:open",
       "packageId":"OfficeIMO.Pdf",
       "formatId":"PDF",
@@ -10767,6 +10781,20 @@
       "sourceCatalog":"OfficeIMO.ProtectedContent",
       "extensions":[".pdf"],
       "limitation":"Typed PDF security options and operation results report encryption policy."
+    },
+    {
+      "id":"protection:pdf-recipient:pdf:open",
+      "packageId":"OfficeIMO.Pdf",
+      "formatId":"PDF",
+      "targetFormatId":"",
+      "capabilityId":"pdf-recipient",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"PdfLoadOptions.PublicKeyDecryption",
+      "evidence":"OfficeProtectionCapabilityCatalog.Current::pdf-recipient::open",
+      "sourceCatalog":"OfficeIMO.ProtectedContent",
+      "extensions":[".pdf"],
+      "limitation":"Adobe.PubSec adbe.pkcs7.s3/s4/s5 files with RC4, AESV2 or AESV3 open for a matching recipient certificate; the recipient's permission bits apply and removing encryption needs owner authorization, which recipients do not have."
     },
     {
       "id":"protection:pdf-password:pdf:mutate",
@@ -10783,6 +10811,20 @@
       "limitation":"Typed PDF security options and operation results report encryption policy."
     },
     {
+      "id":"protection:pdf-recipient:pdf:mutate",
+      "packageId":"OfficeIMO.Pdf",
+      "formatId":"PDF",
+      "targetFormatId":"",
+      "capabilityId":"pdf-recipient",
+      "operation":"Edit",
+      "state":"Unsupported",
+      "publicApi":"PdfLoadOptions.PublicKeyDecryption",
+      "evidence":"OfficeProtectionCapabilityCatalog.Current::pdf-recipient::mutate",
+      "sourceCatalog":"OfficeIMO.ProtectedContent",
+      "extensions":[".pdf"],
+      "limitation":"Adobe.PubSec adbe.pkcs7.s3/s4/s5 files with RC4, AESV2 or AESV3 open for a matching recipient certificate; the recipient's permission bits apply and removing encryption needs owner authorization, which recipients do not have."
+    },
+    {
       "id":"protection:pdf-password:pdf:inspect",
       "packageId":"OfficeIMO.Pdf",
       "formatId":"PDF",
@@ -10795,6 +10837,20 @@
       "sourceCatalog":"OfficeIMO.ProtectedContent",
       "extensions":[".pdf"],
       "limitation":"Typed PDF security options and operation results report encryption policy."
+    },
+    {
+      "id":"protection:pdf-recipient:pdf:inspect",
+      "packageId":"OfficeIMO.Pdf",
+      "formatId":"PDF",
+      "targetFormatId":"",
+      "capabilityId":"pdf-recipient",
+      "operation":"Inspect",
+      "state":"Supported",
+      "publicApi":"PdfLoadOptions.PublicKeyDecryption",
+      "evidence":"OfficeProtectionCapabilityCatalog.Current::pdf-recipient::inspect",
+      "sourceCatalog":"OfficeIMO.ProtectedContent",
+      "extensions":[".pdf"],
+      "limitation":"Adobe.PubSec adbe.pkcs7.s3/s4/s5 files with RC4, AESV2 or AESV3 open for a matching recipient certificate; the recipient's permission bits apply and removing encryption needs owner authorization, which recipients do not have."
     },
     {
       "id":"provenance:pdf:inspect",
@@ -10825,6 +10881,20 @@
       "limitation":"Typed PDF security options and operation results report encryption policy."
     },
     {
+      "id":"protection:pdf-recipient:pdf:validate",
+      "packageId":"OfficeIMO.Pdf",
+      "formatId":"PDF",
+      "targetFormatId":"",
+      "capabilityId":"pdf-recipient",
+      "operation":"Validate",
+      "state":"NotApplicable",
+      "publicApi":"PdfLoadOptions.PublicKeyDecryption",
+      "evidence":"OfficeProtectionCapabilityCatalog.Current::pdf-recipient::validate",
+      "sourceCatalog":"OfficeIMO.ProtectedContent",
+      "extensions":[".pdf"],
+      "limitation":"Adobe.PubSec adbe.pkcs7.s3/s4/s5 files with RC4, AESV2 or AESV3 open for a matching recipient certificate; the recipient's permission bits apply and removing encryption needs owner authorization, which recipients do not have."
+    },
+    {
       "id":"provenance:pdf:assess",
       "packageId":"OfficeIMO.Pdf",
       "formatId":"PDF",
@@ -10851,6 +10921,20 @@
       "sourceCatalog":"OfficeIMO.ProtectedContent",
       "extensions":[".pdf"],
       "limitation":"Typed PDF security options and operation results report encryption policy."
+    },
+    {
+      "id":"protection:pdf-recipient:pdf:remove",
+      "packageId":"OfficeIMO.Pdf",
+      "formatId":"PDF",
+      "targetFormatId":"",
+      "capabilityId":"pdf-recipient",
+      "operation":"Remove",
+      "state":"Rejected",
+      "publicApi":"PdfLoadOptions.PublicKeyDecryption",
+      "evidence":"OfficeProtectionCapabilityCatalog.Current::pdf-recipient::remove",
+      "sourceCatalog":"OfficeIMO.ProtectedContent",
+      "extensions":[".pdf"],
+      "limitation":"Adobe.PubSec adbe.pkcs7.s3/s4/s5 files with RC4, AESV2 or AESV3 open for a matching recipient certificate; the recipient's permission bits apply and removing encryption needs owner authorization, which recipients do not have."
     },
     {
       "id":"provenance:pdf:remove",
