@@ -53,12 +53,14 @@ public sealed class OpenPgpProviderTests {
         OfficeOpenPgpVerificationResult revoked = Provider.VerifyDetached(key.Sign(Data, key.Primary), Data,
             new OfficeOpenPgpKeySet(new[] { key.Revoked() }));
         OfficeOpenPgpVerificationResult expired = Provider.VerifyDetached(expiring.Sign(Data, expiring.Primary), Data, expiring.PublicKeys());
+        OfficeOpenPgpVerificationResult expiredPrimary = Provider.VerifyDetached(expiring.Sign(Data, expiring.SigningSubkey), Data, expiring.PublicKeys());
         OfficeOpenPgpVerificationResult weak = Provider.VerifyDetached(small.Sign(Data, small.Primary), Data, small.PublicKeys());
         OfficeOpenPgpVerificationResult signatureExpired = Provider.VerifyDetached(
             key.Sign(Data, key.Primary, signedAt: DateTime.UtcNow.AddMinutes(-5), lifetimeSeconds: 60), Data, key.PublicKeys());
 
         Assert.Equal(OfficeOpenPgpSignatureStatus.KeyRevoked, revoked.Signatures[0].Status);
         Assert.Equal(OfficeOpenPgpSignatureStatus.KeyExpired, expired.Signatures[0].Status);
+        Assert.Equal(OfficeOpenPgpSignatureStatus.KeyExpired, expiredPrimary.Signatures[0].Status);
         Assert.Equal(OfficeOpenPgpSignatureStatus.WeakAlgorithm, weak.Signatures[0].Status);
         Assert.True(Provider.VerifyDetached(small.Sign(Data, small.Primary), Data, small.PublicKeys(),
             new OfficeOpenPgpOptions { MinimumKeyBits = 1024 }).IsValid);

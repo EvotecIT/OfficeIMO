@@ -307,17 +307,33 @@ internal static class OpenPgpService {
 
         long validSeconds;
         if (!key.IsMasterKey) {
-            PgpSignature? binding = FindValidBinding(entry.Primary, key);
+            PgpSignature? binding = FindCurrentBinding(entry.Primary, key);
             if (binding == null) {
                 return result(OfficeOpenPgpSignatureStatus.KeyNotValidForSigning,
-                    "The signing subkey has no binding signature from its primary key, with a primary key binding " +
-                    "signature from the subkey, that verifies.", entry);
+                    "The signing subkey has no binding signature from its primary key that verifies.", entry);
             }
 
             PgpSignatureSubpacketVector? bindingPackets = binding.HasSubpackets ? binding.GetHashedSubPackets() : null;
             if (bindingPackets != null && bindingPackets.HasSubpacket(SignatureSubpacketTag.KeyFlags) &&
                 (bindingPackets.GetKeyFlags() & KeyFlags.SignData) == 0) {
                 return result(OfficeOpenPgpSignatureStatus.KeyNotValidForSigning, "The signing subkey is not flagged for signing.", entry);
+            }
+
+            if (!HasValidBackSignature(binding, entry.Primary, key)) {
+                return result(OfficeOpenPgpSignatureStatus.KeyNotValidForSigning,
+                    "The current subkey binding has no primary key binding signature from the subkey that verifies.", entry);
+            }
+
+            long bindingLifetime = bindingPackets?.GetSignatureExpirationTime() ?? 0;
+            DateTimeOffset bindingCreated = new DateTimeOffset(DateTime.SpecifyKind(binding.CreationTime, DateTimeKind.Utc));
+            if (bindingLifetime > 0 && created > bindingCreated.AddSeconds(bindingLifetime)) {
+                return result(OfficeOpenPgpSignatureStatus.KeyExpired, "The subkey binding signature had expired when the signature was made.", entry);
+            }
+
+            long primarySeconds = PrimaryValidSeconds(entry.Primary);
+            DateTimeOffset primaryCreated = new DateTimeOffset(DateTime.SpecifyKind(entry.Primary.CreationTime, DateTimeKind.Utc));
+            if (primarySeconds > 0 && created > primaryCreated.AddSeconds(primarySeconds)) {
+                return result(OfficeOpenPgpSignatureStatus.KeyExpired, "The primary key had expired when the signature was made.", entry);
             }
 
             validSeconds = bindingPackets?.GetKeyExpirationTime() ?? 0;
@@ -342,18 +358,18 @@ internal static class OpenPgpService {
     }
 
     /// <summary>
-    /// Returns the newest subkey binding signature that verifies against the primary key and carries a primary key
-    /// binding signature made by the subkey (RFC 4880 section 5.2.1), so a certificate cannot claim another
-    /// signer's subkey.
+    /// Returns the newest subkey binding signature that verifies against the primary key. The caller then checks that
+    /// it still allows signing and carries a primary key binding signature from the subkey (RFC 4880 section 5.2.1),
+    /// so neither an older binding nor another signer's subkey can be used.
     /// </summary>
-    private static PgpSignature? FindValidBinding(PgpPublicKey primary, PgpPublicKey subkey) {
+    private static PgpSignature? FindCurrentBinding(PgpPublicKey primary, PgpPublicKey subkey) {
         PgpSignature? newest = null;
         foreach (PgpSignature binding in subkey.GetSignaturesOfType(PgpSignature.SubkeyBinding)) {
             if (newest != null && binding.CreationTime <= newest.CreationTime) continue;
             if (Verifies(() => {
                 binding.InitVerify(primary);
                 return binding.VerifyCertification(primary, subkey);
-            }) && HasValidBackSignature(binding, primary, subkey)) {
+            })) {
                 newest = binding;
             }
         }
@@ -403,7 +419,7 @@ internal static class OpenPgpService {
     private static long PrimaryValidSeconds(PgpPublicKey primary) {
         PgpSignature? newest = null;
         void Consider(PgpSignature signature, Func<bool> verify) {
-            if (signature.KeyId != primary.KeyId) return;
+            // Verification against the primary key proves the issuer; the issuer key ID may be unhashed.
             if (newest != null && signature.CreationTime <= newest.CreationTime) return;
             if (Verifies(verify)) newest = signature;
         }
@@ -420,9 +436,14 @@ internal static class OpenPgpService {
         }
 
         foreach (PgpSignature direct in primary.GetSignaturesOfType(PgpSignature.DirectKey)) {
+            // BouncyCastle's single-key VerifyCertification accepts only revocations, so the direct-key hash
+            // (RFC 4880 section 5.2.4: 0x99, two-octet length, key packet body) is built here.
             Consider(direct, () => {
+                byte[] body = primary.PublicKeyPacket.GetEncodedContents();
                 direct.InitVerify(primary);
-                return direct.VerifyCertification(primary);
+                direct.Update(new byte[] { 0x99, (byte)(body.Length >> 8), (byte)body.Length });
+                direct.Update(body);
+                return direct.Verify();
             });
         }
 
