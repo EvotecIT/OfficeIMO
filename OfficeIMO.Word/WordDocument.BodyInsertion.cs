@@ -15,7 +15,7 @@ namespace OfficeIMO.Word {
             }
 
             var body = BodyRoot;
-            var finalSectionProperties = GetFinalSectionPropertiesInsertionBoundary();
+            var finalSectionProperties = GetFinalSectionPropertiesInsertionBoundary(body);
             if (finalSectionProperties != null) {
                 InsertBodyBlockBefore(body, element, finalSectionProperties);
             } else {
@@ -35,8 +35,9 @@ namespace OfficeIMO.Word {
             _lastAppendedBodyBlock = element;
         }
 
-        internal SectionProperties? GetFinalSectionPropertiesInsertionBoundary() {
-            var body = BodyRoot;
+        internal SectionProperties? GetFinalSectionPropertiesInsertionBoundary() => GetFinalSectionPropertiesInsertionBoundary(BodyRoot);
+
+        private static SectionProperties? GetFinalSectionPropertiesInsertionBoundary(Body body) {
             var finalSectionProperties = body.LastChild as SectionProperties;
             if (finalSectionProperties != null) {
                 return finalSectionProperties;

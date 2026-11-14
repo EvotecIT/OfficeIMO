@@ -214,6 +214,8 @@ internal static partial class MarkdownReader {
     // outside skipped spans. From such a position, a scan started there visits exactly the same
     // characters, so the stack match equals what ScanForMatchingBracket would return.
     private sealed class BracketMatchIndex {
+        private static readonly char[] BracketScanStops = { '\\', '`', '<', '[', ']' };
+
         private readonly bool _inlineHtml;
         private readonly InlineHtmlWrapperMatchIndex? _inlineHtmlWrapperMatches;
         private readonly int[] _openPositions;
@@ -254,17 +256,18 @@ internal static partial class MarkdownReader {
             var closePositions = new List<int>();
             var openSlots = new Stack<int>();
             var effectiveInlineHtmlWrapperMatches = inlineHtmlWrapperMatches;
-            bool escaped = false;
 
-            for (int i = 0; i < text.Length; i++) {
-                char c = text[i];
-                if (escaped) {
-                    escaped = false;
-                    continue;
+            // Only escapes, brackets and the starts of skipped spans ('`' and '<') change the scan.
+            int i = 0;
+            while (i < text.Length) {
+                i = text.IndexOfAny(BracketScanStops, i);
+                if (i < 0) {
+                    break;
                 }
 
+                char c = text[i];
                 if (c == '\\') {
-                    escaped = true;
+                    i += 2;
                     continue;
                 }
 
@@ -273,7 +276,7 @@ internal static partial class MarkdownReader {
                 }
 
                 if (TrySkipLinkLabelInlineSpan(text, i, options, out int spanConsumed, effectiveInlineHtmlWrapperMatches)) {
-                    i += spanConsumed - 1;
+                    i += spanConsumed;
                     continue;
                 }
 
@@ -281,12 +284,11 @@ internal static partial class MarkdownReader {
                     openSlots.Push(openPositions.Count);
                     openPositions.Add(i);
                     closePositions.Add(-1);
-                    continue;
-                }
-
-                if (c == ']' && openSlots.Count > 0) {
+                } else if (c == ']' && openSlots.Count > 0) {
                     closePositions[openSlots.Pop()] = i;
                 }
+
+                i++;
             }
 
             return new BracketMatchIndex(text, inlineHtml, inlineHtmlWrapperMatches, openPositions.ToArray(), closePositions.ToArray());

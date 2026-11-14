@@ -12,7 +12,7 @@ internal static partial class MarkdownReader {
         bool suppressBlockGenericAttributes = false) {
 
         var nestedOptions = options.FrontMatter
-            ? CloneOptionsWithoutFrontMatter(options)
+            ? GetSharedOptionsWithoutFrontMatter(options, state)
             : options;
         var nestedState = CreateNestedState(state, options);
         nestedState.SuppressBlockGenericAttributes = suppressBlockGenericAttributes;
@@ -37,7 +37,7 @@ internal static partial class MarkdownReader {
 
         var markdown = string.Join("\n", sourceLines.Select(line => line.Text ?? string.Empty));
         var nestedOptions = options.FrontMatter
-            ? CloneOptionsWithoutFrontMatter(options)
+            ? GetSharedOptionsWithoutFrontMatter(options, state)
             : options;
         var nestedState = CreateNestedState(state, options);
         nestedState.SuppressBlockGenericAttributes = suppressBlockGenericAttributes;

@@ -8,7 +8,7 @@ namespace OfficeIMO.Html;
 public static class HtmlRenderDiagnosticCodes {
     /// <summary>An intrinsic box-size keyword used auto sizing or omitted a minimum or maximum constraint.</summary>
     public const string IntrinsicSizeUnsupported = "HtmlRenderIntrinsicSizeUnsupported";
-    /// <summary>A fragment hyperlink referenced an element that is absent from the document.</summary>
+    /// <summary>A hyperlink target could not be resolved in the output, so its annotation was omitted.</summary>
     public const string HyperlinkTargetUnavailable = "HtmlRenderHyperlinkTargetUnavailable";
     /// <summary>A serialized shadow tree was flattened for static rendering without shadow-scoped CSS or live behavior.</summary>
     public const string SerializedShadowRootApproximated = "HtmlRenderSerializedShadowRootApproximated";

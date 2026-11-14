@@ -6,8 +6,8 @@ namespace OfficeIMO.Markdown;
 internal static partial class MarkdownReader {
     private static List<IMarkdownBlock> ParseBlocksFromLines(string[] lines, MarkdownLoadOptions options, MarkdownReaderState state, List<MarkdownSyntaxNode>? syntaxNodes = null, int lineOffset = 0) {
         var doc = MarkdownDocument.Create();
-        var opt = CloneOptionsWithoutFrontMatter(options);
-        var pipeline = MarkdownReaderPipeline.Default(opt);
+        var opt = GetSharedOptionsWithoutFrontMatter(options, state);
+        var pipeline = GetPipeline(opt, state);
         int previousLineOffset = state.SourceLineOffset;
         bool previousSyntheticTerminalLine = state.HasSyntheticTerminalLine;
         state.SourceLineOffset = lineOffset;

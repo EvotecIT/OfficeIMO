@@ -8,7 +8,7 @@ namespace OfficeIMO.Tool.Commands.Workflow;
 /// <summary>Thin saved-job adapter over the shared planner and batch executor.</summary>
 internal static class WorkflowJobCommand {
     internal static async Task<int> RunAsync(string[] args, TextWriter output, TextWriter error, CancellationToken token) {
-        if (args.Length == 0 || args[0] is "--help" or "-h") {
+        if (args.Length == 0 || args.Any(argument => argument is "--help" or "-h")) {
             await output.WriteLineAsync(WorkflowCommand.Usage).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.Success;
         }
