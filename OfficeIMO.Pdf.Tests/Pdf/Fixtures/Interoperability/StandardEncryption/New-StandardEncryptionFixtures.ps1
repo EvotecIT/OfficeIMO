@@ -80,6 +80,12 @@ function Protect-Data([byte[]] $FileKey, [byte[]] $Data, [string] $Method) {
 
 function ConvertTo-Hex([byte[]] $Bytes) { '<' + [Convert]::ToHexString($Bytes) + '>' }
 
+# A literal string with octal escapes for everything but printable ASCII; ']' stays literal.
+function ConvertTo-LiteralString([byte[]] $Bytes) {
+    $text = foreach ($b in $Bytes) { if ($b -ge 0x20 -and $b -lt 0x7F -and $b -notin 0x28, 0x29, 0x5C) { [string][char]$b } else { '\' + [Convert]::ToString($b, 8).PadLeft(3, '0') } }
+    '(' + (-join $text) + ')'
+}
+
 $padding = [byte[]](0x28, 0xBF, 0x4E, 0x5E, 0x4E, 0x75, 0x8A, 0x41, 0x64, 0x00, 0x4E, 0x56, 0xFF, 0xFA, 0x01, 0x08,
     0x2E, 0x2E, 0x00, 0xB6, 0xD0, 0x68, 0x3E, 0x80, 0x2F, 0x0C, 0xA9, 0xFE, 0x64, 0x53, 0x69, 0x7A)
 
@@ -198,14 +204,16 @@ function New-ModernFixture([string] $Name, [byte[]] $UserPassword, [byte[]] $Own
     Write-Pdf $Name $header $objects (ConvertTo-Hex (Get-RandomBytes 16)) ''
 }
 
-# Revision 3, /V 1 (40-bit RC4) without /Length, the form that relies on the 40-bit default.
-function New-Revision3Fixture([string] $Name, [byte[]] $UserPassword, [byte[]] $OwnerPassword, [string] $Text) {
+# Revision 3 without /Length: /V 1 with the 40-bit default, or /V 2 from a producer that wrote a 128-bit key anyway.
+function New-Revision3Fixture([string] $Name, [byte[]] $UserPassword, [byte[]] $OwnerPassword, [string] $Text, [int] $Version = 1, [int] $KeyLength = 5, [switch] $LiteralIdWithBracket) {
     $permissions = -1852
     $fileIdBytes = Get-RandomBytes 16
-    $entries = New-Revision3Entries $UserPassword $OwnerPassword $permissions $fileIdBytes 5
+    if ($LiteralIdWithBracket) { $fileIdBytes[1] = 0x5D }
+    $entries = New-Revision3Entries $UserPassword $OwnerPassword $permissions $fileIdBytes $KeyLength
     $objects = New-PageObjects (New-StreamObject (Protect-Rc4Object $entries.FileKey 4 (Get-PageContent $Text))) (Protect-Rc4Object $entries.FileKey 6 (ConvertTo-PdfTextString $Text))
-    $objects.Add($latin1.GetBytes("<< /Filter /Standard /V 1 /R 3 /P $permissions /O $(ConvertTo-Hex $entries.O) /U $(ConvertTo-Hex $entries.U) >>"))
-    Write-Pdf $Name '%PDF-1.4' $objects (ConvertTo-Hex $fileIdBytes) ''
+    $objects.Add($latin1.GetBytes("<< /Filter /Standard /V $Version /R 3 /P $permissions /O $(ConvertTo-Hex $entries.O) /U $(ConvertTo-Hex $entries.U) >>"))
+    $fileId = if ($LiteralIdWithBracket) { ConvertTo-LiteralString $fileIdBytes } else { ConvertTo-Hex $fileIdBytes }
+    Write-Pdf $Name '%PDF-1.4' $objects $fileId ''
 }
 
 $utf8 = [System.Text.Encoding]::UTF8
@@ -217,3 +225,6 @@ New-ModernFixture 'r6-identity-crypt-filter-stream.pdf' $utf8.GetBytes('open') $
 New-ModernFixture 'r6-embedded-files-only.pdf' $utf8.GetBytes('open') $utf8.GetBytes('owner') 'AESV3' 'Attachments only R6' 'EmbeddedFilesOnly'
 New-ModernFixture 'r7-aes-gcm.pdf' $utf8.GetBytes('open') $utf8.GetBytes('owner') 'AESV4' 'AES-GCM R7'
 New-Revision3Fixture 'r3-rc4-40-default-length.pdf' $utf8.GetBytes('open') $utf8.GetBytes('owner') 'RC4 40 R3'
+New-Revision3Fixture 'r3-rc4-128-without-length.pdf' $utf8.GetBytes('open') $utf8.GetBytes('owner') 'RC4 128 R3' 2 16
+# The permanent identifier is a literal string containing ']', which rewrites must not cut short.
+New-Revision3Fixture 'r3-literal-id-with-bracket.pdf' $utf8.GetBytes('open') $utf8.GetBytes('owner') 'Literal ID R3' -LiteralIdWithBracket

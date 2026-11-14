@@ -94,17 +94,40 @@ public sealed class PdfStandardEncryptionInteroperabilityTests {
         byte[] pdf = Fixture("r6-embedded-files-only.pdf");
 
         Assert.Contains("Attachments only R6", Text(pdf, new PdfLoadOptions()), StringComparison.Ordinal);
+        Assert.Throws<PdfPasswordRequiredException>(() => PdfDocument.Load(pdf).Attachments.Extract());
         var options = new PdfLoadOptions { Password = "open" };
         PdfExtractedAttachment attachment = Assert.Single(PdfDocument.Load(pdf, options).Attachments.Extract(options));
         Assert.Equal("Attachment secret", System.Text.Encoding.ASCII.GetString(attachment.Bytes));
     }
 
+    [Theory]
+    // /V 1 always uses 40 bits; /V 2 without /Length defaults to 40 bits, but some producers wrote 128-bit keys.
+    [InlineData("r3-rc4-40-default-length.pdf", "RC4 40 R3")]
+    [InlineData("r3-rc4-128-without-length.pdf", "RC4 128 R3")]
+    public void Revision3WithoutLengthOpensWithTheDefaultOrAWrittenKeyLength(string fixture, string expected) {
+        byte[] pdf = Fixture(fixture);
+
+        Assert.Equal(expected, PdfInspector.Inspect(pdf, new PdfLoadOptions { Password = "open" }).Metadata.Title);
+        // The fixtures restrict extraction for the user, so the text is read with the owner password.
+        Assert.Contains(expected, Text(pdf, new PdfLoadOptions { Password = "owner" }), StringComparison.Ordinal);
+    }
+
     [Fact]
-    public void Revision3WithoutLengthUsesTheFortyBitDefault() {
-        byte[] pdf = Fixture("r3-rc4-40-default-length.pdf");
-        // The fixture restricts extraction for the user, so the text is read with the owner password.
-        Assert.Equal("RC4 40 R3", PdfInspector.Inspect(pdf, new PdfLoadOptions { Password = "open" }).Metadata.Title);
-        Assert.Contains("RC4 40 R3", Text(pdf, new PdfLoadOptions { Password = "owner" }), StringComparison.Ordinal);
+    public void RewritesKeepEmbeddedFilesEncryptedWithTheirOwnCryptFilter() {
+        var options = new PdfLoadOptions { Password = "open" };
+        byte[] rewritten = PdfDocument.Load(Fixture("r6-embedded-files-only.pdf"), options).Pages.Extract("1").ToBytes();
+
+        PdfExtractedAttachment attachment = Assert.Single(PdfDocument.Load(rewritten, options).Attachments.Extract(options));
+        Assert.Equal("Attachment secret", System.Text.Encoding.ASCII.GetString(attachment.Bytes));
+    }
+
+    [Fact]
+    public void RewritesKeepALiteralFileIdentifierThatContainsABracket() {
+        // The legacy file key depends on the first /ID string; a ']' inside the literal must not end the array.
+        var options = new PdfLoadOptions { Password = "owner" };
+        byte[] rewritten = PdfDocument.Load(Fixture("r3-literal-id-with-bracket.pdf"), options).Pages.Extract("1").ToBytes();
+
+        Assert.Contains("Literal ID R3", Text(rewritten, options), StringComparison.Ordinal);
     }
 
     private static int IndexOf(byte[] data, string marker) {
