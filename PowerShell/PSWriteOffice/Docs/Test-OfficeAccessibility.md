@@ -40,8 +40,9 @@ PS> (Test-OfficeAccessibility -Path .\Budget.xlsx).Findings | Format-Table Sever
 
 ### EXAMPLE 2
 ```powershell
-PS> Get-ChildItem .\Docs -Include *.docx, *.xlsx, *.pptx -Recurse | Test-OfficeAccessibility -Strict |
-                Where-Object { -not $_.IsSuccessful }
+PS> $failed = Get-ChildItem .\Docs -Include *.docx, *.xlsx, *.pptx -Recurse | Test-OfficeAccessibility -Strict |
+    Where-Object { -not $_.IsSuccessful }
+if ($failed) { throw "Accessibility errors in $($failed.Count) document(s)." }
 ```
 
 
