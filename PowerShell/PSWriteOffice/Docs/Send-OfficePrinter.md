@@ -11,12 +11,12 @@ Prints a document of any format OfficeIMO converts to PDF on an explicitly named
 ## SYNTAX
 ### Path (Default)
 ```powershell
-Send-OfficePrinter [-Path] <string[]> -PrinterName <string> [-Page <OfficePageSelector>] [-PagesPerSheet <int>] [-PageSubset <string>] [-Grayscale] [-Copies <int>] [-Duplex <string>] [-PaperSourceId <string>] [-OutputPath <string>] [-Dpi <double>] [-Margin <OfficeLength>] [-Orientation <OfficePageOrientation>] [-ScaleMode <string>] [-PaperSize <OfficePageSize>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Send-OfficePrinter [-Path] <string[]> -PrinterName <string> [-Page <OfficePageSelector>] [-PagesPerSheet <int>] [-PageSubset <string>] [-Grayscale] [-RasterizeGrayscale] [-Copies <int>] [-Duplex <string>] [-PaperSourceId <string>] [-OutputPath <string>] [-Dpi <double>] [-Margin <OfficeLength>] [-Orientation <OfficePageOrientation>] [-ScaleMode <string>] [-PaperSize <OfficePageSize>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### LiteralPath
 ```powershell
-Send-OfficePrinter -LiteralPath <string[]> -PrinterName <string> [-Page <OfficePageSelector>] [-PagesPerSheet <int>] [-PageSubset <string>] [-Grayscale] [-Copies <int>] [-Duplex <string>] [-PaperSourceId <string>] [-OutputPath <string>] [-Dpi <double>] [-Margin <OfficeLength>] [-Orientation <OfficePageOrientation>] [-ScaleMode <string>] [-PaperSize <OfficePageSize>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Send-OfficePrinter -LiteralPath <string[]> -PrinterName <string> [-Page <OfficePageSelector>] [-PagesPerSheet <int>] [-PageSubset <string>] [-Grayscale] [-RasterizeGrayscale] [-Copies <int>] [-Duplex <string>] [-PaperSourceId <string>] [-OutputPath <string>] [-Dpi <double>] [-Margin <OfficeLength>] [-Orientation <OfficePageOrientation>] [-ScaleMode <string>] [-PaperSize <OfficePageSize>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -95,7 +95,7 @@ Accept wildcard characters: False
 ```
 
 ### -Grayscale
-Print in grayscale, exactly as the sheets are previewed, regardless of the device's color support.
+Print in grayscale, regardless of the device's color support. IPP printers and CUPS queues that list monochrome printing receive the vector PDF and convert it to gray themselves; others receive gray raster sheets.
 
 ```yaml
 Type: SwitchParameter
@@ -296,6 +296,22 @@ Aliases: None
 Possible values:
 
 Required: True
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -RasterizeGrayscale
+With Grayscale, always send gray raster sheets, so the printout matches the preview pixel for pixel. Slower than letting the printer convert vector PDF. Windows queues always receive raster sheets.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
