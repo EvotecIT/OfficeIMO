@@ -28,7 +28,9 @@ internal static partial class MarkdownReader {
         bool inFence = false;
         char fenceChar = '\0';
         int fenceLen = 0;
-        bool openParagraph = false;
+        // Whether a paragraph is open is needed only in front of a definition, so the line that
+        // decides it is remembered and checked there instead of on every line.
+        var openParagraph = new LazyParagraphContinuation(lines, options);
         bool inQuotedFence = false;
         char quotedFenceChar = '\0';
         int quotedFenceLen = 0;
@@ -36,12 +38,12 @@ internal static partial class MarkdownReader {
         for (int idx = 0; idx < lines.Length; idx++) {
             var line = lines[idx];
             if (string.IsNullOrWhiteSpace(line)) {
-                openParagraph = false;
+                openParagraph.Clear();
                 continue;
             }
 
             if (TryUpdateQuotedFencePreScanState(line, ref inQuotedFence, ref quotedFenceChar, ref quotedFenceLen)) {
-                openParagraph = false;
+                openParagraph.Clear();
                 continue;
             }
 
@@ -49,7 +51,7 @@ internal static partial class MarkdownReader {
             if (!inFence) {
                 if (IsCodeFenceOpen(line, out _, out fenceChar, out fenceLen)) {
                     inFence = true;
-                    openParagraph = false;
+                    openParagraph.Clear();
                     continue;
                 }
             } else {
@@ -82,11 +84,11 @@ internal static partial class MarkdownReader {
                 out var openingMarkerSpan,
                 out var separatorMarkerSpan)) {
                 if (IsReferenceDefinitionAfterStandaloneGenericAttribute(lines, idx, options)) {
-                    openParagraph = true;
+                    openParagraph.Set();
                     continue;
                 }
 
-                if (openParagraph && !CanReferenceDefinitionResolveOpenShortcutParagraph(lines, idx)) {
+                if (openParagraph.IsOpen && !CanReferenceDefinitionResolveOpenShortcutParagraph(lines, idx)) {
                     continue;
                 }
 
@@ -108,7 +110,7 @@ internal static partial class MarkdownReader {
                         separatorMarkerSpan);
                 }
                 idx += consumedLines - 1;
-                openParagraph = false;
+                openParagraph.Clear();
                 continue;
             }
 
@@ -124,11 +126,11 @@ internal static partial class MarkdownReader {
                 }
 
                 idx += quotedConsumedLines - 1;
-                openParagraph = false;
+                openParagraph.Clear();
                 continue;
             }
 
-            openParagraph = IsReferenceDefinitionParagraphContinuationLine(lines, idx, options);
+            openParagraph.DecideAt(idx);
         }
     }
 
