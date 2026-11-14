@@ -49,16 +49,25 @@ namespace OfficeIMO.Excel.Pdf {
 
             var images = new List<WorksheetImageExportData>();
             foreach (ExcelImage image in workbookSheet.Images.OrderBy(image => image.RowIndex).ThenBy(image => image.ColumnIndex)) {
-                if (!IsPdfSupportedImageContentType(image.ContentType)) {
+                string contentType = image.ContentType;
+                byte[] bytes;
+                // The PDF image writer does not take SVG pictures; their raster fallback carries the same appearance.
+                if (!IsPdfSupportedImageContentType(contentType) && image.TryGetRasterFallback(out byte[] fallback, out string fallbackType)) {
+                    bytes = fallback;
+                    contentType = fallbackType;
+                } else {
+                    bytes = image.ToBytes();
+                }
+
+                if (!IsPdfSupportedImageContentType(contentType)) {
                     AddWarning(
                         options,
                         sheetName,
                         "worksheet-image",
-                        $"Worksheet image anchored at {ExcelA1.CellReference(image.RowIndex, image.ColumnIndex)} was not exported because content type '{image.ContentType}' is not supported by the first-party PDF image writer.");
+                        $"Worksheet image anchored at {ExcelA1.CellReference(image.RowIndex, image.ColumnIndex)} was not exported because content type '{contentType}' is not supported by the first-party PDF image writer.");
                     continue;
                 }
 
-                byte[] bytes = image.ToBytes();
                 if (bytes.Length == 0 || image.Width <= OfficeLength.Zero || image.Height <= OfficeLength.Zero) {
                     AddWarning(
                         options,
@@ -68,7 +77,7 @@ namespace OfficeIMO.Excel.Pdf {
                     continue;
                 }
 
-                if (!TryPreparePdfImageBytes(bytes, image.ContentType, out byte[] preparedBytes, out string? unsupportedReason)) {
+                if (!TryPreparePdfImageBytes(bytes, contentType, out byte[] preparedBytes, out string? unsupportedReason)) {
                     AddWarning(
                         options,
                         sheetName,

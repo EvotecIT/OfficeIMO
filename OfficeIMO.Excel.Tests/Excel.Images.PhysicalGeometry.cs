@@ -58,6 +58,32 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SvgImage_StoresPngFallbackBlipAndSvgExtensionLikeExcel() {
+        byte[] svg = System.Text.Encoding.UTF8.GetBytes(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='40' height='20'><rect width='40' height='20' fill='#1F3864'/></svg>");
+        using var document = ExcelDocument.Create();
+        ExcelImage image = document.AddSheet("Images").AddImage("B2", svg, new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/svg+xml", Width = OfficeLength.Points(80), Height = OfficeLength.Points(40)
+        });
+        Assert.Equal("image/svg+xml", image.ContentType);
+        Assert.Equal(svg, image.ToBytes());
+
+        using var saved = SpreadsheetDocument.Open(new MemoryStream(document.ToBytes()), false);
+        DrawingsPart drawing = saved.WorkbookPart!.WorksheetParts.Single().DrawingsPart!;
+        var blip = drawing.WorksheetDrawing!.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().Single();
+        var extension = blip.Descendants<DocumentFormat.OpenXml.Drawing.BlipExtension>().Single();
+        Assert.Equal("{96DAC541-7B7A-43D3-8B79-37D633B846F1}", extension.Uri!.Value);
+        ImagePart fallback = (ImagePart)drawing.GetPartById(blip.Embed!.Value!);
+        ImagePart vector = (ImagePart)drawing.GetPartById(extension.GetFirstChild<DocumentFormat.OpenXml.Office2019.Drawing.SVG.SVGBlip>()!.Embed!.Value!);
+        Assert.Equal("image/png", fallback.ContentType);
+        Assert.Equal("image/svg+xml", vector.ContentType);
+        using var png = new MemoryStream();
+        using (Stream source = fallback.GetStream()) source.CopyTo(png);
+        OfficeImageInfo info = OfficeImageReader.Identify(png.ToArray());
+        Assert.Equal((80, 40), (info.Width, info.Height));
+    }
+
+    [Fact]
     public void ImageLengths_RetainNativeEmusAndAttachedReportHandleAfterSave() {
         byte[] bytes = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
         using var output = new MemoryStream();

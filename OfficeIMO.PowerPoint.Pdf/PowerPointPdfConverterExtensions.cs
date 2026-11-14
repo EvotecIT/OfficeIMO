@@ -324,6 +324,11 @@ public static partial class PowerPointPdfConverterExtensions {
             string? destination = ResolveSlideLinkDestination(hyperlink, slideNumber, options, "picture");
 
             byte[] imageBytes = picture.GetImageBytes(GetImageReadLimit(options));
+            // An SVG picture the PDF writer cannot draw still exports through its raster fallback.
+            if (!PdfCore.PdfDocument.TryPrepareImageBytes(imageBytes, out _, out _, out _, out _) &&
+                picture.TryGetRasterFallback(GetImageReadLimit(options), out byte[] fallback)) {
+                imageBytes = fallback;
+            }
             options.EmbeddedImageBytesRead += imageBytes.Length;
             AddPowerPointImageAspectRatioDiagnostic(options, slideNumber, imageBytes, crop, style.Fit, x, y, width, height);
 

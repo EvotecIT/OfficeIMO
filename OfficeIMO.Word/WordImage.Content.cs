@@ -307,28 +307,14 @@ namespace OfficeIMO.Word {
         // Renders the PNG fallback blip that Word expects alongside an SVG picture. When the SVG cannot be drawn
         // completely, the picture keeps the SVG as its only blip.
         private static bool TryCreateSvgPngFallback(Stream imageStream, out byte[] svg, out byte[] png, out double width, out double height) {
-            png = Array.Empty<byte>();
-            width = height = 0D;
             using (var buffer = new MemoryStream()) {
                 imageStream.CopyTo(buffer);
                 svg = buffer.ToArray();
             }
 
             imageStream.Position = 0;
-            try {
-                // A lossy import would make a misleading fallback, so such SVGs keep their single blip.
-                if (!OfficeSvgDrawingReader.TryRead(svg, out OfficeDrawing? drawing, out int unsupportedFeatures) || unsupportedFeatures > 0 ||
-                    drawing == null || drawing.Width <= 0D || drawing.Height <= 0D) return false;
-                width = drawing.Width;
-                height = drawing.Height;
-                png = OfficeDrawingRasterRenderer.ToPng(drawing, SvgFallbackRasterScale);
-                return png.Length > 0;
-            } catch (Exception ex) when (ex is NotSupportedException or InvalidOperationException or ArgumentException or InvalidDataException) {
-                return false;
-            }
+            return OfficeIMO.Core.Internal.OfficeSvgPictureFallback.TryCreate(svg, out png, out width, out height);
         }
-
-        private const double SvgFallbackRasterScale = 2D;
 
         internal static WordImageLocation AddImageToLocation(
             WordDocument document,
