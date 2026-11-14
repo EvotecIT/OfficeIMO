@@ -1782,7 +1782,7 @@ File.WriteAllBytes("Service-review-protected.pdf", protectedPdf.Pdf);
 
 AES-GCM checks every string's and stream's authentication tag before using it and throws `PdfEncryptedContentIntegrityException` when encrypted content was changed. .NET 8 and later use the platform `AesGcm`; .NET Framework, .NET Standard 2.0 hosts, browser WebAssembly and callers that set `AesCryptographyProvider` use a managed GCM over the AES block cipher. The document-level MAC of ISO/TS 32004 (`/KDFSalt`, `/AuthCode`) is not verified, and appending incremental updates to revision 7 files is refused. OfficeIMO does not write revision 7: AES-256 revision 6 remains the output default because most PDF readers cannot open AES-GCM files yet.
 
-A file that encrypts only its embedded files (`/StmF` and `/StrF /Identity` with an `/EFF` crypt filter) opens without a password; its attachments stay unreadable until the document is opened with the password. Streams that name a crypt filter through `/Filter /Crypt` are decrypted with that filter, including `/Identity`.
+A file that encrypts only its embedded files (`/StmF` and `/StrF /Identity` with an `/EFF` crypt filter) opens without a password; extracting its attachments throws `PdfPasswordRequiredException` until the document is opened with the password. Streams that name a crypt filter through `/Filter /Crypt` are decrypted with that filter, including `/Identity`. RC4 files without `/Length` use the 40-bit default and, for `/V 2` and `/V 3`, also accept the 128-bit key some producers wrote; a damaged `/O` or `/U` entry or an `/Encrypt` reference that cannot be resolved throws `PdfUnsupportedEncryptionException`.
 
 ### Password protection on browser or restricted hosts
 
