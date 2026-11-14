@@ -1,7 +1,7 @@
 #requires -Version 7.4
 <#
 .SYNOPSIS
-Merges portable library comparison bundles and regenerates website partials.
+Merges portable library comparison bundles and refreshes build-time website data.
 .DESCRIPTION
 PowerForge verifies and merges the normalized artifacts. The destination is also
 an input so collecting a subset does not discard other platform or workload lanes.
@@ -12,8 +12,6 @@ Zero or more bundle index.json files, each accompanied by its result artifacts.
 Destination index. Defaults to the website's library comparison catalog.
 .PARAMETER PowerForgeRoot
 Optional exact PowerForge source checkout used by the shared initializer.
-.PARAMETER OutputDirectory
-Directory for generated benchmarks-catalog.html and benchmarks-overview.html.
 .PARAMETER WebsiteIndexPath
 Build-time template data file receiving an identical copy of the published index.
 .PARAMETER DryRun
@@ -28,7 +26,6 @@ param(
     [string[]] $SourcePath = @(),
     [string] $Path = (Join-Path $PSScriptRoot '../Website/static/data/benchmarks/library-comparisons/index.json'),
     [string] $PowerForgeRoot = $env:POWERFORGE_ROOT,
-    [string] $OutputDirectory = (Join-Path $PSScriptRoot '../Website/themes/officeimo/partials/generated'),
     [string] $WebsiteIndexPath = (Join-Path $PSScriptRoot '../Website/data/benchmarks_index.json'),
     [switch] $DryRun
 )
@@ -36,7 +33,6 @@ param(
 $ErrorActionPreference = 'Stop'
 $resultPathPrefix = '/data/benchmarks/library-comparisons'
 $Path = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
-$OutputDirectory = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputDirectory)
 $WebsiteIndexPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($WebsiteIndexPath)
 $sources = @(
     foreach ($source in $SourcePath) {
@@ -105,9 +101,8 @@ if ($DryRun) {
         ResultPathPrefix = $resultPathPrefix
         DeclaredOnly = @($sources).Count -eq 0
         Comparisons = $definitions
-        OutputDirectory = $OutputDirectory
         WebsiteIndexPath = $WebsiteIndexPath
-        GeneratedFiles = @('benchmarks-catalog.html', 'benchmarks-overview.html', 'benchmarks_index.json')
+        GeneratedFiles = @('benchmarks_index.json')
         PowerForge = $powerForge
     }
     return
@@ -137,7 +132,6 @@ try {
         -ResultPathPrefix $resultPathPrefix
     & (Join-Path $PSScriptRoot 'Generate-LibraryComparisonWebsiteData.ps1') `
         -CatalogPath $Path `
-        -OutputDirectory $OutputDirectory `
         -WebsiteIndexPath $WebsiteIndexPath
     $merged
 } finally {

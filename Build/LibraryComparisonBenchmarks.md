@@ -97,33 +97,33 @@ The wrapper obtains declarations from `all -RunMode full -PlanOnly` for both
 explicit base declarations, preserving separate IDs. An unknown comparison ID
 fails rather than guessing an area. With no sources and no destination it creates
 a declared-only catalog, so never-run comparisons still have platform coverage.
-Repeated merges of the same inputs produce the same catalog and partials.
+Repeated merges of the same inputs produce the same catalog and template data.
 
 ## Generated website output
 
-The merge regenerates these outputs from the resulting catalog:
+The merge writes the static index and result artifacts, then copies the resulting
+catalog to `Website/data/benchmarks_index.json`. This copy is byte-identical to
+the published static index and retains full and `publish=false` quick entries.
+The benchmark and area pages render from that data at build time.
 
-- `Website/data/benchmarks_index.json`: a byte-identical copy of the published
-  static index for build-time templates, retaining full and `publish=false` quick entries.
-- `Website/themes/officeimo/partials/generated/benchmarks-catalog.html`: all
-  declared comparisons, grouped by area, with libraries and per-platform evidence.
-- `Website/themes/officeimo/partials/generated/benchmarks-overview.html`: current
-  catalog coverage, separating full evidence from diagnostic lanes.
-
-Regenerate them without merging with
+Refresh the template data without merging with
 `./Build/Generate-LibraryComparisonWebsiteData.ps1`. Use `-CatalogPath` and
-`-OutputDirectory` and `-WebsiteIndexPath` for an isolated preview, or `-DryRun`
-to validate and show the output plan. The website pipeline's `Generate-BenchmarkWebsiteOverview.ps1`
-entry point delegates to this same generator. Edit the generator, never the
-generated partials. The manual page
-shell chooses which partials to include. The legacy Excel matrix and
+`-WebsiteIndexPath` for an isolated copy, or `-DryRun` to validate and show the
+output plan. Copying the published bytes preserves timestamp and numeric formats
+across locales.
+
+The archive's `benchmarks-overview.html` is generated separately by
+`./Build/Generate-BenchmarkWebsiteOverview.ps1` from the dated Excel and CSV
+snapshots in `Docs/benchmarks/readme-current/`. It contains the focused report,
+read and write pipelines rather than the library comparison catalog. Edit its
+source snapshots or generator, never the generated partial. The legacy Excel matrix and
 `Website/data/benchmarks-excel*.json` are separate archived evidence and are not
 rewritten by this pipeline.
 
 Full published evidence, diagnostic evidence, incompatible full lanes, not-run
 platforms and platforms outside a declaration's target set remain distinguishable.
-Missing historical environment values stay missing; the generator labels them
-as unrecorded rather than substituting the publishing host's environment.
+Missing historical environment values stay missing rather than being replaced
+with the publishing host's environment.
 
 ## Catalog contract and checks
 
