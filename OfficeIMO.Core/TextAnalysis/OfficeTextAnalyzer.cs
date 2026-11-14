@@ -154,7 +154,9 @@ sealed class OfficeTextAnalyzer {
     // Simple case folding through the invariant upper and lower mappings, so final sigma, long s and similar
     // variants fold together; the sharp s pair folds to "ss" as in full case folding.
     private static string FoldCase(string value) {
+        // .NET Framework's invariant casing leaves final sigma unchanged, so it is folded explicitly.
         string folded = value.ToUpperInvariant().ToLowerInvariant();
+        if (folded.IndexOf('ς') >= 0) folded = folded.Replace('ς', 'σ');
         return folded.IndexOf('ß') >= 0 ? folded.Replace("ß", "ss") : folded;
     }
 
