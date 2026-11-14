@@ -13,9 +13,9 @@ public sealed partial class TableBlock {
         return _cachedRowCells ?? Array.Empty<IReadOnlyList<TableCell>>();
     }
 
-    private void EnsureRealizedCells() {
-        int contentSignature = ComputeContentSignature();
-        int columnCount = GetEffectiveColumnCount();
+    private void EnsureRealizedCells() => EnsureRealizedCells(ComputeContentSignature(), GetEffectiveColumnCount());
+
+    private void EnsureRealizedCells(int contentSignature, int columnCount) {
         bool useStructuredCells = StructuredContentSignature.HasValue && StructuredContentSignature.Value == contentSignature;
 
         if (_cachedHeaderCells != null
@@ -99,13 +99,14 @@ public sealed partial class TableBlock {
         return ParseInlineCells(headers);
     }
 
-    private IReadOnlyList<IReadOnlyList<InlineSequence>> BuildRowInlines() {
+    private IReadOnlyList<IReadOnlyList<InlineSequence>> BuildRowInlines() => BuildRowInlines(ComputeContentSignature(), GetEffectiveColumnCount());
+
+    private IReadOnlyList<IReadOnlyList<InlineSequence>> BuildRowInlines(int contentSignature, int columnCount) {
         if (Rows.Count == 0) {
             return Array.Empty<IReadOnlyList<InlineSequence>>();
         }
 
-        int columnCount = GetEffectiveColumnCount();
-        bool useParsedCells = ParsedContentSignature.HasValue && ParsedContentSignature.Value == ComputeContentSignature();
+        bool useParsedCells = ParsedContentSignature.HasValue && ParsedContentSignature.Value == contentSignature;
         var rows = new List<IReadOnlyList<InlineSequence>>(Rows.Count);
 
         for (int rowIndex = 0; rowIndex < Rows.Count; rowIndex++) {
@@ -398,36 +399,6 @@ public sealed partial class TableBlock {
                 cells[i] = new TableCell();
             }
         }
-        return cells;
-    }
-
-    private static IReadOnlyList<TableCell>? PrepareStructuredRowHtmlCells(IReadOnlyList<TableCell>? row, int maxLogicalColumnCount, bool padToLogicalColumnCount) {
-        if (row == null) {
-            return null;
-        }
-
-        if (padToLogicalColumnCount) {
-            return PrepareStructuredRowCells(row, maxLogicalColumnCount);
-        }
-
-        if (row.Count == 0 || maxLogicalColumnCount <= 0) {
-            return Array.Empty<TableCell>();
-        }
-
-        var cells = new List<TableCell>(Math.Min(row.Count, maxLogicalColumnCount));
-        int remainingColumns = maxLogicalColumnCount;
-        for (int i = 0; i < row.Count && remainingColumns > 0; i++) {
-            TableCell cell = CloneStructuredCell(row[i]);
-            int columnSpan = Math.Max(1, cell.ColumnSpan);
-            if (columnSpan > remainingColumns) {
-                cell.ColumnSpan = remainingColumns;
-                columnSpan = remainingColumns;
-            }
-
-            cells.Add(cell);
-            remainingColumns -= columnSpan;
-        }
-
         return cells;
     }
 
