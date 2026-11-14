@@ -14,6 +14,8 @@ Destination index. Defaults to the website's library comparison catalog.
 Optional exact PowerForge source checkout used by the shared initializer.
 .PARAMETER OutputDirectory
 Directory for generated benchmarks-catalog.html and benchmarks-overview.html.
+.PARAMETER WebsiteIndexPath
+Build-time template data file receiving an identical copy of the published index.
 .PARAMETER DryRun
 Returns the merge plan without setup, builds, measurements or filesystem writes.
 .EXAMPLE
@@ -27,6 +29,7 @@ param(
     [string] $Path = (Join-Path $PSScriptRoot '../Website/static/data/benchmarks/library-comparisons/index.json'),
     [string] $PowerForgeRoot = $env:POWERFORGE_ROOT,
     [string] $OutputDirectory = (Join-Path $PSScriptRoot '../Website/themes/officeimo/partials/generated'),
+    [string] $WebsiteIndexPath = (Join-Path $PSScriptRoot '../Website/data/benchmarks_index.json'),
     [switch] $DryRun
 )
 
@@ -34,6 +37,7 @@ $ErrorActionPreference = 'Stop'
 $resultPathPrefix = '/data/benchmarks/library-comparisons'
 $Path = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
 $OutputDirectory = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputDirectory)
+$WebsiteIndexPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($WebsiteIndexPath)
 $sources = @(
     foreach ($source in $SourcePath) {
         $resolved = (Resolve-Path -LiteralPath $source -ErrorAction Stop).ProviderPath
@@ -102,7 +106,8 @@ if ($DryRun) {
         DeclaredOnly = @($sources).Count -eq 0
         Comparisons = $definitions
         OutputDirectory = $OutputDirectory
-        GeneratedFiles = @('benchmarks-catalog.html', 'benchmarks-overview.html')
+        WebsiteIndexPath = $WebsiteIndexPath
+        GeneratedFiles = @('benchmarks-catalog.html', 'benchmarks-overview.html', 'benchmarks_index.json')
         PowerForge = $powerForge
     }
     return
@@ -130,7 +135,10 @@ try {
     }
     $merged = Merge-BenchmarkEvidenceCatalog -SourcePath @($sources) -Path $Path -ComparisonPath $comparisonPath `
         -ResultPathPrefix $resultPathPrefix
-    & (Join-Path $PSScriptRoot 'Generate-LibraryComparisonWebsiteData.ps1') -CatalogPath $Path -OutputDirectory $OutputDirectory
+    & (Join-Path $PSScriptRoot 'Generate-LibraryComparisonWebsiteData.ps1') `
+        -CatalogPath $Path `
+        -OutputDirectory $OutputDirectory `
+        -WebsiteIndexPath $WebsiteIndexPath
     $merged
 } finally {
     Remove-Item -LiteralPath $temporaryDirectory -Recurse -ErrorAction Stop

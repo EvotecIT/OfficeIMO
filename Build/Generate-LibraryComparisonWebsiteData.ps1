@@ -1,7 +1,7 @@
 #requires -Version 7.4
 <#
 .SYNOPSIS
-Generates website comparison coverage and overview partials from a v4 catalog.
+Generates website benchmark data and comparison partials from a v4 catalog.
 .DESCRIPTION
 The catalog is the only evidence input. This does not measure workloads, promote
 quick results, fill missing environments, or update the legacy Excel matrix.
@@ -9,29 +9,36 @@ quick results, fill missing environments, or update the legacy Excel matrix.
 Merged PowerForge v4 index.json to validate and render.
 .PARAMETER OutputDirectory
 Directory receiving benchmarks-catalog.html and benchmarks-overview.html.
+.PARAMETER WebsiteIndexPath
+Build-time template data file receiving the exact published catalog bytes.
 .PARAMETER DryRun
 Validates the catalog and returns output paths without writing files.
 .EXAMPLE
 ./Build/Generate-LibraryComparisonWebsiteData.ps1 -CatalogPath ./Website/static/data/benchmarks/library-comparisons/index.json
 .OUTPUTS
-An output plan in DryRun mode. Otherwise writes two UTF-8 HTML partials.
+An output plan in DryRun mode. Otherwise writes two UTF-8 HTML partials and an
+identical catalog copy.
 #>
 [CmdletBinding()]
 param(
     [string] $CatalogPath = (Join-Path $PSScriptRoot '../Website/static/data/benchmarks/library-comparisons/index.json'),
     [string] $OutputDirectory = (Join-Path $PSScriptRoot '../Website/themes/officeimo/partials/generated'),
+    [string] $WebsiteIndexPath = (Join-Path $PSScriptRoot '../Website/data/benchmarks_index.json'),
     [switch] $DryRun
 )
 
 $ErrorActionPreference = 'Stop'
 $CatalogPath = (Resolve-Path -LiteralPath $CatalogPath -ErrorAction Stop).ProviderPath
 $OutputDirectory = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputDirectory)
-$json = Get-Content -LiteralPath $CatalogPath -Raw -Encoding UTF8
+$WebsiteIndexPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($WebsiteIndexPath)
+$catalogBytes = [System.IO.File]::ReadAllBytes($CatalogPath)
+$json = [System.Text.Encoding]::UTF8.GetString($catalogBytes).TrimStart([char] 0xFEFF)
 if (-not (Test-Json -Json $json -SchemaFile (Join-Path $PSScriptRoot 'library-comparisons.schema.json'))) {
     throw "Invalid v4 comparison catalog: '$CatalogPath'."
 }
 $catalog = $json | ConvertFrom-Json -Depth 100
 $outputPaths = @('benchmarks-catalog.html', 'benchmarks-overview.html') | ForEach-Object { Join-Path $OutputDirectory $_ }
+$outputPaths += $WebsiteIndexPath
 if ($DryRun) {
     [pscustomobject]@{
         DryRun = $true
@@ -122,4 +129,6 @@ $overview.Add('</tbody></table></div><p><a href="/data/benchmarks/library-compar
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 [System.IO.File]::WriteAllText($outputPaths[0], ($lines -join "`n") + "`n", [System.Text.UTF8Encoding]::new($false))
 [System.IO.File]::WriteAllText($outputPaths[1], ($overview -join "`n") + "`n", [System.Text.UTF8Encoding]::new($false))
-Write-Host "Generated comparison catalog and overview in '$OutputDirectory'."
+New-Item -ItemType Directory -Path (Split-Path -Parent $WebsiteIndexPath) -Force | Out-Null
+[System.IO.File]::WriteAllBytes($WebsiteIndexPath, $catalogBytes)
+Write-Host "Generated comparison partials in '$OutputDirectory' and catalog data at '$WebsiteIndexPath'."

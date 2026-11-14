@@ -101,8 +101,10 @@ Repeated merges of the same inputs produce the same catalog and partials.
 
 ## Generated website output
 
-The merge regenerates these partials from the resulting catalog:
+The merge regenerates these outputs from the resulting catalog:
 
+- `Website/data/benchmarks_index.json`: a byte-identical copy of the published
+  static index for build-time templates, retaining full and `publish=false` quick entries.
 - `Website/themes/officeimo/partials/generated/benchmarks-catalog.html`: all
   declared comparisons, grouped by area, with libraries and per-platform evidence.
 - `Website/themes/officeimo/partials/generated/benchmarks-overview.html`: current
@@ -110,8 +112,8 @@ The merge regenerates these partials from the resulting catalog:
 
 Regenerate them without merging with
 `./Build/Generate-LibraryComparisonWebsiteData.ps1`. Use `-CatalogPath` and
-`-OutputDirectory` for an isolated preview, or `-DryRun` to validate and show the
-output plan. The website pipeline's `Generate-BenchmarkWebsiteOverview.ps1`
+`-OutputDirectory` and `-WebsiteIndexPath` for an isolated preview, or `-DryRun`
+to validate and show the output plan. The website pipeline's `Generate-BenchmarkWebsiteOverview.ps1`
 entry point delegates to this same generator. Edit the generator, never the
 generated partials. The manual page
 shell chooses which partials to include. The legacy Excel matrix and
@@ -131,6 +133,12 @@ PowerShell's `Test-Json`. The exact v4 top-level fields are `schemaVersion`,
 `availability`. Each comparison declares `comparisonId`, `area`, `title`,
 `libraries` (strings) and `expectedPlatforms` (strings). Each evidence entry keeps
 the v3 lane, artifact, hash, environment and compatibility fields and adds `area`.
+Area values are only the IDs `pdf`, `excel`, `csv`, `word`, `powerpoint`,
+`markdown`, `html`, `rtf`, `image`, `email`, `epub`, `opendocument` and `zip`.
+Area titles and descriptions come from `Website/data/benchmark_areas.json`;
+comparison titles and library names remain in `comparisons`. Both index copies
+retain quick results without changing their publication flags; templates choose
+which results to display.
 Availability retains `comparisonId`, `runMode`, `platform`, `available`, `runModes`
 and nullable `latestUtc`. Additional artifact fields are allowed.
 
@@ -138,6 +146,10 @@ and nullable `latestUtc`. Additional artifact fields are allowed.
 Get-Content ./Website/static/data/benchmarks/library-comparisons/index.json -Raw |
     Test-Json -SchemaFile ./Build/library-comparisons.schema.json
 ```
+
+Run `./Build/Test-LibraryComparisonWebsiteData.ps1` to verify byte identity,
+overwriting the v3 placeholder, preserving quick entries, and write-free dry runs
+against the committed results.
 
 The generator validates v4 before writing. PowerForge accepts existing v3 input
 bundles for migration and emits v4 through the merge. Schema validation checks
