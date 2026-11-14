@@ -1,4 +1,4 @@
 [
-  {"title":"Read MHTML Web Archives and ZIP Site Bundles","url":"/docs/html/mhtml-and-site-bundles/","summary":"Open MHT and MHTML web archives or zipped websites, read their HTML and embedded resources, create new archives, and convert them to PDF or images without network access.","kind":"guide","targets":["OfficeIMO.Mhtml.MhtmlDocument","OfficeIMO.Mhtml.MhtmlResource"]},
-  {"title":"HTML and MHTML in .NET","url":"/docs/html/","summary":"Parse HTML and MHTML safely in .NET and turn web content into PDF, images, Word, Markdown or RTF with one shared HTML engine, PSWriteOffice and the officeimo CLI.","kind":"guide","targets":["OfficeIMO.Mhtml.MhtmlDocument"]}
+  {"title":"Read MHTML Web Archives and Site Bundles","url":"/docs/html/mhtml-and-site-bundles/","summary":"Open MHTML web archives or zipped websites, read their HTML and resources, create new archives, and convert them to PDF or images offline.","kind":"guide","targets":["OfficeIMO.Mhtml.MhtmlDocument","OfficeIMO.Mhtml.MhtmlResource"]},
+  {"title":"HTML and MHTML in .NET","url":"/docs/html/","summary":"Parse HTML and MHTML safely in .NET and turn web content into PDF, images, Word, Markdown or RTF with one HTML engine, PSWriteOffice and the CLI.","kind":"guide","targets":["OfficeIMO.Mhtml.MhtmlDocument"]}
 ]

@@ -1,3 +1,3 @@
 [
-  {"title":"Authenticate to Google Workspace","url":"/docs/google-workspace/authentication/","summary":"Create a GoogleWorkspaceSession from a service account, a short-lived access token, or Google APIs credentials.","kind":"guide","targets":["OfficeIMO.GoogleWorkspace.Auth.GoogleApis.GoogleApisCredentialSource","OfficeIMO.GoogleWorkspace.Auth.GoogleApis.GoogleInstalledApplicationAuthorization","OfficeIMO.GoogleWorkspace.Auth.GoogleApis.IGoogleWorkspaceTokenStore"]}
+  {"title":"Authenticate to Google Workspace","url":"/docs/google-workspace/authentication/","summary":"Create a GoogleWorkspaceSession in .NET from a service account, a short-lived access token, or existing Google APIs credentials.","kind":"guide","targets":["OfficeIMO.GoogleWorkspace.Auth.GoogleApis.GoogleApisCredentialSource","OfficeIMO.GoogleWorkspace.Auth.GoogleApis.GoogleInstalledApplicationAuthorization","OfficeIMO.GoogleWorkspace.Auth.GoogleApis.IGoogleWorkspaceTokenStore"]}
 ]
