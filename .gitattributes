@@ -243,3 +243,4 @@ OfficeIMO.Pdf/Resources/AdobeCMaps/** -text -whitespace
 Docs/benchmarks/officeimo.excel-tabular-2026-10-08.md -text -whitespace
 Docs/benchmarks/officeimo.excel-tabular-2026-10-08/** -text -whitespace
 Docs/benchmarks/officeimo.excel-tabular-2026-10-08/raw-packets.zip -diff
+OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/StandardEncryption/*.pdf -text -diff
