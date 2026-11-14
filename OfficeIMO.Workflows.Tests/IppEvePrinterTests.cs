@@ -10,7 +10,7 @@ namespace OfficeIMO.Workflows.Tests;
 /// loopback port with a private spool directory. Skipped where ippeveprinter is not installed.
 /// </summary>
 public sealed class IppEvePrinterTests {
-    private const string IppEvePrinterPath = "/usr/bin/ippeveprinter";
+    private const string IppEvePrinterPath = ExternalTool.IppEvePrinter;
     private static readonly TimeSpan JobTimeout = TimeSpan.FromSeconds(60);
     private static readonly byte[] Pdf = Encoding.ASCII.GetBytes(
         "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n" +
@@ -59,10 +59,10 @@ public sealed class IppEvePrinterTests {
         Assert.Equal(submissions.Select(s => s.Job.Id), completed.Where(job => job.Name == "ipp-pdf").Select(job => job.Id).OrderBy(id => id));
     }
 
-    [ExternalToolFact(IppEvePrinterPath, PwgRasterWriterTests.IppEvePcl)]
+    [ExternalToolFact(IppEvePrinterPath, ExternalTool.IppEvePcl)]
     public async Task PrintsPwgRasterThatTheReferenceConverterProcesses() {
         // ippevepcl parses each PWG raster page; a malformed stream makes the job abort instead of complete.
-        using var printer = EvePrinter.Start("-f", "image/pwg-raster", "-c", PwgRasterWriterTests.IppEvePcl);
+        using var printer = EvePrinter.Start("-f", "image/pwg-raster", "-c", ExternalTool.Path(ExternalTool.IppEvePcl));
         using var client = new IppPrintClient(printer.Uri);
         byte[] raster = PwgRasterWriterTests.Write(
             PwgRasterWriterTests.Pattern(PwgRasterColorSpace.Gray8, 2480 / 4, 3508 / 4, seed: 5),
@@ -140,7 +140,7 @@ public sealed class IppEvePrinterTests {
         Assert.Equal(content.ToArray(), File.ReadAllBytes(printer.SpooledDocument(Number(receipt), ".pdf")));
     }
 
-    [ExternalToolFact(IppEvePrinterPath, PwgRasterWriterTests.IppEvePcl)]
+    [ExternalToolFact(IppEvePrinterPath, ExternalTool.IppEvePcl)]
     public async Task ServiceSendsPwgRasterToAPrinterWithoutPdfAndForGrayscaleJobs() {
         // ippevepcl parses each PWG raster page, so the job completes only when the raster stream is well formed.
         string conf = Path.Combine(Path.GetTempPath(), "officeimo-pwg-only-" + Guid.NewGuid().ToString("N") + ".conf");
@@ -152,8 +152,8 @@ public sealed class IppEvePrinterTests {
             "ATTR keyword sides-supported one-sided,two-sided-long-edge,two-sided-short-edge\n" +
             "ATTR keyword pwg-raster-document-sheet-back rotated\n");
         try {
-            using var rasterOnly = EvePrinter.Start("-a", conf, "-c", PwgRasterWriterTests.IppEvePcl);
-            using var pdfPrinter = EvePrinter.Start("-f", "application/pdf,image/pwg-raster", "-c", PwgRasterWriterTests.IppEvePcl);
+            using var rasterOnly = EvePrinter.Start("-a", conf, "-c", ExternalTool.Path(ExternalTool.IppEvePcl));
+            using var pdfPrinter = EvePrinter.Start("-f", "application/pdf,image/pwg-raster", "-c", ExternalTool.Path(ExternalTool.IppEvePcl));
             var service = new PdfPrinterService();
             foreach ((EvePrinter printer, PdfPrintColorMode color) in new[] { (rasterOnly, PdfPrintColorMode.Color), (pdfPrinter, PdfPrintColorMode.Grayscale) }) {
                 PdfPrintSubmission receipt = await service.SubmitAsync(TwoPageJob(color), new PdfPrintDeliveryOptions {
@@ -174,9 +174,9 @@ public sealed class IppEvePrinterTests {
         using var printer = EvePrinter.Start("-f", "application/pdf,image/pwg-raster", "-c", "/usr/bin/true");
         var scheduler = new CupsScheduler(new Uri(printer.Uri, "/"), null, (_, isClass) => isClass ? new Uri(printer.Uri, "/missing") : printer.Uri);
 
-        IppPrinterCapabilities attributes = (await CupsPdfPrinter.ResolveIppQueueAsync(scheduler, "officeimo-test", default)
-            ?? throw new InvalidOperationException("The queue did not resolve over IPP.")).Printer;
-        Assert.Contains("application/pdf", attributes.DocumentFormats);
+        CupsPdfPrinter.IppQueueRoute route = await CupsPdfPrinter.ResolveIppQueueAsync(scheduler, "officeimo-test", default)
+            ?? throw new InvalidOperationException("The queue did not resolve over IPP.");
+        using (route.Client) Assert.Contains("application/pdf", route.Printer.DocumentFormats);
         PdfPrintSubmission receipt = await CupsPdfPrinter.SubmitAsync(scheduler, TwoPageJob(PdfPrintColorMode.Color),
             new PdfPrintDeliveryOptions { PrinterName = "officeimo-test", DocumentName = "cups-route" }, new PrinterCapabilityCache(), default);
 
@@ -319,7 +319,7 @@ public sealed class IppEvePrinterTests {
             string spool = Path.Combine(Path.GetTempPath(), "officeimo-ippeve-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(spool);
             int port = FreePort();
-            var start = new ProcessStartInfo(IppEvePrinterPath) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
+            var start = new ProcessStartInfo(ExternalTool.Path(IppEvePrinterPath)) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
             foreach (string argument in new[] { "-p", port.ToString(), "-n", "localhost", "-r", "off", "-d", spool, "-k" }.Concat(options)) start.ArgumentList.Add(argument);
             start.ArgumentList.Add("OfficeIMO Test " + port);
             Process process = Process.Start(start)!;
