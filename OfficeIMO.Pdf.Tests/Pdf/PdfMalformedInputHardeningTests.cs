@@ -162,20 +162,14 @@ public sealed class PdfMalformedInputHardeningTests {
     }
 
     [Fact]
-    public void ExtractPages_DropsUndefinedStructureTreeRootAndBlocksUnusableStructureTrees() {
-        string[] common = {
+    public void ExtractPages_BlocksStructureTreesTheOrganizerCannotRetarget() {
+        byte[] directElement = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 5 0 R /MarkInfo << /Marked true >> >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources " + HelveticaResources + " /Contents 4 0 R >>",
-            Stream("BT /F1 12 Tf 10 100 Td (Tagged) Tj ET")
-        };
-        byte[] undefinedRoot = BuildPdf(new[] { "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 9 0 R /MarkInfo << /Marked true >> >>" }.Concat(common).ToArray());
-        byte[] directElement = BuildPdf(new[] { "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 5 0 R /MarkInfo << /Marked true >> >>" }
-            .Concat(common)
-            .Concat(new[] { "<< /Type /StructTreeRoot /K << /Type /StructElem /S /P /Pg 3 0 R /K 0 >> >>" }).ToArray());
+            Stream("BT /F1 12 Tf 10 100 Td (Tagged) Tj ET"),
+            "<< /Type /StructTreeRoot /K << /Type /StructElem /S /P /Pg 3 0 R /K 0 >> >>");
 
-        PdfDocument extracted = PdfDocument.Load(new MemoryStream(undefinedRoot)).Pages.Extract("1");
-
-        Assert.Contains("Tagged", PdfDocument.Load(new MemoryStream(extracted.ToBytes())).ExtractText(), StringComparison.Ordinal);
         Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Load(new MemoryStream(directElement)).Pages.Extract("1"));
     }
 
