@@ -326,3 +326,85 @@ abstract OfficeIMO.OfficeNamingPolicy.ConvertName(string! name) -> string!
 static OfficeIMO.OfficeNamingPolicy.CamelCase.get -> OfficeIMO.OfficeNamingPolicy!
 static OfficeIMO.OfficeNamingPolicy.KebabCaseLower.get -> OfficeIMO.OfficeNamingPolicy!
 static OfficeIMO.OfficeNamingPolicy.SnakeCaseLower.get -> OfficeIMO.OfficeNamingPolicy!
+OfficeIMO.Security.IOfficeOpenPgpProvider
+OfficeIMO.Security.IOfficeOpenPgpProvider.Name.get -> string!
+OfficeIMO.Security.IOfficeOpenPgpProvider.OpenMessage(byte[]! message, OfficeIMO.Security.OfficeOpenPgpKeySet! keys, OfficeIMO.Security.OfficeOpenPgpOptions? options = null) -> OfficeIMO.Security.OfficeOpenPgpMessageResult!
+OfficeIMO.Security.IOfficeOpenPgpProvider.VerifyCleartext(byte[]! armoredMessage, OfficeIMO.Security.OfficeOpenPgpKeySet! keys, OfficeIMO.Security.OfficeOpenPgpOptions? options = null) -> OfficeIMO.Security.OfficeOpenPgpVerificationResult!
+OfficeIMO.Security.IOfficeOpenPgpProvider.VerifyDetached(byte[]! signature, byte[]! signedContent, OfficeIMO.Security.OfficeOpenPgpKeySet! keys, OfficeIMO.Security.OfficeOpenPgpOptions? options = null) -> OfficeIMO.Security.OfficeOpenPgpVerificationResult!
+OfficeIMO.Security.OfficeOpenPgpKeySet
+OfficeIMO.Security.OfficeOpenPgpKeySet.OfficeOpenPgpKeySet(System.Collections.Generic.IEnumerable<byte[]!>? publicKeys = null, System.Collections.Generic.IEnumerable<byte[]!>? secretKeys = null, System.Func<string!, char[]?>? passphraseProvider = null) -> void
+OfficeIMO.Security.OfficeOpenPgpKeySet.PassphraseProvider.get -> System.Func<string!, char[]?>?
+OfficeIMO.Security.OfficeOpenPgpKeySet.PublicKeys.get -> System.Collections.Generic.IReadOnlyList<byte[]!>!
+OfficeIMO.Security.OfficeOpenPgpKeySet.SecretKeys.get -> System.Collections.Generic.IReadOnlyList<byte[]!>!
+OfficeIMO.Security.OfficeOpenPgpMessageResult
+OfficeIMO.Security.OfficeOpenPgpMessageResult.Content.get -> byte[]?
+OfficeIMO.Security.OfficeOpenPgpMessageResult.FileName.get -> string?
+OfficeIMO.Security.OfficeOpenPgpMessageResult.IsEncrypted.get -> bool
+OfficeIMO.Security.OfficeOpenPgpMessageResult.IsIntegrityProtected.get -> bool
+OfficeIMO.Security.OfficeOpenPgpMessageResult.IsSignatureValid.get -> bool
+OfficeIMO.Security.OfficeOpenPgpMessageResult.Message.get -> string!
+OfficeIMO.Security.OfficeOpenPgpMessageResult.OfficeOpenPgpMessageResult(OfficeIMO.Security.OfficeOpenPgpMessageStatus status, string! message, bool isEncrypted = false, bool isIntegrityProtected = false, byte[]? content = null, string? fileName = null, string? symmetricAlgorithm = null, System.Collections.Generic.IEnumerable<string!>? recipientKeyIds = null, System.Collections.Generic.IEnumerable<OfficeIMO.Security.OfficeOpenPgpSignatureInfo!>? signatures = null) -> void
+OfficeIMO.Security.OfficeOpenPgpMessageResult.RecipientKeyIds.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Security.OfficeOpenPgpMessageResult.Signatures.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Security.OfficeOpenPgpSignatureInfo!>!
+OfficeIMO.Security.OfficeOpenPgpMessageResult.Status.get -> OfficeIMO.Security.OfficeOpenPgpMessageStatus
+OfficeIMO.Security.OfficeOpenPgpMessageResult.SymmetricAlgorithm.get -> string?
+OfficeIMO.Security.OfficeOpenPgpMessageStatus
+OfficeIMO.Security.OfficeOpenPgpMessageStatus.IntegrityCheckFailed = 4 -> OfficeIMO.Security.OfficeOpenPgpMessageStatus
+OfficeIMO.Security.OfficeOpenPgpMessageStatus.LimitExceeded = 8 -> OfficeIMO.Security.OfficeOpenPgpMessageStatus
+OfficeIMO.Security.OfficeOpenPgpMessageStatus.Malformed = 7 -> OfficeIMO.Security.OfficeOpenPgpMessageStatus
+OfficeIMO.Security.OfficeOpenPgpMessageStatus.MissingIntegrityProtection = 5 -> OfficeIMO.Security.OfficeOpenPgpMessageStatus
+OfficeIMO.Security.OfficeOpenPgpMessageStatus.NoMatchingSecretKey = 1 -> OfficeIMO.Security.OfficeOpenPgpMessageStatus
+OfficeIMO.Security.OfficeOpenPgpMessageStatus.Opened = 0 -> OfficeIMO.Security.OfficeOpenPgpMessageStatus
+OfficeIMO.Security.OfficeOpenPgpMessageStatus.PassphraseRequired = 2 -> OfficeIMO.Security.OfficeOpenPgpMessageStatus
+OfficeIMO.Security.OfficeOpenPgpMessageStatus.Unsupported = 6 -> OfficeIMO.Security.OfficeOpenPgpMessageStatus
+OfficeIMO.Security.OfficeOpenPgpMessageStatus.WrongPassphrase = 3 -> OfficeIMO.Security.OfficeOpenPgpMessageStatus
+OfficeIMO.Security.OfficeOpenPgpOptions
+OfficeIMO.Security.OfficeOpenPgpOptions.AllowMissingIntegrityProtection.get -> bool
+OfficeIMO.Security.OfficeOpenPgpOptions.AllowMissingIntegrityProtection.set -> void
+OfficeIMO.Security.OfficeOpenPgpOptions.AllowWeakHashAlgorithms.get -> bool
+OfficeIMO.Security.OfficeOpenPgpOptions.AllowWeakHashAlgorithms.set -> void
+OfficeIMO.Security.OfficeOpenPgpOptions.MaxInputBytes.get -> long
+OfficeIMO.Security.OfficeOpenPgpOptions.MaxInputBytes.set -> void
+OfficeIMO.Security.OfficeOpenPgpOptions.MaxNestingDepth.get -> int
+OfficeIMO.Security.OfficeOpenPgpOptions.MaxNestingDepth.set -> void
+OfficeIMO.Security.OfficeOpenPgpOptions.MaxOutputBytes.get -> long
+OfficeIMO.Security.OfficeOpenPgpOptions.MaxOutputBytes.set -> void
+OfficeIMO.Security.OfficeOpenPgpOptions.MaxSignatures.get -> int
+OfficeIMO.Security.OfficeOpenPgpOptions.MaxSignatures.set -> void
+OfficeIMO.Security.OfficeOpenPgpOptions.MinimumKeyBits.get -> int
+OfficeIMO.Security.OfficeOpenPgpOptions.MinimumKeyBits.set -> void
+OfficeIMO.Security.OfficeOpenPgpOptions.OfficeOpenPgpOptions() -> void
+OfficeIMO.Security.OfficeOpenPgpOptions.VerificationTime.get -> System.DateTimeOffset?
+OfficeIMO.Security.OfficeOpenPgpOptions.VerificationTime.set -> void
+OfficeIMO.Security.OfficeOpenPgpSignatureInfo
+OfficeIMO.Security.OfficeOpenPgpSignatureInfo.CreatedAt.get -> System.DateTimeOffset?
+OfficeIMO.Security.OfficeOpenPgpSignatureInfo.HashAlgorithm.get -> string?
+OfficeIMO.Security.OfficeOpenPgpSignatureInfo.IsTextSignature.get -> bool
+OfficeIMO.Security.OfficeOpenPgpSignatureInfo.IsValid.get -> bool
+OfficeIMO.Security.OfficeOpenPgpSignatureInfo.KeyId.get -> string?
+OfficeIMO.Security.OfficeOpenPgpSignatureInfo.KeyVersion.get -> int
+OfficeIMO.Security.OfficeOpenPgpSignatureInfo.Message.get -> string!
+OfficeIMO.Security.OfficeOpenPgpSignatureInfo.OfficeOpenPgpSignatureInfo(OfficeIMO.Security.OfficeOpenPgpSignatureStatus status, string! message, string? keyId = null, string? signingKeyFingerprint = null, string? primaryKeyFingerprint = null, System.Collections.Generic.IEnumerable<string!>? userIds = null, System.DateTimeOffset? createdAt = null, string? hashAlgorithm = null, string? publicKeyAlgorithm = null, int signatureVersion = 0, int keyVersion = 0, bool isTextSignature = false) -> void
+OfficeIMO.Security.OfficeOpenPgpSignatureInfo.PrimaryKeyFingerprint.get -> string?
+OfficeIMO.Security.OfficeOpenPgpSignatureInfo.PublicKeyAlgorithm.get -> string?
+OfficeIMO.Security.OfficeOpenPgpSignatureInfo.SignatureVersion.get -> int
+OfficeIMO.Security.OfficeOpenPgpSignatureInfo.SigningKeyFingerprint.get -> string?
+OfficeIMO.Security.OfficeOpenPgpSignatureInfo.Status.get -> OfficeIMO.Security.OfficeOpenPgpSignatureStatus
+OfficeIMO.Security.OfficeOpenPgpSignatureInfo.UserIds.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Security.OfficeOpenPgpSignatureStatus
+OfficeIMO.Security.OfficeOpenPgpSignatureStatus.Invalid = 1 -> OfficeIMO.Security.OfficeOpenPgpSignatureStatus
+OfficeIMO.Security.OfficeOpenPgpSignatureStatus.KeyExpired = 4 -> OfficeIMO.Security.OfficeOpenPgpSignatureStatus
+OfficeIMO.Security.OfficeOpenPgpSignatureStatus.KeyNotValidForSigning = 6 -> OfficeIMO.Security.OfficeOpenPgpSignatureStatus
+OfficeIMO.Security.OfficeOpenPgpSignatureStatus.KeyRevoked = 3 -> OfficeIMO.Security.OfficeOpenPgpSignatureStatus
+OfficeIMO.Security.OfficeOpenPgpSignatureStatus.Malformed = 9 -> OfficeIMO.Security.OfficeOpenPgpSignatureStatus
+OfficeIMO.Security.OfficeOpenPgpSignatureStatus.MissingPublicKey = 2 -> OfficeIMO.Security.OfficeOpenPgpSignatureStatus
+OfficeIMO.Security.OfficeOpenPgpSignatureStatus.SignatureExpired = 5 -> OfficeIMO.Security.OfficeOpenPgpSignatureStatus
+OfficeIMO.Security.OfficeOpenPgpSignatureStatus.Unsupported = 8 -> OfficeIMO.Security.OfficeOpenPgpSignatureStatus
+OfficeIMO.Security.OfficeOpenPgpSignatureStatus.Valid = 0 -> OfficeIMO.Security.OfficeOpenPgpSignatureStatus
+OfficeIMO.Security.OfficeOpenPgpSignatureStatus.WeakAlgorithm = 7 -> OfficeIMO.Security.OfficeOpenPgpSignatureStatus
+OfficeIMO.Security.OfficeOpenPgpVerificationResult
+OfficeIMO.Security.OfficeOpenPgpVerificationResult.IsValid.get -> bool
+OfficeIMO.Security.OfficeOpenPgpVerificationResult.Message.get -> string?
+OfficeIMO.Security.OfficeOpenPgpVerificationResult.OfficeOpenPgpVerificationResult(System.Collections.Generic.IEnumerable<OfficeIMO.Security.OfficeOpenPgpSignatureInfo!>? signatures, string? message = null, byte[]? signedContent = null) -> void
+OfficeIMO.Security.OfficeOpenPgpVerificationResult.Signatures.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Security.OfficeOpenPgpSignatureInfo!>!
+OfficeIMO.Security.OfficeOpenPgpVerificationResult.SignedContent.get -> byte[]?
