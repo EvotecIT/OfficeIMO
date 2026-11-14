@@ -147,7 +147,7 @@ Added                                       Replaced
 
 TOML has no null, so where tables merge an overlay cannot remove a key; only a replaced array drops the items, and keys of table items, that the overlay's array lacks. When an overlay changes a value's kind, such as a table where the base has a string, the overlay wins and the report's `Diagnostics` lists a `toml-merge-kind-conflict` warning.
 
-`Test-OfficeToml` returns `$true` or `$false` for each file, and `-Detailed` gives the stable error code with its line and column:
+`Test-OfficeToml` returns `$true` or `$false` for each file, and `-Detailed` gives the stable error code with its line and column. A file that can't be read gets an error instead of a result, so a deployment gate should also stop on errors, for example with `-ErrorAction Stop`:
 
 ```powershell
 Test-OfficeToml -Path .\Cargo.toml -Detailed | Select-Object IsValid, Code, Line, Column
@@ -198,7 +198,7 @@ Convert-OfficeDocument -Path .\service.json -OutputPath .\service.toml -FailOnLo
 
 ## CSV with explicit rules
 
-`Export-OfficeCsv` and `ConvertTo-OfficeCsv` write delimited data with explicit delimiter, quoting, encoding, and spreadsheet formula-injection choices (`-FormulaInjectionPolicy`), and `Import-OfficeCsv` reads it back with typed options. `ConvertFrom-OfficeCsv` reads CSV text from the pipeline, such as `ConvertTo-OfficeCsv` output or lines from `Get-Content`, with the same options and `-As` output shapes as `Import-OfficeCsv`:
+`Export-OfficeCsv` and `ConvertTo-OfficeCsv` write delimited data with explicit delimiter, quoting, encoding, and spreadsheet formula-injection choices (`-FormulaInjectionPolicy`), and `Import-OfficeCsv` reads it back with typed options. `ConvertFrom-OfficeCsv` reads CSV text from the pipeline, such as `ConvertTo-OfficeCsv` output or lines from `Get-Content`, with `Import-OfficeCsv`'s parsing options and `-As` output shapes. File-only options, such as encoding, compression and `-Mode`, don't apply to text:
 
 ```powershell
 Get-Content -Path .\export.txt | ConvertFrom-OfficeCsv -Delimiter ';' -As DataTable -InferSchema
