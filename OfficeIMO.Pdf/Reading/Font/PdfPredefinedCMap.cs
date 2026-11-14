@@ -37,6 +37,9 @@ namespace OfficeIMO.Pdf {
         private readonly CidUnicodeMap _unicode;
 
         private PdfPredefinedCMap(ushort[] cids, CidUnicodeMap unicode) {
+            ulong hash = 14695981039346656037UL;
+            foreach (ushort cid in cids) hash = (hash ^ cid) * 1099511628211UL;
+            Identity = "embedded:" + hash.ToString("x16", CultureInfo.InvariantCulture);
             _twoByteCids = cids;
             _codespace = Array.Empty<CodespaceRange>();
             _cidRuns = Array.Empty<CodeRuns?>();
@@ -44,14 +47,18 @@ namespace OfficeIMO.Pdf {
             _unicode = unicode;
         }
 
-        private PdfPredefinedCMap(CodespaceRange[] codespace, CodeRuns?[] cidRuns, CodeRuns?[] notdefRuns,
+        private PdfPredefinedCMap(string name, CodespaceRange[] codespace, CodeRuns?[] cidRuns, CodeRuns?[] notdefRuns,
             PdfPredefinedCMap? parent, CidUnicodeMap unicode) {
+            Identity = name;
             _codespace = codespace.Length == 0 && parent != null ? parent._codespace : codespace;
             _cidRuns = cidRuns;
             _notdefRuns = notdefRuns;
             _parent = parent;
             _unicode = unicode;
         }
+
+        /// <summary>Distinguishes code-to-CID maps: the bundled CMap name, or a digest of an embedded CMap's table.</summary>
+        internal string Identity { get; }
 
         /// <summary>Returns a shared lazy map only when the CMap belongs to the descendant's Adobe character collection.</summary>
         internal static Lazy<PdfPredefinedCMap>? Find(string encoding, string registry, string ordering) {
@@ -156,7 +163,7 @@ namespace OfficeIMO.Pdf {
             return true;
         }
 
-        /// <summary>Single-scalar Unicode values of the character collection, in CID order.</summary>
+        /// <summary>Unicode values of the character collection in CID order; sequence-valued CIDs report scalar -1.</summary>
         internal IEnumerable<(int Cid, int Scalar)> EnumerateCollectionScalars() => _unicode.EnumerateScalars();
 
         // Reads one code. A complete match of a codespace range is valid. Otherwise the code is invalid and its
@@ -167,7 +174,7 @@ namespace OfficeIMO.Pdf {
             if (_twoByteCids != null) {
                 if (offset + 1 >= bytes.Length) return 2;
                 value = (uint)((bytes[offset] << 8) | bytes[offset + 1]);
-                valid = value is < 0xD800 or > 0xDFFF;
+                valid = true;
                 return 2;
             }
             int remaining = bytes.Length - offset;
@@ -220,7 +227,7 @@ namespace OfficeIMO.Pdf {
                 parent = Bundled.GetOrAdd(parentName, static key => new Lazy<PdfPredefinedCMap>(() => Load(key))).Value;
             }
             if (codespace.Length == 0 && parent == null) throw new InvalidDataException("Embedded Adobe CMap has no codespace: " + name);
-            return new PdfPredefinedCMap(codespace, cids, notdef, parent, GetCollectionUnicode(ordering));
+            return new PdfPredefinedCMap(name, codespace, cids, notdef, parent, GetCollectionUnicode(ordering));
         }
 
         private static CodeRuns?[] ReadRuns(PayloadReader reader, bool constant) {
@@ -511,7 +518,7 @@ namespace OfficeIMO.Pdf {
 
             internal IEnumerable<(int Cid, int Scalar)> EnumerateScalars() {
                 for (int cid = 1; cid < _scalars.Length; cid++) {
-                    if (_scalars[cid] > 0) yield return (cid, _scalars[cid]);
+                    if (_scalars[cid] != 0) yield return (cid, _scalars[cid]);
                 }
             }
         }

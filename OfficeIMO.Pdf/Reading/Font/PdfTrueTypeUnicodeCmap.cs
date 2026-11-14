@@ -164,14 +164,14 @@ internal static partial class PdfTrueTypeUnicodeCmap {
                 int paintedGlyph = GlyphForCid(cidToGlyphMap, entry.Cid, glyphCount);
                 if (paintedGlyph == 0) continue;
                 if (fallbackGlyph < 0 && !isEmptyGlyph(paintedGlyph)) fallbackGlyph = paintedGlyph;
-                entries.Add(entry);
+                if (entry.Scalar > 0) entries.Add(entry);
             }
         } else {
             foreach (KeyValuePair<string, string> mapping in font.CMap!.Mappings) {
                 int cid;
                 if (codeMap != null) {
                     if (mapping.Key.Length is < 2 or > 8 || (mapping.Key.Length & 1) != 0 ||
-                        !codeMap.TryGetCid(ParseHexCode(mapping.Key), out cid)) continue;
+                        !codeMap.TryGetPaintedCid(ParseHexCode(mapping.Key), 0, mapping.Key.Length / 2, out cid)) continue;
                 } else if (mapping.Key.Length != 4 ||
                     !int.TryParse(mapping.Key, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out cid)) {
                     continue;
@@ -689,6 +689,7 @@ internal sealed class PdfDrawingFontProgram {
 
     /// <summary>Resolves the glyph that one complete PDF code paints, or 0.</summary>
     internal int GlyphForCodeBytes(byte[] code) {
+        // Codes select CIDs through the CMap; the family identity includes it, so one family has one code map.
         if (CodeMap != null) return CodeMap.TryGetPaintedCid(code, 0, code.Length, out int cid) ? GlyphForCode(cid) : 0;
         return code.Length switch {
             1 => GlyphForCode(code[0]),

@@ -154,6 +154,12 @@ internal sealed partial class PdfFontResource {
                     identity[hash.Length + 1 + code * 2 + 1] = (byte)glyph;
                 }
             }
+            // Resources sharing a program but not an encoding CMap must not share painted-glyph mappings.
+            if (drawingProgram.CodeMap != null) {
+                byte[] codeMap = System.Text.Encoding.ASCII.GetBytes(drawingProgram.CodeMap.Identity);
+                Array.Resize(ref identity, identity.Length + codeMap.Length);
+                Buffer.BlockCopy(codeMap, 0, identity, identity.Length - codeMap.Length, codeMap.Length);
+            }
             hash = sha256.ComputeHash(identity);
         }
         // Font-family parsing limits each candidate to 256 characters. Keep the digest within

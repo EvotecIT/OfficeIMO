@@ -81,13 +81,17 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Null(PdfPredefinedCMap.Find("UniJIS-UCS2-H", registry, ordering));
         }
 
-        [Fact]
-        public void EmbeddedEncodingCMapDecodesThroughTheDescendantCollectionWithoutToUnicode() {
-            // An embedded Adobe-Korea1 CMap (as in the veraPDF composite-font case) selects CIDs; Korea1 CIDs 1-95 are ASCII.
-            const string cmap = "/CIDInit /ProcSet findresource begin 12 dict begin begincmap\n" +
-                "/CMapName /Adobe-Korea1-2 def /CMapType 1 def\n1 begincodespacerange\n<0000> <47FF>\nendcodespacerange\n" +
-                "1 begincidrange\n<0000> <00ff> 0\nendcidrange\nendcmap CMapName currentdict /CMap defineresource pop end end";
-            const string content = "BT /F1 18 Tf 72 700 Td <00290046004D004D0050> Tj ET";
+        // An embedded Adobe-Korea1 CMap (as in the veraPDF composite-font case) selects CIDs; Korea1 CIDs 1-95 are ASCII.
+        // Embedded codes are not Unicode, so a code in the surrogate range maps like any other.
+        [Theory]
+        [InlineData("<0000> <47FF>", "1 begincidrange\n<0000> <00ff> 0\nendcidrange", "00290046004D004D0050", "Hello")]
+        [InlineData("<0000> <FFFF>", "1 begincidchar\n<D800> 41\nendcidchar", "D800", "H")]
+        public void EmbeddedEncodingCMapDecodesThroughTheDescendantCollectionWithoutToUnicode(
+            string codespace, string mappings, string code, string expected) {
+            string cmap = "/CIDInit /ProcSet findresource begin 12 dict begin begincmap\n" +
+                "/CMapName /Adobe-Korea1-2 def /CMapType 1 def\n1 begincodespacerange\n" + codespace + "\nendcodespacerange\n" +
+                mappings + "\nendcmap CMapName currentdict /CMap defineresource pop end end";
+            string content = "BT /F1 18 Tf 72 700 Td <" + code + "> Tj ET";
             byte[] pdf = BuildPdf(new[] {
                 "<< /Type /Catalog /Pages 2 0 R >>",
                 "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
@@ -98,7 +102,7 @@ namespace OfficeIMO.Tests.Pdf {
                 "<< /Type /CMap /CMapName /Adobe-Korea1-2 /CIDSystemInfo << /Registry (Adobe) /Ordering (Korea1) /Supplement 2 >> /Length " + cmap.Length + " >>\nstream\n" + cmap + "\nendstream"
             });
 
-            Assert.Contains("Hello", PdfReadDocument.Open(pdf).Pages[0].ExtractText(), StringComparison.Ordinal);
+            Assert.Contains(expected, PdfReadDocument.Open(pdf).Pages[0].ExtractText(), StringComparison.Ordinal);
         }
 
         [Fact]
