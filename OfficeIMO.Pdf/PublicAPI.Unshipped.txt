@@ -1127,3 +1127,16 @@ OfficeIMO.Pdf.PdfTableStyle.RepeatFooterRows.get -> bool
 OfficeIMO.Pdf.PdfTableStyle.RepeatFooterRows.set -> void
 OfficeIMO.Pdf.PdfInvoiceComponent.CarryTotalsAcrossPages.get -> bool
 OfficeIMO.Pdf.PdfInvoiceComponent.CarryTotalsAcrossPages.set -> void
+OfficeIMO.Pdf.PdfLoadOptions.PublicKeyDecryption.get -> OfficeIMO.Pdf.PdfPublicKeyDecryptionOptions?
+OfficeIMO.Pdf.PdfLoadOptions.PublicKeyDecryption.init -> void
+OfficeIMO.Pdf.PdfPasswordAuthenticationRole.PublicKeyRecipient = 3 -> OfficeIMO.Pdf.PdfPasswordAuthenticationRole
+OfficeIMO.Pdf.PdfPublicKeyDecryptionOptions
+OfficeIMO.Pdf.PdfPublicKeyDecryptionOptions.PdfPublicKeyDecryptionOptions(OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Collections.Generic.IEnumerable<System.Security.Cryptography.X509Certificates.X509Certificate2!>! recipientCertificates) -> void
+OfficeIMO.Pdf.PdfPublicKeyDecryptionOptions.PdfPublicKeyDecryptionOptions(OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! recipientCertificate) -> void
+OfficeIMO.Pdf.PdfPublicKeyDecryptionOptions.CertificateCount.get -> int
+OfficeIMO.Pdf.PdfRecipientCertificateRequiredException
+OfficeIMO.Pdf.PdfRecipientCertificateRequiredException.PdfRecipientCertificateRequiredException(string! message) -> void
+OfficeIMO.Pdf.PdfRecipientDecryptionException
+OfficeIMO.Pdf.PdfRecipientDecryptionException.PdfRecipientDecryptionException(string! message) -> void
+OfficeIMO.Pdf.PdfRecipientNotFoundException
+OfficeIMO.Pdf.PdfRecipientNotFoundException.PdfRecipientNotFoundException(string! message) -> void
