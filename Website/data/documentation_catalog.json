@@ -9,7 +9,7 @@
     "validationProjectCount": 75,
     "apiReferenceCount": 129,
     "conceptualPageCount": 160,
-    "conceptualWordCount": 89554
+    "conceptualWordCount": 89904
   },
   "categories": [
     {
@@ -317,10 +317,10 @@
       "name": "OfficeIMO.Archives",
       "packageId": "OfficeIMO.Archives",
       "category": "Foundations and integrations",
-      "description": "Bounded ZIP reading and traversal, Cabinet and Windows Installer inspection and member reads, and managed payload extraction.",
+      "description": "Bounded ZIP reading and traversal, Cabinet and Windows Installer inspection and member reads, TAR and gzip reading, deterministic ZIP, TAR and gzip creation, and managed payload extraction.",
       "kind": "package",
       "projectPath": "OfficeIMO.Archives/OfficeIMO.Archives.csproj",
-      "sourceFileCount": 44,
+      "sourceFileCount": 56,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/archives/",
       "apiUrl": "/api/archives/",
@@ -2036,7 +2036,7 @@
       "description": "ZIP adapter for OfficeIMO.Reader modular ingestion.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Zip/OfficeIMO.Reader.Zip.csproj",
-      "sourceFileCount": 4,
+      "sourceFileCount": 5,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-zip/",
@@ -2322,7 +2322,7 @@
       "description": "Typed local document workflows that compose first-party OfficeIMO conversion, PDF, and provenance capabilities.",
       "kind": "package",
       "projectPath": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
-      "sourceFileCount": 249,
+      "sourceFileCount": 251,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/workflows/",
