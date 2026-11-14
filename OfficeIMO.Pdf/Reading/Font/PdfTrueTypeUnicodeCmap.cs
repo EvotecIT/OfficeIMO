@@ -60,7 +60,7 @@ internal static partial class PdfTrueTypeUnicodeCmap {
         if (mappings == null || mappings.Count == 0) return null;
         byte[]? rebuilt = Rebuild(program, mappings);
         return rebuilt == null ? null : new PdfDrawingFontProgram(rebuilt, mappings, glyphForCode, isEmptyGlyph,
-            cidToGlyphMap, originalProgramByteCount: program.LongLength);
+            cidToGlyphMap, originalProgramByteCount: program.LongLength, codeMap: GetCodeMap(font, cidToGlyphMap));
     }
 
     /// <summary>Returns the program with additional Unicode-to-glyph mappings, keeping existing entries.</summary>
@@ -132,22 +132,55 @@ internal static partial class PdfTrueTypeUnicodeCmap {
         return mappings;
     }
 
-    // A CIDFontType2 font selects glyphs by CID through CIDToGIDMap. With an Identity encoding the
-    // two-byte code is the CID, and ToUnicode gives the text that CID paints.
+    private static byte[] ParseHexCode(string hex) {
+        var code = new byte[hex.Length / 2];
+        for (int index = 0; index < code.Length; index++) {
+            code[index] = (byte)((HexValue(hex[2 * index]) << 4) | HexValue(hex[2 * index + 1]));
+        }
+        return code;
+
+        // ToUnicode keys are formatted hexadecimal digits.
+        static int HexValue(char digit) => digit <= '9' ? digit - '0' : (digit | 0x20) - 'a' + 10;
+    }
+
+    // The code-to-CID map of a composite font whose predefined CMap is not Identity; null otherwise.
+    private static PdfPredefinedCMap? GetCodeMap(PdfFontResource font, byte[]? cidToGlyphMap) =>
+        cidToGlyphMap != null && font.PredefinedCMap is Lazy<PdfPredefinedCMap> predefined &&
+        !ReferenceEquals(predefined.Value, PdfPredefinedCMap.Empty) ? predefined.Value : null;
+
+    // A CID font selects glyphs by CID through CIDToGIDMap. With an Identity encoding the two-byte code
+    // is the CID; a predefined CMap selects the CID from the code. ToUnicode gives the text a code paints,
+    // or, without it, the Adobe collection's Unicode map gives the text of each CID.
     private static SortedDictionary<int, int>? CreateCidMappings(PdfFontResource font, byte[] cidToGlyphMap, int glyphCount,
         Func<int, bool> isEmptyGlyph) {
-        if (font.CMap == null ||
-            !string.Equals(font.Encoding, "Identity-H", StringComparison.Ordinal) &&
-            !string.Equals(font.Encoding, "Identity-V", StringComparison.Ordinal)) return null;
+        PdfPredefinedCMap? codeMap = GetCodeMap(font, cidToGlyphMap);
+        bool identity = string.Equals(font.Encoding, "Identity-H", StringComparison.Ordinal) ||
+            string.Equals(font.Encoding, "Identity-V", StringComparison.Ordinal);
+        if (codeMap == null && (font.CMap == null || !identity)) return null;
         var entries = new List<(int Cid, int Scalar)>();
         int fallbackGlyph = -1;
-        foreach (KeyValuePair<string, string> mapping in font.CMap.Mappings) {
-            if (mapping.Key.Length != 4 ||
-                !int.TryParse(mapping.Key, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out int cid)) continue;
-            int paintedGlyph = GlyphForCid(cidToGlyphMap, cid, glyphCount);
-            if (fallbackGlyph < 0 && !isEmptyGlyph(paintedGlyph)) fallbackGlyph = paintedGlyph;
-            if (!TryGetSingleScalar(mapping.Value, out int scalar)) continue;
-            entries.Add((cid, scalar));
+        if (codeMap != null && (!font.HasToUnicode || font.CMap == null)) {
+            foreach ((int Cid, int Scalar) entry in codeMap.EnumerateCollectionScalars()) {
+                int paintedGlyph = GlyphForCid(cidToGlyphMap, entry.Cid, glyphCount);
+                if (paintedGlyph == 0) continue;
+                if (fallbackGlyph < 0 && !isEmptyGlyph(paintedGlyph)) fallbackGlyph = paintedGlyph;
+                if (entry.Scalar > 0) entries.Add(entry);
+            }
+        } else {
+            foreach (KeyValuePair<string, string> mapping in font.CMap!.Mappings) {
+                int cid;
+                if (codeMap != null) {
+                    if (mapping.Key.Length is < 2 or > 8 || (mapping.Key.Length & 1) != 0 ||
+                        !codeMap.TryGetPaintedCid(ParseHexCode(mapping.Key), 0, mapping.Key.Length / 2, out cid)) continue;
+                } else if (mapping.Key.Length != 4 ||
+                    !int.TryParse(mapping.Key, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out cid)) {
+                    continue;
+                }
+                int paintedGlyph = GlyphForCid(cidToGlyphMap, cid, glyphCount);
+                if (fallbackGlyph < 0 && !isEmptyGlyph(paintedGlyph)) fallbackGlyph = paintedGlyph;
+                if (!TryGetSingleScalar(mapping.Value, out int scalar)) continue;
+                entries.Add((cid, scalar));
+            }
         }
         entries.Sort(static (left, right) => left.Cid.CompareTo(right.Cid));
 
@@ -630,8 +663,9 @@ internal static partial class PdfTrueTypeUnicodeCmap {
 /// <summary>A drawing-ready TrueType program with its synthesized Unicode mappings.</summary>
 internal sealed class PdfDrawingFontProgram {
     internal PdfDrawingFontProgram(byte[] program, SortedDictionary<int, int> unicodeGlyphs, Func<int, int> glyphForCode,
-        Func<int, bool> isEmptyGlyph, byte[]? cidToGlyphMap = null, long originalProgramByteCount = 0) {
+        Func<int, bool> isEmptyGlyph, byte[]? cidToGlyphMap = null, long originalProgramByteCount = 0, PdfPredefinedCMap? codeMap = null) {
         Program = program;
+        CodeMap = codeMap;
         UnicodeGlyphs = unicodeGlyphs;
         GlyphForCode = glyphForCode;
         IsEmptyGlyph = isEmptyGlyph;
@@ -649,6 +683,20 @@ internal sealed class PdfDrawingFontProgram {
 
     /// <summary>Resolves the glyph a PDF character code or CID paints, or 0.</summary>
     internal Func<int, int> GlyphForCode { get; }
+
+    /// <summary>The predefined CMap that selects CIDs from codes, or null when the code is the CID or a simple-font code.</summary>
+    internal PdfPredefinedCMap? CodeMap { get; }
+
+    /// <summary>Resolves the glyph that one complete PDF code paints, or 0.</summary>
+    internal int GlyphForCodeBytes(byte[] code) {
+        // Codes select CIDs through the CMap; the family identity includes it, so one family has one code map.
+        if (CodeMap != null) return CodeMap.TryGetPaintedCid(code, 0, code.Length, out int cid) ? GlyphForCode(cid) : 0;
+        return code.Length switch {
+            1 => GlyphForCode(code[0]),
+            2 => GlyphForCode((code[0] << 8) | code[1]),
+            _ => 0
+        };
+    }
 
     /// <summary>True when a glyph has no outline data.</summary>
     internal Func<int, bool> IsEmptyGlyph { get; }

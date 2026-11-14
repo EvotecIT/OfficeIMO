@@ -75,13 +75,14 @@ internal static partial class CsvFile
         ValidateMaxDecompressedBytes(options);
         ValidateMaxInputBytes(options);
 
-        if (source.CanSeek && source.Length - source.Position > options.MaxInputBytes)
+        long limit = options.EffectiveInputLimit;
+        if (source.CanSeek && source.Length - source.Position > limit)
         {
             throw new InvalidDataException(
-                $"CSV data exceeds the configured maximum size ({options.MaxInputBytes} bytes).");
+                $"CSV data exceeds the configured maximum size ({limit} bytes).");
         }
 
-        Stream boundedSource = new CsvBoundedReadStream(source, options.MaxInputBytes, leaveOpen);
+        Stream boundedSource = new CsvBoundedReadStream(source, limit, leaveOpen);
         Stream input = WrapReadStream(boundedSource, compressionType, leaveOpen: false);
         if (compressionType != CsvCompressionType.None && options.MaxDecompressedBytes is { } maxBytesLimit)
         {
@@ -197,7 +198,7 @@ internal static partial class CsvFile
         }
 
         var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, fileOptions);
-        Stream stream = WrapReadStream(new CsvBoundedReadStream(fileStream, options.MaxInputBytes, leaveOpen: false), compressionType, leaveOpen: false);
+        Stream stream = WrapReadStream(new CsvBoundedReadStream(fileStream, options.EffectiveInputLimit, leaveOpen: false), compressionType, leaveOpen: false);
         if (compressionType != CsvCompressionType.None && options.MaxDecompressedBytes is { } maxBytesLimit)
         {
             stream = new CsvBoundedReadStream(stream, maxBytesLimit, leaveOpen: false);

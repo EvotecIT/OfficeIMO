@@ -464,6 +464,8 @@ internal static partial class HtmlPdfRenderedConverter {
                             ? semanticGroup.Visuals
                             : visual is HtmlRenderLogicalTextGroup logicalTextGroup
                                 ? logicalTextGroup.Visuals
+                                : visual is HtmlRenderFormField field
+                                    ? field.Visuals
                                 : null;
             if (children == null) continue;
             foreach (HtmlRenderVisual child in EnumerateVisuals(children)) yield return child;

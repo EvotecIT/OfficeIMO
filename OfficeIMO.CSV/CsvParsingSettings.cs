@@ -186,10 +186,23 @@ internal sealed class CsvParsingSettings
     public long? MaxDecompressedBytes { get; set; } = DefaultMaxInputBytes;
 
     /// <summary>
-    /// Gets or sets the maximum number of bytes accepted by stream-based and uncompressed path-based load APIs.
-    /// Defaults to 256 MiB so untrusted inputs cannot be buffered without bound.
+    /// Gets or sets the maximum number of input bytes. APIs that hold the whole input in memory (loading a document,
+    /// buffering a stream) default to 256 MiB so untrusted inputs cannot be buffered without bound. Streamed reads
+    /// (readers, data readers and row enumeration) apply a limit only when one is set here.
     /// </summary>
-    public long MaxInputBytes { get; set; } = DefaultMaxInputBytes;
+    public long MaxInputBytes { get => _maxInputBytes ?? DefaultMaxInputBytes; set => _maxInputBytes = value; }
+
+    private long? _maxInputBytes;
+
+    /// <summary>Set by reader options, whose reads stream their input.</summary>
+    internal bool StreamsInput { get; set; }
+
+    /// <summary>
+    /// The limit a read through an input stream applies: an explicit <see cref="MaxInputBytes"/>, otherwise none for
+    /// streamed reads and the in-memory default for document loads.
+    /// </summary>
+    internal long EffectiveInputLimit => _maxInputBytes
+        ?? (StreamsInput || Mode == CsvLoadMode.Stream ? long.MaxValue : DefaultMaxInputBytes);
 
     /// <summary>
     /// Gets or sets an optional cancellation token checked while reading records.

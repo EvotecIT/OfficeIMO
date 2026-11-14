@@ -58,6 +58,9 @@ public sealed partial class CsvRowWriter : IDisposable
     private object?[]? _propertyValues;
     private string?[]? _propertyTextValues;
     private bool _disposed;
+#if NET8_0_OR_GREATER
+    private char[]? _textRowCharacters;
+#endif
 
     /// <summary>
     /// Initializes a streaming row writer.
@@ -626,7 +629,7 @@ public sealed partial class CsvRowWriter : IDisposable
         {
             if (_stringWriterBuffer != null)
             {
-                CsvWriter.AppendRecordDefault(_stringWriterBuffer, values, _delimiter, _options.NewLine);
+                AppendStringWriterTextRecord(values);
                 return;
             }
 
@@ -672,11 +675,21 @@ public sealed partial class CsvRowWriter : IDisposable
         CsvWriter.WriteTextRecordBuffered(_writer, _rowBuffer, valueCount, state, valueAccessor, _delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.ResolvedQuoteMode, _quoteFields, _columns, _options.DateTimeFormat, _options.UseUtc, _options.NullValue);
     }
 
+    /// <summary>Appends a default-rule text row to the destination string writer's builder.</summary>
+    private void AppendStringWriterTextRecord(string?[] values)
+    {
+#if NET8_0_OR_GREATER
+        CsvWriter.AppendRecordDefault(_stringWriterBuffer!, values, _delimiter, _options.NewLine, ref _textRowCharacters);
+#else
+        CsvWriter.AppendRecordDefault(_stringWriterBuffer!, values, _delimiter, _options.NewLine);
+#endif
+    }
+
     private void WriteDefaultTextRecord(string?[] values)
     {
         if (_stringWriterBuffer != null)
         {
-            CsvWriter.AppendRecordDefault(_stringWriterBuffer, values, _delimiter, _options.NewLine);
+            AppendStringWriterTextRecord(values);
             return;
         }
 

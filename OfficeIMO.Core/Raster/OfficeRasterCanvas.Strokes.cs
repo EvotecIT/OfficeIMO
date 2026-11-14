@@ -55,7 +55,7 @@ public sealed partial class OfficeRasterCanvas {
         bool closed = false, IReadOnlyList<double>? pattern = null, double offset = 0D, bool reset = false) {
         if (color.A == 0 || points == null || points.Count == 0) return;
         StrokeContours(new[] { new OfficeFlattenedPathContour(points, closed) }, width,
-            OfficeStrokeLineCap.Round, OfficeStrokeLineJoin.Round, 4D, pattern, offset, (_, _) => color, reset);
+            OfficeStrokeLineCap.Round, OfficeStrokeLineJoin.Round, 4D, pattern, offset, SolidPaint(color), reset);
     }
 
 }

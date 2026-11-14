@@ -285,7 +285,8 @@ internal sealed partial class PdfAConverter {
                     }
                 },
                 inlineImageComponentCount: name => GetComponentCount(ResolveColorSpaceName(name, resources)),
-                inlineImageArrayComponentCount: array => GetComponentCount(array));
+                inlineImageArrayComponentCount: array => GetComponentCount(array),
+                maxGraphicsStateDepth: limits.MaxGraphicsStateDepth);
         } catch (PdfReadLimitException exception) {
             AddViolation(PdfAConversionRefusalReason.ContentNotCompliant, location, "The content stream exceeds a reading limit: " + exception.Message, owner);
         }

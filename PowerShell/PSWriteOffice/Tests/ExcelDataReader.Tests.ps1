@@ -83,4 +83,11 @@ Describe 'Excel IDataReader import' {
         { Import-OfficeExcel -Path $xlsx -Sheet Data -Range A1:B2 -Table Data -ErrorAction Stop } |
             Should -Throw
     }
+
+    It 'reports a header that names a reserved PowerShell member set instead of emitting the row' {
+        $xlsx = Join-Path $TestDrive 'excel-reader-reserved-header.xlsx'
+        [ordered]@{ Name = 'Alpha'; PSObject = 1 } | Export-OfficeExcel -Path $xlsx -Sheet Data -NoAutoFit
+
+        { Import-OfficeExcel -Path $xlsx -Sheet Data -ErrorAction Stop } | Should -Throw '*PSObject*reserved*'
+    }
 }

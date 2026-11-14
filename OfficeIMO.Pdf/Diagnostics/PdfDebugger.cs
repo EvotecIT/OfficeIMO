@@ -26,7 +26,8 @@ internal static class PdfDebugger {
                 objects,
                 effectiveOptions,
                 effectiveReadOptions.Limits.MaxContentNestingDepth,
-                effectiveReadOptions.Limits.MaxContentOperands));
+                effectiveReadOptions.Limits.MaxContentOperands,
+                effectiveReadOptions.Limits.MaxGraphicsStateDepth));
         }
 
         return new PdfDebuggerReport(objectReports, document.Security.Revisions, pages.AsReadOnly(), document.RepairReport);
@@ -85,7 +86,8 @@ internal static class PdfDebugger {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDebuggerOptions options,
         int maxContentNestingDepth,
-        int maxContentOperands) {
+        int maxContentOperands,
+        int maxGraphicsStateDepth) {
         if (!objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) || indirect.Value is not PdfDictionary page) {
             return new PdfDebugPage(pageNumber, objectNumber, Array.Empty<string>(), Array.Empty<int>(), Array.Empty<string>(), false);
         }
@@ -108,7 +110,8 @@ internal static class PdfDebugger {
                         options.MaxContentOperatorsPerPage,
                         ref truncated,
                         maxContentNestingDepth,
-                        maxContentOperands);
+                        maxContentOperands,
+                        maxGraphicsStateDepth);
                 }
             }
         }

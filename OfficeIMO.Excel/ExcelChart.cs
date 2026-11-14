@@ -19,6 +19,9 @@ namespace OfficeIMO.Excel {
         private string _sheetName => _drawingHandle.Sheet.Name;
         private string _lastKnownSheetName;
         private ExcelChartDataRange? _dataRange;
+        private bool _dataRangeNeedsRefresh;
+        private int _saveDeferralDepth;
+        private bool _savePending;
 
         internal ExcelChart(Xdr.GraphicFrame frame, DrawingsPart drawingsPart, ExcelSheet sheet, ExcelChartDataRange? dataRange = null) {
             ArgumentNullException.ThrowIfNull(sheet);
@@ -28,13 +31,10 @@ namespace OfficeIMO.Excel {
             _drawingHandle = new ExcelDrawingHandle(frame, drawingsPart, sheet, RefreshDataRangeAfterReload);
         }
 
-        private void RefreshDataRangeAfterReload() {
-            _lastKnownSheetName = _sheetName;
-            if (_dataRange != null) {
-                int maximumSeries = _dataRange.SeriesCount;
-                _dataRange = ExcelChartUtils.TryExtractDataRange(GetChartPart(), maximumSeries);
-            }
-        }
+        /// <summary>
+        /// Re-reads the data range from the reloaded chart part on next use, so a save does not parse every chart again.
+        /// </summary>
+        private void RefreshDataRangeAfterReload() => _dataRangeNeedsRefresh = true;
 
         /// <summary>
         /// Gets or sets the chart name (non-visual drawing name).
@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel {
                 if (props != null) {
                     props.Name = value ?? string.Empty;
                     _drawingsPart.WorksheetDrawing?.Save();
-                    _document.MarkPackageDirty();
+                    MarkChartDirty();
                 }
             }
         }
@@ -593,17 +593,57 @@ namespace OfficeIMO.Excel {
 
             string relId = relationshipId.Value ?? throw new InvalidOperationException("Chart relationship id is empty.");
             var part = (ChartPart)_drawingsPart.GetPartById(relId);
-            if (!string.Equals(_lastKnownSheetName, _sheetName, StringComparison.Ordinal)) {
+            if (_dataRangeNeedsRefresh || !string.Equals(_lastKnownSheetName, _sheetName, StringComparison.Ordinal)) {
                 if (_dataRange != null) _dataRange = ExcelChartUtils.TryExtractDataRange(part, _dataRange.SeriesCount);
                 _lastKnownSheetName = _sheetName;
+                _dataRangeNeedsRefresh = false;
             }
             return part;
         }
 
         private void Save() {
+            if (_saveDeferralDepth > 0) {
+                _savePending = true;
+                return;
+            }
+
             ChartPart chartPart = GetChartPart();
             chartPart.ChartSpace?.Save();
-            _document.MarkPackageDirty();
+            MarkChartDirty();
+        }
+
+        /// <summary>
+        /// Writes the chart part once when the scope ends instead of after each edit inside it, which serializes every
+        /// cached point again.
+        /// </summary>
+        internal IDisposable DeferSaves() {
+            _saveDeferralDepth++;
+            return new SaveDeferral(this);
+        }
+
+        private sealed class SaveDeferral : IDisposable {
+            private ExcelChart? _chart;
+
+            internal SaveDeferral(ExcelChart chart) => _chart = chart;
+
+            public void Dispose() {
+                ExcelChart? chart = _chart;
+                if (chart == null) return;
+                _chart = null;
+                if (--chart._saveDeferralDepth == 0 && chart._savePending) {
+                    chart._savePending = false;
+                    chart.Save();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Chart and drawing edits leave worksheet cells alone, so rows waiting for the direct worksheet writer stay there.
+        /// </summary>
+        private void MarkChartDirty() {
+            using (_document.PreserveDirectDataSetFastSaveStateDuringDirtyMarks()) {
+                _document.MarkPackageDirty();
+            }
         }
     }
 }

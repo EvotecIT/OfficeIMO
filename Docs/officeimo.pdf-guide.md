@@ -684,6 +684,34 @@ var account = PdfTableCell.TextCell("A long account identifier")
     .WithShrinkTextToFit();
 ```
 
+#### Page subtotals and brought-forward amounts
+
+Long invoices and reports often need values that depend on where the table breaks. Declare column aggregates on `PdfTableStyle.PageSummary` and place their tokens in summary rows: page footer rows close every page that continues, continuation header rows open every following page after the repeated headers, and the table's own footer rows close the last page.
+
+<!-- powerforge:code source="Build/DocumentationExamples/Pdf/Program.cs" region="PageSubtotals" -->
+```csharp
+var invoiceStyle = PdfTableStyles.Minimal();
+invoiceStyle.FooterRowCount = 1;
+var pageSummary = invoiceStyle.PageSummary = new PdfTablePageSummary();
+PdfTableAggregate amount = pageSummary.Sum("amount", column: 2, format: "N2");
+pageSummary.AddContinuationHeaderRow("Brought forward", "", amount.BroughtForwardToken);
+pageSummary.AddPageFooterRow("Carried forward", "", amount.RunningToken);
+
+var invoiceLines = new List<string[]> { new[] { "Item", "Description", "Amount" } };
+for (int line = 1; line <= 120; line++) invoiceLines.Add(new[] { line.ToString(), "Consulting hour", "125.00" });
+invoiceLines.Add(new[] { "Total", "", amount.RunningToken });
+
+PdfDocument.Create(pdf => pdf.Content(content => content.AddTable(invoiceLines, style: invoiceStyle)))
+    .Save("Invoice-lines.pdf");
+```
+<!-- /powerforge:code -->
+
+Each aggregate offers three tokens. `PageToken` covers the rows on the current page, `BroughtForwardToken` the rows on earlier pages, and `RunningToken` every row up to the end of the current page, which is the carried-forward amount at a page break and the grand total on the last page. Continuation header rows are laid out before their page's rows are known, so they accept only brought-forward tokens. `Sum`, `Count`, `Minimum` and `Maximum` are available through `PdfTableAggregate`. Values are parsed from the column's body cell text with `FormatProvider`, or supplied by `ValueSelector`, and formatted with `Format`; both default to the invariant culture so output does not depend on the machine.
+
+Values describe the rows that actually landed on each page. A body row counts on the page where it starts, including a row that continues onto the next page. Summary rows are measured with the values they will show before a row is placed, so adding them never shifts a row onto a page whose totals were already drawn. Summary rows use the table's footer styling and the table's column widths.
+
+Set `PdfTableStyle.RepeatFooterRows = true` to close every page fragment with the table's own footer rows, with or without aggregates. A page whose single unsplittable row leaves no room for the page footer omits that footer; the next page's brought-forward amount still includes the row. Page summaries apply to eager flow tables and are rejected for deferred and positioned tables, tables in row columns, tables with block content in cells and tables with footnote references.
+
 #### Clipped table-cell fragments
 
 Use `PdfTableCell.WithViewport` when a cell is represented by a fragment of a larger cell. The viewport describes the full box, the visible fragment and its offset in one coordinate system. Text wraps and aligns in the full box; the renderer clips it to the fragment. Diagonal borders use the full box too, while ordinary edge borders follow the fragment's configured border style.
@@ -846,7 +874,7 @@ Each logical page also retains `IncludesImages` and `IncludesFormWidgets`, inclu
 
 Each `page.Analysis.DecodedRuns` item exposes `DecodingEvidence`. It distinguishes ToUnicode, predefined Adobe maps, font encodings, Windows-1252 fallback and ActualText replacement. `UnmappedCodeBytes` counts raw character fallback inside a ToUnicode run; `UsedFallback` describes the returned logical text. ActualText retains the underlying mapping source without claiming that its replacement matches the painted glyphs. A public `PdfUnsupportedTextMappingException` exposes the font resource, base font, encoding and declared-ToUnicode state when extraction cannot map shown codes. These facts describe decoding, not text accuracy, author identity or visual fidelity.
 
-`PdfLoadOptions.PreferToUnicode` selects the Unicode-map path, `UseWinAnsiFallback = false` rejects unresolved mappings instead of emitting fallback characters, and `AdjustKerningFromTJ` controls positioned advances between strings in `TJ` arrays. Load settings and parser budgets can be copied with `Clone()`.
+`PdfLoadOptions.PreferToUnicode` selects the Unicode-map path; `false` decodes named composite encodings through a bundled predefined CMap first, `UseWinAnsiFallback = false` rejects unresolved mappings instead of emitting fallback characters, and `AdjustKerningFromTJ` controls positioned advances between strings in `TJ` arrays. Load settings and parser budgets can be copied with `Clone()`.
 
 `result.ExtractMarkdown()` uses canonical reading order and emits detected tables once, including tables reconstructed from OCR geometry. `result.ExportStructured(PdfStructuredExportFormat.Json)` preserves positioned `lines` and includes canonical page `text` and detected `tables`. Each table contains its source kind, coordinate space, vertical bounds and original cell `rows`; these additive fields retain the `officeimo.pdf.logical.v1` schema identifier.
 
@@ -976,11 +1004,11 @@ foreach (PdfLogicalTableContinuationGroup table in tables.Where(item => item.Spa
 
 Cross-page recovery is conservative. It joins only adjacent boundary items with compatible geometry and content evidence, returns confidence and evidence flags, and leaves the original page-local logical model unchanged. Embedded program bytes are returned only when `IncludeEmbeddedProgramBytes` is explicitly enabled and remain subject to both `MaxEmbeddedProgramBytes` per font and `MaxTotalDecodedFontBytes` across embedded programs and ToUnicode maps. ToUnicode per-map and aggregate limit outcomes have separate diagnostics and inventory counts, so resource limits are not reported as malformed maps. Nested Form XObject discovery deduplicates shared resource contexts by their shallowest reachable depth and is bounded by `MaxFormResourceTraversals`. For image paint inspection, `AuthoredBlendMode` is null when the normal PDF default was not declared and retains an explicit or inherited authored `Normal` value.
 
-The predefined horizontal composite encodings `UniJIS-UCS2-H`, `UniGB-UCS2-H`, `UniCNS-UCS2-H` and `UniKS-UCS2-H` use bundled Adobe character maps for text extraction and redaction search when the font has no `ToUnicode` map. The font's Adobe character collection must match the encoding. Widths are read by the mapped CID, so precise removal preserves neighboring text positions. Mapping data is loaded locally and lazily; no external executable or download is required. See [third-party notices](../OfficeIMO.Pdf/THIRD-PARTY-NOTICES.md) for source and license information.
+The predefined Adobe CMaps of the Adobe-GB1, Adobe-CNS1, Adobe-Japan1, Adobe-Korea1 and Adobe-KR character collections use bundled Adobe character maps for text extraction, redaction search and rendering when the font has no `ToUnicode` map. They include the legacy encodings such as `GBK-EUC-H`, `B5pc-H`, `90ms-RKSJ-H` and `KSCms-UHC-H`, the Unicode encodings such as `UniGB-UTF16-H`, `UniJIS-UTF8-H` and `UniKS-UCS2-H`, and their vertical and half-width variants. Codes are split by each CMap's codespace ranges, so one-byte ASCII, two-byte ideographs and four-byte UTF-16 surrogate pairs can share a string. The font's Adobe character collection must match the encoding. Widths are read by the mapped CID, so precise removal preserves neighboring text positions. Each CMap is decompressed from the package the first time a document names it; no external executable or download is required. See [third-party notices](../OfficeIMO.Pdf/THIRD-PARTY-NOTICES.md) for source and license information.
 
 Managed previews of unembedded Adobe CJK faces use installed script-capable substitutes when available. No replacement fonts are bundled. Rendering retains the font-substitution diagnostic: readable text does not establish identical outlines, regional glyph forms or appearance. Supply matching fonts during `ToDrawing()` projection when a controlled rendering profile is required.
 
-An explicit `ToUnicode` map takes precedence and must cover every shown code; an incomplete advertised map is refused. Other named encodings, including vertical and half-width variants, require a usable `ToUnicode` map. If shown text lacks a supported mapping, extraction throws `NotSupportedException` and redaction planning reports an error instead of interpreting the character codes as WinAnsi text. Supply a PDF with a supported encoding or an explicit Unicode map before using those text operations. Logical extraction still uses explicit `ActualText` and excludes artifacts by default. Redaction review requires mappings for painted text even under `ActualText` or artifacts. Area-based redaction and image removal also reject a blocked inspection plan, including unsupported text on an unselected page. Redaction refuses before painting marks or replacing output files and streams. Unused font resources do not block extraction; the existing `Identity-H` and `Identity-V` paths retain their current behavior and editability limits.
+With the default `PreferToUnicode = true`, an explicit `ToUnicode` map takes precedence and must cover every shown code; an incomplete advertised map is refused. With `PreferToUnicode = false`, a matching predefined CMap is used instead and `ToUnicode` is not consulted; codes it cannot decode are refused. Other named encodings, and embedded encoding CMap streams that use codes other than two bytes or a `usecmap` parent, require a usable `ToUnicode` map. A predefined CMap code whose CID has no Unicode value in Adobe's map for that collection is also refused. If shown text lacks a supported mapping, extraction throws `NotSupportedException` and redaction planning reports an error instead of interpreting the character codes as WinAnsi text. Supply a PDF with a supported encoding or an explicit Unicode map before using those text operations. Logical extraction still uses explicit `ActualText` and excludes artifacts by default. Redaction review requires mappings for painted text even under `ActualText` or artifacts. Area-based redaction and image removal also reject a blocked inspection plan, including unsupported text on an unselected page. Redaction refuses before painting marks or replacing output files and streams. Unused font resources do not block extraction; the existing `Identity-H` and `Identity-V` paths retain their current behavior and editability limits.
 
 Text extraction excludes PDF artifact marked content by default, which is the logical-text behavior expected for decorative headers, footers, and chart labels. Opt into visual text when those marked artifacts are part of the required payload:
 
@@ -1776,6 +1804,27 @@ PdfDocument opened = PdfDocument.Load("protected.pdf", new PdfLoadOptions {
 
 Supported page, text, form, metadata and redaction rewrites retain the authenticated source's passwords, permissions and Standard-security settings. Extraction and splitting retain that protection too. Merge output uses the primary source's settings; an unencrypted primary produces an unencrypted output, and the merge report records the decision. Use `Security.Decrypt(ownerPassword)` when the output must be unencrypted. Unsupported encryption dictionaries and signed full rewrites remain blocked.
 
+### Certificate-encrypted PDFs
+
+PDFs encrypted for certificate recipients (the public-key security handler, `/Filter /Adobe.PubSec`) open when you pass a recipient certificate with its private key. `OfficeIMO.Security` decrypts the recipient's CMS envelope; `OfficeIMO.Pdf` derives the file key from it.
+
+```csharp
+using System.Security.Cryptography.X509Certificates;
+using OfficeIMO.Pdf;
+using OfficeIMO.Security;
+
+// .NET 9 and later. On .NET 8 and .NET Framework use new X509Certificate2("recipient.pfx", "pfx-password").
+using X509Certificate2 recipient = X509CertificateLoader.LoadPkcs12FromFile("recipient.pfx", "pfx-password");
+PdfDocument document = PdfDocument.Load("certificate-encrypted.pdf", new PdfLoadOptions {
+    PublicKeyDecryption = new PdfPublicKeyDecryptionOptions(OfficeSecurityProvider.Default, recipient)
+});
+string text = document.Read().Text;
+```
+
+Reading supports `/SubFilter` `adbe.pkcs7.s3` and `adbe.pkcs7.s4` (RC4, `/V` 1 and 2) and `adbe.pkcs7.s5` with a crypt filter (`/V 4` with RC4 or AESV2, `/V 5` with AESV3), including `/EncryptMetadata false`. Several certificates can be passed; each is tried against every recipient entry. The matched recipient's permission bits become `PdfDocumentSecurityInfo.EncryptionPermissions` and are enforced like user-password permissions, with `PasswordAuthenticationRole` set to `PublicKeyRecipient`. A recipient never has owner authorization, so removing or replacing the encryption is refused.
+
+Failures are typed: `PdfRecipientCertificateRequiredException` when no `PublicKeyDecryption` was supplied, `PdfRecipientNotFoundException` when no certificate matches a recipient, `PdfRecipientDecryptionException` when a matching entry cannot be decrypted (for example, the certificate has no private key), and `PdfUnsupportedEncryptionException` for other sub-filters, `/V` and crypt-method combinations, different crypt filters for streams and strings or for embedded files, crypt filter and document `/Length` values that disagree, AES-GCM (`/V 6`), or recipient data that is not a 20-byte seed plus 4 permission bytes. Writing certificate-encrypted PDFs is not supported yet.
+
 ### Viewing protected PDFs
 
 A user password can allow viewing while restricting extraction. Use the viewing contract to obtain page geometry and render a page for display:
@@ -2388,6 +2437,8 @@ selected.Save("selected-pages.pdf", cancellationToken: stop.Token);
 ```
 
 For a batch job or an uploaded file, set an input limit and pass the job's cancellation token through each operation, as above. Caller-owned input streams remain open. Cancellation throws `OperationCanceledException`. File output is staged before publication; when writing to a caller-owned stream, cancellation can leave a written prefix. Returned documents carry the selected read policy into subsequent operations; an explicit per-operation override applies to the result without changing the source. Filling or flattening forms first checks existing visible appearances against these input limits. The output budget then allows for the appearance content generated by the operation. Splitting to several files prepares every part before saving. Cancellation stops that preparation; once saving begins, the prepared files are published one at a time.
+
+Content streams have their own budgets in `PdfReadLimits`: operations and operands per stream, nesting of forms and marked content (`MaxContentNestingDepth`) and unrestored graphics-state saves in one content stream (`MaxGraphicsStateDepth`). Exceeding one raises `PdfReadLimitException` naming the limit.
 
 `Save(...)` and `SaveAsync(...)` throw on failure; `PdfSaveOptions.AllowLoss` controls writer-time fidelity rejection. Adapter `SaveAsPdf(...)` methods return an `OfficeConversionReport` with source and output diagnostics. The [migration guide](../MIGRATION.md) maps APIs that changed in earlier releases.
 

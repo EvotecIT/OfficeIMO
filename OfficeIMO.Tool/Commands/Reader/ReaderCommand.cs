@@ -180,6 +180,13 @@ The dependency-bounded tool does not configure OCR or hosted providers.
         return (int)OfficeImoToolExitCode.Success;
     }
 
+    /// <summary>The extensions the bundled reader handlers accept, as listed by <c>reader capabilities</c>.</summary>
+    internal static IEnumerable<string> SupportedExtensions() => new OfficeDocumentReaderBuilder()
+        .AddAllOfficeIMOHandlers()
+        .Build()
+        .GetCapabilities()
+        .SelectMany(static capability => capability.Extensions);
+
     private static async Task<int> RunCapabilitiesAsync(
         ReaderToolArguments options,
         OfficeDocumentReader reader,

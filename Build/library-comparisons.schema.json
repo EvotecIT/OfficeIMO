@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OfficeIMO library comparison evidence catalog v4",
+  "type": "object",
+  "required": ["schemaVersion", "expectedPlatforms", "areas", "comparisons", "entries", "availability"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 4 },
+    "expectedPlatforms": { "$ref": "#/definitions/platforms" },
+    "areas": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/definitions/area" } },
+    "comparisons": { "type": "array", "items": { "$ref": "#/definitions/comparison" } },
+    "entries": { "type": "array", "items": { "$ref": "#/definitions/entry" } },
+    "availability": { "type": "array", "items": { "$ref": "#/definitions/availability" } }
+  },
+  "definitions": {
+    "id": { "type": "string", "minLength": 1 },
+    "area": { "type": "string", "enum": ["pdf", "excel", "csv", "word", "powerpoint", "markdown", "html", "rtf", "image", "email", "epub", "zip", "opendocument"] },
+    "platform": { "type": "string", "enum": ["windows", "linux", "macos"] },
+    "platforms": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/definitions/platform" } },
+    "runMode": { "type": "string", "enum": ["quick", "full"] },
+    "sha256": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+    "comparison": {
+      "type": "object",
+      "required": ["comparisonId", "area", "title", "libraries", "expectedPlatforms"],
+      "properties": {
+        "comparisonId": { "$ref": "#/definitions/id" },
+        "area": { "$ref": "#/definitions/area" },
+        "title": { "$ref": "#/definitions/id" },
+        "libraries": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/definitions/id" } },
+        "expectedPlatforms": { "$ref": "#/definitions/platforms" }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "properties": {
+        "osFamily": { "type": "string" },
+        "osDescription": { "type": "string" },
+        "osArchitecture": { "type": "string" },
+        "processArchitecture": { "type": "string" },
+        "processorName": { "type": "string" },
+        "physicalProcessorCount": { "type": ["integer", "null"] },
+        "physicalCoreCount": { "type": ["integer", "null"] },
+        "logicalCoreCount": { "type": ["integer", "null"] },
+        "runtimeVersion": { "type": "string" },
+        "dotNetSdkVersion": { "type": "string" },
+        "runner": { "type": "string" },
+        "machineName": { "type": "string" }
+      }
+    },
+    "entry": {
+      "type": "object",
+      "required": ["comparisonId", "area", "platform", "runMode", "generatedUtc", "publish", "resultPath", "resultSha256", "suite", "environment", "compatibility", "comparable", "compatibilityIssues"],
+      "properties": {
+        "comparisonId": { "$ref": "#/definitions/id" },
+        "area": { "$ref": "#/definitions/area" },
+        "platform": { "$ref": "#/definitions/platform" },
+        "runMode": { "$ref": "#/definitions/runMode" },
+        "generatedUtc": { "type": "string", "format": "date-time" },
+        "publish": { "type": "boolean" },
+        "resultPath": { "$ref": "#/definitions/id" },
+        "resultSha256": { "$ref": "#/definitions/sha256" },
+        "artifactDestinationSha256": { "$ref": "#/definitions/sha256" },
+        "artifactFileName": { "type": "string" },
+        "artifactRelativePath": { "type": "string" },
+        "suite": { "type": "string" },
+        "environment": { "$ref": "#/definitions/environment" },
+        "compatibility": { "type": "object", "additionalProperties": { "type": "string" } },
+        "comparable": { "type": "boolean" },
+        "compatibilityIssues": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "availability": {
+      "type": "object",
+      "required": ["comparisonId", "runMode", "platform", "available", "runModes", "latestUtc"],
+      "properties": {
+        "comparisonId": { "$ref": "#/definitions/id" },
+        "runMode": { "$ref": "#/definitions/runMode" },
+        "platform": { "$ref": "#/definitions/platform" },
+        "available": { "type": "boolean" },
+        "runModes": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/definitions/runMode" } },
+        "latestUtc": { "type": ["string", "null"], "format": "date-time" }
+      }
+    }
+  }
+}

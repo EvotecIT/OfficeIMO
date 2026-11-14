@@ -48,6 +48,63 @@ namespace OfficeIMO.Archives.Tests {
             Assert.IsType<OfficeInspectionResourceLimitException>(error.InnerException);
         }
 
+        [Theory]
+        [InlineData("input.tar", false)]
+        [InlineData("input.tgz", true)]
+        [InlineData("input.tar.gz", true)]
+        public void TarMembersReachDocumentHandlersWithVirtualPaths(string name, bool gzip) {
+            using var archive = new MemoryStream();
+            TarArchiveWriter.Create(archive, new[] {
+                ArchiveWriteEntry.File("docs/readme.txt", Encoding.UTF8.GetBytes("hello from tar")),
+                ArchiveWriteEntry.File("docs/skip.bin", new byte[] { 1, 2, 3 })
+            }, new TarArchiveWriterOptions { GZip = gzip });
+            var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler().Build();
+            archive.Position = 0;
+            var chunks = reader.Enumerate(archive, name, new() { ComputeHashes = false }).ToArray();
+            var chunk = Assert.Single(chunks);
+            Assert.Contains("hello from tar", chunk.Text);
+            Assert.Equal(name + "::docs/readme.txt", chunk.Location.Path);
+        }
+
+        [Fact]
+        public void SingleFileGZipIsReadAsItsInnerDocument() {
+            using var archive = new MemoryStream();
+            GZipArchive.Compress(new MemoryStream(Encoding.UTF8.GetBytes("compressed notes")), archive);
+            archive.Position = 0;
+            var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler().Build();
+            var chunk = Assert.Single(reader.Enumerate(archive, "notes.txt.gz", new() { ComputeHashes = false }).ToArray());
+            Assert.Contains("compressed notes", chunk.Text);
+            Assert.Equal("notes.txt.gz::notes.txt", chunk.Location.Path);
+        }
+
+        [Fact]
+        public void SingleFileGZipHonoursTheTotalExpansionLimitAndTheSharedSelectionBudget() {
+            using var archive = new MemoryStream();
+            GZipArchive.Compress(new MemoryStream(Encoding.UTF8.GetBytes(new string('a', 4096))), archive);
+            var limited = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler(new() { MaxTotalUncompressedBytes = 1024 }).Build();
+            archive.Position = 0;
+            Assert.Throws<ReaderResourceLimitException>(() => limited.Enumerate(archive, "notes.txt.gz", new() { ComputeHashes = false }).ToArray());
+            var budget = new ArchiveOperationBudget(new() { MaxSelectedBytes = 4 });
+            var budgeted = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler(new() { OperationBudget = budget }).Build();
+            archive.Position = 0;
+            Assert.Throws<ReaderResourceLimitException>(() => budgeted.Enumerate(archive, "notes.txt.gz", new() { ComputeHashes = false }).ToArray());
+        }
+
+        [Fact]
+        public void NestedInputLimitCoversEveryTarMember() {
+            using var archive = new MemoryStream();
+            TarArchiveWriter.Create(archive, new[] {
+                ArchiveWriteEntry.File("a.txt", Encoding.UTF8.GetBytes(new string('a', 3000))),
+                ArchiveWriteEntry.File("b.txt", Encoding.UTF8.GetBytes(new string('b', 3000)))
+            });
+            var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler().Build();
+            ReaderOptions Limit(long bytes) => new() { ComputeHashes = false, ResourceLimits = new ReaderResourceLimits { MaxNestedInputBytes = bytes } };
+            archive.Position = 0;
+            Assert.Throws<ReaderResourceLimitException>(() => reader.Enumerate(archive, "input.tar", Limit(4000)).ToArray());
+            archive.Position = 0;
+            Assert.Equal(2, reader.Enumerate(archive, "input.tar", Limit(6000)).Count());
+        }
+
         private static byte[] Nest(byte[] bytes) {
             using var output = new MemoryStream();
             using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true)) {

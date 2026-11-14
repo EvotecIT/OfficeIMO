@@ -1,8 +1,7 @@
 using System.Data.Common;
-using System.Linq.Expressions;
 using System.Management.Automation;
-using System.Reflection;
 using OfficeIMO.CSV;
+using PSWriteOffice.Services;
 
 namespace PSWriteOffice.Cmdlets.Csv;
 
@@ -37,7 +36,7 @@ internal sealed class CsvPowerShellRowWriter
             var outputHeader = GetOutputHeader(header);
             var headerCount = outputHeader.Length;
             var valueCount = headerCount < row.FieldCount ? headerCount : row.FieldCount;
-            var psObj = PowerShellObjectFactory.Create(headerCount);
+            var psObj = PowerShellRowObject.Create(headerCount);
             var prevalidated = _prevalidatedOutputProperties;
             for (var i = 0; i < valueCount; i++)
             {
@@ -80,7 +79,7 @@ internal sealed class CsvPowerShellRowWriter
                 continue;
             }
 
-            var row = PowerShellObjectFactory.Create(outputHeader.Length);
+            var row = PowerShellRowObject.Create(outputHeader.Length);
             for (var index = 0; index < outputHeader.Length; index++)
             {
                 var value = reader.GetValue(index);
@@ -112,7 +111,7 @@ internal sealed class CsvPowerShellRowWriter
     private void WriteObjectRow(PSCmdlet cmdlet, string[] header, IReadOnlyList<string> row, int headerCount)
     {
         var valueCount = GetValueCount(row, headerCount);
-        var psObj = PowerShellObjectFactory.Create(headerCount);
+        var psObj = PowerShellRowObject.Create(headerCount);
         var prevalidated = _prevalidatedOutputProperties;
 
         if (row is List<string> list)
@@ -234,48 +233,5 @@ internal sealed class CsvPowerShellRowWriter
         _prevalidatedOutputProperties = canPrevalidate;
         _outputHeader = outputHeader;
         return outputHeader;
-    }
-
-    internal static class PowerShellObjectFactory
-    {
-        // PowerShell 7+ exposes PSObject(int) for initial member capacity, but PowerShellStandard also exposes
-        // PSObject(object). Use reflection so older runtimes fall back without wrapping the integer as BaseObject.
-        private static readonly Func<int, PSObject>? CapacityFactory = CreateCapacityFactory();
-
-        public static PSObject Create(int capacity)
-        {
-            return CapacityFactory?.Invoke(capacity) ?? new PSObject();
-        }
-
-        private static Func<int, PSObject>? CreateCapacityFactory()
-        {
-            ConstructorInfo? constructor = null;
-            foreach (var candidate in typeof(PSObject).GetConstructors(BindingFlags.Public | BindingFlags.Instance))
-            {
-                var parameters = candidate.GetParameters();
-                if (parameters.Length == 1 && parameters[0].ParameterType == typeof(int))
-                {
-                    constructor = candidate;
-                    break;
-                }
-            }
-
-            if (constructor is null)
-            {
-                return null;
-            }
-
-            try
-            {
-                var capacity = Expression.Parameter(typeof(int), "capacity");
-                return Expression.Lambda<Func<int, PSObject>>(
-                    Expression.New(constructor, capacity),
-                    capacity).Compile();
-            }
-            catch
-            {
-                return capacity => (PSObject)constructor.Invoke(new object[] { capacity });
-            }
-        }
     }
 }

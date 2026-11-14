@@ -44,6 +44,7 @@ public sealed partial class PdfReadLimits {
             MaxFunctionShadingEvaluationWork = MaxFunctionShadingEvaluationWork,
             MaxContentOperands = MaxContentOperands,
             MaxContentNestingDepth = MaxContentNestingDepth,
+            MaxGraphicsStateDepth = MaxGraphicsStateDepth,
             MaxType3GlyphInvocationsPerPage = MaxType3GlyphInvocationsPerPage,
             MaxImageReferenceSteps = MaxImageReferenceSteps,
             MaxPositionedTextCharactersPerPage = MaxPositionedTextCharactersPerPage,

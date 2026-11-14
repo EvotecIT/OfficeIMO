@@ -1737,12 +1737,40 @@ Describe 'CSV cmdlets' {
     }
 
     It 'keeps quoted embedded newlines inside one ConvertTo-OfficeCsv record object' {
-        $csvLines = @([pscustomobject]@{ Name = 'Alpha'; Note = "one`ntwo" } | ConvertTo-OfficeCsv)
+        $rows = @(
+            [pscustomobject]@{ Name = 'Alpha'; Note = "one`ntwo" }
+            [pscustomobject]@{ Name = 'Beta'; Note = "three`r`n`"four`"" }
+        )
 
-        $csvLines.Count | Should -Be 2
+        $csvLines = @($rows | ConvertTo-OfficeCsv)
+
+        $csvLines.Count | Should -Be 3
         $csvLines[0] | Should -Be 'Name,Note'
         $csvLines[1] | Should -Be "Alpha,`"one`ntwo`""
-        @(Import-OfficeCsv -Text ($csvLines -join "`n"))[0].Note | Should -Be "one`ntwo"
+        $csvLines[2] | Should -Be "Beta,`"three`r`n`"`"four`"`"`""
+        $parsed = @(Import-OfficeCsv -Text ($csvLines -join "`n"))
+        $parsed[0].Note | Should -Be "one`ntwo"
+        $parsed[1].Note | Should -Be "three`r`n`"four`""
+    }
+
+    It 'keeps one ConvertTo-OfficeCsv record per DataTable row when the text spans many output chunks' {
+        $table = [System.Data.DataTable]::new()
+        [void]$table.Columns.Add('Id', [int])
+        [void]$table.Columns.Add('Note', [string])
+        for ($i = 0; $i -lt 3000; $i++) {
+            $note = if ($i % 3 -eq 0) { "line $i`r`nnext, `"quoted`"" } else { "plain $i" }
+            [void]$table.Rows.Add($i, $note)
+        }
+
+        $csvLines = @(ConvertTo-OfficeCsv -InputObject $table)
+
+        $csvLines.Count | Should -Be 3001
+        $rows = @(Import-OfficeCsv -Text ($csvLines -join "`r`n"))
+        $rows.Count | Should -Be 3000
+        for ($i = 0; $i -lt 3000; $i++) {
+            $rows[$i].Id | Should -Be ([string]$i)
+            $rows[$i].Note | Should -Be $table.Rows[$i]['Note']
+        }
     }
 
     It 'keeps separate records when unquoted values contain quote characters' {

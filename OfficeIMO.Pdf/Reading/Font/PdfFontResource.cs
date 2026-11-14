@@ -19,6 +19,13 @@ internal sealed partial class PdfFontResource {
     public bool IsVerticalWriting { get; }
     public ToUnicodeCMap? CMap { get; }
     internal Lazy<PdfPredefinedCMap>? PredefinedCMap { get; }
+
+    /// <summary>Byte length of the composite code at <paramref name="offset"/>; two bytes unless a predefined CMap says otherwise.</summary>
+    internal int GetCompositeCodeLength(byte[] bytes, int offset) => PredefinedCMap?.Value.GetCodeLength(bytes, offset) ?? 2;
+
+    /// <summary>True when the bytes divide into complete composite codes.</summary>
+    internal bool HasCompleteCompositeCodes(byte[] bytes, int offset, int count) =>
+        PredefinedCMap?.Value.HasCompleteCodes(bytes, offset, count) ?? (count & 1) == 0;
     public IReadOnlyDictionary<int, string>? Differences { get; }
     private readonly byte[]? _embeddedTrueTypeFont;
     public byte[]? EmbeddedTrueTypeFont => _embeddedTrueTypeFont ?? RetainedDrawingResource?._embeddedTrueTypeFont;
@@ -146,6 +153,12 @@ internal sealed partial class PdfFontResource {
                     identity[hash.Length + 1 + code * 2] = (byte)(glyph >> 8);
                     identity[hash.Length + 1 + code * 2 + 1] = (byte)glyph;
                 }
+            }
+            // Resources sharing a program but not an encoding CMap must not share painted-glyph mappings.
+            if (drawingProgram.CodeMap != null) {
+                byte[] codeMap = System.Text.Encoding.ASCII.GetBytes(drawingProgram.CodeMap.Identity);
+                Array.Resize(ref identity, identity.Length + codeMap.Length);
+                Buffer.BlockCopy(codeMap, 0, identity, identity.Length - codeMap.Length, codeMap.Length);
             }
             hash = sha256.ComputeHash(identity);
         }

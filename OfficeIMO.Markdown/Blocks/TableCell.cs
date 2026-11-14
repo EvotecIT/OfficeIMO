@@ -115,6 +115,20 @@ public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer, IS
         return sb.ToString();
     }
 
+    /// <summary>Appends what <see cref="RenderHtml"/> returns.</summary>
+    internal void AppendHtml(StringBuilder sb) {
+        if (ChildBlocks.Count == 1 && ChildBlocks[0] is ParagraphBlock paragraph) {
+            int start = sb.Length;
+            paragraph.Inlines.AppendHtml(sb);
+            sb.Replace("\n", "<br/>", start, sb.Length - start);
+            return;
+        }
+
+        for (int i = 0; i < ChildBlocks.Count; i++) {
+            sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(ChildBlocks[i]));
+        }
+    }
+
     IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => ChildBlocks;
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
 

@@ -1,45 +1,12 @@
 using OfficeIMO.Tool.Commands.Agent;
-using OfficeIMO.Tool.Commands.Convert;
-using OfficeIMO.Tool.Commands.HiddenData;
-using OfficeIMO.Tool.Commands.Html;
-using OfficeIMO.Tool.Commands.Invoice;
-using OfficeIMO.Tool.Commands.Markup;
-using OfficeIMO.Tool.Commands.Mcp;
-using OfficeIMO.Tool.Commands.Pdf;
-using OfficeIMO.Tool.Commands.Provenance;
 using OfficeIMO.Tool.Commands.Reader;
-using OfficeIMO.Tool.Commands.Tabular;
-using OfficeIMO.Tool.Commands.Workflow;
 using System.Reflection;
 using System.Text;
 
 namespace OfficeIMO.Tool;
 
 internal static class OfficeImoToolApp {
-    internal const string Usage = """
-OfficeIMO.Tool
-
-Usage:
-  officeimo convert <input> [output.pdf|output.docx|output.xlsx|output.pptx|output.md|output.json] [options]
-  officeimo read <path|-> [options]
-  officeimo extract <path|-> [options]
-  officeimo inspect <path> [options]
-  officeimo html <command> [options]
-  officeimo reader <command> [options]
-  officeimo markup <command> [options]
-  officeimo tabular <command> [options]
-  officeimo workflow <command> [options]
-  officeimo invoice <command> [options]
-  officeimo pdf <command> [options]
-  officeimo provenance <command> [options]
-  officeimo hidden-data <command> [options]
-  officeimo agent <command> [options]
-  officeimo mcp serve --stdio
-  officeimo --version
-  officeimo help
-
-Run 'officeimo <area> --help' for area-specific commands and options.
-""";
+    internal static string Usage { get; } = BuildUsage();
 
     internal static async Task<int> RunAsync(
         string[] args,
@@ -53,8 +20,7 @@ Run 'officeimo <area> --help' for area-specific commands and options.
         ArgumentNullException.ThrowIfNull(standardError);
 
         if (args.Length == 0 || IsHelp(args[0])) {
-            await WriteUtf8Async(standardOutput, Usage + Environment.NewLine, cancellationToken).ConfigureAwait(false);
-            return (int)OfficeImoToolExitCode.Success;
+            return await WriteHelpAsync(args, standardOutput, standardError, cancellationToken).ConfigureAwait(false);
         }
 
         if (IsVersion(args[0])) {
@@ -69,102 +35,50 @@ Run 'officeimo <area> --help' for area-specific commands and options.
             return (int)OfficeImoToolExitCode.Success;
         }
 
-        string[] commandArguments = args.Skip(1).ToArray();
-        switch (args[0].ToLowerInvariant()) {
-            case "convert":
-                return await ConvertCommand.RunAsync(
-                    commandArguments, standardInput, standardOutput, standardError, cancellationToken).ConfigureAwait(false);
-            case "read":
-            case "extract":
-                return await RunReaderAsync(
-                    ["read", .. commandArguments],
-                    standardInput,
-                    standardOutput,
-                    standardError,
-                    cancellationToken).ConfigureAwait(false);
-            case "inspect":
-                return await RunAgentAsync(
-                    ["inspect", .. commandArguments],
-                    standardOutput,
-                    standardError,
-                    cancellationToken).ConfigureAwait(false);
-            case "html":
-                return await HtmlCommand.RunAsync(
-                    commandArguments, standardInput, standardOutput, standardError, cancellationToken).ConfigureAwait(false);
-            case "reader":
-                return await RunReaderAsync(
-                    commandArguments,
-                    standardInput,
-                    standardOutput,
-                    standardError,
-                    cancellationToken).ConfigureAwait(false);
-            case "markup":
-                using (var markupOutput = new StreamWriter(
-                           standardOutput,
-                           new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
-                           bufferSize: 1024,
-                           leaveOpen: true) { AutoFlush = true }) {
-                    return await MarkupCommand.RunAsync(
-                        commandArguments, standardInput, markupOutput, standardError, cancellationToken).ConfigureAwait(false);
-                }
-            case "tabular":
-                using (var tabularOutput = CreateUtf8Writer(standardOutput)) {
-                    return await TabularCommand.RunAsync(
-                        commandArguments,
-                        tabularOutput,
-                        standardError,
-                        cancellationToken).ConfigureAwait(false);
-                }
-            case "workflow":
-                using (var workflowOutput = CreateUtf8Writer(standardOutput)) {
-                    return await WorkflowCommand.RunAsync(
-                        commandArguments,
-                        workflowOutput,
-                        standardError,
-                        cancellationToken).ConfigureAwait(false);
-                }
-            case "pdf":
-                using (var pdfOutput = CreateUtf8Writer(standardOutput)) {
-                    return await PdfCommand.RunAsync(
-                        commandArguments,
-                        pdfOutput,
-                        standardError,
-                        cancellationToken).ConfigureAwait(false);
-                }
-            case "provenance":
-                using (var provenanceOutput = CreateUtf8Writer(standardOutput)) {
-                    return await ProvenanceCommand.RunAsync(
-                        commandArguments,
-                        provenanceOutput,
-                        standardError,
-                        cancellationToken).ConfigureAwait(false);
-                }
-            case "hidden-data":
-                using (var hiddenDataOutput = CreateUtf8Writer(standardOutput)) {
-                    return await HiddenDataCommand.RunAsync(
-                        commandArguments,
-                        hiddenDataOutput,
-                        standardError,
-                        cancellationToken).ConfigureAwait(false);
-                }
-            case "invoice":
-                using (var invoiceOutput = CreateUtf8Writer(standardOutput)) {
-                    return await InvoiceCommand.RunAsync(commandArguments, invoiceOutput, standardError, cancellationToken).ConfigureAwait(false);
-                }
-            case "agent":
-                return await RunAgentAsync(
-                    commandArguments,
-                    standardOutput,
-                    standardError,
-                    cancellationToken).ConfigureAwait(false);
-            case "mcp":
-                return await McpCommand.RunAsync(
-                    commandArguments, standardError, cancellationToken).ConfigureAwait(false);
-            default:
-                await standardError.WriteLineAsync("Unknown command area '" + args[0] + "'.").ConfigureAwait(false);
-                await standardError.WriteLineAsync(Usage).ConfigureAwait(false);
-                return (int)OfficeImoToolExitCode.Usage;
+        OfficeImoToolCommandGroup? group = OfficeImoToolCommands.Find(args[0]);
+        if (group is null) {
+            await standardError.WriteLineAsync("Unknown command area '" + args[0] + "'.").ConfigureAwait(false);
+            await standardError.WriteLineAsync(Usage).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.Usage;
         }
+        return await group.Run(args[1..], standardInput, standardOutput, standardError, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task<int> WriteHelpAsync(
+        string[] args,
+        Stream standardOutput,
+        TextWriter standardError,
+        CancellationToken cancellationToken) {
+        string format = "text";
+        for (int index = 1; index < args.Length; index++) {
+            if (args[index] != "--format") continue;
+            if (index + 1 >= args.Length || args[index + 1] is not ("text" or "json")) {
+                await standardError.WriteLineAsync("Choose help format: text or json.").ConfigureAwait(false);
+                return (int)OfficeImoToolExitCode.Usage;
+            }
+            format = args[++index];
+        }
+        if (format == "json") {
+            OfficeImoToolCommandCatalog.Write(standardOutput, GetVersion());
+            await WriteUtf8Async(standardOutput, Environment.NewLine, cancellationToken).ConfigureAwait(false);
+        } else {
+            await WriteUtf8Async(standardOutput, Usage + Environment.NewLine, cancellationToken).ConfigureAwait(false);
+        }
+        return (int)OfficeImoToolExitCode.Success;
+    }
+
+    private static string BuildUsage() {
+        var builder = new StringBuilder("OfficeIMO.Tool").Append('\n').Append('\n').Append("Usage:").Append('\n');
+        foreach (OfficeImoToolCommandGroup group in OfficeImoToolCommands.Groups) {
+            foreach (string name in new[] { group.Id }.Concat(group.Aliases)) {
+                builder.Append("  ").Append(OfficeImoToolCommandCatalog.TopLevelUsage(name, group.Synopsis)).Append('\n');
+            }
+        }
+        builder.Append("  officeimo --version").Append('\n')
+            .Append("  officeimo help [--format text|json]").Append('\n').Append('\n')
+            .Append("Run 'officeimo <area> --help' for area-specific commands and options.").Append('\n')
+            .Append("'officeimo help --format json' lists every command, option and exit code as JSON.");
+        return builder.ToString();
     }
 
     private static bool IsHelp(string value) => value is "help" or "--help" or "-h";
@@ -185,7 +99,7 @@ Run 'officeimo <area> --help' for area-specific commands and options.
         return assembly.GetName().Version?.ToString(3) ?? "unknown";
     }
 
-    private static async Task<int> RunReaderAsync(
+    internal static async Task<int> RunReaderAsync(
         string[] args,
         Stream standardInput,
         Stream standardOutput,
@@ -200,7 +114,7 @@ Run 'officeimo <area> --help' for area-specific commands and options.
             cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task<int> RunAgentAsync(
+    internal static async Task<int> RunAgentAsync(
         string[] args,
         Stream standardOutput,
         TextWriter standardError,
@@ -211,6 +125,11 @@ Run 'officeimo <area> --help' for area-specific commands and options.
             agentOutput,
             standardError,
             cancellationToken).ConfigureAwait(false);
+    }
+
+    internal static async Task<int> WithWriterAsync(Stream output, Func<TextWriter, Task<int>> run) {
+        using StreamWriter writer = CreateUtf8Writer(output);
+        return await run(writer).ConfigureAwait(false);
     }
 
     private static StreamWriter CreateUtf8Writer(Stream output) => new(
