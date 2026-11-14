@@ -60,7 +60,11 @@ internal static class PdfTextQualityRunner {
             report.AppendLine($"| {name} | {Percent(content, words)} | {Percent(order, words)} |");
         }
         Console.Write(report.ToString());
-        if (args.Length == 2 && args[0] == "--output") File.WriteAllText(args[1], report.ToString());
+        if (args.Length == 2 && args[0] == "--output") {
+            string? directory = Path.GetDirectoryName(Path.GetFullPath(args[1]));
+            if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+            File.WriteAllText(args[1], report.ToString());
+        }
         return 0;
     }
 

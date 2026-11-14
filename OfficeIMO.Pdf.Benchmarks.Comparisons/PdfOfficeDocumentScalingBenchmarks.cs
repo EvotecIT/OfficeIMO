@@ -19,7 +19,7 @@ public enum PdfOfficeDocumentKind {
 /// as a ratio change. Word pages carry a header and footer, a heading, mixed run
 /// formatting, a table, numbered and bulleted lists and periodic images and charts;
 /// slides carry text boxes, shapes, an image and alternating charts and tables.
-/// Cleanup reopens the PDF and requires the page count and every page or slide marker.
+/// Cleanup reopens the PDF and requires at least the requested page count and every page or slide marker.
 /// </summary>
 [MemoryDiagnoser]
 [RankColumn]

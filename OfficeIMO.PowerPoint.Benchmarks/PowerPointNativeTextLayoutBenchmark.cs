@@ -51,7 +51,11 @@ internal static class PowerPointNativeTextLayoutBenchmark {
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"NATIVE_TEXT_LAYOUT|iterations={iterations}|median_ms={Median(times):0.00}|min_ms={times[0]:0.00}" +
                           $"|allocated_mb_per_op={allocated / (double)iterations / (1024 * 1024):0.00}"));
         Console.WriteLine($"NATIVE_TEXT_LAYOUT_SLIDES|sha256={SlideHash(deck, out int slides)}|slides={slides}");
-        if (output != null) File.WriteAllBytes(output, deck);
+        if (output != null) {
+            string? directory = Path.GetDirectoryName(Path.GetFullPath(output));
+            if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+            File.WriteAllBytes(output, deck);
+        }
         if (images != null) WriteImages(deck, images);
         return 0;
     }
