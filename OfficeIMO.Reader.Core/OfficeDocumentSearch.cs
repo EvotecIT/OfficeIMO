@@ -16,6 +16,17 @@ public sealed class OfficeDocumentSearchOptions {
 
     /// <summary>Maximum number of occurrences returned. Default: 1,000.</summary>
     public int MaximumResults { get; set; } = 1000;
+
+    /// <summary>
+    /// Literal occurrence search (the default) or BM25-ranked word search. Ranked mode returns one hit per matching
+    /// block, best first, and falls back to literal search when the query has no searchable words or matches nothing.
+    /// <see cref="UseRegularExpressions"/> takes precedence; <see cref="WholeWord"/> does not apply because ranked
+    /// search always matches whole words.
+    /// </summary>
+    public OfficeDocumentSearchMode Mode { get; set; } = OfficeDocumentSearchMode.Literal;
+
+    /// <summary>Ranking, query and resource settings used when <see cref="Mode"/> is <see cref="OfficeDocumentSearchMode.Ranked"/>.</summary>
+    public OfficeDocumentRankingOptions Ranking { get; set; } = new();
 }
 
 /// <summary>One query occurrence and its source/page locations.</summary>
@@ -24,11 +35,15 @@ public sealed class OfficeDocumentSearchHit {
         OfficeDocumentBlock block,
         int startIndex,
         int length,
-        IReadOnlyList<OfficeDocumentPageLocation> pages) {
+        IReadOnlyList<OfficeDocumentPageLocation> pages,
+        double? score = null,
+        IReadOnlyList<OfficeDocumentSearchHighlight>? highlights = null) {
         Block = block;
         StartIndex = startIndex;
         Length = length;
         Pages = pages;
+        Score = score;
+        Highlights = highlights ?? new[] { new OfficeDocumentSearchHighlight(startIndex, length) };
     }
 
     /// <summary>Normalized source block containing the occurrence.</summary>
@@ -42,6 +57,15 @@ public sealed class OfficeDocumentSearchHit {
 
     /// <summary>Page-like locations that contain the matching source block fragment.</summary>
     public IReadOnlyList<OfficeDocumentPageLocation> Pages { get; }
+
+    /// <summary>BM25 relevance score for ranked hits; null for literal and regular-expression hits.</summary>
+    public double? Score { get; }
+
+    /// <summary>
+    /// Matched ranges in <see cref="OfficeDocumentBlock.Text"/>. A literal hit has its one occurrence; a ranked hit
+    /// has every matched word and phrase, and may have none when only the block's heading path matched.
+    /// </summary>
+    public IReadOnlyList<OfficeDocumentSearchHighlight> Highlights { get; }
 }
 
 /// <summary>Search results with aggregated page citation information.</summary>
@@ -51,7 +75,9 @@ public sealed class OfficeDocumentSearchResult {
         string query,
         int totalPageCount,
         IReadOnlyList<OfficeDocumentSearchHit> hits,
-        bool maximumResultsReached) {
+        bool maximumResultsReached,
+        bool ranked = false) {
+        Ranked = ranked;
         Source = source;
         Query = query;
         TotalPageCount = totalPageCount;
@@ -75,7 +101,10 @@ public sealed class OfficeDocumentSearchResult {
     /// <summary>Total physical page count known for the read operation.</summary>
     public int TotalPageCount { get; }
 
-    /// <summary>Matching occurrences in normalized source order.</summary>
+    /// <summary>
+    /// Matching occurrences in normalized source order, or for a ranked search one hit per block in descending score
+    /// order.
+    /// </summary>
     public IReadOnlyList<OfficeDocumentSearchHit> Hits { get; }
 
     /// <summary>Distinct one-based physical pages containing matches.</summary>
@@ -85,6 +114,9 @@ public sealed class OfficeDocumentSearchResult {
     /// True when the configured maximum result count was reached and the search stopped at that ceiling.
     /// </summary>
     public bool MaximumResultsReached { get; }
+
+    /// <summary>True when the hits are BM25-ranked; false for literal and regular-expression results, including a ranked request that fell back to literal search.</summary>
+    public bool Ranked { get; }
 }
 
 public static partial class OfficeDocumentReadResultExtensions {
@@ -108,6 +140,10 @@ public static partial class OfficeDocumentReadResultExtensions {
 
         cancellationToken.ThrowIfCancellationRequested();
         if (effective.UseRegularExpressions) return SearchRegularExpression(document, query, effective, cancellationToken);
+        if (effective.Mode == OfficeDocumentSearchMode.Ranked) {
+            OfficeDocumentSearchResult? ranked = SearchRanked(document, query, effective, cancellationToken);
+            if (ranked != null) return ranked;
+        }
 
         StringComparison comparison = effective.MatchCase
             ? StringComparison.Ordinal
