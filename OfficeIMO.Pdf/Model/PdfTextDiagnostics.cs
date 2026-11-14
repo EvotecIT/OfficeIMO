@@ -1187,10 +1187,6 @@ internal static partial class PdfTextDiagnostics {
         diagnostics.Add(new PdfTextShapingDiagnostic(source, index, scalar, script, code, message, isCoveredByBuiltInShaping));
     }
 
-    private static readonly string[] DefaultLigatureFeatureTags = { "liga", "clig", "rlig" };
-    private static readonly string[] DiscretionaryLigatureFeatureTags = { "dlig" };
-    private static readonly string[] MarkPositioningFeatureTags = { "mark", "mkmk" };
-
     private static void AddFontLayoutDiagnostics(string text, PdfOpenTypeFontInfo info, List<PdfTextShapingDiagnostic> diagnostics, string source, int indexOffset, OfficeTextFeatureSettings? featureSettings = null) {
         // Preflight the same selected language-system lookups used by the shared shaper.
         // A rejected required feature or custom ligature need not contain ff/fi/fl, but it
@@ -1208,8 +1204,8 @@ internal static partial class PdfTextDiagnostics {
                     "Embedded font '" + info.FontName + "' selects an OpenType GSUB feature outside the managed shaping subset. Generated output may be visually simplified.");
             }
         }
-        if (HasAnyFeature(info.LatinGlyphSubstitutionFeatureTags, DefaultLigatureFeatureTags) ||
-            HasAnyFeature(info.LatinGlyphSubstitutionFeatureTags, DiscretionaryLigatureFeatureTags) && featureSettings != null &&
+        if (info.AdvertisesDefaultLatinLigatures ||
+            info.AdvertisesDiscretionaryLatinLigatures && featureSettings != null &&
             featureSettings.TryGetValue("dlig", out int discretionaryValue) && discretionaryValue > 0) {
             int ligatureIndex = FindLatinLigatureSequenceIndex(text);
             if (ligatureIndex >= 0) {
@@ -1230,7 +1226,7 @@ internal static partial class PdfTextDiagnostics {
             }
         }
 
-        if (HasAnyFeature(info.GlyphPositioningFeatureTags, MarkPositioningFeatureTags)) {
+        if (info.AdvertisesMarkPositioning) {
             for (int index = 0; index < text.Length;) {
                 int scalarStart = index;
                 int sourceIndex = scalarStart + indexOffset;
@@ -1250,19 +1246,6 @@ internal static partial class PdfTextDiagnostics {
                 break;
             }
         }
-    }
-
-    private static bool HasAnyFeature(IReadOnlyList<string> featureTags, string[] expectedTags) {
-        for (int index = 0; index < featureTags.Count; index++) {
-            string tag = featureTags[index];
-            for (int expectedIndex = 0; expectedIndex < expectedTags.Length; expectedIndex++) {
-                if (string.Equals(tag, expectedTags[expectedIndex], StringComparison.Ordinal)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 
     private static int FindLatinLigatureSequenceIndex(string text) {

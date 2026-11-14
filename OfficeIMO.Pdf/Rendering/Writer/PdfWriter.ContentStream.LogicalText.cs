@@ -137,7 +137,7 @@ internal sealed partial class ContentStreamBuilder {
         if (Math.Abs(adjustment) < (precise ? 0.000005D : 0.0005D)) return;
         if (T._showElements > 0) _sb.Append(' ');
         T._lastNumberStart = T._showElements > 0 ? _sb.Length - 1 : _sb.Length;
-        if (precise) _sb.Append(adjustment.ToString("0.#####", System.Globalization.CultureInfo.InvariantCulture));
+        if (precise) _sb.Append(PdfNumberFormatter.FixedDecimals(adjustment, 5));
         else _sb.Append(F(adjustment));
         T._lastNumber = adjustment;
         T._lastNumberPrecise = precise;

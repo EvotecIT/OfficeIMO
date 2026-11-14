@@ -29,9 +29,19 @@ public sealed partial class PdfEmbeddedFontFamily {
 #if NET8_0_OR_GREATER
         return snapshot.AsSpan().SequenceEqual(caller);
 #else
-        // Older supported targets do not require a span compatibility package.
-        for (int index = 0; index < snapshot.Length; index++) {
-            if (snapshot[index] != caller[index]) return false;
+        // Older supported targets do not require a span compatibility package. Compare eight bytes at a time:
+        // a font is hundreds of kilobytes and this runs for every family constructed from the same array.
+        if (snapshot.Length != caller.Length) return false;
+        unsafe {
+            fixed (byte* left = snapshot, right = caller) {
+                int index = 0;
+                for (int words = snapshot.Length / 8; words > 0; words--, index += 8) {
+                    if (*(ulong*)(left + index) != *(ulong*)(right + index)) return false;
+                }
+                for (; index < snapshot.Length; index++) {
+                    if (left[index] != right[index]) return false;
+                }
+            }
         }
         return true;
 #endif

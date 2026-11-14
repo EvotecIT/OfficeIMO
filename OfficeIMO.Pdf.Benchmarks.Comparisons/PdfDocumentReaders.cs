@@ -20,7 +20,7 @@ internal static class PdfDocumentReaders {
     };
 
     internal static string ExtractText(PdfReaderEngine engine, byte[] pdf) => engine switch {
-        PdfReaderEngine.OfficeIMO => string.Join('\n', ExtractOfficeImoTextByPage(pdf)),
+        PdfReaderEngine.OfficeIMO => string.Join("\n", ExtractOfficeImoTextByPage(pdf)),
         PdfReaderEngine.PdfPig => ExtractTextWithPdfPig(pdf),
         PdfReaderEngine.IText => ExtractTextWithIText(pdf),
         _ => throw new ArgumentOutOfRangeException(nameof(engine))
@@ -31,7 +31,7 @@ internal static class PdfDocumentReaders {
         global::OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null) {
         global::OfficeIMO.Pdf.PdfDocumentReadResult result = ReadOfficeImoStructured(pdf, loadOptions);
         return result.Pages
-            .Select(static page => string.Join('\n', page.TextBlocks.Select(static block => block.Text)))
+            .Select(static page => string.Join("\n", page.TextBlocks.Select(static block => block.Text)))
             .ToArray();
     }
 

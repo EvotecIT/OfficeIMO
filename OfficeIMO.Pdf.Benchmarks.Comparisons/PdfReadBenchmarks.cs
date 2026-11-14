@@ -18,7 +18,9 @@ public class PdfReadBenchmarks {
     [Params(
         PdfBenchmarkProducer.OfficeIMO,
         PdfBenchmarkProducer.QuestPDF,
+#if !NETFRAMEWORK
         PdfBenchmarkProducer.PeachPDF,
+#endif
         PdfBenchmarkProducer.MigraDoc,
         PdfBenchmarkProducer.IText)]
     public PdfBenchmarkProducer Producer { get; set; }
