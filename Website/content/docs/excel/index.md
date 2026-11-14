@@ -36,7 +36,7 @@ workbook.Save();
 Create with a named worksheet in one call:
 
 ```csharp
-using var workbook = ExcelDocument.Create("report.xlsx", "Sales");
+using var workbook = ExcelDocument.Create("report.xlsx", new ExcelCreateOptions { FirstSheetName = "Sales" });
 var sheet = workbook.Sheets[0]; // "Sales" sheet
 ```
 
