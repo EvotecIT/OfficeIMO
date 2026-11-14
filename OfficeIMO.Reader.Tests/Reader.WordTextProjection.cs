@@ -1,7 +1,9 @@
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Word;
 using OfficeIMO.Word;
 using Xunit;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Tests;
 
@@ -38,6 +40,44 @@ public sealed class ReaderWordTextProjectionTests {
         Assert.Contains("officeimo.reader.projection.text", text.CapabilitiesUsed);
         Assert.Equal(!withHeader, text.CapabilitiesUsed.Contains(StreamedCapability));
         Assert.DoesNotContain(StreamedCapability, lean.CapabilitiesUsed);
+    }
+
+    // Table shapes whose streamed text must still match the model: a grid wider than every row, a grid with no
+    // rows, and a header row whose revised properties record it as an ordinary row.
+    [Theory]
+    [InlineData("<w:tblGrid><w:gridCol/><w:gridCol/><w:gridCol/></w:tblGrid>"
+        + "<w:tr><w:tc><w:p><w:r><w:t>North</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>1,200</w:t></w:r></w:p></w:tc></w:tr>", true)]
+    [InlineData("<w:tblGrid><w:gridCol/><w:gridCol/></w:tblGrid>", true)]
+    [InlineData("<w:tblGrid><w:gridCol/></w:tblGrid>"
+        + "<w:tr><w:trPr><w:tblHeader/><w:trPrChange w:id=\"1\" w:author=\"A\"><w:trPr><w:tblHeader w:val=\"false\"/></w:trPr></w:trPrChange></w:trPr>"
+        + "<w:tc><w:p><w:r><w:t>Region</w:t></w:r></w:p></w:tc></w:tr>"
+        + "<w:tr><w:tc><w:p><w:r><w:t>North</w:t></w:r></w:p></w:tc></w:tr>", false)]
+    public void TextProjectionMatchesTheLeanReadForTableShapes(string tableContent, bool streams) {
+        byte[] package = CreateTableDocument(tableContent);
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddWordHandler().Build();
+
+        OfficeDocumentReadResult lean = reader.ReadDocument(package, "table.docx",
+            new ReaderOptions { Projection = ReaderProjection.TextAndMetadata, MaxTableRows = 1 });
+        OfficeDocumentReadResult text = reader.ReadDocument(package, "table.docx",
+            new ReaderOptions { Projection = ReaderProjection.Text, MaxTableRows = 1 });
+
+        Assert.Equal(lean.GetText(), text.GetText());
+        Assert.Equal(streams, text.CapabilitiesUsed.Contains(StreamedCapability));
+    }
+
+    private static byte[] CreateTableDocument(string tableContent) {
+        using var stream = new MemoryStream();
+        using (WordDocument document = WordDocument.Create(stream)) {
+            document.AddParagraph("Before");
+            document.Save();
+        }
+        using (WordprocessingDocument package = WordprocessingDocument.Open(stream, true)) {
+            W.Body body = package.MainDocumentPart!.Document!.Body!;
+            var table = new W.Table("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">" + tableContent + "</w:tbl>");
+            body.InsertAfter(table, body.Elements<W.Paragraph>().First());
+            body.InsertAfter(new W.Paragraph(new W.Run(new W.Text("After"))), table);
+        }
+        return stream.ToArray();
     }
 
     // Paragraphs, list items, a hyperlink, a line break and tab, and a table with a repeated header row.

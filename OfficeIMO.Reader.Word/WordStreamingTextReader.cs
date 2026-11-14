@@ -293,28 +293,22 @@ internal static class WordStreamingTextReader {
     private static bool ReadTable(XmlReader reader, Context context) {
         if (reader.IsEmptyElement) return true;
         int depth = reader.Depth;
-        int gridColumns = 0;
         bool repeatsHeader = false;
         var rows = new List<List<string>>();
         while (reader.Read()) {
             if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth) break;
             if (reader.NodeType != XmlNodeType.Element) continue;
             if (reader.NamespaceURI != WordNamespace) return false;
+            context.CancellationToken.ThrowIfCancellationRequested();
             switch (reader.LocalName) {
                 case "tblPr":
-                    Skip(reader);
-                    break;
                 case "tblGrid":
-                    if (!reader.IsEmptyElement) {
-                        int gridDepth = reader.Depth;
-                        while (reader.Read() && !(reader.NodeType == XmlNodeType.EndElement && reader.Depth == gridDepth)) {
-                            if (reader.NodeType == XmlNodeType.Element && reader.NamespaceURI == WordNamespace && reader.LocalName == "gridCol") gridColumns++;
-                        }
-                    }
+                    // The model sizes the table from its widest row, not its grid.
+                    Skip(reader);
                     break;
                 case "tr":
                     var cells = new List<string>();
-                    if (!ReadRow(reader, cells, out bool header)) return false;
+                    if (!ReadRow(reader, cells, out bool header, context.CancellationToken)) return false;
                     if (rows.Count == 0) repeatsHeader = header;
                     rows.Add(cells);
                     break;
@@ -325,7 +319,7 @@ internal static class WordStreamingTextReader {
                     return false;
             }
         }
-        int columns = gridColumns;
+        int columns = 0;
         foreach (List<string> row in rows) columns = Math.Max(columns, row.Count);
         bool hasHeader = repeatsHeader && rows.Count > 0;
         if (columns > 0) {
@@ -349,7 +343,7 @@ internal static class WordStreamingTextReader {
 
     private static string Cell(List<string> row, int index) => index < row.Count ? row[index] : string.Empty;
 
-    private static bool ReadRow(XmlReader reader, List<string> cells, out bool repeatsHeader) {
+    private static bool ReadRow(XmlReader reader, List<string> cells, out bool repeatsHeader, CancellationToken cancellationToken) {
         repeatsHeader = false;
         if (reader.IsEmptyElement) return true;
         int depth = reader.Depth;
@@ -360,15 +354,23 @@ internal static class WordStreamingTextReader {
             switch (reader.LocalName) {
                 case "trPr": case "tblPrEx":
                     if (!reader.IsEmptyElement) {
+                        bool rowProperties = reader.LocalName == "trPr";
+                        bool headerSeen = false;
                         int propertiesDepth = reader.Depth;
                         while (reader.Read() && !(reader.NodeType == XmlNodeType.EndElement && reader.Depth == propertiesDepth)) {
                             if (reader.NodeType != XmlNodeType.Element || reader.NamespaceURI != WordNamespace) continue;
-                            if (reader.LocalName == "tblHeader") repeatsHeader = IsOn(reader);
-                            else if (reader.LocalName is "gridBefore" or "gridAfter") return false;
+                            // Revised row properties are a revision; the model read handles those.
+                            if (reader.LocalName is "gridBefore" or "gridAfter" or "trPrChange" or "tblPrExChange") return false;
+                            // Like the model, only the first direct tblHeader of the row's own properties counts.
+                            if (rowProperties && !headerSeen && reader.LocalName == "tblHeader" && reader.Depth == propertiesDepth + 1) {
+                                repeatsHeader = IsOn(reader);
+                                headerSeen = true;
+                            }
                         }
                     }
                     break;
                 case "tc":
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (!ReadCell(reader, out string? value)) return false;
                     cells.Add(value!);
                     break;
