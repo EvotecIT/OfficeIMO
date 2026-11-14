@@ -1,0 +1,133 @@
+{
+  "surfaces": [
+    {
+      "id": "dotnet",
+      "label": ".NET",
+      "url": "/docs/",
+      "pathPrefixes": []
+    },
+    {
+      "id": "powershell",
+      "label": "PowerShell",
+      "url": "/docs/pswriteoffice/",
+      "pathPrefixes": [
+        "/docs/pswriteoffice/",
+        "/api/powershell/"
+      ],
+      "tocGroup": "PSWriteOffice",
+      "basePath": "/docs/pswriteoffice/",
+      "sections": [
+        {
+          "title": "Start here",
+          "slugs": [
+            "",
+            "overview",
+            "install",
+            "choosing-a-workflow",
+            "command-families",
+            "automation-patterns",
+            "troubleshooting",
+            "object-workflows",
+            "dsl-cookbook",
+            "use-case-index",
+            "conversion-routes",
+            "document-layout"
+          ]
+        },
+        {
+          "title": "Word",
+          "slugs": [
+            "word",
+            "word-merge-mailmerge",
+            "word-read-inspect",
+            "word-review-delivery",
+            "word-update-existing"
+          ]
+        },
+        {
+          "title": "Excel",
+          "slugs": [
+            "excel",
+            "excel-export-publish",
+            "excel-merge-compare",
+            "excel-read-import",
+            "excel-update-existing",
+            "excel-validation-repair"
+          ]
+        },
+        {
+          "title": "PowerPoint",
+          "slugs": [
+            "powerpoint",
+            "powerpoint-export-review",
+            "powerpoint-read-inspect",
+            "powerpoint-reuse-slides",
+            "powerpoint-update-existing"
+          ]
+        },
+        {
+          "title": "PDF",
+          "slugs": [
+            "pdf",
+            "pdf-forms-annotations",
+            "pdf-signatures-compliance",
+            "pdf-merge-split-pages",
+            "pdf-positioned-content",
+            "pdf-read-preflight",
+            "pdf-redact-sanitize"
+          ]
+        },
+        {
+          "title": "Reader and search",
+          "slugs": [
+            "reader",
+            "reader-ingest-pipelines",
+            "reader-chunks-tables",
+            "reader-search-corpus"
+          ]
+        },
+        {
+          "title": "Markdown, text and data",
+          "slugs": [
+            "open-text-formats",
+            "markdown-convert-publish",
+            "markdown-word-roundtrip",
+            "markdown-read-parse",
+            "config-data-formats"
+          ]
+        },
+        {
+          "title": "More formats and integrations",
+          "slugs": [
+            "confluence",
+            "visio",
+            "report-integrations",
+            "project-access-epub",
+            "before-sharing"
+          ]
+        },
+        {
+          "title": "Migrate and compare",
+          "slugs": [
+            "compare-importexcel-excelfast",
+            "compare-office-automation-options",
+            "migrate-from-legacy-modules",
+            "migrate-from-pswriteword",
+            "migrate-from-pswriteexcel",
+            "migrate-from-pswritepdf"
+          ]
+        }
+      ],
+      "otherTitle": "More guides"
+    },
+    {
+      "id": "cli",
+      "label": "CLI",
+      "url": "/docs/cli/",
+      "pathPrefixes": [
+        "/docs/cli/"
+      ],
+      "tocGroup": "Command Line"
+    }
+  ]
+}

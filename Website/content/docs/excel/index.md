@@ -36,7 +36,7 @@ workbook.Save();
 Create with a named worksheet in one call:
 
 ```csharp
-using var workbook = ExcelDocument.Create("report.xlsx", "Sales");
+using var workbook = ExcelDocument.Create("report.xlsx", new ExcelCreateOptions { FirstSheetName = "Sales" });
 var sheet = workbook.Sheets[0]; // "Sales" sheet
 ```
 
@@ -136,3 +136,10 @@ Use `OfficeIMO.Reader.Excel` instead when the job is normalized extraction of wo
 
 - [Worksheets](/docs/excel/worksheets) — Cell values, formatting, formulas, and named ranges.
 - [Tables and Ranges](/docs/excel/tables-ranges) — AutoFilter tables, validation, and conditional formatting.
+- [Quick Start](/docs/excel/quick-start/) — Create a workbook with a table and a chart, and read it back.
+- [Styles and Number Formats](/docs/excel/styles-number-formats/) — Fonts, fills, borders, number formats, and conditional formatting.
+- [Formulas and Named Ranges](/docs/excel/formulas/) — Write and calculate formulas, define names, and inventory formulas.
+- [Charts](/docs/excel/charts/) — Native charts from objects, ranges, and tables.
+- [Import and Export Data](/docs/excel/import-export-data/) — Objects, DataTable, IDataReader, and CSV.
+- [Large Files and Streaming](/docs/excel/large-files/) — Bounded-memory writers and forward-only readers.
+- [Protect Sheets and Workbooks](/docs/excel/protection/) — Sheet and structure protection, and encryption.

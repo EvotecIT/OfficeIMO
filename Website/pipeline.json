@@ -81,6 +81,19 @@
     },
     {
       "task": "exec",
+      "id": "update-cli-catalog",
+      "timeoutSeconds": 1800,
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Update-CliCatalog.ps1"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
       "id": "build-aot-project-matrix",
       "dependsOn": [
         "build-capability-catalog"
@@ -809,6 +822,7 @@
       "id": "build-site",
       "dependsOn": [
         "test-documentation-contracts",
+        "update-cli-catalog",
         "build-api-net8-0-optional",
         "build-release-hub",
         "build-ecosystem-stats",
@@ -1672,7 +1686,7 @@
       "templateDocsIndex": "./themes/officeimo/layouts/api-reference.html",
       "templateDocsType": "./themes/officeimo/layouts/api-reference.html",
       "bodyClass": "pf-api-docs pf-api-docs--powershell",
-      "docsHome": "/products/pswriteoffice/",
+      "docsHome": "/powershell/",
       "nav": "./site.json",
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",

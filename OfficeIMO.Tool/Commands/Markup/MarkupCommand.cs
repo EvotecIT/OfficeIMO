@@ -535,7 +535,7 @@ internal static class MarkupCommand {
                 TextAlign = style.TextAlign
             };
 
-    private const string Usage = """
+    internal const string Usage = """
 OfficeIMO.Tool - Markup
 
 Usage:

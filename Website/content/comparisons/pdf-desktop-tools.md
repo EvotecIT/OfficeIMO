@@ -31,7 +31,7 @@ Sources: [Adobe's edition comparison](https://www.adobe.com/acrobat/pricing/comp
 
 **Choose a shipped desktop product when installation and daily PDF work are the immediate requirement.** Acrobat and Foxit warrant evaluation when packaged editing, organizational deployment, vendor support, or agreement services are important. KillerPDF warrants evaluation for a free Windows application with local tools. Test their current installers on your actual documents.
 
-**Choose OfficeIMO when you need to connect document work to code and automation.** Its [.NET PDF engine](/products/pdf/), [PowerShell module](/products/pswriteoffice/), [CLI](/tool/), and [browser PDF tools](/pdf/) expose related capabilities through different entry points. Check each entry point's guide: an engine API is not automatically a command or a desktop feature.
+**Choose OfficeIMO when you need to connect document work to code and automation.** Its [.NET PDF engine](/products/pdf/), [PowerShell module](/powershell/), [CLI](/cli/), and [browser PDF tools](/pdf/) expose related capabilities through different entry points. Check each entry point's guide: an engine API is not automatically a command or a desktop feature.
 
 **Evaluate Studio on your own documents.** Start with the [actual screenshots and supported tasks](/studio/) and [download a desktop package](/downloads/#studio-downloads). Object-level PDF editing is not paragraph reflow, drawn signatures are not certificate signatures, and an OCR text layer does not recover the original Word document.
 

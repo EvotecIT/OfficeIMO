@@ -33,7 +33,7 @@ try {
     $deadline = [DateTime]::UtcNow.AddSeconds(15)
     while ([DateTime]::UtcNow -lt $deadline -and -not $server.HasExited) {
         try {
-            $ready = (Invoke-WebRequest -Uri "$origin/benchmarks/" -TimeoutSec 2 -UseBasicParsing).StatusCode -eq 200
+            $ready = (Invoke-WebRequest -Uri "$origin/benchmarks/pdf/" -TimeoutSec 2 -UseBasicParsing).StatusCode -eq 200
             if ($ready) { break }
         } catch { Start-Sleep -Milliseconds 100 }
     }
@@ -51,4 +51,4 @@ try {
     $server.Dispose()
 }
 
-Write-Host 'Benchmark browser behavior verified for the rendered dependency version and both CPU-domain selections.'
+Write-Host 'Benchmark browser behavior verified for the rendered dependency version and both CPU-domain workloads.'

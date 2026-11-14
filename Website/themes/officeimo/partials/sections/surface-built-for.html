@@ -1,0 +1,10 @@
+{{~ if app.builtFor && app.builtFor.items ~}}
+<section class="imo-container imo-surface-section imo-surface-built" aria-labelledby="built-title">
+  <div class="imo-surface-head"><h2 id="built-title">{{ app.builtFor.title }}</h2></div>
+  <dl class="imo-surface-built__grid">
+    {{~ for item in app.builtFor.items ~}}
+    <div><dt>{{ item.title }}</dt><dd>{{ item.detail }}</dd></div>
+    {{~ end ~}}
+  </dl>
+</section>
+{{~ end ~}}

@@ -22,7 +22,7 @@ The `OfficeIMO.CSV` package provides a fluent, strongly typed CSV document model
 ```csharp
 using OfficeIMO.CSV;
 
-var csv = new CsvDocument()
+var csv = CsvDocument.Create()
     .WithDelimiter(',')
     .WithHeader("Name", "Age", "City")
     .AddRow("Alice", "30", "New York")
@@ -64,8 +64,8 @@ var csv = CsvDocument.FromObjects(
 ```csharp
 var csv = CsvDocument.Load("data.csv");
 
-foreach (var row in csv.Rows) {
-    Console.WriteLine($"{row["Name"]}: {row["Age"]}");
+foreach (CsvRow row in csv.AsEnumerable()) {
+    Console.WriteLine($"{row.AsString("Name")}: {row.AsInt32("Age")}");
 }
 ```
 
@@ -113,7 +113,7 @@ var validated = csv
     .Validate(out var errors);
 
 foreach (var error in errors) {
-    Console.WriteLine($"Row {error.RowIndex}, Column '{error.Column}': {error.Message}");
+    Console.WriteLine($"Row {error.RowIndex}, Column '{error.ColumnName}': {error.Message}");
 }
 ```
 
@@ -159,13 +159,13 @@ csv.Save(stream);
 
 ```csharp
 // Tab-separated
-var tsv = new CsvDocument().WithDelimiter('\t');
+var tsv = CsvDocument.Create().WithDelimiter('\t');
 
 // Semicolon-separated (common in European locales)
-var csv = new CsvDocument().WithDelimiter(';');
+var csv = CsvDocument.Create().WithDelimiter(';');
 
 // Pipe-separated
-var psv = new CsvDocument().WithDelimiter('|');
+var psv = CsvDocument.Create().WithDelimiter('|');
 ```
 
 ## Culture-Aware Formatting
@@ -173,12 +173,19 @@ var psv = new CsvDocument().WithDelimiter('|');
 ```csharp
 using System.Globalization;
 
-var csv = new CsvDocument()
+var csv = CsvDocument.Create()
     .WithCulture(new CultureInfo("fr-FR"))
     .WithHeader("Produit", "Prix")
     .AddRow("Widget A", "9,99")   // French decimal separator
     .AddRow("Widget B", "14,99");
 ```
+
+## Task guides
+
+- [Read CSV into typed objects](/docs/csv/read-typed/)
+- [Write CSV from objects and data readers](/docs/csv/write-data/)
+- [CSV dialects and encodings](/docs/csv/dialects-encodings/)
+- [Convert CSV to Excel](/docs/csv/convert-to-excel/)
 
 ## Convert to other formats
 

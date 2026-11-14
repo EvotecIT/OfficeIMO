@@ -7,27 +7,55 @@ namespace OfficeIMO.Tool.Tests;
 
 public sealed class OfficeImoToolAppTests {
     [Fact]
-    public async Task HelpPresentsOneNamespacedCommandSurface() {
+    public async Task CommandCatalogDescribesEveryDispatchedAreaFromItsHelp() {
+        (int exitCode, string catalogJson, string catalogError) = await RunToolAsync("help", "--format", "json");
+        Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
+        Assert.Equal(string.Empty, catalogError);
+        using JsonDocument catalog = JsonDocument.Parse(catalogJson);
+        JsonElement root = catalog.RootElement;
+        Assert.Equal("officeimo.tool.commands.v1", root.GetProperty("schema").GetString());
+
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (JsonElement group in root.GetProperty("groups").EnumerateArray()) {
+            string id = group.GetProperty("id").GetString()!;
+            Assert.False(string.IsNullOrWhiteSpace(group.GetProperty("summary").GetString()), id);
+            Assert.NotEmpty(group.GetProperty("usage").EnumerateArray());
+
+            // Every name the catalog lists must reach its own area rather than the unknown-area error.
+            string[] groupNames = [id, .. group.GetProperty("aliases").EnumerateArray().Select(alias => alias.GetString()!)];
+            string help = string.Empty;
+            foreach (string name in groupNames) {
+                Assert.True(names.Add(name), "Duplicate command name " + name);
+                (int helpExit, string helpOutput, string helpError) = await RunToolAsync(name, "--help");
+                Assert.Equal((int)OfficeImoToolExitCode.Success, helpExit);
+                Assert.DoesNotContain("Unknown command area", helpError, StringComparison.Ordinal);
+                help = helpOutput + helpError;
+            }
+
+            foreach (JsonElement subcommand in group.GetProperty("subcommands").EnumerateArray()) {
+                Assert.False(string.IsNullOrWhiteSpace(subcommand.GetProperty("summary").GetString()), id);
+                Assert.All(subcommand.GetProperty("usage").EnumerateArray(), usage => Assert.Contains(
+                    "officeimo " + id + " ", usage.GetString(), StringComparison.Ordinal));
+                // Nested areas such as 'pdf redact' print their own help.
+                (_, string nestedOutput, string nestedError) = await RunToolAsync(id, subcommand.GetProperty("names")[0].GetString()!.Split(' ')[0], "--help");
+                help += nestedOutput + nestedError;
+            }
+            // Options the catalog highlights must be ones the area's own help documents.
+            foreach (JsonElement option in group.GetProperty("keyOptions").EnumerateArray()) {
+                Assert.Contains(option.GetProperty("name").GetString()!, help, StringComparison.Ordinal);
+            }
+        }
+
+        int[] exitCodes = root.GetProperty("exitCodes").EnumerateArray().Select(code => code.GetProperty("code").GetInt32()).ToArray();
+        Assert.Equal(Enum.GetValues<OfficeImoToolExitCode>().Select(code => (int)code), exitCodes);
+    }
+
+    private static async Task<(int ExitCode, string Output, string Error)> RunToolAsync(params string[] args) {
         await using var input = new MemoryStream();
         await using var output = new MemoryStream();
         using var error = new StringWriter();
-
-        int exitCode = await OfficeImoToolApp.RunAsync(["help"], input, output, error);
-        string help = Encoding.UTF8.GetString(output.ToArray());
-
-        Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
-        Assert.Contains("officeimo html", help, StringComparison.Ordinal);
-        Assert.Contains("officeimo convert", help, StringComparison.Ordinal);
-        Assert.Contains("officeimo read", help, StringComparison.Ordinal);
-        Assert.Contains("officeimo extract", help, StringComparison.Ordinal);
-        Assert.Contains("officeimo inspect", help, StringComparison.Ordinal);
-        Assert.Contains("officeimo reader", help, StringComparison.Ordinal);
-        Assert.Contains("officeimo markup", help, StringComparison.Ordinal);
-        Assert.Contains("officeimo tabular", help, StringComparison.Ordinal);
-        Assert.Contains("officeimo workflow", help, StringComparison.Ordinal);
-        Assert.Contains("officeimo pdf <command>", help, StringComparison.Ordinal);
-        Assert.Contains("officeimo provenance", help, StringComparison.Ordinal);
-        Assert.Equal(string.Empty, error.ToString());
+        int exitCode = await OfficeImoToolApp.RunAsync(args, input, output, error);
+        return (exitCode, Encoding.UTF8.GetString(output.ToArray()), error.ToString());
     }
 
     [Fact]

@@ -107,6 +107,6 @@
   {
     "id": "pswriteoffice", "title": "PSWriteOffice", "tagline": "Create, convert, and inspect documents from PowerShell scripts and automation jobs.",
     "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x='3' y='4' width='18' height='16' rx='2'/><path d='M7 9l3 3-3 3m5 0h5'/></svg>",
-    "install": "Install-Module PSWriteOffice", "url": "/products/pswriteoffice/", "secondary_url": "/docs/pswriteoffice/", "secondary_label": "Guide", "highlights": ["PowerShell", "Pipelines", "Automation"], "family": "workflow", "tag": "PowerShell", "color": "#d97706"
+    "install": "Install-Module PSWriteOffice", "url": "/powershell/", "secondary_url": "/docs/pswriteoffice/", "secondary_label": "Guide", "highlights": ["PowerShell", "Pipelines", "Automation"], "family": "workflow", "tag": "PowerShell", "color": "#d97706"
   }
 ]

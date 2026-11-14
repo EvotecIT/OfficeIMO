@@ -7,7 +7,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 function Resolve-RequiredPath([string] $Path, [string] $Label) {
-    $resolved = [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $Path))
+    $resolved = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
     if (-not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
         throw "$Label was not found at '$resolved'."
     }
@@ -57,8 +57,17 @@ function Get-SnapshotLabel([object] $Document) {
         return [string] $first.variables.Snapshot
     }
 
-    if ($Document.metadata.generatedAtUtc) {
-        return ([DateTimeOffset]::Parse([string] $Document.metadata.generatedAtUtc)).ToString('yyyy-MM-dd')
+    $generated = $Document.metadata.generatedAtUtc
+    if ($generated) {
+        # PowerShell 7.5 parses JSON timestamps as DateTime; 7.4 retains strings.
+        $date = if ($generated -is [DateTime] -or $generated -is [DateTimeOffset]) {
+            [DateTimeOffset] $generated
+        } else {
+            [DateTimeOffset]::Parse([string] $generated,
+                [System.Globalization.CultureInfo]::InvariantCulture,
+                [System.Globalization.DateTimeStyles]::AssumeUniversal)
+        }
+        return $date.ToUniversalTime().ToString('yyyy-MM-dd', [System.Globalization.CultureInfo]::InvariantCulture)
     }
 
     return 'current committed snapshot'
@@ -144,7 +153,7 @@ Add-ComparisonFamily -Lines $lines -Document $csv -Family 'csv' -Title 'CSV read
 
 $lines.Add('</section>')
 
-$resolvedOutput = [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $OutputPath))
+$resolvedOutput = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputPath)
 $outputDirectory = Split-Path -Parent $resolvedOutput
 if (-not (Test-Path -LiteralPath $outputDirectory -PathType Container)) {
     New-Item -ItemType Directory -Force -Path $outputDirectory | Out-Null

@@ -14,10 +14,7 @@ internal static class RouteConvertCommand {
     // Rendered from the catalog so help never drifts from what the command accepts.
     internal static string RouteList() {
         var builder = new StringBuilder("Routes:").Append(Environment.NewLine);
-        IEnumerable<(string Source, string Target, IReadOnlyList<string> SourceExtensions, string TargetExtension)> routes =
-            OfficeIMO.Workflows.OfficeWorkflowCatalog.ExecutableRoutes.Select(route => (route.Source, route.Target, route.SourceExtensions, route.TargetExtension))
-                .Concat(ConvertRoutes.DataRoutes.Select(route => (route.Source, route.Target, route.SourceExtensions, route.TargetExtension)));
-        foreach (var route in routes.OrderBy(route => route.Source, StringComparer.Ordinal).ThenBy(route => route.Target, StringComparer.Ordinal)) {
+        foreach (var route in ConvertRoutes.All()) {
             builder.Append("  ").Append((route.Source + " -> " + route.Target).PadRight(28))
                 .Append(string.Join(" ", route.SourceExtensions)).Append(" -> ").Append(route.TargetExtension)
                 .Append(Environment.NewLine);

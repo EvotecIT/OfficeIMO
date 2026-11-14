@@ -1,0 +1,61 @@
+{{~ include "benchmark-data" ~}}
+{{~ machines = {} ~}}
+{{~ machine_order = [] ~}}
+{{~ if bench_index ~}}
+{{~ for entry in bench_index.entries ~}}
+  {{~ cpu = entry.environment.processorName ~}}
+  {{~ if cpu && cpu != "" ~}}
+    {{~ if !machines[cpu] ~}}{{~ machines[cpu] = { cpu: cpu, cores: entry.environment.logicalCoreCount, arch: entry.environment.osArchitecture, seen: {}, systems: [], modes: {} } ~}}{{~ machine_order = machine_order | array.add cpu ~}}{{~ end ~}}
+    {{~ system_name = entry.environment.osDescription | string.split " [" | array.first | string.split " (" | array.first ~}}
+    {{~ if !machines[cpu].seen[system_name] ~}}{{~ machines[cpu].seen[system_name] = true ~}}{{~ machines[cpu].systems = machines[cpu].systems | array.add system_name ~}}{{~ end ~}}
+    {{~ machines[cpu].modes[entry.runMode] = true ~}}
+  {{~ end ~}}
+{{~ end ~}}
+{{~ end ~}}
+<section class="imo-bench-areas" aria-labelledby="bench-areas-title">
+  <h2 id="bench-areas-title" class="imo-bench-visually-hidden">Benchmark areas</h2>
+  {{~ waiting = [] ~}}
+  <ul class="imo-bench-areas__grid">
+    {{~ for area in bench_areas ~}}
+    {{~ stat = bench_stats[area.id] ~}}
+    {{~ if stat.count == 0 ~}}{{~ waiting = waiting | array.add area ~}}{{~ else ~}}
+    <li class="imo-bench-area" data-area="{{ area.id }}">
+      <a href="/benchmarks/{{ area.id }}/">
+        <h3>{{ area.title }}</h3>
+        <p>{{ area.summary }}</p>
+        <ul class="imo-bench-lanes" aria-label="Platforms">
+          {{~ for platform in bench_platforms ~}}
+          {{~ state = stat.lanes[platform.id] ~}}
+          <li class="imo-bench-lane imo-bench-lane--{{ state ?? "none" }}"><span>{{ platform.label }}</span><small>{{ if state == "full" }}Full run{{ else if state == "quick" }}Quick run{{ else }}Not yet{{ end }}</small></li>
+          {{~ end ~}}
+        </ul>
+        <p class="imo-bench-area__status">{{ stat.count }} {{ if stat.count == 1 }}workload{{ else }}workloads{{ end }}{{ if stat.planned > 0 }} · {{ stat.planned }} more ready to run{{ end }} · last run {{ stat.latest | string.slice 0 10 }}{{ if !stat.published }} · not published yet{{ end }}</p>
+      </a>
+    </li>
+    {{~ end ~}}
+    {{~ end ~}}
+  </ul>
+  {{~ if waiting.size > 0 ~}}
+  <div class="imo-bench-waiting" data-waiting-areas>
+    <h3>Suites waiting for their first published run</h3>
+    <ul>{{ for area in waiting }}<li data-area="{{ area.id }}"><a href="/benchmarks/{{ area.id }}/">{{ area.title }}</a>{{ if bench_stats[area.id].planned > 0 }} <small>{{ bench_stats[area.id].planned }} ready</small>{{ end }}</li>{{ end }}</ul>
+    <p>These suites are part of the benchmark runner and will be measured on Windows, Linux and macOS. <a href="/docs/capabilities/benchmarks/">Run them yourself <span aria-hidden="true">→</span></a></p>
+  </div>
+  {{~ end ~}}
+</section>
+{{~ if machine_order.size > 0 ~}}
+<section class="imo-bench-machines" aria-labelledby="bench-machines-title">
+  <div class="imo-bench-heading"><h2 id="bench-machines-title">Test machines</h2><p>Every result records its hardware, operating system, runtime and source commit. Results from different machines or operating systems are never mixed in one ranking.</p></div>
+  <ul>
+    {{~ for cpu in machine_order ~}}
+    {{~ machine = machines[cpu] ~}}
+    <li>
+      <strong>{{ machine.cpu }}</strong>
+      <span>{{ machine.cores }} logical cores · {{ machine.arch | string.downcase }}</span>
+      <span>{{ machine.systems | array.join " · " }}</span>
+      <span>{{ if machine.modes.full }}Full runs{{ end }}{{ if machine.modes.full && machine.modes.quick }} and {{ end }}{{ if machine.modes.quick }}{{ if machine.modes.full }}quick runs{{ else }}Quick runs{{ end }}{{ end }}</span>
+    </li>
+    {{~ end ~}}
+  </ul>
+</section>
+{{~ end ~}}

@@ -75,7 +75,7 @@ officeimo hidden-data remove proposal.docx --kinds default,provenance
 officeimo hidden-data remove photo.jpg --kinds default,provenance --keep-provenance c2pa
 ```
 
-Install [OfficeIMO.Tool](/tool/) first. The [hidden data page](/docs/before-sharing/hidden-data/#command-line) lists every option, and [Before sharing from the CLI](/docs/cli/before-sharing/) adds batch cleanup and CI checks.
+Install [OfficeIMO.Tool](/cli/) first. The [hidden data page](/docs/before-sharing/hidden-data/#command-line) lists every option, and [Before sharing from the CLI](/docs/cli/before-sharing/) adds batch cleanup and CI checks.
 
 ## PowerShell
 
@@ -84,7 +84,7 @@ Get-OfficeHiddenData -Path .\Proposal.docx
 Remove-OfficeHiddenData -Path .\Proposal.docx -Options (New-OfficeHiddenDataOptions -Kind Default, Provenance)
 ```
 
-[PSWriteOffice](/products/pswriteoffice/) runs the same engine on Windows PowerShell 5.1 and PowerShell 7.4 or newer. [Clean files before sharing](/docs/pswriteoffice/before-sharing/) covers folders, PDF sanitizing and `Get-OfficeDocumentProvenance`.
+[PSWriteOffice](/powershell/) runs the same engine on Windows PowerShell 5.1 and PowerShell 7.4 or newer. [Clean files before sharing](/docs/pswriteoffice/before-sharing/) covers folders, PDF sanitizing and `Get-OfficeDocumentProvenance`.
 
 ## For AI agents
 

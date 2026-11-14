@@ -1,0 +1,12 @@
+{{~ # Links a surface to the benchmark areas that measure its engines; the area pages hold the numbers. ~}}
+{{~ if app.performance && app.performance.areas ~}}
+<section class="imo-container imo-surface-section imo-surface-performance" aria-labelledby="performance-title">
+  <div class="imo-surface-head"><h2 id="performance-title">{{ app.performance.title }}</h2>{{ if app.performance.summary }}<p>{{ app.performance.summary }}</p>{{ end }}</div>
+  <ul class="imo-surface-performance__list">
+    {{~ for area in app.performance.areas ~}}
+    <li><a href="/benchmarks/{{ area.area }}/"><strong>{{ area.label }}</strong><em>See the measurements <span aria-hidden="true">→</span></em></a></li>
+    {{~ end ~}}
+  </ul>
+  {{ if app.performance.guideUrl }}<p class="imo-surface-more"><a href="{{ app.performance.guideUrl }}">{{ app.performance.guideLabel }} <span aria-hidden="true">→</span></a></p>{{ end }}
+</section>
+{{~ end ~}}

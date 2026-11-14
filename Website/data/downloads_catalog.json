@@ -238,7 +238,7 @@
           "summary": "PowerShell module that brings OfficeIMO document generation into scripts and admin automation.",
           "best_for": "scheduled reporting, admin tooling, CI jobs, and script-first automation",
           "install": "Install-Module PSWriteOffice",
-          "product_url": "/products/pswriteoffice/",
+          "product_url": "/powershell/",
           "docs_url": "/docs/pswriteoffice/",
           "accent": "#38bdf8"
         },

@@ -18,8 +18,6 @@ $pdfPeckerPackageSha512 = $null
 
 foreach ($platform in @('windows', 'linux')) {
     $fileName = "$comparisonId-$platform-full.json"
-    $resultPath = Join-Path $resolvedEvidenceRoot $fileName
-    $result = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json
     $entry = @($index.entries | Where-Object {
             $_.comparisonId -eq $comparisonId -and
             $_.platform -eq $platform -and
@@ -30,6 +28,9 @@ foreach ($platform in @('windows', 'linux')) {
         throw "HTML/PDF benchmark evidence must contain one publishable, comparable $platform full-run catalog entry."
     }
 
+    # Follow the immutable artifact selected by the catalog after a bundle refresh.
+    $resultPath = Join-Path $resolvedEvidenceRoot $entry[0].artifactRelativePath
+    $result = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json
     $actualHash = (Get-FileHash -LiteralPath $resultPath -Algorithm SHA256).Hash.ToLowerInvariant()
     if (-not [string]::Equals($actualHash, [string] $entry[0].resultSha256, [System.StringComparison]::OrdinalIgnoreCase)) {
         throw "HTML/PDF benchmark evidence hash does not match the catalog for $fileName."

@@ -140,6 +140,7 @@ body.imo-body { overflow-x: clip; }
   width: var(--imo-navigation-width); height: auto; padding: 20px 14px;
   border-right: 1px solid var(--imo-border); background: var(--imo-bg-alt);
   overflow-y: auto; overscroll-behavior: contain; box-shadow: none; z-index: 90;
+  font-size: var(--imo-step-nav);
 }
 .imo-body--docs .imo-docs, .pf-api-docs .api-layout {
   display: grid; grid-template-columns: minmax(0, 1fr) var(--imo-reference-width);
@@ -164,16 +165,16 @@ body.imo-body { overflow-x: clip; }
 .imo-body--docs .imo-footer { margin-left: var(--imo-navigation-width); }
 .imo-docs__nav-intro { gap: 2px; margin-bottom: 16px; padding-bottom: 16px; }
 .imo-docs__nav-intro a { min-height: 36px; align-items: center; padding: 6px 10px; border: 0; border-radius: 5px; }
-.imo-docs__nav-intro strong { font-size: 13px; font-weight: 650; }
+.imo-docs__nav-intro strong { font-size: var(--imo-step-nav-small); font-weight: 650; }
 .imo-docs__nav-intro a[aria-current] { background: var(--imo-primary-light); color: var(--imo-primary); }
-.imo-docs__group summary { min-height: 36px; padding: 6px 10px; font-size: 13px; }
+.imo-docs__group summary { min-height: 36px; padding: 6px 10px; font-size: var(--imo-step-nav-small); }
 .imo-docs__group summary small { border: 0; background: none; font-size: 11px; }
-.imo-docs__link { padding: 7px 10px; font-size: 13px; }
+.imo-docs__link { padding: 7px 10px; font-size: var(--imo-step-nav-small); }
 .imo-body--docs .imo-docs__link { color: var(--imo-text-secondary); }
 .imo-body--docs .imo-docs__link[aria-current] { color: var(--imo-primary); background: var(--imo-primary-light); }
 .imo-body--docs .imo-documentation-toolbar__title { color: var(--imo-text); }
 .imo-body--docs .imo-documentation-toolbar__search { color: var(--imo-text-muted); }
-.imo-docs__header h1, .imo-body--docs .api-content h1 { font-size: clamp(28px, 2.6vw, 38px); line-height: 1.15; letter-spacing: -.035em; margin: 0 0 16px; }
+.imo-docs__header h1, .imo-body--docs .api-content h1, .imo-body--docs .type-title-row h1 { font-size: var(--imo-step-title); line-height: 1.15; letter-spacing: -.035em; margin: 0 0 16px; }
 .imo-docs__eyebrow { width: max-content; max-width: 100%; margin: 0 0 10px; color: var(--imo-primary); font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .imo-docs__outcome { margin: 12px 0 20px; color: var(--imo-text); font-size: 15px; font-weight: 700; line-height: 1.5; }
 .imo-conversion-summary h2 { font-size: 14px; letter-spacing: 0; margin: 0 0 20px; }
@@ -184,12 +185,12 @@ body.imo-body { overflow-x: clip; }
 .imo-conversion-summary--mobile { display: none; }
 .imo-body--conversion .imo-intent-hero__lead { font-size: 17px; line-height: 1.65; }
 .imo-docs-home-hero { display: block; padding: 0 0 32px; margin: 0; background: none; }
-.imo-docs-home-hero h1 { max-width: 780px; font-size: clamp(32px, 3.2vw, 44px); line-height: 1.1; margin: 0 0 20px; }
-.imo-docs-home-hero > p:not(.imo-docs-home-hero__eyebrow) { max-width: 720px; margin: 0; font-size: 17px; line-height: 1.65; }
+.imo-docs-home-hero h1, .imo-api-landing__hero h1 { max-width: 780px; font-size: var(--imo-step-landing); line-height: 1.1; margin: 0 0 20px; }
+.imo-docs-home-hero > p:not(.imo-docs-home-hero__eyebrow), .imo-api-landing__hero > p:not(.imo-api-landing__eyebrow) { max-width: 720px; margin: 0; font-size: var(--imo-step-lead-landing); line-height: 1.65; }
+.imo-body--docs .imo-docs__header .lead, .imo-body--docs .api-content .lead, .imo-body--docs .type-summary { font-size: var(--imo-step-lead); }
 .imo-docs-home-hero__eyebrow { display: none; }
 .imo-docs-home-hero__actions { margin-top: 24px; display: flex; gap: 12px; }
 .imo-api-landing__hero { padding: 0 0 32px; background: none; }
-.imo-api-landing__hero h1 { font-size: 38px; }
 .imo-reference-browser > details > summary { margin-bottom: 18px; color: var(--imo-text); font-size: 13px; font-weight: 700; cursor: pointer; }
 .pf-api-docs .imo-reference-browser .api-sidebar {
   display: block; position: static; width: 100%; height: auto; max-height: none;
@@ -430,16 +431,16 @@ body.imo-body::after {
 /* One color per product, keyed by destination so the menu stays data driven. */
 .imo-header .imo-nav__link[href="/studio/"] { --imo-product: var(--imo-p-studio); }
 .imo-header .imo-nav__link[href="/convert/"] { --imo-product: var(--imo-p-browser); }
-.imo-header .imo-nav__link[href="/tool/"] { --imo-product: var(--imo-p-cli); }
+.imo-header .imo-nav__link[href="/cli/"] { --imo-product: var(--imo-p-cli); }
 .imo-header .imo-nav__link[href="/libraries/"] { --imo-product: var(--imo-p-dotnet); }
-.imo-header .imo-nav__link[href="/products/pswriteoffice/"] { --imo-product: var(--imo-p-powershell); }
+.imo-header .imo-nav__link[href="/powershell/"] { --imo-product: var(--imo-p-powershell); }
 .imo-header .imo-nav__link[href="/extension/"] { --imo-product: var(--imo-p-extension); }
 .imo-header .imo-nav__link { gap: 8px; }
 .imo-header a.imo-nav__link[href="/studio/"]::before,
 .imo-header a.imo-nav__link[href="/convert/"]::before,
-.imo-header a.imo-nav__link[href="/tool/"]::before,
+.imo-header a.imo-nav__link[href="/cli/"]::before,
 .imo-header a.imo-nav__link[href="/libraries/"]::before,
-.imo-header a.imo-nav__link[href="/products/pswriteoffice/"]::before,
+.imo-header a.imo-nav__link[href="/powershell/"]::before,
 .imo-header a.imo-nav__link[href="/extension/"]::before {
   content: "";
   width: 7px;
@@ -925,3 +926,13 @@ body.imo-body::after {
 .markdown-body > ul.imo-features > li.imo-features__item--link:hover::after { color: var(--landing-accent, var(--imo-accent)); transform: translateX(2px); }
 .markdown-body > ul.imo-features > li.imo-features__item--link .imo-features__text a { position: relative; z-index: 1; }
 .markdown-body > ul.imo-features > li.imo-features__item--link > a.imo-features__title:focus-visible { outline: 2px solid var(--imo-accent); outline-offset: 2px; border-radius: 4px; }
+
+/* Docs surface switch (partials/docs-navigation): .NET, PowerShell, CLI and agents. */
+.imo-docs__surfaces { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; margin: 0 0 14px; padding: 3px; border: 1px solid var(--imo-border); border-radius: 8px; background: var(--imo-bg); }
+.imo-docs__surface { display: flex; align-items: center; justify-content: center; min-height: 32px; padding: 4px 6px; border-radius: 6px; color: var(--imo-text-secondary); font-size: var(--imo-step-nav-small); font-weight: 600; line-height: 1.2; text-align: center; text-decoration: none; }
+.imo-docs__surface:hover { color: var(--imo-text); background: var(--imo-surface-hover); }
+.imo-docs__surface[aria-current] { background: var(--imo-surface); color: var(--imo-text); box-shadow: 0 1px 2px rgba(15, 23, 42, .08), inset 0 -2px 0 var(--imo-surface-hue, var(--imo-primary)); }
+.imo-docs__surface[data-surface="dotnet"] { --imo-surface-hue: var(--imo-p-dotnet); }
+.imo-docs__surface[data-surface="powershell"] { --imo-surface-hue: var(--imo-p-powershell); }
+.imo-docs__surface[data-surface="cli"] { --imo-surface-hue: var(--imo-p-cli); }
+.imo-docs__surface:focus-visible { outline: 2px solid var(--imo-primary); outline-offset: 1px; }

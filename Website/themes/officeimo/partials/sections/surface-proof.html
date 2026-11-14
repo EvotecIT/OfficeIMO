@@ -1,0 +1,18 @@
+{{~ # Hero proof for a surface: a real generated document beside the code that made it, from data/showcase.json. ~}}
+{{~ preview = null ~}}
+{{~ for example in data.showcase.cards ~}}{{~ if example.id == app.proofShowcase ~}}{{~ preview = example ~}}{{~ end ~}}{{~ end ~}}
+{{~ excerpt = preview && data.showcase_excerpts ? data.showcase_excerpts[preview.id] : null ~}}
+{{~ if preview ~}}
+<figure class="imo-workbench__stage imo-surface-proof">
+  <div class="imo-surface-proof__doc">
+    <a href="{{ preview.image }}" data-pf-media data-pf-media-caption="{{ preview.title | html.escape }}" aria-label="Open full-size preview: {{ preview.title }}"><img src="{{ preview.image }}" width="{{ preview.image_width }}" height="{{ preview.image_height }}" alt="{{ preview.image_alt }}" decoding="async" fetchpriority="high" /></a>
+  </div>
+  {{~ if excerpt ~}}
+  <div class="imo-terminal imo-surface-proof__code">
+    <p class="imo-terminal__bar"><span>{{ preview.title }}</span></p>
+    <pre tabindex="0"><code>{{ excerpt | html.escape }}</code></pre>
+  </div>
+  {{~ end ~}}
+  <figcaption><strong>{{ preview.title }}.</strong> {{ preview.proof }} <a href="{{ preview.artifact_url }}">{{ preview.artifact_label }}</a> · <a href="{{ preview.walkthrough_url ?? ("/showcase/#" + preview.id) }}">Read the walkthrough</a></figcaption>
+</figure>
+{{~ end ~}}

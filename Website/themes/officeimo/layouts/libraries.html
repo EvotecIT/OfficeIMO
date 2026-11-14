@@ -37,7 +37,7 @@
             <a class="imo-btn imo-btn-ghost" href="/showcase/">Examples with source</a>
           </div>
           <ul class="imo-workbench__facts"><li>No Office install</li><li>NativeAOT tested</li><li>MIT licensed</li></ul>
-          <p class="imo-workbench__availability">Scripting instead? <a href="/products/pswriteoffice/">PSWriteOffice brings the same engines to PowerShell</a>.</p>
+          <p class="imo-workbench__availability">Scripting instead? <a href="/powershell/">PSWriteOffice brings the same engines to PowerShell</a>.</p>
         </div>
       </div>
       <figure class="imo-workbench__stage imo-workbench__stage--single">
@@ -59,8 +59,10 @@ doc.Save();</pre>
       </figure>
     </section>
     
+    {{ app = data.applications.dotnet }}{{ include "sections/surface-stats" }}
     {{ include "sections/library-catalog" }}
     {{ include "sections/code-examples" }}
+    {{ include "sections/surface-performance" }}
     
     
     

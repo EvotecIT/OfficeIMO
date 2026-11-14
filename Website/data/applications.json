@@ -28,18 +28,170 @@
       { "name": "Source build", "detail": "Build the desktop workspace, including on macOS", "state": "Available", "url": "https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme", "label": "Open build guide" }
     ]
   },
-  "tool": {
+  "dotnet": {
+    "stats": [
+      { "source": "components", "label": "production packages and components" },
+      { "source": "formats", "label": "formats" },
+      { "source": "conversions", "label": "conversion routes" },
+      { "value": "net472 – net10.0", "label": "target frameworks, NativeAOT tested" }
+    ],
+    "performance": {
+      "title": "Measured against other .NET libraries",
+      "summary": "Every comparison runs the same validated work on one machine and one operating system, with the raw results attached.",
+      "areas": [
+        { "area": "pdf", "label": "PDF generation and operations" },
+        { "area": "excel", "label": "Excel read and write" },
+        { "area": "csv", "label": "CSV read and write" }
+      ],
+      "guideUrl": "/benchmarks/",
+      "guideLabel": "All benchmark areas"
+    }
+  },
+  "powershell": {
+    "eyebrow": "PSWriteOffice module",
+    "headlineLead": "Office documents,",
+    "headlineAccent": "straight from the pipeline.",
+    "summary": "Create, read, convert and check Word, Excel, PowerPoint, PDF, Visio, Project and more from PowerShell. Commands take and return objects, so reports fit into scheduled jobs, CI runners and Linux containers without Office.",
+    "primaryLabel": "Install the module",
+    "primaryUrl": "#install",
+    "secondaryLabel": "Browse the commands",
+    "secondaryUrl": "/api/powershell/",
+    "availability": "PowerShell Gallery · PowerShell 7.4+ on Windows, Linux and macOS · Windows PowerShell 5.1",
+    "install": "Install-Module PSWriteOffice -Scope CurrentUser",
+    "proofShowcase": "pswriteoffice-patch-report",
+    "facts": ["No Office required", "Objects in, documents out", "MIT licensed"],
+    "stats": [
+      { "source": "powershell.commands", "label": "commands" },
+      { "source": "powershell.families", "label": "command families" },
+      { "value": "5.1 · 7.4+", "label": "PowerShell editions" },
+      { "value": "3", "label": "operating systems" },
+      { "value": "0", "label": "Office installs needed" }
+    ],
+    "explorer": {
+      "source": "powershell",
+      "title": "Explore the commands by document family",
+      "intro": "Every family links to its guide and to the generated command reference. Counts come from the module manifest of this release.",
+      "snippets": {
+        "excel": { "file": "Examples/Excel/Example-ExcelImportExport.ps1", "code": "$rows |\n    Export-OfficeExcel -Path .\\Revenue.xlsx -Sheet 'Revenue' -TableName 'Revenue' -Title 'Regional Revenue'\n\nImport-OfficeExcel -Path .\\Revenue.xlsx -Sheet 'Revenue' -Range 'A2:C5' |\n    Format-Table -AutoSize" },
+        "word": { "file": "Examples/Word/Example-WordBasic.ps1", "code": "New-OfficeWord -Path .\\Revenue.docx {\n    Add-OfficeWordSection {\n        Add-OfficeWordParagraph -Text 'Executive Summary' -Style Heading1\n        Add-OfficeWordTable -InputObject $data -Style 'GridTable1LightAccent2' {\n            Add-OfficeWordTableCondition -FilterScript { $_.Revenue -gt 100000 } -BackgroundColor '#e6fffb'\n        }\n    }\n}" },
+        "pdf": { "file": "Examples/Pdf/Example-PdfOperations.ps1", "code": "Merge-OfficeDocument -Path $first, $second -OutputPath $joined\nSplit-OfficeDocument -Path $joined -OutputDirectory $splitDirectory -Prefix 'part'\nAdd-OfficePdfStamp -Path $joined -OutputPath $stamped -Text 'REVIEWED' -Page '1'\nConvert-OfficeDocument -To Markdown -Path $stamped -AsString" },
+        "reader": { "file": "Examples/Reader/Recipe-Reader-SearchFolder.ps1", "code": "Search-OfficeDocument -Path '.\\Documents' -Pattern 'Retention' -Recurse -MaximumResults 0 |\n    Select-Object DocumentType, Path, Match" },
+        "before-sharing": { "file": "Examples/Workflows/Recipe-CleanBeforeSharing.ps1", "code": "Get-ChildItem -LiteralPath $outgoing -File | Get-OfficeHiddenData\n\nGet-ChildItem -LiteralPath $outgoing -File |\n    Remove-OfficeHiddenData -OutputDirectory $share" },
+        "yaml": { "file": "Examples/Yaml/Example-YamlEditMergeConvert.ps1", "code": "Open-OfficeYaml -Path $values {\n    Set-OfficeYamlNode -Select 'image.tag' -Value '1.26'\n    Set-OfficeYamlNode -Select 'resources.limits' -Value ([ordered]@{ cpu = '500m'; memory = '256Mi' })\n}" }
+      }
+    },
+    "recipes": {
+      "title": "Start from a real job",
+      "items": [
+        { "title": "Patch compliance report", "summary": "Server status rows become a Word report and a PDF with a chart and a findings table.", "url": "/showcase/pswriteoffice-patch-report/", "label": "Walkthrough and downloads" },
+        { "title": "Budget review", "summary": "Reconcile budget, actual spending and forecast from CSV into a workbook.", "url": "/showcase/pswriteoffice-budget-review/", "label": "Workbook and input" },
+        { "title": "Project delivery review", "summary": "Milestone register, overdue actions and a schedule summary.", "url": "/showcase/pswriteoffice-project-delivery/", "label": "Milestones and input" },
+        { "title": "SQL data to Excel and back", "summary": "Export query results to Excel and verify the round trip.", "url": "/docs/workflows/database-reporting/", "label": "Database reporting guide" },
+        { "title": "Clean files before sharing", "summary": "Find and remove comments, authors, speaker notes and AI labels, keeping the originals.", "url": "/docs/pswriteoffice/before-sharing/", "label": "Before-sharing guide" },
+        { "title": "Edit YAML without losing comments", "summary": "Update Helm values or CI settings in place and merge overlays.", "url": "/docs/pswriteoffice/config-data-formats/#edit-yaml-without-rewriting-it", "label": "Config formats guide" }
+      ],
+      "moreUrl": "/docs/workflows/powershell-recipes/",
+      "moreLabel": "Browse the recipe gallery"
+    },
+    "builtFor": {
+      "title": "Built for scripts that run unattended",
+      "items": [
+        { "title": "Objects in, objects out", "detail": "Pipe objects into tables, charts and reports. Readers return objects you can filter with Where-Object and export again." },
+        { "title": "Both PowerShell editions", "detail": "Windows PowerShell 5.1 on Windows and PowerShell 7.4+ on Windows, Linux and macOS, from one module." },
+        { "title": "No Office, no COM", "detail": "Runs in scheduled tasks, CI runners and containers. Nothing opens a desktop application." },
+        { "title": "Readable DSL", "detail": "Script blocks with short aliases such as WordParagraph and ExcelSheet for interactive work, full Add-Office* names for shared scripts." },
+        { "title": "Generated help", "detail": "Every command ships with help and examples, and the online reference is generated from the same source." },
+        { "title": "Moving from older modules", "detail": "Migration guides cover PSWriteWord, PSWriteExcel and PSWritePDF, and compare ImportExcel." }
+      ]
+    },
+    "performance": {
+      "title": "Measured, not claimed",
+      "summary": "PSWriteOffice runs the same OfficeIMO engines measured on the benchmark pages.",
+      "areas": [
+        { "area": "excel", "label": "Excel read and write" },
+        { "area": "csv", "label": "CSV read and write" },
+        { "area": "pdf", "label": "PDF generation and operations" }
+      ],
+      "guideUrl": "/docs/workflows/powershell-benchmarks/",
+      "guideLabel": "PowerShell benchmark guide"
+    },
+    "docs": [
+      { "label": "Read the guides", "detail": "Install, Word, Excel, PowerPoint, PDF, Visio, Reader and migration.", "url": "/docs/pswriteoffice/" },
+      { "label": "Command reference", "detail": "Every command with parameters, examples and aliases.", "url": "/api/powershell/" }
+    ],
+    "channels": [
+      { "name": "PowerShell Gallery", "detail": "Install-Module PSWriteOffice, or Install-PSResource PSWriteOffice with PSResourceGet", "state": "Available", "url": "https://www.powershellgallery.com/packages/PSWriteOffice", "label": "Open the Gallery" },
+      { "name": "Offline servers", "detail": "Save-Module PSWriteOffice on a connected machine, then copy the folder into a PSModulePath location", "state": "Available", "url": "/docs/pswriteoffice/install/", "label": "Installation guide" },
+      { "name": "Source", "detail": "The module source, examples and tests live in the OfficeIMO repository", "state": "Available", "url": "https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice", "label": "Open the source" }
+    ]
+  },
+  "cli": {
     "eyebrow": "Command-line document tools",
     "headlineLead": "Put document work",
     "headlineAccent": "in your scripts.",
-    "summary": "Convert files, extract readable content, inspect documents, and run supported workflows from one command-line tool.",
+    "summary": "Convert, read, inspect, validate, redact and batch documents from one command. Every command prints machine-readable output and a documented exit code, so it fits CI jobs, scheduled tasks and AI agents.",
     "primaryLabel": "Install the CLI",
-    "primaryUrl": "#application-guide",
-    "secondaryLabel": "View on NuGet",
-    "secondaryUrl": "https://www.nuget.org/packages/OfficeIMO.Tool",
-    "availability": "Available on NuGet · Requires the .NET SDK to install",
+    "primaryUrl": "#install",
+    "secondaryLabel": "Read the CLI docs",
+    "secondaryUrl": "/docs/cli/",
+    "availability": "Available on NuGet · Requires the .NET SDK to install · Windows, Linux and macOS",
     "install": "dotnet tool install --global OfficeIMO.Tool",
-    "facts": ["CLI and MCP", "Version-pinned automation", "MIT licensed"],
+    "facts": ["JSON, NDJSON and SARIF output", "Version-pinned automation", "MIT licensed"],
+    "terminalTitle": "pwsh · OfficeIMO.Tool",
+    "terminal": [
+      { "comment": "Install once with the .NET SDK", "command": "dotnet tool install --global OfficeIMO.Tool" },
+      { "comment": "Convert a folder to PDF, resuming where it stopped", "command": "officeimo workflow batch --input-directory ./Documents --output ./PDF --checkpoint ./PDF-State" },
+      { "comment": "Extract the content as Markdown for search or AI", "command": "officeimo convert report.pdf report.md" },
+      { "comment": "Validate an e-invoice before it is sent", "command": "officeimo invoice validate invoice.xml" }
+    ],
+    "stats": [
+      { "source": "cli.groups", "label": "command groups" },
+      { "source": "cli.commands", "label": "commands" },
+      { "source": "formats", "label": "formats" },
+      { "source": "cli.exitCodes", "label": "documented exit codes" }
+    ],
+    "explorer": {
+      "source": "cli",
+      "title": "Everything officeimo can do",
+      "intro": "Pick a command group to see its commands, key options and output. The list is generated from the tool itself."
+    },
+    "builtFor": {
+      "title": "Built for automation",
+      "items": [
+        { "title": "Documented exit codes", "detail": "Validation failures, usage errors, missing or unsupported input, failed operations, failed output and cancellation each return their own code, so a pipeline can branch on the result." },
+        { "title": "Machine-readable output", "detail": "JSON for reports and inspection, NDJSON for streams of results, SARIF for provenance findings in code scanning." },
+        { "title": "Safe by default", "detail": "Conversions refuse to overwrite an existing file unless you pass --force, and input and output sizes are bounded." },
+        { "title": "Resumable batches", "detail": "workflow batch records each file's state, so rerunning the same command skips finished work and --retry-failed picks up the rest." },
+        { "title": "Pinned versions", "detail": "Install it as a local tool in a manifest and run dotnet officeimo, so every machine and CI job uses the same version." },
+        { "title": "The same engines everywhere", "detail": "The CLI runs the OfficeIMO libraries in process. It doesn't call Office or LibreOffice." }
+      ]
+    },
+    "recipes": {
+      "title": "Common jobs",
+      "items": [
+        { "title": "Convert a folder of documents to PDF", "summary": "Batch conversion with checkpoints and retries.", "url": "/docs/cli/batch-and-jobs/", "label": "Batch guide" },
+        { "title": "Convert data between formats", "summary": "JSON, YAML, TOML, XML, CSV, TSV and XLSX, with a report of anything the target can't hold.", "url": "/docs/cli/convert/#structured-data", "label": "Structured data guide" },
+        { "title": "Extract content for search or a model", "summary": "Markdown or JSON from Office, PDF, mail and more.", "url": "/docs/cli/extract-and-inspect/", "label": "Extract and inspect" },
+        { "title": "Clean and check before sharing", "summary": "Remove authors, comments and hidden data, and check provenance in CI.", "url": "/docs/cli/before-sharing/", "label": "Before-sharing guide" },
+        { "title": "Validate and render e-invoices", "summary": "EN16931, Factur-X and ZUGFeRD in CII and UBL.", "url": "/docs/cli/invoices/", "label": "Invoice guide" },
+        { "title": "Run it in CI", "summary": "GitHub Actions and Azure DevOps pipelines with a pinned version.", "url": "/docs/cli/scripting-and-ci/", "label": "Scripting and CI" }
+      ],
+      "moreUrl": "/docs/cli/",
+      "moreLabel": "All CLI guides"
+    },
+    "performance": {
+      "title": "The same engines, measured",
+      "summary": "The CLI runs the libraries measured on the benchmark pages.",
+      "areas": [
+        { "area": "pdf", "label": "PDF generation and operations" },
+        { "area": "excel", "label": "Excel read and write" },
+        { "area": "csv", "label": "CSV read and write" }
+      ]
+    },
+    "docs": [
+      { "label": "Read the CLI docs", "detail": "Install, every command group, exit codes and CI recipes.", "url": "/docs/cli/" },
+      { "label": "Use it from an AI agent", "detail": "The same tools over MCP for Claude, Codex, Copilot and Cursor.", "url": "/agents/" }
+    ],
     "channels": [
       { "name": "NuGet tool", "detail": "Global installation or local tool manifest", "state": "Available", "url": "https://www.nuget.org/packages/OfficeIMO.Tool", "label": "Open NuGet" },
       { "name": "Portable archives", "detail": "Standalone binaries for each platform", "state": "Planned" },
@@ -55,8 +207,17 @@
     "primaryUrl": "#install",
     "secondaryLabel": "View the plugin",
     "secondaryUrl": "https://github.com/EvotecIT/OfficeIMO/tree/master/.agents/plugins/officeimo-document-tools",
-    "availability": "Runs locally with the .NET SDK · Only the folders you allow · MIT licensed",
-    "facts": ["15 MCP tools", "2 Agent Skills", "Local and read-first"],
+    "availability": "Runs locally with the .NET SDK · Windows, Linux and macOS",
+    "facts": ["Local and read-first", "Only the folders you allow", "MIT licensed"],
+    "stats": [
+      { "source": "agents.tools", "label": "MCP tools" },
+      { "source": "agents.skills", "label": "Agent Skills" },
+      { "source": "agents.clients", "label": "supported clients" }
+    ],
+    "docs": [
+      { "label": "MCP server reference", "detail": "Options, allowed folders, output limits and every tool.", "url": "/docs/cli/mcp-and-agents/" },
+      { "label": "Use the same tools from scripts", "detail": "The officeimo CLI runs the same operations in CI and scheduled jobs.", "url": "/cli/" }
+    ],
     "terminalTitle": "Agents · OfficeIMO",
     "terminal": [
       { "comment": "Claude Code", "command": "claude plugin marketplace add EvotecIT/OfficeIMO" },

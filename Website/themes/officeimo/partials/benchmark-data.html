@@ -1,0 +1,34 @@
+{{~ # One pass over the published benchmark index (data/benchmarks_index.json), grouped by each entry's area. ~}}
+{{~ bench_index = data.benchmarks_index ~}}
+{{~ bench_areas = data.benchmark_areas.areas ~}}
+{{~ bench_platforms = data.benchmark_areas.platforms ~}}
+{{~ bench_stats = {} ~}}
+{{~ for candidate in bench_areas ~}}{{~ bench_stats[candidate.id] = { ids: {}, workloads: [], lookup: {}, count: 0, planned: 0, latest: "", published: false, lanes: {} } ~}}{{~ end ~}}
+{{~ if bench_index ~}}
+  {{~ for entry in bench_index.entries ~}}
+    {{~ stat = bench_stats[entry.area] ~}}
+    {{~ if stat ~}}
+      {{~ if !stat.ids[entry.comparisonId] ~}}
+        {{~ stat.ids[entry.comparisonId] = true ~}}
+        {{~ stat.count = stat.count + 1 ~}}
+        {{~ stat.workloads = stat.workloads | array.add entry.comparisonId ~}}
+        {{~ stat.lookup[entry.comparisonId] = { id: entry.comparisonId, suite: entry.suite, runs: [] } ~}}
+      {{~ end ~}}
+      {{~ stat.lookup[entry.comparisonId].runs = stat.lookup[entry.comparisonId].runs | array.add entry ~}}
+      {{~ if entry.generatedUtc > stat.latest ~}}{{~ stat.latest = entry.generatedUtc ~}}{{~ end ~}}
+      {{~ if entry.publish ~}}{{~ stat.published = true ~}}{{~ end ~}}
+      {{~ if entry.runMode == "full" ~}}{{~ stat.lanes[entry.platform] = "full" ~}}{{~ else if stat.lanes[entry.platform] != "full" ~}}{{~ stat.lanes[entry.platform] = "quick" ~}}{{~ end ~}}
+    {{~ end ~}}
+  {{~ end ~}}
+  {{~ if bench_index.comparisons ~}}
+    {{~ for comparison in bench_index.comparisons ~}}
+      {{~ stat = bench_stats[comparison.area] ~}}
+      {{~ if stat && !stat.ids[comparison.comparisonId] ~}}{{~ stat.planned = stat.planned + 1 ~}}{{~ end ~}}
+    {{~ end ~}}
+  {{~ end ~}}
+{{~ end ~}}
+{{~ func bench_title(id)
+  t = id | string.replace "-net10.0" "" | string.replace "-net8.0" "" | string.replace "markpflug-65k-" "65K-record " | string.replace "-affinity-0xffff0000" " (CPU affinity 0xFFFF0000)" | string.replace "-affinity-0xffff" " (CPU affinity 0xFFFF)" | string.replace "-" " "
+  t = t | string.replace "pdf " "PDF " | string.replace "html" "HTML" | string.replace "csv" "CSV" | string.replace "xlsx" "XLSX" | string.replace "xlsb" "XLSB" | string.replace " xls " " XLS " | string.replace "datareader" "IDataReader" | string.replace "commonmark" "CommonMark" | string.replace "rtf" "RTF" | string.replace "tiff lzw" "TIFF LZW" | string.replace "webp" "WebP" | string.replace "21k" "21K" | string.replace "25k" "25,000-row"
+  ret (t | string.capitalize)
+end ~}}
