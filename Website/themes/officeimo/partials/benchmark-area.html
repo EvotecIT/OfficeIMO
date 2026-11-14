@@ -29,7 +29,8 @@
   {{~ meta = titles[id] ~}}
   <section class="imo-bench-workload" id="{{ id }}" aria-labelledby="{{ id }}-title" data-benchmark-workload>
     <header>
-      <h2 id="{{ id }}-title">{{ if meta && meta.title }}{{ meta.title }}{{ else }}{{ bench_title(id) }}{{ end }}</h2>
+      {{~ workload_title = (meta && meta.title) ? meta.title : bench_title(id) ~}}
+      <h2 id="{{ id }}-title">{{ workload_title }}</h2>
       <p class="imo-bench-workload__suite">{{ workload.suite }}{{ if meta && meta.libraries }} · compared with {{ meta.libraries | array.join ", " }}{{ end }}</p>
     </header>
     <div class="imo-bench-runs" role="group" aria-label="Runs">
@@ -43,7 +44,7 @@
     <div class="imo-bench-chart" data-benchmark-chart aria-live="polite">
       <ul class="imo-bench-raw">
         {{~ for run in workload.runs ~}}
-        <li><a href="{{ run.resultPath }}">{{ run.platform }} · {{ run.runMode }} · {{ run.environment.processorName ?? "unrecorded hardware" }} · result JSON</a></li>
+        <li><a href="{{ run.resultPath }}">{{ workload_title }} · {{ run.platform }} · {{ run.runMode }} · {{ run.environment.processorName ?? "unrecorded hardware" }} · {{ run.generatedUtc | string.slice 0 16 }} · result JSON</a></li>
         {{~ end ~}}
       </ul>
     </div>
