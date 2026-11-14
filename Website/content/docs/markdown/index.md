@@ -1,106 +1,135 @@
 ---
-title: Markdown
-description: "Overview of the OfficeIMO.Markdown package — fluent builder, typed reader/AST, and HTML renderer. Includes examples and API links."
+title: Markdown in .NET
+description: Create, parse, edit and render Markdown files in .NET with OfficeIMO.Markdown and the PSWriteOffice Markdown cmdlets.
 order: 40
+search_terms:
+  - markdown
+  - md file
+  - markdown parser
+  - markdown builder
+  - markdown to html
+packages:
+  - OfficeIMO.Markdown
+cmdlets:
+  - New-OfficeMarkdown
+  - Open-OfficeMarkdown
+  - Get-OfficeMarkdownHeading
+limits: OfficeIMO.Markdown does not execute raw HTML or scripts; raw HTML blocks are kept as text and handled by the HTML renderer's raw-HTML policy.
+verified: 2026-11-14
 ---
 
-The `OfficeIMO.Markdown` package provides a focused Markdown toolkit for .NET with three main capabilities:
+`OfficeIMO.Markdown` builds, parses and writes Markdown through one typed model, `MarkdownDocument`. The same object renders HTML fragments or full pages, and adapter packages turn it into PDF (`OfficeIMO.Markdown.Pdf`) or Word (`OfficeIMO.Word.Markdown`). The package has no external dependencies and targets `netstandard2.0`, `net8.0` and `net10.0`.
 
-1. **Fluent Builder** — Compose Markdown documents programmatically with a chainable API.
-2. **Reader / AST** — Parse Markdown text into a typed Abstract Syntax Tree (AST) for analysis and transformation.
-3. **HTML Renderer** — Convert Markdown documents to HTML with GitHub-like output, syntax highlighting, and table-of-contents generation.
+```sh
+dotnet add package OfficeIMO.Markdown
+```
 
-The package has **zero external dependencies** and targets .NET Standard 2.0, .NET 8, .NET 10, and .NET Framework 4.7.2.
+## Create a Markdown file
 
-## Key Classes
+Chain the builder methods and save. Each shortcut (`H1`, `P`, `Ul`, `Table`, `Code`) appends a block and returns the document.
 
-| Class | Description |
-|-------|-------------|
-| `MarkdownDocument` | Builds, parses, loads and saves the typed Markdown document model. |
-| `HeadingBlock` | AST node representing a heading (H1--H6). |
-| `ParagraphBlock` | AST node for a paragraph with inline formatting. |
-| `CodeBlock` | Fenced or indented code block with language annotation. |
-| `TableBlock` | AST node for a GFM-style table. |
-| `ListBlock` | Ordered or unordered list with nested items. |
-| `CalloutBlock` | Admonition / callout block (Note, Warning, Tip, etc.). |
-| `QuoteBlock` | Block quotation. |
-| `ImageBlock` | Image reference with alt text, title, and optional size hints. |
-| `FrontMatterBlock` | YAML (`---`) or TOML (`+++`) front matter as a lossless `YamlDocument` or `TomlDocument`, with its top-level entries and source spans. |
-| `MarkdownHtmlExportOptions` | Configuration for the HTML rendering pipeline. |
-
-## Creating a Markdown Document
+### C#
 
 ```csharp
 using OfficeIMO.Markdown;
 
-var doc = MarkdownDocument.Create()
+MarkdownDocument document = MarkdownDocument.Create()
     .H1("Project README")
     .P("A short description of the project.")
     .H2("Installation")
-    .Code("bash", "dotnet add package MyProject")
+    .Code("sh", "dotnet add package MyProject")
     .H2("Usage")
-    .P("Import the namespace and create an instance.")
-    .Code("csharp", "var client = new MyClient();")
-    .H2("License")
-    .P("MIT License");
+    .Ul(list => list
+        .Item("Import the namespace")
+        .Item("Create a client"));
 
-var markdown = doc.ToMarkdown();
-Console.WriteLine(markdown);
+document.Save("README.md");
+Console.WriteLine(document.ToMarkdown());
 ```
 
-## Parsing Markdown
+### PowerShell
+
+```powershell
+New-OfficeMarkdown -Path .\README.md {
+    Add-OfficeMarkdownHeading -Level 1 -Text 'Project README'
+    Add-OfficeMarkdownParagraph -Text 'A short description of the project.'
+    Add-OfficeMarkdownHeading -Level 2 -Text 'Installation'
+    Add-OfficeMarkdownCode -Language 'sh' -Text 'dotnet add package MyProject'
+}
+```
+
+## Parse a Markdown file
+
+`MarkdownDocument.Load` and `MarkdownDocument.Parse` return the typed model with headings, blocks, inlines, anchors and front matter.
+
+### C#
 
 ```csharp
-string source = File.ReadAllText("README.md");
-MarkdownDocument doc = MarkdownDocument.Parse(source);
+using OfficeIMO.Markdown;
 
-// Enumerate headings
-foreach (var heading in doc.DescendantHeadings()) {
-    Console.WriteLine($"H{heading.Level}: {heading.Text}");
+MarkdownDocument document = MarkdownDocument.Parse("""
+# Guide
+
+## Install
+
+## Usage
+""");
+
+foreach (MarkdownDocument.HeadingInfo heading in document.GetHeadingInfos()) {
+    Console.WriteLine($"H{heading.Level}: {heading.Text} (#{heading.Anchor})");
 }
 
-// Find a specific heading
-var installSection = doc.FindHeading("Installation");
+Console.WriteLine(document.HasHeading("Install"));
 ```
 
-## Rendering to HTML
+### PowerShell
+
+```powershell
+Open-OfficeMarkdown -Path .\README.md | Get-OfficeMarkdownHeading -MinLevel 2
+```
+
+## Render Markdown to HTML
+
+`ToHtml` returns a fragment or a complete page. Without a style the output is plain markup; choose `Clean`, `Word` or a GitHub style to add a stylesheet.
+
+### C#
 
 ```csharp
-var doc = MarkdownDocument.Create()
+using OfficeIMO.Markdown;
+
+MarkdownDocument document = MarkdownDocument.Create()
     .H1("Hello")
     .P("World");
 
-var options = new MarkdownHtmlExportOptions {
-    Style = MarkdownHtmlStyle.GitHub,
-    InjectTocAtTop = true,
-    Prism = new MarkdownPrismOptions { Enabled = true }
-};
-
-string html = doc.ToHtml(options);
-```
-
-## Document Scaffolds
-
-OfficeIMO.Markdown includes pre-built scaffolds for common document types:
-
-```csharp
-// Generate a README scaffold
-var readme = ReadmeScaffold.Readme("MyProject", opts => {
-    opts.Description = "A cross-platform library for data processing.";
-    opts.License = "MIT";
-    opts.Author = "Your Name";
+string fragment = document.ToHtml(new MarkdownHtmlExportOptions {
+    Kind = MarkdownHtmlKind.Fragment
 });
 
-File.WriteAllText("README.md", readme.ToString());
+document.SaveAsHtml("hello.html", new MarkdownHtmlExportOptions {
+    Kind = MarkdownHtmlKind.Document,
+    Style = MarkdownHtmlStyle.GithubAuto,
+    InjectTocAtTop = true
+});
 
-// Generate a CHANGELOG scaffold
-var changelog = MarkdownChangelogScaffold.Changelog("MyProject");
-
-// Generate a CONTRIBUTING guide
-var contributing = MarkdownContributingScaffold.Contributing("MyProject");
+Console.WriteLine(fragment);
 ```
 
-## Further Reading
+## Start from a scaffold
 
-- [Builder API](/docs/markdown/builder) — Detailed guide to the fluent builder methods.
-- [Word to Markdown Conversion](/docs/converters/word-markdown) — Convert between Word documents and Markdown.
+Scaffolds return a ready-made `MarkdownDocument` for common repository files, which you can extend before saving.
+
+### C#
+
+```csharp
+using OfficeIMO.Markdown;
+
+MarkdownDocument readme = MarkdownScaffold.Readme("MyProject", options => options
+    .Description("A cross-platform library for data processing.")
+    .NuGet("MyProject")
+    .GettingStarted("dotnet add package MyProject", "var client = new MyClient();")
+    .LicenseMIT());
+readme.Save("README.md");
+
+MarkdownChangelogScaffold.Changelog("MyProject").Save("CHANGELOG.md");
+MarkdownContributingScaffold.Contributing("MyProject").Save("CONTRIBUTING.md");
+```
