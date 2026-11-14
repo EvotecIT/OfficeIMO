@@ -391,7 +391,11 @@ internal static class PdfInspector {
             RedactionNavigationProof = new Lazy<bool>(() => readDocument is not null &&
                 PdfRedactionNavigation.CanPreserve(readDocument, CancellationToken.None), LazyThreadSafetyMode.PublicationOnly),
             RedactionObjectGraphProof = new Lazy<bool>(() => readDocument is not null &&
-                PdfSyntax.CanNormalizeRedactionObjectGraph(pdf, readDocument, CancellationToken.None), LazyThreadSafetyMode.PublicationOnly)
+                PdfSyntax.CanNormalizeRedactionObjectGraph(pdf, readDocument, CancellationToken.None), LazyThreadSafetyMode.PublicationOnly),
+            CatalogPreservingExtractionGraphFailure = new Lazy<string?>(() =>
+                readDocument is not null && PdfPageExtractor.UsesCatalogPreservingWriter(readDocument, rewriteBlockers)
+                    ? PdfPageExtractor.FindCatalogObjectGraphFailure(readDocument, CancellationToken.None)
+                    : null, LazyThreadSafetyMode.PublicationOnly)
         };
 
         void AddReadBlocker(PdfReadBlockerKind kind, string message) {

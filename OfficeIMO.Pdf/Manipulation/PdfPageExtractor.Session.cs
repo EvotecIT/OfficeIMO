@@ -1,6 +1,34 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageExtractor {
+    /// <summary>
+    /// True when extraction must use the catalog-preserving page organizer: the subset catalog writer rebuilds only the
+    /// catalog entries preflight proved it can copy, and every outline tree must keep its items individually.
+    /// </summary>
+    internal static bool UsesCatalogPreservingWriter(PdfReadDocument document, IReadOnlyList<PdfRewriteBlocker> rewriteBlockers) =>
+        PdfTaggedPageOrganizer.IsTagged(document) || document.FormFields.Count > 0 || HasCatalogOutlines(document) ||
+        rewriteBlockers.Any(static blocker => blocker.Kind != PdfRewriteBlockerKind.Encryption);
+
+    /// <summary>
+    /// Walks everything the catalog reaches, as the catalog-preserving writer does before it writes, and returns why a
+    /// reference to a missing object or to another object generation makes that graph unsafe to rewrite.
+    /// </summary>
+    internal static string? FindCatalogObjectGraphFailure(PdfReadDocument document, CancellationToken cancellationToken) {
+        if (document.Security.RootObjectNumber is not int root || !document.Objects.TryGetValue(root, out var catalog))
+            return "PDF object graph is not safe for rewriting by OfficeIMO.Pdf yet: the document catalog was not found.";
+        try {
+            new ObjectCollector(document.Objects, cancellationToken: cancellationToken)
+                .CollectObjectGraph(new PdfReference(catalog.ObjectNumber, catalog.Generation));
+            return null;
+        } catch (InvalidOperationException ex) {
+            return "PDF object graph is not safe for rewriting by OfficeIMO.Pdf yet: " + ex.Message;
+        }
+    }
+
+    private static bool HasCatalogOutlines(PdfReadDocument document) =>
+        document.Security.RootObjectNumber is int root && document.Objects.TryGetValue(root, out var catalog) &&
+        catalog.Value is PdfDictionary dictionary && dictionary.Items.ContainsKey("Outlines");
+
     /// <summary>One validated input and catalog snapshot shared by a compound page extraction.</summary>
     internal sealed class ExtractionSession {
         private readonly PdfReadDocument _document;
@@ -31,14 +59,8 @@ internal static partial class PdfPageExtractor {
             _fileVersion = GetSourceFileVersion(pdf);
             // The subset catalog writer rebuilds only the catalog entries preflight proved it can copy. Anything else,
             // and every outline tree (whose items must survive individually), stays with the catalog-preserving writer.
-            _preservesCatalog = PdfTaggedPageOrganizer.IsTagged(_document) || _document.FormFields.Count > 0 ||
-                HasCatalogOutlines(_document) ||
-                plan.Preflight.RewriteBlockers.Any(static blocker => blocker.Kind != PdfRewriteBlockerKind.Encryption);
+            _preservesCatalog = UsesCatalogPreservingWriter(_document, plan.Preflight.RewriteBlockers);
         }
-
-        private static bool HasCatalogOutlines(PdfReadDocument document) =>
-            document.Security.RootObjectNumber is int root && document.Objects.TryGetValue(root, out var catalog) &&
-            catalog.Value is PdfDictionary dictionary && dictionary.Items.ContainsKey("Outlines");
 
         internal int PageCount => _document.Pages.Count;
 

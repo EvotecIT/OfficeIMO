@@ -70,6 +70,20 @@ public sealed class PdfPageExtractorOutlineTests {
         foreach (PdfDocument part in parts) part.Dispose();
     }
 
+    [Fact]
+    public void ExtractRefusesBookmarkedDocumentReferencingMissingObjectWithTypedReason() {
+        // Object 99 does not exist. The catalog-preserving writer would copy it with the bookmark, so extraction is
+        // refused while planning instead of failing inside the writer.
+        byte[] source = BuildCompressedOutlinePdf(chapterOneExtra: " /SE 99 0 R");
+        using PdfDocument document = PdfDocument.Load(source);
+
+        var blocked = Assert.Throws<PdfMutationBlockedException>(() => document.Pages.Extract("1-3"));
+
+        Assert.Contains("FullRewrite.InvalidObjectReferences", blocked.Plan.BlockerCodes);
+        Assert.Contains(blocked.Plan.Diagnostics, diagnostic => diagnostic.Contains("PDF object 99 was referenced but not found.", StringComparison.Ordinal));
+        Assert.False(document.PlanMutation(PdfMutationOperation.ExtractPages).CanExecute);
+    }
+
     private static void AssertReadable(byte[] output, int pageCount, string text) {
         PdfDocumentPreflight preflight = PdfInspector.Preflight(output);
         Assert.True(preflight.CanRead, string.Join(" ", preflight.Diagnostics));
@@ -99,7 +113,7 @@ public sealed class PdfPageExtractorOutlineTests {
     /// and named-destination links. The catalog /Dests name object /chapter.1 goes to page three while the tree's string
     /// (chapter.1) goes to page one. Every dictionary sits in one object stream behind an xref stream.
     /// </summary>
-    private static byte[] BuildCompressedOutlinePdf() {
+    private static byte[] BuildCompressedOutlinePdf(string chapterOneExtra = "") {
         var packed = new List<(int Number, string Body)> {
             (1, "<< /Type /Catalog /Pages 2 0 R /Outlines 20 0 R /Names << /Dests 30 0 R >> /Dests << /chapter.1 [5 0 R /Fit] >> /PageMode /UseOutlines >>"),
             (2, "<< /Type /Pages /Kids [3 0 R 4 0 R 5 0 R] /Count 3 /MediaBox [0 0 612 792] /Resources << /Font << /F1 6 0 R >> >> >>"),
@@ -112,7 +126,7 @@ public sealed class PdfPageExtractorOutlineTests {
             (9, "<< /Type /Annot /Subtype /Link /Rect [72 560 200 580] /Border [0 0 0] /Dest /chapter.1 >>"),
             (20, "<< /Type /Outlines /First 21 0 R /Last 24 0 R /Count 4 >>"),
             (21, "<< /Title (Part I) /Parent 20 0 R /Next 24 0 R /First 22 0 R /Last 23 0 R /Count 2 /Dest (part.1) >>"),
-            (22, "<< /Title (Chapter 1) /Parent 21 0 R /Next 23 0 R /A << /S /GoTo /D (chapter.1) >> >>"),
+            (22, "<< /Title (Chapter 1) /Parent 21 0 R /Next 23 0 R /A << /S /GoTo /D (chapter.1) >>" + chapterOneExtra + " >>"),
             (23, "<< /Title (Chapter 2) /Parent 21 0 R /Prev 22 0 R /A << /S /GoTo /D [4 0 R /Fit] >> >>"),
             (24, "<< /Title (Part II) /Parent 20 0 R /Prev 21 0 R /First 25 0 R /Last 26 0 R /Count -2 /Dest [5 0 R /XYZ 0 792 0] >>"),
             (25, "<< /Title (Chapter 3) /Parent 24 0 R /Next 26 0 R /A << /S /GoTo /D (chapter.3) >> >>"),

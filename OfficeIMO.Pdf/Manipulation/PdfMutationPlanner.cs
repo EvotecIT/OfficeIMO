@@ -296,6 +296,13 @@ internal static class PdfMutationPlanner {
             appendOnlyAvailable = false;
         }
 
+        // The catalog-preserving extraction writer copies every catalog-reachable object, so a missing or mismatched
+        // reference anywhere in that graph refuses extraction before writing, as the page-graph check does.
+        string? extractionGraphFailure = operation == PdfMutationOperation.ExtractPages && fullRewriteAvailable
+            ? preflight.CatalogPreservingExtractionGraphFailure?.Value
+            : null;
+        if (extractionGraphFailure is not null) fullRewriteAvailable = false;
+
         PdfMutationExecutionMode mode;
         if (executionPreference == PdfMutationExecutionPreference.RequireFullRewrite) {
             mode = fullRewriteAvailable ? PdfMutationExecutionMode.FullRewrite : PdfMutationExecutionMode.Blocked;
@@ -322,6 +329,11 @@ internal static class PdfMutationPlanner {
             Add(sourceBlockers, "Source.IncompleteObjectGraph");
             blockers = sourceBlockers.AsReadOnly();
         }
+        if (mode == PdfMutationExecutionMode.Blocked && extractionGraphFailure is not null) {
+            var graphBlockers = blockers.ToList();
+            Add(graphBlockers, "FullRewrite." + PdfRewriteBlockerKind.InvalidObjectReferences);
+            blockers = graphBlockers.AsReadOnly();
+        }
         if (mode == PdfMutationExecutionMode.Blocked &&
             operation == PdfMutationOperation.FinalizeExternalSignature &&
             !finalizationReservationValidated) {
@@ -341,6 +353,8 @@ internal static class PdfMutationPlanner {
             blockers);
         IReadOnlyList<string> warnings = GetWarnings(preflight, appendOnly, operation, mode, security);
         IReadOnlyList<string> diagnostics = GetDiagnostics(preflight, appendOnly, operation, mode, blockers, fullRewriteCapability, appendOnlyAvailable, security);
+        if (mode == PdfMutationExecutionMode.Blocked && extractionGraphFailure is not null)
+            diagnostics = diagnostics.Concat(new[] { extractionGraphFailure }).ToList().AsReadOnly();
 
         return new PdfMutationPlan(
             operation,
