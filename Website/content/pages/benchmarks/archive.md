@@ -1,6 +1,6 @@
 ---
 title: "Earlier benchmark measurements"
-description: "The full historical Excel matrix, dated Excel and CSV snapshots, and the source suites behind OfficeIMO's benchmarks."
+description: "The full historical OfficeIMO Excel matrix, the dated Excel and CSV snapshots, and the source suites behind the current .NET benchmark results."
 meta.seo_title: "OfficeIMO benchmark archive: Excel matrix and source suites"
 layout: page
 meta.raw_html: true

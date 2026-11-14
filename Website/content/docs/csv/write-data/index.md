@@ -1,6 +1,6 @@
 ---
 title: Write CSV from Objects and Data Readers
-description: Write CSV files from objects, IDataReader database results, and pre-projected rows, with formula-injection protection and compression, using OfficeIMO.CSV and PSWriteOffice.
+description: "Write CSV from objects and IDataReader results, with formula-injection protection and compression, using OfficeIMO.CSV and PSWriteOffice."
 order: 52
 ---
 

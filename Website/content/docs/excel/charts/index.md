@@ -1,5 +1,5 @@
 ---
-title: Charts
+title: "Add Charts to Excel Workbooks"
 description: Add native, editable Excel charts from objects, cell ranges, or tables, and style titles, axes, legends, and data labels with OfficeIMO.Excel.
 order: 26
 ---

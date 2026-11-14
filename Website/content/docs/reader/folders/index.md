@@ -1,6 +1,6 @@
 ---
 title: Read Whole Folders
-description: Read every supported document in a folder tree with file, size, and traversal limits, and collect per-file results and chunks with OfficeIMO.Reader, PSWriteOffice, and the officeimo CLI.
+description: "Read every supported document in a folder tree with file, size and traversal limits, and collect per-file results with OfficeIMO.Reader."
 order: 58
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Read CSV into Typed Objects
-description: Map CSV rows to .NET objects, read typed values through a forward-only data reader, and infer column types with OfficeIMO.CSV, PSWriteOffice, and the officeimo CLI.
+description: "Map CSV rows to .NET objects, read typed values through a forward-only data reader, and infer column types with OfficeIMO.CSV and PowerShell."
 order: 51
 ---
 

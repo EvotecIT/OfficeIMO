@@ -1,6 +1,6 @@
 ---
 title: Large Files and Streaming
-description: Write hundreds of thousands of Excel rows with bounded memory and read large XLSX and XLSB worksheets fast with OfficeIMO.Excel streaming writers and data readers.
+description: "Write hundreds of thousands of Excel rows with bounded memory and read large XLSX and XLSB sheets fast with OfficeIMO.Excel streaming APIs."
 order: 28
 ---
 

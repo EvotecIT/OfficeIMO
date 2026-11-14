@@ -1,6 +1,6 @@
 ---
 title: "Encrypt, Decrypt, and Sign PDFs"
-description: "Encrypt PDFs with open and owner passwords and permissions, open or decrypt protected files, sign with a certificate, and validate signatures with OfficeIMO.Pdf, PSWriteOffice, and the officeimo CLI."
+description: "Encrypt PDFs with passwords and permissions, decrypt protected files, sign with a certificate and validate signatures with OfficeIMO.Pdf."
 layout: docs
 ---
 
