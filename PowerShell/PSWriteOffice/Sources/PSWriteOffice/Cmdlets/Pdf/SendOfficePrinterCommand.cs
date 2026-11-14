@@ -40,7 +40,7 @@ public sealed class SendOfficePrinterCommand : AsyncPSCmdlet {
     [Parameter] [ValidateSet("1", "2", "4", "6", "9")] public int PagesPerSheet { get; set; } = 1;
     /// <summary>Keep all selected pages, or only odd or even original page numbers.</summary>
     [Parameter] [ValidateSet("All", "Odd", "Even")] public string PageSubset { get; set; } = "All";
-    /// <summary>Print in grayscale, regardless of the device's color support. IPP printers and CUPS queues that list monochrome printing receive the vector PDF and convert it to gray themselves; others receive gray raster sheets.</summary>
+    /// <summary>Print in grayscale, regardless of the device's color support. IPP printers and CUPS queues reached over IPP that list monochrome printing receive the vector PDF and convert it to gray themselves; others receive gray raster sheets.</summary>
     [Parameter] public SwitchParameter Grayscale { get; set; }
     /// <summary>With Grayscale, always send gray raster sheets, so the printout matches the preview pixel for pixel. Slower than letting the printer convert vector PDF. Windows queues always receive raster sheets.</summary>
     [Parameter] public SwitchParameter RasterizeGrayscale { get; set; }

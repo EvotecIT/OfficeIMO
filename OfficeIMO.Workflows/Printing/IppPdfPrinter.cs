@@ -168,8 +168,10 @@ internal static class IppPdfPrinter {
         bool rgb = printer.PwgRasterTypes.Contains("srgb_8"), gray = printer.PwgRasterTypes.Contains("sgray_8");
         bool acceptsPwg = rasterResolutions.Length > 0 && (rgb || gray);
 
-        // A printer that converts PDF to monochrome itself is sent the vector PDF; otherwise grayscale sheets are rasterized as the preview shows them.
-        bool printerConvertsGray = !options.RasterizeGrayscale && printer.ColorModes.Contains("monochrome");
+        int maximumCopies = Math.Max(1, printer.MaxCopies);
+        // A printer that converts PDF to monochrome itself, and can make the requested copies, is sent the vector PDF;
+        // otherwise grayscale sheets are rasterized as the preview shows them, with copies repeated in the document when needed.
+        bool printerConvertsGray = !options.RasterizeGrayscale && printer.ColorModes.Contains("monochrome") && options.Copies <= maximumCopies;
         var plan = new IppDeliveryPlan();
         if (contentKind == PdfPrintContentKind.Vector && acceptsPdf && (!grayscale || printerConvertsGray)) plan.Kind = IppDocumentKind.VectorPdf;
         else if (acceptsPwg) plan.Kind = IppDocumentKind.PwgRaster;
@@ -182,13 +184,13 @@ internal static class IppPdfPrinter {
         var job = new IppJobOptions { JobName = JobName(options.DocumentName) };
         plan.JobOptions = job;
 
-        int maximumCopies = Math.Max(1, printer.MaxCopies);
         if (options.Copies > 1) {
             // PWG raster pages are not stored by every printer, so multi-sheet raster copies are sent as collated sheet sequences.
             bool printerCopies = options.Copies <= maximumCopies && (plan.Kind != IppDocumentKind.PwgRaster || sheets.Sheets.Count == 1);
             if (printerCopies) job.Copies = options.Copies;
             else if (plan.Kind == IppDocumentKind.PwgRaster) plan.SoftwareCopies = options.Copies;
-            else throw new NotSupportedException($"The printer makes at most {maximumCopies} copies of a PDF document and does not accept PWG raster.");
+            else throw new NotSupportedException($"The printer makes at most {maximumCopies} copies of a PDF document"
+                + (acceptsPwg ? "." : " and does not accept PWG raster."));
         }
 
         if (options.Duplex != PdfPrintDuplex.PrinterDefault) {

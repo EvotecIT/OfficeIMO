@@ -46,9 +46,11 @@ public sealed class PdfPrintDeliveryOptions {
     /// the printer cannot convert itself, and when the printer does not accept PDF.</remarks>
     public double MaximumRasterDpi { get; set; } = 300;
     /// <summary>Sends grayscale jobs to IPP printers and CUPS queues as gray raster sheets, so the printout matches the preview pixel for pixel.</summary>
-    /// <remarks>By default a grayscale job goes to a printer that lists <c>application/pdf</c> and the <c>monochrome</c> print-color-mode as vector PDF with
+    /// <remarks>By default a grayscale job goes to an IPP printer or CUPS queue reached over IPP that lists <c>application/pdf</c> and the <c>monochrome</c>
+    /// print-color-mode, and can make the requested copies, as vector PDF with
     /// <c>print-color-mode=monochrome</c>, and the printer converts it to gray. That is much faster and keeps text sharp, but the printer's conversion can differ
-    /// from the preview in light fills and in how colors map to gray. Other printers always receive gray raster sheets. Windows queues always receive raster sheets.</remarks>
+    /// from the preview in light fills and in how colors map to gray. Other printers receive gray raster sheets, CUPS queues printed through <c>lp</c> receive
+    /// rasterized PDF, and Windows queues always receive raster sheets.</remarks>
     public bool RasterizeGrayscale { get; set; }
 
     internal PdfPrintDeliveryOptions Snapshot() {

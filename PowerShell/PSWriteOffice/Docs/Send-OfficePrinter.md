@@ -95,7 +95,7 @@ Accept wildcard characters: False
 ```
 
 ### -Grayscale
-Print in grayscale, regardless of the device's color support. IPP printers and CUPS queues that list monochrome printing receive the vector PDF and convert it to gray themselves; others receive gray raster sheets.
+Print in grayscale, regardless of the device's color support. IPP printers and CUPS queues reached over IPP that list monochrome printing receive the vector PDF and convert it to gray themselves; others receive gray raster sheets.
 
 ```yaml
 Type: SwitchParameter
