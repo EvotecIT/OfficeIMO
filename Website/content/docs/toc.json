@@ -197,6 +197,11 @@
         "href": "/docs/excel/"
       },
       {
+        "title": "Excel Quick Start",
+        "path": "excel/quick-start/index.md",
+        "href": "/docs/excel/quick-start/"
+      },
+      {
         "title": "Worksheets",
         "path": "excel/worksheets/index.md",
         "href": "/docs/excel/worksheets/"
@@ -205,6 +210,36 @@
         "title": "Tables & Ranges",
         "path": "excel/tables-ranges/index.md",
         "href": "/docs/excel/tables-ranges/"
+      },
+      {
+        "title": "Styles and Number Formats",
+        "path": "excel/styles-number-formats/index.md",
+        "href": "/docs/excel/styles-number-formats/"
+      },
+      {
+        "title": "Formulas and Named Ranges",
+        "path": "excel/formulas/index.md",
+        "href": "/docs/excel/formulas/"
+      },
+      {
+        "title": "Charts",
+        "path": "excel/charts/index.md",
+        "href": "/docs/excel/charts/"
+      },
+      {
+        "title": "Import and Export Data",
+        "path": "excel/import-export-data/index.md",
+        "href": "/docs/excel/import-export-data/"
+      },
+      {
+        "title": "Large Files and Streaming",
+        "path": "excel/large-files/index.md",
+        "href": "/docs/excel/large-files/"
+      },
+      {
+        "title": "Protect Sheets and Workbooks",
+        "path": "excel/protection/index.md",
+        "href": "/docs/excel/protection/"
       }
     ]
   },
@@ -252,6 +287,11 @@
         "href": "/docs/pdf/"
       },
       {
+        "title": "PDF Quick Start",
+        "path": "pdf/quick-start/index.md",
+        "href": "/docs/pdf/quick-start/"
+      },
+      {
         "title": "PDF Authoring",
         "path": "pdf/authoring/index.md",
         "href": "/docs/pdf/authoring/"
@@ -270,6 +310,41 @@
         "title": "PDF Conversion",
         "path": "pdf/conversion/index.md",
         "href": "/docs/pdf/conversion/"
+      },
+      {
+        "title": "Merge, Split, and Select Pages",
+        "path": "pdf/merge-split/index.md",
+        "href": "/docs/pdf/merge-split/"
+      },
+      {
+        "title": "Extract Text and Tables",
+        "path": "pdf/extract-text-tables/index.md",
+        "href": "/docs/pdf/extract-text-tables/"
+      },
+      {
+        "title": "Fill and Flatten Forms",
+        "path": "pdf/forms/index.md",
+        "href": "/docs/pdf/forms/"
+      },
+      {
+        "title": "Redact Content",
+        "path": "pdf/redaction/index.md",
+        "href": "/docs/pdf/redaction/"
+      },
+      {
+        "title": "Encrypt, Decrypt, and Sign",
+        "path": "pdf/encrypt-sign/index.md",
+        "href": "/docs/pdf/encrypt-sign/"
+      },
+      {
+        "title": "Convert to PDF/A",
+        "path": "pdf/pdfa/index.md",
+        "href": "/docs/pdf/pdfa/"
+      },
+      {
+        "title": "Watermarks, Stamps, and Metadata",
+        "path": "pdf/watermarks-stamps/index.md",
+        "href": "/docs/pdf/watermarks-stamps/"
       },
       {
         "title": "Email and Outlook Data",
@@ -365,6 +440,26 @@
         "title": "CSV Overview",
         "path": "csv/index.md",
         "href": "/docs/csv/"
+      },
+      {
+        "title": "Read CSV into Typed Objects",
+        "path": "csv/read-typed/index.md",
+        "href": "/docs/csv/read-typed/"
+      },
+      {
+        "title": "Write CSV from Objects and Data Readers",
+        "path": "csv/write-data/index.md",
+        "href": "/docs/csv/write-data/"
+      },
+      {
+        "title": "CSV Dialects and Encodings",
+        "path": "csv/dialects-encodings/index.md",
+        "href": "/docs/csv/dialects-encodings/"
+      },
+      {
+        "title": "Convert CSV to Excel",
+        "path": "csv/convert-to-excel/index.md",
+        "href": "/docs/csv/convert-to-excel/"
       }
     ]
   },
@@ -490,6 +585,31 @@
         "title": "Reader Overview",
         "path": "reader/index.md",
         "href": "/docs/reader/"
+      },
+      {
+        "title": "Reader Quick Start",
+        "path": "reader/quick-start/index.md",
+        "href": "/docs/reader/quick-start/"
+      },
+      {
+        "title": "Chunk Documents for Search and AI",
+        "path": "reader/chunking/index.md",
+        "href": "/docs/reader/chunking/"
+      },
+      {
+        "title": "Read Whole Folders",
+        "path": "reader/folders/index.md",
+        "href": "/docs/reader/folders/"
+      },
+      {
+        "title": "Extract Tables and Records",
+        "path": "reader/tables-records/index.md",
+        "href": "/docs/reader/tables-records/"
+      },
+      {
+        "title": "Check Supported Formats",
+        "path": "reader/formats/index.md",
+        "href": "/docs/reader/formats/"
       }
     ]
   },
