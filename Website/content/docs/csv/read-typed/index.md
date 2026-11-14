@@ -11,6 +11,9 @@ search_terms:
   - read csv
   - parse csv
   - csv to objects
+commands:
+  - officeimo tabular schema
+verified: 2026-11-14
 ---
 
 Choose the read path by what happens next. Load a `CsvDocument` when you will edit, sort, filter, or save the rows. Open a `CsvDataReader` when you read once, from start to end: it does not keep the file in memory, and it is a `DbDataReader`, so it plugs into anything that accepts one.

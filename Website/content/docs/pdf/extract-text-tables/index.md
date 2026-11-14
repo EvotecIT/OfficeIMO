@@ -13,6 +13,10 @@ search_terms:
   - pdf to text
   - pdf table
   - read pdf
+commands:
+  - officeimo read
+  - officeimo convert
+verified: 2026-11-14
 ---
 
 `ExtractText` returns the text of the whole document in reading order. `Read` returns a logical model: pages with paragraphs and detected tables, plus a Markdown rendering. Both work on PDFs produced by any application; scanned pages without a text layer need OCR first (see [PDF workflows in the CLI](/docs/cli/pdf/)).

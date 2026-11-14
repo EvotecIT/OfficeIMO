@@ -3,6 +3,7 @@ title: "Data Conversions"
 description: "Convert between JSON, JSON Lines, YAML, TOML, XML, CSV and Excel in .NET, streaming, with exact numbers and a report of anything lost."
 order: 58
 meta.seo_title: "Convert JSON, YAML, TOML, XML, CSV and Excel in C#"
+verified: 2026-11-14
 ---
 
 `OfficeIMO.Data.Conversions` converts between JSON, JSON Lines, YAML, TOML, XML, CSV and TSV. `OfficeIMO.Data.Conversions.Excel` adds worksheets and workbooks. Data flows from each format's own reader to the target's writer as events, so a large file converts with bounded memory, and numbers keep their exact text: `1.10` stays `1.10`, and a 23-digit integer is not rounded through `double`.

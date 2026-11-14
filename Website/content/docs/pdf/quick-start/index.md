@@ -8,6 +8,10 @@ search_terms:
   - create pdf
   - generate pdf
   - pdf c#
+commands:
+  - officeimo convert
+  - officeimo read
+verified: 2026-11-14
 ---
 
 OfficeIMO.Pdf writes and reads PDF files directly in .NET. It has no native dependencies and does not need a browser, printer driver, or Office installation.

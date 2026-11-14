@@ -10,6 +10,9 @@ search_terms:
   - excel to csv
   - datatable to excel
   - import excel
+commands:
+  - officeimo tabular convert
+verified: 2026-11-14
 ---
 
 OfficeIMO.Excel reads and writes the shapes .NET code already uses: typed objects, `DataTable`, and `IDataReader`. Header names map to property names, and cell values keep their types (numbers, dates, booleans) instead of becoming text.

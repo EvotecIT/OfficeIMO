@@ -13,6 +13,9 @@ search_terms:
   - encrypt pdf
   - pdf password
   - digital signature
+commands:
+  - officeimo pdf decrypt
+verified: 2026-11-14
 ---
 
 Encryption controls who can open a PDF and what the viewer allows (printing, copying, editing). A digital signature proves who approved the document and that it has not changed since. For the architecture, signature formats, and long-term validation, see [PDF security and digital signatures](/docs/pdf/security/).

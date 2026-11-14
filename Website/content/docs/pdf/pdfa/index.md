@@ -11,6 +11,9 @@ search_terms:
   - pdf/a
   - archive pdf
   - pdfa conversion
+commands:
+  - officeimo pdf convert-to-pdfa
+verified: 2026-11-14
 ---
 
 PDF/A is the ISO profile for long-term archiving: fonts are embedded, colors are device-independent, and features that depend on external resources are removed. OfficeIMO.Pdf supports the `PdfA2B` (default), `PdfA2U`, `PdfA3B`, `PdfA3U`, `PdfA4`, and `PdfA4F` profiles.

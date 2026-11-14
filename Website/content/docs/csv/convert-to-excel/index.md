@@ -10,6 +10,9 @@ search_terms:
   - csv to excel
   - csv to xlsx
   - excel to csv
+commands:
+  - officeimo tabular convert
+verified: 2026-11-14
 ---
 
 `OfficeIMO.Excel.Csv` connects the CSV and Excel packages. CSV parsing stays in `OfficeIMO.CSV` and workbook writing stays in `OfficeIMO.Excel`, so neither package depends on the other unless you install the adapter.

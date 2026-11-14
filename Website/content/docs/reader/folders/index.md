@@ -11,6 +11,9 @@ search_terms:
   - read folder
   - batch extract
   - index documents
+commands:
+  - officeimo reader folder
+verified: 2026-11-14
 ---
 
 Folder reading walks a directory, skips files without a registered handler, and reads the rest within explicit limits: maximum files, total bytes, and traversal entries. Each file reports whether it was parsed and any warnings, so one damaged file does not stop the run.

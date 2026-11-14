@@ -10,6 +10,9 @@ search_terms:
   - extract text
   - read document
   - document to text
+commands:
+  - officeimo read
+verified: 2026-11-14
 ---
 
 OfficeIMO.Reader turns a document into one normalized result: text, Markdown, pages, headings, tables, and metadata, whatever the source format. Install the adapters for the formats you read; each one brings the shared `OfficeIMO.Reader.Core` contracts.

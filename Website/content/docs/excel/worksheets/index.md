@@ -7,6 +7,7 @@ search_terms:
   - excel worksheet
   - freeze panes
   - column width
+verified: 2026-11-14
 ---
 
 The `ExcelSheet` class represents a single worksheet within an Excel workbook. It provides access to cells, ranges, rows, columns, formatting, formulas, named ranges, page setup, and the sheet view.

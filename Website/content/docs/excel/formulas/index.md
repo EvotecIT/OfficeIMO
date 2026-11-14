@@ -9,6 +9,7 @@ search_terms:
   - excel formula
   - calculate
   - formula evaluation
+verified: 2026-11-14
 ---
 
 Formulas are stored as Excel formulas, so Excel and other spreadsheet applications recalculate them on open. OfficeIMO.Excel can also calculate the functions it supports and cache the results, so readers that do not recalculate (search indexers, previews, `GetValue`) see the numbers.

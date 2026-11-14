@@ -10,6 +10,11 @@ search_terms:
   - xlsx
   - write excel file
   - excel c#
+commands:
+  - officeimo tabular sheets
+  - officeimo tabular schema
+  - officeimo tabular convert
+verified: 2026-11-14
 ---
 
 This page creates a workbook from a list of objects, adds a native Excel table and a chart, saves it, and reads the rows back. Nothing else needs to be installed: OfficeIMO.Excel writes the `.xlsx` package directly.

@@ -9,6 +9,7 @@ search_terms:
   - extract tables
   - table extraction
   - records
+verified: 2026-11-14
 ---
 
 Tables come out of every format in the same shape: a `ReaderTable` with column names, rows of strings, its location in the source, and whether it was truncated. That means the same code exports a table from a Word document, a PDF page, or an Excel range.

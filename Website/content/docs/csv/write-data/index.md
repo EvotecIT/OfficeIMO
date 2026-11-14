@@ -10,6 +10,7 @@ search_terms:
   - write csv
   - export csv
   - objects to csv
+verified: 2026-11-14
 ---
 
 `CsvDocument` is the editable model for building a file in memory. For exports, write rows directly: `SaveObjects` writes a sequence of objects, and `WriteDataReader` streams a database result to disk without materializing it.

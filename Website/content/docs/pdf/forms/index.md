@@ -11,6 +11,7 @@ search_terms:
   - fill pdf form
   - acroform
   - flatten pdf
+verified: 2026-11-14
 ---
 
 PDF forms (AcroForms) are named fields: text boxes, check boxes, choice lists, and radio groups. Fill them by field name. Filling keeps the fields editable; flattening turns their values into ordinary page content so they can no longer be changed.

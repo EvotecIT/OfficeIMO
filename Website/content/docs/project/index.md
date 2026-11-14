@@ -2,6 +2,7 @@
 title: "Create Project plans and reports in C#"
 description: "Build typed Project plans, calculate schedules, and export Gantt charts, dependency networks, and timelines with complete C# examples."
 order: 53
+verified: 2026-11-14
 ---
 
 `OfficeIMO.Project` owns the typed project model and explicit schedule calculation. `OfficeIMO.Workflows` exports its report snapshots through the shared document and drawing engines. File operations do not require Microsoft Project or COM.

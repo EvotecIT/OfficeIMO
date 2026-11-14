@@ -12,6 +12,11 @@ search_terms:
   - split pdf
   - combine pdf
   - extract pages
+commands:
+  - officeimo workflow assemble
+  - officeimo pdf split
+  - officeimo pdf extract
+verified: 2026-11-14
 ---
 
 Page operations never change the loaded document in place: each call returns a new `PdfDocument`, so you can chain operations and save the result. Pages are numbered from 1, and page selections use the familiar print-dialog syntax: `"1-3,5"`, `"2"`, `"3,1-2"`.

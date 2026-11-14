@@ -9,6 +9,7 @@ search_terms:
   - number format
   - cell style
   - conditional formatting
+verified: 2026-11-14
 ---
 
 Rows and columns are 1-based, as in Excel. `sheet.Cell("B4")` returns a lightweight cell handle and `sheet.Range("A1:D1")` returns a range. Format blocks of cells through a range: one range call applies the style once instead of cell by cell.

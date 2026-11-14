@@ -11,6 +11,7 @@ search_terms:
   - xlsx chart
   - line chart
   - pie chart
+verified: 2026-11-14
 ---
 
 OfficeIMO.Excel writes native Excel charts. They stay editable in Excel and keep a link to their source cells, so they update when the data changes. The chart type comes from the shared `OfficeChartType` enum (`Column`, `ColumnClustered`, `Bar`, `Line`, `Pie`, `Area`, `Scatter`, and more).

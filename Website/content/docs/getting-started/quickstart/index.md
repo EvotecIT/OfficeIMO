@@ -2,6 +2,7 @@
 title: Quick Start
 description: Create your first Word document, Excel workbook, and PowerPoint presentation with OfficeIMO in minutes. Includes examples and API links.
 order: 2
+verified: 2026-11-14
 ---
 
 This guide walks you through creating simple documents with OfficeIMO. All examples assume you have already [installed](/docs/getting-started/installation) the relevant NuGet packages.

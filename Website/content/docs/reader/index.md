@@ -2,6 +2,7 @@
 title: Reader and Extraction
 description: Deterministic document extraction, rich results, structured records, RAG chunking, and optional OCR with OfficeIMO.Reader.
 order: 55
+verified: 2026-11-14
 ---
 
 `OfficeIMO.Reader` is the shared read-only extraction facade for Office and adjacent document formats. It can return simple `ReaderChunk` sequences for indexing, or a rich `OfficeDocumentReadResult` with pages, blocks, tables, links, forms, assets, visuals, OCR candidates, metadata, and structured diagnostics.

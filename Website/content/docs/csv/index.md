@@ -2,6 +2,7 @@
 title: CSV Documents
 description: Create, load, validate and save CSV files with the OfficeIMO.CSV document model, with links to the CSV task guides.
 order: 50
+verified: 2026-11-14
 ---
 
 The `OfficeIMO.CSV` package provides a fluent, strongly typed CSV document model for .NET. It supports reading, writing, validation, schema enforcement, streaming, and object mapping with zero external dependencies.

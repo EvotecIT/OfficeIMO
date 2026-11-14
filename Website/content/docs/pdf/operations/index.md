@@ -2,6 +2,7 @@
 title: "PDF Inspection, Extraction, and Operations"
 description: "Preflight, repair, extract, merge, split, stamp, optimize, convert to PDF/A, redact, and inspect PDFs with structured reports. Includes examples and API links."
 layout: docs
+verified: 2026-11-14
 ---
 
 `OfficeIMO.Pdf` can operate on existing PDFs as well as author new ones. The read path exposes preflight and diagnostic reports so an application can distinguish a readable file from one that required recovery or cannot be safely rewritten.

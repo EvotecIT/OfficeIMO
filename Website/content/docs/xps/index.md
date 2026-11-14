@@ -3,6 +3,7 @@ title: "XPS and OpenXPS"
 description: "Read, create, edit and save XPS and OpenXPS documents, extract text and logical structure, and convert fixed pages to SVG, images and tagged PDF in .NET."
 order: 57
 meta.seo_title: "Read, create and convert XPS and OpenXPS in .NET"
+verified: 2026-11-14
 ---
 
 `OfficeIMO.Xps` reads, creates, edits and saves Microsoft XPS and ECMA-388 OpenXPS packages without Windows desktop APIs or an external conversion process. Pages convert to SVG and images through the shared OfficeIMO drawing engine. `OfficeIMO.Xps.Pdf` adds vector PDF output with a searchable text layer and tags from the document's native structure.

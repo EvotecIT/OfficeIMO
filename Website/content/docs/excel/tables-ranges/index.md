@@ -6,6 +6,7 @@ search_terms:
   - excel table
   - named range
   - data validation
+verified: 2026-11-14
 ---
 
 OfficeIMO.Excel supports structured Excel tables with AutoFilter, built-in table styles, data validation rules, and conditional formatting. These features help create professional, interactive spreadsheets.

@@ -11,6 +11,7 @@ search_terms:
   - protect workbook
   - password excel
   - lock sheet
+verified: 2026-11-14
 ---
 
 Excel has two different kinds of protection, and they solve different problems:

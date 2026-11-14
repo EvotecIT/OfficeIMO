@@ -12,6 +12,9 @@ search_terms:
   - tab separated
   - tsv
   - csv encoding
+commands:
+  - officeimo tabular convert
+verified: 2026-11-14
 ---
 
 "CSV" covers many dialects: comma or semicolon delimiters, quoted or unquoted fields, UTF-8 with or without a byte order mark, regional decimal separators. OfficeIMO.CSV reads and writes each of them explicitly, so the file you write back matches what the receiving system expects.

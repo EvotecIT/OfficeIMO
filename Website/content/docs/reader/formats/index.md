@@ -11,6 +11,9 @@ search_terms:
   - supported formats
   - file types
   - reader formats
+commands:
+  - officeimo reader capabilities
+verified: 2026-11-14
 ---
 
 A reader only handles the formats you registered, so the supported set is a property of your configuration. The full list of adapter packages and extensions is in the [supported formats table](/docs/reader/#supported-formats); this page shows how to check it at run time.

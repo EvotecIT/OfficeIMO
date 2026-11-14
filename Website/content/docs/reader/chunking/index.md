@@ -12,6 +12,7 @@ search_terms:
   - rag
   - embeddings
   - ai ingestion
+verified: 2026-11-14
 ---
 
 Search indexes and language-model retrieval work on passages, not whole files. OfficeIMO.Reader produces two kinds of chunks:
