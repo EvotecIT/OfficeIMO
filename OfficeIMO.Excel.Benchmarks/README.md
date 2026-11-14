@@ -623,6 +623,22 @@ dotnet run -c Release -f net472 --project OfficeIMO.Excel.Benchmarks -- --compar
 
 `--lane` selects lanes by name, and `--iterations` and `--warmups` set the median sample.
 
+### Dated engine-lane snapshot (2026-11-14)
+
+Median ms of 7 runs after 2 warmups, 64-bit processes pinned to one CCD of a shared AMD
+Ryzen 9 9950X3D2 workstation; other builds ran at the same time, so read ratios, not absolutes.
+
+| Lane | Rows | .NET 10 OfficeIMO | EPPlus | ClosedXML | .NET Framework OfficeIMO | EPPlus | ClosedXML |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| table-save | 10000 | 13.7 | 298.4 | 363.0 | 54.1 | 257.4 | 466.2 |
+| autofit | 10000 | 17.9 | 385.6 | 640.3 | 64.5 | 650.5 | 1038.6 |
+| autofit-writer | 10000 | 67.6 | 317.7 | 581.6 | 170.6 | 661.5 | 902.3 |
+| table-chart | 10000 | 127.6 | 222.1 | n/a | 258.2 | 261.5 | n/a |
+| table-save | 25000 | 31.8 | 611.1 | 672.9 | 106.3 | 572.2 | 1047.6 |
+| autofit | 25000 | 35.9 | 621.1 | 1412.0 | 127.0 | 889.7 | 2361.4 |
+| autofit-writer | 25000 | 140.6 | 634.3 | 1510.1 | 319.0 | 948.5 | 2307.6 |
+| table-chart | 25000 | 513.5 | 537.3 | n/a | 584.2 | 622.8 | n/a |
+
 ## Library comparison
 
 ```powershell
