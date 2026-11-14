@@ -17,7 +17,7 @@ public static class OfficeDiff {
     /// <param name="cancellationToken">Cancels the alignment.</param>
     public static OfficeDiffResult<T> Compare<T>(IReadOnlyList<T> oldItems, IReadOnlyList<T> newItems, IEqualityComparer<T>? comparer = null,
         OfficeDiffOptions? options = null, CancellationToken cancellationToken = default) =>
-        Compare(oldItems, newItems, comparer, options, weight: null, cancellationToken);
+        Compare(oldItems, newItems, comparer, options, weight: null, isSeparator: null, cancellationToken);
 
     /// <summary>Compares two texts line by line. Line terminators are part of each line.</summary>
     public static OfficeDiffResult<OfficeTextToken> CompareLines(string? oldText, string? newText, OfficeDiffOptions? options = null, CancellationToken cancellationToken = default) =>
@@ -38,10 +38,10 @@ public static class OfficeDiff {
 
     private static OfficeDiffResult<OfficeTextToken> CompareTokens(IReadOnlyList<OfficeTextToken> oldTokens, IReadOnlyList<OfficeTextToken> newTokens,
         OfficeTextTokenComparer comparer, OfficeDiffOptions? options, CancellationToken cancellationToken) =>
-        Compare(oldTokens, newTokens, comparer, options, static token => Math.Max(1, token.Length), cancellationToken);
+        Compare(oldTokens, newTokens, comparer, options, static token => Math.Max(1, token.Length), static token => token.Kind == OfficeTextTokenKind.Whitespace || string.IsNullOrWhiteSpace(token.Text), cancellationToken);
 
     internal static OfficeDiffResult<T> Compare<T>(IReadOnlyList<T> oldItems, IReadOnlyList<T> newItems, IEqualityComparer<T>? comparer,
-        OfficeDiffOptions? options, Func<T, int>? weight, CancellationToken cancellationToken) {
+        OfficeDiffOptions? options, Func<T, int>? weight, Func<T, bool>? isSeparator, CancellationToken cancellationToken) {
         if (oldItems is null) throw new ArgumentNullException(nameof(oldItems));
         if (newItems is null) throw new ArgumentNullException(nameof(newItems));
         comparer ??= EqualityComparer<T>.Default;
@@ -52,6 +52,10 @@ public static class OfficeDiff {
         Intern(oldItems, newItems, comparer, oldIds, newIds);
         OfficeDiffEngine engine = OfficeDiffEngine.Run(oldIds, newIds, options, cancellationToken);
         IReadOnlyList<OfficeDiffMatch> matches = engine.Matches;
+        if (isSeparator != null && matches.Count > 1) {
+            matches = OfficeDiffBoundaries.Align(matches, oldIds, newIds, Flags(oldItems, isSeparator), Flags(newItems, isSeparator));
+        }
+
         if (options.SemanticCleanup && matches.Count > 0) {
             Func<T, int> measure = weight ?? (static _ => 1);
             matches = CleanupSemantic(matches, oldItems, newItems, measure);
@@ -59,6 +63,12 @@ public static class OfficeDiff {
 
         IReadOnlyList<OfficeDiffEdit> edits = BuildEdits(matches, oldItems.Count, newItems.Count);
         return new OfficeDiffResult<T>(oldItems, newItems, edits, comparer, options.Algorithm, engine.LimitReached, engine.WorkUnits);
+    }
+
+    private static bool[] Flags<T>(IReadOnlyList<T> items, Func<T, bool> predicate) {
+        bool[] flags = new bool[items.Count];
+        for (int index = 0; index < items.Count; index++) flags[index] = predicate(items[index]);
+        return flags;
     }
 
     private static void Intern<T>(IReadOnlyList<T> oldItems, IReadOnlyList<T> newItems, IEqualityComparer<T> comparer, int[] oldIds, int[] newIds) {

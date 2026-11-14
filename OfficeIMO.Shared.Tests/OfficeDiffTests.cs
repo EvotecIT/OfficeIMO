@@ -140,6 +140,35 @@ public sealed class OfficeDiffTests {
     }
 
     [Fact]
+    public void WordChangesSlideToWholeSentences() {
+        OfficeDiffResult<OfficeTextToken> diff = OfficeDiff.CompareWords("Keep this. Drop that. End.", "Keep this. End.");
+
+        OfficeDiffEdit deletion = Assert.Single(diff.Edits, static edit => edit.Operation == OfficeDiffOperation.Delete);
+        Assert.Equal("Drop that. ", Concat(diff.Old.Skip(deletion.OldStart).Take(deletion.OldLength)));
+    }
+
+    [Theory]
+    [MemberData(nameof(Algorithms))]
+    public void WordDiffsStayCorrectAndMinimalAfterBoundaryAlignment(OfficeDiffAlgorithm algorithm) {
+        string[] vocabulary = { "a", "b", "c", ".", ",", " ", " ", "\n" };
+        var random = new Random(99 + (int)algorithm);
+        for (int round = 0; round < 400; round++) {
+            string oldText = RandomText(random, vocabulary);
+            string newText = random.Next(3) == 0 ? RandomText(random, vocabulary) : MutateText(random, oldText, vocabulary);
+
+            OfficeDiffResult<OfficeTextToken> diff = OfficeDiff.CompareWords(oldText, newText, new OfficeDiffOptions { Algorithm = algorithm });
+
+            Assert.Equal(newText, Concat(diff.Apply(diff.Old)));
+            Assert.Equal(oldText, Concat(diff.Revert(diff.New)));
+            AssertCoversBothSides(diff);
+            if (algorithm == OfficeDiffAlgorithm.Myers) {
+                int lcs = ReferenceLcsLength(diff.Old.Select(static token => token.Text).ToArray(), diff.New.Select(static token => token.Text).ToArray());
+                Assert.Equal(diff.Old.Count + diff.New.Count - (2 * lcs), diff.EditDistance);
+            }
+        }
+    }
+
+    [Fact]
     public void TextOptionsIgnoreCaseAndWhitespace() {
         var options = new OfficeDiffOptions { IgnoreCase = true, IgnoreWhitespace = true };
 
@@ -298,11 +327,31 @@ public sealed class OfficeDiffTests {
         return items.ToArray();
     }
 
-    private static int ReferenceLcsLength(int[] a, int[] b) {
+    private static string RandomText(Random random, string[] vocabulary) {
+        var builder = new StringBuilder();
+        int length = random.Next(0, 30);
+        for (int index = 0; index < length; index++) builder.Append(vocabulary[random.Next(vocabulary.Length)]);
+        return builder.ToString();
+    }
+
+    private static string MutateText(Random random, string text, string[] vocabulary) {
+        var builder = new StringBuilder(text);
+        int edits = random.Next(1, 5);
+        for (int edit = 0; edit < edits; edit++) {
+            int position = random.Next(builder.Length + 1);
+            if (random.Next(2) == 0 || builder.Length == 0) builder.Insert(position, vocabulary[random.Next(vocabulary.Length)]);
+            else builder.Remove(Math.Min(position, builder.Length - 1), 1);
+        }
+
+        return builder.ToString();
+    }
+
+    private static int ReferenceLcsLength<T>(T[] a, T[] b) {
+        var comparer = EqualityComparer<T>.Default;
         int[,] table = new int[a.Length + 1, b.Length + 1];
         for (int i = a.Length - 1; i >= 0; i--) {
             for (int j = b.Length - 1; j >= 0; j--) {
-                table[i, j] = a[i] == b[j] ? table[i + 1, j + 1] + 1 : Math.Max(table[i + 1, j], table[i, j + 1]);
+                table[i, j] = comparer.Equals(a[i], b[j]) ? table[i + 1, j + 1] + 1 : Math.Max(table[i + 1, j], table[i, j + 1]);
             }
         }
 
