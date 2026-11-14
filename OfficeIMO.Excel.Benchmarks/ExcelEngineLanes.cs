@@ -19,11 +19,12 @@ namespace OfficeIMO.Excel.Benchmarks;
 
 /// <summary>
 /// Engine lanes for the workbook shapes the PowerShell module produces: a table from mixed-type object rows, the
-/// same table with fitted columns, and the table with a chart over two of its columns. Each lane runs on .NET
-/// Framework and .NET, checks the saved workbook and prints a Markdown table.
+/// same table with fitted columns, the table with a chart over two of its columns, the table with a pivot, and a
+/// report sheet (table, conditional formats, a list validation, column number formats and a pivot). Each lane runs
+/// on .NET Framework and .NET, checks the saved workbook and prints a Markdown table.
 /// </summary>
 /// <remarks>
-/// <c>--compare-engine-lanes [--rows 5000,10000,25000] [--iterations 9] [--warmups 3] [--lane autofit,table-save,table-chart]</c>
+/// <c>--compare-engine-lanes [--rows 5000,10000,25000] [--iterations 9] [--warmups 3] [--lane autofit,table-save,table-chart,table-pivot,report]</c>
 /// </remarks>
 internal static class ExcelEngineLanes {
     static ExcelEngineLanes() => ExcelPackage.License.SetNonCommercialOrganization("OfficeIMO benchmarks");
@@ -35,18 +36,33 @@ internal static class ExcelEngineLanes {
     // Region and Score sit next to each other so every library charts one contiguous block.
     private const int RegionColumn = 4;
     private const int ScoreColumn = 5;
+    private const int CreatedColumn = 7;
+    private const int TicketColumn = 9;
+
+    private static readonly string[] Regions = { "NA", "EU", "APAC", "LATAM" };
 
     private sealed class Lane {
-        internal Lane(string name, bool autoFit, bool chart, bool writer = false) {
+        internal Lane(string name, bool autoFit, bool chart, bool writer = false, bool pivot = false, bool formatting = false) {
             Name = name;
             AutoFit = autoFit;
             Chart = chart;
             Writer = writer;
+            Pivot = pivot;
+            Formatting = formatting;
         }
 
         internal string Name { get; }
         internal bool AutoFit { get; }
         internal bool Chart { get; }
+
+        /// <summary>Adds a pivot of average Score and summed TicketCount by Region and Department.</summary>
+        internal bool Pivot { get; }
+
+        /// <summary>
+        /// Freezes the header and adds a cell-value rule, a data bar, a color scale, an icon set, a list validation
+        /// over Region and number formats on Score and Created.
+        /// </summary>
+        internal bool Formatting { get; }
 
         /// <summary>OfficeIMO writes the rows through its streaming workbook writer, as Export-OfficeExcel does.</summary>
         internal bool Writer { get; }
@@ -56,14 +72,16 @@ internal static class ExcelEngineLanes {
         new Lane("table-save", autoFit: false, chart: false),
         new Lane("autofit", autoFit: true, chart: false),
         new Lane("autofit-writer", autoFit: true, chart: false, writer: true),
-        new Lane("table-chart", autoFit: false, chart: true)
+        new Lane("table-chart", autoFit: false, chart: true),
+        new Lane("table-pivot", autoFit: false, chart: false, pivot: true),
+        new Lane("report", autoFit: false, chart: false, pivot: true, formatting: true)
     };
 
     private static readonly (string Name, Func<DataTable, Lane, byte[]> Write, Func<Lane, bool> Supports)[] Libraries = {
         ("OfficeIMO", WriteOfficeImo, _ => true),
         ("EPPlus", WriteEpPlus, _ => true),
-        // ClosedXML does not create charts.
-        ("ClosedXML", WriteClosedXml, lane => !lane.Chart)
+        // ClosedXML does not create charts; the pivot and report lanes compare with EPPlus.
+        ("ClosedXML", WriteClosedXml, lane => !lane.Chart && !lane.Pivot)
     };
 
     internal static int Run(string[] args) {
@@ -136,7 +154,7 @@ internal static class ExcelEngineLanes {
     private static DataTable CreateTable(int rowCount) {
         var table = new DataTable("Data");
         foreach (string name in ColumnNames) table.Columns.Add(name, typeof(object));
-        string[] regions = { "NA", "EU", "APAC", "LATAM" };
+        string[] regions = Regions;
         var start = new DateTime(2024, 1, 1);
         for (int i = 1; i <= rowCount; i++) {
             table.Rows.Add(
@@ -177,6 +195,30 @@ internal static class ExcelEngineLanes {
                     Height = OfficeLength.Pixels(360),
                     ChartType = OfficeChartType.ColumnClustered,
                     Title = "Score by region"
+                });
+            }
+
+            if (lane.Formatting) {
+                string last = (table.Rows.Count + 1).ToString(CultureInfo.InvariantCulture);
+                sheet.View.Freeze(1, 0);
+                sheet.Range("E2:E" + last).ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "750", fillColor: OfficeColor.Parse("#F4CCCC"));
+                sheet.Range("E2:E" + last).ConditionalFormat().DataBar(OfficeColor.Parse("#70AD47"));
+                sheet.Range("I2:I" + last).ConditionalFormat().ColorScale(OfficeColor.Parse("#F4CCCC"), OfficeColor.Parse("#FFF2CC"), OfficeColor.Parse("#D9EAD3"));
+                sheet.Range("I2:I" + last).ConditionalFormat().IconSet(ExcelIconSet.ThreeTrafficLights1);
+                sheet.Range("D2:D" + last).Validation().List(Regions, allowBlank: true);
+                sheet.Range("E2:E" + last).SetNumberFormat("#,##0.000");
+                sheet.Range("G2:G" + last).SetNumberFormat("yyyy-mm-dd hh:mm");
+            }
+
+            if (lane.Pivot) {
+                sheet.AddPivotTable(DataRange(table.Rows.Count), "L24", new ExcelPivotTableOptions {
+                    Name = "SummaryPivot",
+                    RowFields = new List<string> { "Region" },
+                    ColumnFields = new List<string> { "Department" },
+                    DataFields = new List<ExcelPivotDataField> {
+                        new ExcelPivotDataField("Score", ExcelPivotDataFunction.Average, "Average Score", numberFormat: "#,##0.00"),
+                        new ExcelPivotDataField("TicketCount", ExcelPivotDataFunction.Sum, "Tickets", numberFormat: "#,##0")
+                    }
                 });
             }
 
@@ -222,6 +264,40 @@ internal static class ExcelEngineLanes {
             chart.Series.Add(sheet.Cells[2, ScoreColumn, lastRow, ScoreColumn], sheet.Cells[2, RegionColumn, lastRow, RegionColumn]);
         }
 
+        if (lane.Formatting) {
+            sheet.View.FreezePanes(2, 1);
+            var score = sheet.Cells[2, ScoreColumn, lastRow, ScoreColumn];
+            var tickets = sheet.Cells[2, TicketColumn, lastRow, TicketColumn];
+            var greater = sheet.ConditionalFormatting.AddGreaterThan(score);
+            greater.Formula = "750";
+            greater.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(0xF4, 0xCC, 0xCC));
+            sheet.ConditionalFormatting.AddDatabar(score, System.Drawing.Color.FromArgb(0x70, 0xAD, 0x47));
+            var scale = sheet.ConditionalFormatting.AddThreeColorScale(tickets);
+            scale.LowValue.Color = System.Drawing.Color.FromArgb(0xF4, 0xCC, 0xCC);
+            scale.MiddleValue.Color = System.Drawing.Color.FromArgb(0xFF, 0xF2, 0xCC);
+            scale.HighValue.Color = System.Drawing.Color.FromArgb(0xD9, 0xEA, 0xD3);
+            sheet.ConditionalFormatting.AddThreeIconSet(tickets, OfficeOpenXml.ConditionalFormatting.eExcelconditionalFormatting3IconsSetType.TrafficLights1);
+            var regions = sheet.DataValidations.AddListValidation(sheet.Cells[2, RegionColumn, lastRow, RegionColumn].Address);
+            regions.AllowBlank = true;
+            foreach (string region in Regions) regions.Formula.Values.Add(region);
+            sheet.Cells[2, ScoreColumn, lastRow, ScoreColumn].Style.Numberformat.Format = "#,##0.000";
+            sheet.Cells[2, CreatedColumn, lastRow, CreatedColumn].Style.Numberformat.Format = "yyyy-mm-dd hh:mm";
+        }
+
+        if (lane.Pivot) {
+            var pivot = sheet.PivotTables.Add(sheet.Cells["L24"], sheet.Cells[DataRange(table.Rows.Count)], "SummaryPivot");
+            pivot.RowFields.Add(pivot.Fields["Region"]);
+            pivot.ColumnFields.Add(pivot.Fields["Department"]);
+            var average = pivot.DataFields.Add(pivot.Fields["Score"]);
+            average.Function = OfficeOpenXml.Table.PivotTable.DataFieldFunctions.Average;
+            average.Name = "Average Score";
+            average.Format = "#,##0.00";
+            var sum = pivot.DataFields.Add(pivot.Fields["TicketCount"]);
+            sum.Function = OfficeOpenXml.Table.PivotTable.DataFieldFunctions.Sum;
+            sum.Name = "Tickets";
+            sum.Format = "#,##0";
+        }
+
         return package.GetAsByteArray();
     }
 
@@ -262,6 +338,16 @@ internal static class ExcelEngineLanes {
 
         if (lane.Chart && archive.Entries.All(entry => entry.FullName.IndexOf("/charts/chart", StringComparison.OrdinalIgnoreCase) < 0)) {
             return "no chart part";
+        }
+
+        if (lane.Pivot && archive.Entries.All(entry => entry.FullName.IndexOf("pivotCacheDefinition", StringComparison.OrdinalIgnoreCase) < 0)) {
+            return "no pivot cache part";
+        }
+
+        if (lane.Formatting) {
+            int rules = Regex.Matches(xml, "<(?:x:)?cfRule[ >]").Count;
+            if (rules != 4) return $"expected 4 conditional-format rules, found {rules}";
+            if (!Regex.IsMatch(xml, "<(?:x:)?dataValidation[ >]")) return "no data validation";
         }
 
         return null;
