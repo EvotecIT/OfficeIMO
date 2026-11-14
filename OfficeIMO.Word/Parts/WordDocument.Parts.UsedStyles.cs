@@ -41,6 +41,7 @@ public partial class WordDocument {
             _document = document;
             if (!indexDefinitions) return;
             _definitions = new Dictionary<string, Style>(StringComparer.Ordinal);
+            document.LoadDefaultPackageStyles();
             var styles = document._wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
             if (styles == null) return;
             foreach (Style definition in styles.Elements<Style>()) {
@@ -54,7 +55,13 @@ public partial class WordDocument {
             Style? definition;
             if (_definitions != null) {
                 _definitions.TryGetValue(styleId, out definition);
+            } else if (_document.GetUnparsedDefaultPackageStyles() is { } defaults
+                       && defaults.Dependencies.TryGetValue(styleId, out string?[]? dependencies)) {
+                // The untouched default catalog already defines this style; resolve it without parsing styles.xml.
+                foreach (string? dependency in dependencies) EnsureDependency(dependency);
+                return;
             } else {
+                _document.LoadDefaultPackageStyles();
                 var styles = _document._wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
                 definition = styles?.Elements<Style>().FirstOrDefault(style =>
                     string.Equals(style.StyleId?.Value, styleId, StringComparison.Ordinal));

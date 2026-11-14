@@ -1,13 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Bounded ZIP reading and traversal, Cabinet and Windows Installer inspection and member reads, and managed payload extraction.</Description>
+    <Description>Bounded ZIP reading and traversal, Cabinet and Windows Installer inspection and member reads, TAR and gzip reading, deterministic ZIP, TAR and gzip creation, and managed payload extraction.</Description>
     <VersionPrefix>3.6.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageTags>archives;zip;cab;msi;extraction;officeimo</PackageTags>
+    <PackageTags>archives;zip;tar;gzip;cab;msi;extraction;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
