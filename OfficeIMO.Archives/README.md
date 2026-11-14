@@ -1,6 +1,6 @@
 # OfficeIMO.Archives
 
-OfficeIMO.Archives inspects ZIP and Microsoft Cabinet archives and ordinary Windows Installer databases, reads complete verified members, and extracts ZIP, CAB and MSI payloads to disk. It runs in managed .NET and uses OfficeIMO.Core for compound storage, CAB decoding and shared ZIP validation. Extraction does not execute an installer, scripts or custom actions.
+OfficeIMO.Archives inspects ZIP and Microsoft Cabinet archives and ordinary Windows Installer databases, reads complete verified members, and extracts ZIP, CAB, MSI, TAR, .tar.gz and gzip payloads to disk. It also creates ZIP, TAR and .tar.gz archives and gzip files whose bytes depend only on their input. It runs in managed .NET and uses OfficeIMO.Core for compound storage, CAB decoding and shared ZIP validation. Extraction does not execute an installer, scripts or custom actions.
 
 ## Install
 
@@ -101,6 +101,60 @@ CAB folder decompression counts toward expansion and work bounds even when its f
 `MaxDecompressionWorkBytes` defaults to 2 GiB and is separate from `MaxExpandedBytes`. Before processing each CAB data frame, the extractor charges the greatest of 32 KiB, the complete frame record size, and the expanded bytes plus any MSZIP history replay. One budget covers every folder and embedded MSI cabinet, including repeated data offsets, gaps and unselected files. A cabinet with no data frames consumes no decompression work. For example, four one-byte MSZIP frames consume 128 KiB of work despite expanding to four bytes. The default permits at most 65,536 frames; larger frames or dictionary replay can exhaust it sooner. These units bound processing and frame setup rather than measuring exact CPU time.
 
 See [SUPPORT.md](SUPPORT.md) for supported compression and MSI profiles. There are no native archive executables to install or download.
+
+## Create ZIP archives
+
+```csharp
+using OfficeIMO.Archives;
+
+// A folder, in ordinal path order. File times are not recorded unless PreserveFileTimes is set.
+ZipArchiveWriter.CreateFromDirectory("site", "site.zip");
+
+// Explicit entries, in the order given.
+ZipArchiveWriter.Create("report.zip", new[] {
+    ArchiveWriteEntry.File("mimetype", Encoding.ASCII.GetBytes("application/example")),
+    ArchiveWriteEntry.Directory("data"),
+    ArchiveWriteEntry.File("data/summary.csv", () => File.OpenRead("summary.csv"))
+}, new ZipArchiveWriterOptions { Timestamp = ArchiveTimestamp.FromSourceDateEpoch() });
+
+// Streaming: one member at a time.
+using var output = File.Create("log.zip");
+using var writer = new ZipArchiveWriter(output);
+using (Stream entry = writer.CreateEntry("logs/today.txt"))
+    entry.Write(bytes, 0, bytes.Length);
+writer.AddFile("logs/raw.bin", File.OpenRead("raw.bin"), compression: ZipCompressionMethod.Stored);
+```
+
+`ZipArchiveWriter` follows PKWARE APPNOTE 6.3.10. Members are stored or Deflate-compressed; empty files are always stored. Names are written as UTF-8 and set general purpose bit 11 when they contain non-ASCII characters. ZIP64 fields are added only to members whose sizes reach 4 GiB, to central-directory records whose offsets do, and to the end records when there are 65,535 or more members or the directory crosses 4 GiB.
+
+The output is reproducible. Deflate uses a managed encoder with fixed parameters instead of the runtime's zlib, so the same entries give the same bytes on every operating system and target framework. Timestamps default to 1980-01-01 (the DOS epoch); set `Timestamp` to fix another time, or add `ClampToTimestamp` to cap only newer times as the reproducible-builds `SOURCE_DATE_EPOCH` convention describes. `ArchiveTimestamp.FromSourceDateEpoch()` reads that variable. Attributes are constant (Unix 0644 for files, 0755 for directories) and no varying extra fields are written. `CreateFromDirectory` orders entries by ordinal path, ignores file times unless `PreserveFileTimes` is set, and rejects symbolic links and reparse points.
+
+Each member is compressed into a staging buffer first (memory up to 8 MiB, then a private temporary file) so its local header carries the exact sizes and CRC-32, and the destination does not need to be seekable. `UseDataDescriptors` writes members straight to the destination with data descriptors instead; members of unknown length are then limited to 4 GiB. Member names pass the same checks as extraction: no absolute paths, traversal, empty or nonportable segments, reserved device names, or case and Unicode-normalization collisions. If a source stream fails mid-member, the writer stops without a central directory, so readers reject the incomplete archive instead of accepting a truncated member.
+
+## Write and read TAR and gzip
+
+```csharp
+using OfficeIMO.Archives;
+
+TarArchiveWriter.CreateFromDirectory("site", "site.tar.gz", new TarArchiveWriterOptions { GZip = true });
+
+using (var input = File.OpenRead("site.tar.gz")) {
+    foreach (TarArchiveEntry entry in ArchiveReader.ListTar(input))
+        Console.WriteLine($"{entry.Kind} {entry.Name} {entry.Length} {entry.LinkTarget}");
+}
+IReadOnlyList<ArchiveEntryData> files = ArchiveReader.ReadTar(File.ReadAllBytes("site.tar.gz"));
+ArchiveExtractor.Extract("site.tar.gz", "site-copy");
+
+using (var source = File.OpenRead("data.csv"))
+using (var target = File.Create("data.csv.gz"))
+    GZipArchive.Compress(source, target, new GZipWriterOptions { FileName = "data.csv" });
+```
+
+`TarArchiveWriter` writes POSIX ustar headers and adds a pax extended header only when a name is longer than ustar can split, contains non-ASCII characters, a size reaches 8 GiB or a time falls outside the ustar range. Owner and group are 0 with empty names, files are 0644 and directories 0755, times follow the same `Timestamp` rules as ZIP with the Unix epoch as default, and the archive ends with two zero blocks padded to a 10,240-byte record. With `GZip` the archive is wrapped in one gzip member with no file name and a zero MTIME. The output is identical on every platform and target framework.
+
+`ArchiveReader.ReadTar`, `ArchiveReader.ListTar` and `ArchiveExtractor.Extract` accept plain TAR and .tar.gz. They read ustar, pax (`x` and `g` headers with `path`, `linkpath`, `size` and `mtime`), GNU (`L` and `K` long names, base-256 numbers) and v7 headers, check every header checksum, and require each member's content to lie inside the input. Leading `./` segments are removed. Symbolic links, hard links and device or FIFO records are listed with their authored targets but never created: extraction fails if one is selected, so exclude them with `IncludeFile`. `ReadTar` returns only regular files. Sparse, multi-volume and non-UTF-8 pax members are rejected. The entry count, per-member and aggregate expansion, path depth and path length limits apply as they do to ZIP. A .tar.gz is decompressed into private staging bounded by `MaxExpandedBytes` plus 8 KiB per permitted entry and 1 MiB.
+
+`GZipArchive` writes RFC 1952 members with the same managed Deflate encoder and reads concatenated members, verifying each member's CRC-32 and length, an optional header CRC, and that nothing but zero padding follows the last member. `ArchiveExtractor.Extract` writes a single-file gzip under its stored name, or the package name without `.gz`; the name passes the usual path checks. `ArchiveInspector` inventories ZIP, CAB and MSI only and rejects TAR and gzip input with `NotSupportedException`.
 
 ## Read ZIP content in memory
 

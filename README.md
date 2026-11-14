@@ -149,7 +149,7 @@ Shared and cross-format packages:
 | Certificate signatures for Word, PDF and email | [OfficeIMO.Security](OfficeIMO.Security/README.md) |
 | Print any convertible document to installed queues or IPP printers on Windows, macOS and Linux, with sheet preview and job tracking | [OfficeIMO.Workflows](OfficeIMO.Workflows/README.md#print-a-document) |
 | Snapshot tests for generated PDFs | [OfficeIMO.Pdf.Testing](OfficeIMO.Pdf.Testing/README.md) |
-| ZIP, CAB and MSI extraction | [OfficeIMO.Archives](OfficeIMO.Archives/README.md) |
+| ZIP, CAB, MSI, TAR and gzip extraction; reproducible ZIP, TAR and gzip creation | [OfficeIMO.Archives](OfficeIMO.Archives/README.md) |
 | Google Docs, Sheets, Slides and Drive | [OfficeIMO.GoogleWorkspace](OfficeIMO.GoogleWorkspace/README.md) |
 | Confluence pages | [OfficeIMO.Confluence](OfficeIMO.Confluence/README.md) |
 | Electronic invoices | [OfficeIMO.Invoicing](OfficeIMO.Invoicing/README.md) |

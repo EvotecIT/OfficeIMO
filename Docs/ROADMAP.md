@@ -581,8 +581,11 @@ Qualify complete script-free HtmlForgeX reports through the shared HTML scene an
 
 - [ ] Qualify native Windows Shell production of Polish-filename ZIPs on a suitable Windows target with the [opt-in qualification runner](../Build/Archives/README.md#verified-cabmsi-copy-evidence), retaining the fixture, producer/Windows version, input hash, raw encoding policy and complete expected member bytes. Qualify interactive Explorer UI behavior separately. Keep both distinct from required Windows runtime CI, the existing Windows-labelled ASCII corpus and CPython CP1250 fixtures.
 - [ ] Extend named native MSI/CAB producer profiles beyond the qualified makecab and 7-Zip MSI inputs, retaining exact package/fixture hashes and complete expected bytes. Keep installed .NET Framework 4.7.2 runtime evidence distinct from the net472 consumer qualified on .NET Framework 4.8.
+- [ ] Extend the [independent TAR corpus](../OfficeIMO.Archives.Tests/Fixtures/IndependentTar/manifest.json) with archives from GNU tar itself (ustar, pax and gnu formats, including base-256 sizes and `D` directories) and Windows `tar.exe`, and run the opt-in `unzip`/`tar`/`gzip`/`python3` output check on Linux and Windows hosts. The current corpus covers bsdtar, CPython's GNU-format writer and Apple gzip on macOS.
+- [ ] Qualify ZIP64 members of 4 GiB and more written by `ZipArchiveWriter` (staged and data-descriptor modes) against Info-ZIP, 7-Zip and the .NET runtime reader, and measure the managed Deflate encoder's throughput and ratio against the runtime's zlib on representative payloads.
+- [ ] Inventory TAR and gzip through `ArchiveInspector` (ordinal entries, planned and grouped reads, verified copies) and let `OfficeIMO.Reader.Zip` report unsafe TAR members as per-entry warnings and traverse archives nested in a TAR, as it does for ZIP.
 
-TAR/GZip, archive creation, deterministic bundles, encryption, RAR/7z, split archives and installer execution remain deferred. Reassess format expansion only for an identified consumer workflow, with compatibility and dependency approval. Lazy member streams and file-backed CAB/MSI input or selected output need a separate lifetime and verification contract.
+Encryption, RAR, 7z/LZMA, XZ, Zstandard, Brotli, split archives and installer execution remain deferred. Reassess format expansion only for an identified consumer workflow, with compatibility and dependency approval. Lazy member streams and file-backed CAB/MSI input or selected output need a separate lifetime and verification contract.
 
 ## Email artifacts and archives
 
