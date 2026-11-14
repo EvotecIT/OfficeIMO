@@ -56,7 +56,15 @@ internal sealed partial class PdfStandardSecurityHandler {
         if (type == "XRef" || (!_encryptMetadata && type == "Metadata")) {
             method = PdfCryptMethod.Identity;
         } else if (TryTakeCryptFilter(dictionary, out string? filterName)) {
-            method = ResolveNamedCryptFilter(filterName!);
+            if (filterName is null) {
+                // The crypt filter parameters are an indirect object that is not available yet; do not guess /Identity.
+                return new PdfStream(dictionary, sourceData, decodingFailed: true,
+                    "The stream's /Crypt filter parameters could not be resolved, so it cannot be decrypted.") {
+                    HasIncompleteSyntax = stream.HasIncompleteSyntax
+                };
+            }
+
+            method = ResolveNamedCryptFilter(filterName);
         } else if (type == "EmbeddedFile" && _embeddedFileMethod.HasValue) {
             method = _embeddedFileMethod.Value;
         } else {
@@ -69,9 +77,12 @@ internal sealed partial class PdfStandardSecurityHandler {
         if (method != PdfCryptMethod.Identity) {
             if (_hasFileKey) {
                 data = DecryptData(objectNumber, generation, sourceData, method, cancellationToken);
-            } else {
+            } else if (type == "EmbeddedFile") {
                 decodingFailed = true;
                 decodingError = EmbeddedFileNeedsPasswordMessage;
+            } else {
+                // Only embedded files may stay encrypted when the document opened without its password.
+                throw new PdfPasswordRequiredException("Encrypted PDF requires a password.");
             }
         }
 
@@ -82,15 +93,22 @@ internal sealed partial class PdfStandardSecurityHandler {
 
     /// <summary>
     /// Removes a leading /Crypt stream filter and returns the crypt filter it names (ISO 32000-2 7.4.10); the stream's
-    /// remaining filters then decode normally.
+    /// remaining filters then decode normally. <paramref name="filterName"/> is null when the parameters are an
+    /// indirect object that cannot be resolved.
     /// </summary>
     private bool TryTakeCryptFilter(PdfDictionary dictionary, out string? filterName) {
         filterName = null;
         PdfObject? filter = Resolve(dictionary.Items.TryGetValue("Filter", out PdfObject? value) ? value : null);
-        PdfObject? parameters = Resolve(dictionary.Items.TryGetValue("DecodeParms", out PdfObject? parms) ? parms : null);
+        PdfObject? rawParameters = dictionary.Items.TryGetValue("DecodeParms", out PdfObject? parms) ? parms : null;
+        PdfObject? parameters = Resolve(rawParameters);
         PdfDictionary? cryptParameters;
+        bool isCryptFilter = filter is PdfName { Name: "Crypt" } ||
+            filter is PdfArray { Items.Count: > 0 } candidates && Resolve(candidates.Items[0]) is PdfName { Name: "Crypt" };
+        if (isCryptFilter && IsUnresolved(rawParameters)) return true;
         if (filter is PdfName { Name: "Crypt" }) {
-            cryptParameters = parameters as PdfDictionary ?? Resolve((parameters as PdfArray)?.Items.FirstOrDefault()) as PdfDictionary;
+            PdfObject? first = parameters as PdfDictionary ?? (parameters as PdfArray)?.Items.FirstOrDefault();
+            if (IsUnresolved(first)) return true;
+            cryptParameters = Resolve(first) as PdfDictionary;
             dictionary.Items.Remove("Filter");
             dictionary.Items.Remove("DecodeParms");
         } else if (filter is PdfArray filters && filters.Items.Count > 0 && Resolve(filters.Items[0]) is PdfName { Name: "Crypt" }) {
@@ -99,6 +117,7 @@ internal sealed partial class PdfStandardSecurityHandler {
             dictionary.Items["Filter"] = remainingFilters;
             cryptParameters = null;
             if (parameters is PdfArray parameterArray) {
+                if (parameterArray.Items.Count > 0 && IsUnresolved(parameterArray.Items[0])) return true;
                 cryptParameters = parameterArray.Items.Count > 0 ? Resolve(parameterArray.Items[0]) as PdfDictionary : null;
                 var remainingParameters = new PdfArray();
                 for (int index = 1; index < parameterArray.Items.Count; index++) remainingParameters.Items.Add(parameterArray.Items[index]);
@@ -118,6 +137,8 @@ internal sealed partial class PdfStandardSecurityHandler {
     /// <summary>Resolves indirect /Filter and /DecodeParms values while the document's objects are decrypted.</summary>
     internal Func<PdfReference, PdfObject?>? ReferenceResolver { get; set; }
 
+    private bool IsUnresolved(PdfObject? value) => value is PdfReference && Resolve(value) is null;
+
     private PdfObject? Resolve(PdfObject? value) =>
         value is PdfReference reference && ReferenceResolver is not null ? ReferenceResolver(reference) : value;
 
@@ -132,7 +153,8 @@ internal sealed partial class PdfStandardSecurityHandler {
     }
 
     private static PdfCryptMethod ResolveCryptFilterMethod(PdfDictionary? filter) {
-        string cfm = filter?.Get<PdfName>("CFM")?.Name ?? "V2";
+        // ISO 32000 table 25: an omitted /CFM means /None.
+        string cfm = filter?.Get<PdfName>("CFM")?.Name ?? "None";
         switch (cfm) {
             case "None":
             case "Identity":

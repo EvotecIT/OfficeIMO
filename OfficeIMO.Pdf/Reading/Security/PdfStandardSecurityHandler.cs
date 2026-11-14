@@ -193,16 +193,21 @@ internal sealed partial class PdfStandardSecurityHandler {
 
     private byte[] DecryptData(int objectNumber, int generation, byte[] data, PdfCryptMethod method, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (method == PdfCryptMethod.Identity || data.Length == 0) {
+        if (method == PdfCryptMethod.Identity) {
+            return data;
+        }
+
+        // AES-GCM authenticates even empty content: an empty value cannot carry its nonce and tag.
+        if (method == PdfCryptMethod.AesV4) {
+            return PdfAesGcm.Decrypt(_fileKey, data, _aesCryptographyProvider, cancellationToken);
+        }
+
+        if (data.Length == 0) {
             return data;
         }
 
         if (method == PdfCryptMethod.AesV3) {
             return DecryptAesV2(_fileKey, data, cancellationToken);
-        }
-
-        if (method == PdfCryptMethod.AesV4) {
-            return PdfAesGcm.Decrypt(_fileKey, data, _aesCryptographyProvider, cancellationToken);
         }
 
         byte[] objectKey = ComputeObjectKey(objectNumber, generation, method == PdfCryptMethod.AesV2);
@@ -342,9 +347,10 @@ internal sealed partial class PdfStandardSecurityHandler {
     private static byte[] ComputeOwnerPasswordKey(string password, int revision, int keyLengthBytes, CancellationToken cancellationToken) {
         byte[] digest = Md5(PadPassword(password, cancellationToken));
         if (revision >= 3) {
+            // ISO 32000-2 algorithm 3 rehashes the whole previous digest; only the final key is truncated.
             for (int i = 0; i < 50; i++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                digest = Md5(Take(digest, keyLengthBytes, cancellationToken));
+                digest = Md5(digest);
             }
         }
 

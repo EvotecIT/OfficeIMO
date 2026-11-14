@@ -42,7 +42,7 @@ internal static partial class PdfSyntax {
         PdfReadLimits? limits,
         CancellationToken cancellationToken) {
         PdfReference? reference = ReadTrailerReference(trailerRaw, "Encrypt", limits, cancellationToken);
-        if (reference is not null || ContainsAnyPdfName(trailerRaw, "Encrypt")) return reference;
+        if (reference is not null || TrailerDeclaresKey(trailerRaw, "Encrypt", limits, cancellationToken)) return reference;
         PdfReference? found = null;
         foreach (PdfIndirectObject indirect in map.Values) {
             cancellationToken.ThrowIfCancellationRequested();

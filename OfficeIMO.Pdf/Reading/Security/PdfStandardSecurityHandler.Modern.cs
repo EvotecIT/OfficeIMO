@@ -28,6 +28,8 @@ internal sealed partial class PdfStandardSecurityHandler {
 
         byte[]? fileKey = null;
         PdfPasswordAuthenticationRole authenticationRole = PdfPasswordAuthenticationRole.None;
+        // Every candidate is tried as the owner password before any as the user password, so an owner password that
+        // differs from the user password only in characters SASLprep removes still authenticates as the owner.
         foreach (byte[] passwordBytes in candidates) {
             fileKey = TryAuthenticateModernOwner(
                 passwordBytes,
@@ -37,9 +39,15 @@ internal sealed partial class PdfStandardSecurityHandler {
                 revision,
                 aesCryptographyProvider,
                 cancellationToken);
-            authenticationRole = PdfPasswordAuthenticationRole.Owner;
             cancellationToken.ThrowIfCancellationRequested();
-            if (fileKey is null) {
+            if (fileKey is not null) {
+                authenticationRole = PdfPasswordAuthenticationRole.Owner;
+                break;
+            }
+        }
+
+        if (fileKey is null) {
+            foreach (byte[] passwordBytes in candidates) {
                 fileKey = TryAuthenticateModernUser(
                     passwordBytes,
                     userEntry,
@@ -47,10 +55,12 @@ internal sealed partial class PdfStandardSecurityHandler {
                     revision,
                     aesCryptographyProvider,
                     cancellationToken);
-                authenticationRole = PdfPasswordAuthenticationRole.User;
+                cancellationToken.ThrowIfCancellationRequested();
+                if (fileKey is not null) {
+                    authenticationRole = PdfPasswordAuthenticationRole.User;
+                    break;
+                }
             }
-
-            if (fileKey is not null) break;
         }
 
         cancellationToken.ThrowIfCancellationRequested();

@@ -80,9 +80,9 @@ function Protect-Data([byte[]] $FileKey, [byte[]] $Data, [string] $Method) {
 
 function ConvertTo-Hex([byte[]] $Bytes) { '<' + [Convert]::ToHexString($Bytes) + '>' }
 
-# A literal string with octal escapes for everything but printable ASCII; ']' stays literal.
+# A literal string: printable ASCII and bytes above 0x7F stay raw (']' included), other bytes use octal escapes.
 function ConvertTo-LiteralString([byte[]] $Bytes) {
-    $text = foreach ($b in $Bytes) { if ($b -ge 0x20 -and $b -lt 0x7F -and $b -notin 0x28, 0x29, 0x5C) { [string][char]$b } else { '\' + [Convert]::ToString($b, 8).PadLeft(3, '0') } }
+    $text = foreach ($b in $Bytes) { if (($b -ge 0x20 -and $b -ne 0x7F) -and $b -notin 0x28, 0x29, 0x5C) { [string][char]$b } else { '\' + [Convert]::ToString($b, 8).PadLeft(3, '0') } }
     '(' + (-join $text) + ')'
 }
 
@@ -107,7 +107,8 @@ function Get-XorKey([byte[]] $Key, [int] $Value) { return , [byte[]]($Key | ForE
 # ISO 32000-2 algorithms 2, 3 and 5 for revision 3 with a 40-bit key.
 function New-Revision3Entries([byte[]] $UserPassword, [byte[]] $OwnerPassword, [int] $Permissions, [byte[]] $FileId, [int] $KeyLength) {
     $ownerKey = Get-Md5 (Get-PaddedPassword $OwnerPassword)
-    for ($i = 0; $i -lt 50; $i++) { $ownerKey = Get-Md5 ([byte[]]$ownerKey[0..($KeyLength - 1)]) }
+    # Algorithm 3 rehashes the whole digest each round; algorithm 2 below truncates every round.
+    for ($i = 0; $i -lt 50; $i++) { $ownerKey = Get-Md5 $ownerKey }
     $ownerKey = [byte[]]$ownerKey[0..($KeyLength - 1)]
     $o = Invoke-Rc4 $ownerKey (Get-PaddedPassword $UserPassword)
     for ($i = 1; $i -le 19; $i++) { $o = Invoke-Rc4 (Get-XorKey $ownerKey $i) $o }
@@ -165,7 +166,8 @@ function New-PageObjects([byte[]] $ContentObject, [byte[]] $TitleString, [string
 function Get-PageContent([string] $Text) { return , $latin1.GetBytes("BT /F1 18 Tf 36 120 Td ($Text) Tj ET") }
 
 # Revision 6 (AESV3) or revision 7 (AESV4). Modes: Document encrypts strings and streams; IdentityContentStream leaves the
-# page content in clear text behind a /Crypt stream filter naming /Identity; EmbeddedFilesOnly encrypts only the embedded
+# page content in clear text behind a /Crypt stream filter naming /Identity; DefaultMethodContentStream does the same through a
+# named crypt filter that omits /CFM, which defaults to /None; EmbeddedFilesOnly encrypts only the embedded
 # file (/StmF and /StrF /Identity, /EFF /StdCF, /AuthEvent /EFOpen).
 function New-ModernFixture([string] $Name, [byte[]] $UserPassword, [byte[]] $OwnerPassword, [string] $Method, [string] $Text, [string] $Mode = 'Document') {
     $version = if ($Method -eq 'AESV4') { 6 } else { 5 }
@@ -185,6 +187,11 @@ function New-ModernFixture([string] $Name, [byte[]] $UserPassword, [byte[]] $Own
         'IdentityContentStream' {
             $contentObject = New-StreamObject $content ' /Filter [/Crypt] /DecodeParms [<< /Type /CryptFilterDecodeParms /Name /Identity >>]'
             $title = Protect-Data $fileKey $title $Method
+        }
+        'DefaultMethodContentStream' {
+            $contentObject = New-StreamObject $content ' /Filter [/Crypt] /DecodeParms [<< /Type /CryptFilterDecodeParms /Name /ClearCF >>]'
+            $title = Protect-Data $fileKey $title $Method
+            $filters = '/CF << /StdCF << /AuthEvent /DocOpen /CFM /' + $Method + ' /Length 32 >> /ClearCF << /AuthEvent /DocOpen >> >> /StmF /StdCF /StrF /StdCF'
         }
         'EmbeddedFilesOnly' {
             $contentObject = New-StreamObject $content
@@ -208,7 +215,7 @@ function New-ModernFixture([string] $Name, [byte[]] $UserPassword, [byte[]] $Own
 function New-Revision3Fixture([string] $Name, [byte[]] $UserPassword, [byte[]] $OwnerPassword, [string] $Text, [int] $Version = 1, [int] $KeyLength = 5, [switch] $LiteralIdWithBracket) {
     $permissions = -1852
     $fileIdBytes = Get-RandomBytes 16
-    if ($LiteralIdWithBracket) { $fileIdBytes[1] = 0x5D }
+    if ($LiteralIdWithBracket) { $fileIdBytes[1] = 0x5D; $fileIdBytes[2] = 0xE9 }
     $entries = New-Revision3Entries $UserPassword $OwnerPassword $permissions $fileIdBytes $KeyLength
     $objects = New-PageObjects (New-StreamObject (Protect-Rc4Object $entries.FileKey 4 (Get-PageContent $Text))) (Protect-Rc4Object $entries.FileKey 6 (ConvertTo-PdfTextString $Text))
     $objects.Add($latin1.GetBytes("<< /Filter /Standard /V $Version /R 3 /P $permissions /O $(ConvertTo-Hex $entries.O) /U $(ConvertTo-Hex $entries.U) >>"))
@@ -222,6 +229,7 @@ New-ModernFixture 'r6-saslprep.pdf' $utf8.GetBytes('SaSLprep') $utf8.GetBytes('o
 # A producer that skipped the SASLprep mapping stored NFKC("pass" U+00AD "word") with the soft hyphen kept.
 New-ModernFixture 'r6-unprepared-password.pdf' $utf8.GetBytes("pass$([char]0x00AD)word") $utf8.GetBytes('owner') 'AESV3' 'Unprepared R6'
 New-ModernFixture 'r6-identity-crypt-filter-stream.pdf' $utf8.GetBytes('open') $utf8.GetBytes('owner') 'AESV3' 'Identity stream R6' 'IdentityContentStream'
+New-ModernFixture 'r6-crypt-filter-without-method.pdf' $utf8.GetBytes('open') $utf8.GetBytes('owner') 'AESV3' 'Default method R6' 'DefaultMethodContentStream'
 New-ModernFixture 'r6-embedded-files-only.pdf' $utf8.GetBytes('open') $utf8.GetBytes('owner') 'AESV3' 'Attachments only R6' 'EmbeddedFilesOnly'
 New-ModernFixture 'r7-aes-gcm.pdf' $utf8.GetBytes('open') $utf8.GetBytes('owner') 'AESV4' 'AES-GCM R7'
 New-Revision3Fixture 'r3-rc4-40-default-length.pdf' $utf8.GetBytes('open') $utf8.GetBytes('owner') 'RC4 40 R3'

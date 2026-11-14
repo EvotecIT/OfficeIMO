@@ -80,13 +80,16 @@ public sealed class PdfStandardEncryptionInteroperabilityTests {
             Text(pdf, new PdfLoadOptions { Password = "open", AesCryptographyProvider = provider }));
     }
 
-    [Fact]
-    public void StreamsSelectingTheIdentityCryptFilterAreReadAsStored() {
-        byte[] pdf = Fixture("r6-identity-crypt-filter-stream.pdf");
+    // An explicit /Identity filter and a named filter without /CFM (whose default is /None) both leave the stream as stored.
+    [Theory]
+    [InlineData("r6-identity-crypt-filter-stream.pdf", "Identity stream R6")]
+    [InlineData("r6-crypt-filter-without-method.pdf", "Default method R6")]
+    public void StreamsSelectingAnUnencryptedCryptFilterAreReadAsStored(string fixture, string text) {
+        byte[] pdf = Fixture(fixture);
         var options = new PdfLoadOptions { Password = "open" };
 
-        Assert.Contains("Identity stream R6", Text(pdf, options), StringComparison.Ordinal);
-        Assert.Equal("Identity stream R6", PdfInspector.Inspect(pdf, options).Metadata.Title);
+        Assert.Contains(text, Text(pdf, options), StringComparison.Ordinal);
+        Assert.Equal(text, PdfInspector.Inspect(pdf, options).Metadata.Title);
     }
 
     [Fact]
@@ -119,6 +122,9 @@ public sealed class PdfStandardEncryptionInteroperabilityTests {
 
         PdfExtractedAttachment attachment = Assert.Single(PdfDocument.Load(rewritten, options).Attachments.Extract(options));
         Assert.Equal("Attachment secret", System.Text.Encoding.ASCII.GetString(attachment.Bytes));
+        // The rewrite keeps embedded-file-only encryption: pages read without the password, attachments do not.
+        Assert.Contains("Attachments only R6", Text(rewritten, new PdfLoadOptions()), StringComparison.Ordinal);
+        Assert.Throws<PdfPasswordRequiredException>(() => PdfDocument.Load(rewritten).Attachments.Extract());
     }
 
     [Fact]
@@ -128,6 +134,17 @@ public sealed class PdfStandardEncryptionInteroperabilityTests {
         byte[] rewritten = PdfDocument.Load(Fixture("r3-literal-id-with-bracket.pdf"), options).Pages.Extract("1").ToBytes();
 
         Assert.Contains("Literal ID R3", Text(rewritten, options), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void IncrementalUpdatesKeepALiteralFileIdentifierWithHighBytes() {
+        // The identifier holds ']' and the raw byte 0xE9; the appended trailer must repeat those exact bytes.
+        var options = new PdfLoadOptions { Password = "owner" };
+        PdfOperationResult<PdfDocument> rotation = PdfDocument.Load(Fixture("r3-literal-id-with-bracket.pdf"), options).Pages.RotateResult(90, "1");
+        Assert.Equal(PdfMutationExecutionMode.AppendOnly, rotation.MutationPlan!.ExecutionMode);
+        byte[] rotated = rotation.RequireValue().ToBytes();
+
+        Assert.Contains("Literal ID R3", Text(rotated, options), StringComparison.Ordinal);
     }
 
     private static int IndexOf(byte[] data, string marker) {
