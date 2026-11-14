@@ -138,8 +138,19 @@ _Dependency footprint:_ `OfficeIMO.Core`, HarfBuzzSharp, and its platform-native
 - [x] Optional typed bridge from CodeGlyphX QR, matrix, and linear barcode symbols to reusable `OfficeDrawing` scenes
 - [x] Neutral SVG handoff without making either core package depend on the other
 - [x] Searchable barcode label text and explicit unsupported-import counts
+- [x] Shared `OfficeBarcodeOptions` and physical-size rendering for the Word, Excel, PowerPoint and PDF code adapters
 
-_Dependency footprint:_ only `OfficeIMO.Core` and CodeGlyphX; both core packages remain independently usable.
+_Dependency footprint:_ only `OfficeIMO.Core` and CodeGlyphX 3.1 or later; both core packages remain independently usable.
+
+#### QR code and barcode adapters
+
+- [x] [`OfficeIMO.Word.CodeGlyphX`](../OfficeIMO.Word.CodeGlyphX/README.md): `AddQrCode` and `AddBarcode` on documents and paragraphs
+- [x] [`OfficeIMO.Excel.CodeGlyphX`](../OfficeIMO.Excel.CodeGlyphX/README.md): codes anchored at a worksheet cell
+- [x] [`OfficeIMO.PowerPoint.CodeGlyphX`](../OfficeIMO.PowerPoint.CodeGlyphX/README.md): codes at a slide position or fitted to a layout box
+- [x] [`OfficeIMO.Pdf.CodeGlyphX`](../OfficeIMO.Pdf.CodeGlyphX/README.md): vector codes in the content flow or at page coordinates
+- [x] Every CodeGlyphX symbology through one `SymbolFormat` argument, with alternative text from the payload by default
+
+_Dependency footprint:_ each adapter adds only its format engine, `OfficeIMO.Drawing.CodeGlyphX` and CodeGlyphX.
 
 #### [OfficeIMO.ChartForgeX](../OfficeIMO.ChartForgeX/README.md)
 

@@ -5940,7 +5940,13 @@ and portable default locations.
 
 `OfficeIMO.ChartForgeX` and `OfficeIMO.ChartForgeX.Markdown` use ChartForgeX 3.0.0. Prepare visuals with the shared `VisualTheme` and `VisualThemeMode` API. Replace legacy theme factories such as `TopologyTheme.Light()` with `WithThemeMode(VisualThemeMode.Light)`, or pass a paired theme to `WithTheme(...)`. Customize theme colors through `ConfigureTheme(...)`; for example, `theme.Light.Surface` supplies the topology card fill. The OfficeIMO conversion and document-placement APIs are unchanged.
 
-`OfficeIMO.Drawing.CodeGlyphX` requires CodeGlyphX 3.x (`[3.0.0, 4.0.0)`). Update an application's direct CodeGlyphX reference to the same major version when using this bridge. Create QR codes with `QR.Encode(...)` and `QrEncodingOptions`, and use the shared `CodeGlyphX.Rendering.QrModuleShape` enum for styled modules.
+`OfficeIMO.Drawing.CodeGlyphX` requires CodeGlyphX 3.1 or later within version 3 (`[3.1.0, 4.0.0)`), which provides the human-readable text of linear barcodes. Update an application's direct CodeGlyphX reference to 3.1 or later when using this bridge. Create QR codes with `QR.Encode(...)` and `QrEncodingOptions`, and use the shared `CodeGlyphX.Rendering.QrModuleShape` enum for styled modules. CodeGlyphX 3.1 draws styled QR modules as path contours; `ToOfficeDrawing` imports them as path shapes rather than one ellipse per module, and rejects contour output beyond one million path commands, which can occur for styled QR codes above about version 30.
+
+To put a code in a document, reference the adapter for that format instead of building drawings by hand: `OfficeIMO.Word.CodeGlyphX`, `OfficeIMO.Excel.CodeGlyphX`, `OfficeIMO.PowerPoint.CodeGlyphX` or `OfficeIMO.Pdf.CodeGlyphX`, then call `AddQrCode(...)` or `AddBarcode(SymbolFormat, ...)`.
+
+## SVG pictures in Excel and PowerPoint
+
+`ExcelSheet.AddImage` and `PowerPointSlide.AddImage` now store an SVG the way Excel and PowerPoint do: the SVG goes in the Office 2016 blip extension and the ordinary picture carries a PNG fallback, so older readers and Office versions show the image. An SVG with features the fallback renderer cannot draw completely is still stored as the only picture, as before. As in Word, a picture with an SVG extension is that SVG: `ExcelImage.ContentType`, `ExcelImage.ToBytes()`, `PowerPointImage.ContentType` and `PowerPointImage.GetImageBytes()` return the SVG, including for SVG pictures in files saved by Office, which previously returned the PNG fallback. Excel PDF export, which skipped SVG pictures, now exports them through their fallback; PowerPoint PDF export uses the fallback when it cannot draw the SVG. Word's SVG extension now uses the identifier Office expects, `{96DAC541-7B7A-43D3-8B79-37D633B846F1}`.
 
 ## Strict PDF standards helpers
 

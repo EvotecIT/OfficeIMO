@@ -19,6 +19,13 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.Drawing.CodeGlyphX\OfficeIMO.Drawing.CodeGlyphX.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.CodeGlyphX\OfficeIMO.Word.CodeGlyphX.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel.CodeGlyphX\OfficeIMO.Excel.CodeGlyphX.csproj" />
+    <ProjectReference Include="..\OfficeIMO.PowerPoint.CodeGlyphX\OfficeIMO.PowerPoint.CodeGlyphX.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Pdf.CodeGlyphX\OfficeIMO.Pdf.CodeGlyphX.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel.Pdf\OfficeIMO.Excel.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.PowerPoint.Pdf\OfficeIMO.PowerPoint.Pdf.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(CodeGlyphXProjectPath)' != '' And Exists('$(CodeGlyphXProjectPath)')">
@@ -26,6 +33,6 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(CodeGlyphXProjectPath)' == '' Or !Exists('$(CodeGlyphXProjectPath)')">
-    <PackageReference Include="CodeGlyphX" Version="[3.0.0, 4.0.0)" />
+    <PackageReference Include="CodeGlyphX" Version="[3.1.0, 4.0.0)" />
   </ItemGroup>
 </Project>
