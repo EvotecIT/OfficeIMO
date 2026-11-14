@@ -9,6 +9,10 @@ internal static partial class MarkdownReader {
     // options copy is read-only.
     private static MarkdownLoadOptions GetSharedOptionsWithoutFrontMatter(MarkdownLoadOptions source, MarkdownReaderState state) {
         var cache = state.ParseCache;
+        if (ReferenceEquals(cache.OptionsWithoutFrontMatter, source)) {
+            return source;
+        }
+
         if (!ReferenceEquals(cache.OptionsWithoutFrontMatterSource, source) || cache.OptionsWithoutFrontMatter == null) {
             cache.OptionsWithoutFrontMatter = CloneOptionsWithoutFrontMatter(source);
             cache.OptionsWithoutFrontMatterSource = source;
