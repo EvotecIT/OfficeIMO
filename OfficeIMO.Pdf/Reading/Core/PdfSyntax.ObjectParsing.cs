@@ -591,7 +591,8 @@ internal static partial class PdfSyntax {
     private static PdfToken[] RentTokens(int minimumLength) {
         if (minimumLength > LargeTokenArrayLength) {
             PdfToken[]? cached = t_largeTokens;
-            if (cached is not null && cached.Length >= minimumLength) {
+            // A much larger array would make every return clear far more slots than this object used.
+            if (cached is not null && cached.Length >= minimumLength && cached.Length / 4 <= minimumLength) {
                 t_largeTokens = null;
                 return cached;
             }
