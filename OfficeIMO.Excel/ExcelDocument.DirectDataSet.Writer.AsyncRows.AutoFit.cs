@@ -41,32 +41,51 @@ namespace OfficeIMO.Excel {
                 return count;
             }
 
+            /// <summary>
+            /// Measures the spooled cells. Cells are read from the XML reader without building OpenXml cells; shared strings
+            /// and unknown types are measured from their markup, and content the reader does not expect sends the whole
+            /// sheet through the markup path, so every cell is measured the same way either way.
+            /// </summary>
             private static double[] MeasureStreamingColumns(Stream spool, DirectDataSetSheetModel sheet,
-                Stylesheet stylesheet, ExcelDateSystem dateSystem, CancellationToken ct) {
+                Stylesheet stylesheet, ExcelDateSystem dateSystem, CancellationToken ct, bool cellsFromMarkup = false) {
                 var widths = new double[sheet.Table.ColumnCount];
                 var measurer = new ExcelSheet.AutoFitWidthMeasurer(stylesheet);
-                using var reader = XmlReader.Create(spool, new XmlReaderSettings { CloseInput = false, DtdProcessing = DtdProcessing.Prohibit });
-                int row = 0;
-                int column = 0;
-                while (!reader.EOF) {
-                    ct.ThrowIfCancellationRequested();
-                    if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "row") {
-                        row = int.TryParse(reader.GetAttribute("r"), out int rowNumber) ? rowNumber : row + 1;
-                        column = 0;
+                long start = spool.Position;
+                using (var reader = XmlReader.Create(spool, new XmlReaderSettings { CloseInput = false, DtdProcessing = DtdProcessing.Prohibit })) {
+                    int row = 0;
+                    int column = 0;
+                    while (!reader.EOF) {
+                        ct.ThrowIfCancellationRequested();
+                        if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "row") {
+                            row = int.TryParse(reader.GetAttribute("r"), out int rowNumber) ? rowNumber : row + 1;
+                            column = 0;
+                        }
+                        if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "c") {
+                            bool tableHeader = row == (sheet.StreamingLayout?.HeaderRow ?? 1) && sheet.IncludeHeaders && sheet.HasTable;
+                            ExcelSheet.AutoFitCellParts parts = default;
+                            var read = cellsFromMarkup ? ExcelSheet.AutoFitCellParts.ReadResult.Markup
+                                : ExcelSheet.AutoFitCellParts.Read(reader, out parts);
+                            if (read == ExcelSheet.AutoFitCellParts.ReadResult.Unsupported) {
+                                cellsFromMarkup = true;
+                                break;
+                            }
+
+                            double width = read == ExcelSheet.AutoFitCellParts.ReadResult.Read
+                                ? measurer.MeasureCell(parts, dateSystem, tableHeader, sheet.IncludeAutoFilter)
+                                : measurer.MeasureCell(new Cell(reader.ReadOuterXml()), dateSystem, tableHeader, sheet.IncludeAutoFilter);
+                            if (sheet.StreamingLayout == null || sheet.StreamingLayout.AutoFitColumns[column])
+                                widths[column] = Math.Max(widths[column], NormalizeColumnWidth(width));
+                            column++;
+                        } else {
+                            reader.Read();
+                        }
                     }
-                    if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "c") {
-                        var cell = new Cell(reader.ReadOuterXml());
-                        double width = measurer.MeasureCell(cell, dateSystem,
-                            tableHeader: row == (sheet.StreamingLayout?.HeaderRow ?? 1) && sheet.IncludeHeaders && sheet.HasTable,
-                            filterButton: sheet.IncludeAutoFilter);
-                        if (sheet.StreamingLayout == null || sheet.StreamingLayout.AutoFitColumns[column])
-                            widths[column] = Math.Max(widths[column], NormalizeColumnWidth(width));
-                        column++;
-                    } else {
-                        reader.Read();
-                    }
+
+                    if (!cellsFromMarkup || reader.EOF) return widths;
                 }
-                return widths;
+
+                spool.Position = start;
+                return MeasureStreamingColumns(spool, sheet, stylesheet, dateSystem, ct, cellsFromMarkup: true);
             }
         }
     }
