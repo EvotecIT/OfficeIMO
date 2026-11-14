@@ -58,6 +58,10 @@ internal static partial class PdfStandardSecurityWriter {
         Guard.NotNull(options, nameof(options));
         if (objectMemoryLimitBytes < 0L) throw new ArgumentOutOfRangeException(nameof(objectMemoryLimitBytes), objectMemoryLimitBytes, "PDF object-buffer memory limit cannot be negative.");
 
+        if (options.PublicKey is not null) {
+            return EncryptPublicKey(sourceObjects, options, objectMemoryLimitBytes, cancellationToken);
+        }
+
         switch (options.Algorithm) {
             case PdfStandardEncryptionAlgorithm.Aes256:
                 return EncryptAes256(sourceObjects, options, objectMemoryLimitBytes, cancellationToken);

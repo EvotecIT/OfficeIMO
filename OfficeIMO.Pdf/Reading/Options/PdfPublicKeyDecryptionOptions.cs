@@ -38,6 +38,19 @@ public sealed class PdfPublicKeyDecryptionOptions {
         : this(securityProvider, new[] { recipientCertificate ?? throw new ArgumentNullException(nameof(recipientCertificate)) }) {
     }
 
+    private PdfPublicKeyDecryptionOptions(byte[] knownRecipientContent) {
+        SecurityProvider = null!;
+        RecipientCertificates = Array.Empty<X509Certificate2>();
+        KnownRecipientContent = knownRecipientContent;
+    }
+
+    /// <summary>
+    /// Reopens output OfficeIMO just encrypted for certificate recipients: the writer knows the seed and permissions it
+    /// enveloped, so preservation proof does not need a recipient's private key.
+    /// </summary>
+    internal static PdfPublicKeyDecryptionOptions ForWriterVerification(byte[] recipientContent) => new(recipientContent);
+
+    internal byte[]? KnownRecipientContent { get; }
     internal IOfficeSecurityProvider SecurityProvider { get; }
 
     internal IReadOnlyList<X509Certificate2> RecipientCertificates { get; }

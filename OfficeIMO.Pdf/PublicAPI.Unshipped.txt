@@ -1104,3 +1104,15 @@ OfficeIMO.Pdf.PdfRecipientDecryptionException
 OfficeIMO.Pdf.PdfRecipientDecryptionException.PdfRecipientDecryptionException(string! message) -> void
 OfficeIMO.Pdf.PdfRecipientNotFoundException
 OfficeIMO.Pdf.PdfRecipientNotFoundException.PdfRecipientNotFoundException(string! message) -> void
+OfficeIMO.Pdf.PdfDocumentSecurity.EncryptForRecipients(OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions! encryption) -> OfficeIMO.Pdf.PdfSecurityMutationResult!
+OfficeIMO.Pdf.PdfDocumentSecurity.EncryptForRecipients(OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions! encryption, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfSecurityMutationResult!
+OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions
+OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions.PdfPublicKeyEncryptionOptions(OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Collections.Generic.IEnumerable<System.Security.Cryptography.X509Certificates.X509Certificate2!>! recipientCertificates) -> void
+OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions.PdfPublicKeyEncryptionOptions(OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! recipientCertificate) -> void
+OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions.RecipientCount.get -> int
+OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions.AllowedPermissions.get -> OfficeIMO.Pdf.PdfStandardPermissions
+OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions.AllowedPermissions.set -> void
+OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions.EncryptMetadata.get -> bool
+OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions.EncryptMetadata.set -> void
+OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions.AesCryptographyProvider.get -> OfficeIMO.Security.IOfficeAesCryptographyProvider?
+OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions.AesCryptographyProvider.set -> void
