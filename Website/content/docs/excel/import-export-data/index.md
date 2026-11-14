@@ -5,6 +5,11 @@ order: 27
 packages:
   - OfficeIMO.Excel
   - OfficeIMO.Excel.Csv
+search_terms:
+  - read excel
+  - excel to csv
+  - datatable to excel
+  - import excel
 ---
 
 OfficeIMO.Excel reads and writes the shapes .NET code already uses: typed objects, `DataTable`, and `IDataReader`. Header names map to property names, and cell values keep their types (numbers, dates, booleans) instead of becoming text.

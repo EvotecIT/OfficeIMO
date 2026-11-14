@@ -7,6 +7,10 @@ packages:
 cmdlets:
   - Protect-OfficeDocument
 limits: "In PowerShell, `Get-OfficeDocumentCapability -Protection` lists the protection operations each format supports."
+search_terms:
+  - protect workbook
+  - password excel
+  - lock sheet
 ---
 
 Excel has two different kinds of protection, and they solve different problems:

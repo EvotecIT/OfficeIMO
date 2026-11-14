@@ -7,6 +7,10 @@ packages:
 cmdlets:
   - Get-OfficeDocumentCapability
 limits: "A registered handler is not a claim of complete format preservation; each capability lists its format qualifications."
+search_terms:
+  - supported formats
+  - file types
+  - reader formats
 ---
 
 A reader only handles the formats you registered, so the supported set is a property of your configuration. The full list of adapter packages and extensions is in the [supported formats table](/docs/reader/#supported-formats); this page shows how to check it at run time.

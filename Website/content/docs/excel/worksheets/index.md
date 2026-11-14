@@ -2,6 +2,11 @@
 title: Worksheets
 description: Working with Excel worksheets in OfficeIMO.Excel — cells, formatting, formulas, and named ranges. Includes examples and API links.
 order: 21
+search_terms:
+  - add sheet
+  - excel worksheet
+  - freeze panes
+  - column width
 ---
 
 The `ExcelSheet` class represents a single worksheet within an Excel workbook. It provides access to cells, ranges, rows, columns, formatting, formulas, named ranges, page setup, and the sheet view.

@@ -7,6 +7,10 @@ packages:
 cmdlets:
   - Remove-OfficePdfContent
 limits: "Scanned pages need a text layer (OCR) before text can be found."
+search_terms:
+  - redact pdf
+  - remove text pdf
+  - black out
 ---
 
 Redaction removes content from the page: the matched text, and optionally the image and vector content underneath it, is deleted from the content stream and the area is painted over. Drawing a black rectangle on top of text is not redaction, because the text stays extractable.

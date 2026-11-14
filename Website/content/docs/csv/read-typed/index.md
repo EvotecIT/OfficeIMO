@@ -7,6 +7,10 @@ packages:
 cmdlets:
   - Import-OfficeCsv
 limits: "Input-size, field-length, and decompression limits are on `CsvLoadOptions` and `CsvReaderOptions`."
+search_terms:
+  - read csv
+  - parse csv
+  - csv to objects
 ---
 
 Choose the read path by what happens next. Load a `CsvDocument` when you will edit, sort, filter, or save the rows. Open a `CsvDataReader` when you read once, from start to end: it does not keep the file in memory, and it is a `DbDataReader`, so it plugs into anything that accepts one.

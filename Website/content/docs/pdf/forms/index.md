@@ -7,6 +7,10 @@ packages:
 cmdlets:
   - Set-OfficePdfFormField
 limits: "On hybrid AcroForm/XFA forms the AcroForm fields are filled; XFA-aware viewers may keep showing the original XFA data. For signed or certified forms, `Forms.AppendRevision(values)` adds the values as a new revision after the original bytes instead of rewriting the file."
+search_terms:
+  - fill pdf form
+  - acroform
+  - flatten pdf
 ---
 
 PDF forms (AcroForms) are named fields: text boxes, check boxes, choice lists, and radio groups. Fill them by field name. Filling keeps the fields editable; flattening turns their values into ordinary page content so they can no longer be changed.

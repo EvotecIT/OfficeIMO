@@ -5,6 +5,10 @@ order: 25
 packages:
   - OfficeIMO.Excel
 limits: "Formula calculation covers the supported function set; other functions are written unchanged and calculated by the spreadsheet application."
+search_terms:
+  - excel formula
+  - calculate
+  - formula evaluation
 ---
 
 Formulas are stored as Excel formulas, so Excel and other spreadsheet applications recalculate them on open. OfficeIMO.Excel can also calculate the functions it supports and cache the results, so readers that do not recalculate (search indexers, previews, `GetValue`) see the numbers.

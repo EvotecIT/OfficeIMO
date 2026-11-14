@@ -5,6 +5,11 @@ order: 28
 packages:
   - OfficeIMO.Excel
 limits: "Benchmark results for these paths are on the [benchmarks page](/benchmarks/)."
+search_terms:
+  - large excel
+  - streaming
+  - fast excel
+  - big xlsx
 ---
 
 `ExcelDocument.Create` and `Load` keep the whole workbook editable until `Save()`. That is the right model for reports and templates. For exports and imports measured in hundreds of thousands of rows, use the forward-only paths below: they hold one row at a time instead of the whole sheet.

@@ -4,6 +4,12 @@ description: Create an Excel workbook with a typed table and a chart, then read 
 order: 23
 packages:
   - OfficeIMO.Excel
+search_terms:
+  - create excel
+  - read excel
+  - xlsx
+  - write excel file
+  - excel c#
 ---
 
 This page creates a workbook from a list of objects, adds a native Excel table and a chart, saves it, and reads the rows back. Nothing else needs to be installed: OfficeIMO.Excel writes the `.xlsx` package directly.

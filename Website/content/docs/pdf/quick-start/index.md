@@ -4,6 +4,10 @@ description: "Create a PDF with headings, paragraphs, a table, and an image, the
 layout: docs
 packages:
   - OfficeIMO.Pdf
+search_terms:
+  - create pdf
+  - generate pdf
+  - pdf c#
 ---
 
 OfficeIMO.Pdf writes and reads PDF files directly in .NET. It has no native dependencies and does not need a browser, printer driver, or Office installation.

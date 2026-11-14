@@ -2,6 +2,10 @@
 title: Tables and Ranges
 description: Excel tables with AutoFilter, data validation, and conditional formatting in OfficeIMO.Excel. Includes examples and API links.
 order: 22
+search_terms:
+  - excel table
+  - named range
+  - data validation
 ---
 
 OfficeIMO.Excel supports structured Excel tables with AutoFilter, built-in table styles, data validation rules, and conditional formatting. These features help create professional, interactive spreadsheets.

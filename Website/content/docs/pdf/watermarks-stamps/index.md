@@ -6,6 +6,10 @@ packages:
   - OfficeIMO.Pdf
 cmdlets:
   - Add-OfficePdfStamp
+search_terms:
+  - watermark pdf
+  - stamp pdf
+  - pdf metadata
 ---
 
 A watermark is drawn across the page, usually behind or over the content with low opacity. A stamp places text or an image at a position on selected pages, such as an approval mark or a page label. Positions are measured in points from the bottom-left corner of the page.

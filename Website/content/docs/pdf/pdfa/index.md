@@ -7,6 +7,10 @@ packages:
 cmdlets:
   - Get-OfficePdfCompliance
 limits: "OfficeIMO reports what it changed and what blocks conversion; it does not certify conformance on its own. Confirm the saved file with an independent PDF/A validator when compliance is a requirement. PDF/A-4e is not a conversion target."
+search_terms:
+  - pdf/a
+  - archive pdf
+  - pdfa conversion
 ---
 
 PDF/A is the ISO profile for long-term archiving: fonts are embedded, colors are device-independent, and features that depend on external resources are removed. OfficeIMO.Pdf supports the `PdfA2B` (default), `PdfA2U`, `PdfA3B`, `PdfA3U`, `PdfA4`, and `PdfA4F` profiles.

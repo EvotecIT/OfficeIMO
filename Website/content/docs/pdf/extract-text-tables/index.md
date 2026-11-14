@@ -8,6 +8,11 @@ packages:
 cmdlets:
   - Read-OfficeDocument
 limits: "Table detection works from the drawn layout, so tables without ruling lines or with merged cells may be split or merged differently from the source."
+search_terms:
+  - extract text pdf
+  - pdf to text
+  - pdf table
+  - read pdf
 ---
 
 `ExtractText` returns the text of the whole document in reading order. `Read` returns a logical model: pages with paragraphs and detected tables, plus a Markdown rendering. Both work on PDFs produced by any application; scanned pages without a text layer need OCR first (see [PDF workflows in the CLI](/docs/cli/pdf/)).

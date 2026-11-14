@@ -6,6 +6,10 @@ packages:
   - OfficeIMO.Excel.Csv
   - OfficeIMO.CSV
 limits: "Conversion reports list omitted headers and schema projection; set `FailOnLoss` in the export options to reject them before writing."
+search_terms:
+  - csv to excel
+  - csv to xlsx
+  - excel to csv
 ---
 
 `OfficeIMO.Excel.Csv` connects the CSV and Excel packages. CSV parsing stays in `OfficeIMO.CSV` and workbook writing stays in `OfficeIMO.Excel`, so neither package depends on the other unless you install the adapter.

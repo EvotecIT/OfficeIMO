@@ -7,6 +7,10 @@ packages:
 cmdlets:
   - Read-OfficeDocument
 limits: "Filtering is by extension; there are no glob patterns. Defaults allow 500 files per folder read; raise `MaxFiles` and `MaxTotalBytes` deliberately for large trees."
+search_terms:
+  - read folder
+  - batch extract
+  - index documents
 ---
 
 Folder reading walks a directory, skips files without a registered handler, and reads the rest within explicit limits: maximum files, total bytes, and traversal entries. Each file reports whether it was parsed and any warnings, so one damaged file does not stop the run.

@@ -7,6 +7,11 @@ packages:
 cmdlets:
   - Read-OfficeDocument
 limits: "Token counts from the built-in estimator are approximate; use your model's tokenizer when a hard budget matters."
+search_terms:
+  - chunk documents
+  - rag
+  - embeddings
+  - ai ingestion
 ---
 
 Search indexes and language-model retrieval work on passages, not whole files. OfficeIMO.Reader produces two kinds of chunks:

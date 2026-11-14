@@ -6,6 +6,10 @@ packages:
   - OfficeIMO.CSV
 cmdlets:
   - Export-OfficeCsv
+search_terms:
+  - write csv
+  - export csv
+  - objects to csv
 ---
 
 `CsvDocument` is the editable model for building a file in memory. For exports, write rows directly: `SaveObjects` writes a sequence of objects, and `WriteDataReader` streams a database result to disk without materializing it.

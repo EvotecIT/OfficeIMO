@@ -5,6 +5,10 @@ order: 59
 packages:
   - OfficeIMO.Reader.Core
 limits: "Table detection in PDFs works from the drawn layout; see [Extract text and tables from PDF](/docs/pdf/extract-text-tables/)."
+search_terms:
+  - extract tables
+  - table extraction
+  - records
 ---
 
 Tables come out of every format in the same shape: a `ReaderTable` with column names, rows of strings, its location in the source, and whether it was truncated. That means the same code exports a table from a Word document, a PDF page, or an Excel range.

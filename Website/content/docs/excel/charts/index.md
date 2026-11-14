@@ -6,6 +6,11 @@ packages:
   - OfficeIMO.Excel
   - OfficeIMO.Excel.Pdf
 limits: "Native chart fidelity is listed on the [Excel format card](/compatibility/#excel)."
+search_terms:
+  - excel chart
+  - xlsx chart
+  - line chart
+  - pie chart
 ---
 
 OfficeIMO.Excel writes native Excel charts. They stay editable in Excel and keep a link to their source cells, so they update when the data changes. The chart type comes from the shared `OfficeChartType` enum (`Column`, `ColumnClustered`, `Bar`, `Line`, `Pie`, `Area`, `Scatter`, and more).

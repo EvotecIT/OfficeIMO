@@ -6,6 +6,10 @@ packages:
   - OfficeIMO.Reader.Core
 cmdlets:
   - Read-OfficeDocument
+search_terms:
+  - extract text
+  - read document
+  - document to text
 ---
 
 OfficeIMO.Reader turns a document into one normalized result: text, Markdown, pages, headings, tables, and metadata, whatever the source format. Install the adapters for the formats you read; each one brings the shared `OfficeIMO.Reader.Core` contracts.
