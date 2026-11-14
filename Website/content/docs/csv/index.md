@@ -180,6 +180,13 @@ var csv = new CsvDocument()
     .AddRow("Widget B", "14,99");
 ```
 
+## Task guides
+
+- [Read CSV into typed objects](/docs/csv/read-typed/)
+- [Write CSV from objects and data readers](/docs/csv/write-data/)
+- [CSV dialects and encodings](/docs/csv/dialects-encodings/)
+- [Convert CSV to Excel](/docs/csv/convert-to-excel/)
+
 ## Convert to other formats
 
 To turn CSV or TSV into JSON, JSON Lines, YAML, TOML, XML or an Excel worksheet, or the other way round, see [data conversions](/docs/data-conversions/).
