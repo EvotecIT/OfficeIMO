@@ -110,9 +110,10 @@ internal static partial class PdfPageImageRenderer {
         long maximumRasterPixels = OfficeImageExportOptions.DefaultMaximumRasterPixels,
         IOfficeTextShapingProvider? textShapingProvider = null,
         string? textShapingLanguage = null,
+        ICollection<OfficeImageExportDiagnostic>? diagnosticSink = null,
         CancellationToken cancellationToken = default) =>
         OfficeDrawingRasterRenderer.ToPng(drawing, RasterOptions(scale, background, imageCodec, maximumRasterPixels,
-            textShapingProvider, textShapingLanguage, cancellationToken));
+            textShapingProvider, textShapingLanguage, diagnosticSink, cancellationToken));
 
     /// <summary>Raster settings shared by PNG page renders and in-process pixel renders, so both produce the same pixels.</summary>
     private static OfficeDrawingRasterRenderOptions RasterOptions(
@@ -122,8 +123,10 @@ internal static partial class PdfPageImageRenderer {
         long maximumRasterPixels,
         IOfficeTextShapingProvider? textShapingProvider,
         string? textShapingLanguage,
+        ICollection<OfficeImageExportDiagnostic>? diagnosticSink,
         CancellationToken cancellationToken) => new() {
             Scale = scale,
+            DiagnosticSink = diagnosticSink,
             Background = background ?? OfficeColor.White,
             ImageCodec = imageCodec,
             ThrowOnImageDecodeFailure = true,

@@ -1474,6 +1474,9 @@ public sealed partial class PdfReadPage {
                         invocation.StrokePattern,
                         invocation.StrokePatternBaseColorSpace,
                         formClip);
+                } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion) {
+                    // The page render skips this form for the same reason.
+                    AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.FormNestingStackId, entry.Key);
                 } finally {
                     activeForms.Remove(stream);
                 }
@@ -1606,9 +1609,14 @@ public sealed partial class PdfReadPage {
             if (synthesized) {
                 AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.SynthesizedAnnotationAppearanceId, subtype + "[" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]");
             }
-            if (!TryReadRectangle(annotation.Items.TryGetValue("Rect", out PdfObject? rectangleObject) ? rectangleObject : null, out (double X1, double Y1, double X2, double Y2) rectangle) ||
-                !TryCreateAnnotationAppearanceTransform(rectangle, appearance.Dictionary, out Matrix2D placementTransform) ||
-                !activeForms.Add(appearance)) continue;
+            if (!TryReadRectangle(annotation.Items.TryGetValue("Rect", out PdfObject? rectangleObject) ? rectangleObject : null, out (double X1, double Y1, double X2, double Y2) rectangle)) continue;
+            if (!TryCreateAnnotationAppearanceTransform(rectangle, appearance.Dictionary, out Matrix2D placementTransform, out bool malformedPlacement)) {
+                if (malformedPlacement) {
+                    AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.AnnotationAppearanceId, subtype + "[" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]");
+                }
+                continue;
+            }
+            if (!activeForms.Add(appearance)) continue;
             try {
                 PdfDictionary appearanceResources = ResolveDictionary(appearance.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null)
                     ?? pageResources

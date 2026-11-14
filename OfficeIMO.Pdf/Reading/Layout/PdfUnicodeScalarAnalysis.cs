@@ -3,6 +3,10 @@ using System.Globalization;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfUnicodeScalarAnalysis {
+    /// <summary>Reads the scalar at <paramref name="index"/>; an unpaired surrogate is returned as its own code unit.</summary>
+    internal static int ScalarAt(string value, int index) =>
+        char.IsSurrogatePair(value, index) ? char.ConvertToUtf32(value[index], value[index + 1]) : value[index];
+
     internal static int CountScalars(string value) {
         int count = 0;
         for (int index = 0; index < value.Length; index += char.IsSurrogatePair(value, index) ? 2 : 1) count++;
@@ -55,7 +59,7 @@ internal static class PdfUnicodeScalarAnalysis {
     internal static bool IsAllWordish(string value) {
         if (value.Length == 0) return false;
         for (int index = 0; index < value.Length;) {
-            int scalar = char.ConvertToUtf32(value, index);
+            int scalar = ScalarAt(value, index);
             UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(value, index);
             if (!IsLetter(category) &&
                 category is not (UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark or UnicodeCategory.EnclosingMark) &&

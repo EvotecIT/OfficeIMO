@@ -881,6 +881,9 @@ public sealed partial class PdfReadPage {
 
                 var formResources = ResolveDictionary(formStream.Dictionary.Items.TryGetValue("Resources", out var resObj) ? resObj : null) ?? resources;
                 CollectUnsupportedFormFilters(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formResources, unsupported, activeForms, pageContentBudget, contentNestingDepth + 1);
+            } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion) {
+                // A form nested deeper than this thread's stack allows is skipped; the rest of the content is kept.
+                pageContentBudget.RecordRenderDegradation(PdfRenderCapabilities.FormNestingStackId, invocation.Name);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -1255,6 +1258,9 @@ public sealed partial class PdfReadPage {
                     onUnmappableText: onUnmappableText,
                     onCompletedDrawingActualText: onCompletedDrawingActualText,
                     retainEditingEvidence: retainEditingEvidence);
+            } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion) {
+                // A form nested deeper than this thread's stack allows is skipped; the rest of the content is kept.
+                pageContentBudget.RecordRenderDegradation(PdfRenderCapabilities.FormNestingStackId, invocation.Name);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -1494,6 +1500,9 @@ public sealed partial class PdfReadPage {
                     maximumPlacements: maximumPlacements,
                     consumeWork: consumeWork,
                     cancellationCheck: cancellationCheck);
+            } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion) {
+                // A form nested deeper than this thread's stack allows is skipped; the rest of the content is kept.
+                pageContentBudget.RecordRenderDegradation(PdfRenderCapabilities.FormNestingStackId, invocation.Name);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -1518,6 +1527,11 @@ public sealed partial class PdfReadPage {
                 PdfReadLimitKind.ContentNestingDepth,
                 _limits.MaxContentNestingDepth,
                 contentNestingDepth);
+        }
+        // Content nested deeper than the thread's stack allows stops with a typed rejection instead of overflowing it.
+        // The form-invocation walkers catch it and skip only that nested form.
+        if (!HasSufficientExecutionStack()) {
+            throw PdfReadLimitException.CallStackExhausted(_limits.MaxContentNestingDepth, contentNestingDepth);
         }
     }
 

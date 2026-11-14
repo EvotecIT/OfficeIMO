@@ -127,17 +127,21 @@ public sealed partial class PdfReadPage {
         });
     }
 
-    internal OfficeDrawing ToDrawing(CancellationToken cancellationToken, Action<OfficeDrawing>? configureDrawing = null, double functionShadingScale = 1D, long maximumFunctionPixels = OfficeImageExportOptions.DefaultMaximumRasterPixels) {
+    internal OfficeDrawing ToDrawing(CancellationToken cancellationToken, Action<OfficeDrawing>? configureDrawing = null, double functionShadingScale = 1D, long maximumFunctionPixels = OfficeImageExportOptions.DefaultMaximumRasterPixels,
+        Action<IReadOnlyList<PdfRenderCapabilityDiagnostic>>? reportRenderDegradations = null) {
         cancellationToken.ThrowIfCancellationRequested();
         _demandContentExtraction?.Invoke("visual content");
-        return ToDisplayDrawing(cancellationToken, configureDrawing, functionShadingScale, maximumFunctionPixels);
+        return ToDisplayDrawing(cancellationToken, configureDrawing, functionShadingScale, maximumFunctionPixels,
+            reportRenderDegradations: reportRenderDegradations);
     }
 
     // Used only by the raster display path; never return this drawing through a public viewing API.
     // reportScaleDependence receives whether the drawing depends on functionShadingScale; one that does not serves any scale.
     // printing paints only annotations with the Print flag, as a printed page shows them.
+    // reportRenderDegradations receives content skipped while drawing, such as forms nested beyond the available stack.
     internal OfficeDrawing ToDisplayDrawing(CancellationToken cancellationToken, Action<OfficeDrawing>? configureDrawing = null, double functionShadingScale = 1D, long maximumFunctionPixels = OfficeImageExportOptions.DefaultMaximumRasterPixels,
-        Action<bool>? reportScaleDependence = null, bool printing = false) {
+        Action<bool>? reportScaleDependence = null, bool printing = false,
+        Action<IReadOnlyList<PdfRenderCapabilityDiagnostic>>? reportRenderDegradations = null) {
         cancellationToken.ThrowIfCancellationRequested();
         PrepareOutputIntentRendering(cancellationToken);
         (double Width, double Height) size = GetVisualPageSize();
@@ -188,6 +192,7 @@ public sealed partial class PdfReadPage {
             drawing.SetPostCompositionColorTransform(proof);
 
         reportScaleDependence?.Invoke(pageContentBudget.UsesFunctionShadingScale);
+        reportRenderDegradations?.Invoke(pageContentBudget.RenderDegradations);
         return drawing;
     }
 
@@ -1578,6 +1583,10 @@ public sealed partial class PdfReadPage {
                     initialStrokeColorSelection: invocation.StrokeColorSelection,
                     scaleStrokeWidthWithTransform: scaleStrokeWidthWithTransform,
                     initialTextState: formTextState, inheritedFontResources: formFonts);
+            } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion) {
+                // A form nested deeper than this thread's stack allows is skipped; the rest of the page is kept.
+                if (requireSupportedType3Content) type3GlyphBudget.RecordFailure();
+                pageContentBudget.RecordRenderDegradation(PdfRenderCapabilities.FormNestingStackId, invocation.Name);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -2878,7 +2887,7 @@ public sealed partial class PdfReadPage {
             cancellationToken.ThrowIfCancellationRequested();
             string appearanceContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(appearanceStream)), appearanceStream.Dictionary);
             if (appearanceContent.Length == 0 ||
-                !TryCreateAnnotationAppearanceTransform(rectangle, appearanceStream.Dictionary, out Matrix2D placementTransform)) {
+                !TryCreateAnnotationAppearanceTransform(rectangle, appearanceStream.Dictionary, out Matrix2D placementTransform, out _)) {
                 continue;
             }
 
@@ -3104,13 +3113,23 @@ public sealed partial class PdfReadPage {
         return false;
     }
 
-    /// <summary>Returns false for an appearance that encloses no area and so paints nothing.</summary>
+    /// <summary>
+    /// Returns false for an appearance that encloses no area and so paints nothing, and for one whose bounding box or
+    /// matrix is missing or malformed (<paramref name="malformed"/>), which is skipped while the rest of the page renders.
+    /// </summary>
     private bool TryCreateAnnotationAppearanceTransform((double X1, double Y1, double X2, double Y2) rectangle, PdfDictionary appearanceDictionary,
-        out Matrix2D transform) {
+        out Matrix2D transform, out bool malformed) {
         transform = Matrix2D.Identity;
-        if (!PdfAppearancePlacement.TryRead(appearanceDictionary, value => ResolveObject(value),
-                rectangle.X1, rectangle.Y1, rectangle.X2 - rectangle.X1, rectangle.Y2 - rectangle.Y1, out Matrix2D placement, out Matrix2D matrix))
+        malformed = false;
+        Matrix2D placement, matrix;
+        try {
+            if (!PdfAppearancePlacement.TryRead(appearanceDictionary, value => ResolveObject(value),
+                    rectangle.X1, rectangle.Y1, rectangle.X2 - rectangle.X1, rectangle.Y2 - rectangle.Y1, out placement, out matrix))
+                return false;
+        } catch (InvalidOperationException) {
+            malformed = true;
             return false;
+        }
         transform = Matrix2D.Multiply(placement, matrix);
         return true;
     }
@@ -3217,7 +3236,8 @@ public sealed partial class PdfReadPage {
         string family = string.IsNullOrWhiteSpace(drawingFontFamily)
             ? ResolveOfficeFontFamily(normalized)
             : drawingFontFamily!;
-        return new OfficeFontInfo(family, size, style);
+        // A negative Tf size mirrors the glyphs; the drawing font takes its magnitude so the run still paints.
+        return new OfficeFontInfo(family, Math.Abs(size), style);
     }
 
     private static string ResolveOfficeFontFamily(string baseFont) {
