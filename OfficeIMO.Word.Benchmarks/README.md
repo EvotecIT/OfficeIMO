@@ -12,8 +12,37 @@ compares the current `OfficeIMO.Word` source with:
 - [Open XML SDK 3.5.1](https://github.com/dotnet/Open-XML-SDK), Microsoft's MIT-
   licensed low-level API for the document format.
 
+- [RecursiveAI.OneDocument.Documents 1.0.0](https://www.nuget.org/packages/RecursiveAI.OneDocument.Documents/1.0.0),
+  a managed Word library licensed `MIT OR Apache-2.0`. It targets `net10.0`
+  only, so its lanes exist only when the runner is built for `net10.0`.
+
 These dependencies remain inside the benchmark project. They are not runtime
 dependencies of `OfficeIMO.Word`.
+
+### OneDocument lanes
+
+On `net10.0` the read, replace and structured-report comparisons gain a
+`OneDocument` lane, and read gains `OneDocumentExtractText`:
+
+| Lane | Measured operation | Correctness proof |
+| --- | --- | --- |
+| Read paragraphs, `OneDocument` | `Document.Open` and the text of every `Document.Paragraphs` entry | Same paragraph count, character count and checksum as every other reader |
+| Read paragraphs, `OfficeIMOReaderText` (all targets) | `OfficeIMO.Reader` with `ReaderProjection.TextAndMetadata`, then `GetText()`, split into lines | Same observation; this is OfficeIMO's plain-text route, so it pairs with OneDocument's extractor |
+| Read paragraphs, `OfficeIMOReaderStreamedText` (all targets) | The same Reader read with `ReaderProjection.Text`, which streams simple bodies without building the Word model | Same observation |
+| Read paragraphs, `OneDocumentExtractText` | `Document.Open` and `ExtractText()`, OneDocument's streaming extractor, split into lines | Same observation; it skips the document model, so it is the cheaper of the two OneDocument routes |
+| Replace and save | `Document.Open`, `Document.Replace` for `{{Status}}`, `SaveAs` to a DOCX stream | Every output paragraph and Open XML SDK validation |
+| Create structured report | `Document.Create`, header and footer stories, bold 18 pt title, summary, and a two-column table built from a cell array | The same structure, formatting, header/footer and Open XML SDK checks as the other lanes |
+
+OneDocument has no paragraph-level API on header and footer stories, so the
+report lane writes their text through the story's typed `w:hdr`/`w:ftr` view.
+Its table uses OneDocument's default 4680-twip grid columns rather than the
+2400-twip widths the Open XML SDK lane writes; the shared validator checks
+content and formatting, not column widths.
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Word.Benchmarks -- validate
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordReadComparisonBenchmarks*' '*WordReplaceComparisonBenchmarks*' '*WordCreateReportComparisonBenchmarks*' --job Short
+```
 
 ## Comparison workloads
 
@@ -70,6 +99,14 @@ drawing conclusions:
 
 ```powershell
 dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*Word*ComparisonBenchmarks*'
+```
+
+On Windows the project also builds for `net472`, the runtime of Windows
+PowerShell 5.1. That build contains the paragraph and report creation, read and
+replace comparisons:
+
+```powershell
+dotnet run -c Release -f net472 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordCreate*' '*WordRead*' '*WordReplace*'
 ```
 
 ### Shared custom-data snapshots
@@ -161,3 +198,53 @@ dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filte
 
 Those workflows have no directly equivalent public API in every comparison
 library, so they stay outside the cross-library rankings.
+
+`WordMarkdownConversionBenchmarks` converts generated Markdown (headings,
+paragraphs, nested lists and tables) to Word and back, whole and as
+`ExtractMarkdownChunks` chunks, at 100 and 400 sections. Setup checks that every
+heading, list and table survives each direction. Compare the two sizes: each
+lane should grow about four times, not sixteen.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordMarkdownConversionBenchmarks*'
+```
+
+`WordHtmlImportBenchmarks` converts generated HTML to Word in three shapes:
+nested containers (divs, articles and blockquotes), small tables inside divs,
+and nested lists inside divs, each at 100 and 400 blocks. Setup checks that
+every block, table and list item reaches the document. As above, the larger
+size should take about four times as long.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordHtmlImportBenchmarks*'
+```
+
+`WordLoadBenchmarks` loads a DOCX of 50 or 500 distinct images (about 1 MB and
+10 MB) from memory, read-only and editable. Setup prints the input size and
+checks the image count; allocation divided by the input size shows how many
+copies of the package a load makes.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordLoadBenchmarks*'
+```
+
+`WordRunEnumerationBenchmarks` loads a document of 1,000 or 4,000 two-run
+paragraphs, with a field in every hundredth, and enumerates `GetRuns()` for every
+entry of `Paragraphs`. Setup checks the run count. Four times the paragraphs
+should cost about four times as much.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordRunEnumerationBenchmarks*'
+```
+
+`WordSectionCollectionBenchmarks` reads the document-wide lists (`Paragraphs`,
+`Tables`, `ParagraphsHyperLinks`, `Elements`, `Fields`, `HyperLinks`,
+`Bookmarks`, `CheckBoxes`, `StructuredDocumentTags`, `FootNotes` and
+`TablesIncludingNestedTables`) of a loaded document with 25 and 100 sections.
+Each section has 20 paragraphs, two tables, a hyperlink, a field, a bookmark, a
+check box and a footnote. Setup checks the lists against the sections. Four times the sections should cost about four times
+as much.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordSectionCollectionBenchmarks*'
+```

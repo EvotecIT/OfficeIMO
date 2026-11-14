@@ -17,7 +17,7 @@ public sealed class PdfPrintCommandTests {
             using var error = new StringWriter();
             int code = await WorkflowPrintCommand.RunAsync(["print", path, "--printer", "Test queue", "--copies", "2", "--duplex", "long", "--dpi", "72",
                 "--pages-per-sheet", "9", "--scale", "custom", "--custom-scale", "25", "--alignment", "bottom-right",
-                "--margin-left", "24", "--color", "grayscale"],
+                "--margin-left", "24", "--color", "grayscale", "--raster-grayscale"],
                 output, error, CancellationToken.None, service);
             Assert.Equal((int)OfficeImoToolExitCode.Success, code);
             Assert.Single(service.Document!.Plan.Sheets);
@@ -29,6 +29,7 @@ public sealed class PdfPrintCommandTests {
             Assert.Equal(2, service.Options!.Copies);
             Assert.Equal(PdfPrintDuplex.LongEdge, service.Options.Duplex);
             Assert.Equal(72, service.Options.MaximumRasterDpi);
+            Assert.True(service.Options.RasterizeGrayscale);
             using (JsonDocument receipt = JsonDocument.Parse(output.ToString())) {
                 Assert.Equal("officeimo.workflow.print.v1", receipt.RootElement.GetProperty("schema").GetString());
                 Assert.Equal("test-42", receipt.RootElement.GetProperty("jobId").GetString());

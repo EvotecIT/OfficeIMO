@@ -120,6 +120,7 @@ internal static partial class PdfWriter {
                 } else if (cb is TableBlock tb2) {
                     PdfTableStyle style = tb2.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light();
                     if (style.Position != null) throw new NotSupportedException("Positioned tables are not supported in row columns. Place the table in document flow or remove Position.");
+                    ThrowIfTablePageSummaryUnsupported(style, "row columns");
                     int cols = GetTableColumnCount(tb2);
                     if (cols == 0) {
                         continue;

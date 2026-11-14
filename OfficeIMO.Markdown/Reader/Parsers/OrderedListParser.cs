@@ -43,18 +43,17 @@ internal static partial class MarkdownReader {
             List<MarkdownSourceLineSlice>? firstSourceLines = state.IsListBoundaryProbe || !state.CaptureSyntaxTree
                 ? null
                 : new List<MarkdownSourceLineSlice>();
-            var firstLines = ConsumeListContinuationLines(
+            var firstLines = ConsumeListLeadLines(
                 lines,
                 ref j,
                 firstContinuationIndent,
                 strippedFirst,
                 options,
                 breakOnAnyOrderedListLine: true,
-                sourceLines: firstSourceLines,
-                absoluteLineOffset: state.SourceLineOffset,
+                ref firstSourceLines,
                 initialLineIndex: i,
                 initialStartColumn: firstStartColumn,
-                state: state);
+                state);
             var first = CreateListItemFromLeadLines(firstLines, firstIsTask, firstDone, options, state, i, firstSourceLines);
             first.Level = 0;
             if (!state.IsListBoundaryProbe) {
@@ -106,18 +105,17 @@ internal static partial class MarkdownReader {
                 List<MarkdownSourceLineSlice>? itemSourceLines = state.IsListBoundaryProbe || !state.CaptureSyntaxTree
                     ? null
                     : new List<MarkdownSourceLineSlice>();
-                var itemLines = ConsumeListContinuationLines(
+                var itemLines = ConsumeListLeadLines(
                     lines,
                     ref next,
                     continuationIndent,
                     stripped,
                     options,
                     breakOnAnyOrderedListLine: true,
-                    sourceLines: itemSourceLines,
-                    absoluteLineOffset: state.SourceLineOffset,
+                    ref itemSourceLines,
                     initialLineIndex: itemStart,
                     initialStartColumn: startColumn,
-                    state: state);
+                    state);
                 var li = CreateListItemFromLeadLines(itemLines, isTask, done, options, state, itemStart, itemSourceLines);
                 li.Level = continuationIndentsByLevel != null
                     ? GetRelativeListItemLevel(continuationIndentsByLevel, lines[itemStart])

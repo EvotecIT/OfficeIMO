@@ -74,7 +74,9 @@ internal sealed partial class PdfReadDocument {
             _outputIntentMetadataRetentionBudget,
             cancellationToken);
         Pages = CollectPages(cancellationToken);
-        RepairReport = repairReport.Append(PdfSemanticRepairDiagnostics.AnalyzeAndRepair(_objects, _catalog, Pages, _options, cancellationToken));
+        PdfRepairReport loadRepairs = repairReport.Append(PdfSemanticRepairDiagnostics.AnalyzeAndRepair(_objects, _catalog, Pages, _options, cancellationToken));
+        _repairReportFeature = Defer(token => loadRepairs.Append(
+            PdfSemanticRepairDiagnostics.AnalyzeOrphanedSemanticObjects(_objects, _catalog, token)));
         cancellationToken.ThrowIfCancellationRequested();
         _metadata = ExtractMetadata(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -175,7 +177,7 @@ internal sealed partial class PdfReadDocument {
     public PdfDocumentSecurityInfo Security { get; }
 
     /// <summary>Structural recoveries applied while loading this document.</summary>
-    public PdfRepairReport RepairReport { get; }
+    public PdfRepairReport RepairReport => _repairReportFeature.GetValue();
 
     internal IReadOnlyList<PdfOutlineItem> UncheckedOutlines => _outlines;
     // Rewrites and inspection must read the parsed source, since Metadata is a mutable read model.

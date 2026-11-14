@@ -13,6 +13,8 @@ internal sealed partial class PdfReadDocument {
     private readonly DocumentFeature<IReadOnlyList<PdfAttachmentInfo>> _attachmentsFeature;
     private readonly DocumentFeature<FormState> _formsFeature;
     private readonly DocumentFeature<PdfPortfolioInfo?> _portfolioFeature;
+    // Orphaned-object analysis walks every reachable reference, so it waits for a repair report reader.
+    private readonly DocumentFeature<PdfRepairReport> _repairReportFeature;
 
     private IReadOnlyList<PdfNamedDestination> _namedDestinations => _namedDestinationsFeature.GetValue().Destinations;
     private IReadOnlyList<PdfAttachmentInfo> _attachments => _attachmentsFeature.GetValue();

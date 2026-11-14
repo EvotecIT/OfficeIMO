@@ -101,6 +101,23 @@ string text = document.GetText();
 IReadOnlyList<OfficeDocumentPageText> pageText = document.GetPageText();
 ```
 
+`Search` matches literal text by default. Ranked mode returns one hit per block, best first, scored with BM25 over
+Unicode (UAX #29) words with NFKC normalization and case folding; words in the heading path weigh double. Queries
+accept `"quoted phrases"`, `prefix*`, `OR` and parentheses, and adjacent words must all match. A query with no
+words, or no ranked match, falls back to literal search, which `Ranked` on the result reports.
+
+```csharp
+OfficeDocumentSearchResult ranked = document.Search("\"retention period\" OR archiv*",
+    new OfficeDocumentSearchOptions { Mode = OfficeDocumentSearchMode.Ranked });
+foreach (OfficeDocumentSearchHit hit in ranked.Hits) {
+    Console.WriteLine($"{hit.Score:F3} {hit.Block.Text}"); // hit.Highlights holds every matched range
+}
+
+// Index chunks once and query them repeatedly.
+var index = new ReaderChunkSearchIndex(document.Chunks);
+ReaderChunkSearchResult chunks = index.Search("retention");
+```
+
 Page boundaries are not equally authoritative in every source format:
 
 | Format | Page provenance | Reader behavior |
@@ -235,6 +252,26 @@ unrequested Markdown when refreshing a text processor's changes.
 This projection avoids secondary work; it is not a hard process-memory limit. Keep native parser,
 package expansion and input limits alongside aggregate output budgets. Format owners document
 any source structures that must still be decoded or validated during loading.
+
+## Text projection
+
+`ReaderProjection.Text` returns only text chunks. `GetText()` gives the same text as the
+text-and-metadata projection, but the result carries no blocks, tables, pages, links,
+assets, metadata, Markdown or nested results; it keeps the source, diagnostics and
+`CapabilitiesUsed`, which includes `officeimo.reader.projection.text`:
+
+```csharp
+var options = ReaderOptions.CreateSafeIngestion();
+options.Projection = ReaderProjection.Text;
+string text = reader.ReadDocument("Policy.docx", options).GetText();
+```
+
+Every handler that supports the text-and-metadata projection supports this one, and the
+same handlers reject it. A handler may read the text directly without building its
+document model; otherwise Reader reduces the text-and-metadata result to one chunk per
+text block, fallback chunk and table row that `GetText()` writes. Each chunk keeps its
+source location, with its position in the text as `LogicalOrder`. The result has the
+same shape either way. Nested reads inherit the text profile.
 
 ## Nested results and qualified capabilities
 

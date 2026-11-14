@@ -93,7 +93,15 @@ public class WordCreateReportComparisonBenchmarks {
         WordBenchmarkCorpus.ValidateReportDocument(DocX(), RowCount, requireOpenXmlSdkConformance: false);
         WordBenchmarkCorpus.ValidateReportDocument(NPOI(), RowCount);
         WordBenchmarkCorpus.ValidateReportDocument(OpenXmlSdk(), RowCount);
+#if NET10_0_OR_GREATER
+        WordBenchmarkCorpus.ValidateReportDocument(OneDocument(), RowCount);
+#endif
     }
+
+#if NET10_0_OR_GREATER
+    [Benchmark]
+    public byte[] OneDocument() => WordOneDocumentWorkloads.CreateReport(RowCount);
+#endif
 
     [Benchmark(Baseline = true)]
     public byte[] OfficeIMO() {

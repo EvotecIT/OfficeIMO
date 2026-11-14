@@ -127,12 +127,29 @@ public partial class Html {
     }
 
     private sealed class RedirectTestServer : IDisposable {
-        private readonly TcpListener _listener = new(IPAddress.Loopback, 0);
+        // Clients resolve "localhost" to ::1 before 127.0.0.1. Listening on both loopbacks keeps
+        // a refused IPv6 attempt (about two seconds on Windows) out of each request's timeout.
+        private readonly TcpListener _listener;
+        private readonly TcpListener? _ipv6Listener;
+        private Task<TcpClient>? _pendingAccept;
+        private Task<TcpClient>? _pendingIpv6Accept;
         private volatile bool _disposed;
 
         internal RedirectTestServer() {
-            _listener.Start();
-            Port = ((IPEndPoint)_listener.LocalEndpoint).Port;
+            for (int attempt = 0; ; attempt++) {
+                _listener = new TcpListener(IPAddress.Loopback, 0);
+                _listener.Start();
+                Port = ((IPEndPoint)_listener.LocalEndpoint).Port;
+                if (!Socket.OSSupportsIPv6) return;
+                try {
+                    _ipv6Listener = new TcpListener(IPAddress.IPv6Loopback, Port);
+                    _ipv6Listener.Start();
+                    return;
+                } catch (SocketException) when (attempt < 20) {
+                    _ipv6Listener = null;
+                    _listener.Stop();
+                }
+            }
         }
 
         internal int Port { get; }
@@ -142,7 +159,7 @@ public partial class Html {
 
         internal async Task SendAsync(string statusAndHeaders, byte[]? payload = null) {
             try {
-                using TcpClient client = await _listener.AcceptTcpClientAsync();
+                using TcpClient client = await AcceptAsync();
                 WasRequested = true;
                 RequestCookie = null;
                 using NetworkStream stream = client.GetStream();
@@ -167,9 +184,35 @@ public partial class Html {
             }
         }
 
+        private async Task<TcpClient> AcceptAsync() {
+            _pendingAccept ??= _listener.AcceptTcpClientAsync();
+            if (_ipv6Listener == null) {
+                Task<TcpClient> accepted = _pendingAccept;
+                _pendingAccept = null;
+                return await accepted;
+            }
+
+            // The losing accept stays pending for the next request on this server.
+            _pendingIpv6Accept ??= _ipv6Listener.AcceptTcpClientAsync();
+            Task<TcpClient> first = await Task.WhenAny(_pendingAccept, _pendingIpv6Accept);
+            if (first == _pendingAccept) {
+                _pendingAccept = null;
+            } else {
+                _pendingIpv6Accept = null;
+            }
+            return await first;
+        }
+
         public void Dispose() {
             _disposed = true;
             _listener.Stop();
+            _ipv6Listener?.Stop();
+            Observe(_pendingAccept);
+            Observe(_pendingIpv6Accept);
+        }
+
+        private static void Observe(Task? pending) {
+            pending?.ContinueWith(static task => _ = task.Exception, TaskContinuationOptions.OnlyOnFaulted);
         }
     }
 }

@@ -59,7 +59,8 @@ public sealed class GetOfficeMarkdownFrontMatterCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var document = MarkdownDocumentResolver.Resolve(this, ParameterSetName, Document, Path, LiteralPath, Text, Options);
+        // Entries report their SourceSpan, which needs the syntax tree.
+        var document = MarkdownDocumentResolver.Resolve(this, ParameterSetName, Document, Path, LiteralPath, Text, Options, captureSyntax: true);
 
         var wildcardOptions = CaseSensitive
             ? WildcardOptions.None

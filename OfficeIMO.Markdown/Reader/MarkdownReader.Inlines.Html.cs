@@ -252,12 +252,11 @@ internal static partial class MarkdownReader {
             return true;
         }
 
-        string candidate = text.Substring(start);
-        if (!HtmlBlockParser.TryParseHtmlTag(candidate, out _, out _, out int endIndex)) {
+        if (!HtmlBlockParser.TryParseHtmlTag(text, start, out _, out _, out int endIndex)) {
             return false;
         }
 
-        consumed = endIndex + 1;
+        consumed = endIndex - start + 1;
         html = RestoreRawInlineHtmlLiteral(text, start, consumed, sourceMap);
         return true;
     }
@@ -287,7 +286,7 @@ internal static partial class MarkdownReader {
             return true;
         }
 
-        int end = text.IndexOf("-->", start + 4, StringComparison.Ordinal);
+        int end = InlineScanIndexCache.IndexOf(text, "-->", start + 4);
         if (end < 0) {
             return false;
         }
@@ -310,7 +309,7 @@ internal static partial class MarkdownReader {
             return false;
         }
 
-        int end = text.IndexOf("?>", start + 2, StringComparison.Ordinal);
+        int end = InlineScanIndexCache.IndexOf(text, "?>", start + 2);
         if (end < 0) {
             return false;
         }
@@ -333,7 +332,7 @@ internal static partial class MarkdownReader {
             return false;
         }
 
-        int end = text.IndexOf('>', start + 3);
+        int end = InlineScanIndexCache.IndexOf(text, ">", start + 3);
         if (end < 0) {
             return false;
         }
@@ -356,7 +355,7 @@ internal static partial class MarkdownReader {
             return false;
         }
 
-        int end = text.IndexOf("]]>", start + 9, StringComparison.Ordinal);
+        int end = InlineScanIndexCache.IndexOf(text, "]]>", start + 9);
         if (end < 0) {
             return false;
         }

@@ -6,6 +6,7 @@ internal static class InlinePlainText {
             return string.Empty;
         }
 
+        System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
         if (sequence.Nodes.Count == 1) {
             IMarkdownInline node = sequence.Nodes[0];
             if (node is MarkdownTextRun textRun) {
@@ -25,6 +26,7 @@ internal static class InlinePlainText {
     }
 
     internal static void AppendPlainText(System.Text.StringBuilder sb, InlineSequence sequence) {
+        System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
         foreach (var node in sequence.Nodes) {
             GetPlainTextNode(node).AppendPlainText(sb);
         }

@@ -212,41 +212,37 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the type of the current field.
         /// </summary>
-        public WordFieldType? FieldType {
-            get {
-                var parser = new WordFieldParser(Field);
-                return parser.WordFieldType;
-            }
-        }
+        public WordFieldType? FieldType => GetParsedField().WordFieldType;
 
         /// <summary>
         /// Gets the format switches applied to the field.
         /// </summary>
-        public IReadOnlyList<WordFieldFormat> FieldFormat {
-            get {
-                var parser = new WordFieldParser(Field);
-                return parser.FormatSwitches;
-            }
-        }
+        public IReadOnlyList<WordFieldFormat> FieldFormat => new List<WordFieldFormat>(GetParsedField().FormatSwitches);
 
         /// <summary>
         /// Gets the raw switch parameters from the field code.
         /// </summary>
-        public List<String> FieldSwitches {
-            get {
-                var parser = new WordFieldParser(Field);
-                return parser.Switches;
-            }
-        }
+        public List<String> FieldSwitches => new List<String>(GetParsedField().Switches);
 
         /// <summary>
         /// Gets the instructions portion of the field code.
         /// </summary>
-        public List<String> FieldInstructions {
-            get {
-                var parser = new WordFieldParser(Field);
-                return parser.Instructions;
+        public List<String> FieldInstructions => new List<String>(GetParsedField().Instructions);
+
+        private string? _parsedFieldCode;
+        private WordFieldParser? _parsedField;
+
+        // Reading several properties of one field would otherwise parse the same code each time.
+        // The cache is keyed by the current field code, so edits to the instruction are picked up.
+        private WordFieldParser GetParsedField() {
+            string fieldCode = Field;
+            WordFieldParser? parsed = _parsedField;
+            if (parsed == null || !string.Equals(_parsedFieldCode, fieldCode, StringComparison.Ordinal)) {
+                parsed = new WordFieldParser(fieldCode);
+                _parsedField = parsed;
+                _parsedFieldCode = fieldCode;
             }
+            return parsed;
         }
 
         /// <summary>

@@ -1,0 +1,30 @@
+{
+  "license": "CC0-1.0; original test text and generated fixture archives dedicated to the public domain. No producer binaries are included.",
+  "source": "docs/hello.txt (40 bytes), docs/zażółć-gęślą-jaźń.txt (57 bytes, stored by macOS in NFD), a 132-character nested path with a 19-byte file, and the symbolic link docs/hello-link.txt -> hello.txt. All times are 2024-01-02T03:04:05 local.",
+  "fixtures": [
+    {
+      "file": "bsdtar-ustar.tar",
+      "producer": "bsdtar 3.5.3 (libarchive 3.7.4), macOS",
+      "command": "COPYFILE_DISABLE=1 bsdtar --format ustar --no-xattrs --no-mac-metadata --uid 0 --gid 0 --uname '' --gname '' -cf <output> docs/hello.txt docs/hello-link.txt",
+      "sha256": "b17eb22227bcc74d472d1cb442c6e86b8266d91f177526847fd3679ac2542bab"
+    },
+    {
+      "file": "bsdtar-pax.tar.gz",
+      "producer": "bsdtar 3.5.3 (libarchive 3.7.4, zlib 1.2.12), macOS",
+      "command": "COPYFILE_DISABLE=1 bsdtar --format pax --no-xattrs --no-mac-metadata --uid 0 --gid 0 --uname '' --gname '' -czf <output> docs",
+      "sha256": "ebbee34ce32eeccd68327a0baa747d25fe7706c16bc87226252fb30900f83021"
+    },
+    {
+      "file": "python-gnu.tar",
+      "producer": "CPython 3.9.6 tarfile, GNU_FORMAT (././@LongLink 'L' headers for long names)",
+      "command": "tarfile.open(<output>, 'w', format=tarfile.GNU_FORMAT): add docs/hello.txt, the long nested file and docs/hello-link.txt, plus a hard link docs/hard-link.txt -> docs/hello.txt",
+      "sha256": "56da0ffc1041acaf2b1884be064e0f3f935705a0a3524b93a27a464b29a781be"
+    },
+    {
+      "file": "gzip-multimember.gz",
+      "producer": "Apple gzip 487.40.2",
+      "command": "printf 'first member\\n' | gzip -n -c > <output>; printf 'second member\\n' | gzip -n -c >> <output>",
+      "sha256": "6d9262f7c66396ce386e025b12fa79b2ae7792e0790cccb7bad82379eeee91a8"
+    }
+  ]
+}

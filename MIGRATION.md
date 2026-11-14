@@ -5346,6 +5346,19 @@ These parameter aliases stay removed. Command aliases such as `ExcelExport` are 
 | `-Values` | `-InputObject` | `Add-OfficeExcelTableRow` |
 | `-Values` | `-Value` | `Add-OfficePowerPointTableRow`, `Get-OfficeExcelTemplateMarker`, `Invoke-OfficeExcelTemplate`, `Set-OfficeExcelAutoFilter` |
 
+## Grayscale printing sends vector PDF to printers that convert it
+
+Grayscale print jobs for IPP printers and CUPS queues reached over IPP that list
+`application/pdf` and the `monochrome` print-color-mode are now sent as the vector PDF with
+`print-color-mode=monochrome`, and the printer converts them to gray. Before, every
+grayscale job was rasterized. Text stays sharp and jobs submit much faster, but the
+printer's conversion can differ from the preview in light fills and in how colors map
+to gray. To keep the previous output, set `PdfPrintDeliveryOptions.RasterizeGrayscale`,
+pass `--raster-grayscale` to `officeimo workflow print`, or add `-RasterizeGrayscale`
+to `Send-OfficePrinter -Grayscale`. Printers without `monochrome`, printers that
+cannot make the requested copies themselves and Windows queues still receive gray
+raster sheets, and CUPS queues printed through `lp` still receive rasterized PDF.
+
 ## OneNote visual PDF pages are vector
 
 `ToVisualPdf`, `SaveAsVisualPdf` and their async forms now write each OneNote page as

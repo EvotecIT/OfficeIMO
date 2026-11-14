@@ -56,12 +56,12 @@ namespace OfficeIMO.Word {
 
             var insertBefore = GetInsertionBoundaryElement();
             if (insertBefore != null && insertBefore.Parent == body) {
-                body.InsertBefore(element, insertBefore);
+                _document.InsertBodyBlockBefore(body, element, insertBefore);
                 return;
             }
 
             if (_sectionProperties.Parent == body) {
-                body.InsertBefore(element, _sectionProperties);
+                _document.InsertBodyBlockBefore(body, element, _sectionProperties);
                 return;
             }
 
