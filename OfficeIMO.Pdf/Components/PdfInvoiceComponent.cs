@@ -102,6 +102,12 @@ public sealed class PdfInvoiceComponent : IPdfComponent {
     /// <summary>Total including tax.</summary>
     public decimal Total => _lines.Sum(static line => line.Total);
 
+    /// <summary>
+    /// When true, a line table that continues on another page closes each page with the carried-forward line total
+    /// and opens the next page with the brought-forward amount. Defaults to false.
+    /// </summary>
+    public bool CarryTotalsAcrossPages { get; set; }
+
     /// <inheritdoc />
     public void Compose(PdfContentBuilder content) {
         Guard.NotNull(content, nameof(content));
@@ -121,7 +127,16 @@ public sealed class PdfInvoiceComponent : IPdfComponent {
             line.TaxRate.ToString("P0", _culture),
             Money(line.Total)
         }));
-        content.AddTable(rows, style: new PdfTableStyle { HeaderRowCount = 1, SpacingAfter = global::OfficeIMO.OfficeLength.Points(10) });
+        var lineStyle = new PdfTableStyle { HeaderRowCount = 1, SpacingAfter = global::OfficeIMO.OfficeLength.Points(10) };
+        if (CarryTotalsAcrossPages) {
+            var summary = lineStyle.PageSummary = new PdfTablePageSummary();
+            PdfTableAggregate total = summary.Add(new PdfTableAggregate("total", 4) {
+                Format = "N2", FormatProvider = _culture, ValueSelector = line => _lines[line].Total
+            });
+            summary.AddPageFooterRow("Carried forward", string.Empty, string.Empty, string.Empty, total.RunningToken + " " + CurrencyCode);
+            summary.AddContinuationHeaderRow("Brought forward", string.Empty, string.Empty, string.Empty, total.BroughtForwardToken + " " + CurrencyCode);
+        }
+        content.AddTable(rows, style: lineStyle);
         content.AddParagraph(paragraph => {
             paragraph.AddText("Subtotal: ").SetBold();
             paragraph.AddText(Money(Subtotal));

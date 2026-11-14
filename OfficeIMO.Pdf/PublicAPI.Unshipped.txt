@@ -1091,3 +1091,39 @@ OfficeIMO.Pdf.PdfDocumentRedactions.ApplyForSharing(OfficeIMO.Pdf.PdfRedactionPl
 OfficeIMO.Pdf.PdfRedactionShareableSummary.RemovedHiddenDataCount.get -> int?
 OfficeIMO.Pdf.PdfRedactionSharingResult.HiddenData.get -> OfficeIMO.OfficeHiddenDataResult!
 OfficeIMO.Pdf.PdfAConversionRefusalReason.EmbeddedFileRequired = 22 -> OfficeIMO.Pdf.PdfAConversionRefusalReason
+OfficeIMO.Pdf.PdfTableAggregate
+OfficeIMO.Pdf.PdfTableAggregate.BroughtForwardToken.get -> string!
+OfficeIMO.Pdf.PdfTableAggregate.Column.get -> int
+OfficeIMO.Pdf.PdfTableAggregate.Format.get -> string?
+OfficeIMO.Pdf.PdfTableAggregate.Format.set -> void
+OfficeIMO.Pdf.PdfTableAggregate.FormatProvider.get -> System.IFormatProvider?
+OfficeIMO.Pdf.PdfTableAggregate.FormatProvider.set -> void
+OfficeIMO.Pdf.PdfTableAggregate.Function.get -> OfficeIMO.Pdf.PdfTableAggregateFunction
+OfficeIMO.Pdf.PdfTableAggregate.Name.get -> string!
+OfficeIMO.Pdf.PdfTableAggregate.PageToken.get -> string!
+OfficeIMO.Pdf.PdfTableAggregate.PdfTableAggregate(string! name, int column, OfficeIMO.Pdf.PdfTableAggregateFunction function = OfficeIMO.Pdf.PdfTableAggregateFunction.Sum) -> void
+OfficeIMO.Pdf.PdfTableAggregate.RunningToken.get -> string!
+OfficeIMO.Pdf.PdfTableAggregate.ValueSelector.get -> System.Func<int, decimal?>?
+OfficeIMO.Pdf.PdfTableAggregate.ValueSelector.set -> void
+OfficeIMO.Pdf.PdfTableAggregateFunction
+OfficeIMO.Pdf.PdfTableAggregateFunction.Count = 1 -> OfficeIMO.Pdf.PdfTableAggregateFunction
+OfficeIMO.Pdf.PdfTableAggregateFunction.Maximum = 3 -> OfficeIMO.Pdf.PdfTableAggregateFunction
+OfficeIMO.Pdf.PdfTableAggregateFunction.Minimum = 2 -> OfficeIMO.Pdf.PdfTableAggregateFunction
+OfficeIMO.Pdf.PdfTableAggregateFunction.Sum = 0 -> OfficeIMO.Pdf.PdfTableAggregateFunction
+OfficeIMO.Pdf.PdfTablePageSummary
+OfficeIMO.Pdf.PdfTablePageSummary.Add(OfficeIMO.Pdf.PdfTableAggregate! aggregate) -> OfficeIMO.Pdf.PdfTableAggregate!
+OfficeIMO.Pdf.PdfTablePageSummary.AddContinuationHeaderRow(params OfficeIMO.Pdf.PdfTableCell![]! cells) -> OfficeIMO.Pdf.PdfTablePageSummary!
+OfficeIMO.Pdf.PdfTablePageSummary.AddContinuationHeaderRow(params string![]! cells) -> OfficeIMO.Pdf.PdfTablePageSummary!
+OfficeIMO.Pdf.PdfTablePageSummary.AddPageFooterRow(params OfficeIMO.Pdf.PdfTableCell![]! cells) -> OfficeIMO.Pdf.PdfTablePageSummary!
+OfficeIMO.Pdf.PdfTablePageSummary.AddPageFooterRow(params string![]! cells) -> OfficeIMO.Pdf.PdfTablePageSummary!
+OfficeIMO.Pdf.PdfTablePageSummary.Aggregates.get -> System.Collections.Generic.List<OfficeIMO.Pdf.PdfTableAggregate!>!
+OfficeIMO.Pdf.PdfTablePageSummary.ContinuationHeaderRows.get -> System.Collections.Generic.List<OfficeIMO.Pdf.PdfTableCell![]!>!
+OfficeIMO.Pdf.PdfTablePageSummary.PageFooterRows.get -> System.Collections.Generic.List<OfficeIMO.Pdf.PdfTableCell![]!>!
+OfficeIMO.Pdf.PdfTablePageSummary.PdfTablePageSummary() -> void
+OfficeIMO.Pdf.PdfTablePageSummary.Sum(string! name, int column, string? format = null, System.IFormatProvider? formatProvider = null) -> OfficeIMO.Pdf.PdfTableAggregate!
+OfficeIMO.Pdf.PdfTableStyle.PageSummary.get -> OfficeIMO.Pdf.PdfTablePageSummary?
+OfficeIMO.Pdf.PdfTableStyle.PageSummary.set -> void
+OfficeIMO.Pdf.PdfTableStyle.RepeatFooterRows.get -> bool
+OfficeIMO.Pdf.PdfTableStyle.RepeatFooterRows.set -> void
+OfficeIMO.Pdf.PdfInvoiceComponent.CarryTotalsAcrossPages.get -> bool
+OfficeIMO.Pdf.PdfInvoiceComponent.CarryTotalsAcrossPages.set -> void

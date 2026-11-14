@@ -7,6 +7,7 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void RenderDeferredTableFlowBlock(DeferredTableBlock deferredTable, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             PdfTableStyle style = deferredTable.Style ?? currentOpts.DefaultDeferredTableStyleSnapshot ?? PdfTableStyles.Light();
+            ThrowIfTablePageSummaryUnsupported(style, "deferred tables");
             if (style.Position is { VerticalAlignment: not PdfTableVerticalAlignment.Top })
                 throw new ArgumentException("Deferred floating tables support top alignment; use an eager table for center or bottom alignment.", nameof(deferredTable));
             double flowYBeforeTable = y;
@@ -39,6 +40,7 @@ internal static partial class PdfWriter {
         private void RenderTableFlowBlock(TableBlock tb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex, bool skipInitialHeaderRows = false, int bodyRowOffset = 0, bool logicalTopBoundary = true, bool logicalBottomBoundary = true, bool restoreVerticalFlow = true, PdfTableStyle? preparedPairedStyle = null, StringBuilder? deferredPairedBorders = null) {
             PdfTableStyle style = AlignNumericColumnHeaders(tb, tb.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light());
             if (HasContainedCellBlocks(tb)) {
+                ThrowIfTablePageSummaryUnsupported(style, "tables with block content in cells");
                 if (skipInitialHeaderRows || bodyRowOffset != 0 || !logicalTopBoundary || !logicalBottomBoundary || !restoreVerticalFlow)
                     throw new NotSupportedException("Ordered cell content requires an eager inline table.");
                 RenderContainedCellTable(tb, style, blockList, blockIndex, nextBlock);
@@ -62,6 +64,9 @@ internal static partial class PdfWriter {
             int repeatHeaderRowCount = GetTableRepeatHeaderRowCount(style);
             int footerRowCount = style.FooterRowCount;
             int footerStartRowIndex = tb.Rows.Count - footerRowCount;
+            if (skipInitialHeaderRows || bodyRowOffset != 0 || !logicalTopBoundary || !logicalBottomBoundary || !restoreVerticalFlow)
+                ThrowIfTablePageSummaryUnsupported(style, "deferred tables");
+            TablePageSummaryState? pageSummary = CreateTablePageSummaryState(tb, style, cols, headerRowCount, footerStartRowIndex);
 
             style = preparedPairedStyle ?? PreparePairedTableBorders(tb, style);
             StringBuilder? pairedBorders = deferredPairedBorders;
@@ -79,6 +84,8 @@ internal static partial class PdfWriter {
             var rowBold = preparedRows.Bold;
             var spanFlow = new TableSpanFlow(tb, style, cols, headerRowCount, footerStartRowIndex);
             bool tableHasFootnotes = ValidateTableFootnotePlacement(tb, style, cols);
+            if (pageSummary != null && tableHasFootnotes)
+                throw new NotSupportedException("Table page summaries and repeated footer rows are not supported for tables with footnote references.");
             var remainingRowHeights = new double[rowHeights.Length + 1];
             for (int row = rowHeights.Length - 1; row >= 0; row--)
                 remainingRowHeights[row] = rowHeights[row] +
@@ -87,7 +94,10 @@ internal static partial class PdfWriter {
             double xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft.ToPoints(), contentWidth, tableWidth);
             if (style.Position is { } horizontalPosition) xOrigin = PositionTableX(horizontalPosition, tableWidth) + style.HorizontalOffset.ToPoints();
 
-            double TableBottom() => style.Position?.VerticalAnchor == PdfTableAnchor.Page ? 0 : FootnoteBodyBottom;
+            // Space kept free under the current body row for the page footer rows of a table with page summaries.
+            double summaryReserve = 0D;
+            double TableBaseBottom() => style.Position?.VerticalAnchor == PdfTableAnchor.Page ? 0 : FootnoteBodyBottom;
+            double TableBottom() => TableBaseBottom() + summaryReserve;
             double maxContentHeight = style.Position?.VerticalAnchor == PdfTableAnchor.Page ? currentOpts.PageHeight.ToPoints() : GetFullPageContentHeight();
             bool tableFrameHasBodyContent = y < GetCurrentFramePageStartY() - .001D;
             if (style.Position is { VerticalAnchor: not PdfTableAnchor.Flow, VerticalAlignment: PdfTableVerticalAlignment.Top } capacityPosition && capacityPosition.VerticalOffset.ToPoints() > 0D) {
@@ -112,7 +122,7 @@ internal static partial class PdfWriter {
             }
 
             double tableContentHeight = (captionLines == null ? 0 : captionHeight + style.CaptionSpacingAfter.ToPoints()) + GetTableRowsHeight(rowHeights, 0, rowHeights.Length, rowGapPx);
-            bool hasRepeatableHeader = repeatHeaderRowCount > 0 && tb.Rows.Count > headerRowCount;
+            bool hasRepeatableHeader = (repeatHeaderRowCount > 0 || pageSummary?.ContinuationRows.Length > 0) && tb.Rows.Count > headerRowCount;
             double repeatHeaderHeight = 0D;
             for (int header = 0; header < repeatHeaderRowCount; header++)
                 repeatHeaderHeight += rowHeights[header] + GetTableRowGapAfter(header, tb.Rows.Count, rowGapPx);
@@ -476,6 +486,71 @@ internal static partial class PdfWriter {
                 for (int headerIndex = 0; headerIndex < repeatHeaderRowCount; headerIndex++) {
                     DrawTableRow(headerIndex, renderAsHeader: true, suppressCellObjects: true);
                 }
+                if (pageSummary?.PendingContinuation is { } continuation) {
+                    pageSummary.PendingContinuation = null;
+                    PaintTableSummaryRows(continuation, colPixel, tableWidth, rowGapPx, xOrigin, EnsureTableStructureElement(),
+                        ref pairedBorders, logicalBottomBoundary: false);
+                    y -= rowGapPx;
+                }
+            }
+
+            PreparedTableSummaryRows? PrepareSummaryRows(TableSummaryRowKind kind, TableAggregateTotal[] page) =>
+                PrepareTableSummaryRows(pageSummary!, kind, page, style, cols, colPixel, rowGapPx);
+
+            // Reserves room for the page footer rows that close the fragment holding rowIndex. The rows are measured
+            // with the values they would show, so drawing them never changes which rows fit on the page.
+            void UpdateSummaryReserve(int rowIndex) {
+                summaryReserve = 0D;
+                if (pageSummary == null || pageSummary.PageFooterRows.Length == 0 || !pageSummary.IsBodyRow(rowIndex)) return;
+                double available = y - TableBaseBottom();
+                bool counted = pageSummary.IsCounted(rowIndex);
+                if (!HasPageFootnotes && keepFinalRowsWithNextHeight <= 0D) {
+                    // When the rest of the table and its closing footer fit here, this is the final fragment.
+                    double bodyRemainder = remainingRowHeights[rowIndex] - remainingRowHeights[footerStartRowIndex];
+                    if (bodyRemainder <= available + .001D) {
+                        double finalHeight = PrepareSummaryRows(TableSummaryRowKind.FinalFooter,
+                            pageSummary.PageWithRemainder(counted ? rowIndex + 1 : rowIndex))?.Height ?? 0D;
+                        if (bodyRemainder + finalHeight + GetClosingTextPadding(style.SpacingAfter.ToPoints()) <= available + .001D) return;
+                    }
+                }
+                double reserve = PrepareSummaryRows(TableSummaryRowKind.PageFooter, pageSummary.PageWith(rowIndex))!.Height;
+                // If this row moves to the next page, the footer shows the totals without it.
+                if (pageSummary.FragmentHasBodyRows && !counted)
+                    reserve = Math.Max(reserve, PrepareSummaryRows(TableSummaryRowKind.PageFooter, pageSummary.Page)!.Height);
+                bool canSplit = GetTableRowAllowBreakAcrossPages(style, rowIndex) && rowLineCounts[rowIndex] > 1 &&
+                    !TableRowHasViewport(tb, rowIndex, cols);
+                // A row that can never share a page with the footer is placed anyway; that page omits its footer.
+                if (!canSplit && rowHeights[rowIndex] + reserve > maxContentHeight - repeatHeaderHeight + .001D) reserve = 0D;
+                summaryReserve = reserve;
+            }
+
+            void CloseSummaryFragment() {
+                if (pageSummary == null) return;
+                summaryReserve = 0D;
+                pageSummary.PendingContinuation = null;
+                if (pageSummary.FragmentHasBodyRows &&
+                    PrepareSummaryRows(TableSummaryRowKind.PageFooter, pageSummary.Page) is { } footer &&
+                    footer.Height <= y - TableBaseBottom() + .001D) {
+                    PaintTableSummaryRows(footer, colPixel, tableWidth, rowGapPx, xOrigin, EnsureTableStructureElement(),
+                        ref pairedBorders, logicalBottomBoundary: true);
+                }
+                pageSummary.ClosePage();
+            }
+
+            void DrawSummaryFinalFooter(int rowIndex) {
+                summaryReserve = 0D;
+                if (PrepareSummaryRows(TableSummaryRowKind.FinalFooter, pageSummary!.Page) is not { } footer) return;
+                double closing = GetClosingTextPadding(style.SpacingAfter.ToPoints());
+                if (footer.Height + closing > y - TableBottom() + .001D && y < GetCurrentFramePageStartY() - .001D) {
+                    NewTablePage(rowIndex, requireWholeRow: true);
+                    summaryReserve = 0D;
+                    footer = PrepareSummaryRows(TableSummaryRowKind.FinalFooter, pageSummary.Page)!;
+                }
+                if (style.Position == null) RecordFlowPlacement(y);
+                tableFrameHasBodyContent = true;
+                PaintTableSummaryRows(footer, colPixel, tableWidth, rowGapPx, xOrigin, EnsureTableStructureElement(),
+                    ref pairedBorders, logicalBottomBoundary: true);
+                RecordTableFrameContentBottom(tb, y);
             }
 
             void FlushPairedBorders() {
@@ -492,6 +567,7 @@ internal static partial class PdfWriter {
                     FlushTableSpanFragments(tb, style, spanFlow, preparedRows, colPixel, colGapPx, rowGapPx, xOrigin, fragmentTable, ref pairedBorders,
                         cornerRadius: tableCornerRadius, fullFrameHeight: Math.Max(0D, MaximumContinuationHeight() - repeatHeaderHeight), logicalTopBoundary: logicalTopBoundary, logicalBottomBoundary: logicalBottomBoundary,
                         closingPadding: GetClosingTextPadding(style.SpacingAfter.ToPoints()), collapsedBorders: collapsedBorders);
+                    CloseSummaryFragment();
                     FlushPairedBorders();
                     PrepareTableFrameContinuation(tb, rowIndex);
                     if (CanQueueColumnBalanceRemainder(blockList)) {
@@ -510,6 +586,11 @@ internal static partial class PdfWriter {
                     repeatHeaderHeight = 0D;
                     for (int header = 0; header < repeatHeaderRowCount; header++)
                         repeatHeaderHeight += rowHeights[header] + GetTableRowGapAfter(header, tb.Rows.Count, rowGapPx);
+                    if (pageSummary is { HasRowsBefore: true } && rowIndex >= headerRowCount &&
+                        PrepareSummaryRows(TableSummaryRowKind.Continuation, pageSummary.Page) is { } continuation) {
+                        pageSummary.PendingContinuation = continuation;
+                        repeatHeaderHeight += continuation.Height + rowGapPx;
+                    }
                     xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft.ToPoints(), contentWidth, tableWidth);
                     if (style.Position is { } continuationPosition) {
                         flowYBeforeTable = y;
@@ -547,6 +628,10 @@ internal static partial class PdfWriter {
                 if (continuingSpanTail ? hasRepeatableHeader && rowIndex >= headerRowCount && requiredHeight <= y - TableBottom() + .001D
                     : CanRepeatHeaderWithSegment(rowIndex, startLine, requireWholeRow)) {
                     DrawRepeatHeaders();
+                }
+                if (pageSummary != null) {
+                    pageSummary.PendingContinuation = null;
+                    UpdateSummaryReserve(rowIndex);
                 }
             }
 
@@ -628,6 +713,7 @@ internal static partial class PdfWriter {
                 PaintPreparedTableRow(geometry, spanFlow, slice, xOrigin, y, EnsureTableStructureElement(),
                     ref pairedBorders, existingRowStructureElement, bodyRowOffset, logicalTopBoundary, logicalBottomBoundary,
                     collapsedBorders: collapsedBorders);
+                if (!suppressCellObjects) pageSummary?.MarkDrawn(rowIndex);
                 bool wholeRowSegment = startLine == 0 && lineCount == rowLineCounts[rowIndex];
                 if (style.Position is { } floatingPosition) ReserveFloatingTable(floatingPosition, xOrigin, y, tableWidth, rowHeight + (wholeRowSegment ? GetTableRowGapAfter(rowIndex, tb.Rows.Count, rowGapPx) : 0));
                 if (wholeRowSegment || startLine + lineCount == rowLineCounts[rowIndex])
@@ -747,7 +833,12 @@ internal static partial class PdfWriter {
             int firstRowIndex = skipInitialHeaderRows ? headerRowCount : 0;
             for (int rowIndex = firstRowIndex; rowIndex < tb.Rows.Count; rowIndex++) {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (pageSummary != null && rowIndex >= footerStartRowIndex) {
+                    DrawSummaryFinalFooter(rowIndex);
+                    break;
+                }
                 ReserveTableSpanRemainder(spanFlow, style, preparedRows, colPixel, colGapPx, rowIndex, Math.Max(0D, maxContentHeight - (hasRepeatableHeader && rowIndex >= headerRowCount ? repeatHeaderHeight : 0D)));
+                UpdateSummaryReserve(rowIndex);
                 if (viewportRowGroups[rowIndex] >= rowIndex)
                     MovePastShortTableFrames(() => GetTableViewportPlacementHeight(viewportRowGroups, rowHeights, rowIndex, rowGapPx),
                         preserve => NewTablePage(rowIndex, requireWholeRow: true, preserveEmptyPage: preserve, admitRunningFrame: false));
@@ -837,6 +928,7 @@ internal static partial class PdfWriter {
                     y -= GetTableRowGapAfter(rowIndex, tb.Rows.Count, rowGapPx);
             }
 
+            summaryReserve = 0D;
             FlushTableSpanFragments(tb, style, spanFlow, preparedRows, colPixel, colGapPx, rowGapPx, xOrigin, EnsureTableStructureElement(), ref pairedBorders,
                 cornerRadius: tableCornerRadius, fullFrameHeight: Math.Max(0D, MaximumContinuationHeight() - repeatHeaderHeight), logicalTopBoundary: logicalTopBoundary, logicalBottomBoundary: logicalBottomBoundary,
                 closingPadding: GetClosingTextPadding(style.SpacingAfter.ToPoints()), collapsedBorders: collapsedBorders);

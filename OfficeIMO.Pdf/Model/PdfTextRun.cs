@@ -182,6 +182,15 @@ public sealed partial class PdfTextRun {
         return copy;
     }
 
+    internal PdfTextRun WithText(string text) {
+        if (InlineElement != null || string.Equals(text, Text, StringComparison.Ordinal)) return this;
+        var copy = CopyRunFormattingTo(new PdfTextRun(text, Bold, Underline, Color, Italic, Strike, FontSize, StandardFont, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor));
+        copy.FeatureSettings = FeatureSettings;
+        copy.HorizontalOffset = HorizontalOffset;
+        copy.TextDirection = TextDirection;
+        return copy;
+    }
+
     internal PdfTextRun WithHorizontalOffset(double horizontalOffset) {
         if (horizontalOffset < 0D || double.IsNaN(horizontalOffset) || double.IsInfinity(horizontalOffset)) {
             throw new ArgumentOutOfRangeException(nameof(horizontalOffset), "Horizontal text offsets must be finite and non-negative.");

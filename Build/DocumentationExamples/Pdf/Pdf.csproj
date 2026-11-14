@@ -6,6 +6,9 @@
     <OfficeIMODocumentationPackageVersion Condition="'$(OfficeIMODocumentationPackageVersion)' == ''">3.6.0</OfficeIMODocumentationPackageVersion>
     <OfficeIMODocumentationSourceRoot Condition="'$(OfficeIMODocumentationSourceRoot)' == ''">$(MSBuildThisFileDirectory)../../..</OfficeIMODocumentationSourceRoot>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(OfficeIMODocumentationUsePublishedPackages)' == 'true'">
+    <DefineConstants>$(DefineConstants);OFFICEIMO_DOCUMENTATION_PUBLISHED_PACKAGE</DefineConstants>
+  </PropertyGroup>
   <ItemGroup Condition="'$(OfficeIMODocumentationUsePublishedPackages)' == 'true'">
     <PackageReference Include="OfficeIMO.Pdf" Version="[$(OfficeIMODocumentationPackageVersion)]" />
   </ItemGroup>
