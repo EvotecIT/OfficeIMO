@@ -110,6 +110,14 @@ public sealed partial class ExportOfficeCsvCommand : PSCmdlet
     [Parameter]
     public string? NullValue { get; set; }
 
+    /// <summary>Character that encloses quoted fields. Defaults to the double quote; fields that contain it are quoted.</summary>
+    [Parameter]
+    public char QuoteCharacter { get; set; } = '"';
+
+    /// <summary>Character written before the quote character, and before itself, inside quoted fields, such as a backslash. Leave unset to double the quote character.</summary>
+    [Parameter]
+    public char? EscapeCharacter { get; set; }
+
     /// <summary>Date/time format used for DateTime and DateTimeOffset values.</summary>
     [Parameter]
     public string? DateTimeFormat { get; set; }
@@ -481,7 +489,9 @@ public sealed partial class ExportOfficeCsvCommand : PSCmdlet
             QuoteMode = UseQuotes,
             // PowerShell's -UseQuotes Never writes fields unchanged; the engine rejects ambiguous fields by default.
             WriteUnquotedFieldsLiterally = UseQuotes == CsvQuoteMode.Never,
-            QuoteFields = QuoteFields
+            QuoteFields = QuoteFields,
+            QuoteCharacter = QuoteCharacter,
+            EscapeCharacter = EscapeCharacter
         };
 
         CsvPowerShellOptionBuilder.ApplySaveOptions(

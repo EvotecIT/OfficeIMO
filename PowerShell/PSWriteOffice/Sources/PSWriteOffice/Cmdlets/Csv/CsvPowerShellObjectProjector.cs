@@ -34,6 +34,7 @@ internal sealed class CsvPowerShellObjectProjector
         {
             Culture = options.Culture,
             FormatScalarValuesAsText = _allowTrustedTextRows,
+            RoundTripScalarText = true,
             MaxCollectionItems = maxCollectionItems,
             MaxNestingDepth = maxNestingDepth
         };

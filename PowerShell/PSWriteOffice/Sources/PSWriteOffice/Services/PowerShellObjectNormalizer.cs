@@ -798,6 +798,11 @@ internal static partial class PowerShellObjectNormalizer
             return boolValue ? "True" : "False";
         }
 
+        if (options.RoundTripScalarText && OfficeIMO.Core.Internal.OfficeRoundTripText.TryFormat(value, options.Culture, out string roundTripText))
+        {
+            return roundTripText;
+        }
+
         if (value is decimal or int or DateTime or double or long or DateTimeOffset or Guid or TimeSpan or float or byte or sbyte or short or ushort or uint or ulong)
         {
             return value is IFormattable formattable
@@ -843,7 +848,9 @@ internal static partial class PowerShellObjectNormalizer
         {
             if (options.FormatScalarValuesAsText)
             {
-                normalized = value is IFormattable formattable
+                normalized = options.RoundTripScalarText && OfficeIMO.Core.Internal.OfficeRoundTripText.TryFormat(value, options.Culture, out string roundTripText)
+                    ? roundTripText
+                    : value is IFormattable formattable
                     ? formattable.ToString(null, options.Culture)
                     : value.ToString();
             }
