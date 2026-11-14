@@ -177,7 +177,15 @@ public sealed class MermaidDocumentTests {
         presentation.Save(stream);
         stream.Position = 0;
         using var package = new ZipArchive(stream, ZipArchiveMode.Read);
-        Assert.Single(package.Entries, entry => entry.FullName.StartsWith("ppt/media/", StringComparison.Ordinal));
+        // The diagram is stored once; an SVG diagram also carries its PNG fallback picture.
+        var media = package.Entries.Where(entry => entry.FullName.StartsWith("ppt/media/", StringComparison.Ordinal)).ToArray();
+        Assert.Single(media, entry => {
+            using var source = entry.Open();
+            using var buffer = new MemoryStream();
+            source.CopyTo(buffer);
+            return buffer.ToArray().SequenceEqual(png);
+        });
+        Assert.InRange(media.Length, 1, 2);
     }
 
     [Fact]
