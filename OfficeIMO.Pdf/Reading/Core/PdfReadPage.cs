@@ -856,6 +856,7 @@ public sealed partial class PdfReadPage {
         List<string> unsupported,
         HashSet<PdfStream> activeForms,
         PageContentBudget pageContentBudget,
+        PdfTextClippingBudget textClippingBudget,
         int contentNestingDepth = 0) {
         EnsureContentNestingBudget(contentNestingDepth);
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
@@ -864,7 +865,7 @@ public sealed partial class PdfReadPage {
                      maxNestingDepth: _limits.MaxContentNestingDepth,
                      maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
                      maxOperands: _limits.MaxContentOperands,
-                     textClippingBudget: new PdfTextClippingBudget(_limits),
+                     textClippingBudget: textClippingBudget,
                      inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
                      cancellationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested)) {
             pageContentBudget.CancellationToken.ThrowIfCancellationRequested();
@@ -882,7 +883,7 @@ public sealed partial class PdfReadPage {
                 }
 
                 var formResources = ResolveDictionary(formStream.Dictionary.Items.TryGetValue("Resources", out var resObj) ? resObj : null) ?? resources;
-                CollectUnsupportedFormFilters(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formResources, unsupported, activeForms, pageContentBudget, contentNestingDepth + 1);
+                CollectUnsupportedFormFilters(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formResources, unsupported, activeForms, pageContentBudget, textClippingBudget, contentNestingDepth + 1);
             } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion && pageContentBudget.SkipsFormsBeyondStack) {
                 // A form nested deeper than this thread's stack allows is skipped; the rest of the content is kept.
                 pageContentBudget.RecordRenderDegradation(PdfRenderCapabilities.FormNestingStackId, invocation.Name);
