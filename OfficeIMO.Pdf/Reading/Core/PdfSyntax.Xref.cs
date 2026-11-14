@@ -359,7 +359,8 @@ internal static partial class PdfSyntax {
         var xrefStreams = new List<(int ObjectNumber, int Offset, PdfStream Stream)>();
         foreach (var entry in map.Values) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (entry.Value is PdfStream stream &&
+            if (!IsUnbuiltWithOtherType(entry, "XRef") &&
+                entry.Value is PdfStream stream &&
                 stream.Dictionary.Get<PdfName>("Type")?.Name == "XRef") {
                 int offset = parsedOffsets.TryGetValue(entry.ObjectNumber, out int parsedOffset) ? parsedOffset : int.MaxValue;
                 xrefStreams.Add((entry.ObjectNumber, offset, stream));
@@ -405,7 +406,8 @@ internal static partial class PdfSyntax {
         var xrefStreams = new List<(int ObjectNumber, int Offset, PdfStream Stream)>();
         foreach (var entry in map.Values) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (entry.Value is PdfStream stream &&
+            if (!IsUnbuiltWithOtherType(entry, "XRef") &&
+                entry.Value is PdfStream stream &&
                 stream.Dictionary.Get<PdfName>("Type")?.Name == "XRef") {
                 int offset = parsedOffsets.TryGetValue(entry.ObjectNumber, out int parsedOffset) ? parsedOffset : int.MaxValue;
                 xrefStreams.Add((entry.ObjectNumber, offset, stream));
@@ -529,6 +531,7 @@ internal static partial class PdfSyntax {
             cancellationToken.ThrowIfCancellationRequested();
             if (!parsedOffsets.TryGetValue(entry.ObjectNumber, out int offset) ||
                 offset != xrefStreamOffset ||
+                IsUnbuiltWithOtherType(entry, "XRef") ||
                 entry.Value is not PdfStream stream ||
                 stream.Dictionary.Get<PdfName>("Type")?.Name != "XRef") {
                 continue;

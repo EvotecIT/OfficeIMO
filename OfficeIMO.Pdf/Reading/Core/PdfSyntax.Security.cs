@@ -858,26 +858,50 @@ internal static partial class PdfSyntax {
         return -1;
     }
 
-    private static KeyValuePair<int, PdfIndirectObject>[] OrderSecurityObjects(
+    // Object numbers are unique keys, so sorting them alone gives the same order as sorting the
+    // entries. An int per object stays off the large object heap far longer than an entry pair.
+    private static SecurityObjectOrder OrderSecurityObjects(
         Dictionary<int, PdfIndirectObject> objects,
         CancellationToken cancellationToken) {
-        var ordered = new KeyValuePair<int, PdfIndirectObject>[objects.Count];
+        var keys = new int[objects.Count];
         int index = 0;
-        foreach (var item in objects) {
+        foreach (int key in objects.Keys) {
             cancellationToken.ThrowIfCancellationRequested();
-            ordered[index++] = item;
+            keys[index++] = key;
         }
-        try {
-            Array.Sort(ordered, (left, right) => {
-                cancellationToken.ThrowIfCancellationRequested();
-                return left.Key.CompareTo(right.Key);
-            });
-        } catch (InvalidOperationException) when (cancellationToken.IsCancellationRequested) {
-            cancellationToken.ThrowIfCancellationRequested();
-            throw;
-        }
+        Array.Sort(keys);
         cancellationToken.ThrowIfCancellationRequested();
-        return ordered;
+        return new SecurityObjectOrder(objects, keys);
+    }
+
+    /// <summary>Entries of an object map in ascending object number, read from the map while enumerated.</summary>
+    private readonly struct SecurityObjectOrder {
+        private readonly Dictionary<int, PdfIndirectObject> _objects;
+        private readonly int[] _keys;
+
+        internal SecurityObjectOrder(Dictionary<int, PdfIndirectObject> objects, int[] keys) {
+            _objects = objects;
+            _keys = keys;
+        }
+
+        public Enumerator GetEnumerator() => new(_objects, _keys);
+
+        internal struct Enumerator {
+            private readonly Dictionary<int, PdfIndirectObject> _objects;
+            private readonly int[] _keys;
+            private int _index;
+
+            internal Enumerator(Dictionary<int, PdfIndirectObject> objects, int[] keys) {
+                _objects = objects;
+                _keys = keys;
+                _index = -1;
+            }
+
+            public KeyValuePair<int, PdfIndirectObject> Current =>
+                new(_keys[_index], _objects[_keys[_index]]);
+
+            public bool MoveNext() => ++_index < _keys.Length;
+        }
     }
 
     private static bool TrySkipRequiredWhitespace(string text, ref int index, CancellationToken cancellationToken = default) {

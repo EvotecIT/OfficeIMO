@@ -10,6 +10,9 @@ internal static partial class PdfSyntax {
         PdfDecodedStreamBudget decodedStreamBudget,
         Action<int> reportUnreadable,
         System.Threading.CancellationToken cancellationToken) {
+        // Most files without an xref stream have no object stream either; the sorted key and
+        // offset snapshots below are only needed when there is one to expand.
+        if (!HasObjectStreamCandidate(map, allowedObjectStreamNumbers, cancellationToken)) return;
         // Snapshot keys to avoid modifying during enumeration
         var keys = new List<int>(map.Count);
         foreach (int key in map.Keys) {
@@ -37,7 +40,7 @@ internal static partial class PdfSyntax {
                 continue;
             }
 
-            if (!map.TryGetValue(id, out var ind)) continue;
+            if (!map.TryGetValue(id, out var ind) || IsUnbuiltWithOtherType(ind, "ObjStm")) continue;
             if (ind.Value is not PdfStream s) continue;
             var type = s.Dictionary.Get<PdfName>("Type")?.Name;
             if (!string.Equals(type, "ObjStm", StringComparison.Ordinal)) continue;
@@ -84,6 +87,21 @@ internal static partial class PdfSyntax {
         }
 
         int GetSourceOffset(int objectNumber) => parsedOffsets.TryGetValue(objectNumber, out int offset) ? offset : int.MaxValue;
+    }
+
+    // The same test the expansion loop applies before it decodes anything.
+    private static bool HasObjectStreamCandidate(
+        Dictionary<int, PdfIndirectObject> map,
+        HashSet<int>? allowedObjectStreamNumbers,
+        System.Threading.CancellationToken cancellationToken) {
+        foreach (KeyValuePair<int, PdfIndirectObject> entry in map) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (allowedObjectStreamNumbers is not null && !allowedObjectStreamNumbers.Contains(entry.Key)) continue;
+            if (IsUnbuiltWithOtherType(entry.Value, "ObjStm")) continue;
+            if (entry.Value.Value is PdfStream stream &&
+                string.Equals(stream.Dictionary.Get<PdfName>("Type")?.Name, "ObjStm", StringComparison.Ordinal)) return true;
+        }
+        return false;
     }
 
     private static bool TryReadObjectStreamLayout(

@@ -12,6 +12,40 @@ internal static partial class PdfSyntax {
         ParseTopLevelObject(data, start, length, limits, trackEncodedStringSourceSpans: false, CancellationToken.None)
         ?? throw new InvalidOperationException("A deferred PDF object no longer parses as it did when it was validated.");
 
+    internal static PdfObject ParseDeferredClassicDictionary(byte[] data, int start, int length, PdfReadLimits limits) =>
+        ParseDictionary(new PdfByteContentText(data), start, length, limits, cancellationToken: CancellationToken.None);
+
+    // A top-level indirect object of the input file whose value is a dictionary that the eager load would store
+    // as is: complete syntax, no stream and nothing but whitespace or comments before endobj. The summary spans
+    // the text between << and >>, the same text the eager load passes to ParseDictionary.
+    private static bool TryScanDeferrableClassicDictionary(
+        PdfByteContentText text,
+        int dictionaryStart,
+        int dictionaryEnd,
+        int objectEnd,
+        int bodyEnd,
+        PdfReadLimits limits,
+        DeferredObjectScan scan,
+        out PdfDeferredObjectSummary summary,
+        CancellationToken cancellationToken) {
+        summary = null!;
+        if (IndexOfKeywordCancellable(text, "stream", dictionaryEnd, objectEnd, cancellationToken) >= 0 ||
+            SkipWhitespaceAndComments(text, dictionaryEnd, bodyEnd, cancellationToken) < bodyEnd) return false;
+        int contentStart = dictionaryStart + 2;
+        int contentLength = dictionaryEnd - contentStart;
+        scan.Reset();
+        try {
+            using var tokens = Tokenize(text, contentStart, contentLength, limits, true, cancellationToken);
+            if (!ScanTopLevelDictionary(tokens, limits, scan, cancellationToken)) return false;
+        } catch (Exception exception) when (exception is not OperationCanceledException and not OutOfMemoryException) {
+            // The eager parser reproduces the same failure, or the same limit exception, for this object.
+            return false;
+        }
+
+        summary = scan.CreateSummary(contentStart, contentLength);
+        return true;
+    }
+
     private static bool TryScanDeferrableObject(
         byte[] data,
         int start,
@@ -133,9 +167,12 @@ internal static partial class PdfSyntax {
         if (token.Length > 0 && token.GetCharacter(source, 0) == '/') {
             return scan.TryAddName(token, source, topLevelKey);
         }
-        if (token.IsString && token.Length > 0 && (token.GetCharacter(source, 0) == '(' ||
-            token.GetCharacter(source, 0) == '<' && (token.Length == 1 || token.GetCharacter(source, 1) != '<'))) {
+        if (token.IsString && token.Length > 0 && token.GetCharacter(source, 0) == '(') {
             return token.IsTerminated;
+        }
+        if (token.IsString && token.Length > 0 && token.GetCharacter(source, 0) == '<' &&
+            (token.Length == 1 || token.GetCharacter(source, 1) != '<')) {
+            return token.IsTerminated && HasOnlyHexDigits(token, source);
         }
         if (token.Equals(source, "true") || token.Equals(source, "false") || token.Equals(source, "null")) return true;
         if (token.Length > 0 && IsPdfNumberStart(token.GetCharacter(source, 0))) {
@@ -149,6 +186,17 @@ internal static partial class PdfSyntax {
             return token.TryParseDouble(source, out _, cancellationToken);
         }
         return false;
+    }
+
+    // PdfTextString.DecodeHexBytes throws for anything other than hex digits and whitespace, so such a string
+    // stays on the eager path, which recovers from that failure.
+    private static bool HasOnlyHexDigits(PdfToken token, PdfByteContentText source) {
+        for (int k = 1; k < token.Length - 1; k++) {
+            char ch = token.GetCharacter(source, k);
+            if (char.IsWhiteSpace(ch)) continue;
+            if (!(ch >= '0' && ch <= '9' || ch >= 'a' && ch <= 'f' || ch >= 'A' && ch <= 'F')) return false;
+        }
+        return true;
     }
 
     private static TopLevelKey ClassifyTopLevelKey(PdfToken key, PdfByteContentText source) {

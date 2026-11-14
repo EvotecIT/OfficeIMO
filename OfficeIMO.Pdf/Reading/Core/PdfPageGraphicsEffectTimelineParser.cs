@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static class PdfPageGraphicsEffectTimelineParser {
     public static IReadOnlyList<PdfPageDrawingEffectTransition> Parse(
-        string content,
+        PdfContentSource content,
         IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates,
         PdfPageDrawingEffect initialEffect,
         Matrix2D initialTransform,
@@ -17,7 +17,7 @@ internal static class PdfPageGraphicsEffectTimelineParser {
         Func<PdfArray, int>? inlineImageArrayComponentCount = null,
         System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (string.IsNullOrEmpty(content)) {
+        if (content.IsNullOrEmpty) {
             return Array.Empty<PdfPageDrawingEffectTransition>();
         }
 

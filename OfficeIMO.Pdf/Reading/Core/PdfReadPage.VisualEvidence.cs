@@ -18,7 +18,7 @@ public sealed partial class PdfReadPage {
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
         var pageContentBudget = new PageContentBudget(this);
-        string content = GetContentStreamContent(pageContentBudget);
+        PdfContentSource content = GetContentStreamSequence(pageContentBudget).Source;
         if (content.Length > 0) {
             PdfPageInvokedResourceNames invokedResources = GetRootInvokedResourceNames(content, pageResources);
             if (!invokedResources.HasVectorPaint && !invokedResources.HasObjectPaint &&
