@@ -372,12 +372,17 @@
         "href": "/docs/email/safety-and-verification/"
       },
       {
-        "title": "OneNote",
+        "title": "Read and Edit OneNote Files",
         "path": "onenote/index.md",
         "href": "/docs/onenote/"
       },
       {
-        "title": "OneNote Export and Conversion",
+        "title": "OneNote Notebooks and Packages",
+        "path": "onenote/notebooks/index.md",
+        "href": "/docs/onenote/notebooks/"
+      },
+      {
+        "title": "Convert OneNote",
         "path": "onenote/export-and-convert/index.md",
         "href": "/docs/onenote/export-and-convert/"
       }
@@ -392,19 +397,49 @@
         "href": "/docs/html/"
       },
       {
-        "title": "HTML Rendering and Conversion",
+        "title": "Convert HTML to PDF",
+        "path": "html/html-to-pdf/index.md",
+        "href": "/docs/html/html-to-pdf/"
+      },
+      {
+        "title": "HTML to Images, Word and RTF",
         "path": "html/render-and-convert/index.md",
         "href": "/docs/html/render-and-convert/"
       },
       {
-        "title": "Rich Text Format",
+        "title": "MHTML and ZIP Site Bundles",
+        "path": "html/mhtml-and-site-bundles/index.md",
+        "href": "/docs/html/mhtml-and-site-bundles/"
+      },
+      {
+        "title": "Create and Edit RTF",
         "path": "rtf/index.md",
         "href": "/docs/rtf/"
       },
       {
-        "title": "EPUB Extraction",
+        "title": "Read RTF and Extract Text",
+        "path": "rtf/read/index.md",
+        "href": "/docs/rtf/read/"
+      },
+      {
+        "title": "Convert RTF",
+        "path": "rtf/convert/index.md",
+        "href": "/docs/rtf/convert/"
+      },
+      {
+        "title": "Read EPUB Files",
         "path": "epub/index.md",
         "href": "/docs/epub/"
+      },
+      {
+        "title": "Create and Edit EPUB",
+        "path": "epub/create/index.md",
+        "href": "/docs/epub/create/"
+      },
+      {
+        "title": "Convert EPUB",
+        "path": "epub/convert/index.md",
+        "href": "/docs/epub/convert/"
       },
       {
         "title": "OpenDocument",
@@ -442,9 +477,19 @@
         "href": "/docs/markdown/"
       },
       {
-        "title": "Builder API",
+        "title": "Build Markdown in Code",
         "path": "markdown/builder/index.md",
         "href": "/docs/markdown/builder/"
+      },
+      {
+        "title": "Parse and Inspect Markdown",
+        "path": "markdown/parse-and-inspect/index.md",
+        "href": "/docs/markdown/parse-and-inspect/"
+      },
+      {
+        "title": "Convert Markdown",
+        "path": "markdown/convert/index.md",
+        "href": "/docs/markdown/convert/"
       }
     ]
   },
