@@ -18337,6 +18337,199 @@
           "code": "$options = New-OfficePdfLayoutOverlayOptions -RegionColor '#FF00FF' -LineColor Black\nExport-OfficePdfLayoutOverlay -Path .\\Reports\\Brochure.pdf -OutputPath .\\Debug\\Brochure.png -Options $options"
         }
       ]
+    },
+    {
+      "name": "Add-OfficePdfBarcode",
+      "alias": "PdfBarcode",
+      "status": "new",
+      "synopsis": "Adds a QR code or any CodeGlyphX barcode to PDF content as a vector drawing.",
+      "outputType": "PdfDocument (with -Document -PassThru)",
+      "parameterSets": [
+        {
+          "name": "Content",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none",
+              "notes": "Text, URL or other data to encode."
+            },
+            {
+              "name": "Type",
+              "type": "SymbolFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "CodeGlyphX symbology; QrCode by default. Code128, Gs1Code128, Ean, UpcA, DataMatrix, Pdf417 and every other SymbolFormat value."
+            },
+            {
+              "name": "Width",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Width of the whole symbol including its quiet zone; a bare number means points."
+            },
+            {
+              "name": "Height",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Height including human-readable text; linear barcodes adjust their bar height, other symbols keep proportions."
+            },
+            {
+              "name": "QuietZone",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Color",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Literal, opaque color of the bars or dark modules."
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Literal, opaque background color."
+            },
+            {
+              "name": "ErrorCorrection",
+              "type": "QrErrorCorrectionLevel",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "QR codes only."
+            },
+            {
+              "name": "NoHumanReadableText",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Linear barcodes print their text under the bars unless this is set."
+            },
+            {
+              "name": "AlternativeText",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Defaults to the symbology and the encoded text."
+            },
+            {
+              "name": "Alignment",
+              "type": "OfficeAlignment",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "Document",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none",
+              "notes": "Text, URL or other data to encode."
+            },
+            {
+              "name": "Type",
+              "type": "SymbolFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "CodeGlyphX symbology; QrCode by default. Code128, Gs1Code128, Ean, UpcA, DataMatrix, Pdf417 and every other SymbolFormat value."
+            },
+            {
+              "name": "Width",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Width of the whole symbol including its quiet zone; a bare number means points."
+            },
+            {
+              "name": "Height",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Height including human-readable text; linear barcodes adjust their bar height, other symbols keep proportions."
+            },
+            {
+              "name": "QuietZone",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Color",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Literal, opaque color of the bars or dark modules."
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Literal, opaque background color."
+            },
+            {
+              "name": "ErrorCorrection",
+              "type": "QrErrorCorrectionLevel",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "QR codes only."
+            },
+            {
+              "name": "NoHumanReadableText",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Linear barcodes print their text under the bars unless this is set."
+            },
+            {
+              "name": "AlternativeText",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Defaults to the symbology and the encoded text."
+            },
+            {
+              "name": "Alignment",
+              "type": "OfficeAlignment",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Document",
+              "type": "PdfDocument",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Requires the bundled OfficeIMO.Pdf.CodeGlyphX adapter. The code renders through CodeGlyphX at its physical size; the PDF receives vector paths and tagged alternative text.",
+      "examples": [
+        {
+          "title": "Add a payment QR code",
+          "description": "Adds a right-aligned QR code under an invoice note.",
+          "code": "New-OfficePdf -Path .\\Invoice.pdf {\n    PdfParagraph 'Pay online:'\n    PdfBarcode 'https://pay.example.com/inv/2026-0042' -Alignment Right\n}"
+        }
+      ]
     }
   ],
   "map": [

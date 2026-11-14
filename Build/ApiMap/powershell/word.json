@@ -9038,6 +9038,111 @@
           "code": "Get-Volume |\n    Where-Object DriveLetter |\n    Select-Object -Property DriveLetter, FileSystemLabel, Size, SizeRemaining |\n    Export-OfficeWord -Path .\\Reports\\Disks.docx -Title 'Disk capacity' -ColumnFormat @{ Size = 'N0'; SizeRemaining = 'N0' }"
         }
       ]
+    },
+    {
+      "name": "Add-OfficeWordBarcode",
+      "alias": "WordBarcode",
+      "status": "new",
+      "synopsis": "Adds a QR code or any CodeGlyphX barcode to the current or given paragraph.",
+      "outputType": "WordImage (with -PassThru)",
+      "parameterSets": [
+        {
+          "name": "__AllParameterSets",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none",
+              "notes": "Text, URL or other data to encode."
+            },
+            {
+              "name": "Type",
+              "type": "SymbolFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "CodeGlyphX symbology; QrCode by default. Code128, Gs1Code128, Ean, UpcA, DataMatrix, Pdf417 and every other SymbolFormat value."
+            },
+            {
+              "name": "Width",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Width of the whole symbol including its quiet zone; a bare number means points."
+            },
+            {
+              "name": "Height",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Height including human-readable text; linear barcodes adjust their bar height, other symbols keep proportions."
+            },
+            {
+              "name": "QuietZone",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Color",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Literal, opaque color of the bars or dark modules."
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Literal, opaque background color."
+            },
+            {
+              "name": "ErrorCorrection",
+              "type": "QrErrorCorrectionLevel",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "QR codes only."
+            },
+            {
+              "name": "NoHumanReadableText",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Linear barcodes print their text under the bars unless this is set."
+            },
+            {
+              "name": "AlternativeText",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Defaults to the symbology and the encoded text."
+            },
+            {
+              "name": "Paragraph",
+              "type": "WordParagraph",
+              "mandatory": false,
+              "pipeline": "value"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Requires the bundled OfficeIMO.Word.CodeGlyphX adapter. The code renders through CodeGlyphX at its physical size; Word stores an SVG picture with a PNG fallback.",
+      "examples": [
+        {
+          "title": "Add a QR code",
+          "description": "Puts a QR code that opens the agenda under a short paragraph.",
+          "code": "New-OfficeWord -Path .\\Flyer.docx {\n    WordParagraph 'Scan for the event agenda:'\n    WordBarcode 'https://evotec.xyz/events'\n}"
+        }
+      ]
     }
   ],
   "map": [

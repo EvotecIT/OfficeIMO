@@ -15565,6 +15565,124 @@
           "code": "$google = New-OfficeExcelGoogleSheetsOptions -Charts WarnAndSkip -PivotTables WarnAndSkip -FunctionMapping @{ 'XLOOKUP' = 'XLOOKUP'; 'CONCAT' = 'CONCATENATE' } -Locale 'en_GB' -TimeZone 'Europe/London'\n$plan = Export-OfficeExcelGoogleSpreadsheet -Path .\\Finance\\Budget-2027.xlsx -Options $google -Mode Plan\n$plan | Format-List"
         }
       ]
+    },
+    {
+      "name": "Add-OfficeExcelBarcode",
+      "alias": "ExcelBarcode",
+      "status": "new",
+      "synopsis": "Adds a QR code or any CodeGlyphX barcode anchored at a worksheet cell.",
+      "outputType": "ExcelImage (with -PassThru)",
+      "parameterSets": [
+        {
+          "name": "__AllParameterSets",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none",
+              "notes": "Text, URL or other data to encode."
+            },
+            {
+              "name": "Type",
+              "type": "SymbolFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "CodeGlyphX symbology; QrCode by default. Code128, Gs1Code128, Ean, UpcA, DataMatrix, Pdf417 and every other SymbolFormat value."
+            },
+            {
+              "name": "Width",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Width of the whole symbol including its quiet zone; a bare number means points."
+            },
+            {
+              "name": "Height",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Height including human-readable text; linear barcodes adjust their bar height, other symbols keep proportions."
+            },
+            {
+              "name": "QuietZone",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Color",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Literal, opaque color of the bars or dark modules."
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Literal, opaque background color."
+            },
+            {
+              "name": "ErrorCorrection",
+              "type": "QrErrorCorrectionLevel",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "QR codes only."
+            },
+            {
+              "name": "NoHumanReadableText",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Linear barcodes print their text under the bars unless this is set."
+            },
+            {
+              "name": "AlternativeText",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Defaults to the symbology and the encoded text."
+            },
+            {
+              "name": "Document",
+              "type": "ExcelDocument",
+              "mandatory": false,
+              "pipeline": "value"
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Address",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "A1 reference of a single anchor cell; defaults to A1."
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Requires the bundled OfficeIMO.Excel.CodeGlyphX adapter. The code renders through CodeGlyphX at its physical size; Excel stores an SVG picture with a PNG fallback.",
+      "examples": [
+        {
+          "title": "Label products with QR codes",
+          "description": "Places a QR code next to a product name.",
+          "code": "New-OfficeExcel -Path .\\Catalog.xlsx {\n    ExcelSheet 'Products' {\n        ExcelCell -Address A2 -Value 'Contoso Router X2'\n        ExcelBarcode 'https://contoso.example/x2' -Address B2 -Width 2cm\n    }\n}"
+        }
+      ]
     }
   ],
   "map": [
