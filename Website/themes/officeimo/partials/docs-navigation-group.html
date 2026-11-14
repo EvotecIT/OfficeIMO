@@ -5,7 +5,7 @@
 <details class="imo-docs__group"{{ if is_open || group_open }} open{{ end }}{{ if is_open }} data-current="true"{{ end }}>
   <summary class="imo-docs__group-title"><span>{{ group_title }}</span><small>{{ group_items.size }}</small></summary>
   <ul class="imo-docs__list">
-    {{ for child in group_items }}<li><a href="{{ child.url }}" class="imo-docs__link{{ if current_path == child.url }} active{{ end }}"{{ if current_path == child.url }} aria-current="page"{{ end }}>{{ child.title }}</a></li>{{ end }}
+    {{ for child in group_items }}<li><a href="{{ child.url }}" aria-label="{{ group_title }}: {{ child.title }}" class="imo-docs__link{{ if current_path == child.url }} active{{ end }}"{{ if current_path == child.url }} aria-current="page"{{ end }}>{{ child.title }}</a></li>{{ end }}
     {{~ if group_related ~}}
     {{ for child in group_items }}
     {{ related_product = product_by_docs[child.url] }}
