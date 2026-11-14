@@ -2045,6 +2045,21 @@ Selectors retain caller order and repeated pages. Their first entries form the f
 
 The standalone HTML gallery includes selected scope, totals, pair links, render limitations and SHA-256 identities of the compared snapshots. This comparison checks rendered appearances in the supplied order. It does not infer semantic changes or moved-page alignment; use the separate review APIs above when that analysis is needed. Selected-page, pixel, retained-image and HTML byte limits remain enforced. The legacy shared `selection` argument cannot be combined with independent selectors.
 
+### Mark text changes between two PDFs
+
+`PdfTextRedline` compares the text of two PDFs and returns a copy of the newer PDF with review annotations, plus every change in a format-neutral list:
+
+```csharp
+PdfTextRedlineResult redline = PdfTextRedline.CompareFiles("contract-v1.pdf", "contract-v2.pdf");
+File.WriteAllBytes("contract-v2.redline.pdf", redline.Pdf);
+File.WriteAllText("contract-changes.json", redline.ToJson());
+File.WriteAllText("contract-changes.html", redline.ToHtml("Contract changes"));
+```
+
+Words are read in reading order from every page, so reflowed lines and moved page breaks are not changes, and an edit that crosses a page break is one change highlighted on both pages. Inserted text gets a green highlight, replaced text a yellow one and moved text a blue one; a red caret marks where text was deleted. Notes on replacements, deletions and moves carry the old text, and each annotation has a pop-up unless `CreatePopups` is false. `Changes` lists every change with its kind, old and new text, and page numbers and page rectangles on both sides; `MaxAnnotatedChanges` caps only the annotations. A PDF without extractable text, such as a scan without a text layer, is refused with an `ArgumentException` naming that side; add a text layer with `OfficeIMO.Pdf.Ocr` first.
+
+`PdfTextRedlineOptions` selects the word alignment (`Myers`, the default, gives the smallest set of changes; `Patience` and `Histogram` align on rare words first), ignores case, turns move detection on or off, and sets work and time limits. When a limit stops the alignment, `Changes.IsComplete` is false and the remaining text is listed as deleted and inserted rather than skipped. The redline compares text only; use `Proof.CompareReview` or `Proof.CompareVisual` for layout, image and rendering differences.
+
 ### Snapshot-test generated PDFs
 
 `OfficeIMO.Pdf.Testing` turns rendering and reading into snapshot tests for xUnit, NUnit or MSTest:

@@ -117,6 +117,25 @@ finding may describe content that was not preserved. `OfficeDiagnosticCodes` is
 the shared code catalog. For example, `OfficeDiagnosticCodes.ChartFlattened` is
 `chart-flattened` across formats.
 
+## Compare sequences and text
+
+`OfficeDiff` (namespace `OfficeIMO.Diff`) computes edit scripts between any two sequences with an equality comparer, or between texts split into lines, words or user-perceived characters. The default Myers algorithm runs in linear space and returns a minimal script; `Patience` and `Histogram` align on unique or rare items first, which often reads better for moved blocks. `MaxWorkUnits` and `Timeout` bound the work: when a limit is reached the rest is reported as deleted and inserted, `LimitReached` is set, and the script still turns the old sequence into the new one.
+
+```csharp
+OfficeDiffResult<OfficeTextToken> words = OfficeDiff.CompareWords(
+    "The quick brown fox", "The slow red fox",
+    new OfficeDiffOptions { SemanticCleanup = true });
+IReadOnlyList<OfficeTextToken> rebuilt = words.Apply(words.Old); // the new tokens
+
+string patch = OfficeUnifiedDiff.Create(oldText, newText, "a/notes.txt", "b/notes.txt");
+OfficeChangeSet changes = OfficeChangeSet.FromTextDiff(words);
+string json = changes.ToJson();
+string html = OfficeDiffHtmlReport.SideBySide(oldText, newText,
+    new OfficeDiffHtmlOptions { Title = "Notes", Changes = changes });
+```
+
+`SemanticCleanup` folds short unchanged fragments between changes into one replacement. Text diffs also move each pure insertion or deletion to the equivalent position that starts and ends at whitespace, so whole words and sentences are reported. `OfficeChangeSet` is the format-neutral change list (inserted, deleted, replaced and moved changes with token, page and region anchors) that document comparers such as `PdfTextRedline` return.
+
 ## Bounded embedded payload reads
 
 Native document owners create `OfficeEmbeddedPayloadInspection` sessions through
