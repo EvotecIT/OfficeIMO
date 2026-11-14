@@ -326,3 +326,23 @@ abstract OfficeIMO.OfficeNamingPolicy.ConvertName(string! name) -> string!
 static OfficeIMO.OfficeNamingPolicy.CamelCase.get -> OfficeIMO.OfficeNamingPolicy!
 static OfficeIMO.OfficeNamingPolicy.KebabCaseLower.get -> OfficeIMO.OfficeNamingPolicy!
 static OfficeIMO.OfficeNamingPolicy.SnakeCaseLower.get -> OfficeIMO.OfficeNamingPolicy!
+OfficeIMO.Security.IOfficePublicKeySignatureVerifier
+OfficeIMO.Security.IOfficePublicKeySignatureVerifier.Name.get -> string!
+OfficeIMO.Security.IOfficePublicKeySignatureVerifier.Supports(OfficeIMO.Security.OfficePublicKeySignatureAlgorithm algorithm) -> bool
+OfficeIMO.Security.IOfficePublicKeySignatureVerifier.Verify(OfficeIMO.Security.OfficePublicKeySignatureAlgorithm algorithm, byte[]! publicKey, byte[]! data, byte[]! signature) -> OfficeIMO.Security.OfficePublicKeySignatureCheck!
+OfficeIMO.Security.OfficePublicKeySignatureAlgorithm
+OfficeIMO.Security.OfficePublicKeySignatureAlgorithm.Ed25519 = 2 -> OfficeIMO.Security.OfficePublicKeySignatureAlgorithm
+OfficeIMO.Security.OfficePublicKeySignatureAlgorithm.RsaPkcs1Sha1 = 1 -> OfficeIMO.Security.OfficePublicKeySignatureAlgorithm
+OfficeIMO.Security.OfficePublicKeySignatureAlgorithm.RsaPkcs1Sha256 = 0 -> OfficeIMO.Security.OfficePublicKeySignatureAlgorithm
+OfficeIMO.Security.OfficePublicKeySignatureCheck
+OfficeIMO.Security.OfficePublicKeySignatureCheck.IsValid.get -> bool
+OfficeIMO.Security.OfficePublicKeySignatureCheck.KeySizeBits.get -> int
+OfficeIMO.Security.OfficePublicKeySignatureCheck.Message.get -> string?
+OfficeIMO.Security.OfficePublicKeySignatureCheck.OfficePublicKeySignatureCheck(OfficeIMO.Security.OfficePublicKeySignatureStatus status, int keySizeBits = 0, string? message = null) -> void
+OfficeIMO.Security.OfficePublicKeySignatureCheck.Status.get -> OfficeIMO.Security.OfficePublicKeySignatureStatus
+OfficeIMO.Security.OfficePublicKeySignatureStatus
+OfficeIMO.Security.OfficePublicKeySignatureStatus.Invalid = 1 -> OfficeIMO.Security.OfficePublicKeySignatureStatus
+OfficeIMO.Security.OfficePublicKeySignatureStatus.MalformedKey = 2 -> OfficeIMO.Security.OfficePublicKeySignatureStatus
+OfficeIMO.Security.OfficePublicKeySignatureStatus.MalformedSignature = 3 -> OfficeIMO.Security.OfficePublicKeySignatureStatus
+OfficeIMO.Security.OfficePublicKeySignatureStatus.UnsupportedAlgorithm = 4 -> OfficeIMO.Security.OfficePublicKeySignatureStatus
+OfficeIMO.Security.OfficePublicKeySignatureStatus.Valid = 0 -> OfficeIMO.Security.OfficePublicKeySignatureStatus
