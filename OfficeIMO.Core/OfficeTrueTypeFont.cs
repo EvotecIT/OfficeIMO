@@ -998,9 +998,12 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
 
     private const int MaximumRetainedContourPoints = 4096;
     private const int MaximumCachedSimpleGlyphs = 4096;
+    // About 17 MB of decoded coordinates per font; outlines beyond it are decoded on each use.
+    private const int MaximumCachedSimpleGlyphPoints = 1 << 20;
     [ThreadStatic] private static List<GlyphPoint>? t_contourPoints;
     private readonly object _simpleGlyphSync = new();
     private Dictionary<ushort, SimpleGlyphOutline>? _simpleGlyphs;
+    private int _cachedSimpleGlyphPoints;
 
     // Decoded outlines depend only on the font program, so repeated glyphs skip the glyf
     // decoding. Variable fonts apply instance deltas and are decoded every time.
@@ -1013,7 +1016,12 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     private void CacheSimpleGlyph(ushort glyph, SimpleGlyphOutline outline) {
         lock (_simpleGlyphSync) {
             _simpleGlyphs ??= new Dictionary<ushort, SimpleGlyphOutline>();
-            if (_simpleGlyphs.Count < MaximumCachedSimpleGlyphs) _simpleGlyphs[glyph] = outline;
+            int points = outline.Xs.Length;
+            if (_simpleGlyphs.Count >= MaximumCachedSimpleGlyphs ||
+                points > MaximumCachedSimpleGlyphPoints - _cachedSimpleGlyphPoints ||
+                _simpleGlyphs.ContainsKey(glyph)) return;
+            _simpleGlyphs.Add(glyph, outline);
+            _cachedSimpleGlyphPoints += points;
         }
     }
 
