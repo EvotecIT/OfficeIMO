@@ -213,7 +213,7 @@ public abstract class TomlNode {
         return this;
     }
 
-    private bool CanHaveComment() {
+    internal bool CanHaveComment() {
         if (this is TomlTable table && table._tableKind is TomlTableKind.Header or TomlTableKind.ArrayItem) return true;
         bool valueNode = this is TomlValue || this is TomlArray || (this is TomlTable inline && inline._tableKind == TomlTableKind.Inline);
         return valueNode && _key != null && _parent is TomlTable && !InInlineContext();

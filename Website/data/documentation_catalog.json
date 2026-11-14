@@ -9,7 +9,7 @@
     "validationProjectCount": 75,
     "apiReferenceCount": 129,
     "conceptualPageCount": 186,
-    "conceptualWordCount": 99520
+    "conceptualWordCount": 100235
   },
   "categories": [
     {
@@ -2153,7 +2153,7 @@
       "description": "A dependency-free TOML 1.1 engine for OfficeIMO: a low-allocation pull reader, a lossless document model that saves unchanged input byte for byte and edits with minimal diffs, a writer, and an object serializer with a NativeAOT source generator.",
       "kind": "package",
       "projectPath": "OfficeIMO.Toml/OfficeIMO.Toml.csproj",
-      "sourceFileCount": 43,
+      "sourceFileCount": 46,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/toml/",
       "apiUrl": null,
@@ -2400,7 +2400,7 @@
       "description": "PSWriteOffice is a focused component in the OfficeIMO managed document platform.",
       "kind": "library",
       "projectPath": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/PSWriteOffice.csproj",
-      "sourceFileCount": 785,
+      "sourceFileCount": 790,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/pswriteoffice/",
       "apiUrl": null,
