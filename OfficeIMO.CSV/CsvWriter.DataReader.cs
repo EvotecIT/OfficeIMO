@@ -38,7 +38,6 @@ internal static partial class CsvWriter
         buffer.Append(newLine);
     }
 
-#if NET6_0_OR_GREATER
     internal enum DataReaderFieldKind : byte
     {
         Object,
@@ -70,9 +69,11 @@ internal static partial class CsvWriter
         {
             for (var i = 0; i < fieldKinds.Length; i++)
             {
+                // A reader that reports no type keeps its values on the boxed path.
                 var reportedType = reader.GetFieldType(i);
-                var fieldType = Nullable.GetUnderlyingType(reportedType) ?? reportedType;
-                fieldKinds[i] = GetDataReaderFieldKind(fieldType);
+                fieldKinds[i] = reportedType is null
+                    ? DataReaderFieldKind.Object
+                    : GetDataReaderFieldKind(Nullable.GetUnderlyingType(reportedType) ?? reportedType);
             }
         }
         catch (NotSupportedException)
@@ -87,6 +88,33 @@ internal static partial class CsvWriter
         return fieldKinds;
     }
 
+    private static DataReaderFieldKind GetDataReaderFieldKind(Type fieldType)
+    {
+        if (fieldType == typeof(string)) return DataReaderFieldKind.String;
+        if (fieldType == typeof(bool)) return DataReaderFieldKind.Boolean;
+        if (fieldType == typeof(decimal)) return DataReaderFieldKind.Decimal;
+        if (fieldType == typeof(int)) return DataReaderFieldKind.Int32;
+        if (fieldType == typeof(DateTime)) return DataReaderFieldKind.DateTime;
+        if (fieldType == typeof(double)) return DataReaderFieldKind.Double;
+        if (fieldType == typeof(long)) return DataReaderFieldKind.Int64;
+        if (fieldType == typeof(DateTimeOffset)) return DataReaderFieldKind.DateTimeOffset;
+        if (fieldType == typeof(Guid)) return DataReaderFieldKind.Guid;
+        if (fieldType == typeof(TimeSpan)) return DataReaderFieldKind.TimeSpan;
+        if (fieldType == typeof(float)) return DataReaderFieldKind.Single;
+        if (fieldType == typeof(byte)) return DataReaderFieldKind.Byte;
+        if (fieldType == typeof(sbyte)) return DataReaderFieldKind.SByte;
+        if (fieldType == typeof(short)) return DataReaderFieldKind.Int16;
+        if (fieldType == typeof(ushort)) return DataReaderFieldKind.UInt16;
+        if (fieldType == typeof(uint)) return DataReaderFieldKind.UInt32;
+        if (fieldType == typeof(ulong)) return DataReaderFieldKind.UInt64;
+#if NET6_0_OR_GREATER
+        if (fieldType == typeof(DateOnly)) return DataReaderFieldKind.DateOnly;
+        if (fieldType == typeof(TimeOnly)) return DataReaderFieldKind.TimeOnly;
+#endif
+        return DataReaderFieldKind.Object;
+    }
+
+#if NET6_0_OR_GREATER
     private static bool TryAppendFormattedTypedDataReaderValue(
         StringBuilder buffer,
         IDataRecord reader,
@@ -289,30 +317,6 @@ internal static partial class CsvWriter
 
         writer.Write(buffer);
         buffer.Clear();
-    }
-
-    private static DataReaderFieldKind GetDataReaderFieldKind(Type fieldType)
-    {
-        if (fieldType == typeof(string)) return DataReaderFieldKind.String;
-        if (fieldType == typeof(bool)) return DataReaderFieldKind.Boolean;
-        if (fieldType == typeof(decimal)) return DataReaderFieldKind.Decimal;
-        if (fieldType == typeof(int)) return DataReaderFieldKind.Int32;
-        if (fieldType == typeof(DateTime)) return DataReaderFieldKind.DateTime;
-        if (fieldType == typeof(double)) return DataReaderFieldKind.Double;
-        if (fieldType == typeof(long)) return DataReaderFieldKind.Int64;
-        if (fieldType == typeof(DateTimeOffset)) return DataReaderFieldKind.DateTimeOffset;
-        if (fieldType == typeof(Guid)) return DataReaderFieldKind.Guid;
-        if (fieldType == typeof(TimeSpan)) return DataReaderFieldKind.TimeSpan;
-        if (fieldType == typeof(float)) return DataReaderFieldKind.Single;
-        if (fieldType == typeof(byte)) return DataReaderFieldKind.Byte;
-        if (fieldType == typeof(sbyte)) return DataReaderFieldKind.SByte;
-        if (fieldType == typeof(short)) return DataReaderFieldKind.Int16;
-        if (fieldType == typeof(ushort)) return DataReaderFieldKind.UInt16;
-        if (fieldType == typeof(uint)) return DataReaderFieldKind.UInt32;
-        if (fieldType == typeof(ulong)) return DataReaderFieldKind.UInt64;
-        if (fieldType == typeof(DateOnly)) return DataReaderFieldKind.DateOnly;
-        if (fieldType == typeof(TimeOnly)) return DataReaderFieldKind.TimeOnly;
-        return DataReaderFieldKind.Object;
     }
 
     internal static void AppendKnownValueDefault<T>(

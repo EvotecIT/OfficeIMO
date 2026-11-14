@@ -482,7 +482,6 @@ internal static partial class CsvWriter
         text.IndexOf(delimiter, StringComparison.Ordinal) >= 0 ||
         text.IndexOf('"') >= 0 || text.IndexOf('\n') >= 0 || text.IndexOf('\r') >= 0;
 
-#if NET6_0_OR_GREATER
     internal static bool NeedsQuotes(ReadOnlySpan<char> text, char delimiter)
     {
 #if NET8_0_OR_GREATER
@@ -498,6 +497,7 @@ internal static partial class CsvWriter
         return false;
     }
 
+#if NET6_0_OR_GREATER
     private static bool NeedsQuotes(ReadOnlySpan<char> text, string delimiter) =>
         text.IndexOf(delimiter.AsSpan()) >= 0 ||
         text.IndexOf('"') >= 0 || text.IndexOf('\n') >= 0 || text.IndexOf('\r') >= 0;
