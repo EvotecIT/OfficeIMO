@@ -18,6 +18,7 @@ public sealed partial class ArchiveInspection : IDisposable {
         _limits = limits; _directoryRecords = directoryRecords; InputLength = input.LongLength;
         using var source = new MemoryStream(input, writable: false);
         Format = ArchiveExtractor.Detect(source, token);
+        RejectUninventoried(Format);
         StorageStreams = Array.Empty<ArchiveStorageStream>();
         try {
             var budget = new OfficeCabinetDirectoryBudget(directoryRecords);
@@ -36,6 +37,11 @@ public sealed partial class ArchiveInspection : IDisposable {
             token.ThrowIfCancellationRequested();
         } catch (OfficeCabinetException exception) { Dispose(); throw _limits.Translate(exception, directoryMaximum: _directoryRecords); }
         catch { Dispose(); throw; }
+    }
+
+    internal static void RejectUninventoried(ArchiveFormat format) {
+        if (format == ArchiveFormat.Tar || format == ArchiveFormat.TarGZip || format == ArchiveFormat.GZip)
+            throw new NotSupportedException("TAR and gzip packages are not inventoried by ArchiveInspector; use ArchiveReader.ListTar, ArchiveReader.ReadTar or ArchiveExtractor.Extract.");
     }
 
     /// <summary>Takes ownership of an immutable, seekable ZIP snapshot without rematerializing its bytes.</summary>
