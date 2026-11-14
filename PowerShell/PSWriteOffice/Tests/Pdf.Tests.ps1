@@ -241,6 +241,42 @@ Describe 'PDF cmdlets' {
         $text | Should -Match 'Beta'
     }
 
+    It 'carries table amounts across pages with a page summary' {
+        $path = Join-Path $TestDrive 'page-summary-table.pdf'
+        $summary = [OfficeIMO.Pdf.PdfTablePageSummary]::new()
+        $amount = $summary.Sum('amount', 2, 'N2', $null)
+        $null = $summary.AddContinuationHeaderRow([string[]] @('Brought forward', '', $amount.BroughtForwardToken))
+        $null = $summary.AddPageFooterRow([string[]] @('Carried forward', '', $amount.RunningToken))
+        $lines = @(1..120 | ForEach-Object { [pscustomobject]@{ Item = $_; Description = 'Consulting hour'; Amount = '125.00' } })
+        $lines += [pscustomobject]@{ Item = 'Total'; Description = ''; Amount = $amount.RunningToken }
+
+        New-OfficePdf -Path $path {
+            PdfTable -InputObject $lines -FooterRowCount 1 -PageSummary $summary
+        } | Out-Null
+
+        $text = Read-OfficeDocument -As Text -Path $path
+        $pages = ([OfficeIMO.Pdf.PdfDocument]::Load($path).Read()).Pages.Count
+        $pages | Should -BeGreaterThan 1
+        ([regex]::Matches($text, 'Carried forward')).Count | Should -Be ($pages - 1)
+        ([regex]::Matches($text, 'Brought forward')).Count | Should -Be ($pages - 1)
+        $text | Should -Match '15,000\.00'
+    }
+
+    It 'repeats table footer rows on every page' {
+        $path = Join-Path $TestDrive 'repeat-footer-table.pdf'
+        $rows = @(1..120 | ForEach-Object { , @("Row $_", 'x') })
+        $rows += , @('Continued footer', 'end')
+
+        New-OfficePdf -Path $path {
+            PdfTable -Header Name, Value -InputObject $rows -FooterRowCount 1 -RepeatFooterRows
+        } | Out-Null
+
+        $text = Read-OfficeDocument -As Text -Path $path
+        $pages = ([OfficeIMO.Pdf.PdfDocument]::Load($path).Read()).Pages.Count
+        $pages | Should -BeGreaterThan 1
+        ([regex]::Matches($text, 'Continued footer')).Count | Should -Be $pages
+    }
+
     It 'renders explicit headers for array row tables' {
         $path = Join-Path $TestDrive 'array-row-table-header.pdf'
 

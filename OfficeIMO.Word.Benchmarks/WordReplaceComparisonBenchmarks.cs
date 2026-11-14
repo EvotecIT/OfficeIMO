@@ -71,8 +71,7 @@ public class WordReplaceComparisonBenchmarks {
                     run.SetText(
                         text.Replace(
                             WordBenchmarkCorpus.Placeholder,
-                            WordBenchmarkCorpus.Replacement,
-                            StringComparison.Ordinal),
+                            WordBenchmarkCorpus.Replacement),
                         0);
                 }
             }
@@ -98,8 +97,7 @@ public class WordReplaceComparisonBenchmarks {
             foreach (Text text in body.Descendants<Text>()) {
                 text.Text = text.Text.Replace(
                     WordBenchmarkCorpus.Placeholder,
-                    WordBenchmarkCorpus.Replacement,
-                    StringComparison.Ordinal);
+                    WordBenchmarkCorpus.Replacement);
             }
             mainPart.Document!.Save();
         }

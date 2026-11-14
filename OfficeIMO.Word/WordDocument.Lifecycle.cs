@@ -48,16 +48,23 @@ namespace OfficeIMO.Word {
                     }
                 }
 
+                // Closing a package held in memory this document owns only rewrites (and recompresses) the archive
+                // into a buffer that is dropped next, so it is left to the garbage collector. The .NET Framework
+                // package can keep large parts in isolated-storage files, so it is still closed there.
+                bool packageReleased = _ownedPackageStream != null && _legacyValidationLivePackageStream == null
+                    && !OfficeRuntime.IsNetFramework;
                 try {
                     RetainColorContextForInspection();
                 } catch (Exception ex) {
                     persistenceFailure ??= ex;
                 }
 
-                try {
-                    wordProcessingDocument.Dispose();
-                } catch (Exception ex) {
-                    persistenceFailure ??= ex;
+                if (!packageReleased) {
+                    try {
+                        wordProcessingDocument.Dispose();
+                    } catch (Exception ex) {
+                        persistenceFailure ??= ex;
+                    }
                 }
 
                 this._wordprocessingDocument = null!;
@@ -123,16 +130,23 @@ namespace OfficeIMO.Word {
                     }
                 }
 
+                // Closing a package held in memory this document owns only rewrites (and recompresses) the archive
+                // into a buffer that is dropped next, so it is left to the garbage collector. The .NET Framework
+                // package can keep large parts in isolated-storage files, so it is still closed there.
+                bool packageReleased = _ownedPackageStream != null && _legacyValidationLivePackageStream == null
+                    && !OfficeRuntime.IsNetFramework;
                 try {
                     RetainColorContextForInspection();
                 } catch (Exception ex) {
                     persistenceFailure ??= ex;
                 }
 
-                try {
-                    wordProcessingDocument.Dispose();
-                } catch (Exception ex) {
-                    persistenceFailure ??= ex;
+                if (!packageReleased) {
+                    try {
+                        wordProcessingDocument.Dispose();
+                    } catch (Exception ex) {
+                        persistenceFailure ??= ex;
+                    }
                 }
 
                 this._wordprocessingDocument = null!;
