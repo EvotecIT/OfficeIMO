@@ -143,6 +143,13 @@ namespace OfficeIMO.Excel {
             var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
 
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
+                // A format over exactly one column of a pending direct table's data rows is stored on the
+                // table model, so the rows keep their direct save instead of loading into the worksheet.
+                if (c1 == c2 && _excelDocument.TrySetDirectTabularSaveCandidateColumnBodyNumberFormat(this, r1, c1, r2, numberFormat, out bool updateWorksheet)) {
+                    if (updateWorksheet) WriteLock(() => FormatRangeCore(r1, c1, r2, c2, numberFormat));
+                    return;
+                }
+
                 MaterializeDeferredDataSetImportIfNeeded();
             }
 
