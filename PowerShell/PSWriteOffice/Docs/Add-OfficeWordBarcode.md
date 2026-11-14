@@ -15,7 +15,7 @@ Add-OfficeWordBarcode [-Text] <string> [-Paragraph <WordParagraph>] [-PassThru] 
 ```
 
 ## DESCRIPTION
-The code is an SVG picture with a PNG fallback, so Word draws it sharply and older readers still show it; PDF conversion keeps it as vector content. Two-dimensional codes default to 1.25 inches wide; linear barcodes to 0.33 mm per bar module, with their text underneath. The alternative text defaults to the symbology and the encoded text.
+The code is an SVG picture with a PNG fallback, so Word draws it sharply and older readers still show it; OfficeIMO's PDF conversion places it at print resolution. Two-dimensional codes default to 1.25 inches wide; linear barcodes to 0.33 mm per bar module, with their text underneath. The alternative text defaults to the symbology and the encoded text.
 
 ## EXAMPLES
 
