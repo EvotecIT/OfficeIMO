@@ -93,6 +93,9 @@ foreach (string warning in chunks.SelectMany(chunk => chunk.Warnings ?? Array.Em
 - Warning chunks for skipped or failed entries.
 - Bounded nested ZIP traversal with `ReaderZipOptions`.
 - Path and stream dispatch, including non-seekable stream support.
+- TAR, .tar.gz/.tgz and single-file .gz inputs (registered for `.tar`, `.tgz` and `.gz`), detected from content.
+
+TAR and gzip inputs go through `ArchiveReader.ReadTar` and `GZipArchive.Decompress`: every member is checksum- and bounds-checked and path-validated, and only files whose names a registered handler can read are materialized. Symbolic links, hard links, devices and directories are never read, and archives nested inside a TAR are not traversed. `MaxArchiveBytes`, `MaxPhysicalEntries`, `MaxEntryUncompressedBytes` and `MaxTotalUncompressedBytes` bound them as they do ZIP; a corrupt or unsafe TAR fails the read instead of producing per-entry warnings. A single-file gzip is read as the document named by its stored file name, or the source name without `.gz`.
 
 The adapter checks compressed size and every physical ZIP entry before opening top-level or nested archives. Path and stream inputs are copied into bounded private snapshots so validation and parsing see the same bytes. Archives borrows that snapshot for inventory and verified reads; it does not create another input copy. The snapshot is released when enumeration completes, fails, is cancelled or is disposed early. Its default source limit is 512 MiB and its default physical entry limit is 10,000. `ReaderOptions.MaxInputBytes` can lower the source limit; raise `ArchiveTraversalOptions.MaxArchiveBytes` or `MaxPhysicalEntries` deliberately for larger trusted archives. A top-level archive above either limit fails before metadata loading; a nested archive is skipped with a warning.
 
