@@ -371,3 +371,18 @@ pwsh Build/Run-PdfOfficeComCorpus.ps1 -Framework net10.0
 Versions are pinned in the benchmark project so evidence is reproducible. Public QuestPDF measurements use QuestPDF 2026.5.0 under its embedded Community MIT License and display that version in the evidence. Newer QuestPDF versions are not silently substituted. PDFsharp/MigraDoc and HtmlTinkerX are MIT, PeachPDF is BSD-3-Clause, PdfPecker is MIT with the bundled-component notices from its exact package, PdfPig is Apache-2.0, and OnePDF and OnePDF.Layout are `MIT OR Apache-2.0`. iText Core and pdfHTML are AGPL/commercial and remain isolated here for benchmark use; none of these libraries is linked by or distributed with an OfficeIMO runtime package.
 
 The benchmark uses the maintained cross-platform PDFsharp 6.x package. PdfSharpCore 1.3.67 is not included: restoring it currently reports NuGet vulnerability advisories through its ImageSharp 1.0.4 dependency, while PDFsharp 6.x already covers the equivalent cross-platform split, merge, selection, and MigraDoc generation workflows.
+
+## Sibling runners
+
+Two libraries cannot live in this project, so they have their own opt-in runners outside the solution. Both compile this project's scenario, generator and validation sources unchanged, so their lanes do the same validated work as the lanes above.
+
+- `OfficeIMO.Pdf.Benchmarks.FreePdf` measures FreePDF (`io7.FreePDF` and `io7.FreePDF.Layout` 7.10.2, MIT), which keeps the `PdfSharp` and `MigraDoc` assembly names and therefore conflicts with PDFsharp-MigraDoc here. It compiles `MigraDocPdfGenerator.cs` and `PdfManipulationEngines.PdfSharp.cs` against FreePDF for the report generation, merge, split and page-selection lanes, on `net10.0` and on `net472` (x64). Building with `-p:PdfSharpEngine=PDFsharp` compiles the same lanes against PDFsharp-MigraDoc 6.2.4 into `bin/pdfsharp`, so both engines can be compared on the same runtime. FreePDF has no text extraction, so it has no read lane.
+
+  ```powershell
+  dotnet build OfficeIMO.Pdf.Benchmarks.FreePdf -c Release
+  dotnet build OfficeIMO.Pdf.Benchmarks.FreePdf -c Release -p:PdfSharpEngine=PDFsharp
+  dotnet OfficeIMO.Pdf.Benchmarks.FreePdf/bin/Release/net10.0/OfficeIMO.Pdf.Benchmarks.FreePdf.dll --filter "*" --inProcess
+  OfficeIMO.Pdf.Benchmarks.FreePdf/bin/Release/net472/OfficeIMO.Pdf.Benchmarks.FreePdf.exe --filter "*" --inProcess
+  ```
+
+- `OfficeIMO.Pdf.Benchmarks.KillerPdf` measures KillerPdf.Engine 1.9.2, which is GPL-3.0-only and ships only `net10.0`. It covers reading, merge, split, page selection and page rendering; see its README. Never reference KillerPdf.Engine from any other project.

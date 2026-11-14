@@ -52,7 +52,9 @@ internal static partial class PdfBenchmarkValidation {
             ["TH"] = scenario.PageCount * columnCount,
             ["TD"] = scenario.PageCount * scenario.RowsPerPage * columnCount
         };
-        foreach ((string requiredType, int expectedCount) in exactRoleCounts) {
+        foreach (KeyValuePair<string, int> role in exactRoleCounts) {
+            string requiredType = role.Key;
+            int expectedCount = role.Value;
             tagged.StructureTypeCounts.TryGetValue(requiredType, out int actualCount);
             if (actualCount != expectedCount) {
                 throw new InvalidDataException(
@@ -145,7 +147,7 @@ internal static partial class PdfBenchmarkValidation {
     internal static void ValidatePageContent(string actualText, PdfExpectedPage expected, string context) {
         string actual = Normalize(actualText);
         foreach (string fragment in expected.RequiredFragments) {
-            if (!actual.Contains(fragment, StringComparison.Ordinal)) {
+            if (actual.IndexOf(fragment, StringComparison.Ordinal) < 0) {
                 throw new InvalidDataException($"{context} did not preserve required content '{fragment}'.");
             }
         }
@@ -178,7 +180,9 @@ internal static partial class PdfBenchmarkValidation {
             }
         }
 
-        foreach ((string fragment, int requiredCount) in requiredCounts) {
+        foreach (KeyValuePair<string, int> required in requiredCounts) {
+            string fragment = required.Key;
+            int requiredCount = required.Value;
             int actualCount = CountOccurrences(actual, fragment);
             if (actualCount < requiredCount) {
                 throw new InvalidDataException(
@@ -193,8 +197,8 @@ internal static partial class PdfBenchmarkValidation {
             foreach (string[] row in scenario.TableRows(page).Skip(1)) {
                 string exactFragment = Normalize(string.Concat(row));
                 string semanticFragment = string.Concat(row.Select(NormalizeTableCell));
-                if (!actual.Contains(exactFragment, StringComparison.Ordinal) &&
-                    !actual.Contains(semanticFragment, StringComparison.Ordinal)) {
+                if (actual.IndexOf(exactFragment, StringComparison.Ordinal) < 0 &&
+                    actual.IndexOf(semanticFragment, StringComparison.Ordinal) < 0) {
                     throw new InvalidDataException(
                         $"{engine} did not preserve required table row '{exactFragment}'.");
                 }
