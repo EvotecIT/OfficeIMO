@@ -31,17 +31,24 @@ internal sealed class TomlRendering {
     }
 
     private readonly struct Edit {
-        public Edit(int start, int end, string text, int sequence) {
+        public Edit(int start, int end, string text, int sequence, int rank = 0) {
             Start = start;
             End = end;
             Text = text;
             Sequence = sequence;
+            Rank = rank;
         }
 
         public int Start { get; }
         public int End { get; }
         public string Text { get; }
         public int Sequence { get; }
+
+        /// <summary>
+        /// Orders insertions at one position: key/value lines (0) before header sections (1), since lines written after a
+        /// new header would belong to it.
+        /// </summary>
+        public int Rank { get; }
     }
 
     private TomlLayout Layout => _document.Layout;
@@ -55,7 +62,8 @@ internal sealed class TomlRendering {
         }
         var rendering = new TomlRendering(document);
         rendering.Visit(document._root);
-        rendering._edits.Sort((a, b) => a.Start != b.Start ? a.Start.CompareTo(b.Start) : a.End != b.End ? a.End.CompareTo(b.End) : a.Sequence.CompareTo(b.Sequence));
+        rendering._edits.Sort((a, b) => a.Start != b.Start ? a.Start.CompareTo(b.Start) : a.End != b.End ? a.End.CompareTo(b.End)
+            : a.Rank != b.Rank ? a.Rank.CompareTo(b.Rank) : a.Sequence.CompareTo(b.Sequence));
         int cursor = 0;
         foreach (Edit edit in rendering._edits) {
             if (edit.Start < cursor) {
@@ -89,6 +97,11 @@ internal sealed class TomlRendering {
 
     private void Insert(int position, string text) {
         if (text.Length > 0) _edits.Add(new Edit(position, position, text, _edits.Count));
+    }
+
+    /// <summary>Inserts text that starts with a header, after any key/value lines inserted at the same position.</summary>
+    private void InsertSection(int position, string text) {
+        if (text.Length > 0) _edits.Add(new Edit(position, position, text, _edits.Count, rank: 1));
     }
 
     private void Delete(int start, int end) {
@@ -301,7 +314,7 @@ internal sealed class TomlRendering {
         AppendHeader(text, table, PathOf(table));
         foreach (TomlNode node in nodes) AppendLine(text, Layout.KeyIndent, null, node, Layout.KeySeparator);
         if (first != int.MaxValue && Layout.BlankLineBeforeHeaders) text.Append(Layout.NewLine);
-        Insert(anchor, text.ToString());
+        InsertSection(anchor, text.ToString());
     }
 
     private static void FirstHeader(TomlNode node, ref int first) {
@@ -335,10 +348,13 @@ internal sealed class TomlRendering {
 
     private void AppendLine(StringBuilder text, string indent, List<string>? prefix, TomlNode node, string separator) {
         if (node is TomlTable dotted && dotted._tableKind == TomlTableKind.Dotted) {
-            // A table made by dotted keys is written as its key/value pairs with the dotted prefix.
+            // A table made by dotted keys is written as its key/value pairs with the dotted prefix; header sections
+            // under it are written on the section path.
             var inner = prefix == null ? new List<string>() : new List<string>(prefix);
             inner.Add(node._key!);
-            for (int i = 0; i < dotted._count; i++) AppendLine(text, indent, inner, dotted._nodes[i], separator);
+            for (int i = 0; i < dotted._count; i++) {
+                if (!IsSectionChild(dotted._nodes[i])) AppendLine(text, indent, inner, dotted._nodes[i], separator);
+            }
             return;
         }
         text.Append(indent);
@@ -396,14 +412,16 @@ internal sealed class TomlRendering {
             else if (node._parent is TomlTableArray owner && owner._key != null && declared != null) path.Add(owner._key);
             AppendSection(text, (TomlTable)node, path, ref content);
         }
-        Insert(anchor, text.ToString());
+        InsertSection(anchor, text.ToString());
     }
 
     /// <summary>Writes a new table as a header section followed by its sub-table sections.</summary>
     private void AppendSection(StringBuilder text, TomlTable table, List<string> path, ref bool content) {
         bool values = false, sections = false;
         for (int i = 0; i < table._count; i++) {
-            if (IsSectionChild(table._nodes[i])) sections = true;
+            TomlNode node = table._nodes[i];
+            if (IsSectionChild(node)) sections = true;
+            else if (node is TomlTable { _tableKind: TomlTableKind.Dotted } dotted && !HasLines(dotted)) sections = true;
             else values = true;
         }
         // A table that only holds sub-tables needs no header of its own, as [b.c] makes b.
@@ -416,14 +434,30 @@ internal sealed class TomlRendering {
             TomlNode node = table._nodes[i];
             if (!IsSectionChild(node)) AppendLine(text, Layout.KeyIndent, null, node, Layout.KeySeparator);
         }
+        AppendSubSections(text, table, path, ref content);
+    }
+
+    /// <summary>Writes the header sections under a table, including those under its dotted-key tables.</summary>
+    private void AppendSubSections(StringBuilder text, TomlTable table, List<string> path, ref bool content) {
         for (int i = 0; i < table._count; i++) {
             TomlNode node = table._nodes[i];
             if (node is TomlTableArray tables) {
-                foreach (TomlTable item in tables._items) AppendSection(text, item, Append(path, table._nodes[i]._key!), ref content);
+                foreach (TomlTable item in tables._items) AppendSection(text, item, Append(path, node._key!), ref content);
             } else if (IsSectionChild(node)) {
-                AppendSection(text, (TomlTable)node, Append(path, table._nodes[i]._key!), ref content);
+                AppendSection(text, (TomlTable)node, Append(path, node._key!), ref content);
+            } else if (node is TomlTable { _tableKind: TomlTableKind.Dotted } dotted) {
+                AppendSubSections(text, dotted, Append(path, node._key!), ref content);
             }
         }
+    }
+
+    /// <summary>Returns whether a dotted-key table writes any key/value line, directly or through dotted tables.</summary>
+    private static bool HasLines(TomlTable dotted) {
+        for (int i = 0; i < dotted._count; i++) {
+            TomlNode node = dotted._nodes[i];
+            if (node is TomlTable { _tableKind: TomlTableKind.Dotted } inner ? HasLines(inner) : !IsSectionChild(node)) return true;
+        }
+        return false;
     }
 
     private static bool IsSectionChild(TomlNode node) =>
