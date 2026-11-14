@@ -158,6 +158,11 @@ namespace OfficeIMO.Examples {
                 Google.GoogleSlidesExamples.Example_ExportAsync(folderPath).GetAwaiter().GetResult();
                 return;
             }
+            if (HasArgument(args, "--barcodes")) {
+                Barcodes.BarcodeExamples.Example(Path.Combine(folderPath, "Barcodes"));
+                return;
+            }
+
             if (HasArgument(args, "--onenote")) {
                 OneNote.OfflineOneNoteExample.Example(folderPath);
                 return;

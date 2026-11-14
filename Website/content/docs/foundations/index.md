@@ -1,16 +1,17 @@
 ---
-title: "Charts, OCR and Provenance"
-description: "Place ChartForgeX charts and Mermaid diagrams in documents, recognize text with pluggable OCR engines, and verify C2PA Content Credentials."
+title: "Charts, Barcodes, OCR and Provenance"
+description: "Place ChartForgeX charts, Mermaid diagrams and CodeGlyphX QR codes and barcodes in documents, recognize text with pluggable OCR engines, and verify C2PA Content Credentials."
 order: 57
-meta.seo_title: "Charts, OCR and C2PA provenance for .NET documents"
+meta.seo_title: "Charts, barcodes, OCR and C2PA provenance for .NET documents"
 ---
 
-These optional packages add capabilities that several document formats share. None of them is a dependency of the Word, Excel, PowerPoint, or PDF packages: you install them only in applications that need charts, text recognition, or Content Credentials.
+These optional packages add capabilities that several document formats share. None of them is a dependency of the Word, Excel, PowerPoint, or PDF packages: you install them only in applications that need charts, codes, text recognition, or Content Credentials.
 
 | Capability | Package(s) | What it adds | External requirement |
 |---|---|---|---|
 | Charts and diagrams | `OfficeIMO.ChartForgeX` | ChartForgeX visuals in Word, Excel, PowerPoint, PDF, and editable Visio | ChartForgeX NuGet package |
 | Mermaid in Markdown | `OfficeIMO.ChartForgeX.Markdown` | Static Mermaid rendering for Markdown, Word, PDF, HTML, and Markup output | ChartForgeX Mermaid NuGet package |
+| QR codes and barcodes | `OfficeIMO.Word.CodeGlyphX`, `OfficeIMO.Excel.CodeGlyphX`, `OfficeIMO.PowerPoint.CodeGlyphX`, `OfficeIMO.Pdf.CodeGlyphX` | One call places any CodeGlyphX symbology in Word, Excel, PowerPoint, or PDF | CodeGlyphX NuGet package, installed with the adapter |
 | OCR contracts | `OfficeIMO.Ocr` | Engine-neutral request, result, geometry, and review contracts | None |
 | External OCR process | `OfficeIMO.Ocr.Process` | Runs a caller-configured executable through a versioned JSON protocol | Your OCR executable |
 | Tesseract OCR | `OfficeIMO.Ocr.Tesseract` | `IOcrEngine` backed by an installed Tesseract command-line executable | Tesseract, installed separately |
@@ -49,6 +50,39 @@ document.Save();
 The same artifact can be passed to `sheet.AddVisualArtifact("B4:I18", artifact)` and `slide.AddVisualArtifact(...)`. Word fits an unsized visual to the paragraph's available content width.
 
 Limits: the default `RasterizeWhenNeeded` policy falls back to PNG when SVG import is incomplete, which is reported as an approximation and loses vector editability; choose `PreserveVector` or `RequireVector` to change that. Cropped `Cover` fitting is not supported. Native Visio output does not draw static watermarks and recomputes the layout of flow and sequence diagrams; both are reported. See the [OfficeIMO.ChartForgeX README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.ChartForgeX/README.md).
+
+## QR codes and barcodes with CodeGlyphX
+
+Each format has its own small adapter, so a Word application adds only the Word one. The adapter brings [CodeGlyphX](https://github.com/EvotecIT/CodeGlyphX) with it and adds `AddQrCode` and `AddBarcode` where content is added.
+
+```shell
+dotnet add package OfficeIMO.Word.CodeGlyphX
+```
+
+```csharp
+using CodeGlyphX;
+using OfficeIMO.Word;
+
+using WordDocument document = WordDocument.Create("Order.docx");
+document.AddParagraph("Track your order:");
+document.AddQrCode("https://track.example.com/0042");
+document.AddBarcode(SymbolFormat.Code128, "ORD-2026-0042");
+document.Save();
+```
+
+The same calls exist for worksheets (`sheet.AddQrCode("B2", payload)`), slides (`slide.AddQrCode(payload, box)`) and PDF content (`content.AddQrCode(payload)`). `AddBarcode` takes any CodeGlyphX `SymbolFormat`, including Code 128, GS1-128, EAN, UPC-A, Data Matrix, PDF417 and Aztec. An optional callback sets the size, quiet zone, colors, QR error correction, the text under linear barcodes and the alternative text, which defaults to the symbology and the payload.
+
+Word, Excel and PowerPoint receive an SVG picture with a PNG fallback, as Office writes it, and PDF receives vector paths. When OfficeIMO converts a Word, Excel or PowerPoint file to PDF, the code is placed as a print-resolution image with the same module geometry. See the [OfficeIMO.Drawing.CodeGlyphX README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Drawing.CodeGlyphX/README.md) for the defaults.
+
+In PowerShell, `WordBarcode`, `ExcelBarcode`, `PowerPointBarcode` and `PdfBarcode` take the same options as parameters:
+
+```powershell
+New-OfficeWord -Path .\Order.docx {
+    WordParagraph 'Track your order:'
+    WordBarcode 'https://track.example.com/0042'
+    WordBarcode 'ORD-2026-0042' -Type Code128
+}
+```
 
 ## Mermaid diagrams in Markdown
 
