@@ -180,7 +180,8 @@ internal static class ReliabilityWorker {
                     File.WriteAllBytes(System.IO.Path.Combine(request.PngDirectory, $"{response.Sha256}-p{page}.png"), png);
                 }
             } catch (Exception exception) when (exception is not OutOfMemoryException) {
-                firstFailure ??= exception;
+                // Keep sampling, and report the most severe page failure rather than the first one.
+                if (firstFailure is null || Severity(exception) > Severity(firstFailure)) firstFailure = exception;
             }
         }
         if (firstFailure is not null) {
@@ -188,6 +189,9 @@ internal static class ReliabilityWorker {
             System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(firstFailure).Throw();
         }
     }
+
+    private static int Severity(Exception exception) =>
+        exception is MismatchException ? Outcome.Severity(Outcome.Mismatch) : Outcome.Severity(Classify(Unwrap(exception)));
 
     internal static int[] SamplePages(int pageCount, int sample) {
         if (sample <= 1 || pageCount == 1) return new[] { 1 };

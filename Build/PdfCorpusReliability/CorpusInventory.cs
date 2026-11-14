@@ -13,6 +13,10 @@ internal static class CorpusInventory {
         List<CorpusEntry> entries = options.MetadataRoot is null
             ? ScanDirectory(options.CorpusRoot)
             : FromManifests(options, ref missing);
+        // A directory scan treats each top-level folder as a collection.
+        if (options.MetadataRoot is null && options.CollectionsSpecified) {
+            entries = entries.Where(entry => options.Collections.Contains(entry.Collection, StringComparer.OrdinalIgnoreCase)).ToList();
+        }
         if (options.Only.Count > 0) {
             entries = entries.Where(entry => options.Only.Any(only =>
                 string.Equals(Normalize(entry.Path), Normalize(only), StringComparison.OrdinalIgnoreCase)

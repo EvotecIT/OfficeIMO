@@ -13,6 +13,8 @@ internal static class ReliabilityCoordinator {
         List<CorpusEntry> entries = CorpusInventory.Load(options, out int missing);
         var done = new HashSet<string>(StringComparer.Ordinal);
         if (options.Resume && File.Exists(options.ResultsLinesPath)) {
+            // An interrupted run can leave a partial last record; drop it so the next result starts on its own line.
+            ReliabilityReport.TrimIncompleteTail(options.ResultsLinesPath);
             foreach (FileResult result in ReliabilityReport.ReadResults(options.ResultsLinesPath)) done.Add(result.Path);
         } else if (File.Exists(options.ResultsLinesPath)) {
             File.Delete(options.ResultsLinesPath);
@@ -116,14 +118,21 @@ internal sealed class WorkerHost : IDisposable {
                     if (line.StartsWith(ReliabilityWorker.ProgressPrefix, StringComparison.Ordinal)) {
                         inFlight = line[ReliabilityWorker.ProgressPrefix.Length..];
                     } else if (line.StartsWith(ReliabilityWorker.ResultPrefix, StringComparison.Ordinal)) {
-                        WorkerResponse? response = JsonSerializer.Deserialize<WorkerResponse>(line[ReliabilityWorker.ResultPrefix.Length..], ReliabilityJson.Line);
+                        WorkerResponse? response;
+                        try {
+                            response = JsonSerializer.Deserialize<WorkerResponse>(line[ReliabilityWorker.ResultPrefix.Length..], ReliabilityJson.Line);
+                        } catch (JsonException) {
+                            response = null;
+                        }
+                        // A truncated or malformed frame is no trustworthy result: the worker is lost for this file.
+                        if (response is null) return Lost(result, Outcome.Crash, "worker wrote a malformed result frame", inFlight, stopwatch, peak);
                         peak = Math.Max(peak, SampleWorkingSet(process));
                         result.WallMilliseconds = stopwatch.ElapsedMilliseconds;
                         result.PeakWorkingSetBytes = peak;
                         result.Worker = response;
-                        result.Sha256Verified = entry.Sha256 is null || string.Equals(entry.Sha256, response?.Sha256, StringComparison.OrdinalIgnoreCase);
-                        result.Sha256 ??= response?.Sha256;
-                        result.Outcome = response is null ? Outcome.Crash : Outcome.Worst(response.Operations);
+                        result.Sha256Verified = entry.Sha256 is null || string.Equals(entry.Sha256, response.Sha256, StringComparison.OrdinalIgnoreCase);
+                        result.Sha256 ??= response.Sha256;
+                        result.Outcome = Outcome.Worst(response.Operations);
                         // A worker that ran out of managed memory exits after answering; replace it now so the
                         // next file is not blamed for that exit.
                         if (result.Outcome == Outcome.Memory) Kill();

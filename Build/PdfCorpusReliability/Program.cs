@@ -41,6 +41,7 @@ namespace OfficeIMO.PdfCorpusReliability {
         public long MemoryLimitBytes { get; private set; } = 2560L * 1024 * 1024;
         public int RenderPages { get; private set; } = 3;
         public bool Resume { get; private set; }
+        public bool CollectionsSpecified { get; private set; }
         public string? PngDirectory { get; private set; }
 
         public string ResultsLinesPath => Path.Combine(OutputDirectory, "results.jsonl");
@@ -56,7 +57,10 @@ namespace OfficeIMO.PdfCorpusReliability {
                     case "--metadata": options.MetadataRoot = Path.GetFullPath(Next()); break;
                     case "--corpus-version": options.CorpusVersion = Next(); break;
                     case "--output": options.OutputDirectory = Path.GetFullPath(Next()); break;
-                    case "--collections": options.Collections.AddRange(Next().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)); break;
+                    case "--collections":
+                        options.Collections.AddRange(Next().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+                        options.CollectionsSpecified = true;
+                        break;
                     case "--only": options.Only.Add(Next()); break;
                     case "--limit": options.Limit = int.Parse(Next(), CultureInfo.InvariantCulture); break;
                     case "--parallel": options.Parallelism = Math.Max(1, int.Parse(Next(), CultureInfo.InvariantCulture)); break;
@@ -71,9 +75,13 @@ namespace OfficeIMO.PdfCorpusReliability {
             if (options.CorpusRoot.Length == 0 || !Directory.Exists(options.CorpusRoot)) throw new ArgumentException("--corpus must name an existing directory.");
             if (options.OutputDirectory.Length == 0) throw new ArgumentException("--output is required.");
             if (options.MetadataRoot is not null && !Directory.Exists(options.MetadataRoot)) throw new ArgumentException("--metadata must name an existing directory.");
+            // Hashes come from the metadata manifests; a directory scan only knows paths.
+            if (options.MetadataRoot is null && options.Only.Any(IsSha256)) throw new ArgumentException("--only <sha256> needs --metadata; pass the file's relative path instead.");
             if (options.Collections.Count == 0) options.Collections.AddRange(new[] { "regression", "standards", "fuzz" });
             return options;
         }
+
+        private static bool IsSha256(string value) => value.Length == 64 && value.All(Uri.IsHexDigit);
 
         public static void PrintHelp() {
             Console.WriteLine("OfficeIMO PDF corpus reliability runner (opt-in; not part of the normal solution)");

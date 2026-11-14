@@ -10,11 +10,28 @@ internal static partial class ReliabilityReport {
     private const int MarkdownListLimit = 60;
 
     public static IEnumerable<FileResult> ReadResults(string path) {
-        foreach (string line in File.ReadLines(path)) {
-            if (line.Length == 0) continue;
-            FileResult? result = JsonSerializer.Deserialize<FileResult>(line, ReliabilityJson.Line);
+        string[] lines = File.ReadAllLines(path);
+        int last = Array.FindLastIndex(lines, static line => line.Length != 0);
+        for (int index = 0; index <= last; index++) {
+            if (lines[index].Length == 0) continue;
+            FileResult? result;
+            try {
+                result = JsonSerializer.Deserialize<FileResult>(lines[index], ReliabilityJson.Line);
+            } catch (JsonException) when (index == last) {
+                // The run stopped while writing its last record; earlier records are complete.
+                yield break;
+            }
             if (result is not null) yield return Reclassify(result);
         }
+    }
+
+    /// <summary>Removes a final record that was cut off before its line ended.</summary>
+    public static void TrimIncompleteTail(string path) {
+        byte[] bytes = File.ReadAllBytes(path);
+        int end = Array.LastIndexOf(bytes, (byte)'\n') + 1;
+        if (end == bytes.Length) return;
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Write);
+        stream.SetLength(end);
     }
 
     /// <summary>Applies the current classification to results written by an earlier runner build.</summary>
@@ -54,7 +71,7 @@ internal static partial class ReliabilityReport {
         List<FileResult> processFailures = results.Where(static result => result.ProcessFailure is not null)
             .OrderByDescending(static result => Outcome.Severity(result.Outcome)).ThenBy(static result => result.Path, StringComparer.Ordinal).ToList();
         List<FileResult> qpdfAccepted = results.Where(static result => result.QpdfExitCode is 0 or 3 && IsOurFailure(result)).ToList();
-        List<FileResult> mismatches = results.Where(static result => result.Worker?.Operations.Any(static op => op.Name == Operations.RoundTrip && op.Outcome == Outcome.Mismatch) == true).ToList();
+        List<FileResult> mismatches = results.Where(static result => result.Worker?.Operations.Any(IsRoundTripMismatch) == true).ToList();
         List<FileResult> slowest = results.OrderByDescending(static result => result.WallMilliseconds).Take(40).ToList();
         List<FileResult> heaviest = results.OrderByDescending(static result => result.PeakWorkingSetBytes).Take(25).ToList();
         long[] walls = results.Select(static result => result.WallMilliseconds).OrderBy(static value => value).ToArray();
@@ -83,17 +100,27 @@ internal static partial class ReliabilityReport {
         File.WriteAllText(options.SummaryPath, Markdown(options, results, missing, collectionTotals, operationTotals, classes, processFailures, qpdfAccepted, mismatches, slowest, heaviest, walls));
     }
 
+    private static bool IsRoundTripMismatch(OperationResult op) =>
+        op.Name is Operations.RoundTrip or Operations.Rewrite && op.Outcome == Outcome.Mismatch;
+
     internal static string OperationOutcome(FileResult result, string op) {
         OperationResult? operation = result.Worker?.Operations.FirstOrDefault(candidate => candidate.Name == op);
         if (operation is not null) return operation.Outcome;
         if (result.ProcessFailure is null) return Outcome.Skipped;
-        return result.InFlightOperation == op ? result.Outcome : "not reached";
+        if (result.InFlightOperation == op) return result.Outcome;
+        // Operations before the one in flight ran, but the lost worker never reported their outcome.
+        int inFlight = Array.IndexOf(Operations.All, result.InFlightOperation);
+        return inFlight > Array.IndexOf(Operations.All, op) ? "unavailable" : "not reached";
     }
 
-    /// <summary>Anything worse than a reasoned rejection, or any rejection of a file that is not password-gated.</summary>
+    /// <summary>Anything worse than a reasoned rejection, or any rejection other than a failed password check.</summary>
     private static bool IsOurFailure(FileResult result) {
         if (Outcome.Severity(result.Outcome) >= Outcome.Severity(Outcome.Mismatch)) return true;
-        return result.EncryptionNote is null && result.Worker?.Operations.Any(static op => op.Outcome == Outcome.Rejected) == true;
+        IReadOnlyList<OperationResult>? operations = result.Worker?.Operations;
+        if (operations is null) return false;
+        bool passwordRejected = operations.Any(static op => op.Name == Operations.Load && op.Outcome == Outcome.Rejected &&
+            op.ExceptionType is "OfficeIMO.Pdf.PdfInvalidPasswordException" or "OfficeIMO.Pdf.PdfPasswordRequiredException");
+        return !passwordRejected && operations.Any(static op => op.Outcome == Outcome.Rejected);
     }
 
     private static List<FailureClass> BuildFailureClasses(List<FileResult> results) {
@@ -174,6 +201,10 @@ internal static partial class ReliabilityReport {
         if (options.MetadataRoot is not null) builder.Append(" --metadata \"").Append(options.MetadataRoot).Append('"');
         builder.Append(" --collections ").Append(result.Collection);
         builder.Append(" --only \"").Append(result.Path).Append('"');
+        builder.Append(" --corpus-version ").Append(options.CorpusVersion);
+        builder.Append(" --timeout-seconds ").Append(options.Timeout.TotalSeconds.ToString("0", CultureInfo.InvariantCulture));
+        builder.Append(" --memory-limit-mb ").Append((options.MemoryLimitBytes / (1024 * 1024)).ToString(CultureInfo.InvariantCulture));
+        builder.Append(" --render-pages ").Append(options.RenderPages.ToString(CultureInfo.InvariantCulture));
         builder.Append(" --output \"").Append(Path.Combine(options.OutputDirectory, "repro")).Append('"');
         return builder.ToString();
     }
@@ -241,7 +272,7 @@ internal static partial class ReliabilityReport {
 
         md.AppendLine($"## Round-trip mismatches ({mismatches.Count})").AppendLine();
         foreach (FileResult result in mismatches.Take(MarkdownListLimit)) {
-            OperationResult op = result.Worker!.Operations.First(static op => op.Name == Operations.RoundTrip);
+            OperationResult op = result.Worker!.Operations.First(IsRoundTripMismatch);
             md.AppendLine($"- `{result.Path}` (qpdf {Qpdf(result.QpdfExitCode)}): {op.Detail}");
         }
         md.AppendLine();
