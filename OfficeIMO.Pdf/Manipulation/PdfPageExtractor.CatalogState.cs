@@ -68,14 +68,58 @@ internal static partial class PdfPageExtractor {
         };
     }
     
+    /// <summary>Reports the catalog navigation that subset pruning removed because it targets pages outside the output.</summary>
+    private static void ReportPrunedCatalogNavigation(
+        Dictionary<int, PdfIndirectObject> sourceObjects,
+        CatalogRewriteState source,
+        CatalogRewriteState pruned,
+        ICollection<string> report,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        int removedNames = CountDirectNames(source.NamedDestinations) - CountDirectNames(pruned.NamedDestinations) +
+            CountTreeNames(source.NamedDestinationNameTree) - CountTreeNames(pruned.NamedDestinationNameTree);
+        if (removedNames > 0) report.Add(PdfPageNavigationReport.NamedDestinationsRemoved(removedNames));
+        if (source.OpenAction is not null && pruned.OpenAction is null) report.Add(PdfPageNavigationReport.OpenActionRemoved);
+
+        int CountDirectNames(PdfObject? value) => ResolveDictionary(sourceObjects, value)?.Items.Count ?? 0;
+        int CountTreeNames(PdfObject? value) =>
+            ResolveDictionary(sourceObjects, value) is PdfDictionary tree && ResolveObject(sourceObjects, tree.Items.TryGetValue("Names", out var names) ? names : null) is PdfArray array
+                ? array.Items.Count / 2
+                : 0;
+    }
+
+    /// <summary>Removes link annotations whose destinations are outside the copied pages.</summary>
     internal static Dictionary<int, Dictionary<string, PdfObject>>? BuildPageOverridesWithFilteredDestinationLinks(
         Dictionary<int, PdfIndirectObject> sourceObjects,
         IReadOnlyList<int> pageObjectNumbers,
         Dictionary<int, Dictionary<string, PdfObject>>? pageOverrides,
         CatalogRewriteState catalogState,
         HashSet<int> copiedPageObjectIds,
-        CancellationToken cancellationToken = default) {
-        var availableDestinationNames = GetNamedDestinationNames(sourceObjects, catalogState, cancellationToken);
+        CancellationToken cancellationToken = default) =>
+        BuildPageOverridesWithFilteredDestinationLinks(sourceObjects, pageObjectNumbers, pageOverrides, catalogState,
+            copiedPageObjectIds, removedDestinationNames: null, report: null, cancellationToken);
+
+    /// <summary>
+    /// Removes link annotations whose destinations are outside the copied pages and adds the number removed to
+    /// <paramref name="report"/>. When <paramref name="removedDestinationNames"/> is supplied, a named link is removed
+    /// only when its name is in that set; other names are kept as found.
+    /// </summary>
+    internal static Dictionary<int, Dictionary<string, PdfObject>>? BuildPageOverridesWithFilteredDestinationLinks(
+        Dictionary<int, PdfIndirectObject> sourceObjects,
+        IReadOnlyList<int> pageObjectNumbers,
+        Dictionary<int, Dictionary<string, PdfObject>>? pageOverrides,
+        CatalogRewriteState catalogState,
+        HashSet<int> copiedPageObjectIds,
+        ISet<string>? removedDestinationNames,
+        ICollection<string>? report,
+        CancellationToken cancellationToken) {
+        HashSet<string>? availableDestinationNames = removedDestinationNames is null
+            ? GetNamedDestinationNames(sourceObjects, catalogState, cancellationToken)
+            : null;
+        Func<string, bool> isNameAvailable = availableDestinationNames is not null
+            ? availableDestinationNames.Contains
+            : name => !removedDestinationNames!.Contains(name);
+        int removedLinks = 0;
         Dictionary<int, Dictionary<string, PdfObject>>? result = null;
     
         if (pageOverrides is not null && pageOverrides.Count > 0) {
@@ -103,7 +147,7 @@ internal static partial class PdfPageExtractor {
                 ? overrideAnnotations
                 : pageDictionary.Items.TryGetValue("Annots", out var pageAnnotations) ? pageAnnotations : null;
     
-            if (!TryFilterLinkAnnotations(sourceObjects, annotationsObject, availableDestinationNames, copiedPageObjectIds, out var filteredAnnotations, cancellationToken)) {
+            if (!TryFilterLinkAnnotations(sourceObjects, annotationsObject, isNameAvailable, copiedPageObjectIds, out var filteredAnnotations, ref removedLinks, cancellationToken)) {
                 continue;
             }
     
@@ -115,7 +159,8 @@ internal static partial class PdfPageExtractor {
     
             overrides["Annots"] = filteredAnnotations;
         }
-    
+
+        if (report is not null && removedLinks > 0) report.Add(PdfPageNavigationReport.LinksRemoved(removedLinks));
         return result ?? pageOverrides;
     }
     
@@ -150,9 +195,10 @@ internal static partial class PdfPageExtractor {
     private static bool TryFilterLinkAnnotations(
         Dictionary<int, PdfIndirectObject> sourceObjects,
         PdfObject? annotationsObject,
-        HashSet<string> availableDestinationNames,
+        Func<string, bool> isNameAvailable,
         HashSet<int> copiedPageObjectIds,
         out PdfArray filteredAnnotations,
+        ref int removedLinks,
         CancellationToken cancellationToken = default) {
         filteredAnnotations = new PdfArray();
         if (ResolveObject(sourceObjects, annotationsObject) is not PdfArray annotations) {
@@ -163,14 +209,16 @@ internal static partial class PdfPageExtractor {
         foreach (var annotation in annotations.Items) {
             cancellationToken.ThrowIfCancellationRequested();
             if (TryGetNamedDestinationLinkName(sourceObjects, annotation, out string? destinationName) &&
-                !availableDestinationNames.Contains(destinationName!)) {
+                !isNameAvailable(destinationName!)) {
                 removed = true;
+                removedLinks++;
                 continue;
             }
 
             if (TryGetDirectDestinationLink(sourceObjects, annotation, out PdfObject? destination) &&
                 !IsDestinationForCopiedPages(destination!, copiedPageObjectIds, cancellationToken)) {
                 removed = true;
+                removedLinks++;
                 continue;
             }
     

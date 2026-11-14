@@ -9,6 +9,7 @@ internal static partial class PdfPageExtractor {
         private readonly PdfFileVersion _fileVersion;
         private readonly byte[] _source;
         private readonly PdfLoadOptions? _options;
+        private readonly bool _preservesCatalog;
 
         private readonly CancellationToken _cancellationToken;
 
@@ -22,22 +23,33 @@ internal static partial class PdfPageExtractor {
             _cancellationToken = cancellationToken;
             _source = pdf;
             _options = options;
-            (_, _document) = documentFactory == null
+            PdfMutationPlan plan;
+            (plan, _document) = documentFactory == null
                 ? PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.ExtractPages, options, cancellationToken: cancellationToken)
                 : PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.ExtractPages, documentFactory, options, cancellationToken: cancellationToken);
             _catalog = _document.GetCatalogRewriteState(cancellationToken);
             _fileVersion = GetSourceFileVersion(pdf);
+            // The subset catalog writer rebuilds only the catalog entries preflight proved it can copy. Anything else,
+            // and every outline tree (whose items must survive individually), stays with the catalog-preserving writer.
+            _preservesCatalog = PdfTaggedPageOrganizer.IsTagged(_document) || _document.FormFields.Count > 0 ||
+                HasCatalogOutlines(_document) ||
+                plan.Preflight.RewriteBlockers.Any(static blocker => blocker.Kind != PdfRewriteBlockerKind.Encryption);
         }
+
+        private static bool HasCatalogOutlines(PdfReadDocument document) =>
+            document.Security.RootObjectNumber is int root && document.Objects.TryGetValue(root, out var catalog) &&
+            catalog.Value is PdfDictionary dictionary && dictionary.Items.ContainsKey("Outlines");
 
         internal int PageCount => _document.Pages.Count;
 
-        internal byte[] Extract(int[] pageNumbers, long? maximumOutputBytes = null) {
+        /// <summary>Extracts pages, adding a sentence to <paramref name="report"/> for each navigation item it removes or changes.</summary>
+        internal byte[] Extract(int[] pageNumbers, long? maximumOutputBytes = null, ICollection<string>? report = null) {
             _cancellationToken.ThrowIfCancellationRequested();
             Guard.NotNull(pageNumbers, nameof(pageNumbers));
             if (pageNumbers.Length == 0) throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
             ValidatePageNumbers(pageNumbers, PageCount, nameof(pageNumbers), _cancellationToken);
-            if (PdfTaggedPageOrganizer.IsTagged(_document) || _document.FormFields.Count > 0)
-                return PdfTaggedPageOrganizer.Rewrite(_source, _document, pageNumbers, _options, maximumOutputBytes, token: _cancellationToken);
+            if (_preservesCatalog)
+                return PdfTaggedPageOrganizer.Rewrite(_source, _document, pageNumbers, _options, maximumOutputBytes, token: _cancellationToken, report: report);
             var objects = new int[pageNumbers.Length];
             for (int index = 0; index < pageNumbers.Length; index++) {
                 _cancellationToken.ThrowIfCancellationRequested();
@@ -45,10 +57,10 @@ internal static partial class PdfPageExtractor {
             }
             return ExtractPages(_document.Objects, _metadata ??= _document.GetUncheckedMetadata(_cancellationToken), objects,
                 catalogState: _catalog, fileVersion: _fileVersion, maximumOutputBytes: maximumOutputBytes,
-                cancellationToken: _cancellationToken);
+                cancellationToken: _cancellationToken, report: report);
         }
 
-        internal byte[] Extract(PdfPageRange[] ranges) {
+        internal byte[] Extract(PdfPageRange[] ranges, ICollection<string>? report = null) {
             _cancellationToken.ThrowIfCancellationRequested();
             Guard.NotNull(ranges, nameof(ranges));
             ValidatePageRanges(ranges, PageCount, "pageRanges", _cancellationToken);
@@ -67,7 +79,7 @@ internal static partial class PdfPageExtractor {
                     pages[index++] = number;
                 }
             }
-            return Extract(pages);
+            return Extract(pages, report: report);
         }
     }
 }
