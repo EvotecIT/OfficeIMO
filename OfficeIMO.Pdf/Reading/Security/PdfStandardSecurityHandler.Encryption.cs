@@ -60,6 +60,10 @@ internal sealed partial class PdfStandardSecurityHandler {
             return EncryptAesCbc(_fileKey, data);
         }
 
+        if (method == PdfCryptMethod.AesV4) {
+            throw new PdfUnsupportedEncryptionException("OfficeIMO.Pdf does not write AES-GCM (/AESV4) content, so revision 7 files cannot receive incremental updates.");
+        }
+
         byte[] objectKey = ComputeObjectKey(objectNumber, generation, method == PdfCryptMethod.AesV2);
         if (method == PdfCryptMethod.Rc4) {
             return Rc4.Transform(objectKey, data);

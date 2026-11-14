@@ -6,7 +6,7 @@ internal static partial class PdfSyntax {
         foreach (var entry in map.Values) {
             cancellationToken.ThrowIfCancellationRequested();
             if (entry.TryGetUnbuiltSummary(out PdfDeferredObjectSummary summary)) {
-                if (summary.HasEncryptKey) throw new NotSupportedException("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.");
+                if (summary.HasEncryptKey && string.Equals(summary.KnownType, "XRef", StringComparison.Ordinal)) throw UnresolvedEncryption();
                 continue;
             }
             PdfDictionary? dictionary = entry.Value switch {
@@ -15,11 +15,14 @@ internal static partial class PdfSyntax {
                 _ => null
             };
 
-            if (dictionary is not null && dictionary.Items.ContainsKey("Encrypt")) {
-                throw new NotSupportedException("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.");
+            if (dictionary is not null && dictionary.Get<PdfName>("Type")?.Name == "XRef" && dictionary.Items.ContainsKey("Encrypt")) {
+                throw UnresolvedEncryption();
             }
         }
     }
+
+    private static PdfUnsupportedEncryptionException UnresolvedEncryption() =>
+        new("The PDF declares /Encrypt in a cross-reference stream, but its encryption dictionary could not be resolved.");
 
     // Whole-document type scans skip objects that are not built yet and whose load scan recorded a different /Type.
     private static bool IsUnbuiltWithOtherType(PdfIndirectObject entry, string type) =>

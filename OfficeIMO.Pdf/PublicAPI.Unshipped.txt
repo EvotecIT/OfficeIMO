@@ -1127,3 +1127,5 @@ OfficeIMO.Pdf.PdfTableStyle.RepeatFooterRows.get -> bool
 OfficeIMO.Pdf.PdfTableStyle.RepeatFooterRows.set -> void
 OfficeIMO.Pdf.PdfInvoiceComponent.CarryTotalsAcrossPages.get -> bool
 OfficeIMO.Pdf.PdfInvoiceComponent.CarryTotalsAcrossPages.set -> void
+OfficeIMO.Pdf.PdfEncryptedContentIntegrityException
+OfficeIMO.Pdf.PdfEncryptedContentIntegrityException.PdfEncryptedContentIntegrityException(string! message) -> void

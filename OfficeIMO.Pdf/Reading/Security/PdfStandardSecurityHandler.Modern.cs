@@ -10,6 +10,7 @@ internal sealed partial class PdfStandardSecurityHandler {
         string? password,
         bool passwordWasSupplied,
         int revision,
+        int version,
         IOfficeAesCryptographyProvider? aesCryptographyProvider,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -22,32 +23,45 @@ internal sealed partial class PdfStandardSecurityHandler {
         int permissions = GetRequiredPermissions(encryptionDictionary);
         bool encryptMetadata = encryptionDictionary.Get<PdfBoolean>("EncryptMetadata")?.Value ?? true;
         ValidateModernEntries(ownerEntry, userEntry, ownerEncryptedFileKey, userEncryptedFileKey, encryptedPermissions);
-        byte[] passwordBytes = PdfModernPasswordNormalizer.Normalize(passwordWasSupplied ? password ?? string.Empty : string.Empty, cancellationToken);
+        IReadOnlyList<byte[]> candidates = PdfModernPasswordNormalizer.GetAuthenticationCandidates(passwordWasSupplied ? password ?? string.Empty : string.Empty, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
-        byte[]? fileKey = TryAuthenticateModernOwner(
-            passwordBytes,
-            ownerEntry,
-            ownerEncryptedFileKey,
-            userEntry,
-            revision,
-            aesCryptographyProvider,
-            cancellationToken);
-        PdfPasswordAuthenticationRole authenticationRole = PdfPasswordAuthenticationRole.Owner;
-        cancellationToken.ThrowIfCancellationRequested();
-        if (fileKey is null) {
-            fileKey = TryAuthenticateModernUser(
+        byte[]? fileKey = null;
+        PdfPasswordAuthenticationRole authenticationRole = PdfPasswordAuthenticationRole.None;
+        foreach (byte[] passwordBytes in candidates) {
+            fileKey = TryAuthenticateModernOwner(
                 passwordBytes,
+                ownerEntry,
+                ownerEncryptedFileKey,
                 userEntry,
-                userEncryptedFileKey,
                 revision,
                 aesCryptographyProvider,
                 cancellationToken);
-            authenticationRole = PdfPasswordAuthenticationRole.User;
+            authenticationRole = PdfPasswordAuthenticationRole.Owner;
+            cancellationToken.ThrowIfCancellationRequested();
+            if (fileKey is null) {
+                fileKey = TryAuthenticateModernUser(
+                    passwordBytes,
+                    userEntry,
+                    userEncryptedFileKey,
+                    revision,
+                    aesCryptographyProvider,
+                    cancellationToken);
+                authenticationRole = PdfPasswordAuthenticationRole.User;
+            }
+
+            if (fileKey is not null) break;
         }
 
         cancellationToken.ThrowIfCancellationRequested();
+        PdfCryptMethod streamMethod = ResolveCryptMethod(encryptionDictionary, "StmF", version);
+        PdfCryptMethod stringMethod = ResolveCryptMethod(encryptionDictionary, "StrF", version);
         if (fileKey is null) {
+            if (CanOpenWithoutFileKey(encryptionDictionary, version, streamMethod, stringMethod)) {
+                return new PdfStandardSecurityHandler(Array.Empty<byte>(), revision, 32, streamMethod, stringMethod, encryptMetadata,
+                    PdfPasswordAuthenticationRole.None, aesCryptographyProvider).WithCryptFilters(encryptionDictionary, version).WithoutFileKey();
+            }
+
             if (!passwordWasSupplied) {
                 throw new PdfPasswordRequiredException("Encrypted PDF requires a password.");
             }
@@ -57,8 +71,6 @@ internal sealed partial class PdfStandardSecurityHandler {
 
         cancellationToken.ThrowIfCancellationRequested();
         ValidateModernPermissions(fileKey, encryptedPermissions, permissions, encryptMetadata, aesCryptographyProvider);
-        PdfCryptMethod streamMethod = ResolveCryptMethod(encryptionDictionary, "StmF", version: 5);
-        PdfCryptMethod stringMethod = ResolveCryptMethod(encryptionDictionary, "StrF", version: 5);
         return new PdfStandardSecurityHandler(
             fileKey,
             revision,
@@ -67,7 +79,7 @@ internal sealed partial class PdfStandardSecurityHandler {
             stringMethod,
             encryptMetadata,
             authenticationRole,
-            aesCryptographyProvider);
+            aesCryptographyProvider).WithCryptFilters(encryptionDictionary, version);
     }
 
     private static byte[]? TryAuthenticateModernUser(
