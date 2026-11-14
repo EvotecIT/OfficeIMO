@@ -200,8 +200,11 @@ internal static partial class PdfWriter {
             .Concat(style.RepeatFooterRows ? footerSources : Array.Empty<int>()).ToArray();
         PdfTableCell[][] continuationRows = summary?.ContinuationHeaderRows.ToArray() ?? Array.Empty<PdfTableCell[]>();
 
-        foreach (PdfTableCell[] row in pageSummaryRows.Concat(continuationRows).Concat(footerRows)) {
-            ValidateTableSummaryRow(row, columns, names);
+        foreach (PdfTableCell[] row in pageSummaryRows.Concat(footerRows)) {
+            ValidateTableSummaryRow(row, columns, names, continuation: false);
+        }
+        foreach (PdfTableCell[] row in continuationRows) {
+            ValidateTableSummaryRow(row, columns, names, continuation: true);
         }
 
         var values = new decimal?[table.Rows.Count][];
@@ -236,7 +239,7 @@ internal static partial class PdfWriter {
         return decimal.TryParse(trimmed, styles, aggregate.Culture, out decimal value) ? value : null;
     }
 
-    private static void ValidateTableSummaryRow(PdfTableCell[] row, int columns, HashSet<string> aggregateNames) {
+    private static void ValidateTableSummaryRow(PdfTableCell[] row, int columns, HashSet<string> aggregateNames, bool continuation) {
         int span = 0;
         foreach (PdfTableCell cell in row) {
             if (cell.RowSpan > 1)
@@ -249,6 +252,9 @@ internal static partial class PdfWriter {
                 foreach (Match match in TableSummaryTokenPattern.Matches(text)) {
                     if (!aggregateNames.Contains(match.Groups[2].Value))
                         throw new ArgumentException($"Table summary token '{match.Value}' refers to an aggregate that is not declared.");
+                    // Continuation rows are drawn when their page starts, before its rows are known.
+                    if (continuation && match.Groups[1].Value != "broughtForward")
+                        throw new ArgumentException($"Continuation header rows can only use brought-forward tokens; '{match.Value}' depends on rows that are not placed yet.");
                 }
             }
         }

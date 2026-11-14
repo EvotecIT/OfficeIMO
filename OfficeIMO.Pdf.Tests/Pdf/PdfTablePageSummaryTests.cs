@@ -58,6 +58,13 @@ public class PdfTablePageSummaryTests {
     private static int[] RowsOn(string text) =>
         RowMarker.Matches(text).Cast<Match>().Select(match => int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture)).ToArray();
 
+    // Summary rows take reserved space; nothing is drawn into the bottom margin.
+    private static void AssertNothingBelowBottomMargin(byte[] bytes) {
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.All(pdf.GetPages(), page => Assert.All(page.Letters, letter => Assert.True(letter.GlyphRectangle.Bottom >= 29.5,
+            $"Text '{letter.Value}' on page {page.Number} sits below the bottom margin.")));
+    }
+
     private static void AssertInvoicePages(List<string> pages, int rowCount) {
         Assert.True(pages.Count > 1, "The table should split across pages.");
         var seen = new List<int>();
@@ -110,10 +117,7 @@ public class PdfTablePageSummaryTests {
         List<string> pages = PageTexts(bytes);
         Assert.Contains(pages, page => RowsOn(page).Length == 0);
         AssertInvoicePages(pages, 40);
-        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
-        // Summary rows take reserved space; nothing is drawn into the bottom margin.
-        Assert.All(pdf.GetPages(), page => Assert.All(page.Letters, letter => Assert.True(letter.GlyphRectangle.Bottom >= 29.5,
-            $"Text '{letter.Value}' on page {page.Number} sits below the bottom margin.")));
+        AssertNothingBelowBottomMargin(bytes);
     }
 
     [Fact]
@@ -271,6 +275,56 @@ public class PdfTablePageSummaryTests {
         }
         Assert.True(lastTablePage > 0);
         Assert.Equal(Enumerable.Range(1, 90).Sum(), running);
+    }
+
+    [Theory]
+    [InlineData("{page:amount}")]
+    [InlineData("{running:amount}")]
+    public void ContinuationRowsRejectTokensForRowsNotYetPlaced(string token) {
+        var style = InvoiceStyle();
+        style.PageSummary!.AddContinuationHeaderRow("x", token, "y");
+
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create(SmallPage()).Table(InvoiceRows(3), style: style).ToBytes());
+    }
+
+    [Fact]
+    public void LinkedSummaryCellsWithEmptyValuesKeepRendering() {
+        var style = InvoiceStyle();
+        style.PageSummary!.Add(new PdfTableAggregate("low", 2, PdfTableAggregateFunction.Minimum));
+        style.PageSummary.ContinuationHeaderRows.Clear();
+        style.PageSummary.AddContinuationHeaderRow(new PdfTableCell("Brought forward"), new PdfTableCell(string.Empty),
+            PdfTableCell.RichTextCell(new[] { PdfTextRun.Link("{broughtForward:low}", "https://example.com/") }));
+        var rows = InvoiceRows(0);
+        rows[rows.Count - 1] = new[] { "Total", "{page:low}", "{running:amount}" };
+        var linkedFooter = rows.Select(row => row.Select(text => new PdfTableCell(text)).ToArray()).ToList();
+        linkedFooter[linkedFooter.Count - 1][1] = PdfTableCell.RichTextCell(new[] { PdfTextRun.Link("{page:low}", "https://example.com/") });
+
+        byte[] bytes = PdfDocument.Create(SmallPage()).Table(linkedFooter, style: style).ToBytes();
+
+        Assert.Equal("0.00", Marker(Assert.Single(PageTexts(bytes)), "TOTAL") ?? "0.00");
+    }
+
+    [Fact]
+    public void ClosingFooterTallerThanThePageIsRejected() {
+        var rows = InvoiceRows(3);
+        rows[rows.Count - 1] = new[] { "Total", string.Join(" ", Enumerable.Repeat("very long footer text", 120)), "{running:amount}" };
+
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create(SmallPage()).Table(rows, style: InvoiceStyle()).ToBytes());
+    }
+
+    [Theory]
+    [InlineData(180)]
+    [InlineData(210)]
+    [InlineData(240)]
+    [InlineData(270)]
+    public void SplittableRowsAfterAPageBreakLeaveRoomForThePageFooter(double pageHeight) {
+        string Description(int row) => string.Join(" ", Enumerable.Repeat("wrapped", 3 + row * 7 % 23));
+        byte[] bytes = PdfDocument.Create(SmallPage(pageHeight))
+            .Table(InvoiceRows(30, Description), style: InvoiceStyle())
+            .ToBytes();
+
+        AssertInvoicePages(PageTexts(bytes), 30);
+        AssertNothingBelowBottomMargin(bytes);
     }
 
     [Fact]

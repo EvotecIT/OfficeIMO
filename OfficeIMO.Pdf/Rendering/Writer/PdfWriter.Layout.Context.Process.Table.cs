@@ -86,6 +86,16 @@ internal static partial class PdfWriter {
             bool tableHasFootnotes = ValidateTableFootnotePlacement(tb, style, cols);
             if (pageSummary != null && tableHasFootnotes)
                 throw new NotSupportedException("Table page summaries and repeated footer rows are not supported for tables with footnote references.");
+            // Admission rules such as KeepTogether measure the closing footer with the values it shows when the
+            // whole table lands on one page, not with its unresolved tokens.
+            void ApplyResolvedFooterHeights() {
+                if (pageSummary != null && PrepareTableSummaryRows(pageSummary, TableSummaryRowKind.FinalFooter,
+                        pageSummary.PageWithRemainder(headerRowCount), style, cols, colPixel, rowGapPx) is { } resolvedFooter) {
+                    for (int footer = 0; footer < resolvedFooter.Rows.Heights.Length; footer++)
+                        rowHeights[footerStartRowIndex + footer] = resolvedFooter.Rows.Heights[footer];
+                }
+            }
+            ApplyResolvedFooterHeights();
             var remainingRowHeights = new double[rowHeights.Length + 1];
             for (int row = rowHeights.Length - 1; row >= 0; row--)
                 remainingRowHeights[row] = rowHeights[row] +
@@ -161,6 +171,7 @@ internal static partial class PdfWriter {
                 rowLeadings = preparedRows.Leadings;
                 rowSizes = preparedRows.Sizes;
                 rowBold = preparedRows.Bold;
+                ApplyResolvedFooterHeights();
                 for (int row = rowHeights.Length - 1; row >= 0; row--)
                     remainingRowHeights[row] = rowHeights[row] + GetTableRowGapAfter(row, rowHeights.Length, rowGapPx) + remainingRowHeights[row + 1];
                 tableCornerRadius = ResolveTableCornerRadius(style.CornerRadius.ToPoints(), tableWidth,
@@ -494,6 +505,12 @@ internal static partial class PdfWriter {
                 }
             }
 
+            // With page summaries, a splittable row continues under the repeated headers and brought-forward rows
+            // instead of dropping them to start the row whole.
+            bool SummaryRowSplitsUnderHeaders(int rowIndex) => pageSummary != null && rowIndex >= headerRowCount &&
+                rowIndex < footerStartRowIndex && GetTableRowAllowBreakAcrossPages(style, rowIndex) &&
+                rowLineCounts[rowIndex] > 1 && !TableRowHasViewport(tb, rowIndex, cols);
+
             PreparedTableSummaryRows? PrepareSummaryRows(TableSummaryRowKind kind, TableAggregateTotal[] page) =>
                 PrepareTableSummaryRows(pageSummary!, kind, page, style, cols, colPixel, rowGapPx);
 
@@ -541,6 +558,8 @@ internal static partial class PdfWriter {
                 summaryReserve = 0D;
                 if (PrepareSummaryRows(TableSummaryRowKind.FinalFooter, pageSummary!.Page) is not { } footer) return;
                 double closing = GetClosingTextPadding(style.SpacingAfter.ToPoints());
+                if (footer.Height + closing > maxContentHeight + .001D)
+                    throw new ArgumentException("Table footer rows exceed the available page content height.");
                 if (footer.Height + closing > y - TableBottom() + .001D && y < GetCurrentFramePageStartY() - .001D) {
                     NewTablePage(rowIndex, requireWholeRow: true);
                     summaryReserve = 0D;
@@ -626,7 +645,7 @@ internal static partial class PdfWriter {
                 double requiredHeight = RequiredContinuationHeight();
                 ApplyTablePageContinuationSpacing(requiredHeight, rowIndex, startLine, requireWholeRow, continuingSpanTail);
                 if (continuingSpanTail ? hasRepeatableHeader && rowIndex >= headerRowCount && requiredHeight <= y - TableBottom() + .001D
-                    : CanRepeatHeaderWithSegment(rowIndex, startLine, requireWholeRow)) {
+                    : CanRepeatHeaderWithSegment(rowIndex, startLine, requireWholeRow && !SummaryRowSplitsUnderHeaders(rowIndex))) {
                     DrawRepeatHeaders();
                 }
                 if (pageSummary != null) {
@@ -883,6 +902,14 @@ internal static partial class PdfWriter {
                 }
 
                 placementHeight = GetTableViewportPlacementHeight(viewportRowGroups, rowHeights, rowIndex, rowGapPx);
+                // After a page break, a row that does not fit above the headers and the page footer reserve splits here.
+                if (pageSummary != null && rowHeights[rowIndex] + closingPadding > y - TableBottom() + .001D &&
+                    CanSplitTableRowIntoRemainingSpace(rowIndex)) {
+                    DrawSplitTableRow(rowIndex, renderAsHeader: false);
+                    ContinueCompletedRowSpans(rowIndex);
+                    y -= GetTableRowGapAfter(rowIndex, tb.Rows.Count, rowGapPx);
+                    continue;
+                }
                 if (rowHeights[rowIndex] > maxContentHeight + 0.001D) {
                     if (TableRowHasViewport(tb, rowIndex, cols) || !GetTableRowAllowBreakAcrossPages(style, rowIndex))
                         throw new ArgumentException("Table row content cannot fit in the current column frame and row splitting is disabled.");

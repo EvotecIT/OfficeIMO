@@ -111,7 +111,8 @@ public sealed class PdfTablePageSummary {
 
     /// <summary>
     /// Rows drawn at the top of every continuation fragment, after the repeated header rows. They are drawn only
-    /// when at least one body row appeared on an earlier page.
+    /// when at least one body row appeared on an earlier page. They are laid out before the page's rows are known,
+    /// so their cells can use <see cref="PdfTableAggregate.BroughtForwardToken"/> but not page or running tokens.
     /// </summary>
     public System.Collections.Generic.List<PdfTableCell[]> ContinuationHeaderRows { get; } = new();
 
