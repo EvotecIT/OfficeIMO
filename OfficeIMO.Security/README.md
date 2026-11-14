@@ -126,6 +126,25 @@ accept `application/timestamp-reply`. Configure the HTTP client's timeout and
 enforce a response-size limit before buffering data. The timestamp client rechecks its response limit and validates
 the nonce, message imprint, TSA signature, certificate profile and trust policy.
 
+## Revocation data retrieval
+
+`CertificateRevocationFetcher` implements `ICertificateRevocationFetcher`. It reads a certificate's OCSP responder and
+CRL distribution point locations, asks the OCSP responder first and falls back to the CRL:
+
+```csharp
+using var fetcher = new CertificateRevocationFetcher(new CertificateRevocationFetcherOptions {
+    Timeout = TimeSpan.FromSeconds(10),
+    MaxResponseBytes = 16 * 1024 * 1024
+});
+CertificateRevocationEvidence evidence = await fetcher.FetchAsync(certificate, issuer, cancellationToken);
+```
+
+Only http and https locations are used, connections go directly to the server, and responses are cached for the
+lifetime of the instance. Loopback, private, link-local and other non-public addresses are refused unless
+`AllowNonPublicAddresses` is set for an internal PKI. The returned responses are untrusted input: validators check
+their signatures, issuers and freshness. `OfficeIMO.Pdf` uses the fetcher for PAdES B-LT enrichment and for its
+online revocation policies.
+
 ## XML Digital Signatures
 
 `CreateXmlSignature(...)`, `VerifyXmlSignature(...)`, and `CanonicalizeXml(...)` expose a closed, bounded XML DSig

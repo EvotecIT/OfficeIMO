@@ -3,7 +3,7 @@ using System.Security.Cryptography.X509Certificates;
 namespace OfficeIMO.Security;
 
 /// <summary>Default OfficeIMO cryptographic provider backed by the dependencies carried by this package.</summary>
-public sealed class OfficeSecurityProvider : IOfficeSecurityProvider, IOfficePublicKeySignatureVerifier {
+public sealed class OfficeSecurityProvider : IOfficeSecurityProvider, IOfficePublicKeySignatureVerifier, IOfficeRevocationValidator {
     /// <summary>Gets a reusable stateless provider instance.</summary>
     public static OfficeSecurityProvider Default { get; } = new OfficeSecurityProvider();
 
@@ -129,6 +129,17 @@ public sealed class OfficeSecurityProvider : IOfficeSecurityProvider, IOfficePub
         byte[] data,
         byte[] signature) =>
         PublicKeySignatureVerifier.Verify(algorithm, publicKey, data, signature);
+
+    OfficeRevocationOutcome IOfficeRevocationValidator.ValidateRevocation(OfficeRevocationRequest request) =>
+        CertificateRevocationEvaluator.Validate(request);
+
+    Task<CertificateRevocationEvidence> IOfficeRevocationValidator.FetchRevocationEvidenceAsync(
+        byte[] encodedCms,
+        bool isTimestampToken,
+        ICertificateRevocationFetcher fetcher,
+        X509Certificate2Collection? extraCertificates,
+        CancellationToken cancellationToken) =>
+        CertificateRevocationEvaluator.FetchAsync(encodedCms, isTimestampToken, fetcher, extraCertificates, cancellationToken);
 
     private sealed class CmsVerificationSession : ICmsVerificationSession {
         private readonly CmsVerificationOptions _options;

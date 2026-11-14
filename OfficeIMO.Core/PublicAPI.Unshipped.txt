@@ -346,3 +346,16 @@ OfficeIMO.Security.OfficePublicKeySignatureStatus.MalformedKey = 2 -> OfficeIMO.
 OfficeIMO.Security.OfficePublicKeySignatureStatus.MalformedSignature = 3 -> OfficeIMO.Security.OfficePublicKeySignatureStatus
 OfficeIMO.Security.OfficePublicKeySignatureStatus.UnsupportedAlgorithm = 4 -> OfficeIMO.Security.OfficePublicKeySignatureStatus
 OfficeIMO.Security.OfficePublicKeySignatureStatus.Valid = 0 -> OfficeIMO.Security.OfficePublicKeySignatureStatus
+OfficeIMO.Security.CertificateRevocationEvidence
+OfficeIMO.Security.CertificateRevocationEvidence.CertificateRevocationEvidence(System.Collections.Generic.IEnumerable<byte[]!>? certificates = null, System.Collections.Generic.IEnumerable<byte[]!>? ocspResponses = null, System.Collections.Generic.IEnumerable<byte[]!>? certificateRevocationLists = null, System.Collections.Generic.IEnumerable<OfficeIMO.Security.SecurityFinding!>? findings = null) -> void
+OfficeIMO.Security.CertificateRevocationEvidence.CertificateRevocationLists.get -> System.Collections.Generic.IReadOnlyList<byte[]!>!
+OfficeIMO.Security.CertificateRevocationEvidence.Certificates.get -> System.Collections.Generic.IReadOnlyList<byte[]!>!
+OfficeIMO.Security.CertificateRevocationEvidence.Findings.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Security.SecurityFinding!>!
+OfficeIMO.Security.CertificateRevocationEvidence.OcspResponses.get -> System.Collections.Generic.IReadOnlyList<byte[]!>!
+OfficeIMO.Security.CertificateRevocationPolicy
+OfficeIMO.Security.CertificateRevocationPolicy.EmbeddedOnly = 0 -> OfficeIMO.Security.CertificateRevocationPolicy
+OfficeIMO.Security.CertificateRevocationPolicy.EmbeddedThenOnline = 1 -> OfficeIMO.Security.CertificateRevocationPolicy
+OfficeIMO.Security.CertificateRevocationPolicy.Online = 2 -> OfficeIMO.Security.CertificateRevocationPolicy
+OfficeIMO.Security.ICertificateRevocationFetcher
+OfficeIMO.Security.ICertificateRevocationFetcher.FetchAsync(System.Security.Cryptography.X509Certificates.X509Certificate2! certificate, System.Security.Cryptography.X509Certificates.X509Certificate2! issuer, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Security.CertificateRevocationEvidence!>!
+static OfficeIMO.Security.CertificateRevocationEvidence.Empty.get -> OfficeIMO.Security.CertificateRevocationEvidence!
