@@ -327,6 +327,11 @@ jobs:
           dotnet-version: 8.0.x
           global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
+      - name: Install the CUPS IPP Everywhere reference printer
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends cups-ipp-utils
       - name: Test shared workflows and registered Apple routes
         shell: pwsh
         run: |

@@ -40,7 +40,7 @@ Usage:
   officeimo workflow job report <run-report.json>
   officeimo workflow printers [--capabilities <printer> | --paper-sources <printer>] [--format json|text]
   officeimo workflow print <document> --printer <queue|ipp://uri> [print-plan options; --paper defaults to the printer's media]
-             [--copies 1..100] [--duplex default|off|long|short] [--paper-source <id>] [--dpi 72..600]
+             [--copies 1..100] [--duplex default|off|long|short] [--paper-source <id>] [--dpi 72..600] [--raster-grayscale]
              [--output-file <new-local-path>] [--format json|text]
   officeimo workflow print-job status|wait|cancel --printer <queue|ipp://uri> --job <id> [--timeout <seconds>] [--format json|text]
 

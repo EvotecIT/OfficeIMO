@@ -42,8 +42,16 @@ public sealed class PdfPrintDeliveryOptions {
     /// <summary>New local output path for a Windows file printer. Existing paths are rejected before submission.</summary>
     public string? OutputFilePath { get; set; }
     /// <summary>Highest resolution, from 72 through 600 DPI, used when a transport rasterizes sheets. Defaults to 300.</summary>
-    /// <remarks>Windows rasterizes at the device resolution up to this limit. IPP printers and CUPS queues receive raster sheets only for grayscale or raster jobs, or when the printer does not accept PDF.</remarks>
+    /// <remarks>Windows rasterizes at the device resolution up to this limit. IPP printers and CUPS queues receive raster sheets for raster jobs, for grayscale jobs
+    /// the printer cannot convert itself, and when the printer does not accept PDF.</remarks>
     public double MaximumRasterDpi { get; set; } = 300;
+    /// <summary>Sends grayscale jobs to IPP printers and CUPS queues as gray raster sheets, so the printout matches the preview pixel for pixel.</summary>
+    /// <remarks>By default a grayscale job goes to an IPP printer or CUPS queue reached over IPP that lists <c>application/pdf</c> and the <c>monochrome</c>
+    /// print-color-mode, and can make the requested copies, as vector PDF with
+    /// <c>print-color-mode=monochrome</c>, and the printer converts it to gray. That is much faster and keeps text sharp, but the printer's conversion can differ
+    /// from the preview in light fills and in how colors map to gray. Other printers receive gray raster sheets, CUPS queues printed through <c>lp</c> receive
+    /// rasterized PDF, and Windows queues always receive raster sheets.</remarks>
+    public bool RasterizeGrayscale { get; set; }
 
     internal PdfPrintDeliveryOptions Snapshot() {
         if ((PrinterName == null || string.IsNullOrWhiteSpace(PrinterName))) throw new ArgumentException("A non-empty value is required.", nameof(PrinterName));
@@ -55,7 +63,8 @@ public sealed class PdfPrintDeliveryOptions {
         if (!OfficeRuntimeCompatibility.IsFinite(MaximumRasterDpi) || MaximumRasterDpi is < 72 or > 600) throw new ArgumentOutOfRangeException(nameof(MaximumRasterDpi));
         if (PaperSourceId is not null && ((PaperSourceId == null || string.IsNullOrWhiteSpace(PaperSourceId)) || PaperSourceId.Length > 256 || PaperSourceId.Any(char.IsControl)))
             throw new ArgumentException("The paper-source identifier is invalid.", nameof(PaperSourceId));
-        return new() { PrinterName = PrinterName, DocumentName = DocumentName, Copies = Copies, Duplex = Duplex, PaperSourceId = PaperSourceId, OutputFilePath = OutputFilePath, MaximumRasterDpi = MaximumRasterDpi };
+        return new() { PrinterName = PrinterName, DocumentName = DocumentName, Copies = Copies, Duplex = Duplex, PaperSourceId = PaperSourceId, OutputFilePath = OutputFilePath, MaximumRasterDpi = MaximumRasterDpi,
+            RasterizeGrayscale = RasterizeGrayscale };
     }
 }
 
@@ -101,7 +110,8 @@ public interface IPdfPrinterService {
 
 /// <summary>Delivers print jobs to IPP printers by URI, to CUPS queues through the local scheduler, and to Windows queues through GDI.</summary>
 /// <remarks>
-/// IPP printers receive vector PDF when they accept <c>application/pdf</c>, and PWG raster otherwise. CUPS queues are reached over IPP at the
+/// IPP printers receive vector PDF when they accept <c>application/pdf</c>, and PWG raster otherwise. Grayscale jobs stay vector PDF only for printers that also
+/// list the <c>monochrome</c> print-color-mode, unless <see cref="PdfPrintDeliveryOptions.RasterizeGrayscale"/> is set. CUPS queues are reached over IPP at the
 /// local scheduler; when the scheduler is not reachable that way, or the queue is a discovered destination that the scheduler has not created yet,
 /// the CUPS command-line tools deliver the PDF instead. Windows queues receive raster sheets at the device resolution.
 /// </remarks>
