@@ -36,9 +36,7 @@ internal static class ReliabilityWorker {
 
     internal static WorkerResponse Process(WorkerRequest request, Action<string> progress, ref bool exhausted) {
         var response = new WorkerResponse();
-        byte[] bytes = File.ReadAllBytes(request.FullPath);
-        response.Bytes = bytes.LongLength;
-        response.Sha256 = Convert.ToHexString(SHA256.HashData(bytes));
+        byte[] bytes = Array.Empty<byte>();
 
         PdfDocument? document = null;
         string? password = null;
@@ -75,6 +73,10 @@ internal static class ReliabilityWorker {
             response.Operations.Add(new OperationResult { Name = name, Outcome = Outcome.Skipped, Detail = reason });
 
         Run(Operations.Load, () => {
+            // Reading and hashing the input belong to load, so running out of memory there is reported as memory.
+            bytes = File.ReadAllBytes(request.FullPath);
+            response.Bytes = bytes.LongLength;
+            response.Sha256 = Convert.ToHexString(SHA256.HashData(bytes));
             document = LoadWithCandidates(bytes, request.Passwords, out password);
             response.UsedPassword = password != null;
         });
@@ -197,6 +199,12 @@ internal static class ReliabilityWorker {
         if (sample <= 1 || pageCount == 1) return new[] { 1 };
         var pages = new SortedSet<int> { 1, pageCount };
         if (sample >= 3) pages.Add((pageCount + 1) / 2);
+        // Larger samples spread the remaining pages evenly between the first and the last page.
+        int wanted = Math.Min(sample, pageCount);
+        for (int step = 1; pages.Count < wanted && step < wanted - 1; step++) {
+            pages.Add(1 + (int)Math.Round(step * (pageCount - 1) / (double)(wanted - 1), MidpointRounding.AwayFromZero));
+        }
+        for (int page = 2; pages.Count < wanted; page++) pages.Add(page);
         return pages.Take(sample).ToArray();
     }
 

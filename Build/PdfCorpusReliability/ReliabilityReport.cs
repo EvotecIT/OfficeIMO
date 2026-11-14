@@ -195,17 +195,20 @@ internal static partial class ReliabilityReport {
         repro = Repro(result, options)
     };
 
+    // Repro commands target POSIX shells: single quotes keep corpus file names literal when pasted.
+    private static string Quote(string value) => "'" + value.Replace("'", "'\\''") + "'";
+
     internal static string Repro(FileResult result, RunOptions options) {
         var builder = new StringBuilder("dotnet run -c Release --project Build/PdfCorpusReliability -- run");
-        builder.Append(" --corpus \"").Append(options.CorpusRoot).Append('"');
-        if (options.MetadataRoot is not null) builder.Append(" --metadata \"").Append(options.MetadataRoot).Append('"');
-        builder.Append(" --collections ").Append(result.Collection);
-        builder.Append(" --only \"").Append(result.Path).Append('"');
+        builder.Append(" --corpus ").Append(Quote(options.CorpusRoot));
+        if (options.MetadataRoot is not null) builder.Append(" --metadata ").Append(Quote(options.MetadataRoot));
+        builder.Append(" --collections ").Append(Quote(result.Collection));
+        builder.Append(" --only ").Append(Quote(result.Path));
         builder.Append(" --corpus-version ").Append(options.CorpusVersion);
         builder.Append(" --timeout-seconds ").Append(options.Timeout.TotalSeconds.ToString("0", CultureInfo.InvariantCulture));
         builder.Append(" --memory-limit-mb ").Append((options.MemoryLimitBytes / (1024 * 1024)).ToString(CultureInfo.InvariantCulture));
         builder.Append(" --render-pages ").Append(options.RenderPages.ToString(CultureInfo.InvariantCulture));
-        builder.Append(" --output \"").Append(Path.Combine(options.OutputDirectory, "repro")).Append('"');
+        builder.Append(" --output ").Append(Quote(Path.Combine(options.OutputDirectory, "repro")));
         return builder.ToString();
     }
 
@@ -257,7 +260,7 @@ internal static partial class ReliabilityReport {
         foreach (FileResult result in processFailures) {
             md.AppendLine($"- **{result.Outcome}** in `{result.InFlightOperation ?? "?"}`: `{result.Path}` ({result.Bytes:N0} bytes, qpdf {Qpdf(result.QpdfExitCode)}, peak {result.PeakWorkingSetBytes / (1024 * 1024)} MB, {result.WallMilliseconds} ms)");
             md.AppendLine($"  - SHA-256 `{result.Sha256}`; {Cell(result.ProcessFailure)}");
-            md.AppendLine($"  - Repro: `{Repro(result, options)}`");
+            md.AppendLine($"  - Repro (POSIX shell): `{Repro(result, options)}`");
         }
         md.AppendLine();
 
