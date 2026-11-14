@@ -17,7 +17,7 @@
   {{~ if surfaces.size > 0 ~}}
   <div class="imo-docs__surfaces" aria-label="Documentation for">
     {{~ for surface in surfaces ~}}
-    <a href="{{ surface.url }}" class="imo-docs__surface" data-surface="{{ surface.id }}"{{ if current_surface && surface.id == current_surface.id }} aria-current="true"{{ end }}>{{ surface.label }}</a>
+    <a href="{{ surface.url }}" class="imo-docs__surface" data-surface="{{ surface.id }}" aria-label="{{ surface.label }} documentation"{{ if current_surface && surface.id == current_surface.id }} aria-current="true"{{ end }}>{{ surface.label }}</a>
     {{~ end ~}}
   </div>
   {{~ end ~}}
