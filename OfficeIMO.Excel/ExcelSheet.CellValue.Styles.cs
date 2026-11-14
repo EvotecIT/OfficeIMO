@@ -166,7 +166,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                var cell = TryGetCell(row, column);
+                var cell = TryGetCellForReading(row, column);
                 if (cell == null) return false;
                 // Resolve shared string if needed
                 if (cell.DataType != null && cell.DataType.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) {
@@ -207,7 +207,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                Cell? cell = TryGetCell(row, column);
+                Cell? cell = TryGetCellForReading(row, column);
                 if (cell == null) {
                     return false;
                 }

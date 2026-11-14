@@ -220,6 +220,12 @@ namespace OfficeIMO.Excel {
             return cell;
         }
 
+        /// <summary>Builds the DOM form of one stored cell without moving it, for reads that do not keep the element.</summary>
+        internal Cell CreateDetachedCell(int index) {
+            ExcelStoredCell stored = _cells![index];
+            return CreateCell(ColumnLetters(stored.Column) + InvariantNumberText.Get(checked((int)RowIndex!.Value)), stored);
+        }
+
         /// <summary>Moves one stored cell into the DOM at its column position and returns it.</summary>
         internal Cell Promote(int index) {
             ExcelStoredCell stored = _cells![index];

@@ -419,6 +419,30 @@ namespace OfficeIMO.Excel {
             return TryGetCellInRow(rowElement, row, column);
         }
 
+        /// <summary>
+        /// Finds an existing cell for a read that does not keep the element: a stored cell stays stored and is read
+        /// through a detached copy with the same attributes and value.
+        /// </summary>
+        private Cell? TryGetCellForReading(int row, int column) {
+            Row? rowElement = TryGetRowElement(row, column);
+            if (rowElement == null) {
+                return null;
+            }
+
+            if (rowElement is ExcelStoredRow stored && stored.IsStoreAvailable) {
+                int index = stored.Find(column);
+                if (index >= 0) {
+                    return stored.CreateDetachedCell(index);
+                }
+
+                using (ExcelStoredRow.BeginRawAccess()) {
+                    return TryGetCellInRow(rowElement, row, column);
+                }
+            }
+
+            return TryGetCellInRow(rowElement, row, column);
+        }
+
         /// <summary>Finds an existing DOM cell without moving a stored cell, which never holds a formula, into the DOM.</summary>
         private Cell? TryGetDomCell(int row, int column) {
             Row? rowElement = TryGetRowElement(row, column);
