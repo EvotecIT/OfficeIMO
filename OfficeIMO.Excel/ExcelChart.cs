@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel {
                 if (props != null) {
                     props.Name = value ?? string.Empty;
                     _drawingsPart.WorksheetDrawing?.Save();
-                    _document.MarkPackageDirty();
+                    MarkChartDirty();
                 }
             }
         }
@@ -603,7 +603,16 @@ namespace OfficeIMO.Excel {
         private void Save() {
             ChartPart chartPart = GetChartPart();
             chartPart.ChartSpace?.Save();
-            _document.MarkPackageDirty();
+            MarkChartDirty();
+        }
+
+        /// <summary>
+        /// Chart and drawing edits leave worksheet cells alone, so rows waiting for the direct worksheet writer stay there.
+        /// </summary>
+        private void MarkChartDirty() {
+            using (_document.PreserveDirectDataSetFastSaveStateDuringDirtyMarks()) {
+                _document.MarkPackageDirty();
+            }
         }
     }
 }

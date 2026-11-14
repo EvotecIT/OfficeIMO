@@ -221,7 +221,7 @@ namespace OfficeIMO.Excel {
             var range = new ExcelChartDataRange(Name, r1, c1, categoryCount, seriesCount, hasHeaderRow: hasHeaders);
             ExcelChartData? data = includeCachedData ? ExcelChartUtils.TryReadChartData(this, range) : null;
             return AddChartInternal(range, row, column, width.Value, height.Value, type, data, title,
-                nativeSeriesNames: nativeSeriesNames);
+                preserveDeferredDataSetCandidate: true, nativeSeriesNames: nativeSeriesNames);
         }
 
         /// <summary>

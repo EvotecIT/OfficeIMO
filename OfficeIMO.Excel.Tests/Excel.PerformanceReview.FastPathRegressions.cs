@@ -116,6 +116,50 @@ namespace OfficeIMO.Tests {
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
         }
 
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void PerformanceReview_DashboardChartOverDataTableTableKeepsTheTableWorksheetData(bool includeCachedData) {
+            var table = new DataTable();
+            table.Columns.Add("Region", typeof(string));
+            table.Columns.Add("Score", typeof(double));
+            table.Columns.Add("Note", typeof(string));
+            for (int i = 0; i < 40; i++) table.Rows.Add(i % 2 == 0 ? "North" : "South", i + 0.5, "n" + i);
+
+            byte[] Save(bool addChart) {
+                using var stream = new MemoryStream();
+                using (var document = ExcelDocument.Create(stream, new ExcelCreateOptions {
+                    PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
+                })) {
+                    var sheet = document.AddSheet("Data");
+                    sheet.AddTable(table, new ExcelTableOptions { Name = "Scores", AutoFit = false }, row: 1, column: 1);
+                    if (addChart) {
+                        OfficeIMO.Excel.Reports.ExcelReportExtensions.AddDashboardChart(sheet, new OfficeIMO.Excel.Reports.ExcelDashboardChartOptions {
+                            Range = "A1:B41", Row = 2, Column = 6, Title = "Scores", IncludeCachedData = includeCachedData
+                        });
+                    }
+                }
+
+                return stream.ToArray();
+            }
+
+            string SheetData(byte[] package) {
+                using var archive = new ZipArchive(new MemoryStream(package), ZipArchiveMode.Read);
+                using var reader = new StreamReader(archive.GetEntry("xl/worksheets/sheet1.xml")!.Open());
+                string xml = reader.ReadToEnd();
+                int start = xml.IndexOf("<sheetData", StringComparison.Ordinal);
+                return xml.Substring(start, xml.IndexOf("</sheetData>", StringComparison.Ordinal) - start);
+            }
+
+            byte[] withChart = Save(addChart: true);
+
+            Assert.Equal(SheetData(Save(addChart: false)), SheetData(withChart));
+            using var spreadsheet = SpreadsheetDocument.Open(new MemoryStream(withChart), false);
+            var chartPart = spreadsheet.WorkbookPart!.WorksheetParts.Single().DrawingsPart!.ChartParts.Single();
+            Assert.Equal(includeCachedData ? 40 : 0, chartPart.ChartSpace!.Descendants<DocumentFormat.OpenXml.Drawing.Charts.NumericPoint>().Count());
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
+        }
+
         [Fact]
         public void PerformanceReview_FileSnapshotKeepsAllViewsOnOneFileIdentity() {
             string path = Path.Combine(
