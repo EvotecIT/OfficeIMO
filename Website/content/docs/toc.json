@@ -817,6 +817,16 @@
         "href": "/docs/cli/invoices/"
       },
       {
+        "title": "HTML to PDF and Images",
+        "path": "cli/html/index.md",
+        "href": "/docs/cli/html/"
+      },
+      {
+        "title": "OfficeIMO Markup",
+        "path": "cli/markup/index.md",
+        "href": "/docs/cli/markup/"
+      },
+      {
         "title": "Scripting and CI",
         "path": "cli/scripting-and-ci/index.md",
         "href": "/docs/cli/scripting-and-ci/"
