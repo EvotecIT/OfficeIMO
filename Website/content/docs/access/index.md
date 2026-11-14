@@ -48,6 +48,8 @@ The same calls read MDB and ACCDB files. `AccessDataReader` is a `DbDataReader`,
 ## Inspect queries, links and application objects
 
 ```csharp
+using OfficeIMO.Access;
+
 using AccessDocument database = AccessDocument.Load("application.accdb");
 
 foreach (AccessQueryDefinition query in database.Queries)
@@ -85,6 +87,8 @@ database.Save("edited.accdb");
 ## Create a database
 
 ```csharp
+using OfficeIMO.Access;
+
 using AccessDocument database = AccessDocument.Create(new AccessCreateOptions {
     Format = AccessFileFormat.Accdb,
     DatabaseTitle = "Contacts"

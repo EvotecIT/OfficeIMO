@@ -21,6 +21,9 @@ Each walkthrough includes the complete generating C# file, a checkout run comman
 Use `ProjectDocument.Create()` to build a plan or `ProjectDocument.Load(path)` to inspect and edit a supported file. Tasks, calendars, dependencies, resources, and assignments belong to the document model. Loading and saving retain stored values; calculation is explicit:
 
 ```csharp
+using OfficeIMO.Project;
+
+ProjectDocument project = ProjectDocument.Load("Delivery.xml");
 var schedule = project.CalculateSchedule();
 schedule.Report.ThrowIfErrors();
 var view = project.CreateView(schedule, new ProjectViewOptions {

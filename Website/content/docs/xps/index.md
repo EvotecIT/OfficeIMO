@@ -54,6 +54,8 @@ Use `XpsFormat.Xps` for Microsoft's original dialect; the file extension does no
 ## Edit pages and documents
 
 ```csharp
+using OfficeIMO.Xps;
+
 XpsDocument document = XpsDocument.Load("report.oxps");
 XpsFixedDocument appendix = document.AddDocument();
 document.Documents[0].MovePageTo(0, appendix, 0);
@@ -69,6 +71,9 @@ Saving keeps the original dialect, opaque package parts and native page markup. 
 ## Read logical structure
 
 ```csharp
+using OfficeIMO.Xps;
+
+XpsDocument document = XpsDocument.Load("report.oxps");
 XpsLogicalStructure structure = document.ReadLogicalStructure();
 foreach (XpsLogicalStory story in structure.Stories)
     foreach (XpsStructureNode block in story.Blocks)
