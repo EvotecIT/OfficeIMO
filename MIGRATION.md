@@ -5421,8 +5421,9 @@ and `\\` escapes. PSWriteOffice's `-UseQuotes Never` keeps PowerShell's literal 
 `MaxInputBytes` used to stop every read at 256 MiB. Streamed reads (`CsvDocument.OpenReader`,
 `OpenReaderAsync` and row enumeration over a path or stream) now read input of any size unless
 you set `MaxInputBytes`. Reads that hold the whole input in memory, such as `CsvDocument.Load`
-and `LoadAsync`, keep the 256 MiB default, and `MaxDecompressedBytes` still bounds
-compressed input. To keep a limit on a streamed read, set it:
+and `LoadAsync`, keep the 256 MiB default, and so does a reader over a seekable stream that has
+to buffer it, such as one with `SkipInitialRecords`; set a larger `MaxInputBytes` for those.
+`MaxDecompressedBytes` still bounds compressed input. To keep a limit on a streamed read, set it:
 `new CsvReaderOptions { MaxInputBytes = 256L * 1024 * 1024 }`. `Import-OfficeCsv` takes the
 same limit as `-MaxInputBytes`.
 
