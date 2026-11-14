@@ -3,7 +3,7 @@ using System.Security.Cryptography.X509Certificates;
 namespace OfficeIMO.Security;
 
 /// <summary>Default OfficeIMO cryptographic provider backed by the dependencies carried by this package.</summary>
-public sealed class OfficeSecurityProvider : IOfficeSecurityProvider {
+public sealed class OfficeSecurityProvider : IOfficeSecurityProvider, IOfficePublicKeySignatureVerifier {
     /// <summary>Gets a reusable stateless provider instance.</summary>
     public static OfficeSecurityProvider Default { get; } = new OfficeSecurityProvider();
 
@@ -118,6 +118,17 @@ public sealed class OfficeSecurityProvider : IOfficeSecurityProvider {
         bool allowTrailingZeroPadding,
         long maxEncodedBytes) =>
         SecurityEncoding.NormalizeSingleAsn1Object(encoded, allowTrailingZeroPadding, maxEncodedBytes);
+
+    /// <inheritdoc />
+    public bool Supports(OfficePublicKeySignatureAlgorithm algorithm) => PublicKeySignatureVerifier.Supports(algorithm);
+
+    /// <inheritdoc />
+    public OfficePublicKeySignatureCheck Verify(
+        OfficePublicKeySignatureAlgorithm algorithm,
+        byte[] publicKey,
+        byte[] data,
+        byte[] signature) =>
+        PublicKeySignatureVerifier.Verify(algorithm, publicKey, data, signature);
 
     private sealed class CmsVerificationSession : ICmsVerificationSession {
         private readonly CmsVerificationOptions _options;
