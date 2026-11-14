@@ -403,7 +403,7 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            if (rowElement is ExcelStoredRow stored && stored.IsStoreAvailable) {
+            if (rowElement is ExcelStoredRow stored && stored.IsStoreAvailable && stored.HasOrderedCells) {
                 int index = stored.Find(column);
                 if (index >= 0) {
                     Cell promoted = stored.Promote(index);
@@ -421,7 +421,8 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Finds an existing cell for a read that does not keep the element: a stored cell stays stored and is read
-        /// through a detached copy with the same attributes and value.
+        /// through a detached copy with the same attributes and value. A row whose DOM cells lack canonical references
+        /// is searched in the DOM, where implicit columns count the stored cells before them.
         /// </summary>
         private Cell? TryGetCellForReading(int row, int column) {
             Row? rowElement = TryGetRowElement(row, column);
@@ -429,7 +430,7 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            if (rowElement is ExcelStoredRow stored && stored.IsStoreAvailable) {
+            if (rowElement is ExcelStoredRow stored && stored.IsStoreAvailable && stored.HasOrderedCells) {
                 int index = stored.Find(column);
                 if (index >= 0) {
                     return stored.CreateDetachedCell(index);
@@ -450,7 +451,7 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            if (rowElement is ExcelStoredRow stored && stored.IsStoreAvailable) {
+            if (rowElement is ExcelStoredRow stored && stored.IsStoreAvailable && stored.HasOrderedCells) {
                 using (ExcelStoredRow.BeginRawAccess()) {
                     return TryGetCellInRow(rowElement, row, column);
                 }
