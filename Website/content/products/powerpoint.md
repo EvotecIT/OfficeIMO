@@ -139,4 +139,4 @@ OfficeIMO.PowerPoint runs on Windows, Linux, and macOS. It generates standard `.
 | [Capability matrix](/docs/powerpoint/capabilities/) | See what is authored, edited, preserved, rendered, or intentionally reported. |
 | [PPT and PPTX compatibility](/compatibility/#powerpoint) | Check formats, conversion directions, tracked behaviors, and fidelity states. |
 | [Getting Started](/docs/getting-started/) | Set up the package family and choose the right companion libraries for reporting pipelines. |
-| [PSWriteOffice](/products/pswriteoffice/) | Use PowerShell to automate the same presentation scenarios from scripts. |
+| [PSWriteOffice](/powershell/) | Use PowerShell to automate the same presentation scenarios from scripts. |

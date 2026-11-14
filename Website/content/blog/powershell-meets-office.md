@@ -113,7 +113,7 @@ If you already automate with PowerShell, PSWriteOffice gives you a straightforwa
 
 ## Continue with
 
-- [PSWriteOffice product page](/products/pswriteoffice/) for the package overview and installation paths.
+- [PSWriteOffice product page](/powershell/) for the package overview and installation paths.
 - [PSWriteOffice documentation](/docs/pswriteoffice/) for the cmdlet surface and DSL entry points.
 - [Word cmdlets](/docs/pswriteoffice/word/) if your scripts mainly generate DOCX files.
 - [Excel cmdlets](/docs/pswriteoffice/excel/) for workbook-oriented automation from PowerShell.
