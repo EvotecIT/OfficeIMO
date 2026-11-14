@@ -197,6 +197,11 @@ internal static class OfficeTextElements {
     internal static bool ContainsCombiningMark(string? value) {
         if (string.IsNullOrEmpty(value)) return false;
         for (int index = 0; index < value!.Length;) {
+            // No character below U+0300 (Combining Diacritical Marks) is a mark; skip the category lookup.
+            if (value[index] < '̀') {
+                index++;
+                continue;
+            }
             int scalarIndex = index;
             ReadScalar(value, ref index);
             UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(value, scalarIndex);

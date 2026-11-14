@@ -15,6 +15,9 @@ namespace OfficeIMO.Drawing;
 internal static partial class OfficeArabicTextShaper {
     private static readonly IReadOnlyDictionary<char, ArabicForms> Forms = CreateForms();
     private static readonly IReadOnlyDictionary<char, char> LogicalForms = CreateLogicalForms();
+    // Every presentation form lies in this range; text outside it (all non-Arabic text) skips the lookup.
+    private static readonly char LogicalFormsFirst = LogicalForms.Keys.Min();
+    private static readonly char LogicalFormsLast = LogicalForms.Keys.Max();
 
     /// <summary>Shapes supported Arabic letters into their Presentation Forms-A and -B contextual forms.</summary>
     public static string Shape(string? value) {
@@ -80,7 +83,11 @@ internal static partial class OfficeArabicTextShaper {
         // non-Arabic text, and this runs per glyph in RecordGlyphUsage — return the input with no allocation.
         int firstMapped = -1;
         for (int i = 0; i < value!.Length; i++) {
-            if (LogicalForms.ContainsKey(value[i])) { firstMapped = i; break; }
+            char character = value[i];
+            if (character >= LogicalFormsFirst && character <= LogicalFormsLast && LogicalForms.ContainsKey(character)) {
+                firstMapped = i;
+                break;
+            }
         }
         if (firstMapped < 0) return value;
 

@@ -12,7 +12,8 @@ internal static class OfficeTextLigatures {
         out int ligatureScalar,
         out int utf16Length) {
         ArgumentNullException.ThrowIfNull(text);
-        if (index < 0 || index >= text.Length) {
+        // Every supported ligature starts with 'f'.
+        if (index < 0 || index >= text.Length || text[index] != 'f') {
             ligatureScalar = 0;
             utf16Length = 0;
             return false;
@@ -49,7 +50,12 @@ internal static class OfficeTextLigatures {
         return false;
     }
 
-    private static bool StartsWithOrdinal(string text, int index, string value) =>
-        index <= text.Length - value.Length &&
-        string.Compare(text, index, value, 0, value.Length, StringComparison.Ordinal) == 0;
+    private static bool StartsWithOrdinal(string text, int index, string value) {
+        if (index > text.Length - value.Length) return false;
+        // An ordinal comparison of a few characters; string.Compare is slow for this on .NET Framework.
+        for (int offset = 0; offset < value.Length; offset++) {
+            if (text[index + offset] != value[offset]) return false;
+        }
+        return true;
+    }
 }
