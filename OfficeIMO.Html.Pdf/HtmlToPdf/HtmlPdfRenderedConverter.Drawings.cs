@@ -10,7 +10,8 @@ internal static partial class HtmlPdfRenderedConverter {
         RegisteredWebFonts webFonts, PdfImageResourceCache imageResources,
         PdfCore.PdfConversionReport conversionReport,
         CancellationToken cancellationToken,
-        bool suppressLink) {
+        bool suppressLink,
+        LinkTargets? linkTargets) {
         OfficeDrawing source = visual.Drawing;
         double scaleX = visual.Width / source.Width;
         double scaleY = visual.Height / source.Height;
@@ -105,6 +106,13 @@ internal static partial class HtmlPdfRenderedConverter {
                         masked.Fonts.AddRange(source.Fonts);
                         masked.AddEffectDrawing(effectGroup.Drawing, effectGroup.Transform,
                             effectGroup.BlendMode, effectGroup.SoftMask, effectGroup.Opacity);
+                        masked.RewriteLinks(uri => {
+                            string normalized = IsFragmentLink(uri) ? "#" + DecodeFragmentName(uri.Substring(1)) : uri;
+                            if (linkTargets?.Include(normalized, visual.Source) == false) return null;
+                            return IsFragmentLink(normalized)
+                                ? "#" + Uri.EscapeDataString(MapNamedDestination(normalized.Substring(1)))
+                                : normalized;
+                        }, cancellationToken);
                         target.DrawingForClippedRendering(masked, originX, originY,
                             visual.Width * PointsPerCssPixel, visual.Height * PointsPerCssPixel);
                         continue;
@@ -169,13 +177,15 @@ internal static partial class HtmlPdfRenderedConverter {
                 }
                 if (element is OfficeDrawingLink link) {
                     FlushShapes();
+                    string uri = IsFragmentLink(link.Uri) ? "#" + DecodeFragmentName(link.Uri.Substring(1)) : link.Uri;
+                    if (linkTargets?.Include(uri, visual.Source) == false) continue;
                     double linkX = (visual.X + link.X * scaleX) * PointsPerCssPixel;
                     double linkY = (visual.Y + link.Y * scaleY) * PointsPerCssPixel;
                     double linkWidth = link.Width * scaleX * PointsPerCssPixel;
                     double linkHeight = link.Height * scaleY * PointsPerCssPixel;
                     if (IsFragmentLink(link.Uri)) {
                         target.LinkToNamedDestination(
-                            MapNamedDestination(DecodeFragmentName(link.Uri.Substring(1))),
+                            MapNamedDestination(uri.Substring(1)),
                             global::OfficeIMO.OfficeLength.Points(linkX),
                             global::OfficeIMO.OfficeLength.Points(linkY),
                             global::OfficeIMO.OfficeLength.Points(linkWidth),

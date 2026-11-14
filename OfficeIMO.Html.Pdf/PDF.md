@@ -22,6 +22,13 @@ byte[] pdf = source.ToPdf().ToBytes();
 source.SaveAsPdf("quarterly-update.pdf");
 ```
 
+Set `HtmlPdfExportOptions.BaseUri` to resolve relative hyperlinks such as `terms.html`.
+Without a base URI, conversion omits unresolved link annotations and reports
+`HtmlRenderHyperlinkTargetUnavailable` while preserving the page content. Links
+to fragment targets outside the selected pages are also omitted with that warning.
+The same behavior applies to PDF-backed image export. `FailOnLoss` still rejects
+these omissions when strict conversion is requested.
+
 `ToPdf()` uses the print-paged layout. Use an explicit
 render request when the PDF should follow another layout contract:
 

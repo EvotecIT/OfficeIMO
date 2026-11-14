@@ -110,7 +110,7 @@ internal sealed class HiddenDataArguments {
 
     internal static HiddenDataArguments Parse(string[] args) {
         var parsed = new HiddenDataArguments();
-        if (args.Length == 0 || args[0] is "help" or "--help" or "-h") {
+        if (args.Length == 0 || args[0] is "help" || args.Any(argument => argument is "--help" or "-h")) {
             parsed.Help = true;
             return parsed;
         }

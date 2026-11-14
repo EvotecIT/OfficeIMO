@@ -12,6 +12,7 @@ internal sealed class MarkupArguments {
     internal OfficeMarkupProfile Profile { get; private set; } = OfficeMarkupProfile.Document;
     internal bool UseStdin { get; private set; }
     internal bool ShowHelp { get; private set; }
+    internal bool Force { get; private set; }
     internal string? MermaidRendererPath { get; private set; }
     internal bool RenderMermaidDiagrams { get; private set; } = true;
     internal bool WorkbookSafePreflight { get; private set; } = true;
@@ -30,6 +31,9 @@ internal sealed class MarkupArguments {
                     break;
                 case "--stdin":
                     options.UseStdin = true;
+                    break;
+                case "--force":
+                    options.Force = true;
                     break;
                 case "--profile":
                     options.Profile = ParseProfile(ReadValue(args, ref index, argument));

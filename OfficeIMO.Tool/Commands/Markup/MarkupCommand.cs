@@ -118,7 +118,7 @@ internal static class MarkupCommand {
         };
 
         if (!string.IsNullOrWhiteSpace(options.OutputPath)) {
-            var outputPath = NormalizeWritableFilePath(options.OutputPath!);
+            var outputPath = NormalizeWritableFilePath(options.OutputPath!, options.Force);
             await File.WriteAllTextAsync(outputPath, text, cancellationToken).ConfigureAwait(false);
         } else {
             await standardOutput.WriteLineAsync(text).ConfigureAwait(false);
@@ -153,7 +153,7 @@ internal static class MarkupCommand {
                     throw new InvalidOperationException("Export target 'pptx' requires --output <file.pptx>.");
                 }
 
-                outputPath = NormalizeWritableFilePath(outputPath);
+                outputPath = NormalizeWritableFilePath(outputPath, options.Force);
 
                 result.Document.SaveAsPowerPoint(outputPath!, new MarkupPowerPointExportOptions {
                     BaseDirectory = inputPath == null
@@ -175,7 +175,7 @@ internal static class MarkupCommand {
                     throw new InvalidOperationException("Export target 'xlsx' requires --output <file.xlsx>.");
                 }
 
-                workbookOutputPath = NormalizeWritableFilePath(workbookOutputPath);
+                workbookOutputPath = NormalizeWritableFilePath(workbookOutputPath, options.Force);
 
                 result.Document.SaveAsExcel(workbookOutputPath!, saveOptions: new ExcelSaveOptions {
                     SafePreflight = options.WorkbookSafePreflight,
@@ -196,7 +196,7 @@ internal static class MarkupCommand {
                     throw new InvalidOperationException("Export target 'docx' requires --output <file.docx>.");
                 }
 
-                documentOutputPath = NormalizeWritableFilePath(documentOutputPath);
+                documentOutputPath = NormalizeWritableFilePath(documentOutputPath, options.Force);
 
                 result.Document.SaveAsWord(documentOutputPath!, new MarkupWordExportOptions {
                     BaseDirectory = documentInputPath == null
@@ -281,8 +281,12 @@ internal static class MarkupCommand {
         return fullPath;
     }
 
-    private static string NormalizeWritableFilePath(string path) {
+    private static string NormalizeWritableFilePath(string path, bool force) {
         var fullPath = Path.GetFullPath(path);
+        if (!force && File.Exists(fullPath)) {
+            throw new IOException("Output already exists. Use --force to replace it: " + fullPath);
+        }
+
         var directory = Path.GetDirectoryName(fullPath);
         if (string.IsNullOrWhiteSpace(directory)) {
             throw new InvalidOperationException($"Unable to resolve an output directory for path '{path}'.");
@@ -542,10 +546,10 @@ Usage:
   officeimo markup parse <file|-> [--profile presentation|document|workbook|common]
   officeimo markup validate <file|-> [--profile presentation|document|workbook|common]
   officeimo markup preview <file|-> [--profile presentation|document|workbook|common]
-  officeimo markup emit <file|-> --target csharp|powershell [--output <file>]
-  officeimo markup export <file|-> --target pptx --output <file.pptx>
-  officeimo markup export <file|-> --target xlsx --output <file.xlsx>
-  officeimo markup export <file|-> --target docx --output <file.docx>
+  officeimo markup emit <file|-> --target csharp|powershell [--output <file>] [--force]
+  officeimo markup export <file|-> --target pptx --output <file.pptx> [--force]
+  officeimo markup export <file|-> --target xlsx --output <file.xlsx> [--force]
+  officeimo markup export <file|-> --target docx --output <file.docx> [--force]
 
 Options:
   --stdin                       Read markup from standard input.
@@ -555,6 +559,9 @@ Options:
   --no-openxml-validation       Disable Excel Open XML validation.
   --mermaid-renderer <mmdc>     Configure the Mermaid renderer for PowerPoint.
   --no-mermaid                  Disable Mermaid rendering.
+  --force                       Replace an existing output file.
+
+Existing output is refused unless --force is supplied.
 """;
 
     private static Task WriteHelpAsync(TextWriter writer) => writer.WriteLineAsync(Usage);
