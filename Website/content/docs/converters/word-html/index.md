@@ -1,203 +1,187 @@
 ---
-title: Word to HTML
-description: HTML and Word conversion helpers in OfficeIMO.Word.Html for common structures and round-trip workflows. Includes examples and API links.
+title: "Convert Word to HTML and HTML to Word"
+description: "Convert DOCX to HTML, build Word documents from HTML, and add HTML content to the body, headers, and footers of an existing document with OfficeIMO.Word.Html."
 order: 70
+packages:
+  - OfficeIMO.Word.Html
+cmdlets:
+  - Convert-OfficeDocument
+  - New-OfficeWordHtmlOptions
+  - New-OfficeHtmlWordOptions
+commands:
+  - officeimo convert
+search_terms:
+  - docx to html
+  - html to docx
+  - word to html
+  - html to word
+  - add html to word
+verified: 2026-11-14
 ---
 
-The `OfficeIMO.Word.Html` package provides HTML and Word conversion helpers for common structures and round-trip workflows. It uses [AngleSharp](https://anglesharp.github.io/) for HTML parsing and DOM manipulation, supports both synchronous and asynchronous workflows, and is best treated as a conversion layer you should validate against your own fidelity requirements for complex layouts.
+`OfficeIMO.Word.Html` converts in both directions. `ToHtml` and `SaveAsHtml` turn a `WordDocument` into HTML; `HtmlConversionDocument.Parse(html).ToWord()` builds a Word document from HTML; `AddHtml` inserts HTML into an existing document. HTML parsing uses AngleSharp. Check the output against your own fidelity needs when layouts are complex.
 
-## Installation
+## Convert a Word document to HTML
 
-```bash
-dotnet add package OfficeIMO.Word.Html
-```
+`ToHtml` is an in-memory conversion. `SaveAsHtml` and `SaveAsHtmlAsync` write to a file or stream and return a conversion report.
 
-This package depends on `OfficeIMO.Word`, `AngleSharp`, and `AngleSharp.Css`.
-
-## Word to HTML
-
-### Convert to HTML String
+### C#
 
 ```csharp
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 
-using var document = WordDocument.Load("report.docx");
+using WordDocument document = WordDocument.Load("report.docx");
 
-// Convert to a full HTML document
 string html = document.ToHtml();
-Console.WriteLine(html);
-```
+Console.WriteLine(html.Length);
 
-HTML generation is an in-memory conversion and is synchronous. Use `SaveAsHtmlAsync` when writing to a file or stream asynchronously.
-
-### Save as HTML File
-
-```csharp
 document.SaveAsHtml("report.html");
+await document.SaveAsHtmlAsync("report-async.html");
 
-// Async version
-await document.SaveAsHtmlAsync("report.html");
-```
-
-### Save to a Stream
-
-```csharp
 using var stream = new MemoryStream();
 document.SaveAsHtml(stream);
 ```
 
-### Conversion Options
+### PowerShell
 
-Customize the conversion with `WordHtmlExportOptions`:
+```powershell
+Convert-OfficeDocument -Path .\report.docx -To Html -OutputPath .\report.html
+```
+
+### CLI
+
+```sh
+officeimo convert report.docx report.html
+```
+
+## Control the HTML output
+
+### C#
 
 ```csharp
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 
-using var document = WordDocument.Load("report.docx");
+using WordDocument document = WordDocument.Load("report.docx");
 
 var options = new WordHtmlExportOptions {
-    // Include font and list styling in the generated HTML
     IncludeFontStyles = true,
     IncludeListStyles = true,
-
-    // Control image handling
     EmbedImagesAsBase64 = true,
-
-    // CSS options
     IncludeDefaultCss = true
 };
 
 string html = document.ToHtml(options);
+File.WriteAllText("report.html", html);
 ```
 
-## HTML to Word
+### PowerShell
 
-### Create a Word Document from HTML
+```powershell
+$options = New-OfficeWordHtmlOptions -IncludeFontStyles -IncludeListStyles -IncludeDefaultCss
+Convert-OfficeDocument -Path .\report.docx -To Html -OutputPath .\report.html -Options $options
+```
+
+## Create a Word document from HTML
+
+### C#
 
 ```csharp
 using OfficeIMO.Html;
+using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
-using System.Net;
 
 string html = """
-&lt;html&gt;
-&lt;body&gt;
-    &lt;h1&gt;Report Title&lt;/h1&gt;
-    &lt;p&gt;This is a &lt;strong&gt;bold&lt;/strong&gt; and &lt;em&gt;italic&lt;/em&gt; paragraph.&lt;/p&gt;
-    &lt;table&gt;
-        &lt;tr&gt;&lt;th&gt;Name&lt;/th&gt;&lt;th&gt;Value&lt;/th&gt;&lt;/tr&gt;
-        &lt;tr&gt;&lt;td&gt;Alpha&lt;/td&gt;&lt;td&gt;100&lt;/td&gt;&lt;/tr&gt;
-        &lt;tr&gt;&lt;td&gt;Beta&lt;/td&gt;&lt;td&gt;200&lt;/td&gt;&lt;/tr&gt;
-    &lt;/table&gt;
-&lt;/body&gt;
-&lt;/html&gt;
-""";
+    <h1>Report Title</h1>
+    <p>This is a <strong>bold</strong> and <em>italic</em> paragraph.</p>
+    <table>
+        <tr><th>Name</th><th>Value</th></tr>
+        <tr><td>Alpha</td><td>100</td></tr>
+        <tr><td>Beta</td><td>200</td></tr>
+    </table>
+    """;
 
-HtmlConversionDocument source = HtmlConversionDocument.Parse(WebUtility.HtmlDecode(html));
-using var document = source.ToWord();
-document.Save("from-html.docx");
-```
-
-### Async HTML to Word
-
-```csharp
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-var options = HtmlWordExportOptions.CreateTrustedDocumentProfile();
-using var document = (await source.ToWordAsync(options)).Value;
-document.Save("from-html.docx");
-```
 
-### HTML to Word Options
-
-```csharp
-using OfficeIMO.Word.Html;
-
-var options = new HtmlWordExportOptions {
+using WordDocument document = source.ToWord(new HtmlWordExportOptions {
     FontFamily = "Calibri",
     IncludeListStyles = true,
     BasePath = AppContext.BaseDirectory
-};
-
-HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-using var document = source.ToWord(options);
+});
+document.Save("from-html.docx");
 ```
 
-## Adding HTML to an Existing Document
-
-You can inject HTML content into specific parts of an existing Word document:
-
-### Append HTML to Document Body
+`HtmlWordExportOptions.CreateTrustedDocumentProfile()` returns options for HTML you trust, and `ToWordAsync` loads external resources asynchronously:
 
 ```csharp
-using var document = WordDocument.Create("mixed.docx");
-document.AddParagraph("Native OfficeIMO paragraph");
+using OfficeIMO.Html;
+using OfficeIMO.Word;
+using OfficeIMO.Word.Html;
 
-// Append HTML-sourced content
+HtmlConversionDocument source = HtmlConversionDocument.Parse(File.ReadAllText("page.html"));
+HtmlWordExportOptions options = HtmlWordExportOptions.CreateTrustedDocumentProfile();
+
+using WordDocument document = (await source.ToWordAsync(options)).Value;
+document.Save("page.docx");
+```
+
+### PowerShell
+
+```powershell
+$options = New-OfficeHtmlWordOptions -StylesheetPath .\report.css
+Convert-OfficeDocument -Path .\report.html -To Word -OutputPath .\report.docx -Options $options
+```
+
+### CLI
+
+```sh
+officeimo convert report.html report.docx
+```
+
+## Add HTML to an existing document
+
+`AddHtml` appends HTML-sourced content to the body, a table cell, a header, or a footer, and returns the new elements. Each method has an async counterpart.
+
+### C#
+
+```csharp
+using OfficeIMO.Html;
+using OfficeIMO.Word;
+using OfficeIMO.Word.Html;
+
+using WordDocument document = WordDocument.Create("mixed.docx");
+document.AddParagraph("Native OfficeIMO paragraph");
 document.AddHtml("<p>This came from <strong>HTML</strong>.</p>");
+
+WordSection section = document.Sections[0];
+
+section.PageSetup.Header.AddHtml(
+    HtmlConversionDocument.Parse("<p style='text-align: center;'>Company Header</p>"),
+    section: section);
+await section.PageSetup.Footer.AddHtmlAsync(
+    HtmlConversionDocument.Parse("<p style='font-size: 8pt; color: gray;'>Confidential</p>"),
+    section: section);
+
 document.Save();
 ```
 
-### Add HTML to Headers
+## Supported HTML elements and CSS
 
-```csharp
-document.Sections.Last().PageSetup.Header.AddHtml(
-    OfficeIMO.Html.HtmlConversionDocument.Parse("<p style='text-align: center;'>Company Header</p>"),
-    section: document.Sections.Last()
-);
-```
+| HTML element | Word result |
+|---|---|
+| `<h1>` to `<h6>` | Heading1 to Heading6 paragraph styles |
+| `<p>` | Normal paragraph |
+| `<strong>`, `<b>` | Bold |
+| `<em>`, `<i>` | Italic |
+| `<u>` | Underline |
+| `<s>`, `<del>` | Strikethrough |
+| `<table>`, `<tr>`, `<td>`, `<th>` | Word table |
+| `<ul>`, `<ol>`, `<li>` | Bulleted and numbered lists |
+| `<img>` | Inline image |
+| `<a>` | Hyperlink |
+| `<br>` | Line break |
+| `<hr>` | Horizontal rule |
+| `<code>`, `<pre>` | Monospace text |
 
-### Add HTML to Footers
-
-```csharp
-document.Sections.Last().PageSetup.Footer.AddHtml(
-    OfficeIMO.Html.HtmlConversionDocument.Parse("<p style='font-size: 8pt; color: gray;'>Confidential</p>"),
-    section: document.Sections.Last()
-);
-```
-
-### Async Versions
-
-All `AddHtml*` methods have async counterparts:
-
-```csharp
-await document.AddHtmlAsync("<p>Async HTML content</p>");
-await document.Sections.Last().PageSetup.Header.AddHtmlAsync(
-    OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Header from HTML</p>"), section: document.Sections.Last());
-await document.Sections.Last().PageSetup.Footer.AddHtmlAsync(
-    OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Footer from HTML</p>"), section: document.Sections.Last());
-```
-
-## Supported HTML Elements
-
-The converter handles the following HTML elements:
-
-| HTML Element | Word Equivalent |
-|-------------|-----------------|
-| `&lt;h1&gt;` through `&lt;h6&gt;` | Heading1 through Heading6 paragraph styles |
-| `&lt;p&gt;` | Normal paragraph |
-| `&lt;strong&gt;`, `&lt;b&gt;` | Bold formatting |
-| `&lt;em&gt;`, `&lt;i&gt;` | Italic formatting |
-| `&lt;u&gt;` | Underline formatting |
-| `&lt;s&gt;`, `&lt;del&gt;` | Strikethrough |
-| `&lt;table&gt;`, `&lt;tr&gt;`, `&lt;td&gt;`, `&lt;th&gt;` | Word tables with cells |
-| `&lt;ul&gt;`, `&lt;ol&gt;`, `&lt;li&gt;` | Bulleted and numbered lists |
-| `&lt;img&gt;` | Inline images |
-| `&lt;a&gt;` | Hyperlinks |
-| `&lt;br&gt;` | Line breaks |
-| `&lt;hr&gt;` | Horizontal rules |
-| `&lt;code&gt;`, `&lt;pre&gt;` | Monospace formatting |
-
-## CSS Style Mapping
-
-The converter maps common CSS properties to Word formatting:
-
-- `font-family` maps to Word font family
-- `font-size` maps to Word font size
-- `font-weight: bold` maps to bold
-- `font-style: italic` maps to italic
-- `text-align` maps to paragraph alignment
-- `color` maps to text color
-- `background-color` maps to paragraph shading
-- `text-decoration` maps to underline/strikethrough
+CSS `font-family`, `font-size`, `font-weight`, `font-style`, `text-align`, `color`, `background-color`, and `text-decoration` map to the matching Word run and paragraph formatting.
