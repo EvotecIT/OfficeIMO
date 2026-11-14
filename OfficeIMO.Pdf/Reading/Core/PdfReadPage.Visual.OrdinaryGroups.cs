@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
-    private bool IsSupportedOrdinaryTransparencyGroup(PdfDictionary form, PdfPageXObjectInvocation invocation) {
+    private bool IsSupportedOrdinaryTransparencyGroup(PdfDictionary form, PdfDictionary? resources, PdfPageXObjectInvocation invocation) {
         if (ResolveEffectObject(form.Items.TryGetValue("Group", out var groupObject) ? groupObject : null) is not PdfDictionary group ||
             !HasOrdinaryTransparencyGroupDeclaration(group)) return false;
         if (group.Items.TryGetValue("K", out var knockout) && ResolveEffectObject(knockout) is not PdfNull and not PdfBoolean { Value: false }) return false;
@@ -17,7 +17,7 @@ public sealed partial class PdfReadPage {
         // is isolated, and an RGB ICC blending space is treated like DeviceRGB.
         if (invocation.BlendMode == OfficeBlendMode.Normal && (invocation.FillOpacity ?? 1D) >= 1D) return false;
         if (!deviceRgb && !IsThreeComponentIccColorSpace(color)) return false;
-        if (!isolated && !PaintsOnlyWithNormalBlending(form)) return false;
+        if (!isolated && !PaintsOnlyWithNormalBlending(resources)) return false;
         return TryReadFormMatrix(form, out _);
     }
 
@@ -27,10 +27,10 @@ public sealed partial class PdfReadPage {
         ResolveEffectObject(array.Items[1]) is PdfStream profile &&
         ResolveEffectObject(profile.Dictionary.Items.TryGetValue("N", out PdfObject? components) ? components : null) is PdfNumber { Value: 3D };
 
-    // Conservative: every graphics state the Form can select keeps Normal blending and no soft mask,
-    // and the Form invokes no nested Forms whose own states would also apply.
-    private bool PaintsOnlyWithNormalBlending(PdfDictionary form) {
-        PdfDictionary? resources = ResolveDictionary(form.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null);
+    // Conservative: every graphics state the Form can select from its effective resources (its own,
+    // or those it inherits) keeps Normal blending and no soft mask, and the Form invokes no nested
+    // Forms or Type3 glyph procedures whose own states would also apply.
+    private bool PaintsOnlyWithNormalBlending(PdfDictionary? resources) {
         if (resources == null) return true;
         if (ResolveDictionary(resources.Items.TryGetValue("ExtGState", out PdfObject? statesObject) ? statesObject : null) is PdfDictionary states) {
             foreach (PdfObject stateObject in states.Items.Values) {
@@ -43,6 +43,12 @@ public sealed partial class PdfReadPage {
             foreach (PdfObject value in objects.Items.Values) {
                 if (ResolveEffectObject(value) is PdfStream stream &&
                     ResolveEffectObject(stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) ? subtype : null) is PdfName { Name: "Form" }) return false;
+            }
+        }
+        if (ResolveDictionary(resources.Items.TryGetValue("Font", out PdfObject? fontsObject) ? fontsObject : null) is PdfDictionary fonts) {
+            foreach (PdfObject value in fonts.Items.Values) {
+                if (ResolveEffectObject(value) is PdfDictionary font &&
+                    ResolveEffectObject(font.Items.TryGetValue("Subtype", out PdfObject? fontSubtype) ? fontSubtype : null) is PdfName { Name: "Type3" }) return false;
             }
         }
         return true;
