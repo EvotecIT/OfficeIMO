@@ -548,13 +548,13 @@ function Invoke-ExcelBenchmarkUpdateExistingWorkbook {
     switch ($Engine) {
         PSWriteOffice {
             $Run.Payload | Export-OfficeExcel -Path $Run.Path -WorksheetName $Run.WorksheetName -TableName Data -NoAutoFit
-            Edit-OfficeExcelRow -Path $Run.Path -Sheet $Run.WorksheetName -ScriptBlock {
-                param($row)
-                $row.Set('TicketCount', ([int]$row['TicketCount'].Value + 1))
-                if ([bool]$row['IsEnabled'].Value) { $row.Set('Notes', 'Reviewed') }
-            } | Out-Null
             $formulaColumn = $Run.ColumnCount + 1
             Open-OfficeExcel -Path $Run.Path {
+                Edit-OfficeExcelRow -Sheet $Run.WorksheetName -ScriptBlock {
+                    param($row)
+                    $row.Set('TicketCount', ([int]$row['TicketCount'].Value + 1))
+                    if ([bool]$row['IsEnabled'].Value) { $row.Set('Notes', 'Reviewed') }
+                }
                 Set-OfficeExcelCell -Sheet $Run.WorksheetName -Row 1 -Column $formulaColumn -Value 'ScoreDouble'
                 Set-OfficeExcelCell -Sheet $Run.WorksheetName -Row 2 -Column $formulaColumn -Formula 'G2*2' -NumberFormat '#,##0.00'
             } | Out-Null
