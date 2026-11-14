@@ -11,17 +11,17 @@ Adds a table to a PDF document.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficePdfTable [-InputObject] <Object[]> [-Property <string[]>] [-Header <string[]>] [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-ColumnFormat <hashtable>] [-Alignment <OfficeAlignment>] [-TableStyle <string>] [-HeaderBackgroundColor <OfficeColor>] [-HeaderColor <OfficeColor>] [-Color <OfficeColor>] [-BandColor <OfficeColor>] [-BorderColor <OfficeColor>] [-BorderWidth <OfficeLength>] [-Size <OfficeLength>] [-HeaderSize <OfficeLength>] [-LineHeight <Double>] [-CellPaddingX <OfficeLength>] [-CellPaddingY <OfficeLength>] [-SpacingBefore <OfficeLength>] [-SpacingAfter <OfficeLength>] [-Caption <string>] [-CaptionAlignment <OfficeAlignment>] [-CaptionColor <OfficeColor>] [-CaptionSize <OfficeLength>] [-ColumnWidth <OfficeLength[]>] [-ColumnWeight <double[]>] [-ColumnAlignment <OfficeAlignment[]>] [-AutoFit] [-NoNumericAlignment] [-ShrinkToFit] [-MinimumSize <OfficeLength>] [-KeepTogether] [-KeepWithNext] [-NoBorder] [-NoHeaderBackground] [-NoBanding] [-HeaderRowCount <Int32>] [-RepeatHeaderRowCount <Int32>] [-FooterRowCount <Int32>] [<CommonParameters>]
+Add-OfficePdfTable [-InputObject] <Object[]> [-Property <string[]>] [-Header <string[]>] [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-ColumnFormat <hashtable>] [-Alignment <OfficeAlignment>] [-TableStyle <string>] [-HeaderBackgroundColor <OfficeColor>] [-HeaderColor <OfficeColor>] [-Color <OfficeColor>] [-BandColor <OfficeColor>] [-BorderColor <OfficeColor>] [-BorderWidth <OfficeLength>] [-Size <OfficeLength>] [-HeaderSize <OfficeLength>] [-LineHeight <Double>] [-CellPaddingX <OfficeLength>] [-CellPaddingY <OfficeLength>] [-SpacingBefore <OfficeLength>] [-SpacingAfter <OfficeLength>] [-Caption <string>] [-CaptionAlignment <OfficeAlignment>] [-CaptionColor <OfficeColor>] [-CaptionSize <OfficeLength>] [-ColumnWidth <OfficeLength[]>] [-ColumnWeight <double[]>] [-ColumnAlignment <OfficeAlignment[]>] [-AutoFit] [-NoNumericAlignment] [-ShrinkToFit] [-MinimumSize <OfficeLength>] [-KeepTogether] [-KeepWithNext] [-NoBorder] [-NoHeaderBackground] [-NoBanding] [-HeaderRowCount <Int32>] [-RepeatHeaderRowCount <Int32>] [-FooterRowCount <Int32>] [-RepeatFooterRows] [-PageSummary <PdfTablePageSummary>] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficePdfTable [-InputObject] <Object[]> -Document <PdfDocument> [-Property <string[]>] [-Header <string[]>] [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-ColumnFormat <hashtable>] [-Alignment <OfficeAlignment>] [-TableStyle <string>] [-HeaderBackgroundColor <OfficeColor>] [-HeaderColor <OfficeColor>] [-Color <OfficeColor>] [-BandColor <OfficeColor>] [-BorderColor <OfficeColor>] [-BorderWidth <OfficeLength>] [-Size <OfficeLength>] [-HeaderSize <OfficeLength>] [-LineHeight <Double>] [-CellPaddingX <OfficeLength>] [-CellPaddingY <OfficeLength>] [-SpacingBefore <OfficeLength>] [-SpacingAfter <OfficeLength>] [-Caption <string>] [-CaptionAlignment <OfficeAlignment>] [-CaptionColor <OfficeColor>] [-CaptionSize <OfficeLength>] [-ColumnWidth <OfficeLength[]>] [-ColumnWeight <double[]>] [-ColumnAlignment <OfficeAlignment[]>] [-AutoFit] [-NoNumericAlignment] [-ShrinkToFit] [-MinimumSize <OfficeLength>] [-KeepTogether] [-KeepWithNext] [-NoBorder] [-NoHeaderBackground] [-NoBanding] [-HeaderRowCount <Int32>] [-RepeatHeaderRowCount <Int32>] [-FooterRowCount <Int32>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfTable [-InputObject] <Object[]> -Document <PdfDocument> [-Property <string[]>] [-Header <string[]>] [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-ColumnFormat <hashtable>] [-Alignment <OfficeAlignment>] [-TableStyle <string>] [-HeaderBackgroundColor <OfficeColor>] [-HeaderColor <OfficeColor>] [-Color <OfficeColor>] [-BandColor <OfficeColor>] [-BorderColor <OfficeColor>] [-BorderWidth <OfficeLength>] [-Size <OfficeLength>] [-HeaderSize <OfficeLength>] [-LineHeight <Double>] [-CellPaddingX <OfficeLength>] [-CellPaddingY <OfficeLength>] [-SpacingBefore <OfficeLength>] [-SpacingAfter <OfficeLength>] [-Caption <string>] [-CaptionAlignment <OfficeAlignment>] [-CaptionColor <OfficeColor>] [-CaptionSize <OfficeLength>] [-ColumnWidth <OfficeLength[]>] [-ColumnWeight <double[]>] [-ColumnAlignment <OfficeAlignment[]>] [-AutoFit] [-NoNumericAlignment] [-ShrinkToFit] [-MinimumSize <OfficeLength>] [-KeepTogether] [-KeepWithNext] [-NoBorder] [-NoHeaderBackground] [-NoBanding] [-HeaderRowCount <Int32>] [-RepeatHeaderRowCount <Int32>] [-FooterRowCount <Int32>] [-RepeatFooterRows] [-PageSummary <PdfTablePageSummary>] [-PassThru] [<CommonParameters>]
 ```
 
 ### PipelineDocument
 ```powershell
-Add-OfficePdfTable [-InputObject] <Object[]> -Document <PdfDocument> [-Property <string[]>] [-Header <string[]>] [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-ColumnFormat <hashtable>] [-Alignment <OfficeAlignment>] [-TableStyle <string>] [-HeaderBackgroundColor <OfficeColor>] [-HeaderColor <OfficeColor>] [-Color <OfficeColor>] [-BandColor <OfficeColor>] [-BorderColor <OfficeColor>] [-BorderWidth <OfficeLength>] [-Size <OfficeLength>] [-HeaderSize <OfficeLength>] [-LineHeight <Double>] [-CellPaddingX <OfficeLength>] [-CellPaddingY <OfficeLength>] [-SpacingBefore <OfficeLength>] [-SpacingAfter <OfficeLength>] [-Caption <string>] [-CaptionAlignment <OfficeAlignment>] [-CaptionColor <OfficeColor>] [-CaptionSize <OfficeLength>] [-ColumnWidth <OfficeLength[]>] [-ColumnWeight <double[]>] [-ColumnAlignment <OfficeAlignment[]>] [-AutoFit] [-NoNumericAlignment] [-ShrinkToFit] [-MinimumSize <OfficeLength>] [-KeepTogether] [-KeepWithNext] [-NoBorder] [-NoHeaderBackground] [-NoBanding] [-HeaderRowCount <Int32>] [-RepeatHeaderRowCount <Int32>] [-FooterRowCount <Int32>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfTable [-InputObject] <Object[]> -Document <PdfDocument> [-Property <string[]>] [-Header <string[]>] [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-ColumnFormat <hashtable>] [-Alignment <OfficeAlignment>] [-TableStyle <string>] [-HeaderBackgroundColor <OfficeColor>] [-HeaderColor <OfficeColor>] [-Color <OfficeColor>] [-BandColor <OfficeColor>] [-BorderColor <OfficeColor>] [-BorderWidth <OfficeLength>] [-Size <OfficeLength>] [-HeaderSize <OfficeLength>] [-LineHeight <Double>] [-CellPaddingX <OfficeLength>] [-CellPaddingY <OfficeLength>] [-SpacingBefore <OfficeLength>] [-SpacingAfter <OfficeLength>] [-Caption <string>] [-CaptionAlignment <OfficeAlignment>] [-CaptionColor <OfficeColor>] [-CaptionSize <OfficeLength>] [-ColumnWidth <OfficeLength[]>] [-ColumnWeight <double[]>] [-ColumnAlignment <OfficeAlignment[]>] [-AutoFit] [-NoNumericAlignment] [-ShrinkToFit] [-MinimumSize <OfficeLength>] [-KeepTogether] [-KeepWithNext] [-NoBorder] [-NoHeaderBackground] [-NoBanding] [-HeaderRowCount <Int32>] [-RepeatHeaderRowCount <Int32>] [-FooterRowCount <Int32>] [-RepeatFooterRows] [-PageSummary <PdfTablePageSummary>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -42,6 +42,21 @@ New-OfficePdf -Path .\Examples\Documents\PdfTable.pdf {
 ```
 
 Converts PowerShell objects into a table using selected properties and friendly headers.
+
+### EXAMPLE 2
+```powershell
+PS> $summary = [OfficeIMO.Pdf.PdfTablePageSummary]::new()
+$amount = $summary.Sum('amount', 2, 'N2', $null)
+$null = $summary.AddContinuationHeaderRow([string[]] @('Brought forward', '', $amount.BroughtForwardToken))
+$null = $summary.AddPageFooterRow([string[]] @('Carried forward', '', $amount.RunningToken))
+$lines = 1..120 | ForEach-Object { [pscustomobject]@{ Item = $_; Description = 'Consulting hour'; Amount = '125.00' } }
+$lines += [pscustomobject]@{ Item = 'Total'; Description = ''; Amount = $amount.RunningToken }
+New-OfficePdf -Path .\Examples\Documents\PdfInvoiceLines.pdf {
+    Add-OfficePdfTable -InputObject $lines -FooterRowCount 1 -PageSummary $summary
+}
+```
+
+Each page that continues ends with the running amount, and the next page starts with the amount brought forward.
 
 ## PARAMETERS
 
@@ -637,6 +652,23 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -PageSummary
+Per-page aggregates and summary rows, such as page subtotals and carried-forward or brought-forward amounts.
+Footer rows and summary rows can show aggregate tokens such as {page:amount}, {broughtForward:amount} and {running:amount}.
+
+```yaml
+Type: PdfTablePageSummary
+Parameter Sets: Context, Document, PipelineDocument
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -PassThru
 Emit the updated document.
 
@@ -658,6 +690,22 @@ Specific object properties to include.
 
 ```yaml
 Type: String[]
+Parameter Sets: Context, Document, PipelineDocument
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -RepeatFooterRows
+Close every page of a table that continues across pages with its footer rows, not only the last page.
+
+```yaml
+Type: SwitchParameter
 Parameter Sets: Context, Document, PipelineDocument
 Aliases: None
 Possible values:

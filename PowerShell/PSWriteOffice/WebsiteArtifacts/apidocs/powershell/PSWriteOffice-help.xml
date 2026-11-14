@@ -1197,7 +1197,7 @@
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>NoCachedData</maml:name>
           <maml:description>
-            <maml:para>Omit cached chart values. Requires a contiguous category/value source block.</maml:para>
+            <maml:para>Omit cached chart values. Not available for scatter charts of non-adjacent table columns.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -1430,7 +1430,7 @@
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>NoCachedData</maml:name>
           <maml:description>
-            <maml:para>Omit cached chart values. Requires a contiguous category/value source block.</maml:para>
+            <maml:para>Omit cached chart values. Not available for scatter charts of non-adjacent table columns.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -1675,7 +1675,7 @@
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>NoCachedData</maml:name>
           <maml:description>
-            <maml:para>Omit cached chart values. Requires a contiguous category/value source block.</maml:para>
+            <maml:para>Omit cached chart values. Not available for scatter charts of non-adjacent table columns.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -1908,7 +1908,7 @@
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>NoCachedData</maml:name>
         <maml:description>
-          <maml:para>Omit cached chart values. Requires a contiguous category/value source block.</maml:para>
+          <maml:para>Omit cached chart values. Not available for scatter charts of non-adjacent table columns.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -32549,6 +32549,19 @@ They are rendered behind generated content and should usually use restrained opa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PageSummary</maml:name>
+          <maml:description>
+            <maml:para>Per-page aggregates and summary rows, such as page subtotals and carried-forward or brought-forward amounts.
+Footer rows and summary rows can show aggregate tokens such as {page:amount}, {broughtForward:amount} and {running:amount}.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">PdfTablePageSummary</command:parameterValue>
+          <dev:type>
+            <maml:name>PdfTablePageSummary</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Property</maml:name>
           <maml:description>
@@ -32557,6 +32570,18 @@ They are rendered behind generated content and should usually use restrained opa
           <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
           <dev:type>
             <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RepeatFooterRows</maml:name>
+          <maml:description>
+            <maml:para>Close every page of a table that continues across pages with its footer rows, not only the last page.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -33121,6 +33146,19 @@ They are rendered behind generated content and should usually use restrained opa
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PageSummary</maml:name>
+          <maml:description>
+            <maml:para>Per-page aggregates and summary rows, such as page subtotals and carried-forward or brought-forward amounts.
+Footer rows and summary rows can show aggregate tokens such as {page:amount}, {broughtForward:amount} and {running:amount}.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">PdfTablePageSummary</command:parameterValue>
+          <dev:type>
+            <maml:name>PdfTablePageSummary</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PassThru</maml:name>
           <maml:description>
             <maml:para>Emit the updated document.</maml:para>
@@ -33140,6 +33178,18 @@ They are rendered behind generated content and should usually use restrained opa
           <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
           <dev:type>
             <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RepeatFooterRows</maml:name>
+          <maml:description>
+            <maml:para>Close every page of a table that continues across pages with its footer rows, not only the last page.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -33704,6 +33754,19 @@ They are rendered behind generated content and should usually use restrained opa
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PageSummary</maml:name>
+          <maml:description>
+            <maml:para>Per-page aggregates and summary rows, such as page subtotals and carried-forward or brought-forward amounts.
+Footer rows and summary rows can show aggregate tokens such as {page:amount}, {broughtForward:amount} and {running:amount}.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">PdfTablePageSummary</command:parameterValue>
+          <dev:type>
+            <maml:name>PdfTablePageSummary</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PassThru</maml:name>
           <maml:description>
             <maml:para>Emit the updated document.</maml:para>
@@ -33723,6 +33786,18 @@ They are rendered behind generated content and should usually use restrained opa
           <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
           <dev:type>
             <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RepeatFooterRows</maml:name>
+          <maml:description>
+            <maml:para>Close every page of a table that continues across pages with its footer rows, not only the last page.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -34287,6 +34362,19 @@ They are rendered behind generated content and should usually use restrained opa
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>PageSummary</maml:name>
+        <maml:description>
+          <maml:para>Per-page aggregates and summary rows, such as page subtotals and carried-forward or brought-forward amounts.
+Footer rows and summary rows can show aggregate tokens such as {page:amount}, {broughtForward:amount} and {running:amount}.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">PdfTablePageSummary</command:parameterValue>
+        <dev:type>
+          <maml:name>PdfTablePageSummary</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>PassThru</maml:name>
         <maml:description>
           <maml:para>Emit the updated document.</maml:para>
@@ -34306,6 +34394,18 @@ They are rendered behind generated content and should usually use restrained opa
         <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
         <dev:type>
           <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>RepeatFooterRows</maml:name>
+        <maml:description>
+          <maml:para>Close every page of a table that continues across pages with its footer rows, not only the last page.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -34439,6 +34539,24 @@ They are rendered behind generated content and should usually use restrained opa
             }</dev:code>
         <dev:remarks>
           <maml:para>Converts PowerShell objects into a table using selected properties and friendly headers.</maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Carry invoice amounts across pages.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>$summary = [OfficeIMO.Pdf.PdfTablePageSummary]::new()
+            $amount = $summary.Sum('amount', 2, 'N2', $null)
+            $null = $summary.AddContinuationHeaderRow([string[]] @('Brought forward', '', $amount.BroughtForwardToken))
+            $null = $summary.AddPageFooterRow([string[]] @('Carried forward', '', $amount.RunningToken))
+            $lines = 1..120 | ForEach-Object { [pscustomobject]@{ Item = $_; Description = 'Consulting hour'; Amount = '125.00' } }
+            $lines += [pscustomobject]@{ Item = 'Total'; Description = ''; Amount = $amount.RunningToken }
+            New-OfficePdf -Path .\Examples\Documents\PdfInvoiceLines.pdf {
+                Add-OfficePdfTable -InputObject $lines -FooterRowCount 1 -PageSummary $summary
+            }</dev:code>
+        <dev:remarks>
+          <maml:para>Each page that continues ends with the running amount, and the next page starts with the amount brought forward.</maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
@@ -67462,10 +67580,10 @@ nesting accepted (the engine default is 256).</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="Document">
           <maml:name>InputObject</maml:name>
           <maml:description>
-            <maml:para>Objects to convert into CSV rows.</maml:para>
+            <maml:para>Objects to convert into CSV rows, or a CsvDocument to serialize (alias Document).</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
           <dev:type>
@@ -67542,294 +67660,6 @@ nesting accepted (the engine default is 256).</maml:para>
           <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
           <dev:type>
             <maml:name>String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>UseQuotes</maml:name>
-          <maml:description>
-            <maml:para>Controls when CSV fields are quoted. Defaults to quoting only fields that need it.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CsvQuoteMode</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">AsNeeded</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Always</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Never</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>CsvQuoteMode</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>UseUtc</maml:name>
-          <maml:description>
-            <maml:para>Convert date/time values to UTC before formatting.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Document">
-        <maml:name>ConvertTo-OfficeCsv</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Culture</maml:name>
-          <maml:description>
-            <maml:para>Culture used for value formatting.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CultureInfo</command:parameterValue>
-          <dev:type>
-            <maml:name>CultureInfo</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>DateTimeFormat</maml:name>
-          <maml:description>
-            <maml:para>Date/time format used for DateTime and DateTimeOffset values.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Delimiter</maml:name>
-          <maml:description>
-            <maml:para>Field delimiter text, including multi-character separators.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
-          <maml:name>Document</maml:name>
-          <maml:description>
-            <maml:para>CSV document to serialize.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">CsvDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>CsvDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>FormulaInjectionPolicy</maml:name>
-          <maml:description>
-            <maml:para>Controls how formula-like values are written.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CsvFormulaInjectionPolicy</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Preserve</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Escape</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>CsvFormulaInjectionPolicy</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>NewLine</maml:name>
-          <maml:description>
-            <maml:para>Override the newline sequence.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>NoHeader</maml:name>
-          <maml:description>
-            <maml:para>Omit the header row from the output.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>NullValue</maml:name>
-          <maml:description>
-            <maml:para>Token written for null values.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>QuoteFields</maml:name>
-          <maml:description>
-            <maml:para>Field names that should always be quoted when UseQuotes is AsNeeded.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>UseQuotes</maml:name>
-          <maml:description>
-            <maml:para>Controls when CSV fields are quoted. Defaults to quoting only fields that need it.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CsvQuoteMode</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">AsNeeded</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Always</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Never</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>CsvQuoteMode</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>UseUtc</maml:name>
-          <maml:description>
-            <maml:para>Convert date/time values to UTC before formatting.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="DocumentCulture">
-        <maml:name>ConvertTo-OfficeCsv</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Culture</maml:name>
-          <maml:description>
-            <maml:para>Culture used for value formatting.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CultureInfo</command:parameterValue>
-          <dev:type>
-            <maml:name>CultureInfo</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>DateTimeFormat</maml:name>
-          <maml:description>
-            <maml:para>Date/time format used for DateTime and DateTimeOffset values.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
-          <maml:name>Document</maml:name>
-          <maml:description>
-            <maml:para>CSV document to serialize.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">CsvDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>CsvDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>FormulaInjectionPolicy</maml:name>
-          <maml:description>
-            <maml:para>Controls how formula-like values are written.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CsvFormulaInjectionPolicy</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Preserve</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Escape</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>CsvFormulaInjectionPolicy</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>NewLine</maml:name>
-          <maml:description>
-            <maml:para>Override the newline sequence.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>NoHeader</maml:name>
-          <maml:description>
-            <maml:para>Omit the header row from the output.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>NullValue</maml:name>
-          <maml:description>
-            <maml:para>Token written for null values.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>QuoteFields</maml:name>
-          <maml:description>
-            <maml:para>Field names that should always be quoted when UseQuotes is AsNeeded.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>UseCulture</maml:name>
-          <maml:description>
-            <maml:para>Use the list separator from the selected or current culture as the delimiter.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -67906,10 +67736,10 @@ nesting accepted (the engine default is 256).</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="Document">
           <maml:name>InputObject</maml:name>
           <maml:description>
-            <maml:para>Objects to convert into CSV rows.</maml:para>
+            <maml:para>Objects to convert into CSV rows, or a CsvDocument to serialize (alias Document).</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
           <dev:type>
@@ -67990,12 +67820,12 @@ nesting accepted (the engine default is 256).</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>UseCulture</maml:name>
           <maml:description>
             <maml:para>Use the list separator from the selected or current culture as the delimiter.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">SwitchParameter</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
             <maml:name>SwitchParameter</maml:name>
             <maml:uri />
@@ -68070,18 +67900,6 @@ nesting accepted (the engine default is 256).</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
-        <maml:name>Document</maml:name>
-        <maml:description>
-          <maml:para>CSV document to serialize.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">CsvDocument</command:parameterValue>
-        <dev:type>
-          <maml:name>CsvDocument</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>FormulaInjectionPolicy</maml:name>
         <maml:description>
@@ -68098,10 +67916,10 @@ nesting accepted (the engine default is 256).</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="Document">
         <maml:name>InputObject</maml:name>
         <maml:description>
-          <maml:para>Objects to convert into CSV rows.</maml:para>
+          <maml:para>Objects to convert into CSV rows, or a CsvDocument to serialize (alias Document).</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
         <dev:type>
@@ -68182,12 +68000,12 @@ nesting accepted (the engine default is 256).</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>UseCulture</maml:name>
         <maml:description>
           <maml:para>Use the list separator from the selected or current culture as the delimiter.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">SwitchParameter</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
           <maml:name>SwitchParameter</maml:name>
           <maml:uri />
@@ -73230,10 +73048,10 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="Document">
           <maml:name>InputObject</maml:name>
           <maml:description>
-            <maml:para>Objects to export into CSV rows.</maml:para>
+            <maml:para>Objects to export into CSV rows, or a CsvDocument to export (alias Document).</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
           <dev:type>
@@ -73496,10 +73314,10 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="Document">
           <maml:name>InputObject</maml:name>
           <maml:description>
-            <maml:para>Objects to export into CSV rows.</maml:para>
+            <maml:para>Objects to export into CSV rows, or a CsvDocument to export (alias Document).</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
           <dev:type>
@@ -73786,10 +73604,10 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="Document">
           <maml:name>InputObject</maml:name>
           <maml:description>
-            <maml:para>Objects to export into CSV rows.</maml:para>
+            <maml:para>Objects to export into CSV rows, or a CsvDocument to export (alias Document).</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
           <dev:type>
@@ -74052,10 +73870,10 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="Document">
           <maml:name>InputObject</maml:name>
           <maml:description>
-            <maml:para>Objects to export into CSV rows.</maml:para>
+            <maml:para>Objects to export into CSV rows, or a CsvDocument to export (alias Document).</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
           <dev:type>
@@ -74096,1022 +73914,6 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
             <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>NewLine</maml:name>
-          <maml:description>
-            <maml:para>Override the newline sequence.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="NoOverwrite">
-          <maml:name>NoClobber</maml:name>
-          <maml:description>
-            <maml:para>Do not overwrite an existing CSV file.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>NoHeader</maml:name>
-          <maml:description>
-            <maml:para>Omit the header row from the output.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>NullValue</maml:name>
-          <maml:description>
-            <maml:para>Token written for null values.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit a FileInfo for the exported file.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>QuoteFields</maml:name>
-          <maml:description>
-            <maml:para>Field names that should always be quoted when UseQuotes is AsNeeded.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>UseCulture</maml:name>
-          <maml:description>
-            <maml:para>Use the list separator from the selected or current culture as the delimiter.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>UseQuotes</maml:name>
-          <maml:description>
-            <maml:para>Controls when CSV fields are quoted. Defaults to quoting only fields that need it.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CsvQuoteMode</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">AsNeeded</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Always</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Never</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>CsvQuoteMode</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>UseUtc</maml:name>
-          <maml:description>
-            <maml:para>Convert date/time values to UTC before formatting.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="DocumentPath">
-        <maml:name>Export-OfficeCsv</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Append</maml:name>
-          <maml:description>
-            <maml:para>Append rows to an existing CSV file. Existing headers are reused when present.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>CompressionLevel</maml:name>
-          <maml:description>
-            <maml:para>Compression level used when CompressionType is enabled.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CompressionLevel</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Optimal</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Fastest</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">NoCompression</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">SmallestSize</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>CompressionLevel</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>CompressionType</maml:name>
-          <maml:description>
-            <maml:para>Compression used when writing the CSV file.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CsvCompressionType</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Auto</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">GZip</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Deflate</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Brotli</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">ZLib</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>CsvCompressionType</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Culture</maml:name>
-          <maml:description>
-            <maml:para>Culture used for value formatting.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CultureInfo</command:parameterValue>
-          <dev:type>
-            <maml:name>CultureInfo</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>DateTimeFormat</maml:name>
-          <maml:description>
-            <maml:para>Date/time format used for DateTime and DateTimeOffset values.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Delimiter</maml:name>
-          <maml:description>
-            <maml:para>Field delimiter text, including multi-character separators.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
-          <maml:name>Document</maml:name>
-          <maml:description>
-            <maml:para>CSV document to export.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">CsvDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>CsvDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Encoding</maml:name>
-          <maml:description>
-            <maml:para>Encoding used when writing files.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Encoding</command:parameterValue>
-          <dev:type>
-            <maml:name>Encoding</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Force</maml:name>
-          <maml:description>
-            <maml:para>Allow overwriting read-only files and appending rows with missing existing columns.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>FormulaInjectionPolicy</maml:name>
-          <maml:description>
-            <maml:para>Controls how formula-like values are written.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CsvFormulaInjectionPolicy</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Preserve</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Escape</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>CsvFormulaInjectionPolicy</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>NewLine</maml:name>
-          <maml:description>
-            <maml:para>Override the newline sequence.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="NoOverwrite">
-          <maml:name>NoClobber</maml:name>
-          <maml:description>
-            <maml:para>Do not overwrite an existing CSV file.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>NoHeader</maml:name>
-          <maml:description>
-            <maml:para>Omit the header row from the output.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>NullValue</maml:name>
-          <maml:description>
-            <maml:para>Token written for null values.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit a FileInfo for the exported file.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath,OutputPath,OutPath">
-          <maml:name>Path</maml:name>
-          <maml:description>
-            <maml:para>Destination CSV path.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>QuoteFields</maml:name>
-          <maml:description>
-            <maml:para>Field names that should always be quoted when UseQuotes is AsNeeded.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>UseQuotes</maml:name>
-          <maml:description>
-            <maml:para>Controls when CSV fields are quoted. Defaults to quoting only fields that need it.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CsvQuoteMode</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">AsNeeded</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Always</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Never</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>CsvQuoteMode</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>UseUtc</maml:name>
-          <maml:description>
-            <maml:para>Convert date/time values to UTC before formatting.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="DocumentPathCulture">
-        <maml:name>Export-OfficeCsv</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Append</maml:name>
-          <maml:description>
-            <maml:para>Append rows to an existing CSV file. Existing headers are reused when present.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>CompressionLevel</maml:name>
-          <maml:description>
-            <maml:para>Compression level used when CompressionType is enabled.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CompressionLevel</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Optimal</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Fastest</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">NoCompression</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">SmallestSize</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>CompressionLevel</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>CompressionType</maml:name>
-          <maml:description>
-            <maml:para>Compression used when writing the CSV file.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CsvCompressionType</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Auto</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">GZip</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Deflate</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Brotli</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">ZLib</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>CsvCompressionType</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Culture</maml:name>
-          <maml:description>
-            <maml:para>Culture used for value formatting.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CultureInfo</command:parameterValue>
-          <dev:type>
-            <maml:name>CultureInfo</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>DateTimeFormat</maml:name>
-          <maml:description>
-            <maml:para>Date/time format used for DateTime and DateTimeOffset values.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
-          <maml:name>Document</maml:name>
-          <maml:description>
-            <maml:para>CSV document to export.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">CsvDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>CsvDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Encoding</maml:name>
-          <maml:description>
-            <maml:para>Encoding used when writing files.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Encoding</command:parameterValue>
-          <dev:type>
-            <maml:name>Encoding</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Force</maml:name>
-          <maml:description>
-            <maml:para>Allow overwriting read-only files and appending rows with missing existing columns.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>FormulaInjectionPolicy</maml:name>
-          <maml:description>
-            <maml:para>Controls how formula-like values are written.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CsvFormulaInjectionPolicy</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Preserve</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Escape</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>CsvFormulaInjectionPolicy</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>NewLine</maml:name>
-          <maml:description>
-            <maml:para>Override the newline sequence.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="NoOverwrite">
-          <maml:name>NoClobber</maml:name>
-          <maml:description>
-            <maml:para>Do not overwrite an existing CSV file.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>NoHeader</maml:name>
-          <maml:description>
-            <maml:para>Omit the header row from the output.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>NullValue</maml:name>
-          <maml:description>
-            <maml:para>Token written for null values.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit a FileInfo for the exported file.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath,OutputPath,OutPath">
-          <maml:name>Path</maml:name>
-          <maml:description>
-            <maml:para>Destination CSV path.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>QuoteFields</maml:name>
-          <maml:description>
-            <maml:para>Field names that should always be quoted when UseQuotes is AsNeeded.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>UseCulture</maml:name>
-          <maml:description>
-            <maml:para>Use the list separator from the selected or current culture as the delimiter.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>UseQuotes</maml:name>
-          <maml:description>
-            <maml:para>Controls when CSV fields are quoted. Defaults to quoting only fields that need it.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CsvQuoteMode</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">AsNeeded</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Always</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Never</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>CsvQuoteMode</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>UseUtc</maml:name>
-          <maml:description>
-            <maml:para>Convert date/time values to UTC before formatting.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="DocumentLiteralPath">
-        <maml:name>Export-OfficeCsv</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Append</maml:name>
-          <maml:description>
-            <maml:para>Append rows to an existing CSV file. Existing headers are reused when present.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>CompressionLevel</maml:name>
-          <maml:description>
-            <maml:para>Compression level used when CompressionType is enabled.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CompressionLevel</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Optimal</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Fastest</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">NoCompression</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">SmallestSize</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>CompressionLevel</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>CompressionType</maml:name>
-          <maml:description>
-            <maml:para>Compression used when writing the CSV file.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CsvCompressionType</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Auto</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">GZip</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Deflate</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Brotli</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">ZLib</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>CsvCompressionType</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Culture</maml:name>
-          <maml:description>
-            <maml:para>Culture used for value formatting.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CultureInfo</command:parameterValue>
-          <dev:type>
-            <maml:name>CultureInfo</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>DateTimeFormat</maml:name>
-          <maml:description>
-            <maml:para>Date/time format used for DateTime and DateTimeOffset values.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Delimiter</maml:name>
-          <maml:description>
-            <maml:para>Field delimiter text, including multi-character separators.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
-          <maml:name>Document</maml:name>
-          <maml:description>
-            <maml:para>CSV document to export.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">CsvDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>CsvDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Encoding</maml:name>
-          <maml:description>
-            <maml:para>Encoding used when writing files.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Encoding</command:parameterValue>
-          <dev:type>
-            <maml:name>Encoding</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Force</maml:name>
-          <maml:description>
-            <maml:para>Allow overwriting read-only files and appending rows with missing existing columns.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>FormulaInjectionPolicy</maml:name>
-          <maml:description>
-            <maml:para>Controls how formula-like values are written.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CsvFormulaInjectionPolicy</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Preserve</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Escape</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>CsvFormulaInjectionPolicy</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="PSPath,LP">
-          <maml:name>LiteralPath</maml:name>
-          <maml:description>
-            <maml:para>Literal destination CSV path. Wildcards are not expanded.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>NewLine</maml:name>
-          <maml:description>
-            <maml:para>Override the newline sequence.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="NoOverwrite">
-          <maml:name>NoClobber</maml:name>
-          <maml:description>
-            <maml:para>Do not overwrite an existing CSV file.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>NoHeader</maml:name>
-          <maml:description>
-            <maml:para>Omit the header row from the output.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>NullValue</maml:name>
-          <maml:description>
-            <maml:para>Token written for null values.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit a FileInfo for the exported file.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>QuoteFields</maml:name>
-          <maml:description>
-            <maml:para>Field names that should always be quoted when UseQuotes is AsNeeded.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>UseQuotes</maml:name>
-          <maml:description>
-            <maml:para>Controls when CSV fields are quoted. Defaults to quoting only fields that need it.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CsvQuoteMode</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">AsNeeded</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Always</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Never</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>CsvQuoteMode</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>UseUtc</maml:name>
-          <maml:description>
-            <maml:para>Convert date/time values to UTC before formatting.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="DocumentLiteralPathCulture">
-        <maml:name>Export-OfficeCsv</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Append</maml:name>
-          <maml:description>
-            <maml:para>Append rows to an existing CSV file. Existing headers are reused when present.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>CompressionLevel</maml:name>
-          <maml:description>
-            <maml:para>Compression level used when CompressionType is enabled.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CompressionLevel</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Optimal</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Fastest</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">NoCompression</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">SmallestSize</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>CompressionLevel</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>CompressionType</maml:name>
-          <maml:description>
-            <maml:para>Compression used when writing the CSV file.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CsvCompressionType</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Auto</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">GZip</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Deflate</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Brotli</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">ZLib</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>CsvCompressionType</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Culture</maml:name>
-          <maml:description>
-            <maml:para>Culture used for value formatting.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CultureInfo</command:parameterValue>
-          <dev:type>
-            <maml:name>CultureInfo</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>DateTimeFormat</maml:name>
-          <maml:description>
-            <maml:para>Date/time format used for DateTime and DateTimeOffset values.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
-          <maml:name>Document</maml:name>
-          <maml:description>
-            <maml:para>CSV document to export.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">CsvDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>CsvDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Encoding</maml:name>
-          <maml:description>
-            <maml:para>Encoding used when writing files.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Encoding</command:parameterValue>
-          <dev:type>
-            <maml:name>Encoding</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Force</maml:name>
-          <maml:description>
-            <maml:para>Allow overwriting read-only files and appending rows with missing existing columns.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>FormulaInjectionPolicy</maml:name>
-          <maml:description>
-            <maml:para>Controls how formula-like values are written.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">CsvFormulaInjectionPolicy</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Preserve</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Escape</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>CsvFormulaInjectionPolicy</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="PSPath,LP">
-          <maml:name>LiteralPath</maml:name>
-          <maml:description>
-            <maml:para>Literal destination CSV path. Wildcards are not expanded.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -75318,18 +74120,6 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
-        <maml:name>Document</maml:name>
-        <maml:description>
-          <maml:para>CSV document to export.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">CsvDocument</command:parameterValue>
-        <dev:type>
-          <maml:name>CsvDocument</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>Encoding</maml:name>
         <maml:description>
@@ -75370,10 +74160,10 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="Document">
         <maml:name>InputObject</maml:name>
         <maml:description>
-          <maml:para>Objects to export into CSV rows.</maml:para>
+          <maml:para>Objects to export into CSV rows, or a CsvDocument to export (alias Document).</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
         <dev:type>
@@ -108653,6 +107443,19 @@ Select, each document's root is returned.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>MaxInputBytes</maml:name>
+          <maml:description>
+            <maml:para>Maximum input bytes to read. Streamed imports read files of any size unless this is set; imports that load the
+whole file into memory default to 256 MiB.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int64</command:parameterValue>
+          <dev:type>
+            <maml:name>Int64</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>MaxParseErrors</maml:name>
           <maml:description>
             <maml:para>Maximum number of collected parse errors before parsing fails.</maml:para>
@@ -109118,6 +107921,19 @@ Select, each document's root is returned.</maml:para>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
             <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>MaxInputBytes</maml:name>
+          <maml:description>
+            <maml:para>Maximum input bytes to read. Streamed imports read files of any size unless this is set; imports that load the
+whole file into memory default to 256 MiB.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int64</command:parameterValue>
+          <dev:type>
+            <maml:name>Int64</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -109595,6 +108411,19 @@ Select, each document's root is returned.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>MaxInputBytes</maml:name>
+          <maml:description>
+            <maml:para>Maximum input bytes to read. Streamed imports read files of any size unless this is set; imports that load the
+whole file into memory default to 256 MiB.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int64</command:parameterValue>
+          <dev:type>
+            <maml:name>Int64</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>MaxParseErrors</maml:name>
           <maml:description>
             <maml:para>Maximum number of collected parse errors before parsing fails.</maml:para>
@@ -110055,6 +108884,19 @@ Select, each document's root is returned.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>MaxInputBytes</maml:name>
+          <maml:description>
+            <maml:para>Maximum input bytes to read. Streamed imports read files of any size unless this is set; imports that load the
+whole file into memory default to 256 MiB.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int64</command:parameterValue>
+          <dev:type>
+            <maml:name>Int64</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>MaxParseErrors</maml:name>
           <maml:description>
             <maml:para>Maximum number of collected parse errors before parsing fails.</maml:para>
@@ -110486,6 +109328,19 @@ Select, each document's root is returned.</maml:para>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
             <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>MaxInputBytes</maml:name>
+          <maml:description>
+            <maml:para>Maximum input bytes to read. Streamed imports read files of any size unless this is set; imports that load the
+whole file into memory default to 256 MiB.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int64</command:parameterValue>
+          <dev:type>
+            <maml:name>Int64</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -110958,6 +109813,19 @@ Select, each document's root is returned.</maml:para>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
             <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>MaxInputBytes</maml:name>
+          <maml:description>
+            <maml:para>Maximum input bytes to read. Streamed imports read files of any size unless this is set; imports that load the
+whole file into memory default to 256 MiB.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int64</command:parameterValue>
+          <dev:type>
+            <maml:name>Int64</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -112666,6 +111534,19 @@ Select, each document's root is returned.</maml:para>
         <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
         <dev:type>
           <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>MaxInputBytes</maml:name>
+        <maml:description>
+          <maml:para>Maximum input bytes to read. Streamed imports read files of any size unless this is set; imports that load the
+whole file into memory default to 256 MiB.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int64</command:parameterValue>
+        <dev:type>
+          <maml:name>Int64</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -122872,6 +121753,7 @@ and require an explicit save. The result reports the actual copied rows and colu
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Full</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">TextAndMetadata</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Text</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>ReaderProjection</maml:name>
@@ -123064,6 +121946,7 @@ and require an explicit save. The result reports the actual copied rows and colu
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Full</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">TextAndMetadata</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Text</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
           <maml:name>ReaderProjection</maml:name>
@@ -206697,8 +205580,9 @@ and requires a document title; heuristic findings stay warnings.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>Get-ChildItem .\Docs -Include *.docx, *.xlsx, *.pptx -Recurse | Test-OfficeAccessibility -Strict |
-                Where-Object { -not $_.IsSuccessful }</dev:code>
+        <dev:code>$failed = Get-ChildItem .\Docs -Include *.docx, *.xlsx, *.pptx -Recurse | Test-OfficeAccessibility -Strict |
+                Where-Object { -not $_.IsSuccessful }
+            if ($failed) { throw "Accessibility errors in $($failed.Count) document(s)." }</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
