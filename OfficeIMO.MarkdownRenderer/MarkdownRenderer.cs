@@ -161,9 +161,10 @@ public static partial class MarkdownRenderer {
                 parseResult.ReferenceLinkDefinitions,
                 parseResult.AbbreviationDefinitions);
         } else {
-            // The document only lives for this render. Caller hooks receive parsed blocks with
-            // their source spans, so they get the syntax tree; otherwise nothing reads it.
-            readerOptions.CaptureSyntaxTree = HasSourceAwareRenderHooks(options, htmlOptions);
+            // The document only lives for this render, so only caller hooks, which receive parsed
+            // blocks with their source spans, can read the syntax tree. Without them it is skipped;
+            // with them the reader options decide.
+            readerOptions.CaptureSyntaxTree &= HasSourceAwareRenderHooks(options, htmlOptions);
 
             doc = MarkdownDocument.Parse(markdown, readerOptions);
         }

@@ -54,9 +54,7 @@ public static partial class OfficeWorkflow {
             MarkdownToPowerPointOptions conversion = settings.MarkdownPowerPoint ?? new();
             conversion.FailOnLoss |= options.FailOnLoss;
             conversion.BaseDirectory ??= options.ResourceDirectory;
-            // Simplification diagnostics name the Markdown line of the flattened inline.
             var load = conversion.ReaderOptions?.Clone() ?? OfficeIMO.Markdown.MarkdownLoadOptions.CreateOfficeIMOProfile();
-            if (conversion.ReaderOptions == null) load.CaptureSyntaxTree = true;
             load.MaxInputBytes = Math.Min(load.MaxInputBytes ?? options.MaximumInputBytes, options.MaximumInputBytes);
             using var document = await OfficeIMO.Markdown.MarkdownDocument.LoadAsync(input, load, token).ConfigureAwait(false);
             return await SaveModelAsync(await document.ToPowerPointAsync(conversion, token).ConfigureAwait(false),

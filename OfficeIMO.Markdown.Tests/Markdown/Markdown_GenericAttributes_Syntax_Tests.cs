@@ -206,7 +206,6 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         var options = MarkdownLoadOptions.CreatePortableProfile();
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
-        options.CaptureSyntaxTree = true;
 
         var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var headingBlock = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));

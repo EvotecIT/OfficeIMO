@@ -58,7 +58,10 @@ public static class AdfConverter {
         ArgumentNullException.ThrowIfNull(markdown);
         ArgumentNullException.ThrowIfNull(options);
         AdfGraphGuard.Input(markdown, options);
-        return FromMarkdown(MarkdownDocument.Parse(markdown, new MarkdownLoadOptions { MaxInputCharacters = Math.Max(1, markdown.Length), MaxNestingDepth = options.MaxDepth }), options);
+        // The parsed document only feeds the conversion, so nothing reads its source information.
+        return FromMarkdown(MarkdownDocument.Parse(markdown, new MarkdownLoadOptions {
+            MaxInputCharacters = Math.Max(1, markdown.Length), MaxNestingDepth = options.MaxDepth, CaptureSyntaxTree = false
+        }), options);
     }
 
     /// <summary>Converts an OfficeIMO Markdown document to ADF.</summary>

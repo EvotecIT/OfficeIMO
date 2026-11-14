@@ -173,7 +173,7 @@ tags: [a, b]
 # Heading
 """;
 
-            var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, new MarkdownLoadOptions { CaptureSyntaxTree = true });
+            var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
             var frontMatter = Assert.IsType<FrontMatterBlock>(parsed.DocumentHeader!);
 
             Assert.Equal(frontMatter.Entries, parsed.FrontMatterEntries);
@@ -257,7 +257,7 @@ layout:
     draft: false
 """;
 
-            var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, new MarkdownLoadOptions { CaptureSyntaxTree = true });
+            var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
             var frontMatter = Assert.IsType<FrontMatterBlock>(parsed.DocumentHeader);
 
             Assert.NotNull(frontMatter.RawText);
