@@ -170,18 +170,18 @@ document.Save();
 
 | HTML element | Word result |
 |---|---|
-| `<h1>` to `<h6>` | Heading1 to Heading6 paragraph styles |
-| `<p>` | Normal paragraph |
-| `<strong>`, `<b>` | Bold |
-| `<em>`, `<i>` | Italic |
-| `<u>` | Underline |
-| `<s>`, `<del>` | Strikethrough |
-| `<table>`, `<tr>`, `<td>`, `<th>` | Word table |
-| `<ul>`, `<ol>`, `<li>` | Bulleted and numbered lists |
-| `<img>` | Inline image |
-| `<a>` | Hyperlink |
-| `<br>` | Line break |
-| `<hr>` | Horizontal rule |
-| `<code>`, `<pre>` | Monospace text |
+| `h1` to `h6` | Heading1 to Heading6 paragraph styles |
+| `p` | Normal paragraph |
+| `strong`, `b` | Bold |
+| `em`, `i` | Italic |
+| `u` | Underline |
+| `s`, `del` | Strikethrough |
+| `table`, `tr`, `td`, `th` | Word table |
+| `ul`, `ol`, `li` | Bulleted and numbered lists |
+| `img` | Inline image |
+| `a` | Hyperlink |
+| `br` | Line break |
+| `hr` | Horizontal rule |
+| `code`, `pre` | Monospace text |
 
 CSS `font-family`, `font-size`, `font-weight`, `font-style`, `text-align`, `color`, `background-color`, and `text-decoration` map to the matching Word run and paragraph formatting.
