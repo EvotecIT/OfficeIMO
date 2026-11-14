@@ -133,6 +133,9 @@ internal sealed class TomlRendering {
         if (table._removed != null) {
             foreach (TomlNode removed in table._removed) DeleteUnits(removed);
         }
+        // Children first: text they add at the end of their own section must come before this table's new sections
+        // and lines inserted at the same position, or it would land under them.
+        for (int i = 0; i < table._count; i++) Visit(table._nodes[i]);
         List<TomlNode>? lines = null, sections = null;
         for (int i = 0; i < table._count; i++) {
             TomlNode node = table._nodes[i];
@@ -142,13 +145,13 @@ internal sealed class TomlRendering {
         }
         if (lines != null) InsertLines(table, lines);
         if (sections != null) InsertSections(table, sections);
-        for (int i = 0; i < table._count; i++) Visit(table._nodes[i]);
     }
 
     private void VisitTableArray(TomlTableArray tables) {
         if (tables._removed != null) {
             foreach (TomlNode removed in tables._removed) DeleteUnits(removed);
         }
+        foreach (TomlTable item in tables._items) Visit(item);
         List<TomlNode>? added = null;
         foreach (TomlTable item in tables._items) {
             if (!item.IsLoaded) (added ??= new List<TomlNode>()).Add(item);
@@ -161,7 +164,6 @@ internal sealed class TomlRendering {
             }
             InsertSectionText(anchor < 0 ? _source.Length : anchor, added, PathOf(tables));
         }
-        foreach (TomlTable item in tables._items) Visit(item);
     }
 
     /// <summary>New children written as their own <c>[header]</c> sections rather than key/value lines.</summary>
@@ -332,6 +334,13 @@ internal sealed class TomlRendering {
     }
 
     private void AppendLine(StringBuilder text, string indent, List<string>? prefix, TomlNode node, string separator) {
+        if (node is TomlTable dotted && dotted._tableKind == TomlTableKind.Dotted) {
+            // A table made by dotted keys is written as its key/value pairs with the dotted prefix.
+            var inner = prefix == null ? new List<string>() : new List<string>(prefix);
+            inner.Add(node._key!);
+            for (int i = 0; i < dotted._count; i++) AppendLine(text, indent, inner, dotted._nodes[i], separator);
+            return;
+        }
         text.Append(indent);
         if (prefix != null) {
             foreach (string key in prefix) {
@@ -418,7 +427,7 @@ internal sealed class TomlRendering {
     }
 
     private static bool IsSectionChild(TomlNode node) =>
-        node is TomlTableArray || (node is TomlTable table && table._tableKind != TomlTableKind.Inline);
+        node is TomlTableArray || (node is TomlTable table && table._tableKind is not (TomlTableKind.Inline or TomlTableKind.Dotted));
 
     private void AppendHeader(StringBuilder text, TomlTable table, List<string> path) {
         bool array = table._tableKind == TomlTableKind.ArrayItem;

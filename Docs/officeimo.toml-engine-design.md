@@ -16,6 +16,7 @@ Tomlyn (BSD-2, TOML 1.1, with a trivia-preserving syntax tree) is the main .NET 
 
 - **Lifecycle:** `TomlDocument.Create()`, `Create(path)`, `Load(path|stream, options)`, `LoadAsync`, `Parse(text, options)`, `Save()`, `Save(path|stream)`, `SaveAsync`, `ToString()`. `Save(path)` replaces the file atomically and makes it the document's `FilePath`, as `YamlDocument.Save(path)` does. `TomlDocument` implements `IDisposable` so `using` works as for every format. Options are `TomlLoadOptions` (with `UntrustedDefaults`), `TomlReaderOptions` and `TomlWriterOptions`; there is no save options type until a save setting has a scenario.
 - **Authoring:** one object model. `Add`, `AddTable`, `AddInlineTable`, `AddArray`, `AddTableArray`, `Insert` and `Set` return the node they create or change, and `SetComment` returns its node, so calls chain.
+- **Merging:** `TomlDocument.Merge(overlay, TomlMergeOptions)` deep-merges a layered configuration file into the document through the editing operations and returns a `TomlMergeReport` (added and replaced paths, kind conflicts as diagnostics), as `YamlDocument.Merge` does. `TomlMergeOptions.Arrays` is the only setting; see [Merging](#merging).
 - **Paths:** `Select`, `Set` and `Remove` take the same grammar as YAML paths and as the paths `OfficeIMO.Reader.Toml` reports, so a Reader row's path edits the same value.
 - **Errors:** `TomlException` carries a stable `TomlErrorCodes` code and a position, and `ToDiagnostic()` returns it as an error `OfficeDiagnostic` whose code follows the catalog's `Toml.{area}.{rule}` → `toml-{area}-{rule}` pattern, as `YamlException.ToDiagnostic()` does. TOML has no recoverable findings, so there are no load diagnostics; every rule violation fails the load, as the specification requires.
 - **Positions:** 0-based offsets, 1-based lines and columns, like YAML. Nodes report `Start` and `End`, and `KeyStart` and `KeyEnd` for the key segment that names them, so a host such as Markdown front matter locates keys without reading the text again.
@@ -69,6 +70,21 @@ Saving walks only nodes marked changed and turns each change into a text edit at
 - **Comments:** only the comment text after a key/value pair or header changes.
 
 New text uses the file's line endings, its key separator and its comment spacing. New strings follow the quoting of their siblings. Output stays readable by TOML 1.0 parsers: no `\e` or `\x` escapes, and times always have seconds.
+
+Saving visits a table's children before inserting the table's own new lines and sections, so when both land at the same position, such as the end of the last sub-table's section, the child's lines come first and stay in their table.
+
+### Merging
+
+`TomlDocument.Merge` applies an overlay with the editing operations above, so the merge itself adds no text rules and the base saves as a minimal diff. The semantics, chosen to be the conservative valid reading of each TOML construct:
+
+- **Tables** merge key by key whatever their syntax: the root, `[header]` tables, implicit tables, tables made by dotted keys and inline tables are all one kind of table. An overlay `[dependencies.serde]` section merges into a base `serde = { … }` inline table.
+- **Values** are assigned with `SetValue`, so an equal value keeps the base's spelling and a changed one keeps its quoting or base where it can. A value of another scalar type (a string over an integer) is an ordinary replacement.
+- **Arrays** follow `TomlMergeOptions.Arrays`: `Replace` (default) assigns item by item, so unchanged items keep their text; `Append` adds the overlay's items; `MergeByKey(key)` matches table items by the value under a key and merges them, pairing repeated values in order (a lock file can list one package twice), and appends the rest. `MergeByKey` applies only to arrays whose overlay items are all tables with a value under the key; any other array, such as `features = ["std"]`, is replaced. An array value and an array of tables are both arrays: their items merge across the two syntaxes. A base array of tables that would receive items other than tables, or no items, becomes the overlay's array value, since `[[x]]` can hold only tables and an empty one has no text.
+- **Kind conflicts** (a table, array or value where the base has another of these) are resolved in the overlay's favour and reported as a `toml-merge-kind-conflict` warning with the base value's position.
+- **New entries** are copies that keep the overlay's spelling and its comment at the end of the line. Their syntax is the one their place allows: everything inside an inline table or array value is inline, and an array of tables there becomes an array of inline tables; elsewhere inline tables stay inline, tables made by dotted keys stay dotted keys when they hold only key/value pairs, and other tables become header sections. Comment lines above overlay entries are not copied.
+- **Removal:** TOML has no null, so an overlay cannot delete a key and there is no option for it. `Remove` deletes keys explicitly.
+
+Each document key holds one node, so a merge cannot define a key twice, and the editing layer places every new line and section where it keeps its meaning; the merged text always reloads to the merged model. Merging a file onto itself changes nothing, byte for byte, across the corpus.
 
 ### Serializer
 
