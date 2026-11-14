@@ -101,6 +101,23 @@ string text = document.GetText();
 IReadOnlyList<OfficeDocumentPageText> pageText = document.GetPageText();
 ```
 
+`Search` matches literal text by default. Ranked mode returns one hit per block, best first, scored with BM25 over
+Unicode (UAX #29) words with NFKC normalization and case folding; words in the heading path weigh double. Queries
+accept `"quoted phrases"`, `prefix*`, `OR` and parentheses, and adjacent words must all match. A query with no
+words, or no ranked match, falls back to literal search, which `Ranked` on the result reports.
+
+```csharp
+OfficeDocumentSearchResult ranked = document.Search("\"retention period\" OR archiv*",
+    new OfficeDocumentSearchOptions { Mode = OfficeDocumentSearchMode.Ranked });
+foreach (OfficeDocumentSearchHit hit in ranked.Hits) {
+    Console.WriteLine($"{hit.Score:F3} {hit.Block.Text}"); // hit.Highlights holds every matched range
+}
+
+// Index chunks once and query them repeatedly.
+var index = new ReaderChunkSearchIndex(document.Chunks);
+ReaderChunkSearchResult chunks = index.Search("retention");
+```
+
 Page boundaries are not equally authoritative in every source format:
 
 | Format | Page provenance | Reader behavior |

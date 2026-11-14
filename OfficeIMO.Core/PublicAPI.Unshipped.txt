@@ -326,3 +326,140 @@ abstract OfficeIMO.OfficeNamingPolicy.ConvertName(string! name) -> string!
 static OfficeIMO.OfficeNamingPolicy.CamelCase.get -> OfficeIMO.OfficeNamingPolicy!
 static OfficeIMO.OfficeNamingPolicy.KebabCaseLower.get -> OfficeIMO.OfficeNamingPolicy!
 static OfficeIMO.OfficeNamingPolicy.SnakeCaseLower.get -> OfficeIMO.OfficeNamingPolicy!
+OfficeIMO.TextAnalysis.OfficeTextAnalyzer
+OfficeIMO.TextAnalysis.OfficeTextAnalyzer.Analyze(string! text) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.TextAnalysis.OfficeTextToken>!
+OfficeIMO.TextAnalysis.OfficeTextAnalyzer.NormalizeTerm(string! word) -> string!
+OfficeIMO.TextAnalysis.OfficeTextAnalyzer.OfficeTextAnalyzer(OfficeIMO.TextAnalysis.OfficeTextAnalyzerOptions? options = null) -> void
+OfficeIMO.TextAnalysis.OfficeTextAnalyzerOptions
+OfficeIMO.TextAnalysis.OfficeTextAnalyzerOptions.AccentFolding.get -> bool
+OfficeIMO.TextAnalysis.OfficeTextAnalyzerOptions.AccentFolding.set -> void
+OfficeIMO.TextAnalysis.OfficeTextAnalyzerOptions.CaseFolding.get -> bool
+OfficeIMO.TextAnalysis.OfficeTextAnalyzerOptions.CaseFolding.set -> void
+OfficeIMO.TextAnalysis.OfficeTextAnalyzerOptions.MaximumTokenLength.get -> int
+OfficeIMO.TextAnalysis.OfficeTextAnalyzerOptions.MaximumTokenLength.set -> void
+OfficeIMO.TextAnalysis.OfficeTextAnalyzerOptions.Normalization.get -> OfficeIMO.TextAnalysis.OfficeTextNormalization
+OfficeIMO.TextAnalysis.OfficeTextAnalyzerOptions.Normalization.set -> void
+OfficeIMO.TextAnalysis.OfficeTextAnalyzerOptions.OfficeTextAnalyzerOptions() -> void
+OfficeIMO.TextAnalysis.OfficeTextField
+OfficeIMO.TextAnalysis.OfficeTextField.Name.get -> string!
+OfficeIMO.TextAnalysis.OfficeTextField.OfficeTextField() -> void
+OfficeIMO.TextAnalysis.OfficeTextField.OfficeTextField(string! name, string? text) -> void
+OfficeIMO.TextAnalysis.OfficeTextField.Text.get -> string!
+OfficeIMO.TextAnalysis.OfficeTextHighlight
+OfficeIMO.TextAnalysis.OfficeTextHighlight.Field.get -> string!
+OfficeIMO.TextAnalysis.OfficeTextHighlight.Length.get -> int
+OfficeIMO.TextAnalysis.OfficeTextHighlight.OfficeTextHighlight() -> void
+OfficeIMO.TextAnalysis.OfficeTextHighlight.OfficeTextHighlight(string! field, int start, int length) -> void
+OfficeIMO.TextAnalysis.OfficeTextHighlight.Start.get -> int
+OfficeIMO.TextAnalysis.OfficeTextIndex
+OfficeIMO.TextAnalysis.OfficeTextIndex.Add(string! id, params OfficeIMO.TextAnalysis.OfficeTextField[]! fields) -> bool
+OfficeIMO.TextAnalysis.OfficeTextIndex.Add(string! id, string! text) -> bool
+OfficeIMO.TextAnalysis.OfficeTextIndex.Analyzer.get -> OfficeIMO.TextAnalysis.OfficeTextAnalyzer!
+OfficeIMO.TextAnalysis.OfficeTextIndex.CreateSnippet(OfficeIMO.TextAnalysis.OfficeTextIndexHit! hit, string! field, int maximumCharacters = 280) -> OfficeIMO.TextAnalysis.OfficeTextSnippet?
+OfficeIMO.TextAnalysis.OfficeTextIndex.DocumentCount.get -> int
+OfficeIMO.TextAnalysis.OfficeTextIndex.LimitReached.get -> bool
+OfficeIMO.TextAnalysis.OfficeTextIndex.OfficeTextIndex(OfficeIMO.TextAnalysis.OfficeTextIndexOptions? options = null) -> void
+OfficeIMO.TextAnalysis.OfficeTextIndex.TermCount.get -> int
+OfficeIMO.TextAnalysis.OfficeTextIndex.TokenCount.get -> long
+OfficeIMO.TextAnalysis.OfficeTextIndexOptions
+OfficeIMO.TextAnalysis.OfficeTextIndexOptions.Analyzer.get -> OfficeIMO.TextAnalysis.OfficeTextAnalyzerOptions!
+OfficeIMO.TextAnalysis.OfficeTextIndexOptions.Analyzer.set -> void
+OfficeIMO.TextAnalysis.OfficeTextIndexOptions.B.get -> double
+OfficeIMO.TextAnalysis.OfficeTextIndexOptions.B.set -> void
+OfficeIMO.TextAnalysis.OfficeTextIndexOptions.FieldWeights.get -> System.Collections.Generic.IDictionary<string!, double>!
+OfficeIMO.TextAnalysis.OfficeTextIndexOptions.K1.get -> double
+OfficeIMO.TextAnalysis.OfficeTextIndexOptions.K1.set -> void
+OfficeIMO.TextAnalysis.OfficeTextIndexOptions.MaximumDocuments.get -> int
+OfficeIMO.TextAnalysis.OfficeTextIndexOptions.MaximumDocuments.set -> void
+OfficeIMO.TextAnalysis.OfficeTextIndexOptions.MaximumFieldCharacters.get -> int
+OfficeIMO.TextAnalysis.OfficeTextIndexOptions.MaximumFieldCharacters.set -> void
+OfficeIMO.TextAnalysis.OfficeTextIndexOptions.MaximumTokens.get -> long
+OfficeIMO.TextAnalysis.OfficeTextIndexOptions.MaximumTokens.set -> void
+OfficeIMO.TextAnalysis.OfficeTextIndexOptions.OfficeTextIndexOptions() -> void
+OfficeIMO.TextAnalysis.OfficeTextNormalization
+OfficeIMO.TextAnalysis.OfficeTextNormalization.Nfc = 1 -> OfficeIMO.TextAnalysis.OfficeTextNormalization
+OfficeIMO.TextAnalysis.OfficeTextNormalization.Nfkc = 2 -> OfficeIMO.TextAnalysis.OfficeTextNormalization
+OfficeIMO.TextAnalysis.OfficeTextNormalization.None = 0 -> OfficeIMO.TextAnalysis.OfficeTextNormalization
+OfficeIMO.TextAnalysis.OfficeTextQuery
+OfficeIMO.TextAnalysis.OfficeTextQuery.Children.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.TextAnalysis.OfficeTextQuery!>!
+OfficeIMO.TextAnalysis.OfficeTextQuery.ClauseCount.get -> int
+OfficeIMO.TextAnalysis.OfficeTextQuery.Kind.get -> OfficeIMO.TextAnalysis.OfficeTextQueryKind
+OfficeIMO.TextAnalysis.OfficeTextQuery.Text.get -> string?
+OfficeIMO.TextAnalysis.OfficeTextQueryKind
+OfficeIMO.TextAnalysis.OfficeTextQueryKind.And = 3 -> OfficeIMO.TextAnalysis.OfficeTextQueryKind
+OfficeIMO.TextAnalysis.OfficeTextQueryKind.Or = 4 -> OfficeIMO.TextAnalysis.OfficeTextQueryKind
+OfficeIMO.TextAnalysis.OfficeTextQueryKind.Phrase = 1 -> OfficeIMO.TextAnalysis.OfficeTextQueryKind
+OfficeIMO.TextAnalysis.OfficeTextQueryKind.Prefix = 2 -> OfficeIMO.TextAnalysis.OfficeTextQueryKind
+OfficeIMO.TextAnalysis.OfficeTextQueryKind.Term = 0 -> OfficeIMO.TextAnalysis.OfficeTextQueryKind
+OfficeIMO.TextAnalysis.OfficeTextQueryOperator
+OfficeIMO.TextAnalysis.OfficeTextQueryOperator.And = 0 -> OfficeIMO.TextAnalysis.OfficeTextQueryOperator
+OfficeIMO.TextAnalysis.OfficeTextQueryOperator.Or = 1 -> OfficeIMO.TextAnalysis.OfficeTextQueryOperator
+OfficeIMO.TextAnalysis.OfficeTextIndexHit
+OfficeIMO.TextAnalysis.OfficeTextIndexHit.DocumentId.get -> string!
+OfficeIMO.TextAnalysis.OfficeTextIndexHit.DocumentIndex.get -> int
+OfficeIMO.TextAnalysis.OfficeTextIndexHit.Highlights.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.TextAnalysis.OfficeTextHighlight>!
+OfficeIMO.TextAnalysis.OfficeTextIndexHit.Score.get -> double
+OfficeIMO.TextAnalysis.OfficeTextIndexSearchOptions
+OfficeIMO.TextAnalysis.OfficeTextIndexSearchOptions.IncludeHighlights.get -> bool
+OfficeIMO.TextAnalysis.OfficeTextIndexSearchOptions.IncludeHighlights.set -> void
+OfficeIMO.TextAnalysis.OfficeTextIndexSearchOptions.MaximumClauses.get -> int
+OfficeIMO.TextAnalysis.OfficeTextIndexSearchOptions.MaximumClauses.set -> void
+OfficeIMO.TextAnalysis.OfficeTextIndexSearchOptions.MaximumPostingsVisited.get -> long
+OfficeIMO.TextAnalysis.OfficeTextIndexSearchOptions.MaximumPostingsVisited.set -> void
+OfficeIMO.TextAnalysis.OfficeTextIndexSearchOptions.MaximumPrefixExpansions.get -> int
+OfficeIMO.TextAnalysis.OfficeTextIndexSearchOptions.MaximumPrefixExpansions.set -> void
+OfficeIMO.TextAnalysis.OfficeTextIndexSearchOptions.MaximumResults.get -> int
+OfficeIMO.TextAnalysis.OfficeTextIndexSearchOptions.MaximumResults.set -> void
+OfficeIMO.TextAnalysis.OfficeTextIndexSearchOptions.OfficeTextIndexSearchOptions() -> void
+OfficeIMO.TextAnalysis.OfficeTextIndexSearchResult
+OfficeIMO.TextAnalysis.OfficeTextIndexSearchResult.HasSearchableText.get -> bool
+OfficeIMO.TextAnalysis.OfficeTextIndexSearchResult.Hits.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.TextAnalysis.OfficeTextIndexHit!>!
+OfficeIMO.TextAnalysis.OfficeTextIndexSearchResult.PrefixExpansionLimited.get -> bool
+OfficeIMO.TextAnalysis.OfficeTextIndexSearchResult.Query.get -> OfficeIMO.TextAnalysis.OfficeTextQuery?
+OfficeIMO.TextAnalysis.OfficeTextIndexSearchResult.TotalMatches.get -> int
+OfficeIMO.TextAnalysis.OfficeTextIndexSearchResult.WorkLimitReached.get -> bool
+OfficeIMO.TextAnalysis.OfficeTextSnippet
+OfficeIMO.TextAnalysis.OfficeTextSnippet.EndsMidText.get -> bool
+OfficeIMO.TextAnalysis.OfficeTextSnippet.Highlights.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.TextAnalysis.OfficeTextHighlight>!
+OfficeIMO.TextAnalysis.OfficeTextSnippet.SourceStart.get -> int
+OfficeIMO.TextAnalysis.OfficeTextSnippet.StartsMidText.get -> bool
+OfficeIMO.TextAnalysis.OfficeTextSnippet.Text.get -> string!
+OfficeIMO.TextAnalysis.OfficeTextToken
+OfficeIMO.TextAnalysis.OfficeTextToken.Length.get -> int
+OfficeIMO.TextAnalysis.OfficeTextToken.OfficeTextToken() -> void
+OfficeIMO.TextAnalysis.OfficeTextToken.OfficeTextToken(string! term, int start, int length, int position) -> void
+OfficeIMO.TextAnalysis.OfficeTextToken.Position.get -> int
+OfficeIMO.TextAnalysis.OfficeTextToken.Start.get -> int
+OfficeIMO.TextAnalysis.OfficeTextToken.Term.get -> string!
+OfficeIMO.TextAnalysis.UnicodeTextSegment
+OfficeIMO.TextAnalysis.UnicodeTextSegment.End.get -> int
+OfficeIMO.TextAnalysis.UnicodeTextSegment.Equals(OfficeIMO.TextAnalysis.UnicodeTextSegment other) -> bool
+OfficeIMO.TextAnalysis.UnicodeTextSegment.GetText(string! text) -> string!
+OfficeIMO.TextAnalysis.UnicodeTextSegment.IsWordLike.get -> bool
+OfficeIMO.TextAnalysis.UnicodeTextSegment.Length.get -> int
+OfficeIMO.TextAnalysis.UnicodeTextSegment.Start.get -> int
+OfficeIMO.TextAnalysis.UnicodeTextSegment.UnicodeTextSegment() -> void
+OfficeIMO.TextAnalysis.UnicodeTextSegment.UnicodeTextSegment(int start, int length, bool isWordLike) -> void
+OfficeIMO.TextAnalysis.UnicodeTextSegmenter
+override OfficeIMO.TextAnalysis.OfficeTextQuery.ToString() -> string!
+override OfficeIMO.TextAnalysis.OfficeTextToken.ToString() -> string!
+override OfficeIMO.TextAnalysis.UnicodeTextSegment.Equals(object? obj) -> bool
+override OfficeIMO.TextAnalysis.UnicodeTextSegment.GetHashCode() -> int
+override OfficeIMO.TextAnalysis.UnicodeTextSegment.ToString() -> string!
+static OfficeIMO.TextAnalysis.OfficeTextQuery.And(params OfficeIMO.TextAnalysis.OfficeTextQuery![]! clauses) -> OfficeIMO.TextAnalysis.OfficeTextQuery!
+static OfficeIMO.TextAnalysis.OfficeTextQuery.Or(params OfficeIMO.TextAnalysis.OfficeTextQuery![]! clauses) -> OfficeIMO.TextAnalysis.OfficeTextQuery!
+static OfficeIMO.TextAnalysis.OfficeTextQuery.Parse(string! text, OfficeIMO.TextAnalysis.OfficeTextQueryOperator defaultOperator = OfficeIMO.TextAnalysis.OfficeTextQueryOperator.And) -> OfficeIMO.TextAnalysis.OfficeTextQuery?
+static OfficeIMO.TextAnalysis.OfficeTextQuery.Phrase(string! text) -> OfficeIMO.TextAnalysis.OfficeTextQuery!
+static OfficeIMO.TextAnalysis.OfficeTextQuery.Prefix(string! text) -> OfficeIMO.TextAnalysis.OfficeTextQuery!
+static OfficeIMO.TextAnalysis.OfficeTextQuery.Term(string! text) -> OfficeIMO.TextAnalysis.OfficeTextQuery!
+static OfficeIMO.TextAnalysis.UnicodeTextSegmenter.GetGraphemeClusterBoundaries(string! text) -> System.Collections.Generic.IReadOnlyList<int>!
+static OfficeIMO.TextAnalysis.UnicodeTextSegmenter.GetGraphemeClusters(string! text) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.TextAnalysis.UnicodeTextSegment>!
+static OfficeIMO.TextAnalysis.UnicodeTextSegmenter.GetWordBoundaries(string! text) -> System.Collections.Generic.IReadOnlyList<int>!
+static OfficeIMO.TextAnalysis.UnicodeTextSegmenter.GetWordSegments(string! text) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.TextAnalysis.UnicodeTextSegment>!
+static OfficeIMO.TextAnalysis.UnicodeTextSegmenter.UnicodeVersion.get -> string!
+OfficeIMO.TextAnalysis.OfficeTextIndex.Search(string! query) -> OfficeIMO.TextAnalysis.OfficeTextIndexSearchResult!
+OfficeIMO.TextAnalysis.OfficeTextIndex.Search(string! query, OfficeIMO.TextAnalysis.OfficeTextIndexSearchOptions! options) -> OfficeIMO.TextAnalysis.OfficeTextIndexSearchResult!
+OfficeIMO.TextAnalysis.OfficeTextIndex.Search(OfficeIMO.TextAnalysis.OfficeTextQuery! query) -> OfficeIMO.TextAnalysis.OfficeTextIndexSearchResult!
+OfficeIMO.TextAnalysis.OfficeTextIndex.Search(OfficeIMO.TextAnalysis.OfficeTextQuery! query, OfficeIMO.TextAnalysis.OfficeTextIndexSearchOptions! options) -> OfficeIMO.TextAnalysis.OfficeTextIndexSearchResult!
+OfficeIMO.TextAnalysis.OfficeTextIndexSearchOptions.DefaultOperator.get -> OfficeIMO.TextAnalysis.OfficeTextQueryOperator
+OfficeIMO.TextAnalysis.OfficeTextIndexSearchOptions.DefaultOperator.set -> void

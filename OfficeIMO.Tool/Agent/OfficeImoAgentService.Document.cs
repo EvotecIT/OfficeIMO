@@ -48,7 +48,7 @@ internal sealed partial class OfficeImoAgentService {
         int requested = checked(cursor + take + 1);
         OfficeDocumentSearchResult search = document.Search(
             query,
-            new OfficeDocumentSearchOptions { MaximumResults = requested });
+            new OfficeDocumentSearchOptions { MaximumResults = requested, Mode = OfficeDocumentSearchMode.Ranked });
         OfficeDocumentSearchHit[] page = search.Hits.Skip(cursor).Take(take + 1).ToArray();
         bool hasMore = page.Length > take || search.MaximumResultsReached;
         if (page.Length > take) page = page.Take(take).ToArray();
@@ -58,6 +58,7 @@ internal sealed partial class OfficeImoAgentService {
                 hit.Block.Location.HeadingPath ?? hit.Block.Kind,
                 160),
             Snippet = CreateSnippet(hit.Block.Text, hit.StartIndex, hit.Length, 280),
+            Score = hit.Score.HasValue ? Math.Round(hit.Score.Value, 4) : null,
             Pages = hit.Pages
                 .Where(location => location.Number.HasValue)
                 .Select(location => location.Number!.Value)

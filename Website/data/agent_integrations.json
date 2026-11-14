@@ -127,7 +127,7 @@
   "tools": [
     { "name": "officeimo_inspect", "writes": false, "detail": "Metadata and a structural summary of a document or mail store" },
     { "name": "officeimo_inspect_email", "writes": false, "detail": "Mail metadata, charset and attachment diagnostics, and HTML safety findings" },
-    { "name": "officeimo_search", "writes": false, "detail": "Search a document or mailbox and return hits to fetch selectively" },
+    { "name": "officeimo_search", "writes": false, "detail": "Ranked search of a document, with phrases, prefixes and OR, or of a mailbox, returning hits to fetch selectively" },
     { "name": "officeimo_search_email", "writes": false, "detail": "Bounded search of mail bodies, recipients and attachment names" },
     { "name": "officeimo_fetch", "writes": false, "detail": "Fetch one chosen result, a page at a time" },
     { "name": "officeimo_capabilities", "writes": false, "detail": "Which formats and operations are supported" },

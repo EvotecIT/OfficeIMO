@@ -65,10 +65,10 @@ internal sealed partial class OfficeImoMcpTools {
         OpenWorld = false,
         UseStructuredContent = true,
         OutputSchemaType = typeof(AgentSearchResult))]
-    [Description("Search a document or mailbox and return compact hits with opaque ids for selective fetching.")]
+    [Description("Search a document or mailbox and return compact hits with opaque ids for selective fetching. Document hits are ranked best first.")]
     public async Task<CallToolResult> SearchAsync(
         [Description("Path to a supported local file, PST, OST, OLM, EMLX, Mbox, MBX, or mailbox directory.")] string path,
-        [Description("General text query. Required for ordinary documents; for mailboxes it searches subject when subject is omitted.")] string? query = null,
+        [Description("Text query. Required for ordinary documents, where words must all match (any letter case or Unicode form) and accept \"quoted phrases\", prefix*, OR and parentheses; text with no words, or no word match, falls back to a literal match. For mailboxes it searches subject when subject is omitted.")] string? query = null,
         [Description("Mailbox subject filter.")] string? subject = null,
         [Description("Mailbox sender filter.")] string? sender = null,
         [Description("Mailbox folder identifier returned by inspect.")] string? folderId = null,
