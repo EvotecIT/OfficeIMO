@@ -28,6 +28,25 @@
       { "name": "Source build", "detail": "Build the desktop workspace, including on macOS", "state": "Available", "url": "https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme", "label": "Open build guide" }
     ]
   },
+  "dotnet": {
+    "stats": [
+      { "source": "components", "label": "production packages and components" },
+      { "source": "formats", "label": "formats" },
+      { "source": "conversions", "label": "conversion routes" },
+      { "value": "net472 – net10.0", "label": "target frameworks, NativeAOT tested" }
+    ],
+    "performance": {
+      "title": "Measured against other .NET libraries",
+      "summary": "Every comparison runs the same validated work on one machine and one operating system, with the raw results attached.",
+      "areas": [
+        { "area": "pdf", "label": "PDF generation and operations" },
+        { "area": "excel", "label": "Excel read and write" },
+        { "area": "csv", "label": "CSV read and write" }
+      ],
+      "guideUrl": "/benchmarks/",
+      "guideLabel": "All benchmark areas"
+    }
+  },
   "powershell": {
     "eyebrow": "PSWriteOffice module",
     "headlineLead": "Office documents,",
@@ -193,8 +212,7 @@
     "stats": [
       { "source": "agents.tools", "label": "MCP tools" },
       { "source": "agents.skills", "label": "Agent Skills" },
-      { "source": "agents.clients", "label": "supported clients" },
-      { "source": "formats", "label": "formats it can read" }
+      { "source": "agents.clients", "label": "supported clients" }
     ],
     "docs": [
       { "label": "MCP server reference", "detail": "Options, allowed folders, output limits and every tool.", "url": "/docs/cli/mcp-and-agents/" },
