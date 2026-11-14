@@ -142,6 +142,13 @@ over DER SubjectPublicKeyInfo or PKCS #1 RSA keys, and Ed25519 (RFC 8032) over r
 uses it for DKIM and ARC. Malformed keys and signatures are reported as typed statuses rather than exceptions, and RSA
 keys above 16384 bits are refused.
 
+## OpenPGP
+
+`OfficeSecurityProvider` implements `IOfficeOpenPgpProvider` over BouncyCastle: detached and cleartext signature
+verification and message decryption with integrity checks, using only the keys in the caller's
+`OfficeOpenPgpKeySet`. It covers version 4 (RFC 4880) keys and signatures; RFC 9580 version 6 packets and AEAD
+encrypted data are reported as unsupported. `OfficeIMO.Email` uses it for PGP/MIME.
+
 ## NativeAOT and trimming
 
 Ordinary OfficeIMO applications do not carry this package unless they opt in. The repository publishes a separate
