@@ -54,6 +54,20 @@ Values passed to `Add` and `Set` can be strings, booleans, integers, floating-po
 
 New text uses the document's line endings. Text written by OfficeIMO stays readable by TOML 1.0 parsers: strings never use the 1.1-only `\e` and `\x` escapes, and times always have seconds.
 
+### Merging layered files
+
+`Merge` deep-merges an overlay document into a base document, as layered configuration does with a shared `pyproject.toml` and local overrides. Tables merge key by key whatever their syntax, values are assigned (an equal value keeps the base's spelling), and saving writes only what changed, so the base keeps its comments and layout.
+
+```csharp
+using var config = TomlDocument.Load("pyproject.toml");
+using var local = TomlDocument.Load("pyproject.local.toml");
+TomlMergeReport report = config.Merge(local);
+config.Save();
+// report.Added, report.Replaced: paths such as tool.ruff.line-length
+```
+
+`TomlMergeOptions.Arrays` chooses how arrays combine: `TomlArrayMerge.Replace` (the default), `Append`, or `MergeByKey("name")` to match `[[package]]` tables of a lock file by name and append the rest. When a value changes kind, such as a table over a string, the overlay wins and `report.Diagnostics` lists a `toml-merge-kind-conflict` warning. TOML has no null, so where tables merge an overlay cannot remove a key; only a replaced array drops the items, and keys of table items, that the overlay's array lacks.
+
 ## Reading tokens
 
 ```csharp

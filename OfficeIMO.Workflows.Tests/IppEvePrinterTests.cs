@@ -10,7 +10,7 @@ namespace OfficeIMO.Workflows.Tests;
 /// loopback port with a private spool directory. Skipped where ippeveprinter is not installed.
 /// </summary>
 public sealed class IppEvePrinterTests {
-    private const string IppEvePrinterPath = "/usr/bin/ippeveprinter";
+    private const string IppEvePrinterPath = ExternalTool.IppEvePrinter;
     private static readonly TimeSpan JobTimeout = TimeSpan.FromSeconds(60);
     private static readonly byte[] Pdf = Encoding.ASCII.GetBytes(
         "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n" +
@@ -59,10 +59,10 @@ public sealed class IppEvePrinterTests {
         Assert.Equal(submissions.Select(s => s.Job.Id), completed.Where(job => job.Name == "ipp-pdf").Select(job => job.Id).OrderBy(id => id));
     }
 
-    [ExternalToolFact(IppEvePrinterPath, PwgRasterWriterTests.IppEvePcl)]
+    [ExternalToolFact(IppEvePrinterPath, ExternalTool.IppEvePcl)]
     public async Task PrintsPwgRasterThatTheReferenceConverterProcesses() {
         // ippevepcl parses each PWG raster page; a malformed stream makes the job abort instead of complete.
-        using var printer = EvePrinter.Start("-f", "image/pwg-raster", "-c", PwgRasterWriterTests.IppEvePcl);
+        using var printer = EvePrinter.Start("-f", "image/pwg-raster", "-c", ExternalTool.Path(ExternalTool.IppEvePcl));
         using var client = new IppPrintClient(printer.Uri);
         byte[] raster = PwgRasterWriterTests.Write(
             PwgRasterWriterTests.Pattern(PwgRasterColorSpace.Gray8, 2480 / 4, 3508 / 4, seed: 5),
@@ -140,32 +140,58 @@ public sealed class IppEvePrinterTests {
         Assert.Equal(content.ToArray(), File.ReadAllBytes(printer.SpooledDocument(Number(receipt), ".pdf")));
     }
 
-    [ExternalToolFact(IppEvePrinterPath, PwgRasterWriterTests.IppEvePcl)]
-    public async Task ServiceSendsPwgRasterToAPrinterWithoutPdfAndForGrayscaleJobs() {
+    [ExternalToolFact(IppEvePrinterPath, ExternalTool.IppEvePcl)]
+    public async Task ServiceSendsPwgRasterWithoutPdfOrMonochromeAndWhenGrayscaleIsRasterized() {
         // ippevepcl parses each PWG raster page, so the job completes only when the raster stream is well formed.
-        string conf = Path.Combine(Path.GetTempPath(), "officeimo-pwg-only-" + Guid.NewGuid().ToString("N") + ".conf");
-        // An attribute file replaces the legacy flags; this printer accepts only color PWG raster and wants rotated back sides.
-        File.WriteAllText(conf, "ATTR mimeMediaType document-format-supported image/pwg-raster\n" +
-            "ATTR keyword pwg-raster-document-type-supported sgray_8,srgb_8\n" +
+        string rasterConf = Path.Combine(Path.GetTempPath(), "officeimo-pwg-only-" + Guid.NewGuid().ToString("N") + ".conf");
+        string colorConf = Path.Combine(Path.GetTempPath(), "officeimo-pdf-color-" + Guid.NewGuid().ToString("N") + ".conf");
+        const string raster = "ATTR keyword pwg-raster-document-type-supported sgray_8,srgb_8\n" +
             "ATTR resolution pwg-raster-document-resolution-supported 150dpi,300dpi\n" +
+            "ATTR keyword sides-supported one-sided,two-sided-long-edge,two-sided-short-edge\n";
+        // An attribute file replaces the legacy flags; this printer accepts only color PWG raster and wants rotated back sides.
+        File.WriteAllText(rasterConf, "ATTR mimeMediaType document-format-supported image/pwg-raster\n" + raster +
             "ATTR keyword print-color-mode-supported auto,color,monochrome\n" +
-            "ATTR keyword sides-supported one-sided,two-sided-long-edge,two-sided-short-edge\n" +
             "ATTR keyword pwg-raster-document-sheet-back rotated\n");
+        // This one accepts PDF but cannot be asked to print it in monochrome.
+        File.WriteAllText(colorConf, "ATTR mimeMediaType document-format-supported application/pdf,image/pwg-raster\n" + raster +
+            "ATTR keyword print-color-mode-supported auto,color\n");
         try {
-            using var rasterOnly = EvePrinter.Start("-a", conf, "-c", PwgRasterWriterTests.IppEvePcl);
-            using var pdfPrinter = EvePrinter.Start("-f", "application/pdf,image/pwg-raster", "-c", PwgRasterWriterTests.IppEvePcl);
+            string pcl = ExternalTool.Path(ExternalTool.IppEvePcl);
+            using var rasterOnly = EvePrinter.Start("-a", rasterConf, "-c", pcl);
+            using var colorOnly = EvePrinter.Start("-a", colorConf, "-c", pcl);
+            using var monochrome = EvePrinter.Start("-f", "application/pdf,image/pwg-raster", "-c", pcl);
             var service = new PdfPrinterService();
-            foreach ((EvePrinter printer, PdfPrintColorMode color) in new[] { (rasterOnly, PdfPrintColorMode.Color), (pdfPrinter, PdfPrintColorMode.Grayscale) }) {
+            foreach ((EvePrinter printer, PdfPrintColorMode color, bool rasterize) in new[] {
+                (rasterOnly, PdfPrintColorMode.Color, false), (colorOnly, PdfPrintColorMode.Grayscale, false), (monochrome, PdfPrintColorMode.Grayscale, true)
+            }) {
                 PdfPrintSubmission receipt = await service.SubmitAsync(TwoPageJob(color), new PdfPrintDeliveryOptions {
-                    PrinterName = printer.Uri.AbsoluteUri, DocumentName = "service-raster", Duplex = PdfPrintDuplex.LongEdge, MaximumRasterDpi = 150
+                    PrinterName = printer.Uri.AbsoluteUri, DocumentName = "service-raster", Duplex = PdfPrintDuplex.LongEdge, MaximumRasterDpi = 150,
+                    RasterizeGrayscale = rasterize
                 });
                 Assert.Equal(PdfPrintJobState.Completed, (await WaitAsync(service, receipt)).State);
                 byte[] spooled = File.ReadAllBytes(printer.SpooledDocument(Number(receipt), ".pwg"));
                 Assert.Equal("RaS2", Encoding.ASCII.GetString(spooled, 0, 4));
             }
         } finally {
-            File.Delete(conf);
+            File.Delete(rasterConf);
+            File.Delete(colorConf);
         }
+    }
+
+    [ExternalToolFact(IppEvePrinterPath, "/bin/sh")]
+    public async Task ServiceSendsGrayscaleJobsAsVectorPdfToAColorPrinterThatPrintsMonochrome() {
+        using var printer = EvePrinter.StartRecordingColorMode("-s", "10,10", "-f", "application/pdf,image/pwg-raster");
+        var service = new PdfPrinterService();
+        PdfPrintJob job = TwoPageJob(PdfPrintColorMode.Grayscale);
+
+        PdfPrintSubmission receipt = await service.SubmitAsync(job, new PdfPrintDeliveryOptions { PrinterName = printer.Uri.AbsoluteUri, DocumentName = "service-gray" });
+
+        Assert.True((await service.GetCapabilitiesAsync(printer.Uri.AbsoluteUri)).SupportsColor);
+        Assert.Equal(PdfPrintJobState.Completed, (await WaitAsync(service, receipt)).State);
+        using var content = new MemoryStream();
+        using (Stream source = job.OpenContent()) source.CopyTo(content);
+        Assert.Equal(content.ToArray(), File.ReadAllBytes(printer.SpooledDocument(Number(receipt), ".pdf")));
+        Assert.Equal("monochrome", printer.RecordedColorMode(Number(receipt)));
     }
 
     [ExternalToolFact(IppEvePrinterPath)]
@@ -174,9 +200,9 @@ public sealed class IppEvePrinterTests {
         using var printer = EvePrinter.Start("-f", "application/pdf,image/pwg-raster", "-c", "/usr/bin/true");
         var scheduler = new CupsScheduler(new Uri(printer.Uri, "/"), null, (_, isClass) => isClass ? new Uri(printer.Uri, "/missing") : printer.Uri);
 
-        IppPrinterCapabilities attributes = (await CupsPdfPrinter.ResolveIppQueueAsync(scheduler, "officeimo-test", default)
-            ?? throw new InvalidOperationException("The queue did not resolve over IPP.")).Printer;
-        Assert.Contains("application/pdf", attributes.DocumentFormats);
+        CupsPdfPrinter.IppQueueRoute route = await CupsPdfPrinter.ResolveIppQueueAsync(scheduler, "officeimo-test", default)
+            ?? throw new InvalidOperationException("The queue did not resolve over IPP.");
+        using (route.Client) Assert.Contains("application/pdf", route.Printer.DocumentFormats);
         PdfPrintSubmission receipt = await CupsPdfPrinter.SubmitAsync(scheduler, TwoPageJob(PdfPrintColorMode.Color),
             new PdfPrintDeliveryOptions { PrinterName = "officeimo-test", DocumentName = "cups-route" }, new PrinterCapabilityCache(), default);
 
@@ -315,11 +341,25 @@ public sealed class IppEvePrinterTests {
 
         public Uri Uri { get; }
 
-        public static EvePrinter Start(params string[] options) {
+        public static EvePrinter Start(params string[] options) => Start(record: false, options);
+
+        /// <summary>Starts a printer whose print command records each job's print-color-mode attribute.</summary>
+        public static EvePrinter StartRecordingColorMode(params string[] options) => Start(record: true, options);
+
+        public string RecordedColorMode(int jobId) => File.ReadAllText(Path.Combine(_spool, jobId + ".color-mode"));
+
+        private static EvePrinter Start(bool record, string[] options) {
             string spool = Path.Combine(Path.GetTempPath(), "officeimo-ippeve-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(spool);
+            if (record) {
+                // ippeveprinter passes job attributes to the command as IPP_* variables and the spooled file as its argument.
+                string command = Path.Combine(spool, "record-color-mode.sh");
+                File.WriteAllText(command, "#!/bin/sh\nprintf '%s' \"${IPP_PRINT_COLOR_MODE:-none}\" > \"$(dirname \"$1\")/$IPP_JOB_ID.color-mode\"\n");
+                if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(command, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+                options = options.Concat(new[] { "-c", command }).ToArray();
+            }
             int port = FreePort();
-            var start = new ProcessStartInfo(IppEvePrinterPath) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
+            var start = new ProcessStartInfo(ExternalTool.Path(IppEvePrinterPath)) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
             foreach (string argument in new[] { "-p", port.ToString(), "-n", "localhost", "-r", "off", "-d", spool, "-k" }.Concat(options)) start.ArgumentList.Add(argument);
             start.ArgumentList.Add("OfficeIMO Test " + port);
             Process process = Process.Start(start)!;

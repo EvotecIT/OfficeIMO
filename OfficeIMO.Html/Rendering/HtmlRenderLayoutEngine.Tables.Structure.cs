@@ -20,7 +20,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             CheckCancellation();
             if (node is IElement element) {
                 if (ShouldSkipElement(element)) continue;
-                HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(element, width, parentStyle);
+                HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(element, width, parentStyle,
+                    out HtmlRenderStyleResolver.WidthIndependentResolution? widthIndependent);
+                _flowEntryStyle = widthIndependent == null ? null
+                    : new FlowEntryStyle(element, width, parentStyle, childStyle, widthIndependent);
                 if (childStyle.Display == "none") continue;
                 if (IsInternalTableDisplay(childStyle.Display) && childStyle.FloatSide == "none"
                     && !ShouldExtractOutOfFlow(childStyle)) {
@@ -39,6 +42,36 @@ internal sealed partial class HtmlRenderLayoutEngine {
             yield return new TableFlowEntry(node);
         }
         if (pending.Count > 0) yield return new TableFlowEntry(pending.ToArray());
+    }
+
+    // Block flow resolves each child once to group table-internal boxes and again to lay it out.
+    // The second resolve has the same inputs, so a resolution that reported nothing and no
+    // containing width can change is handed to it with the length context it would leave.
+    private FlowEntryStyle? _flowEntryStyle;
+
+    private sealed class FlowEntryStyle {
+        internal FlowEntryStyle(IElement element, double width, HtmlRenderBoxStyle parent, HtmlRenderBoxStyle style,
+            HtmlRenderStyleResolver.WidthIndependentResolution resolution) {
+            Element = element;
+            Width = width;
+            Parent = parent;
+            Style = style;
+            Resolution = resolution;
+        }
+
+        internal IElement Element { get; }
+        internal double Width { get; }
+        internal HtmlRenderBoxStyle Parent { get; }
+        internal HtmlRenderBoxStyle Style { get; }
+        internal HtmlRenderStyleResolver.WidthIndependentResolution Resolution { get; }
+    }
+
+    private HtmlRenderBoxStyle ResolveFlowChildStyle(IElement element, double width, HtmlRenderBoxStyle parentStyle) {
+        FlowEntryStyle? entry = _flowEntryStyle;
+        _flowEntryStyle = null;
+        if (entry != null && ReferenceEquals(entry.Element, element) && ReferenceEquals(entry.Parent, parentStyle)
+            && entry.Width.Equals(width) && _styleResolver.TryRestoreResolution(entry.Resolution)) return entry.Style;
+        return _styleResolver.Resolve(element, width, parentStyle);
     }
 
     /// <summary>Builds the CSS table, row-group, row, and cell boxes over original source nodes; anonymous boxes inherit only formatting properties.</summary>

@@ -6,14 +6,18 @@ using PSWriteOffice.Services;
 namespace PSWriteOffice.Cmdlets.Conversion;
 
 /// <summary>Combines documents of the same native format in input order.</summary>
-/// <para>Supports PDF, Open XML Word and Excel, and YAML files. Binary projection and conversion are not performed.
-/// Word, Excel and YAML live documents can receive appended files and remain caller-owned. PDF merging creates a new
-/// document, so live PDF targets are not supported. PassThru returns a saved FileInfo for file input or the live
+/// <para>Supports PDF, Open XML Word and Excel, YAML and TOML files. Binary projection and conversion are not performed.
+/// Word, Excel, YAML and TOML live documents can receive appended files and remain caller-owned. PDF merging creates a
+/// new document, so live PDF targets are not supported. PassThru returns a saved FileInfo for file input or the live
 /// document for Document input. PassThruReport returns the native report for PDF file merges and one report per
-/// overlay for YAML merges. Native merge options determine which content is imported.</para>
+/// overlay for YAML and TOML merges. Native merge options determine which content is imported.</para>
 /// <para>YAML inputs (.yaml and .yml mix freely) are overlaid in order onto the first file or the live document, the way
-/// Helm combines values files: mappings merge key by key, sequences follow YamlMergeOptions.Sequences, and only the
-/// lines the merge changes differ from the base file.</para>
+/// Helm combines values files: mappings merge key by key, sequences follow the Sequences option ('Replace', 'Append',
+/// or @{ MergeByKey = 'name' }), and only the lines the merge changes differ from the base file.</para>
+/// <para>TOML inputs are overlaid the same way, as layered pyproject.toml, Cargo.toml or tool settings combine: tables
+/// merge key by key whatever their syntax, arrays and arrays of tables follow the Arrays option in the same three forms
+/// (@{ MergeByKey = 'name' } matches [[package]] tables by name), and the base keeps its comments and layout. A value
+/// that changes kind, such as a table over a string, takes the overlay's value and is reported in the merge report.</para>
 /// <example>
 ///   <summary>Combine PDFs in the specified order.</summary>
 ///   <code>Merge-OfficeDocument -Path ./agenda.pdf, ./minutes.pdf -OutputPath ./board-pack.pdf -PassThru</code>
@@ -27,11 +31,19 @@ namespace PSWriteOffice.Cmdlets.Conversion;
 ///   <code>Merge-OfficeDocument -Path ./values.yaml, ./values.prod.yaml -OutputPath ./values.merged.yaml -Options @{ NullRemovesKey = $true } -PassThruReport</code>
 /// </example>
 /// <example>
+///   <summary>Layer local tool settings over a shared pyproject.toml.</summary>
+///   <code>Merge-OfficeDocument -Path ./pyproject.toml, ./pyproject.local.toml -OutputPath ./pyproject.merged.toml -PassThruReport</code>
+/// </example>
+/// <example>
+///   <summary>Update [[plugin]] tables by name and add new ones.</summary>
+///   <code>Merge-OfficeDocument -Path ./plugins.toml, ./plugins.local.toml -OutputPath ./plugins.merged.toml -Options @{ Arrays = @{ MergeByKey = 'name' } }</code>
+/// </example>
+/// <example>
 ///   <summary>Append files to a caller-owned proposal.</summary>
 ///   <code>Merge-OfficeDocument -Document $proposal -Path ./scope.docx, ./pricing.docx -OutputPath ./proposal.docx</code>
 /// </example>
 [Cmdlet("Merge", "OfficeDocument", DefaultParameterSetName = "Path", SupportsShouldProcess = true)]
-[OutputType(typeof(FileInfo), typeof(OfficeIMO.Word.WordDocument), typeof(OfficeIMO.Excel.ExcelDocument), typeof(OfficeIMO.Pdf.PdfMergeReport), typeof(OfficeIMO.Yaml.YamlMergeReport))]
+[OutputType(typeof(FileInfo), typeof(OfficeIMO.Word.WordDocument), typeof(OfficeIMO.Excel.ExcelDocument), typeof(OfficeIMO.Pdf.PdfMergeReport), typeof(OfficeIMO.Yaml.YamlMergeReport), typeof(OfficeIMO.Toml.TomlMergeReport))]
 public sealed class MergeOfficeDocumentCommand : PSCmdlet {
     private readonly List<string> _inputs = new();
     private object? _document;
@@ -49,7 +61,7 @@ public sealed class MergeOfficeDocumentCommand : PSCmdlet {
     [ValidateNotNullOrEmpty]
     public string[] LiteralPath { get; set; } = Array.Empty<string>();
 
-    /// <summary>A single editable Word, Excel or YAML document to append to; ownership stays with the caller.</summary>
+    /// <summary>A single editable Word, Excel, YAML or TOML document to append to; ownership stays with the caller.</summary>
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Document")]
     [ValidateNotNull]
     public IDisposable Document { get; set; } = null!;
@@ -81,7 +93,7 @@ public sealed class MergeOfficeDocumentCommand : PSCmdlet {
     [Parameter]
     public SwitchParameter PassThru { get; set; }
 
-    /// <summary>Emit the native PDF merge report, or one YAML merge report per overlay, after a successful merge.</summary>
+    /// <summary>Emit the native PDF merge report, or one YAML or TOML merge report per overlay, after a successful merge.</summary>
     [Parameter]
     public SwitchParameter PassThruReport { get; set; }
 
@@ -108,10 +120,10 @@ public sealed class MergeOfficeDocumentCommand : PSCmdlet {
         if (_inputs.Count == 0) throw new PSArgumentException("Provide at least one input file.");
         string extension = System.IO.Path.GetExtension(_inputs[0]).ToLowerInvariant();
         var family = OfficeMergeDispatch.GetFamily(extension);
-        if (PassThruReport.IsPresent && family != OfficeMergeFamily.Pdf && family != OfficeMergeFamily.Yaml)
-            throw new PSArgumentException("PassThruReport is available for native PDF and YAML merges.");
-        if (Password != null && family == OfficeMergeFamily.Yaml)
-            throw new PSArgumentException("YAML files have no password.");
+        if (PassThruReport.IsPresent && family is not (OfficeMergeFamily.Pdf or OfficeMergeFamily.Yaml or OfficeMergeFamily.Toml))
+            throw new PSArgumentException("PassThruReport is available for native PDF, YAML and TOML merges.");
+        if (Password != null && family is (OfficeMergeFamily.Yaml or OfficeMergeFamily.Toml))
+            throw new PSArgumentException("YAML and TOML files have no password.");
         foreach (string path in _inputs) {
             if (!OfficeMergeDispatch.SameFormat(extension, System.IO.Path.GetExtension(path)))
                 throw new PSArgumentException("All merge inputs must have the same format and extension. Convert mixed inputs separately.");

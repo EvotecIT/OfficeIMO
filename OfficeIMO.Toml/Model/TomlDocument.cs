@@ -77,6 +77,45 @@ public sealed partial class TomlDocument : IDisposable {
     /// <exception cref="ArgumentException"><paramref name="path"/> is malformed or addresses the root.</exception>
     public bool Remove(string path) => TomlPath.Remove(_root, path);
 
+    /// <summary>
+    /// Deep-merges an overlay document into this one, the way layered configuration files combine: a base
+    /// <c>pyproject.toml</c> or <c>Cargo.toml</c> with local or environment overrides. Tables merge key by key whatever
+    /// their syntax (the root, <c>[header]</c> tables, tables made by dotted keys and inline tables); overlay values are
+    /// assigned, so an equal value keeps this document's spelling and a changed one keeps its quoting where it can; arrays
+    /// and arrays of tables follow <see cref="TomlMergeOptions.Arrays"/>. Keys the overlay adds keep its spelling and its
+    /// comment at the end of the line, and are placed by the editing rules: key/value lines after the table's last pair,
+    /// new tables as sections after its last section. The overlay is not changed, and saving writes only what the merge
+    /// touched, so this document's comments and layout stay.
+    /// </summary>
+    /// <remarks>
+    /// <para>A key holds one value, so the merged document never defines a key twice and always reloads to the merged
+    /// data. Copies take the syntax their place allows: inside an inline table everything stays inline and an array of
+    /// tables becomes an array of inline tables; elsewhere tables made by dotted keys stay dotted when they hold only
+    /// key/value pairs, and other tables become <c>[header]</c> sections.</para>
+    /// <para>When a value changes kind where tables merge, such as a table over a string or an array over a table, the
+    /// overlay wins and the conflict is reported as a <c>toml-merge-kind-conflict</c> warning. Inside an array that
+    /// <see cref="TomlArrayMerge.Replace"/> replaces, items and their entries take the overlay's value whatever their kind,
+    /// without a warning, since the overlay's array replaces the base's. Array values and arrays of tables are both arrays
+    /// and merge as such; an array of tables that would receive items other than tables, or no items, is replaced by the
+    /// overlay's array value.</para>
+    /// <para>TOML has no null, so where tables merge an overlay cannot remove a key; remove keys with <see cref="Remove"/>.
+    /// Replacing an array does remove what the overlay's array lacks: base items beyond its length, and the keys of a
+    /// replaced table item that the overlay's item does not have. A merge is not transactional: when an edit fails, the
+    /// edits before it stay.</para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// using var lockFile = TomlDocument.Load("uv.lock");
+    /// using var update = TomlDocument.Load("uv.update.lock");
+    /// TomlMergeReport report = lockFile.Merge(update, new TomlMergeOptions { Arrays = TomlArrayMerge.MergeByKey("name") });
+    /// lockFile.Save();
+    /// </code>
+    /// </example>
+    /// <returns>The added and replaced paths and the kind conflicts of the merge.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="overlay"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="overlay"/> is this document.</exception>
+    public TomlMergeReport Merge(TomlDocument overlay, TomlMergeOptions? options = null) => TomlMerge.Merge(this, overlay, options);
+
     /// <summary>Releases nothing; a document holds only managed memory. It exists so <c>using</c> works as for every OfficeIMO document.</summary>
     public void Dispose() {
     }

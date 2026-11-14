@@ -76,6 +76,42 @@ internal static class TomlPath {
         }
     }
 
+    /// <summary>Appends a key step to a path, quoted when the key is not a plain name.</summary>
+    public static string AppendKey(string path, string key) {
+        if (!IsName(key)) return path + "[" + Quote(key) + "]";
+        return path.Length == 0 ? key : path + "." + key;
+    }
+
+    /// <summary>Appends an index step to a path.</summary>
+    public static string AppendIndex(string path, int index) => path + "[" + index.ToString(CultureInfo.InvariantCulture) + "]";
+
+    private static bool IsName(string text) {
+        if (text.Length == 0 || text[0] == '$') return false;
+        foreach (char c in text) {
+            if (c == '.' || c == '[' || c == ']' || c == '"' || c == '\\' || char.IsWhiteSpace(c) || char.IsControl(c)) return false;
+        }
+        return true;
+    }
+
+    /// <summary>Quotes a key with the JSON escapes <see cref="ReadQuoted"/> reads.</summary>
+    private static string Quote(string text) {
+        var quoted = new StringBuilder(text.Length + 2).Append('"');
+        foreach (char c in text) {
+            switch (c) {
+                case '"': quoted.Append("\\\""); break;
+                case '\\': quoted.Append("\\\\"); break;
+                case '\n': quoted.Append("\\n"); break;
+                case '\r': quoted.Append("\\r"); break;
+                case '\t': quoted.Append("\\t"); break;
+                default:
+                    if (c < ' ' || c == '\u007F') quoted.Append("\\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
+                    else quoted.Append(c);
+                    break;
+            }
+        }
+        return quoted.Append('"').ToString();
+    }
+
     private static TomlNode? Child(TomlNode node, Step step) {
         if (step.Key != null) return node is TomlTable table && table.TryGetValue(step.Key, out TomlNode? value) ? value : null;
         return node switch {

@@ -4,13 +4,21 @@ using System.Text.RegularExpressions;
 namespace OfficeIMO.Html;
 
 /// <summary>Canonical bounded-prefix encoding resolution for HTML, CSS, and textual data URIs.</summary>
-internal sealed class HtmlTextEncodingResolver {
+internal sealed partial class HtmlTextEncodingResolver {
     private const int HtmlPrescanLength = 1024;
     private const int CssSniffLength = 4096;
     private static readonly Encoding Utf8 = new UTF8Encoding(false);
+    // Compiled regexes are emitted and jitted on first use, which every fresh process pays for;
+    // the source generator builds the same matcher at compile time.
+#if NET7_0_OR_GREATER
+    [GeneratedRegex("^@charset \\\"([^\\\"]+)\\\";", RegexOptions.CultureInvariant)]
+    private static partial Regex CssCharsetGenerated();
+    private static Regex CssCharset => CssCharsetGenerated();
+#else
     private static readonly Regex CssCharset = new(
         "^@charset \\\"([^\\\"]+)\\\";",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
+#endif
 
     internal static HtmlTextEncodingResolver Default { get; } = new HtmlTextEncodingResolver(Providers.AngleSharpEncodingProvider.Instance);
     private readonly IHtmlEncodingProvider _provider;

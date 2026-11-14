@@ -42,7 +42,7 @@ public static partial class HtmlComputedStyleEngine {
             }
             string layer = PreserveManagedGradientFunctions(layers[index], preserveBackgroundImages: true);
             layer = PreserveProviderLengths(layer, out IReadOnlyDictionary<string, string> originalLengths);
-            var parsed = new CssParser().ParseDeclaration("background:" + layer);
+            var parsed = HtmlCssProviderParsers.Declarations.ParseDeclaration("background:" + layer);
             if (parsed == null || parsed.Length == 0) {
                 // Drawing owns supported Color 4 syntax. Normalize only a colour
                 // component before asking the retained background grammar again.
@@ -50,7 +50,7 @@ public static partial class HtmlComputedStyleEngine {
                 string normalized = string.Join(" ", tokens.Select(token =>
                     token.IndexOf('(') >= 0 && OfficeIMO.OfficeColor.TryParseCss(token, out OfficeIMO.OfficeColor color)
                         ? FormatComputedColor(color, color.A / 255D) : token));
-                if (normalized != layer) parsed = new CssParser().ParseDeclaration("background:" + normalized);
+                if (normalized != layer) parsed = HtmlCssProviderParsers.Declarations.ParseDeclaration("background:" + normalized);
             }
             if (parsed == null || parsed.Length == 0) {
                 longhands = Array.Empty<KeyValuePair<string, string>>();

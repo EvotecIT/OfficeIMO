@@ -403,7 +403,7 @@ public sealed partial class BrowserConversionService {
     }
 
     private static ConversionResult ConvertMarkdownToWord(string input) {
-        using MarkdownDocument markdown = MarkdownDocument.Parse(input);
+        using MarkdownDocument markdown = MarkdownDocument.Parse(input, new MarkdownLoadOptions { CaptureSyntaxTree = false });
         using WordDocument document = markdown.ToWord(OfficeConverter.ConfigureMarkdownHtml(new MarkdownWordExportOptions {
             PreferNarrativeSingleLineDefinitions = true
         }, CancellationToken.None));

@@ -30,8 +30,8 @@ The module manifest is the source of truth for exported cmdlets and aliases. The
 - **Document operations and capabilities — 11 commands:** inspect, compare, validate, repair, protect, combine, split, and convert documents with limits and reports. See [Choose a conversion route](/docs/pswriteoffice/conversion-routes/).
 - **Before sharing — 5 commands:** list and remove comments, authors, hidden content, image metadata and AI labels, and inspect Content Credentials. See [Clean files before sharing](/docs/pswriteoffice/before-sharing/).
 - **YAML — 12 commands:** edit files without losing comments or layout, merge overlays, validate, and convert to and from objects. See [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/).
-- **TOML — 11 commands:** edit files without losing comments or layout, and read and write settings and lock files as PowerShell objects. See [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/).
-- **CSV — 3 commands:** import and export delimited data with explicit quoting, encoding, and formula-injection rules.
+- **TOML — 12 commands:** edit files without losing comments or layout, and read and write settings and lock files as PowerShell objects. See [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/).
+- **CSV — 4 commands:** import and export delimited data with explicit quoting, encoding, and formula-injection rules.
 - **Project — 20 commands:** create and schedule tasks, resources and assignments; exchange mapped tables; save native MPP or Project XML and export reports. See [Project, Access, and EPUB](/docs/pswriteoffice/project-access-epub/).
 - **Access — 9 commands:** inspect native MDB/ACCDB schemas and rows, and create inert table databases from PowerShell objects.
 - **EPUB — 8 commands:** build publications from chapters, resources and metadata, then inspect and save the package.
