@@ -1,0 +1,17 @@
+{
+  "description": "Common tasks on the docs home. Each links to the guide that does the job; keep this list to tasks readers search for most.",
+  "tasks": [
+    { "label": "Word", "title": "Create a Word document", "summary": "Paragraphs, tables, images, headers and footers in a .docx file.", "url": "/docs/word/" },
+    { "label": "Word", "title": "Fill a template or mail merge", "summary": "Replace placeholders and generate letters from data.", "url": "/docs/word/templates/" },
+    { "label": "Excel", "title": "Build an Excel workbook", "summary": "Write typed tables and charts, then read them back.", "url": "/docs/excel/quick-start/" },
+    { "label": "PDF", "title": "Generate a PDF", "summary": "Lay out text, tables and images straight to PDF.", "url": "/docs/pdf/quick-start/" },
+    { "label": "Convert", "title": "Convert documents to PDF", "summary": "Word, Excel, PowerPoint, HTML and Markdown to PDF and back.", "url": "/convert/guides/" },
+    { "label": "PDF", "title": "Merge, split or sign PDFs", "summary": "Combine files, pick pages, encrypt and sign.", "url": "/docs/pdf/merge-split/" },
+    { "label": "CSV", "title": "Read CSV into objects", "summary": "Typed rows, streaming readers and delimiter detection.", "url": "/docs/csv/read-typed/" },
+    { "label": "Reader", "title": "Extract text for search or AI", "summary": "One reader for Office, PDF, web and data files, with chunking.", "url": "/docs/reader/quick-start/" }
+  ],
+  "surfaces": [
+    { "title": "PowerShell", "summary": "PSWriteOffice cmdlets for scripts and scheduled jobs.", "url": "/docs/pswriteoffice/" },
+    { "title": "Command line", "summary": "The officeimo CLI for conversion, inspection and CI.", "url": "/docs/cli/" }
+  ]
+}

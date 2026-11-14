@@ -158,3 +158,10 @@
 .imo-lang-tabs__panel{padding:4px 16px 2px}
 .imo-lang-tabs__panel>:last-child{margin-bottom:12px}
 .imo-lang-tabs__heading{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.imo-docs-paths__surfaces{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem;margin-top:.7rem}
+.imo-docs-paths__surfaces a{display:flex;flex-wrap:wrap;align-items:baseline;gap:.25rem .75rem;padding:.85rem 1rem;border:1px solid var(--imo-glass-border);border-radius:12px;color:var(--imo-text);text-decoration:none;transition:border-color .2s,background .2s}
+.imo-docs-paths__surfaces a:hover{border-color:rgba(56,189,248,.35);background:rgba(56,189,248,.05)}
+.imo-docs-paths__surfaces strong{font-size:.95rem}
+.imo-docs-paths__surfaces span{color:var(--imo-text-secondary);font-size:.85rem}
+@media(max-width:760px){.imo-docs-paths__surfaces{grid-template-columns:1fr}}
