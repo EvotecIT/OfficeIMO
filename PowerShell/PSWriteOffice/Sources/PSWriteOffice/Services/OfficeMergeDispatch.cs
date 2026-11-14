@@ -3,6 +3,7 @@ using System.Security;
 using OfficeIMO;
 using OfficeIMO.Excel;
 using OfficeIMO.Pdf;
+using OfficeIMO.Toml;
 using OfficeIMO.Word;
 using OfficeIMO.Yaml;
 using PSWriteOffice.Foundation;
@@ -10,18 +11,19 @@ using PSWriteOffice.Models.Excel;
 
 namespace PSWriteOffice.Services;
 
-internal enum OfficeMergeFamily { Word, Excel, Pdf, Yaml }
+internal enum OfficeMergeFamily { Word, Excel, Pdf, Yaml, Toml }
 
 /// <summary>Owns only shell-loaded input lifetimes and dispatches to native append/merge methods.</summary>
 internal static partial class OfficeMergeDispatch {
     internal static OfficeMergeFamily GetFamily(string extension) {
         if (extension.Equals(".pdf", StringComparison.OrdinalIgnoreCase)) return OfficeMergeFamily.Pdf;
         if (IsYaml(extension)) return OfficeMergeFamily.Yaml;
+        if (IsToml(extension)) return OfficeMergeFamily.Toml;
         if (WordFormatCatalog.TryGetByExtension(extension, out var word) && word!.Encoding == OfficeFormatEncoding.OpenXml)
             return OfficeMergeFamily.Word;
         if (ExcelFormatCatalog.TryGetByExtension(extension, out var excel) && excel!.Encoding == OfficeFormatEncoding.OpenXml)
             return OfficeMergeFamily.Excel;
-        throw new NotSupportedException("Native merge supports PDF, Open XML Word/Excel packages and YAML only. Unsupported format: " + extension);
+        throw new NotSupportedException("Native merge supports PDF, Open XML Word/Excel packages, YAML and TOML only. Unsupported format: " + extension);
     }
 
     /// <summary>Whether two inputs share a format: the same extension, or .yaml and .yml.</summary>
@@ -30,6 +32,8 @@ internal static partial class OfficeMergeDispatch {
 
     private static bool IsYaml(string extension) =>
         extension.Equals(".yaml", StringComparison.OrdinalIgnoreCase) || extension.Equals(".yml", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsToml(string extension) => extension.Equals(".toml", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Checks the live target without saving, changing persistence, or taking ownership.</summary>
     internal static string? ValidateDocument(object document, string extension) {
@@ -49,16 +53,20 @@ internal static partial class OfficeMergeDispatch {
             case YamlDocument yaml:
                 if (!IsYaml(extension)) throw new PSArgumentException("The native document format must match every input and OutputPath; format conversion is not part of merge.");
                 return yaml.FilePath;
+            case TomlDocument toml:
+                if (!IsToml(extension)) throw new PSArgumentException("The native document format must match every input and OutputPath; format conversion is not part of merge.");
+                return toml.FilePath;
             case PdfDocument:
                 throw new NotSupportedException("Live PDF targets cannot be appended in place. Use Path or LiteralPath and OutputPath for a native PDF merge.");
             default:
-                throw new NotSupportedException("Document must be an editable WordDocument, ExcelDocument or YamlDocument. Other live formats do not support this native append contract.");
+                throw new NotSupportedException("Document must be an editable WordDocument, ExcelDocument, YamlDocument or TomlDocument. Other live formats do not support this native append contract.");
         }
     }
 
     internal static object? Execute(IReadOnlyList<string> paths, SecureString?[]? passwords, OfficeMergeFamily family,
         string extension, object options, object? document, string? output, bool noClobber, PdfLoadOptions? readOptions = null) {
         if (family == OfficeMergeFamily.Yaml) return MergeYaml(paths, (YamlMergeOptions)options, (YamlDocument?)document, output, noClobber);
+        if (family == OfficeMergeFamily.Toml) return MergeToml(paths, (TomlMergeOptions)options, (TomlDocument?)document, output, noClobber);
         var owned = new List<IDisposable>();
         Exception? operationFailure = null;
         try {

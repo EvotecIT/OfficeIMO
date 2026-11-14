@@ -118,6 +118,19 @@ Describe 'YAML document commands' {
         @($report.Removed) | Should -Be @('debug')
         [IO.File]::ReadAllText($output) | Should -BeExactly (Join-YamlLines "`n" @('# defaults', 'image:', "  tag: '1.27'   # overridden per environment", 'ports: [443]'))
     }
+
+    It 'binds the Sequences merge mode from a script form' {
+        $base = Join-Path $TestDrive 'containers.yaml'
+        $overlay = Join-Path $TestDrive 'containers.prod.yaml'
+        $output = Join-Path $TestDrive 'containers.merged.yaml'
+        [IO.File]::WriteAllText($base, (Join-YamlLines "`n" @('containers:', '  - name: web', '    image: web:1')))
+        [IO.File]::WriteAllText($overlay, (Join-YamlLines "`n" @('containers:', '  - name: web', '    image: web:2')))
+
+        Merge-OfficeDocument -Path $base, $overlay -OutputPath $output -Options @{ Sequences = @{ MergeByKey = 'name' } }
+
+        [IO.File]::ReadAllText($output) | Should -BeExactly (Join-YamlLines "`n" @('containers:', '  - name: web', '    image: web:2'))
+        { Merge-OfficeDocument -Path $base, $overlay -OutputPath (Join-Path $TestDrive 'bad.yaml') -Options @{ Sequences = 'Sideways' } } | Should -Throw "*'Replace', 'Append'*"
+    }
 }
 
 Describe 'YAML data conversion' {

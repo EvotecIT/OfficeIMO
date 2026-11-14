@@ -28,6 +28,8 @@ PSWriteOffice's TOML commands are built on the same public API, with `Toml` as t
 | `New-OfficeToml` / `Open-OfficeToml` / `Save-OfficeToml` / `Close-OfficeToml` | The standard document lifecycle, including the content-block form that saves on exit |
 | `Get-OfficeTomlNode -Select` / `Set-OfficeTomlNode -Select -Value` / `Remove-OfficeTomlNode -Select` | Read and edit by path inside a live document. `-Select` uses the C# path grammar; `-Path` stays the file, as everywhere |
 | `Import-OfficeToml -Path` / `Export-OfficeToml -InputObject -Path` / `ConvertFrom-OfficeToml` / `ConvertTo-OfficeToml` | Objects from and to TOML text and files |
+| `Test-OfficeToml` | Whether files or text load as TOML, with the error code and position on request |
+| `Merge-OfficeDocument` with `.toml` inputs | Layered configuration through `TomlDocument.Merge`; `-Options @{ Arrays = ... }` takes `'Replace'`, `'Append'` or `@{ MergeByKey = 'name' }` |
 
 ## Layers
 

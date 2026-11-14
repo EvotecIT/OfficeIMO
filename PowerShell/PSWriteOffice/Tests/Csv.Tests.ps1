@@ -43,6 +43,40 @@ Describe 'CSV cmdlets' {
         $data[0].Region | Should -Be 'NA'
     }
 
+    It 'reads ConvertTo-OfficeCsv output back with ConvertFrom-OfficeCsv' {
+        $rows = @(
+            [pscustomobject]@{ Name = 'Alpha'; Note = "one`ntwo" }
+            [pscustomobject]@{ Name = 'Beta'; Note = 'plain' }
+        )
+
+        $back = @($rows | ConvertTo-OfficeCsv | ConvertFrom-OfficeCsv)
+        $back.Count | Should -Be 2
+        $back[0].Name | Should -Be 'Alpha'
+        $back[0].Note | Should -Be "one`ntwo"
+        $back[1].Note | Should -Be 'plain'
+
+        $table = "Name;Total`nAlpha;10" | ConvertFrom-OfficeCsv -Delimiter ';' -As Hashtable
+        $table | Should -BeOfType [System.Collections.IDictionary]
+        $table['Total'] | Should -Be '10'
+    }
+
+    It 'applies the Import-OfficeCsv parsing options and output shapes to CSV text' {
+        $lines = @('# exported', 'Name|Total', 'Alpha|10', 'Beta|7')
+
+        $detected = @($lines | ConvertFrom-OfficeCsv -DetectDelimiter -SkipCommentRows)
+        $detected.Name | Should -Be @('Alpha', 'Beta')
+
+        $table = $lines | ConvertFrom-OfficeCsv -Delimiter '|' -As DataTable -InferSchema
+        $table.GetType() | Should -Be ([System.Data.DataTable])
+        $table.Rows.Count | Should -Be 2
+        $table.Columns['Total'].DataType | Should -Be ([int])
+
+        $culture = [System.Globalization.CultureInfo]::GetCultureInfo('de-DE')
+        ("A;B`n1;2" | ConvertFrom-OfficeCsv -UseCulture -Culture $culture).B | Should -Be '2'
+        @('Alpha,10' | ConvertFrom-OfficeCsv -Header Name, Total).Total | Should -Be '10'
+        { 'a,b' | ConvertFrom-OfficeCsv -Delimiter '' } | Should -Throw '*Delimiter cannot be empty*'
+    }
+
     It 'imports quoted multiline and padded fields as row objects' {
         $path = Join-Path $TestDrive 'multiline-padded.csv'
         [System.IO.File]::WriteAllText(
