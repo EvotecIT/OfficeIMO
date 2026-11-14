@@ -83,3 +83,15 @@ All fixtures in this directory are redistributed under the complete SIL Open
 Font License 1.1 text in `OFL-1.1.txt`. Copyright and Reserved Font Name notices
 above were taken from the pinned font metadata and their authoritative upstream
 license records.
+
+## Unicode/WordBreakTest.txt and Unicode/GraphemeBreakTest.txt
+
+Unmodified UAX #29 conformance files from the Unicode Character Database 16.0.0,
+used to check the word and grapheme cluster segmenter in full.
+
+- Sources: https://www.unicode.org/Public/16.0.0/ucd/auxiliary/WordBreakTest.txt and
+  https://www.unicode.org/Public/16.0.0/ucd/auxiliary/GraphemeBreakTest.txt
+- SHA-256: `ad985d5721f3fa6b45495663dfe44180f2f68976100dee0ea7451ef1a8f838e8` and `ee2b9354d270ac061b29f09662cafea06341d77e704b8cc6bd72aaeeda363cb5`
+- License: Unicode License v3 (https://www.unicode.org/license.txt)
+
+© 2024 Unicode®, Inc.

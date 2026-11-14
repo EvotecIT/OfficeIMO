@@ -54,6 +54,7 @@
     <Compile Include="..\OfficeIMO.SharedSource\Compound\OfficeCompoundFileEntry.cs" Link="Internal\Compound\OfficeCompoundFileEntry.cs" />
     <Compile Include="..\OfficeIMO.SharedSource\Compound\OfficeCompoundFileReader.cs" Link="Internal\Compound\OfficeCompoundFileReader.cs" />
     <Compile Include="..\OfficeIMO.SharedSource\Compound\OfficeCompoundFileReader.Inspection.cs" Link="Internal\Compound\OfficeCompoundFileReader.Inspection.cs" />
+    <Compile Include="..\OfficeIMO.Core\TextAnalysis\*.cs" Link="Internal\TextAnalysis\%(Filename)%(Extension)" />
     <None Include="README.md">
       <Pack>True</Pack>
       <PackagePath>README.md</PackagePath>
