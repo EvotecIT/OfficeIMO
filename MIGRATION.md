@@ -5403,6 +5403,16 @@ a carriage return or a line feed, instead of writing output that cannot be read 
 `CsvQuoteMode.AsNeeded`, or set `EscapeMode = CsvEscapeMode.Backslash` to write `\t`, `\n`, `\r`
 and `\\` escapes. PSWriteOffice's `-UseQuotes Never` keeps PowerShell's literal output.
 
+## CSV streamed reads have no default size limit
+
+`MaxInputBytes` used to stop every read at 256 MiB. Streamed reads (`CsvDocument.OpenReader`,
+`OpenReaderAsync` and row enumeration over a path or stream) now read input of any size unless
+you set `MaxInputBytes`. Reads that hold the whole input in memory, such as `CsvDocument.Load`
+and `LoadAsync`, keep the 256 MiB default, and `MaxDecompressedBytes` still bounds
+compressed input. To keep a limit on a streamed read, set it:
+`new CsvReaderOptions { MaxInputBytes = 256L * 1024 * 1024 }`. `Import-OfficeCsv` takes the
+same limit as `-MaxInputBytes`.
+
 ## Excel tables reject captions
 
 `ExcelSheet.AddTable` with `OfficeTableOptions.Caption` now throws `NotSupportedException`, as PowerPoint and

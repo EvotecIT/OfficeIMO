@@ -705,7 +705,8 @@ public sealed partial class ExportOfficeCsvCommand : PSCmdlet
 
     private string[] ReadAppendHeader(string path)
     {
-        var options = new CsvLoadOptions
+        // Only the header is needed, so a streamed reader keeps large files out of memory.
+        var options = new CsvReaderOptions
         {
             Delimiter = Delimiter.Length == 1 ? Delimiter[0] : ',',
             DelimiterText = Delimiter,
@@ -714,7 +715,14 @@ public sealed partial class ExportOfficeCsvCommand : PSCmdlet
             CompressionType = CompressionType
         };
 
-        return CsvDocument.Load(path, options).Header.ToArray();
+        using var reader = CsvDocument.OpenReader(path, options);
+        var header = new string[reader.FieldCount];
+        for (var index = 0; index < header.Length; index++)
+        {
+            header[index] = reader.GetName(index);
+        }
+
+        return header;
     }
 
     private static Encoding? TryDetectEncodingFromBom(string path)

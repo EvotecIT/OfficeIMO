@@ -11,7 +11,7 @@ Imports CSV rows as PSCustomObjects, dictionaries, or a DataTable.
 ## SYNTAX
 ### Path (Default)
 ```powershell
-Import-OfficeCsv [-Path] <string[]> [-NoHeader] [-Header <string[]>] [-SkipRows <int>] [-Delimiter <string>] [-TrimWhitespace] [-AllowEmptyLines] [-NoSkipCommentRowsBeforeHeader] [-SkipCommentRows] [-CommentCharacter <char>] [-NoW3CFieldsHeader] [-ColumnCountMismatchPolicy <CsvColumnCountMismatchPolicy>] [-DuplicateHeaderBehavior <CsvDuplicateHeaderBehavior>] [-NullValue <string>] [-DateTimeFormats <string[]>] [-QuoteParsingMode <CsvQuoteParsingMode>] [-StaticColumns <IDictionary>] [-CompressionType <CsvCompressionType>] [-MaxDecompressedBytes <Int64>] [-Mode <CsvReadMode>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-ParseErrorAction <CsvParseErrorAction>] [-CollectParseErrors] [-MaxParseErrors <int>] [-MaxFieldLength <Int32>] [-MaxQuotedFieldLength <Int32>] [-NormalizeQuotes] [-InternStrings] [-ProgressInterval <Int32>] [-InferSchema] [-SchemaSampleRows <int>] [-ColumnType <IDictionary>] [-As <OfficeCsvOutput>] [<CommonParameters>]
+Import-OfficeCsv [-Path] <string[]> [-NoHeader] [-Header <string[]>] [-SkipRows <int>] [-Delimiter <string>] [-TrimWhitespace] [-AllowEmptyLines] [-NoSkipCommentRowsBeforeHeader] [-SkipCommentRows] [-CommentCharacter <char>] [-NoW3CFieldsHeader] [-ColumnCountMismatchPolicy <CsvColumnCountMismatchPolicy>] [-DuplicateHeaderBehavior <CsvDuplicateHeaderBehavior>] [-NullValue <string>] [-DateTimeFormats <string[]>] [-QuoteParsingMode <CsvQuoteParsingMode>] [-StaticColumns <IDictionary>] [-CompressionType <CsvCompressionType>] [-MaxDecompressedBytes <Int64>] [-MaxInputBytes <Int64>] [-Mode <CsvReadMode>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-ParseErrorAction <CsvParseErrorAction>] [-CollectParseErrors] [-MaxParseErrors <int>] [-MaxFieldLength <Int32>] [-MaxQuotedFieldLength <Int32>] [-NormalizeQuotes] [-InternStrings] [-ProgressInterval <Int32>] [-InferSchema] [-SchemaSampleRows <int>] [-ColumnType <IDictionary>] [-As <OfficeCsvOutput>] [<CommonParameters>]
 ```
 
 ### Document
@@ -21,27 +21,27 @@ Import-OfficeCsv -Document <CsvDocument> [-As <OfficeCsvOutput>] [<CommonParamet
 
 ### PathCulture
 ```powershell
-Import-OfficeCsv [-Path] <string[]> -UseCulture [-NoHeader] [-Header <string[]>] [-SkipRows <int>] [-TrimWhitespace] [-AllowEmptyLines] [-NoSkipCommentRowsBeforeHeader] [-SkipCommentRows] [-CommentCharacter <char>] [-NoW3CFieldsHeader] [-ColumnCountMismatchPolicy <CsvColumnCountMismatchPolicy>] [-DuplicateHeaderBehavior <CsvDuplicateHeaderBehavior>] [-NullValue <string>] [-DateTimeFormats <string[]>] [-QuoteParsingMode <CsvQuoteParsingMode>] [-StaticColumns <IDictionary>] [-CompressionType <CsvCompressionType>] [-MaxDecompressedBytes <Int64>] [-Mode <CsvReadMode>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-ParseErrorAction <CsvParseErrorAction>] [-CollectParseErrors] [-MaxParseErrors <int>] [-MaxFieldLength <Int32>] [-MaxQuotedFieldLength <Int32>] [-NormalizeQuotes] [-InternStrings] [-ProgressInterval <Int32>] [-InferSchema] [-SchemaSampleRows <int>] [-ColumnType <IDictionary>] [-As <OfficeCsvOutput>] [<CommonParameters>]
+Import-OfficeCsv [-Path] <string[]> -UseCulture [-NoHeader] [-Header <string[]>] [-SkipRows <int>] [-TrimWhitespace] [-AllowEmptyLines] [-NoSkipCommentRowsBeforeHeader] [-SkipCommentRows] [-CommentCharacter <char>] [-NoW3CFieldsHeader] [-ColumnCountMismatchPolicy <CsvColumnCountMismatchPolicy>] [-DuplicateHeaderBehavior <CsvDuplicateHeaderBehavior>] [-NullValue <string>] [-DateTimeFormats <string[]>] [-QuoteParsingMode <CsvQuoteParsingMode>] [-StaticColumns <IDictionary>] [-CompressionType <CsvCompressionType>] [-MaxDecompressedBytes <Int64>] [-MaxInputBytes <Int64>] [-Mode <CsvReadMode>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-ParseErrorAction <CsvParseErrorAction>] [-CollectParseErrors] [-MaxParseErrors <int>] [-MaxFieldLength <Int32>] [-MaxQuotedFieldLength <Int32>] [-NormalizeQuotes] [-InternStrings] [-ProgressInterval <Int32>] [-InferSchema] [-SchemaSampleRows <int>] [-ColumnType <IDictionary>] [-As <OfficeCsvOutput>] [<CommonParameters>]
 ```
 
 ### PathDetect
 ```powershell
-Import-OfficeCsv [-Path] <string[]> -DetectDelimiter [-NoHeader] [-Header <string[]>] [-SkipRows <int>] [-DelimiterCandidates <char[]>] [-TrimWhitespace] [-AllowEmptyLines] [-NoSkipCommentRowsBeforeHeader] [-SkipCommentRows] [-CommentCharacter <char>] [-NoW3CFieldsHeader] [-ColumnCountMismatchPolicy <CsvColumnCountMismatchPolicy>] [-DuplicateHeaderBehavior <CsvDuplicateHeaderBehavior>] [-NullValue <string>] [-DateTimeFormats <string[]>] [-QuoteParsingMode <CsvQuoteParsingMode>] [-StaticColumns <IDictionary>] [-CompressionType <CsvCompressionType>] [-MaxDecompressedBytes <Int64>] [-Mode <CsvReadMode>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-ParseErrorAction <CsvParseErrorAction>] [-CollectParseErrors] [-MaxParseErrors <int>] [-MaxFieldLength <Int32>] [-MaxQuotedFieldLength <Int32>] [-NormalizeQuotes] [-InternStrings] [-ProgressInterval <Int32>] [-InferSchema] [-SchemaSampleRows <int>] [-ColumnType <IDictionary>] [-As <OfficeCsvOutput>] [<CommonParameters>]
+Import-OfficeCsv [-Path] <string[]> -DetectDelimiter [-NoHeader] [-Header <string[]>] [-SkipRows <int>] [-DelimiterCandidates <char[]>] [-TrimWhitespace] [-AllowEmptyLines] [-NoSkipCommentRowsBeforeHeader] [-SkipCommentRows] [-CommentCharacter <char>] [-NoW3CFieldsHeader] [-ColumnCountMismatchPolicy <CsvColumnCountMismatchPolicy>] [-DuplicateHeaderBehavior <CsvDuplicateHeaderBehavior>] [-NullValue <string>] [-DateTimeFormats <string[]>] [-QuoteParsingMode <CsvQuoteParsingMode>] [-StaticColumns <IDictionary>] [-CompressionType <CsvCompressionType>] [-MaxDecompressedBytes <Int64>] [-MaxInputBytes <Int64>] [-Mode <CsvReadMode>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-ParseErrorAction <CsvParseErrorAction>] [-CollectParseErrors] [-MaxParseErrors <int>] [-MaxFieldLength <Int32>] [-MaxQuotedFieldLength <Int32>] [-NormalizeQuotes] [-InternStrings] [-ProgressInterval <Int32>] [-InferSchema] [-SchemaSampleRows <int>] [-ColumnType <IDictionary>] [-As <OfficeCsvOutput>] [<CommonParameters>]
 ```
 
 ### LiteralPath
 ```powershell
-Import-OfficeCsv -LiteralPath <string[]> [-NoHeader] [-Header <string[]>] [-SkipRows <int>] [-Delimiter <string>] [-TrimWhitespace] [-AllowEmptyLines] [-NoSkipCommentRowsBeforeHeader] [-SkipCommentRows] [-CommentCharacter <char>] [-NoW3CFieldsHeader] [-ColumnCountMismatchPolicy <CsvColumnCountMismatchPolicy>] [-DuplicateHeaderBehavior <CsvDuplicateHeaderBehavior>] [-NullValue <string>] [-DateTimeFormats <string[]>] [-QuoteParsingMode <CsvQuoteParsingMode>] [-StaticColumns <IDictionary>] [-CompressionType <CsvCompressionType>] [-MaxDecompressedBytes <Int64>] [-Mode <CsvReadMode>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-ParseErrorAction <CsvParseErrorAction>] [-CollectParseErrors] [-MaxParseErrors <int>] [-MaxFieldLength <Int32>] [-MaxQuotedFieldLength <Int32>] [-NormalizeQuotes] [-InternStrings] [-ProgressInterval <Int32>] [-InferSchema] [-SchemaSampleRows <int>] [-ColumnType <IDictionary>] [-As <OfficeCsvOutput>] [<CommonParameters>]
+Import-OfficeCsv -LiteralPath <string[]> [-NoHeader] [-Header <string[]>] [-SkipRows <int>] [-Delimiter <string>] [-TrimWhitespace] [-AllowEmptyLines] [-NoSkipCommentRowsBeforeHeader] [-SkipCommentRows] [-CommentCharacter <char>] [-NoW3CFieldsHeader] [-ColumnCountMismatchPolicy <CsvColumnCountMismatchPolicy>] [-DuplicateHeaderBehavior <CsvDuplicateHeaderBehavior>] [-NullValue <string>] [-DateTimeFormats <string[]>] [-QuoteParsingMode <CsvQuoteParsingMode>] [-StaticColumns <IDictionary>] [-CompressionType <CsvCompressionType>] [-MaxDecompressedBytes <Int64>] [-MaxInputBytes <Int64>] [-Mode <CsvReadMode>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-ParseErrorAction <CsvParseErrorAction>] [-CollectParseErrors] [-MaxParseErrors <int>] [-MaxFieldLength <Int32>] [-MaxQuotedFieldLength <Int32>] [-NormalizeQuotes] [-InternStrings] [-ProgressInterval <Int32>] [-InferSchema] [-SchemaSampleRows <int>] [-ColumnType <IDictionary>] [-As <OfficeCsvOutput>] [<CommonParameters>]
 ```
 
 ### LiteralPathCulture
 ```powershell
-Import-OfficeCsv -LiteralPath <string[]> -UseCulture [-NoHeader] [-Header <string[]>] [-SkipRows <int>] [-TrimWhitespace] [-AllowEmptyLines] [-NoSkipCommentRowsBeforeHeader] [-SkipCommentRows] [-CommentCharacter <char>] [-NoW3CFieldsHeader] [-ColumnCountMismatchPolicy <CsvColumnCountMismatchPolicy>] [-DuplicateHeaderBehavior <CsvDuplicateHeaderBehavior>] [-NullValue <string>] [-DateTimeFormats <string[]>] [-QuoteParsingMode <CsvQuoteParsingMode>] [-StaticColumns <IDictionary>] [-CompressionType <CsvCompressionType>] [-MaxDecompressedBytes <Int64>] [-Mode <CsvReadMode>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-ParseErrorAction <CsvParseErrorAction>] [-CollectParseErrors] [-MaxParseErrors <int>] [-MaxFieldLength <Int32>] [-MaxQuotedFieldLength <Int32>] [-NormalizeQuotes] [-InternStrings] [-ProgressInterval <Int32>] [-InferSchema] [-SchemaSampleRows <int>] [-ColumnType <IDictionary>] [-As <OfficeCsvOutput>] [<CommonParameters>]
+Import-OfficeCsv -LiteralPath <string[]> -UseCulture [-NoHeader] [-Header <string[]>] [-SkipRows <int>] [-TrimWhitespace] [-AllowEmptyLines] [-NoSkipCommentRowsBeforeHeader] [-SkipCommentRows] [-CommentCharacter <char>] [-NoW3CFieldsHeader] [-ColumnCountMismatchPolicy <CsvColumnCountMismatchPolicy>] [-DuplicateHeaderBehavior <CsvDuplicateHeaderBehavior>] [-NullValue <string>] [-DateTimeFormats <string[]>] [-QuoteParsingMode <CsvQuoteParsingMode>] [-StaticColumns <IDictionary>] [-CompressionType <CsvCompressionType>] [-MaxDecompressedBytes <Int64>] [-MaxInputBytes <Int64>] [-Mode <CsvReadMode>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-ParseErrorAction <CsvParseErrorAction>] [-CollectParseErrors] [-MaxParseErrors <int>] [-MaxFieldLength <Int32>] [-MaxQuotedFieldLength <Int32>] [-NormalizeQuotes] [-InternStrings] [-ProgressInterval <Int32>] [-InferSchema] [-SchemaSampleRows <int>] [-ColumnType <IDictionary>] [-As <OfficeCsvOutput>] [<CommonParameters>]
 ```
 
 ### LiteralPathDetect
 ```powershell
-Import-OfficeCsv -LiteralPath <string[]> -DetectDelimiter [-NoHeader] [-Header <string[]>] [-SkipRows <int>] [-DelimiterCandidates <char[]>] [-TrimWhitespace] [-AllowEmptyLines] [-NoSkipCommentRowsBeforeHeader] [-SkipCommentRows] [-CommentCharacter <char>] [-NoW3CFieldsHeader] [-ColumnCountMismatchPolicy <CsvColumnCountMismatchPolicy>] [-DuplicateHeaderBehavior <CsvDuplicateHeaderBehavior>] [-NullValue <string>] [-DateTimeFormats <string[]>] [-QuoteParsingMode <CsvQuoteParsingMode>] [-StaticColumns <IDictionary>] [-CompressionType <CsvCompressionType>] [-MaxDecompressedBytes <Int64>] [-Mode <CsvReadMode>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-ParseErrorAction <CsvParseErrorAction>] [-CollectParseErrors] [-MaxParseErrors <int>] [-MaxFieldLength <Int32>] [-MaxQuotedFieldLength <Int32>] [-NormalizeQuotes] [-InternStrings] [-ProgressInterval <Int32>] [-InferSchema] [-SchemaSampleRows <int>] [-ColumnType <IDictionary>] [-As <OfficeCsvOutput>] [<CommonParameters>]
+Import-OfficeCsv -LiteralPath <string[]> -DetectDelimiter [-NoHeader] [-Header <string[]>] [-SkipRows <int>] [-DelimiterCandidates <char[]>] [-TrimWhitespace] [-AllowEmptyLines] [-NoSkipCommentRowsBeforeHeader] [-SkipCommentRows] [-CommentCharacter <char>] [-NoW3CFieldsHeader] [-ColumnCountMismatchPolicy <CsvColumnCountMismatchPolicy>] [-DuplicateHeaderBehavior <CsvDuplicateHeaderBehavior>] [-NullValue <string>] [-DateTimeFormats <string[]>] [-QuoteParsingMode <CsvQuoteParsingMode>] [-StaticColumns <IDictionary>] [-CompressionType <CsvCompressionType>] [-MaxDecompressedBytes <Int64>] [-MaxInputBytes <Int64>] [-Mode <CsvReadMode>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-ParseErrorAction <CsvParseErrorAction>] [-CollectParseErrors] [-MaxParseErrors <int>] [-MaxFieldLength <Int32>] [-MaxQuotedFieldLength <Int32>] [-NormalizeQuotes] [-InternStrings] [-ProgressInterval <Int32>] [-InferSchema] [-SchemaSampleRows <int>] [-ColumnType <IDictionary>] [-As <OfficeCsvOutput>] [<CommonParameters>]
 ```
 
 ### Text
@@ -393,6 +393,22 @@ Accept wildcard characters: False
 
 ### -MaxDecompressedBytes
 Maximum decompressed bytes to read from compressed CSV files.
+
+```yaml
+Type: Int64
+Parameter Sets: Path, PathCulture, PathDetect, LiteralPath, LiteralPathCulture, LiteralPathDetect
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaxInputBytes
+Maximum input bytes to read. Streamed imports read files of any size unless this is set; imports that load the whole file into memory default to 256 MiB.
 
 ```yaml
 Type: Int64
