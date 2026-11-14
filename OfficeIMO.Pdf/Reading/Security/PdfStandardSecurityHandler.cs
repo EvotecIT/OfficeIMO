@@ -76,34 +76,37 @@ internal sealed partial class PdfStandardSecurityHandler {
         }
 
         int permissions = GetRequiredPermissions(encryptionDictionary);
-        int keyLengthBytes = ResolveLegacyKeyLengthBytes(encryptionDictionary, version, revision);
         bool encryptMetadata = encryptionDictionary.Get<PdfBoolean>("EncryptMetadata")?.Value ?? true;
         PdfCryptMethod streamMethod = ResolveCryptMethod(encryptionDictionary, "StmF", version);
         PdfCryptMethod stringMethod = ResolveCryptMethod(encryptionDictionary, "StrF", version);
 
         string passwordCandidate = passwordWasSupplied ? password ?? string.Empty : string.Empty;
-        if (TryAuthenticateOwnerPassword(passwordCandidate, revision, keyLengthBytes, ownerEntry, userEntry, permissions, fileId, encryptMetadata, out byte[] fileKey, cancellationToken)) {
-            return new PdfStandardSecurityHandler(
-                fileKey,
-                revision,
-                keyLengthBytes,
-                streamMethod,
-                stringMethod,
-                encryptMetadata,
-                PdfPasswordAuthenticationRole.Owner,
-                aesCryptographyProvider).WithCryptFilters(encryptionDictionary, version);
-        }
+        int keyLengthBytes = 5;
+        foreach (int candidateKeyLength in ResolveLegacyKeyLengthCandidates(encryptionDictionary, version, revision)) {
+            keyLengthBytes = candidateKeyLength;
+            if (TryAuthenticateOwnerPassword(passwordCandidate, revision, keyLengthBytes, ownerEntry, userEntry, permissions, fileId, encryptMetadata, out byte[] fileKey, cancellationToken)) {
+                return new PdfStandardSecurityHandler(
+                    fileKey,
+                    revision,
+                    keyLengthBytes,
+                    streamMethod,
+                    stringMethod,
+                    encryptMetadata,
+                    PdfPasswordAuthenticationRole.Owner,
+                    aesCryptographyProvider).WithCryptFilters(encryptionDictionary, version);
+            }
 
-        if (TryAuthenticateUserPassword(passwordCandidate, revision, keyLengthBytes, ownerEntry, userEntry, permissions, fileId, encryptMetadata, out fileKey, cancellationToken)) {
-            return new PdfStandardSecurityHandler(
-                fileKey,
-                revision,
-                keyLengthBytes,
-                streamMethod,
-                stringMethod,
-                encryptMetadata,
-                PdfPasswordAuthenticationRole.User,
-                aesCryptographyProvider).WithCryptFilters(encryptionDictionary, version);
+            if (TryAuthenticateUserPassword(passwordCandidate, revision, keyLengthBytes, ownerEntry, userEntry, permissions, fileId, encryptMetadata, out fileKey, cancellationToken)) {
+                return new PdfStandardSecurityHandler(
+                    fileKey,
+                    revision,
+                    keyLengthBytes,
+                    streamMethod,
+                    stringMethod,
+                    encryptMetadata,
+                    PdfPasswordAuthenticationRole.User,
+                    aesCryptographyProvider).WithCryptFilters(encryptionDictionary, version);
+            }
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -498,14 +501,15 @@ internal sealed partial class PdfStandardSecurityHandler {
     }
 
     // ISO 32000-2 table 20: /Length defaults to 40 bits and applies to /V 2 and 3; /V 1 and revision 2 always use
-    // 40 bits. /V 4 crypt filters use 128-bit keys unless the document states otherwise.
-    private static int ResolveLegacyKeyLengthBytes(PdfDictionary encryptionDictionary, int version, int revision) {
-        if (version == 1 || revision == 2) return 5;
+    // 40 bits. /V 4 crypt filters use 128-bit keys unless the document states otherwise. Without /Length, /V 2 and 3
+    // files from producers that wrote 128-bit keys are tried at 128 bits after the default; the password check decides.
+    private static int[] ResolveLegacyKeyLengthCandidates(PdfDictionary encryptionDictionary, int version, int revision) {
+        if (version == 1 || revision == 2) return new[] { 5 };
         int? length = GetOptionalInt(encryptionDictionary, "Length");
-        if (length is null) return version == 4 ? 16 : 5;
+        if (length is null) return version == 4 ? new[] { 16 } : new[] { 5, 16 };
         // Some producers write the length in bytes rather than bits.
         int bytes = length.Value <= 16 ? length.Value : length.Value / 8;
-        return Math.Max(5, Math.Min(16, bytes));
+        return new[] { Math.Max(5, Math.Min(16, bytes)) };
     }
 
     private static int? GetOptionalInt(PdfDictionary dictionary, string key) {

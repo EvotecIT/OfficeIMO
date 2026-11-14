@@ -32,7 +32,7 @@ internal static class PdfModernPasswordNormalizer {
         }
 
         byte[] legacy = ToPasswordBytes(normalized);
-        if (candidates.Count == 0 || !candidates[0].AsSpan().SequenceEqual(legacy)) {
+        if (candidates.Count == 0 || !candidates[0].SequenceEqual(legacy)) {
             candidates.Add(legacy);
         }
 

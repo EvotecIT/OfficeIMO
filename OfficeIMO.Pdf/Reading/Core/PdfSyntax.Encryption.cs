@@ -65,6 +65,10 @@ internal static partial class PdfSyntax {
 
     private static byte[] ReadFirstFileId(Dictionary<int, PdfIndirectObject> map, string trailerRaw,
         CancellationToken cancellationToken) {
+        // The active trailer (or the active cross-reference stream it was built from) owns the file identifier;
+        // other cross-reference streams are a fallback for files whose trailer chain was not recovered.
+        byte[] trailerId = ReadFirstFileId(trailerRaw, cancellationToken);
+        if (trailerId.Length > 0) return trailerId;
         foreach (PdfIndirectObject indirect in map.Values) {
             cancellationToken.ThrowIfCancellationRequested();
             if (indirect.Value is PdfStream stream &&
@@ -74,7 +78,7 @@ internal static partial class PdfSyntax {
             }
         }
 
-        return ReadFirstFileId(trailerRaw, cancellationToken);
+        return trailerId;
     }
 
     private static bool TryReadFirstFileId(PdfDictionary dictionary, out byte[] fileId) {

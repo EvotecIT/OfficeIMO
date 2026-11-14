@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 internal sealed partial class PdfStandardSecurityHandler {
-    private const string EmbeddedFileNeedsPasswordMessage = "This embedded file is encrypted with the embedded-file crypt filter; open the document with its password to read it.";
+    internal const string EmbeddedFileNeedsPasswordMessage = "This embedded file is encrypted with the embedded-file crypt filter; open the document with its password to read it.";
 
     private PdfDictionary? _cryptFilters;
     private PdfCryptMethod? _embeddedFileMethod;
@@ -34,6 +34,20 @@ internal sealed partial class PdfStandardSecurityHandler {
         _hasFileKey = false;
         return this;
     }
+
+    /// <summary>The crypt filter a rewritten stream is encrypted with, matching how <see cref="DecryptStream"/> reads it back.</summary>
+    private PdfCryptMethod ResolveOutputStreamMethod(PdfDictionary dictionary) {
+        if (ShouldSkipStreamData(dictionary) && !IsEmbeddedFileWithOwnFilter(dictionary)) return PdfCryptMethod.Identity;
+        if (!IsEmbeddedFileWithOwnFilter(dictionary)) return _streamMethod;
+        if (!_hasFileKey && _embeddedFileMethod != PdfCryptMethod.Identity) {
+            throw new PdfUnsupportedEncryptionException("Embedded files encrypted with the /EFF crypt filter can only be rewritten after opening the document with its password.");
+        }
+
+        return _embeddedFileMethod!.Value;
+    }
+
+    private bool IsEmbeddedFileWithOwnFilter(PdfDictionary dictionary) =>
+        _embeddedFileMethod.HasValue && dictionary.Get<PdfName>("Type")?.Name == "EmbeddedFile";
 
     private PdfStream DecryptStream(int objectNumber, int generation, PdfStream stream, PdfDictionary dictionary, CancellationToken cancellationToken) {
         byte[] sourceData = stream.GetData(cancellationToken);

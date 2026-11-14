@@ -25,12 +25,12 @@ internal sealed partial class PdfStandardSecurityHandler {
         }
 
         if (value is PdfStream stream) {
-            bool skipData = ShouldSkipStreamData(stream.Dictionary);
+            PdfCryptMethod method = ResolveOutputStreamMethod(stream.Dictionary);
             PdfDictionary encryptedDictionary = EncryptDictionary(objectNumber, generation, stream.Dictionary, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            byte[] encryptedData = skipData
+            byte[] encryptedData = method == PdfCryptMethod.Identity
                 ? stream.Data
-                : EncryptData(objectNumber, generation, stream.Data, _streamMethod);
+                : EncryptData(objectNumber, generation, stream.Data, method);
             return new PdfStream(encryptedDictionary, encryptedData, stream.DecodingFailed, stream.DecodingError) {
                 HasIncompleteSyntax = stream.HasIncompleteSyntax
             };

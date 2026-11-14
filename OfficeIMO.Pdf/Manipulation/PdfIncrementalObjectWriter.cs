@@ -320,14 +320,34 @@ internal static class PdfIncrementalObjectWriter {
 
         int depth = 0;
         for (int i = start; i < trailerRaw.Length; i++) {
-            if (trailerRaw[i] == '[') {
+            char current = trailerRaw[i];
+            if (current == '(') {
+                // Identifiers are often binary literal strings; brackets inside them are not array delimiters.
+                i = SkipLiteralString(trailerRaw, i);
+            } else if (current == '[') {
                 depth++;
-            } else if (trailerRaw[i] == ']' && --depth == 0) {
+            } else if (current == ']' && --depth == 0) {
                 return " /ID " + trailerRaw.Substring(start, i - start + 1).Trim();
             }
         }
 
         return string.Empty;
+    }
+
+    private static int SkipLiteralString(string value, int start) {
+        int nesting = 0;
+        for (int i = start; i < value.Length; i++) {
+            char current = value[i];
+            if (current == '\\') {
+                i++;
+            } else if (current == '(') {
+                nesting++;
+            } else if (current == ')' && --nesting == 0) {
+                return i;
+            }
+        }
+
+        return value.Length - 1;
     }
 
     private static int IndexOfName(string value, string name) {
