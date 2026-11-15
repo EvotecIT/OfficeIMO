@@ -20,6 +20,9 @@ public class YamlKitBenchmarks {
     public static IEnumerable<string> Cases() {
         string? selected = Environment.GetEnvironmentVariable("OFFICEIMO_YAML_KIT_CASES");
         if (selected is { Length: > 0 }) return selected.Split(',', StringSplitOptions.RemoveEmptyEntries);
+        // BenchmarkDotNet reads every class's cases while filtering, so missing kit workloads leave this class empty
+        // instead of failing runs of the other classes; --kit-timings still reports how to prepare them.
+        if (!File.Exists(Path.Combine(YamlKitWorkload.Root, "index.json"))) return Array.Empty<string>();
         return from task in Enum.GetValues<YamlKitTask>()
                where task != YamlKitTask.EditScript
                from workload in YamlKitWorkload.All
