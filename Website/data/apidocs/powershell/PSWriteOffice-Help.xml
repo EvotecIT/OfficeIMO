@@ -205580,7 +205580,7 @@ and requires a document title; heuristic findings stay warnings.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$failed = Get-ChildItem .\Docs -Include *.docx, *.xlsx, *.pptx -Recurse | Test-OfficeAccessibility -Strict |
+        <dev:code>$failed = Get-ChildItem .\Docs -Include *.docx, *.xlsx, *.pptx -Recurse | Test-OfficeAccessibility -Strict -ErrorAction Stop |
                 Where-Object { -not $_.IsSuccessful }
             if ($failed) { throw "Accessibility errors in $($failed.Count) document(s)." }</dev:code>
         <dev:remarks>
