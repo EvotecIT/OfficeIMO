@@ -107,6 +107,13 @@ internal static class OfficeRoundTripText
 #if NETCOREAPP3_0_OR_GREATER
         return value.ToString(culture);
 #else
+        // A whole number below 10^15 has at most 15 digits: "R" writes them in fixed notation, and they parse back
+        // exactly, so it is the integer's text. The integer formatter skips the round-trip check.
+        if (value != 0 && Math.Abs(value) < 1e15 && Math.Floor(value) == value)
+        {
+            return ((long)value).ToString(culture);
+        }
+
         string text = value.ToString("R", culture);
         if (double.IsNaN(value) || double.IsInfinity(value) ||
             (double.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, culture, out double parsed) &&
@@ -125,6 +132,12 @@ internal static class OfficeRoundTripText
 #if NETCOREAPP3_0_OR_GREATER
         return value.ToString(culture);
 #else
+        // Seven digits for a float, as above.
+        if (value != 0 && Math.Abs(value) < 1e7f && Math.Floor(value) == value)
+        {
+            return ((int)value).ToString(culture);
+        }
+
         string text = value.ToString("R", culture);
         if (float.IsNaN(value) || float.IsInfinity(value) ||
             (float.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, culture, out float parsed) && parsed.Equals(value)))
