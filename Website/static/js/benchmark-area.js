@@ -406,7 +406,9 @@
       var runCell = el("td", null, runLabel(run));
       if (runs.length > 1) runCell.appendChild(el("small", null, " + " + (runs.length - 1) + " more"));
       tr.appendChild(runCell);
-      var result = el("td", "imo-bench-hub__result");
+      var cell = el("td");
+      var result = el("div", "imo-bench-hub__result");
+      cell.appendChild(result);
       var ours = ranked.filter(isOfficeImo)[0];
       if (!ours || !ranked.length) result.textContent = "—";
       else {
@@ -424,7 +426,7 @@
         }
         if (text) result.appendChild(el("span", null, text));
       }
-      tr.appendChild(result);
+      tr.appendChild(cell);
       body.appendChild(tr);
     });
     table.appendChild(body);

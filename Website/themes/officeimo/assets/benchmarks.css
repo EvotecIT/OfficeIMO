@@ -136,6 +136,9 @@
 .imo-bench-planned-section a, .imo-bench-snapshots > p a { color: var(--imo-accent); font-weight: 600; }
 @media (max-width: 640px) { .imo-bench-bars__row { grid-template-columns: minmax(0, 7rem) minmax(0, 1fr) 4.5rem; } }
 .imo-bench-hub-results { margin-top: clamp(2.5rem, 5vw, 3.5rem); }
+.imo-bench-table--hub { min-width: 760px; }
+.imo-bench-table--hub th:first-child { width: 26%; }
+.imo-bench-table--hub td:nth-child(3) { width: 14%; white-space: nowrap; }
 .imo-bench-table--hub th a { color: var(--imo-text); text-decoration: none; }
 .imo-bench-table--hub th a:hover { color: var(--imo-accent); text-decoration: underline; }
 .imo-bench-table--hub td small { color: var(--imo-text-muted); }
@@ -145,3 +148,6 @@
 .imo-bench-hub__result > span:not(.imo-bench-rank) { color: var(--imo-text-secondary); font-size: .84rem; }
 .imo-bench-rank { padding: 1px 9px; border-radius: 999px; background: color-mix(in srgb, var(--imo-warning) 14%, transparent); font-size: .8rem; font-weight: 700; white-space: nowrap; }
 .imo-bench-rank.is-first { background: color-mix(in srgb, var(--imo-success) 15%, transparent); color: var(--imo-success); }
+/* Benchmark tables sit inside article content; keep the article's table margin and row-header tint out of them. */
+.imo-bench-table-wrap > .imo-bench-table { margin: 0; }
+.imo-bench-table tbody th { background: transparent; }
