@@ -10,10 +10,28 @@ public sealed partial class OfficeRasterCanvas {
         Func<double, double, OfficeColor> paint, IReadOnlyList<IReadOnlyList<OfficePoint>>? unionContours = null) {
         if (contours == null || contours.Count == 0) return;
         int total = contours.Count + (unionContours?.Count ?? 0);
-        if (total < 2 || !TryGroupDisjointContours(contours, unionContours, out ContourGroupEntry[] entries, out int[] groupStarts)) {
-            FillContourPaint(contours, fillRule, paint, unionContours);
-            return;
+        // Taking the scratch removes it from the canvas, so a nested fill cannot overwrite it.
+        ContourGroupScratch scratch = _contourGroupScratch ?? new ContourGroupScratch();
+        _contourGroupScratch = null;
+        try {
+            if (total < 2 || !TryGroupDisjointContours(contours, unionContours, scratch, out int groupCount)) {
+                FillContourPaint(contours, fillRule, paint, unionContours);
+                return;
+            }
+            FillContourGroups(contours, fillRule, paint, unionContours, scratch, groupCount);
+        } finally {
+            // Keep the scratch of ordinary text runs only, like the contour workspace.
+            if (scratch.Entries.Length <= MaximumRetainedContourWorkspaceCapacity) _contourGroupScratch ??= scratch;
         }
+    }
+
+    private ContourGroupScratch? _contourGroupScratch;
+
+    private void FillContourGroups(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeFillRule fillRule,
+        Func<double, double, OfficeColor> paint, IReadOnlyList<IReadOnlyList<OfficePoint>>? unionContours,
+        ContourGroupScratch scratch, int groupCount) {
+        ContourGroupEntry[] entries = scratch.Entries;
+        int[] groupStarts = scratch.Starts;
         double scaleX = 1D, scaleY = 1D;
         bool scaled = HasCoordinateScale;
         if (scaled) {
@@ -28,7 +46,7 @@ public sealed partial class OfficeRasterCanvas {
         ContourGroupView? union = unionContours != null ? new ContourGroupView(unionContours) : null;
         ContourCoverageWorkspace workspace = TakeContourCoverageWorkspace();
         try {
-            for (int group = 0; group + 1 < groupStarts.Length; group++) {
+            for (int group = 0; group < groupCount; group++) {
                 _cancellationToken.ThrowIfCancellationRequested();
                 int start = groupStarts[group], end = groupStarts[group + 1];
                 // Source order inside a group keeps the edge order the single fill would collect.
@@ -52,11 +70,10 @@ public sealed partial class OfficeRasterCanvas {
     // device pixel on that axis is at or before the group's last one. Groups that share no pixel
     // column (or row) cannot share a pixel. Returns false when the shape forms a single group.
     private bool TryGroupDisjointContours(IReadOnlyList<IReadOnlyList<OfficePoint>> contours,
-        IReadOnlyList<IReadOnlyList<OfficePoint>>? unionContours, out ContourGroupEntry[] entries, out int[] groupStarts) {
-        groupStarts = Array.Empty<int>();
+        IReadOnlyList<IReadOnlyList<OfficePoint>>? unionContours, ContourGroupScratch scratch, out int groupCount) {
+        groupCount = 0;
         double scaleX = CoordinateScaleX, scaleY = CoordinateScaleY;
-        int total = contours.Count + (unionContours?.Count ?? 0);
-        entries = new ContourGroupEntry[total];
+        ContourGroupEntry[] entries = scratch.ReserveEntries(contours.Count + (unionContours?.Count ?? 0));
         int count = 0;
         double minX = double.PositiveInfinity, maxX = double.NegativeInfinity;
         double minY = double.PositiveInfinity, maxY = double.NegativeInfinity;
@@ -86,18 +103,34 @@ public sealed partial class OfficeRasterCanvas {
         if (count < 2) return false;
         bool horizontal = maxX - minX >= maxY - minY;
         Array.Sort(entries, 0, count, horizontal ? ContourGroupEntryAxisOrder.Horizontal : ContourGroupEntryAxisOrder.Vertical);
-        var starts = new List<int> { 0 };
+        // Group starts plus the end marker; there are at most count groups.
+        int[] starts = scratch.ReserveStarts(count + 1);
+        starts[groupCount++] = 0;
         // Pixels touched on the axis run from floor(low) to ceil(high) - 1, as in the filler.
         double groupEnd = Math.Ceiling(entries[0].High(horizontal));
         for (int index = 1; index < count; index++) {
             ContourGroupEntry entry = entries[index];
-            if (Math.Floor(entry.Low(horizontal)) >= groupEnd) starts.Add(index);
+            if (Math.Floor(entry.Low(horizontal)) >= groupEnd) starts[groupCount++] = index;
             groupEnd = Math.Max(groupEnd, Math.Ceiling(entry.High(horizontal)));
         }
-        if (starts.Count == 1) return false;
-        starts.Add(count);
-        groupStarts = starts.ToArray();
+        if (groupCount == 1) return false;
+        starts[groupCount] = count;
         return true;
+    }
+
+    private sealed class ContourGroupScratch {
+        internal ContourGroupEntry[] Entries { get; private set; } = Array.Empty<ContourGroupEntry>();
+        internal int[] Starts { get; private set; } = Array.Empty<int>();
+
+        internal ContourGroupEntry[] ReserveEntries(int count) {
+            if (Entries.Length < count) Entries = new ContourGroupEntry[Math.Max(count, Entries.Length * 2)];
+            return Entries;
+        }
+
+        internal int[] ReserveStarts(int count) {
+            if (Starts.Length < count) Starts = new int[Math.Max(count, Starts.Length * 2)];
+            return Starts;
+        }
     }
 
     private readonly struct ContourGroupEntry {
