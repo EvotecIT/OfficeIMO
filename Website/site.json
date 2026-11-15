@@ -12,6 +12,10 @@
   "ProjectsRoot": "projects",
   "ThemesRoot": "themes",
   "DataRoot": "data",
+  "BenchmarkEvidence": [
+    { "Name": "benchmarks", "Catalog": "static/data/benchmarks/library-comparisons/index.json" }
+  ],
+  "Templates": { "LoopLimit": 100000 },
   "TemplateExports": [
     { "Name": "documentation-shell", "SourceRoute": "/docs/", "Layout": "documentation-shell" }
   ],

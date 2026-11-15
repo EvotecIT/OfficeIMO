@@ -3,7 +3,6 @@ title: "PowerShell"
 description: "PSWriteOffice automates Word, Excel, PowerPoint, PDF, Visio, Project and more from PowerShell on Windows, Linux and macOS, without Microsoft Office."
 meta.seo_title: "PSWriteOffice: Office documents from PowerShell"
 layout: application
-prism: true
 meta.application: "powershell"
 meta.software.name: "PSWriteOffice"
 meta.software.application_category: "DeveloperApplication"

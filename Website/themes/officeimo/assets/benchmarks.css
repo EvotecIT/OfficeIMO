@@ -46,8 +46,6 @@
 .imo-bench-run[aria-pressed="true"] { border-color: var(--imo-primary); box-shadow: inset 0 0 0 1px var(--imo-primary); background: var(--imo-primary-light); }
 .imo-bench-run:focus-visible { outline: 2px solid var(--imo-primary); outline-offset: 2px; }
 .imo-bench-chart { display: grid; gap: 1rem; min-width: 0; }
-.imo-bench-chart[aria-busy="true"] { opacity: .6; }
-.imo-bench-raw { margin: 0; padding-left: 1.1rem; color: var(--imo-text-secondary); font-size: .88rem; }
 .imo-bench-meta { margin: 0; color: var(--imo-text-secondary); font-size: .86rem; }
 .imo-bench-note { margin: 0; padding: 8px 12px; border-radius: 8px; background: color-mix(in srgb, var(--imo-warning) 12%, transparent); color: var(--imo-text); font-size: .86rem; }
 .imo-bench-links { margin: 0; color: var(--imo-text-muted); font-size: .82rem; }
@@ -151,3 +149,6 @@
 /* Benchmark tables sit inside article content; keep the article's table margin and row-header tint out of them. */
 .imo-bench-table-wrap > .imo-bench-table { margin: 0; }
 .imo-bench-table tbody th { background: transparent; }
+.imo-bench-run-panel { display: grid; gap: 1rem; min-width: 0; }
+.imo-bench-run-panel[hidden] { display: none; }
+.imo-bench-run-panel + .imo-bench-run-panel { padding-top: 1rem; border-top: 1px dashed var(--imo-border); }

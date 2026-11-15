@@ -106,14 +106,9 @@ catalog to `Website/data/benchmarks_index.json`. This copy is byte-identical to
 the published static index and retains full and `publish=false` quick entries.
 The benchmark and area pages render from that data at build time.
 
-The same step writes `Website/static/data/benchmarks/library-comparisons/summary.json`:
-every published run with all of its contenders and cases, without the raw samples
-and BenchmarkDotNet job settings. The hub and area pages draw their comparison
-tables from it, so one small file covers every run.
-
 Refresh the template data without merging with
 `./Build/Generate-LibraryComparisonWebsiteData.ps1`. Use `-CatalogPath` and
-`-WebsiteIndexPath` (and `-SummaryPath`) for an isolated copy, or `-DryRun` to validate and show the
+`-WebsiteIndexPath` for an isolated copy, or `-DryRun` to validate and show the
 output plan. Copying the published bytes preserves timestamp and numeric formats
 across locales.
 
