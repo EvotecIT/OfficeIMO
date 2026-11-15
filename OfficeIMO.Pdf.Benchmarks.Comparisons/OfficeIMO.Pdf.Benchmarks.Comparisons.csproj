@@ -13,6 +13,7 @@
     <CETCompat>false</CETCompat>
     <PeachPdfBenchmarkVersion>0.9.25</PeachPdfBenchmarkVersion>
     <PdfPeckerBenchmarkVersion>1.22.0</PdfPeckerBenchmarkVersion>
+    <KillerPdfBenchmarkVersion>1.9.2</KillerPdfBenchmarkVersion>
     <QuestPdfBenchmarkVersion Condition="'$(QuestPdfBenchmarkVersion)' == ''">2026.5.0</QuestPdfBenchmarkVersion>
     <QuestPdfInternalAuthorization Condition="'$(QuestPdfInternalAuthorization)' == ''">false</QuestPdfInternalAuthorization>
     <HtmlTinkerXProjectPath Condition="'$(HtmlTinkerXProjectPath)' == '' and '$(HTMLTINKERX_PROJECT_PATH)' != ''">$(HTMLTINKERX_PROJECT_PATH)</HtmlTinkerXProjectPath>
@@ -66,6 +67,16 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <PackageReference Include="RecursiveAI.OnePdf" Version="1.22.0" />
     <PackageReference Include="RecursiveAI.OnePdf.Layout" Version="1.22.0" />
+  </ItemGroup>
+
+  <!--
+    KillerPdf.Engine is GPL-3.0-only and ships net10.0 only, so its lanes compile only for that target.
+    Like iText (AGPL), it is referenced here for measurement only: this project is never packed,
+    published or distributed, and it is outside OfficeIMO.slnx and every solution filter.
+  -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="KillerPdf.Engine" Version="$(KillerPdfBenchmarkVersion)" />
+    <AssemblyMetadata Include="KillerPdfBenchmarkVersion" Value="$(KillerPdfBenchmarkVersion)" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
