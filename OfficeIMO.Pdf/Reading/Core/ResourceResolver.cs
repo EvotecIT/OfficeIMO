@@ -2270,12 +2270,20 @@ internal static partial class ResourceResolver {
         PdfImageColorConversionBuffer? colorComponents = colorNormalization.RequiresColorConversion
             ? colorNormalization.CreateConversionBuffer()
             : null;
+        // Samples that need neither conversion nor a Decode mapping are interleaved with the mask as they are.
+        bool copiesSamples = !colorNormalization.RequiresColorConversion && sourceColorCount != 4 &&
+            decodeTransform is null && alphaDecodeTransform is null;
         for (int row = 0; row < height; row++) {
             cancellationToken.ThrowIfCancellationRequested();
             int outputRow = row * (1 + outputRowLength);
             int baseRow = row * baseRowLength;
             int alphaRow = row * alphaRowLength;
             scanlines[outputRow] = 0;
+
+            if (copiesSamples) {
+                InterleaveAlphaRow(basePixels, baseRow, alphaPixels, alphaRow, scanlines, outputRow + 1, width, outputBaseColors);
+                continue;
+            }
 
             for (int pixel = 0; pixel < width; pixel++) {
                 int outputPixel = outputRow + 1 + pixel * outputChannels;
@@ -2307,6 +2315,26 @@ internal static partial class ResourceResolver {
             scanlines,
             OfficePngCompression.Stored);
         return true;
+    }
+
+    private static void InterleaveAlphaRow(byte[] samples, int sampleOffset, byte[] alpha, int alphaOffset,
+        byte[] target, int targetOffset, int width, int colors) {
+        if (colors == 3) {
+            for (int pixel = 0; pixel < width; pixel++) {
+                target[targetOffset] = samples[sampleOffset];
+                target[targetOffset + 1] = samples[sampleOffset + 1];
+                target[targetOffset + 2] = samples[sampleOffset + 2];
+                target[targetOffset + 3] = alpha[alphaOffset + pixel];
+                sampleOffset += 3;
+                targetOffset += 4;
+            }
+            return;
+        }
+
+        for (int pixel = 0; pixel < width; pixel++) {
+            for (int channel = 0; channel < colors; channel++) target[targetOffset++] = samples[sampleOffset++];
+            target[targetOffset++] = alpha[alphaOffset + pixel];
+        }
     }
 
     private static bool TryDecodeSoftMask(

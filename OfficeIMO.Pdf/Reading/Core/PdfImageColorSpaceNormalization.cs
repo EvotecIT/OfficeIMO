@@ -43,6 +43,11 @@ internal sealed class PdfImageColorSpaceNormalization {
         _renderingIntent = renderingIntent;
         _outputIntentColorTransform = outputIntentColorTransform;
         UsesIccApproximation = usesIccApproximation;
+        // Pixel loops ask this for every sample, so it is settled once from the fixed declaration.
+        RequiresColorConversion = _outputIntentColorTransform != null || _iccProfile != null || _alternateNormalization != null ||
+            _colorSpace.SuppressesPaint ||
+            _colorSpace.Kind is PdfPageColorSpaceKind.CalGray or PdfPageColorSpaceKind.CalRgb or
+            PdfPageColorSpaceKind.Lab or PdfPageColorSpaceKind.Indexed || HasNonUnitComponentRange();
     }
 
     internal int SourceColorCount { get; }
@@ -53,10 +58,7 @@ internal sealed class PdfImageColorSpaceNormalization {
 
     internal PdfPageColorSpaceKind Kind => _colorSpace.Kind;
 
-    internal bool RequiresColorConversion => _outputIntentColorTransform != null || _iccProfile != null || _alternateNormalization != null ||
-        _colorSpace.SuppressesPaint ||
-        _colorSpace.Kind is PdfPageColorSpaceKind.CalGray or PdfPageColorSpaceKind.CalRgb or
-        PdfPageColorSpaceKind.Lab or PdfPageColorSpaceKind.Indexed || HasNonUnitComponentRange();
+    internal bool RequiresColorConversion { get; }
 
     internal bool UsesIccApproximation { get; }
 
