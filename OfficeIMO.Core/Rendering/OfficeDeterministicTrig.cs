@@ -54,10 +54,21 @@ internal static class OfficeDeterministicTrig {
         }
         double square = value * value;
         double sum = 0D;
-        for (int term = 31; term >= 1; term -= 2) {
-            sum = 1D / term - square * sum;
+        double[] reciprocals = OddReciprocals;
+        for (int index = 0; index < reciprocals.Length; index++) {
+            sum = reciprocals[index] - square * sum;
         }
         return offset + value * sum;
+    }
+
+    // 1/31, 1/29, ..., 1/1: the series coefficients in evaluation order, each the same correctly
+    // rounded quotient the loop used to divide out on every call.
+    private static readonly double[] OddReciprocals = CreateOddReciprocals();
+
+    private static double[] CreateOddReciprocals() {
+        var reciprocals = new double[16];
+        for (int index = 0, term = 31; term >= 1; index++, term -= 2) reciprocals[index] = 1D / term;
+        return reciprocals;
     }
 
     private static double Reduce(double angle, out int quadrant) {
