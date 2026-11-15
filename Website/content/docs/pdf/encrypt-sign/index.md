@@ -2,6 +2,20 @@
 title: "Encrypt, Decrypt, and Sign PDFs"
 description: "Encrypt PDFs with passwords and permissions, decrypt protected files, sign with a certificate and validate signatures with OfficeIMO.Pdf."
 layout: docs
+packages:
+  - OfficeIMO.Pdf
+cmdlets:
+  - Protect-OfficeDocument
+  - Get-OfficePdfSignature
+limits: "Mathematical verification proves the signed bytes are intact; trust in the signer's certificate chain is a separate policy decision."
+search_terms:
+  - sign pdf
+  - encrypt pdf
+  - pdf password
+  - digital signature
+commands:
+  - officeimo pdf decrypt
+verified: 2026-11-14
 ---
 
 Encryption controls who can open a PDF and what the viewer allows (printing, copying, editing). A digital signature proves who approved the document and that it has not changed since. For the architecture, signature formats, and long-term validation, see [PDF security and digital signatures](/docs/pdf/security/).
@@ -98,9 +112,3 @@ Console.WriteLine(report.HasSignatures && report.MathematicalSignaturesVerified
 ```powershell
 Get-OfficePdfSignature -Path .\contract-signed.pdf
 ```
-
-## Limits and reference
-
-**Limits:** mathematical verification proves the signed bytes are intact; trust in the signer's certificate chain is a separate policy decision. See the [PDF package row](/compatibility/#package-pdf).
-
-**Reference:** [OfficeIMO.Pdf API](/api/pdf/) · [Protect-OfficeDocument](/api/powershell/protect-officedocument/) · [Get-OfficePdfSignature](/api/powershell/get-officepdfsignature/)

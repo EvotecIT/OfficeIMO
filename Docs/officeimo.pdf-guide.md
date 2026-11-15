@@ -1290,6 +1290,16 @@ selectedRanges[1].Save("packet-evidence.pdf");
 
 For document-relative expressions such as `last,1,last`, resolve the immutable `OfficePageSelector` against the inspected source page count. The overload `selector.Resolve(pageCount, maximumPages: 100)` rejects a selection before retaining more than 100 output pages, including repeats. Host workflows use this bound before extraction or OCR and keep the source separate from the output.
 
+Extraction and splitting keep the source's bookmarks, named destinations, link annotations and actions for the pages they keep, including when the source stores its objects in object streams behind cross-reference streams; the output uses a classic cross-reference table. Bookmarks keep their order, nesting, open state and non-navigation actions. A bookmark whose destination page is left out is removed, or kept without a destination when some of its children remain. Named destinations, links and go-to actions that lead to pages left out are removed. Each removal is a sentence in the output's last pipeline step:
+
+```csharp
+using PdfDocument front = source.Pages.Extract("1-3");
+foreach (string change in front.Pipeline.Steps[front.Pipeline.Steps.Count - 1].Diagnostics)
+    Console.WriteLine(change); // Bookmark "Results" was removed because its destination page is not in the output.
+```
+
+Extraction refuses signed, certified and usage-rights documents, XFA forms, encrypted documents without the required permission, sources with unreadable objects and unencrypted sources with inconsistent object references. `PdfMutationBlockedException` carries the plan, whose blockers name each reason; `PlanMutation(PdfMutationOperation.ExtractPages)` returns the same plan without extracting.
+
 To place source pages on printable sheets, use the same page import engine for N-up or duplex booklet output:
 
 ```csharp
@@ -1775,6 +1785,14 @@ File.WriteAllBytes("Service-review-protected.pdf", protectedPdf.Pdf);
 <!-- /powerforge:code -->
 
 `Security.Encrypt` applies Standard security, AES-256 by default, with typed permissions and Unicode passwords; read `PdfSecurityMutationResult.Pdf` for the protected bytes and `PreservationReport` for what the rewrite kept. `Security.Decrypt(ownerPassword)` removes protection. To protect a new document as it is written, pass `new PdfCreateOptions().SetEncryption("open-password", ownerPassword: "owner-password")` to `PdfDocument.Create`.
+
+### Opening password-protected PDFs
+
+`PdfLoadOptions.Password` opens Standard security revisions 2 to 7: RC4, AES-128, AES-256 and the AES-256-GCM crypt filter of ISO/TS 32003 (`/AESV4`, revision 7). Revision 5 and later passwords pass through SASLprep (RFC 4013) before UTF-8 encoding, as ISO 32000-2 requires, so a password typed with a feminine ordinal (U+00AA) and a soft hyphen (U+00AD), `"S\u00AASL\u00ADprep"`, matches `"SaSLprep"`. OfficeIMO writes passwords the same way; a password that SASLprep prohibits, such as one with control characters, keeps its plain NFKC form, and files whose producer skipped SASLprep still open.
+
+AES-GCM checks every string's and stream's authentication tag before using it and throws `PdfEncryptedContentIntegrityException` when encrypted content was changed. .NET 8 and later use the platform `AesGcm`; .NET Framework, .NET Standard 2.0 hosts, browser WebAssembly and callers that set `AesCryptographyProvider` use a managed GCM over the AES block cipher. The document-level MAC of ISO/TS 32004 (`/KDFSalt`, `/AuthCode`) is not verified, and appending incremental updates to revision 7 files is refused. OfficeIMO does not write revision 7: AES-256 revision 6 remains the output default because most PDF readers cannot open AES-GCM files yet.
+
+A file that encrypts only its embedded files (`/StmF` and `/StrF /Identity` with an `/EFF` crypt filter) opens without a password; extracting its attachments throws `PdfPasswordRequiredException` until the document is opened with the password. Streams that name a crypt filter through `/Filter /Crypt` are decrypted with that filter, including `/Identity`. RC4 files without `/Length` use the 40-bit default and, for `/V 2` and `/V 3`, also accept the 128-bit key some producers wrote; a damaged `/O` or `/U` entry or an `/Encrypt` reference that cannot be resolved throws `PdfUnsupportedEncryptionException`.
 
 ### Password protection on browser or restricted hosts
 

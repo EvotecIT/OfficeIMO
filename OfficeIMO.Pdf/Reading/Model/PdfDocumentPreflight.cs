@@ -13,6 +13,12 @@ public sealed partial class PdfDocumentPreflight {
     /// <summary>Expensive ownership proof is evaluated once, only by a redaction caller.</summary>
     internal Lazy<bool>? RedactionObjectGraphProof { get; set; }
 
+    /// <summary>
+    /// Why the catalog-rooted graph that page extraction's catalog-preserving writer copies has a missing or mismatched
+    /// object reference; null when it is complete or extraction does not use that writer.
+    /// </summary>
+    internal Lazy<string?>? CatalogPreservingExtractionGraphFailure { get; set; }
+
     /// <summary>Redaction-only proof that retained navigation contains only local destinations and GoTo actions.</summary>
     internal Lazy<bool>? RedactionNavigationProof { get; set; }
     internal bool CanPreserveRedactionNavigation => RedactionNavigationProof?.Value == true;

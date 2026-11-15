@@ -489,6 +489,7 @@ public sealed partial class PdfDocument : IDisposable {
         int outputPageCount,
         PdfLoadOptions? readOptions = null,
         [System.Runtime.CompilerServices.CallerMemberName] string operationName = "",
+        IReadOnlyList<string>? diagnostics = null,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(inputBytes, nameof(inputBytes));
         Guard.NotNull(input, nameof(input));
@@ -506,7 +507,8 @@ public sealed partial class PdfDocument : IDisposable {
             output,
             effectiveReadOptions,
             operationName,
-            canonicalRewrittenOutput: true);
+            canonicalRewrittenOutput: true,
+            diagnostics: diagnostics);
     }
 
     /// <summary>Sizes output read limits, reusing this source's marker scan when the input is its own bytes.</summary>
@@ -528,7 +530,8 @@ public sealed partial class PdfDocument : IDisposable {
         PdfLoadOptions effectiveReadOptions,
         string operationName,
         PdfReadDocument? readDocument = null,
-        bool canonicalRewrittenOutput = false) {
+        bool canonicalRewrittenOutput = false,
+        IReadOnlyList<string>? diagnostics = null) {
         PdfMutationOperation? mutationOperation = ResolveMutationOperation(operationName);
         PdfMutationExecutionMode executionMode = IsAppendOnly(inputBytes, pdf)
             ? PdfMutationExecutionMode.AppendOnly
@@ -541,7 +544,8 @@ public sealed partial class PdfDocument : IDisposable {
             output,
             duration: null,
             mutationOperation,
-            executionMode);
+            executionMode,
+            diagnostics);
         var source = readDocument is null
             ? canonicalRewrittenOutput
                 ? PdfDocumentSource.FromOwnedRewrittenBytes(pdf, effectiveReadOptions)

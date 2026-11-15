@@ -2,6 +2,15 @@
 title: Write CSV from Objects and Data Readers
 description: "Write CSV from objects and IDataReader results, with formula-injection protection and compression, using OfficeIMO.CSV and PSWriteOffice."
 order: 52
+packages:
+  - OfficeIMO.CSV
+cmdlets:
+  - Export-OfficeCsv
+search_terms:
+  - write csv
+  - export csv
+  - objects to csv
+verified: 2026-11-14
 ---
 
 `CsvDocument` is the editable model for building a file in memory. For exports, write rows directly: `SaveObjects` writes a sequence of objects, and `WriteDataReader` streams a database result to disk without materializing it.
@@ -91,9 +100,3 @@ using var output = File.CreateText("projected.csv");
 using var csv = new CsvRowWriter(output);
 csv.WriteRows(new[] { "Name", "Count", "Active" }, projected);
 ```
-
-## Limits and reference
-
-**Limits:** see the [CSV package row](/compatibility/#package-csv).
-
-**Reference:** [OfficeIMO.CSV API](/api/csv/) · [Export-OfficeCsv](/api/powershell/export-officecsv/)

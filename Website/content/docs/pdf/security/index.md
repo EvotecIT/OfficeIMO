@@ -2,6 +2,7 @@
 title: "PDF Security and Digital Signatures"
 description: "Encrypt PDFs, inspect signature structure, verify CMS signatures, preserve signed revisions, and enrich long-term validation evidence."
 layout: docs
+verified: 2026-11-14
 ---
 
 PDF passwords, permissions, digital signatures, certification policies, and long-term validation evidence are different controls. Choose the control that matches the threat and compliance requirement.

@@ -34,6 +34,22 @@ internal static partial class PdfSyntax {
         return false;
     }
 
+    /// <summary>Whether any parsed trailer dictionary in the chain has <paramref name="key"/>, whatever its value.</summary>
+    internal static bool TrailerDeclaresKey(string? trailerRaw, string key, PdfReadLimits? limits, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (string.IsNullOrEmpty(trailerRaw)) return false;
+        int searchIndex = 0;
+        PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
+        while (TryReadNextTrailerDictionary(trailerRaw!, ref searchIndex, effectiveLimits, out PdfDictionary dictionary, cancellationToken)) {
+            if (dictionary.Items.ContainsKey(key)) return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>Parses the entries of a dictionary written without its enclosing angle brackets.</summary>
+    internal static PdfDictionary ParseDictionaryEntries(string entries, PdfReadLimits? limits = null) => ParseDictionary(entries, limits);
+
     /// <summary>Reads up to three trailer references in one chain scan, retaining explicit non-reference overrides.</summary>
     internal static (PdfReference? First, PdfReference? Second, PdfReference? Third) ReadTrailerReferences(
         string? trailerRaw,

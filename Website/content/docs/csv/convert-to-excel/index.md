@@ -2,6 +2,17 @@
 title: Convert CSV to Excel
 description: Import CSV files into Excel worksheets as typed tables and export worksheets back to CSV with OfficeIMO.Excel.Csv, PSWriteOffice, and the officeimo CLI.
 order: 54
+packages:
+  - OfficeIMO.Excel.Csv
+  - OfficeIMO.CSV
+limits: "Conversion reports list omitted headers and schema projection; set `FailOnLoss` in the export options to reject them before writing."
+search_terms:
+  - csv to excel
+  - csv to xlsx
+  - excel to csv
+commands:
+  - officeimo tabular convert
+verified: 2026-11-14
 ---
 
 `OfficeIMO.Excel.Csv` connects the CSV and Excel packages. CSV parsing stays in `OfficeIMO.CSV` and workbook writing stays in `OfficeIMO.Excel`, so neither package depends on the other unless you install the adapter.
@@ -79,9 +90,3 @@ Import-OfficeExcel -Path .\sales.xlsx -Sheet Sales | Export-OfficeCsv -Path .\sa
 ```sh
 officeimo tabular convert sales.xlsx sales-export.csv --sheet Sales
 ```
-
-## Limits and reference
-
-**Limits:** see the [Excel CSV adapter row](/compatibility/#package-excel-csv). Conversion reports list omitted headers and schema projection; set `FailOnLoss` in the export options to reject them before writing.
-
-**Reference:** [OfficeIMO.Excel.Csv API](/api/excel-csv/) · [OfficeIMO.CSV API](/api/csv/)

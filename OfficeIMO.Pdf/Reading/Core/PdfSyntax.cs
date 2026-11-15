@@ -321,7 +321,7 @@ internal static partial class PdfSyntax {
             }
         }
         PdfStandardSecurityHandler? decryptor = null;
-        int? encryptObjectNumber = ReadTrailerReference(trailerRaw, "Encrypt", limits, cancellationToken)?.ObjectNumber;
+        int? encryptObjectNumber = FindEncryptReference(map, trailerRaw, limits, cancellationToken)?.ObjectNumber;
         if (encryptObjectNumber.HasValue) {
             TryCreateDecryptor(map, trailerRaw, options, out decryptor, cancellationToken);
             if (decryptor is not null) {
