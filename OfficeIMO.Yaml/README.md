@@ -138,6 +138,30 @@ the merged file differs from `values.yaml` only in `tag`, in `resources` (a `res
 
 `YamlMergeReport` lists the added, replaced and removed paths in the grammar `Select` reads, and its `Diagnostics` hold the conflicts, alias edits and renamed anchors, which are also added to the base document's `Diagnostics`.
 
+## JSON Patch and JSON Merge Patch
+
+```csharp
+using var deployment = YamlDocument.Load("deployment.yaml");
+YamlPatchReport report = deployment.ApplyJsonPatch("""
+    [
+      { "op": "test", "path": "/spec/replicas", "value": 2 },
+      { "op": "replace", "path": "/spec/replicas", "value": 3 },
+      { "op": "add", "path": "/metadata/labels/env", "value": "prod" }
+    ]
+    """);
+deployment.ApplyMergePatch("""{ "metadata": { "annotations": null } }""");
+deployment.Save();
+```
+
+`ApplyJsonPatch` applies an [RFC 6902](https://www.rfc-editor.org/rfc/rfc6902) patch (`add`, `remove`, `replace`, `move`, `copy`, `test`) and `ApplyMergePatch` an [RFC 7386](https://www.rfc-editor.org/rfc/rfc7386) merge patch. Both take JSON text, YAML text or a loaded `YamlDocument`, address the first document of the stream with [RFC 6901](https://www.rfc-editor.org/rfc/rfc6901) pointers, and go through the editing operations, so only the patched lines change.
+
+- **All or nothing**: a failed `test`, a pointer to nothing, a malformed operation or an edit the model refuses throws `YamlPatchException` (with `OperationIndex` and `Path`), and the document is unchanged.
+- **Values** are copied as their typed view: aliases expanded, `<<` merges flattened, anchors left out, so a JSON patch and the same patch written in YAML do the same thing. New collections take block layout and strings the document's quoting; `move` keeps the moved node's comments and spelling. `test` compares as JSON: mappings regardless of key order, numbers by value.
+- **Aliases and merge keys**: pointers follow aliases and the keys `<<` merges provide. A patch through an alias edits the anchored node and is reported. Setting a key that only a merge provides adds an entry of its own; removing one (or a merge patch null for one) fails, because merged mappings are never edited. Removing or replacing a node that aliases use fails, and so does a `move` that would put an alias before its anchor.
+- **Merge patch** merges as `Merge` does with `NullRemovesKey`: an equal value keeps its spelling and a replaced sequence changes only the items that differ.
+
+`YamlPatchReport` lists the added, replaced and removed paths in the grammar `Select` reads, with the same `Diagnostics` as a merge.
+
 ## Writing YAML
 
 ```csharp

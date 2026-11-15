@@ -176,7 +176,7 @@ internal sealed class YamlMerge {
             }
             if (target.TryGetValue(entry.Text, out YamlNode? merged)) {
                 if (remove) {
-                    Note(OfficeDiagnosticCodes.YamlMergeKeyNotRemoved, OfficeDiagnosticSeverity.Warning,
+                    Refuse(OfficeDiagnosticCodes.YamlMergeKeyNotRemoved, OfficeDiagnosticSeverity.Warning,
                         "The overlay null for '" + Display(childPath) + "' cannot remove the key, because a << merge key provides it and merged mappings are never edited.", target);
                 } else {
                     OverrideMerged(target, entry, merged!, childPath, depth + 1);
@@ -184,7 +184,7 @@ internal sealed class YamlMerge {
                 continue;
             }
             if (remove) continue;
-            YamlEdit.InsertEntry(target, target._count, CopyKey(entry.Key), Copy(entry.Value, keepAnchor: true, comments: true));
+            YamlEdit.InsertEntry(target, target._count, CopyKey(entry.Key), Copy(entry.Value, keepAnchor: true, comments: true, _options.MergePatch));
             Added(childPath);
         }
     }
@@ -204,8 +204,8 @@ internal sealed class YamlMerge {
         }
         int budget = CompareBudget;
         if (Equal(value, incoming, ref budget)) return;
-        YamlEdit.InsertEntry(target, target._count, CopyKey(entry.Key), Copy(entry.Value, keepAnchor: true, comments: true));
-        if (!SameKind(value, incoming) && !value.IsNull && !incoming.IsNull) NoteConflict(path, value, incoming, Location(target));
+        YamlEdit.InsertEntry(target, target._count, CopyKey(entry.Key), Copy(entry.Value, keepAnchor: true, comments: true, _options.MergePatch));
+        if (!SameKind(value, incoming) && !value.IsNull && !incoming.IsNull && !_options.MergePatch) NoteConflict(path, value, incoming, Location(target));
         Replaced(path);
     }
 
@@ -339,8 +339,8 @@ internal sealed class YamlMerge {
     private void ReplaceNode(Slot slot, YamlNode current, YamlNode overlay, string path, bool conflict) {
         YamlNode value = current.Resolved, incoming = overlay.Resolved;
         string? location = Location(current);
-        if (!Put(slot, Copy(overlay, keepAnchor: true, comments: false), current)) return;
-        if (conflict) NoteConflict(path, value, incoming, location);
+        if (!Put(slot, Copy(overlay, keepAnchor: true, comments: false, _options.MergePatch), current)) return;
+        if (conflict && !_options.MergePatch) NoteConflict(path, value, incoming, location);
         Replaced(path);
     }
 
@@ -351,7 +351,7 @@ internal sealed class YamlMerge {
             else YamlEdit.ReplaceValue(slot.Collection!, slot.Index, node);
             return true;
         } catch (InvalidOperationException exception) {
-            Note(OfficeDiagnosticCodes.YamlMergeKindConflict, OfficeDiagnosticSeverity.Warning,
+            Refuse(OfficeDiagnosticCodes.YamlMergeKindConflict, OfficeDiagnosticSeverity.Warning,
                 "The overlay value cannot replace the base value" + current.Where() + ", which stays: " + exception.Message, current);
             return false;
         }
@@ -363,7 +363,7 @@ internal sealed class YamlMerge {
             YamlEdit.RemoveChild(target, index);
             Removed(path);
         } catch (InvalidOperationException exception) {
-            Note(OfficeDiagnosticCodes.YamlMergeKeyNotRemoved, OfficeDiagnosticSeverity.Warning,
+            Refuse(OfficeDiagnosticCodes.YamlMergeKeyNotRemoved, OfficeDiagnosticSeverity.Warning,
                 "The overlay null for '" + Display(path) + "' cannot remove the key: " + exception.Message, value);
         }
     }
@@ -374,7 +374,7 @@ internal sealed class YamlMerge {
             YamlEdit.RemoveChild(collection, index);
             return true;
         } catch (InvalidOperationException exception) {
-            Note(OfficeDiagnosticCodes.YamlMergeKeyNotRemoved, OfficeDiagnosticSeverity.Warning,
+            Refuse(OfficeDiagnosticCodes.YamlMergeKeyNotRemoved, OfficeDiagnosticSeverity.Warning,
                 "The base value" + child.Where() + " that the overlay replaces cannot be removed: " + exception.Message, child);
             return false;
         }
@@ -389,13 +389,15 @@ internal sealed class YamlMerge {
     /// <summary>
     /// Copies a node into new nodes that can join the base: values, styles, tags and, when asked, comments, anchors and
     /// aliases. Strings take their quoting from the base when they join it; block scalars and non-string plain scalars
-    /// keep their spelling unless the base schema would read it as something else.
+    /// keep their spelling unless the base schema would read it as something else. <c>dropNulls</c> leaves out mapping
+    /// entries whose value is null, in mappings reached through mappings but not inside sequences, since an RFC 7386
+    /// merge patch merges an object into an empty one.
     /// </summary>
-    private YamlNode Copy(YamlNode node, bool keepAnchor, bool comments) {
+    private YamlNode Copy(YamlNode node, bool keepAnchor, bool comments, bool dropNulls = false) {
         YamlNode copy;
         switch (node) {
             case YamlAlias alias:
-                return CopyAlias(alias);
+                return dropNulls ? Copy(alias.Target, keepAnchor: false, comments, dropNulls) : CopyAlias(alias);
             case YamlScalar scalar:
                 copy = CopyScalar(scalar);
                 break;
@@ -406,8 +408,9 @@ internal sealed class YamlMerge {
                     // Of equal keys a lenient load admitted, only the one lookups see is copied.
                     string? text = YamlMapping.KeyText(entry.Key);
                     if (text is not null && mapping.IndexOf(text) != i) continue;
+                    if (dropNulls && entry.Value.IsNull) continue;
                     YamlNode key = entry.Key is YamlAlias keyAlias ? Copy(keyAlias.Target, keepAnchor: false, comments) : Copy(entry.Key, keepAnchor, comments);
-                    YamlEdit.InsertEntry(target, target._count, key, Copy(entry.Value, keepAnchor, comments));
+                    YamlEdit.InsertEntry(target, target._count, key, Copy(entry.Value, keepAnchor, comments, dropNulls));
                 }
                 copy = target;
                 break;
@@ -446,7 +449,14 @@ internal sealed class YamlMerge {
         return Copy(target, keepAnchor: false, comments: false);
     }
 
-    private YamlScalar CopyScalar(YamlScalar scalar) {
+    private YamlScalar CopyScalar(YamlScalar scalar) => CopyScalar(scalar, BaseSchema);
+
+    /// <summary>
+    /// Copies a scalar so it can join a document read under <paramref name="baseSchema"/>: tags and block styles stay,
+    /// quoted strings take the document's quoting, and plain values keep their spelling unless that schema would read it
+    /// as something else.
+    /// </summary>
+    internal static YamlScalar CopyScalar(YamlScalar scalar, YamlSchema baseSchema) {
         string value = scalar.Value;
         if (scalar.Tag is { } tag) {
             YamlStyle tagged = scalar._style == YamlStyle.None ? YamlStyle.Plain : scalar._style;
@@ -463,7 +473,7 @@ internal sealed class YamlMerge {
                 if (kind == YamlScalarKind.String) return new YamlScalar(value);
                 if (kind == YamlScalarKind.Null && value.Length == 0) return new YamlScalar((string?)null);
                 if (kind is YamlScalarKind.Null or YamlScalarKind.Boolean or YamlScalarKind.Integer or YamlScalarKind.Float
-                    && YamlSchemaResolver.Resolve(value.AsSpan(), BaseSchema) != kind) {
+                    && YamlSchemaResolver.Resolve(value.AsSpan(), baseSchema) != kind) {
                     // The base schema reads the spelling differently (yes under YAML 1.1 is a string under 1.2): write the value.
                     Data(scalar, out _, out string canonical, out _);
                     return new YamlScalar(canonical, YamlStyle.Plain);
@@ -532,7 +542,7 @@ internal sealed class YamlMerge {
     // ------------------------------------------------------------------ values
 
     /// <summary>One entry of a mapping's typed view: own entries, then entries that merge keys provide.</summary>
-    private readonly struct Entry {
+    internal readonly struct Entry {
         public Entry(YamlNode key, string? text, YamlNode value) {
             Key = key;
             Text = text;
@@ -548,7 +558,7 @@ internal sealed class YamlMerge {
     /// Lists a mapping's entries as its typed view sees them: its own entries (the one lookups pick of equal keys), then
     /// the entries of its <c>&lt;&lt;</c> merges in order, each key once.
     /// </summary>
-    private static List<Entry> Effective(YamlMapping mapping) {
+    internal static List<Entry> Effective(YamlMapping mapping) {
         var entries = new List<Entry>(mapping._count);
         Collect(mapping, entries, new HashSet<string>(StringComparer.Ordinal), 0);
         return entries;
@@ -590,7 +600,7 @@ internal sealed class YamlMerge {
     /// Reads a scalar's value under its own schema: its kind, a canonical text for nulls, booleans and numbers, the decoded
     /// text for others, and the tag when no schema resolves it.
     /// </summary>
-    private static void Data(YamlScalar scalar, out YamlScalarKind kind, out string text, out string? customTag) {
+    internal static void Data(YamlScalar scalar, out YamlScalarKind kind, out string text, out string? customTag) {
         customTag = null;
         if (!scalar.TryGetKind(out kind)) {
             kind = YamlScalarKind.Custom;
@@ -672,6 +682,15 @@ internal sealed class YamlMerge {
     private static string? Location(YamlNode? node) => node is not null && node.HasSourceSpan ? node.Start.ToString() : null;
 
     private void Note(string code, OfficeDiagnosticSeverity severity, string message, YamlNode? at) => Add(code, severity, message, Location(at));
+
+    /// <summary>
+    /// Records an edit the merge cannot make; a merge patch must reach the RFC 7386 result, so there it fails instead
+    /// and <see cref="YamlPatch"/> leaves the document unchanged.
+    /// </summary>
+    private void Refuse(string code, OfficeDiagnosticSeverity severity, string message, YamlNode? at) {
+        if (_options.MergePatch) throw new InvalidOperationException(message);
+        Note(code, severity, message, at);
+    }
 
     private void Add(string code, OfficeDiagnosticSeverity severity, string message, string? location) {
         var diagnostic = new OfficeDiagnostic(code, severity, message, location, "YAML");

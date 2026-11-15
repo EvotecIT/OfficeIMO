@@ -24,6 +24,8 @@ public sealed partial class YamlDocument : IDisposable {
     /// <summary>Set by any edit; an unedited document saves as one copy of its source.</summary>
     internal bool _partsDirty;
     private string? _path;
+    /// <summary>The schema the load forced with <see cref="YamlLoadOptions.Schema"/>, if any.</summary>
+    private YamlSchema? _loadSchema;
     /// <summary>The loaded nodes; null for a document created in memory.</summary>
     internal YamlNodeTable? _table;
     /// <summary>The pooled UTF-8 input, byte-order mark included, of a document loaded from bytes; null otherwise.</summary>
@@ -180,6 +182,88 @@ public sealed partial class YamlDocument : IDisposable {
     /// <exception cref="ArgumentNullException"><paramref name="overlay"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="overlay"/> is this document.</exception>
     public YamlMergeReport Merge(YamlDocument overlay, YamlMergeOptions? options = null) => YamlMerge.Merge(this, overlay, options);
+
+    /// <summary>
+    /// Applies an RFC 6902 JSON Patch given as JSON (or YAML) text: an array of <c>add</c>, <c>remove</c>,
+    /// <c>replace</c>, <c>move</c>, <c>copy</c> and <c>test</c> operations whose RFC 6901 pointers address the first
+    /// document of the stream. The patch is all or nothing, and saving writes only the lines it touched.
+    /// </summary>
+    /// <remarks>
+    /// <para>Pointers follow aliases and the keys <c>&lt;&lt;</c> merges provide, as <see cref="Select"/> does. Setting a
+    /// key that only a merge provides adds an entry of its own; removing one fails, because merged mappings are never
+    /// edited. An edit through an alias edits the anchored node and is reported. Removing or replacing a node that
+    /// aliases still use fails, and so does a <c>move</c> that would put an alias before its anchor.</para>
+    /// <para>Values are copied as their typed view: aliases expanded, merges flattened, anchors left out. New collections
+    /// take block layout (flow inside a flow collection) and strings the document's quoting; a <c>move</c> keeps the
+    /// moved node's comments and spelling. <c>test</c> compares as JSON: mappings regardless of order, and numbers by value.</para>
+    /// <para>The patch runs on a copy loaded from the document's saved text first, so a failed <c>test</c>, a pointer to
+    /// nothing or a refused edit throws <see cref="YamlPatchException"/> and leaves the document unchanged.</para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// using var deployment = YamlDocument.Load("deployment.yaml");
+    /// deployment.ApplyJsonPatch("""
+    ///     [
+    ///       { "op": "test", "path": "/spec/replicas", "value": 2 },
+    ///       { "op": "replace", "path": "/spec/replicas", "value": 3 },
+    ///       { "op": "add", "path": "/spec/template/spec/containers/0/env/-", "value": { "name": "MODE", "value": "prod" } }
+    ///     ]
+    ///     """);
+    /// deployment.Save();
+    /// </code>
+    /// </example>
+    /// <returns>The added, replaced and removed paths and the findings of the patch.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="patch"/> is null.</exception>
+    /// <exception cref="YamlException"><paramref name="patch"/> is not valid JSON or YAML, or an object repeats a member name.</exception>
+    /// <exception cref="YamlPatchException">The patch is malformed or an operation fails; the document is unchanged.</exception>
+    public YamlPatchReport ApplyJsonPatch(string patch) {
+        using YamlDocument operations = Parse(patch ?? throw new ArgumentNullException(nameof(patch)), YamlPatch.TextOptions);
+        return YamlPatch.ApplyJsonPatch(this, operations);
+    }
+
+    /// <summary>
+    /// Applies an RFC 6902 JSON Patch held in a loaded document, for example one written in YAML; see
+    /// <see cref="ApplyJsonPatch(string)"/>. The patch document is only read.
+    /// </summary>
+    /// <returns>The added, replaced and removed paths and the findings of the patch.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="patch"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="patch"/> is this document.</exception>
+    /// <exception cref="YamlPatchException">The patch is malformed or an operation fails; the document is unchanged.</exception>
+    public YamlPatchReport ApplyJsonPatch(YamlDocument patch) => YamlPatch.ApplyJsonPatch(this, patch);
+
+    /// <summary>
+    /// Applies an RFC 7386 JSON Merge Patch given as JSON (or YAML) text to the first document of the stream: an object
+    /// merges key by key, a null removes the key, and any other value, arrays included, replaces. Saving writes only the
+    /// lines the patch touched.
+    /// </summary>
+    /// <remarks>
+    /// <para>It merges as <see cref="Merge"/> does with <see cref="YamlMergeOptions.NullRemovesKey"/>: an equal value keeps
+    /// the document's spelling, a replaced sequence changes only the items that differ, and new keys are appended in the
+    /// document's layout. A patch object over a value that is not a mapping replaces it with the patch's non-null
+    /// entries. A key that only a <c>&lt;&lt;</c> merge provides gets an entry of its own; a null for one fails, because
+    /// merged mappings are never edited.</para>
+    /// <para>A failure throws <see cref="YamlPatchException"/> and leaves the document unchanged. An empty patch stream
+    /// changes nothing; a patch that is <c>null</c> replaces the root with null, as the RFC says.</para>
+    /// </remarks>
+    /// <returns>The added, replaced and removed paths and the findings of the patch.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="patch"/> is null.</exception>
+    /// <exception cref="YamlException"><paramref name="patch"/> is not valid JSON or YAML, or an object repeats a member name.</exception>
+    /// <exception cref="YamlPatchException">The patch cannot be applied; the document is unchanged.</exception>
+    public YamlPatchReport ApplyMergePatch(string patch) {
+        using YamlDocument values = Parse(patch ?? throw new ArgumentNullException(nameof(patch)), YamlPatch.TextOptions);
+        return YamlPatch.ApplyMergePatch(this, values);
+    }
+
+    /// <summary>
+    /// Applies an RFC 7386 JSON Merge Patch held in a loaded document, for example a YAML values file; see
+    /// <see cref="ApplyMergePatch(string)"/>. Comments in the patch go with the values they describe. The patch document is
+    /// only read.
+    /// </summary>
+    /// <returns>The added, replaced and removed paths and the findings of the patch.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="patch"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="patch"/> is this document.</exception>
+    /// <exception cref="YamlPatchException">The patch cannot be applied; the document is unchanged.</exception>
+    public YamlPatchReport ApplyMergePatch(YamlDocument patch) => YamlPatch.ApplyMergePatch(this, patch);
 
     /// <summary>Adds a document with the given root at the end of the stream, after a <c>---</c> marker when it is not the first.</summary>
     /// <returns>The new document part.</returns>

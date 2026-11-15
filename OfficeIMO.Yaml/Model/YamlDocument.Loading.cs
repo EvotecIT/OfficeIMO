@@ -119,6 +119,7 @@ public sealed partial class YamlDocument {
 
     private static YamlDocument Build(string text, YamlTextEncoding encoding, bool byteOrderMark, YamlLoadOptions options, CancellationToken cancellationToken) {
         var document = new YamlDocument(text, encoding, byteOrderMark, options.EffectiveDuplicateKeys, options.Strict) { Dialect = options.Dialect };
+        document._loadSchema = options.Schema;
         var table = new YamlNodeTable(text);
         document._table = table;
         bool built = false;
@@ -132,6 +133,25 @@ public sealed partial class YamlDocument {
             if (!built) table.Release();
         }
         return document;
+    }
+
+    /// <summary>
+    /// Loads a second document from this one's saved text, read as this one was, for an edit that must succeed as a whole:
+    /// the edit runs on the copy first, so a failure leaves this document unchanged. Limits do not apply, since the text
+    /// already loaded once.
+    /// </summary>
+    internal YamlDocument LoadCopy() {
+        var options = new YamlLoadOptions {
+            Schema = _loadSchema,
+            Dialect = Dialect,
+            Strict = Strict,
+            DuplicateKeys = DuplicateKeys,
+            MaxDepth = int.MaxValue,
+            MaxNodes = int.MaxValue,
+            MaxAliasExpansion = int.MaxValue,
+            MaxScalarLength = int.MaxValue
+        };
+        return Build(ToString(), YamlTextEncoding.Utf8, byteOrderMark: false, options, CancellationToken.None);
     }
 
     private static void RequireReadable(Stream stream) {
