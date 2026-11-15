@@ -42,7 +42,8 @@ internal static partial class MarkdownReader {
         int inlineHtmlWrapperDepth = 0,
         int imageAltDepth = 0,
         TableCellHtmlMode tableCellHtmlMode = TableCellHtmlMode.Unrestricted) {
-        var root = new InlineSequence(ContainsPotentialInlineSyntax(text, options, allowLinks, allowImages) ? 8 : 1) {
+        bool containsPotentialInlineSyntax = ContainsPotentialInlineSyntax(text, options, allowLinks, allowImages);
+        var root = new InlineSequence(containsPotentialInlineSyntax ? 8 : 1) {
             AutoSpacing = false
         };
         if (string.IsNullOrEmpty(text)) return root;
@@ -51,7 +52,7 @@ internal static partial class MarkdownReader {
         if (sourceMap == null
             && inlineParserExtensions.Count == 0
             && !(options.Abbreviations && state?.Abbreviations.Count > 0)
-            && !ContainsPotentialInlineSyntax(text, options, allowLinks, allowImages)
+            && !containsPotentialInlineSyntax
             // A syntax-capturing parse reaches the scanner below with a source map, where an angle
             // autolink parses even with inline HTML off; a semantic parse has to reach it too.
             && (state?.CaptureSyntaxTree != false || text.IndexOf('<') < 0)) {

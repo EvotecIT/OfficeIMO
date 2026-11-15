@@ -28,11 +28,12 @@ internal static partial class MarkdownReader {
                 }
 
                 // Indexes hold the paragraph text, so they don't outlive the parse that built them.
+                // The slot arrays stay for the next parse on this thread.
                 t_scopeDepth = 0;
-                t_bracketIndexes = null;
-                t_backtickIndexes = null;
-                t_forwardSearches = null;
-                t_wrapperIndexes = null;
+                Clear(t_bracketIndexes);
+                Clear(t_backtickIndexes);
+                Clear(t_forwardSearches);
+                Clear(t_wrapperIndexes);
                 t_lineVerdict = null;
             }
         }
@@ -192,6 +193,12 @@ internal static partial class MarkdownReader {
             }
         }
 
+        private static void Clear<T>(T?[]? entries) where T : class {
+            if (entries != null) {
+                Array.Clear(entries, 0, entries.Length);
+            }
+        }
+
         private static void MoveToFront<T>(T?[] entries, int index) where T : class {
             T? entry = entries[index];
             for (int i = index; i > 0; i--) {
@@ -252,9 +259,16 @@ internal static partial class MarkdownReader {
             MarkdownLoadOptions? options,
             bool inlineHtml,
             InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches) {
-            var openPositions = new List<int>();
-            var closePositions = new List<int>();
-            var openSlots = new Stack<int>();
+            // Scratch lists are reused per thread; a nested build (none is expected) takes fresh ones.
+            var openPositions = t_openPositions ?? new List<int>();
+            var closePositions = t_closePositions ?? new List<int>();
+            var openSlots = t_openSlots ?? new Stack<int>();
+            t_openPositions = null;
+            t_closePositions = null;
+            t_openSlots = null;
+            openPositions.Clear();
+            closePositions.Clear();
+            openSlots.Clear();
             var effectiveInlineHtmlWrapperMatches = inlineHtmlWrapperMatches;
 
             // Only escapes, brackets and the starts of skipped spans ('`' and '<') change the scan.
@@ -291,8 +305,20 @@ internal static partial class MarkdownReader {
                 i++;
             }
 
-            return new BracketMatchIndex(text, inlineHtml, inlineHtmlWrapperMatches, openPositions.ToArray(), closePositions.ToArray());
+            var index = new BracketMatchIndex(text, inlineHtml, inlineHtmlWrapperMatches, openPositions.ToArray(), closePositions.ToArray());
+            if (openPositions.Capacity <= MaximumRetainedScratchCapacity) {
+                t_openPositions = openPositions;
+                t_closePositions = closePositions;
+                t_openSlots = openSlots;
+            }
+
+            return index;
         }
+
+        private const int MaximumRetainedScratchCapacity = 1024;
+        [ThreadStatic] private static List<int>? t_openPositions;
+        [ThreadStatic] private static List<int>? t_closePositions;
+        [ThreadStatic] private static Stack<int>? t_openSlots;
     }
 
     // Positions of maximal backtick runs grouped by run length, in text order.
