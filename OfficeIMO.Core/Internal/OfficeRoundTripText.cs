@@ -173,7 +173,7 @@ internal static class OfficeRoundTripText
                 destination[position] = Unit(destination, 'Z');
                 return position + 1;
             case DateTimeKind.Local:
-                return WriteOffset(destination, position, TimeZoneInfo.Local.GetUtcOffset(value).Ticks);
+                return WriteLocalOffset(value, destination, position);
             default:
                 return position;
         }
@@ -271,6 +271,32 @@ internal static class OfficeRoundTripText
         }
 
         return end;
+    }
+
+    /// <summary>
+    /// Writes the offset of a local value as the runtime's <c>K</c> does. A <see cref="DateTimeOffset"/> takes it from
+    /// one snapshot of the time zone data, as <c>K</c> does; on the first and last day of the range, where that
+    /// offset could move the time out of range, the runtime writes it.
+    /// </summary>
+#if NETCOREAPP
+    private static int WriteLocalOffset<TChar>(DateTime value, Span<TChar> destination, int position) where TChar : unmanaged
+#else
+    private static int WriteLocalOffset(DateTime value, char[] destination, int position)
+#endif
+    {
+        long ticks = value.Ticks;
+        if (ticks >= TimeSpan.TicksPerDay && ticks <= DateTime.MaxValue.Ticks - TimeSpan.TicksPerDay)
+        {
+            return WriteOffset(destination, position, new DateTimeOffset(value).Offset.Ticks);
+        }
+
+        string offset = value.ToString("zzz", CultureInfo.InvariantCulture);
+        for (int index = 0; index < offset.Length; index++)
+        {
+            destination[position + index] = Unit(destination, offset[index]);
+        }
+
+        return position + offset.Length;
     }
 
     /// <summary>Writes an offset as +hh:mm or -hh:mm, as the runtime's <c>zzz</c> and <c>K</c> do.</summary>
