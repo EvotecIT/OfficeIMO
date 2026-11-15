@@ -38,16 +38,27 @@ namespace OfficeIMO.Pdf {
                 // Resolve newest declarations first. The successor index skips CIDs already
                 // resolved, so overlapping ranges visit each 16-bit CID at most once rather
                 // than expanding every range or scanning declarations for every glyph.
-                int[] next = new int[CidCodeCount + 1];
-                for (int cid = 0; cid <= CidCodeCount; cid++) next[cid] = cid;
+                // The index spans only the declared CIDs (plus one sentinel), not the whole 16-bit space:
+                // typical subset fonts declare a few hundred CIDs, and a full table is a large-object allocation.
+                int firstCid = int.MaxValue, lastCid = int.MinValue;
+                foreach (CidWidthRange range in ranges) {
+                    if (range.Last < range.First) continue;
+                    firstCid = Math.Min(firstCid, range.First);
+                    lastCid = Math.Max(lastCid, range.Last);
+                }
+                if (lastCid < firstCid) return;
+                int[] next = new int[lastCid - firstCid + 2];
+                for (int offset = 0; offset < next.Length; offset++) next[offset] = offset;
                 for (int index = ranges.Count - 1; index >= 0; index--) {
                     CidWidthRange range = ranges[index];
-                    for (int cid = FindNextCid(next, range.First); cid <= range.Last; cid = FindNextCid(next, cid)) {
+                    if (range.Last < range.First) continue;
+                    for (int cid = firstCid + FindNextCid(next, range.First - firstCid); cid <= range.Last;
+                        cid = firstCid + FindNextCid(next, cid - firstCid)) {
                         if (!entries.TryGetValue(cid, out CidWidthEntry entry) || range.Order > entry.Order) {
                             if (_indexedWidths != null) _indexedWidths[cid] = range.Width;
                             else entries[cid] = new CidWidthEntry(range.Width, range.Order);
                         }
-                        next[cid] = FindNextCid(next, cid + 1);
+                        next[cid - firstCid] = FindNextCid(next, cid - firstCid + 1);
                     }
                 }
             }
