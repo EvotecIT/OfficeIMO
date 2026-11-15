@@ -53,7 +53,7 @@ Limits: the default `RasterizeWhenNeeded` policy falls back to PNG when SVG impo
 
 ## QR codes and barcodes with CodeGlyphX
 
-Each format has its own small adapter, so a Word application adds only the Word one. The adapter brings [CodeGlyphX](https://github.com/EvotecIT/CodeGlyphX) with it and adds `AddQrCode` and `AddBarcode` where content is added.
+Each format has its own small adapter, so a Word application adds only the Word one. The adapter brings [CodeGlyphX](https://codeglyphx.com/) with it and adds `AddQrCode` and `AddBarcode` where content is added.
 
 ```shell
 dotnet add package OfficeIMO.Word.CodeGlyphX
